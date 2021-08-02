@@ -16,6 +16,8 @@ const Sunburst = ({ data }: { data: VideoGame[] }) => {
   const [group3, setGroup3] = useState<keyof VideoGame>("company");
 
   const [countProp, setCountProp] = useState<"Hours" | "Count">("Count");
+  const [filterPokemon, setFilterPokemon] = useState(false);
+  const [filterUncofirmed, setFilterUnconfirmed] = useState(false);
 
   const keyToVal = (game: VideoGame, key: keyof VideoGame): string => {
     const val = game[key];
@@ -38,6 +40,24 @@ const Sunburst = ({ data }: { data: VideoGame[] }) => {
 
     if (countProp === "Hours" && curr.hours === undefined) {
       return prev;
+    }
+
+    if (filterPokemon && curr.franchise === "Pokémon") {
+      return prev;
+    }
+
+    if (filterUncofirmed) {
+      if (curr.platform === "PC") {
+        if (!curr.startDate?.getFullYear() || curr.startDate?.getFullYear() < 2015) return prev;
+        // if (curr.genre.includes('Visual Novel')) return prev;
+      } else if (
+        curr.platform !== "Nintendo Switch" &&
+        curr.platform !== "Nintendo 3DS" &&
+        curr.platform !== "PlayStation 4" &&
+        curr.platform !== "PlayStation 5"
+      ) {
+        return prev;
+      }
     }
 
     prev[group3Val] = prev[group3Val] || {};
@@ -109,19 +129,43 @@ const Sunburst = ({ data }: { data: VideoGame[] }) => {
     <div>
       <select value={group1} onChange={(event) => setGroup1(event.target.value as keyof VideoGame)}>
         {options.map((option) => (
-          <option key={option} value={option}>{option}</option>
+          <option key={option} value={option}>
+            {option}
+          </option>
         ))}
       </select>
       <select value={group2} onChange={(event) => setGroup2(event.target.value as keyof VideoGame)}>
         {options.map((option) => (
-          <option key={option} value={option}>{option}</option>
+          <option key={option} value={option}>
+            {option}
+          </option>
         ))}
       </select>
       <select value={group3} onChange={(event) => setGroup3(event.target.value as keyof VideoGame)}>
         {options.map((option) => (
-          <option key={option} value={option}>{option}</option>
+          <option key={option} value={option}>
+            {option}
+          </option>
         ))}
       </select>
+      <label>
+        Filter Pokemon:
+        <input
+          name="Filter Pokemon"
+          type="checkbox"
+          checked={filterPokemon}
+          onChange={() => setFilterPokemon(!filterPokemon)}
+        />
+      </label>
+      <label>
+        Filter Unconfirmed:
+        <input
+          name="Filter Unconfirmed"
+          type="checkbox"
+          checked={filterUncofirmed}
+          onChange={() => setFilterUnconfirmed(!filterUncofirmed)}
+        />
+      </label>
       <div>
         <input
           type="radio"

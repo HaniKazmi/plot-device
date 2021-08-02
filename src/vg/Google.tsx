@@ -56,7 +56,7 @@ const loadGapi = (setIsSignedIn: (b: boolean) => void) => {
           clientId: CLIENT_ID,
           apiKey: API_KEY,
           discoveryDocs: DISCOVERY_DOCS,
-          scope: "https://www.googleapis.com/auth/spreadsheets",
+          scope: "https://www.googleapis.com/auth/spreadsheets.readonly",
         })
         .then(() => {
           const authInstance = gapi.auth2.getAuthInstance();

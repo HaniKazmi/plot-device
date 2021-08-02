@@ -28,11 +28,23 @@ const Timeline = ({ data }: { data: VideoGame[] }) => {
 
   return (
     <div>
-      <button onClick={() => setGroupData(!groupData)}>Toggle Group</button>
-      <button onClick={() => setFilterEndless(!filterEndless)}>Filter Endless</button>
+      <label>
+        Group Data:
+        <input name="Group Data" type="checkbox" checked={groupData} onChange={() => setGroupData(!groupData)} />
+      </label>
+      <label>
+        Filter Endless:
+        <input
+          name="Filter Endless"
+          type="checkbox"
+          checked={filterEndless}
+          onChange={() => setFilterEndless(!filterEndless)}
+        />
+      </label>
+
       <br />
       <div style={{ overflow: "auto", overflowY: "clip" }}>
-        <Chart style={{ width: "400vw", height: "60vh" }} chartType="Timeline" data={timelineData.concat(gameData)} />
+        <Chart style={{ width: "400vw", height: "65vh" }} chartType="Timeline" data={timelineData.concat(gameData)} />
       </div>
     </div>
   );
