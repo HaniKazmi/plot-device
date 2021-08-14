@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
+// eslint-disable-next-line
 import App from './finance/App';
 import * as serviceWorker from './serviceWorker';
 import Google from './vg/Google';
@@ -10,7 +11,7 @@ import Google from './vg/Google';
 ReactDOM.render(
   <React.StrictMode>
     <Google />
-    <App />
+    {/*<App />*/}
   </React.StrictMode>,
   document.getElementById('root')
 );

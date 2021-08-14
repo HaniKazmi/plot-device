@@ -1,119 +1,63 @@
-import { VideoGame } from "./Types";
+import { useEffect, useMemo, useState } from "react";
 import Plot from "react-plotly.js";
-import { useState } from "react";
+import { CheckBox } from "./CheckBox";
+import { isVideoGame, VideoGame, VideoGameKeys, VideoGameTree } from "./Types";
 
-const Charts = ({ data }: { data: VideoGame[] }) => {
+interface SunburstData {
+  ids: string[];
+  labels: string[];
+  parents: string[];
+  values: number[];
+}
+
+type SunBurstValue = "Hours" | "Count";
+
+const Sunburst = ({ data }: { data: VideoGame[] }) => {
+  const [{ ids, labels, parents, values }, setSunburstData] = useState<SunburstData>({
+    ids: [],
+    labels: [],
+    parents: [],
+    values: []
+  });
+
   return (
     <div>
-      <Sunburst data={data} />
+      <SunBurstControls data={data} setSunburstData={setSunburstData} />
+      <Plot
+        style={{ width: "100vw", height: "95vh" }}
+        data={[
+          {
+            labels, parents, values, ids,
+            type: "sunburst",
+            branchvalues: "total",
+            //@ts-ignore
+            maxdepth: 3,
+            sort: false
+          }
+        ]}
+        config={{ displayModeBar: false, responsive: true }}
+        layout={{ margin: { l: 0, r: 0, b: 0, t: 0 } }}
+      />
     </div>
   );
 };
 
-const Sunburst = ({ data }: { data: VideoGame[] }) => {
-  const [group1, setGroup1] = useState<keyof VideoGame>("franchise");
-  const [group2, setGroup2] = useState<keyof VideoGame>("platform");
-  const [group3, setGroup3] = useState<keyof VideoGame>("company");
+const SunBurstControls = ({ data, setSunburstData }:
+                            { data: VideoGame[], setSunburstData: (d: SunburstData) => void }) => {
+  const [group1, setGroup1] = useState<VideoGameKeys>("company");
+  const [group2, setGroup2] = useState<VideoGameKeys>("platform");
+  const [group3, setGroup3] = useState<VideoGameKeys>("franchise");
 
-  const [countProp, setCountProp] = useState<"Hours" | "Count">("Count");
+  const [valueProp, setValueProp] = useState<SunBurstValue>("Count");
   const [filterPokemon, setFilterPokemon] = useState(false);
-  const [filterUncofirmed, setFilterUnconfirmed] = useState(false);
+  const [filterUnconfirmed, setFilterUnconfirmed] = useState(false);
 
-  const keyToVal = (game: VideoGame, key: keyof VideoGame): string => {
-    const val = game[key];
-    if (key === "startDate" && val) {
-      return (val as Date).getFullYear().toString();
-    } else {
-      return val as string;
-    }
-  };
+  const sunburstData = useMemo(() => dataToSunburstData(data, [group1, group2, group3], valueProp, filterUnconfirmed, filterPokemon),
+    [data, group1, group2, group3, valueProp, filterUnconfirmed, filterPokemon]);
 
-  const grouped = data.reduce((prev, curr) => {
-    const group1Val = keyToVal(curr, group1);
-    const group2Val = keyToVal(curr, group2);
-    const group3Val = keyToVal(curr, group3);
-    const gameVal = curr.game;
+  useEffect(() => setSunburstData(sunburstData), [sunburstData, setSunburstData]);
 
-    if (group1Val === undefined || group2Val === undefined || group3Val === undefined) {
-      return prev;
-    }
-
-    if (countProp === "Hours" && curr.hours === undefined) {
-      return prev;
-    }
-
-    if (filterPokemon && curr.franchise === "Pokémon") {
-      return prev;
-    }
-
-    if (filterUncofirmed) {
-      if (curr.platform === "PC") {
-        if (!curr.startDate?.getFullYear() || curr.startDate?.getFullYear() < 2015) return prev;
-        // if (curr.genre.includes('Visual Novel')) return prev;
-      } else if (
-        curr.platform !== "Nintendo Switch" &&
-        curr.platform !== "Nintendo 3DS" &&
-        curr.platform !== "PlayStation 4" &&
-        curr.platform !== "PlayStation 5"
-      ) {
-        return prev;
-      }
-    }
-
-    prev[group3Val] = prev[group3Val] || {};
-    prev[group3Val][group2Val] = prev[group3Val][group2Val] || {};
-    prev[group3Val][group2Val][group1Val] = prev[group3Val][group2Val][group1Val] || {};
-    prev[group3Val][group2Val][group1Val][gameVal] = prev[group3Val][group2Val][group1Val][gameVal] || 0;
-
-    prev[group3Val][group2Val][group1Val][gameVal] += countProp === "Hours" ? parseInt(curr.hours!) : 1;
-    return prev;
-  }, {} as Record<string, Record<string, Record<string, Record<string, number>>>>);
-
-  const ids: string[] = [];
-  const labels: string[] = [];
-  const parents: string[] = [];
-  const values: number[] = [];
-
-  Object.entries(grouped)
-    .sort(([val], [val2]) => val.localeCompare(val2))
-    .forEach(([company, platforms]) => {
-      let companyTotal = 0;
-      Object.entries(platforms)
-        .sort(([val], [val2]) => val.localeCompare(val2))
-        .forEach(([platform, formats]) => {
-          let platformTotal = 0;
-          Object.entries(formats)
-            .sort(([val], [val2]) => val.localeCompare(val2))
-            .forEach(([format, games]) => {
-              let gameTotal = 0;
-              Object.entries(games)
-                .sort(([val], [val2]) => val.localeCompare(val2))
-                .forEach(([game, count]) => {
-                  labels.push(game);
-                  parents.push(`${company}-${platform}-${format}`);
-                  values.push(count);
-                  ids.push(`${company}-${platform}-${format}-${game}`);
-                  gameTotal += count;
-                });
-              labels.push(format);
-              parents.push(`${company}-${platform}`);
-              values.push(gameTotal);
-              ids.push(`${company}-${platform}-${format}`);
-              platformTotal += gameTotal;
-            });
-          labels.push(platform);
-          parents.push(company);
-          values.push(platformTotal);
-          ids.push(`${company}-${platform}`);
-          companyTotal += platformTotal;
-        });
-      labels.push(company);
-      parents.push("");
-      values.push(companyTotal);
-      ids.push(`${company}`);
-    });
-
-  const options: (keyof VideoGame)[] = [
+  const options: VideoGameKeys[] = [
     "company",
     "format",
     "franchise",
@@ -122,86 +66,118 @@ const Sunburst = ({ data }: { data: VideoGame[] }) => {
     "publisher",
     "rating",
     "status",
-    "startDate",
+    "startDate"
   ];
+
+  const SelectBox = ({ value, setValue }: { value: VideoGameKeys, setValue: (func: VideoGameKeys) => void }) => (
+    <select value={value} onChange={(event) => setValue(event.target.value as VideoGameKeys)}>
+      {options.map((option) => (
+        <option key={option} value={option}>
+          {option}
+        </option>
+      ))}
+    </select>
+  );
 
   return (
     <div>
-      <select value={group1} onChange={(event) => setGroup1(event.target.value as keyof VideoGame)}>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-      <select value={group2} onChange={(event) => setGroup2(event.target.value as keyof VideoGame)}>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-      <select value={group3} onChange={(event) => setGroup3(event.target.value as keyof VideoGame)}>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-      <label>
-        Filter Pokemon:
-        <input
-          name="Filter Pokemon"
-          type="checkbox"
-          checked={filterPokemon}
-          onChange={() => setFilterPokemon(!filterPokemon)}
-        />
-      </label>
-      <label>
-        Filter Unconfirmed:
-        <input
-          name="Filter Unconfirmed"
-          type="checkbox"
-          checked={filterUncofirmed}
-          onChange={() => setFilterUnconfirmed(!filterUncofirmed)}
-        />
-      </label>
+      <SelectBox value={group1} setValue={setGroup1} />
+      <SelectBox value={group2} setValue={setGroup2} />
+      <SelectBox value={group3} setValue={setGroup3} />
+      <br />
+      <CheckBox label="Filter Pokemon" value={filterPokemon} setValue={setFilterPokemon} />
+      <CheckBox label="Filter Unconfirmed" value={filterUnconfirmed} setValue={setFilterUnconfirmed} />
+
       <div>
         <input
           type="radio"
           value="Count"
           name="count"
           defaultChecked={true}
-          onChange={(event) => setCountProp(event.currentTarget.value as any)}
-        />{" "}
+          onChange={(event) => setValueProp(event.currentTarget.value as any)}
+        />
         Count
         <input
           type="radio"
           value="Hours"
           name="count"
-          onChange={(event) => setCountProp(event.currentTarget.value as any)}
-        />{" "}
+          onChange={(event) => setValueProp(event.currentTarget.value as any)}
+        />
         Hours
       </div>
-      <Plot
-        style={{ width: "100vw", height: "95vh" }}
-        data={[
-          {
-            labels,
-            parents,
-            values,
-            ids,
-            type: "sunburst",
-            branchvalues: "total",
-            sort: false,
-            maxdepth: 3,
-          } as any,
-        ]}
-        config={{ displayModeBar: false, responsive: true }}
-        layout={{ margin: { l: 0, r: 0, b: 0, t: 0 } } as any}
-      />
     </div>
   );
 };
 
-export default Charts;
+const dataToSunburstData = (data: VideoGame[], groups: (VideoGameKeys)[],
+                            countProp: SunBurstValue, filterUnconfirmed: boolean, filterPokemon: boolean) => {
+  const keyToVal = (game: VideoGame, key: VideoGameKeys) => {
+    const val = game[key];
+    if (key === "startDate" && val) {
+      return (val as Date).getFullYear().toString();
+    }
+    return val as string;
+  };
+
+  const grouped = data
+    .filter(curr => {
+      if (countProp === "Hours" && curr.hours === undefined) return false;
+      if (filterPokemon && curr.franchise === "Pokémon") return false;
+
+      if (filterUnconfirmed) {
+        if (curr.platform === "PC") {
+          if (!curr.startDate?.getFullYear() || curr.startDate?.getFullYear() < 2015) return false;
+        } else if (
+          curr.platform !== "Nintendo Switch" &&
+          curr.platform !== "Nintendo 3DS" &&
+          curr.platform !== "PlayStation 4" &&
+          curr.platform !== "PlayStation 5"
+        ) return false;
+      }
+
+      return true;
+    })
+    .reduce((tree, game) => {
+      const groupVals = groups.map(group => keyToVal(game, group));
+      if ((groupVals as any[]).includes(undefined)) return tree;
+      let obj = tree;
+      groupVals.forEach(val => obj = obj[val] = obj[val] as VideoGameTree || {});
+      obj[game.game] = game;
+      return tree;
+    }, {} as VideoGameTree);
+
+  const ids: string[] = [];
+  const labels: string[] = [];
+  const parents: string[] = [];
+  const values: number[] = [];
+
+  const recurseGroup = (tree: VideoGameTree, parent: string) => {
+    let total = 0;
+    Object.entries(tree)
+      .sort(([val], [val2]) => val.localeCompare(val2))
+      .forEach(([key, value]) => {
+        let count: number;
+        if (isVideoGame(value)) {
+          count = countProp === "Hours" ? parseInt(value.hours!) : 1;
+        } else {
+          count = recurseGroup(value, `${parent}-${key}`);
+        }
+
+        labels.push(key);
+        parents.push(parent);
+        values.push(count);
+        ids.push(`${parent}-${key}`);
+        total += count;
+      });
+
+    return total;
+  };
+
+  recurseGroup(grouped, "");
+
+  return {
+    labels, parents, values, ids
+  };
+};
+
+export default Sunburst;
