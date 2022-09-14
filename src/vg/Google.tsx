@@ -1,6 +1,6 @@
 import { Card, CardContent, Container, createTheme, Stack, ThemeProvider } from "@mui/material";
 import { useState, useEffect, ReactNode } from "react";
-import Goth from 'gothic'
+import Goth from "gothic";
 import Chart from "react-google-charts";
 import NavBar from "../NavBar";
 import Barchart from "./Barchart";
@@ -17,44 +17,44 @@ const SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
 
 const gothWatch = (setAuth: (b: boolean) => void) => {
   return (event: string) => {
-    console.log(event)
+    console.log(event);
     switch (event) {
-      case 'signin':
-        const gapiToken = gapi.auth.getToken()
-        const expiry = Date.now() + (parseInt(gapiToken.expires_in) * 1000)
-        sessionStorage.setItem("gapi-token", JSON.stringify({ token: gapiToken, expiry: expiry }))
-        setAuth(true)
+      case "signin":
+        const gapiToken = gapi.auth.getToken();
+        const expiry = Date.now() + parseInt(gapiToken.expires_in) * 1000;
+        sessionStorage.setItem("gapi-token", JSON.stringify({ token: gapiToken, expiry: expiry }));
+        setAuth(true);
         break;
-      case 'revoke':
-      case 'signout':
-      case 'onetap_suppressed':
-        setAuth(false)
+      case "revoke":
+      case "signout":
+      case "onetap_suppressed":
+        setAuth(false);
         break;
-      case 'loaded':
-        const token = JSON.parse(sessionStorage.getItem("gapi-token")!)
+      case "loaded":
+        const token = JSON.parse(sessionStorage.getItem("gapi-token")!);
         if (token && token.expiry > Date.now()) {
-          console.log("Reusing Token")
-          gapi.auth.setToken(token.token)
-          setAuth(true)
+          console.log("Reusing Token");
+          gapi.auth.setToken(token.token);
+          setAuth(true);
         } else if (Goth.recognize()) {
-          console.log("One Tap")
+          console.log("One Tap");
           Goth.onetap();
         } else {
-          setAuth(false)
+          setAuth(false);
         }
         break;
       default:
     }
-  }
-}
+  };
+};
 
-const GoogleAuth = ({ children }: { children?: ReactNode}) => {
+const GoogleAuth = ({ children }: { children?: ReactNode }) => {
   const [auth, setAuth] = useState<boolean>();
 
   useEffect(() => {
     Goth.observe(gothWatch(setAuth));
-    Goth.load(CLIENT_ID, API_KEY, SCOPE, DISCOVERY_DOCS)
-  }, [])
+    Goth.load(CLIENT_ID, API_KEY, SCOPE, DISCOVERY_DOCS);
+  }, []);
 
   return (
     <>
@@ -83,14 +83,14 @@ const ShowsGraph = () => {
   }
 
   const showData = data
-    .filter(row => row["Show"] !== '')
-    .map(row => {
+    .filter((row) => row["Show"] !== "")
+    .map((row) => {
       return {
         show: row["Show"],
         status: row["Status"] as Platform,
         startDate: row["Start"] ? new Date(row["Start"]) : undefined,
         endDate: row["End"] ? new Date(row["End"]) : new Date(),
-        length: row["Length"]
+        length: row["Length"],
       };
     });
 
@@ -101,23 +101,24 @@ const ShowsGraph = () => {
       { type: "string", id: "*" },
       { type: "string", id: "Show" },
       { type: "date", id: "Start" },
-      { type: "date", id: "End" }
-    ]
+      { type: "date", id: "End" },
+    ],
   ];
 
   const gameData = showData
     // .filter(({ startDate }) => startDate?.getFullYear()! > 2014)
     .map((row) => ["*", row.show, row.startDate, row.endDate]);
 
-
   return (
-    <Card variant="outlined" >
-      <CardContent>
-        TV Shows
-      </CardContent>
+    <Card variant="outlined">
+      <CardContent>TV Shows</CardContent>
       <CardContent>
         <div style={{ overflow: "auto", overflowY: "clip" }}>
-          <Chart style={{ width: "400vw", height: "100vh" }} chartType="Timeline" data={timelineData.concat(gameData)} />
+          <Chart
+            style={{ width: "400vw", height: "100vh" }}
+            chartType="Timeline"
+            data={timelineData.concat(gameData)}
+          />
         </div>
       </CardContent>
     </Card>
@@ -125,12 +126,13 @@ const ShowsGraph = () => {
 };
 
 const date_diff_in_days = (dt1?: Date, dt2?: Date) => {
-  if (!dt1 || !dt2) return
+  if (!dt1 || !dt2) return;
   return Math.floor(
     (Date.UTC(dt2.getFullYear(), dt2.getMonth(), dt2.getDate()) -
       Date.UTC(dt1.getFullYear(), dt1.getMonth(), dt1.getDate())) /
-    (1000 * 60 * 60 * 24) + 1
-  )
+      (1000 * 60 * 60 * 24) +
+      1
+  );
 };
 
 const GamesGraphs = () => {
@@ -145,28 +147,29 @@ const GamesGraphs = () => {
     return <div />;
   }
 
-  const vgData: VideoGame[] = data.map(row => {
-    const startDate = row["Start Date"] ? new Date(row["Start Date"]) : undefined
-    const endDate = row["End Date"] ? new Date(row["End Date"]) : undefined;
-    endDate && row["End Date"].length < 5 && endDate.setFullYear(endDate.getFullYear() + 1);
-    return {
-      game: row["Game"],
-      platform: row["Platform"] as Platform,
-      company: row["Platform"].split(" ")[0]! as Company,
-      franchise: row["Franchise"],
-      genre: row["Genre"].split("\n"),
-      theme: row["Theme"].split("\n"),
-      format: row["Format"] as Format,
-      publisher: row["Publisher"],
-      rating: row["Rating"],
-      status: row["Status"] as Status,
-      exactDate: !!row["Start Date"] && row["Start Date"].length > 5,
-      startDate: startDate,
-      endDate: endDate || new Date(),
-      hours: row["Hours"],
-      numDays: date_diff_in_days(startDate, endDate)
-    };
-  })
+  const vgData: VideoGame[] = data
+    .map((row) => {
+      const startDate = row["Start Date"] ? new Date(row["Start Date"]) : undefined;
+      const endDate = row["End Date"] ? new Date(row["End Date"]) : undefined;
+      endDate && row["End Date"].length < 5 && endDate.setFullYear(endDate.getFullYear() + 1);
+      return {
+        game: row["Game"],
+        platform: row["Platform"] as Platform,
+        company: row["Platform"].split(" ")[0]! as Company,
+        franchise: row["Franchise"],
+        genre: row["Genre"].split("\n"),
+        theme: row["Theme"].split("\n"),
+        format: row["Format"] as Format,
+        publisher: row["Publisher"],
+        rating: row["Rating"],
+        status: row["Status"] as Status,
+        exactDate: !!row["Start Date"] && row["Start Date"].length > 5,
+        startDate: startDate,
+        endDate: endDate || new Date(),
+        hours: row["Hours"],
+        numDays: date_diff_in_days(startDate, endDate),
+      };
+    })
     .filter(filterFunc);
 
   const theme = createTheme({
@@ -174,9 +177,9 @@ const GamesGraphs = () => {
       MuiCard: {
         styleOverrides: {
           root: ({ theme }) => ({
-            '&:hover': {
-              boxShadow: theme.shadows[4]
-            }
+            "&:hover": {
+              boxShadow: theme.shadows[4],
+            },
           }),
         },
       },
@@ -198,9 +201,9 @@ const GamesGraphs = () => {
 
 const arrayToJson = (data: string[][]) => {
   const [header, ...rows] = data;
-  return rows.map(row => {
+  return rows.map((row) => {
     const json: Record<string, string> = {};
-    row.forEach((val, index) => json[header[index]] = val);
+    row.forEach((val, index) => (json[header[index]] = val));
     return json;
   });
 };
@@ -210,9 +213,9 @@ const getVgData = (setData: (b: Record<string, string>[]) => void) => {
   gapi.client.sheets.spreadsheets.values
     .get({
       spreadsheetId: "1JCAN_lB2QaVxj1rD4f88mN4tHjmhxF3CZlGtZGwYCLk",
-      range: "Games List!A:Z"
+      range: "Games List!A:Z",
     })
-    .then(response => response.result.values!)
+    .then((response) => response.result.values!)
     .then(arrayToJson)
     .then(setData);
 };
@@ -221,9 +224,9 @@ const getShowData = (setData: (b: Record<string, string>[]) => void) => {
   gapi.client.sheets.spreadsheets.values
     .get({
       spreadsheetId: "1M3om2DPLfRO5dKcUfYOIcSNoLThzMLp1iZLQX6qR3pY",
-      range: "Sheet1!A:H"
+      range: "Sheet1!A:H",
     })
-    .then(response => response.result.values!)
+    .then((response) => response.result.values!)
     .then(arrayToJson)
     .then(setData);
 };

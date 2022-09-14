@@ -1,1 +1,1 @@
-declare module 'gothic';
+declare module "gothic";

@@ -1,4 +1,4 @@
-export type KeysMatching<T, V> = keyof { [ P in keyof T as T[P] extends V ? P : never ] : P };
+export type KeysMatching<T, V> = keyof { [P in keyof T as T[P] extends V ? P : never]: P };
 export type Predicate<T> = (input: T) => boolean;
 
 export interface VideoGame {
@@ -24,8 +24,8 @@ export type VideoGameStringKeys = KeysMatching<VideoGame, string>;
 
 export type Format = "Physical" | "Digital" | "Pirated";
 export type Status = "Playing" | "Endless" | "Abandoned" | "Beat" | "Backlog";
-export type Company = "PlayStation" | "Nintendo" | "PC" | "iOS" | 'Xbox'
-export type Platform = `${Company}${string}`
+export type Company = "PlayStation" | "Nintendo" | "PC" | "iOS" | "Xbox";
+export type Platform = `${Company}${string}`;
 
 export interface VideoGameTree {
   [key: string]: VideoGameTree | VideoGame;

@@ -1,6 +1,6 @@
-import './App.css';
+import "./App.css";
 
-import Graph from './Graph'; 
+import Graph from "./Graph";
 
 function App() {
   return (

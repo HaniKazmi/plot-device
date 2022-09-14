@@ -12,36 +12,40 @@ interface SunburstData {
 }
 
 function isStringArray(x: any[]): x is string[] {
-  return x.every(i => typeof i === "string");
+  return x.every((i) => typeof i === "string");
 }
 
-type OptionKeys = KeysMatching<VideoGame, string | VideoGame["startDate"]>
+type OptionKeys = KeysMatching<VideoGame, string | VideoGame["startDate"]>;
 
-const Sunburst = ({ data, measure }: { data: VideoGame[], measure: Measure }) => {
+const Sunburst = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
   const [{ ids, labels, parents, values }, setSunburstData] = useState<SunburstData>({
     ids: [],
     labels: [],
     parents: [],
-    values: []
+    values: [],
   });
 
   return (
     <Card>
-      <CardHeader title="Sunburst" action={
-        <SunBurstControls data={data} setSunburstData={setSunburstData} measure={measure} />
-      } />
+      <CardHeader
+        title="Sunburst"
+        action={<SunBurstControls data={data} setSunburstData={setSunburstData} measure={measure} />}
+      />
       <CardContent>
         <Plot
           style={{ width: "100%", height: "95vh" }}
           data={[
             {
-              labels, parents, values, ids,
+              labels,
+              parents,
+              values,
+              ids,
               type: "sunburst",
               branchvalues: "total",
               //@ts-ignore
               maxdepth: 3,
-              sort: false
-            }
+              sort: false,
+            },
           ]}
           config={{ displayModeBar: false, responsive: true }}
           layout={{ margin: { l: 0, r: 0, b: 0, t: 0 } }}
@@ -60,34 +64,38 @@ const options: OptionKeys[] = [
   "publisher",
   "rating",
   "status",
-  "startDate"
+  "startDate",
 ];
 
-const SunBurstControls = ({ data, setSunburstData, measure }:
-  { data: VideoGame[], setSunburstData: (d: SunburstData) => void, measure: Measure }) => {
-  const groups = [
-    useState<OptionKeys>("company"),
-    useState<OptionKeys>("platform"),
-    useState<OptionKeys>("franchise")
-  ]
+const SunBurstControls = ({
+  data,
+  setSunburstData,
+  measure,
+}: {
+  data: VideoGame[];
+  setSunburstData: (d: SunburstData) => void;
+  measure: Measure;
+}) => {
+  const groups = [useState<OptionKeys>("company"), useState<OptionKeys>("platform"), useState<OptionKeys>("franchise")];
 
-  const groupVals = groups.map(([val]) => val)
+  const groupVals = groups.map(([val]) => val);
 
   useEffect(() => {
-    const sunburstData = dataToSunburstData(data, groupVals, measure)
-    setSunburstData(sunburstData)
-    // eslint-disable-next-line 
+    const sunburstData = dataToSunburstData(data, groupVals, measure);
+    setSunburstData(sunburstData);
+    // eslint-disable-next-line
   }, [setSunburstData, data, measure, ...groupVals]);
 
   return (
     <FormGroup>
-      {groups.map(([val, setVal]) => <SelectBox options={options} key={val} value={val} setValue={setVal} />)}
+      {groups.map(([val, setVal]) => (
+        <SelectBox options={options} key={val} value={val} setValue={setVal} />
+      ))}
     </FormGroup>
   );
 };
 
-const dataToSunburstData = (data: VideoGame[], groups: (OptionKeys)[],
-  measure: Measure) => {
+const dataToSunburstData = (data: VideoGame[], groups: OptionKeys[], measure: Measure) => {
   const keyToVal = (game: VideoGame, key: OptionKeys) => {
     const val = game[key];
     if (val instanceof Date) {
@@ -97,15 +105,15 @@ const dataToSunburstData = (data: VideoGame[], groups: (OptionKeys)[],
   };
 
   const grouped = data
-    .filter(curr => {
+    .filter((curr) => {
       if (measure === "Hours" && curr.hours === undefined) return false;
       return true;
     })
     .reduce((tree, game) => {
-      const groupVals = groups.map(group => keyToVal(game, group));
+      const groupVals = groups.map((group) => keyToVal(game, group));
       if (!isStringArray(groupVals)) return tree;
       let obj = tree;
-      groupVals.forEach(val => obj = obj[val] = (obj[val] as VideoGameTree) || {});
+      groupVals.forEach((val) => (obj = obj[val] = (obj[val] as VideoGameTree) || {}));
       obj[game.game] = game;
       return tree;
     }, {} as VideoGameTree);
@@ -140,7 +148,10 @@ const dataToSunburstData = (data: VideoGame[], groups: (OptionKeys)[],
   recurseGroup(grouped, "");
 
   return {
-    labels, parents, values, ids
+    labels,
+    parents,
+    values,
+    ids,
   };
 };
 

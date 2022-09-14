@@ -13,8 +13,8 @@ const Timeline = ({ data }: { data: VideoGame[] }) => {
       { type: "string", id: "Game" },
       { type: "string", role: "tooltip" },
       { type: "date", id: "Start" },
-      { type: "date", id: "End" }
-    ]
+      { type: "date", id: "End" },
+    ],
   ];
 
   const gameData = data
@@ -22,29 +22,36 @@ const Timeline = ({ data }: { data: VideoGame[] }) => {
     .filter(({ startDate }) => startDate?.getFullYear()! > 2014)
     .map((row) => [groupFunc(row), row.game, tooltip(row), row.startDate, row.endDate]);
 
-  let chartHeight: string
+  let chartHeight: string;
 
   if (groupData) chartHeight = "55vh";
   else chartHeight = "30vh";
 
   return (
     <Card>
-      <CardHeader title="Timeline" action={
-        <FormGroup row>
-          <FormControlLabel
-            label="Group Data"
-            control={<Switch
-              checked={groupData}
-              onChange={(_, checked) => setGroupData(checked)} />} />
-        </FormGroup>
-      } />
+      <CardHeader
+        title="Timeline"
+        action={
+          <FormGroup row>
+            <FormControlLabel
+              label="Group Data"
+              control={<Switch checked={groupData} onChange={(_, checked) => setGroupData(checked)} />}
+            />
+          </FormGroup>
+        }
+      />
       <CardContent>
         <div style={{ overflowX: "auto", overflowY: "hidden" }}>
-          <Chart key={chartHeight} width="400vw" height={chartHeight} chartType="Timeline" data={timelineHeader.concat(gameData)} />
+          <Chart
+            key={chartHeight}
+            width="400vw"
+            height={chartHeight}
+            chartType="Timeline"
+            data={timelineHeader.concat(gameData)}
+          />
         </div>
       </CardContent>
     </Card>
-
   );
 };
 
@@ -68,7 +75,7 @@ const tooltip = (row: VideoGame) =>
             </li>
             <li>
                 <span><b>Days: </b></span>
-                <span>${row.numDays || '-'}</span>
+                <span>${row.numDays || "-"}</span>
             </li>
         </ul>
     </div>
