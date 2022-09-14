@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { Card, CardContent, CardHeader, FormGroup } from "@mui/material";
+import { useEffect, useState } from "react";
 import Plot from "react-plotly.js";
-import { CheckBox } from "./CheckBox";
-import { isVideoGame, VideoGame, VideoGameKeys, VideoGameTree } from "./Types";
+import { SelectBox } from "./SelectionComponents";
+import { isVideoGame, KeysMatching, Measure, VideoGame, VideoGameTree } from "./Types";
 
 interface SunburstData {
   ids: string[];
@@ -10,9 +11,13 @@ interface SunburstData {
   values: number[];
 }
 
-type SunBurstValue = "Hours" | "Count";
+function isStringArray(x: any[]): x is string[] {
+  return x.every(i => typeof i === "string");
+}
 
-const Sunburst = ({ data }: { data: VideoGame[] }) => {
+type OptionKeys = KeysMatching<VideoGame, string | VideoGame["startDate"]>
+
+const Sunburst = ({ data, measure }: { data: VideoGame[], measure: Measure }) => {
   const [{ ids, labels, parents, values }, setSunburstData] = useState<SunburstData>({
     ids: [],
     labels: [],
@@ -21,127 +26,86 @@ const Sunburst = ({ data }: { data: VideoGame[] }) => {
   });
 
   return (
-    <div>
-      <SunBurstControls data={data} setSunburstData={setSunburstData} />
-      <Plot
-        style={{ width: "100vw", height: "95vh" }}
-        data={[
-          {
-            labels, parents, values, ids,
-            type: "sunburst",
-            branchvalues: "total",
-            //@ts-ignore
-            maxdepth: 3,
-            sort: false
-          }
-        ]}
-        config={{ displayModeBar: false, responsive: true }}
-        layout={{ margin: { l: 0, r: 0, b: 0, t: 0 } }}
-      />
-    </div>
+    <Card>
+      <CardHeader title="Sunburst" action={
+        <SunBurstControls data={data} setSunburstData={setSunburstData} measure={measure} />
+      } />
+      <CardContent>
+        <Plot
+          style={{ width: "100%", height: "95vh" }}
+          data={[
+            {
+              labels, parents, values, ids,
+              type: "sunburst",
+              branchvalues: "total",
+              //@ts-ignore
+              maxdepth: 3,
+              sort: false
+            }
+          ]}
+          config={{ displayModeBar: false, responsive: true }}
+          layout={{ margin: { l: 0, r: 0, b: 0, t: 0 } }}
+        />
+      </CardContent>
+    </Card>
   );
 };
 
-const SunBurstControls = ({ data, setSunburstData }:
-                            { data: VideoGame[], setSunburstData: (d: SunburstData) => void }) => {
-  const [group1, setGroup1] = useState<VideoGameKeys>("company");
-  const [group2, setGroup2] = useState<VideoGameKeys>("platform");
-  const [group3, setGroup3] = useState<VideoGameKeys>("franchise");
+const options: OptionKeys[] = [
+  "company",
+  "format",
+  "franchise",
+  "game",
+  "platform",
+  "publisher",
+  "rating",
+  "status",
+  "startDate"
+];
 
-  const [valueProp, setValueProp] = useState<SunBurstValue>("Count");
-  const [filterPokemon, setFilterPokemon] = useState(false);
-  const [filterUnconfirmed, setFilterUnconfirmed] = useState(false);
+const SunBurstControls = ({ data, setSunburstData, measure }:
+  { data: VideoGame[], setSunburstData: (d: SunburstData) => void, measure: Measure }) => {
+  const groups = [
+    useState<OptionKeys>("company"),
+    useState<OptionKeys>("platform"),
+    useState<OptionKeys>("franchise")
+  ]
 
-  const sunburstData = useMemo(() => dataToSunburstData(data, [group1, group2, group3], valueProp, filterUnconfirmed, filterPokemon),
-    [data, group1, group2, group3, valueProp, filterUnconfirmed, filterPokemon]);
+  const groupVals = groups.map(([val]) => val)
 
-  useEffect(() => setSunburstData(sunburstData), [sunburstData, setSunburstData]);
-
-  const options: VideoGameKeys[] = [
-    "company",
-    "format",
-    "franchise",
-    "game",
-    "platform",
-    "publisher",
-    "rating",
-    "status",
-    "startDate"
-  ];
-
-  const SelectBox = ({ value, setValue }: { value: VideoGameKeys, setValue: (func: VideoGameKeys) => void }) => (
-    <select value={value} onChange={(event) => setValue(event.target.value as VideoGameKeys)}>
-      {options.map((option) => (
-        <option key={option} value={option}>
-          {option}
-        </option>
-      ))}
-    </select>
-  );
+  useEffect(() => {
+    const sunburstData = dataToSunburstData(data, groupVals, measure)
+    setSunburstData(sunburstData)
+    // eslint-disable-next-line 
+  }, [setSunburstData, data, measure, ...groupVals]);
 
   return (
-    <div>
-      <SelectBox value={group1} setValue={setGroup1} />
-      <SelectBox value={group2} setValue={setGroup2} />
-      <SelectBox value={group3} setValue={setGroup3} />
-      <br />
-      <CheckBox label="Filter Pokemon" value={filterPokemon} setValue={setFilterPokemon} />
-      <CheckBox label="Filter Unconfirmed" value={filterUnconfirmed} setValue={setFilterUnconfirmed} />
-
-      <div>
-        <input
-          type="radio"
-          value="Count"
-          name="count"
-          defaultChecked={true}
-          onChange={(event) => setValueProp(event.currentTarget.value as any)}
-        />
-        Count
-        <input
-          type="radio"
-          value="Hours"
-          name="count"
-          onChange={(event) => setValueProp(event.currentTarget.value as any)}
-        />
-        Hours
-      </div>
-    </div>
+    <FormGroup>
+      {groups.map(([val, setVal]) => <SelectBox options={options} key={val} value={val} setValue={setVal} />)}
+    </FormGroup>
   );
 };
 
-const dataToSunburstData = (data: VideoGame[], groups: (VideoGameKeys)[],
-                            countProp: SunBurstValue, filterUnconfirmed: boolean, filterPokemon: boolean) => {
-  const keyToVal = (game: VideoGame, key: VideoGameKeys) => {
+const dataToSunburstData = (data: VideoGame[], groups: (OptionKeys)[],
+  measure: Measure) => {
+  const keyToVal = (game: VideoGame, key: OptionKeys) => {
     const val = game[key];
-    if (key === "startDate" && val) {
-      return (val as Date).getFullYear().toString();
+    if (val instanceof Date) {
+      return val.getFullYear().toString();
     }
-    return val as string;
+    return val;
   };
 
   const grouped = data
     .filter(curr => {
-      if (countProp === "Hours" && curr.hours === undefined) return false;
-      if (filterPokemon && curr.franchise === "Pokémon") return false;
-
-      if (filterUnconfirmed) {
-        if (curr.platform === "PC") {
-          if (!curr.startDate?.getFullYear() || curr.startDate?.getFullYear() < 2015) return false;
-        } else if (
-          curr.platform !== "Nintendo Switch" &&
-          curr.platform !== "Nintendo 3DS" &&
-          curr.platform !== "PlayStation 4" &&
-          curr.platform !== "PlayStation 5"
-        ) return false;
-      }
-
+      if (measure === "Hours" && curr.hours === undefined) return false;
       return true;
     })
     .reduce((tree, game) => {
       const groupVals = groups.map(group => keyToVal(game, group));
-      if ((groupVals as any[]).includes(undefined)) return tree;
+      if (!isStringArray(groupVals)) return tree;
       let obj = tree;
-      groupVals.forEach(val => obj = obj[val] = obj[val] as VideoGameTree || {});
+      groupVals.forEach(val => obj = obj[val] = (obj[val] as VideoGameTree) || {});
       obj[game.game] = game;
       return tree;
     }, {} as VideoGameTree);
@@ -158,7 +122,7 @@ const dataToSunburstData = (data: VideoGame[], groups: (VideoGameKeys)[],
       .forEach(([key, value]) => {
         let count: number;
         if (isVideoGame(value)) {
-          count = countProp === "Hours" ? parseInt(value.hours!) : 1;
+          count = measure === "Hours" ? parseInt(value.hours!) : 1;
         } else {
           count = recurseGroup(value, `${parent}-${key}`);
         }

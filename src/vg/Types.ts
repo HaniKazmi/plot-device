@@ -1,3 +1,6 @@
+export type KeysMatching<T, V> = keyof { [ P in keyof T as T[P] extends V ? P : never ] : P };
+export type Predicate<T> = (input: T) => boolean;
+
 export interface VideoGame {
   game: string;
   platform: Platform;
@@ -13,9 +16,11 @@ export interface VideoGame {
   startDate?: Date;
   endDate?: Date;
   hours?: string;
+  numDays?: number;
 }
 
 export type VideoGameKeys = keyof VideoGame;
+export type VideoGameStringKeys = KeysMatching<VideoGame, string>;
 
 export type Format = "Physical" | "Digital" | "Pirated";
 export type Status = "Playing" | "Endless" | "Abandoned" | "Beat" | "Backlog";
@@ -27,3 +32,5 @@ export interface VideoGameTree {
 }
 
 export const isVideoGame = (arg: VideoGameTree | VideoGame): arg is VideoGame => !!arg.game;
+
+export type Measure = "Hours" | "Count";

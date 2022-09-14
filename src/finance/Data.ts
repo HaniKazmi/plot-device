@@ -1,4 +1,4 @@
-import parse from 'csv-parse/lib/sync'
+import { parse } from 'csv-parse/sync'
 import transactionUrl from './data-set/Transaction Export 23-07-2021.csv';
 
 export interface CsvData {
