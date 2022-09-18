@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, FormControlLabel, FormGroup, Switch } from "@mui/material";
 import { useState } from "react";
 import Chart from "react-google-charts";
-import { VideoGame } from "./Types";
+import { VideoGame } from "./types";
 
 const Timeline = ({ data }: { data: VideoGame[] }) => {
   const [groupData, setGroupData] = useState(false);

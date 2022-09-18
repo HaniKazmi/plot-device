@@ -1,8 +1,8 @@
 import { Card, CardContent, CardHeader, FormGroup } from "@mui/material";
 import { useEffect, useState } from "react";
-import Plot from "react-plotly.js";
+import Plot from "../plotly"
 import { SelectBox } from "./SelectionComponents";
-import { isVideoGame, KeysMatching, Measure, VideoGame, VideoGameTree } from "./Types";
+import { isVideoGame, KeysMatching, Measure, VideoGame, VideoGameTree } from "./types";
 
 interface SunburstData {
   ids: string[];
@@ -11,9 +11,7 @@ interface SunburstData {
   values: number[];
 }
 
-function isStringArray(x: any[]): x is string[] {
-  return x.every((i) => typeof i === "string");
-}
+const isStringArray = (x: any[]): x is string[] => x.every((i) => typeof i === "string");
 
 type OptionKeys = KeysMatching<VideoGame, string | VideoGame["startDate"]>;
 
@@ -76,8 +74,11 @@ const SunBurstControls = ({
   setSunburstData: (d: SunburstData) => void;
   measure: Measure;
 }) => {
-  const groups = [useState<OptionKeys>("company"), useState<OptionKeys>("platform"), useState<OptionKeys>("franchise")];
-
+  const groups = [
+    useState<OptionKeys>("company"),
+    useState<OptionKeys>("platform"),
+    useState<OptionKeys>("franchise")
+  ];
   const groupVals = groups.map(([val]) => val);
 
   useEffect(() => {

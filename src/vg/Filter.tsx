@@ -1,7 +1,7 @@
 import { FilterAlt, AllInclusive, QuestionMark, CatchingPokemon, Timer, Functions } from "@mui/icons-material";
 import { SpeedDial, SpeedDialIcon, SpeedDialAction, Stack, Fab } from "@mui/material";
 import { useEffect, useState } from "react";
-import { Measure, Predicate, VideoGame } from "./Types";
+import { Measure, Predicate, VideoGame } from "./types";
 
 const Filter = ({
   setFilterFunc,
@@ -22,18 +22,17 @@ const Filter = ({
       filterPokemon ? ({ franchise }: VideoGame) => franchise !== "Pokémon" : () => true,
       filterUnconfirmed
         ? ({ platform, startDate }: VideoGame) => {
-            if (platform === "PC") {
-              if (!startDate?.getFullYear() || startDate?.getFullYear() < 2015) return false;
-            } else if (
-              platform !== "Nintendo Switch" &&
-              platform !== "Nintendo 3DS" &&
-              platform !== "PlayStation 4" &&
-              platform !== "PlayStation 5"
-            )
-              return false;
+          if (platform === "PC") {
+            if (!startDate?.getFullYear() || startDate?.getFullYear() < 2015) return false;
+          } else if (
+            platform !== "Nintendo Switch" &&
+            platform !== "Nintendo 3DS" &&
+            platform !== "PlayStation 4" &&
+            platform !== "PlayStation 5"
+          ) return false;
 
-            return true;
-          }
+          return true;
+        }
         : () => true,
     ];
     setFilterFunc(() => (vgData: VideoGame) => filters.reduce((p, c) => p && c(vgData), true));

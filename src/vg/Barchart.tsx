@@ -1,8 +1,8 @@
-import { Card, CardHeader, CardContent } from "@mui/material";
+import { Card, CardContent, CardHeader } from "@mui/material";
 import { useState } from "react";
-import Plot from "react-plotly.js";
+import Plot from "../plotly"
 import { SelectBox } from "./SelectionComponents";
-import { Measure, VideoGame, VideoGameStringKeys } from "./Types";
+import { Measure, VideoGame, VideoGameStringKeys } from "./types";
 
 const options: (VideoGameStringKeys | "none")[] = [
   "none",

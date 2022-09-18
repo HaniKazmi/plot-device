@@ -13,7 +13,7 @@ import {
 } from "@mui/material";
 import Grid from "@mui/material/Unstable_Grid2";
 import { Fragment } from "react";
-import { VideoGame } from "./Types";
+import { VideoGame } from "./types";
 
 const Stats = ({ data }: { data: VideoGame[] }) => {
   return (
