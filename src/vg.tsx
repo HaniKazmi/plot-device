@@ -9,14 +9,14 @@ import Stats from "./vg/Stats";
 import Sunburst from "./vg/Sunburst";
 import { Company, Format, Measure, Platform, Predicate, Status, VideoGame } from "./vg/types";
 
-const GamesGraphs = () => {
+const GamesGraphs = ({ hide } : { hide: boolean}) => {
   const [data, setData] = useState<Record<string, string>[]>();
   const [filterFunc, setFilterFunc] = useState<Predicate<VideoGame>>(() => () => true);
   const [measure, setMeasure] = useState<Measure>("Count");
 
   useEffect(() => getVgData(setData), []);
 
-  if (!data) {
+  if (!data || hide) {
     console.log("no data");
     return null;
   }
@@ -41,9 +41,9 @@ const GamesGraphs = () => {
         exactDate: !!row["Start Date"] && row["Start Date"].length > 5,
         startDate: startDate,
         endDate: endDate,
-        hours: row["Hours"],
+        hours: row["Hours"] ? parseInt(row["Hours"]) : undefined,
         numDays: dateDiffInDays(startDate, endDate),
-      };
+      } as VideoGame;
     })
     .filter(filterFunc);
 

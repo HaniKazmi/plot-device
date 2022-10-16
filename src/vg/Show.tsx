@@ -1,13 +1,13 @@
-import { Card, CardContent } from "@mui/material";
+import { Card, CardContent, CardHeader } from "@mui/material";
 import { useState, useEffect } from "react";
 import Chart from "react-google-charts";
 import { Platform } from "./types";
 
-const ShowsGraph = () => {
+const ShowsGraph = ({ hide }: { hide: boolean }) => {
   const [data, setData] = useState<Record<string, string>[]>();
   useEffect(() => getShowData(setData), []);
 
-  if (!data) {
+  if (!data || hide) {
     console.log("no data");
     return null;
   }
@@ -39,7 +39,7 @@ const ShowsGraph = () => {
 
   return (
     <Card variant="outlined">
-      <CardContent>TV Shows</CardContent>
+      <CardHeader title="TV Shows" />
       <CardContent>
         <div style={{ overflow: "auto", overflowY: "clip" }}>
           <Chart

@@ -131,7 +131,7 @@ const dataToSunburstData = (data: VideoGame[], groups: OptionKeys[], measure: Me
       .forEach(([key, value]) => {
         let count: number;
         if (isVideoGame(value)) {
-          count = measure === "Hours" ? parseInt(value.hours!) : 1;
+          count = measure === "Hours" ? value.hours! : 1;
         } else {
           count = recurseGroup(value, `${parent}-${key}`);
         }

@@ -18,8 +18,7 @@ const Timeline = ({ data }: { data: VideoGame[] }) => {
   ];
 
   const gameData = data
-    .filter(({ exactDate }) => exactDate)
-    .filter(({ startDate }) => startDate?.getFullYear()! > 2014)
+    .filter(({ exactDate, startDate }) => exactDate && startDate.getFullYear() > 2014)
     .map((row) => [groupFunc(row), row.game, tooltip(row), row.startDate, row.endDate]);
 
   let chartHeight: string;

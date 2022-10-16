@@ -32,7 +32,7 @@ const Stats = ({ data }: { data: VideoGame[] }) => {
 const format = new Intl.NumberFormat().format;
 
 const TotalTime = ({ data }: { data: VideoGame[] }) => {
-  const total = format(data.filter((game) => game.hours).reduce((pre, cur) => pre + parseInt(cur.hours!), 0));
+  const total = format(data.filter((game) => game.hours).reduce((pre, cur) => pre + cur.hours!, 0));
   return <StatCard icon={<Timer />} title="Time Gamed" content={`${total} Hours`} />;
 };
 
@@ -43,7 +43,7 @@ const TotalGames = ({ data }: { data: VideoGame[] }) => {
 
 const AverageTimePerGame = ({ data }: { data: VideoGame[] }) => {
   const total = format(
-    Math.round(data.filter((game) => game.hours).reduce((pre, cur) => pre + parseInt(cur.hours!), 0) / data.length)
+    Math.round(data.filter((game) => game.hours).reduce((pre, cur) => pre + cur.hours!, 0) / data.length)
   );
   return <StatCard icon={<ShowChart />} title="Avg Time per Game" content={`${total} Hours`} />;
 };
@@ -52,7 +52,7 @@ const ThisYearSoFar = ({ data }: { data: VideoGame[] }) => {
   const total = format(
     data
       .filter((game) => game.startDate?.getFullYear() === new Date().getFullYear() && game.hours)
-      .reduce((pre, cur) => pre + parseInt(cur.hours!), 0)
+      .reduce((pre, cur) => pre + cur.hours!, 0)
   );
   return <StatCard icon={<Update />} title="This Year So Far" content={`${total} Hours`} />;
 };
@@ -68,7 +68,7 @@ const RecentlyComplete = ({ data }: { data: VideoGame[] }) => {
 const MostPlayed = ({ data }: { data: VideoGame[] }) => {
   const most = data
     .filter((a) => a.hours && a.startDate && a.endDate)
-    .sort((a, b) => (parseInt(a.hours!) < parseInt(b.hours!) ? 1 : -1))
+    .sort((a, b) => (a.hours! < b.hours! ? 1 : -1))
     .slice(0, 6);
   return <StatList icon={<Whatshot />} title="Most Played" content={most} />;
 };
@@ -77,7 +77,7 @@ const CurrentlyPlaying = ({ data }: { data: VideoGame[] }) => {
   const recent = data.filter((a) => a.status === "Playing").sort((a, b) => (a.startDate! > b.startDate! ? 1 : -1))[0];
   return (
     <Grid xs={12} md={4}>
-      <Stack direction="column" spacing={1} sx={{ height: "100%" }}>
+      <Stack direction="column" spacing={1} /* sx={{ height: "100%" }} */ >
         <Card sx={{ flex: "0 1 auto" }}>
           <CardHeader
             titleTypographyProps={{ variant: "h6" }}
@@ -85,7 +85,7 @@ const CurrentlyPlaying = ({ data }: { data: VideoGame[] }) => {
             subheader={`Started ${recent.startDate?.toLocaleDateString()}`}
             avatar={<PlayArrow />}
           />
-          <CardMedia component="img" src="https://images.launchbox-app.com/593bbec1-bacd-4d34-b67e-debbdc892286.jpg" />
+          <CardMedia component="img" src="https://images.launchbox-app.com/455861bb-adee-48ad-88e9-19373db19a8e.jpg" />
         </Card>
         <Card sx={{ flex: "1 1 auto" }}>
           <CardHeader
@@ -126,7 +126,7 @@ const StatList = ({
                     secondary={
                       <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between">
                         <Typography>{game.endDate?.toLocaleDateString()}</Typography>
-                        <Typography>{`${format(parseInt(game.hours!))} Hours`}</Typography>
+                        <Typography>{`${format(game.hours!)} Hours`}</Typography>
                       </Stack>
                     }
                   />

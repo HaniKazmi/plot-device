@@ -1,7 +1,7 @@
 export type KeysMatching<T, V> = keyof { [P in keyof T as T[P] extends V ? P : never]: P };
 export type Predicate<T> = (input: T) => boolean;
 
-export interface VideoGame {
+interface VideoGameBase {
   game: string;
   platform: Platform;
   company: Company;
@@ -12,12 +12,23 @@ export interface VideoGame {
   rating: string;
   format: Format;
   status: Status;
-  exactDate: boolean;
-  startDate?: Date;
-  endDate?: Date;
-  hours?: string;
+  hours?: number;
   numDays?: number;
 }
+
+interface VideoGameWithDate extends VideoGameBase {
+  exactDate: true;
+  startDate: Date;
+  endDate: Date;
+}
+
+interface VideoGameWithoutDate extends VideoGameBase {
+  exactDate: false;
+  startDate?: Date;
+  endDate?: Date;
+}
+
+export type VideoGame = VideoGameWithDate | VideoGameWithoutDate
 
 export type VideoGameKeys = keyof VideoGame;
 export type VideoGameStringKeys = KeysMatching<VideoGame, string>;

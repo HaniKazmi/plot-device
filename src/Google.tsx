@@ -16,7 +16,7 @@ const storageKey = "gapi-token";
 type Token = google.accounts.oauth2.TokenResponse;
 type TokenClient = google.accounts.oauth2.TokenClient;
 
-const GoogleAuth = ({ children }: { children?: ReactNode }) => {
+const GoogleAuth = ({ tab, setTab, children }: { tab: string, setTab: (s: string) => void, children?: ReactNode }) => {
   const [tokenClient, setTokenClient] = useState<TokenClient | false>(false);
   const [gapiLoaded, setGapiLoaded] = useState<boolean>(false);
   const [gapiReady, setGapiReady] = useState<boolean>(false);
@@ -47,6 +47,8 @@ const GoogleAuth = ({ children }: { children?: ReactNode }) => {
             setTokenSet(false);
           })
         }
+        tab={tab}
+        setTab={setTab}
       />
       {gapiReady && children}
     </>
@@ -93,15 +95,18 @@ let loadG = (isReady: (b: TokenClient) => void, setTokenSet: (b: boolean) => voi
   document.body.appendChild(script);
 };
 
-const Graphs = () => (
-  <GoogleAuth>
-    <Container>
-      <Suspense>
-        <GamesGraphs />
-        <ShowsGraph />
-      </Suspense>
-    </Container>
-  </GoogleAuth>
-);
+const Graphs = () => {
+  const [tab, setTab] = useState<string>("games");
+  return (
+    <GoogleAuth tab={tab} setTab={setTab}>
+      <Container>
+        <Suspense>
+          <GamesGraphs hide={tab !== 'games'} />
+          <ShowsGraph hide={tab !== 'shows'} />
+        </Suspense>
+      </Container>
+    </GoogleAuth>
+  );
+};
 
 export default Graphs;
