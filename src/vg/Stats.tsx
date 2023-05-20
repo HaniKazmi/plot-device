@@ -1,27 +1,25 @@
-import { Functions, Pause, PlayArrow, ShowChart, SkipNext, Timer, Update, Whatshot } from "@mui/icons-material";
+import { AutoGraph, Pause, PlayArrow, ShowChart, Timer, Update, Whatshot } from "@mui/icons-material";
 import {
   Card,
   CardHeader,
   CardContent,
   Typography,
-  List,
-  ListItem,
-  ListItemText,
   Divider,
   Stack,
   CardMedia,
 } from "@mui/material";
 import Grid from "@mui/material/Unstable_Grid2";
-import { Fragment } from "react";
+import { CURRENT_YEAR } from "../utils/dateUtils";
+import { format } from "../utils/mathUtils";
 import { VideoGame } from "./types";
 
 const Stats = ({ data }: { data: VideoGame[] }) => {
   return (
     <Grid container spacing={1} alignItems="stretch">
-      <TotalGames data={data} />
-      <TotalTime data={data} />
+      <AllTime data={data} />
       <ThisYearSoFar data={data} />
-      <AverageTimePerGame data={data} />
+      <Averages data={data} />
+      <AveragesPerGame data={data} />
       <MostPlayed data={data} />
       <RecentlyComplete data={data} />
       <CurrentlyPlaying data={data} />
@@ -29,38 +27,51 @@ const Stats = ({ data }: { data: VideoGame[] }) => {
   );
 };
 
-const format = new Intl.NumberFormat().format;
-
-const TotalTime = ({ data }: { data: VideoGame[] }) => {
-  const total = format(data.filter((game) => game.hours).reduce((pre, cur) => pre + cur.hours!, 0));
-  return <StatCard icon={<Timer />} title="Time Gamed" content={`${total} Hours`} />;
+const AllTime = ({ data }: { data: VideoGame[] }) => {
+  const filtered = data.filter((game) => game.hours);
+  const time = filtered.sum('hours');
+  const games = filtered.length;
+  return <StatCard icon={<Timer />} title="All Time" content={[["Games", games], ["Hours", time]]} />;
 };
 
-const TotalGames = ({ data }: { data: VideoGame[] }) => {
-  const total = format(data.length);
-  return <StatCard icon={<Functions />} title="Number of Games" content={total} />;
+const Averages = ({ data }: { data: VideoGame[] }) => {
+  const grouped = data.reduce((tree, game) => {
+    let year = game.startDate?.getFullYear().toString();
+    if (!year || !game.hours) return tree;
+
+    if (!tree[year]) {
+      tree[year] = [0, 0]
+    }
+    tree[year] = [tree[year][0] + 1, tree[year][1] + game.hours];
+    return tree;
+  }, {} as Record<string, [number, number]>);
+
+  const games = parseFloat((Object.values(grouped).sum(0) / Object.keys(grouped).length).toFixed(2))
+  const hours = parseFloat((Object.values(grouped).sum(1) / Object.keys(grouped).length).toFixed(2))
+
+  return <StatCard icon={<ShowChart />} title="Averages Per Year" content={[["Games", games], ["Hours", hours]]} />;
 };
 
-const AverageTimePerGame = ({ data }: { data: VideoGame[] }) => {
-  const total = format(
-    Math.round(data.filter((game) => game.hours).reduce((pre, cur) => pre + cur.hours!, 0) / data.length)
-  );
-  return <StatCard icon={<ShowChart />} title="Avg Time per Game" content={`${total} Hours`} />;
+const AveragesPerGame = ({ data }: { data: VideoGame[] }) => {
+  const filtered = data.filter((game) => game.status === 'Beat' && game.hours && game.numDays)
+  const hours = Math.round(filtered.sum('hours') / filtered.length)
+  const days = Math.round(filtered.sum('numDays') / filtered.length)
+
+  return <StatCard icon={<AutoGraph />} title="Averages Per Game" content={[["Hours", hours], ["Days To Beat", days]]} />;
 };
 
 const ThisYearSoFar = ({ data }: { data: VideoGame[] }) => {
-  const total = format(
-    data
-      .filter((game) => game.startDate?.getFullYear() === new Date().getFullYear() && game.hours)
-      .reduce((pre, cur) => pre + cur.hours!, 0)
-  );
-  return <StatCard icon={<Update />} title="This Year So Far" content={`${total} Hours`} />;
+  const filtered = data.filter((game) => game.startDate?.getFullYear() === CURRENT_YEAR && game.hours);
+  const time = filtered.sum('hours');
+  const games = filtered.length;
+
+  return <StatCard icon={<Update />} title="This Year So Far" content={[["Games", games], ["Hours", time]]} />;
 };
 
 const RecentlyComplete = ({ data }: { data: VideoGame[] }) => {
   const recent = data
     .filter((a) => a.hours && a.startDate && a.endDate)
-    .sort((a, b) => (a.endDate! < b.endDate! ? 1 : -1))
+    .sortByKey('endDate')
     .slice(0, 6);
   return <StatList icon={<Pause />} title="Recently Finished" content={recent} />;
 };
@@ -68,96 +79,107 @@ const RecentlyComplete = ({ data }: { data: VideoGame[] }) => {
 const MostPlayed = ({ data }: { data: VideoGame[] }) => {
   const most = data
     .filter((a) => a.hours && a.startDate && a.endDate)
-    .sort((a, b) => (a.hours! < b.hours! ? 1 : -1))
+    .sortByKey('hours')
     .slice(0, 6);
   return <StatList icon={<Whatshot />} title="Most Played" content={most} />;
 };
 
 const CurrentlyPlaying = ({ data }: { data: VideoGame[] }) => {
-  const recent = data.filter((a) => a.status === "Playing").sort((a, b) => (a.startDate! > b.startDate! ? 1 : -1))[0];
-  return (
-    <Grid xs={12} md={4}>
-      <Stack direction="column" spacing={1} /* sx={{ height: "100%" }} */ >
-        <Card sx={{ flex: "0 1 auto" }}>
-          <CardHeader
-            titleTypographyProps={{ variant: "h6" }}
-            title="Currently Playing"
-            subheader={`Started ${recent.startDate?.toLocaleDateString()}`}
-            avatar={<PlayArrow />}
-          />
-          <CardMedia component="img" src="https://images.launchbox-app.com/455861bb-adee-48ad-88e9-19373db19a8e.jpg" />
-        </Card>
-        <Card sx={{ flex: "1 1 auto" }}>
-          <CardHeader
-            titleTypographyProps={{ variant: "h6" }}
-            title="Next Up"
-            subheader={`Releases ${new Date("11/10/2022").toLocaleDateString()}`}
-            avatar={<SkipNext />}
-          />
-          <CardMedia component="img" src="https://images.launchbox-app.com/76ef597d-d0a3-4baa-ac5e-0f00da125e65.jpg" />
-        </Card>
-      </Stack>
-    </Grid>
-  );
+  const recent = data.filter((a) => a.status === "Playing").sort((a, b) => (a.startDate! > b.startDate! ? 1 : -1)).slice(0, 3);
+  return <StatList icon={<PlayArrow />} title="Currently Playing" content={recent} width={12} pictureWdith={4} endDate={false} />;
 };
 
 const StatList = ({
   icon,
   title,
   content,
+  width = 6,
+  pictureWdith = 6,
+  endDate = true,
 }: {
   icon: JSX.Element & React.ReactNode;
   title: string;
   content: VideoGame[];
+  width?: number;
+  pictureWdith?: number;
+  endDate?: boolean;
 }) => {
   return (
-    <Grid xs={6} md={4}>
+    <Grid xs={width}>
       <Card sx={{ height: "100%" }}>
         <CardHeader titleTypographyProps={{ variant: "h6" }} title={title} avatar={icon} />
         <CardContent>
-          <List>
-            {content.map((game) => (
-              <Fragment key={game.game}>
-                <Divider variant="middle" component="li" />
-                <ListItem>
-                  <ListItemText
-                    secondaryTypographyProps={{ component: "span" }}
-                    primary={game.game}
-                    secondary={
-                      <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between">
-                        <Typography>{game.endDate?.toLocaleDateString()}</Typography>
-                        <Typography>{`${format(game.hours!)} Hours`}</Typography>
-                      </Stack>
-                    }
-                  />
-                </ListItem>
-              </Fragment>
+          <Grid container spacing={1} alignItems="center">
+            {content.map(game => (
+              <Grid alignSelf="stretch" key={game.name} xs={pictureWdith}>
+                <Card variant="outlined" sx={{ height: "100%" }}>
+                  <CardMedia
+                    component="img"
+                    src={game.banner}
+                    width="100%"
+                    sx={{ aspectRatio: '16/9' }}
+                    alt={game.name} />
+                  <CardContent sx={{ padding: "10px", ":last-child": { paddingBottom: "10px" } }}>
+                    <Stack
+                      justifyContent='space-between'
+                      alignItems='baseline'
+                      direction='row'
+                      divider={<Divider orientation="vertical" flexItem />} >
+                      {endDate ? [
+                        <Typography key={game + "endDate"}>{game.endDate?.toLocaleDateString()}</Typography>,
+                        <Typography key={game + "hours"}>{`${format(game.hours!)} Hours`}</Typography>
+                      ]
+                        :
+                        [
+                          <Typography key={game + "startDate"}>{game.startDate?.toLocaleDateString()}</Typography>,
+                          <Typography key={game + "platform"}>{game.platform}</Typography>
+                        ]}
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </Grid>
             ))}
-            <Divider variant="middle" component="li" />
-          </List>
+          </Grid>
         </CardContent>
       </Card>
     </Grid>
   );
 };
 
-const StatCard = ({
+export const StatCard = ({
   icon,
   title,
   content,
 }: {
   icon: JSX.Element & React.ReactNode;
   title: string;
-  content: string;
+  content: string | [string, number][]
 }) => {
-  return (
-    <Grid xs={6} md={3}>
-      <Card sx={{ height: "100%" }}>
-        <CardHeader titleTypographyProps={{ variant: "h6" }} title={title} avatar={icon} />
-        <CardContent>
-          <Typography align="right" variant="h4">
-            {content}
+  const formattedContent = typeof content === 'string' ?
+    <Typography align="right" variant="h4">
+      {content}
+    </Typography>
+    : <Stack
+      divider={<Divider orientation="vertical" flexItem />}
+      justifyContent="space-evenly" direction={"row"}>
+      {content.map(([key, val]) => (
+        <Stack key={val} direction={"column"}>
+          <Typography align="center" variant="h5">
+            {format(val)}
           </Typography>
+          <Typography align="center" sx={{ fontSize: 14 }} color="text.secondary">
+            {key}
+          </Typography>
+        </Stack>
+      )
+      )}</Stack>;
+  return (
+    <Grid xs={12} md={3}>
+      <Card sx={{ height: "100%" }}>
+        <CardHeader titleTypographyProps={{ variant: "h6" }} title={title} avatar={icon}
+          sx={{ paddingBottom: "5px" }} />
+        <CardContent sx={{ paddingTop: "5px" }}>
+          {formattedContent}
         </CardContent>
       </Card>
     </Grid>

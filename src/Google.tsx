@@ -1,9 +1,9 @@
-import { Container } from "@mui/material";
-import { lazy, ReactNode, Suspense, useEffect, useState } from "react";
+import { Container, createTheme, ThemeProvider } from "@mui/material";
+import { ReactNode, useEffect, useState } from "react";
 import NavBar from "./NavBar";
-
-const GamesGraphs = lazy(() => import(/* webpackPrefetch: true */ "./vg"));
-const ShowsGraph = lazy(() => import(/* webpackPrefetch: true */ "./vg/Show"));
+import { Outlet, useOutletContext } from "react-router-dom";
+import { arrayToJson } from "./utils/arrayUtils";
+import { Tab } from "./tabs";
 
 const CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID!;
 const API_KEY = process.env.REACT_APP_GOOGLE_API_KEY!;
@@ -16,7 +16,7 @@ const storageKey = "gapi-token";
 type Token = google.accounts.oauth2.TokenResponse;
 type TokenClient = google.accounts.oauth2.TokenClient;
 
-const GoogleAuth = ({ tab, setTab, children }: { tab: string, setTab: (s: string) => void, children?: ReactNode }) => {
+const GoogleAuth = ({ tab, children }: { tab?: Tab, children?: ReactNode }) => {
   const [tokenClient, setTokenClient] = useState<TokenClient | false>(false);
   const [gapiLoaded, setGapiLoaded] = useState<boolean>(false);
   const [gapiReady, setGapiReady] = useState<boolean>(false);
@@ -48,7 +48,6 @@ const GoogleAuth = ({ tab, setTab, children }: { tab: string, setTab: (s: string
           })
         }
         tab={tab}
-        setTab={setTab}
       />
       {gapiReady && children}
     </>
@@ -96,17 +95,45 @@ let loadG = (isReady: (b: TokenClient) => void, setTokenSet: (b: boolean) => voi
 };
 
 const Graphs = () => {
-  const [tab, setTab] = useState<string>("games");
+  const [tab, setTab] = useState<Tab>();
   return (
-    <GoogleAuth tab={tab} setTab={setTab}>
+    <GoogleAuth tab={tab}>
       <Container>
-        <Suspense>
-          <GamesGraphs hide={tab !== 'games'} />
-          <ShowsGraph hide={tab !== 'shows'} />
-        </Suspense>
+        <ThemeProvider theme={theme}>
+          <Outlet context={setTab} />
+        </ThemeProvider>
       </Container>
     </GoogleAuth>
   );
 };
+
+export const useSetTab = () => useOutletContext<(tab: Tab) => void>();
+
+export const fetchAndConvertSheet = <T,>(
+  { spreadsheetId, range }: Tab,
+  jsonConverter: (array: Record<string, string>[]) => T,
+  setData: (json: T) => void
+) => {
+  gapi.client.sheets.spreadsheets.values
+    .get({ spreadsheetId, range })
+    .then((response) => response.result.values!)
+    .then(arrayToJson)
+    .then(jsonConverter)
+    .then(setData);
+}
+
+const theme = createTheme({
+  components: {
+    MuiCard: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          "&:hover": {
+            boxShadow: theme.shadows[4],
+          },
+        }),
+      },
+    },
+  },
+});
 
 export default Graphs;

@@ -31,7 +31,7 @@ const Sunburst = ({ data, measure }: { data: VideoGame[]; measure: Measure }) =>
       />
       <CardContent>
         <Plot
-          style={{ width: "100%", height: "95vh" }}
+          style={{ width: "100%", height: "95vh", maxHeight: "100vw" }}
           data={[
             {
               labels,
@@ -57,9 +57,10 @@ const options: OptionKeys[] = [
   "company",
   "format",
   "franchise",
-  "game",
+  "name",
   "platform",
   "publisher",
+  "genre",
   "rating",
   "status",
   "startDate",
@@ -115,7 +116,7 @@ const dataToSunburstData = (data: VideoGame[], groups: OptionKeys[], measure: Me
       if (!isStringArray(groupVals)) return tree;
       let obj = tree;
       groupVals.forEach((val) => (obj = obj[val] = (obj[val] as VideoGameTree) || {}));
-      obj[game.game] = game;
+      obj[game.name] = game;
       return tree;
     }, {} as VideoGameTree);
 

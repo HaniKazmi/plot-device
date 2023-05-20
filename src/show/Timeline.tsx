@@ -1,31 +1,32 @@
-import { Card, CardContent, CardHeader, FormControlLabel, FormGroup, Switch } from "@mui/material";
+import { Card, CardHeader, FormGroup, FormControlLabel, Switch, CardContent } from "@mui/material";
 import { useState } from "react";
 import Chart from "react-google-charts";
-import { VideoGame } from "./types";
+import { Season, Show } from "./types";
 import { CURRENT_DATE } from "../utils/dateUtils";
 
-const Timeline = ({ data }: { data: VideoGame[] }) => {
-  const [groupData, setGroupData] = useState(false);
-  const groupFunc = groupData ? ({ company }: VideoGame) => company : () => "*";
+const Timeline = ({ data }: { data: Show[] }) => {
+  const [groupData, setGroupData] = useState(true);
 
   const timelineHeader: any[] = [
     [
-      { type: "string", id: "Group" },
-      { type: "string", id: "Game" },
+      { type: "string", id: "*" },
+      { type: "string", id: "Show" },
       { type: "string", role: "tooltip" },
       { type: "date", id: "Start" },
       { type: "date", id: "End" },
     ],
   ];
 
-  const gameData = data
-    .filter(({ exactDate, startDate }) => exactDate && startDate.getFullYear() > 2014)
-    .map((row) => [groupFunc(row), row.name, tooltip(row), row.startDate, row.endDate || CURRENT_DATE ]);
+  const seasons = data.flatMap(show => show.s.map(s => [`${show.name} - S${s.s}`, s] as [string, Season]))
+
+  const showData = groupData
+    ? data.map((show) => ["*", show.name, tooltip(show.name, show), show.startDate, show.endDate || CURRENT_DATE])
+    : seasons.map(([title, season]) => ["*", title, tooltip(title, season), season.startDate, season.endDate || CURRENT_DATE]);
 
   let chartHeight: string;
 
-  if (groupData) chartHeight = "55vh";
-  else chartHeight = "30vh";
+  if (groupData) chartHeight = "95vh";
+  else chartHeight = "70vh";
 
   return (
     <Card>
@@ -34,7 +35,7 @@ const Timeline = ({ data }: { data: VideoGame[] }) => {
         action={
           <FormGroup row>
             <FormControlLabel
-              label="Group Data"
+              label="Combine Seasons"
               control={<Switch checked={groupData} onChange={(_, checked) => setGroupData(checked)} />}
             />
           </FormGroup>
@@ -47,7 +48,7 @@ const Timeline = ({ data }: { data: VideoGame[] }) => {
             width="400vw"
             height={chartHeight}
             chartType="Timeline"
-            data={timelineHeader.concat(gameData)}
+            data={timelineHeader.concat(showData)}
           />
         </div>
       </CardContent>
@@ -55,27 +56,27 @@ const Timeline = ({ data }: { data: VideoGame[] }) => {
   );
 };
 
-const tooltip = (row: VideoGame) =>
+const tooltip = (title: string, row: Show | Season) =>
   `
     <div style="display: inline-block">
         <ul style="list-style-type: none;padding: 5px">
             <li>
-                <span><b>${row.name}</b></span>
+                <span><b>${title}</b></span>
             </li>
         </ul>
         <hr />
         <ul style="list-style-type: none;padding-left: 10px">
             <li>
                 <span><b>Hours: </b></span>
-                <span">${row.hours}</span>
+                <span">${Math.round(row.minutes / 60)}</span>
             </li>
             <li>
                 <span><b>Period: </b></span>
-                <span>${row.startDate?.toLocaleDateString()} - ${row.endDate?.toLocaleDateString()} </span>
+                <span>${row.startDate.toLocaleDateString()} - ${row.endDate?.toLocaleDateString()} </span>
             </li>
             <li>
-                <span><b>Days: </b></span>
-                <span>${row.numDays || "-"}</span>
+                <span><b>Episodes: </b></span>
+                <span>${row.e}</span>
             </li>
         </ul>
     </div>
