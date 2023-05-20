@@ -1,23 +1,15 @@
 {
   "files": {
     "main.css": "/plot-device/static/css/main.e6c13ad2.css",
-    "main.js": "/plot-device/static/js/main.b560b9ec.js",
-    "static/js/618.d9f61e4d.chunk.js": "/plot-device/static/js/618.d9f61e4d.chunk.js",
-    "static/js/471.47c778a6.chunk.js": "/plot-device/static/js/471.47c778a6.chunk.js",
-    "static/js/496.3cf6f5b1.chunk.js": "/plot-device/static/js/496.3cf6f5b1.chunk.js",
-    "static/js/42.7d34f433.chunk.js": "/plot-device/static/js/42.7d34f433.chunk.js",
-    "static/js/160.57a70efb.chunk.js": "/plot-device/static/js/160.57a70efb.chunk.js",
+    "main.js": "/plot-device/static/js/main.d6d128aa.js",
+    "static/js/496.9d5af20a.chunk.js": "/plot-device/static/js/496.9d5af20a.chunk.js",
     "index.html": "/plot-device/index.html",
     "main.e6c13ad2.css.map": "/plot-device/static/css/main.e6c13ad2.css.map",
-    "main.b560b9ec.js.map": "/plot-device/static/js/main.b560b9ec.js.map",
-    "618.d9f61e4d.chunk.js.map": "/plot-device/static/js/618.d9f61e4d.chunk.js.map",
-    "471.47c778a6.chunk.js.map": "/plot-device/static/js/471.47c778a6.chunk.js.map",
-    "496.3cf6f5b1.chunk.js.map": "/plot-device/static/js/496.3cf6f5b1.chunk.js.map",
-    "42.7d34f433.chunk.js.map": "/plot-device/static/js/42.7d34f433.chunk.js.map",
-    "160.57a70efb.chunk.js.map": "/plot-device/static/js/160.57a70efb.chunk.js.map"
+    "main.d6d128aa.js.map": "/plot-device/static/js/main.d6d128aa.js.map",
+    "496.9d5af20a.chunk.js.map": "/plot-device/static/js/496.9d5af20a.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.e6c13ad2.css",
-    "static/js/main.b560b9ec.js"
+    "static/js/main.d6d128aa.js"
   ]
 }
