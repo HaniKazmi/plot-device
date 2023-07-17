@@ -1,15 +1,21 @@
 {
   "files": {
     "main.css": "/plot-device/static/css/main.e6c13ad2.css",
-    "main.js": "/plot-device/static/js/main.d6d128aa.js",
-    "static/js/496.9d5af20a.chunk.js": "/plot-device/static/js/496.9d5af20a.chunk.js",
+    "main.js": "/plot-device/static/js/main.d28b7a74.js",
+    "static/js/579.77caa729.chunk.js": "/plot-device/static/js/579.77caa729.chunk.js",
+    "static/js/471.32127301.chunk.js": "/plot-device/static/js/471.32127301.chunk.js",
+    "static/js/496.61e2ed47.chunk.js": "/plot-device/static/js/496.61e2ed47.chunk.js",
+    "static/js/957.c7e0c7b3.chunk.js": "/plot-device/static/js/957.c7e0c7b3.chunk.js",
     "index.html": "/plot-device/index.html",
     "main.e6c13ad2.css.map": "/plot-device/static/css/main.e6c13ad2.css.map",
-    "main.d6d128aa.js.map": "/plot-device/static/js/main.d6d128aa.js.map",
-    "496.9d5af20a.chunk.js.map": "/plot-device/static/js/496.9d5af20a.chunk.js.map"
+    "main.d28b7a74.js.map": "/plot-device/static/js/main.d28b7a74.js.map",
+    "579.77caa729.chunk.js.map": "/plot-device/static/js/579.77caa729.chunk.js.map",
+    "471.32127301.chunk.js.map": "/plot-device/static/js/471.32127301.chunk.js.map",
+    "496.61e2ed47.chunk.js.map": "/plot-device/static/js/496.61e2ed47.chunk.js.map",
+    "957.c7e0c7b3.chunk.js.map": "/plot-device/static/js/957.c7e0c7b3.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.e6c13ad2.css",
-    "static/js/main.d6d128aa.js"
+    "static/js/main.d28b7a74.js"
   ]
 }
