@@ -1,5 +1,5 @@
-import { Container, createTheme, ThemeProvider } from "@mui/material";
-import { ReactNode, useEffect, useState } from "react";
+import { Container, createTheme, CssBaseline, ThemeProvider, useMediaQuery } from "@mui/material";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import NavBar from "./NavBar";
 import { Outlet, useOutletContext } from "react-router-dom";
 import { arrayToJson } from "./utils/arrayUtils";
@@ -16,7 +16,7 @@ const storageKey = "gapi-token";
 type Token = google.accounts.oauth2.TokenResponse;
 type TokenClient = google.accounts.oauth2.TokenClient;
 
-const GoogleAuth = ({ tab, children }: { tab?: Tab, children?: ReactNode }) => {
+const GoogleAuth = ({ tab, children }: { tab?: Tab; children?: ReactNode }) => {
   const [tokenClient, setTokenClient] = useState<TokenClient | false>(false);
   const [gapiLoaded, setGapiLoaded] = useState<boolean>(false);
   const [gapiReady, setGapiReady] = useState<boolean>(false);
@@ -55,7 +55,7 @@ const GoogleAuth = ({ tab, children }: { tab?: Tab, children?: ReactNode }) => {
 };
 
 let loadGapi = (isReady: (b: boolean) => void, token?: Token) => {
-  loadGapi = () => { };
+  loadGapi = () => {};
   const script = document.createElement("script");
   script.src = "https://apis.google.com/js/api.js";
   script.onload = () => {
@@ -74,7 +74,7 @@ let loadGapi = (isReady: (b: boolean) => void, token?: Token) => {
 };
 
 let loadG = (isReady: (b: TokenClient) => void, setTokenSet: (b: boolean) => void) => {
-  loadG = () => { };
+  loadG = () => {};
   const script = document.createElement("script");
   script.src = "https://accounts.google.com/gsi/client";
   script.onload = () => {
@@ -96,14 +96,18 @@ let loadG = (isReady: (b: TokenClient) => void, setTokenSet: (b: boolean) => voi
 
 const Graphs = () => {
   const [tab, setTab] = useState<Tab>();
+  const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
+  const theme = useMemo(() => getTheme(prefersDarkMode), [prefersDarkMode]);
+
   return (
-    <GoogleAuth tab={tab}>
-      <Container>
-        <ThemeProvider theme={theme}>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <GoogleAuth tab={tab}>
+        <Container maxWidth={"xl"}>
           <Outlet context={setTab} />
-        </ThemeProvider>
-      </Container>
-    </GoogleAuth>
+        </Container>
+      </GoogleAuth>
+    </ThemeProvider>
   );
 };
 
@@ -120,20 +124,24 @@ export const fetchAndConvertSheet = <T,>(
     .then(arrayToJson)
     .then(jsonConverter)
     .then(setData);
-}
+};
 
-const theme = createTheme({
-  components: {
-    MuiCard: {
-      styleOverrides: {
-        root: ({ theme }) => ({
-          "&:hover": {
-            boxShadow: theme.shadows[4],
-          },
-        }),
+const getTheme = (prefersDarkMode: boolean) =>
+  createTheme({
+    palette: {
+      mode: prefersDarkMode ? "dark" : "light",
+    },
+    components: {
+      MuiCard: {
+        styleOverrides: {
+          root: ({ theme }) => ({
+            "&:hover": {
+              boxShadow: theme.shadows[4],
+            },
+          }),
+        },
       },
     },
-  },
-});
+  });
 
 export default Graphs;

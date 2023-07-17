@@ -1,11 +1,14 @@
-import { Card, CardContent, CardHeader, FormControlLabel, FormGroup, Switch } from "@mui/material";
-import { useState } from "react";
+import { Card, CardContent, CardHeader, FormControlLabel, FormGroup, Switch, useTheme } from "@mui/material";
+import { useCallback, useState } from "react";
 import Chart from "react-google-charts";
 import { VideoGame } from "./types";
 import { CURRENT_DATE } from "../utils/dateUtils";
 
 const Timeline = ({ data }: { data: VideoGame[] }) => {
+  const theme = useTheme();
   const [groupData, setGroupData] = useState(false);
+  const [height, setHeight] = useState<string | number>("50vh");
+
   const groupFunc = groupData ? ({ company }: VideoGame) => company : () => "*";
 
   const timelineHeader: any[] = [
@@ -20,12 +23,24 @@ const Timeline = ({ data }: { data: VideoGame[] }) => {
 
   const gameData = data
     .filter(({ exactDate, startDate }) => exactDate && startDate.getFullYear() > 2014)
-    .map((row) => [groupFunc(row), row.name, tooltip(row), row.startDate, row.endDate || CURRENT_DATE ]);
+    .map((row) => [groupFunc(row), row.name, tooltip(row), row.startDate, row.endDate || CURRENT_DATE]);
 
-  let chartHeight: string;
+  const callback = useCallback(() => {
+    const labels = document.getElementsByTagName("text");
+    for (let label of labels) {
+      if (label.getAttribute("text-anchor") === "middle") {
+        label.setAttribute("fill", theme.palette.text.secondary);
+      }
+    }
 
-  if (groupData) chartHeight = "55vh";
-  else chartHeight = "30vh";
+    const rects = document.getElementsByTagName("rect");
+    for (let rect of rects) {
+      if (rect.getAttribute("stroke") === "#9a9a9a") {
+        const newHeight = rect.height.baseVal.value + 50;
+        setHeight(newHeight < document.documentElement.clientHeight * 0.95 ? newHeight : height);
+      }
+    }
+  }, [theme.palette.text.secondary, height]);
 
   return (
     <Card>
@@ -43,11 +58,19 @@ const Timeline = ({ data }: { data: VideoGame[] }) => {
       <CardContent>
         <div style={{ overflowX: "auto", overflowY: "hidden" }}>
           <Chart
-            key={chartHeight}
+            key={height}
             width="400vw"
-            height={chartHeight}
+            height={height}
             chartType="Timeline"
             data={timelineHeader.concat(gameData)}
+            onLoad={() => {
+              setTimeout(callback, 100);
+            }}
+            chartEvents={[{ eventName: "ready", callback: callback }]}
+            options={{
+              backgroundColor: theme.palette.mode === "dark" ? theme.palette.grey.A700 : undefined,
+              timeline: { rowLabelStyle: { color: theme.palette.text.primary } },
+            }}
           />
         </div>
       </CardContent>

@@ -1,5 +1,4 @@
-export type KeysMatching<T, V> = keyof { [P in keyof T as T[P] extends V ? P : never]: P };
-export type Predicate<T> = (input: T) => boolean;
+import { KeysMatching } from "../utils/types";
 
 interface VideoGameBase {
   name: string;
@@ -10,12 +9,12 @@ interface VideoGameBase {
   genre: string;
   theme: string[];
   rating: string;
-  releaseDate: Date
+  releaseDate: Date;
   format: Format;
   status: Status;
   hours?: number;
   numDays?: number;
-  banner?: string
+  banner?: string;
 }
 
 interface VideoGameWithDate extends VideoGameBase {
@@ -30,7 +29,7 @@ interface VideoGameWithoutDate extends VideoGameBase {
   endDate?: Date;
 }
 
-export type VideoGame = VideoGameWithDate | VideoGameWithoutDate
+export type VideoGame = VideoGameWithDate | VideoGameWithoutDate;
 
 export type VideoGameKeys = keyof VideoGame;
 export type VideoGameStringKeys = KeysMatching<VideoGame, string>;

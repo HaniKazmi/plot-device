@@ -1,8 +1,9 @@
-import { Card, CardContent, CardHeader, FormGroup } from "@mui/material";
+import { Card, CardContent, CardHeader, FormGroup, useTheme } from "@mui/material";
 import { useEffect, useState } from "react";
-import Plot from "../plotly"
+import Plot from "../plotly";
 import { SelectBox } from "./SelectionComponents";
-import { isVideoGame, KeysMatching, Measure, VideoGame, VideoGameTree } from "./types";
+import { isVideoGame, Measure, VideoGame, VideoGameTree } from "./types";
+import { KeysMatching } from "../utils/types";
 
 interface SunburstData {
   ids: string[];
@@ -16,6 +17,8 @@ const isStringArray = (x: any[]): x is string[] => x.every((i) => typeof i === "
 type OptionKeys = KeysMatching<VideoGame, string | VideoGame["startDate"]>;
 
 const Sunburst = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
+  const theme = useTheme();
+
   const [{ ids, labels, parents, values }, setSunburstData] = useState<SunburstData>({
     ids: [],
     labels: [],
@@ -43,10 +46,14 @@ const Sunburst = ({ data, measure }: { data: VideoGame[]; measure: Measure }) =>
               //@ts-ignore
               maxdepth: 3,
               sort: false,
+              marker: { line: { color: theme.palette.background.paper } },
             },
           ]}
           config={{ displayModeBar: false, responsive: true }}
-          layout={{ margin: { l: 0, r: 0, b: 0, t: 0 } }}
+          layout={{
+            margin: { l: 0, r: 0, b: 0, t: 0 },
+            paper_bgcolor: theme.palette.mode === "dark" ? "rgba(0,0,0,0)" : undefined,
+          }}
         />
       </CardContent>
     </Card>
@@ -75,11 +82,7 @@ const SunBurstControls = ({
   setSunburstData: (d: SunburstData) => void;
   measure: Measure;
 }) => {
-  const groups = [
-    useState<OptionKeys>("company"),
-    useState<OptionKeys>("platform"),
-    useState<OptionKeys>("franchise")
-  ];
+  const groups = [useState<OptionKeys>("company"), useState<OptionKeys>("platform"), useState<OptionKeys>("franchise")];
   const groupVals = groups.map(([val]) => val);
 
   useEffect(() => {

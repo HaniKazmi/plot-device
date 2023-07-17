@@ -1,0 +1,71 @@
+import { CardHeader, FormControlLabel, FormGroup, Stack, Switch } from "@mui/material";
+import { useState } from "react";
+import { SelectBox } from "../vg//SelectionComponents";
+import { Measure, Season, Show, ShowStringKeys } from "./types";
+import Barchart from "../common/Barchart";
+
+const options: Record<ShowStringKeys | "none", boolean> = {
+  name: false,
+  status: true,
+  none: false,
+};
+
+const ShowBarchart = ({ data, measure }: { data: Show[]; measure: Measure }) => {
+  const [group, setGroup] = useState<ShowStringKeys | "none">("none");
+  const [cumulative, setCumulative] = useState(false);
+  let [stack, setStack] = useState(true);
+
+  let seasonArray = data.flatMap((show) => show.s.map((s) => [show, s] as [Show, Season]));
+  const grouped = groupDate(seasonArray, group, measure, cumulative);
+
+  return (
+    <Barchart grouped={grouped} cumulative={cumulative} stack={stack}>
+      <CardHeader
+        title={measure === "Episodes" ? "Episodes Watched" : "Hours Watched"}
+        action={
+          <FormGroup>
+            <SelectBox
+              options={Object.keys(options) as (ShowStringKeys | "none")[]}
+              value={group}
+              setValue={setGroup}
+            />
+            <Stack direction={"row"}>
+              <FormControlLabel
+                label="Cumulative"
+                control={<Switch checked={cumulative} onChange={(_, checked) => setCumulative(checked)} />}
+              />
+              <FormControlLabel
+                label="Stack"
+                control={<Switch checked={stack} onChange={(_, checked) => setStack(checked)} disabled={cumulative} />}
+              />
+            </Stack>
+          </FormGroup>
+        }
+      />
+    </Barchart>
+  );
+};
+
+const groupDate = (data: [Show, Season][], group: ShowStringKeys | "none", measure: Measure, cumulative: boolean) => {
+  const grouped = data.reduce((tree, [show, season]) => {
+    const groupVal = group === "none" ? "" : show[group];
+    const year = cumulative
+      ? season.startDate?.toISOString().substring(0, 7)
+      : season.startDate?.getFullYear().toString();
+    if (!year || !season.minutes) return tree;
+
+    tree[groupVal] = tree[groupVal] || {};
+    tree[groupVal][year] = (tree[groupVal][year] || 0) + (measure === "Episodes" ? season.e : season.minutes);
+    return tree;
+  }, {} as Record<string, Record<string, number>>);
+
+  if (measure === "Hours") {
+    Object.values(grouped).forEach((record) =>
+      Object.entries(record).forEach(([key, value]) => (record[key] = Math.floor(value / 60)))
+    );
+  }
+
+  return grouped;
+};
+
+export default ShowBarchart;
