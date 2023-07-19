@@ -13,9 +13,9 @@ const root = ReactDOM.createRoot(document.getElementById("root") as HTMLElement)
 const router = createHashRouter(
   createRoutesFromElements(
     <Route path="/" element={<Google />}>
-      <Route index element={Tabs[0].component} />
+      <Route index element={Tabs[0].component} handle={{ tab: Tabs[0]}} />
       {Tabs.map((tab) => (
-        <Route key={tab.id} path={tab.id} element={tab.component} />
+        <Route key={tab.id} path={tab.id} element={tab.component} handle={{ tab: tab}} />
       ))}
     </Route>
   )

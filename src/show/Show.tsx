@@ -1,7 +1,7 @@
 import { Stack } from "@mui/material";
 import { useState, useEffect, lazy, Suspense } from "react";
 import { Season, Show, Status } from "./types";
-import { fetchAndConvertSheet, useSetTab } from "../Google";
+import { fetchAndConvertSheet } from "../Google";
 import { Tab } from "../tabs";
 
 const Graphs = lazy(() => import(/* webpackPrefetch: true */ "./Graphs"));
@@ -10,9 +10,7 @@ let DATA: Show[];
 
 const ShowsGraph = () => {
   const [data, setData] = useState<Show[]>();
-  const setTab = useSetTab();
 
-  useEffect(() => setTab(ShowTab), [setTab]);
   useEffect(() => getData(setData), []);
 
   if (!data) {

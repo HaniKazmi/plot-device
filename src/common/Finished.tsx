@@ -31,7 +31,7 @@ const Finished = ({
       <CardContent>
         <Grid container spacing={1} alignItems="center">
           {recent.map((item) => (
-            <Grid alignSelf="stretch" key={item.name} xs={dialogOpen ? 4 : width}>
+            <Grid alignSelf="stretch" key={item.name} xs={dialogOpen ? 12 : width}>
               <Card sx={{ height: "100%" }}>
                 <CardMediaImage image={item.banner} height="100%" alt={item.name} />
               </Card>

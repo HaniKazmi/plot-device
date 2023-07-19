@@ -4,6 +4,7 @@ import { CURRENT_YEAR } from "../utils/dateUtils";
 import { format } from "../utils/mathUtils";
 import { Season, Show } from "./types";
 import { StatCard, StatList } from "../common/Stats";
+import { useMediaQuery, useTheme } from "@mui/material";
 
 const Stats = ({ data }: { data: Show[] }) => {
   return (
@@ -104,6 +105,8 @@ const AveragesPerShow = ({ data }: { data: Show[] }) => {
 };
 
 const RecentlyComplete = ({ data }: { data: Show[] }) => {
+  const theme = useTheme();
+  const matches = useMediaQuery(theme.breakpoints.down('sm'));
   const recent = data
     .flatMap((show) => show.s.map((s) => [show, s] as [Show, Season]))
     .filter(([, season]) => season.endDate)
@@ -115,14 +118,15 @@ const RecentlyComplete = ({ data }: { data: Show[] }) => {
       title="Recently Finished"
       content={recent}
       width={12}
-      pictureWdith={2}
+      divider
+      pictureWdith={matches ? 4 : 2}
       labelComponent={statsCardLabelStatsCardLabelRecentlyComplete}
     />
   );
 };
 
 const statsCardLabelStatsCardLabelRecentlyComplete = (season: Season) => [
-  [`S ${season.s}`, season.endDate?.toLocaleDateString() || ""],
+  [`S ${season.s}`, season.endDate?.toLocaleDateString(undefined, { month: 'short', year: 'numeric', day: 'numeric'}) || ""],
   [`${season.e} Eps`, `${format(Math.round(season.minutes! / 60))} Hours`],
 ];
 

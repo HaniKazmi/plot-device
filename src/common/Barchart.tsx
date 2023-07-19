@@ -35,6 +35,9 @@ const Barchart = ({
             x: Object.keys(val),
             y: Object.values(val),
             stackgroup: stack ? "*" : undefined,
+            marker: {
+              color: Object.entries(data).length === 1 ? theme.palette.primary.main : undefined
+            }
           }))}
           config={{ displayModeBar: false, responsive: true }}
           layout={{

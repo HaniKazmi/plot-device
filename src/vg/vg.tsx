@@ -16,9 +16,7 @@ const GamesGraphs = () => {
   const [data, setData] = useState<VideoGame[]>();
   const [filterFunc, setFilterFunc] = useState<Predicate<VideoGame>>(() => () => true);
   const [measure, setMeasure] = useState<Measure>("Count");
-  const setTab = useSetTab();
 
-  useEffect(() => setTab(VideoGameTab), [setTab]);
   useEffect(() => getData(setData), []);
 
   if (!data) {

@@ -1,18 +1,26 @@
 import { AppBar, Box, Button, Tab as MuiTab, Tabs as MuiTabs, Toolbar, Typography } from "@mui/material";
 import { Score } from "@mui/icons-material";
-import { useNavigate } from "react-router-dom";
+import { useMatches, useNavigate } from "react-router-dom";
 import Tabs, { Tab } from "./tabs";
+import { useEffect, useState } from "react";
 
 const NavBar = ({
   authorise,
   revoke,
-  tab,
 }: {
   authorise: false | (() => void);
   revoke: false | (() => void);
-  tab?: Tab;
 }) => {
+  const [tab, setTab] = useState<Tab>();
   const navigate = useNavigate();
+  const matches = useMatches()
+
+  useEffect(() => {
+    const currTab = (matches.find(match => Boolean(match.handle))!.handle as { tab: Tab }).tab
+    setTab(currTab)
+  }, [matches])
+
+  if (!tab) return null;
   return (
     <AppBar position="static" sx={{ marginBottom: (theme) => theme.spacing(2) }}>
       <Toolbar>
@@ -32,7 +40,9 @@ const NavBar = ({
           Plot Device
         </Typography>
         <Box sx={{ flexGrow: 1, display: "flex" }}>
-          <MuiTabs textColor="inherit" value={tab || false} onChange={(_, value) => navigate(value.id)}>
+          <MuiTabs textColor="inherit" indicatorColor="secondary" value={tab} onChange={(_, value) => {
+            navigate(value.id)
+          }}>
             {Tabs.map((tab) => (
               <MuiTab key={`muitab-${tab.id}`} label={tab.name} value={tab} />
             ))}
@@ -49,7 +59,7 @@ const NavBar = ({
             <Button
               color="inherit"
               target="_blank"
-              href={`https://docs.google.com/spreadsheets/d/${tab?.spreadsheetId}`}
+              href={`https://docs.google.com/spreadsheets/d/${tab.spreadsheetId}`}
             >
               Sheet
             </Button>

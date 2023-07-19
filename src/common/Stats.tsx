@@ -95,7 +95,7 @@ export const StatList = <T extends VideoGame | Show, U>({
                           justifyContent="space-between"
                           alignItems="baseline"
                           direction="row"
-                          divider={labbels.length === 1 ? dividerComponent : null}
+                          divider={labbels.length === 1 || divider ? dividerComponent : null}
                         >
                           {stacks.map((val) => (
                             <Typography key={val} variant="subtitle2" color="text.secondary">

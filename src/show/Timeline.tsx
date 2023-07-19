@@ -21,23 +21,17 @@ const Timeline = ({ data }: { data: Show[] }) => {
     ],
   ];
 
-  const seasons = data.flatMap((show) => show.s.map((s) => [`${show.name} - S${s.s}`, s] as [string, Season]));
+  const titleData: [string, Show | Season][] = groupData
+    ? data.map(show => [show.name, show])
+    : data.flatMap((show) => show.s.map((s) => [`${show.name} - S${s.s}`, s] as [string, Season]));
 
-  const showData = groupData
-    ? data.map((show) => [
-        "*",
-        show.name,
-        tooltip(show.name, show, theme.palette.mode === "dark"),
-        show.startDate,
-        show.endDate || CURRENT_DATE,
-      ])
-    : seasons.map(([title, season]) => [
-        "*",
-        title,
-        tooltip(title, season, theme.palette.mode === "dark"),
-        season.startDate,
-        season.endDate || CURRENT_DATE,
-      ]);
+  const showData = titleData.map(([title, s]) => [
+    "*",
+    title,
+    tooltip(title, s, theme.palette.background.paper),
+    s.startDate,
+    s.endDate || CURRENT_DATE,
+  ]);
 
   const callback = useCallback(() => {
     const labels = document.getElementsByTagName("text");
@@ -92,9 +86,9 @@ const Timeline = ({ data }: { data: Show[] }) => {
   );
 };
 
-const tooltip = (title: string, row: Show | Season, darkMode: boolean) =>
+const tooltip = (title: string, row: Show | Season, bgColour: string) =>
   `
-    <div style="display: inline-block; ${darkMode ? "background-color: black" : ""}" >
+    <div style="display: inline-block; background-color: ${bgColour}" >
         <ul style="list-style-type: none;padding: 5px">
             <li>
                 <span><b>${title}</b></span>

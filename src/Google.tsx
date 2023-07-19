@@ -1,7 +1,7 @@
 import { Container, createTheme, CssBaseline, ThemeProvider, useMediaQuery } from "@mui/material";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import NavBar from "./NavBar";
-import { Outlet, useOutletContext } from "react-router-dom";
+import { Outlet, useMatches, useOutletContext } from "react-router-dom";
 import { arrayToJson } from "./utils/arrayUtils";
 import { Tab } from "./tabs";
 
@@ -47,7 +47,6 @@ const GoogleAuth = ({ tab, children }: { tab?: Tab; children?: ReactNode }) => {
             setTokenSet(false);
           })
         }
-        tab={tab}
       />
       {gapiReady && children}
     </>
@@ -95,16 +94,19 @@ let loadG = (isReady: (b: TokenClient) => void, setTokenSet: (b: boolean) => voi
 };
 
 const Graphs = () => {
-  const [tab, setTab] = useState<Tab>();
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
-  const theme = useMemo(() => getTheme(prefersDarkMode), [prefersDarkMode]);
+  const matches = useMatches()
+  const currTab: Tab = (matches.find(match => Boolean(match.handle))!.handle as { tab: Tab}).tab
+  const theme = useMemo(() => getTheme(prefersDarkMode, currTab), [prefersDarkMode, currTab]);
+
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme.palette.primary.main);
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <GoogleAuth tab={tab}>
+      <GoogleAuth>
         <Container maxWidth={"xl"}>
-          <Outlet context={setTab} />
+          <Outlet />
         </Container>
       </GoogleAuth>
     </ThemeProvider>
@@ -126,22 +128,31 @@ export const fetchAndConvertSheet = <T,>(
     .then(setData);
 };
 
-const getTheme = (prefersDarkMode: boolean) =>
-  createTheme({
-    palette: {
-      mode: prefersDarkMode ? "dark" : "light",
-    },
-    components: {
-      MuiCard: {
-        styleOverrides: {
-          root: ({ theme }) => ({
-            "&:hover": {
-              boxShadow: theme.shadows[4],
-            },
-          }),
+const getTheme = (prefersDarkMode: boolean, tab: Tab | undefined) =>
+  {
+    const { palette } = createTheme();
+    return createTheme({
+      palette: {
+        mode: prefersDarkMode ? "dark" : "light",
+        primary: {
+          main: tab?.id === 'show' ? "#df2020" : palette.primary.main
+        },
+        secondary: {
+          main: tab?.id === 'show' ? "#20dfdf" : palette.secondary.main
+        }
+      },
+      components: {
+        MuiCard: {
+          styleOverrides: {
+            root: ({ theme }) => ({
+              "&:hover": {
+                boxShadow: theme.shadows[4],
+              },
+            }),
+          },
         },
       },
-    },
-  });
+    });
+  };
 
 export default Graphs;
