@@ -2,23 +2,23 @@ import { AppBar, Box, Button, Tab as MuiTab, Tabs as MuiTabs, Toolbar, Typograph
 import { Score } from "@mui/icons-material";
 import { useMatches, useNavigate } from "react-router-dom";
 import Tabs, { Tab } from "./tabs";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 const NavBar = ({
   authorise,
   revoke,
 }: {
-  authorise: false | (() => void);
-  revoke: false | (() => void);
+  authorise?: false | (() => void);
+  revoke?: false | (() => void);
 }) => {
-  const [tab, setTab] = useState<Tab>();
   const navigate = useNavigate();
   const matches = useMatches()
+  const currTab = (matches.find(match => Boolean(match.handle))!.handle as { tab: Tab }).tab
+  const [tab, setTab] = useState<Tab>();
 
-  useEffect(() => {
-    const currTab = (matches.find(match => Boolean(match.handle))!.handle as { tab: Tab }).tab
+  if (tab !== currTab) {
     setTab(currTab)
-  }, [matches])
+  }
 
   if (!tab) return null;
   return (
@@ -30,7 +30,7 @@ const NavBar = ({
           noWrap
           sx={{
             mr: 2,
-            fontFamily: "monospace",
+            fontFamily: "cursive",
             fontWeight: 700,
             letterSpacing: ".3rem",
             color: "inherit",
@@ -41,6 +41,7 @@ const NavBar = ({
         </Typography>
         <Box sx={{ flexGrow: 1, display: "flex" }}>
           <MuiTabs textColor="inherit" indicatorColor="secondary" value={tab} onChange={(_, value) => {
+            setTab(value)
             navigate(value.id)
           }}>
             {Tabs.map((tab) => (

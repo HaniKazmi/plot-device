@@ -1,14 +1,13 @@
-import { Stack } from "@mui/material";
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState, useTransition } from "react";
 
 import { Company, Format, Measure, Platform, Status, VideoGame } from "./types";
 import { dateDiffInDays } from "../utils/dateUtils";
-import { fetchAndConvertSheet, useSetTab } from "../Google";
+import { fetchAndConvertSheet } from "../Google";
 import { Tab } from "../tabs";
-import Filter from "./Filter";
 import { Predicate } from "../utils/types";
 
 const Graphs = lazy(() => import(/* webpackPrefetch: true */ "./Graphs"));
+const Filter = lazy(() => import(/* webpackPrefetch: true */ "./Filter"));
 
 let DATA: VideoGame[];
 
@@ -16,8 +15,9 @@ const GamesGraphs = () => {
   const [data, setData] = useState<VideoGame[]>();
   const [filterFunc, setFilterFunc] = useState<Predicate<VideoGame>>(() => () => true);
   const [measure, setMeasure] = useState<Measure>("Count");
+  const [, startTransition] = useTransition()
 
-  useEffect(() => getData(setData), []);
+  useEffect(() => startTransition(() => getData(setData)), []);
 
   if (!data) {
     return null;
@@ -25,12 +25,10 @@ const GamesGraphs = () => {
 
   const vgData = data.filter(filterFunc);
   return (
-    <Stack spacing={2}>
-      <Suspense>
-        <Graphs vgData={vgData} measure={measure} />
-      </Suspense>
+    <Suspense>
+      <Graphs vgData={vgData} measure={measure} />
       <Filter setFilterFunc={setFilterFunc} measure={measure} setMeasure={setMeasure} />
-    </Stack>
+    </Suspense>
   );
 };
 

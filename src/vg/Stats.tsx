@@ -2,7 +2,7 @@ import { AutoGraph, Pause, PlayArrow, ShowChart, Timer, Update, Whatshot } from 
 import Grid from "@mui/material/Unstable_Grid2";
 import { CURRENT_YEAR } from "../utils/dateUtils";
 import { format } from "../utils/mathUtils";
-import { VideoGame } from "./types";
+import { VideoGame, platformToShort } from "./types";
 import { StatCard, StatList } from "../common/Stats";
 
 const Stats = ({ data }: { data: VideoGame[] }) => {
@@ -39,10 +39,7 @@ const Averages = ({ data }: { data: VideoGame[] }) => {
   const grouped = data.reduce((tree, game) => {
     const year = game.startDate?.getFullYear().toString();
     if (!year || !game.hours) return tree;
-
-    if (!tree[year]) {
-      tree[year] = [0, 0];
-    }
+    tree[year] ??= [0, 0];
     tree[year] = [tree[year][0] + 1, tree[year][1] + game.hours];
     return tree;
   }, {} as Record<string, [number, number]>);
@@ -109,6 +106,7 @@ const RecentlyComplete = ({ data }: { data: VideoGame[] }) => {
       title="Recently Finished"
       content={recent}
       labelComponent={StatsCardLabelMostPlayed}
+      chipComponent={platformToShort}
     />
   );
 };
@@ -126,6 +124,7 @@ const MostPlayed = ({ data }: { data: VideoGame[] }) => {
       title="Most Played"
       content={most}
       labelComponent={StatsCardLabelMostPlayed}
+      chipComponent={platformToShort}
     />
   );
 };
@@ -142,9 +141,10 @@ const CurrentlyPlaying = ({ data }: { data: VideoGame[] }) => {
       divider
       title="Currently Playing"
       content={recent}
-      width={12}
-      pictureWdith={4}
+      width={[12, 12, 12]}
+      pictureWidth={[12, 4, 4]}
       labelComponent={StatsCardLabelCurrentlyPlaying}
+      chipComponent={platformToShort}
     />
   );
 };

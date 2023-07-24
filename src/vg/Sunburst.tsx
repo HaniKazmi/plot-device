@@ -1,8 +1,8 @@
 import { Card, CardContent, CardHeader, FormGroup, useTheme } from "@mui/material";
-import { useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useMemo, useState } from "react";
 import Plot from "../plotly";
 import { SelectBox } from "./SelectionComponents";
-import { isVideoGame, Measure, VideoGame, VideoGameTree } from "./types";
+import { companyToColor, isVideoGame, Measure, VideoGame, VideoGameTree } from "./types";
 import { KeysMatching } from "../utils/types";
 
 interface SunburstData {
@@ -10,6 +10,7 @@ interface SunburstData {
   labels: string[];
   parents: string[];
   values: number[];
+  colours: string[];
 }
 
 const isStringArray = (x: any[]): x is string[] => x.every((i) => typeof i === "string");
@@ -18,19 +19,15 @@ type OptionKeys = KeysMatching<VideoGame, string | VideoGame["startDate"]>;
 
 const Sunburst = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
   const theme = useTheme();
-
-  const [{ ids, labels, parents, values }, setSunburstData] = useState<SunburstData>({
-    ids: [],
-    labels: [],
-    parents: [],
-    values: [],
-  });
+  const controlStates: [OptionKeys, Dispatch<SetStateAction<OptionKeys>>][] = [useState<OptionKeys>("company"), useState<OptionKeys>("platform"), useState<OptionKeys>("franchise")]
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const { ids, labels, parents, values, colours }: SunburstData = useMemo(() => dataToSunburstData(data, controlStates.map(([s]) => s), measure), [data, measure, ...controlStates]);
 
   return (
     <Card>
       <CardHeader
         title="Sunburst"
-        action={<SunBurstControls data={data} setSunburstData={setSunburstData} measure={measure} />}
+        action={<SunBurstControls controlStates={controlStates} />}
       />
       <CardContent>
         <Plot
@@ -46,7 +43,7 @@ const Sunburst = ({ data, measure }: { data: VideoGame[]; measure: Measure }) =>
               //@ts-ignore
               maxdepth: 3,
               sort: false,
-              marker: { line: { color: theme.palette.background.paper } },
+              marker: { line: { color: theme.palette.background.paper }, colors: colours },
             },
           ]}
           config={{ displayModeBar: false, responsive: true }}
@@ -74,27 +71,14 @@ const options: OptionKeys[] = [
 ];
 
 const SunBurstControls = ({
-  data,
-  setSunburstData,
-  measure,
+  controlStates,
 }: {
-  data: VideoGame[];
-  setSunburstData: (d: SunburstData) => void;
-  measure: Measure;
+  controlStates: [OptionKeys, Dispatch<SetStateAction<OptionKeys>>][]
 }) => {
-  const groups = [useState<OptionKeys>("company"), useState<OptionKeys>("platform"), useState<OptionKeys>("franchise")];
-  const groupVals = groups.map(([val]) => val);
-
-  useEffect(() => {
-    const sunburstData = dataToSunburstData(data, groupVals, measure);
-    setSunburstData(sunburstData);
-    // eslint-disable-next-line
-  }, [setSunburstData, data, measure, ...groupVals]);
-
   return (
     <FormGroup>
-      {groups.map(([val, setVal]) => (
-        <SelectBox options={options} key={val} value={val} setValue={setVal} />
+      {controlStates.map(([val, setVal], index) => (
+        <SelectBox options={options} key={"sunburst-control-" + index} value={val} setValue={setVal} />
       ))}
     </FormGroup>
   );
@@ -127,27 +111,33 @@ const dataToSunburstData = (data: VideoGame[], groups: OptionKeys[], measure: Me
   const labels: string[] = [];
   const parents: string[] = [];
   const values: number[] = [];
+  const colours: string[] = [];
 
-  const recurseGroup = (tree: VideoGameTree, parent: string) => {
+  const recurseGroup = (tree: VideoGameTree, parent: string): [number, string] => {
     let total = 0;
+    let colour: string = '';
     Object.entries(tree)
       .sort(([val], [val2]) => val.localeCompare(val2))
       .forEach(([key, value]) => {
         let count: number;
         if (isVideoGame(value)) {
           count = measure === "Hours" ? value.hours! : 1;
+          if (groups[0] === 'company') {
+            colour = companyToColor(value)
+          }
         } else {
-          count = recurseGroup(value, `${parent}-${key}`);
+          [count, colour] = recurseGroup(value, `${parent}-${key}`);
         }
 
         labels.push(key);
         parents.push(parent);
         values.push(count);
         ids.push(`${parent}-${key}`);
+        colours.push(colour);
         total += count;
       });
 
-    return total;
+    return [total, colour];
   };
 
   recurseGroup(grouped, "");
@@ -157,6 +147,7 @@ const dataToSunburstData = (data: VideoGame[], groups: OptionKeys[], measure: Me
     parents,
     values,
     ids,
+    colours
   };
 };
 

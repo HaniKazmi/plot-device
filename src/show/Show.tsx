@@ -1,5 +1,4 @@
-import { Stack } from "@mui/material";
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense, useTransition } from "react";
 import { Season, Show, Status } from "./types";
 import { fetchAndConvertSheet } from "../Google";
 import { Tab } from "../tabs";
@@ -10,19 +9,18 @@ let DATA: Show[];
 
 const ShowsGraph = () => {
   const [data, setData] = useState<Show[]>();
+  const [, startTransition] = useTransition()
 
-  useEffect(() => getData(setData), []);
+  useEffect(() => startTransition(() => getData(setData)), []);
 
   if (!data) {
     return null;
   }
 
   return (
-    <Stack spacing={2}>
-      <Suspense>
-        <Graphs data={data} />
-      </Suspense>
-    </Stack>
+    <Suspense>
+      <Graphs data={data} />
+    </Suspense>
   );
 };
 

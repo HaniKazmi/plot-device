@@ -1,5 +1,5 @@
 import { Container, createTheme, CssBaseline, ThemeProvider, useMediaQuery } from "@mui/material";
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useReducer } from "react";
 import NavBar from "./NavBar";
 import { Outlet, useMatches, useOutletContext } from "react-router-dom";
 import { arrayToJson } from "./utils/arrayUtils";
@@ -16,45 +16,69 @@ const storageKey = "gapi-token";
 type Token = google.accounts.oauth2.TokenResponse;
 type TokenClient = google.accounts.oauth2.TokenClient;
 
-const GoogleAuth = ({ tab, children }: { tab?: Tab; children?: ReactNode }) => {
-  const [tokenClient, setTokenClient] = useState<TokenClient | false>(false);
-  const [gapiLoaded, setGapiLoaded] = useState<boolean>(false);
-  const [gapiReady, setGapiReady] = useState<boolean>(false);
-  const [tokenSet, setTokenSet] = useState<boolean>(false);
+type State =
+  | { tokenSet: boolean, apiReady?: boolean, apiLoaded?: boolean, tokenClient?: TokenClient }
+
+type Action =
+  | { type: 'tokenChanged', tokenPresent: boolean }
+  | { type: 'apiLoaded' }
+  | { type: 'authLoaded', client: TokenClient };
+
+const reducer = (state: State, action: Action): State => {
+  switch (action.type) {
+    case "tokenChanged":
+      return {
+        ...state,
+        tokenSet: true,
+        apiReady: action.tokenPresent && state.apiLoaded
+      }
+    case "apiLoaded":
+      return {
+        ...state,
+        apiLoaded: true,
+        apiReady: state.tokenSet
+      }
+    case "authLoaded":
+      return {
+        ...state,
+        tokenClient: action.client
+      }
+  }
+}
+
+const GoogleAuth = ({ children }: { children?: ReactNode }) => {
+  const [{ apiReady, tokenClient }, dispatch] = useReducer(reducer, { tokenSet: false });
 
   useEffect(() => {
     const tokenWrapper = JSON.parse(storage.getItem(storageKey)!);
     if (tokenWrapper?.expiry > Date.now()) {
-      loadGapi(setGapiLoaded, tokenWrapper.token);
-      setTokenSet(true);
+      dispatch({ type: "tokenChanged", tokenPresent: true })
+      loadGapi(() => dispatch({ type: "apiLoaded" }), tokenWrapper.token);
     } else {
-      loadG(setTokenClient, setTokenSet);
-      loadGapi(setGapiLoaded);
+      loadG((c: TokenClient) => dispatch({ type: "authLoaded", client: c }), () => dispatch({ type: "tokenChanged", tokenPresent: true }));
+      loadGapi(() => dispatch({ type: "apiLoaded" }));
     }
-
-    if (gapiLoaded && tokenSet) setGapiReady(true);
-    else setGapiReady(false);
-  }, [gapiLoaded, tokenSet]);
+  }, []);
 
   return (
     <>
       <NavBar
-        authorise={!gapiReady && tokenClient !== false && (() => tokenClient.requestAccessToken())}
+        authorise={!apiReady && tokenClient && (() => tokenClient.requestAccessToken())}
         revoke={
-          gapiReady &&
+          apiReady &&
           (() => {
             storage.removeItem(storageKey);
-            setTokenSet(false);
+            dispatch({ type: "tokenChanged", tokenPresent: false })
           })
         }
       />
-      {gapiReady && children}
+      {apiReady && children}
     </>
   );
 };
 
-let loadGapi = (isReady: (b: boolean) => void, token?: Token) => {
-  loadGapi = () => {};
+let loadGapi = (isReady: () => void, token?: Token) => {
+  loadGapi = () => { };
   const script = document.createElement("script");
   script.src = "https://apis.google.com/js/api.js";
   script.onload = () => {
@@ -66,14 +90,14 @@ let loadGapi = (isReady: (b: boolean) => void, token?: Token) => {
       if (token) {
         gapi.client.setToken(token);
       }
-      isReady(true);
+      isReady();
     });
   };
   document.body.appendChild(script);
 };
 
-let loadG = (isReady: (b: TokenClient) => void, setTokenSet: (b: boolean) => void) => {
-  loadG = () => {};
+let loadG = (authReady: (b: TokenClient) => void, tokenReady: () => void) => {
+  loadG = () => { };
   const script = document.createElement("script");
   script.src = "https://accounts.google.com/gsi/client";
   script.onload = () => {
@@ -83,12 +107,12 @@ let loadG = (isReady: (b: TokenClient) => void, setTokenSet: (b: boolean) => voi
       callback: (token) => {
         const expiry = Date.now() + parseInt(token.expires_in) * 1000;
         storage.setItem(storageKey, JSON.stringify({ token, expiry }));
-        setTokenSet(true);
+        tokenReady();
       },
       prompt: "",
     });
 
-    isReady(tokenClient);
+    authReady(tokenClient);
   };
   document.body.appendChild(script);
 };
@@ -96,7 +120,7 @@ let loadG = (isReady: (b: TokenClient) => void, setTokenSet: (b: boolean) => voi
 const Graphs = () => {
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
   const matches = useMatches()
-  const currTab: Tab = (matches.find(match => Boolean(match.handle))!.handle as { tab: Tab}).tab
+  const currTab: Tab = (matches.find(match => Boolean(match.handle))!.handle as { tab: Tab }).tab
   const theme = useMemo(() => getTheme(prefersDarkMode, currTab), [prefersDarkMode, currTab]);
 
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme.palette.primary.main);
@@ -128,31 +152,30 @@ export const fetchAndConvertSheet = <T,>(
     .then(setData);
 };
 
-const getTheme = (prefersDarkMode: boolean, tab: Tab | undefined) =>
-  {
-    const { palette } = createTheme();
-    return createTheme({
-      palette: {
-        mode: prefersDarkMode ? "dark" : "light",
-        primary: {
-          main: tab?.id === 'show' ? "#df2020" : palette.primary.main
-        },
-        secondary: {
-          main: tab?.id === 'show' ? "#20dfdf" : palette.secondary.main
-        }
+const getTheme = (prefersDarkMode: boolean, tab: Tab) => {
+  const { palette } = createTheme();
+  return createTheme({
+    palette: {
+      mode: prefersDarkMode ? "dark" : "light",
+      primary: {
+        main: tab.id === 'show' ? "#df2020" : palette.primary.main
       },
-      components: {
-        MuiCard: {
-          styleOverrides: {
-            root: ({ theme }) => ({
-              "&:hover": {
-                boxShadow: theme.shadows[4],
-              },
-            }),
-          },
+      secondary: {
+        main: tab.id === 'show' ? "#20dfdf" : palette.secondary.main
+      }
+    },
+    components: {
+      MuiCard: {
+        styleOverrides: {
+          root: ({ theme }) => ({
+            "&:hover": {
+              boxShadow: theme.shadows[4],
+            },
+          }),
         },
       },
-    });
-  };
+    },
+  });
+};
 
 export default Graphs;

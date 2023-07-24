@@ -17,12 +17,13 @@ const Filter = ({
   const [filterPokemon, setFilterPokemon] = useState(false);
   const [filterUnconfirmed, setFilterUnconfirmed] = useState(false);
 
-  useEffect(() => {
-    const filters = [
-      filterEndless ? ({ status }: VideoGame) => status !== "Endless" : () => true,
-      filterPokemon ? ({ franchise }: VideoGame) => franchise !== "Pokémon" : () => true,
-      filterUnconfirmed
-        ? ({ platform, startDate }: VideoGame) => {
+  const updateFilter = ({ endless = filterEndless, pokemon = filterPokemon, unconfirmed = filterUnconfirmed }
+    : { endless?: boolean, pokemon?: boolean, unconfirmed?: boolean }) => () => {
+      const filters = [
+        endless ? ({ status }: VideoGame) => status !== "Endless" : null,
+        pokemon ? ({ franchise }: VideoGame) => franchise !== "Pokémon" : null,
+        unconfirmed
+          ? ({ platform, startDate }: VideoGame) => {
             if (platform === "PC") {
               if (!startDate?.getFullYear() || startDate?.getFullYear() < 2015) return false;
             } else if (
@@ -35,10 +36,18 @@ const Filter = ({
 
             return true;
           }
-        : () => true,
-    ];
-    setFilterFunc(() => (vgData: VideoGame) => filters.reduce((p, c) => p && c(vgData), true));
-  }, [filterEndless, filterPokemon, filterUnconfirmed, setFilterFunc]);
+          : null,
+      ];
+
+      setFilterEndless(endless);
+      setFilterPokemon(pokemon);
+      setFilterUnconfirmed(unconfirmed)
+      if (endless !== filterEndless || pokemon !== filterPokemon || unconfirmed !== filterUnconfirmed) {
+        setFilterFunc(() => (vgData: VideoGame) => filters.filter((f): f is Exclude<typeof f, null> => Boolean(f)).reduce((p, c) => p && c(vgData), true));
+      }
+    };
+
+  useEffect(() => updateFilter({})(), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fabProps = (enabled: boolean) =>
     enabled ? { sx: { backgroundColor: "primary.light", "&:hover": { backgroundColor: "primary.dark" } } } : {};
@@ -55,21 +64,21 @@ const Filter = ({
           tooltipOpen
           tooltipTitle="Endless"
           icon={<AllInclusive />}
-          onClick={() => setFilterEndless(!filterEndless)}
+          onClick={updateFilter({ endless: !filterEndless })}
         />
         <SpeedDialAction
           FabProps={fabProps(filterUnconfirmed)}
           tooltipOpen
           tooltipTitle="Unconfirmed"
           icon={<QuestionMark />}
-          onClick={() => setFilterUnconfirmed(!filterUnconfirmed)}
+          onClick={updateFilter({ unconfirmed: !filterUnconfirmed })}
         />
         <SpeedDialAction
           FabProps={fabProps(filterPokemon)}
           tooltipOpen
           tooltipTitle="Pokemon"
           icon={<CatchingPokemon />}
-          onClick={() => setFilterPokemon(!filterPokemon)}
+          onClick={updateFilter({ pokemon: !filterPokemon })}
         />
       </SpeedDial>
       <Fab color="secondary" onClick={() => setMeasure(measure === "Count" ? "Hours" : "Count")}>

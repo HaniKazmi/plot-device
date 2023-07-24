@@ -3,6 +3,7 @@ import { useState } from "react";
 import { SelectBox } from "../vg//SelectionComponents";
 import { Measure, Season, Show, ShowStringKeys } from "./types";
 import Barchart from "../common/Barchart";
+import { Grouped } from "../vg/Barchart";
 
 const options: Record<ShowStringKeys | "none", boolean> = {
   name: false,
@@ -46,7 +47,7 @@ const ShowBarchart = ({ data, measure }: { data: Show[]; measure: Measure }) => 
   );
 };
 
-const groupDate = (data: [Show, Season][], group: ShowStringKeys | "none", measure: Measure, cumulative: boolean) => {
+const groupDate = (data: [Show, Season][], group: ShowStringKeys | "none", measure: Measure, cumulative: boolean): Grouped => {
   const grouped = data.reduce((tree, [show, season]) => {
     const groupVal = group === "none" ? "" : show[group];
     const year = cumulative
@@ -54,13 +55,13 @@ const groupDate = (data: [Show, Season][], group: ShowStringKeys | "none", measu
       : season.startDate?.getFullYear().toString();
     if (!year || !season.minutes) return tree;
 
-    tree[groupVal] = tree[groupVal] || {};
-    tree[groupVal][year] = (tree[groupVal][year] || 0) + (measure === "Episodes" ? season.e : season.minutes);
+    tree[groupVal] ??= { color: '', data: {} };
+    tree[groupVal].data[year] = (tree[groupVal].data[year] || 0) + (measure === "Episodes" ? season.e : season.minutes);
     return tree;
-  }, {} as Record<string, Record<string, number>>);
+  }, {} as Grouped);
 
   if (measure === "Hours") {
-    Object.values(grouped).forEach((record) =>
+    Object.values(grouped).forEach(({data: record}) =>
       Object.entries(record).forEach(([key, value]) => (record[key] = Math.floor(value / 60)))
     );
   }

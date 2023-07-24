@@ -4,7 +4,6 @@ import { CURRENT_YEAR } from "../utils/dateUtils";
 import { format } from "../utils/mathUtils";
 import { Season, Show } from "./types";
 import { StatCard, StatList } from "../common/Stats";
-import { useMediaQuery, useTheme } from "@mui/material";
 
 const Stats = ({ data }: { data: Show[] }) => {
   return (
@@ -60,10 +59,7 @@ const Averages = ({ data }: { data: Show[] }) => {
     .reduce((tree, s) => {
       const year = s.startDate.getFullYear().toString();
       if (!year || !s.minutes) return tree;
-
-      if (!tree[year]) {
-        tree[year] = [0, 0, 0];
-      }
+      tree[year] ??= [0, 0, 0];
       tree[year] = [tree[year][0] + 1, tree[year][1] + s.e, tree[year][2] + s.minutes];
       return tree;
     }, {} as Record<string, [number, number, number]>);
@@ -105,8 +101,6 @@ const AveragesPerShow = ({ data }: { data: Show[] }) => {
 };
 
 const RecentlyComplete = ({ data }: { data: Show[] }) => {
-  const theme = useTheme();
-  const matches = useMediaQuery(theme.breakpoints.down('sm'));
   const recent = data
     .flatMap((show) => show.s.map((s) => [show, s] as [Show, Season]))
     .filter(([, season]) => season.endDate)
@@ -117,9 +111,8 @@ const RecentlyComplete = ({ data }: { data: Show[] }) => {
       icon={<Pause />}
       title="Recently Finished"
       content={recent}
-      width={12}
-      divider
-      pictureWdith={matches ? 4 : 2}
+      width={[6, 12, 12]}
+      pictureWidth={[12, 4, 2]}
       labelComponent={statsCardLabelStatsCardLabelRecentlyComplete}
     />
   );
@@ -142,8 +135,8 @@ const CurrentlyPlaying = ({ data }: { data: Show[] }) => {
       icon={<PlayArrow />}
       title="Currently Watching"
       content={recent}
-      width={12}
-      pictureWdith={2}
+      width={[6, 12, 12]}
+      pictureWidth={[12, 4, 2]}
       labelComponent={statsCardLabelStatsCardLabelCurrentlyPlaying}
     />
   );
