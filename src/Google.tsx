@@ -1,7 +1,7 @@
 import { Container, createTheme, CssBaseline, ThemeProvider, useMediaQuery } from "@mui/material";
 import { ReactNode, useEffect, useMemo, useReducer } from "react";
 import NavBar from "./NavBar";
-import { Outlet, useMatches, useOutletContext } from "react-router-dom";
+import { Outlet, useMatches } from "react-router-dom";
 import { arrayToJson } from "./utils/arrayUtils";
 import { Tab } from "./tabs";
 
@@ -17,20 +17,28 @@ type Token = google.accounts.oauth2.TokenResponse;
 type TokenClient = google.accounts.oauth2.TokenClient;
 
 type State =
-  | { tokenSet: boolean, apiReady?: boolean, apiLoaded?: boolean, tokenClient?: TokenClient }
+  | { tokenSet?: boolean, apiReady?: boolean, apiLoaded?: boolean, tokenClient?: TokenClient }
 
 type Action =
-  | { type: 'tokenChanged', tokenPresent: boolean }
+  | { type: 'tokenAcquired' }
+  | { type: 'tokenRevoked' }
   | { type: 'apiLoaded' }
-  | { type: 'authLoaded', client: TokenClient };
+  | { type: 'authLoaded', client: TokenClient }
+  | { type: 'authExpired' };
 
 const reducer = (state: State, action: Action): State => {
   switch (action.type) {
-    case "tokenChanged":
+    case "tokenAcquired":
       return {
         ...state,
         tokenSet: true,
-        apiReady: action.tokenPresent && state.apiLoaded
+        apiReady: state.apiLoaded
+      }
+    case "tokenRevoked":
+      return {
+        ...state,
+        tokenSet: false,
+        apiReady: false
       }
     case "apiLoaded":
       return {
@@ -43,21 +51,30 @@ const reducer = (state: State, action: Action): State => {
         ...state,
         tokenClient: action.client
       }
+    case "authExpired":
+      return {
+        ...state,
+        tokenClient: undefined,
+        tokenSet: false,
+        apiReady: false
+      }
   }
 }
 
+let authDispatch: React.Dispatch<Action>;
+
 const GoogleAuth = ({ children }: { children?: ReactNode }) => {
-  const [{ apiReady, tokenClient }, dispatch] = useReducer(reducer, { tokenSet: false });
+  const [{ apiReady, tokenClient }, dispatch] = useReducer(reducer, {});
 
   useEffect(() => {
+    authDispatch ??= dispatch
     const tokenWrapper = JSON.parse(storage.getItem(storageKey)!);
     if (tokenWrapper?.expiry > Date.now()) {
-      dispatch({ type: "tokenChanged", tokenPresent: true })
-      loadGapi(() => dispatch({ type: "apiLoaded" }), tokenWrapper.token);
+      dispatch({ type: "tokenAcquired" })
     } else {
-      loadG((c: TokenClient) => dispatch({ type: "authLoaded", client: c }), () => dispatch({ type: "tokenChanged", tokenPresent: true }));
-      loadGapi(() => dispatch({ type: "apiLoaded" }));
+      loadG();
     }
+    loadGapi(tokenWrapper?.token);
   }, []);
 
   return (
@@ -68,7 +85,8 @@ const GoogleAuth = ({ children }: { children?: ReactNode }) => {
           apiReady &&
           (() => {
             storage.removeItem(storageKey);
-            dispatch({ type: "tokenChanged", tokenPresent: false })
+            dispatch({ type: "tokenRevoked" })
+            loadG()
           })
         }
       />
@@ -77,7 +95,7 @@ const GoogleAuth = ({ children }: { children?: ReactNode }) => {
   );
 };
 
-let loadGapi = (isReady: () => void, token?: Token) => {
+let loadGapi = (token?: Token) => {
   loadGapi = () => { };
   const script = document.createElement("script");
   script.src = "https://apis.google.com/js/api.js";
@@ -90,13 +108,13 @@ let loadGapi = (isReady: () => void, token?: Token) => {
       if (token) {
         gapi.client.setToken(token);
       }
-      isReady();
+      authDispatch({ type: "apiLoaded" })
     });
   };
   document.body.appendChild(script);
 };
 
-let loadG = (authReady: (b: TokenClient) => void, tokenReady: () => void) => {
+let loadG = () => {
   loadG = () => { };
   const script = document.createElement("script");
   script.src = "https://accounts.google.com/gsi/client";
@@ -107,12 +125,12 @@ let loadG = (authReady: (b: TokenClient) => void, tokenReady: () => void) => {
       callback: (token) => {
         const expiry = Date.now() + parseInt(token.expires_in) * 1000;
         storage.setItem(storageKey, JSON.stringify({ token, expiry }));
-        tokenReady();
+        authDispatch({ type: "tokenAcquired" })
       },
       prompt: "",
     });
 
-    authReady(tokenClient);
+    authDispatch({ type: "authLoaded", client: tokenClient })
   };
   document.body.appendChild(script);
 };
@@ -137,8 +155,6 @@ const Graphs = () => {
   );
 };
 
-export const useSetTab = () => useOutletContext<(tab: Tab) => void>();
-
 export const fetchAndConvertSheet = <T,>(
   { spreadsheetId, range }: Tab,
   jsonConverter: (array: Record<string, string>[]) => T,
@@ -149,7 +165,11 @@ export const fetchAndConvertSheet = <T,>(
     .then((response) => response.result.values!)
     .then(arrayToJson)
     .then(jsonConverter)
-    .then(setData);
+    .then(setData)
+    .catch(() => {
+      authDispatch({ type: "authExpired" })
+      loadG();
+    });
 };
 
 const getTheme = (prefersDarkMode: boolean, tab: Tab) => {

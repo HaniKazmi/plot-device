@@ -54,7 +54,7 @@ export const StatList = <T extends VideoGame | Show, U>({
   content,
   labelComponent,
   chipComponent,
-  width = [6, 12, 6],
+  width = [12, 12, 6],
   pictureWidth = [12, 4, 6],
   aspectRatio,
   divider,
@@ -72,14 +72,14 @@ export const StatList = <T extends VideoGame | Show, U>({
   const dividerComponent = <Divider orientation="vertical" flexItem />;
   const matches = useMediaQuery<Theme>((theme) => theme.breakpoints.down('md'));
   if (matches) {
-    content = content.slice(0, 3)
+    // content = content.slice(0, 3)
   }
   return (
     <Grid xs={width[0]} sm={width[1]} md={width[2]}>
       <Card sx={{ height: "100%" }}>
         <CardHeader titleTypographyProps={{ variant: "h6" }} title={title} avatar={icon} />
         <CardContent>
-          <Grid container spacing={1} alignItems="center">
+          <Grid container  sx={{ overflow: "auto", flexWrap: {xs: "nowrap", md: width[2] === 12 ? "nowrap" : "wrap"}}}  spacing={1} alignItems="center">
             {content.map((entry) => {
               let game: T;
               let input: U;
@@ -91,11 +91,11 @@ export const StatList = <T extends VideoGame | Show, U>({
                 input = entry as unknown as U;
               }
 
-              const chip = chipComponent && chipComponent(input);
+              const chip = chipComponent?.(input);
               return (
-                <Grid alignSelf="stretch" key={game.name} xs={pictureWidth[0]} sm={pictureWidth[1]} md={pictureWidth[2]} >
+                <Grid flexShrink={0} alignSelf="stretch" key={game.name} xs={pictureWidth[0]} sm={pictureWidth[1]} md={pictureWidth[2]} >
                   <Card variant="outlined" sx={{ height: "100%", bgcolor: chip && chip[1] + 80}}>
-                    <CardMediaImage image={game.banner} width="100%" sx={{ aspectRatio }} alt={game.name} chip={chip} />
+                    <CardMediaImage image={game.banner} width="100%" sx={{ aspectRatio, flexShrink: 0 }} alt={game.name} chip={chip} />
                     <CardContent sx={{ padding: "10px", ":last-child": { paddingBottom: "10px" } }}>
                       {labelComponent(input).map((stacks, index, labbels) => (
                         <Stack

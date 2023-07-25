@@ -111,8 +111,8 @@ const RecentlyComplete = ({ data }: { data: Show[] }) => {
       icon={<Pause />}
       title="Recently Finished"
       content={recent}
-      width={[6, 12, 12]}
-      pictureWidth={[12, 4, 2]}
+      width={[12, 12, 12]}
+      pictureWidth={[6, 4, 2]}
       labelComponent={statsCardLabelStatsCardLabelRecentlyComplete}
     />
   );
@@ -129,14 +129,13 @@ const CurrentlyPlaying = ({ data }: { data: Show[] }) => {
     .map((show) => [show, show.s.at(-1)] as [Show, Season])
     .filter(([_, season]) => !season.endDate)
     .sort(([, seasonA], [, seasonB]) => (seasonA.startDate! < seasonB.startDate! ? 1 : -1))
-    .slice(0, 6);
   return (
     <StatList
       icon={<PlayArrow />}
       title="Currently Watching"
       content={recent}
-      width={[6, 12, 12]}
-      pictureWidth={[12, 4, 2]}
+      width={[12, 12, 12]}
+      pictureWidth={[6, 4, 2]}
       labelComponent={statsCardLabelStatsCardLabelCurrentlyPlaying}
     />
   );

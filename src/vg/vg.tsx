@@ -60,7 +60,7 @@ const jsonConverter = (json: Record<string, string>[]) => {
       publisher: row["Publisher"],
       rating: row["Rating"],
       status: row["Status"] as Status,
-      exactDate: !!row["Start Date"] && row["Start Date"].length > 5,
+      exactDate: row["Start Date"] && row["Start Date"]?.length > 5,
       startDate: startDate,
       endDate: endDate,
       releaseDate: new Date(row["Release"]),

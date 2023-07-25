@@ -133,7 +133,6 @@ const CurrentlyPlaying = ({ data }: { data: VideoGame[] }) => {
   const recent = data
     .filter((a) => a.status === "Playing")
     .sort((a, b) => (a.startDate! > b.startDate! ? 1 : -1))
-    .slice(0, 3);
   return (
     <StatList
       icon={<PlayArrow />}
