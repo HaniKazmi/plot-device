@@ -5,6 +5,7 @@ import Barchart from "./Barchart";
 import Finished from "../common/Finished";
 import Timeline from "./Timeline";
 import { Stack } from "@mui/material";
+import CardMediaImage from "./CardMediaImage";
 
 const Graphs = ({ vgData, measure }: { vgData: VideoGame[]; measure: Measure }) => (
   <Stack spacing={2}>
@@ -12,7 +13,7 @@ const Graphs = ({ vgData, measure }: { vgData: VideoGame[]; measure: Measure }) 
     <Timeline data={vgData} />
     <Sunburst data={vgData} measure={measure} />
     <Barchart data={vgData} measure={measure} />
-    <Finished title="All Games" data={vgData} width={4} colour={(vg: VideoGame) => companyToColor(vg)} />
+    <Finished MediaComponent={CardMediaImage} title="All Games" data={vgData} width={4} colour={(vg: VideoGame) => companyToColor(vg)} />
   </Stack>
 );
 

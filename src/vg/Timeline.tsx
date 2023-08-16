@@ -10,15 +10,10 @@ const VgTimeline = ({ data }: { data: VideoGame[] }) => {
   const groupFunc = groupData ? ({ company }: VideoGame) => company : () => "*";
   const gameData: [string, string, string, Date, Date][] = data
     .filter(({ exactDate, startDate }) => exactDate && startDate.getFullYear() > 2014)
-    .map((row) => [
-      groupFunc(row),
-      row.name,
-      tooltip(row),
-      row.startDate!,
-      row.endDate || CURRENT_DATE]);
+    .map((row) => [groupFunc(row), row.name, tooltip(row), row.startDate!, row.endDate || CURRENT_DATE]);
 
   return (
-    <Timeline data={gameData} >
+    <Timeline data={gameData}>
       <CardHeader
         title="Timeline"
         action={
@@ -51,7 +46,7 @@ const tooltip = (row: VideoGame) =>
           </li>
           <li>
             <span><b>Period: </b></span>
-            <span>${row.startDate?.toLocaleDateString()} - ${row.endDate?.toLocaleDateString() ?? 'present'} </span>
+            <span>${row.startDate?.toLocaleDateString()} - ${row.endDate?.toLocaleDateString() ?? "present"} </span>
           </li>
           <li>
             <span><b>Days: </b></span>
@@ -59,7 +54,7 @@ const tooltip = (row: VideoGame) =>
           </li>
         </ul>
       </div>
-      ${row.banner ? `<img src="${row.banner}" style="height: 150px" /><hr />` : ''}
+      ${row.banner ? `<img src="${row.banner}" style="height: 150px" /><hr />` : ""}
     </div>
   `;
 

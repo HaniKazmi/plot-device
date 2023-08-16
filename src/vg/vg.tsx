@@ -15,7 +15,7 @@ const GamesGraphs = () => {
   const [data, setData] = useState<VideoGame[]>();
   const [filterFunc, setFilterFunc] = useState<Predicate<VideoGame>>(() => () => true);
   const [measure, setMeasure] = useState<Measure>("Count");
-  const [, startTransition] = useTransition()
+  const [, startTransition] = useTransition();
 
   useEffect(() => startTransition(() => getData(setData)), []);
 
@@ -48,7 +48,12 @@ const jsonConverter = (json: Record<string, string>[]) => {
   return json.map((row) => {
     const startDate = row["Start Date"] ? new Date(row["Start Date"]) : undefined;
     const endDate = row["End Date"] ? new Date(row["End Date"]) : undefined;
-    if (endDate && row["End Date"].length < 5) endDate.setFullYear(endDate.getFullYear() + 1);
+    const exactDate = row["Start Date"] && row["Start Date"]?.length > 5
+    if (endDate && row["End Date"].length < 5) {
+      endDate.setMonth(11);
+      endDate.setDate(31);
+
+    }
     return {
       name: row["Game"],
       platform: row["Platform"] as Platform,
@@ -57,15 +62,16 @@ const jsonConverter = (json: Record<string, string>[]) => {
       genre: row["Genre"],
       theme: row["Theme"].split("\n"),
       format: row["Format"] as Format,
+      developer: row["Developer"],
       publisher: row["Publisher"],
       rating: row["Rating"],
       status: row["Status"] as Status,
-      exactDate: row["Start Date"] && row["Start Date"]?.length > 5,
+      exactDate: exactDate,
       startDate: startDate,
       endDate: endDate,
       releaseDate: new Date(row["Release"]),
       hours: row["Hours"] ? parseInt(row["Hours"]) : undefined,
-      numDays: dateDiffInDays(startDate, endDate),
+      numDays: exactDate ? dateDiffInDays(startDate, endDate) : undefined,
       banner: row["Banner"],
     } as VideoGame;
   });

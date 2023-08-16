@@ -4,20 +4,14 @@ import { useMatches, useNavigate } from "react-router-dom";
 import Tabs, { Tab } from "./tabs";
 import { useState } from "react";
 
-const NavBar = ({
-  authorise,
-  revoke,
-}: {
-  authorise?: false | (() => void);
-  revoke?: false | (() => void);
-}) => {
+const NavBar = ({ authorise, revoke }: { authorise?: false | (() => void); revoke?: false | (() => void) }) => {
   const navigate = useNavigate();
-  const matches = useMatches()
-  const currTab = (matches.find(match => Boolean(match.handle))!.handle as { tab: Tab }).tab
+  const matches = useMatches();
+  const currTab = (matches.find((match) => Boolean(match.handle))!.handle as { tab: Tab }).tab;
   const [tab, setTab] = useState<Tab>();
 
   if (tab !== currTab) {
-    setTab(currTab)
+    setTab(currTab);
   }
 
   if (!tab) return null;
@@ -40,10 +34,15 @@ const NavBar = ({
           Plot Device
         </Typography>
         <Box sx={{ flexGrow: 1, display: "flex" }}>
-          <MuiTabs textColor="inherit" indicatorColor="secondary" value={tab} onChange={(_, value) => {
-            setTab(value)
-            navigate(value.id)
-          }}>
+          <MuiTabs
+            textColor="inherit"
+            indicatorColor="secondary"
+            value={tab}
+            onChange={(_, value) => {
+              setTab(value);
+              navigate(value.id);
+            }}
+          >
             {Tabs.map((tab) => (
               <MuiTab key={`muitab-${tab.id}`} label={tab.name} value={tab} />
             ))}

@@ -19,16 +19,25 @@ type OptionKeys = KeysMatching<VideoGame, string | VideoGame["startDate"]>;
 
 const Sunburst = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
   const theme = useTheme();
-  const controlStates: [OptionKeys, Dispatch<SetStateAction<OptionKeys>>][] = [useState<OptionKeys>("company"), useState<OptionKeys>("platform"), useState<OptionKeys>("franchise")]
+  const controlStates: [OptionKeys, Dispatch<SetStateAction<OptionKeys>>][] = [
+    useState<OptionKeys>("company"),
+    useState<OptionKeys>("platform"),
+    useState<OptionKeys>("franchise"),
+  ];
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const { ids, labels, parents, values, colours }: SunburstData = useMemo(() => dataToSunburstData(data, controlStates.map(([s]) => s), measure), [data, measure, ...controlStates]);
+  const { ids, labels, parents, values, colours }: SunburstData = useMemo(
+    () =>
+      dataToSunburstData(
+        data,
+        controlStates.map(([s]) => s),
+        measure
+      ),
+    [data, measure, ...controlStates]
+  );
 
   return (
     <Card>
-      <CardHeader
-        title="Sunburst"
-        action={<SunBurstControls controlStates={controlStates} />}
-      />
+      <CardHeader title="Sunburst" action={<SunBurstControls controlStates={controlStates} />} />
       <CardContent>
         <Plot
           style={{ width: "100%", height: "95vh", maxHeight: "100vw" }}
@@ -73,7 +82,7 @@ const options: OptionKeys[] = [
 const SunBurstControls = ({
   controlStates,
 }: {
-  controlStates: [OptionKeys, Dispatch<SetStateAction<OptionKeys>>][]
+  controlStates: [OptionKeys, Dispatch<SetStateAction<OptionKeys>>][];
 }) => {
   return (
     <FormGroup>
@@ -115,15 +124,15 @@ const dataToSunburstData = (data: VideoGame[], groups: OptionKeys[], measure: Me
 
   const recurseGroup = (tree: VideoGameTree, parent: string): [number, string] => {
     let total = 0;
-    let colour: string = '';
+    let colour: string = "";
     Object.entries(tree)
       .sort(([val], [val2]) => val.localeCompare(val2))
       .forEach(([key, value]) => {
         let count: number;
         if (isVideoGame(value)) {
           count = measure === "Hours" ? value.hours! : 1;
-          if (groups[0] === 'company') {
-            colour = companyToColor(value)
+          if (groups[0] === "company") {
+            colour = companyToColor(value);
           }
         } else {
           [count, colour] = recurseGroup(value, `${parent}-${key}`);
@@ -147,7 +156,7 @@ const dataToSunburstData = (data: VideoGame[], groups: OptionKeys[], measure: Me
     parents,
     values,
     ids,
-    colours
+    colours,
   };
 };
 

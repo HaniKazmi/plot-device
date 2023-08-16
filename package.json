@@ -21,6 +21,7 @@
     "@types/react-dom": "^18.0.11",
     "@types/react-plotly.js": "^2.6.0",
     "csv-parse": "^5.3.8",
+    "fast-average-color": "^9.3.0",
     "gh-pages": "^5.0.0",
     "plotly.js": "^2.21.0",
     "prettier": "^2.8.8",

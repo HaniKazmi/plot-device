@@ -17,33 +17,45 @@ const Filter = ({
   const [filterPokemon, setFilterPokemon] = useState(false);
   const [filterUnconfirmed, setFilterUnconfirmed] = useState(false);
 
-  const updateFilter = ({ endless = filterEndless, pokemon = filterPokemon, unconfirmed = filterUnconfirmed }
-    : { endless?: boolean, pokemon?: boolean, unconfirmed?: boolean }) => () => {
+  const updateFilter =
+    ({
+      endless = filterEndless,
+      pokemon = filterPokemon,
+      unconfirmed = filterUnconfirmed,
+    }: {
+      endless?: boolean;
+      pokemon?: boolean;
+      unconfirmed?: boolean;
+    }) =>
+    () => {
       const filters = [
         endless ? ({ status }: VideoGame) => status !== "Endless" : null,
         pokemon ? ({ franchise }: VideoGame) => franchise !== "Pokémon" : null,
         unconfirmed
           ? ({ platform, startDate }: VideoGame) => {
-            if (platform === "PC") {
-              if (!startDate?.getFullYear() || startDate?.getFullYear() < 2015) return false;
-            } else if (
-              platform !== "Nintendo Switch" &&
-              platform !== "Nintendo 3DS" &&
-              platform !== "PlayStation 4" &&
-              platform !== "PlayStation 5"
-            )
-              return false;
+              if (platform === "PC") {
+                if (!startDate?.getFullYear() || startDate?.getFullYear() < 2015) return false;
+              } else if (
+                platform !== "Nintendo Switch" &&
+                platform !== "Nintendo 3DS" &&
+                platform !== "PlayStation 4" &&
+                platform !== "PlayStation 5"
+              )
+                return false;
 
-            return true;
-          }
+              return true;
+            }
           : null,
       ];
 
       setFilterEndless(endless);
       setFilterPokemon(pokemon);
-      setFilterUnconfirmed(unconfirmed)
+      setFilterUnconfirmed(unconfirmed);
       if (endless !== filterEndless || pokemon !== filterPokemon || unconfirmed !== filterUnconfirmed) {
-        setFilterFunc(() => (vgData: VideoGame) => filters.filter((f): f is Exclude<typeof f, null> => Boolean(f)).reduce((p, c) => p && c(vgData), true));
+        setFilterFunc(
+          () => (vgData: VideoGame) =>
+            filters.filter((f): f is Exclude<typeof f, null> => Boolean(f)).reduce((p, c) => p && c(vgData), true)
+        );
       }
     };
 

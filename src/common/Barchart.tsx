@@ -12,7 +12,7 @@ const Barchart = ({
   children,
 }: {
   grouped: Grouped;
-  colours?: Record<string, string>
+  colours?: Record<string, string>;
   cumulative: boolean;
   stack: boolean;
   children?: ReactNode;
@@ -39,8 +39,8 @@ const Barchart = ({
             y: Object.values(val),
             stackgroup: stack ? "*" : undefined,
             marker: {
-              color: Object.entries(data).length === 1 ? theme.palette.primary.main : color
-            }
+              color: Object.entries(data).length === 1 ? theme.palette.primary.main : color,
+            },
           }))}
           config={{ displayModeBar: false, responsive: true }}
           layout={{

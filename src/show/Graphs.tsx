@@ -4,13 +4,14 @@ import Barchart from "./Barchart";
 import Stats from "./Stats";
 import Timeline from "./Timeline";
 import { Show } from "./types";
+import ShowCardMediaImage from "./CardMediaImage";
 
 const Graphs = ({ data }: { data: Show[] }) => (
   <Stack spacing={2}>
     <Stats data={data} />
     <Timeline data={data} />
     <Barchart data={data} measure={"Hours"} />
-    <Finished title="All Shows" data={data} width={3} />
+    <Finished title="All Shows" data={data} width={3} MediaComponent={ShowCardMediaImage} />
   </Stack>
 );
 

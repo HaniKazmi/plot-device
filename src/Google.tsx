@@ -16,15 +16,14 @@ const storageKey = "gapi-token";
 type Token = google.accounts.oauth2.TokenResponse;
 type TokenClient = google.accounts.oauth2.TokenClient;
 
-type State =
-  | { tokenSet?: boolean, apiReady?: boolean, apiLoaded?: boolean, tokenClient?: TokenClient }
+type State = { tokenSet?: boolean; apiReady?: boolean; apiLoaded?: boolean; tokenClient?: TokenClient };
 
 type Action =
-  | { type: 'tokenAcquired' }
-  | { type: 'tokenRevoked' }
-  | { type: 'apiLoaded' }
-  | { type: 'authLoaded', client: TokenClient }
-  | { type: 'authExpired' };
+  | { type: "tokenAcquired" }
+  | { type: "tokenRevoked" }
+  | { type: "apiLoaded" }
+  | { type: "authLoaded"; client: TokenClient }
+  | { type: "authExpired" };
 
 const reducer = (state: State, action: Action): State => {
   switch (action.type) {
@@ -32,34 +31,33 @@ const reducer = (state: State, action: Action): State => {
       return {
         ...state,
         tokenSet: true,
-        apiReady: state.apiLoaded
-      }
+        apiReady: state.apiLoaded,
+      };
     case "tokenRevoked":
       return {
         ...state,
         tokenSet: false,
-        apiReady: false
-      }
+        apiReady: false,
+      };
     case "apiLoaded":
       return {
         ...state,
         apiLoaded: true,
-        apiReady: state.tokenSet
-      }
+        apiReady: state.tokenSet,
+      };
     case "authLoaded":
       return {
         ...state,
-        tokenClient: action.client
-      }
+        tokenClient: action.client,
+      };
     case "authExpired":
       return {
         ...state,
-        tokenClient: undefined,
         tokenSet: false,
-        apiReady: false
-      }
+        apiReady: false,
+      };
   }
-}
+};
 
 let authDispatch: React.Dispatch<Action>;
 
@@ -67,10 +65,10 @@ const GoogleAuth = ({ children }: { children?: ReactNode }) => {
   const [{ apiReady, tokenClient }, dispatch] = useReducer(reducer, {});
 
   useEffect(() => {
-    authDispatch ??= dispatch
+    authDispatch ??= dispatch;
     const tokenWrapper = JSON.parse(storage.getItem(storageKey)!);
     if (tokenWrapper?.expiry > Date.now()) {
-      dispatch({ type: "tokenAcquired" })
+      dispatch({ type: "tokenAcquired" });
     } else {
       loadG();
     }
@@ -85,8 +83,8 @@ const GoogleAuth = ({ children }: { children?: ReactNode }) => {
           apiReady &&
           (() => {
             storage.removeItem(storageKey);
-            dispatch({ type: "tokenRevoked" })
-            loadG()
+            dispatch({ type: "tokenRevoked" });
+            loadG();
           })
         }
       />
@@ -96,7 +94,7 @@ const GoogleAuth = ({ children }: { children?: ReactNode }) => {
 };
 
 let loadGapi = (token?: Token) => {
-  loadGapi = () => { };
+  loadGapi = () => { if ( typeof gapi !== 'undefined')       authDispatch({ type: "apiLoaded" });};
   const script = document.createElement("script");
   script.src = "https://apis.google.com/js/api.js";
   script.onload = () => {
@@ -108,14 +106,14 @@ let loadGapi = (token?: Token) => {
       if (token) {
         gapi.client.setToken(token);
       }
-      authDispatch({ type: "apiLoaded" })
+      authDispatch({ type: "apiLoaded" });
     });
   };
   document.body.appendChild(script);
 };
 
 let loadG = () => {
-  loadG = () => { };
+  loadG = () => {};
   const script = document.createElement("script");
   script.src = "https://accounts.google.com/gsi/client";
   script.onload = () => {
@@ -125,23 +123,23 @@ let loadG = () => {
       callback: (token) => {
         const expiry = Date.now() + parseInt(token.expires_in) * 1000;
         storage.setItem(storageKey, JSON.stringify({ token, expiry }));
-        authDispatch({ type: "tokenAcquired" })
+        authDispatch({ type: "tokenAcquired" });
       },
       prompt: "",
     });
 
-    authDispatch({ type: "authLoaded", client: tokenClient })
+    authDispatch({ type: "authLoaded", client: tokenClient });
   };
   document.body.appendChild(script);
 };
 
 const Graphs = () => {
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
-  const matches = useMatches()
-  const currTab: Tab = (matches.find(match => Boolean(match.handle))!.handle as { tab: Tab }).tab
+  const matches = useMatches();
+  const currTab: Tab = (matches.find((match) => Boolean(match.handle))!.handle as { tab: Tab }).tab;
   const theme = useMemo(() => getTheme(prefersDarkMode, currTab), [prefersDarkMode, currTab]);
 
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme.palette.primary.main);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme.palette.primary.main);
 
   return (
     <ThemeProvider theme={theme}>
@@ -166,8 +164,9 @@ export const fetchAndConvertSheet = <T,>(
     .then(arrayToJson)
     .then(jsonConverter)
     .then(setData)
-    .catch(() => {
-      authDispatch({ type: "authExpired" })
+    .catch((error) => {
+      console.log(error);
+      authDispatch({ type: "authExpired" });
       loadG();
     });
 };
@@ -178,11 +177,11 @@ const getTheme = (prefersDarkMode: boolean, tab: Tab) => {
     palette: {
       mode: prefersDarkMode ? "dark" : "light",
       primary: {
-        main: tab.id === 'show' ? "#df2020" : palette.primary.main
+        main: tab.id === "show" ? "#df2020" : palette.primary.main,
       },
       secondary: {
-        main: tab.id === 'show' ? "#20dfdf" : palette.secondary.main
-      }
+        main: tab.id === "show" ? "#20dfdf" : palette.secondary.main,
+      },
     },
     components: {
       MuiCard: {

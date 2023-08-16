@@ -1,9 +1,9 @@
-import { Card, CardContent, CardHeader, Divider, Stack, Theme, Typography, useMediaQuery } from "@mui/material";
+import { Card, CardContent, CardHeader, Divider, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Unstable_Grid2";
 import { format } from "../utils/mathUtils";
 import { VideoGame } from "../vg/types";
-import { Show } from "../show/types";
-import { CardMediaImage } from "./Card";
+import { Season } from "../show/types";
+import { TypedCardMediaImage } from "./Card";
 
 export const StatCard = ({
   icon,
@@ -26,7 +26,7 @@ export const StatCard = ({
             <Typography align="center" variant="h5">
               {format(val)}
             </Typography>
-            <Typography align="center" sx={{ fontSize: 14 }} color="text.secondary">
+            <Typography align="center" variant="subtitle2" color="text.secondary">
               {key}
             </Typography>
           </Stack>
@@ -34,7 +34,7 @@ export const StatCard = ({
       </Stack>
     );
   return (
-    <Grid xs={12} sm={6} md={3} >
+    <Grid xs={12} sm={6} md={3}>
       <Card sx={{ height: "100%" }}>
         <CardHeader
           titleTypographyProps={{ variant: "h6" }}
@@ -48,77 +48,116 @@ export const StatCard = ({
   );
 };
 
-export const StatList = <T extends VideoGame | Show, U>({
-  icon,
-  title,
-  content,
-  labelComponent,
-  chipComponent,
-  width = [12, 12, 6],
-  pictureWidth = [12, 4, 6],
-  aspectRatio,
-  divider,
-}: {
+export type StatsListProps<T extends VideoGame | Season> = {
   icon: JSX.Element & React.ReactNode;
   title: string;
-  content: [T, U][] | T[];
-  labelComponent: (u: U) => string[][];
-  chipComponent?: (u: U) => [string, string];
+  content: T[];
   width?: [number, number, number];
+  labelComponent: (t: T) => string[][];
+  chipComponent?: (t: T) => [string, string?];
+  MediaComponent: TypedCardMediaImage<T>;
   pictureWidth?: [number, number, number];
   aspectRatio?: string;
   divider?: boolean;
-}) => {
-  const dividerComponent = <Divider orientation="vertical" flexItem />;
-  const matches = useMediaQuery<Theme>((theme) => theme.breakpoints.down('md'));
-  if (matches) {
-    // content = content.slice(0, 3)
-  }
+  landscape?: boolean;
+}
+
+export const StatList = <T extends VideoGame | Season>({
+  icon,
+  title,
+  content,
+  width = [12, 12, 6],
+  chipComponent,
+  labelComponent,
+  ...props
+}: StatsListProps<T>) => {
   return (
     <Grid xs={width[0]} sm={width[1]} md={width[2]}>
       <Card sx={{ height: "100%" }}>
         <CardHeader titleTypographyProps={{ variant: "h6" }} title={title} avatar={icon} />
         <CardContent>
-          <Grid container  sx={{ overflow: "auto", flexWrap: {xs: "nowrap", md: width[2] === 12 ? "nowrap" : "wrap"}}}  spacing={1} alignItems="center">
+          <Grid
+            container
+            sx={{ overflow: "auto", flexWrap: { xs: "nowrap", md: width[2] === 12 ? "nowrap" : "wrap" } }}
+            spacing={1}
+            alignItems="center"
+          >
             {content.map((entry) => {
-              let game: T;
-              let input: U;
-              if (Array.isArray(entry)) {
-                game = entry[0];
-                input = entry[1];
-              } else {
-                game = entry;
-                input = entry as unknown as U;
-              }
-
-              const chip = chipComponent?.(input);
+              const { name } = "name" in entry ? entry : entry.show;
               return (
-                <Grid flexShrink={0} alignSelf="stretch" key={game.name} xs={pictureWidth[0]} sm={pictureWidth[1]} md={pictureWidth[2]} >
-                  <Card variant="outlined" sx={{ height: "100%", bgcolor: chip && chip[1] + 80}}>
-                    <CardMediaImage image={game.banner} width="100%" sx={{ aspectRatio, flexShrink: 0 }} alt={game.name} chip={chip} />
-                    <CardContent sx={{ padding: "10px", ":last-child": { paddingBottom: "10px" } }}>
-                      {labelComponent(input).map((stacks, index, labbels) => (
-                        <Stack
-                          key={`${title}-stacks-${game.name}-${index}`}
-                          justifyContent="space-between"
-                          alignItems="baseline"
-                          direction="row"
-                          divider={labbels.length === 1 || divider ? dividerComponent : null}
-                        >
-                          {stacks.map((val) => (
-                            <Typography key={val} variant="subtitle2" color="text.secondary">
-                              {val}
-                            </Typography>
-                          ))}
-                        </Stack>
-                      ))}
-                    </CardContent>
-                  </Card>
-                </Grid>
+                <StatsListCard
+                  key={title + "-statslistcard-" + name}
+                  item={entry}
+                  labels={labelComponent(entry)}
+                  chip={chipComponent?.(entry)}
+                  {...props}
+                />
               );
             })}
           </Grid>
         </CardContent>
+      </Card>
+    </Grid>
+  );
+};
+
+const StatsListCard = <T extends VideoGame | Season>({
+  item,
+  labels,
+  chip,
+  pictureWidth = [12, 4, 6],
+  aspectRatio,
+  divider,
+  landscape = false,
+  MediaComponent
+}: {
+  item: T;
+  labels: string[][];
+  chip?: [string, string?];
+  pictureWidth?: [number, number, number];
+  aspectRatio?: string;
+  divider?: boolean;
+  landscape?: boolean;
+  MediaComponent: TypedCardMediaImage<T>;
+}) => {
+  const dividerComponent = <Divider orientation="vertical" flexItem />;
+  return (
+    <Grid flexShrink={0} alignSelf="stretch" xs={pictureWidth[0]} sm={pictureWidth[1]} md={pictureWidth[2]}>
+      <Card variant="outlined" sx={{ height: "100%" }}>
+        <MediaComponent
+          item={item}
+          width="100%"
+          sx={{ aspectRatio, flexShrink: 0 }}
+          chip={chip}
+          landscape={landscape}
+          footerComponent={
+            (colour?: string) => (
+              <CardContent
+                sx={{
+                  padding: "10px",
+                  ":last-child": { paddingBottom: "10px" },
+                  background: colour,
+                  color: (theme) => colour && theme.palette.getContrastText(colour),
+                }}
+              >
+                {labels.map((stacks, index, labels) => (
+                  <Stack
+                    key={`stacks-${index}`}
+                    justifyContent={stacks.length === 1 ? "center" : "space-between"}
+                    direction="row"
+                    divider={labels.length === 1 || divider ? dividerComponent : null}
+                  >
+                    {stacks.map((val) => (
+                      <Typography key={val} variant="subtitle2">
+                        {val}
+                      </Typography>
+                    ))}
+                  </Stack>
+                ))}
+              </CardContent>
+            )
+          }
+        />
       </Card>
     </Grid>
   );

@@ -15,10 +15,12 @@ export interface Show {
 export interface Season {
   s: number;
   e: number;
+  subtitile?: string;
   startDate: Date;
   endDate?: Date;
   episodeLength: number;
   minutes: number;
+  show: Show;
 }
 
 export type Status = "Watching" | "Up To Date" | "Ended" | "Cancelled" | "Abandoned";
@@ -27,3 +29,6 @@ export type ShowKeys = keyof Show;
 export type ShowStringKeys = KeysMatching<Show, string>;
 
 export type Measure = "Hours" | "Episodes";
+
+export const isShow = (arg: Show | Season): arg is Show => "name" in arg
+

@@ -8,8 +8,17 @@ const ShowTimeline = ({ data }: { data: Show[] }) => {
   const [groupData, setGroupData] = useState(true);
 
   const titleData: [string, Show | Season, string?][] = groupData
-    ? data.map(show => [show.name, show, show.banner])
-    : data.flatMap((show) => show.s.map((s) => [`${show.name} - S${s.s}`, s, show.banner] as [string, Season, string?]));
+    ? data.map((show) => [show.name, show, show.banner])
+    : data.flatMap((show) =>
+        show.s.map(
+          (s) =>
+            [`${show.name} - S${s.s}${s.subtitile ? " - " + s.subtitile : ""}`, s, show.banner] as [
+              string,
+              Season,
+              string?
+            ]
+        )
+      );
 
   const showData: [string, string, string, Date, Date][] = titleData.map(([title, s, banner]) => [
     "*",
@@ -39,7 +48,7 @@ const ShowTimeline = ({ data }: { data: Show[] }) => {
 const tooltip = (title: string, row: Show | Season, banner?: string) =>
   `
   <div style="display: flex;" class="backgroundPaper">
-    ${banner ? `<img src="${banner}" style="height: 150px" /><hr />` : ''}  
+    ${banner ? `<img src="${banner}" style="height: 150px" /><hr />` : ""}  
     <div>     
       <ul style="list-style-type: none;padding: 5px">
         <li>

@@ -16,7 +16,7 @@ const ShowBarchart = ({ data, measure }: { data: Show[]; measure: Measure }) => 
   const [cumulative, setCumulative] = useState(false);
   let [stack, setStack] = useState(true);
 
-  let seasonArray = data.flatMap((show) => show.s.map((s) => [show, s] as [Show, Season]));
+  let seasonArray = data.flatMap((show) => show.s);
   const grouped = groupDate(seasonArray, group, measure, cumulative);
 
   return (
@@ -47,21 +47,22 @@ const ShowBarchart = ({ data, measure }: { data: Show[]; measure: Measure }) => 
   );
 };
 
-const groupDate = (data: [Show, Season][], group: ShowStringKeys | "none", measure: Measure, cumulative: boolean): Grouped => {
-  const grouped = data.reduce((tree, [show, season]) => {
+const groupDate = (data: Season[], group: ShowStringKeys | "none", measure: Measure, cumulative: boolean): Grouped => {
+  const grouped = data.reduce((tree, season) => {
+    const { show } = season;
     const groupVal = group === "none" ? "" : show[group];
     const year = cumulative
       ? season.startDate?.toISOString().substring(0, 7)
       : season.startDate?.getFullYear().toString();
     if (!year || !season.minutes) return tree;
 
-    tree[groupVal] ??= { color: '', data: {} };
+    tree[groupVal] ??= { color: "", data: {} };
     tree[groupVal].data[year] = (tree[groupVal].data[year] || 0) + (measure === "Episodes" ? season.e : season.minutes);
     return tree;
   }, {} as Grouped);
 
   if (measure === "Hours") {
-    Object.values(grouped).forEach(({data: record}) =>
+    Object.values(grouped).forEach(({ data: record }) =>
       Object.entries(record).forEach(([key, value]) => (record[key] = Math.floor(value / 60)))
     );
   }

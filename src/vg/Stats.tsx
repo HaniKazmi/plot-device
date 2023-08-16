@@ -3,7 +3,8 @@ import Grid from "@mui/material/Unstable_Grid2";
 import { CURRENT_YEAR } from "../utils/dateUtils";
 import { format } from "../utils/mathUtils";
 import { VideoGame, platformToShort } from "./types";
-import { StatCard, StatList } from "../common/Stats";
+import { StatCard, StatList, StatsListProps } from "../common/Stats";
+import VgCardMediaImage from "./CardMediaImage";
 
 const Stats = ({ data }: { data: VideoGame[] }) => {
   return (
@@ -50,7 +51,7 @@ const Averages = ({ data }: { data: VideoGame[] }) => {
   return (
     <StatCard
       icon={<ShowChart />}
-      title="Averages Per Year"
+      title="Yearly Average"
       content={[
         ["Games", games],
         ["Hours", hours],
@@ -67,7 +68,7 @@ const AveragesPerGame = ({ data }: { data: VideoGame[] }) => {
   return (
     <StatCard
       icon={<AutoGraph />}
-      title="Averages Per Game"
+      title="Game Average"
       content={[
         ["Hours", hours],
         ["Days To Beat", days],
@@ -84,7 +85,7 @@ const ThisYearSoFar = ({ data }: { data: VideoGame[] }) => {
   return (
     <StatCard
       icon={<Update />}
-      title="This Year So Far"
+      title={`In ${CURRENT_YEAR}`}
       content={[
         ["Games", games],
         ["Hours", time],
@@ -99,14 +100,11 @@ const RecentlyComplete = ({ data }: { data: VideoGame[] }) => {
     .sortByKey("endDate")
     .slice(0, 6);
   return (
-    <StatList
+    <VgStatList
       icon={<Pause />}
-      aspectRatio={"16/9"}
-      divider
       title="Recently Finished"
       content={recent}
-      labelComponent={StatsCardLabelMostPlayed}
-      chipComponent={platformToShort}
+      labelComponent={StatsCardLabelEndDateHours}
     />
   );
 };
@@ -117,43 +115,41 @@ const MostPlayed = ({ data }: { data: VideoGame[] }) => {
     .sortByKey("hours")
     .slice(0, 6);
   return (
-    <StatList
+    <VgStatList
       icon={<Whatshot />}
-      aspectRatio={"16/9"}
-      divider
       title="Most Played"
       content={most}
-      labelComponent={StatsCardLabelMostPlayed}
-      chipComponent={platformToShort}
+      labelComponent={StatsCardLabelEndDateHours}
     />
   );
 };
 
 const CurrentlyPlaying = ({ data }: { data: VideoGame[] }) => {
-  const recent = data
-    .filter((a) => a.status === "Playing")
-    .sort((a, b) => (a.startDate! > b.startDate! ? 1 : -1))
+  const recent = data.filter((a) => a.status === "Playing").sort((a, b) => (a.startDate! > b.startDate! ? 1 : -1));
   return (
-    <StatList
+    <VgStatList
       icon={<PlayArrow />}
-      aspectRatio={"16/9"}
-      divider
       title="Currently Playing"
       content={recent}
+      labelComponent={StatsCardLabelStartDate}
       width={[12, 12, 12]}
       pictureWidth={[12, 4, 4]}
-      labelComponent={StatsCardLabelCurrentlyPlaying}
-      chipComponent={platformToShort}
     />
   );
 };
 
-const StatsCardLabelMostPlayed = (game: VideoGame) => [
+const StatsCardLabelEndDateHours = (game: VideoGame) => [
   [game.endDate?.toLocaleDateString() || "", `${format(game.hours!)} Hours`],
 ];
 
-const StatsCardLabelCurrentlyPlaying = (game: VideoGame) => [
-  [game.startDate?.toLocaleDateString() || "", game.platform],
-];
+const StatsCardLabelStartDate = (game: VideoGame) => [[game.startDate?.toLocaleDateString() || ""]];
+
+const VgStatList = (props: Omit<StatsListProps<VideoGame>, "MediaComponent" | "aspectRatio" | "divider" | "chipComponent" | "landscape">) => <StatList
+  aspectRatio="16/9"
+  divider
+  chipComponent={platformToShort}
+  landscape
+  MediaComponent={VgCardMediaImage}
+  {...props} />
 
 export default Stats;

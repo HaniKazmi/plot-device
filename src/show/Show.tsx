@@ -9,7 +9,7 @@ let DATA: Show[];
 
 const ShowsGraph = () => {
   const [data, setData] = useState<Show[]>();
-  const [, startTransition] = useTransition()
+  const [, startTransition] = useTransition();
 
   useEffect(() => startTransition(() => getData(setData)), []);
 
@@ -52,14 +52,19 @@ const jsonConverter = (json: Record<string, string>[]) => {
       const season: Partial<Season> = {
         s: parseFloat(row["Season"]),
         e: parseInt(row["Episode"]),
+        subtitile: row["Subtitle"],
         startDate: new Date(row["Start"]),
         endDate: row["End"] ? new Date(row["End"]) : undefined,
         episodeLength: row["Episodes"] ? parseInt(row["Episodes"]) : undefined,
+        show: show as Show,
       };
 
       season.minutes = season.episodeLength ? season.episodeLength * season.e! : undefined;
       if (season.startDate && season.startDate.getFullYear() > 2005) {
         show.s!.push(season as Season);
+      }
+      if (season.startDate && season.endDate) {
+        console.assert(season.startDate <= season.endDate, "Dates are wrong", season);
       }
     }
 
@@ -67,10 +72,13 @@ const jsonConverter = (json: Record<string, string>[]) => {
   }, {} as Partial<Show>);
 
   showData.forEach((show) => {
-    show.startDate = show.s?.[0].startDate;
-    show.endDate = show.s?.at(-1)?.endDate;
-    show.e = show.s?.sum("e");
-    show.minutes = show.s?.sum("minutes");
+    show.startDate = show.s[0].startDate;
+    show.endDate = show.s.at(-1)?.endDate;
+    show.e = show.s.sum("e");
+    show.minutes = show.s.sum("minutes");
+    if (show.startDate && show.endDate) {
+      console.assert(show.startDate <= show.endDate, "Dates are wrong", show);
+    }
   });
 
   return showData;
@@ -80,7 +88,7 @@ const ShowTab: Tab = {
   id: "show",
   name: "Shows",
   spreadsheetId: "1M3om2DPLfRO5dKcUfYOIcSNoLThzMLp1iZLQX6qR3pY",
-  range: "Sheet1!A:J",
+  range: "Sheet1!A:K",
   component: <ShowsGraph />,
 };
 

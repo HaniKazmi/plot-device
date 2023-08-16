@@ -4,82 +4,76 @@ import Chart from "react-google-charts";
 
 const DEFAULT_HEIGHT = 90;
 
-const Timeline = ({
-    data,
-    children }: {
-        data: [string, string, string, Date, Date][],
-        children?: ReactNode;
-    }) => {
-    const [height, setHeight] = useState<string | number>(DEFAULT_HEIGHT + "vh");
-    const theme = useTheme();
+const Timeline = ({ data, children }: { data: [string, string, string, Date, Date][]; children?: ReactNode }) => {
+  const [height, setHeight] = useState<string | number>(DEFAULT_HEIGHT + "vh");
+  const theme = useTheme();
 
-    const timelineHeader: any[] = [
-        [
-            { type: "string", id: "*" },
-            { type: "string", id: "Name" },
-            { type: "string", role: "tooltip" },
-            { type: "date", id: "Start" },
-            { type: "date", id: "End" },
-        ],
-    ];
+  const timelineHeader: any[] = [
+    [
+      { type: "string", id: "*" },
+      { type: "string", id: "Name" },
+      { type: "string", role: "tooltip" },
+      { type: "date", id: "Start" },
+      { type: "date", id: "End" },
+    ],
+  ];
 
-    const callback = useCallback(() => {
-        const labels = document.getElementsByTagName("text");
-        for (let label of labels) {
-            if (label.getAttribute("text-anchor") === "middle") {
-                label.setAttribute("fill", theme.palette.text.secondary);
-            }
-        }
+  const callback = useCallback(() => {
+    const labels = document.getElementsByTagName("text");
+    for (let label of labels) {
+      if (label.getAttribute("text-anchor") === "middle") {
+        label.setAttribute("fill", theme.palette.text.secondary);
+      }
+    }
 
-        const rects = document.getElementsByTagName("rect");
-        for (let rect of rects) {
-            if (rect.getAttribute("stroke") === "#9a9a9a") {
-                const newHeight = rect.height.baseVal.value + 50;
-                setHeight(
-                    newHeight < document.documentElement.clientHeight * (DEFAULT_HEIGHT / 100) ? newHeight : DEFAULT_HEIGHT + "vh"
-                );
-            }
-        }
-    }, [theme.palette.text.secondary]);
+    const rects = document.getElementsByTagName("rect");
+    for (let rect of rects) {
+      if (rect.getAttribute("stroke") === "#9a9a9a") {
+        const newHeight = rect.height.baseVal.value + 50;
+        setHeight(
+          newHeight < document.documentElement.clientHeight * (DEFAULT_HEIGHT / 100) ? newHeight : DEFAULT_HEIGHT + "vh"
+        );
+      }
+    }
+  }, [theme.palette.text.secondary]);
 
-    useEffect(() => {
-        window.addEventListener("resize", callback);
-        return () => 
-          window.removeEventListener("resize", callback);
-      }, [callback]);
+  useEffect(() => {
+    window.addEventListener("resize", callback);
+    return () => window.removeEventListener("resize", callback);
+  }, [callback]);
 
-    return (
-        <Box
-            sx={{
-                '.backgroundPaper': {
-                    backgroundColor: "background.paper"
-                }
-            }}
-        >
-            <Card>
-                {children}
-                <CardContent>
-                    <div style={{ overflowX: "auto", overflowY: "hidden" }}>
-                        <Chart
-                            key={height}
-                            width="400vw"
-                            height={height}
-                            chartType="Timeline"
-                            data={timelineHeader.concat(data)}
-                            onLoad={() => {
-                                setTimeout(callback, 50);
-                            }}
-                            chartEvents={[{ eventName: "ready", callback }]}
-                            options={{
-                                backgroundColor: theme.palette.mode === "dark" ? theme.palette.grey.A700 : undefined,
-                                timeline: { rowLabelStyle: { color: theme.palette.text.primary } },
-                            }}
-                        />
-                    </div>
-                </CardContent>
-            </Card>
-        </Box>
-    );
+  return (
+    <Box
+      sx={{
+        ".backgroundPaper": {
+          backgroundColor: "background.paper",
+        },
+      }}
+    >
+      <Card>
+        {children}
+        <CardContent>
+          <div style={{ overflowX: "auto", overflowY: "hidden" }}>
+            <Chart
+              key={height}
+              width="400vw"
+              height={height}
+              chartType="Timeline"
+              data={timelineHeader.concat(data)}
+              onLoad={() => {
+                setTimeout(callback, 50);
+              }}
+              chartEvents={[{ eventName: "ready", callback }]}
+              options={{
+                backgroundColor: theme.palette.mode === "dark" ? theme.palette.grey.A700 : undefined,
+                timeline: { rowLabelStyle: { color: theme.palette.text.primary } },
+              }}
+            />
+          </div>
+        </CardContent>
+      </Card>
+    </Box>
+  );
 };
 
 export default Timeline;

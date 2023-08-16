@@ -11,6 +11,7 @@ const options: Record<VideoGameStringKeys | "none", boolean> = {
   franchise: false,
   name: false,
   platform: true,
+  developer: false,
   publisher: false,
   rating: true,
   status: true,
@@ -19,7 +20,7 @@ const options: Record<VideoGameStringKeys | "none", boolean> = {
 
 const VgBarchart = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
   const [group, setGroup] = useState<VideoGameStringKeys | "none">("company");
-  const [cumulative, setCumulative] = useState(true);
+  const [cumulative, setCumulative] = useState(false);
   let [stack, setStack] = useState(true);
 
   const grouped = groupDate(data, group, measure, cumulative);
@@ -54,18 +55,23 @@ const VgBarchart = ({ data, measure }: { data: VideoGame[]; measure: Measure }) 
 
 export interface Grouped {
   [key: string]: {
-    color: string,
-    data: Record<string, number>
-  }
+    color: string;
+    data: Record<string, number>;
+  };
 }
 
-const groupDate = (data: VideoGame[], group: VideoGameStringKeys | "none", measure: Measure, cumulative: boolean): Grouped => {
+const groupDate = (
+  data: VideoGame[],
+  group: VideoGameStringKeys | "none",
+  measure: Measure,
+  cumulative: boolean
+): Grouped => {
   const grouped = data.reduce((tree, game) => {
     const groupVal = group === "none" ? "" : game[group];
     const year = cumulative ? game.startDate?.toISOString().substring(0, 7) : game.startDate?.getFullYear().toString();
     if (!year || !game.hours) return tree;
 
-    tree[groupVal] ??= { color: group === 'company' ? companyToColor(game) : '', data: {}};
+    tree[groupVal] ??= { color: group === "company" ? companyToColor(game) : "", data: {} };
     tree[groupVal].data[year] = (tree[groupVal].data[year] || 0) + (measure === "Count" ? 1 : game.hours);
     return tree;
   }, {} as Grouped);

@@ -3,7 +3,8 @@ import Grid from "@mui/material/Unstable_Grid2";
 import { CURRENT_YEAR } from "../utils/dateUtils";
 import { format } from "../utils/mathUtils";
 import { Season, Show } from "./types";
-import { StatCard, StatList } from "../common/Stats";
+import { StatCard, StatList, StatsListProps } from "../common/Stats";
+import ShowCardMediaImage from "./CardMediaImage";
 
 const Stats = ({ data }: { data: Show[] }) => {
   return (
@@ -43,7 +44,7 @@ const ThisYearSoFar = ({ data }: { data: Show[] }) => {
   return (
     <StatCard
       icon={<Update />}
-      title="This Year So Far"
+      title={`In ${CURRENT_YEAR}`}
       content={[
         ["Seasons", totalSeasons],
         ["Episodes", totalEpisodes],
@@ -71,7 +72,7 @@ const Averages = ({ data }: { data: Show[] }) => {
   return (
     <StatCard
       icon={<ShowChart />}
-      title="Averages Per Year"
+      title="Yearly Average"
       content={[
         ["Seasons", seasons],
         ["Episodes", episodes],
@@ -90,7 +91,7 @@ const AveragesPerShow = ({ data }: { data: Show[] }) => {
   return (
     <StatCard
       icon={<AutoGraph />}
-      title="Averages Per Show"
+      title="Show Average"
       content={[
         ["Seasons", totalSeasons],
         ["Episodes", totalEpisodes],
@@ -102,35 +103,39 @@ const AveragesPerShow = ({ data }: { data: Show[] }) => {
 
 const RecentlyComplete = ({ data }: { data: Show[] }) => {
   const recent = data
-    .flatMap((show) => show.s.map((s) => [show, s] as [Show, Season]))
-    .filter(([, season]) => season.endDate)
-    .sort(([, seasonA], [, seasonB]) => (seasonA.endDate! < seasonB.endDate! ? 1 : -1))
+    .flatMap((show) => show.s)
+    .filter((season) => season.endDate)
+    .sort((seasonA, seasonB) => (seasonA.endDate! < seasonB.endDate! ? 1 : -1))
     .slice(0, 6);
   return (
-    <StatList
+    <ShowStatList
       icon={<Pause />}
       title="Recently Finished"
       content={recent}
       width={[12, 12, 12]}
       pictureWidth={[6, 4, 2]}
+      chipComponent={({ show }) => [show.status, undefined]}
       labelComponent={statsCardLabelStatsCardLabelRecentlyComplete}
     />
   );
 };
 
 const statsCardLabelStatsCardLabelRecentlyComplete = (season: Season) => [
-  [`S ${season.s}`, season.endDate?.toLocaleDateString(undefined, { month: 'short', year: 'numeric', day: 'numeric'}) || ""],
+  [
+    `S ${season.s}`,
+    season.endDate?.toLocaleDateString(undefined, { month: "short", year: "numeric", day: "numeric" }) || "",
+  ],
   [`${season.e} Eps`, `${format(Math.round(season.minutes! / 60))} Hours`],
 ];
 
 const CurrentlyPlaying = ({ data }: { data: Show[] }) => {
   const recent = data
     .filter((show) => show.status === "Watching")
-    .map((show) => [show, show.s.at(-1)] as [Show, Season])
-    .filter(([_, season]) => !season.endDate)
-    .sort(([, seasonA], [, seasonB]) => (seasonA.startDate! < seasonB.startDate! ? 1 : -1))
+    .map((show) => show.s.at(-1)!)
+    .filter((season) => !season.endDate)
+    .sort((seasonA, seasonB) => (seasonA.startDate! < seasonB.startDate! ? 1 : -1));
   return (
-    <StatList
+    <ShowStatList
       icon={<PlayArrow />}
       title="Currently Watching"
       content={recent}
@@ -144,5 +149,10 @@ const CurrentlyPlaying = ({ data }: { data: Show[] }) => {
 const statsCardLabelStatsCardLabelCurrentlyPlaying = (season: Season) => [
   [`S ${season.s}`, season.startDate?.toLocaleDateString() || ""],
 ];
+
+const ShowStatList = (props: Omit<StatsListProps<Season>, "MediaComponent">) => <StatList
+  MediaComponent={ShowCardMediaImage}
+  {...props} />
+
 
 export default Stats;
