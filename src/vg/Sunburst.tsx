@@ -13,7 +13,7 @@ interface SunburstData {
   colours: string[];
 }
 
-const isStringArray = (x: any[]): x is string[] => x.every((i) => typeof i === "string");
+const isStringArray = (x: unknown[]): x is string[] => x.every((i) => typeof i === "string");
 
 type OptionKeys = KeysMatching<VideoGame, string | VideoGame["startDate"]>;
 
@@ -24,7 +24,6 @@ const Sunburst = ({ data, measure }: { data: VideoGame[]; measure: Measure }) =>
     useState<OptionKeys>("platform"),
     useState<OptionKeys>("franchise"),
   ];
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const { ids, labels, parents, values, colours }: SunburstData = useMemo(
     () =>
       dataToSunburstData(
@@ -32,6 +31,7 @@ const Sunburst = ({ data, measure }: { data: VideoGame[]; measure: Measure }) =>
         controlStates.map(([s]) => s),
         measure
       ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [data, measure, ...controlStates]
   );
 
@@ -49,6 +49,7 @@ const Sunburst = ({ data, measure }: { data: VideoGame[]; measure: Measure }) =>
               ids,
               type: "sunburst",
               branchvalues: "total",
+              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
               //@ts-ignore
               maxdepth: 3,
               sort: false,
@@ -104,8 +105,8 @@ const dataToSunburstData = (data: VideoGame[], groups: OptionKeys[], measure: Me
 
   const grouped = data
     .filter((curr) => {
-      if (measure === "Hours" && curr.hours === undefined) return false;
-      return true;
+      return !(measure === "Hours" && curr.hours === undefined);
+
     })
     .reduce((tree, game) => {
       const groupVals = groups.map((group) => keyToVal(game, group));
@@ -124,7 +125,7 @@ const dataToSunburstData = (data: VideoGame[], groups: OptionKeys[], measure: Me
 
   const recurseGroup = (tree: VideoGameTree, parent: string): [number, string] => {
     let total = 0;
-    let colour: string = "";
+    let colour = "";
     Object.entries(tree)
       .sort(([val], [val2]) => val.localeCompare(val2))
       .forEach(([key, value]) => {

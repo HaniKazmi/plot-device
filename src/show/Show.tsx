@@ -1,7 +1,7 @@
 import { useState, useEffect, lazy, Suspense, useTransition } from "react";
 import { Season, Show, Status } from "./types";
-import { fetchAndConvertSheet } from "../Google";
 import { Tab } from "../tabs";
+import { fetchAndConvertSheet } from "../utils/googleUtils.ts";
 
 const Graphs = lazy(() => import(/* webpackPrefetch: true */ "./Graphs"));
 
@@ -39,23 +39,23 @@ const getData = (setData: (b: Show[]) => void) => {
 const jsonConverter = (json: Record<string, string>[]) => {
   const showData: Show[] = [];
   json.reduce((show, row) => {
-    if (row["Show"] !== "") {
+    if (row.Show !== "") {
       show = {
-        name: row["Show"],
-        status: row["Status"] as Status,
-        anime: row["Anime"] === "TRUE",
-        banner: row["Banner"],
+        name: row.Show,
+        status: row.Status as Status,
+        anime: row.Anime === "TRUE",
+        banner: row.Banner,
         s: [],
       };
       showData.push(show as Show);
     } else {
       const season: Partial<Season> = {
-        s: parseFloat(row["Season"]),
-        e: parseInt(row["Episode"]),
-        subtitile: row["Subtitle"],
-        startDate: new Date(row["Start"]),
-        endDate: row["End"] ? new Date(row["End"]) : undefined,
-        episodeLength: row["Episodes"] ? parseInt(row["Episodes"]) : undefined,
+        s: parseFloat(row.Season),
+        e: parseInt(row.Episode),
+        subtitle: row.Subtitle,
+        startDate: new Date(row.Start),
+        endDate: row.End ? new Date(row.End) : undefined,
+        episodeLength: row.Episodes ? parseInt(row.Episodes) : undefined,
         show: show as Show,
       };
 

@@ -12,7 +12,7 @@ const ShowTimeline = ({ data }: { data: Show[] }) => {
     : data.flatMap((show) =>
         show.s.map(
           (s) =>
-            [`${show.name} - S${s.s}${s.subtitile ? " - " + s.subtitile : ""}`, s, show.banner] as [
+            [`${show.name} - S${s.s}${s.subtitle ? " - " + s.subtitle : ""}`, s, show.banner] as [
               string,
               Season,
               string?
@@ -25,7 +25,7 @@ const ShowTimeline = ({ data }: { data: Show[] }) => {
     title,
     tooltip(title, s, banner),
     s.startDate,
-    s.endDate || CURRENT_DATE,
+    s.endDate ?? CURRENT_DATE,
   ]);
 
   return (

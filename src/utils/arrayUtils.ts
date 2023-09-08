@@ -10,12 +10,11 @@ declare global {
 const reducerKey = <T>(input: ValueNumber<T>) => {
   return (a: number, b: T) => {
     const num = b[input] as number | undefined;
-    return a + (num || 0);
+    return a + (num ?? 0);
   };
 };
 
 if (!Array.prototype.sum) {
-  // eslint-disable-next-line
   Array.prototype.sum = function <T>(key: T extends number ? never : ValueNumber<T>) {
     if (key !== undefined) {
       return (this as T[]).reduce(reducerKey(key), 0);
@@ -25,9 +24,8 @@ if (!Array.prototype.sum) {
 }
 
 if (!Array.prototype.sortByKey) {
-  // eslint-disable-next-line
-  Array.prototype.sortByKey = function <T>(key: keyof T) {
-    return this.sort((aObj, bObj) => {
+  Array.prototype.sortByKey = function <T>(key: keyof T): T[] {
+    return this.sort((aObj: T, bObj: T) => {
       const a = aObj[key];
       const b = bObj[key];
 

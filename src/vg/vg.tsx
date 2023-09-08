@@ -2,9 +2,9 @@ import { Suspense, lazy, useEffect, useState, useTransition } from "react";
 
 import { Company, Format, Measure, Platform, Status, VideoGame } from "./types";
 import { dateDiffInDays } from "../utils/dateUtils";
-import { fetchAndConvertSheet } from "../Google";
 import { Tab } from "../tabs";
 import { Predicate } from "../utils/types";
+import { fetchAndConvertSheet } from "../utils/googleUtils.ts";
 
 const Graphs = lazy(() => import(/* webpackPrefetch: true */ "./Graphs"));
 const Filter = lazy(() => import(/* webpackPrefetch: true */ "./Filter"));
@@ -27,7 +27,7 @@ const GamesGraphs = () => {
   return (
     <Suspense>
       <Graphs vgData={vgData} measure={measure} />
-      <Filter setFilterFunc={setFilterFunc} measure={measure} setMeasure={setMeasure} />
+      <Filter setFilterFunc={setFilterFunc} measure={measure} setMeasure={setMeasure} data={data} />
     </Suspense>
   );
 };
@@ -52,27 +52,27 @@ const jsonConverter = (json: Record<string, string>[]) => {
     if (endDate && row["End Date"].length < 5) {
       endDate.setMonth(11);
       endDate.setDate(31);
-
     }
+
     return {
-      name: row["Game"],
-      platform: row["Platform"] as Platform,
-      company: row["Platform"].split(" ")[0]! as Company,
-      franchise: row["Franchise"],
-      genre: row["Genre"],
-      theme: row["Theme"].split("\n"),
-      format: row["Format"] as Format,
-      developer: row["Developer"],
-      publisher: row["Publisher"],
-      rating: row["Rating"],
-      status: row["Status"] as Status,
+      name: row.Game,
+      platform: row.Platform as Platform,
+      company: row.Platform.split(" ")[0]! as Company,
+      franchise: row.Franchise,
+      genre: row.Genre,
+      theme: row.Theme.split("\n"),
+      format: row.Format as Format,
+      developer: row.Developer,
+      publisher: row.Publisher,
+      rating: row.Rating,
+      status: row.Status as Status,
       exactDate: exactDate,
       startDate: startDate,
       endDate: endDate,
-      releaseDate: new Date(row["Release"]),
-      hours: row["Hours"] ? parseInt(row["Hours"]) : undefined,
+      releaseDate: new Date(row.Release),
+      hours: row.Hours ? parseInt(row.Hours) : undefined,
       numDays: exactDate ? dateDiffInDays(startDate, endDate) : undefined,
-      banner: row["Banner"],
+      banner: row.Banner,
     } as VideoGame;
   });
 };

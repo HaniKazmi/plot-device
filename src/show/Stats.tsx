@@ -5,6 +5,7 @@ import { format } from "../utils/mathUtils";
 import { Season, Show } from "./types";
 import { StatCard, StatList, StatsListProps } from "../common/Stats";
 import ShowCardMediaImage from "./CardMediaImage";
+import { statusToColour } from "../vg/types";
 
 const Stats = ({ data }: { data: Show[] }) => {
   return (
@@ -114,7 +115,7 @@ const RecentlyComplete = ({ data }: { data: Show[] }) => {
       content={recent}
       width={[12, 12, 12]}
       pictureWidth={[6, 4, 2]}
-      chipComponent={({ show }) => [show.status, undefined]}
+      chipComponent={({ show }) => [show.status, statusToColour(show)]}
       labelComponent={statsCardLabelStatsCardLabelRecentlyComplete}
     />
   );
@@ -123,9 +124,9 @@ const RecentlyComplete = ({ data }: { data: Show[] }) => {
 const statsCardLabelStatsCardLabelRecentlyComplete = (season: Season) => [
   [
     `S ${season.s}`,
-    season.endDate?.toLocaleDateString(undefined, { month: "short", year: "numeric", day: "numeric" }) || "",
+    season.endDate?.toLocaleDateString(undefined, { month: "short", year: "numeric", day: "numeric" }) ?? "",
   ],
-  [`${season.e} Eps`, `${format(Math.round(season.minutes! / 60))} Hours`],
+  [`${season.e} Eps`, `${format(Math.round(season.minutes / 60))} Hours`],
 ];
 
 const CurrentlyPlaying = ({ data }: { data: Show[] }) => {
@@ -133,7 +134,7 @@ const CurrentlyPlaying = ({ data }: { data: Show[] }) => {
     .filter((show) => show.status === "Watching")
     .map((show) => show.s.at(-1)!)
     .filter((season) => !season.endDate)
-    .sort((seasonA, seasonB) => (seasonA.startDate! < seasonB.startDate! ? 1 : -1));
+    .sort((seasonA, seasonB) => (seasonA.startDate < seasonB.startDate ? 1 : -1));
   return (
     <ShowStatList
       icon={<PlayArrow />}

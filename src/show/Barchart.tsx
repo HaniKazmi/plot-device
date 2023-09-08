@@ -1,6 +1,6 @@
 import { CardHeader, FormControlLabel, FormGroup, Stack, Switch } from "@mui/material";
 import { useState } from "react";
-import { SelectBox } from "../vg//SelectionComponents";
+import { SelectBox } from "../vg/SelectionComponents";
 import { Measure, Season, Show, ShowStringKeys } from "./types";
 import Barchart from "../common/Barchart";
 import { Grouped } from "../vg/Barchart";
@@ -14,9 +14,9 @@ const options: Record<ShowStringKeys | "none", boolean> = {
 const ShowBarchart = ({ data, measure }: { data: Show[]; measure: Measure }) => {
   const [group, setGroup] = useState<ShowStringKeys | "none">("none");
   const [cumulative, setCumulative] = useState(false);
-  let [stack, setStack] = useState(true);
+  const [stack, setStack] = useState(true);
 
-  let seasonArray = data.flatMap((show) => show.s);
+  const seasonArray = data.flatMap((show) => show.s);
   const grouped = groupDate(seasonArray, group, measure, cumulative);
 
   return (

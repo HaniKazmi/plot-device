@@ -4,13 +4,14 @@ import { format } from "../utils/mathUtils";
 import { VideoGame } from "../vg/types";
 import { Season } from "../show/types";
 import { TypedCardMediaImage } from "./Card";
+import { ReactNode } from "react";
 
 export const StatCard = ({
   icon,
   title,
   content,
 }: {
-  icon: JSX.Element & React.ReactNode;
+  icon: ReactNode;
   title: string;
   content: string | [string, number][];
 }) => {
@@ -48,8 +49,8 @@ export const StatCard = ({
   );
 };
 
-export type StatsListProps<T extends VideoGame | Season> = {
-  icon: JSX.Element & React.ReactNode;
+export interface StatsListProps<T extends VideoGame | Season> {
+  icon: ReactNode;
   title: string;
   content: T[];
   width?: [number, number, number];

@@ -70,6 +70,32 @@ export const companyToColor = ({ company }: VideoGame) => {
   }
 };
 
+export const platformToColor = (platform: string) => {
+  switch (platform) {
+    case "PlayStation 2":
+    case "PlayStation 3":
+    case "PlayStation P":
+    case "PlayStation 4":
+    case "PlayStation 5":
+      return playstationColour;
+    case "Nintendo Wii":
+    case "Nintendo GBC":
+    case "Nintendo GBA":
+    case "Nintendo DS":
+    case "Nintendo 3DS":
+    case "Nintendo Switch":
+      return nintendoColour;
+    case "PC":
+      return pcColour;
+    case "iOS":
+      return iosColour;
+    case "Xbox 360":
+      return xboxColour;
+    default:
+      throw new Error("Unknown platform: " + platform);
+  }
+}
+
 export const platformToShort: (vg: VideoGame) => [string, string] = (vg) => {
   switch (vg.platform) {
     case "PlayStation 2":
@@ -123,18 +149,18 @@ export const ratingToColour = ({ rating }: VideoGame) => {
 export const statusToColour = ({ status }: VideoGame | Show) => {
   switch (status) {
     case "Abandoned":
-      return "rgb(214, 39, 40)";
+      return "#d62728";
     case "Beat":
     case "Ended":
-      return "rgb(44, 160, 44)";
+      return "#2ca02c";
     case "Cancelled":
-      return "rgb(44, 160, 0)";
+      return "#d67728";
     case "Endless":
     case "Up To Date":
-      return "rgb(31, 119, 180)";
+      return "#1f77b4";
     case "Playing":
     case "Watching":
-      return "rgb(23, 190, 207)";
+      return "#17becf";
     case "Next":
     case "Backlog":
       return "";

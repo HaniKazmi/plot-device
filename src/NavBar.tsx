@@ -38,7 +38,7 @@ const NavBar = ({ authorise, revoke }: { authorise?: false | (() => void); revok
             textColor="inherit"
             indicatorColor="secondary"
             value={tab}
-            onChange={(_, value) => {
+            onChange={(_, value: Tab) => {
               setTab(value);
               navigate(value.id);
             }}

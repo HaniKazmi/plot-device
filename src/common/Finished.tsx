@@ -8,7 +8,7 @@ const Finished = <U extends { banner?: string; startDate?: Date; name: string }>
   data,
   width,
   colour,
-  MediaComponent
+  MediaComponent,
 }: {
   title: string;
   data: U[];

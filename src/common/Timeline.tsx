@@ -8,7 +8,7 @@ const Timeline = ({ data, children }: { data: [string, string, string, Date, Dat
   const [height, setHeight] = useState<string | number>(DEFAULT_HEIGHT + "vh");
   const theme = useTheme();
 
-  const timelineHeader: any[] = [
+  const timelineHeader = [
     [
       { type: "string", id: "*" },
       { type: "string", id: "Name" },
@@ -20,14 +20,14 @@ const Timeline = ({ data, children }: { data: [string, string, string, Date, Dat
 
   const callback = useCallback(() => {
     const labels = document.getElementsByTagName("text");
-    for (let label of labels) {
+    for (const label of labels) {
       if (label.getAttribute("text-anchor") === "middle") {
         label.setAttribute("fill", theme.palette.text.secondary);
       }
     }
 
     const rects = document.getElementsByTagName("rect");
-    for (let rect of rects) {
+    for (const rect of rects) {
       if (rect.getAttribute("stroke") === "#9a9a9a") {
         const newHeight = rect.height.baseVal.value + 50;
         setHeight(
@@ -53,13 +53,13 @@ const Timeline = ({ data, children }: { data: [string, string, string, Date, Dat
       <Card>
         {children}
         <CardContent>
-          <div style={{ overflowX: "auto", overflowY: "hidden" }}>
+          <Box sx={{ overflowX: "auto", overflowY: "hidden" }}>
             <Chart
               key={height}
               width="400vw"
               height={height}
               chartType="Timeline"
-              data={timelineHeader.concat(data)}
+              data={[...timelineHeader, ...data]}
               onLoad={() => {
                 setTimeout(callback, 50);
               }}
@@ -69,7 +69,7 @@ const Timeline = ({ data, children }: { data: [string, string, string, Date, Dat
                 timeline: { rowLabelStyle: { color: theme.palette.text.primary } },
               }}
             />
-          </div>
+          </Box>
         </CardContent>
       </Card>
     </Box>

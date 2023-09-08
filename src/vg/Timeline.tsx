@@ -10,7 +10,7 @@ const VgTimeline = ({ data }: { data: VideoGame[] }) => {
   const groupFunc = groupData ? ({ company }: VideoGame) => company : () => "*";
   const gameData: [string, string, string, Date, Date][] = data
     .filter(({ exactDate, startDate }) => exactDate && startDate.getFullYear() > 2014)
-    .map((row) => [groupFunc(row), row.name, tooltip(row), row.startDate!, row.endDate || CURRENT_DATE]);
+    .map((row) => [groupFunc(row), row.name, tooltip(row), row.startDate!, row.endDate ?? CURRENT_DATE]);
 
   return (
     <Timeline data={gameData}>
@@ -50,7 +50,7 @@ const tooltip = (row: VideoGame) =>
           </li>
           <li>
             <span><b>Days: </b></span>
-            <span>${row.numDays || "-"}</span>
+            <span>${row.numDays ?? "-"}</span>
           </li>
         </ul>
       </div>

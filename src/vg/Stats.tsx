@@ -37,13 +37,13 @@ const AllTime = ({ data }: { data: VideoGame[] }) => {
 };
 
 const Averages = ({ data }: { data: VideoGame[] }) => {
-  const grouped = data.reduce((tree, game) => {
+  const grouped = data.reduce<Record<string, [number, number]>>((tree, game) => {
     const year = game.startDate?.getFullYear().toString();
     if (!year || !game.hours) return tree;
     tree[year] ??= [0, 0];
     tree[year] = [tree[year][0] + 1, tree[year][1] + game.hours];
     return tree;
-  }, {} as Record<string, [number, number]>);
+  }, {});
 
   const games = parseFloat((Object.values(grouped).sum(0) / Object.keys(grouped).length).toFixed(2));
   const hours = parseFloat((Object.values(grouped).sum(1) / Object.keys(grouped).length).toFixed(2));
@@ -139,10 +139,10 @@ const CurrentlyPlaying = ({ data }: { data: VideoGame[] }) => {
 };
 
 const StatsCardLabelEndDateHours = (game: VideoGame) => [
-  [game.endDate?.toLocaleDateString() || "", `${format(game.hours!)} Hours`],
+  [game.endDate?.toLocaleDateString() ?? "", `${format(game.hours!)} Hours`],
 ];
 
-const StatsCardLabelStartDate = (game: VideoGame) => [[game.startDate?.toLocaleDateString() || ""]];
+const StatsCardLabelStartDate = (game: VideoGame) => [[game.startDate?.toLocaleDateString() ?? ""]];
 
 const VgStatList = (props: Omit<StatsListProps<VideoGame>, "MediaComponent" | "aspectRatio" | "divider" | "chipComponent" | "landscape">) => <StatList
   aspectRatio="16/9"
