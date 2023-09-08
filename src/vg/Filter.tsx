@@ -74,7 +74,7 @@ const reducer = <K extends keyof FilterState>(state: FilterState, action: Action
         ...state,
       };
       newState[action.filter] = action.value;
-      newState.filter = filters(newState)
+      newState.filter = filters(newState);
       return newState;
     }
   }

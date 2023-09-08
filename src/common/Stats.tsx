@@ -110,7 +110,7 @@ const StatsListCard = <T extends VideoGame | Season>({
   aspectRatio,
   divider,
   landscape = false,
-  MediaComponent
+  MediaComponent,
 }: {
   item: T;
   labels: string[][];
@@ -131,33 +131,31 @@ const StatsListCard = <T extends VideoGame | Season>({
           sx={{ aspectRatio, flexShrink: 0 }}
           chip={chip}
           landscape={landscape}
-          footerComponent={
-            (colour?: string) => (
-              <CardContent
-                sx={{
-                  padding: "10px",
-                  ":last-child": { paddingBottom: "10px" },
-                  background: colour,
-                  color: (theme) => colour && theme.palette.getContrastText(colour),
-                }}
-              >
-                {labels.map((stacks, index, labels) => (
-                  <Stack
-                    key={`stacks-${index}`}
-                    justifyContent={stacks.length === 1 ? "center" : "space-between"}
-                    direction="row"
-                    divider={labels.length === 1 || divider ? dividerComponent : null}
-                  >
-                    {stacks.map((val) => (
-                      <Typography key={val} variant="subtitle2">
-                        {val}
-                      </Typography>
-                    ))}
-                  </Stack>
-                ))}
-              </CardContent>
-            )
-          }
+          footerComponent={(colour?: string) => (
+            <CardContent
+              sx={{
+                padding: "10px",
+                ":last-child": { paddingBottom: "10px" },
+                background: colour,
+                color: (theme) => colour && theme.palette.getContrastText(colour),
+              }}
+            >
+              {labels.map((stacks, index, labels) => (
+                <Stack
+                  key={`stacks-${index}`}
+                  justifyContent={stacks.length === 1 ? "center" : "space-between"}
+                  direction="row"
+                  divider={labels.length === 1 || divider ? dividerComponent : null}
+                >
+                  {stacks.map((val) => (
+                    <Typography key={val} variant="subtitle2">
+                      {val}
+                    </Typography>
+                  ))}
+                </Stack>
+              ))}
+            </CardContent>
+          )}
         />
       </Card>
     </Grid>

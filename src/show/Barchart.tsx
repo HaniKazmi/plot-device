@@ -63,7 +63,7 @@ const groupDate = (data: Season[], group: ShowStringKeys | "none", measure: Meas
 
   if (measure === "Hours") {
     Object.values(grouped).forEach(({ data: record }) =>
-      Object.entries(record).forEach(([key, value]) => (record[key] = Math.floor(value / 60)))
+      Object.entries(record).forEach(([key, value]) => (record[key] = Math.floor(value / 60))),
     );
   }
 

@@ -31,7 +31,9 @@ const Timeline = ({ data, children }: { data: [string, string, string, Date, Dat
       if (rect.getAttribute("stroke") === "#9a9a9a") {
         const newHeight = rect.height.baseVal.value + 50;
         setHeight(
-          newHeight < document.documentElement.clientHeight * (DEFAULT_HEIGHT / 100) ? newHeight : DEFAULT_HEIGHT + "vh"
+          newHeight < document.documentElement.clientHeight * (DEFAULT_HEIGHT / 100)
+            ? newHeight
+            : DEFAULT_HEIGHT + "vh",
         );
       }
     }

@@ -9,8 +9,8 @@ const GoogleAuth = ({ children }: { children?: ReactNode }) => {
   const [{ apiReady, tokenClient }, dispatch] = useReducer(reducer, {});
 
   useEffect(() => {
-    registerDispatch(dispatch)
-    loadApis()
+    registerDispatch(dispatch);
+    loadApis();
   }, []);
 
   return (
@@ -30,7 +30,7 @@ const Graphs = () => {
   const currTab: Tab = (matches.find((match) => Boolean(match.handle))!.handle as { tab: Tab }).tab;
   const theme = useMemo(() => getTheme(prefersDarkMode, currTab), [prefersDarkMode, currTab]);
 
-  document.querySelector("meta[name=\"theme-color\"]")?.setAttribute("content", theme.palette.primary.main);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme.palette.primary.main);
 
   return (
     <ThemeProvider theme={theme}>
@@ -50,23 +50,23 @@ const getTheme = (prefersDarkMode: boolean, tab: Tab) => {
     palette: {
       mode: prefersDarkMode ? "dark" : "light",
       primary: {
-        main: tab.id === "show" ? "#df2020" : palette.primary.main
+        main: tab.id === "show" ? "#df2020" : palette.primary.main,
       },
       secondary: {
-        main: tab.id === "show" ? "#20dfdf" : palette.secondary.main
-      }
+        main: tab.id === "show" ? "#20dfdf" : palette.secondary.main,
+      },
     },
     components: {
       MuiCard: {
         styleOverrides: {
           root: ({ theme }) => ({
             "&:hover": {
-              boxShadow: theme.shadows[4]
-            }
-          })
-        }
-      }
-    }
+              boxShadow: theme.shadows[4],
+            },
+          }),
+        },
+      },
+    },
   });
 };
 

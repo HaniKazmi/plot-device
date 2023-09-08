@@ -115,12 +115,7 @@ const MostPlayed = ({ data }: { data: VideoGame[] }) => {
     .sortByKey("hours")
     .slice(0, 6);
   return (
-    <VgStatList
-      icon={<Whatshot />}
-      title="Most Played"
-      content={most}
-      labelComponent={StatsCardLabelEndDateHours}
-    />
+    <VgStatList icon={<Whatshot />} title="Most Played" content={most} labelComponent={StatsCardLabelEndDateHours} />
   );
 };
 
@@ -144,12 +139,17 @@ const StatsCardLabelEndDateHours = (game: VideoGame) => [
 
 const StatsCardLabelStartDate = (game: VideoGame) => [[game.startDate?.toLocaleDateString() ?? ""]];
 
-const VgStatList = (props: Omit<StatsListProps<VideoGame>, "MediaComponent" | "aspectRatio" | "divider" | "chipComponent" | "landscape">) => <StatList
-  aspectRatio="16/9"
-  divider
-  chipComponent={platformToShort}
-  landscape
-  MediaComponent={VgCardMediaImage}
-  {...props} />
+const VgStatList = (
+  props: Omit<StatsListProps<VideoGame>, "MediaComponent" | "aspectRatio" | "divider" | "chipComponent" | "landscape">,
+) => (
+  <StatList
+    aspectRatio="16/9"
+    divider
+    chipComponent={platformToShort}
+    landscape
+    MediaComponent={VgCardMediaImage}
+    {...props}
+  />
+);
 
 export default Stats;

@@ -3,6 +3,7 @@ type ValueNumber<T> = keyof { [P in keyof T as T[P] extends number | undefined ?
 declare global {
   interface Array<T> {
     sum(key: T extends number ? void : ValueNumber<T>): number;
+
     sortByKey(key: keyof T): T[];
   }
 }
@@ -40,10 +41,13 @@ if (!Array.prototype.sortByKey) {
 export const arrayToJson = (data: string[][]) => {
   const [header, ...rows] = data;
   return rows.map((row) =>
-    row.reduce((json, val, index) => {
-      json[header[index]] = val;
-      return json;
-    }, {} as Record<string, string>)
+    row.reduce(
+      (json, val, index) => {
+        json[header[index]] = val;
+        return json;
+      },
+      {} as Record<string, string>,
+    ),
   );
 };
 

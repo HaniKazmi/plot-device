@@ -58,13 +58,16 @@ const ThisYearSoFar = ({ data }: { data: Show[] }) => {
 const Averages = ({ data }: { data: Show[] }) => {
   const grouped = data
     .flatMap((show) => show.s)
-    .reduce((tree, s) => {
-      const year = s.startDate.getFullYear().toString();
-      if (!year || !s.minutes) return tree;
-      tree[year] ??= [0, 0, 0];
-      tree[year] = [tree[year][0] + 1, tree[year][1] + s.e, tree[year][2] + s.minutes];
-      return tree;
-    }, {} as Record<string, [number, number, number]>);
+    .reduce(
+      (tree, s) => {
+        const year = s.startDate.getFullYear().toString();
+        if (!year || !s.minutes) return tree;
+        tree[year] ??= [0, 0, 0];
+        tree[year] = [tree[year][0] + 1, tree[year][1] + s.e, tree[year][2] + s.minutes];
+        return tree;
+      },
+      {} as Record<string, [number, number, number]>,
+    );
 
   const seasons = Math.floor(Object.values(grouped).sum(0) / Object.keys(grouped).length);
   const episodes = Math.floor(Object.values(grouped).sum(1) / Object.keys(grouped).length);
@@ -151,9 +154,8 @@ const statsCardLabelStatsCardLabelCurrentlyPlaying = (season: Season) => [
   [`S ${season.s}`, season.startDate?.toLocaleDateString() || ""],
 ];
 
-const ShowStatList = (props: Omit<StatsListProps<Season>, "MediaComponent">) => <StatList
-  MediaComponent={ShowCardMediaImage}
-  {...props} />
-
+const ShowStatList = (props: Omit<StatsListProps<Season>, "MediaComponent">) => (
+  <StatList MediaComponent={ShowCardMediaImage} {...props} />
+);
 
 export default Stats;

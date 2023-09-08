@@ -17,7 +17,9 @@ const Graphs = ({ vgData, measure }: { vgData: VideoGame[]; measure: Measure }) 
       <Finished MediaComponent={CardMediaImage} title="All Games" data={vgData} width={4} colour={companyToColor} />
     </Stack>
   ) : (
-    <Typography variant="h1" textAlign="center">No Data Found</Typography>
+    <Typography variant="h1" textAlign="center">
+      No Data Found
+    </Typography>
   );
 
 export default Graphs;

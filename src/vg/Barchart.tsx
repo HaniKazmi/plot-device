@@ -53,16 +53,19 @@ const VgBarchart = ({ data, measure }: { data: VideoGame[]; measure: Measure }) 
   );
 };
 
-export type Grouped = Record<string, {
+export type Grouped = Record<
+  string,
+  {
     color: string;
     data: Record<string, number>;
-  }>;
+  }
+>;
 
 const groupDate = (
   data: VideoGame[],
   group: VideoGameStringKeys | "none",
   measure: Measure,
-  cumulative: boolean
+  cumulative: boolean,
 ): Grouped => {
   return data.reduce((tree, game) => {
     const groupVal = group === "none" ? "" : game[group];

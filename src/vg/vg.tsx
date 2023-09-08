@@ -48,7 +48,7 @@ const jsonConverter = (json: Record<string, string>[]) => {
   return json.map((row) => {
     const startDate = row["Start Date"] ? new Date(row["Start Date"]) : undefined;
     const endDate = row["End Date"] ? new Date(row["End Date"]) : undefined;
-    const exactDate = row["Start Date"] && row["Start Date"]?.length > 5
+    const exactDate = row["Start Date"] && row["Start Date"]?.length > 5;
     if (endDate && row["End Date"].length < 5) {
       endDate.setMonth(11);
       endDate.setDate(31);

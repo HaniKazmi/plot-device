@@ -15,9 +15,9 @@ const ShowTimeline = ({ data }: { data: Show[] }) => {
             [`${show.name} - S${s.s}${s.subtitle ? " - " + s.subtitle : ""}`, s, show.banner] as [
               string,
               Season,
-              string?
-            ]
-        )
+              string?,
+            ],
+        ),
       );
 
   const showData: [string, string, string, Date, Date][] = titleData.map(([title, s, banner]) => [

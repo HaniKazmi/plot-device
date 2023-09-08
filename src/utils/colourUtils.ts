@@ -9,5 +9,5 @@ export const imageToColour = (img: HTMLImageElement | string | undefined) => {
     const uri = img === encodeURI(img) ? img : encodeURI(img);
     return map[uri];
   }
-  return (map[img.src] ||= fac.getColor(img, { algorithm: "dominant", }).hex);
+  return (map[img.src] ||= fac.getColor(img, { algorithm: "dominant" }).hex);
 };

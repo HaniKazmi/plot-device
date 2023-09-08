@@ -12,7 +12,10 @@ const storageKey = "gapi-token";
 
 type Token = google.accounts.oauth2.TokenResponse;
 type TokenClient = google.accounts.oauth2.TokenClient;
-interface TokenWrapper { expiry: number; token: Token }
+interface TokenWrapper {
+  expiry: number;
+  token: Token;
+}
 
 interface State {
   tokenSet?: boolean;
@@ -28,10 +31,9 @@ type Action =
   | { type: "authLoaded"; client: TokenClient }
   | { type: "authExpired" };
 
-
 let authDispatch: Dispatch<Action>;
 
-export const registerDispatch = (dispatch: Dispatch<Action>) => authDispatch ??= dispatch
+export const registerDispatch = (dispatch: Dispatch<Action>) => (authDispatch ??= dispatch);
 
 export const reducer = (state: State, action: Action): State => {
   switch (action.type) {
@@ -39,38 +41,38 @@ export const reducer = (state: State, action: Action): State => {
       return {
         ...state,
         tokenSet: true,
-        apiReady: state.apiLoaded
+        apiReady: state.apiLoaded,
       };
     case "tokenRevoked":
       return {
         ...state,
         tokenSet: false,
-        apiReady: false
+        apiReady: false,
       };
     case "apiLoaded":
       return {
         ...state,
         apiLoaded: true,
-        apiReady: state.tokenSet
+        apiReady: state.tokenSet,
       };
     case "authLoaded":
       return {
         ...state,
-        tokenClient: action.client
+        tokenClient: action.client,
       };
     case "authExpired":
       return {
         ...state,
         tokenSet: false,
-        apiReady: false
+        apiReady: false,
       };
   }
 };
 
-export const fetchAndConvertSheet = <T, >(
+export const fetchAndConvertSheet = <T>(
   { spreadsheetId, range }: Tab,
   jsonConverter: (array: Record<string, string>[]) => T,
-  setData: (json: T) => void
+  setData: (json: T) => void,
 ) => {
   gapi.client.sheets.spreadsheets.values
     .get({ spreadsheetId, range })
@@ -93,13 +95,13 @@ export const loadApis = () => {
     loadG();
   }
   loadGapi(tokenWrapper?.token);
-}
+};
 
 export const revokeApis = () => {
   storage.removeItem(storageKey);
   authDispatch({ type: "tokenRevoked" });
   loadG();
-}
+};
 
 let loadGapi = (token?: Token) => {
   loadGapi = () => {
@@ -112,7 +114,7 @@ let loadGapi = (token?: Token) => {
     gapi.load("client", async () => {
       await gapi.client.init({
         apiKey: API_KEY,
-        discoveryDocs: [DISCOVERY_DOCS]
+        discoveryDocs: [DISCOVERY_DOCS],
       });
       if (token) {
         gapi.client.setToken(token);
@@ -138,7 +140,7 @@ let loadG = () => {
         storage.setItem(storageKey, JSON.stringify(value));
         authDispatch({ type: "tokenAcquired" });
       },
-      prompt: ""
+      prompt: "",
     });
 
     authDispatch({ type: "authLoaded", client: tokenClient });

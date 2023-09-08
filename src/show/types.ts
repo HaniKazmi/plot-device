@@ -30,4 +30,4 @@ export type ShowStringKeys = KeysMatching<Show, string>;
 
 export type Measure = "Hours" | "Episodes";
 
-export const isShow = (arg: Show | Season): arg is Show => "name" in arg
+export const isShow = (arg: Show | Season): arg is Show => "name" in arg;

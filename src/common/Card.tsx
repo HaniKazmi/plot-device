@@ -9,7 +9,7 @@ import {
   SxProps,
   Theme,
   Tooltip,
-  Typography
+  Typography,
 } from "@mui/material";
 import { FunctionComponent, ReactNode, useRef, useState } from "react";
 import { imageToColour } from "../utils/colourUtils";
@@ -27,7 +27,7 @@ export interface CardMediaImageProps {
   sx?: SxProps<Theme>;
 }
 
-export type TypedCardMediaImage<T> = FunctionComponent<Omit<CardMediaImageProps, "banner" | "alt"> & { item: T }>
+export type TypedCardMediaImage<T> = FunctionComponent<Omit<CardMediaImageProps, "banner" | "alt"> & { item: T }>;
 
 export const CardMediaImage = ({
   image,
@@ -38,7 +38,7 @@ export const CardMediaImage = ({
   width,
   footerComponent,
   detailComponent,
-  sx
+  sx,
 }: CardMediaImageProps) => {
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const imgRef = useRef<HTMLImageElement>(null);
@@ -102,8 +102,8 @@ export const CardMediaImage = ({
               crossOrigin="anonymous"
               sx={{
                 objectFit: "contain",
-                maxHeight: theme => `calc(100vh - ${theme.spacing(4)})`,
-                maxWidth: theme => `calc(100vw - ${theme.spacing(4)})`,
+                maxHeight: (theme) => `calc(100vh - ${theme.spacing(4)})`,
+                maxWidth: (theme) => `calc(100vw - ${theme.spacing(4)})`,
                 aspectRatio: "auto",
                 height: { xs: landscape ? "unset" : "100%", lg: landscape ? "unset" : "100vh" },
                 width: { xs: landscape ? "100%" : "unset", lg: landscape ? "100vw" : "unset" },
@@ -129,28 +129,42 @@ export const CardMediaImage = ({
   );
 };
 
-export const DetailCard = ({ colour, label, value, large }: { colour?: string, label: string, value: string | ReactNode, large?: boolean }) => {
+export const DetailCard = ({
+  colour,
+  label,
+  value,
+  large,
+}: {
+  colour?: string;
+  label: string;
+  value: string | ReactNode;
+  large?: boolean;
+}) => {
   if (!value) return null;
   return (
-      <Grid xs={large ? 12 : 6} md={large ? 6 : 3}>
-          <Card sx={{ height: "100%", background: colour, color: (theme) => colour && theme.palette.getContrastText(colour) }}>
-              <CardContent sx={{
-                  ":last-child": { paddingBottom: 2 },
-                  height: "100%"
-              }}>
-                  <Stack direction={"column"} height="100%" justifyContent="space-between">
-                      <Typography align="center" variant="body1">
-                          {value}
-                      </Typography>
-                      <Typography align="center" variant="caption" sx={{ opacity: 0.8 }}>
-                          {label}
-                      </Typography>
-                  </Stack>
-              </CardContent>
-          </Card>
-      </Grid>
+    <Grid xs={large ? 12 : 6} md={large ? 6 : 3}>
+      <Card
+        sx={{ height: "100%", background: colour, color: (theme) => colour && theme.palette.getContrastText(colour) }}
+      >
+        <CardContent
+          sx={{
+            ":last-child": { paddingBottom: 2 },
+            height: "100%",
+          }}
+        >
+          <Stack direction={"column"} height="100%" justifyContent="space-between">
+            <Typography align="center" variant="body1">
+              {value}
+            </Typography>
+            <Typography align="center" variant="caption" sx={{ opacity: 0.8 }}>
+              {label}
+            </Typography>
+          </Stack>
+        </CardContent>
+      </Card>
+    </Grid>
   );
-}
+};
 
 export const TimelineEmptySegment = ({ percent }: { percent: number }) => (
   <Box
@@ -164,10 +178,10 @@ export const TimelineEmptySegment = ({ percent }: { percent: number }) => (
 );
 
 export const TimelineActivatedSegment = ({
-                                    percent,
-                                    tooltip,
-                                    backgroundColour,
-                                  }: {
+  percent,
+  tooltip,
+  backgroundColour,
+}: {
   percent: number;
   tooltip?: ReactNode;
   backgroundColour: [string, string];

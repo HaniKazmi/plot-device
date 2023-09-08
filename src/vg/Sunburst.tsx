@@ -29,10 +29,10 @@ const Sunburst = ({ data, measure }: { data: VideoGame[]; measure: Measure }) =>
       dataToSunburstData(
         data,
         controlStates.map(([s]) => s),
-        measure
+        measure,
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, measure, ...controlStates]
+    [data, measure, ...controlStates],
   );
 
   return (
@@ -106,7 +106,6 @@ const dataToSunburstData = (data: VideoGame[], groups: OptionKeys[], measure: Me
   const grouped = data
     .filter((curr) => {
       return !(measure === "Hours" && curr.hours === undefined);
-
     })
     .reduce((tree, game) => {
       const groupVals = groups.map((group) => keyToVal(game, group));

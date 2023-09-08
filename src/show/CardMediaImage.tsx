@@ -73,7 +73,7 @@ const ShowTimelineCard = ({ colour, item }: { colour?: string; item: Show }) => 
             <Typography>{Math.floor(season.minutes / 60)} Hours</Typography>
           </>
         }
-      />
+      />,
     );
 
     startDate = new Date(endDate);

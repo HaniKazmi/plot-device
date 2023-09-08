@@ -6,7 +6,7 @@ import { Grouped } from "../vg/Barchart";
 
 const Barchart = ({
   grouped,
-cumulative,
+  cumulative,
   stack,
   children,
 }: {

@@ -94,7 +94,7 @@ export const platformToColor = (platform: string) => {
     default:
       throw new Error("Unknown platform: " + platform);
   }
-}
+};
 
 export const platformToShort: (vg: VideoGame) => [string, string] = (vg) => {
   switch (vg.platform) {
@@ -144,7 +144,7 @@ export const ratingToColour = ({ rating }: VideoGame) => {
     default:
       throw new Error("Unknown rating: " + rating);
   }
-}
+};
 
 export const statusToColour = ({ status }: VideoGame | Show) => {
   switch (status) {
@@ -165,4 +165,4 @@ export const statusToColour = ({ status }: VideoGame | Show) => {
     case "Backlog":
       return "";
   }
-}
+};

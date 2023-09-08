@@ -11,14 +11,12 @@ const router = createHashRouter(
       {Tabs.map((tab) => (
         <Route key={tab.id} path={tab.id} element={tab.component} handle={{ tab: tab }} />
       ))}
-    </Route>
-  )
+    </Route>,
+  ),
 );
 
 function App() {
-  return (
-    <RouterProvider router={router} />
-  );
+  return <RouterProvider router={router} />;
 }
 
 export default App;
