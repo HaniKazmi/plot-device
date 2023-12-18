@@ -13,9 +13,9 @@ const Stats = ({ data }: { data: VideoGame[] }) => {
       <ThisYearSoFar data={data} />
       <Averages data={data} />
       <AveragesPerGame data={data} />
+      <CurrentlyPlaying data={data} />
       <MostPlayed data={data} />
       <RecentlyComplete data={data} />
-      <CurrentlyPlaying data={data} />
     </Grid>
   );
 };
@@ -121,6 +121,7 @@ const MostPlayed = ({ data }: { data: VideoGame[] }) => {
 
 const CurrentlyPlaying = ({ data }: { data: VideoGame[] }) => {
   const recent = data.filter((a) => a.status === "Playing").sort((a, b) => (a.startDate! > b.startDate! ? 1 : -1));
+  if (recent.length == 0) return null;
   return (
     <VgStatList
       icon={<PlayArrow />}

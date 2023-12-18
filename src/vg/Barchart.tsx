@@ -2,7 +2,7 @@ import { CardHeader, FormControlLabel, FormGroup, Stack, Switch } from "@mui/mat
 import { useState } from "react";
 import { SelectBox } from "./SelectionComponents";
 import { companyToColor, Measure, VideoGame, VideoGameStringKeys } from "./types";
-import Barchart from "../common/Barchart";
+import Barchart, { Grouped } from "../common/Barchart";
 
 const options: Record<VideoGameStringKeys | "none", boolean> = {
   none: true,
@@ -52,14 +52,6 @@ const VgBarchart = ({ data, measure }: { data: VideoGame[]; measure: Measure }) 
     </Barchart>
   );
 };
-
-export type Grouped = Record<
-  string,
-  {
-    color: string;
-    data: Record<string, number>;
-  }
->;
 
 const groupDate = (
   data: VideoGame[],

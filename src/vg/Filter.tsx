@@ -6,6 +6,7 @@ import {
   Functions,
   MoreHoriz,
   QuestionMark,
+  SvgIconComponent,
   Timer,
 } from "@mui/icons-material";
 import {
@@ -27,7 +28,7 @@ import {
   ToggleButton,
   Typography,
 } from "@mui/material";
-import { useEffect, useMemo, useReducer, useState } from "react";
+import { Dispatch, useEffect, useMemo, useReducer, useState } from "react";
 import { Measure, platformToColor, VideoGame } from "./types";
 import { Predicate } from "../utils/types";
 import Grid from "@mui/material/Unstable_Grid2";
@@ -38,6 +39,7 @@ interface FilterState {
   unconfirmed: boolean;
   franchise: string[];
   platform: string[];
+  genre: string[];
   filter: Predicate<VideoGame>;
 }
 
@@ -61,6 +63,7 @@ const filters = (state: Omit<FilterState, "filter">) => (vg: VideoGame) =>
       }),
     state.franchise.length > 0 && (({ franchise }: VideoGame) => state.franchise.includes(franchise)),
     state.platform.length > 0 && (({ platform }: VideoGame) => state.platform.includes(platform)),
+    state.genre.length > 0 && (({ genre }: VideoGame) => state.genre.includes(genre)),
   ]
     .filter((f): f is Exclude<typeof f, false> => Boolean(f))
     .reduce((p, c) => p && c(vg), true);
@@ -87,6 +90,7 @@ const initialState: FilterState = (() => {
     unconfirmed: false,
     franchise: [],
     platform: [],
+    genre: [],
     filter: (vg: VideoGame) => Boolean(vg),
   };
 
@@ -115,6 +119,7 @@ const Filter = ({
 
   const franchises = useMemo(() => [...new Set(data.map((vg) => vg.franchise))].sort(), [data]);
   const platforms = useMemo(() => [...new Set(data.map((vg) => vg.platform))].sort(), [data]);
+  const genres = useMemo(() => [...new Set(data.map((vg) => vg.genre))].sort(), [data]);
 
   return (
     <Stack
@@ -157,39 +162,10 @@ const Filter = ({
       </Fab>
       <Drawer anchor="bottom" open={drawerOpen} variant="temporary" onClose={() => setDrawerOpen(false)}>
         <Grid container margin={2} spacing={1} justifyContent="space-between">
-          <Grid xs={2}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={state.endless}
-                  onChange={(_, checked) => dispatch({ type: "updateFilter", filter: "endless", value: checked })}
-                />
-              }
-              label={
-                <Typography>
-                  <AllInclusive sx={{ verticalAlign: "middle" }} /> Endless
-                </Typography>
-              }
-              labelPlacement="top"
-            />
-          </Grid>
-          <Grid xs={2}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={state.unconfirmed}
-                  onChange={(_, checked) => dispatch({ type: "updateFilter", filter: "unconfirmed", value: checked })}
-                />
-              }
-              label={
-                <Typography>
-                  <QuestionMark sx={{ verticalAlign: "middle" }} /> Unconfirmed
-                </Typography>
-              }
-              labelPlacement="top"
-            />
-          </Grid>
-          <Grid xs={2}>
+          <FilterReset dispatch={dispatch} />
+          <FilterEndless dispatch={dispatch} endless={state.endless} />
+          <FilterUnconfirmed dispatch={dispatch} unconfirmed={state.unconfirmed} />
+          <Grid xs={6} md={2}>
             <FormControlLabel
               control={
                 <Switch
@@ -205,10 +181,10 @@ const Filter = ({
               labelPlacement="top"
             />
           </Grid>
-          <Grid xs={6} display="flex" justifyContent="end">
+          <Grid xs={6} display={{ xs: "none", md: "flex" }} justifyContent="end">
             <Button onClick={() => dispatch({ type: "resetFilters" })}>Reset Filters</Button>
           </Grid>
-          <Grid xs={6}>
+          <Grid xs={12} md={6}>
             <Stack direction="row">
               <FormControl fullWidth>
                 <InputLabel>Franchise</InputLabel>
@@ -249,7 +225,7 @@ const Filter = ({
               )}
             </Stack>
           </Grid>
-          <Grid xs>
+          <Grid xs={12} md={6}>
             <Stack direction="row">
               <FormControl fullWidth>
                 <InputLabel>Platform</InputLabel>
@@ -301,11 +277,125 @@ const Filter = ({
               )}
             </Stack>
           </Grid>
+          <Grid xs={12} md={6}>
+            <Stack direction="row">
+              <FormControl fullWidth>
+                <InputLabel>Genre</InputLabel>
+                <Select
+                  value={state.genre}
+                  label="Genre"
+                  multiple
+                  renderValue={(selected) => (
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                      {selected.map((value) => {
+                        return <Chip size="small" key={value} label={value} />;
+                      })}
+                    </Box>
+                  )}
+                  onChange={(event) => {
+                    const value = Array.isArray(event.target.value)
+                      ? event.target.value
+                      : event.target.value.split(",");
+                    dispatch({ type: "updateFilter", filter: "genre", value });
+                  }}
+                >
+                  {genres.map((genre) => (
+                    <MenuItem key={genre} value={genre}>
+                      {genre}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              {state.genre.length > 0 && (
+                <ToggleButton
+                  value="clear"
+                  onChange={() => {
+                    dispatch({ type: "updateFilter", filter: "genre", value: [] });
+                  }}
+                >
+                  <Clear />
+                </ToggleButton>
+              )}
+            </Stack>
+          </Grid>
         </Grid>
       </Drawer>
     </Stack>
   );
 };
+
+interface FilterDispatchProp {
+  dispatch: Dispatch<Action<keyof FilterState>>;
+}
+
+const FilterReset = ({ dispatch }: FilterDispatchProp) => (
+  <Grid xs={12} display={{ xs: "flex", md: "none" }} justifyContent="center">
+    <Button onClick={() => dispatch({ type: "resetFilters" })}>Reset Filters</Button>
+  </Grid>
+);
+
+const FilterBoolean = <K extends keyof FilterState>({
+  label,
+  dispatch,
+  key,
+  state,
+  Icon,
+}: FilterDispatchProp & { label: string; key: K; state: boolean; Icon: SvgIconComponent }) => (
+  <Grid xs={6} md={2}>
+    <FormControlLabel
+      control={
+        <Switch
+          checked={state}
+          onChange={(_, checked) => dispatch({ type: "updateFilter", filter: key, value: checked })}
+        />
+      }
+      label={
+        <Typography>
+          <Icon sx={{ verticalAlign: "middle" }} /> {label}
+        </Typography>
+      }
+      labelPlacement="top"
+    />
+  </Grid>
+);
+
+const FilterEndless = ({ dispatch, endless }: FilterDispatchProp & Pick<FilterState, "endless">) => (
+  <Grid xs={6} md={2}>
+    <FormControlLabel
+      control={
+        <Switch
+          checked={endless}
+          onChange={(_, checked) => dispatch({ type: "updateFilter", filter: "endless", value: checked })}
+        />
+      }
+      label={
+        <Typography>
+          <AllInclusive sx={{ verticalAlign: "middle" }} /> Endless
+        </Typography>
+      }
+      labelPlacement="top"
+    />
+  </Grid>
+);
+
+const FilterUnconfirmed = ({ dispatch, unconfirmed }: FilterDispatchProp & Pick<FilterState, "unconfirmed">) => (
+  <Grid xs={6} md={2}>
+    <FormControlLabel
+      control={
+        <Switch
+          checked={unconfirmed}
+          onChange={(_, checked) => dispatch({ type: "updateFilter", filter: "unconfirmed", value: checked })}
+        />
+      }
+      label={
+        <Typography>
+          <QuestionMark sx={{ verticalAlign: "middle" }} /> Unconfirmed
+        </Typography>
+      }
+      labelPlacement="top"
+    />
+  </Grid>
+);
 
 const fabProps = (enabled: boolean) =>
   enabled ? { sx: { backgroundColor: "primary.light", "&:hover": { backgroundColor: "primary.dark" } } } : {};

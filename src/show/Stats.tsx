@@ -14,8 +14,8 @@ const Stats = ({ data }: { data: Show[] }) => {
       <ThisYearSoFar data={data} />
       <Averages data={data} />
       <AveragesPerShow data={data} />
-      <RecentlyComplete data={data} />
       <CurrentlyPlaying data={data} />
+      <RecentlyComplete data={data} />
     </Grid>
   );
 };

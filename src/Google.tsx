@@ -50,10 +50,10 @@ const getTheme = (prefersDarkMode: boolean, tab: Tab) => {
     palette: {
       mode: prefersDarkMode ? "dark" : "light",
       primary: {
-        main: tab.id === "show" ? "#df2020" : palette.primary.main,
+        main: tab.primaryColour ?? palette.primary.main,
       },
       secondary: {
-        main: tab.id === "show" ? "#20dfdf" : palette.secondary.main,
+        main: tab.secondaryColour ?? palette.secondary.main,
       },
     },
     components: {

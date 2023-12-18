@@ -105,8 +105,8 @@ export const CardMediaImage = ({
                 maxHeight: (theme) => `calc(100vh - ${theme.spacing(4)})`,
                 maxWidth: (theme) => `calc(100vw - ${theme.spacing(4)})`,
                 aspectRatio: "auto",
-                height: { xs: landscape ? "unset" : "100%", lg: landscape ? "unset" : "100vh" },
-                width: { xs: landscape ? "100%" : "unset", lg: landscape ? "100vw" : "unset" },
+                height: {  lg: landscape ? "unset" : "100vh" },
+                width: { xs: "100%", lg: landscape ? "100vw" : "unset" },
               }}
               onLoad={() => {
                 !footerComponent && setColour?.(imageToColour(imgRef.current!));

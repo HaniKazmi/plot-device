@@ -29,6 +29,7 @@ const NavBar = ({ authorise, revoke }: { authorise?: false | (() => void); revok
             letterSpacing: ".3rem",
             color: "inherit",
             textDecoration: "none",
+            display: { xs: "none", md: "block" },
           }}
         >
           Plot Device
