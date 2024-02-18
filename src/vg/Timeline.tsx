@@ -10,10 +10,10 @@ const VgTimeline = ({ data }: { data: VideoGame[] }) => {
   const groupFunc = groupData ? ({ company }: VideoGame) => company : () => "*";
   const gameData: [string, string, string, Date, Date][] = data
     .filter(({ exactDate, startDate }) => exactDate && startDate.getFullYear() > 2014)
-    .map((row) => [groupFunc(row), row.name, tooltip(row), row.startDate!, row.endDate ?? CURRENT_DATE]);
+    .map((row) => [groupFunc(row), row.name, tooltip(row), row.startDate, row.endDate ?? CURRENT_DATE]);
 
   return (
-    <Timeline data={gameData}>
+    <Timeline data={gameData} showRowLabels={groupData}>
       <CardHeader
         title="Timeline"
         action={
@@ -31,31 +31,25 @@ const VgTimeline = ({ data }: { data: VideoGame[] }) => {
 
 const tooltip = (row: VideoGame) =>
   `
-    <div style="display: flex; background-color: ${companyToColor(row)}" class="backgroundPaper">
-      <div>
-        <ul style="list-style-type: none;padding-left: 5px">
-          <li>
-            <span><b>${row.name}</b></span>
-          </li>
-        </ul>
-        <hr />
-        <ul style="list-style-type: none;padding-left: 10px">
-          <li>
-            <span><b>Hours: </b></span>
-            <span">${row.hours}</span>
-          </li>
-          <li>
-            <span><b>Period: </b></span>
-            <span>${row.startDate?.toLocaleDateString()} - ${row.endDate?.toLocaleDateString() ?? "present"} </span>
-          </li>
-          <li>
-            <span><b>Days: </b></span>
-            <span>${row.numDays ?? "-"}</span>
-          </li>
-        </ul>
+<div style="display: flex; border: 1px solid black; background-color: ${companyToColor(row)}" class="backgroundPaper">
+  <div style="flex: 0.6; white-space:nowrap; padding: 10px; "> 
+    <b>${row.name}</b><br> 
+    <hr />
+    Hours: ${row.hours}<br> 
+    Period: ${row.startDate?.toLocaleDateString()} - ${row.endDate?.toLocaleDateString() ?? "present"}<br> 
+    Days: ${row.numDays ?? "-"}
+  </div>
+  ${
+    row.banner
+      ? `
+      <div style="flex: 1; min-width: 200px">
+        <img src="${row.banner}"
+        style="max-width: 100%; max-height: 200px;"> 
       </div>
-      ${row.banner ? `<img src="${row.banner}" style="height: 150px" /><hr />` : ""}
-    </div>
-  `;
+   `
+      : ``
+  }
+</div>
+`;
 
 export default VgTimeline;

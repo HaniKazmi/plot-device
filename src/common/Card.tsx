@@ -105,7 +105,7 @@ export const CardMediaImage = ({
                 maxHeight: (theme) => `calc(100vh - ${theme.spacing(4)})`,
                 maxWidth: (theme) => `calc(100vw - ${theme.spacing(4)})`,
                 aspectRatio: "auto",
-                height: {  lg: landscape ? "unset" : "100vh" },
+                height: { lg: landscape ? "unset" : "100vh" },
                 width: { xs: "100%", lg: landscape ? "100vw" : "unset" },
               }}
               onLoad={() => {

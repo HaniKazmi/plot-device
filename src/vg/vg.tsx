@@ -1,10 +1,9 @@
 import { Suspense, lazy, useEffect, useState, useTransition } from "react";
-
-import { Company, Format, Measure, Platform, Status, VideoGame } from "./types";
+import { Company, Format, Platform, Status, VideoGame } from "./types";
 import { dateDiffInDays } from "../utils/dateUtils";
 import { Tab } from "../tabs";
-import { Predicate } from "../utils/types";
 import { fetchAndConvertSheet } from "../utils/googleUtils.ts";
+import { useFilterReducer } from "./filterUtils.ts";
 
 const Graphs = lazy(() => import(/* webpackPrefetch: true */ "./Graphs"));
 const Filter = lazy(() => import(/* webpackPrefetch: true */ "./Filter"));
@@ -13,8 +12,7 @@ let DATA: VideoGame[];
 
 const GamesGraphs = () => {
   const [data, setData] = useState<VideoGame[]>();
-  const [filterFunc, setFilterFunc] = useState<Predicate<VideoGame>>(() => () => true);
-  const [measure, setMeasure] = useState<Measure>("Count");
+  const [filterState, filterDispatch] = useFilterReducer();
   const [, startTransition] = useTransition();
 
   useEffect(() => startTransition(() => getData(setData)), []);
@@ -23,11 +21,11 @@ const GamesGraphs = () => {
     return null;
   }
 
-  const vgData = data.filter(filterFunc);
+  const vgData = data.filter(filterState.filter);
   return (
     <Suspense>
-      <Graphs vgData={vgData} measure={measure} />
-      <Filter setFilterFunc={setFilterFunc} measure={measure} setMeasure={setMeasure} data={data} />
+      <Graphs vgData={vgData} filterState={filterState} filterDispatch={filterDispatch} />
+      <Filter state={filterState} dispatch={filterDispatch} data={data} />
     </Suspense>
   );
 };
@@ -46,7 +44,8 @@ const getData = (setData: (b: VideoGame[]) => void) => {
 
 const jsonConverter = (json: Record<string, string>[]) => {
   return json.map((row) => {
-    const startDate = row["Start Date"] ? new Date(row["Start Date"]) : undefined;
+    if (!row["Start Date"]) throw new Error("Invalid Date: " + row.game);
+    const startDate = new Date(row["Start Date"]);
     const endDate = row["End Date"] ? new Date(row["End Date"]) : undefined;
     const exactDate = row["Start Date"] && row["Start Date"]?.length > 5;
     if (endDate && row["End Date"].length < 5) {

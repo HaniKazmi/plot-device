@@ -23,7 +23,11 @@ const Barchart = ({
     data = grouped;
   }
 
-  data = Object.fromEntries(Object.entries(data).sort((first, second) => Object.values(second[1].data).sum() - Object.values(first[1].data).sum()))
+  data = Object.fromEntries(
+    Object.entries(data).sort(
+      (first, second) => Object.values(second[1].data).sum() - Object.values(first[1].data).sum(),
+    ),
+  );
 
   return (
     <Card>
@@ -31,17 +35,16 @@ const Barchart = ({
       <CardContent>
         <Plot
           style={{ width: "100%", height: "95vh" }}
-          data={Object.entries(data)
-            .map(([group, { color, data: val }]) => ({
-              type: cumulative || !stack ? "scatter" : "bar",
-              name: group,
-              x: Object.keys(val),
-              y: Object.values(val),
-              stackgroup: stack ? "*" : undefined,
-              marker: {
-                color: Object.entries(data).length === 1 ? theme.palette.primary.main : color,
-              },
-            }))}
+          data={Object.entries(data).map(([group, { color, data: val }]) => ({
+            type: cumulative || !stack ? "scatter" : "bar",
+            name: group,
+            x: Object.keys(val),
+            y: Object.values(val),
+            stackgroup: stack ? "*" : undefined,
+            marker: {
+              color: Object.entries(data).length === 1 ? theme.palette.primary.main : color,
+            },
+          }))}
           config={{ displayModeBar: false, responsive: true }}
           layout={{
             showlegend: Object.keys(grouped).length > 1 && Object.keys(grouped).length < 8,

@@ -1,12 +1,11 @@
 import {
   AllInclusive,
-  CatchingPokemon,
+  CatchingPokemonTwoTone,
   Clear,
   FilterAlt,
   Functions,
   MoreHoriz,
   QuestionMark,
-  SvgIconComponent,
   Timer,
 } from "@mui/icons-material";
 import {
@@ -28,94 +27,13 @@ import {
   ToggleButton,
   Typography,
 } from "@mui/material";
-import { Dispatch, useEffect, useMemo, useReducer, useState } from "react";
-import { Measure, platformToColor, VideoGame } from "./types";
-import { Predicate } from "../utils/types";
+import { Dispatch, useMemo, useState } from "react";
+import { platformToColor, VideoGame } from "./types";
 import Grid from "@mui/material/Unstable_Grid2";
+import { FilterDispatch, FilterState } from "./filterUtils";
 
-interface FilterState {
-  endless: boolean;
-  pokemon: boolean;
-  unconfirmed: boolean;
-  franchise: string[];
-  platform: string[];
-  genre: string[];
-  filter: Predicate<VideoGame>;
-}
-
-type Action<K extends keyof FilterState> =
-  | { type: "resetFilters" }
-  | { type: "updateFilter"; filter: K; value: FilterState[K] };
-
-const filters = (state: Omit<FilterState, "filter">) => (vg: VideoGame) =>
-  [
-    state.endless && (({ status }: VideoGame) => status !== "Endless"),
-    state.pokemon && (({ franchise }: VideoGame) => franchise !== "Pokémon"),
-    state.unconfirmed &&
-      (({ platform, startDate }: VideoGame) => {
-        if (platform === "PC") {
-          if (!startDate?.getFullYear() || startDate.getFullYear() < 2015) return false;
-        } else if (!["Nintendo Switch", "Nintendo 3DS", "PlayStation 4", "PlayStation 5"].includes(platform)) {
-          return false;
-        }
-
-        return true;
-      }),
-    state.franchise.length > 0 && (({ franchise }: VideoGame) => state.franchise.includes(franchise)),
-    state.platform.length > 0 && (({ platform }: VideoGame) => state.platform.includes(platform)),
-    state.genre.length > 0 && (({ genre }: VideoGame) => state.genre.includes(genre)),
-  ]
-    .filter((f): f is Exclude<typeof f, false> => Boolean(f))
-    .reduce((p, c) => p && c(vg), true);
-
-const reducer = <K extends keyof FilterState>(state: FilterState, action: Action<K>): FilterState => {
-  switch (action.type) {
-    case "resetFilters":
-      return initialState;
-    case "updateFilter": {
-      const newState = {
-        ...state,
-      };
-      newState[action.filter] = action.value;
-      newState.filter = filters(newState);
-      return newState;
-    }
-  }
-};
-
-const initialState: FilterState = (() => {
-  const state = {
-    endless: false,
-    pokemon: false,
-    unconfirmed: false,
-    franchise: [],
-    platform: [],
-    genre: [],
-    filter: (vg: VideoGame) => Boolean(vg),
-  };
-
-  state.filter = filters(state);
-
-  return state;
-})();
-
-const Filter = ({
-  setFilterFunc,
-  measure,
-  setMeasure,
-  data,
-}: {
-  setFilterFunc: (func: () => Predicate<VideoGame>) => void;
-  measure: Measure;
-  setMeasure: (measure: Measure) => void;
-  data: VideoGame[];
-}) => {
+const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: FilterDispatch; data: VideoGame[] }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [state, dispatch] = useReducer(reducer, initialState);
-
-  useEffect(() => {
-    setFilterFunc(() => state.filter);
-  }, [state.filter, setFilterFunc]);
 
   const franchises = useMemo(() => [...new Set(data.map((vg) => vg.franchise))].sort(), [data]);
   const platforms = useMemo(() => [...new Set(data.map((vg) => vg.platform))].sort(), [data]);
@@ -146,7 +64,7 @@ const Filter = ({
           FabProps={fabProps(state.pokemon)}
           tooltipOpen
           tooltipTitle="Pokemon"
-          icon={<CatchingPokemon />}
+          icon={<CatchingPokemonTwoTone />}
           onClick={() => dispatch({ type: "updateFilter", filter: "pokemon", value: !state.pokemon })}
         />
         <SpeedDialAction
@@ -157,12 +75,12 @@ const Filter = ({
           onClick={() => setDrawerOpen(!drawerOpen)}
         />
       </SpeedDial>
-      <Fab color="secondary" onClick={() => setMeasure(measure === "Count" ? "Hours" : "Count")}>
-        {measure === "Count" ? <Functions /> : <Timer />}
+      <Fab color="secondary" onClick={() => dispatch({ type: "toggleMeasure" })}>
+        {state.measure === "Count" ? <Functions /> : <Timer />}
       </Fab>
-      <Drawer anchor="bottom" open={drawerOpen} variant="temporary" onClose={() => setDrawerOpen(false)}>
+      <Drawer anchor="bottom" open={drawerOpen} variant="persistent" onClose={() => setDrawerOpen(false)}>
         <Grid container margin={2} spacing={1} justifyContent="space-between">
-          <FilterReset dispatch={dispatch} />
+          <FilterReset dispatch={dispatch} setDrawerOpen={setDrawerOpen} />
           <FilterEndless dispatch={dispatch} endless={state.endless} />
           <FilterUnconfirmed dispatch={dispatch} unconfirmed={state.unconfirmed} />
           <Grid xs={6} md={2}>
@@ -175,7 +93,7 @@ const Filter = ({
               }
               label={
                 <Typography>
-                  <CatchingPokemon sx={{ verticalAlign: "middle" }} /> Pokemon
+                  <CatchingPokemonTwoTone sx={{ verticalAlign: "middle" }} /> Pokemon
                 </Typography>
               }
               labelPlacement="top"
@@ -183,6 +101,7 @@ const Filter = ({
           </Grid>
           <Grid xs={6} display={{ xs: "none", md: "flex" }} justifyContent="end">
             <Button onClick={() => dispatch({ type: "resetFilters" })}>Reset Filters</Button>
+            <Button onClick={() => setDrawerOpen(false)}>Close</Button>
           </Grid>
           <Grid xs={12} md={6}>
             <Stack direction="row">
@@ -328,36 +247,37 @@ interface FilterDispatchProp {
   dispatch: Dispatch<Action<keyof FilterState>>;
 }
 
-const FilterReset = ({ dispatch }: FilterDispatchProp) => (
+const FilterReset = ({ dispatch, setDrawerOpen }: FilterDispatchProp & { setDrawerOpen: (b: boolean) => void }) => (
   <Grid xs={12} display={{ xs: "flex", md: "none" }} justifyContent="center">
     <Button onClick={() => dispatch({ type: "resetFilters" })}>Reset Filters</Button>
+    <Button onClick={() => setDrawerOpen(false)}>Close</Button>
   </Grid>
 );
 
-const FilterBoolean = <K extends keyof FilterState>({
-  label,
-  dispatch,
-  key,
-  state,
-  Icon,
-}: FilterDispatchProp & { label: string; key: K; state: boolean; Icon: SvgIconComponent }) => (
-  <Grid xs={6} md={2}>
-    <FormControlLabel
-      control={
-        <Switch
-          checked={state}
-          onChange={(_, checked) => dispatch({ type: "updateFilter", filter: key, value: checked })}
-        />
-      }
-      label={
-        <Typography>
-          <Icon sx={{ verticalAlign: "middle" }} /> {label}
-        </Typography>
-      }
-      labelPlacement="top"
-    />
-  </Grid>
-);
+// const FilterBoolean = <K extends keyof FilterState>({
+//   label,
+//   dispatch,
+//   key,
+//   state,
+//   Icon,
+// }: FilterDispatchProp & { label: string; key: K; state: boolean; Icon: SvgIconComponent }) => (
+//   <Grid xs={6} md={2}>
+//     <FormControlLabel
+//       control={
+//         <Switch
+//           checked={state}
+//           onChange={(_, checked) => dispatch({ type: "updateFilter", filter: key, value: checked })}
+//         />
+//       }
+//       label={
+//         <Typography>
+//           <Icon sx={{ verticalAlign: "middle" }} /> {label}
+//         </Typography>
+//       }
+//       labelPlacement="top"
+//     />
+//   </Grid>
+// );
 
 const FilterEndless = ({ dispatch, endless }: FilterDispatchProp & Pick<FilterState, "endless">) => (
   <Grid xs={6} md={2}>

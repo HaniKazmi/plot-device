@@ -2,8 +2,7 @@ import { CardHeader, FormControlLabel, FormGroup, Stack, Switch } from "@mui/mat
 import { useState } from "react";
 import { SelectBox } from "../vg/SelectionComponents";
 import { Measure, Season, Show, ShowStringKeys } from "./types";
-import Barchart from "../common/Barchart";
-import { Grouped } from "../vg/Barchart";
+import Barchart, { Grouped } from "../common/Barchart";
 
 const options: Record<ShowStringKeys | "none", boolean> = {
   name: false,

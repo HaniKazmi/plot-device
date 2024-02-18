@@ -12,7 +12,7 @@ export const StatCard = ({
   content,
 }: {
   icon: ReactNode;
-  title: string;
+  title: ReactNode;
   content: string | [string, number][];
 }) => {
   const formattedContent =

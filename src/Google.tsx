@@ -66,6 +66,16 @@ const getTheme = (prefersDarkMode: boolean, tab: Tab) => {
           }),
         },
       },
+      MuiCardHeader: {
+        styleOverrides: {
+          content: {
+            alignSelf: "flex-start",
+          },
+          root: {
+            paddingBottom: 4,
+          },
+        },
+      },
     },
   });
 };

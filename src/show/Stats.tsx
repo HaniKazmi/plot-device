@@ -119,16 +119,13 @@ const RecentlyComplete = ({ data }: { data: Show[] }) => {
       width={[12, 12, 12]}
       pictureWidth={[6, 4, 2]}
       chipComponent={({ show }) => [show.status, statusToColour(show)]}
-      labelComponent={statsCardLabelStatsCardLabelRecentlyComplete}
+      labelComponent={statsCardLabelRecentlyComplete}
     />
   );
 };
 
-const statsCardLabelStatsCardLabelRecentlyComplete = (season: Season) => [
-  [
-    `S ${season.s}`,
-    season.endDate?.toLocaleDateString(undefined, { month: "short", year: "numeric", day: "numeric" }) ?? "",
-  ],
+const statsCardLabelRecentlyComplete = (season: Season) => [
+  [`S ${season.s}`, season.endDate?.toLocaleDateString() ?? ""],
   [`${season.e} Eps`, `${format(Math.round(season.minutes / 60))} Hours`],
 ];
 
@@ -145,13 +142,13 @@ const CurrentlyPlaying = ({ data }: { data: Show[] }) => {
       content={recent}
       width={[12, 12, 12]}
       pictureWidth={[6, 4, 2]}
-      labelComponent={statsCardLabelStatsCardLabelCurrentlyPlaying}
+      labelComponent={statsCardLabelCurrentlyPlaying}
     />
   );
 };
 
-const statsCardLabelStatsCardLabelCurrentlyPlaying = (season: Season) => [
-  [`S ${season.s}`, season.startDate?.toLocaleDateString() || ""],
+const statsCardLabelCurrentlyPlaying = (season: Season) => [
+  [`S ${season.s}`, season.startDate?.toLocaleDateString() ?? ""],
 ];
 
 const ShowStatList = (props: Omit<StatsListProps<Season>, "MediaComponent">) => (

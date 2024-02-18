@@ -89,7 +89,7 @@ export const fetchAndConvertSheet = <T>(
 
 export const loadApis = () => {
   const tokenWrapper = JSON.parse(storage.getItem(storageKey)!) as TokenWrapper | undefined;
-  if (!tokenWrapper || tokenWrapper.expiry > Date.now()) {
+  if (tokenWrapper && tokenWrapper.expiry > Date.now()) {
     authDispatch({ type: "tokenAcquired" });
   } else {
     loadG();

@@ -5,7 +5,6 @@ import { Holiday } from "./types";
 
 const Graphs = lazy(() => import(/* webpackPrefetch: true */ "./Graphs"));
 
-
 let DATA: Holiday[];
 
 const HolidayGraphs = () => {
@@ -23,9 +22,9 @@ const HolidayGraphs = () => {
       <Graphs data={data} />
     </Suspense>
   );
-}
+};
 
-const getData = (setData: (b: any[]) => void) => {
+const getData = (setData: (b: Holiday[]) => void) => {
   if (DATA) {
     setData(DATA);
     return;
@@ -41,10 +40,10 @@ const jsonConverter = (json: Record<string, string>[]) => {
   return json.map((row) => {
     return {
       city: row.City,
-      country: row.Country
-    }
-  })
-}
+      country: row.Country,
+    };
+  });
+};
 
 const HolidayTab: Tab = {
   id: "holiday",
@@ -53,7 +52,7 @@ const HolidayTab: Tab = {
   range: "Locations!A:Z",
   component: <HolidayGraphs />,
   primaryColour: "#277114",
-  secondaryColour: "#142771"
+  secondaryColour: "#142771",
 };
 
 export default HolidayTab;

@@ -91,7 +91,7 @@ const ShowTab: Tab = {
   range: "Sheet1!A:K",
   component: <ShowsGraph />,
   primaryColour: "#df2020",
-  secondaryColour: "#20dfdf"
+  secondaryColour: "#20dfdf",
 };
 
 export default ShowTab;

@@ -4,7 +4,15 @@ import Chart from "react-google-charts";
 
 const DEFAULT_HEIGHT = 90;
 
-const Timeline = ({ data, children }: { data: [string, string, string, Date, Date][]; children?: ReactNode }) => {
+const Timeline = ({
+  data,
+  showRowLabels = false,
+  children,
+}: {
+  data: [string, string, string, Date, Date][];
+  showRowLabels?: boolean;
+  children?: ReactNode;
+}) => {
   const [height, setHeight] = useState<string | number>(DEFAULT_HEIGHT + "vh");
   const theme = useTheme();
 
@@ -68,7 +76,7 @@ const Timeline = ({ data, children }: { data: [string, string, string, Date, Dat
               chartEvents={[{ eventName: "ready", callback }]}
               options={{
                 backgroundColor: theme.palette.mode === "dark" ? theme.palette.grey.A700 : undefined,
-                timeline: { rowLabelStyle: { color: theme.palette.text.primary } },
+                timeline: { showRowLabels, rowLabelStyle: { color: theme.palette.text.primary } },
               }}
             />
           </Box>

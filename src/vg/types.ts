@@ -1,4 +1,4 @@
-import { Show } from "../show/types";
+import { Status as ShowStatus } from "../show/types";
 import { KeysMatching } from "../utils/types";
 
 interface VideoGameBase {
@@ -17,17 +17,16 @@ interface VideoGameBase {
   hours?: number;
   numDays?: number;
   banner?: string;
+  startDate: Date;
 }
 
 interface VideoGameWithDate extends VideoGameBase {
   exactDate: true;
-  startDate: Date;
   endDate: Date;
 }
 
 interface VideoGameWithoutDate extends VideoGameBase {
   exactDate: false;
-  startDate?: Date;
   endDate?: Date;
 }
 
@@ -36,7 +35,7 @@ export type VideoGame = VideoGameWithDate | VideoGameWithoutDate;
 export type VideoGameKeys = keyof VideoGame;
 export type VideoGameStringKeys = KeysMatching<VideoGame, string>;
 
-export type Format = "Physical" | "Digital" | "Pirated";
+export type Format = "Physical" | "Digital" | "Pirated" | "Subscription";
 export type Status = "Playing" | "Endless" | "Abandoned" | "Beat" | "Backlog" | "Next";
 export type Company = "PlayStation" | "Nintendo" | "PC" | "iOS" | "Xbox";
 export type Platform = `${Company}${string}`;
@@ -55,7 +54,7 @@ const xboxColour = "#107c10";
 const pcColour = "#b5a596";
 const iosColour = "#555555";
 
-export const companyToColor = ({ company }: VideoGame) => {
+export const companyToColor = ({ company }: { company: Company }) => {
   switch (company) {
     case "Nintendo":
       return nintendoColour;
@@ -146,7 +145,7 @@ export const ratingToColour = ({ rating }: VideoGame) => {
   }
 };
 
-export const statusToColour = ({ status }: VideoGame | Show) => {
+export const statusToColour = ({ status }: { status: Status | ShowStatus }) => {
   switch (status) {
     case "Abandoned":
       return "#d62728";
