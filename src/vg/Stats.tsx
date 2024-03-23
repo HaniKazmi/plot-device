@@ -317,7 +317,7 @@ const MostPlayed = ({ data }: { data: VideoGame[] }) => {
 };
 
 const CurrentlyPlaying = ({ data }: { data: VideoGame[] }) => {
-  const recent = data.filter((a) => a.status === "Playing").sortByKey("startDate");
+  const recent = data.filter((a) => a.status === "Playing").sortByKey("startDate").reverse();
   if (recent.length == 0) return null;
   return (
     <VgStatList
@@ -327,6 +327,7 @@ const CurrentlyPlaying = ({ data }: { data: VideoGame[] }) => {
       labelComponent={StatsCardLabelStartDate}
       width={[12, 12, 4]}
       pictureWidth={[12, 4, 12]}
+      wrap={false}
     />
   );
 };

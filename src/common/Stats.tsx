@@ -64,6 +64,7 @@ export interface StatsListProps<T extends VideoGame | Season> {
   aspectRatio?: string;
   divider?: boolean;
   landscape?: boolean;
+  wrap?: boolean
 }
 
 export const StatList = <T extends VideoGame | Season>({
@@ -73,6 +74,7 @@ export const StatList = <T extends VideoGame | Season>({
   width = [12, 12, 6],
   chipComponent,
   labelComponent,
+  wrap = true,
   ...props
 }: StatsListProps<T>) => {
   return (
@@ -82,7 +84,7 @@ export const StatList = <T extends VideoGame | Season>({
         <CardContent>
           <Grid
             container
-            sx={{ overflow: "auto", flexWrap: { xs: "nowrap", md: width[2] === 12 ? "nowrap" : "wrap" } }}
+            sx={{ overflow: "auto", flexWrap: { xs: "nowrap", md: wrap ?  "wrap" : "nowrap" } }}
             spacing={1}
             alignItems="center"
           >
