@@ -11,31 +11,33 @@ import {
 } from "@mui/icons-material";
 import Grid from "@mui/material/Unstable_Grid2";
 import { prepareForSlot } from "@mui/base/utils";
-import { CURRENT_YEAR } from "../utils/dateUtils";
+import { CURRENT_YEAR, EARLIEST_YEAR } from "../utils/dateUtils";
 import { format } from "../utils/mathUtils";
 import { Company, Measure, Status, VideoGame, companyToColor, platformToShort, statusToColour } from "./types";
 import { StatCard, StatList, StatsListProps } from "../common/Stats";
 import VgCardMediaImage from "./CardMediaImage";
-import { Box, Card, CardContent, CardHeader, FormControl, MenuItem, Select, Stack, Typography } from "@mui/material";
+import { Box, Card, CardContent, CardHeader, FormControl, MenuItem, Radio, Select, Stack, Typography } from "@mui/material";
 import { ReactNode } from "react";
-import { FilterDispatch } from "./filterUtils";
+import { FilterDispatch, YearType } from "./filterUtils";
 
 const Stats = ({
   data,
   measure,
+  yearType,
   yearTo,
   filterDispatch,
 }: {
   data: VideoGame[];
   measure: Measure;
+  yearType: YearType;
   yearTo: number;
   filterDispatch: FilterDispatch;
 }) => {
   return (
     <Grid container spacing={1} alignItems="stretch">
-      <AllTime data={data} yearTo={yearTo} filterDispatch={filterDispatch} />
-      <ThisYearSoFar data={data} />
-      <Averages data={data} />
+      <AllTime data={data} yearTo={yearTo} yearType={yearType} filterDispatch={filterDispatch} />
+      <ThisYearSoFar data={data} yearTo={yearTo} yearType={yearType} filterDispatch={filterDispatch} />
+      <Averages data={data} yearType={yearType} />
       <AveragesPerGame data={data} />
       <Totals data={data} measure={measure} />
       <CurrentlyPlaying data={data} />
@@ -161,32 +163,32 @@ const Totals = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
 
 const AllTime = ({
   data,
+  yearType,
   yearTo,
   filterDispatch,
 }: {
   data: VideoGame[];
+  yearType: YearType;
   yearTo: number;
   filterDispatch: FilterDispatch;
 }) => {
   const filtered = data.filter((game) => game.hours);
   const time = filtered.sum("hours");
   const games = filtered.length;
-  const earliestYear = data.sortByKey("startDate").at(-1)!.startDate.getFullYear();
 
   const titleSelect = (
-    <FormControl variant="standard" sx={{ minWidth: 120, margin: 0 }}>
+    <FormControl variant="standard" sx={{ minWidth: 130, margin: 0 }}>
       <Select
         SelectDisplayProps={{ style: { padding: 0 } }}
         value={yearTo}
-        label="Age"
         displayEmpty
         onChange={(event) =>
           filterDispatch({ type: "updateFilter", filter: "yearTo", value: event.target.value as number })
         }
-        renderValue={(value) => <Typography variant="h6">{value == CURRENT_YEAR ? "All Time" : value}</Typography>}
+        renderValue={(value) => <Typography variant="h6">{value == CURRENT_YEAR ? "All Time" : `Up To ${value}`}</Typography>}
         slots={{ root: prepareForSlot("span") }}
       >
-        {Array.from({ length: CURRENT_YEAR - earliestYear + 1 }, (_, i) => CURRENT_YEAR - i).map((year) => (
+        {Array.from({ length: CURRENT_YEAR - EARLIEST_YEAR + 1 }, (_, i) => CURRENT_YEAR - i).map((year) => (
           <MenuItem key={year} value={year}>
             {year}
           </MenuItem>
@@ -199,6 +201,7 @@ const AllTime = ({
     <StatCard
       icon={<Timer />}
       title={titleSelect}
+      action={<Radio size="small" checked={yearType == 'date'} onChange={() => filterDispatch({ type: "toggleYearType" })} />}
       content={[
         ["Games", games],
         ["Hours", time],
@@ -207,7 +210,47 @@ const AllTime = ({
   );
 };
 
-const Averages = ({ data }: { data: VideoGame[] }) => {
+const ThisYearSoFar = ({ data, yearTo, yearType, filterDispatch }: { data: VideoGame[], yearTo: number, yearType: YearType, filterDispatch: FilterDispatch }) => {
+  const filtered = data.filter((game) => game.startDate.getFullYear() === yearTo && game.hours);
+  const time = filtered.sum("hours");
+  const games = filtered.length;
+
+  const titleSelect = (
+    <FormControl variant="standard" sx={{ minWidth: 120, margin: 0 }}>
+      <Select
+        SelectDisplayProps={{ style: { padding: 0 } }}
+        value={yearTo}
+        displayEmpty
+        onChange={(event) =>
+          filterDispatch({ type: "updateFilter", filter: "yearTo", value: event.target.value as number })
+        }
+        renderValue={(value) => <Typography variant="h6">In {value}</Typography>}
+        slots={{ root: prepareForSlot("span") }}
+      >
+        {Array.from({ length: CURRENT_YEAR - EARLIEST_YEAR + 1 }, (_, i) => CURRENT_YEAR - i).map((year) => (
+          <MenuItem key={year} value={year}>
+            {year}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+  );
+
+  return (
+    <StatCard
+      icon={<Update />}
+      title={titleSelect}
+      action={<Radio size="small" checked={yearType == 'exact'} onChange={() => filterDispatch({ type: "toggleYearType" })} />}
+      content={[
+        ["Games", games],
+        ["Hours", time],
+      ]}
+    />
+  );
+};
+
+const Averages = ({ data, yearType }: { data: VideoGame[],  yearType: YearType }) => {
+  if (yearType == "exact") return;
   const grouped = data.reduce<Record<string, [number, number]>>((tree, game) => {
     const year = game.startDate?.getFullYear().toString();
     if (!year || !game.hours) return tree;
@@ -243,23 +286,6 @@ const AveragesPerGame = ({ data }: { data: VideoGame[] }) => {
       content={[
         ["Hours", hours],
         ["Days To Beat", days],
-      ]}
-    />
-  );
-};
-
-const ThisYearSoFar = ({ data }: { data: VideoGame[] }) => {
-  const filtered = data.filter((game) => game.startDate?.getFullYear() === CURRENT_YEAR && game.hours);
-  const time = filtered.sum("hours");
-  const games = filtered.length;
-
-  return (
-    <StatCard
-      icon={<Update />}
-      title={`In ${CURRENT_YEAR}`}
-      content={[
-        ["Games", games],
-        ["Hours", time],
       ]}
     />
   );

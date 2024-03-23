@@ -11,6 +11,7 @@ export interface FilterState {
   platform: string[];
   genre: string[];
   measure: Measure;
+  yearType: YearType;
   yearTo: number;
   filter: Predicate<VideoGame>;
 }
@@ -20,9 +21,13 @@ export type FilterDispatch = Dispatch<Action<keyof FilterState>>;
 export type Action<K extends keyof FilterState> =
   | { type: "resetFilters" }
   | { type: "updateFilter"; filter: K; value: FilterState[K] }
-  | { type: "toggleMeasure" };
+  | { type: "toggleMeasure" }
+  | { type: "toggleYearType" };
+
 
 export const useFilterReducer = () => useReducer(reducer, initialState);
+
+export type YearType = "date" | "exact"
 
 const reducer = <K extends keyof FilterState>(state: FilterState, action: Action<K>): FilterState => {
   switch (action.type) {
@@ -41,6 +46,14 @@ const reducer = <K extends keyof FilterState>(state: FilterState, action: Action
         ...state,
         measure: state.measure == "Count" ? "Hours" : "Count",
       };
+    }
+    case "toggleYearType": {
+      const newState: FilterState = {
+        ...state,
+        yearType: state.yearType == "date" ? "exact" : "date",
+      };
+      newState.filter = filters(newState);
+      return newState;
     }
   }
 };
@@ -62,7 +75,8 @@ const filters = (state: Omit<FilterState, "filter">) => (vg: VideoGame) =>
     state.franchise.length > 0 && (({ franchise }: VideoGame) => state.franchise.includes(franchise)),
     state.platform.length > 0 && (({ platform }: VideoGame) => state.platform.includes(platform)),
     state.genre.length > 0 && (({ genre }: VideoGame) => state.genre.includes(genre)),
-    state.yearTo !== CURRENT_YEAR && (({ startDate }: VideoGame) => startDate.getFullYear() <= state.yearTo),
+    state.yearTo !== CURRENT_YEAR && state.yearType === "date" && (({ startDate }: VideoGame) => startDate.getFullYear() <= state.yearTo),
+    state.yearType === "exact" && (({ startDate }: VideoGame) => startDate.getFullYear() === state.yearTo),
   ]
     .filter((f): f is Exclude<typeof f, false> => Boolean(f))
     .reduce((p, c) => p && c(vg), true);
@@ -76,6 +90,7 @@ const initialState: FilterState = (() => {
     platform: [],
     genre: [],
     measure: "Count",
+    yearType: "date",
     yearTo: CURRENT_YEAR,
     filter: (vg: VideoGame) => Boolean(vg),
   };

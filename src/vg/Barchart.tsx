@@ -3,6 +3,7 @@ import { useState } from "react";
 import { SelectBox } from "./SelectionComponents";
 import { companyToColor, Measure, VideoGame, VideoGameStringKeys } from "./types";
 import Barchart, { Grouped } from "../common/Barchart";
+import { YearType } from "./filterUtils";
 
 const options: Record<VideoGameStringKeys | "none", boolean> = {
   none: true,
@@ -18,12 +19,12 @@ const options: Record<VideoGameStringKeys | "none", boolean> = {
   genre: true,
 };
 
-const VgBarchart = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
+const VgBarchart = ({ data, measure, yearType }: { data: VideoGame[]; measure: Measure, yearType: YearType }) => {
   const [group, setGroup] = useState<VideoGameStringKeys | "none">("company");
   const [cumulative, setCumulative] = useState(false);
   const [stack, setStack] = useState(true);
 
-  const grouped = groupDate(data, group, measure, cumulative);
+  const grouped = groupDate(data, group, measure, cumulative, yearType);
 
   return (
     <Barchart grouped={grouped} cumulative={cumulative} stack={stack}>
@@ -58,10 +59,11 @@ const groupDate = (
   group: VideoGameStringKeys | "none",
   measure: Measure,
   cumulative: boolean,
+  yearType: YearType,
 ): Grouped => {
   return data.reduce((tree, game) => {
     const groupVal = group === "none" ? "" : game[group];
-    const year = cumulative ? game.startDate?.toISOString().substring(0, 7) : game.startDate?.getFullYear().toString();
+    const year = cumulative || yearType == "exact" ? game.startDate?.toISOString().substring(0, 7) : game.startDate?.getFullYear().toString();
     if (!year || !game.hours) return tree;
 
     tree[groupVal] ??= { color: group === "company" ? companyToColor(game) : "", data: {} };

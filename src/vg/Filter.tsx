@@ -27,7 +27,7 @@ import {
   ToggleButton,
   Typography,
 } from "@mui/material";
-import { Dispatch, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { platformToColor, VideoGame } from "./types";
 import Grid from "@mui/material/Unstable_Grid2";
 import { FilterDispatch, FilterState } from "./filterUtils";
@@ -244,7 +244,7 @@ const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: Filte
 };
 
 interface FilterDispatchProp {
-  dispatch: Dispatch<Action<keyof FilterState>>;
+  dispatch: FilterDispatch;
 }
 
 const FilterReset = ({ dispatch, setDrawerOpen }: FilterDispatchProp & { setDrawerOpen: (b: boolean) => void }) => (

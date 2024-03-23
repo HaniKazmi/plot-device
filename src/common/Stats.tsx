@@ -9,10 +9,12 @@ import { ReactNode } from "react";
 export const StatCard = ({
   icon,
   title,
+  action,
   content,
 }: {
   icon: ReactNode;
   title: ReactNode;
+  action?: ReactNode;
   content: string | [string, number][];
 }) => {
   const formattedContent =
@@ -42,6 +44,7 @@ export const StatCard = ({
           title={title}
           avatar={icon}
           sx={{ paddingBottom: "5px" }}
+          action={action}
         />
         <CardContent sx={{ paddingTop: "5px" }}>{formattedContent}</CardContent>
       </Card>

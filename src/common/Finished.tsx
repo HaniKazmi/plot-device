@@ -1,6 +1,6 @@
 import { Card, CardHeader, CardContent, FormGroup, FormControlLabel, Switch, Dialog } from "@mui/material";
 import Grid from "@mui/material/Unstable_Grid2";
-import { useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { TypedCardMediaImage } from "./Card";
 
 const Finished = <U extends { banner?: string; startDate?: Date; name: string }>({
@@ -19,8 +19,9 @@ const Finished = <U extends { banner?: string; startDate?: Date; name: string }>
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
-  const recent = data.filter((show) => show.banner).sortByKey("startDate");
+  const EMPTY_ARRAY: U[] = useMemo(() => [], [])
+  const slowData = useDeferredValue(mounted ? data : EMPTY_ARRAY);
+  const recent = slowData.filter((show) => show.banner).sortByKey("startDate");
   const content = (
     <>
       <CardHeader
@@ -35,7 +36,7 @@ const Finished = <U extends { banner?: string; startDate?: Date; name: string }>
         }
       />
       <CardContent>
-        <Grid container spacing={1} alignItems="center">
+        <Grid container spacing={1} alignItems="center" sx={{opacity: slowData !==  data ? 0.5 : 1}}>
           {recent.map((item) => (
             <Grid alignSelf="stretch" key={item.name} xs={dialogOpen ? 12 : width}>
               <Card

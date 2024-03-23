@@ -13,6 +13,7 @@ export const imageToColour = (img: HTMLImageElement | string | undefined) => {
 };
 
 const colourForImg = (img: HTMLImageElement) => {
+  console.log(map)
   const dominantColour = fac.getColor(img, { algorithm: "dominant" }).hex;
 
   const c = dominantColour.substring(1); // strip #

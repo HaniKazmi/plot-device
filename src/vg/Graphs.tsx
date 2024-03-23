@@ -19,10 +19,10 @@ const Graphs = ({
 }) =>
   vgData.length > 0 ? (
     <Stack spacing={2}>
-      <Stats data={vgData} yearTo={filterState.yearTo} measure={filterState.measure} filterDispatch={filterDispatch} />
+      <Stats data={vgData} yearType={filterState.yearType} yearTo={filterState.yearTo} measure={filterState.measure} filterDispatch={filterDispatch} />
       <Timeline data={vgData} />
       <Sunburst data={vgData} measure={filterState.measure} />
-      <Barchart data={vgData} measure={filterState.measure} />
+      <Barchart data={vgData} measure={filterState.measure} yearType={filterState.yearType} />
       <Finished MediaComponent={CardMediaImage} title="All Games" data={vgData} width={4} colour={companyToColor} />
     </Stack>
   ) : (
