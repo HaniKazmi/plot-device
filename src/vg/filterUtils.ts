@@ -44,7 +44,7 @@ const reducer = <K extends keyof FilterState>(state: FilterState, action: Action
     case "toggleMeasure": {
       return {
         ...state,
-        measure: state.measure == "Count" ? "Hours" : "Count",
+        measure: state.measure == "Games" ? "Hours" : "Games",
       };
     }
     case "toggleYearType": {
@@ -89,7 +89,7 @@ const initialState: FilterState = (() => {
     franchise: [],
     platform: [],
     genre: [],
-    measure: "Count",
+    measure: "Games",
     yearType: "date",
     yearTo: CURRENT_YEAR,
     filter: (vg: VideoGame) => Boolean(vg),

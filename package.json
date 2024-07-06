@@ -27,6 +27,7 @@
     "react-router-dom": "^6.10.0"
   },
   "devDependencies": {
+    "@types/chrome": "^0.0.268",
     "@types/gapi": "^0.0.44",
     "@types/gapi.client": "^1.0.5",
     "@types/gapi.client.sheets": "^4.0.20201030",

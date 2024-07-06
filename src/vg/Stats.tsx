@@ -14,10 +14,9 @@ import { prepareForSlot } from "@mui/base/utils";
 import { CURRENT_YEAR, EARLIEST_YEAR } from "../utils/dateUtils";
 import { format } from "../utils/mathUtils";
 import { Company, Measure, Status, VideoGame, companyToColor, platformToShort, statusToColour } from "./types";
-import { StatCard, StatList, StatsListProps } from "../common/Stats";
+import { StatCard, StatList, StatsListProps, TotalStack } from "../common/Stats";
 import VgCardMediaImage from "./CardMediaImage";
-import { Box, Card, CardContent, CardHeader, FormControl, MenuItem, Radio, Select, Stack, Typography } from "@mui/material";
-import { ReactNode } from "react";
+import { FormControl, MenuItem, Radio, Select, Stack, Typography } from "@mui/material";
 import { FilterDispatch, YearType } from "./filterUtils";
 
 const Stats = ({
@@ -47,94 +46,10 @@ const Stats = ({
   );
 };
 
-const Segment = ({
-  percent,
-  backgroundColour,
-  spacing = 2,
-}: {
-  percent: number;
-  backgroundColour: string;
-  spacing?: number;
-}) => (
-  <Box
-    sx={{
-      width: `${percent}%`,
-      height: (theme) => theme.spacing(spacing),
-      backgroundColor: backgroundColour,
-    }}
-  />
-);
-
-const TotalStack = <T extends string>({
-  title,
-  data,
-  measure,
-  groupKey,
-  group,
-  groupToColour,
-  icon,
-}: {
-  title: string;
-  data: VideoGame[];
-  measure: Measure;
-  groupKey: keyof VideoGame;
-  group: T[];
-  groupToColour: (ele: T) => string;
-  icon: ReactNode;
-}) => {
-  const total = measure === "Count" ? data.length : data.sum("hours");
-  let percentLeft = 100;
-
-  const totals = group
-    .map((e) => {
-      const count =
-        measure === "Count"
-          ? data.filter((vg) => vg[groupKey] === e).length
-          : data.filter((vg) => vg[groupKey] === e).sum("hours");
-      const percent = Math.max((count / total) * 100, 0.5);
-      percentLeft -= percent;
-      return {
-        name: e,
-        count,
-        percent,
-        colour: groupToColour(e),
-      };
-    })
-    .filter((struct) => struct.count > 0);
-
-  totals[0].percent += percentLeft;
-
-  return (
-    <Card sx={{ height: "100%" }}>
-      <CardHeader titleTypographyProps={{ variant: "h6" }} title={title} avatar={icon} />
-      <CardContent
-        sx={{
-          ":last-child": { paddingBottom: 1 },
-          height: "100%",
-        }}
-      >
-        <Stack direction="row" alignItems="center" height={(theme) => theme.spacing(3)} spacing={0.5}>
-          {totals.map((struct) => (
-            <Segment key={struct.name} percent={struct.percent} backgroundColour={struct.colour} />
-          ))}
-        </Stack>
-        <Stack direction="row" spacing={1} alignItems="center">
-          {totals.map((struct) => (
-            <Stack key={struct.name} direction="column" width="100%">
-              <Segment percent={100} backgroundColour={struct.colour} spacing={1} />
-              <Typography variant="h6">{struct.name}</Typography>
-              <Typography variant="body1">{`${struct.count} ${measure === "Count" ? "Games" : "Hours"}`}</Typography>
-            </Stack>
-          ))}
-        </Stack>
-      </CardContent>
-    </Card>
-  );
-};
-
 const Totals = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
   const statusList: Status[] = ["Beat", "Playing", "Endless", "Abandoned"];
   const companyList: Company[] = ["Nintendo", "PlayStation", "PC", "iOS", "Xbox"];
+  const measureFunc = (data: VideoGame[]) => measure == "Games" ? data.length : data.sum("hours")
   return (
     <Grid xs={12} sm={12} md={8}>
       <Stack justifyContent="space-between" height="100%" spacing={1}>
@@ -142,19 +57,21 @@ const Totals = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
           title={"Status"}
           icon={<TaskAlt />}
           data={data}
-          measure={measure}
+          measureFunc={measureFunc}
           groupKey="status"
           group={statusList}
           groupToColour={(ele: Status) => statusToColour({ status: ele })}
+          measureLabel={measure}
         />
         <TotalStack
           title={"Platforms"}
           icon={<VideogameAsset />}
           data={data}
-          measure={measure}
+          measureFunc={measureFunc}
           groupKey="company"
           group={companyList}
           groupToColour={(ele: Company) => companyToColor({ company: ele })}
+          measureLabel={measure === "Count" ? "Games" : "Hours"}
         />
       </Stack>
     </Grid>
@@ -249,7 +166,7 @@ const ThisYearSoFar = ({ data, yearTo, yearType, filterDispatch }: { data: Video
   );
 };
 
-const Averages = ({ data, yearType }: { data: VideoGame[],  yearType: YearType }) => {
+const Averages = ({ data, yearType }: { data: VideoGame[], yearType: YearType }) => {
   if (yearType == "exact") return;
   const grouped = data.reduce<Record<string, [number, number]>>((tree, game) => {
     const year = game.startDate?.getFullYear().toString();
@@ -293,6 +210,7 @@ const AveragesPerGame = ({ data }: { data: VideoGame[] }) => {
 
 const RecentlyComplete = ({ data }: { data: VideoGame[] }) => {
   const recent = data
+    .filter(({party}) => !party)
     .filter((a) => a.hours && a.startDate && a.endDate)
     .sortByKey("endDate")
     .slice(0, 6);

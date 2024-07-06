@@ -11,7 +11,7 @@ const Filter = lazy(() => import(/* webpackPrefetch: true */ "./Filter"));
 let DATA: VideoGame[];
 
 const GamesGraphs = () => {
-  const [data, setData] = useState<VideoGame[]>();
+  const [data, setData] = useState<readonly VideoGame[]>();
   const [filterState, filterDispatch] = useFilterReducer();
   const [, startTransition] = useTransition();
 
@@ -30,7 +30,7 @@ const GamesGraphs = () => {
   );
 };
 
-const getData = (setData: (b: VideoGame[]) => void) => {
+const getData = (setData: (b: readonly VideoGame[]) => void) => {
   if (DATA) {
     setData(DATA);
     return;
@@ -53,6 +53,9 @@ const jsonConverter = (json: Record<string, string>[]) => {
       endDate.setDate(31);
     }
 
+    const party = row.Status === "Party";
+    const status = party ? "Endless" : row.Status as Status;
+
     return {
       name: row.Game,
       platform: row.Platform as Platform,
@@ -64,7 +67,8 @@ const jsonConverter = (json: Record<string, string>[]) => {
       developer: row.Developer,
       publisher: row.Publisher,
       rating: row.Rating,
-      status: row.Status as Status,
+      status: status,
+      party: party,
       exactDate: exactDate,
       startDate: startDate,
       endDate: endDate,

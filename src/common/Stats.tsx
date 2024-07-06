@@ -1,10 +1,10 @@
-import { Card, CardContent, CardHeader, Divider, Stack, Typography } from "@mui/material";
+import { Box, Card, CardContent, CardHeader, Divider, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Unstable_Grid2";
 import { format } from "../utils/mathUtils";
-import { VideoGame } from "../vg/types";
-import { Season } from "../show/types";
+import { Season, Show } from "../show/types";
 import { TypedCardMediaImage } from "./Card";
 import { ReactNode } from "react";
+import { VideoGame } from "../vg/types";
 
 export const StatCard = ({
   icon,
@@ -164,5 +164,91 @@ const StatsListCard = <T extends VideoGame | Season>({
         />
       </Card>
     </Grid>
+  );
+};
+
+const Segment = ({
+  percent,
+  backgroundColour,
+  spacing = 2,
+}: {
+  percent: number;
+  backgroundColour: string;
+  spacing?: number;
+}) => (
+  <Box
+    sx={{
+      width: `${percent}%`,
+      height: (theme) => theme.spacing(spacing),
+      backgroundColor: backgroundColour,
+    }}
+  />
+);
+
+export const TotalStack = <T extends string, 
+U extends (VideoGame | Show), 
+K extends keyof U>({
+  title,
+  data,
+  measureFunc = (data: U[]) => data.length,
+  groupKey,
+  group,
+  groupToColour,
+  icon,
+  measureLabel,
+}: {
+  title: string;
+  data: U[];
+  measureFunc?: (data: U[]) => number;
+  groupKey: K;
+  group: T[];
+  groupToColour: (ele: T) => string;
+  icon: ReactNode;
+  measureLabel: string;
+}) => {
+  const total = measureFunc(data);
+  let percentLeft = 100;
+
+  const totals = group
+    .map((e) => {
+      const count = measureFunc(data.filter((vg) => vg[groupKey] === e))
+      const percent = Math.max((count / total) * 100, 0.5);
+      percentLeft -= percent;
+      return {
+        name: e,
+        count,
+        percent,
+        colour: groupToColour(e),
+      };
+    })
+    .filter((struct) => struct.count > 0);
+
+  totals[0].percent += percentLeft;
+
+  return (
+    <Card sx={{ height: "100%" }}>
+      <CardHeader titleTypographyProps={{ variant: "h6" }} title={title} avatar={icon} />
+      <CardContent
+        sx={{
+          ":last-child": { paddingBottom: 1 },
+          height: "100%",
+        }}
+      >
+        <Stack direction="row" alignItems="center" height={(theme) => theme.spacing(3)} spacing={0.5}>
+          {totals.map((struct) => (
+            <Segment key={struct.name} percent={struct.percent} backgroundColour={struct.colour} />
+          ))}
+        </Stack>
+        <Stack direction="row" spacing={1} alignItems="center">
+          {totals.map((struct) => (
+            <Stack key={struct.name} direction="column" width="100%">
+              <Segment percent={100} backgroundColour={struct.colour} spacing={1} />
+              <Typography variant="h6">{struct.name}</Typography>
+              <Typography variant="body1">{`${struct.count} ${measureLabel}`}</Typography>
+            </Stack>
+          ))}
+        </Stack>
+      </CardContent>
+    </Card>
   );
 };

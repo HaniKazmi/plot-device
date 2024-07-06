@@ -29,7 +29,7 @@ const VgBarchart = ({ data, measure, yearType }: { data: VideoGame[]; measure: M
   return (
     <Barchart grouped={grouped} cumulative={cumulative} stack={stack}>
       <CardHeader
-        title={measure === "Count" ? "Games Played" : "Hours Played"}
+        title={`${measure} Played`}
         action={
           <FormGroup>
             <SelectBox
@@ -67,7 +67,7 @@ const groupDate = (
     if (!year || !game.hours) return tree;
 
     tree[groupVal] ??= { color: group === "company" ? companyToColor(game) : "", data: {} };
-    tree[groupVal].data[year] = (tree[groupVal].data[year] || 0) + (measure === "Count" ? 1 : game.hours);
+    tree[groupVal].data[year] = (tree[groupVal].data[year] || 0) + (measure === "Games" ? 1 : game.hours);
     return tree;
   }, {} as Grouped);
 };

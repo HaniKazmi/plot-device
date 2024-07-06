@@ -28,6 +28,6 @@ export type Status = "Watching" | "Up To Date" | "Ended" | "Cancelled" | "Abando
 export type ShowKeys = keyof Show;
 export type ShowStringKeys = KeysMatching<Show, string>;
 
-export type Measure = "Hours" | "Episodes";
+export type Measure = "Shows" | "Episodes" | "Hours";
 
 export const isShow = (arg: Show | Season): arg is Show => "name" in arg;

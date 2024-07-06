@@ -1,11 +1,12 @@
-import { AutoGraph, Pause, PlayArrow, ShowChart, Timer, Update } from "@mui/icons-material";
+import { AutoGraph, Pause, PlayArrow, ShowChart, TaskAlt, Timer, Update } from "@mui/icons-material";
 import Grid from "@mui/material/Unstable_Grid2";
 import { CURRENT_YEAR } from "../utils/dateUtils";
 import { format } from "../utils/mathUtils";
-import { Season, Show } from "./types";
-import { StatCard, StatList, StatsListProps } from "../common/Stats";
+import { Season, Show, Status } from "./types";
+import { StatCard, StatList, StatsListProps, TotalStack } from "../common/Stats";
 import ShowCardMediaImage from "./CardMediaImage";
 import { statusToColour } from "../vg/types";
+import { Stack } from "@mui/material";
 
 const Stats = ({ data }: { data: Show[] }) => {
   return (
@@ -14,8 +15,28 @@ const Stats = ({ data }: { data: Show[] }) => {
       <ThisYearSoFar data={data} />
       <Averages data={data} />
       <AveragesPerShow data={data} />
+      <Totals data={data} />
       <CurrentlyPlaying data={data} />
       <RecentlyComplete data={data} />
+    </Grid>
+  );
+};
+
+const Totals = ({ data }: { data: Show[] }) => {
+  const statusList: Status[] = ["Watching", "Up To Date", "Ended", "Cancelled", "Abandoned"];
+  return (
+    <Grid xs={12} >
+      <Stack justifyContent="space-between" height="100%" spacing={1}>
+        <TotalStack
+          title={"Status"}
+          icon={<TaskAlt />}
+          data={data}
+          groupKey="status"
+          group={statusList}
+          groupToColour={(ele: Status) => statusToColour({ status: ele })}
+          measureLabel="Shows"
+        />
+      </Stack>
     </Grid>
   );
 };

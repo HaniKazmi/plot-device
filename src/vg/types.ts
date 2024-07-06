@@ -14,6 +14,7 @@ interface VideoGameBase {
   releaseDate: Date;
   format: Format;
   status: Status;
+  party?: boolean;
   hours?: number;
   numDays?: number;
   banner?: string;
@@ -46,7 +47,7 @@ export interface VideoGameTree {
 
 export const isVideoGame = (arg: VideoGameTree | VideoGame): arg is VideoGame => !!arg.name;
 
-export type Measure = "Hours" | "Count";
+export type Measure = "Hours" | "Games";
 
 const nintendoColour = "#e60012";
 const playstationColour = "#0070cc";

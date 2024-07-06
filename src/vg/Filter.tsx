@@ -76,7 +76,7 @@ const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: Filte
         />
       </SpeedDial>
       <Fab color="secondary" onClick={() => dispatch({ type: "toggleMeasure" })}>
-        {state.measure === "Count" ? <Functions /> : <Timer />}
+        {state.measure === "Games" ? <Functions /> : <Timer />}
       </Fab>
       <Drawer anchor="bottom" open={drawerOpen} variant="persistent" onClose={() => setDrawerOpen(false)}>
         <Grid container margin={2} spacing={1} justifyContent="space-between">
@@ -100,7 +100,7 @@ const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: Filte
             />
           </Grid>
           <Grid xs={6} display={{ xs: "none", md: "flex" }} justifyContent="end">
-            <Button onClick={() => dispatch({ type: "resetFilters" })}>Reset Filters</Button>
+            <Button onClick={() => dispatch({ type: "resetFilters" })}>Clear</Button>
             <Button onClick={() => setDrawerOpen(false)}>Close</Button>
           </Grid>
           <Grid xs={12} md={6}>
@@ -249,7 +249,7 @@ interface FilterDispatchProp {
 
 const FilterReset = ({ dispatch, setDrawerOpen }: FilterDispatchProp & { setDrawerOpen: (b: boolean) => void }) => (
   <Grid xs={12} display={{ xs: "flex", md: "none" }} justifyContent="center">
-    <Button onClick={() => dispatch({ type: "resetFilters" })}>Reset Filters</Button>
+    <Button onClick={() => dispatch({ type: "resetFilters" })}>Clear</Button>
     <Button onClick={() => setDrawerOpen(false)}>Close</Button>
   </Grid>
 );

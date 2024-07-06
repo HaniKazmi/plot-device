@@ -4,7 +4,7 @@ declare global {
   interface Array<T> {
     sum(key: T extends number ? void : ValueNumber<T>): number;
 
-    sortByKey(key: keyof T): T[];
+    sortByKey(key: keyof T, ascending?: boolean): T[];
   }
 }
 
@@ -25,7 +25,7 @@ if (!Array.prototype.sum) {
 }
 
 if (!Array.prototype.sortByKey) {
-  Array.prototype.sortByKey = function <T>(key: keyof T): T[] {
+  Array.prototype.sortByKey = function <T>(key: keyof T, ascending: boolean): T[] {
     return this.sort((aObj: T, bObj: T) => {
       const a = aObj[key];
       const b = bObj[key];
@@ -33,6 +33,7 @@ if (!Array.prototype.sortByKey) {
       if (a === b) return 0;
       if (!a) return -1;
       if (!b) return 1;
+      if (ascending) return a > b ? 1 : -1;
       return a < b ? 1 : -1;
     });
   };
