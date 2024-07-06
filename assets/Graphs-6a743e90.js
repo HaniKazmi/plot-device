@@ -1,0 +1,2 @@
+import{j as a}from"./index-89341689.js";import{C as o,a as e,b as n}from"./index-26443084.js";import{S as h}from"./Stack-b7372bf3.js";const i=({data:t})=>{const r=[["Country"]];return a.jsx(o,{children:a.jsx(e,{children:a.jsx(n,{chartType:"GeoChart",width:"100%",height:"100vh",data:[...r,...t.map(s=>[s.country])]})})})},m=({data:t})=>a.jsx(h,{spacing:2,children:a.jsx(i,{data:t})});export{m as default};
+//# sourceMappingURL=Graphs-6a743e90.js.map
