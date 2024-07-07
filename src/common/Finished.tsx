@@ -1,11 +1,19 @@
-import { Card, CardHeader, CardContent, FormGroup, FormControlLabel, Switch, Dialog, Stack } from "@mui/material";
+import { Card, CardHeader, CardContent, FormGroup, Dialog, Stack, IconButton } from "@mui/material";
 import Grid from "@mui/material/Unstable_Grid2";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import { TypedCardMediaImage } from "./Card";
-import { SelectBox } from "../vg/SelectionComponents";
+import type { TypedCardMediaImage } from "./Card";
+import { SelectBox } from "./SelectionComponents";
+import { CloseFullscreen, Fullscreen } from "@mui/icons-material";
+import type { Year, YearMonthDay } from "./date";
 
-
-const Finished = <U extends { banner?: string; startDate?: Date; endDate?: Date; name: string }>({
+const Finished = <
+  U extends {
+    banner?: string;
+    startDate?: YearMonthDay | Year | Date;
+    endDate?: YearMonthDay | Year | Date;
+    name: string;
+  },
+>({
   title,
   data,
   width,
@@ -25,10 +33,10 @@ const Finished = <U extends { banner?: string; startDate?: Date; endDate?: Date;
   const [sort, setSort] = useState<"Date" | "Name">("Date");
 
   useEffect(() => setMounted(true), []);
-  const EMPTY_ARRAY: U[] = useMemo(() => [], [])
+  const EMPTY_ARRAY: U[] = useMemo(() => [], []);
   const slowData = useDeferredValue(mounted ? data : EMPTY_ARRAY);
   const recent = slowData.filter((show) => show.banner);
-  if(sort === "Date") {
+  if (sort === "Date") {
     recent.sortByKey("startDate");
   }
   const content = (
@@ -38,15 +46,10 @@ const Finished = <U extends { banner?: string; startDate?: Date; endDate?: Date;
         action={
           <FormGroup>
             <Stack direction={"row"} spacing={1}>
-              <SelectBox
-                options={options}
-                value={sort}
-                setValue={setSort}
-              />
-              <FormControlLabel
-                label="Maximise"
-                control={<Switch checked={dialogOpen} onChange={(_, checked) => setDialogOpen(checked)} />}
-              />
+              <SelectBox options={options} value={sort} setValue={setSort} />
+              <IconButton onClick={() => setDialogOpen(!dialogOpen)}>
+                {dialogOpen ? <CloseFullscreen color="primary" /> : <Fullscreen />}
+              </IconButton>
             </Stack>
           </FormGroup>
         }

@@ -1,3 +1,4 @@
+import { useOutletContext } from "react-router-dom";
 import { Tab } from "../tabs.ts";
 import { arrayToJson } from "./arrayUtils.ts";
 import { Dispatch } from "react";
@@ -103,28 +104,6 @@ export const revokeApis = () => {
   loadG();
 };
 
-let loadGapi = (token?: Token) => {
-  loadGapi = () => {
-    if (typeof gapi !== "undefined") authDispatch({ type: "apiLoaded" });
-  };
-  const script = document.createElement("script");
-  script.src = "https://apis.google.com/js/api.js";
-  script.onload = () => {
-    // eslint-disable-next-line @typescript-eslint/no-misused-promises
-    gapi.load("client", async () => {
-      await gapi.client.init({
-        apiKey: API_KEY,
-        discoveryDocs: [DISCOVERY_DOCS],
-      });
-      if (token) {
-        gapi.client.setToken(token);
-      }
-      authDispatch({ type: "apiLoaded" });
-    });
-  };
-  document.body.appendChild(script);
-};
-
 let loadG = () => {
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   loadG = () => {};
@@ -147,3 +126,29 @@ let loadG = () => {
   };
   document.body.appendChild(script);
 };
+
+let loadGapi = (token?: Token) => {
+  loadGapi = () => {
+    if (typeof gapi !== "undefined") authDispatch({ type: "apiLoaded" });
+  };
+  const script = document.createElement("script");
+  script.src = "https://apis.google.com/js/api.js";
+  script.onload = () => {
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
+    gapi.load("client", async () => {
+      await gapi.client.init({
+        apiKey: API_KEY,
+        discoveryDocs: [DISCOVERY_DOCS],
+      });
+      if (token) {
+        gapi.client.setToken(token);
+      }
+      authDispatch({ type: "apiLoaded" });
+    });
+  };
+  document.body.appendChild(script);
+};
+
+export function useApiReady() {
+  return useOutletContext<{ apiReady: boolean }>();
+}

@@ -1,32 +1,35 @@
 import { CardHeader, FormGroup, FormControlLabel, Switch } from "@mui/material";
 import { useState } from "react";
 import { Season, Show } from "./types";
-import { CURRENT_DATE } from "../utils/dateUtils";
-import Timeline from "../common/Timeline";
+import Timeline, { TimelineData } from "../common/Timeline";
+import { Colour, statusToColour } from "../utils/types";
+import { CURRENT_PLAINDATE } from "../common/date";
 
 const ShowTimeline = ({ data }: { data: Show[] }) => {
   const [groupData, setGroupData] = useState(true);
 
-  const titleData: [string, Show | Season, string?][] = groupData
-    ? data.map((show) => [show.name, show, show.banner])
+  const titleData: [string, Show | Season, Colour, string?][] = groupData
+    ? data.map((show) => [show.name, show, statusToColour(show), show.banner])
     : data.flatMap((show) =>
         show.s.map(
           (s) =>
-            [`${show.name} - S${s.s}${s.subtitle ? " - " + s.subtitle : ""}`, s, show.banner] as [
+            [`${show.name} - S${s.s}${s.subtitle ? " - " + s.subtitle : ""}`, s, statusToColour(show), show.banner] as [
               string,
               Season,
+              Colour,
               string?,
             ],
         ),
       );
 
-  const showData: [string, string, string, Date, Date][] = titleData.map(([title, s, banner]) => [
-    "*",
-    title,
-    tooltip(title, s, banner),
-    s.startDate,
-    s.endDate ?? CURRENT_DATE,
-  ]);
+  const showData: TimelineData[] = titleData.map(([title, s, colour, banner]) => ({
+    row: "*",
+    name: title,
+    tooltip: tooltip(title, s, banner),
+    colour: colour,
+    start: s.startDate.toDate(),
+    end: s.endDate?.toDate() ?? CURRENT_PLAINDATE.toDate(),
+  }));
 
   return (
     <Timeline data={showData}>
@@ -63,7 +66,7 @@ const tooltip = (title: string, row: Show | Season, banner?: string) =>
         </li>
         <li>
           <span><b>Period: </b></span>
-          <span>${row.startDate.toLocaleDateString()} - ${row.endDate?.toLocaleDateString()} </span>
+          <span>${row.startDate.toString()} - ${row.endDate?.toString()} </span>
         </li>
         <li>
           <span><b>Episodes: </b></span>

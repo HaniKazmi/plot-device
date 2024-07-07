@@ -1,7 +1,7 @@
-import { Status as ShowStatus } from "../show/types";
-import { KeysMatching } from "../utils/types";
+import type { Year, YearMonthDay } from "../common/date";
+import { statusToColour, type Colour, type KeysMatching } from "../utils/types";
 
-interface VideoGameBase {
+export interface VideoGame {
   name: string;
   platform: Platform;
   company: Company;
@@ -11,29 +11,17 @@ interface VideoGameBase {
   genre: string;
   theme: string[];
   rating: string;
-  releaseDate: Date;
+  releaseDate: YearMonthDay;
   format: Format;
   status: Status;
   party?: boolean;
   hours?: number;
   numDays?: number;
   banner?: string;
-  startDate: Date;
+  startDate: YearMonthDay | Year;
+  endDate?: YearMonthDay | Year;
 }
 
-interface VideoGameWithDate extends VideoGameBase {
-  exactDate: true;
-  endDate: Date;
-}
-
-interface VideoGameWithoutDate extends VideoGameBase {
-  exactDate: false;
-  endDate?: Date;
-}
-
-export type VideoGame = VideoGameWithDate | VideoGameWithoutDate;
-
-export type VideoGameKeys = keyof VideoGame;
 export type VideoGameStringKeys = KeysMatching<VideoGame, string>;
 
 export type Format = "Physical" | "Digital" | "Pirated" | "Subscription";
@@ -49,11 +37,11 @@ export const isVideoGame = (arg: VideoGameTree | VideoGame): arg is VideoGame =>
 
 export type Measure = "Hours" | "Games";
 
-const nintendoColour = "#e60012";
-const playstationColour = "#0070cc";
-const xboxColour = "#107c10";
-const pcColour = "#b5a596";
-const iosColour = "#555555";
+const nintendoColour = "#e60012" as Colour;
+const playstationColour = "#0070cc" as Colour;
+const xboxColour = "#107c10" as Colour;
+const pcColour = "#b5a596" as Colour;
+const iosColour = "#555555" as Colour;
 
 export const companyToColor = ({ company }: { company: Company }) => {
   switch (company) {
@@ -70,7 +58,10 @@ export const companyToColor = ({ company }: { company: Company }) => {
   }
 };
 
-export const platformToColor = (platform: string) => {
+export const platformToColor = (platform: Platform | { platform: Platform }) => {
+  if (typeof platform != "string") {
+    platform = platform.platform;
+  }
   switch (platform) {
     case "PlayStation 2":
     case "PlayStation 3":
@@ -134,35 +125,29 @@ export const platformToShort: (vg: VideoGame) => [string, string] = (vg) => {
 export const ratingToColour = ({ rating }: VideoGame) => {
   switch (rating) {
     case "3+":
+      return "#88c32f" as Colour;
     case "7+":
-      return "rgb(137,195,46)";
+      return "#6d9c26" as Colour;
     case "12+":
+      return "#c27400" as Colour;
     case "16+":
-      return "rgb(242,144,0)";
+      return "rgb(242,144,0)" as Colour;
     case "18+":
-      return "rgb(214,0,21)";
+      return "#d60015" as Colour;
     default:
       throw new Error("Unknown rating: " + rating);
   }
 };
 
-export const statusToColour = ({ status }: { status: Status | ShowStatus }) => {
-  switch (status) {
-    case "Abandoned":
-      return "#d62728";
-    case "Beat":
-    case "Ended":
-      return "#2ca02c";
-    case "Cancelled":
-      return "#d67728";
-    case "Endless":
-    case "Up To Date":
-      return "#1f77b4";
-    case "Playing":
-    case "Watching":
-      return "#17becf";
-    case "Next":
-    case "Backlog":
-      return "";
+export const groupToColour = (group: keyof VideoGame | "none", game: VideoGame) => {
+  switch (group) {
+    case "company":
+      return companyToColor(game);
+    case "status":
+      return statusToColour(game);
+    case "rating":
+      return ratingToColour(game);
+    default:
+      return "" as Colour;
   }
 };

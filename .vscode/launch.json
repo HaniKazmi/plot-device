@@ -7,12 +7,13 @@
         {
           "name": "Chrome",
           "type": "chrome",
-          "request": "attach",
-          "url": "http://localhost:3000",
+          "request": "launch",
+          "url": "http://localhost:5173/plot-device/",
           "webRoot": "${workspaceFolder}/src",
-          "sourceMapPathOverrides": {
-            "webpack:///src/*": "${webRoot}/*"
-          }
+          "port": 9876,
+          // "sourceMapPathOverrides": {
+          //   "webpack:///src/*": "${webRoot}/*"
+          // }
         }
       ]
 }

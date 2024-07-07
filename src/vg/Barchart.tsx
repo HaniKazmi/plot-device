@@ -1,9 +1,10 @@
-import { CardHeader, FormControlLabel, FormGroup, Stack, Switch } from "@mui/material";
 import { useState } from "react";
-import { SelectBox } from "./SelectionComponents";
-import { companyToColor, Measure, VideoGame, VideoGameStringKeys } from "./types";
-import Barchart, { Grouped } from "../common/Barchart";
-import { YearType } from "./filterUtils";
+import { SelectBox } from "../common/SelectionComponents";
+import { groupToColour, type Measure, type VideoGame, type VideoGameStringKeys } from "./types";
+import Barchart from "../common/Barchart";
+import { Year, YearMonth } from "../common/date";
+import type { YearType } from "./filterUtils";
+import type { Colour } from "../utils/types";
 
 const options: Record<VideoGameStringKeys | "none", boolean> = {
   none: true,
@@ -19,57 +20,48 @@ const options: Record<VideoGameStringKeys | "none", boolean> = {
   genre: true,
 };
 
-const VgBarchart = ({ data, measure, yearType }: { data: VideoGame[]; measure: Measure, yearType: YearType }) => {
+const VgBarchart = ({ data, measure, yearType }: { data: VideoGame[]; measure: Measure; yearType: YearType }) => {
   const [group, setGroup] = useState<VideoGameStringKeys | "none">("company");
-  const [cumulative, setCumulative] = useState(false);
-  const [stack, setStack] = useState(true);
-
-  const grouped = groupDate(data, group, measure, cumulative, yearType);
+  const barchartData = (cumulative: boolean) =>
+    data
+      .map((game) => ({
+        date:
+          cumulative || yearType === "matching"
+            ? game.startDate instanceof Year
+              ? game.startDate.startOfYear().toYearMonth()
+              : game.startDate.toYearMonth()
+            : game.startDate.toYear(),
+        colour: groupToColour(group, game),
+        name: group === "none" ? "" : game[group],
+        value: measure === "Games" ? 1 : game.hours,
+      }))
+      .filter(
+        (vg: {
+          date: Year | YearMonth;
+          colour: Colour;
+          name: string;
+          value: number | undefined;
+        }): vg is {
+          date: Year | YearMonth;
+          colour: Colour;
+          name: string;
+          value: number;
+        } => !!vg.value,
+      );
 
   return (
-    <Barchart grouped={grouped} cumulative={cumulative} stack={stack}>
-      <CardHeader
-        title={`${measure} Played`}
-        action={
-          <FormGroup>
-            <SelectBox
-              options={Object.keys(options) as (VideoGameStringKeys | "none")[]}
-              value={group}
-              setValue={setGroup}
-            />
-            <Stack direction={"row"}>
-              <FormControlLabel
-                label="Cumulative"
-                control={<Switch checked={cumulative} onChange={(_, checked) => setCumulative(checked)} />}
-              />
-              <FormControlLabel
-                label="Stack"
-                control={<Switch checked={stack} onChange={(_, checked) => setStack(checked)} disabled={cumulative} />}
-              />
-            </Stack>
-          </FormGroup>
-        }
-      />
-    </Barchart>
+    <Barchart
+      data={barchartData}
+      title={`${measure} Played`}
+      controls={
+        <SelectBox
+          options={Object.keys(options) as (VideoGameStringKeys | "none")[]}
+          value={group}
+          setValue={setGroup}
+        />
+      }
+    />
   );
-};
-
-const groupDate = (
-  data: VideoGame[],
-  group: VideoGameStringKeys | "none",
-  measure: Measure,
-  cumulative: boolean,
-  yearType: YearType,
-): Grouped => {
-  return data.reduce((tree, game) => {
-    const groupVal = group === "none" ? "" : game[group];
-    const year = cumulative || yearType == "exact" ? game.startDate?.toISOString().substring(0, 7) : game.startDate?.getFullYear().toString();
-    if (!year || !game.hours) return tree;
-
-    tree[groupVal] ??= { color: group === "company" ? companyToColor(game) : "", data: {} };
-    tree[groupVal].data[year] = (tree[groupVal].data[year] || 0) + (measure === "Games" ? 1 : game.hours);
-    return tree;
-  }, {} as Grouped);
 };
 
 export default VgBarchart;

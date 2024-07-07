@@ -7,9 +7,10 @@ import {
   TimelineEmptySegment,
   TypedCardMediaImage,
 } from "../common/Card";
-import { VideoGame, companyToColor, ratingToColour, statusToColour } from "./types";
+import { VideoGame, companyToColor, ratingToColour } from "./types";
 import Grid from "@mui/material/Unstable_Grid2/Grid2";
-import { CURRENT_DATE, dateDiffInDays } from "../utils/dateUtils";
+import { statusToColour } from "../utils/types";
+import { CURRENT_PLAINDATE, YearMonthDay } from "../common/date";
 
 const VgCardMediaImage: TypedCardMediaImage<VideoGame> = ({ item, ...props }) => (
   <CardMediaImage
@@ -19,22 +20,14 @@ const VgCardMediaImage: TypedCardMediaImage<VideoGame> = ({ item, ...props }) =>
       <CardContent sx={{ background: colour, color: (theme) => colour && theme.palette.getContrastText(colour) }}>
         <Grid container spacing={1}>
           <VgTimelineCard colour={colour} item={item} />
-          <DetailCard
-            colour={colour}
-            label="Start Date"
-            value={item.exactDate ? item.startDate.toLocaleDateString() : item.startDate?.getFullYear()}
-          />
-          <DetailCard
-            colour={colour}
-            label="End Date"
-            value={item.exactDate ? item.endDate?.toLocaleDateString() : item.endDate?.getFullYear()}
-          />
-          <DetailCard colour={colour} label="Days To Beat" value={item.exactDate ? item.numDays : undefined} />
+          <DetailCard colour={colour} label="Start Date" value={item.startDate.toString()} />
+          <DetailCard colour={colour} label="End Date" value={item.endDate?.toString()} />
+          <DetailCard colour={colour} label="Days To Beat" value={item.numDays} />
           <DetailCard colour={colour} label="Hours" value={item.hours} />
 
           <DetailCard colour={statusToColour(item)} label="Status" value={item.status} />
           <DetailCard colour={companyToColor(item)} label="Platform" value={item.platform} />
-          <DetailCard colour={colour} label="Release Date" value={item.releaseDate.toLocaleDateString()} />
+          <DetailCard colour={colour} label="Release Date" value={item.releaseDate.toString()} />
           <DetailCard colour={colour} label="Format" value={item.format} />
 
           <DetailCard colour={colour} label="Developer" value={item.developer} />
@@ -51,19 +44,21 @@ const VgCardMediaImage: TypedCardMediaImage<VideoGame> = ({ item, ...props }) =>
   />
 );
 
-const startYear = new Date(2004, 0, 1);
-const days = dateDiffInDays(startYear, CURRENT_DATE)!;
+const startYear = YearMonthDay.get(2004, 1, 1);
+const days = startYear.daysTo(CURRENT_PLAINDATE)!;
 
 const VgTimelineCard = ({ colour, item: game }: { colour?: string; item: VideoGame }) => {
-  if (!game.startDate || game.startDate < startYear) return null;
+  if (game.startDate < startYear) return null;
+
+  const startDate = game.startDate.startOfYear();
   const endDate = game.endDate
-    ? game.exactDate
+    ? game.endDate instanceof YearMonthDay
       ? game.endDate
-      : new Date(game.startDate.getFullYear(), game.startDate.getMonth() + 1, game.startDate.getDay())
-    : CURRENT_DATE;
-  const startDays = dateDiffInDays(startYear, game.startDate)!;
+      : startDate.addMonth()
+    : CURRENT_PLAINDATE;
+  const startDays = startYear.daysTo(startDate)!;
   const startPercent = (startDays / days) * 100;
-  const gameLengthPercent = Math.max(((game.numDays ?? dateDiffInDays(game.startDate, endDate)!) / days) * 100, 0.5);
+  const gameLengthPercent = Math.max(((game.numDays ?? startDate.daysTo(endDate)!) / days) * 100, 0.5);
   const endPercent = 100 - gameLengthPercent - startPercent;
 
   return (
@@ -76,15 +71,15 @@ const VgTimelineCard = ({ colour, item: game }: { colour?: string; item: VideoGa
           backgroundColour={["secondary.dark", "secondary.light"]}
           tooltip={
             <>
-              {game.exactDate ? (
+              {game.numDays ? (
                 <>
                   <Typography>
-                    Played {game.startDate.toLocaleDateString()} - {endDate.toLocaleDateString()}
+                    Played {game.startDate.toString()} - {endDate.toString()}
                   </Typography>
                   <Typography>{game.numDays} Days</Typography>
                 </>
               ) : (
-                <Typography>Played in {game.startDate.getFullYear()}</Typography>
+                <Typography>Played in {game.startDate.toString()}</Typography>
               )}
               <Typography>{game.hours} Hours</Typography>
             </>

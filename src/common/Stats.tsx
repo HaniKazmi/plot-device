@@ -1,10 +1,11 @@
 import { Box, Card, CardContent, CardHeader, Divider, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Unstable_Grid2";
 import { format } from "../utils/mathUtils";
-import { Season, Show } from "../show/types";
-import { TypedCardMediaImage } from "./Card";
-import { ReactNode } from "react";
-import { VideoGame } from "../vg/types";
+import type { Season, Show } from "../show/types";
+import type { TypedCardMediaImage } from "./Card";
+import type { ReactNode } from "react";
+import type { VideoGame } from "../vg/types";
+import type { Colour } from "../utils/types";
 
 export const StatCard = ({
   icon,
@@ -64,7 +65,7 @@ export interface StatsListProps<T extends VideoGame | Season> {
   aspectRatio?: string;
   divider?: boolean;
   landscape?: boolean;
-  wrap?: boolean
+  wrap?: boolean;
 }
 
 export const StatList = <T extends VideoGame | Season>({
@@ -84,7 +85,7 @@ export const StatList = <T extends VideoGame | Season>({
         <CardContent>
           <Grid
             container
-            sx={{ overflow: "auto", flexWrap: { xs: "nowrap", md: wrap ?  "wrap" : "nowrap" } }}
+            sx={{ overflow: "auto", flexWrap: { xs: "nowrap", md: wrap ? "wrap" : "nowrap" } }}
             spacing={1}
             alignItems="center"
           >
@@ -185,9 +186,7 @@ const Segment = ({
   />
 );
 
-export const TotalStack = <T extends string, 
-U extends (VideoGame | Show), 
-K extends keyof U>({
+export const TotalStack = <T extends string, U extends VideoGame | Show, K extends keyof U>({
   title,
   data,
   measureFunc = (data: U[]) => data.length,
@@ -202,7 +201,7 @@ K extends keyof U>({
   measureFunc?: (data: U[]) => number;
   groupKey: K;
   group: T[];
-  groupToColour: (ele: T) => string;
+  groupToColour: (ele: T) => Colour;
   icon: ReactNode;
   measureLabel: string;
 }) => {
@@ -211,7 +210,7 @@ K extends keyof U>({
 
   const totals = group
     .map((e) => {
-      const count = measureFunc(data.filter((vg) => vg[groupKey] === e))
+      const count = measureFunc(data.filter((vg) => vg[groupKey] === e));
       const percent = Math.max((count / total) * 100, 0.5);
       percentLeft -= percent;
       return {
@@ -224,6 +223,10 @@ K extends keyof U>({
     .filter((struct) => struct.count > 0);
 
   totals[0].percent += percentLeft;
+  const topToBottomSx = {
+    textOrientation: { xs: "sideways", md: "initial" },
+    writingMode: { xs: "vertical-lr", md: "initial" },
+  };
 
   return (
     <Card sx={{ height: "100%" }}>
@@ -239,12 +242,16 @@ K extends keyof U>({
             <Segment key={struct.name} percent={struct.percent} backgroundColour={struct.colour} />
           ))}
         </Stack>
-        <Stack direction="row" spacing={1} alignItems="center">
+        <Stack direction="row" spacing={1} alignItems="flex-start">
           {totals.map((struct) => (
-            <Stack key={struct.name} direction="column" width="100%">
+            <Stack key={struct.name} direction="column" width="100%" spacing={{ xs: 1, md: 0 }}>
               <Segment percent={100} backgroundColour={struct.colour} spacing={1} />
-              <Typography variant="h6">{struct.name}</Typography>
-              <Typography variant="body1">{`${struct.count} ${measureLabel}`}</Typography>
+              <Stack key={struct.name} direction={{ xs: "row-reverse", md: "column" }} width="100%">
+                <Typography sx={topToBottomSx} variant="h6">
+                  {struct.name}
+                </Typography>
+                <Typography sx={topToBottomSx} variant="body1">{`${struct.count} ${measureLabel}`}</Typography>
+              </Stack>
             </Stack>
           ))}
         </Stack>

@@ -4,7 +4,6 @@ import {
   Clear,
   FilterAlt,
   Functions,
-  MoreHoriz,
   QuestionMark,
   Timer,
 } from "@mui/icons-material";
@@ -19,9 +18,6 @@ import {
   InputLabel,
   MenuItem,
   Select,
-  SpeedDial,
-  SpeedDialAction,
-  SpeedDialIcon,
   Stack,
   Switch,
   ToggleButton,
@@ -45,36 +41,9 @@ const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: Filte
       spacing={2}
       sx={{ position: "fixed", right: (theme) => theme.spacing(2), bottom: (theme) => theme.spacing(2) }}
     >
-      <SpeedDial icon={<SpeedDialIcon icon={<FilterAlt />} />} ariaLabel="add">
-        <SpeedDialAction
-          FabProps={fabProps(state.endless)}
-          tooltipOpen
-          tooltipTitle="Endless"
-          icon={<AllInclusive />}
-          onClick={() => dispatch({ type: "updateFilter", filter: "endless", value: !state.endless })}
-        />
-        <SpeedDialAction
-          FabProps={fabProps(state.unconfirmed)}
-          tooltipOpen
-          tooltipTitle="Unconfirmed"
-          icon={<QuestionMark />}
-          onClick={() => dispatch({ type: "updateFilter", filter: "unconfirmed", value: !state.unconfirmed })}
-        />
-        <SpeedDialAction
-          FabProps={fabProps(state.pokemon)}
-          tooltipOpen
-          tooltipTitle="Pokemon"
-          icon={<CatchingPokemonTwoTone />}
-          onClick={() => dispatch({ type: "updateFilter", filter: "pokemon", value: !state.pokemon })}
-        />
-        <SpeedDialAction
-          FabProps={fabProps(drawerOpen)}
-          tooltipOpen
-          tooltipTitle="More"
-          icon={<MoreHoriz />}
-          onClick={() => setDrawerOpen(!drawerOpen)}
-        />
-      </SpeedDial>
+      <Fab color="primary" onClick={() => setDrawerOpen(!drawerOpen)}>
+        <FilterAlt />
+      </Fab>
       <Fab color="secondary" onClick={() => dispatch({ type: "toggleMeasure" })}>
         {state.measure === "Games" ? <Functions /> : <Timer />}
       </Fab>
@@ -254,31 +223,6 @@ const FilterReset = ({ dispatch, setDrawerOpen }: FilterDispatchProp & { setDraw
   </Grid>
 );
 
-// const FilterBoolean = <K extends keyof FilterState>({
-//   label,
-//   dispatch,
-//   key,
-//   state,
-//   Icon,
-// }: FilterDispatchProp & { label: string; key: K; state: boolean; Icon: SvgIconComponent }) => (
-//   <Grid xs={6} md={2}>
-//     <FormControlLabel
-//       control={
-//         <Switch
-//           checked={state}
-//           onChange={(_, checked) => dispatch({ type: "updateFilter", filter: key, value: checked })}
-//         />
-//       }
-//       label={
-//         <Typography>
-//           <Icon sx={{ verticalAlign: "middle" }} /> {label}
-//         </Typography>
-//       }
-//       labelPlacement="top"
-//     />
-//   </Grid>
-// );
-
 const FilterEndless = ({ dispatch, endless }: FilterDispatchProp & Pick<FilterState, "endless">) => (
   <Grid xs={6} md={2}>
     <FormControlLabel
@@ -316,8 +260,5 @@ const FilterUnconfirmed = ({ dispatch, unconfirmed }: FilterDispatchProp & Pick<
     />
   </Grid>
 );
-
-const fabProps = (enabled: boolean) =>
-  enabled ? { sx: { backgroundColor: "primary.light", "&:hover": { backgroundColor: "primary.dark" } } } : {};
 
 export default Filter;

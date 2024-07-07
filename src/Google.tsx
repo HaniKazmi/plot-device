@@ -1,11 +1,11 @@
 import { Container, createTheme, CssBaseline, ThemeProvider, useMediaQuery } from "@mui/material";
-import { ReactNode, useEffect, useMemo, useReducer } from "react";
+import { useEffect, useMemo, useReducer } from "react";
 import NavBar from "./NavBar";
 import { Outlet, useMatches } from "react-router-dom";
-import { Tab } from "./tabs";
 import { loadApis, reducer, registerDispatch, revokeApis } from "./utils/googleUtils.ts";
+import type { Tab } from "./tabs.ts";
 
-const GoogleAuth = ({ children }: { children?: ReactNode }) => {
+const GoogleAuth = () => {
   const [{ apiReady, tokenClient }, dispatch] = useReducer(reducer, {});
 
   useEffect(() => {
@@ -19,7 +19,9 @@ const GoogleAuth = ({ children }: { children?: ReactNode }) => {
         authorise={!apiReady && tokenClient && (() => tokenClient.requestAccessToken())}
         revoke={apiReady && revokeApis}
       />
-      {apiReady && children}
+      <Container maxWidth={"xl"}>
+        <Outlet context={{ apiReady }} />
+      </Container>
     </>
   );
 };
@@ -35,11 +37,7 @@ const Graphs = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <GoogleAuth>
-        <Container maxWidth={"xl"}>
-          <Outlet />
-        </Container>
-      </GoogleAuth>
+      <GoogleAuth />
     </ThemeProvider>
   );
 };

@@ -5,7 +5,7 @@ import Stats from "./Stats";
 import Timeline from "./Timeline";
 import { Show } from "./types";
 import ShowCardMediaImage from "./CardMediaImage";
-import { statusToColour } from "../vg/types";
+import { statusToColour } from "../utils/types";
 
 const Graphs = ({ data }: { data: Show[] }) => (
   <Stack spacing={2}>

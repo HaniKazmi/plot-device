@@ -1,20 +1,25 @@
 import { CardHeader, FormControlLabel, FormGroup, Switch } from "@mui/material";
 import { useState } from "react";
-import { VideoGame, companyToColor } from "./types";
-import { CURRENT_DATE } from "../utils/dateUtils";
-import Timeline from "../common/Timeline";
+import { VideoGame, companyToColor, platformToColor } from "./types";
+import Timeline, { TimelineData } from "../common/Timeline";
+import { CURRENT_PLAINDATE, YearMonthDay } from "../common/date";
 
 const VgTimeline = ({ data }: { data: VideoGame[] }) => {
   const [groupData, setGroupData] = useState(false);
   const [partyEnabled, setParty] = useState(false);
 
-
   const groupFunc = groupData ? ({ company }: VideoGame) => company : () => "*";
-  const gameData: [string, string, string, Date, Date][] = data
+  const gameData: TimelineData[] = data
     .filter(({ party }) => partyEnabled || !party)
-    .filter(({ exactDate, startDate }) => exactDate && startDate.getFullYear() > 2014)
-    .map((row) => [groupFunc(row), row.name, tooltip(row), row.startDate, row.endDate ?? CURRENT_DATE]);
-
+    .filter(({ startDate }) => startDate instanceof YearMonthDay && startDate.year > 2014)
+    .map((row) => ({
+      row: groupFunc(row),
+      name: row.name,
+      tooltip: tooltip(row),
+      colour: platformToColor(row),
+      start: (row.startDate as YearMonthDay).toDate(),
+      end: (row.endDate as YearMonthDay | undefined)?.toDate() ?? CURRENT_PLAINDATE.toDate(),
+    }));
   return (
     <Timeline data={gameData} showRowLabels={groupData}>
       <CardHeader
@@ -43,17 +48,18 @@ const tooltip = (row: VideoGame) =>
     <b>${row.name}</b><br> 
     <hr />
     Hours: ${row.hours}<br> 
-    Period: ${row.startDate?.toLocaleDateString()} - ${row.endDate?.toLocaleDateString() ?? "present"}<br> 
+    Period: ${row.startDate.toString()} - ${row.endDate?.toString() ?? "present"}<br> 
     Days: ${row.numDays ?? "-"}
   </div>
-  ${row.banner
-    ? `
+  ${
+    row.banner
+      ? `
       <div style="flex: 1; min-width: 200px">
         <img src="${row.banner}"
         style="max-width: 100%; max-height: 200px;"> 
       </div>
    `
-    : ``
+      : ``
   }
 </div>
 `;

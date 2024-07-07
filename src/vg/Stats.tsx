@@ -10,14 +10,15 @@ import {
   Whatshot,
 } from "@mui/icons-material";
 import Grid from "@mui/material/Unstable_Grid2";
-import { prepareForSlot } from "@mui/base/utils";
-import { CURRENT_YEAR, EARLIEST_YEAR } from "../utils/dateUtils";
 import { format } from "../utils/mathUtils";
-import { Company, Measure, Status, VideoGame, companyToColor, platformToShort, statusToColour } from "./types";
-import { StatCard, StatList, StatsListProps, TotalStack } from "../common/Stats";
+import { companyToColor, platformToShort, type Company, type Measure, type Status, type VideoGame } from "./types";
+import { StatCard, StatList, type StatsListProps, TotalStack } from "../common/Stats";
 import VgCardMediaImage from "./CardMediaImage";
 import { FormControl, MenuItem, Radio, Select, Stack, Typography } from "@mui/material";
-import { FilterDispatch, YearType } from "./filterUtils";
+import type { FilterDispatch, YearType } from "./filterUtils";
+import { statusToColour } from "../utils/types";
+import { CURRENT_YEAR, EARLIEST_YEAR, YearNumber } from "../common/date";
+import { createElement, forwardRef } from "react";
 
 const Stats = ({
   data,
@@ -29,7 +30,7 @@ const Stats = ({
   data: VideoGame[];
   measure: Measure;
   yearType: YearType;
-  yearTo: number;
+  yearTo: YearNumber;
   filterDispatch: FilterDispatch;
 }) => {
   return (
@@ -49,7 +50,7 @@ const Stats = ({
 const Totals = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
   const statusList: Status[] = ["Beat", "Playing", "Endless", "Abandoned"];
   const companyList: Company[] = ["Nintendo", "PlayStation", "PC", "iOS", "Xbox"];
-  const measureFunc = (data: VideoGame[]) => measure == "Games" ? data.length : data.sum("hours")
+  const measureFunc = (data: VideoGame[]) => (measure == "Games" ? data.length : data.sum("hours"));
   return (
     <Grid xs={12} sm={12} md={8}>
       <Stack justifyContent="space-between" height="100%" spacing={1}>
@@ -71,7 +72,7 @@ const Totals = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
           groupKey="company"
           group={companyList}
           groupToColour={(ele: Company) => companyToColor({ company: ele })}
-          measureLabel={measure === "Count" ? "Games" : "Hours"}
+          measureLabel={measure === "Games" ? "Games" : "Hours"}
         />
       </Stack>
     </Grid>
@@ -92,7 +93,6 @@ const AllTime = ({
   const filtered = data.filter((game) => game.hours);
   const time = filtered.sum("hours");
   const games = filtered.length;
-
   const titleSelect = (
     <FormControl variant="standard" sx={{ minWidth: 130, margin: 0 }}>
       <Select
@@ -100,9 +100,11 @@ const AllTime = ({
         value={yearTo}
         displayEmpty
         onChange={(event) =>
-          filterDispatch({ type: "updateFilter", filter: "yearTo", value: event.target.value as number })
+          filterDispatch({ type: "updateFilter", filter: "yearTo", value: event.target.value as YearNumber })
         }
-        renderValue={(value) => <Typography variant="h6">{value == CURRENT_YEAR ? "All Time" : `Up To ${value}`}</Typography>}
+        renderValue={(value) => (
+          <Typography variant="h6">{value == CURRENT_YEAR ? "All Time" : `Up To ${value}`}</Typography>
+        )}
         slots={{ root: prepareForSlot("span") }}
       >
         {Array.from({ length: CURRENT_YEAR - EARLIEST_YEAR + 1 }, (_, i) => CURRENT_YEAR - i).map((year) => (
@@ -118,7 +120,9 @@ const AllTime = ({
     <StatCard
       icon={<Timer />}
       title={titleSelect}
-      action={<Radio size="small" checked={yearType == 'date'} onChange={() => filterDispatch({ type: "toggleYearType" })} />}
+      action={
+        <Radio size="small" checked={yearType == "upto"} onChange={() => filterDispatch({ type: "toggleYearType" })} />
+      }
       content={[
         ["Games", games],
         ["Hours", time],
@@ -127,8 +131,18 @@ const AllTime = ({
   );
 };
 
-const ThisYearSoFar = ({ data, yearTo, yearType, filterDispatch }: { data: VideoGame[], yearTo: number, yearType: YearType, filterDispatch: FilterDispatch }) => {
-  const filtered = data.filter((game) => game.startDate.getFullYear() === yearTo && game.hours);
+const ThisYearSoFar = ({
+  data,
+  yearTo,
+  yearType,
+  filterDispatch,
+}: {
+  data: VideoGame[];
+  yearTo: number;
+  yearType: YearType;
+  filterDispatch: FilterDispatch;
+}) => {
+  const filtered = data.filter((game) => game.startDate.year === yearTo && game.hours);
   const time = filtered.sum("hours");
   const games = filtered.length;
 
@@ -139,7 +153,7 @@ const ThisYearSoFar = ({ data, yearTo, yearType, filterDispatch }: { data: Video
         value={yearTo}
         displayEmpty
         onChange={(event) =>
-          filterDispatch({ type: "updateFilter", filter: "yearTo", value: event.target.value as number })
+          filterDispatch({ type: "updateFilter", filter: "yearTo", value: event.target.value as YearNumber })
         }
         renderValue={(value) => <Typography variant="h6">In {value}</Typography>}
         slots={{ root: prepareForSlot("span") }}
@@ -157,7 +171,13 @@ const ThisYearSoFar = ({ data, yearTo, yearType, filterDispatch }: { data: Video
     <StatCard
       icon={<Update />}
       title={titleSelect}
-      action={<Radio size="small" checked={yearType == 'exact'} onChange={() => filterDispatch({ type: "toggleYearType" })} />}
+      action={
+        <Radio
+          size="small"
+          checked={yearType == "matching"}
+          onChange={() => filterDispatch({ type: "toggleYearType" })}
+        />
+      }
       content={[
         ["Games", games],
         ["Hours", time],
@@ -166,18 +186,18 @@ const ThisYearSoFar = ({ data, yearTo, yearType, filterDispatch }: { data: Video
   );
 };
 
-const Averages = ({ data, yearType }: { data: VideoGame[], yearType: YearType }) => {
-  if (yearType == "exact") return;
-  const grouped = data.reduce<Record<string, [number, number]>>((tree, game) => {
-    const year = game.startDate?.getFullYear().toString();
-    if (!year || !game.hours) return tree;
-    tree[year] ??= [0, 0];
-    tree[year] = [tree[year][0] + 1, tree[year][1] + game.hours];
+const Averages = ({ data, yearType }: { data: VideoGame[]; yearType: YearType }) => {
+  if (yearType == "matching") return;
+  const grouped = data.reduce<Record<YearNumber, { games: number; hours: number }>>((tree, game) => {
+    if (!game.hours) return tree;
+    const gamesAndHours = (tree[game.startDate.year] ??= { games: 0, hours: 0 });
+    gamesAndHours.games += 1;
+    gamesAndHours.hours += game.hours;
     return tree;
   }, {});
 
-  const games = parseFloat((Object.values(grouped).sum(0) / Object.keys(grouped).length).toFixed(2));
-  const hours = parseFloat((Object.values(grouped).sum(1) / Object.keys(grouped).length).toFixed(2));
+  const games = parseFloat((Object.values(grouped).sum("games") / Object.keys(grouped).length).toFixed(2));
+  const hours = parseFloat((Object.values(grouped).sum("hours") / Object.keys(grouped).length).toFixed(2));
 
   return (
     <StatCard
@@ -210,8 +230,8 @@ const AveragesPerGame = ({ data }: { data: VideoGame[] }) => {
 
 const RecentlyComplete = ({ data }: { data: VideoGame[] }) => {
   const recent = data
-    .filter(({party}) => !party)
-    .filter((a) => a.hours && a.startDate && a.endDate)
+    .filter(({ party }) => !party)
+    .filter((a) => a.hours && a.endDate)
     .sortByKey("endDate")
     .slice(0, 6);
   return (
@@ -226,7 +246,7 @@ const RecentlyComplete = ({ data }: { data: VideoGame[] }) => {
 
 const MostPlayed = ({ data }: { data: VideoGame[] }) => {
   const most = data
-    .filter((a) => a.hours && a.startDate && a.endDate)
+    .filter((a) => a.hours && a.endDate)
     .sortByKey("hours")
     .slice(0, 6);
   return (
@@ -235,7 +255,10 @@ const MostPlayed = ({ data }: { data: VideoGame[] }) => {
 };
 
 const CurrentlyPlaying = ({ data }: { data: VideoGame[] }) => {
-  const recent = data.filter((a) => a.status === "Playing").sortByKey("startDate").reverse();
+  const recent = data
+    .filter((a) => a.status === "Playing")
+    .sortByKey("startDate")
+    .reverse();
   if (recent.length == 0) return null;
   return (
     <VgStatList
@@ -251,10 +274,10 @@ const CurrentlyPlaying = ({ data }: { data: VideoGame[] }) => {
 };
 
 const StatsCardLabelEndDateHours = (game: VideoGame) => [
-  [game.endDate?.toLocaleDateString() ?? "", `${format(game.hours!)} Hours`],
+  [game.endDate?.toString() ?? "", `${format(game.hours!)} Hours`],
 ];
 
-const StatsCardLabelStartDate = (game: VideoGame) => [[game.startDate?.toLocaleDateString() ?? ""]];
+const StatsCardLabelStartDate = (game: VideoGame) => [[game.startDate?.toString() ?? ""]];
 
 const VgStatList = (
   props: Omit<StatsListProps<VideoGame>, "MediaComponent" | "aspectRatio" | "divider" | "chipComponent" | "landscape">,
@@ -270,3 +293,15 @@ const VgStatList = (
 );
 
 export default Stats;
+
+function prepareForSlot<ComponentType extends React.ElementType>(Component: ComponentType) {
+  type Props = React.ComponentProps<ComponentType>;
+
+  return forwardRef<HTMLElement, Props>(function Slot(props, ref) {
+    const { ownerState, ...other } = props;
+    return createElement<Props>(Component, {
+      ...(other as Props),
+      ref,
+    });
+  });
+}

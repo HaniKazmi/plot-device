@@ -1,7 +1,8 @@
 import { useState, useEffect, lazy, Suspense, useTransition } from "react";
 import { Season, Show, Status } from "./types";
 import { Tab } from "../tabs";
-import { fetchAndConvertSheet } from "../utils/googleUtils.ts";
+import { fetchAndConvertSheet, useApiReady } from "../utils/googleUtils.ts";
+import { PlainDate, YearMonthDay } from "../common/date.ts";
 
 const Graphs = lazy(() => import(/* webpackPrefetch: true */ "./Graphs"));
 
@@ -10,8 +11,9 @@ let DATA: Show[];
 const ShowsGraph = () => {
   const [data, setData] = useState<Show[]>();
   const [, startTransition] = useTransition();
+  const { apiReady } = useApiReady();
 
-  useEffect(() => startTransition(() => getData(setData)), []);
+  useEffect(() => startTransition(() => getData(setData, apiReady)), [apiReady]);
 
   if (!data) {
     return null;
@@ -24,11 +26,13 @@ const ShowsGraph = () => {
   );
 };
 
-const getData = (setData: (b: Show[]) => void) => {
+const getData = (setData: (b: Show[]) => void, apiReady: boolean) => {
   if (DATA) {
     setData(DATA);
     return;
   }
+
+  if (!apiReady) return;
 
   fetchAndConvertSheet(ShowTab, jsonConverter, (data) => {
     DATA = data;
@@ -53,14 +57,14 @@ const jsonConverter = (json: Record<string, string>[]) => {
         s: parseFloat(row.Season),
         e: parseInt(row.Episode),
         subtitle: row.Subtitle,
-        startDate: new Date(row.Start),
-        endDate: row.End ? new Date(row.End) : undefined,
+        startDate: PlainDate.from(row.Start) as YearMonthDay,
+        endDate: row.End ? (PlainDate.from(row.End) as YearMonthDay) : undefined,
         episodeLength: row.Episodes ? parseInt(row.Episodes) : undefined,
         show: show as Show,
       };
 
-      season.minutes = season.episodeLength ? season.episodeLength * season.e! : undefined;
-      if (season.startDate && season.startDate.getFullYear() > 2005) {
+      season.minutes = season.episodeLength ? season.episodeLength * season.e! : 0;
+      if (season.startDate && season.startDate.year > 2005) {
         show.s!.push(season as Season);
       }
       if (season.startDate && season.endDate) {

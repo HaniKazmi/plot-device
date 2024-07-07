@@ -1,15 +1,25 @@
 import { Box, Card, CardContent, useTheme } from "@mui/material";
-import { ReactNode, useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import Chart from "react-google-charts";
+import type { Colour } from "../utils/types";
 
 const DEFAULT_HEIGHT = 90;
+
+export interface TimelineData {
+  row: string;
+  name: string;
+  tooltip: string;
+  colour: Colour;
+  start: Date;
+  end: Date;
+}
 
 const Timeline = ({
   data,
   showRowLabels = false,
   children,
 }: {
-  data: [string, string, string, Date, Date][];
+  data: TimelineData[];
   showRowLabels?: boolean;
   children?: ReactNode;
 }) => {
@@ -21,6 +31,7 @@ const Timeline = ({
       { type: "string", id: "*" },
       { type: "string", id: "Name" },
       { type: "string", role: "tooltip" },
+      { type: "string", id: "style", role: "style" },
       { type: "date", id: "Start" },
       { type: "date", id: "End" },
     ],
@@ -52,6 +63,10 @@ const Timeline = ({
     return () => window.removeEventListener("resize", callback);
   }, [callback]);
 
+  if (data.length === 0) {
+    return;
+  }
+
   return (
     <Box
       sx={{
@@ -69,14 +84,20 @@ const Timeline = ({
               width="400vw"
               height={height}
               chartType="Timeline"
-              data={[...timelineHeader, ...data]}
+              data={[
+                ...timelineHeader,
+                ...data.map((row) => [row.row, row.name, row.tooltip, row.colour, row.start, row.end]),
+              ]}
               onLoad={() => {
                 setTimeout(callback, 50);
               }}
               chartEvents={[{ eventName: "ready", callback }]}
               options={{
                 backgroundColor: theme.palette.mode === "dark" ? theme.palette.grey.A700 : undefined,
-                timeline: { showRowLabels, rowLabelStyle: { color: theme.palette.text.primary } },
+                timeline: {
+                  showRowLabels,
+                  rowLabelStyle: { color: theme.palette.text.primary },
+                },
               }}
             />
           </Box>

@@ -1,12 +1,12 @@
 import { AutoGraph, Pause, PlayArrow, ShowChart, TaskAlt, Timer, Update } from "@mui/icons-material";
 import Grid from "@mui/material/Unstable_Grid2";
-import { CURRENT_YEAR } from "../utils/dateUtils";
 import { format } from "../utils/mathUtils";
 import { Season, Show, Status } from "./types";
 import { StatCard, StatList, StatsListProps, TotalStack } from "../common/Stats";
 import ShowCardMediaImage from "./CardMediaImage";
-import { statusToColour } from "../vg/types";
+import { statusToColour } from "../utils/types";
 import { Stack } from "@mui/material";
+import { CURRENT_YEAR, YearNumber } from "../common/date";
 
 const Stats = ({ data }: { data: Show[] }) => {
   return (
@@ -25,7 +25,7 @@ const Stats = ({ data }: { data: Show[] }) => {
 const Totals = ({ data }: { data: Show[] }) => {
   const statusList: Status[] = ["Watching", "Up To Date", "Ended", "Cancelled", "Abandoned"];
   return (
-    <Grid xs={12} >
+    <Grid xs={12}>
       <Stack justifyContent="space-between" height="100%" spacing={1}>
         <TotalStack
           title={"Status"}
@@ -59,7 +59,7 @@ const AllTime = ({ data }: { data: Show[] }) => {
 };
 
 const ThisYearSoFar = ({ data }: { data: Show[] }) => {
-  const filtered = data.flatMap((show) => show.s).filter((s) => s.startDate.getFullYear() === CURRENT_YEAR);
+  const filtered = data.flatMap((show) => show.s).filter((s) => s.startDate.year === CURRENT_YEAR);
   const totalSeasons = filtered.length;
   const totalEpisodes = filtered.sum("e");
   const totalTime = Math.floor(filtered.sum("minutes") / 60);
@@ -81,18 +81,20 @@ const Averages = ({ data }: { data: Show[] }) => {
     .flatMap((show) => show.s)
     .reduce(
       (tree, s) => {
-        const year = s.startDate.getFullYear().toString();
-        if (!year || !s.minutes) return tree;
-        tree[year] ??= [0, 0, 0];
-        tree[year] = [tree[year][0] + 1, tree[year][1] + s.e, tree[year][2] + s.minutes];
+        if (!s.minutes) return tree;
+        const year = s.startDate.year;
+        tree[year] ??= { seasons: 0, episodes: 0, minutes: 0 };
+        tree[year].seasons += 1;
+        tree[year].episodes += s.e;
+        tree[year].minutes += s.minutes;
         return tree;
       },
-      {} as Record<string, [number, number, number]>,
+      {} as Record<YearNumber, { seasons: number; episodes: number; minutes: number }>,
     );
 
-  const seasons = Math.floor(Object.values(grouped).sum(0) / Object.keys(grouped).length);
-  const episodes = Math.floor(Object.values(grouped).sum(1) / Object.keys(grouped).length);
-  const hours = Math.floor(Object.values(grouped).sum(2) / Object.keys(grouped).length / 60);
+  const seasons = Math.floor(Object.values(grouped).sum("seasons") / Object.keys(grouped).length);
+  const episodes = Math.floor(Object.values(grouped).sum("episodes") / Object.keys(grouped).length);
+  const hours = Math.floor(Object.values(grouped).sum("minutes") / Object.keys(grouped).length / 60);
 
   return (
     <StatCard
@@ -146,7 +148,7 @@ const RecentlyComplete = ({ data }: { data: Show[] }) => {
 };
 
 const statsCardLabelRecentlyComplete = (season: Season) => [
-  [`S ${season.s}`, season.endDate?.toLocaleDateString() ?? ""],
+  [`S ${season.s}`, season.endDate?.toString() ?? ""],
   [`${season.e} Eps`, `${format(Math.round(season.minutes / 60))} Hours`],
 ];
 
@@ -168,9 +170,7 @@ const CurrentlyPlaying = ({ data }: { data: Show[] }) => {
   );
 };
 
-const statsCardLabelCurrentlyPlaying = (season: Season) => [
-  [`S ${season.s}`, season.startDate?.toLocaleDateString() ?? ""],
-];
+const statsCardLabelCurrentlyPlaying = (season: Season) => [[`S ${season.s}`, season.startDate?.toString() ?? ""]];
 
 const ShowStatList = (props: Omit<StatsListProps<Season>, "MediaComponent">) => (
   <StatList MediaComponent={ShowCardMediaImage} {...props} />

@@ -5,15 +5,17 @@ import {
   CardMedia,
   Chip,
   Dialog,
+  Grow,
   Stack,
   SxProps,
   Theme,
   Tooltip,
   Typography,
 } from "@mui/material";
-import { FunctionComponent, ReactNode, useRef, useState } from "react";
+import { type FunctionComponent, type ReactNode, useRef, useState } from "react";
 import { imageToColour } from "../utils/colourUtils";
 import Grid from "@mui/material/Unstable_Grid2/Grid2";
+import type { Colour } from "../utils/types";
 
 export interface CardMediaImageProps {
   image?: string;
@@ -22,8 +24,8 @@ export interface CardMediaImageProps {
   landscape?: boolean;
   height?: string;
   width?: string;
-  footerComponent?: (colour?: string) => ReactNode;
-  detailComponent?: (colour?: string) => ReactNode;
+  footerComponent?: (colour?: Colour) => ReactNode;
+  detailComponent?: (colour?: Colour) => ReactNode;
   sx?: SxProps<Theme>;
 }
 
@@ -42,7 +44,7 @@ export const CardMediaImage = ({
 }: CardMediaImageProps) => {
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const imgRef = useRef<HTMLImageElement>(null);
-  const [colour, setColour] = useState<string | undefined>(imageToColour(image));
+  const [colour, setColour] = useState<Colour | undefined>();
   return (
     <>
       <Box sx={{ height, width, position: "relative" }}>
@@ -57,7 +59,7 @@ export const CardMediaImage = ({
           ref={imgRef}
           loading="lazy"
           onLoad={() => {
-            footerComponent && setColour?.(imageToColour(imgRef.current!));
+            if (footerComponent) setColour?.(imageToColour(imgRef.current!));
           }}
           sx={sx}
         />
@@ -83,6 +85,7 @@ export const CardMediaImage = ({
         onClose={() => setDialogOpen(false)}
         maxWidth={false}
         scroll="body"
+        TransitionComponent={Grow}
         PaperProps={{ sx: { backgroundColor: "unset", boxShadow: "unset", backgroundImage: "unset" } }}
       >
         <Card>
@@ -109,7 +112,7 @@ export const CardMediaImage = ({
                 width: { xs: "100%", lg: landscape ? "100vw" : "unset" },
               }}
               onLoad={() => {
-                !footerComponent && setColour?.(imageToColour(imgRef.current!));
+                if (!colour) setColour?.(imageToColour(imgRef.current!));
               }}
               src={image}
               title={alt}

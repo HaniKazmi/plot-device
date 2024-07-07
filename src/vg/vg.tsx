@@ -1,65 +1,82 @@
-import { Suspense, lazy, useEffect, useState, useTransition } from "react";
-import { Company, Format, Platform, Status, VideoGame } from "./types";
-import { dateDiffInDays } from "../utils/dateUtils";
-import { Tab } from "../tabs";
-import { fetchAndConvertSheet } from "../utils/googleUtils.ts";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { fetchAndConvertSheet, useApiReady } from "../utils/googleUtils.ts";
 import { useFilterReducer } from "./filterUtils.ts";
+import { PlainDate } from "../common/date.ts";
+import type { Company, Format, Platform, Status, VideoGame } from "./types";
+import type { Tab } from "../tabs";
 
 const Graphs = lazy(() => import(/* webpackPrefetch: true */ "./Graphs"));
-const Filter = lazy(() => import(/* webpackPrefetch: true */ "./Filter"));
+
+const storage = localStorage;
+const storageKey = "vg-data-cache";
 
 let DATA: VideoGame[];
 
 const GamesGraphs = () => {
-  const [data, setData] = useState<readonly VideoGame[]>();
+  const [data, dataLoaded] = useData();
   const [filterState, filterDispatch] = useFilterReducer();
-  const [, startTransition] = useTransition();
-
-  useEffect(() => startTransition(() => getData(setData)), []);
+  const vgData = useMemo(() => (data ? data.filter(filterState.filter) : []), [data, filterState.filter]);
 
   if (!data) {
     return null;
   }
 
-  const vgData = data.filter(filterState.filter);
   return (
     <Suspense>
-      <Graphs vgData={vgData} filterState={filterState} filterDispatch={filterDispatch} />
-      <Filter state={filterState} dispatch={filterDispatch} data={data} />
+      <Graphs
+        data={data}
+        dataLoaded={dataLoaded}
+        vgData={vgData}
+        filterState={filterState}
+        filterDispatch={filterDispatch}
+      />
     </Suspense>
   );
 };
 
-const getData = (setData: (b: readonly VideoGame[]) => void) => {
-  if (DATA) {
-    setData(DATA);
-    return;
-  }
+const useData = (): [VideoGame[] | undefined, boolean] => {
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const [data, setData] = useState<VideoGame[] | undefined>(() => {
+    if (DATA) return DATA;
+    const tempData = storage.getItem(storageKey);
+    if (tempData) {
+      return JSON.parse(tempData, (key, value) => {
+        if (key.includes("Date")) {
+          return PlainDate.from(value as string);
+        }
+        return value as unknown;
+      }) as VideoGame[];
+    }
 
-  fetchAndConvertSheet(VideoGameTab, jsonConverter, (data) => {
-    DATA = data;
-    setData(data);
+    return undefined;
   });
+
+  const { apiReady } = useApiReady();
+  useEffect(() => {
+    if (!apiReady) return;
+    fetchAndConvertSheet(VideoGameTab, jsonConverter, (data) => {
+      DATA = data;
+      setData(data);
+      setDataLoaded(true);
+      storage.setItem(storageKey, JSON.stringify(data));
+    });
+  }, [apiReady]);
+
+  return [data, dataLoaded];
 };
 
 const jsonConverter = (json: Record<string, string>[]) => {
   return json.map((row) => {
-    if (!row["Start Date"]) throw new Error("Invalid Date: " + row.game);
-    const startDate = new Date(row["Start Date"]);
-    const endDate = row["End Date"] ? new Date(row["End Date"]) : undefined;
-    const exactDate = row["Start Date"] && row["Start Date"]?.length > 5;
-    if (endDate && row["End Date"].length < 5) {
-      endDate.setMonth(11);
-      endDate.setDate(31);
-    }
+    const startDate = PlainDate.from(row["Start Date"]);
+    const endDate = row["End Date"] ? PlainDate.from(row["End Date"]) : undefined;
 
     const party = row.Status === "Party";
-    const status = party ? "Endless" : row.Status as Status;
+    const status = party ? "Endless" : (row.Status as Status);
 
     return {
       name: row.Game,
       platform: row.Platform as Platform,
-      company: row.Platform.split(" ")[0]! as Company,
+      company: row.Platform.split(" ")[0] as Company,
       franchise: row.Franchise,
       genre: row.Genre,
       theme: row.Theme.split("\n"),
@@ -69,12 +86,11 @@ const jsonConverter = (json: Record<string, string>[]) => {
       rating: row.Rating,
       status: status,
       party: party,
-      exactDate: exactDate,
       startDate: startDate,
       endDate: endDate,
-      releaseDate: new Date(row.Release),
+      releaseDate: PlainDate.from(row.Release),
       hours: row.Hours ? parseInt(row.Hours) : undefined,
-      numDays: exactDate ? dateDiffInDays(startDate, endDate) : undefined,
+      numDays: startDate.daysTo(endDate),
       banner: row.Banner,
     } as VideoGame;
   });

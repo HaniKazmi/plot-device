@@ -1,18 +1,18 @@
 import { Dispatch, useReducer } from "react";
 import { Predicate } from "../utils/types";
-import { Measure, VideoGame } from "./types";
-import { CURRENT_YEAR } from "../utils/dateUtils";
+import { Measure, Platform, VideoGame } from "./types";
+import { CURRENT_YEAR, Year, YearNumber } from "../common/date";
 
 export interface FilterState {
   endless: boolean;
   pokemon: boolean;
   unconfirmed: boolean;
   franchise: string[];
-  platform: string[];
+  platform: Platform[];
   genre: string[];
   measure: Measure;
   yearType: YearType;
-  yearTo: number;
+  yearTo: YearNumber;
   filter: Predicate<VideoGame>;
 }
 
@@ -24,10 +24,9 @@ export type Action<K extends keyof FilterState> =
   | { type: "toggleMeasure" }
   | { type: "toggleYearType" };
 
-
 export const useFilterReducer = () => useReducer(reducer, initialState);
 
-export type YearType = "date" | "exact"
+export type YearType = "upto" | "matching";
 
 const reducer = <K extends keyof FilterState>(state: FilterState, action: Action<K>): FilterState => {
   switch (action.type) {
@@ -50,7 +49,7 @@ const reducer = <K extends keyof FilterState>(state: FilterState, action: Action
     case "toggleYearType": {
       const newState: FilterState = {
         ...state,
-        yearType: state.yearType == "date" ? "exact" : "date",
+        yearType: state.yearType == "upto" ? "matching" : "upto",
       };
       newState.filter = filters(newState);
       return newState;
@@ -65,7 +64,7 @@ const filters = (state: Omit<FilterState, "filter">) => (vg: VideoGame) =>
     state.unconfirmed &&
       (({ platform, startDate }: VideoGame) => {
         if (platform === "PC") {
-          if (!startDate?.getFullYear() || startDate.getFullYear() < 2015) return false;
+          if (startDate instanceof Year || startDate.year < 2015) return false;
         } else if (!["Nintendo Switch", "Nintendo 3DS", "PlayStation 4", "PlayStation 5"].includes(platform)) {
           return false;
         }
@@ -75,8 +74,10 @@ const filters = (state: Omit<FilterState, "filter">) => (vg: VideoGame) =>
     state.franchise.length > 0 && (({ franchise }: VideoGame) => state.franchise.includes(franchise)),
     state.platform.length > 0 && (({ platform }: VideoGame) => state.platform.includes(platform)),
     state.genre.length > 0 && (({ genre }: VideoGame) => state.genre.includes(genre)),
-    state.yearTo !== CURRENT_YEAR && state.yearType === "date" && (({ startDate }: VideoGame) => startDate.getFullYear() <= state.yearTo),
-    state.yearType === "exact" && (({ startDate }: VideoGame) => startDate.getFullYear() === state.yearTo),
+    state.yearTo !== CURRENT_YEAR &&
+      state.yearType === "upto" &&
+      (({ startDate }: VideoGame) => startDate.year <= state.yearTo),
+    state.yearType === "matching" && (({ startDate }: VideoGame) => startDate.year === state.yearTo),
   ]
     .filter((f): f is Exclude<typeof f, false> => Boolean(f))
     .reduce((p, c) => p && c(vg), true);
@@ -90,7 +91,7 @@ const initialState: FilterState = (() => {
     platform: [],
     genre: [],
     measure: "Games",
-    yearType: "date",
+    yearType: "upto",
     yearTo: CURRENT_YEAR,
     filter: (vg: VideoGame) => Boolean(vg),
   };

@@ -1,14 +1,11 @@
 import { FastAverageColor } from "fast-average-color";
+import { Colour } from "./types";
 
 const fac = new FastAverageColor();
-const map: Record<string, string> = {};
+const map: Record<string, Colour> = {};
 
-export const imageToColour = (img: HTMLImageElement | string | undefined) => {
+export const imageToColour = (img: HTMLImageElement) => {
   if (img === undefined || img === null) return undefined;
-  if (typeof img === "string") {
-    const uri = img === encodeURI(img) ? img : encodeURI(img);
-    return map[uri];
-  }
   return (map[img.src] ||= colourForImg(img));
 };
 
@@ -23,9 +20,9 @@ const colourForImg = (img: HTMLImageElement) => {
 
   const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b; // per ITU-R BT.709
 
-  if (luma >= 40) {
-    return dominantColour;
+  if ((luma >= 40 && luma < 240) || luma >= 253) {
+    return dominantColour as Colour;
   }
 
-  return fac.getColor(img, { algorithm: "simple" }).hex;
+  return fac.getColor(img, { algorithm: "simple" }).hex as Colour;
 };

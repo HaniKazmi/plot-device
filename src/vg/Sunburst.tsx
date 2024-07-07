@@ -1,67 +1,79 @@
 import { Card, CardContent, CardHeader, FormGroup, useTheme } from "@mui/material";
-import { Dispatch, SetStateAction, useMemo, useState } from "react";
-import Plot from "../plotly";
-import { SelectBox } from "./SelectionComponents";
-import { companyToColor, isVideoGame, Measure, VideoGame, VideoGameTree } from "./types";
-import { KeysMatching } from "../utils/types";
-
-interface SunburstData {
-  ids: string[];
-  labels: string[];
-  parents: string[];
-  values: number[];
-  colours: string[];
-}
-
-const isStringArray = (x: unknown[]): x is string[] => x.every((i) => typeof i === "string");
+import { type Dispatch, type SetStateAction, useState } from "react";
+import { SelectBox } from "../common/SelectionComponents";
+import { groupToColour, isVideoGame, type Measure, type VideoGame, type VideoGameTree } from "./types";
+import type { KeysMatching, Colour } from "../utils/types";
+import { PlainDate } from "../common/date";
+import { HighchartsWrapper, type Options } from "../Highcharts";
 
 type OptionKeys = KeysMatching<VideoGame, string | VideoGame["startDate"]>;
 
 const Sunburst = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
   const theme = useTheme();
-  const controlStates: [OptionKeys, Dispatch<SetStateAction<OptionKeys>>][] = [
-    useState<OptionKeys>("company"),
-    useState<OptionKeys>("platform"),
-    useState<OptionKeys>("franchise"),
-  ];
-  const { ids, labels, parents, values, colours }: SunburstData = useMemo(
-    () =>
-      dataToSunburstData(
-        data,
-        controlStates.map(([s]) => s),
-        measure,
-      ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, measure, ...controlStates],
-  );
+  const [controlStates, setControlStates] = useState<OptionKeys[]>(["company", "platform", "franchise"]);
+  const [hide, setHide] = useState(true);
+  const entries = dataToSunburstData(data, controlStates, measure)
+
+  const options: Options = {
+    series: [
+      {
+        type: "sunburst",
+        allowTraversingTree: true,
+        name: "All",
+        events: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          setRootNode: (event: any) => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            setHide(event.series.nodeMap[event.newRootId].level <= 1);
+          },
+        },
+
+        levels: [
+          {
+            level: 1,
+            colorByPoint: true,
+          },
+          {
+            level: 4,
+            dataLabels: {
+              enabled: !hide,
+            },
+            levelSize: {
+              value: hide ? 0 : 1,
+            },
+          },
+        ],
+        data: entries
+      },
+    ],
+    chart: {
+      backgroundColor: theme.palette.mode === "dark" ? "rgba(0,0,0,0)" : undefined,
+      style: {
+        color: theme.palette.text.primary,
+      },
+      events: {
+        render: function () {
+          this.series[0].points.forEach((point) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+            if ((point as any).node.level === 4 && point.graphic) {
+              point.graphic.css({
+                opacity: 0.5,
+              });
+            }
+          });
+        },
+      },
+    },
+  };
 
   return (
     <Card>
-      <CardHeader title="Sunburst" action={<SunBurstControls controlStates={controlStates} />} />
+      <CardHeader
+        title="Sunburst"
+        action={<SunBurstControls controlStates={controlStates} setControlStates={setControlStates} />}
+      />
       <CardContent>
-        <Plot
-          style={{ width: "100%", height: "95vh", maxHeight: "100vw" }}
-          data={[
-            {
-              labels,
-              parents,
-              values,
-              ids,
-              type: "sunburst",
-              branchvalues: "total",
-              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              //@ts-ignore
-              maxdepth: 3,
-              sort: false,
-              marker: { line: { color: theme.palette.background.paper }, colors: colours },
-            },
-          ]}
-          config={{ displayModeBar: false, responsive: true }}
-          layout={{
-            margin: { l: 0, r: 0, b: 0, t: 0 },
-            paper_bgcolor: theme.palette.mode === "dark" ? "rgba(0,0,0,0)" : undefined,
-          }}
-        />
+        <HighchartsWrapper containerProps={{ style: { height: "100vh" } }} options={options} />
       </CardContent>
     </Card>
   );
@@ -82,13 +94,20 @@ const options: OptionKeys[] = [
 
 const SunBurstControls = ({
   controlStates,
+  setControlStates,
 }: {
-  controlStates: [OptionKeys, Dispatch<SetStateAction<OptionKeys>>][];
+  controlStates: OptionKeys[];
+  setControlStates: Dispatch<SetStateAction<OptionKeys[]>>;
 }) => {
   return (
     <FormGroup>
-      {controlStates.map(([val, setVal], index) => (
-        <SelectBox options={options} key={"sunburst-control-" + index} value={val} setValue={setVal} />
+      {controlStates.map((val, index) => (
+        <SelectBox
+          options={options}
+          key={"sunburst-control-" + index}
+          value={val}
+          setValue={(key) => setControlStates(controlStates.with(index, key))}
+        />
       ))}
     </FormGroup>
   );
@@ -97,67 +116,65 @@ const SunBurstControls = ({
 const dataToSunburstData = (data: VideoGame[], groups: OptionKeys[], measure: Measure) => {
   const keyToVal = (game: VideoGame, key: OptionKeys) => {
     const val = game[key];
-    if (val instanceof Date) {
-      return val.getFullYear().toString();
-    }
-    return val;
+    return val instanceof PlainDate ? val.yearString() : val;
   };
 
   const grouped = data
-    .filter((curr) => {
-      return !(measure === "Hours" && curr.hours === undefined);
-    })
+    .filter((game) => measure !== "Hours" || game.hours !== undefined)
     .reduce((tree, game) => {
       const groupVals = groups.map((group) => keyToVal(game, group));
-      if (!isStringArray(groupVals)) return tree;
       let obj = tree;
       groupVals.forEach((val) => (obj = obj[val] = (obj[val] as VideoGameTree) || {}));
       obj[game.name] = game;
       return tree;
     }, {} as VideoGameTree);
 
-  const ids: string[] = [];
-  const labels: string[] = [];
-  const parents: string[] = [];
-  const values: number[] = [];
-  const colours: string[] = [];
-
-  const recurseGroup = (tree: VideoGameTree, parent: string): [number, string] => {
-    let total = 0;
-    let colour = "";
-    Object.entries(tree)
+  const recurseGroup = (tree: VideoGameTree, parent: string, initalEntries: {
+    id: string,
+    name: string,
+    parent: string,
+    value: number,
+    color: Colour | undefined
+  }[]): {
+    total: number, color: Colour | undefined, entries: typeof initalEntries
+  } => {
+    return Object.entries(tree)
       .sort(([val], [val2]) => val.localeCompare(val2))
-      .forEach(([key, value]) => {
-        let count: number;
+      .reduce((acc, [key, value]) => {
         if (isVideoGame(value)) {
-          count = measure === "Hours" ? value.hours! : 1;
-          if (groups[0] === "company") {
-            colour = companyToColor(value);
-          }
+          const count = measure === "Hours" ? value.hours! : 1;
+          const color = groupToColour(groups[0], value) || undefined;
+          acc.total += count
+          acc.color = color
+          acc.entries.push({
+            name: key,
+            parent,
+            value: count,
+            id: `${parent}-${key}`,
+            color
+          })
+
         } else {
-          [count, colour] = recurseGroup(value, `${parent}-${key}`);
+          const { total, color } = recurseGroup(value, `${parent}-${key}`, acc.entries);
+          acc.total += total;
+          acc.color = color
+          acc.entries.push({
+            name: key,
+            parent: parent,
+            value: total,
+            id: `${parent}-${key}`,
+            color: color
+          })
         }
 
-        labels.push(key);
-        parents.push(parent);
-        values.push(count);
-        ids.push(`${parent}-${key}`);
-        colours.push(colour);
-        total += count;
+        return acc;
+      }, {
+        total: 0, color: undefined as Colour | undefined, entries: initalEntries
       });
-
-    return [total, colour];
   };
 
-  recurseGroup(grouped, "");
-
-  return {
-    labels,
-    parents,
-    values,
-    ids,
-    colours,
-  };
+  const { entries } = recurseGroup(grouped, "", []);
+  return entries;
 };
 
 export default Sunburst;
