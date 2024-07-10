@@ -1,0 +1,2 @@
+import{j as a}from"./index-mTVLBmNh.js";import{C as o,a as e,b as n}from"./index-_qugNN_q.js";import{S as h}from"./Stack-DrymOO3U.js";const i=({data:t})=>{const r=[["Country"]];return a.jsx(o,{children:a.jsx(e,{children:a.jsx(n,{chartType:"GeoChart",width:"100%",height:"100vh",data:[...r,...t.map(s=>[s.country])]})})})},m=({data:t})=>a.jsx(h,{spacing:2,children:a.jsx(i,{data:t})});export{m as default};
+//# sourceMappingURL=Graphs-B12cB6vP.js.map
