@@ -12,7 +12,7 @@ const Sunburst = ({ data, measure }: { data: VideoGame[]; measure: Measure }) =>
   const theme = useTheme();
   const [controlStates, setControlStates] = useState<OptionKeys[]>(["company", "platform", "franchise"]);
   const [hide, setHide] = useState(true);
-  const entries = dataToSunburstData(data, controlStates, measure)
+  const entries = dataToSunburstData(data, controlStates, measure);
 
   const options: Options = {
     series: [
@@ -43,7 +43,7 @@ const Sunburst = ({ data, measure }: { data: VideoGame[]; measure: Measure }) =>
             },
           },
         ],
-        data: entries
+        data: entries,
       },
     ],
     chart: {
@@ -129,48 +129,58 @@ const dataToSunburstData = (data: VideoGame[], groups: OptionKeys[], measure: Me
       return tree;
     }, {} as VideoGameTree);
 
-  const recurseGroup = (tree: VideoGameTree, parent: string, initalEntries: {
-    id: string,
-    name: string,
+  const recurseGroup = (
+    tree: VideoGameTree,
     parent: string,
-    value: number,
-    color: Colour | undefined
-  }[]): {
-    total: number, color: Colour | undefined, entries: typeof initalEntries
+    initalEntries: {
+      id: string;
+      name: string;
+      parent: string;
+      value: number;
+      color: Colour | undefined;
+    }[],
+  ): {
+    total: number;
+    color: Colour | undefined;
+    entries: typeof initalEntries;
   } => {
     return Object.entries(tree)
       .sort(([val], [val2]) => val.localeCompare(val2))
-      .reduce((acc, [key, value]) => {
-        if (isVideoGame(value)) {
-          const count = measure === "Hours" ? value.hours! : 1;
-          const color = groupToColour(groups[0], value) || undefined;
-          acc.total += count
-          acc.color = color
-          acc.entries.push({
-            name: key,
-            parent,
-            value: count,
-            id: `${parent}-${key}`,
-            color
-          })
+      .reduce(
+        (acc, [key, value]) => {
+          if (isVideoGame(value)) {
+            const count = measure === "Hours" ? value.hours! : 1;
+            const color = groupToColour(groups[0], value) || undefined;
+            acc.total += count;
+            acc.color = color;
+            acc.entries.push({
+              name: key,
+              parent,
+              value: count,
+              id: `${parent}-${key}`,
+              color,
+            });
+          } else {
+            const { total, color } = recurseGroup(value, `${parent}-${key}`, acc.entries);
+            acc.total += total;
+            acc.color = color;
+            acc.entries.push({
+              name: key,
+              parent: parent,
+              value: total,
+              id: `${parent}-${key}`,
+              color: color,
+            });
+          }
 
-        } else {
-          const { total, color } = recurseGroup(value, `${parent}-${key}`, acc.entries);
-          acc.total += total;
-          acc.color = color
-          acc.entries.push({
-            name: key,
-            parent: parent,
-            value: total,
-            id: `${parent}-${key}`,
-            color: color
-          })
-        }
-
-        return acc;
-      }, {
-        total: 0, color: undefined as Colour | undefined, entries: initalEntries
-      });
+          return acc;
+        },
+        {
+          total: 0,
+          color: undefined as Colour | undefined,
+          entries: initalEntries,
+        },
+      );
   };
 
   const { entries } = recurseGroup(grouped, "", []);

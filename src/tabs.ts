@@ -1,3 +1,4 @@
+import type { JSX } from "react";
 import Holiday from "./holiday/Holiday";
 import Shows from "./show/Show";
 import VideoGames from "./vg/vg";

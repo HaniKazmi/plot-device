@@ -9,7 +9,7 @@ import {
   VideogameAsset,
   Whatshot,
 } from "@mui/icons-material";
-import Grid from "@mui/material/Unstable_Grid2";
+import Grid from "@mui/material/Grid2";
 import { format } from "../utils/mathUtils";
 import { companyToColor, platformToShort, type Company, type Measure, type Status, type VideoGame } from "./types";
 import { StatCard, StatList, type StatsListProps, TotalStack } from "../common/Stats";
@@ -18,7 +18,7 @@ import { FormControl, MenuItem, Radio, Select, Stack, Typography } from "@mui/ma
 import type { FilterDispatch, YearType } from "./filterUtils";
 import { statusToColour } from "../utils/types";
 import { CURRENT_YEAR, EARLIEST_YEAR, YearNumber } from "../common/date";
-import { createElement, forwardRef } from "react";
+import { ComponentProps, createElement, ElementType, forwardRef } from "react";
 
 const Stats = ({
   data,
@@ -52,7 +52,13 @@ const Totals = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
   const companyList: Company[] = ["Nintendo", "PlayStation", "PC", "iOS", "Xbox"];
   const measureFunc = (data: VideoGame[]) => (measure == "Games" ? data.length : data.sum("hours"));
   return (
-    <Grid xs={12} sm={12} md={8}>
+    <Grid
+      size={{
+        xs: 12,
+        sm: 12,
+        md: 8,
+      }}
+    >
       <Stack justifyContent="space-between" height="100%" spacing={1}>
         <TotalStack
           title={"Status"}
@@ -280,7 +286,10 @@ const StatsCardLabelEndDateHours = (game: VideoGame) => [
 const StatsCardLabelStartDate = (game: VideoGame) => [[game.startDate?.toString() ?? ""]];
 
 const VgStatList = (
-  props: Omit<StatsListProps<VideoGame>, "MediaComponent" | "aspectRatio" | "divider" | "chipComponent" | "landscape">,
+  props: Omit<
+    StatsListProps<VideoGame>,
+    "MediaComponent" | "aspectRatio" | "divider" | "chipComponent" | "landscape" | "nameComponent"
+  >,
 ) => (
   <StatList
     aspectRatio="16/9"
@@ -288,14 +297,15 @@ const VgStatList = (
     chipComponent={platformToShort}
     landscape
     MediaComponent={VgCardMediaImage}
+    nameComponent={(entry) => entry.name}
     {...props}
   />
 );
 
 export default Stats;
 
-function prepareForSlot<ComponentType extends React.ElementType>(Component: ComponentType) {
-  type Props = React.ComponentProps<ComponentType>;
+function prepareForSlot<ComponentType extends ElementType>(Component: ComponentType) {
+  type Props = ComponentProps<ComponentType>;
 
   return forwardRef<HTMLElement, Props>(function Slot(props, ref) {
     const { ownerState, ...other } = props;

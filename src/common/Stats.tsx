@@ -1,10 +1,8 @@
 import { Box, Card, CardContent, CardHeader, Divider, Stack, Typography } from "@mui/material";
-import Grid from "@mui/material/Unstable_Grid2";
+import Grid from "@mui/material/Grid2";
 import { format } from "../utils/mathUtils";
-import type { Season, Show } from "../show/types";
 import type { TypedCardMediaImage } from "./Card";
 import type { ReactNode } from "react";
-import type { VideoGame } from "../vg/types";
 import type { Colour } from "../utils/types";
 
 export const StatCard = ({
@@ -38,7 +36,13 @@ export const StatCard = ({
       </Stack>
     );
   return (
-    <Grid xs={12} sm={6} md={3}>
+    <Grid
+      size={{
+        xs: 12,
+        sm: 6,
+        md: 3,
+      }}
+    >
       <Card sx={{ height: "100%" }}>
         <CardHeader
           titleTypographyProps={{ variant: "h6" }}
@@ -53,11 +57,12 @@ export const StatCard = ({
   );
 };
 
-export interface StatsListProps<T extends VideoGame | Season> {
+export interface StatsListProps<T> {
   icon: ReactNode;
   title: string;
   content: T[];
   width?: [number, number, number];
+  nameComponent: (t: T) => string;
   labelComponent: (t: T) => string[][];
   chipComponent?: (t: T) => [string, string?];
   MediaComponent: TypedCardMediaImage<T>;
@@ -68,18 +73,25 @@ export interface StatsListProps<T extends VideoGame | Season> {
   wrap?: boolean;
 }
 
-export const StatList = <T extends VideoGame | Season>({
+export const StatList = <T,>({
   icon,
   title,
   content,
   width = [12, 12, 6],
+  nameComponent,
   chipComponent,
   labelComponent,
   wrap = true,
   ...props
 }: StatsListProps<T>) => {
   return (
-    <Grid xs={width[0]} sm={width[1]} md={width[2]}>
+    <Grid
+      size={{
+        xs: width[0],
+        sm: width[1],
+        md: width[2],
+      }}
+    >
       <Card sx={{ height: "100%" }}>
         <CardHeader titleTypographyProps={{ variant: "h6" }} title={title} avatar={icon} />
         <CardContent>
@@ -90,7 +102,7 @@ export const StatList = <T extends VideoGame | Season>({
             alignItems="center"
           >
             {content.map((entry) => {
-              const { name } = "name" in entry ? entry : entry.show;
+              const name = nameComponent(entry);
               return (
                 <StatsListCard
                   key={title + "-statslistcard-" + name}
@@ -108,7 +120,7 @@ export const StatList = <T extends VideoGame | Season>({
   );
 };
 
-const StatsListCard = <T extends VideoGame | Season>({
+const StatsListCard = <T,>({
   item,
   labels,
   chip,
@@ -129,7 +141,15 @@ const StatsListCard = <T extends VideoGame | Season>({
 }) => {
   const dividerComponent = <Divider orientation="vertical" flexItem />;
   return (
-    <Grid flexShrink={0} alignSelf="stretch" xs={pictureWidth[0]} sm={pictureWidth[1]} md={pictureWidth[2]}>
+    <Grid
+      flexShrink={0}
+      alignSelf="stretch"
+      size={{
+        xs: pictureWidth[0],
+        sm: pictureWidth[1],
+        md: pictureWidth[2],
+      }}
+    >
       <Card variant="outlined" sx={{ height: "100%" }}>
         <MediaComponent
           item={item}
@@ -186,7 +206,7 @@ const Segment = ({
   />
 );
 
-export const TotalStack = <T extends string, U extends VideoGame | Show, K extends keyof U>({
+export const TotalStack = <T extends string, U, K extends keyof U>({
   title,
   data,
   measureFunc = (data: U[]) => data.length,

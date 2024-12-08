@@ -66,7 +66,7 @@ const tooltip = (title: string, row: Show | Season, banner?: string) =>
         </li>
         <li>
           <span><b>Period: </b></span>
-          <span>${row.startDate.toString()} - ${row.endDate?.toString()} </span>
+          <span>${row.startDate.toString()} - ${row.endDate?.toString() || "present"} </span>
         </li>
         <li>
           <span><b>Episodes: </b></span>

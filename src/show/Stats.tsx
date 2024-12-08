@@ -1,5 +1,5 @@
 import { AutoGraph, Pause, PlayArrow, ShowChart, TaskAlt, Timer, Update } from "@mui/icons-material";
-import Grid from "@mui/material/Unstable_Grid2";
+import Grid from "@mui/material/Grid2";
 import { format } from "../utils/mathUtils";
 import { Season, Show, Status } from "./types";
 import { StatCard, StatList, StatsListProps, TotalStack } from "../common/Stats";
@@ -25,7 +25,7 @@ const Stats = ({ data }: { data: Show[] }) => {
 const Totals = ({ data }: { data: Show[] }) => {
   const statusList: Status[] = ["Watching", "Up To Date", "Ended", "Cancelled", "Abandoned"];
   return (
-    <Grid xs={12}>
+    <Grid size={12}>
       <Stack justifyContent="space-between" height="100%" spacing={1}>
         <TotalStack
           title={"Status"}
@@ -172,8 +172,8 @@ const CurrentlyPlaying = ({ data }: { data: Show[] }) => {
 
 const statsCardLabelCurrentlyPlaying = (season: Season) => [[`S ${season.s}`, season.startDate?.toString() ?? ""]];
 
-const ShowStatList = (props: Omit<StatsListProps<Season>, "MediaComponent">) => (
-  <StatList MediaComponent={ShowCardMediaImage} {...props} />
+const ShowStatList = (props: Omit<StatsListProps<Season>, "MediaComponent" | "nameComponent">) => (
+  <StatList MediaComponent={ShowCardMediaImage} nameComponent={(entry) => entry.show.name} {...props} />
 );
 
 export default Stats;

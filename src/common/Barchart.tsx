@@ -99,9 +99,9 @@ const Barchart = ({
       },
       spline: {
         tooltip: {
-          pointFormat: '<span style="color:{series.color}">\u25CF</span> {series.name}: <b>{point.tooltip}</b><br/>'
+          pointFormat: '<span style="color:{series.color}">\u25CF</span> {series.name}: <b>{point.tooltip}</b><br/>',
         },
-      }
+      },
     },
     tooltip: {
       // split: graphType === "bump"
@@ -253,9 +253,9 @@ const convertToRanking = (groupToDateToValue: BarchartTable, dates: (YearMonth |
       .map((row, index) => ({ value: row[col] ?? 0, index }))
       .sort((a, b) => {
         if (a.value === b.value) {
-          return b.index - a.index
+          return b.index - a.index;
         }
-        return b.value - a.value
+        return b.value - a.value;
       });
 
     columnValues.forEach(({ index }, rank) => {

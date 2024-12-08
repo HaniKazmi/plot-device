@@ -1,19 +1,20 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { fetchAndConvertSheet, useApiReady } from "../utils/googleUtils.ts";
+import { lazy, Suspense, useMemo } from "react";
 import { useFilterReducer } from "./filterUtils.ts";
 import { PlainDate } from "../common/date.ts";
 import type { Company, Format, Platform, Status, VideoGame } from "./types";
 import type { Tab } from "../tabs";
+import useData from "../common/useData.ts";
 
 const Graphs = lazy(() => import(/* webpackPrefetch: true */ "./Graphs"));
 
-const storage = localStorage;
 const storageKey = "vg-data-cache";
 
-let DATA: VideoGame[];
+let DATA_STORE: VideoGame[];
+const setDataStore = (data: VideoGame[]) => (DATA_STORE = data);
+const useDataStore = () => [DATA_STORE, setDataStore] as const;
 
 const GamesGraphs = () => {
-  const [data, dataLoaded] = useData();
+  const [data, dataLoaded] = useData(storageKey, VideoGameTab, jsonConverter, useDataStore);
   const [filterState, filterDispatch] = useFilterReducer();
   const vgData = useMemo(() => (data ? data.filter(filterState.filter) : []), [data, filterState.filter]);
 
@@ -32,37 +33,6 @@ const GamesGraphs = () => {
       />
     </Suspense>
   );
-};
-
-const useData = (): [VideoGame[] | undefined, boolean] => {
-  const [dataLoaded, setDataLoaded] = useState(false);
-  const [data, setData] = useState<VideoGame[] | undefined>(() => {
-    if (DATA) return DATA;
-    const tempData = storage.getItem(storageKey);
-    if (tempData) {
-      return JSON.parse(tempData, (key, value) => {
-        if (key.includes("Date")) {
-          return PlainDate.from(value as string);
-        }
-        return value as unknown;
-      }) as VideoGame[];
-    }
-
-    return undefined;
-  });
-
-  const { apiReady } = useApiReady();
-  useEffect(() => {
-    if (!apiReady) return;
-    fetchAndConvertSheet(VideoGameTab, jsonConverter, (data) => {
-      DATA = data;
-      setData(data);
-      setDataLoaded(true);
-      storage.setItem(storageKey, JSON.stringify(data));
-    });
-  }, [apiReady]);
-
-  return [data, dataLoaded];
 };
 
 const jsonConverter = (json: Record<string, string>[]) => {

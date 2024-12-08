@@ -2,13 +2,16 @@ import { AppBar, Box, Button, Tab as MuiTab, Tabs as MuiTabs, Toolbar, Typograph
 import { Score } from "@mui/icons-material";
 import { useMatches, useNavigate } from "react-router-dom";
 import Tabs, { Tab } from "./tabs";
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import useLongPress from "./utils/useLongPress";
 
-const NavBar = ({ authorise, revoke }: { authorise?: false | (() => void); revoke?: false | (() => void) }) => {
+const NavBar = ({ authorise, revoke, setGuestMode }: { authorise?: false | (() => void); revoke?: false | (() => void), setGuestMode: React.MutableRefObject<(_: boolean) => void> }) => {
   const navigate = useNavigate();
   const matches = useMatches();
   const currTab = (matches.find((match) => Boolean(match.handle))!.handle as { tab: Tab }).tab;
   const [tab, setTab] = useState<string>();
+  const setGuestModeCallback = useCallback(() => setGuestMode.current(true), [setGuestMode])
+  const events = useLongPress(setGuestModeCallback)
 
   if (tab !== currTab.id) {
     setTab(currTab.id);
@@ -43,9 +46,9 @@ const NavBar = ({ authorise, revoke }: { authorise?: false | (() => void); revok
 
   return (
     <>
-      <AppBar position="static" sx={{ marginBottom: (theme) => theme.spacing(2) }}>
+      <AppBar position="static" sx={{ marginBottom: (theme) => theme.spacing(2) }} {...events} >
         <Toolbar>
-          <Score sx={{ display: "flex", mr: 1 }} />
+          <Score sx={{ display: "flex", mr: 1 }}  />
           <Typography
             variant="h6"
             noWrap

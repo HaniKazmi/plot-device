@@ -1,7 +1,8 @@
-import { Dispatch, useReducer } from "react";
+import { Dispatch, useEffect, useReducer } from "react";
 import { Predicate } from "../utils/types";
 import { Measure, Platform, VideoGame } from "./types";
 import { CURRENT_YEAR, Year, YearNumber } from "../common/date";
+import { useSetGuestModeSetter } from "../utils/googleUtils";
 
 export interface FilterState {
   endless: boolean;
@@ -13,6 +14,7 @@ export interface FilterState {
   measure: Measure;
   yearType: YearType;
   yearTo: YearNumber;
+  guestMode: boolean;
   filter: Predicate<VideoGame>;
 }
 
@@ -24,7 +26,16 @@ export type Action<K extends keyof FilterState> =
   | { type: "toggleMeasure" }
   | { type: "toggleYearType" };
 
-export const useFilterReducer = () => useReducer(reducer, initialState);
+export const useFilterReducer = () => {
+  const [state, dispatch] = useReducer(reducer, initialState)
+  const { setGuestModeSetter } = useSetGuestModeSetter();
+
+  useEffect(() => {
+    setGuestModeSetter((guestMode: boolean) => dispatch({ type: "updateFilter", filter: "guestMode", value: guestMode }))
+  }, [setGuestModeSetter])
+  
+  return [state, dispatch] as const;
+};
 
 export type YearType = "upto" | "matching";
 
@@ -78,6 +89,7 @@ const filters = (state: Omit<FilterState, "filter">) => (vg: VideoGame) =>
       state.yearType === "upto" &&
       (({ startDate }: VideoGame) => startDate.year <= state.yearTo),
     state.yearType === "matching" && (({ startDate }: VideoGame) => startDate.year === state.yearTo),
+    state.guestMode === true && (({ theme }: VideoGame) => theme.find(el => el === "Adult") === undefined),
   ]
     .filter((f): f is Exclude<typeof f, false> => Boolean(f))
     .reduce((p, c) => p && c(vg), true);
@@ -93,6 +105,7 @@ const initialState: FilterState = (() => {
     measure: "Games",
     yearType: "upto",
     yearTo: CURRENT_YEAR,
+    guestMode: false,
     filter: (vg: VideoGame) => Boolean(vg),
   };
 

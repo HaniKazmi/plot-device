@@ -14,7 +14,7 @@ import {
 } from "@mui/material";
 import { type FunctionComponent, type ReactNode, useRef, useState } from "react";
 import { imageToColour } from "../utils/colourUtils";
-import Grid from "@mui/material/Unstable_Grid2/Grid2";
+import Grid from "@mui/material/Grid2";
 import type { Colour } from "../utils/types";
 
 export interface CardMediaImageProps {
@@ -145,7 +145,12 @@ export const DetailCard = ({
 }) => {
   if (!value) return null;
   return (
-    <Grid xs={large ? 12 : 6} md={large ? 6 : 3}>
+    <Grid
+      size={{
+        xs: large ? 12 : 6,
+        md: large ? 6 : 3,
+      }}
+    >
       <Card
         sx={{ height: "100%", background: colour, color: (theme) => colour && theme.palette.getContrastText(colour) }}
       >
@@ -206,7 +211,7 @@ export const TimelineActivatedSegment = ({
 
 export const TimelineCard = ({ colour, segments }: { colour?: string; segments: ReactNode[] }) => {
   return (
-    <Grid xs={12}>
+    <Grid size={12}>
       <Card
         sx={{ height: "100%", background: colour, color: (theme) => colour && theme.palette.getContrastText(colour) }}
       >

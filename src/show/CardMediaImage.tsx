@@ -8,7 +8,7 @@ import {
   TypedCardMediaImage,
 } from "../common/Card";
 import { Season, Show, isShow } from "./types";
-import Grid from "@mui/material/Unstable_Grid2/Grid2";
+import Grid from "@mui/material/Grid2";
 import { statusToColour } from "../utils/types";
 import { CURRENT_PLAINDATE, YearMonthDay } from "../common/date";
 

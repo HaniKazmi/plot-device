@@ -25,7 +25,7 @@ import {
 } from "@mui/material";
 import { useMemo, useState } from "react";
 import { platformToColor, VideoGame } from "./types";
-import Grid from "@mui/material/Unstable_Grid2";
+import Grid from "@mui/material/Grid2";
 import { FilterDispatch, FilterState } from "./filterUtils";
 
 const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: FilterDispatch; data: VideoGame[] }) => {
@@ -52,7 +52,12 @@ const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: Filte
           <FilterReset dispatch={dispatch} setDrawerOpen={setDrawerOpen} />
           <FilterEndless dispatch={dispatch} endless={state.endless} />
           <FilterUnconfirmed dispatch={dispatch} unconfirmed={state.unconfirmed} />
-          <Grid xs={6} md={2}>
+          <Grid
+            size={{
+              xs: 6,
+              md: 2,
+            }}
+          >
             <FormControlLabel
               control={
                 <Switch
@@ -68,11 +73,16 @@ const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: Filte
               labelPlacement="top"
             />
           </Grid>
-          <Grid xs={6} display={{ xs: "none", md: "flex" }} justifyContent="end">
+          <Grid display={{ xs: "none", md: "flex" }} justifyContent="end" size={6}>
             <Button onClick={() => dispatch({ type: "resetFilters" })}>Clear</Button>
             <Button onClick={() => setDrawerOpen(false)}>Close</Button>
           </Grid>
-          <Grid xs={12} md={6}>
+          <Grid
+            size={{
+              xs: 12,
+              md: 6,
+            }}
+          >
             <Stack direction="row">
               <FormControl fullWidth>
                 <InputLabel>Franchise</InputLabel>
@@ -113,7 +123,12 @@ const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: Filte
               )}
             </Stack>
           </Grid>
-          <Grid xs={12} md={6}>
+          <Grid
+            size={{
+              xs: 12,
+              md: 6,
+            }}
+          >
             <Stack direction="row">
               <FormControl fullWidth>
                 <InputLabel>Platform</InputLabel>
@@ -165,7 +180,12 @@ const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: Filte
               )}
             </Stack>
           </Grid>
-          <Grid xs={12} md={6}>
+          <Grid
+            size={{
+              xs: 12,
+              md: 6,
+            }}
+          >
             <Stack direction="row">
               <FormControl fullWidth>
                 <InputLabel>Genre</InputLabel>
@@ -217,14 +237,19 @@ interface FilterDispatchProp {
 }
 
 const FilterReset = ({ dispatch, setDrawerOpen }: FilterDispatchProp & { setDrawerOpen: (b: boolean) => void }) => (
-  <Grid xs={12} display={{ xs: "flex", md: "none" }} justifyContent="center">
+  <Grid display={{ xs: "flex", md: "none" }} justifyContent="center" size={12}>
     <Button onClick={() => dispatch({ type: "resetFilters" })}>Clear</Button>
     <Button onClick={() => setDrawerOpen(false)}>Close</Button>
   </Grid>
 );
 
 const FilterEndless = ({ dispatch, endless }: FilterDispatchProp & Pick<FilterState, "endless">) => (
-  <Grid xs={6} md={2}>
+  <Grid
+    size={{
+      xs: 6,
+      md: 2,
+    }}
+  >
     <FormControlLabel
       control={
         <Switch
@@ -243,7 +268,12 @@ const FilterEndless = ({ dispatch, endless }: FilterDispatchProp & Pick<FilterSt
 );
 
 const FilterUnconfirmed = ({ dispatch, unconfirmed }: FilterDispatchProp & Pick<FilterState, "unconfirmed">) => (
-  <Grid xs={6} md={2}>
+  <Grid
+    size={{
+      xs: 6,
+      md: 2,
+    }}
+  >
     <FormControlLabel
       control={
         <Switch

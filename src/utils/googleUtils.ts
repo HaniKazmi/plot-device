@@ -152,3 +152,8 @@ let loadGapi = (token?: Token) => {
 export function useApiReady() {
   return useOutletContext<{ apiReady: boolean }>();
 }
+
+
+export function useSetGuestModeSetter() {
+  return useOutletContext<{ setGuestModeSetter: (func: (b: boolean) => void) => void }>();
+}

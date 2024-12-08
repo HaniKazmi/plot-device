@@ -1,5 +1,5 @@
-import { Container, createTheme, CssBaseline, ThemeProvider, useMediaQuery } from "@mui/material";
-import { useEffect, useMemo, useReducer } from "react";
+import { Container, createTheme, CssBaseline, ThemeProvider } from "@mui/material";
+import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import NavBar from "./NavBar";
 import { Outlet, useMatches } from "react-router-dom";
 import { loadApis, reducer, registerDispatch, revokeApis } from "./utils/googleUtils.ts";
@@ -7,6 +7,8 @@ import type { Tab } from "./tabs.ts";
 
 const GoogleAuth = () => {
   const [{ apiReady, tokenClient }, dispatch] = useReducer(reducer, {});
+  const setGuestMode = useRef((_: boolean) => {});
+  const setGuestModeSetter = useCallback((func: (b: boolean) => void) => setGuestMode.current = func, [])
 
   useEffect(() => {
     registerDispatch(dispatch);
@@ -18,21 +20,19 @@ const GoogleAuth = () => {
       <NavBar
         authorise={!apiReady && tokenClient && (() => tokenClient.requestAccessToken())}
         revoke={apiReady && revokeApis}
+        setGuestMode={setGuestMode}
       />
       <Container maxWidth={"xl"}>
-        <Outlet context={{ apiReady }} />
+        <Outlet context={{ apiReady, setGuestModeSetter }} />
       </Container>
     </>
   );
 };
 
 const Graphs = () => {
-  const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
   const matches = useMatches();
   const currTab: Tab = (matches.find((match) => Boolean(match.handle))!.handle as { tab: Tab }).tab;
-  const theme = useMemo(() => getTheme(prefersDarkMode, currTab), [prefersDarkMode, currTab]);
-
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme.palette.primary.main);
+  const theme = useMemo(() => getTheme(currTab), [currTab]);
 
   return (
     <ThemeProvider theme={theme}>
@@ -42,13 +42,18 @@ const Graphs = () => {
   );
 };
 
-const getTheme = (prefersDarkMode: boolean, tab: Tab) => {
+const getTheme = (tab: Tab) => {
   const { palette } = createTheme();
+  const primaryColour = tab.primaryColour ?? palette.primary.main
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", primaryColour);
   return createTheme({
+    cssVariables: true,
+    colorSchemes: {
+      dark: true,
+    },
     palette: {
-      mode: prefersDarkMode ? "dark" : "light",
       primary: {
-        main: tab.primaryColour ?? palette.primary.main,
+        main: primaryColour,
       },
       secondary: {
         main: tab.secondaryColour ?? palette.secondary.main,

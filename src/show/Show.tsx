@@ -1,19 +1,22 @@
-import { useState, useEffect, lazy, Suspense, useTransition } from "react";
+import { lazy, Suspense } from "react";
 import { Season, Show, Status } from "./types";
 import { Tab } from "../tabs";
-import { fetchAndConvertSheet, useApiReady } from "../utils/googleUtils.ts";
 import { PlainDate, YearMonthDay } from "../common/date.ts";
+import useData from "../common/useData.ts";
 
 const Graphs = lazy(() => import(/* webpackPrefetch: true */ "./Graphs"));
 
-let DATA: Show[];
+const storageKey = "show-data-cache";
+
+let DATA_STORE: Show[];
+const setDataStore = (data: Show[]) => (DATA_STORE = data);
+const useDataStore = () => [DATA_STORE, setDataStore] as const;
 
 const ShowsGraph = () => {
-  const [data, setData] = useState<Show[]>();
-  const [, startTransition] = useTransition();
-  const { apiReady } = useApiReady();
-
-  useEffect(() => startTransition(() => getData(setData, apiReady)), [apiReady]);
+  const [data, ] = useData(storageKey, ShowTab, jsonConverter, useDataStore, (items) =>
+    items.forEach((show) => show.s.forEach((s) => (s.show = show))),
+    show => !show.anime
+  );
 
   if (!data) {
     return null;
@@ -24,20 +27,6 @@ const ShowsGraph = () => {
       <Graphs data={data} />
     </Suspense>
   );
-};
-
-const getData = (setData: (b: Show[]) => void, apiReady: boolean) => {
-  if (DATA) {
-    setData(DATA);
-    return;
-  }
-
-  if (!apiReady) return;
-
-  fetchAndConvertSheet(ShowTab, jsonConverter, (data) => {
-    DATA = data;
-    setData(data);
-  });
 };
 
 const jsonConverter = (json: Record<string, string>[]) => {

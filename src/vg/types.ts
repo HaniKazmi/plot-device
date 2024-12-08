@@ -59,7 +59,7 @@ export const companyToColor = ({ company }: { company: Company }) => {
 };
 
 export const platformToColor = (platform: Platform | { platform: Platform }) => {
-  if (typeof platform != "string") {
+  if (typeof platform === "object") {
     platform = platform.platform;
   }
   switch (platform) {

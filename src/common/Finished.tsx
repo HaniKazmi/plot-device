@@ -1,5 +1,5 @@
 import { Card, CardHeader, CardContent, FormGroup, Dialog, Stack, IconButton } from "@mui/material";
-import Grid from "@mui/material/Unstable_Grid2";
+import Grid from "@mui/material/Grid2";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import type { TypedCardMediaImage } from "./Card";
 import { SelectBox } from "./SelectionComponents";
@@ -57,7 +57,7 @@ const Finished = <
       <CardContent>
         <Grid container spacing={1} alignItems="center" sx={{ opacity: slowData !== data ? 0.5 : 1 }}>
           {recent.map((item) => (
-            <Grid alignSelf="stretch" key={item.name} xs={dialogOpen ? 12 : width}>
+            <Grid alignSelf="stretch" key={item.name} size={dialogOpen ? 12 : width}>
               <Card
                 sx={{
                   height: "100%",
