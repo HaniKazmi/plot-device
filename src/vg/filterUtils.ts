@@ -20,7 +20,7 @@ export interface FilterState {
 
 export type FilterDispatch = Dispatch<Action<keyof FilterState>>;
 
-export type Action<K extends keyof FilterState> =
+type Action<K extends keyof FilterState> =
   | { type: "resetFilters" }
   | { type: "updateFilter"; filter: K; value: FilterState[K] }
   | { type: "toggleMeasure" }

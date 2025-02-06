@@ -1,14 +1,13 @@
 import { useState } from "react";
-import { groupToColour, isVideoGame, type Measure, type VideoGame, type VideoGameTree } from "./types";
-import type { KeysMatching, Colour } from "../utils/types";
-import { PlainDate } from "../common/date";
+import type { Colour, KeysMatching } from "../utils/types";
+import { groupToColour, type Measure, type Season, type Show } from "./types";
 import Sunburst, { SunBurstControls } from "../common/Sunburst";
 
-type OptionKeys = KeysMatching<VideoGame, string | VideoGame["startDate"]>;
+type OptionKeys = KeysMatching<Show, string | Show["startDate"] | Show["anime"]> | "show";
 
-const VgSunburst = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
-  const [controlStates, setControlStates] = useState<OptionKeys[]>(["company", "platform", "franchise"]);
-  const entries = dataToSunburstData(data, controlStates, measure);
+const VgSunburst = ({ data, measure }: { data: Show[]; measure: Measure }) => {
+  const [controlStates, setControlStates] = useState<OptionKeys[]>(["status", "startDate", "show"]);
+  const entries = dataToSunburstData(data.flatMap(show => show.s), controlStates, measure);
 
   return (
     <Sunburst data={entries} controls={<SunBurstControls options={options} controlStates={controlStates} setControlStates={setControlStates} />} />
@@ -16,36 +15,44 @@ const VgSunburst = ({ data, measure }: { data: VideoGame[]; measure: Measure }) 
 };
 
 const options: OptionKeys[] = [
-  "company",
-  "format",
-  "franchise",
   "name",
-  "platform",
-  "publisher",
-  "genre",
-  "rating",
   "status",
   "startDate",
+  "show",
+  "anime"
 ];
 
-const dataToSunburstData = (data: VideoGame[], groups: OptionKeys[], measure: Measure) => {
-  const keyToVal = (game: VideoGame, key: OptionKeys) => {
-    const val = game[key];
-    return val instanceof PlainDate ? val.yearString() : val;
+interface ShowTree {
+  [key: string]: ShowTree | Season;
+}
+
+const isShow = (arg: ShowTree | Season): arg is Season => !!arg.s;
+
+const dataToSunburstData = (data: Season[], groups: OptionKeys[], measure: Measure) => {
+  const keyToVal = (show: Season, key: OptionKeys) => {
+    if (key == "startDate") {
+        return show.startDate.yearString();
+    }
+
+    if (key == "show") {
+        return show.show.name
+    }
+
+    return show.show[key]
   };
 
   const grouped = data
-    .filter((game) => measure !== "Hours" || game.hours !== undefined)
-    .reduce((tree, game) => {
-      const groupVals = groups.map((group) => keyToVal(game, group));
+    .filter((show) => measure !== "Hours" || show.minutes !== undefined)
+    .reduce((tree, show) => {
+      const groupVals = groups.map((group) => keyToVal(show, group));
       let obj = tree;
-      groupVals.forEach((val) => (obj = obj[val] = (obj[val] as VideoGameTree) || {}));
-      obj[game.name] = game;
+      groupVals.forEach((val) => (obj = obj[val] = (obj[val] as ShowTree) || {}));
+      obj[`${show.show.name} - S${show.s}`] = show;
       return tree;
-    }, {} as VideoGameTree);
+    }, {} as ShowTree);
 
   const recurseGroup = (
-    tree: VideoGameTree,
+    tree: ShowTree,
     parent: string,
     initalEntries: {
       id: string;
@@ -63,9 +70,9 @@ const dataToSunburstData = (data: VideoGame[], groups: OptionKeys[], measure: Me
       .sort(([val], [val2]) => val.localeCompare(val2))
       .reduce(
         (acc, [key, value]) => {
-          if (isVideoGame(value)) {
-            const count = measure === "Hours" ? value.hours! : 1;
-            const color = groupToColour(groups[0], value) || undefined;
+          if (isShow(value)) {
+            const count = measure === "Hours" ? Math.floor(value.minutes! / 60) : value.e;
+            const color = groupToColour(groups[0], value.show) || undefined;
             acc.total += count;
             acc.color = color;
             acc.entries.push({

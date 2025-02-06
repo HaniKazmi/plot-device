@@ -10,7 +10,10 @@ export const imageToColour = (img: HTMLImageElement) => {
 };
 
 const colourForImg = (img: HTMLImageElement) => {
-  const dominantColour = fac.getColor(img, { algorithm: "dominant" }).hex;
+  const dominantColour = fac.getColor(img, { algorithm: "dominant",         ignoredColor: [
+    [255, 255, 255, 255, 5], // white
+    [0, 0, 0, 255, 5] // black
+] }).hex as Colour;
 
   const c = dominantColour.substring(1); // strip #
   const rgb = parseInt(c, 16); // convert rrggbb to decimal
@@ -20,8 +23,8 @@ const colourForImg = (img: HTMLImageElement) => {
 
   const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b; // per ITU-R BT.709
 
-  if ((luma >= 40 && luma < 240) || luma >= 253) {
-    return dominantColour as Colour;
+  if ((luma >= 30 && luma < 230)) {
+    return dominantColour;
   }
 
   return fac.getColor(img, { algorithm: "simple" }).hex as Colour;

@@ -33,7 +33,7 @@ export type Measure = "Shows" | "Episodes" | "Hours";
 
 export const isShow = (arg: Show | Season): arg is Show => "name" in arg;
 
-export const groupToColour = (group: keyof Show | "none", show: Show) => {
+export const groupToColour = (group: keyof Show | "none" | "show", show: Show) => {
   switch (group) {
     case "status":
       return statusToColour(show);

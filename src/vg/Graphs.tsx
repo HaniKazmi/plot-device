@@ -11,47 +11,47 @@ import { Snackbar, Stack } from "@mui/material";
 import Filter from "./Filter";
 
 const SuspenseBlock = ({
-  data,
+  filteredData,
   dataLoaded,
-  vgData,
+  unfilteredData,
   filterState,
   filterDispatch,
 }: {
-  data: VideoGame[];
+  filteredData: VideoGame[];
+  unfilteredData: VideoGame[];
   dataLoaded: boolean;
-  vgData: VideoGame[];
   filterState: FilterState;
   filterDispatch: FilterDispatch;
 }) => (
   <>
-    <Graphs vgData={vgData} filterState={filterState} filterDispatch={filterDispatch} />
-    <Filter state={filterState} dispatch={filterDispatch} data={data} />
+    <Graphs data={filteredData} filterState={filterState} filterDispatch={filterDispatch} />
+    <Filter state={filterState} dispatch={filterDispatch} data={unfilteredData} />
     <DataLoadedSnackbar open={dataLoaded} />
   </>
 );
 
 const Graphs = memo(
   ({
-    vgData,
+    data,
     filterState,
     filterDispatch,
   }: {
-    vgData: VideoGame[];
+    data: VideoGame[];
     filterState: FilterState;
     filterDispatch: FilterDispatch;
   }) => (
     <Stack spacing={2}>
       <Stats
-        data={vgData}
+        data={data}
         yearType={filterState.yearType}
         yearTo={filterState.yearTo}
         measure={filterState.measure}
         filterDispatch={filterDispatch}
       />
-      <Timeline data={vgData} />
-      <Sunburst data={vgData} measure={filterState.measure} />
-      <Barchart data={vgData} measure={filterState.measure} yearType={filterState.yearType} />
-      <Finished MediaComponent={CardMediaImage} title="All Games" data={vgData} width={4} colour={companyToColor} />
+      <Timeline data={data} />
+      <Sunburst data={data} measure={filterState.measure} />
+      <Barchart data={data} measure={filterState.measure} yearType={filterState.yearType} />
+      <Finished MediaComponent={CardMediaImage} title="All Games" data={data} width={4} colour={companyToColor} />
     </Stack>
   ),
 );

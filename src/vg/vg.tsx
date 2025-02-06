@@ -2,7 +2,7 @@ import { lazy, Suspense, useMemo } from "react";
 import { useFilterReducer } from "./filterUtils.ts";
 import { PlainDate } from "../common/date.ts";
 import type { Company, Format, Platform, Status, VideoGame } from "./types";
-import type { Tab } from "../tabs";
+import { VideoGamesTab} from "../tabs";
 import useData from "../common/useData.ts";
 
 const Graphs = lazy(() => import(/* webpackPrefetch: true */ "./Graphs"));
@@ -14,9 +14,9 @@ const setDataStore = (data: VideoGame[]) => (DATA_STORE = data);
 const useDataStore = () => [DATA_STORE, setDataStore] as const;
 
 const GamesGraphs = () => {
-  const [data, dataLoaded] = useData(storageKey, VideoGameTab, jsonConverter, useDataStore);
+  const [data, dataLoaded] = useData(storageKey, VideoGamesTab, jsonConverter, useDataStore);
   const [filterState, filterDispatch] = useFilterReducer();
-  const vgData = useMemo(() => (data ? data.filter(filterState.filter) : []), [data, filterState.filter]);
+  const filteredData = useMemo(() => (data ? data.filter(filterState.filter) : []), [data, filterState.filter]);
 
   if (!data) {
     return null;
@@ -25,9 +25,9 @@ const GamesGraphs = () => {
   return (
     <Suspense>
       <Graphs
-        data={data}
+        filteredData={filteredData}
+        unfilteredData={data}
         dataLoaded={dataLoaded}
-        vgData={vgData}
         filterState={filterState}
         filterDispatch={filterDispatch}
       />
@@ -66,12 +66,4 @@ const jsonConverter = (json: Record<string, string>[]) => {
   });
 };
 
-const VideoGameTab: Tab = {
-  id: "vg",
-  name: "Games",
-  spreadsheetId: "1JCAN_lB2QaVxj1rD4f88mN4tHjmhxF3CZlGtZGwYCLk",
-  range: "Games List!A:Z",
-  component: <GamesGraphs />,
-};
-
-export default VideoGameTab;
+export default GamesGraphs;

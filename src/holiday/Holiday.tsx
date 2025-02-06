@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useState, useTransition } from "react";
-import { Tab } from "../tabs";
+import { HolidaysTab } from "../tabs";
 import { fetchAndConvertSheet } from "../utils/googleUtils";
 import { Holiday } from "./types";
 
@@ -30,7 +30,7 @@ const getData = (setData: (b: Holiday[]) => void) => {
     return;
   }
 
-  fetchAndConvertSheet(HolidayTab, jsonConverter, (data) => {
+  fetchAndConvertSheet(HolidaysTab, jsonConverter, (data) => {
     DATA = data;
     setData(data);
   });
@@ -45,14 +45,4 @@ const jsonConverter = (json: Record<string, string>[]) => {
   });
 };
 
-const HolidayTab: Tab = {
-  id: "holiday",
-  name: "Holiday",
-  spreadsheetId: "1tjcFfNZau5DElrTos2RFjpvYWJJleTQIg8kWxdjdgnc",
-  range: "Locations!A:Z",
-  component: <HolidayGraphs />,
-  primaryColour: "#277114",
-  secondaryColour: "#142771",
-};
-
-export default HolidayTab;
+export default HolidayGraphs;

@@ -7,9 +7,9 @@ import Google from "./Google.tsx";
 const router = createHashRouter(
   createRoutesFromElements(
     <Route path="/" element={<Google />}>
-      <Route index element={Tabs[0].component} handle={{ tab: Tabs[0] }} />
+      <Route index Component={Tabs[0].component} handle={{ tab: Tabs[0] }} />
       {Tabs.map((tab) => (
-        <Route key={tab.id} path={tab.id} element={tab.component} handle={{ tab: tab }} />
+        <Route key={tab.id} path={tab.id} Component={tab.component} handle={{ tab: tab }} />
       ))}
     </Route>,
   ),

@@ -2,12 +2,12 @@ import { Container, createTheme, CssBaseline, ThemeProvider } from "@mui/materia
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import NavBar from "./NavBar";
 import { Outlet, useMatches } from "react-router-dom";
-import { loadApis, reducer, registerDispatch, revokeApis } from "./utils/googleUtils.ts";
+import { loadApis, reducer, registerDispatch, revokeApis } from "./utils/googleUtils";
 import type { Tab } from "./tabs.ts";
 
 const GoogleAuth = () => {
   const [{ apiReady, tokenClient }, dispatch] = useReducer(reducer, {});
-  const setGuestMode = useRef((_: boolean) => {});
+  const setGuestMode = useRef((_: boolean) => { });
   const setGuestModeSetter = useCallback((func: (b: boolean) => void) => setGuestMode.current = func, [])
 
   useEffect(() => {

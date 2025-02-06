@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { PlainDate } from "./date";
-import { fetchAndConvertSheet, useApiReady, useSetGuestModeSetter } from "../utils/googleUtils";
+import { fetchAndConvertSheet, useApiReady } from "../utils/googleUtils";
 import type { Tab } from "../tabs";
 
 const storage = localStorage;
@@ -11,18 +11,9 @@ const useData = <T>(
   converter: (json: Record<string, string>[]) => T[],
   useDataStore: () => readonly [T[], (data: T[]) => void],
   reviver?: (items: T[]) => void,
-  filter?: (item: T) => boolean,
 ): [T[] | undefined, boolean] => {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [store, setStore] = useDataStore();
-  const [guestMode, setGuestMode] = useState(false);
-  const { setGuestModeSetter } = useSetGuestModeSetter();
-
-  useEffect(() => {
-    if (filter) {
-      setGuestModeSetter((guestMode: boolean) => setGuestMode(guestMode))
-    }
-  }, [setGuestModeSetter, filter])
 
   const [data, setData] = useState<T[] | undefined>(() => {
     if (store) return store;
@@ -60,9 +51,7 @@ const useData = <T>(
     });
   }, [apiReady, converter, store, setStore, storageKey, tab]);
 
-  const filteredData = useMemo(() => filter && guestMode ? data?.filter(filter) : data, [data, filter, guestMode])
-
-  return [filteredData, dataLoaded];
+  return [data, dataLoaded];
 };
 
 export default useData;

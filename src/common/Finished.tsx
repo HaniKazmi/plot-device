@@ -1,6 +1,6 @@
 import { Card, CardHeader, CardContent, FormGroup, Dialog, Stack, IconButton } from "@mui/material";
 import Grid from "@mui/material/Grid2";
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useState } from "react";
 import type { TypedCardMediaImage } from "./Card";
 import { SelectBox } from "./SelectionComponents";
 import { CloseFullscreen, Fullscreen } from "@mui/icons-material";
@@ -29,15 +29,12 @@ const Finished = <
   const options: ("Date" | "Name")[] = ["Date", "Name"];
 
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
-  const [mounted, setMounted] = useState(false);
   const [sort, setSort] = useState<"Date" | "Name">("Date");
 
-  useEffect(() => setMounted(true), []);
-  const EMPTY_ARRAY: U[] = useMemo(() => [], []);
-  const slowData = useDeferredValue(mounted ? data : EMPTY_ARRAY);
+  const slowData = useDeferredValue(data, []);
   const recent = slowData.filter((show) => show.banner);
   if (sort === "Date") {
-    recent.sortByKey("startDate");
+    recent.reverse().sortByKey("startDate");
   }
   const content = (
     <>

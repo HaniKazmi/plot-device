@@ -1,8 +1,9 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useMemo } from "react";
 import { Season, Show, Status } from "./types";
-import { Tab } from "../tabs";
+import { ShowsTab } from "../tabs";
 import { PlainDate, YearMonthDay } from "../common/date.ts";
 import useData from "../common/useData.ts";
+import { useFilterReducer } from "./filterUtils.ts";
 
 const Graphs = lazy(() => import(/* webpackPrefetch: true */ "./Graphs"));
 
@@ -13,10 +14,12 @@ const setDataStore = (data: Show[]) => (DATA_STORE = data);
 const useDataStore = () => [DATA_STORE, setDataStore] as const;
 
 const ShowsGraph = () => {
-  const [data, ] = useData(storageKey, ShowTab, jsonConverter, useDataStore, (items) =>
+  const [data, ] = useData(storageKey, ShowsTab, jsonConverter, useDataStore, (items) =>
     items.forEach((show) => show.s.forEach((s) => (s.show = show))),
-    show => !show.anime
   );
+
+  const [filterState, filterDispatch] = useFilterReducer();
+  const showData = useMemo(() => (data ? data.filter(filterState.filter) : []), [data, filterState.filter]);
 
   if (!data) {
     return null;
@@ -24,7 +27,7 @@ const ShowsGraph = () => {
 
   return (
     <Suspense>
-      <Graphs data={data} />
+      <Graphs data={showData} filterState={filterState} filterDispatch={filterDispatch} />
     </Suspense>
   );
 };
@@ -77,14 +80,4 @@ const jsonConverter = (json: Record<string, string>[]) => {
   return showData;
 };
 
-const ShowTab: Tab = {
-  id: "show",
-  name: "Shows",
-  spreadsheetId: "1M3om2DPLfRO5dKcUfYOIcSNoLThzMLp1iZLQX6qR3pY",
-  range: "Sheet1!A:K",
-  component: <ShowsGraph />,
-  primaryColour: "#df2020",
-  secondaryColour: "#20dfdf",
-};
-
-export default ShowTab;
+export default ShowsGraph;
