@@ -15,6 +15,7 @@ import { BarChart, PinOutlined, SsidChart } from "@mui/icons-material";
 import { HighchartsWrapper, type Options } from "../Highcharts";
 import type { Year, YearMonth } from "./date";
 import type { Colour } from "../utils/types";
+import type {} from "@mui/material/themeCssVarsAugmentation";
 
 type GraphType = "bar" | "line" | "bump";
 const Barchart = ({
@@ -37,7 +38,7 @@ const Barchart = ({
   let { results } = groupDateResults;
   const { dates, groups } = groupDateResults;
 
-  if (cumulative) results = convertToCumulative(results, dates);
+  if (effectiveCumulative) results = convertToCumulative(results, dates);
   if (dataPostProcess) results = dataPostProcess(results);
   const tooltipResults = results;
   if (graphType == "bump") results = convertToRanking(results, dates);
@@ -55,7 +56,7 @@ const Barchart = ({
       categories: dates.map((date) => date.toString()),
       labels: {
         style: {
-          color: theme.palette.text.primary,
+          color: theme.vars.palette.text.primary,
         },
       },
     },
@@ -68,7 +69,7 @@ const Barchart = ({
       minTickInterval: 1,
       labels: {
         style: {
-          color: theme.palette.text.primary,
+          color: theme.vars.palette.text.primary,
         },
       },
       endOnTick: false,
@@ -107,9 +108,9 @@ const Barchart = ({
       // split: graphType === "bump"
     },
     chart: {
-      backgroundColor: theme.palette.mode === "dark" ? "rgba(0,0,0,0)" : undefined,
+      backgroundColor: "transparent",
       style: {
-        color: theme.palette.text.primary,
+        color: theme.vars.palette.text.primary,
       },
     },
     legend: {
@@ -117,7 +118,7 @@ const Barchart = ({
       verticalAlign: "top",
       align: "left",
       itemStyle: {
-        color: theme.palette.text.primary,
+        color: theme.vars.palette.text.primary,
       },
     },
   };
@@ -133,7 +134,12 @@ const Barchart = ({
               {graphType !== "bar" && (
                 <FormControlLabel
                   label="Cumulative"
-                  control={<Switch checked={cumulative} onChange={(_, checked) => setCumulative(checked)} />}
+                  control={
+                    <Switch
+                      checked={cumulative}
+                      onChange={(_, checked) => setCumulative(checked)}
+                    />
+                  }
                 />
               )}
               <ToggleButtonGroup
@@ -142,13 +148,22 @@ const Barchart = ({
                 exclusive
                 onChange={(_, val: GraphType) => val.length && setGraphType(val)}
               >
-                <ToggleButton value={"bump"} sx={{ border: 0 }}>
+                <ToggleButton
+                  value={"bump"}
+                  sx={{ border: 0 }}
+                >
                   <PinOutlined />
                 </ToggleButton>
-                <ToggleButton value={"line"} sx={{ border: 0 }}>
+                <ToggleButton
+                  value={"line"}
+                  sx={{ border: 0 }}
+                >
                   <SsidChart />
                 </ToggleButton>
-                <ToggleButton value={"bar"} sx={{ border: 0 }}>
+                <ToggleButton
+                  value={"bar"}
+                  sx={{ border: 0 }}
+                >
                   <BarChart />
                 </ToggleButton>
               </ToggleButtonGroup>
@@ -157,7 +172,10 @@ const Barchart = ({
         }
       />
       <CardContent>
-        <HighchartsWrapper containerProps={{ style: { height: "80vh" } }} options={options} />
+        <HighchartsWrapper
+          containerProps={{ style: { height: "80vh" } }}
+          options={options}
+        />
       </CardContent>
     </Card>
   );

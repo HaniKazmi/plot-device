@@ -2,7 +2,7 @@ import { lazy, Suspense, useMemo } from "react";
 import { useFilterReducer } from "./filterUtils.ts";
 import { PlainDate } from "../common/date.ts";
 import type { Company, Format, Platform, Status, VideoGame } from "./types";
-import { VideoGamesTab} from "../tabs";
+import { VideoGamesTab } from "../tabs";
 import useData from "../common/useData.ts";
 
 const Graphs = lazy(() => import(/* webpackPrefetch: true */ "./Graphs"));

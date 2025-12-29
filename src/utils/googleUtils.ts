@@ -3,6 +3,9 @@ import { Tab } from "../tabs.ts";
 import { arrayToJson } from "./arrayUtils.ts";
 import { Dispatch } from "react";
 
+export const gapi_script = "https://apis.google.com/js/api.js";
+export const g_script = "https://accounts.google.com/gsi/client";
+
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
 const DISCOVERY_DOCS = "https://sheets.googleapis.com/$discovery/rest?version=v4";
@@ -105,10 +108,9 @@ export const revokeApis = () => {
 };
 
 let loadG = () => {
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   loadG = () => {};
   const script = document.createElement("script");
-  script.src = "https://accounts.google.com/gsi/client";
+  script.src = g_script;
   script.onload = () => {
     const tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: CLIENT_ID,
@@ -132,9 +134,8 @@ let loadGapi = (token?: Token) => {
     if (typeof gapi !== "undefined") authDispatch({ type: "apiLoaded" });
   };
   const script = document.createElement("script");
-  script.src = "https://apis.google.com/js/api.js";
+  script.src = gapi_script;
   script.onload = () => {
-    // eslint-disable-next-line @typescript-eslint/no-misused-promises
     gapi.load("client", async () => {
       await gapi.client.init({
         apiKey: API_KEY,
@@ -152,7 +153,6 @@ let loadGapi = (token?: Token) => {
 export function useApiReady() {
   return useOutletContext<{ apiReady: boolean }>();
 }
-
 
 export function useSetGuestModeSetter() {
   return useOutletContext<{ setGuestModeSetter: (func: (b: boolean) => void) => void }>();

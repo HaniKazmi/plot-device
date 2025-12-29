@@ -1,27 +1,26 @@
-import { useState } from "react";
-import { SelectBox } from "../common/SelectionComponents";
+import { useSelectBox } from "../common/SelectBoxHook";
 import { groupToColour, type Measure, type VideoGame, type VideoGameStringKeys } from "./types";
 import Barchart from "../common/Barchart";
-import { Year, YearMonth } from "../common/date";
+import { Year, type YearMonth } from "../common/date";
 import type { YearType } from "./filterUtils";
 import type { Colour } from "../utils/types";
 
-const options: Record<VideoGameStringKeys | "none", boolean> = {
-  none: true,
-  company: true,
-  format: true,
-  franchise: false,
-  name: false,
-  platform: true,
-  developer: false,
-  publisher: false,
-  rating: true,
-  status: true,
-  genre: true,
-};
+const options: Readonly<VideoGameStringKeys | "none">[] = [
+  "none",
+  "company",
+  "name",
+  "format",
+  "franchise",
+  "platform",
+  "developer",
+  "publisher",
+  "rating",
+  "status",
+  "genre",
+];
 
 const VgBarchart = ({ data, measure, yearType }: { data: VideoGame[]; measure: Measure; yearType: YearType }) => {
-  const [group, setGroup] = useState<VideoGameStringKeys | "none">("company");
+  const [group, controls] = useSelectBox(options, "company");
   const barchartData = (cumulative: boolean) =>
     data
       .map((game) => ({
@@ -53,13 +52,7 @@ const VgBarchart = ({ data, measure, yearType }: { data: VideoGame[]; measure: M
     <Barchart
       data={barchartData}
       title={`${measure} Played`}
-      controls={
-        <SelectBox
-          options={Object.keys(options) as (VideoGameStringKeys | "none")[]}
-          value={group}
-          setValue={setGroup}
-        />
-      }
+      controls={controls}
     />
   );
 };

@@ -19,7 +19,12 @@ Highcharts.setOptions({
 });
 
 export const HighchartsWrapper = (props: HighchartsReact.Props) => {
-  return <HighchartsReact highcharts={Highcharts} {...props} />;
+  return (
+    <HighchartsReact
+      highcharts={Highcharts}
+      {...props}
+    />
+  );
 };
 
 export type Series = Highcharts.Series;

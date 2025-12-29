@@ -148,10 +148,18 @@ export class YearMonth extends PlainDate {
     return `${this.year}-${padZero(this.month)}`;
   };
 
+  monthString = () => {
+    return monthStringsArray[this.month - 1];
+  };
+
   toString = this.yearMonthString;
   valueOf = this.toString;
   toJSON() {
     throw new Error("Not Implemented");
+  }
+
+  startOfMonth() {
+    return YearMonthDay.get(this.year, this.month, 1);
   }
 }
 
@@ -240,11 +248,17 @@ export class YearMonthDay extends PlainDate {
   startOfYear() {
     return this;
   }
+
+  startOfMonth() {
+    return YearMonthDay.get(this.year, this.month, 1);
+  }
 }
 
 const padZero = (num: number) => num.toString().padStart(2, "0");
 
 const monthToDaysArray = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+const monthStringsArray = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
 const monthToDays = (month: number, year: number) => {
   if (month === 2 && year % 4 === 0) {
     return 29;

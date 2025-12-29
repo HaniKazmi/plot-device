@@ -4,18 +4,37 @@ import { Colour } from "./types";
 const fac = new FastAverageColor();
 const map: Record<string, Colour> = {};
 
-export const imageToColour = (img: HTMLImageElement) => {
-  if (img === undefined || img === null) return undefined;
-  return (map[img.src] ||= colourForImg(img));
+export const imageToColour = (img: HTMLImageElement | string | undefined, setColour?: (colour: Colour) => void) => {
+  if (img === undefined || img === null) {
+    console.error("No Image");
+    return undefined;
+  }
+
+  if (typeof img === "string") {
+    return map[encodeURI(img)];
+  }
+
+  if (setColour) {
+    if (map[img.src]) {
+      setColour(map[img.src]);
+    } else {
+      colourForImgAsync(img, setColour);
+    }
+  }
+
+  return map[img.src];
 };
 
-const colourForImg = (img: HTMLImageElement) => {
-  const dominantColour = fac.getColor(img, { algorithm: "dominant",         ignoredColor: [
-    [255, 255, 255, 255, 5], // white
-    [0, 0, 0, 255, 5] // black
-] }).hex as Colour;
+const colourForImgAsync = async (img: HTMLImageElement, setColour: (colour: Colour) => void) => {
+  let colour = await fac.getColorAsync(img.src, {
+    algorithm: "dominant",
+    ignoredColor: [
+      [255, 255, 255, 255, 5], // white
+      [0, 0, 0, 255, 5], // black
+    ],
+  });
 
-  const c = dominantColour.substring(1); // strip #
+  const c = colour.hex.substring(1); // strip #
   const rgb = parseInt(c, 16); // convert rrggbb to decimal
   const r = (rgb >> 16) & 0xff; // extract red
   const g = (rgb >> 8) & 0xff; // extract green
@@ -23,9 +42,9 @@ const colourForImg = (img: HTMLImageElement) => {
 
   const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b; // per ITU-R BT.709
 
-  if ((luma >= 30 && luma < 230)) {
-    return dominantColour;
+  if (!(luma >= 30 && luma < 230)) {
+    colour = await fac.getColorAsync(img.src, { algorithm: "simple" });
   }
 
-  return fac.getColor(img, { algorithm: "simple" }).hex as Colour;
+  setColour((map[img.src] = colour.hex as Colour));
 };

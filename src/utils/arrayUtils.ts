@@ -26,7 +26,7 @@ if (!Array.prototype.sum) {
 
 if (!Array.prototype.sortByKey) {
   Array.prototype.sortByKey = function <T>(key: keyof T, ascending: boolean): T[] {
-    return this.sort((aObj: T, bObj: T) => {
+    return this.toSorted((aObj: T, bObj: T) => {
       const a = aObj[key];
       const b = bObj[key];
 

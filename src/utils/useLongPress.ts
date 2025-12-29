@@ -1,20 +1,16 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef } from "react";
 
-const useLongPress = (
-  onLongPress: () => void,
-  onClick?: () => void,
-  ms = 300,
-) => {
-  const timer = useRef(0)
+const useLongPress = (onLongPress: () => void, onClick?: () => void, ms = 300) => {
+  const timer = useRef(0);
   const handleStart = useCallback(() => {
-    clearTimeout(timer.current)
+    clearTimeout(timer.current);
     timer.current = setTimeout(() => {
-        onLongPress();
-      }, ms);
+      onLongPress();
+    }, ms);
   }, [onLongPress, ms]);
 
   const handleEnd = useCallback(() => {
-    clearTimeout(timer.current)
+    clearTimeout(timer.current);
     if (onClick) {
       onClick();
     }

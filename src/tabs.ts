@@ -25,7 +25,7 @@ export const ShowsTab: Tab = {
   id: "show",
   name: "Shows",
   spreadsheetId: "1M3om2DPLfRO5dKcUfYOIcSNoLThzMLp1iZLQX6qR3pY",
-  range: "Sheet1!A:K",
+  range: "Sheet1!A:N",
   component: Shows,
   primaryColour: "#df2020",
   secondaryColour: "#20dfdf",
@@ -41,6 +41,6 @@ export const HolidaysTab: Tab = {
   secondaryColour: "#142771",
 };
 
-const Tabs: Tab[] = [VideoGamesTab, ShowsTab, HolidaysTab];
+const Tabs: Tab[] = [VideoGamesTab, ShowsTab];
 
 export default Tabs;

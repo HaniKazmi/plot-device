@@ -1,65 +1,93 @@
 import {
   Box,
   Card,
+  CardActionArea,
   CardContent,
   CardMedia,
   Chip,
   Dialog,
+  Divider,
   Grow,
   Stack,
   SxProps,
   Theme,
   Tooltip,
   Typography,
+  type ChipProps,
 } from "@mui/material";
 import { type FunctionComponent, type ReactNode, useRef, useState } from "react";
 import { imageToColour } from "../utils/colourUtils";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import type { Colour } from "../utils/types";
 
 export interface CardMediaImageProps {
   image?: string;
   alt: string;
-  chip?: [string, string?];
-  landscape?: boolean;
-  height?: string;
-  width?: string;
-  footerComponent?: (colour?: Colour) => ReactNode;
-  detailComponent?: (colour?: Colour) => ReactNode;
+  chip?: Pick<ChipProps, "label" | "icon" | "onClick" | "variant"> & { colour?: Colour };
+  lazy?: boolean;
+  footerComponent?: ReactNode;
+  detailComponent?: ReactNode;
   sx?: SxProps<Theme>;
+  landscape?: boolean;
 }
 
-export type TypedCardMediaImage<T> = FunctionComponent<Omit<CardMediaImageProps, "banner" | "alt"> & { item: T }>;
+export type TypedCardMediaImage<T> = FunctionComponent<
+  Omit<CardMediaImageProps, "image" | "alt" | "detailComponent"> & { item: T }
+>;
 
 export const CardMediaImage = ({
   image,
   alt,
   chip,
-  landscape = false,
-  height,
-  width,
+  lazy = false,
   footerComponent,
   detailComponent,
+  landscape = false,
   sx,
 }: CardMediaImageProps) => {
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  const [useWidth, setUseWidth] = useState(true);
+  const [colour, setColour] = useState<Colour | undefined>(imageToColour(image));
   const imgRef = useRef<HTMLImageElement>(null);
-  const [colour, setColour] = useState<Colour | undefined>();
+
   return (
-    <>
-      <Box sx={{ height, width, position: "relative" }}>
+    <Card
+      sx={{
+        height: "100%",
+        position: "relative",
+        backgroundColor: colour,
+        display: landscape ? "flex" : undefined,
+        color: (theme) => colour && theme.palette.getContrastText(colour),
+      }}
+    >
+      <CardActionArea>
         <CardMedia
-          height={height}
-          width={width}
+          height={"100%"}
           component="img"
           crossOrigin="anonymous"
           src={image}
           alt={alt}
-          onClick={() => setDialogOpen(true)}
+          onClick={() => {
+            if (!colour) imageToColour(imgRef.current as HTMLImageElement, setColour);
+            setDialogOpen(true);
+          }}
+          loading={lazy ? "lazy" : undefined}
           ref={imgRef}
-          loading="lazy"
-          onLoad={() => {
-            if (footerComponent) setColour?.(imageToColour(imgRef.current!));
+          onLoad={(el) => {
+            const img = el.target as HTMLImageElement;
+            const dialogImageWidth = img.naturalWidth;
+            const dialogImageHeight = img.naturalHeight;
+            const aspectRatio = dialogImageWidth / dialogImageHeight;
+
+            if (aspectRatio > 1 && dialogImageWidth < window.innerWidth) {
+              setUseWidth(false);
+            }
+            if (useWidth && window.innerHeight * aspectRatio < window.innerWidth) {
+              setUseWidth(false);
+            } else if (!useWidth && window.innerWidth / aspectRatio < window.innerHeight) {
+              setUseWidth(true);
+            }
+            if (footerComponent && !colour) imageToColour(img, setColour);
           }}
           sx={sx}
         />
@@ -71,25 +99,36 @@ export const CardMediaImage = ({
               right: 0,
               margin: 1,
               opacity: 0.8,
-              backgroundColor: chip[1] ?? "primary.main",
-              color: (theme) => (chip[1] ? theme.palette.getContrastText(chip[1]) : undefined),
+              backgroundColor: chip.colour ?? "primary.main",
+              color: (theme) => (chip.colour ? theme.palette.getContrastText(chip.colour) : undefined),
             }}
-            label={chip[0]}
-            variant="filled"
+            label={chip.label}
+            icon={chip.icon}
+            onClick={chip.onClick}
+            variant={chip.variant || "filled"}
             size="small"
           />
         )}
-      </Box>
+      </CardActionArea>
+      {footerComponent}
       <Dialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         maxWidth={false}
         scroll="body"
-        TransitionComponent={Grow}
-        PaperProps={{ sx: { backgroundColor: "unset", boxShadow: "unset", backgroundImage: "unset" } }}
+        slots={{ transition: Grow }}
+        slotProps={{ paper: { sx: { backgroundColor: "unset", boxShadow: "unset", backgroundImage: "unset" } } }}
       >
-        <Card>
-          <Box position="relative" onClick={() => setDialogOpen(false)}>
+        <Card
+          sx={{
+            backgroundColor: colour,
+            color: (theme) => colour && theme.palette.getContrastText(colour),
+          }}
+        >
+          <Box
+            position="relative"
+            onClick={() => setDialogOpen(false)}
+          >
             <Box
               sx={{
                 background: `linear-gradient(to bottom, ${colour}00 80%, ${colour})`,
@@ -108,11 +147,8 @@ export const CardMediaImage = ({
                 maxHeight: (theme) => `calc(100vh - ${theme.spacing(4)})`,
                 maxWidth: (theme) => `calc(100vw - ${theme.spacing(4)})`,
                 aspectRatio: "auto",
-                height: { lg: landscape ? "unset" : "100vh" },
-                width: { xs: "100%", lg: landscape ? "100vw" : "unset" },
-              }}
-              onLoad={() => {
-                if (!colour) setColour?.(imageToColour(imgRef.current!));
+                width: useWidth ? "100vw" : "unset",
+                height: !useWidth ? "100vh" : "unset",
               }}
               src={image}
               title={alt}
@@ -121,14 +157,16 @@ export const CardMediaImage = ({
             />
           </Box>
           <Box display="flex">
-            <Box flexGrow="1" width="0px">
-              {detailComponent?.(colour)}
+            <Box
+              flexGrow="1"
+              width="0px"
+            >
+              {detailComponent}
             </Box>
           </Box>
         </Card>
       </Dialog>
-      {footerComponent?.(colour)}
-    </>
+    </Card>
   );
 };
 
@@ -152,7 +190,11 @@ export const DetailCard = ({
       }}
     >
       <Card
-        sx={{ height: "100%", background: colour, color: (theme) => colour && theme.palette.getContrastText(colour) }}
+        sx={{
+          height: "100%",
+          background: colour ?? "unset",
+          color: (theme) => (colour ? theme.palette.getContrastText(colour) : "unset"),
+        }}
       >
         <CardContent
           sx={{
@@ -160,11 +202,22 @@ export const DetailCard = ({
             height: "100%",
           }}
         >
-          <Stack direction={"column"} height="100%" justifyContent="space-between">
-            <Typography align="center" variant="body1">
+          <Stack
+            direction={"column"}
+            height="100%"
+            justifyContent="space-between"
+          >
+            <Typography
+              align="center"
+              variant="body1"
+            >
               {value}
             </Typography>
-            <Typography align="center" variant="caption" sx={{ opacity: 0.8 }}>
+            <Typography
+              align="center"
+              variant="caption"
+              sx={{ opacity: 0.8 }}
+            >
               {label}
             </Typography>
           </Stack>
@@ -173,6 +226,53 @@ export const DetailCard = ({
     </Grid>
   );
 };
+
+export const FooterComponent = ({
+  labels,
+  divider,
+  justify,
+}: {
+  labels: ReactNode[][];
+  divider?: boolean;
+  justify?: boolean;
+}) => (
+  <CardContent
+    sx={{
+      padding: "10px",
+      ":last-child": { paddingBottom: "10px" },
+      width: "100%",
+    }}
+  >
+    {labels.map((stacks, index) => (
+      <Stack
+        key={`stacks-${index}`}
+        justifyContent={stacks.length === 1 ? "center" : justify ? "space-around" : "space-between"}
+        direction="row"
+        divider={
+          divider ? (
+            <Divider
+              orientation="vertical"
+              flexItem
+            />
+          ) : null
+        }
+      >
+        {stacks.map((val, index) =>
+          typeof val === "string" ? (
+            <Typography
+              key={val}
+              variant="subtitle2"
+            >
+              {val}
+            </Typography>
+          ) : (
+            <div key={index}>{val}</div>
+          ),
+        )}
+      </Stack>
+    ))}
+  </CardContent>
+);
 
 export const TimelineEmptySegment = ({ percent }: { percent: number }) => (
   <Box
@@ -194,7 +294,12 @@ export const TimelineActivatedSegment = ({
   tooltip?: ReactNode;
   backgroundColour: [string, string];
 }) => (
-  <Tooltip title={tooltip} placement="top" disableHoverListener={!tooltip} disableTouchListener={!tooltip}>
+  <Tooltip
+    title={tooltip}
+    placement="top"
+    disableHoverListener={!tooltip}
+    disableTouchListener={!tooltip}
+  >
     <Box
       sx={{
         width: `${percent}%`,
@@ -209,12 +314,10 @@ export const TimelineActivatedSegment = ({
   </Tooltip>
 );
 
-export const TimelineCard = ({ colour, segments }: { colour?: string; segments: ReactNode[] }) => {
+export const TimelineCard = ({ segments }: { segments: ReactNode[] }) => {
   return (
     <Grid size={12}>
-      <Card
-        sx={{ height: "100%", background: colour, color: (theme) => colour && theme.palette.getContrastText(colour) }}
-      >
+      <Card sx={{ height: "100%", background: "unset", color: "unset" }}>
         <CardContent
           sx={{
             ":last-child": { paddingBottom: 0 },
@@ -223,7 +326,11 @@ export const TimelineCard = ({ colour, segments }: { colour?: string; segments: 
             paddingTop: 0,
           }}
         >
-          <Stack direction="row" alignItems="center" height={(theme) => theme.spacing(3)}>
+          <Stack
+            direction="row"
+            alignItems="center"
+            height={(theme) => theme.spacing(3)}
+          >
             {segments}
           </Stack>
         </CardContent>

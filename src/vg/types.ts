@@ -75,6 +75,7 @@ export const platformToColor = (platform: Platform | { platform: Platform }) => 
     case "Nintendo DS":
     case "Nintendo 3DS":
     case "Nintendo Switch":
+    case "Nintendo Switch 2":
       return nintendoColour;
     case "PC":
       return pcColour;
@@ -87,7 +88,7 @@ export const platformToColor = (platform: Platform | { platform: Platform }) => 
   }
 };
 
-export const platformToShort: (vg: VideoGame) => [string, string] = (vg) => {
+export const platformToShort: (vg: VideoGame) => [string, Colour] = (vg) => {
   switch (vg.platform) {
     case "PlayStation 2":
       return ["PS2", companyToColor(vg)];
@@ -111,6 +112,8 @@ export const platformToShort: (vg: VideoGame) => [string, string] = (vg) => {
       return ["3DS", companyToColor(vg)];
     case "Nintendo Switch":
       return ["NSW", companyToColor(vg)];
+    case "Nintendo Switch 2":
+      return ["NSW2", companyToColor(vg)];
     case "PC":
       return ["PC", companyToColor(vg)];
     case "iOS":

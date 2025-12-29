@@ -14,7 +14,7 @@ const setDataStore = (data: Show[]) => (DATA_STORE = data);
 const useDataStore = () => [DATA_STORE, setDataStore] as const;
 
 const ShowsGraph = () => {
-  const [data, ] = useData(storageKey, ShowsTab, jsonConverter, useDataStore, (items) =>
+  const [data] = useData(storageKey, ShowsTab, jsonConverter, useDataStore, (items) =>
     items.forEach((show) => show.s.forEach((s) => (s.show = show))),
   );
 
@@ -27,7 +27,11 @@ const ShowsGraph = () => {
 
   return (
     <Suspense>
-      <Graphs data={showData} filterState={filterState} filterDispatch={filterDispatch} />
+      <Graphs
+        data={showData}
+        filterState={filterState}
+        filterDispatch={filterDispatch}
+      />
     </Suspense>
   );
 };

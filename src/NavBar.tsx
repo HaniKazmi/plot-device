@@ -2,53 +2,62 @@ import { AppBar, Box, Button, Tab as MuiTab, Tabs as MuiTabs, Toolbar, Typograph
 import { Score } from "@mui/icons-material";
 import { useMatches, useNavigate } from "react-router-dom";
 import Tabs, { Tab } from "./tabs";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import useLongPress from "./utils/useLongPress";
 
-const NavBar = ({ authorise, revoke, setGuestMode }: { authorise?: false | (() => void); revoke?: false | (() => void), setGuestMode: React.MutableRefObject<(_: boolean) => void> }) => {
+const NavBar = ({
+  authorise,
+  revoke,
+  setGuestMode,
+}: {
+  authorise?: false | (() => void);
+  revoke?: false | (() => void);
+  setGuestMode: React.MutableRefObject<(_: boolean) => void>;
+}) => {
   const navigate = useNavigate();
   const matches = useMatches();
   const currTab = (matches.find((match) => Boolean(match.handle))!.handle as { tab: Tab }).tab;
-  const [tab, setTab] = useState<string>();
-  const setGuestModeCallback = useCallback(() => setGuestMode.current(true), [setGuestMode])
-  const events = useLongPress(setGuestModeCallback)
-
-  if (tab !== currTab.id) {
-    setTab(currTab.id);
-  }
-
-  if (!tab) return null;
+  const setGuestModeCallback = useCallback(() => setGuestMode.current(true), [setGuestMode]);
+  const events = useLongPress(setGuestModeCallback);
 
   const toolbar = (
     <>
+      <Button
+        color="inherit"
+        target="_blank"
+        href={`https://docs.google.com/spreadsheets/d/${currTab.spreadsheetId}`}
+      >
+        Sheet
+      </Button>
       {!authorise && !revoke && <Button color="inherit">Authorising</Button>}
       {authorise && (
-        <Button color="inherit" onClick={authorise}>
+        <Button
+          color="inherit"
+          onClick={authorise}
+        >
           Authorise
         </Button>
       )}
       {revoke && (
-        <>
-          <Button
-            color="inherit"
-            target="_blank"
-            href={`https://docs.google.com/spreadsheets/d/${currTab.spreadsheetId}`}
-          >
-            Sheet
-          </Button>
-          <Button color="inherit" onClick={revoke}>
-            Revoke
-          </Button>
-        </>
+        <Button
+          color="inherit"
+          onClick={revoke}
+        >
+          Revoke
+        </Button>
       )}
     </>
   );
 
   return (
     <>
-      <AppBar position="static" sx={{ marginBottom: (theme) => theme.spacing(2) }} {...events} >
+      <AppBar
+        position="static"
+        sx={{ marginBottom: (theme) => theme.spacing(2) }}
+        {...events}
+      >
         <Toolbar>
-          <Score sx={{ display: "flex", mr: 1 }}  />
+          <Score sx={{ display: "flex", mr: 1 }} />
           <Typography
             variant="h6"
             noWrap
@@ -68,14 +77,17 @@ const NavBar = ({ authorise, revoke, setGuestMode }: { authorise?: false | (() =
             <MuiTabs
               textColor="inherit"
               indicatorColor="secondary"
-              value={tab}
+              value={currTab.id}
               onChange={(_, value: string) => {
-                setTab(value);
                 navigate(value);
               }}
             >
               {Tabs.map((tab) => (
-                <MuiTab key={`muitab-${tab.id}`} label={tab.name} value={tab.id} />
+                <MuiTab
+                  key={`muitab-${tab.id}`}
+                  label={tab.name}
+                  value={tab.id}
+                />
               ))}
             </MuiTabs>
           </Box>

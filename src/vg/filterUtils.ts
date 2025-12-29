@@ -11,6 +11,7 @@ export interface FilterState {
   franchise: string[];
   platform: Platform[];
   genre: string[];
+  publisher: string[];
   measure: Measure;
   yearType: YearType;
   yearTo: YearNumber;
@@ -27,13 +28,15 @@ type Action<K extends keyof FilterState> =
   | { type: "toggleYearType" };
 
 export const useFilterReducer = () => {
-  const [state, dispatch] = useReducer(reducer, initialState)
+  const [state, dispatch] = useReducer(reducer, initialState);
   const { setGuestModeSetter } = useSetGuestModeSetter();
 
   useEffect(() => {
-    setGuestModeSetter((guestMode: boolean) => dispatch({ type: "updateFilter", filter: "guestMode", value: guestMode }))
-  }, [setGuestModeSetter])
-  
+    setGuestModeSetter((guestMode: boolean) =>
+      dispatch({ type: "updateFilter", filter: "guestMode", value: guestMode }),
+    );
+  }, [setGuestModeSetter]);
+
   return [state, dispatch] as const;
 };
 
@@ -70,13 +73,15 @@ const reducer = <K extends keyof FilterState>(state: FilterState, action: Action
 
 const filters = (state: Omit<FilterState, "filter">) => (vg: VideoGame) =>
   [
-    state.endless && (({ status }: VideoGame) => status !== "Endless"),
-    state.pokemon && (({ franchise }: VideoGame) => franchise !== "Pokémon"),
-    state.unconfirmed &&
+    !state.endless && (({ status }: VideoGame) => status !== "Endless"),
+    !state.pokemon && (({ franchise }: VideoGame) => franchise !== "Pokémon"),
+    !state.unconfirmed &&
       (({ platform, startDate }: VideoGame) => {
         if (platform === "PC") {
           if (startDate instanceof Year || startDate.year < 2015) return false;
-        } else if (!["Nintendo Switch", "Nintendo 3DS", "PlayStation 4", "PlayStation 5"].includes(platform)) {
+        } else if (
+          !["Nintendo Switch", "Nintendo Switch 2", "Nintendo 3DS", "PlayStation 4", "PlayStation 5"].includes(platform)
+        ) {
           return false;
         }
 
@@ -85,23 +90,25 @@ const filters = (state: Omit<FilterState, "filter">) => (vg: VideoGame) =>
     state.franchise.length > 0 && (({ franchise }: VideoGame) => state.franchise.includes(franchise)),
     state.platform.length > 0 && (({ platform }: VideoGame) => state.platform.includes(platform)),
     state.genre.length > 0 && (({ genre }: VideoGame) => state.genre.includes(genre)),
+    state.publisher.length > 0 && (({ publisher }: VideoGame) => state.publisher.includes(publisher)),
     state.yearTo !== CURRENT_YEAR &&
       state.yearType === "upto" &&
       (({ startDate }: VideoGame) => startDate.year <= state.yearTo),
     state.yearType === "matching" && (({ startDate }: VideoGame) => startDate.year === state.yearTo),
-    state.guestMode === true && (({ theme }: VideoGame) => theme.find(el => el === "Adult") === undefined),
+    state.guestMode === true && (({ theme }: VideoGame) => theme.find((el) => el === "Adult") === undefined),
   ]
     .filter((f): f is Exclude<typeof f, false> => Boolean(f))
     .reduce((p, c) => p && c(vg), true);
 
 const initialState: FilterState = (() => {
   const state: FilterState = {
-    endless: false,
-    pokemon: false,
-    unconfirmed: false,
+    endless: true,
+    pokemon: true,
+    unconfirmed: true,
     franchise: [],
     platform: [],
     genre: [],
+    publisher: [],
     measure: "Games",
     yearType: "upto",
     yearTo: CURRENT_YEAR,

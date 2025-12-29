@@ -5,16 +5,6 @@ import { PlainDate } from "../common/date";
 import Sunburst, { SunBurstControls } from "../common/Sunburst";
 
 type OptionKeys = KeysMatching<VideoGame, string | VideoGame["startDate"]>;
-
-const VgSunburst = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
-  const [controlStates, setControlStates] = useState<OptionKeys[]>(["company", "platform", "franchise"]);
-  const entries = dataToSunburstData(data, controlStates, measure);
-
-  return (
-    <Sunburst data={entries} controls={<SunBurstControls options={options} controlStates={controlStates} setControlStates={setControlStates} />} />
-  );
-};
-
 const options: OptionKeys[] = [
   "company",
   "format",
@@ -27,6 +17,24 @@ const options: OptionKeys[] = [
   "status",
   "startDate",
 ];
+
+const VgSunburst = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
+  const [controlStates, setControlStates] = useState<OptionKeys[]>(["company", "platform", "franchise"]);
+  const entries = dataToSunburstData(data, controlStates, measure);
+
+  return (
+    <Sunburst
+      data={entries}
+      controls={
+        <SunBurstControls
+          options={options}
+          controlStates={controlStates}
+          setControlStates={setControlStates}
+        />
+      }
+    />
+  );
+};
 
 const dataToSunburstData = (data: VideoGame[], groups: OptionKeys[], measure: Measure) => {
   const keyToVal = (game: VideoGame, key: OptionKeys) => {

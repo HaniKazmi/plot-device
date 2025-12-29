@@ -7,20 +7,27 @@ type OptionKeys = KeysMatching<Show, string | Show["startDate"] | Show["anime"]>
 
 const VgSunburst = ({ data, measure }: { data: Show[]; measure: Measure }) => {
   const [controlStates, setControlStates] = useState<OptionKeys[]>(["status", "startDate", "show"]);
-  const entries = dataToSunburstData(data.flatMap(show => show.s), controlStates, measure);
+  const entries = dataToSunburstData(
+    data.flatMap((show) => show.s),
+    controlStates,
+    measure,
+  );
 
   return (
-    <Sunburst data={entries} controls={<SunBurstControls options={options} controlStates={controlStates} setControlStates={setControlStates} />} />
+    <Sunburst
+      data={entries}
+      controls={
+        <SunBurstControls
+          options={options}
+          controlStates={controlStates}
+          setControlStates={setControlStates}
+        />
+      }
+    />
   );
 };
 
-const options: OptionKeys[] = [
-  "name",
-  "status",
-  "startDate",
-  "show",
-  "anime"
-];
+const options: OptionKeys[] = ["name", "status", "startDate", "show", "anime"];
 
 interface ShowTree {
   [key: string]: ShowTree | Season;
@@ -29,16 +36,17 @@ interface ShowTree {
 const isShow = (arg: ShowTree | Season): arg is Season => !!arg.s;
 
 const dataToSunburstData = (data: Season[], groups: OptionKeys[], measure: Measure) => {
-  const keyToVal = (show: Season, key: OptionKeys) => {
-    if (key == "startDate") {
-        return show.startDate.yearString();
+  const keyToVal = (season: Season, key: OptionKeys) => {
+    switch (key) {
+      case "startDate":
+        return season.startDate.yearString();
+      case "show":
+        return season.show.name;
+      case "anime":
+        return season.show.anime ? "Anime" : "Western";
+      default:
+        return season.show[key];
     }
-
-    if (key == "show") {
-        return show.show.name
-    }
-
-    return show.show[key]
   };
 
   const grouped = data

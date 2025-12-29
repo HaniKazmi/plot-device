@@ -21,13 +21,15 @@ type Action<K extends keyof FilterState> =
   | { type: "toggleYearType" };
 
 export const useFilterReducer = () => {
-  const [state, dispatch] = useReducer(reducer, initialState)
+  const [state, dispatch] = useReducer(reducer, initialState);
   const { setGuestModeSetter } = useSetGuestModeSetter();
 
   useEffect(() => {
-    setGuestModeSetter((guestMode: boolean) => dispatch({ type: "updateFilter", filter: "guestMode", value: guestMode }))
-  }, [setGuestModeSetter])
-  
+    setGuestModeSetter((guestMode: boolean) =>
+      dispatch({ type: "updateFilter", filter: "guestMode", value: guestMode }),
+    );
+  }, [setGuestModeSetter]);
+
   return [state, dispatch] as const;
 };
 

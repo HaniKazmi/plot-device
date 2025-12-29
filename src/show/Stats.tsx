@@ -1,5 +1,5 @@
 import { AutoGraph, Pause, PlayArrow, ShowChart, TaskAlt, Timer, Update } from "@mui/icons-material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import { format } from "../utils/mathUtils";
 import { Season, Show, Status } from "./types";
 import { StatCard, StatList, StatsListProps, TotalStack } from "../common/Stats";
@@ -10,7 +10,11 @@ import { CURRENT_YEAR, YearNumber } from "../common/date";
 
 const Stats = ({ data }: { data: Show[] }) => {
   return (
-    <Grid container spacing={1} alignItems="stretch">
+    <Grid
+      container
+      spacing={1}
+      alignItems="stretch"
+    >
       <AllTime data={data} />
       <ThisYearSoFar data={data} />
       <Averages data={data} />
@@ -26,7 +30,11 @@ const Totals = ({ data }: { data: Show[] }) => {
   const statusList: Status[] = ["Watching", "Up To Date", "Ended", "Cancelled", "Abandoned"];
   return (
     <Grid size={12}>
-      <Stack justifyContent="space-between" height="100%" spacing={1}>
+      <Stack
+        justifyContent="space-between"
+        height="100%"
+        spacing={1}
+      >
         <TotalStack
           title={"Status"}
           icon={<TaskAlt />}
@@ -133,15 +141,13 @@ const RecentlyComplete = ({ data }: { data: Show[] }) => {
     .flatMap((show) => show.s)
     .filter((season) => season.endDate)
     .sort((seasonA, seasonB) => (seasonA.endDate! < seasonB.endDate! ? 1 : -1))
-    .slice(0, 6);
+    .slice(0, 18);
   return (
     <ShowStatList
       icon={<Pause />}
       title="Recently Finished"
       content={recent}
-      width={[12, 12, 12]}
-      pictureWidth={[6, 4, 2]}
-      chipComponent={({ show }) => [show.status, statusToColour(show)]}
+      chipComponent={({ show }) => ({ label: show.status, colour: statusToColour(show) })}
       labelComponent={statsCardLabelRecentlyComplete}
     />
   );
@@ -163,8 +169,7 @@ const CurrentlyPlaying = ({ data }: { data: Show[] }) => {
       icon={<PlayArrow />}
       title="Currently Watching"
       content={recent}
-      width={[12, 12, 12]}
-      pictureWidth={[6, 4, 2]}
+      wrap={false}
       labelComponent={statsCardLabelCurrentlyPlaying}
     />
   );
@@ -172,8 +177,20 @@ const CurrentlyPlaying = ({ data }: { data: Show[] }) => {
 
 const statsCardLabelCurrentlyPlaying = (season: Season) => [[`S ${season.s}`, season.startDate?.toString() ?? ""]];
 
-const ShowStatList = (props: Omit<StatsListProps<Season>, "MediaComponent" | "nameComponent">) => (
-  <StatList MediaComponent={ShowCardMediaImage} nameComponent={(entry) => entry.show.name} {...props} />
+const ShowStatList = (
+  props: Omit<
+    StatsListProps<Season>,
+    "MediaComponent" | "nameComponent" | "width" | "pictureWidth" | "dialogPictureWidth"
+  >,
+) => (
+  <StatList
+    MediaComponent={ShowCardMediaImage}
+    nameComponent={(entry) => entry.show.name + entry.s}
+    width={[12, 12, 12]}
+    pictureWidth={[6, 4, 2]}
+    dialogPictureWidth={[6, 4, 2]}
+    {...props}
+  />
 );
 
 export default Stats;

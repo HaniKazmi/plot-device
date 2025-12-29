@@ -4,13 +4,19 @@ import { useState, type Dispatch, type ReactNode, type SetStateAction } from "re
 import { HighchartsWrapper, type Options } from "../Highcharts";
 import { SelectBox } from "./SelectionComponents";
 
-const Sunburst = ({ data, controls }: { controls: ReactNode, data: {
-  id: string;
-  name: string;
-  parent: string;
-  value: number;
-  color: Colour | undefined;
-}[] }) => {
+const Sunburst = ({
+  data,
+  controls,
+}: {
+  controls: ReactNode;
+  data: {
+    id: string;
+    name: string;
+    parent: string;
+    value: number;
+    color: Colour | undefined;
+  }[];
+}) => {
   const theme = useTheme();
   const [hide, setHide] = useState(true);
 
@@ -23,7 +29,6 @@ const Sunburst = ({ data, controls }: { controls: ReactNode, data: {
         events: {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           setRootNode: (event: any) => {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             setHide(event.series.nodeMap[event.newRootId].level <= 1);
           },
         },
@@ -47,14 +52,14 @@ const Sunburst = ({ data, controls }: { controls: ReactNode, data: {
       },
     ],
     chart: {
-      backgroundColor: theme.palette.mode === "dark" ? "rgba(0,0,0,0)" : undefined,
+      backgroundColor: "transparent",
       style: {
         color: theme.palette.text.primary,
       },
       events: {
         render: function () {
           this.series[0].points.forEach((point) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             if ((point as any).node.level === 4 && point.graphic) {
               point.graphic.css({
                 opacity: 0.5,
@@ -73,16 +78,19 @@ const Sunburst = ({ data, controls }: { controls: ReactNode, data: {
         action={controls}
       />
       <CardContent>
-        <HighchartsWrapper containerProps={{ style: { height: "100vh" } }} options={options} />
+        <HighchartsWrapper
+          containerProps={{ style: { height: "100vh" } }}
+          options={options}
+        />
       </CardContent>
     </Card>
   );
 };
 
-export const SunBurstControls = <T extends string,>({
+export const SunBurstControls = <T extends string>({
   controlStates,
   setControlStates,
-  options
+  options,
 }: {
   controlStates: T[];
   setControlStates: Dispatch<SetStateAction<T[]>>;

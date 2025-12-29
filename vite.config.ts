@@ -10,14 +10,6 @@ export default defineConfig({
       },
     }),
   ],  resolve: {
-    alias: {
-      '@mui/material': '@mui/material/modern',
-      '@mui/styled-engine': '@mui/styled-engine/modern',
-      '@mui/system': '@mui/system/modern',
-      '@mui/base': '@mui/base/modern',
-      '@mui/utils': '@mui/utils/modern',
-      '@mui/lab': '@mui/lab/modern',
-    }
   },
   build: {
     sourcemap: true,
@@ -32,5 +24,5 @@ export default defineConfig({
       },
     },
   },
-  base: '/plot-device/'
+  base: '/'
 })

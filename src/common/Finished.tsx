@@ -1,8 +1,8 @@
 import { Card, CardHeader, CardContent, FormGroup, Dialog, Stack, IconButton } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import { useDeferredValue, useState } from "react";
 import type { TypedCardMediaImage } from "./Card";
-import { SelectBox } from "./SelectionComponents";
+import { useSelectBox } from "./SelectBoxHook";
 import { CloseFullscreen, Fullscreen } from "@mui/icons-material";
 import type { Year, YearMonthDay } from "./date";
 
@@ -27,14 +27,14 @@ const Finished = <
   MediaComponent: TypedCardMediaImage<U>;
 }) => {
   const options: ("Date" | "Name")[] = ["Date", "Name"];
+  const [sort, selectBox] = useSelectBox(options, "Date");
 
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
-  const [sort, setSort] = useState<"Date" | "Name">("Date");
 
   const slowData = useDeferredValue(data, []);
-  const recent = slowData.filter((show) => show.banner);
+  let recent = slowData.filter((show) => show.banner);
   if (sort === "Date") {
-    recent.reverse().sortByKey("startDate");
+    recent = recent.sortByKey("startDate", false);
   }
   const content = (
     <>
@@ -42,8 +42,11 @@ const Finished = <
         title={title}
         action={
           <FormGroup>
-            <Stack direction={"row"} spacing={1}>
-              <SelectBox options={options} value={sort} setValue={setSort} />
+            <Stack
+              direction={"row"}
+              spacing={1}
+            >
+              {selectBox}
               <IconButton onClick={() => setDialogOpen(!dialogOpen)}>
                 {dialogOpen ? <CloseFullscreen color="primary" /> : <Fullscreen />}
               </IconButton>
@@ -52,9 +55,18 @@ const Finished = <
         }
       />
       <CardContent>
-        <Grid container spacing={1} alignItems="center" sx={{ opacity: slowData !== data ? 0.5 : 1 }}>
+        <Grid
+          container
+          spacing={1}
+          alignItems="center"
+          sx={{ opacity: slowData !== data ? 0.5 : 1 }}
+        >
           {recent.map((item) => (
-            <Grid alignSelf="stretch" key={item.name} size={dialogOpen ? 12 : width}>
+            <Grid
+              alignSelf="stretch"
+              key={item.name}
+              size={dialogOpen ? 12 : width}
+            >
               <Card
                 sx={{
                   height: "100%",
@@ -63,7 +75,11 @@ const Finished = <
                   borderWidth: colour && 3,
                 }}
               >
-                <MediaComponent item={item} landscape={"format" in item} image={item.banner} height="100%" />
+                <MediaComponent
+                  item={item}
+                  landscape={"format" in item}
+                  lazy
+                />
               </Card>
             </Grid>
           ))}
@@ -75,7 +91,10 @@ const Finished = <
   return (
     <Card>
       {content}
-      <Dialog open={dialogOpen} fullScreen>
+      <Dialog
+        open={dialogOpen}
+        fullScreen
+      >
         {content}
       </Dialog>
     </Card>

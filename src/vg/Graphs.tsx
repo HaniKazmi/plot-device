@@ -6,7 +6,7 @@ import Finished from "../common/Finished";
 import Timeline from "./Timeline";
 import CardMediaImage from "./CardMediaImage";
 import { FilterDispatch, FilterState } from "./filterUtils";
-import { memo, useState } from "react";
+import { memo, useDeferredValue, useState } from "react";
 import { Snackbar, Stack } from "@mui/material";
 import Filter from "./Filter";
 
@@ -24,8 +24,16 @@ const SuspenseBlock = ({
   filterDispatch: FilterDispatch;
 }) => (
   <>
-    <Graphs data={filteredData} filterState={filterState} filterDispatch={filterDispatch} />
-    <Filter state={filterState} dispatch={filterDispatch} data={unfilteredData} />
+    <Graphs
+      data={filteredData}
+      filterState={filterState}
+      filterDispatch={filterDispatch}
+    />
+    <Filter
+      state={filterState}
+      dispatch={filterDispatch}
+      data={unfilteredData}
+    />
     <DataLoadedSnackbar open={dataLoaded} />
   </>
 );
@@ -39,21 +47,37 @@ const Graphs = memo(
     data: VideoGame[];
     filterState: FilterState;
     filterDispatch: FilterDispatch;
-  }) => (
-    <Stack spacing={2}>
-      <Stats
-        data={data}
-        yearType={filterState.yearType}
-        yearTo={filterState.yearTo}
-        measure={filterState.measure}
-        filterDispatch={filterDispatch}
-      />
-      <Timeline data={data} />
-      <Sunburst data={data} measure={filterState.measure} />
-      <Barchart data={data} measure={filterState.measure} yearType={filterState.yearType} />
-      <Finished MediaComponent={CardMediaImage} title="All Games" data={data} width={4} colour={companyToColor} />
-    </Stack>
-  ),
+  }) => {
+    const deferredData = useDeferredValue(data, []);
+    return (
+      <Stack spacing={2}>
+        <Stats
+          data={data}
+          yearType={filterState.yearType}
+          yearTo={filterState.yearTo}
+          measure={filterState.measure}
+          filterDispatch={filterDispatch}
+        />
+        <Timeline data={deferredData} />
+        <Sunburst
+          data={deferredData}
+          measure={filterState.measure}
+        />
+        <Barchart
+          data={deferredData}
+          measure={filterState.measure}
+          yearType={filterState.yearType}
+        />
+        <Finished
+          MediaComponent={CardMediaImage}
+          title="All Games"
+          data={data}
+          width={4}
+          colour={companyToColor}
+        />
+      </Stack>
+    );
+  },
 );
 
 Graphs.displayName = "Graphs";

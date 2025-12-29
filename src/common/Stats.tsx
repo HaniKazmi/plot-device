@@ -1,9 +1,10 @@
-import { Box, Card, CardContent, CardHeader, Divider, Stack, Typography } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import { Box, Card, CardContent, CardHeader, Dialog, Divider, IconButton, Stack, Typography } from "@mui/material";
+import Grid from "@mui/material/Grid";
 import { format } from "../utils/mathUtils";
-import type { TypedCardMediaImage } from "./Card";
-import type { ReactNode } from "react";
+import { FooterComponent, type CardMediaImageProps, type TypedCardMediaImage } from "./Card";
+import { useState, type ReactNode } from "react";
 import type { Colour } from "../utils/types";
+import { CloseFullscreen, Fullscreen } from "@mui/icons-material";
 
 export const StatCard = ({
   icon,
@@ -18,17 +19,40 @@ export const StatCard = ({
 }) => {
   const formattedContent =
     typeof content === "string" ? (
-      <Typography align="right" variant="h4">
+      <Typography
+        align="right"
+        variant="h4"
+      >
         {content}
       </Typography>
     ) : (
-      <Stack divider={<Divider orientation="vertical" flexItem />} justifyContent="space-evenly" direction={"row"}>
+      <Stack
+        divider={
+          <Divider
+            orientation="vertical"
+            flexItem
+          />
+        }
+        justifyContent="space-evenly"
+        direction={"row"}
+      >
         {content.map(([key, val]) => (
-          <Stack key={key} direction={"column"} flex="1 1 0">
-            <Typography align="center" variant="h5">
+          <Stack
+            key={key}
+            direction={"column"}
+            flex="1 1 0"
+          >
+            <Typography
+              align="center"
+              variant="h5"
+            >
               {format(val)}
             </Typography>
-            <Typography align="center" variant="subtitle2" color="text.secondary">
+            <Typography
+              align="center"
+              variant="subtitle2"
+              color="text.secondary"
+            >
               {key}
             </Typography>
           </Stack>
@@ -60,16 +84,17 @@ export const StatCard = ({
 export interface StatsListProps<T> {
   icon: ReactNode;
   title: string;
+  controls?: ReactNode;
   content: T[];
-  width?: [number, number, number];
+  width: [number, number, number];
   nameComponent: (t: T) => string;
   labelComponent: (t: T) => string[][];
-  chipComponent?: (t: T) => [string, string?];
   MediaComponent: TypedCardMediaImage<T>;
-  pictureWidth?: [number, number, number];
+  chipComponent?: (t: T) => CardMediaImageProps["chip"];
+  pictureWidth: [number, number, number];
+  dialogPictureWidth: [number, number, number];
   aspectRatio?: string;
   divider?: boolean;
-  landscape?: boolean;
   wrap?: boolean;
 }
 
@@ -77,13 +102,59 @@ export const StatList = <T,>({
   icon,
   title,
   content,
-  width = [12, 12, 6],
+  width,
   nameComponent,
   chipComponent,
   labelComponent,
   wrap = true,
+  pictureWidth,
+  dialogPictureWidth,
+  controls,
   ...props
 }: StatsListProps<T>) => {
+  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  const fullScreenButton = content.length > 6 && (
+    <IconButton onClick={() => setDialogOpen(!dialogOpen)}>
+      {dialogOpen ? <CloseFullscreen color="primary" /> : <Fullscreen />}
+    </IconButton>
+  );
+  const cardContent = (
+    <>
+      <CardHeader
+        title={title}
+        avatar={icon}
+        action={
+          <Stack direction="row-reverse">
+            {fullScreenButton}
+            {controls}
+          </Stack>
+        }
+        slotProps={{ title: { variant: "h6" } }}
+      />
+      <CardContent>
+        <Grid
+          container
+          sx={{ overflow: "auto", flexWrap: dialogOpen ? undefined : { xs: "nowrap", md: wrap ? "wrap" : "nowrap" } }}
+          spacing={1}
+          alignItems="center"
+        >
+          {content.slice(0, dialogOpen || !wrap ? 18 : 6).map((entry) => {
+            const name = nameComponent(entry);
+            return (
+              <StatsListCard
+                key={title + "-statslistcard-" + name}
+                item={entry}
+                labels={labelComponent(entry)}
+                chip={chipComponent?.(entry)}
+                pictureWidth={dialogOpen && dialogPictureWidth ? dialogPictureWidth : pictureWidth}
+                {...props}
+              />
+            );
+          })}
+        </Grid>
+      </CardContent>
+    </>
+  );
   return (
     <Grid
       size={{
@@ -93,53 +164,35 @@ export const StatList = <T,>({
       }}
     >
       <Card sx={{ height: "100%" }}>
-        <CardHeader titleTypographyProps={{ variant: "h6" }} title={title} avatar={icon} />
-        <CardContent>
-          <Grid
-            container
-            sx={{ overflow: "auto", flexWrap: { xs: "nowrap", md: wrap ? "wrap" : "nowrap" } }}
-            spacing={1}
-            alignItems="center"
-          >
-            {content.map((entry) => {
-              const name = nameComponent(entry);
-              return (
-                <StatsListCard
-                  key={title + "-statslistcard-" + name}
-                  item={entry}
-                  labels={labelComponent(entry)}
-                  chip={chipComponent?.(entry)}
-                  {...props}
-                />
-              );
-            })}
-          </Grid>
-        </CardContent>
+        {cardContent}
+        <Dialog
+          open={dialogOpen}
+          fullScreen
+        >
+          {cardContent}
+        </Dialog>
       </Card>
     </Grid>
   );
 };
 
-const StatsListCard = <T,>({
+export const StatsListCard = <T,>({
   item,
   labels,
   chip,
-  pictureWidth = [12, 4, 6],
+  pictureWidth,
   aspectRatio,
   divider,
-  landscape = false,
   MediaComponent,
 }: {
   item: T;
   labels: string[][];
-  chip?: [string, string?];
-  pictureWidth?: [number, number, number];
+  chip?: CardMediaImageProps["chip"];
+  pictureWidth: [number, number, number];
   aspectRatio?: string;
   divider?: boolean;
-  landscape?: boolean;
   MediaComponent: TypedCardMediaImage<T>;
 }) => {
-  const dividerComponent = <Divider orientation="vertical" flexItem />;
   return (
     <Grid
       flexShrink={0}
@@ -150,38 +203,20 @@ const StatsListCard = <T,>({
         md: pictureWidth[2],
       }}
     >
-      <Card variant="outlined" sx={{ height: "100%" }}>
+      <Card
+        variant="outlined"
+        sx={{ height: "100%" }}
+      >
         <MediaComponent
           item={item}
-          width="100%"
           sx={{ aspectRatio, flexShrink: 0 }}
           chip={chip}
-          landscape={landscape}
-          footerComponent={(colour?: string) => (
-            <CardContent
-              sx={{
-                padding: "10px",
-                ":last-child": { paddingBottom: "10px" },
-                background: colour,
-                color: (theme) => colour && theme.palette.getContrastText(colour),
-              }}
-            >
-              {labels.map((stacks, index, labels) => (
-                <Stack
-                  key={`stacks-${index}`}
-                  justifyContent={stacks.length === 1 ? "center" : "space-between"}
-                  direction="row"
-                  divider={labels.length === 1 || divider ? dividerComponent : null}
-                >
-                  {stacks.map((val) => (
-                    <Typography key={val} variant="subtitle2">
-                      {val}
-                    </Typography>
-                  ))}
-                </Stack>
-              ))}
-            </CardContent>
-          )}
+          footerComponent={
+            <FooterComponent
+              labels={labels}
+              divider={divider}
+            />
+          }
         />
       </Card>
     </Grid>
@@ -242,7 +277,9 @@ export const TotalStack = <T extends string, U, K extends keyof U>({
     })
     .filter((struct) => struct.count > 0);
 
-  totals[0].percent += percentLeft;
+  if (totals.length > 0) {
+    totals[0].percent += percentLeft;
+  }
   const topToBottomSx = {
     textOrientation: { xs: "sideways", md: "initial" },
     writingMode: { xs: "vertical-lr", md: "initial" },
@@ -250,27 +287,63 @@ export const TotalStack = <T extends string, U, K extends keyof U>({
 
   return (
     <Card sx={{ height: "100%" }}>
-      <CardHeader titleTypographyProps={{ variant: "h6" }} title={title} avatar={icon} />
+      <CardHeader
+        titleTypographyProps={{ variant: "h6" }}
+        title={title}
+        avatar={icon}
+      />
       <CardContent
         sx={{
           ":last-child": { paddingBottom: 1 },
           height: "100%",
         }}
       >
-        <Stack direction="row" alignItems="center" height={(theme) => theme.spacing(3)} spacing={0.5}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          height={(theme) => theme.spacing(3)}
+          spacing={0.5}
+        >
           {totals.map((struct) => (
-            <Segment key={struct.name} percent={struct.percent} backgroundColour={struct.colour} />
+            <Segment
+              key={struct.name}
+              percent={struct.percent}
+              backgroundColour={struct.colour}
+            />
           ))}
         </Stack>
-        <Stack direction="row" spacing={1} alignItems="flex-start">
+        <Stack
+          direction="row"
+          spacing={1}
+          alignItems="flex-start"
+        >
           {totals.map((struct) => (
-            <Stack key={struct.name} direction="column" width="100%" spacing={{ xs: 1, md: 0 }}>
-              <Segment percent={100} backgroundColour={struct.colour} spacing={1} />
-              <Stack key={struct.name} direction={{ xs: "row-reverse", md: "column" }} width="100%">
-                <Typography sx={topToBottomSx} variant="h6">
+            <Stack
+              key={struct.name}
+              direction="column"
+              width="100%"
+              spacing={{ xs: 1, md: 0 }}
+            >
+              <Segment
+                percent={100}
+                backgroundColour={struct.colour}
+                spacing={1}
+              />
+              <Stack
+                key={struct.name}
+                direction={{ xs: "row-reverse", md: "column" }}
+                width="100%"
+              >
+                <Typography
+                  sx={topToBottomSx}
+                  variant="h6"
+                >
                   {struct.name}
                 </Typography>
-                <Typography sx={topToBottomSx} variant="body1">{`${struct.count} ${measureLabel}`}</Typography>
+                <Typography
+                  sx={topToBottomSx}
+                  variant="body1"
+                >{`${struct.count} ${measureLabel}`}</Typography>
               </Stack>
             </Stack>
           ))}
