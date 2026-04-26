@@ -19,8 +19,11 @@ Highcharts.setOptions({
 });
 
 export const HighchartsWrapper = (props: HighchartsReact.Props) => {
+  // Handle Vite's ESM/CJS interop by unwrapping the default export if necessary
+  const Component = (HighchartsReact as any).default ?? HighchartsReact;
+
   return (
-    <HighchartsReact
+    <Component
       highcharts={Highcharts}
       {...props}
     />

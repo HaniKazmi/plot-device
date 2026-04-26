@@ -1,10 +1,12 @@
 import {
   AutoGraph,
+  Category,
   CloseFullscreen,
   ExpandCircleDown,
   Pause,
   PlayArrow,
   ShowChart,
+  Stars,
   TaskAlt,
   Timer,
   Update,
@@ -25,11 +27,16 @@ import {
 import { StatCard, StatList, StatsListCard, type StatsListProps, TotalStack } from "../common/Stats";
 import VgCardMediaImage from "./CardMediaImage";
 import {
+  Avatar,
   CardContent,
   CardHeader,
   Dialog,
   FormControl,
   IconButton,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
   MenuItem,
   Radio,
   Select,
@@ -83,6 +90,10 @@ const Stats = ({
         measure={measure}
       />
       <CurrentlyPlaying data={data} />
+      <TopCategories
+        data={data}
+        measure={measure}
+      />
       <MostPlayed
         data={data}
         measure={measure}
@@ -472,6 +483,59 @@ const CurrentlyPlaying = ({ data }: { data: VideoGame[] }) => {
       width={[12, 12, 4]}
       pictureWidth={[12, 4, 12]}
     />
+  );
+};
+
+const TopCategories = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
+  return (
+    <>
+      <TopList data={data} measure={measure} category="genre" title="Top Genres" icon={<Category />} />
+      <TopList data={data} measure={measure} category="platform" title="Top Platforms" icon={<VideogameAsset />} />
+      <TopList data={data} measure={measure} category="franchise" title="Top Franchises" icon={<Stars />} />
+    </>
+  );
+};
+
+const TopList = ({ data, measure, category, title, icon }: { data: VideoGame[]; measure: Measure; category: VideoGameStringKeys; title: string, icon: ReactNode }) => {
+  const gamesByCategory = Object.groupBy(
+    data.filter((a) => a.hours && a.endDate),
+    (vg) => vg[category],
+  ) as Record<string, VideoGame[]>;
+
+  const most = Object.entries(gamesByCategory)
+    .filter(([cat]) => cat && cat !== "undefined" && cat !== "")
+    .map(([cat, games]) => {
+      return {
+        category: cat,
+        total: measure === "Hours" ? games?.sum("hours") : games.length,
+      };
+    })
+    .sortByKey("total")
+    .slice(0, 5);
+
+  return (
+    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+      <Card sx={{ height: "100%" }}>
+        <CardHeader
+          title={title}
+          avatar={icon}
+          titleTypographyProps={{ variant: "h6" }}
+          sx={{ paddingBottom: "5px" }}
+        />
+        <CardContent sx={{ padding: 0 }}>
+          <List dense>
+            {most.map((item, index) => (
+              <ListItem key={item.category}>
+                <ListItemAvatar sx={{ minWidth: 40 }}>
+                  <Avatar sx={{ width: 24, height: 24, fontSize: '0.875rem' }}>{index + 1}</Avatar>
+                </ListItemAvatar>
+                <ListItemText primary={item.category} secondary={`${format(item.total!)} ${measure}`} />
+              </ListItem>
+            ))}
+          </List>
+        </CardContent>
+      </Card>
+    </Grid>
   );
 };
 
