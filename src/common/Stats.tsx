@@ -1,4 +1,15 @@
-import { Box, Card, CardContent, CardHeader, Dialog, Divider, IconButton, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  type BoxProps,
+  Card,
+  CardContent,
+  CardHeader,
+  Dialog,
+  Divider,
+  IconButton,
+  Stack,
+  Typography,
+} from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { format } from "../utils/mathUtils";
 import { FooterComponent, type CardMediaImageProps, type TypedCardMediaImage } from "./Card";
@@ -33,14 +44,18 @@ export const StatCard = ({
             flexItem
           />
         }
-        justifyContent="space-evenly"
         direction={"row"}
+        sx={{
+          justifyContent: "space-evenly",
+        }}
       >
         {content.map(([key, val]) => (
           <Stack
             key={key}
             direction={"column"}
-            flex="1 1 0"
+            sx={{
+              flex: "1 1 0",
+            }}
           >
             <Typography
               align="center"
@@ -51,7 +66,9 @@ export const StatCard = ({
             <Typography
               align="center"
               variant="subtitle2"
-              color="text.secondary"
+              sx={{
+                color: "text.secondary",
+              }}
             >
               {key}
             </Typography>
@@ -69,11 +86,13 @@ export const StatCard = ({
     >
       <Card sx={{ height: "100%" }}>
         <CardHeader
-          titleTypographyProps={{ variant: "h6" }}
           title={title}
           avatar={icon}
           sx={{ paddingBottom: "5px" }}
           action={action}
+          slotProps={{
+            title: { variant: "h6" },
+          }}
         />
         <CardContent sx={{ paddingTop: "5px" }}>{formattedContent}</CardContent>
       </Card>
@@ -134,9 +153,12 @@ export const StatList = <T,>({
       <CardContent>
         <Grid
           container
-          sx={{ overflow: "auto", flexWrap: dialogOpen ? undefined : { xs: "nowrap", md: wrap ? "wrap" : "nowrap" } }}
           spacing={1}
-          alignItems="center"
+          sx={{
+            alignItems: "center",
+            overflow: "auto",
+            flexWrap: dialogOpen ? undefined : { xs: "nowrap", md: wrap ? "wrap" : "nowrap" },
+          }}
         >
           {content.slice(0, dialogOpen || !wrap ? 18 : 6).map((entry) => {
             const name = nameComponent(entry);
@@ -195,12 +217,14 @@ export const StatsListCard = <T,>({
 }) => {
   return (
     <Grid
-      flexShrink={0}
-      alignSelf="stretch"
       size={{
         xs: pictureWidth[0],
         sm: pictureWidth[1],
         md: pictureWidth[2],
+      }}
+      sx={{
+        flexShrink: 0,
+        alignSelf: "stretch",
       }}
     >
       <Card
@@ -223,21 +247,26 @@ export const StatsListCard = <T,>({
   );
 };
 
-const Segment = ({
+export const Segment = ({
   percent,
   backgroundColour,
   spacing = 2,
+  sx,
+  ...props
 }: {
   percent: number;
   backgroundColour: string;
   spacing?: number;
-}) => (
+} & BoxProps) => (
   <Box
     sx={{
       width: `${percent}%`,
       height: (theme) => theme.spacing(spacing),
       backgroundColor: backgroundColour,
+      transition: "opacity 0.2s",
+      ...sx,
     }}
+    {...props}
   />
 );
 
@@ -288,9 +317,11 @@ export const TotalStack = <T extends string, U, K extends keyof U>({
   return (
     <Card sx={{ height: "100%" }}>
       <CardHeader
-        titleTypographyProps={{ variant: "h6" }}
         title={title}
         avatar={icon}
+        slotProps={{
+          title: { variant: "h6" },
+        }}
       />
       <CardContent
         sx={{
@@ -300,9 +331,11 @@ export const TotalStack = <T extends string, U, K extends keyof U>({
       >
         <Stack
           direction="row"
-          alignItems="center"
-          height={(theme) => theme.spacing(3)}
           spacing={0.5}
+          sx={{
+            alignItems: "center",
+            height: (theme) => theme.spacing(3),
+          }}
         >
           {totals.map((struct) => (
             <Segment
@@ -315,14 +348,18 @@ export const TotalStack = <T extends string, U, K extends keyof U>({
         <Stack
           direction="row"
           spacing={1}
-          alignItems="flex-start"
+          sx={{
+            alignItems: "flex-start",
+          }}
         >
           {totals.map((struct) => (
             <Stack
               key={struct.name}
               direction="column"
-              width="100%"
               spacing={{ xs: 1, md: 0 }}
+              sx={{
+                width: "100%",
+              }}
             >
               <Segment
                 percent={100}
@@ -332,7 +369,9 @@ export const TotalStack = <T extends string, U, K extends keyof U>({
               <Stack
                 key={struct.name}
                 direction={{ xs: "row-reverse", md: "column" }}
-                width="100%"
+                sx={{
+                  width: "100%",
+                }}
               >
                 <Typography
                   sx={topToBottomSx}

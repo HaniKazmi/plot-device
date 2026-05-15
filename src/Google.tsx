@@ -1,8 +1,9 @@
 import { Container, createTheme, CssBaseline, ThemeProvider } from "@mui/material";
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import NavBar from "./NavBar";
-import { Outlet, useMatches } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { loadApis, reducer, registerDispatch, revokeApis } from "./utils/googleUtils";
+import Tabs from "./tabs.ts";
 import type { Tab } from "./tabs.ts";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 
@@ -31,8 +32,9 @@ const GoogleAuth = () => {
 };
 
 const Graphs = () => {
-  const matches = useMatches();
-  const currTab: Tab = (matches.find((match) => Boolean(match.handle))!.handle as { tab: Tab }).tab;
+  const location = useLocation();
+  const path = location.pathname.replace(/^\//, ""); // remove leading slash
+  const currTab: Tab = Tabs.find((t) => t.id === path) || Tabs[0];
   const theme = getTheme(currTab);
 
   return (

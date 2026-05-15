@@ -1,11 +1,10 @@
-import { Card, CardContent } from "@mui/material";
-import { type ReactNode } from "react";
+import { Card, CardContent, Box, Tooltip, useTheme } from "@mui/material";
+import { type ReactNode, useLayoutEffect, useRef, useState, type Ref, useMemo } from "react";
 import type { Colour } from "../utils/types";
-import TimeLineChart from "./TimelineChart";
-import type { YearMonthDay } from "./date";
+import type { YearMonth, YearMonthDay } from "./date";
+import type {} from "@mui/material/themeCssVarsAugmentation";
 
 export interface TimelineData {
-  row: string;
   name: string;
   tooltip: React.ReactNode;
   colour: Colour;
@@ -13,7 +12,433 @@ export interface TimelineData {
   end: YearMonthDay;
 }
 
-const Timeline = ({ data, children }: { data: TimelineData[]; showRowLabels?: boolean; children?: ReactNode }) => {
+// ============================================================================
+// Constants
+// ============================================================================
+const AXIS_HEIGHT = 45;
+const ROW_HEIGHT = 25;
+const ROW_PADDING = 5;
+const SVG_PADDING = 20;
+
+// ============================================================================
+// Types
+// ============================================================================
+interface PositionedTimelineData extends TimelineData {
+  rowNumber: number;
+  nextDate?: YearMonthDay;
+  previousDate?: YearMonthDay;
+}
+
+type LayoutInfo = {
+  placement: "center" | "right" | "left";
+  textPx: number;
+  barPx: number;
+  availableLeftPx: number;
+};
+
+const defaultLayout: LayoutInfo = {
+  placement: "center",
+  textPx: 0,
+  barPx: 0,
+  availableLeftPx: 0,
+};
+
+type ItemRefs = {
+  rect: SVGRectElement | null;
+  fo: SVGForeignObjectElement | null;
+  text: HTMLDivElement | null;
+};
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+/**
+ * Calculates a horizontal X-offset as a percentage across the entire timeline grid.
+ * Useful for finding where an element should start relative to the earliest date.
+ */
+const calculatePercentageOffset = (start: YearMonthDay, end: YearMonthDay, totalDays: number, padding: number = 0) => {
+  return ((start.daysTo(end)! + padding) / totalDays) * 100 + "%";
+};
+
+/**
+ * Calculates an element's width as a percentage across the entire timeline grid.
+ */
+const calculatePercentageWidth = (start: YearMonthDay, end: YearMonthDay, totalDays: number, padding: number = 0) => {
+  return ((start.daysTo(end)! - padding) / totalDays) * 100 + "%";
+};
+
+// ============================================================================
+// Hooks
+// ============================================================================
+/**
+ * Hook to assign events to rows to avoid overlaps (Greedy Interval Packing).
+ * Sorts events chronologically and assigns each to the first available row where it fits.
+ */
+const useTimelineRows = (timelineData: TimelineData[]) => {
+  return useMemo(() => {
+    // Return early if no data
+    if (timelineData.length === 0) return [[] as PositionedTimelineData[], 0] as const;
+
+    // 1. Sort the events chronologically by start date
+    const sortedData = timelineData.sortByKey("start", true);
+
+    // Tracks the end date of the last event in each row
+    const rowEndDates: YearMonthDay[] = [];
+    // Groups events by their assigned row
+    const rows: Map<number, PositionedTimelineData[]> = new Map();
+
+    const positionedRows = sortedData.map((row) => {
+      let targetRow = -1;
+
+      // 2. Greedy Packing: Find the first row where the event's start date
+      // is on or after the row's current end date.
+      for (let i = 0; i < rowEndDates.length; i++) {
+        if (row.start >= rowEndDates[i]) {
+          targetRow = i;
+          break;
+        }
+      }
+
+      // 3. If no existing row has space, create a new row
+      if (targetRow === -1) {
+        targetRow = rowEndDates.length;
+      }
+
+      // Update the row's end date to this event's end date
+      rowEndDates[targetRow] = row.end;
+
+      const newRow: PositionedTimelineData = { ...row, rowNumber: targetRow };
+
+      // 4. Link neighboring events in the same row so we know how much empty
+      // space is available on either side for text placement later.
+      const dataForTargetRow = rows.setIfAbsent(targetRow, []);
+      if (dataForTargetRow.length > 0) {
+        const lastRow = dataForTargetRow[dataForTargetRow.length - 1];
+        lastRow.nextDate = newRow.start;
+        newRow.previousDate = lastRow.end;
+      }
+      dataForTargetRow.push(newRow);
+      return newRow;
+    });
+
+    // Return the processed data and the maximum row index used
+    return [positionedRows, rowEndDates.length - 1] as const;
+  }, [timelineData]);
+};
+
+/**
+ * Hook to dynamically calculate where text should be placed (center, left, right)
+ * relative to its colored bar, ensuring it is fully visible and doesn't overlap other text.
+ * It uses a `useLayoutEffect` to read actual DOM node dimensions after rendering.
+ */
+const useTextPlacement = (data: PositionedTimelineData[]) => {
+  const [layouts, setLayouts] = useState<Map<PositionedTimelineData, LayoutInfo>>(new Map());
+  // Holds references to the DOM elements (bar rect, foreignObject container, and text element)
+  const itemRefs = useRef(new Map<PositionedTimelineData, ItemRefs>());
+
+  const setItemRef =
+    <T extends keyof ItemRefs>(event: PositionedTimelineData, type: T) =>
+    (el: ItemRefs[T] | null) => {
+      const item = itemRefs.current.get(event) ?? { rect: null, fo: null, text: null };
+      item[type] = el;
+      itemRefs.current.set(event, item);
+    };
+
+  useLayoutEffect(() => {
+    const map = new Map<PositionedTimelineData, LayoutInfo>();
+    // Tracks if space to the right of an event has been taken by a previous event in the same row
+    const rightUsed: boolean[] = [];
+
+    itemRefs.current.forEach(({ text, fo, rect }, event) => {
+      if (!text || !fo || !rect) return;
+
+      const foBox = fo.getBoundingClientRect(); // The foreignObject boundary (total available space)
+      const rectBox = rect.getBoundingClientRect(); // The colored bar itself
+
+      const textWidth = text.scrollWidth;
+      const rectWidth = rectBox.width;
+
+      // Calculate available space to the right and left of the colored bar
+      const rightWidth = foBox.right - rectBox.right;
+      const leftWidth = rectBox.left - foBox.left;
+
+      let placement: LayoutInfo["placement"] = "center";
+
+      // Decision logic for text placement:
+      if (textWidth <= rectWidth) {
+        // Text fits entirely inside the bar
+        placement = "center";
+        rightUsed[event.rowNumber] = false;
+      } else if (!rightUsed[event.rowNumber] && textWidth < leftWidth) {
+        // Text doesn't fit in bar, but there is enough space to its left
+        placement = "left";
+        rightUsed[event.rowNumber] = false;
+      } else if (textWidth < rightWidth) {
+        // Space to the left is taken or insufficient, put it on the right
+        placement = "right";
+        rightUsed[event.rowNumber] = true;
+      }
+
+      map.set(event, {
+        availableLeftPx: leftWidth,
+        barPx: rectWidth,
+        textPx: textWidth,
+        placement,
+      });
+    });
+
+    setLayouts(map);
+  }, [data]);
+
+  return { layouts, setItemRef };
+};
+
+// ============================================================================
+// Components
+// ============================================================================
+const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }) => {
+  const [positionedTimelineData, maxRow] = useTimelineRows(timelineData);
+
+  if (positionedTimelineData.length === 0) {
+    return null;
+  }
+
+  const earliestStart = positionedTimelineData[0].start.startOfMonth();
+  const latestEnd = positionedTimelineData.at(-1)!.end;
+  const totalDays = earliestStart.daysTo(latestEnd)!;
+
+  return (
+    <Box sx={{ width: "100%", maxHeight: "90vh", overflowX: "auto", overflowY: "auto" }}>
+      <div
+        style={{ width: "400vw", maxHeight: "90vh", position: "relative", display: "flex", flexDirection: "column" }}
+      >
+        <div style={{ overflowY: "auto" }}>
+          <TimelineGrid
+            data={positionedTimelineData}
+            startDate={earliestStart}
+            endDate={latestEnd}
+            totalHeight={maxRow * ROW_HEIGHT + SVG_PADDING * 2}
+            totalDays={totalDays}
+          />
+        </div>
+        <div>
+          <TimeAxis
+            startDate={earliestStart.toYearMonth()}
+            endDate={latestEnd.toYearMonth()}
+            totalDays={totalDays}
+          />
+        </div>
+      </div>
+    </Box>
+  );
+};
+
+const TimelineGrid = ({
+  data,
+  startDate,
+  endDate,
+  totalHeight,
+  totalDays,
+}: {
+  data: PositionedTimelineData[];
+  startDate: YearMonthDay;
+  endDate: YearMonthDay;
+  totalHeight: number;
+  totalDays: number;
+}) => {
+  const { layouts, setItemRef } = useTextPlacement(data);
+
+  return (
+    <svg
+      height={totalHeight}
+      width="100%"
+    >
+      {data.map((event) => (
+        <TimelineText
+          key={event.name}
+          event={event}
+          startDate={startDate}
+          endDate={endDate}
+          totalDays={totalDays}
+          foRef={setItemRef(event, "fo")}
+          textRef={setItemRef(event, "text")}
+          rectRef={setItemRef(event, "rect")}
+          layoutInfo={layouts.get(event) ?? defaultLayout}
+        />
+      ))}
+    </svg>
+  );
+};
+
+const TimelineText = ({
+  event,
+  startDate,
+  endDate,
+  totalDays,
+  foRef,
+  textRef,
+  rectRef,
+  layoutInfo,
+}: {
+  event: PositionedTimelineData;
+  startDate: YearMonthDay;
+  endDate: YearMonthDay;
+  totalDays: number;
+  foRef: Ref<SVGForeignObjectElement>;
+  textRef: Ref<HTMLDivElement>;
+  rectRef: Ref<SVGRectElement>;
+  layoutInfo: LayoutInfo;
+}) => {
+  // Calculate relative X/Y positioning and width of the visual bar
+  const x = calculatePercentageOffset(startDate, event.start, totalDays, 0.75);
+  const width = calculatePercentageWidth(event.start, event.end, totalDays, 0.75);
+  const y = event.rowNumber * ROW_HEIGHT + SVG_PADDING + "px";
+  const height = ROW_HEIGHT - ROW_PADDING;
+
+  // The `<foreignObject>` acts as a container for the text that spans the *entire available empty space*
+  // between the previous event and the next event on this row.
+  const spaceLeftStart = event.previousDate ?? startDate;
+  const availableLeft = calculatePercentageOffset(spaceLeftStart, event.start, totalDays);
+
+  const textContainerEnd = event.nextDate ?? endDate;
+  const totalTextContainerWidth = calculatePercentageOffset(spaceLeftStart, textContainerEnd, totalDays);
+
+  // Shift the foreign object to start exactly where the previous event ended
+  const foreignObjectX = `-${availableLeft}`;
+
+  const getLeftPadding = () => (layoutInfo.placement === "right" ? `${layoutInfo.barPx + 5}px` : "5px");
+  const getRightPadding = () => (layoutInfo.placement === "left" ? `${layoutInfo.barPx + 5}px` : "5px");
+  const getLeftPosition = () => {
+    if (layoutInfo.placement === "right") return `${layoutInfo.availableLeftPx}px`;
+    if (layoutInfo.placement === "left") return `${layoutInfo.availableLeftPx - layoutInfo.textPx}px`;
+    return `${layoutInfo.availableLeftPx}px`;
+  };
+
+  return (
+    <g
+      x={x}
+      y={y}
+      style={{ transform: `translate(${x}, ${y})` }}
+    >
+      <rect
+        width={width}
+        height={height}
+        fill={event.colour}
+        rx="5"
+        ry="5"
+        style={{ width: `max(${width}, 1px)` }}
+        ref={rectRef}
+      />
+      <foreignObject
+        x={foreignObjectX}
+        y="0"
+        width={totalTextContainerWidth}
+        height={height}
+        overflow="hidden"
+        ref={foRef}
+      >
+        <Tooltip
+          disableInteractive
+          title={event.tooltip}
+          slotProps={{
+            tooltip: {
+              sx: { backgroundColor: event.colour, width: "500px", maxWidth: "500px", minHeight: "325px" },
+            },
+          }}
+        >
+          <Box
+            sx={{
+              position: "fixed",
+              textOverflow: "ellipsis",
+              overflow: "hidden",
+              whiteSpace: "nowrap",
+              fontSize: 14,
+              paddingLeft: getLeftPadding(),
+              paddingRight: getRightPadding(),
+              left: getLeftPosition(),
+              width: layoutInfo.placement === "center" ? `${layoutInfo.barPx}px` : "fit-content",
+              color: (theme) =>
+                layoutInfo.placement === "center"
+                  ? theme.palette.getContrastText(event.colour)
+                  : theme.vars.palette.text.primary,
+            }}
+            ref={textRef}
+          >
+            {event.name}
+          </Box>
+        </Tooltip>
+      </foreignObject>
+    </g>
+  );
+};
+
+const TimeAxis = ({
+  startDate,
+  endDate,
+  totalDays,
+}: {
+  startDate: YearMonth;
+  endDate: YearMonth;
+  totalDays: number;
+}) => {
+  const theme = useTheme();
+  const startDateDay = startDate.startOfMonth();
+
+  const ticks = startDate.iterateToDate(endDate).map((dateForTick) => {
+    const date = dateForTick.startOfMonth();
+    const x = calculatePercentageOffset(startDateDay, date, totalDays);
+
+    return {
+      x,
+      label: dateForTick.monthString(),
+      isYear: dateForTick.month === 1,
+      isQuarter: dateForTick.month % 3 === 1,
+      yearLabel: dateForTick.year.toString(),
+    };
+  });
+
+  return (
+    <svg
+      height={AXIS_HEIGHT}
+      width={"100%"}
+    >
+      {ticks.map((tick) => (
+        <g
+          x={tick.x}
+          key={tick.x}
+          style={{ transform: `translateX(${tick.x})` }}
+        >
+          <line
+            y1={tick.isYear ? 10 : tick.isQuarter ? 25 : 30}
+            y2={AXIS_HEIGHT - 2}
+            stroke={"#9B9B9B"}
+            strokeWidth="1"
+          />
+          {tick.isQuarter && (
+            <text
+              x="5"
+              y="20"
+              style={{ fill: theme.vars.palette.text.secondary, fontSize: 16 }}
+            >
+              {tick.label}
+            </text>
+          )}
+          {tick.isYear && (
+            <text
+              x="5"
+              y="40"
+              style={{ fill: theme.vars.palette.text.secondary, fontSize: 18, fontWeight: "bold" }}
+            >
+              {tick.yearLabel}
+            </text>
+          )}
+        </g>
+      ))}
+    </svg>
+  );
+};
+
+const Timeline = ({ data, children }: { data: TimelineData[]; children?: ReactNode }) => {
   return (
     <Card>
       {children}

@@ -13,7 +13,9 @@ const Stats = ({ data }: { data: Show[] }) => {
     <Grid
       container
       spacing={1}
-      alignItems="stretch"
+      sx={{
+        alignItems: "stretch",
+      }}
     >
       <AllTime data={data} />
       <ThisYearSoFar data={data} />
@@ -31,9 +33,11 @@ const Totals = ({ data }: { data: Show[] }) => {
   return (
     <Grid size={12}>
       <Stack
-        justifyContent="space-between"
-        height="100%"
         spacing={1}
+        sx={{
+          justifyContent: "space-between",
+          height: "100%",
+        }}
       >
         <TotalStack
           title={"Status"}

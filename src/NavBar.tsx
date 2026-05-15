@@ -1,6 +1,6 @@
 import { AppBar, Box, Button, Tab as MuiTab, Tabs as MuiTabs, Toolbar, Typography } from "@mui/material";
 import { Score } from "@mui/icons-material";
-import { useMatches, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Tabs, { Tab } from "./tabs";
 import { useCallback } from "react";
 import useLongPress from "./utils/useLongPress";
@@ -15,8 +15,9 @@ const NavBar = ({
   setGuestMode: React.MutableRefObject<(_: boolean) => void>;
 }) => {
   const navigate = useNavigate();
-  const matches = useMatches();
-  const currTab = (matches.find((match) => Boolean(match.handle))!.handle as { tab: Tab }).tab;
+  const location = useLocation();
+  const path = location.pathname.replace(/^\//, ""); // remove leading slash
+  const currTab: Tab = Tabs.find((t) => t.id === path) || Tabs[0];
   const setGuestModeCallback = useCallback(() => setGuestMode.current(true), [setGuestMode]);
   const events = useLongPress(setGuestModeCallback);
 

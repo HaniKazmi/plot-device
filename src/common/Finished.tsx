@@ -58,14 +58,18 @@ const Finished = <
         <Grid
           container
           spacing={1}
-          alignItems="center"
-          sx={{ opacity: slowData !== data ? 0.5 : 1 }}
+          sx={{
+            alignItems: "center",
+            opacity: slowData !== data ? 0.5 : 1,
+          }}
         >
           {recent.map((item) => (
             <Grid
-              alignSelf="stretch"
               key={item.name}
               size={dialogOpen ? 12 : width}
+              sx={{
+                alignSelf: "stretch",
+              }}
             >
               <Card
                 sx={{

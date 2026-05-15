@@ -1,0 +1,1598 @@
+{
+  "results": [
+    {
+      "bundleName": "dist/assets/Graphs-BfxPNRAe.js",
+      "totalBytes": 314,
+      "mappedBytes": 166,
+      "unmappedBytes": 104,
+      "eolBytes": 1,
+      "sourceMapCommentBytes": 43,
+      "files": {
+        "../../src/holiday/Map.tsx": {
+          "size": 75
+        },
+        "../../src/holiday/Graphs.tsx": {
+          "size": 91
+        },
+        "[sourceMappingURL]": {
+          "size": 43
+        },
+        "[unmapped]": {
+          "size": 104
+        },
+        "[EOLs]": {
+          "size": 1
+        }
+      }
+    },
+    {
+      "bundleName": "dist/assets/Graphs-BrOOk5r9.js",
+      "totalBytes": 7627,
+      "mappedBytes": 7172,
+      "unmappedBytes": 411,
+      "eolBytes": 1,
+      "sourceMapCommentBytes": 43,
+      "files": {
+        "../../src/show/types.ts": {
+          "size": 90
+        },
+        "../../src/show/Barchart.tsx": {
+          "size": 535
+        },
+        "../../src/show/Sunburst.tsx": {
+          "size": 1083
+        },
+        "../../src/show/CardMediaImage.tsx": {
+          "size": 1499
+        },
+        "../../src/show/Stats.tsx": {
+          "size": 2606
+        },
+        "../../src/show/Timeline.tsx": {
+          "size": 719
+        },
+        "../../src/show/Graphs.tsx": {
+          "size": 640
+        },
+        "[sourceMappingURL]": {
+          "size": 43
+        },
+        "[unmapped]": {
+          "size": 411
+        },
+        "[EOLs]": {
+          "size": 1
+        }
+      }
+    },
+    {
+      "bundleName": "dist/assets/Graphs-DHJVKhbO.js",
+      "totalBytes": 46323,
+      "mappedBytes": 45408,
+      "unmappedBytes": 871,
+      "eolBytes": 1,
+      "sourceMapCommentBytes": 43,
+      "files": {
+        "../../node_modules/@mui/material/utils/createChainedFunction.mjs": {
+          "size": 10
+        },
+        "../../node_modules/@mui/material/utils/isMuiElement.mjs": {
+          "size": 17
+        },
+        "../../node_modules/@mui/material/ClickAwayListener/ClickAwayListener.mjs": {
+          "size": 1211
+        },
+        "../../node_modules/@mui/material/Slide/Slide.mjs": {
+          "size": 2422
+        },
+        "../../node_modules/@mui/material/Drawer/drawerClasses.mjs": {
+          "size": 142
+        },
+        "../../node_modules/@mui/material/Drawer/Drawer.mjs": {
+          "size": 3366
+        },
+        "../../node_modules/@mui/material/FormControl/formControlClasses.mjs": {
+          "size": 138
+        },
+        "../../node_modules/@mui/material/FormControl/FormControl.mjs": {
+          "size": 1836
+        },
+        "../../node_modules/@mui/material/FormLabel/formLabelClasses.mjs": {
+          "size": 152
+        },
+        "../../node_modules/@mui/material/FormLabel/FormLabel.mjs": {
+          "size": 1553
+        },
+        "../../node_modules/@mui/material/InputLabel/InputLabel.mjs": {
+          "size": 2706
+        },
+        "../../node_modules/@mui/material/internal/svg-icons/RadioButtonUnchecked.mjs": {
+          "size": 178
+        },
+        "../../node_modules/@mui/material/internal/svg-icons/RadioButtonChecked.mjs": {
+          "size": 223
+        },
+        "../../node_modules/@mui/material/Radio/RadioButtonIcon.mjs": {
+          "size": 835
+        },
+        "../../node_modules/@mui/material/RadioGroup/RadioGroupContext.mjs": {
+          "size": 31
+        },
+        "../../node_modules/@mui/material/RadioGroup/useRadioGroup.mjs": {
+          "size": 38
+        },
+        "../../node_modules/@mui/material/Radio/radioClasses.mjs": {
+          "size": 133
+        },
+        "../../node_modules/@mui/material/Radio/Radio.mjs": {
+          "size": 2194
+        },
+        "../../node_modules/@mui/material/Snackbar/useSnackbar.mjs": {
+          "size": 1078
+        },
+        "../../node_modules/@mui/material/SnackbarContent/snackbarContentClasses.mjs": {
+          "size": 100
+        },
+        "../../node_modules/@mui/material/SnackbarContent/SnackbarContent.mjs": {
+          "size": 1158
+        },
+        "../../node_modules/@mui/material/Snackbar/snackbarClasses.mjs": {
+          "size": 214
+        },
+        "../../node_modules/@mui/material/Snackbar/Snackbar.mjs": {
+          "size": 2725
+        },
+        "../../node_modules/@mui/icons-material/Album.mjs": {
+          "size": 239
+        },
+        "../../node_modules/@mui/icons-material/AllInclusive.mjs": {
+          "size": 569
+        },
+        "../../node_modules/@mui/icons-material/Business.mjs": {
+          "size": 215
+        },
+        "../../node_modules/@mui/icons-material/CatchingPokemonTwoTone.mjs": {
+          "size": 527
+        },
+        "../../node_modules/@mui/icons-material/Category.mjs": {
+          "size": 160
+        },
+        "../../node_modules/@mui/icons-material/Clear.mjs": {
+          "size": 140
+        },
+        "../../node_modules/@mui/icons-material/Code.mjs": {
+          "size": 112
+        },
+        "../../node_modules/@mui/icons-material/ExpandCircleDown.mjs": {
+          "size": 167
+        },
+        "../../node_modules/@mui/icons-material/FilterAlt.mjs": {
+          "size": 184
+        },
+        "../../node_modules/@mui/icons-material/QuestionMark.mjs": {
+          "size": 355
+        },
+        "../../node_modules/@mui/icons-material/Stars.mjs": {
+          "size": 210
+        },
+        "../../node_modules/@mui/icons-material/Storefront.mjs": {
+          "size": 828
+        },
+        "../../node_modules/@mui/icons-material/VerifiedUser.mjs": {
+          "size": 150
+        },
+        "../../node_modules/@mui/icons-material/VideogameAsset.mjs": {
+          "size": 302
+        },
+        "../../node_modules/@mui/icons-material/Whatshot.mjs": {
+          "size": 345
+        },
+        "../../src/vg/types.ts": {
+          "size": 2925
+        },
+        "../../src/vg/CardMediaImage.tsx": {
+          "size": 1695
+        },
+        "../../src/vg/Stats.tsx": {
+          "size": 8132
+        },
+        "../../src/vg/Sunburst.tsx": {
+          "size": 969
+        },
+        "../../src/vg/Barchart.tsx": {
+          "size": 473
+        },
+        "../../src/vg/Timeline.tsx": {
+          "size": 826
+        },
+        "../../src/vg/Filter.tsx": {
+          "size": 2560
+        },
+        "../../src/vg/Graphs.tsx": {
+          "size": 865
+        },
+        "[sourceMappingURL]": {
+          "size": 43
+        },
+        "[unmapped]": {
+          "size": 871
+        },
+        "[EOLs]": {
+          "size": 1
+        }
+      }
+    },
+    {
+      "bundleName": "dist/assets/Paper-DLuBRp-c.js",
+      "totalBytes": 89431,
+      "mappedBytes": 88588,
+      "unmappedBytes": 792,
+      "eolBytes": 9,
+      "sourceMapCommentBytes": 42,
+      "files": {
+        "../../node_modules/react/cjs/react.production.js": {
+          "size": 7463
+        },
+        "../../node_modules/react/index.js": {
+          "size": 26
+        },
+        "../../node_modules/react/cjs/react-jsx-runtime.production.js": {
+          "size": 339
+        },
+        "../../node_modules/react/jsx-runtime.js": {
+          "size": 32
+        },
+        "../../node_modules/@mui/material/colors/common.mjs": {
+          "size": 30
+        },
+        "../../node_modules/@mui/material/colors/red.mjs": {
+          "size": 203
+        },
+        "../../node_modules/@mui/material/colors/purple.mjs": {
+          "size": 203
+        },
+        "../../node_modules/@mui/material/colors/blue.mjs": {
+          "size": 203
+        },
+        "../../node_modules/@mui/material/colors/lightBlue.mjs": {
+          "size": 203
+        },
+        "../../node_modules/@mui/material/colors/green.mjs": {
+          "size": 203
+        },
+        "../../node_modules/@mui/material/colors/orange.mjs": {
+          "size": 203
+        },
+        "../../node_modules/@mui/material/colors/grey.mjs": {
+          "size": 203
+        },
+        "../../node_modules/@mui/utils/formatMuiErrorMessage/formatMuiErrorMessage.mjs": {
+          "size": 196
+        },
+        "../../node_modules/@mui/material/styles/identifier.mjs": {
+          "size": 19
+        },
+        "../../node_modules/@babel/runtime/helpers/esm/extends.js": {
+          "size": 219
+        },
+        "../../node_modules/@emotion/sheet/dist/emotion-sheet.esm.js": {
+          "size": 1307
+        },
+        "../../node_modules/stylis/src/Enum.js": {
+          "size": 102
+        },
+        "../../node_modules/stylis/src/Utility.js": {
+          "size": 507
+        },
+        "../../node_modules/stylis/src/Tokenizer.js": {
+          "size": 1362
+        },
+        "../../node_modules/stylis/src/Parser.js": {
+          "size": 1635
+        },
+        "../../node_modules/stylis/src/Serializer.js": {
+          "size": 367
+        },
+        "../../node_modules/stylis/src/Middleware.js": {
+          "size": 170
+        },
+        "../../node_modules/@emotion/memoize/dist/emotion-memoize.esm.js": {
+          "size": 100
+        },
+        "../../node_modules/@emotion/cache/dist/emotion-cache.browser.esm.js": {
+          "size": 4455
+        },
+        "../../node_modules/hoist-non-react-statics/node_modules/react-is/cjs/react-is.production.min.js": {
+          "size": 2115
+        },
+        "../../node_modules/hoist-non-react-statics/node_modules/react-is/index.js": {
+          "size": 32
+        },
+        "../../node_modules/hoist-non-react-statics/dist/hoist-non-react-statics.cjs.js": {
+          "size": 951
+        },
+        "../../node_modules/@emotion/utils/dist/emotion-utils.browser.esm.js": {
+          "size": 404
+        },
+        "../../node_modules/@emotion/hash/dist/emotion-hash.esm.js": {
+          "size": 553
+        },
+        "../../node_modules/@emotion/unitless/dist/emotion-unitless.esm.js": {
+          "size": 669
+        },
+        "../../node_modules/@emotion/serialize/dist/emotion-serialize.esm.js": {
+          "size": 2046
+        },
+        "../../node_modules/@emotion/use-insertion-effect-with-fallbacks/dist/emotion-use-insertion-effect-with-fallbacks.browser.esm.js": {
+          "size": 114
+        },
+        "../../node_modules/@emotion/react/dist/emotion-element-f0de968e.browser.esm.js": {
+          "size": 973
+        },
+        "../../node_modules/@emotion/react/dist/emotion-react.browser.esm.js": {
+          "size": 1208
+        },
+        "../../node_modules/@emotion/is-prop-valid/dist/emotion-is-prop-valid.esm.js": {
+          "size": 4255
+        },
+        "../../node_modules/@emotion/styled/base/dist/emotion-styled-base.browser.esm.js": {
+          "size": 1832
+        },
+        "../../node_modules/@emotion/styled/dist/emotion-styled.browser.esm.js": {
+          "size": 826
+        },
+        "../../node_modules/@mui/styled-engine/GlobalStyles/GlobalStyles.mjs": {
+          "size": 174
+        },
+        "../../node_modules/@mui/styled-engine/index.mjs": {
+          "size": 187
+        },
+        "../../node_modules/react-is/cjs/react-is.production.js": {
+          "size": 637
+        },
+        "../../node_modules/react-is/index.js": {
+          "size": 20
+        },
+        "../../node_modules/@mui/utils/deepmerge/deepmerge.mjs": {
+          "size": 643
+        },
+        "../../node_modules/@mui/system/createBreakpoints/createBreakpoints.mjs": {
+          "size": 951
+        },
+        "../../node_modules/@mui/system/cssContainerQueries/cssContainerQueries.mjs": {
+          "size": 1163
+        },
+        "../../node_modules/@mui/system/createTheme/shape.mjs": {
+          "size": 24
+        },
+        "../../node_modules/@mui/utils/isObjectEmpty/isObjectEmpty.mjs": {
+          "size": 68
+        },
+        "../../node_modules/@mui/utils/fastDeepAssign/fastDeepAssign.mjs": {
+          "size": 713
+        },
+        "../../node_modules/@mui/system/breakpoints/breakpoints.mjs": {
+          "size": 1701
+        },
+        "../../node_modules/@mui/utils/capitalize/capitalize.mjs": {
+          "size": 99
+        },
+        "../../node_modules/@mui/system/style/style.mjs": {
+          "size": 720
+        },
+        "../../node_modules/@mui/system/spacing/spacing.mjs": {
+          "size": 1856
+        },
+        "../../node_modules/@mui/system/createTheme/createSpacing.mjs": {
+          "size": 174
+        },
+        "../../node_modules/@mui/system/compose/compose.mjs": {
+          "size": 225
+        },
+        "../../node_modules/@mui/system/borders/borders.mjs": {
+          "size": 660
+        },
+        "../../node_modules/@mui/system/cssGrid/cssGrid.mjs": {
+          "size": 807
+        },
+        "../../node_modules/@mui/system/palette/palette.mjs": {
+          "size": 235
+        },
+        "../../node_modules/@mui/system/sizing/sizing.mjs": {
+          "size": 638
+        },
+        "../../node_modules/@mui/system/styleFunctionSx/defaultSxConfig.mjs": {
+          "size": 2518
+        },
+        "../../node_modules/@mui/system/styleFunctionSx/styleFunctionSx.mjs": {
+          "size": 990
+        },
+        "../../node_modules/@mui/system/createTheme/applyStyles.mjs": {
+          "size": 291
+        },
+        "../../node_modules/@mui/system/createTheme/createTheme.mjs": {
+          "size": 402
+        },
+        "../../node_modules/@mui/system/useThemeWithoutDefault/useThemeWithoutDefault.mjs": {
+          "size": 111
+        },
+        "../../node_modules/@mui/system/useTheme/useTheme.mjs": {
+          "size": 43
+        },
+        "../../node_modules/@mui/system/GlobalStyles/GlobalStyles.mjs": {
+          "size": 359
+        },
+        "../../node_modules/@mui/utils/ClassNameGenerator/ClassNameGenerator.mjs": {
+          "size": 99
+        },
+        "../../node_modules/clsx/dist/clsx.mjs": {
+          "size": 362
+        },
+        "../../node_modules/@mui/utils/generateUtilityClass/generateUtilityClass.mjs": {
+          "size": 320
+        },
+        "../../node_modules/@mui/utils/generateUtilityClasses/generateUtilityClasses.mjs": {
+          "size": 74
+        },
+        "../../node_modules/@mui/system/preprocessStyles.mjs": {
+          "size": 169
+        },
+        "../../node_modules/@mui/system/createStyled/createStyled.mjs": {
+          "size": 2651
+        },
+        "../../node_modules/@mui/system/styled/styled.mjs": {
+          "size": 12
+        },
+        "../../node_modules/@mui/utils/resolveProps/resolveProps.mjs": {
+          "size": 546
+        },
+        "../../node_modules/@mui/system/useThemeProps/getThemeProps.mjs": {
+          "size": 155
+        },
+        "../../node_modules/@mui/system/useThemeProps/useThemeProps.mjs": {
+          "size": 118
+        },
+        "../../node_modules/@mui/utils/clamp/clamp.mjs": {
+          "size": 71
+        },
+        "../../node_modules/@mui/system/colorManipulator/colorManipulator.mjs": {
+          "size": 2655
+        },
+        "../../node_modules/@mui/system/DefaultPropsProvider/DefaultPropsProvider.mjs": {
+          "size": 480
+        },
+        "../../node_modules/@mui/system/memoTheme.mjs": {
+          "size": 153
+        },
+        "../../node_modules/@mui/system/cssVars/createGetCssVar.mjs": {
+          "size": 329
+        },
+        "../../node_modules/@mui/system/cssVars/cssVarsParser.mjs": {
+          "size": 912
+        },
+        "../../node_modules/@mui/system/cssVars/prepareCssVars.mjs": {
+          "size": 1538
+        },
+        "../../node_modules/@mui/system/cssVars/getColorSchemeSelector.mjs": {
+          "size": 231
+        },
+        "../../node_modules/@mui/utils/composeClasses/composeClasses.mjs": {
+          "size": 185
+        },
+        "../../node_modules/@mui/material/styles/createPalette.mjs": {
+          "size": 3338
+        },
+        "../../node_modules/@mui/system/cssVars/prepareTypographyVars.mjs": {
+          "size": 330
+        },
+        "../../node_modules/@mui/material/styles/createMixins.mjs": {
+          "size": 145
+        },
+        "../../node_modules/@mui/material/styles/createTypography.mjs": {
+          "size": 1059
+        },
+        "../../node_modules/@mui/material/styles/shadows.mjs": {
+          "size": 998
+        },
+        "../../node_modules/@mui/material/styles/createTransitions.mjs": {
+          "size": 733
+        },
+        "../../node_modules/@mui/material/styles/zIndex.mjs": {
+          "size": 113
+        },
+        "../../node_modules/@mui/material/styles/stringifyTheme.mjs": {
+          "size": 476
+        },
+        "../../node_modules/@mui/material/styles/createThemeNoVars.mjs": {
+          "size": 1255
+        },
+        "../../node_modules/@mui/material/styles/getOverlayAlpha.mjs": {
+          "size": 88
+        },
+        "../../node_modules/@mui/material/styles/createColorScheme.mjs": {
+          "size": 531
+        },
+        "../../node_modules/@mui/material/styles/shouldSkipGeneratingVar.mjs": {
+          "size": 254
+        },
+        "../../node_modules/@mui/material/styles/excludeVariablesFromRoot.mjs": {
+          "size": 160
+        },
+        "../../node_modules/@mui/material/styles/createGetSelector.mjs": {
+          "size": 641
+        },
+        "../../node_modules/@mui/material/styles/createThemeWithVars.mjs": {
+          "size": 11861
+        },
+        "../../node_modules/@mui/material/styles/createTheme.mjs": {
+          "size": 908
+        },
+        "../../node_modules/@mui/material/styles/defaultTheme.mjs": {
+          "size": 12
+        },
+        "../../node_modules/@mui/material/styles/useTheme.mjs": {
+          "size": 50
+        },
+        "../../node_modules/@mui/material/styles/slotShouldForwardProp.mjs": {
+          "size": 72
+        },
+        "../../node_modules/@mui/material/styles/rootShouldForwardProp.mjs": {
+          "size": 31
+        },
+        "../../node_modules/@mui/material/styles/styled.mjs": {
+          "size": 60
+        },
+        "../../node_modules/@mui/material/GlobalStyles/GlobalStyles.mjs": {
+          "size": 68
+        },
+        "../../node_modules/@mui/material/zero-styled/index.mjs": {
+          "size": 108
+        },
+        "../../node_modules/@mui/material/utils/memoTheme.mjs": {
+          "size": 10
+        },
+        "../../node_modules/@mui/material/DefaultPropsProvider/DefaultPropsProvider.mjs": {
+          "size": 28
+        },
+        "../../node_modules/@mui/material/Paper/paperClasses.mjs": {
+          "size": 389
+        },
+        "../../node_modules/@mui/material/Paper/Paper.mjs": {
+          "size": 1673
+        },
+        "[sourceMappingURL]": {
+          "size": 42
+        },
+        "[unmapped]": {
+          "size": 792
+        },
+        "[EOLs]": {
+          "size": 9
+        }
+      }
+    },
+    {
+      "bundleName": "dist/assets/Stack-BaNKkEAd.js",
+      "totalBytes": 2696,
+      "mappedBytes": 2466,
+      "unmappedBytes": 187,
+      "eolBytes": 1,
+      "sourceMapCommentBytes": 42,
+      "files": {
+        "../../node_modules/@mui/system/Stack/createStack.mjs": {
+          "size": 1511
+        },
+        "../../node_modules/@mui/material/Card/cardClasses.mjs": {
+          "size": 58
+        },
+        "../../node_modules/@mui/material/Card/Card.mjs": {
+          "size": 322
+        },
+        "../../node_modules/@mui/material/CardContent/cardContentClasses.mjs": {
+          "size": 72
+        },
+        "../../node_modules/@mui/material/CardContent/CardContent.mjs": {
+          "size": 360
+        },
+        "../../node_modules/@mui/material/Stack/Stack.mjs": {
+          "size": 143
+        },
+        "[sourceMappingURL]": {
+          "size": 42
+        },
+        "[unmapped]": {
+          "size": 187
+        },
+        "[EOLs]": {
+          "size": 1
+        }
+      }
+    },
+    {
+      "bundleName": "dist/assets/Timeline-DXzVqK1l.js",
+      "totalBytes": 491589,
+      "mappedBytes": 490868,
+      "unmappedBytes": 672,
+      "eolBytes": 4,
+      "sourceMapCommentBytes": 45,
+      "files": {
+        "../../node_modules/@mui/utils/isMuiElement/isMuiElement.mjs": {
+          "size": 110
+        },
+        "../../node_modules/@mui/system/Grid/traverseBreakpoints.mjs": {
+          "size": 471
+        },
+        "../../node_modules/@mui/system/Grid/gridGenerator.mjs": {
+          "size": 2263
+        },
+        "../../node_modules/@mui/system/Grid/createGrid.mjs": {
+          "size": 1498
+        },
+        "../../node_modules/@mui/utils/createChainedFunction/createChainedFunction.mjs": {
+          "size": 107
+        },
+        "../../node_modules/@mui/utils/useControlled/useControlled.mjs": {
+          "size": 181
+        },
+        "../../node_modules/@mui/material/utils/useControlled.mjs": {
+          "size": 6
+        },
+        "../../node_modules/@mui/material/utils/mergeSlotProps.mjs": {
+          "size": 897
+        },
+        "../../node_modules/react-transition-group/esm/config.js": {
+          "size": 21
+        },
+        "../../node_modules/react-transition-group/esm/utils/reflow.js": {
+          "size": 35
+        },
+        "../../node_modules/react-transition-group/esm/Transition.js": {
+          "size": 3881
+        },
+        "../../node_modules/@mui/material/transitions/utils.mjs": {
+          "size": 414
+        },
+        "../../node_modules/@mui/material/IconButton/iconButtonClasses.mjs": {
+          "size": 296
+        },
+        "../../node_modules/@mui/material/IconButton/IconButton.mjs": {
+          "size": 2893
+        },
+        "../../node_modules/@popperjs/core/lib/enums.js": {
+          "size": 396
+        },
+        "../../node_modules/@popperjs/core/lib/dom-utils/getNodeName.js": {
+          "size": 60
+        },
+        "../../node_modules/@popperjs/core/lib/dom-utils/getWindow.js": {
+          "size": 140
+        },
+        "../../node_modules/@popperjs/core/lib/dom-utils/instanceOf.js": {
+          "size": 252
+        },
+        "../../node_modules/@popperjs/core/lib/modifiers/applyStyles.js": {
+          "size": 952
+        },
+        "../../node_modules/@popperjs/core/lib/utils/getBasePlacement.js": {
+          "size": 38
+        },
+        "../../node_modules/@popperjs/core/lib/utils/math.js": {
+          "size": 42
+        },
+        "../../node_modules/@popperjs/core/lib/utils/userAgent.js": {
+          "size": 180
+        },
+        "../../node_modules/@popperjs/core/lib/dom-utils/isLayoutViewport.js": {
+          "size": 65
+        },
+        "../../node_modules/@popperjs/core/lib/dom-utils/getBoundingClientRect.js": {
+          "size": 421
+        },
+        "../../node_modules/@popperjs/core/lib/dom-utils/getLayoutRect.js": {
+          "size": 189
+        },
+        "../../node_modules/@popperjs/core/lib/dom-utils/contains.js": {
+          "size": 176
+        },
+        "../../node_modules/@popperjs/core/lib/dom-utils/getComputedStyle.js": {
+          "size": 48
+        },
+        "../../node_modules/@popperjs/core/lib/dom-utils/isTableElement.js": {
+          "size": 59
+        },
+        "../../node_modules/@popperjs/core/lib/dom-utils/getDocumentElement.js": {
+          "size": 91
+        },
+        "../../node_modules/@popperjs/core/lib/dom-utils/getParentNode.js": {
+          "size": 96
+        },
+        "../../node_modules/@popperjs/core/lib/dom-utils/getOffsetParent.js": {
+          "size": 664
+        },
+        "../../node_modules/@popperjs/core/lib/utils/getMainAxisFromPlacement.js": {
+          "size": 60
+        },
+        "../../node_modules/@popperjs/core/lib/utils/within.js": {
+          "size": 90
+        },
+        "../../node_modules/@popperjs/core/lib/utils/getFreshSideObject.js": {
+          "size": 52
+        },
+        "../../node_modules/@popperjs/core/lib/utils/mergePaddingObject.js": {
+          "size": 47
+        },
+        "../../node_modules/@popperjs/core/lib/utils/expandToHashMap.js": {
+          "size": 68
+        },
+        "../../node_modules/@popperjs/core/lib/modifiers/arrow.js": {
+          "size": 1000
+        },
+        "../../node_modules/@popperjs/core/lib/utils/getVariation.js": {
+          "size": 38
+        },
+        "../../node_modules/@popperjs/core/lib/modifiers/computeStyles.js": {
+          "size": 2157
+        },
+        "../../node_modules/@popperjs/core/lib/modifiers/eventListeners.js": {
+          "size": 553
+        },
+        "../../node_modules/@popperjs/core/lib/utils/getOppositePlacement.js": {
+          "size": 141
+        },
+        "../../node_modules/@popperjs/core/lib/utils/getOppositeVariationPlacement.js": {
+          "size": 105
+        },
+        "../../node_modules/@popperjs/core/lib/dom-utils/getWindowScroll.js": {
+          "size": 84
+        },
+        "../../node_modules/@popperjs/core/lib/dom-utils/getWindowScrollBarX.js": {
+          "size": 54
+        },
+        "../../node_modules/@popperjs/core/lib/dom-utils/getViewportRect.js": {
+          "size": 227
+        },
+        "../../node_modules/@popperjs/core/lib/dom-utils/getDocumentRect.js": {
+          "size": 345
+        },
+        "../../node_modules/@popperjs/core/lib/dom-utils/isScrollParent.js": {
+          "size": 115
+        },
+        "../../node_modules/@popperjs/core/lib/dom-utils/getScrollParent.js": {
+          "size": 113
+        },
+        "../../node_modules/@popperjs/core/lib/dom-utils/listScrollParents.js": {
+          "size": 179
+        },
+        "../../node_modules/@popperjs/core/lib/utils/rectToClientRect.js": {
+          "size": 99
+        },
+        "../../node_modules/@popperjs/core/lib/dom-utils/getClippingRect.js": {
+          "size": 812
+        },
+        "../../node_modules/@popperjs/core/lib/utils/computeOffsets.js": {
+          "size": 500
+        },
+        "../../node_modules/@popperjs/core/lib/utils/detectOverflow.js": {
+          "size": 896
+        },
+        "../../node_modules/@popperjs/core/lib/utils/computeAutoPlacement.js": {
+          "size": 463
+        },
+        "../../node_modules/@popperjs/core/lib/modifiers/flip.js": {
+          "size": 1361
+        },
+        "../../node_modules/@popperjs/core/lib/modifiers/hide.js": {
+          "size": 751
+        },
+        "../../node_modules/@popperjs/core/lib/modifiers/offset.js": {
+          "size": 600
+        },
+        "../../node_modules/@popperjs/core/lib/modifiers/popperOffsets.js": {
+          "size": 224
+        },
+        "../../node_modules/@popperjs/core/lib/utils/getAltAxis.js": {
+          "size": 38
+        },
+        "../../node_modules/@popperjs/core/lib/modifiers/preventOverflow.js": {
+          "size": 1685
+        },
+        "../../node_modules/@popperjs/core/lib/dom-utils/getHTMLElementScroll.js": {
+          "size": 69
+        },
+        "../../node_modules/@popperjs/core/lib/dom-utils/getNodeScroll.js": {
+          "size": 52
+        },
+        "../../node_modules/@popperjs/core/lib/dom-utils/getCompositeRect.js": {
+          "size": 464
+        },
+        "../../node_modules/@popperjs/core/lib/utils/orderModifiers.js": {
+          "size": 406
+        },
+        "../../node_modules/@popperjs/core/lib/utils/debounce.js": {
+          "size": 131
+        },
+        "../../node_modules/@popperjs/core/lib/utils/mergeByName.js": {
+          "size": 247
+        },
+        "../../node_modules/@popperjs/core/lib/createPopper.js": {
+          "size": 1840
+        },
+        "../../node_modules/@popperjs/core/lib/popper.js": {
+          "size": 59
+        },
+        "../../node_modules/@mui/utils/getReactElementRef/getReactElementRef.mjs": {
+          "size": 42
+        },
+        "../../node_modules/@mui/material/Portal/Portal.mjs": {
+          "size": 404
+        },
+        "../../node_modules/@mui/material/Popper/popperClasses.mjs": {
+          "size": 63
+        },
+        "../../node_modules/@mui/material/Popper/BasePopper.mjs": {
+          "size": 2308
+        },
+        "../../node_modules/@mui/material/Popper/Popper.mjs": {
+          "size": 495
+        },
+        "../../node_modules/@mui/material/internal/svg-icons/Cancel.mjs": {
+          "size": 215
+        },
+        "../../node_modules/@mui/material/Chip/chipClasses.mjs": {
+          "size": 300
+        },
+        "../../node_modules/@mui/material/Chip/Chip.mjs": {
+          "size": 7351
+        },
+        "../../node_modules/@mui/material/TextareaAutosize/TextareaAutosize.mjs": {
+          "size": 2177
+        },
+        "../../node_modules/@mui/material/FormControl/formControlState.mjs": {
+          "size": 120
+        },
+        "../../node_modules/@mui/material/FormControl/FormControlContext.mjs": {
+          "size": 31
+        },
+        "../../node_modules/@mui/material/FormControl/useFormControl.mjs": {
+          "size": 38
+        },
+        "../../node_modules/@mui/material/InputBase/utils.mjs": {
+          "size": 206
+        },
+        "../../node_modules/@mui/material/InputBase/inputBaseClasses.mjs": {
+          "size": 251
+        },
+        "../../node_modules/@mui/material/InputBase/InputBase.mjs": {
+          "size": 5856
+        },
+        "../../node_modules/@mui/material/Input/inputClasses.mjs": {
+          "size": 99
+        },
+        "../../node_modules/@mui/material/OutlinedInput/outlinedInputClasses.mjs": {
+          "size": 120
+        },
+        "../../node_modules/@mui/material/FilledInput/filledInputClasses.mjs": {
+          "size": 177
+        },
+        "../../node_modules/@mui/material/internal/svg-icons/ArrowDropDown.mjs": {
+          "size": 61
+        },
+        "../../node_modules/@mui/material/Fade/Fade.mjs": {
+          "size": 1059
+        },
+        "../../node_modules/@mui/material/Backdrop/backdropClasses.mjs": {
+          "size": 79
+        },
+        "../../node_modules/@mui/material/Backdrop/Backdrop.mjs": {
+          "size": 1003
+        },
+        "../../node_modules/@mui/utils/getValidReactChildren/getValidReactChildren.mjs": {
+          "size": 75
+        },
+        "../../node_modules/@mui/material/CardActionArea/cardActionAreaClasses.mjs": {
+          "size": 118
+        },
+        "../../node_modules/@mui/material/CardActionArea/CardActionArea.mjs": {
+          "size": 1351
+        },
+        "../../node_modules/@mui/material/CardHeader/cardHeaderClasses.mjs": {
+          "size": 126
+        },
+        "../../node_modules/@mui/material/CardHeader/CardHeader.mjs": {
+          "size": 2027
+        },
+        "../../node_modules/@mui/material/CardMedia/cardMediaClasses.mjs": {
+          "size": 83
+        },
+        "../../node_modules/@mui/material/CardMedia/CardMedia.mjs": {
+          "size": 989
+        },
+        "../../node_modules/@mui/material/internal/switchBaseClasses.mjs": {
+          "size": 130
+        },
+        "../../node_modules/@mui/material/internal/SwitchBase.mjs": {
+          "size": 2092
+        },
+        "../../node_modules/@mui/utils/getScrollbarSize/getScrollbarSize.mjs": {
+          "size": 89
+        },
+        "../../node_modules/@mui/material/Modal/ModalManager.mjs": {
+          "size": 2666
+        },
+        "../../node_modules/@mui/material/Unstable_TrapFocus/FocusTrap.mjs": {
+          "size": 2988
+        },
+        "../../node_modules/@mui/material/Modal/useModal.mjs": {
+          "size": 1549
+        },
+        "../../node_modules/@mui/material/Modal/modalClasses.mjs": {
+          "size": 81
+        },
+        "../../node_modules/@mui/material/Modal/Modal.mjs": {
+          "size": 1981
+        },
+        "../../node_modules/@mui/material/Dialog/dialogClasses.mjs": {
+          "size": 249
+        },
+        "../../node_modules/@mui/material/Dialog/DialogContext.mjs": {
+          "size": 27
+        },
+        "../../node_modules/@mui/material/Dialog/Dialog.mjs": {
+          "size": 4136
+        },
+        "../../node_modules/@mui/material/Divider/dividerClasses.mjs": {
+          "size": 210
+        },
+        "../../node_modules/@mui/material/Divider/Divider.mjs": {
+          "size": 3276
+        },
+        "../../node_modules/@mui/material/Fab/fabClasses.mjs": {
+          "size": 221
+        },
+        "../../node_modules/@mui/material/Fab/Fab.mjs": {
+          "size": 2634
+        },
+        "../../node_modules/@mui/material/FilledInput/FilledInput.mjs": {
+          "size": 4627
+        },
+        "../../node_modules/@mui/material/FormControlLabel/formControlLabelClasses.mjs": {
+          "size": 204
+        },
+        "../../node_modules/@mui/material/FormControlLabel/FormControlLabel.mjs": {
+          "size": 2188
+        },
+        "../../node_modules/@mui/material/FormGroup/formGroupClasses.mjs": {
+          "size": 83
+        },
+        "../../node_modules/@mui/material/FormGroup/FormGroup.mjs": {
+          "size": 583
+        },
+        "../../node_modules/@mui/material/Grid/Grid.mjs": {
+          "size": 236
+        },
+        "../../node_modules/@mui/material/Grow/Grow.mjs": {
+          "size": 1683
+        },
+        "../../node_modules/@mui/material/InputLabel/inputLabelClasses.mjs": {
+          "size": 206
+        },
+        "../../node_modules/@mui/material/Input/Input.mjs": {
+          "size": 2167
+        },
+        "../../node_modules/@mui/material/List/ListContext.mjs": {
+          "size": 27
+        },
+        "../../node_modules/@mui/material/List/listClasses.mjs": {
+          "size": 89
+        },
+        "../../node_modules/@mui/material/List/List.mjs": {
+          "size": 896
+        },
+        "../../node_modules/@mui/material/ListItemIcon/listItemIconClasses.mjs": {
+          "size": 55
+        },
+        "../../node_modules/@mui/material/ListItemText/listItemTextClasses.mjs": {
+          "size": 83
+        },
+        "../../node_modules/@mui/material/utils/getScrollbarSize.mjs": {
+          "size": 6
+        },
+        "../../node_modules/@mui/material/utils/focusWithVisible.mjs": {
+          "size": 106
+        },
+        "../../node_modules/@mui/material/Select/utils/getOpenInteractionType.mjs": {
+          "size": 174
+        },
+        "../../node_modules/@mui/material/Select/utils/isEmpty.mjs": {
+          "size": 61
+        },
+        "../../node_modules/@mui/material/Select/utils/areEqualValues.mjs": {
+          "size": 74
+        },
+        "../../node_modules/@mui/material/Select/utils/SelectFocusSourceContext.mjs": {
+          "size": 86
+        },
+        "../../node_modules/@mui/material/MenuList/MenuListContext.mjs": {
+          "size": 185
+        },
+        "../../node_modules/@mui/material/MenuList/MenuList.mjs": {
+          "size": 2606
+        },
+        "../../node_modules/@mui/material/Popover/popoverClasses.mjs": {
+          "size": 73
+        },
+        "../../node_modules/@mui/material/Popover/Popover.mjs": {
+          "size": 3751
+        },
+        "../../node_modules/@mui/material/Menu/menuClasses.mjs": {
+          "size": 74
+        },
+        "../../node_modules/@mui/material/Menu/Menu.mjs": {
+          "size": 1957
+        },
+        "../../node_modules/@mui/material/MenuItem/menuItemClasses.mjs": {
+          "size": 139
+        },
+        "../../node_modules/@mui/material/MenuItem/MenuItem.mjs": {
+          "size": 3181
+        },
+        "../../node_modules/@mui/material/NativeSelect/nativeSelectClasses.mjs": {
+          "size": 227
+        },
+        "../../node_modules/@mui/material/NativeSelect/NativeSelectInput.mjs": {
+          "size": 2032
+        },
+        "../../node_modules/@mui/material/OutlinedInput/NotchedOutline.mjs": {
+          "size": 1460
+        },
+        "../../node_modules/@mui/material/OutlinedInput/OutlinedInput.mjs": {
+          "size": 3422
+        },
+        "../../node_modules/@mui/material/Select/selectClasses.mjs": {
+          "size": 182
+        },
+        "../../node_modules/@mui/material/Select/SelectInput.mjs": {
+          "size": 5466
+        },
+        "../../node_modules/@mui/material/Select/Select.mjs": {
+          "size": 1330
+        },
+        "../../node_modules/@mui/material/Tooltip/tooltipClasses.mjs": {
+          "size": 257
+        },
+        "../../node_modules/@mui/material/Tooltip/Tooltip.mjs": {
+          "size": 8384
+        },
+        "../../node_modules/@mui/material/Switch/switchClasses.mjs": {
+          "size": 207
+        },
+        "../../node_modules/@mui/material/Switch/Switch.mjs": {
+          "size": 4238
+        },
+        "../../node_modules/@mui/material/ToggleButton/toggleButtonClasses.mjs": {
+          "size": 186
+        },
+        "../../node_modules/@mui/material/ToggleButtonGroup/ToggleButtonGroupContext.mjs": {
+          "size": 23
+        },
+        "../../node_modules/@mui/material/ToggleButtonGroup/ToggleButtonGroupButtonContext.mjs": {
+          "size": 27
+        },
+        "../../node_modules/@mui/material/ToggleButtonGroup/isValueSelected.mjs": {
+          "size": 87
+        },
+        "../../node_modules/@mui/material/ToggleButton/ToggleButton.mjs": {
+          "size": 2653
+        },
+        "../../node_modules/@mui/material/ToggleButtonGroup/toggleButtonGroupClasses.mjs": {
+          "size": 202
+        },
+        "../../node_modules/@mui/material/ToggleButtonGroup/ToggleButtonGroup.mjs": {
+          "size": 2642
+        },
+        "../../node_modules/@mui/icons-material/AutoGraph.mjs": {
+          "size": 284
+        },
+        "../../node_modules/@mui/icons-material/BarChart.mjs": {
+          "size": 81
+        },
+        "../../node_modules/@mui/icons-material/CloseFullscreen.mjs": {
+          "size": 145
+        },
+        "../../node_modules/@mui/icons-material/Fullscreen.mjs": {
+          "size": 112
+        },
+        "../../node_modules/@mui/icons-material/Functions.mjs": {
+          "size": 85
+        },
+        "../../node_modules/@mui/icons-material/Pause.mjs": {
+          "size": 64
+        },
+        "../../node_modules/@mui/icons-material/PinOutlined.mjs": {
+          "size": 825
+        },
+        "../../node_modules/@mui/icons-material/PlayArrow.mjs": {
+          "size": 56
+        },
+        "../../node_modules/@mui/icons-material/ShowChart.mjs": {
+          "size": 106
+        },
+        "../../node_modules/@mui/icons-material/SsidChart.mjs": {
+          "size": 160
+        },
+        "../../node_modules/@mui/icons-material/TaskAlt.mjs": {
+          "size": 303
+        },
+        "../../node_modules/@mui/icons-material/Timer.mjs": {
+          "size": 213
+        },
+        "../../node_modules/@mui/icons-material/Update.mjs": {
+          "size": 313
+        },
+        "../../src/common/SelectionComponents.tsx": {
+          "size": 166
+        },
+        "../../src/common/SelectBoxHook.tsx": {
+          "size": 94
+        },
+        "../../src/common/Finished.tsx": {
+          "size": 903
+        },
+        "../../src/utils/types.ts": {
+          "size": 264
+        },
+        "../../node_modules/highcharts/esm/highcharts.src.js": {
+          "size": 273020
+        },
+        "../../node_modules/@highcharts/react/Highcharts.js": {
+          "size": 6256
+        },
+        "../../node_modules/@highcharts/react/options/Title.js": {
+          "size": 131
+        },
+        "../../node_modules/@highcharts/react/options/Subtitle.js": {
+          "size": 134
+        },
+        "../../node_modules/@highcharts/react/options/Credits.js": {
+          "size": 133
+        },
+        "../../node_modules/@highcharts/react/options/Tooltip.js": {
+          "size": 141
+        },
+        "../../node_modules/@highcharts/react/options/Legend.js": {
+          "size": 139
+        },
+        "../../node_modules/@highcharts/react/options/XAxis.js": {
+          "size": 137
+        },
+        "../../node_modules/@highcharts/react/options/YAxis.js": {
+          "size": 137
+        },
+        "../../node_modules/@highcharts/react/options/PlotOptions.js": {
+          "size": 133
+        },
+        "../../node_modules/highcharts/esm/modules/sunburst.src.js": {
+          "size": 42164
+        },
+        "../../node_modules/@highcharts/react/series/Sunburst.js": {
+          "size": 445
+        },
+        "../../src/Highcharts.tsx": {
+          "size": 115
+        },
+        "../../src/common/Barchart.tsx": {
+          "size": 3108
+        },
+        "../../src/common/Sunburst.tsx": {
+          "size": 834
+        },
+        "../../src/utils/mathUtils.ts": {
+          "size": 34
+        },
+        "../../node_modules/fast-average-color/dist/index.esm.js": {
+          "size": 6502
+        },
+        "../../src/utils/colourUtils.ts": {
+          "size": 478
+        },
+        "../../src/common/Card.tsx": {
+          "size": 3567
+        },
+        "../../src/common/Stats.tsx": {
+          "size": 3397
+        },
+        "../../src/common/TimelineChart.tsx": {
+          "size": 3857
+        },
+        "../../src/common/Timeline.tsx": {
+          "size": 587
+        },
+        "[sourceMappingURL]": {
+          "size": 45
+        },
+        "[unmapped]": {
+          "size": 672
+        },
+        "[EOLs]": {
+          "size": 4
+        }
+      }
+    },
+    {
+      "bundleName": "dist/assets/index-B63vBmTQ.js",
+      "totalBytes": 308910,
+      "mappedBytes": 305581,
+      "unmappedBytes": 3147,
+      "eolBytes": 140,
+      "sourceMapCommentBytes": 42,
+      "files": {
+        "../../node_modules/scheduler/cjs/scheduler.production.js": {
+          "size": 3479
+        },
+        "../../node_modules/scheduler/index.js": {
+          "size": 27
+        },
+        "../../node_modules/react-dom/cjs/react-dom.production.js": {
+          "size": 3250
+        },
+        "../../node_modules/react-dom/index.js": {
+          "size": 227
+        },
+        "../../node_modules/react-dom/cjs/react-dom-client.production.js": {
+          "size": 174560
+        },
+        "../../node_modules/react-dom/client.js": {
+          "size": 1417
+        },
+        "../../node_modules/react-router/dist/development/chunk-EVOBXE3Y.mjs": {
+          "size": 39892
+        },
+        "../../src/utils/arrayUtils.ts": {
+          "size": 392
+        },
+        "../../src/utils/googleUtils.ts": {
+          "size": 1785
+        },
+        "../../src/holiday/Holiday.tsx": {
+          "size": 79
+        },
+        "../../src/common/date.ts": {
+          "size": 2712
+        },
+        "../../src/common/useData.ts": {
+          "size": 383
+        },
+        "../../src/show/filterUtils.ts": {
+          "size": 828
+        },
+        "../../src/show/Show.tsx": {
+          "size": 1121
+        },
+        "../../src/vg/filterUtils.ts": {
+          "size": 1493
+        },
+        "../../src/vg/vg.tsx": {
+          "size": 866
+        },
+        "../../src/tabs.ts": {
+          "size": 305
+        },
+        "../../node_modules/@mui/system/createBox/createBox.mjs": {
+          "size": 336
+        },
+        "../../node_modules/@mui/utils/useEnhancedEffect/useEnhancedEffect.mjs": {
+          "size": 55
+        },
+        "../../node_modules/@mui/private-theming/useTheme/ThemeContext.mjs": {
+          "size": 25
+        },
+        "../../node_modules/@mui/private-theming/useTheme/useTheme.mjs": {
+          "size": 38
+        },
+        "../../node_modules/@mui/private-theming/ThemeProvider/nested.mjs": {
+          "size": 89
+        },
+        "../../node_modules/@mui/private-theming/ThemeProvider/ThemeProvider.mjs": {
+          "size": 250
+        },
+        "../../node_modules/@mui/system/RtlProvider/index.mjs": {
+          "size": 133
+        },
+        "../../node_modules/@mui/utils/useId/useId.mjs": {
+          "size": 195
+        },
+        "../../node_modules/@mui/system/ThemeProvider/useLayerOrder.mjs": {
+          "size": 604
+        },
+        "../../node_modules/@mui/system/ThemeProvider/ThemeProvider.mjs": {
+          "size": 504
+        },
+        "../../node_modules/@mui/system/InitColorSchemeScript/InitColorSchemeScript.mjs": {
+          "size": 1074
+        },
+        "../../node_modules/@mui/system/cssVars/localStorageManager.mjs": {
+          "size": 404
+        },
+        "../../node_modules/@mui/system/cssVars/useCurrentColorScheme.mjs": {
+          "size": 2673
+        },
+        "../../node_modules/@mui/system/cssVars/createCssVarsProvider.mjs": {
+          "size": 3656
+        },
+        "../../node_modules/@mui/system/Container/createContainer.mjs": {
+          "size": 1543
+        },
+        "../../node_modules/@mui/material/styles/ThemeProviderNoVars.mjs": {
+          "size": 119
+        },
+        "../../node_modules/@mui/material/InitColorSchemeScript/InitColorSchemeScript.mjs": {
+          "size": 172
+        },
+        "../../node_modules/@mui/material/styles/ThemeProviderWithVars.mjs": {
+          "size": 417
+        },
+        "../../node_modules/@mui/material/styles/ThemeProvider.mjs": {
+          "size": 245
+        },
+        "../../node_modules/@mui/material/utils/capitalize.mjs": {
+          "size": 9
+        },
+        "../../node_modules/@mui/material/SvgIcon/svgIconClasses.mjs": {
+          "size": 207
+        },
+        "../../node_modules/@mui/material/SvgIcon/SvgIcon.mjs": {
+          "size": 1884
+        },
+        "../../node_modules/@mui/material/SvgIcon/createSvgIcon.mjs": {
+          "size": 150
+        },
+        "../../node_modules/@mui/utils/debounce/debounce.mjs": {
+          "size": 137
+        },
+        "../../node_modules/@mui/material/utils/debounce.mjs": {
+          "size": 10
+        },
+        "../../node_modules/@mui/utils/getActiveElement/getActiveElement.mjs": {
+          "size": 116
+        },
+        "../../node_modules/@mui/material/utils/getActiveElement.mjs": {
+          "size": 10
+        },
+        "../../node_modules/@mui/utils/ownerDocument/ownerDocument.mjs": {
+          "size": 51
+        },
+        "../../node_modules/@mui/material/utils/ownerDocument.mjs": {
+          "size": 10
+        },
+        "../../node_modules/@mui/utils/ownerWindow/ownerWindow.mjs": {
+          "size": 48
+        },
+        "../../node_modules/@mui/material/utils/ownerWindow.mjs": {
+          "size": 10
+        },
+        "../../node_modules/@mui/utils/setRef/setRef.mjs": {
+          "size": 60
+        },
+        "../../node_modules/@mui/material/utils/useEnhancedEffect.mjs": {
+          "size": 10
+        },
+        "../../node_modules/@mui/material/utils/useId.mjs": {
+          "size": 6
+        },
+        "../../node_modules/@mui/utils/useEventCallback/useEventCallback.mjs": {
+          "size": 108
+        },
+        "../../node_modules/@mui/material/utils/useEventCallback.mjs": {
+          "size": 10
+        },
+        "../../node_modules/@mui/utils/useForkRef/useForkRef.mjs": {
+          "size": 375
+        },
+        "../../node_modules/@mui/material/utils/useForkRef.mjs": {
+          "size": 10
+        },
+        "../../node_modules/@babel/runtime/helpers/esm/objectWithoutPropertiesLoose.js": {
+          "size": 142
+        },
+        "../../node_modules/@babel/runtime/helpers/esm/setPrototypeOf.js": {
+          "size": 124
+        },
+        "../../node_modules/@babel/runtime/helpers/esm/inheritsLoose.js": {
+          "size": 90
+        },
+        "../../node_modules/react-transition-group/esm/TransitionGroupContext.js": {
+          "size": 29
+        },
+        "../../node_modules/@babel/runtime/helpers/esm/assertThisInitialized.js": {
+          "size": 120
+        },
+        "../../node_modules/react-transition-group/esm/utils/ChildMapping.js": {
+          "size": 1227
+        },
+        "../../node_modules/react-transition-group/esm/TransitionGroup.js": {
+          "size": 1217
+        },
+        "../../node_modules/@mui/utils/useLazyRef/useLazyRef.mjs": {
+          "size": 88
+        },
+        "../../node_modules/@mui/utils/useOnMount/useOnMount.mjs": {
+          "size": 43
+        },
+        "../../node_modules/@mui/utils/useTimeout/useTimeout.mjs": {
+          "size": 329
+        },
+        "../../node_modules/@mui/utils/isHostComponent/isHostComponent.mjs": {
+          "size": 41
+        },
+        "../../node_modules/@mui/utils/appendOwnerState/appendOwnerState.mjs": {
+          "size": 87
+        },
+        "../../node_modules/@mui/utils/resolveComponentProps/resolveComponentProps.mjs": {
+          "size": 56
+        },
+        "../../node_modules/@mui/utils/extractEventHandlers/extractEventHandlers.mjs": {
+          "size": 172
+        },
+        "../../node_modules/@mui/utils/omitEventHandlers/omitEventHandlers.mjs": {
+          "size": 154
+        },
+        "../../node_modules/@mui/utils/mergeSlotProps/mergeSlotProps.mjs": {
+          "size": 609
+        },
+        "../../node_modules/@mui/material/utils/useSlot.mjs": {
+          "size": 531
+        },
+        "../../node_modules/@mui/utils/isFocusVisible/isFocusVisible.mjs": {
+          "size": 70
+        },
+        "../../node_modules/@mui/material/utils/useFocusableWhenDisabled.mjs": {
+          "size": 352
+        },
+        "../../node_modules/@mui/material/ButtonBase/useButtonBase.mjs": {
+          "size": 1201
+        },
+        "../../node_modules/@mui/material/useLazyRipple/useLazyRipple.mjs": {
+          "size": 852
+        },
+        "../../node_modules/@mui/material/ButtonBase/Ripple.mjs": {
+          "size": 480
+        },
+        "../../node_modules/@mui/material/ButtonBase/touchRippleClasses.mjs": {
+          "size": 115
+        },
+        "../../node_modules/@mui/material/ButtonBase/TouchRipple.mjs": {
+          "size": 2622
+        },
+        "../../node_modules/@mui/material/ButtonBase/buttonBaseClasses.mjs": {
+          "size": 104
+        },
+        "../../node_modules/@mui/material/ButtonBase/ButtonBase.mjs": {
+          "size": 3148
+        },
+        "../../node_modules/@mui/material/utils/createSimplePaletteValueFilter.mjs": {
+          "size": 207
+        },
+        "../../node_modules/@mui/material/CircularProgress/circularProgressClasses.mjs": {
+          "size": 190
+        },
+        "../../node_modules/@mui/material/CircularProgress/CircularProgress.mjs": {
+          "size": 2551
+        },
+        "../../node_modules/@mui/material/Typography/typographyClasses.mjs": {
+          "size": 266
+        },
+        "../../node_modules/@mui/material/Typography/Typography.mjs": {
+          "size": 1788
+        },
+        "../../node_modules/@mui/material/AppBar/appBarClasses.mjs": {
+          "size": 287
+        },
+        "../../node_modules/@mui/material/AppBar/AppBar.mjs": {
+          "size": 2704
+        },
+        "../../node_modules/@mui/utils/useSlotProps/useSlotProps.mjs": {
+          "size": 238
+        },
+        "../../node_modules/@mui/material/Box/boxClasses.mjs": {
+          "size": 28
+        },
+        "../../node_modules/@mui/material/Box/Box.mjs": {
+          "size": 90
+        },
+        "../../node_modules/@mui/material/Button/buttonClasses.mjs": {
+          "size": 419
+        },
+        "../../node_modules/@mui/material/ButtonGroup/ButtonGroupContext.mjs": {
+          "size": 23
+        },
+        "../../node_modules/@mui/material/ButtonGroup/ButtonGroupButtonContext.mjs": {
+          "size": 27
+        },
+        "../../node_modules/@mui/material/Button/Button.mjs": {
+          "size": 7971
+        },
+        "../../node_modules/@mui/material/Container/Container.mjs": {
+          "size": 277
+        },
+        "../../node_modules/@mui/material/CssBaseline/CssBaseline.mjs": {
+          "size": 1687
+        },
+        "../../node_modules/@mui/utils/useRovingTabIndex/RovingTabIndexContext.mjs": {
+          "size": 219
+        },
+        "../../node_modules/@mui/utils/fastObjectShallowCompare/fastObjectShallowCompare.mjs": {
+          "size": 214
+        },
+        "../../node_modules/@mui/utils/useRovingTabIndex/useRovingTabIndex.mjs": {
+          "size": 4096
+        },
+        "../../node_modules/@mui/material/Tab/tabClasses.mjs": {
+          "size": 186
+        },
+        "../../node_modules/@mui/material/Tab/Tab.mjs": {
+          "size": 3201
+        },
+        "../../node_modules/@mui/material/Toolbar/toolbarClasses.mjs": {
+          "size": 93
+        },
+        "../../node_modules/@mui/material/Toolbar/Toolbar.mjs": {
+          "size": 890
+        },
+        "../../node_modules/@mui/material/internal/svg-icons/KeyboardArrowLeft.mjs": {
+          "size": 102
+        },
+        "../../node_modules/@mui/material/internal/svg-icons/KeyboardArrowRight.mjs": {
+          "size": 101
+        },
+        "../../node_modules/@mui/material/internal/animate.mjs": {
+          "size": 437
+        },
+        "../../node_modules/@mui/material/Tabs/ScrollbarSize.mjs": {
+          "size": 476
+        },
+        "../../node_modules/@mui/material/TabScrollButton/tabScrollButtonClasses.mjs": {
+          "size": 123
+        },
+        "../../node_modules/@mui/material/TabScrollButton/TabScrollButton.mjs": {
+          "size": 1199
+        },
+        "../../node_modules/@mui/material/Tabs/tabsClasses.mjs": {
+          "size": 212
+        },
+        "../../node_modules/@mui/material/Tabs/Tabs.mjs": {
+          "size": 8686
+        },
+        "../../node_modules/@mui/icons-material/Score.mjs": {
+          "size": 239
+        },
+        "../../src/utils/useLongPress.ts": {
+          "size": 255
+        },
+        "../../src/NavBar.tsx": {
+          "size": 1315
+        },
+        "../../src/Google.tsx": {
+          "size": 1258
+        },
+        "../../src/App.tsx": {
+          "size": 336
+        },
+        "../../src/utils/mapUtils.ts": {
+          "size": 131
+        },
+        "../../src/main.tsx": {
+          "size": 487
+        },
+        "[sourceMappingURL]": {
+          "size": 42
+        },
+        "[unmapped]": {
+          "size": 3147
+        },
+        "[EOLs]": {
+          "size": 140
+        }
+      }
+    }
+  ]
+}

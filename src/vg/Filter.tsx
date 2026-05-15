@@ -59,9 +59,11 @@ const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: Filte
       >
         <Grid
           container
-          margin={2}
           spacing={1}
-          justifyContent="space-between"
+          sx={{
+            margin: 2,
+            justifyContent: "space-between",
+          }}
         >
           <FilterToggle
             toggle="endless"
@@ -199,10 +201,12 @@ interface FilterDispatchProp {
 
 const FilterReset = ({ dispatch, setDrawerOpen }: FilterDispatchProp & { setDrawerOpen: (b: boolean) => void }) => (
   <Grid
-    display={{ xs: "flex" }}
-    justifyContent={{ xs: "center", md: "end" }}
     size={{ xs: 12, md: "grow" }}
-    order={{ xs: 1, md: 0 }}
+    sx={{
+      display: { xs: "flex" },
+      justifyContent: { xs: "center", md: "end" },
+      order: { xs: 1, md: 0 },
+    }}
   >
     <Button onClick={() => dispatch({ type: "resetFilters" })}>Clear</Button>
     <Button onClick={() => setDrawerOpen(false)}>Close</Button>
@@ -229,7 +233,11 @@ const FilterToggle = ({
         />
       }
       label={
-        <Typography textTransform="capitalize">
+        <Typography
+          sx={{
+            textTransform: "capitalize",
+          }}
+        >
           <Icon sx={{ verticalAlign: "middle" }} /> {toggle}
         </Typography>
       }

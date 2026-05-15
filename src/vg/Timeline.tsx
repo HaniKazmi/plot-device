@@ -7,15 +7,12 @@ import VgCardMediaImage from "./CardMediaImage";
 import { FooterComponent } from "../common/Card";
 
 const VgTimeline = ({ data }: { data: VideoGame[] }) => {
-  const [groupData, setGroupData] = useState(false);
   const [partyEnabled, setParty] = useState(false);
 
-  const groupFunc = groupData ? ({ company }: VideoGame) => company : () => "*";
   const gameData: TimelineData[] = data
     .filter(({ party }) => partyEnabled || !party)
     .filter(({ startDate }) => startDate instanceof YearMonthDay && startDate.year > 2014)
     .map((row) => ({
-      row: groupFunc(row),
       name: row.name,
       tooltip: (
         <VgCardMediaImage
@@ -37,23 +34,11 @@ const VgTimeline = ({ data }: { data: VideoGame[] }) => {
       end: (row.endDate as YearMonthDay | undefined) ?? CURRENT_PLAINDATE,
     }));
   return (
-    <Timeline
-      data={gameData}
-      showRowLabels={groupData}
-    >
+    <Timeline data={gameData}>
       <CardHeader
         title="Timeline"
         action={
           <FormGroup row>
-            <FormControlLabel
-              label="Group Data"
-              control={
-                <Switch
-                  checked={groupData}
-                  onChange={(_, checked) => setGroupData(checked)}
-                />
-              }
-            />
             <FormControlLabel
               label="Party"
               control={

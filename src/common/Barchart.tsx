@@ -12,7 +12,7 @@ import {
 } from "@mui/material";
 import { type ReactNode, useState } from "react";
 import { BarChart, PinOutlined, SsidChart } from "@mui/icons-material";
-import { HighchartsWrapper, type Options } from "../Highcharts";
+import { Chart, Series, XAxis, YAxis, PlotOptions, Tooltip, Legend } from "../Highcharts";
 import type { Year, YearMonth } from "./date";
 import type { Colour } from "../utils/types";
 import type {} from "@mui/material/themeCssVarsAugmentation";
@@ -42,86 +42,6 @@ const Barchart = ({
   if (dataPostProcess) results = dataPostProcess(results);
   const tooltipResults = results;
   if (graphType == "bump") results = convertToRanking(results, dates);
-
-  const options: Options = {
-    series: results.map((values, groupindex) => ({
-      data: values.map((val, valIndex) => ({ y: val, tooltip: tooltipResults[groupindex][valIndex] ?? 0 })),
-      name: groups[groupindex].name,
-      color: groups.length === 1 ? theme.palette.primary.main : groups[groupindex].colour,
-      lineWidth: 4,
-      type: graphType == "bar" ? "column" : graphType == "bump" ? "spline" : cumulative ? "area" : "spline",
-    })),
-    xAxis: {
-      type: "category",
-      categories: dates.map((date) => date.toString()),
-      labels: {
-        style: {
-          color: theme.vars.palette.text.primary,
-        },
-      },
-    },
-    yAxis: {
-      title: {
-        text: undefined,
-      },
-      reversed: graphType === "bump",
-      floor: graphType === "bump" ? 1 : undefined,
-      minTickInterval: 1,
-      labels: {
-        style: {
-          color: theme.vars.palette.text.primary,
-        },
-      },
-      endOnTick: false,
-    },
-    plotOptions: {
-      column: {
-        stacking: "normal",
-        dataLabels: {
-          enabled: false,
-        },
-        groupPadding: 0,
-        events: {
-          click: (event) => {
-            const {
-              series: clickedSeries,
-              series: { chart },
-            } = event.point;
-            const hasOtherVisibleSeries = chart.series.some((series) => series !== clickedSeries && series.visible);
-            event.point.series.chart.series.forEach((series) =>
-              series.setVisible(hasOtherVisibleSeries ? series === clickedSeries : true),
-            );
-          },
-        },
-      },
-      line: {},
-      area: {
-        stacking: "normal",
-      },
-      spline: {
-        tooltip: {
-          pointFormat: '<span style="color:{series.color}">\u25CF</span> {series.name}: <b>{point.tooltip}</b><br/>',
-        },
-      },
-    },
-    tooltip: {
-      // split: graphType === "bump"
-    },
-    chart: {
-      backgroundColor: "transparent",
-      style: {
-        color: theme.vars.palette.text.primary,
-      },
-    },
-    legend: {
-      enabled: groups.length > 1,
-      verticalAlign: "top",
-      align: "left",
-      itemStyle: {
-        color: theme.vars.palette.text.primary,
-      },
-    },
-  };
 
   return (
     <Card>
@@ -172,10 +92,105 @@ const Barchart = ({
         }
       />
       <CardContent>
-        <HighchartsWrapper
+        <Chart
           containerProps={{ style: { height: "80vh" } }}
-          options={options}
-        />
+          options={{
+            chart: {
+              backgroundColor: "transparent",
+              style: {
+                color: theme.vars.palette.text.primary,
+              },
+            },
+          }}
+        >
+          <XAxis
+            type="category"
+            categories={dates.map((date) => date.toString())}
+            labels={{
+              style: {
+                color: theme.vars.palette.text.primary,
+              } as any,
+            }}
+          />
+          <YAxis
+            title={{
+              text: undefined,
+            }}
+            reversed={graphType === "bump"}
+            floor={graphType === "bump" ? 1 : undefined}
+            minTickInterval={1}
+            labels={{
+              style: {
+                color: theme.vars.palette.text.primary,
+              } as any,
+            }}
+            endOnTick={false}
+          />
+          <PlotOptions
+            {...({
+              column: {
+                stacking: "normal",
+                dataLabels: {
+                  enabled: false,
+                },
+                groupPadding: 0,
+                events: {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  click: (event: any) => {
+                    const {
+                      series: clickedSeries,
+                      series: { chart },
+                    } = event.point;
+                    const hasOtherVisibleSeries = chart.series.some(
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      (series: any) => series !== clickedSeries && series.visible,
+                    );
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    chart.series.forEach((series: any) =>
+                      series.setVisible(hasOtherVisibleSeries ? series === clickedSeries : true),
+                    );
+                  },
+                },
+              },
+              line: {},
+              area: {
+                stacking: "normal",
+              },
+              spline: {
+                tooltip: {
+                  pointFormat:
+                    '<span style="color:{series.color}">\u25CF</span> {series.name}: <b>{point.tooltip}</b><br/>',
+                },
+              },
+            } as any)}
+          />
+          <Tooltip />
+          <Legend
+            enabled={groups.length > 1}
+            verticalAlign="top"
+            align="left"
+            itemStyle={{
+              color: theme.vars.palette.text.primary,
+            }}
+          />
+          {results.map((values, groupindex) => (
+            <Series
+              key={groups[groupindex].name}
+              type={
+                (graphType == "bar" ? "column" : graphType == "bump" ? "spline" : cumulative ? "area" : "spline") as any
+              }
+              data={values.map((val, valIndex) => ({
+                y: val,
+                tooltip: tooltipResults[groupindex][valIndex] ?? 0,
+              }))}
+              options={{
+                name: groups[groupindex].name,
+                color: groups.length === 1 ? theme.palette.primary.main : groups[groupindex].colour,
+                lineWidth: 4,
+              }}
+            />
+          ))}
+        </Chart>
       </CardContent>
     </Card>
   );

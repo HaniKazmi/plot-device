@@ -24,7 +24,6 @@ const ShowTimeline = ({ data }: { data: Show[] }) => {
       );
 
   const showData: TimelineData[] = titleData.map(([title, s, colour]) => ({
-    row: "*",
     name: title,
     tooltip: (
       <ShowCardMediaImage

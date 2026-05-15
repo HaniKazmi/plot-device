@@ -23,6 +23,7 @@ import type { Colour } from "../utils/types";
 export interface CardMediaImageProps {
   image?: string;
   alt: string;
+  colour?: Colour;
   chip?: Pick<ChipProps, "label" | "icon" | "onClick" | "variant"> & { colour?: Colour };
   lazy?: boolean;
   footerComponent?: ReactNode;
@@ -39,6 +40,7 @@ export const CardMediaImage = ({
   image,
   alt,
   chip,
+  colour: propColour,
   lazy = false,
   footerComponent,
   detailComponent,
@@ -47,7 +49,7 @@ export const CardMediaImage = ({
 }: CardMediaImageProps) => {
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [useWidth, setUseWidth] = useState(true);
-  const [colour, setColour] = useState<Colour | undefined>(imageToColour(image));
+  const [colour, setColour] = useState<Colour | undefined>(propColour ?? imageToColour(image));
   const imgRef = useRef<HTMLImageElement>(null);
 
   return (
@@ -126,8 +128,10 @@ export const CardMediaImage = ({
           }}
         >
           <Box
-            position="relative"
             onClick={() => setDialogOpen(false)}
+            sx={{
+              position: "relative",
+            }}
           >
             <Box
               sx={{
@@ -156,10 +160,16 @@ export const CardMediaImage = ({
               onClick={() => setDialogOpen(false)}
             />
           </Box>
-          <Box display="flex">
+          <Box
+            sx={{
+              display: "flex",
+            }}
+          >
             <Box
-              flexGrow="1"
-              width="0px"
+              sx={{
+                flexGrow: "1",
+                width: "0px",
+              }}
             >
               {detailComponent}
             </Box>
@@ -204,8 +214,10 @@ export const DetailCard = ({
         >
           <Stack
             direction={"column"}
-            height="100%"
-            justifyContent="space-between"
+            sx={{
+              height: "100%",
+              justifyContent: "space-between",
+            }}
           >
             <Typography
               align="center"
@@ -246,7 +258,6 @@ export const FooterComponent = ({
     {labels.map((stacks, index) => (
       <Stack
         key={`stacks-${index}`}
-        justifyContent={stacks.length === 1 ? "center" : justify ? "space-around" : "space-between"}
         direction="row"
         divider={
           divider ? (
@@ -256,6 +267,9 @@ export const FooterComponent = ({
             />
           ) : null
         }
+        sx={{
+          justifyContent: stacks.length === 1 ? "center" : justify ? "space-around" : "space-between",
+        }}
       >
         {stacks.map((val, index) =>
           typeof val === "string" ? (
@@ -328,8 +342,10 @@ export const TimelineCard = ({ segments }: { segments: ReactNode[] }) => {
         >
           <Stack
             direction="row"
-            alignItems="center"
-            height={(theme) => theme.spacing(3)}
+            sx={{
+              alignItems: "center",
+              height: (theme) => theme.spacing(3),
+            }}
           >
             {segments}
           </Stack>

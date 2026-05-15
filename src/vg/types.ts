@@ -8,7 +8,7 @@ export interface VideoGame {
   developer: string;
   publisher: string;
   franchise: string;
-  genre: string;
+  genre: Genre;
   theme: string[];
   rating: string;
   releaseDate: YearMonthDay;
@@ -28,6 +28,21 @@ export type Format = "Physical" | "Digital" | "Pirated" | "Subscription";
 export type Status = "Playing" | "Endless" | "Abandoned" | "Beat" | "Backlog" | "Next";
 export type Company = "PlayStation" | "Nintendo" | "PC" | "iOS" | "Xbox";
 export type Platform = `${Company}${string}`;
+export type Genre =
+  | "Action"
+  | "Adventure"
+  | "Action Adventure"
+  | "Driving/Racing"
+  | "Fighting"
+  | "Party Games"
+  | "Platformer"
+  | "Puzzle"
+  | "Role Playing"
+  | "Shooter"
+  | "Simulation"
+  | "Strategy"
+  | "Visual Novel"
+  | "Music/Rhythm";
 
 export interface VideoGameTree {
   [key: string]: VideoGameTree | VideoGame;
@@ -142,6 +157,96 @@ export const ratingToColour = ({ rating }: VideoGame) => {
   }
 };
 
+export const genreToColour = (genre: Genre | { genre: Genre }) => {
+  if (typeof genre === "object") {
+    genre = genre.genre;
+  }
+
+  switch (genre) {
+    case "Action":
+      return "#f44336" as Colour;
+    case "Adventure":
+      return "#4caf50" as Colour;
+    case "Action Adventure":
+      return "#ff9800" as Colour;
+    case "Driving/Racing":
+      return "#ffeb3b" as Colour;
+    case "Fighting":
+      return "#d32f2f" as Colour;
+    case "Party Games":
+      return "#e91e63" as Colour;
+    case "Platformer":
+      return "#03a9f4" as Colour;
+    case "Puzzle":
+      return "#9c27b0" as Colour;
+    case "Role Playing":
+      return "#673ab7" as Colour;
+    case "Shooter":
+      return "#607d8b" as Colour;
+    case "Simulation":
+      return "#00bcd4" as Colour;
+    case "Strategy":
+      return "#3f51b5" as Colour;
+    case "Visual Novel":
+      return "#ff4081" as Colour;
+    case "Music/Rhythm":
+      return "#cddc39" as Colour;
+    default:
+      return "#9e9e9e" as Colour;
+  }
+};
+
+export const franchiseToColour = (franchise: string | { franchise: string }) => {
+  if (typeof franchise === "object") {
+    franchise = franchise.franchise;
+  }
+
+  switch (franchise) {
+    case "Pokémon":
+      return "#FFCB05" as Colour;
+    case "Final Fantasy":
+      return "#00AEEF" as Colour;
+    case "Ace Attorney":
+      return "#1434A4" as Colour;
+    case "Mario":
+      return "#E60012" as Colour;
+    case "Call of Duty":
+      return "#4B5320" as Colour;
+    case "Dragon Ball":
+      return "#F85B1A" as Colour;
+    case "Assassin's Creed":
+      return "#D1D5DB" as Colour;
+    case "Legend of Zelda":
+      return "#1A8A34" as Colour;
+    case "Marvel":
+      return "#ED1D24" as Colour;
+    case "Tales":
+      return "#4FD1C5" as Colour;
+    case "Uncharted":
+      return "#C3B091" as Colour;
+    case "Yakuza":
+      return "#A31925" as Colour;
+    case "Super Smash Bros.":
+      return "#FF4500" as Colour;
+    case "Xenoblade":
+      return "#E60026" as Colour;
+    case "Fate":
+      return "#B91216" as Colour;
+    case "Warcraft":
+      return "#F8B700" as Colour;
+    case "Mass Effect":
+      return "#D12026" as Colour;
+    case "Witcher":
+      return "#9CA3AF" as Colour;
+    case "Civilization":
+      return "#005E9B" as Colour;
+    case "Persona":
+      return "#10145A" as Colour;
+    default:
+      return "" as Colour;
+  }
+};
+
 export const groupToColour = (group: keyof VideoGame | "none", game: VideoGame) => {
   switch (group) {
     case "company":
@@ -150,6 +255,10 @@ export const groupToColour = (group: keyof VideoGame | "none", game: VideoGame) 
       return statusToColour(game);
     case "rating":
       return ratingToColour(game);
+    case "genre":
+      return genreToColour(game);
+    case "franchise":
+      return franchiseToColour(game);
     default:
       return "" as Colour;
   }

@@ -1,15 +1,20 @@
 import {
+  Album,
   AutoGraph,
+  Business,
   Category,
   CloseFullscreen,
+  Code,
   ExpandCircleDown,
   Pause,
   PlayArrow,
   ShowChart,
   Stars,
+  Storefront,
   TaskAlt,
   Timer,
   Update,
+  VerifiedUser,
   VideogameAsset,
   Whatshot,
 } from "@mui/icons-material";
@@ -17,6 +22,7 @@ import Grid from "@mui/material/Grid";
 import { format } from "../utils/mathUtils";
 import {
   companyToColor,
+  groupToColour,
   platformToShort,
   type Company,
   type Measure,
@@ -24,19 +30,17 @@ import {
   type VideoGame,
   type VideoGameStringKeys,
 } from "./types";
-import { StatCard, StatList, StatsListCard, type StatsListProps, TotalStack } from "../common/Stats";
+import { Segment, StatCard, StatList, StatsListCard, type StatsListProps, TotalStack } from "../common/Stats";
+import { highchartsColors } from "../Highcharts";
 import VgCardMediaImage from "./CardMediaImage";
 import {
-  Avatar,
+  Box,
+  Card,
   CardContent,
   CardHeader,
   Dialog,
   FormControl,
   IconButton,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
   MenuItem,
   Radio,
   Select,
@@ -66,7 +70,9 @@ const Stats = ({
     <Grid
       container
       spacing={1}
-      alignItems="stretch"
+      sx={{
+        alignItems: "stretch",
+      }}
     >
       <AllTime
         data={data}
@@ -116,9 +122,11 @@ const Totals = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
       }}
     >
       <Stack
-        justifyContent="space-between"
-        height="100%"
         spacing={1}
+        sx={{
+          justifyContent: "space-between",
+          height: "100%",
+        }}
       >
         <TotalStack
           title={"Status"}
@@ -422,9 +430,11 @@ const MostPlayedCategory = ({
       <CardContent>
         <Grid
           container
-          sx={{ overflow: "auto" }}
           spacing={1}
-          alignItems="center"
+          sx={{
+            alignItems: "center",
+            overflow: "auto",
+          }}
         >
           {dialogContent.all.slice(0, 18).map((entry) => {
             return (
@@ -460,6 +470,7 @@ const MostPlayedCategory = ({
           <VgCardMediaImage
             {...props}
             item={props.item.most}
+            colour={groupToColour(category, props.item.most)}
           />
         )}
         nameComponent={(entry) => entry.category}
@@ -489,50 +500,181 @@ const CurrentlyPlaying = ({ data }: { data: VideoGame[] }) => {
 const TopCategories = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
   return (
     <>
-      <TopList data={data} measure={measure} category="genre" title="Top Genres" icon={<Category />} />
-      <TopList data={data} measure={measure} category="platform" title="Top Platforms" icon={<VideogameAsset />} />
-      <TopList data={data} measure={measure} category="franchise" title="Top Franchises" icon={<Stars />} />
+      <TopList
+        data={data}
+        measure={measure}
+        defaultCategory="genre"
+      />
+      <TopList
+        data={data}
+        measure={measure}
+        defaultCategory="publisher"
+      />
+      <TopList
+        data={data}
+        measure={measure}
+        defaultCategory="franchise"
+      />
     </>
   );
 };
 
-const TopList = ({ data, measure, category, title, icon }: { data: VideoGame[]; measure: Measure; category: VideoGameStringKeys; title: string, icon: ReactNode }) => {
+const optionIcons: Record<Exclude<VideoGameStringKeys, "name">, ReactNode> = {
+  company: <Business />,
+  format: <Album />,
+  franchise: <Stars />,
+  platform: <VideogameAsset />,
+  developer: <Code />,
+  publisher: <Storefront />,
+  rating: <VerifiedUser />,
+  status: <TaskAlt />,
+  genre: <Category />,
+};
+
+const topOptions = Object.keys(optionIcons) as (keyof typeof optionIcons)[];
+
+const TopList = ({
+  data,
+  measure,
+  defaultCategory,
+}: {
+  data: VideoGame[];
+  measure: Measure;
+  defaultCategory: (typeof topOptions)[number];
+}) => {
+  const [option, controls] = useSelectBox(topOptions, defaultCategory);
+  const colorOffset = topOptions.indexOf(option) * 3;
+  const [hovered, setHovered] = useState<string | null>(null);
+
   const gamesByCategory = Object.groupBy(
     data.filter((a) => a.hours && a.endDate),
-    (vg) => vg[category],
+    (vg) => vg[option],
   ) as Record<string, VideoGame[]>;
 
-  const most = Object.entries(gamesByCategory)
+  const allGroups = Object.entries(gamesByCategory)
     .filter(([cat]) => cat && cat !== "undefined" && cat !== "")
     .map(([cat, games]) => {
       return {
-        category: cat,
-        total: measure === "Hours" ? games?.sum("hours") : games.length,
+        name: cat,
+        count: measure === "Hours" ? games?.sum("hours") : games.length,
+        topGame: games?.sortByKey("hours")[0] as VideoGame | undefined,
+        percent: 0,
       };
     })
-    .sortByKey("total")
-    .slice(0, 5);
+    .sortByKey("count");
+
+  const most = allGroups.slice(0, 5);
+  const other = allGroups.slice(5);
+
+  if (other.length > 0) {
+    most.push({
+      name: "Other",
+      count: other.reduce((acc, curr) => acc + curr.count!, 0),
+      topGame: undefined,
+      percent: 0,
+    });
+  }
+
+  const total = most.reduce((acc, curr) => acc + curr.count!, 0);
+  let percentLeft = 100;
+  most.forEach((m) => {
+    m.percent = Math.max((m.count! / total) * 100, 0.5);
+    percentLeft -= m.percent;
+  });
+  if (most.length > 0) most[0].percent += percentLeft;
+
+  const getColour = (struct: (typeof most)[0], index: number) => {
+    if (struct.name === "Other") return "grey";
+    const groupCol = struct.topGame ? groupToColour(option, struct.topGame) : "";
+    return groupCol || highchartsColors[(index + colorOffset) % highchartsColors.length];
+  };
 
   return (
     <Grid size={{ xs: 12, sm: 6, md: 4 }}>
       <Card sx={{ height: "100%" }}>
         <CardHeader
-          title={title}
-          avatar={icon}
-          titleTypographyProps={{ variant: "h6" }}
-          sx={{ paddingBottom: "5px" }}
+          title={`Top ${option}`}
+          avatar={optionIcons[option]}
+          action={controls}
+          slotProps={{
+            title: { variant: "h6", sx: { textTransform: "capitalize" } },
+          }}
         />
-        <CardContent sx={{ padding: 0 }}>
-          <List dense>
-            {most.map((item, index) => (
-              <ListItem key={item.category}>
-                <ListItemAvatar sx={{ minWidth: 40 }}>
-                  <Avatar sx={{ width: 24, height: 24, fontSize: '0.875rem' }}>{index + 1}</Avatar>
-                </ListItemAvatar>
-                <ListItemText primary={item.category} secondary={`${format(item.total!)} ${measure}`} />
-              </ListItem>
+        <CardContent
+          sx={{
+            ":last-child": { paddingBottom: 1 },
+            height: "100%",
+          }}
+        >
+          <Stack
+            direction="row"
+            spacing={0.25}
+            sx={{
+              alignItems: "center",
+              height: (theme) => theme.spacing(3),
+            }}
+          >
+            {most.map((struct, index) => (
+              <Segment
+                key={`top-${struct.name}`}
+                percent={struct.percent}
+                backgroundColour={getColour(struct, index)}
+                onMouseEnter={() => setHovered(struct.name)}
+                onMouseLeave={() => setHovered(null)}
+                sx={{
+                  opacity: hovered && hovered !== struct.name ? 0.3 : 1,
+                  cursor: "pointer",
+                }}
+              />
             ))}
-          </List>
+          </Stack>
+          <Stack
+            direction="column"
+            spacing={1}
+            sx={{
+              alignItems: "stretch",
+              mt: 2,
+            }}
+          >
+            {most.map((struct, index) => (
+              <Stack
+                key={`col-${struct.name}`}
+                direction="row"
+                spacing={1}
+                sx={{
+                  width: "100%",
+                  alignItems: "center",
+                  opacity: hovered && hovered !== struct.name ? 0.3 : 1,
+                  transition: "opacity 0.2s",
+                  cursor: "default",
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 16,
+                    height: 16,
+                    backgroundColor: getColour(struct, index),
+                    borderRadius: 0.5,
+                    flexShrink: 0,
+                  }}
+                />
+                <Typography
+                  onMouseEnter={() => setHovered(struct.name)}
+                  onMouseLeave={() => setHovered(null)}
+                  variant="body2"
+                  sx={{ flexGrow: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                >
+                  {struct.name}
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{ flexShrink: 0 }}
+                >
+                  {`${format(struct.count!)} ${measure}`}
+                </Typography>
+              </Stack>
+            ))}
+          </Stack>
         </CardContent>
       </Card>
     </Grid>
