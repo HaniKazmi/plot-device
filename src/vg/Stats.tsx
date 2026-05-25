@@ -153,6 +153,43 @@ const Totals = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
   );
 };
 
+const YearSelect = ({
+  yearTo,
+  filterDispatch,
+  renderValue,
+  minWidth = 130,
+}: {
+  yearTo: number;
+  filterDispatch: FilterDispatch;
+  renderValue: (value: number) => ReactNode;
+  minWidth?: number;
+}) => (
+  <FormControl
+    variant="standard"
+    sx={{ minWidth, margin: 0 }}
+  >
+    <Select
+      SelectDisplayProps={{ style: { padding: 0 } }}
+      value={yearTo}
+      displayEmpty
+      onChange={(event) =>
+        filterDispatch({ type: "updateFilter", filter: "yearTo", value: event.target.value as YearNumber })
+      }
+      renderValue={(value) => renderValue(value as number)}
+      slots={{ root: prepareForSlot("span") }}
+    >
+      {Array.from({ length: CURRENT_YEAR - EARLIEST_YEAR + 1 }, (_, i) => CURRENT_YEAR - i).map((year) => (
+        <MenuItem
+          key={year}
+          value={year}
+        >
+          {year}
+        </MenuItem>
+      ))}
+    </Select>
+  </FormControl>
+);
+
 const AllTime = ({
   data,
   yearType,
@@ -167,39 +204,19 @@ const AllTime = ({
   const filtered = data.filter((game) => game.hours);
   const time = filtered.sum("hours");
   const games = filtered.length;
-  const titleSelect = (
-    <FormControl
-      variant="standard"
-      sx={{ minWidth: 130, margin: 0 }}
-    >
-      <Select
-        SelectDisplayProps={{ style: { padding: 0 } }}
-        value={yearTo}
-        displayEmpty
-        onChange={(event) =>
-          filterDispatch({ type: "updateFilter", filter: "yearTo", value: event.target.value as YearNumber })
-        }
-        renderValue={(value) => (
-          <Typography variant="h6">{value == CURRENT_YEAR ? "All Time" : `Up To ${value}`}</Typography>
-        )}
-        slots={{ root: prepareForSlot("span") }}
-      >
-        {Array.from({ length: CURRENT_YEAR - EARLIEST_YEAR + 1 }, (_, i) => CURRENT_YEAR - i).map((year) => (
-          <MenuItem
-            key={year}
-            value={year}
-          >
-            {year}
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
-  );
 
   return (
     <StatCard
       icon={<Timer />}
-      title={titleSelect}
+      title={
+        <YearSelect
+          yearTo={yearTo}
+          filterDispatch={filterDispatch}
+          renderValue={(value) => (
+            <Typography variant="h6">{value == CURRENT_YEAR ? "All Time" : `Up To ${value}`}</Typography>
+          )}
+        />
+      }
       action={
         <Radio
           size="small"
@@ -230,37 +247,17 @@ const ThisYearSoFar = ({
   const time = filtered.sum("hours");
   const games = filtered.length;
 
-  const titleSelect = (
-    <FormControl
-      variant="standard"
-      sx={{ minWidth: 120, margin: 0 }}
-    >
-      <Select
-        SelectDisplayProps={{ style: { padding: 0 } }}
-        value={yearTo}
-        displayEmpty
-        onChange={(event) =>
-          filterDispatch({ type: "updateFilter", filter: "yearTo", value: event.target.value as YearNumber })
-        }
-        renderValue={(value) => <Typography variant="h6">In {value}</Typography>}
-        slots={{ root: prepareForSlot("span") }}
-      >
-        {Array.from({ length: CURRENT_YEAR - EARLIEST_YEAR + 1 }, (_, i) => CURRENT_YEAR - i).map((year) => (
-          <MenuItem
-            key={year}
-            value={year}
-          >
-            {year}
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
-  );
-
   return (
     <StatCard
       icon={<Update />}
-      title={titleSelect}
+      title={
+        <YearSelect
+          yearTo={yearTo}
+          filterDispatch={filterDispatch}
+          minWidth={120}
+          renderValue={(value) => <Typography variant="h6">In {value}</Typography>}
+        />
+      }
       action={
         <Radio
           size="small"

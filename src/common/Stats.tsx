@@ -132,19 +132,19 @@ export const StatList = <T,>({
   ...props
 }: StatsListProps<T>) => {
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
-  const fullScreenButton = content.length > 6 && (
-    <IconButton onClick={() => setDialogOpen(!dialogOpen)}>
-      {dialogOpen ? <CloseFullscreen color="primary" /> : <Fullscreen />}
-    </IconButton>
-  );
-  const cardContent = (
+
+  const renderContent = (isDialog: boolean) => (
     <>
       <CardHeader
         title={title}
         avatar={icon}
         action={
           <Stack direction="row-reverse">
-            {fullScreenButton}
+            {content.length > 6 && (
+              <IconButton onClick={() => setDialogOpen(!isDialog)}>
+                {isDialog ? <CloseFullscreen color="primary" /> : <Fullscreen />}
+              </IconButton>
+            )}
             {controls}
           </Stack>
         }
@@ -157,26 +157,24 @@ export const StatList = <T,>({
           sx={{
             alignItems: "center",
             overflow: "auto",
-            flexWrap: dialogOpen ? undefined : { xs: "nowrap", md: wrap ? "wrap" : "nowrap" },
+            flexWrap: isDialog ? undefined : { xs: "nowrap", md: wrap ? "wrap" : "nowrap" },
           }}
         >
-          {content.slice(0, dialogOpen || !wrap ? 18 : 6).map((entry) => {
-            const name = nameComponent(entry);
-            return (
-              <StatsListCard
-                key={title + "-statslistcard-" + name}
-                item={entry}
-                labels={labelComponent(entry)}
-                chip={chipComponent?.(entry)}
-                pictureWidth={dialogOpen && dialogPictureWidth ? dialogPictureWidth : pictureWidth}
-                {...props}
-              />
-            );
-          })}
+          {content.slice(0, isDialog || !wrap ? 18 : 6).map((entry) => (
+            <StatsListCard
+              key={`${title}-statslistcard-${nameComponent(entry)}`}
+              item={entry}
+              labels={labelComponent(entry)}
+              chip={chipComponent?.(entry)}
+              pictureWidth={isDialog && dialogPictureWidth ? dialogPictureWidth : pictureWidth}
+              {...props}
+            />
+          ))}
         </Grid>
       </CardContent>
     </>
   );
+
   return (
     <Grid
       size={{
@@ -186,12 +184,12 @@ export const StatList = <T,>({
       }}
     >
       <Card sx={{ height: "100%" }}>
-        {cardContent}
+        {renderContent(false)}
         <Dialog
           open={dialogOpen}
           fullScreen
         >
-          {cardContent}
+          {renderContent(true)}
         </Dialog>
       </Card>
     </Grid>
@@ -292,19 +290,15 @@ export const TotalStack = <T extends string, U, K extends keyof U>({
   const total = measureFunc(data);
   let percentLeft = 100;
 
-  const totals = group
-    .map((e) => {
-      const count = measureFunc(data.filter((vg) => vg[groupKey] === e));
+  const totals = group.reduce((acc, e) => {
+    const count = measureFunc(data.filter((vg) => vg[groupKey] === e));
+    if (count > 0) {
       const percent = Math.max((count / total) * 100, 0.5);
       percentLeft -= percent;
-      return {
-        name: e,
-        count,
-        percent,
-        colour: groupToColour(e),
-      };
-    })
-    .filter((struct) => struct.count > 0);
+      acc.push({ name: e, count, percent, colour: groupToColour(e) });
+    }
+    return acc;
+  }, [] as Array<{ name: T; count: number; percent: number; colour: Colour }>);
 
   if (totals.length > 0) {
     totals[0].percent += percentLeft;
@@ -367,7 +361,6 @@ export const TotalStack = <T extends string, U, K extends keyof U>({
                 spacing={1}
               />
               <Stack
-                key={struct.name}
                 direction={{ xs: "row-reverse", md: "column" }}
                 sx={{
                   width: "100%",

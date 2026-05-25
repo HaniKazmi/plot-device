@@ -48,7 +48,6 @@ export const CardMediaImage = ({
   sx,
 }: CardMediaImageProps) => {
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
-  const [useWidth, setUseWidth] = useState(true);
   const [colour, setColour] = useState<Colour | undefined>(propColour ?? imageToColour(image));
   const imgRef = useRef<HTMLImageElement>(null);
 
@@ -76,20 +75,9 @@ export const CardMediaImage = ({
           loading={lazy ? "lazy" : undefined}
           ref={imgRef}
           onLoad={(el) => {
-            const img = el.target as HTMLImageElement;
-            const dialogImageWidth = img.naturalWidth;
-            const dialogImageHeight = img.naturalHeight;
-            const aspectRatio = dialogImageWidth / dialogImageHeight;
-
-            if (aspectRatio > 1 && dialogImageWidth < window.innerWidth) {
-              setUseWidth(false);
+            if (footerComponent && !colour) {
+              imageToColour(el.target as HTMLImageElement, setColour);
             }
-            if (useWidth && window.innerHeight * aspectRatio < window.innerWidth) {
-              setUseWidth(false);
-            } else if (!useWidth && window.innerWidth / aspectRatio < window.innerHeight) {
-              setUseWidth(true);
-            }
-            if (footerComponent && !colour) imageToColour(img, setColour);
           }}
           sx={sx}
         />
@@ -150,9 +138,7 @@ export const CardMediaImage = ({
                 objectFit: "contain",
                 maxHeight: (theme) => `calc(100vh - ${theme.spacing(4)})`,
                 maxWidth: (theme) => `calc(100vw - ${theme.spacing(4)})`,
-                aspectRatio: "auto",
-                width: useWidth ? "100vw" : "unset",
-                height: !useWidth ? "100vh" : "unset",
+                display: "block",
               }}
               src={image}
               title={alt}

@@ -36,7 +36,7 @@ const Finished = <
   if (sort === "Date") {
     recent = recent.sortByKey("startDate", false);
   }
-  const content = (
+  const renderContent = (isDialog: boolean) => (
     <>
       <CardHeader
         title={title}
@@ -47,8 +47,8 @@ const Finished = <
               spacing={1}
             >
               {selectBox}
-              <IconButton onClick={() => setDialogOpen(!dialogOpen)}>
-                {dialogOpen ? <CloseFullscreen color="primary" /> : <Fullscreen />}
+              <IconButton onClick={() => setDialogOpen(!isDialog)}>
+                {isDialog ? <CloseFullscreen color="primary" /> : <Fullscreen />}
               </IconButton>
             </Stack>
           </FormGroup>
@@ -65,8 +65,8 @@ const Finished = <
         >
           {recent.map((item) => (
             <Grid
-              key={item.name}
-              size={dialogOpen ? 12 : width}
+              key={`${item.name}-${isDialog ? 'dialog' : 'card'}`}
+              size={isDialog ? 12 : width}
               sx={{
                 alignSelf: "stretch",
               }}
@@ -94,12 +94,12 @@ const Finished = <
 
   return (
     <Card>
-      {content}
+      {renderContent(false)}
       <Dialog
         open={dialogOpen}
         fullScreen
       >
-        {content}
+        {renderContent(true)}
       </Dialog>
     </Card>
   );
