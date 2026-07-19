@@ -1,22 +1,22 @@
 import { useEffect, useState } from "react";
 import { PlainDate } from "./date";
-import { fetchAndConvertSheet, useApiReady } from "../utils/googleUtils";
+import { useGoogleAuth } from "../contexts/GoogleAuthContext";
 import type { Tab } from "../tabs";
 
 const storage = localStorage;
+
+const CACHE = new Map<string, unknown>();
 
 const useData = <T>(
   storageKey: string,
   tab: Tab,
   converter: (json: Record<string, string>[]) => T[],
-  useDataStore: () => readonly [T[], (data: T[]) => void],
   reviver?: (items: T[]) => void,
 ): [T[] | undefined, boolean] => {
   const [dataLoaded, setDataLoaded] = useState(false);
-  const [store, setStore] = useDataStore();
 
   const [data, setData] = useState<T[] | undefined>(() => {
-    if (store) return store;
+    if (CACHE.has(storageKey)) return CACHE.get(storageKey) as T[];
     const tempData = storage.getItem(storageKey);
     if (tempData) {
       const parsed = JSON.parse(tempData, (key, value) => {
@@ -33,23 +33,25 @@ const useData = <T>(
     return undefined;
   });
 
-  const { apiReady } = useApiReady();
+  const { apiReady, fetchAndConvertSheet } = useGoogleAuth();
 
   useEffect(() => {
-    if (!apiReady || store) return;
-    fetchAndConvertSheet(tab, converter, (data) => {
-      setStore(data);
-      setData(data);
-      setDataLoaded(true);
-      storage.setItem(
-        storageKey,
-        JSON.stringify(data, (key, value) => {
-          if (key === "show") return;
-          return value as unknown;
-        }),
-      );
-    });
-  }, [apiReady, converter, store, setStore, storageKey, tab]);
+    if (!apiReady || CACHE.has(storageKey)) return;
+    fetchAndConvertSheet(tab, converter)
+      .then((data) => {
+        CACHE.set(storageKey, data);
+        setData(data);
+        setDataLoaded(true);
+        storage.setItem(
+          storageKey,
+          JSON.stringify(data, (key, value) => {
+            if (key === "show") return;
+            return value as unknown;
+          }),
+        );
+      })
+      .catch(console.error);
+  }, [apiReady, converter, storageKey, tab, fetchAndConvertSheet]);
 
   return [data, dataLoaded];
 };

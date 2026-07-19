@@ -9,12 +9,8 @@ const Graphs = lazy(() => import(/* webpackPrefetch: true */ "./Graphs"));
 
 const storageKey = "show-data-cache";
 
-let DATA_STORE: Show[];
-const setDataStore = (data: Show[]) => (DATA_STORE = data);
-const useDataStore = () => [DATA_STORE, setDataStore] as const;
-
 const ShowsGraph = () => {
-  const [data] = useData(storageKey, ShowsTab, jsonConverter, useDataStore, (items) =>
+  const [data] = useData(storageKey, ShowsTab, jsonConverter, (items) =>
     items.forEach((show) => show.s.forEach((s) => (s.show = show))),
   );
 

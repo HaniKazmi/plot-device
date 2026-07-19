@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useState, useTransition } from "react";
 import { HolidaysTab } from "../tabs";
-import { fetchAndConvertSheet } from "../utils/googleUtils";
+import { useGoogleAuth } from "../contexts/GoogleAuthContext";
 import { Holiday } from "./types";
 
 const Graphs = lazy(() => import(/* webpackPrefetch: true */ "./Graphs"));
@@ -10,8 +10,23 @@ let DATA: Holiday[];
 const HolidayGraphs = () => {
   const [data, setData] = useState<Holiday[]>();
   const [, startTransition] = useTransition();
+  const { apiReady, fetchAndConvertSheet } = useGoogleAuth();
 
-  useEffect(() => startTransition(() => getData(setData)), []);
+  useEffect(() => {
+    if (!apiReady) return;
+    startTransition(() => {
+      if (DATA) {
+        setData(DATA);
+        return;
+      }
+      fetchAndConvertSheet(HolidaysTab, jsonConverter)
+        .then((fetchedData) => {
+          DATA = fetchedData;
+          setData(fetchedData);
+        })
+        .catch(console.error);
+    });
+  }, [apiReady, fetchAndConvertSheet]);
 
   if (!data) {
     return null;
@@ -22,18 +37,6 @@ const HolidayGraphs = () => {
       <Graphs data={data} />
     </Suspense>
   );
-};
-
-const getData = (setData: (b: Holiday[]) => void) => {
-  if (DATA) {
-    setData(DATA);
-    return;
-  }
-
-  fetchAndConvertSheet(HolidaysTab, jsonConverter, (data) => {
-    DATA = data;
-    setData(data);
-  });
 };
 
 const jsonConverter = (json: Record<string, string>[]) => {

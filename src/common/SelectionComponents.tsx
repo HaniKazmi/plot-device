@@ -5,7 +5,7 @@ export const SelectBox = <T extends string>({
   value,
   setValue,
 }: {
-  options: T[];
+  options: readonly T[];
   value: T;
   setValue: (func: T) => void;
 }) => (

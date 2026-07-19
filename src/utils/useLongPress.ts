@@ -1,20 +1,29 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useLayoutEffect } from "react";
 
 const useLongPress = (onLongPress: () => void, onClick?: () => void, ms = 300) => {
-  const timer = useRef(0);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const onLongPressRef = useRef(onLongPress);
+  const onClickRef = useRef(onClick);
+
+  useLayoutEffect(() => {
+    onLongPressRef.current = onLongPress;
+    onClickRef.current = onClick;
+  });
+
   const handleStart = useCallback(() => {
     clearTimeout(timer.current);
     timer.current = setTimeout(() => {
-      onLongPress();
+      onLongPressRef.current();
     }, ms);
-  }, [onLongPress, ms]);
+  }, [ms]);
 
   const handleEnd = useCallback(() => {
     clearTimeout(timer.current);
-    if (onClick) {
-      onClick();
+    if (onClickRef.current) {
+      onClickRef.current();
     }
-  }, [onClick]);
+  }, []);
 
   return {
     onMouseDown: handleStart,

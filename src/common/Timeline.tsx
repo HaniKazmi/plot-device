@@ -187,6 +187,7 @@ const useTextPlacement = (data: PositionedTimelineData[]) => {
       });
     });
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLayouts(map);
   }, [data]);
 

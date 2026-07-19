@@ -2,6 +2,7 @@ import type { FunctionComponent } from "react";
 import Holiday from "./holiday/Holiday";
 import Shows from "./show/Show";
 import VideoGames from "./vg/vg";
+import Movies from "./movie/Movie";
 
 export interface Tab {
   id: string;
@@ -31,6 +32,16 @@ export const ShowsTab: Tab = {
   secondaryColour: "#20dfdf",
 };
 
+export const MoviesTab: Tab = {
+  id: "movies",
+  name: "Movies",
+  spreadsheetId: "1M3om2DPLfRO5dKcUfYOIcSNoLThzMLp1iZLQX6qR3pY",
+  range: "Movies!A:K",
+  component: Movies,
+  primaryColour: "#ff7b54",
+  secondaryColour: "#11698e",
+};
+
 export const HolidaysTab: Tab = {
   id: "holiday",
   name: "Holiday",
@@ -41,6 +52,6 @@ export const HolidaysTab: Tab = {
   secondaryColour: "#142771",
 };
 
-const Tabs: Tab[] = [VideoGamesTab, ShowsTab];
+const Tabs: Tab[] = [VideoGamesTab, ShowsTab, MoviesTab];
 
 export default Tabs;

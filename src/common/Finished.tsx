@@ -65,7 +65,7 @@ const Finished = <
         >
           {recent.map((item) => (
             <Grid
-              key={`${item.name}-${isDialog ? 'dialog' : 'card'}`}
+              key={`${item.name}-${isDialog ? "dialog" : "card"}`}
               size={isDialog ? 12 : width}
               sx={{
                 alignSelf: "stretch",

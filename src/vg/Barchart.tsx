@@ -1,29 +1,19 @@
 import { useSelectBox } from "../common/SelectBoxHook";
-import { groupToColour, type Measure, type VideoGame, type VideoGameStringKeys } from "./types";
+import { groupToColour, videoGameOptions, type Measure, type VideoGame, type VideoGameStringKeys } from "./types";
 import Barchart from "../common/Barchart";
-import { Year, type YearMonth } from "../common/date";
+import { Year } from "../common/date";
 import type { YearType } from "./filterUtils";
-import type { Colour } from "../utils/types";
 
-const options: Readonly<VideoGameStringKeys | "none">[] = [
-  "none",
-  "company",
-  "name",
-  "format",
-  "franchise",
-  "platform",
-  "developer",
-  "publisher",
-  "rating",
-  "status",
-  "genre",
-];
+const options: Readonly<VideoGameStringKeys | "none">[] = ["none", ...videoGameOptions];
 
 const VgBarchart = ({ data, measure, yearType }: { data: VideoGame[]; measure: Measure; yearType: YearType }) => {
   const [group, controls] = useSelectBox(options, "company");
   const barchartData = (cumulative: boolean) =>
-    data
-      .map((game) => ({
+    data.flatMap((game) => {
+      const value = measure === "Games" ? 1 : game.hours;
+      if (!value) return [];
+
+      return {
         date:
           cumulative || yearType === "matching"
             ? game.startDate instanceof Year
@@ -32,21 +22,9 @@ const VgBarchart = ({ data, measure, yearType }: { data: VideoGame[]; measure: M
             : game.startDate.toYear(),
         colour: groupToColour(group, game),
         name: group === "none" ? "" : game[group],
-        value: measure === "Games" ? 1 : game.hours,
-      }))
-      .filter(
-        (vg: {
-          date: Year | YearMonth;
-          colour: Colour;
-          name: string;
-          value: number | undefined;
-        }): vg is {
-          date: Year | YearMonth;
-          colour: Colour;
-          name: string;
-          value: number;
-        } => !!vg.value,
-      );
+        value,
+      };
+    });
 
   return (
     <Barchart

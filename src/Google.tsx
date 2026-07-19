@@ -1,33 +1,22 @@
 import { Container, createTheme, CssBaseline, ThemeProvider } from "@mui/material";
-import { useCallback, useEffect, useReducer, useRef } from "react";
+import { useState } from "react";
 import NavBar from "./NavBar";
 import { Outlet, useLocation } from "react-router-dom";
-import { loadApis, reducer, registerDispatch, revokeApis } from "./utils/googleUtils";
+import { GoogleAuthProvider } from "./contexts/GoogleAuthContext.tsx";
 import Tabs from "./tabs.ts";
 import type { Tab } from "./tabs.ts";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 
 const GoogleAuth = () => {
-  const [{ apiReady, tokenClient }, dispatch] = useReducer(reducer, {});
-  const setGuestMode = useRef((_: boolean) => {});
-  const setGuestModeSetter = useCallback((func: (b: boolean) => void) => (setGuestMode.current = func), []);
-
-  useEffect(() => {
-    registerDispatch(dispatch);
-    loadApis();
-  }, []);
+  const [guestMode, setGuestMode] = useState(false);
 
   return (
-    <>
-      <NavBar
-        authorise={!apiReady && tokenClient && (() => tokenClient.requestAccessToken())}
-        revoke={apiReady && revokeApis}
-        setGuestMode={setGuestMode}
-      />
+    <GoogleAuthProvider>
+      <NavBar setGuestMode={setGuestMode} />
       <Container maxWidth={"xl"}>
-        <Outlet context={{ apiReady, setGuestModeSetter }} />
+        <Outlet context={{ guestMode }} />
       </Container>
-    </>
+    </GoogleAuthProvider>
   );
 };
 

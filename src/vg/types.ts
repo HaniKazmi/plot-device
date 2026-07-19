@@ -24,6 +24,19 @@ export interface VideoGame {
 
 export type VideoGameStringKeys = KeysMatching<VideoGame, string>;
 
+export const videoGameOptions: readonly VideoGameStringKeys[] = [
+  "genre",
+  "company",
+  "platform",
+  "status",
+  "format",
+  "rating",
+  "developer",
+  "publisher",
+  "franchise",
+  "name",
+];
+
 export type Format = "Physical" | "Digital" | "Pirated" | "Subscription";
 export type Status = "Playing" | "Endless" | "Abandoned" | "Beat" | "Backlog" | "Next";
 export type Company = "PlayStation" | "Nintendo" | "PC" | "iOS" | "Xbox";
@@ -43,12 +56,6 @@ export type Genre =
   | "Strategy"
   | "Visual Novel"
   | "Music/Rhythm";
-
-export interface VideoGameTree {
-  [key: string]: VideoGameTree | VideoGame;
-}
-
-export const isVideoGame = (arg: VideoGameTree | VideoGame): arg is VideoGame => !!arg.name;
 
 export type Measure = "Hours" | "Games";
 
@@ -157,7 +164,7 @@ export const ratingToColour = ({ rating }: VideoGame) => {
   }
 };
 
-export const genreToColour = (genre: Genre | { genre: Genre }) => {
+const genreToColour = (genre: Genre | { genre: Genre }) => {
   if (typeof genre === "object") {
     genre = genre.genre;
   }
@@ -196,7 +203,7 @@ export const genreToColour = (genre: Genre | { genre: Genre }) => {
   }
 };
 
-export const franchiseToColour = (franchise: string | { franchise: string }) => {
+const franchiseToColour = (franchise: string | { franchise: string }) => {
   if (typeof franchise === "object") {
     franchise = franchise.franchise;
   }

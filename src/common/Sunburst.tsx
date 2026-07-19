@@ -1,24 +1,29 @@
 import { Card, CardContent, CardHeader, FormGroup, useTheme } from "@mui/material";
-import type { Colour } from "../utils/types";
 import { useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
-import { Chart, SunburstSeries } from "../Highcharts";
+import { Chart, SunburstSeries } from "../highcharts";
 import { SelectBox } from "./SelectionComponents";
+import type { Colour } from "../utils/types";
 
-const Sunburst = ({
+const Sunburst = <T, K extends string>({
   data,
   controls,
+  groups,
+  options,
 }: {
   controls: ReactNode;
-  data: {
-    id: string;
-    name: string;
-    parent: string;
-    value: number;
-    color: Colour | undefined;
-  }[];
+  data: T[];
+  groups: K[];
+  options: {
+    keyToVal: (item: T, key: K) => string;
+    getCount: (item: T) => number | undefined;
+    getColor: (item: T, firstGroup: K) => Colour | undefined;
+    getLeafName: (item: T) => string;
+  };
 }) => {
   const theme = useTheme();
   const [hide, setHide] = useState(true);
+
+  const generatedData = generateSunburstData(data, groups, options);
 
   return (
     <Card>
@@ -53,7 +58,7 @@ const Sunburst = ({
           }}
         >
           <SunburstSeries
-            data={data}
+            data={generatedData}
             options={{
               allowTraversingTree: true,
               name: "All",
@@ -93,7 +98,7 @@ export const SunBurstControls = <T extends string>({
 }: {
   controlStates: T[];
   setControlStates: Dispatch<SetStateAction<T[]>>;
-  options: T[];
+  options: readonly T[];
 }) => {
   return (
     <FormGroup>
@@ -107,6 +112,50 @@ export const SunBurstControls = <T extends string>({
       ))}
     </FormGroup>
   );
+};
+
+type SunburstEntry = {
+  id: string;
+  name: string;
+  parent: string;
+  value: number;
+  color: Colour | undefined;
+};
+
+const generateSunburstData = <T, K extends string>(
+  data: T[],
+  groups: K[],
+  options: {
+    keyToVal: (item: T, key: K) => string;
+    getCount: (item: T) => number | undefined;
+    getColor: (item: T, firstGroup: K) => Colour | undefined;
+    getLeafName: (item: T) => string;
+  },
+): SunburstEntry[] => {
+  const entryMap = new Map<string, SunburstEntry>();
+
+  for (const item of data) {
+    const count = options.getCount(item);
+    if (count === undefined) continue;
+
+    const color = options.getColor(item, groups[0]);
+
+    const addNode = (name: string, parent: string) => {
+      const id = `${parent}-${name}`;
+      let entry = entryMap.get(id);
+      if (!entry) entryMap.set(id, (entry = { id, name, parent, value: 0, color }));
+      entry.value += count;
+      return id;
+    };
+
+    let parent = "";
+    for (const group of groups) {
+      parent = addNode(options.keyToVal(item, group), parent);
+    }
+    addNode(options.getLeafName(item), parent);
+  }
+
+  return Array.from(entryMap.values()).sort((a, b) => a.id.localeCompare(b.id));
 };
 
 export default Sunburst;

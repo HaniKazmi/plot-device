@@ -288,17 +288,18 @@ export const TotalStack = <T extends string, U, K extends keyof U>({
   measureLabel: string;
 }) => {
   const total = measureFunc(data);
-  let percentLeft = 100;
-
-  const totals = group.reduce((acc, e) => {
-    const count = measureFunc(data.filter((vg) => vg[groupKey] === e));
-    if (count > 0) {
-      const percent = Math.max((count / total) * 100, 0.5);
-      percentLeft -= percent;
-      acc.push({ name: e, count, percent, colour: groupToColour(e) });
-    }
-    return acc;
-  }, [] as Array<{ name: T; count: number; percent: number; colour: Colour }>);
+  const { totals, percentLeft } = group.reduce(
+    (acc, e) => {
+      const count = measureFunc(data.filter((vg) => vg[groupKey] === e));
+      if (count > 0) {
+        const percent = Math.max((count / total) * 100, 0.5);
+        acc.percentLeft -= percent;
+        acc.totals.push({ name: e, count, percent, colour: groupToColour(e) });
+      }
+      return acc;
+    },
+    { totals: [] as Array<{ name: T; count: number; percent: number; colour: Colour }>, percentLeft: 100 },
+  );
 
   if (totals.length > 0) {
     totals[0].percent += percentLeft;

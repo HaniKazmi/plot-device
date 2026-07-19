@@ -1,27 +1,97 @@
-# React + TypeScript + Vite
+# Plot Device
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Plot Device is a personal data dashboard and media consumption tracker built with React, TypeScript, and Vite. It pulls data directly from Google Sheets to display insights and visualizations for Video Games, TV Shows, Movies, and Holidays.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Google Sheets as a Backend**: Reads tracking data seamlessly from Google Sheets using the Google Sheets API.
+- **Data Visualization**: Rich interactive charts and visualizations powered by [Highcharts](https://www.highcharts.com/).
+- **Media Tracking**: Specialized views and dashboards for tracking:
+  - Video Games
+  - Shows
+  - Movies
+  - Holidays
+- **Modern UI**: Clean, responsive, and customizable user interface built with Material-UI (MUI).
+- **Client-Side Architecture**: Uses Google Auth and `gapi` to authenticate and fetch data directly from the browser.
 
-## Expanding the ESLint configuration
+## Tech Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+- **Framework**: React 19 + TypeScript
+- **Build Tool**: Vite
+- **UI Components**: Material-UI (MUI)
+- **Charting**: Highcharts & `@highcharts/react`
+- **Routing**: React Router DOM
+- **Authentication & Data**: Google API Client (`gapi`)
 
-- Configure the top-level `parserOptions` property like this:
+## Getting Started
 
-```js
-   parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-   },
+### Prerequisites
+
+- Node.js (v18 or higher recommended)
+- A Google Cloud Platform (GCP) project with the Google Sheets API enabled.
+- OAuth 2.0 Client IDs configured for Google Auth.
+
+### Installation
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/HaniKazmi/plot-device.git
+   cd plot-device
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+### Configuration
+
+You need to configure your Google API credentials by creating a `.env.local` file in the root of the project.
+
+1. Create a file named `.env.local`:
+   ```bash
+   touch .env.local
+   ```
+2. Add your Google Client ID and API Key to the file:
+   ```env
+   VITE_GOOGLE_CLIENT_ID=your_google_client_id_here.apps.googleusercontent.com
+   VITE_GOOGLE_API_KEY=your_google_api_key_here
+   ```
+
+### Running Locally
+
+Start the Vite development server with Hot Module Replacement (HMR):
+
+```bash
+npm run dev
 ```
 
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+The application will typically be available at `http://localhost:5173`.
+
+### Building and Deployment
+
+To build the project for production:
+
+```bash
+npm run build
+```
+
+To deploy to GitHub Pages (uses the `gh-pages` package):
+
+```bash
+npm run deploy
+```
+
+## Scripts
+
+- `npm run dev`: Starts the Vite development server.
+- `npm run build`: Compiles TypeScript and builds the production bundles using Vite.
+- `npm run lint`: Lints the codebase using ESLint.
+- `npm run format`: Formats code via Prettier.
+- `npm run preview`: Previews the production build locally.
+- `npm run analyze`: Analyzes bundle size with `source-map-explorer`.
+
+## License
+
+This project is intended for personal use.

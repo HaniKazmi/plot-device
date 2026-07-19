@@ -12,12 +12,19 @@ import {
 } from "@mui/material";
 import { type ReactNode, useState } from "react";
 import { BarChart, PinOutlined, SsidChart } from "@mui/icons-material";
-import { Chart, Series, XAxis, YAxis, PlotOptions, Tooltip, Legend } from "../Highcharts";
+import { Chart, Series, XAxis, YAxis, PlotOptions, Tooltip, Legend } from "../highcharts";
 import type { Year, YearMonth } from "./date";
 import type { Colour } from "../utils/types";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 
 type GraphType = "bar" | "line" | "bump";
+
+const getSeriesType = (graphType: GraphType, cumulative: boolean): "column" | "spline" | "area" => {
+  if (graphType === "bar") return "column";
+  if (graphType === "bump") return "spline";
+  return cumulative ? "area" : "spline";
+};
+
 const Barchart = ({
   title,
   data,
@@ -38,10 +45,10 @@ const Barchart = ({
   let { results } = groupDateResults;
   const { dates, groups } = groupDateResults;
 
-  if (effectiveCumulative) results = convertToCumulative(results, dates);
+  if (effectiveCumulative) results = convertToCumulative(results);
   if (dataPostProcess) results = dataPostProcess(results);
   const tooltipResults = results;
-  if (graphType == "bump") results = convertToRanking(results, dates);
+  if (graphType === "bump") results = convertToRanking(results);
 
   return (
     <Card>
@@ -66,7 +73,7 @@ const Barchart = ({
                 color="primary"
                 value={graphType}
                 exclusive
-                onChange={(_, val: GraphType) => val.length && setGraphType(val)}
+                onChange={(_, val: GraphType | null) => val && setGraphType(val)}
               >
                 <ToggleButton
                   value={"bump"}
@@ -109,7 +116,7 @@ const Barchart = ({
             labels={{
               style: {
                 color: theme.vars.palette.text.primary,
-              } as any,
+              } as Record<string, string>,
             }}
           />
           <YAxis
@@ -122,7 +129,7 @@ const Barchart = ({
             labels={{
               style: {
                 color: theme.vars.palette.text.primary,
-              } as any,
+              } as Record<string, string>,
             }}
             endOnTick={false}
           />
@@ -162,7 +169,7 @@ const Barchart = ({
                     '<span style="color:{series.color}">\u25CF</span> {series.name}: <b>{point.tooltip}</b><br/>',
                 },
               },
-            } as any)}
+            } as Record<string, unknown>)}
           />
           <Tooltip />
           <Legend
@@ -174,11 +181,10 @@ const Barchart = ({
             }}
           />
           {results.map((values, groupindex) => (
+            // @ts-expect-error: TS cannot infer Series component props for union of series types
             <Series
               key={groups[groupindex].name}
-              type={
-                (graphType == "bar" ? "column" : graphType == "bump" ? "spline" : cumulative ? "area" : "spline") as any
-              }
+              type={getSeriesType(graphType, cumulative)}
               data={values.map((val, valIndex) => ({
                 y: val,
                 tooltip: tooltipResults[groupindex][valIndex] ?? 0,
@@ -201,18 +207,14 @@ const groupDate = (
 ): { results: BarchartTable; dates: (YearMonth | Year)[]; groups: { name: string; colour: Colour }[] } => {
   const groupToIndex = new Map<string, { readonly index: number; readonly colour: Colour; total: number }>();
   const dateToIndex = new Map<YearMonth | Year, number>();
-  let minDate = null as YearMonth | Year | null;
-  let maxDate = null as YearMonth | Year | null;
+  let minDate: YearMonth | Year | undefined;
+  let maxDate: YearMonth | Year | undefined;
 
   const results = data
     .filter((el) => el.date && el.value)
-    .sort(({ date: dateA }, { date: dateB }) => {
-      if (dateA === dateB) return 0;
-      return dateA > dateB ? 1 : -1;
-    })
+    .sort((a, b) => (a.date === b.date ? 0 : a.date > b.date ? 1 : -1))
     .reduce(
       (result, el) => {
-        if (!el.date || !el.value) return result;
         if (!minDate) {
           minDate = el.date;
           maxDate = minDate;
@@ -220,15 +222,15 @@ const groupDate = (
 
         const groupIndex = groupToIndex.setIfAbsent(el.name, { index: groupToIndex.size, colour: el.colour, total: 0 });
         let dateIndex = dateToIndex.get(el.date);
-        if (!dateIndex) {
+
+        if (dateIndex === undefined) {
           maxDate!.iterateToDate(el.date).forEach((date) => {
             dateIndex = dateToIndex.setIfAbsent(date, dateToIndex.size);
           });
         }
 
         const dateToValue = (result[groupIndex.index] ||= []);
-        dateToValue[dateIndex!] ||= 0;
-        dateToValue[dateIndex!]! += el.value;
+        dateToValue[dateIndex!] = (dateToValue[dateIndex!] ?? 0) + el.value;
         groupIndex.total += el.value;
         maxDate = el.date;
 
@@ -245,15 +247,13 @@ const groupDate = (
   }));
 
   groupEntries.sort((a, b) => a.total - b.total);
-  const sortedResults = groupEntries.map(({ index }) => results[index]);
-  sortedResults.forEach((groups) => {
-    const minIndex = groups.findIndex((g) => g);
-    for (let i = 0; i < minIndex; i++) {
-      groups[i] ||= null;
-    }
+  const sortedResults = groupEntries.map(({ index }) => results[index] ?? []);
 
-    for (let i = minIndex; i < groups.length; i++) {
-      groups[i] ||= 0;
+  sortedResults.forEach((groups) => {
+    let started = false;
+    for (let i = 0; i < dateToIndex.size; i++) {
+      if (groups[i] != null) started = true;
+      groups[i] = started ? (groups[i] ?? 0) : null;
     }
   });
 
@@ -262,44 +262,36 @@ const groupDate = (
   return { results: sortedResults, dates, groups };
 };
 
-const convertToCumulative = (groupToDateToValue: BarchartTable, dates: (YearMonth | Year)[]) => {
-  return groupToDateToValue.reduce((newGroupToDateToValue, values) => {
-    newGroupToDateToValue.push(
-      dates.reduce(
-        (arr, _, index) => {
-          arr[index] =
-            (values[index] ?? false) || (arr[index - 1] ?? false) ? (arr[index - 1] ?? 0) + (values[index] ?? 0) : null;
-          return arr;
-        },
-        [] as (number | null)[],
-      ),
-    );
-
-    return newGroupToDateToValue;
-  }, [] as BarchartTable);
-};
-
-const convertToRanking = (groupToDateToValue: BarchartTable, dates: (YearMonth | Year)[]) => {
-  const newArray: number[][] = [];
-  dates.forEach((_, col) => {
-    const columnValues = groupToDateToValue
-      .map((row, index) => ({ value: row[col] ?? 0, index }))
-      .sort((a, b) => {
-        if (a.value === b.value) {
-          return b.index - a.index;
-        }
-        return b.value - a.value;
-      });
-
-    columnValues.forEach(({ index }, rank) => {
-      newArray[index] ||= [];
-      newArray[index][col] = rank + 1;
+const convertToCumulative = (groupToDateToValue: BarchartTable) => {
+  return groupToDateToValue.map((values) => {
+    let sum = 0;
+    let started = false;
+    return values.map((val) => {
+      if (val != null) {
+        sum += val;
+        started = true;
+      }
+      return started ? sum : null;
     });
   });
+};
+
+const convertToRanking = (groupToDateToValue: BarchartTable) => {
+  const newArray: number[][] = groupToDateToValue.map(() => []);
+  const numCols = groupToDateToValue[0]?.length ?? 0;
+
+  for (let col = 0; col < numCols; col++) {
+    groupToDateToValue
+      .map((row, index) => ({ value: row[col] ?? 0, index }))
+      .sort((a, b) => b.value - a.value || b.index - a.index)
+      .forEach(({ index }, rank) => {
+        newArray[index][col] = rank + 1;
+      });
+  }
 
   return newArray;
 };
 
-export type BarchartTable = (number | null)[][];
+type BarchartTable = (number | null)[][];
 
 export default Barchart;

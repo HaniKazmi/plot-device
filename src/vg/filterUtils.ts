@@ -1,8 +1,8 @@
-import { Dispatch, useEffect, useReducer } from "react";
+import { useEffect, useReducer, type Dispatch } from "react";
+import { useOutletContext } from "react-router-dom";
 import { Predicate } from "../utils/types";
 import { Measure, Platform, VideoGame } from "./types";
 import { CURRENT_YEAR, Year, YearNumber } from "../common/date";
-import { useSetGuestModeSetter } from "../utils/googleUtils";
 
 export interface FilterState {
   endless: boolean;
@@ -29,13 +29,11 @@ type Action<K extends keyof FilterState> =
 
 export const useFilterReducer = () => {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const { setGuestModeSetter } = useSetGuestModeSetter();
+  const { guestMode } = useOutletContext<{ guestMode?: boolean }>();
 
   useEffect(() => {
-    setGuestModeSetter((guestMode: boolean) =>
-      dispatch({ type: "updateFilter", filter: "guestMode", value: guestMode }),
-    );
-  }, [setGuestModeSetter]);
+    dispatch({ type: "updateFilter", filter: "guestMode", value: guestMode || false });
+  }, [guestMode]);
 
   return [state, dispatch] as const;
 };
@@ -71,34 +69,43 @@ const reducer = <K extends keyof FilterState>(state: FilterState, action: Action
   }
 };
 
-const filters = (state: Omit<FilterState, "filter">) => (vg: VideoGame) =>
-  [
-    !state.endless && (({ status }: VideoGame) => status !== "Endless"),
-    !state.pokemon && (({ franchise }: VideoGame) => franchise !== "Pokémon"),
-    !state.unconfirmed &&
-      (({ platform, startDate }: VideoGame) => {
-        if (platform === "PC") {
-          if (startDate instanceof Year || startDate.year < 2015) return false;
-        } else if (
-          !["Nintendo Switch", "Nintendo Switch 2", "Nintendo 3DS", "PlayStation 4", "PlayStation 5"].includes(platform)
-        ) {
-          return false;
-        }
+const filters = (state: Omit<FilterState, "filter">) => {
+  const predicates: Predicate<VideoGame>[] = [];
 
-        return true;
-      }),
-    state.franchise.length > 0 && (({ franchise }: VideoGame) => state.franchise.includes(franchise)),
-    state.platform.length > 0 && (({ platform }: VideoGame) => state.platform.includes(platform)),
-    state.genre.length > 0 && (({ genre }: VideoGame) => state.genre.includes(genre)),
-    state.publisher.length > 0 && (({ publisher }: VideoGame) => state.publisher.includes(publisher)),
-    state.yearTo !== CURRENT_YEAR &&
-      state.yearType === "upto" &&
-      (({ startDate }: VideoGame) => startDate.year <= state.yearTo),
-    state.yearType === "matching" && (({ startDate }: VideoGame) => startDate.year === state.yearTo),
-    state.guestMode === true && (({ theme }: VideoGame) => theme.find((el) => el === "Adult") === undefined),
-  ]
-    .filter((f): f is Exclude<typeof f, false> => Boolean(f))
-    .reduce((p, c) => p && c(vg), true);
+  if (!state.endless) predicates.push((vg) => vg.status !== "Endless");
+  if (!state.pokemon) predicates.push((vg) => vg.franchise !== "Pokémon");
+  if (!state.unconfirmed)
+    predicates.push((vg) => {
+      if (vg.platform === "PC") {
+        if (vg.startDate instanceof Year || vg.startDate.year < 2015) return false;
+      } else if (
+        !["Nintendo Switch", "Nintendo Switch 2", "Nintendo 3DS", "PlayStation 4", "PlayStation 5"].includes(
+          vg.platform,
+        )
+      ) {
+        return false;
+      }
+      return true;
+    });
+
+  if (state.franchise.length > 0) predicates.push((vg) => state.franchise.includes(vg.franchise));
+  if (state.platform.length > 0) predicates.push((vg) => state.platform.includes(vg.platform));
+  if (state.genre.length > 0) predicates.push((vg) => state.genre.includes(vg.genre));
+  if (state.publisher.length > 0) predicates.push((vg) => state.publisher.includes(vg.publisher));
+
+  if (state.yearTo !== CURRENT_YEAR && state.yearType === "upto") {
+    predicates.push((vg) => vg.startDate.year <= state.yearTo);
+  }
+  if (state.yearType === "matching") {
+    predicates.push((vg) => vg.startDate.year === state.yearTo);
+  }
+
+  if (state.guestMode) {
+    predicates.push((vg) => !vg.theme.includes("Adult"));
+  }
+
+  return (vg: VideoGame) => predicates.every((p) => p(vg));
+};
 
 const initialState: FilterState = (() => {
   const state: FilterState = {

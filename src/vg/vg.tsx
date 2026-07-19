@@ -9,12 +9,8 @@ const Graphs = lazy(() => import(/* webpackPrefetch: true */ "./Graphs"));
 
 const storageKey = "vg-data-cache";
 
-let DATA_STORE: VideoGame[];
-const setDataStore = (data: VideoGame[]) => (DATA_STORE = data);
-const useDataStore = () => [DATA_STORE, setDataStore] as const;
-
 const GamesGraphs = () => {
-  const [data, dataLoaded] = useData(storageKey, VideoGamesTab, jsonConverter, useDataStore);
+  const [data, dataLoaded] = useData(storageKey, VideoGamesTab, jsonConverter);
   const [filterState, filterDispatch] = useFilterReducer();
   const filteredData = useMemo(() => (data ? data.filter(filterState.filter) : []), [data, filterState.filter]);
 

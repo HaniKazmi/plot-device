@@ -24,6 +24,7 @@ import {
   companyToColor,
   groupToColour,
   platformToShort,
+  videoGameOptions,
   type Company,
   type Measure,
   type Status,
@@ -31,7 +32,7 @@ import {
   type VideoGameStringKeys,
 } from "./types";
 import { Segment, StatCard, StatList, StatsListCard, type StatsListProps, TotalStack } from "../common/Stats";
-import { highchartsColors } from "../Highcharts";
+import { highchartsColors } from "../highcharts";
 import VgCardMediaImage from "./CardMediaImage";
 import {
   Box,
@@ -331,23 +332,10 @@ const RecentlyComplete = ({ data }: { data: VideoGame[] }) => {
   );
 };
 
-const options: (VideoGameStringKeys | "game")[] = [
-  "game",
-  "company",
-  "format",
-  "franchise",
-  "platform",
-  "developer",
-  "publisher",
-  "rating",
-  "status",
-  "genre",
-];
-
 const MostPlayed = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
-  const [option, controls] = useSelectBox(options, "game");
+  const [option, controls] = useSelectBox(videoGameOptions, "name");
 
-  if (option === "game") {
+  if (option === "name") {
     return (
       <MostPlayedGames
         data={data}

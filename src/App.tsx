@@ -2,7 +2,7 @@ import { HashRouter, Routes, Route } from "react-router-dom";
 import Tabs from "./tabs.ts";
 import Google from "./Google.tsx";
 import { preload } from "react-dom";
-import { g_script, gapi_script } from "./utils/googleUtils.ts";
+import { g_script, gapi_script } from "./contexts/GoogleAuthContext.tsx";
 
 (window as unknown as { global: typeof window }).global ||= window;
 

@@ -1,8 +1,8 @@
 import { useEffect, useReducer, type Dispatch } from "react";
+import { useOutletContext } from "react-router-dom";
 import { CURRENT_YEAR, type YearNumber } from "../common/date";
 import type { Predicate } from "../utils/types";
 import type { Measure, Show } from "./types";
-import { useSetGuestModeSetter } from "../utils/googleUtils";
 
 export interface FilterState {
   measure: Measure;
@@ -22,13 +22,11 @@ type Action<K extends keyof FilterState> =
 
 export const useFilterReducer = () => {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const { setGuestModeSetter } = useSetGuestModeSetter();
+  const { guestMode } = useOutletContext<{ guestMode?: boolean }>();
 
   useEffect(() => {
-    setGuestModeSetter((guestMode: boolean) =>
-      dispatch({ type: "updateFilter", filter: "guestMode", value: guestMode }),
-    );
-  }, [setGuestModeSetter]);
+    dispatch({ type: "updateFilter", filter: "guestMode", value: guestMode || false });
+  }, [guestMode]);
 
   return [state, dispatch] as const;
 };
@@ -62,18 +60,23 @@ const reducer = <K extends keyof FilterState>(state: FilterState, action: Action
   }
 };
 
-export type YearType = "upto" | "matching";
+type YearType = "upto" | "matching";
 
-const filters = (state: Omit<FilterState, "filter">) => (show: Show) =>
-  [
-    state.yearTo !== CURRENT_YEAR &&
-      state.yearType === "upto" &&
-      (({ startDate }: Show) => startDate.year <= state.yearTo),
-    state.yearType === "matching" && (({ startDate }: Show) => startDate.year === state.yearTo),
-    state.guestMode === true && (({ anime }: Show) => !anime),
-  ]
-    .filter((f): f is Exclude<typeof f, false> => Boolean(f))
-    .reduce((p, c) => p && c(show), true);
+const filters = (state: Omit<FilterState, "filter">) => {
+  const predicates: Predicate<Show>[] = [];
+
+  if (state.yearTo !== CURRENT_YEAR && state.yearType === "upto") {
+    predicates.push((show) => show.startDate.year <= state.yearTo);
+  }
+  if (state.yearType === "matching") {
+    predicates.push((show) => show.startDate.year === state.yearTo);
+  }
+  if (state.guestMode) {
+    predicates.push((show) => !show.anime);
+  }
+
+  return (show: Show) => predicates.every((p) => p(show));
+};
 
 const initialState: FilterState = (() => {
   const state: FilterState = {

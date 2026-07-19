@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { SelectBox } from "./SelectionComponents";
 
-export const useSelectBox = <T extends string>(options: T[], defaultOption: T) => {
+export const useSelectBox = <T extends string>(options: readonly T[], defaultOption: T) => {
   const [value, setValue] = useState<T>(defaultOption);
   return [
     value,
