@@ -1,96 +1,96 @@
 # Plot Device
 
-Plot Device is a personal data dashboard and media consumption tracker built with React, TypeScript, and Vite. It pulls data directly from Google Sheets to display insights and visualizations for Video Games, TV Shows, Movies, and Holidays.
+Plot Device is a personal data dashboard and media consumption tracker built with React, TypeScript, and Vite. It reads tracking data directly from Google Sheets and renders it as interactive Highcharts visualisations for Video Games, TV Shows and Movies.
+
+There is no backend and no database — a spreadsheet _is_ the storage layer, and every fetch, parse, aggregation and render happens in the browser. The deployed site is a static bundle on GitHub Pages.
+
+**Further reading:** [ARCHITECTURE.md](./ARCHITECTURE.md) for how the system fits together and why; [AGENTS.md](./AGENTS.md) for working conventions and the verification loop.
 
 ## Features
 
-- **Google Sheets as a Backend**: Reads tracking data seamlessly from Google Sheets using the Google Sheets API.
-- **Data Visualization**: Rich interactive charts and visualizations powered by [Highcharts](https://www.highcharts.com/).
-- **Media Tracking**: Specialized views and dashboards for tracking:
-  - Video Games
-  - Shows
-  - Movies
-  - Holidays
-- **Modern UI**: Clean, responsive, and customizable user interface built with Material-UI (MUI).
-- **Client-Side Architecture**: Uses Google Auth and `gapi` to authenticate and fetch data directly from the browser.
+- **Google Sheets as a backend** — reads via the Sheets API with a read-only scope; the app never writes.
+- **Data visualisation** — stat cards, a packed SVG timeline, sunburst hierarchies you can re-nest at runtime, and bar/line/bump charts, powered by [Highcharts](https://www.highcharts.com/).
+- **Media tracking** — Video Games, Shows and Movies, each with its own model, filters and theme colour.
+- **Client-side rendering** — Google Identity Services plus `gapi`, authenticating and fetching straight from the browser.
+- **Cache-first loading** — the dashboard paints from `localStorage` before authentication completes, then refreshes.
 
-## Tech Stack
+A fourth section, Holidays, exists in the source but is deliberately unrouted while it is unfinished.
 
-- **Framework**: React 19 + TypeScript
-- **Build Tool**: Vite
-- **UI Components**: Material-UI (MUI)
-- **Charting**: Highcharts & `@highcharts/react`
-- **Routing**: React Router DOM
-- **Authentication & Data**: Google API Client (`gapi`)
+## Tech stack
 
-## Getting Started
+| Concern     | Choice                                                                   |
+| ----------- | ------------------------------------------------------------------------ |
+| Framework   | React 19 + TypeScript (strict, ES2025)                                   |
+| Build       | Vite 8 with the [React Compiler](https://react.dev/learn/react-compiler) |
+| UI          | Material-UI (MUI) v9 with CSS variables                                  |
+| Charting    | Highcharts + `@highcharts/react`, plus a hand-rolled SVG timeline        |
+| Routing     | React Router (`HashRouter`, for GitHub Pages)                            |
+| Auth & data | Google Identity Services + `gapi`                                        |
+
+## Getting started
 
 ### Prerequisites
 
-- Node.js (v18 or higher recommended)
-- A Google Cloud Platform (GCP) project with the Google Sheets API enabled.
-- OAuth 2.0 Client IDs configured for Google Auth.
+- Node.js `^20.19.0 || >=22.12.0` (Vite 8's requirement)
+- A Google Cloud project with the Google Sheets API enabled
+- An OAuth 2.0 Client ID and an API key
 
 ### Installation
 
-1. Clone the repository:
-
-   ```bash
-   git clone https://github.com/HaniKazmi/plot-device.git
-   cd plot-device
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+```bash
+git clone https://github.com/HaniKazmi/plot-device.git
+cd plot-device
+npm install
+```
 
 ### Configuration
 
-You need to configure your Google API credentials by creating a `.env.local` file in the root of the project.
+Create a `.env.local` in the project root:
 
-1. Create a file named `.env.local`:
-   ```bash
-   touch .env.local
-   ```
-2. Add your Google Client ID and API Key to the file:
-   ```env
-   VITE_GOOGLE_CLIENT_ID=your_google_client_id_here.apps.googleusercontent.com
-   VITE_GOOGLE_API_KEY=your_google_api_key_here
-   ```
+```env
+VITE_GOOGLE_CLIENT_ID=your_google_client_id_here.apps.googleusercontent.com
+VITE_GOOGLE_API_KEY=your_google_api_key_here
+```
 
-### Running Locally
+Without these the app still builds and loads, but authorisation fails and no data appears.
 
-Start the Vite development server with Hot Module Replacement (HMR):
+The spreadsheet IDs and cell ranges themselves live in [`src/tabs.ts`](./src/tabs.ts), which is the single source of truth for a data source.
+
+### Running locally
 
 ```bash
 npm run dev
 ```
 
-The application will typically be available at `http://localhost:5173`.
-
-### Building and Deployment
-
-To build the project for production:
-
-```bash
-npm run build
-```
-
-To deploy to GitHub Pages (uses the `gh-pages` package):
-
-```bash
-npm run deploy
-```
+The app is served at `http://localhost:5173`. Click **Authorise** in the app bar to grant access; the token is held in `sessionStorage` for that tab only.
 
 ## Scripts
 
-- `npm run dev`: Starts the Vite development server.
-- `npm run build`: Compiles TypeScript and builds the production bundles using Vite.
-- `npm run lint`: Lints the codebase using ESLint.
-- `npm run format`: Formats code via Prettier.
-- `npm run preview`: Previews the production build locally.
-- `npm run analyze`: Analyzes bundle size with `source-map-explorer`.
+| Command           | What it does                                                   |
+| ----------------- | -------------------------------------------------------------- |
+| `npm run dev`     | Vite dev server with HMR                                       |
+| `npm run build`   | `tsc` then `vite build`                                        |
+| `npm run preview` | Serve the production build locally                             |
+| `npm run lint`    | ESLint (flat config), including the React Compiler rules       |
+| `npm run format`  | Prettier over the repo                                         |
+| `npm run analyze` | Bundle breakdown via `source-map-explorer` (run after `build`) |
+| `npm run deploy`  | Build and publish to GitHub Pages at `plot.hani.fyi`           |
+
+There is no test framework in this project. Verification is `npx tsc --noEmit` plus `npm run lint`, both of which are expected to produce no output.
+
+## Repository layout
+
+```
+src/
+  tabs.ts            data-source registry: sheet id, range, route, colours
+  common/            domain-blind chart shells, date model, data hook
+  utils/             prototype extensions, branded types, colour extraction
+  vg/ show/ movie/   per-domain model, converter, filters, adapters
+  holiday/           unfinished, currently unrouted
+extension/           standalone Chrome extension, outside the Vite build
+```
+
+`extension/` is a Chrome MV3 extension loaded unpacked. It adds image context-menu items that hand off to macOS Shortcuts for uploading banner artwork, and is untouched by `npm run build`.
 
 ## License
 

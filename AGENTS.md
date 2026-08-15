@@ -1,0 +1,111 @@
+# AGENTS.md
+
+Working notes for coding agents. **Read [ARCHITECTURE.md](./ARCHITECTURE.md) before making non-trivial changes** — it explains the layering rule, the subsystem internals, and the reasoning behind decisions that otherwise look arbitrary. [README.md](./README.md) covers setup, scripts and repo layout.
+
+This file is the stuff you only learn by breaking something.
+
+## Verification loop
+
+There is **no test framework** — no runner, no test files. Do not add one without being asked, and do not claim a change is "tested".
+
+```bash
+npx tsc --noEmit    # must print nothing
+npm run lint        # must print nothing beyond the npm banner
+npm run build       # tsc + vite build
+npm run format      # prettier; run before committing
+```
+
+Both checks pass cleanly on `master`, so any output is something you introduced. TypeScript is strict with `noUnusedLocals` and `noUnusedParameters`, which means dead imports left behind by an edit will fail the build rather than linger.
+
+For anything user-visible, run the app (see [Exercising the UI](#exercising-the-ui)) — the type checker cannot tell you a chart renders.
+
+## Formatting
+
+Prettier is configured with `printWidth: 120` and **`singleAttributePerLine: true`**, so JSX in this repo puts every attribute on its own line. Run `npm run format` (or `npx prettier --write <files>`) rather than hand-formatting to match it — hand-matching this style is error-prone and produces noisy diffs.
+
+## The React Compiler changes how you write components
+
+The compiler is enabled and auto-memoizes render-phase work (§7 of ARCHITECTURE.md). Practical consequences:
+
+- **Never add `useMemo` or `useCallback`.** If you catch yourself reaching for one, the compiler already handles it. Hand-placed memos are redundant and drift out of sync with their dependencies.
+- **Never write `this` inside a component or hook.** It opts that whole function out of compilation, silently. Third-party callbacks that bind `this` (Highcharts does this on chart events) must live at module scope — see `dimLeafRing` in `common/Sunburst.tsx` for the pattern.
+- **Never write `??=`.** The compiler cannot lower it yet and bails on the enclosing function. Write `x = x ?? y`.
+
+`eslint-plugin-react-hooks@7`'s recommended config _is_ the compiler rule set, so `npm run lint` catches most violations. It does **not** catch the `this` and `??=` bailouts — those compile fine and just quietly lose memoization.
+
+### Checking bailouts
+
+After changing a hot component, confirm it still compiles. Temporarily wrap the preset in `vite.config.ts`:
+
+```ts
+babel({
+  presets: [
+    reactCompilerPreset({
+      logger: {
+        logEvent(filename, event) {
+          if (event.kind === "CompileSuccess") console.log("OK " + filename);
+          else if (event.kind === "CompileError" || event.kind === "CompileSkip")
+            console.log("BAIL " + filename + " :: " + (event.detail?.reason ?? ""));
+        },
+      },
+    }),
+  ],
+}),
+```
+
+Then `npx vite build 2>&1 | grep -E '^OK|^BAIL'`. Baseline is **79 compiled, 5 bailed** — three in `show/Stats.tsx`, one in `vg/CardMediaImage.tsx`, one in `common/Stats.tsx`, all compiler-internal limits. **Revert the logger afterwards.**
+
+Do not grep the built bundle for `useMemoCache` or `compiler-runtime` to check this — those names do not survive minification, and their absence proves nothing.
+
+## Traps
+
+Ordered by how quietly they fail.
+
+- **Never name a field `somethingDate` unless it is a `PlainDate`.** `useData`'s `JSON.parse` reviver converts _any_ key containing `"Date"`, so a `lastUpdateDate: string` comes back from cache as a broken date object. Only shows up after a reload.
+- **Never add a field named `show` to a non-`show` domain.** `show/Show.tsx` passes a replacer that strips that key on cache write; it is scoped to that domain, but the name is the trigger.
+- **Cache keys are unversioned.** Changing a domain model's shape leaves stale objects in existing browsers' `localStorage`. When testing a model change, clear the relevant `*-data-cache` key first, or you will debug the old shape.
+- **`PlainDate.from()` throws on partial dates.** It dispatches on string length: 10 chars → `YearMonthDay`, 4 → `Year`. `"2024-05"` throws. That is deliberate — it surfaces bad sheet data loudly.
+- **Colour lookups throw on unknown values** (`platformToShort`, `ratingToColour`). Also deliberate: it catches typos in the spreadsheet. Do not soften them to a fallback colour.
+- **Adding a `Tab` to `src/tabs.ts` is two steps** — define it _and_ add it to the exported `Tabs` array. The router and nav bar are generated from that array. `HolidaysTab` is defined but intentionally omitted, which is why `src/holiday/` is unreachable. It is unfinished, not broken; leave it alone unless asked.
+- **`.eslintrc.cjs` is dead.** ESLint 9 uses the flat `eslint.config.js`. Editing the legacy file has no effect.
+- **`extension/` is outside the Vite build.** Plain JS, loaded unpacked, shares no code with the app. `npm run build` does not touch it.
+
+## Where code goes
+
+The one rule that matters: **`common/` and `utils/` never import from `vg/`, `show/`, `movie/` or `holiday/`.**
+
+- New _visualisation behaviour_ → `common/`, parameterised by props and callbacks.
+- New _domain knowledge_ → the domain folder, as a thin adapter over a `common/` shell.
+
+If a shell needs to branch on something domain-specific, that is a signal the prop is wrong — pass the decision in rather than detecting it. If the shared layer needs a domain vocabulary, declare it in the shared layer and let domain types stay assignable to it; do not import upward.
+
+## Exercising the UI
+
+```bash
+npm run dev   # http://localhost:5173
+```
+
+Authentication notes that will otherwise waste your time:
+
+- The OAuth token lives in **`sessionStorage`, which is per-tab**. A login in one tab does not carry to another. Click **Authorise** in the app bar in the tab you are actually driving.
+- A failed sheet fetch clears the token and flips the button back to "Authorise" — so an empty page plus an "Authorise" button usually means an auth problem, not a rendering bug. Check the console before assuming your change broke something.
+- Data is cached in `localStorage`, so the app paints before auth completes. A stale render can outlive a broken change.
+
+**To test without touching real data**, seed the caches directly and reload — `useData` reads them synchronously on mount, and with no token it will not overwrite them:
+
+```js
+localStorage.setItem("vg-data-cache", JSON.stringify(games));
+localStorage.setItem("show-data-cache", JSON.stringify(shows));
+localStorage.setItem("movie-data-cache", JSON.stringify(movies));
+```
+
+Dates go in as ISO strings (`"2024-05-01"`); the reviver turns them into `PlainDate`s. Omit `Season.show` — the reviver re-attaches it. Values must be ones the colour maps recognise (see the trap above) or rendering throws.
+
+If you seed fake data, **clear those keys afterwards** so you do not leave test data in the user's browser.
+
+## Conventions
+
+- Prototype extensions are real here: `Array.prototype.sum` / `sortByKey` (`utils/arrayUtils.ts`) and `Map.prototype.setIfAbsent` (`utils/mapUtils.ts`). Prefer them over hand-rolled reduces and comparators — that is what the surrounding code does.
+- `Colour` is a branded string; literals need an `as Colour` cast.
+- Every `Graphs` module is `lazy()`-loaded with a `webpackPrefetch` comment. Keep that pattern when adding a domain — bundle size is actively tracked.
+- Use `PlainDate`, never JS `Date`, for anything tracked.
