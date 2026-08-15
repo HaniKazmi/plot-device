@@ -121,6 +121,9 @@ export const SunBurstControls = <T extends string>({
   );
 };
 
+/** Hoisted: localeCompare rebuilds a collator per call, and this sorts thousands of nodes. */
+const collator = new Intl.Collator();
+
 type SunburstEntry = {
   id: string;
   name: string;
@@ -162,7 +165,7 @@ const generateSunburstData = <T, K extends string>(
     addNode(options.getLeafName(item), parent);
   }
 
-  return Array.from(entryMap.values()).sort((a, b) => a.id.localeCompare(b.id));
+  return Array.from(entryMap.values()).sort((a, b) => collator.compare(a.id, b.id));
 };
 
 export default Sunburst;

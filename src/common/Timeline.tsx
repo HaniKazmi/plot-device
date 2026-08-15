@@ -141,7 +141,11 @@ const useTextPlacement = (data: PositionedTimelineData[]) => {
     (el: ItemRefs[T] | null) => {
       const item = itemRefs.current.get(event) ?? { rect: null, fo: null, text: null };
       item[type] = el;
-      itemRefs.current.set(event, item);
+      // Keys are the row objects themselves, which are rebuilt whenever the data changes.
+      // Without this, every detached row would linger — holding its tooltip element tree,
+      // and through it the domain record — and the effect below would walk the dead ones too.
+      if (!item.rect && !item.fo && !item.text) itemRefs.current.delete(event);
+      else itemRefs.current.set(event, item);
     };
 
   useLayoutEffect(() => {

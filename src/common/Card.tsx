@@ -27,7 +27,11 @@ export interface CardMediaImageProps {
   chip?: Pick<ChipProps, "label" | "icon" | "onClick" | "variant"> & { colour?: Colour };
   lazy?: boolean;
   footerComponent?: ReactNode;
-  detailComponent?: ReactNode;
+  /**
+   * Built lazily: `Finished` renders a card per item with no cap, and this tree is only ever
+   * mounted for the one card whose dialog is open.
+   */
+  detailComponent?: () => ReactNode;
   sx?: SxProps<Theme>;
   landscape?: boolean;
   /** Derive the card's theme colour from the image once it loads. Costs a canvas read per image. */
@@ -160,7 +164,7 @@ export const CardMediaImage = ({
                 width: "0px",
               }}
             >
-              {detailComponent}
+              {dialogOpen && detailComponent?.()}
             </Box>
           </Box>
         </Card>

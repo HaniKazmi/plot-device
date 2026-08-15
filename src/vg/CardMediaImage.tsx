@@ -16,7 +16,7 @@ const VgCardMediaImage: TypedCardMediaImage<VideoGame> = ({ item, ...props }) =>
   <CardMediaImage
     alt={item.name}
     image={item.banner}
-    detailComponent={
+    detailComponent={() => (
       <CardContent>
         <Grid
           container
@@ -88,7 +88,7 @@ const VgCardMediaImage: TypedCardMediaImage<VideoGame> = ({ item, ...props }) =>
           />
         </Grid>
       </CardContent>
-    }
+    )}
     {...props}
   />
 );

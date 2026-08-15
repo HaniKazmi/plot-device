@@ -40,10 +40,20 @@ const Graphs = () => {
   );
 };
 
+// MUI's stock palette, read once for the two fallback colours rather than rebuilt per call.
+const { palette: defaultPalette } = createTheme();
+
+// Themes are cached per tab: building one walks both colour schemes, typography, shadows and
+// the whole CSS-variable map, and a stable identity also stops the MUI tree re-evaluating `sx`
+// on navigation. Bounded by the number of tabs.
+const themeCache = new Map<string, ReturnType<typeof createTheme>>();
+
 const getTheme = (tab: Tab) => {
-  const { palette } = createTheme();
-  const primaryColour = tab.primaryColour ?? palette.primary.main;
-  return createTheme({
+  const cached = themeCache.get(tab.id);
+  if (cached) return cached;
+
+  const primaryColour = tab.primaryColour ?? defaultPalette.primary.main;
+  const theme = createTheme({
     cssVariables: true,
     colorSchemes: {
       dark: true,
@@ -53,7 +63,7 @@ const getTheme = (tab: Tab) => {
         main: primaryColour,
       },
       secondary: {
-        main: tab.secondaryColour ?? palette.secondary.main,
+        main: tab.secondaryColour ?? defaultPalette.secondary.main,
       },
     },
     components: {
@@ -99,6 +109,9 @@ const getTheme = (tab: Tab) => {
       },
     },
   });
+
+  themeCache.set(tab.id, theme);
+  return theme;
 };
 
 export default Graphs;

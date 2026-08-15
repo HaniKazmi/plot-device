@@ -6,7 +6,7 @@ const MovieCardMediaImage: TypedCardMediaImage<Movie> = ({ item, ...props }) => 
   <CardMediaImage
     alt={item.name}
     image={item.banner}
-    detailComponent={
+    detailComponent={() => (
       <CardContent>
         <Grid
           container
@@ -38,7 +38,7 @@ const MovieCardMediaImage: TypedCardMediaImage<Movie> = ({ item, ...props }) => 
           />
         </Grid>
       </CardContent>
-    }
+    )}
     {...props}
   />
 );

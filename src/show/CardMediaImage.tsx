@@ -19,7 +19,7 @@ const ShowCardMediaImage = <T extends Show | Season>({ item, ...props }: Paramet
     <CardMediaImage
       alt={show.name}
       image={show.banner}
-      detailComponent={
+      detailComponent={() => (
         <CardContent>
           <Grid
             container
@@ -53,7 +53,7 @@ const ShowCardMediaImage = <T extends Show | Season>({ item, ...props }: Paramet
             />
           </Grid>
         </CardContent>
-      }
+      )}
       {...props}
     />
   );
