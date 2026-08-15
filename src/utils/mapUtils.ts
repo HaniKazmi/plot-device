@@ -1,7 +1,6 @@
 declare global {
   interface Map<K, V> {
     setIfAbsent(key: K, value: V): V;
-    setIfAbsent(key: K, value: V): V;
   }
 }
 

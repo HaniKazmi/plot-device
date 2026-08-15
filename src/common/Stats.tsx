@@ -166,7 +166,7 @@ export const StatList = <T,>({
               item={entry}
               labels={labelComponent(entry)}
               chip={chipComponent?.(entry)}
-              pictureWidth={isDialog && dialogPictureWidth ? dialogPictureWidth : pictureWidth}
+              pictureWidth={isDialog ? dialogPictureWidth : pictureWidth}
               {...props}
             />
           ))}

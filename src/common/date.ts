@@ -99,18 +99,6 @@ export class Year extends PlainDate {
   startOfYear() {
     return YearMonthDay.get(this.year, 1, 1);
   }
-
-  endOfYear() {
-    return YearMonthDay.get(this.year, 12, 31);
-  }
-
-  yearMonthString(): undefined {
-    return undefined;
-  }
-
-  toYearMonth() {
-    return undefined;
-  }
 }
 
 export class YearMonth extends PlainDate {
@@ -164,7 +152,6 @@ export class YearMonth extends PlainDate {
 }
 
 export class YearMonthDay extends PlainDate {
-  #date: Date | undefined = undefined;
   static #cache = new Map<number, YearMonthDay>();
 
   static get(year: number, month: number, day: number) {
@@ -239,10 +226,6 @@ export class YearMonthDay extends PlainDate {
       newYear = (newYear + 1) as YearNumber;
     }
     return YearMonthDay.get(newYear, newMonth, newDay) as this;
-  }
-
-  toDate() {
-    return (this.#date ||= new Date(this.toString()));
   }
 
   startOfYear() {

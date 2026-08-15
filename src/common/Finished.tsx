@@ -9,8 +9,7 @@ import type { Year, YearMonthDay } from "./date";
 const Finished = <
   U extends {
     banner?: string;
-    startDate?: YearMonthDay | Year | Date;
-    endDate?: YearMonthDay | Year | Date;
+    startDate?: YearMonthDay | Year;
     name: string;
   },
 >({

@@ -309,11 +309,8 @@ const TimelineText = ({
 
   const getLeftPadding = () => (layoutInfo.placement === "right" ? `${layoutInfo.barPx + 5}px` : "5px");
   const getRightPadding = () => (layoutInfo.placement === "left" ? `${layoutInfo.barPx + 5}px` : "5px");
-  const getLeftPosition = () => {
-    if (layoutInfo.placement === "right") return `${layoutInfo.availableLeftPx}px`;
-    if (layoutInfo.placement === "left") return `${layoutInfo.availableLeftPx - layoutInfo.textPx}px`;
-    return `${layoutInfo.availableLeftPx}px`;
-  };
+  const getLeftPosition = () =>
+    `${layoutInfo.placement === "left" ? layoutInfo.availableLeftPx - layoutInfo.textPx : layoutInfo.availableLeftPx}px`;
 
   return (
     <g

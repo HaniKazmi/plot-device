@@ -159,7 +159,6 @@ const Barchart = ({
                   },
                 },
               },
-              line: {},
               area: {
                 stacking: "normal",
               },
