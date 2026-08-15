@@ -233,6 +233,7 @@ export const StatsListCard = <T,>({
           item={item}
           sx={{ aspectRatio, flexShrink: 0 }}
           chip={chip}
+          extractColour
           footerComponent={
             <FooterComponent
               labels={labels}

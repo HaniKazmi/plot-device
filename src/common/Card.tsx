@@ -30,6 +30,8 @@ export interface CardMediaImageProps {
   detailComponent?: ReactNode;
   sx?: SxProps<Theme>;
   landscape?: boolean;
+  /** Derive the card's theme colour from the image once it loads. Costs a canvas read per image. */
+  extractColour?: boolean;
 }
 
 export type TypedCardMediaImage<T> = FunctionComponent<
@@ -45,6 +47,7 @@ export const CardMediaImage = ({
   footerComponent,
   detailComponent,
   landscape = false,
+  extractColour = false,
   sx,
 }: CardMediaImageProps) => {
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
@@ -75,7 +78,7 @@ export const CardMediaImage = ({
           loading={lazy ? "lazy" : undefined}
           ref={imgRef}
           onLoad={(el) => {
-            if (footerComponent && !colour) {
+            if (extractColour && !colour) {
               imageToColour(el.target as HTMLImageElement, setColour);
             }
           }}

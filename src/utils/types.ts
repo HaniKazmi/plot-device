@@ -1,6 +1,3 @@
-import { Status as ShowStatus } from "../show/types";
-import { Status as VgStatus } from "../vg/types";
-
 export type KeysMatching<T, V> = keyof { [P in keyof T as T[P] extends V ? P : never]: P };
 export type Predicate<T> = (input: T) => boolean;
 
@@ -8,7 +5,24 @@ export type Distinct<T, DistinctName> = T & { __TYPE__: DistinctName };
 
 export type Colour = Distinct<string, "Colour">;
 
-export const statusToColour = ({ status }: { status: VgStatus | ShowStatus }) => {
+/**
+ * The status vocabulary this shared layer knows how to colour. Each domain declares its own
+ * `Status` union, which stays assignable to this — the dependency deliberately does not run
+ * the other way, so utils/ never imports from a domain folder.
+ */
+export type ColourableStatus =
+  | "Abandoned"
+  | "Beat"
+  | "Ended"
+  | "Cancelled"
+  | "Endless"
+  | "Up To Date"
+  | "Playing"
+  | "Watching"
+  | "Next"
+  | "Backlog";
+
+export const statusToColour = ({ status }: { status: ColourableStatus }) => {
   switch (status) {
     case "Abandoned":
       return "#d62728" as Colour;

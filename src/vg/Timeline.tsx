@@ -17,6 +17,7 @@ const VgTimeline = ({ data }: { data: VideoGame[] }) => {
       tooltip: (
         <VgCardMediaImage
           item={row}
+          extractColour
           footerComponent={
             <FooterComponent
               labels={[

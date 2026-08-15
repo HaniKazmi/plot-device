@@ -51,7 +51,8 @@ import {
 import type { FilterDispatch, YearType } from "./filterUtils";
 import { statusToColour } from "../utils/types";
 import { CURRENT_YEAR, EARLIEST_YEAR, YearNumber } from "../common/date";
-import { ComponentProps, createElement, ElementType, forwardRef, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import prepareForSlot from "../utils/prepareForSlot";
 import { useSelectBox } from "../common/SelectBoxHook";
 
 const Stats = ({
@@ -680,15 +681,3 @@ const vgStatListSharedProps: Pick<
 };
 
 export default Stats;
-
-function prepareForSlot<ComponentType extends ElementType>(Component: ComponentType) {
-  type Props = ComponentProps<ComponentType>;
-
-  return forwardRef<HTMLElement, Props>(function Slot(props, ref) {
-    const { ownerState, ...other } = props;
-    return createElement<Props>(Component, {
-      ...(other as Props),
-      ref,
-    });
-  });
-}

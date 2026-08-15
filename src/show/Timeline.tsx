@@ -29,6 +29,7 @@ const ShowTimeline = ({ data }: { data: Show[] }) => {
       <ShowCardMediaImage
         landscape
         item={s}
+        extractColour
         footerComponent={
           <FooterComponent
             labels={[
