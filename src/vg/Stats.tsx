@@ -19,7 +19,7 @@ import {
   Whatshot,
 } from "@mui/icons-material";
 import Grid from "@mui/material/Grid";
-import { format } from "../utils/mathUtils";
+import { assignPercents, format } from "../utils/mathUtils";
 import {
   companyToColor,
   groupToColour,
@@ -369,6 +369,22 @@ const MostPlayedGames = ({ data, controls }: { data: VideoGame[]; controls: Reac
   );
 };
 
+/** Groups completed, time-tracked games by a category, ordered most-played first. */
+const groupGamesBy = (data: VideoGame[], key: VideoGameStringKeys, measure: Measure) =>
+  Object.entries(
+    Object.groupBy(
+      data.filter((game) => game.hours && game.endDate),
+      (game) => game[key],
+    ) as Record<string, VideoGame[]>,
+  )
+    .map(([name, games]) => ({
+      name,
+      count: measure === "Hours" ? games.sum("hours") : games.length,
+      top: games.sortByKey("hours")[0],
+      all: games,
+    }))
+    .sortByKey("count");
+
 const MostPlayedCategory = ({
   data,
   measure,
@@ -380,21 +396,7 @@ const MostPlayedCategory = ({
   category: VideoGameStringKeys;
   controls: ReactNode;
 }) => {
-  const gamesByCategory = Object.groupBy(
-    data.filter((a) => a.hours && a.endDate),
-    (vg) => vg[category],
-  ) as Record<string, VideoGame[]>;
-
-  const most = Object.entries(gamesByCategory)
-    .map(([category, games]) => {
-      return {
-        category,
-        total: measure === "Hours" ? games?.sum("hours") : games.length,
-        most: games?.sortByKey("hours")[0],
-        all: games,
-      };
-    })
-    .sortByKey("total");
+  const most = groupGamesBy(data, category, measure);
 
   const [dialogContent, setDialogContent] = useState<(typeof most)[number] | null>(null);
 
@@ -404,7 +406,7 @@ const MostPlayedCategory = ({
       fullScreen
     >
       <CardHeader
-        title={dialogContent.category}
+        title={dialogContent.name}
         action={
           <IconButton onClick={() => setDialogContent(null)}>
             <CloseFullscreen color="primary" />
@@ -450,15 +452,15 @@ const MostPlayedCategory = ({
           icon: <ExpandCircleDown color="action" />,
           onClick: () => setDialogContent(entry),
         })}
-        labelComponent={(item: (typeof most)[0]) => [[item.category, `${format(item.total!)} ${measure}`]]}
+        labelComponent={(item: (typeof most)[0]) => [[item.name, `${format(item.count)} ${measure}`]]}
         MediaComponent={(props) => (
           <VgCardMediaImage
             {...props}
-            item={props.item.most}
-            colour={groupToColour(category, props.item.most)}
+            item={props.item.top}
+            colour={groupToColour(category, props.item.top)}
           />
         )}
-        nameComponent={(entry) => entry.category}
+        nameComponent={(entry) => entry.name}
         {...vgStatListSharedProps}
       />
       {dialog}
@@ -531,46 +533,19 @@ const TopList = ({
   const colorOffset = topOptions.indexOf(option) * 3;
   const [hovered, setHovered] = useState<string | null>(null);
 
-  const gamesByCategory = Object.groupBy(
-    data.filter((a) => a.hours && a.endDate),
-    (vg) => vg[option],
-  ) as Record<string, VideoGame[]>;
+  const allGroups = groupGamesBy(data, option, measure).filter(
+    ({ name }) => name && name !== "undefined" && name !== "",
+  );
 
-  const allGroups = Object.entries(gamesByCategory)
-    .filter(([cat]) => cat && cat !== "undefined" && cat !== "")
-    .map(([cat, games]) => {
-      return {
-        name: cat,
-        count: measure === "Hours" ? games?.sum("hours") : games.length,
-        topGame: games?.sortByKey("hours")[0] as VideoGame | undefined,
-        percent: 0,
-      };
-    })
-    .sortByKey("count");
-
-  const most = allGroups.slice(0, 5);
+  const grouped: { name: string; count: number; top?: VideoGame }[] = allGroups.slice(0, 5);
   const other = allGroups.slice(5);
+  if (other.length > 0) grouped.push({ name: "Other", count: other.sum("count") });
 
-  if (other.length > 0) {
-    most.push({
-      name: "Other",
-      count: other.sum("count"),
-      topGame: undefined,
-      percent: 0,
-    });
-  }
-
-  const total = most.sum("count");
-  let percentLeft = 100;
-  most.forEach((m) => {
-    m.percent = Math.max((m.count! / total) * 100, 0.5);
-    percentLeft -= m.percent;
-  });
-  if (most.length > 0) most[0].percent += percentLeft;
+  const most = assignPercents(grouped, grouped.sum("count"));
 
   const getColour = (struct: (typeof most)[0], index: number) => {
     if (struct.name === "Other") return "grey";
-    const groupCol = struct.topGame ? groupToColour(option, struct.topGame) : "";
+    const groupCol = struct.top ? groupToColour(option, struct.top) : "";
     return groupCol || highchartsColors[(index + colorOffset) % highchartsColors.length];
   };
 
@@ -655,7 +630,7 @@ const TopList = ({
                   variant="body2"
                   sx={{ flexShrink: 0 }}
                 >
-                  {`${format(struct.count!)} ${measure}`}
+                  {`${format(struct.count)} ${measure}`}
                 </Typography>
               </Stack>
             ))}

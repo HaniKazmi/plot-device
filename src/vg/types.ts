@@ -110,41 +110,28 @@ export const platformToColor = (platform: Platform | { platform: Platform }) => 
   }
 };
 
+const platformShortNames: Record<string, string> = {
+  "PlayStation 2": "PS2",
+  "PlayStation 3": "PS3",
+  "PlayStation P": "PSP",
+  "PlayStation 4": "PS4",
+  "PlayStation 5": "PS5",
+  "Nintendo Wii": "Wii",
+  "Nintendo GBC": "GBC",
+  "Nintendo GBA": "GBA",
+  "Nintendo DS": "DS",
+  "Nintendo 3DS": "3DS",
+  "Nintendo Switch": "NSW",
+  "Nintendo Switch 2": "NSW2",
+  PC: "PC",
+  iOS: "iOS",
+  "Xbox 360": "360",
+};
+
 export const platformToShort: (vg: VideoGame) => [string, Colour] = (vg) => {
-  switch (vg.platform) {
-    case "PlayStation 2":
-      return ["PS2", companyToColor(vg)];
-    case "PlayStation 3":
-      return ["PS3", companyToColor(vg)];
-    case "PlayStation P":
-      return ["PSP", companyToColor(vg)];
-    case "PlayStation 4":
-      return ["PS4", companyToColor(vg)];
-    case "PlayStation 5":
-      return ["PS5", companyToColor(vg)];
-    case "Nintendo Wii":
-      return ["Wii", companyToColor(vg)];
-    case "Nintendo GBC":
-      return ["GBC", companyToColor(vg)];
-    case "Nintendo GBA":
-      return ["GBA", companyToColor(vg)];
-    case "Nintendo DS":
-      return ["DS", companyToColor(vg)];
-    case "Nintendo 3DS":
-      return ["3DS", companyToColor(vg)];
-    case "Nintendo Switch":
-      return ["NSW", companyToColor(vg)];
-    case "Nintendo Switch 2":
-      return ["NSW2", companyToColor(vg)];
-    case "PC":
-      return ["PC", companyToColor(vg)];
-    case "iOS":
-      return ["iOS", companyToColor(vg)];
-    case "Xbox 360":
-      return ["360", companyToColor(vg)];
-    default:
-      throw new Error("Unknown platform: " + vg.platform);
-  }
+  const short = platformShortNames[vg.platform];
+  if (!short) throw new Error("Unknown platform: " + vg.platform);
+  return [short, companyToColor(vg)];
 };
 
 export const ratingToColour = ({ rating }: VideoGame) => {

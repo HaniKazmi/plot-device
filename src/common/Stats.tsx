@@ -11,7 +11,7 @@ import {
   Typography,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
-import { format } from "../utils/mathUtils";
+import { assignPercents, format } from "../utils/mathUtils";
 import { FooterComponent, type CardMediaImageProps, type TypedCardMediaImage } from "./Card";
 import { useState, type ReactNode } from "react";
 import type { Colour } from "../utils/types";
@@ -287,23 +287,14 @@ export const TotalStack = <T extends string, U, K extends keyof U>({
   icon: ReactNode;
   measureLabel: string;
 }) => {
-  const total = measureFunc(data);
-  const { totals, percentLeft } = group.reduce(
-    (acc, e) => {
+  const totals = assignPercents(
+    group.flatMap((e) => {
       const count = measureFunc(data.filter((vg) => vg[groupKey] === e));
-      if (count > 0) {
-        const percent = Math.max((count / total) * 100, 0.5);
-        acc.percentLeft -= percent;
-        acc.totals.push({ name: e, count, percent, colour: groupToColour(e) });
-      }
-      return acc;
-    },
-    { totals: [] as Array<{ name: T; count: number; percent: number; colour: Colour }>, percentLeft: 100 },
+      return count > 0 ? [{ name: e, count, colour: groupToColour(e) }] : [];
+    }),
+    measureFunc(data),
   );
 
-  if (totals.length > 0) {
-    totals[0].percent += percentLeft;
-  }
   const topToBottomSx = {
     textOrientation: { xs: "sideways", md: "initial" },
     writingMode: { xs: "vertical-lr", md: "initial" },
