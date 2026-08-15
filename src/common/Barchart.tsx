@@ -28,12 +28,13 @@ const getSeriesType = (graphType: GraphType, cumulative: boolean): "column" | "s
 const Barchart = ({
   title,
   data,
-  dataPostProcess,
+  postAggregate,
   controls,
 }: {
   title: string;
   data: (cumulative: boolean) => { name: string; date: YearMonth | Year; colour: Colour; value: number }[];
-  dataPostProcess?: (table: BarchartTable) => BarchartTable;
+  /** Converts each aggregated value, e.g. minutes to hours. Empty cells stay empty. */
+  postAggregate?: (value: number) => number;
   controls: ReactNode;
 }) => {
   const [graphType, setGraphType] = useState<GraphType>("bar");
@@ -46,7 +47,7 @@ const Barchart = ({
   const { dates, groups } = groupDateResults;
 
   if (effectiveCumulative) results = convertToCumulative(results);
-  if (dataPostProcess) results = dataPostProcess(results);
+  if (postAggregate) results = results.map((row) => row.map((value) => (value == null ? value : postAggregate(value))));
   const tooltipResults = results;
   if (graphType === "bump") results = convertToRanking(results);
 

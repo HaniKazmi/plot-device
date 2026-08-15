@@ -17,12 +17,14 @@ const Finished = <
   data,
   width,
   colour,
+  landscape = false,
   MediaComponent,
 }: {
   title: string;
   data: readonly U[];
   width: number;
   colour?: (item: U) => string;
+  landscape?: boolean;
   MediaComponent: TypedCardMediaImage<U>;
 }) => {
   const options: ("Date" | "Name")[] = ["Date", "Name"];
@@ -80,7 +82,7 @@ const Finished = <
               >
                 <MediaComponent
                   item={item}
-                  landscape={"format" in item}
+                  landscape={landscape}
                   lazy
                 />
               </Card>

@@ -24,6 +24,8 @@ const Sunburst = <T, K extends string>({
   const [hide, setHide] = useState(true);
 
   const generatedData = generateSunburstData(data, groups, options);
+  // One ring per group, plus the leaf ring of individual items.
+  const leafLevel = groups.length + 1;
 
   return (
     <Card>
@@ -46,7 +48,7 @@ const Sunburst = <T, K extends string>({
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   this.series[0].points.forEach((point: any) => {
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    if ((point as any).node.level === 4 && point.graphic) {
+                    if ((point as any).node.level === leafLevel && point.graphic) {
                       point.graphic.css({
                         opacity: 0.5,
                       });
@@ -74,7 +76,7 @@ const Sunburst = <T, K extends string>({
                   colorByPoint: true,
                 },
                 {
-                  level: 4,
+                  level: leafLevel,
                   dataLabels: {
                     enabled: !hide,
                   },

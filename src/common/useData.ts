@@ -12,6 +12,7 @@ const useData = <T>(
   tab: Tab,
   converter: (json: Record<string, string>[]) => T[],
   reviver?: (items: T[]) => void,
+  replacer?: (key: string, value: unknown) => unknown,
 ): [T[] | undefined, boolean] => {
   const [dataLoaded, setDataLoaded] = useState(false);
 
@@ -42,16 +43,10 @@ const useData = <T>(
         CACHE.set(storageKey, data);
         setData(data);
         setDataLoaded(true);
-        storage.setItem(
-          storageKey,
-          JSON.stringify(data, (key, value) => {
-            if (key === "show") return;
-            return value as unknown;
-          }),
-        );
+        storage.setItem(storageKey, JSON.stringify(data, replacer));
       })
       .catch(console.error);
-  }, [apiReady, converter, storageKey, tab, fetchAndConvertSheet]);
+  }, [apiReady, converter, storageKey, tab, fetchAndConvertSheet, replacer]);
 
   return [data, dataLoaded];
 };

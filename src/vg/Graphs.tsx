@@ -74,6 +74,7 @@ const Graphs = memo(
           data={data}
           width={4}
           colour={companyToColor}
+          landscape
         />
       </Stack>
     );

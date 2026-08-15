@@ -33,9 +33,7 @@ const ShowBarchart = ({ data, measure }: { data: Show[]; measure: Measure }) => 
     <Barchart
       title={measure === "Episodes" ? "Episodes Watched" : "Hours Watched"}
       data={barchartData}
-      dataPostProcess={
-        measure === "Hours" ? (data) => data.map((row) => row.map((el) => (el ? Math.floor(el / 60) : el))) : undefined
-      }
+      postAggregate={measure === "Hours" ? (minutes) => Math.floor(minutes / 60) : undefined}
       controls={controls}
     />
   );

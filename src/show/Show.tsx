@@ -9,10 +9,13 @@ const Graphs = lazy(() => import(/* webpackPrefetch: true */ "./Graphs"));
 
 const storageKey = "show-data-cache";
 
+// Season.show is a back-reference to its parent, so it has to be dropped before serialising
+// — otherwise JSON.stringify recurses forever — and re-attached after parsing.
+const dropSeasonParents = (key: string, value: unknown) => (key === "show" ? undefined : value);
+const reviveSeasonParents = (shows: Show[]) => shows.forEach((show) => show.s.forEach((s) => (s.show = show)));
+
 const ShowsGraph = () => {
-  const [data] = useData(storageKey, ShowsTab, jsonConverter, (items) =>
-    items.forEach((show) => show.s.forEach((s) => (s.show = show))),
-  );
+  const [data] = useData(storageKey, ShowsTab, jsonConverter, reviveSeasonParents, dropSeasonParents);
 
   const [filterState, filterDispatch] = useFilterReducer();
   const showData = useMemo(() => (data ? data.filter(filterState.filter) : []), [data, filterState.filter]);
