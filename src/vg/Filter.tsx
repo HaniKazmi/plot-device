@@ -180,7 +180,7 @@ const FilterCategory = <T extends VideoGameStringKeys & keyof FilterState>({
             ))}
           </Select>
         </FormControl>
-        {state.publisher.length > 0 && (
+        {state[category].length > 0 && (
           <ToggleButton
             value="clear"
             onChange={() => {
