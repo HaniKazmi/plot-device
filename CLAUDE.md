@@ -13,3 +13,11 @@ Two things worth knowing before you touch anything, both covered in full in AGEN
 
 - There is **no test framework**. Verification is `npx tsc --noEmit` plus `npm run lint`, and both are expected to produce no output.
 - The **React Compiler** is enabled, so do not hand-write `useMemo`/`useCallback`, and never write `this` or `??=` inside a component — either silently disables memoization for that function.
+
+<!-- Imports. A Claude Code import is a bare `@path` token on its own line; it is
+     NOT recognised inside markdown link syntax, so `[AGENTS.md](@./AGENTS.md)`
+     imports nothing — it is just a link with a broken URL. Keep the readable
+     links above and the import directives here. AGENTS.md imports ARCHITECTURE.md
+     and README.md in turn, so all three load from this one line. -->
+
+@./AGENTS.md

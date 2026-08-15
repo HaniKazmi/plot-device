@@ -4,6 +4,12 @@ Working notes for coding agents. **Read [ARCHITECTURE.md](./ARCHITECTURE.md) bef
 
 This file is the stuff you only learn by breaking something.
 
+<!-- Imports, for agents that support them. A Claude Code import is a bare `@path`
+     on its own line; wrapping it in markdown link syntax imports nothing. -->
+
+@./ARCHITECTURE.md
+@./README.md
+
 ## Verification loop
 
 There is **no test framework** — no runner, no test files. Do not add one without being asked, and do not claim a change is "tested".
