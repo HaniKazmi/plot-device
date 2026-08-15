@@ -1,0 +1,84 @@
+import { useEffect, useReducer, type Dispatch } from "react";
+import { useOutletContext } from "react-router-dom";
+import { CURRENT_YEAR, type YearNumber } from "./date";
+import type { Predicate } from "../utils/types";
+
+export type YearType = "upto" | "matching";
+
+/**
+ * The filter state every domain carries, whatever else it adds on top.
+ *
+ * `filter` is a composed predicate held *in* the state rather than derived at the call site:
+ * the reducer rebuilds it on every change, so components can call `data.filter(state.filter)`
+ * without knowing which criteria are active.
+ */
+export interface BaseFilterState<T, M extends string> {
+  measure: M;
+  yearType: YearType;
+  yearTo: YearNumber;
+  guestMode: boolean;
+  filter: Predicate<T>;
+}
+
+export type FilterAction<S, K extends keyof S = keyof S> =
+  | { type: "resetFilters" }
+  | { type: "updateFilter"; filter: K; value: S[K] }
+  | { type: "toggleMeasure" }
+  | { type: "toggleYearType" };
+
+export type FilterDispatchFor<S> = Dispatch<FilterAction<S, keyof S>>;
+
+/**
+ * The year cutoff, shared because every domain models it the same way: "up to" a year is a
+ * ceiling that disappears once it reaches the current year, and "matching" is an exact year.
+ */
+export const yearPredicates = <T extends { startDate: { year: YearNumber } }>(state: {
+  yearTo: YearNumber;
+  yearType: YearType;
+}): Predicate<T>[] => {
+  if (state.yearType === "matching") return [(item) => item.startDate.year === state.yearTo];
+  if (state.yearTo !== CURRENT_YEAR) return [(item) => item.startDate.year <= state.yearTo];
+  return [];
+};
+
+/**
+ * Builds a domain's filter reducer. Each domain supplies only what is actually its own:
+ * the initial values of its own fields, how to turn that state into a predicate, and how its
+ * measure toggles. Everything else — the action shape, the guest-mode wiring, and rebuilding
+ * `filter` after each change — is the same everywhere and lives here.
+ */
+export const createFilterReducer = <T, M extends string, S extends BaseFilterState<T, M>>(
+  initialValues: Omit<S, "filter">,
+  filters: (state: Omit<S, "filter">) => Predicate<T>,
+  nextMeasure: (measure: M) => M,
+) => {
+  const withFilter = (state: Omit<S, "filter">): S => ({ ...state, filter: filters(state) }) as S;
+
+  const initialState = withFilter(initialValues);
+
+  const reducer = <K extends keyof S>(state: S, action: FilterAction<S, K>): S => {
+    switch (action.type) {
+      case "resetFilters":
+        return initialState;
+      case "updateFilter":
+        return withFilter({ ...state, [action.filter]: action.value });
+      case "toggleMeasure":
+        return { ...state, measure: nextMeasure(state.measure) };
+      case "toggleYearType":
+        return withFilter({ ...state, yearType: state.yearType === "upto" ? "matching" : "upto" });
+    }
+  };
+
+  const useFilterReducer = () => {
+    const [state, dispatch] = useReducer(reducer, initialState);
+    const { guestMode } = useOutletContext<{ guestMode?: boolean }>();
+
+    useEffect(() => {
+      dispatch({ type: "updateFilter", filter: "guestMode" as keyof S, value: (guestMode || false) as S[keyof S] });
+    }, [guestMode]);
+
+    return [state, dispatch] as const;
+  };
+
+  return { useFilterReducer };
+};

@@ -1,10 +1,17 @@
-import { useEffect, useReducer, type Dispatch } from "react";
-import { useOutletContext } from "react-router-dom";
 import { Predicate } from "../utils/types";
 import { Measure, Platform, VideoGame } from "./types";
-import { CURRENT_YEAR, Year, YearNumber } from "../common/date";
+import { CURRENT_YEAR, Year } from "../common/date";
+import {
+  createFilterReducer,
+  yearPredicates,
+  type BaseFilterState,
+  type FilterDispatchFor,
+  type YearType,
+} from "../common/filterReducer";
 
-export interface FilterState {
+export type { YearType };
+
+export interface FilterState extends BaseFilterState<VideoGame, Measure> {
   endless: boolean;
   pokemon: boolean;
   unconfirmed: boolean;
@@ -12,64 +19,11 @@ export interface FilterState {
   platform: Platform[];
   genre: string[];
   publisher: string[];
-  measure: Measure;
-  yearType: YearType;
-  yearTo: YearNumber;
-  guestMode: boolean;
-  filter: Predicate<VideoGame>;
 }
 
-export type FilterDispatch = Dispatch<Action<keyof FilterState>>;
+export type FilterDispatch = FilterDispatchFor<FilterState>;
 
-type Action<K extends keyof FilterState> =
-  | { type: "resetFilters" }
-  | { type: "updateFilter"; filter: K; value: FilterState[K] }
-  | { type: "toggleMeasure" }
-  | { type: "toggleYearType" };
-
-export const useFilterReducer = () => {
-  const [state, dispatch] = useReducer(reducer, initialState);
-  const { guestMode } = useOutletContext<{ guestMode?: boolean }>();
-
-  useEffect(() => {
-    dispatch({ type: "updateFilter", filter: "guestMode", value: guestMode || false });
-  }, [guestMode]);
-
-  return [state, dispatch] as const;
-};
-
-export type YearType = "upto" | "matching";
-
-const reducer = <K extends keyof FilterState>(state: FilterState, action: Action<K>): FilterState => {
-  switch (action.type) {
-    case "resetFilters":
-      return initialState;
-    case "updateFilter": {
-      const newState = {
-        ...state,
-      };
-      newState[action.filter] = action.value;
-      newState.filter = filters(newState);
-      return newState;
-    }
-    case "toggleMeasure": {
-      return {
-        ...state,
-        measure: state.measure == "Games" ? "Hours" : "Games",
-      };
-    }
-    case "toggleYearType": {
-      const newState: FilterState = {
-        ...state,
-        yearType: state.yearType == "upto" ? "matching" : "upto",
-      };
-      newState.filter = filters(newState);
-      return newState;
-    }
-  }
-};
-
-const filters = (state: Omit<FilterState, "filter">) => {
+const filters = (state: Omit<FilterState, "filter">): Predicate<VideoGame> => {
   const predicates: Predicate<VideoGame>[] = [];
 
   if (!state.endless) predicates.push((vg) => vg.status !== "Endless");
@@ -93,12 +47,7 @@ const filters = (state: Omit<FilterState, "filter">) => {
   if (state.genre.length > 0) predicates.push((vg) => state.genre.includes(vg.genre));
   if (state.publisher.length > 0) predicates.push((vg) => state.publisher.includes(vg.publisher));
 
-  if (state.yearTo !== CURRENT_YEAR && state.yearType === "upto") {
-    predicates.push((vg) => vg.startDate.year <= state.yearTo);
-  }
-  if (state.yearType === "matching") {
-    predicates.push((vg) => vg.startDate.year === state.yearTo);
-  }
+  predicates.push(...yearPredicates<VideoGame>(state));
 
   if (state.guestMode) {
     predicates.push((vg) => !vg.theme.includes("Adult"));
@@ -107,8 +56,8 @@ const filters = (state: Omit<FilterState, "filter">) => {
   return (vg: VideoGame) => predicates.every((p) => p(vg));
 };
 
-const initialState: FilterState = (() => {
-  const state: FilterState = {
+export const { useFilterReducer } = createFilterReducer<VideoGame, Measure, FilterState>(
+  {
     endless: true,
     pokemon: true,
     unconfirmed: true,
@@ -120,10 +69,7 @@ const initialState: FilterState = (() => {
     yearType: "upto",
     yearTo: CURRENT_YEAR,
     guestMode: false,
-    filter: (vg: VideoGame) => Boolean(vg),
-  };
-
-  state.filter = filters(state);
-
-  return state;
-})();
+  },
+  filters,
+  (measure) => (measure === "Games" ? "Hours" : "Games"),
+);
