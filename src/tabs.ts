@@ -1,4 +1,5 @@
 import type { FunctionComponent } from "react";
+import { useLocation } from "react-router-dom";
 import Holiday from "./holiday/Holiday";
 import Shows from "./show/Show";
 import VideoGames from "./vg/vg";
@@ -53,5 +54,10 @@ export const HolidaysTab: Tab = {
 };
 
 const Tabs: Tab[] = [VideoGamesTab, ShowsTab, MoviesTab];
+
+export const useCurrentTab = (): Tab => {
+  const { pathname } = useLocation();
+  return Tabs.find((tab) => tab.id === pathname.replace(/^\//, "")) ?? Tabs[0];
+};
 
 export default Tabs;

@@ -554,13 +554,13 @@ const TopList = ({
   if (other.length > 0) {
     most.push({
       name: "Other",
-      count: other.reduce((acc, curr) => acc + curr.count!, 0),
+      count: other.sum("count"),
       topGame: undefined,
       percent: 0,
     });
   }
 
-  const total = most.reduce((acc, curr) => acc + curr.count!, 0);
+  const total = most.sum("count");
   let percentLeft = 100;
   most.forEach((m) => {
     m.percent = Math.max((m.count! / total) * 100, 0.5);

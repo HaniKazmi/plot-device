@@ -144,7 +144,7 @@ const RecentlyComplete = ({ data }: { data: Show[] }) => {
   const recent = data
     .flatMap((show) => show.s)
     .filter((season) => season.endDate)
-    .sort((seasonA, seasonB) => (seasonA.endDate! < seasonB.endDate! ? 1 : -1))
+    .sortByKey("endDate")
     .slice(0, 18);
   return (
     <ShowStatList
@@ -167,7 +167,7 @@ const CurrentlyPlaying = ({ data }: { data: Show[] }) => {
     .filter((show) => show.status === "Watching")
     .map((show) => show.s.at(-1)!)
     .filter((season) => !season.endDate)
-    .sort((seasonA, seasonB) => (seasonA.startDate < seasonB.startDate ? 1 : -1));
+    .sortByKey("startDate");
   return (
     <ShowStatList
       icon={<PlayArrow />}

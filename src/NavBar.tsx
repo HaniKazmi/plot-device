@@ -1,15 +1,13 @@
 import { AppBar, Box, Button, Tab as MuiTab, Tabs as MuiTabs, Toolbar, Typography } from "@mui/material";
 import { Score } from "@mui/icons-material";
-import { useLocation, useNavigate } from "react-router-dom";
-import Tabs, { Tab } from "./tabs";
+import { useNavigate } from "react-router-dom";
+import Tabs, { useCurrentTab } from "./tabs";
 import useLongPress from "./utils/useLongPress";
 import { useGoogleAuth } from "./contexts/GoogleAuthContext";
 
 const NavBar = ({ setGuestMode }: { setGuestMode: (value: boolean) => void }) => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const path = location.pathname.replace(/^\//, ""); // remove leading slash
-  const currTab: Tab = Tabs.find((t) => t.id === path) || Tabs[0];
+  const currTab = useCurrentTab();
   const events = useLongPress(() => setGuestMode(true));
   const { authorise, revoke } = useGoogleAuth();
 
