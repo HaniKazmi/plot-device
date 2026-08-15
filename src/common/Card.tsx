@@ -55,6 +55,8 @@ export const CardMediaImage = ({
   sx,
 }: CardMediaImageProps) => {
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  /** Lags `dialogOpen` on close so the detail tree survives the dialog's exit transition. */
+  const [detailMounted, setDetailMounted] = useState<boolean>(false);
   const [colour, setColour] = useState<Colour | undefined>(propColour ?? imageToColour(image));
   const imgRef = useRef<HTMLImageElement>(null);
 
@@ -78,6 +80,7 @@ export const CardMediaImage = ({
           onClick={() => {
             if (!colour) imageToColour(imgRef.current as HTMLImageElement, setColour);
             setDialogOpen(true);
+            setDetailMounted(true);
           }}
           loading={lazy ? "lazy" : undefined}
           ref={imgRef}
@@ -114,7 +117,10 @@ export const CardMediaImage = ({
         maxWidth={false}
         scroll="body"
         slots={{ transition: Grow }}
-        slotProps={{ paper: { sx: { backgroundColor: "unset", boxShadow: "unset", backgroundImage: "unset" } } }}
+        slotProps={{
+          paper: { sx: { backgroundColor: "unset", boxShadow: "unset", backgroundImage: "unset" } },
+          transition: { onExited: () => setDetailMounted(false) },
+        }}
       >
         <Card
           sx={{
@@ -164,7 +170,7 @@ export const CardMediaImage = ({
                 width: "0px",
               }}
             >
-              {dialogOpen && detailComponent?.()}
+              {detailMounted && detailComponent?.()}
             </Box>
           </Box>
         </Card>

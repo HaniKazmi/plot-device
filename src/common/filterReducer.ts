@@ -59,7 +59,8 @@ export const createFilterReducer = <T, M extends string, S extends BaseFilterSta
   const reducer = <K extends keyof S>(state: S, action: FilterAction<S, K>): S => {
     switch (action.type) {
       case "resetFilters":
-        return initialState;
+        // Guest mode is set by the app, not the filter panel, so Clear must not unhide content.
+        return withFilter({ ...initialValues, guestMode: state.guestMode });
       case "updateFilter":
         return withFilter({ ...state, [action.filter]: action.value });
       case "toggleMeasure":
