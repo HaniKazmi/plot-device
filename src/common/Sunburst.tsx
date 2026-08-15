@@ -4,6 +4,22 @@ import { Chart, SunburstSeries } from "../highcharts";
 import { SelectBox } from "./SelectionComponents";
 import type { Colour } from "../utils/types";
 
+/**
+ * Fades the outermost ring so leaf items read as detail rather than structure.
+ * Lives outside the component because the React Compiler cannot compile a function
+ * containing `this`, and Highcharts binds the chart to `this` on its render event.
+ */
+const dimLeafRing = (leafLevel: number) =>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function (this: any) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.series[0].points.forEach((point: any) => {
+      if (point.node.level === leafLevel && point.graphic) {
+        point.graphic.css({ opacity: 0.5 });
+      }
+    });
+  };
+
 const Sunburst = <T, K extends string>({
   data,
   controls,
@@ -43,18 +59,7 @@ const Sunburst = <T, K extends string>({
                 color: theme.palette.text.primary,
               },
               events: {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                render: function (this: any) {
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  this.series[0].points.forEach((point: any) => {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    if ((point as any).node.level === leafLevel && point.graphic) {
-                      point.graphic.css({
-                        opacity: 0.5,
-                      });
-                    }
-                  });
-                },
+                render: dimLeafRing(leafLevel),
               },
             },
           }}

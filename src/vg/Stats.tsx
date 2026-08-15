@@ -279,7 +279,9 @@ const Averages = ({ data, yearType }: { data: VideoGame[]; yearType: YearType })
   if (yearType == "matching") return;
   const grouped = data.reduce<Record<YearNumber, { games: number; hours: number }>>((tree, game) => {
     if (!game.hours) return tree;
-    const gamesAndHours = (tree[game.startDate.year] ??= { games: 0, hours: 0 });
+    // Written out rather than `??=` because the React Compiler cannot lower that operator yet.
+    const gamesAndHours = tree[game.startDate.year] ?? { games: 0, hours: 0 };
+    tree[game.startDate.year] = gamesAndHours;
     gamesAndHours.games += 1;
     gamesAndHours.hours += game.hours;
     return tree;

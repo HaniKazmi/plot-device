@@ -95,7 +95,8 @@ const Averages = ({ data }: { data: Show[] }) => {
       (tree, s) => {
         if (!s.minutes) return tree;
         const year = s.startDate.year;
-        tree[year] ??= { seasons: 0, episodes: 0, minutes: 0 };
+        // Written out rather than `??=` because the React Compiler cannot lower that operator yet.
+        tree[year] = tree[year] ?? { seasons: 0, episodes: 0, minutes: 0 };
         tree[year].seasons += 1;
         tree[year].episodes += s.e;
         tree[year].minutes += s.minutes;
