@@ -11,7 +11,7 @@ It in turn points to:
 
 Two things worth knowing before you touch anything, both covered in full in AGENTS.md:
 
-- There is **no test framework**. Verification is `npx tsc --noEmit` plus `npm run lint`, and both are expected to produce no output.
+- Verification is `npm test`, `npx tsc --noEmit` and `npm run lint`. The last two are expected to produce no output. Tests are **pure logic only** and live in `tests/`, mirroring `src/`; the rules that keep them from flaking are in AGENTS.md.
 - The **React Compiler** is enabled, so do not hand-write `useMemo`/`useCallback`, and never write `this` or `??=` inside a component — either silently disables memoization for that function.
 
 <!-- Imports. A Claude Code import is a bare `@path` token on its own line; it is

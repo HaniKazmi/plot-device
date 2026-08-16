@@ -1,18 +1,10 @@
 import { Card, CardContent, Box, Tooltip, useTheme } from "@mui/material";
-import { type ReactNode, useLayoutEffect, useRef, useState, type Ref, useMemo } from "react";
-import type { Colour } from "../utils/types";
+import { type ReactNode, useLayoutEffect, useRef, useState, type Ref } from "react";
 import type { YearMonth, YearMonthDay } from "./date";
 import type {} from "@mui/material/themeCssVarsAugmentation";
-import "../utils/arrayUtils";
-import "../utils/mapUtils";
+import { decidePlacement, packRows, type PositionedTimelineData, type TimelineData } from "./timelineLayout";
 
-export interface TimelineData {
-  name: string;
-  tooltip: React.ReactNode;
-  colour: Colour;
-  start: YearMonthDay;
-  end: YearMonthDay;
-}
+export type { TimelineData };
 
 // ============================================================================
 // Constants
@@ -25,12 +17,6 @@ const SVG_PADDING = 20;
 // ============================================================================
 // Types
 // ============================================================================
-interface PositionedTimelineData extends TimelineData {
-  rowNumber: number;
-  nextDate?: YearMonthDay;
-  previousDate?: YearMonthDay;
-}
-
 type LayoutInfo = {
   placement: "center" | "right" | "left";
   textPx: number;
@@ -73,62 +59,6 @@ const calculatePercentageWidth = (start: YearMonthDay, end: YearMonthDay, totalD
 // Hooks
 // ============================================================================
 /**
- * Hook to assign events to rows to avoid overlaps (Greedy Interval Packing).
- * Sorts events chronologically and assigns each to the first available row where it fits.
- */
-const useTimelineRows = (timelineData: TimelineData[]) => {
-  return useMemo(() => {
-    // Return early if no data
-    if (timelineData.length === 0) return [[] as PositionedTimelineData[], 0] as const;
-
-    // 1. Sort the events chronologically by start date
-    const sortedData = timelineData.sortByKey("start", true);
-
-    // Tracks the end date of the last event in each row
-    const rowEndDates: YearMonthDay[] = [];
-    // Groups events by their assigned row
-    const rows: Map<number, PositionedTimelineData[]> = new Map();
-
-    const positionedRows = sortedData.map((row) => {
-      let targetRow = -1;
-
-      // 2. Greedy Packing: Find the first row where the event's start date
-      // is on or after the row's current end date.
-      for (let i = 0; i < rowEndDates.length; i++) {
-        if (row.start >= rowEndDates[i]) {
-          targetRow = i;
-          break;
-        }
-      }
-
-      // 3. If no existing row has space, create a new row
-      if (targetRow === -1) {
-        targetRow = rowEndDates.length;
-      }
-
-      // Update the row's end date to this event's end date
-      rowEndDates[targetRow] = row.end;
-
-      const newRow: PositionedTimelineData = { ...row, rowNumber: targetRow };
-
-      // 4. Link neighboring events in the same row so we know how much empty
-      // space is available on either side for text placement later.
-      const dataForTargetRow = rows.setIfAbsent(targetRow, []);
-      if (dataForTargetRow.length > 0) {
-        const lastRow = dataForTargetRow[dataForTargetRow.length - 1];
-        lastRow.nextDate = newRow.start;
-        newRow.previousDate = lastRow.end;
-      }
-      dataForTargetRow.push(newRow);
-      return newRow;
-    });
-
-    // Return the processed data and the maximum row index used
-    return [positionedRows, rowEndDates.length - 1] as const;
-  }, [timelineData]);
-};
-
-/**
  * Hook to dynamically calculate where text should be placed (center, left, right)
  * relative to its colored bar, ensuring it is fully visible and doesn't overlap other text.
  * It uses a `useLayoutEffect` to read actual DOM node dimensions after rendering.
@@ -168,28 +98,20 @@ const useTextPlacement = (data: PositionedTimelineData[]) => {
       const rightWidth = foBox.right - rectBox.right;
       const leftWidth = rectBox.left - foBox.left;
 
-      let placement: LayoutInfo["placement"] = "center";
-
-      // Decision logic for text placement:
-      if (textWidth <= rectWidth) {
-        // Text fits entirely inside the bar
-        placement = "center";
-        rightUsed[event.rowNumber] = false;
-      } else if (!rightUsed[event.rowNumber] && textWidth < leftWidth) {
-        // Text doesn't fit in bar, but there is enough space to its left
-        placement = "left";
-        rightUsed[event.rowNumber] = false;
-      } else if (textWidth < rightWidth) {
-        // Space to the left is taken or insufficient, put it on the right
-        placement = "right";
-        rightUsed[event.rowNumber] = true;
-      }
+      const decision = decidePlacement({
+        textWidth,
+        rectWidth,
+        leftWidth,
+        rightWidth,
+        rightUsed: rightUsed[event.rowNumber] ?? false,
+      });
+      rightUsed[event.rowNumber] = decision.rightUsed;
 
       map.set(event, {
         availableLeftPx: leftWidth,
         barPx: rectWidth,
         textPx: textWidth,
-        placement,
+        placement: decision.placement,
       });
     });
 
@@ -204,7 +126,7 @@ const useTextPlacement = (data: PositionedTimelineData[]) => {
 // Components
 // ============================================================================
 const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }) => {
-  const [positionedTimelineData, maxRow] = useTimelineRows(timelineData);
+  const [positionedTimelineData, maxRow] = packRows(timelineData);
 
   if (positionedTimelineData.length === 0) {
     return null;

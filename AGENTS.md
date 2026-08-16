@@ -12,18 +12,35 @@ This file is the stuff you only learn by breaking something.
 
 ## Verification loop
 
-There is **no test framework** — no runner, no test files. Do not add one without being asked, and do not claim a change is "tested".
-
 ```bash
+npm test            # Vitest, ~0.5s
 npx tsc --noEmit    # must print nothing
 npm run lint        # must print nothing beyond the npm banner
 npm run build       # tsc + vite build
 npm run format      # prettier; run before committing
 ```
 
-Both checks pass cleanly on `master`, so any output is something you introduced. TypeScript is strict with `noUnusedLocals` and `noUnusedParameters`, which means dead imports left behind by an edit will fail the build rather than linger.
+All of these pass cleanly on `master`, so any output is something you introduced. TypeScript is strict with `noUnusedLocals` and `noUnusedParameters`, which means dead imports left behind by an edit will fail the build rather than linger. `.github/workflows/ci.yml` runs the same three checks on every push and pull request.
 
-For anything user-visible, run the app (see [Exercising the UI](#exercising-the-ui)) — the type checker cannot tell you a chart renders.
+For anything user-visible, run the app (see [Exercising the UI](#exercising-the-ui)) — neither the type checker nor the suite can tell you a chart renders.
+
+## Tests
+
+`tests/` mirrors `src/` one for one, so `tests/vg/converter.test.ts` covers `src/vg/converter.ts` and every test imports its subject at `../../src/<same path>`. Fixtures live in `tests/fixtures/`: raw sheet rows shaped the way `arrayToJson` hands them over, plus builders for whole domain objects.
+
+The suite is pure logic. It runs in the `node` environment with no DOM, and `vitest.config.ts` is deliberately separate from `vite.config.ts` so the React Compiler's babel plugin stays out of the test transform. Vitest globals are off — import `describe`/`it`/`expect` explicitly, because switching them on would mean adding a `types` array to `tsconfig.json`, which would drop the `@types` packages `src/` currently picks up implicitly.
+
+**Keep it unable to flake.** Every rule below is load-bearing:
+
+- **No wall-clock assertions.** `CURRENT_YEAR` and `CURRENT_PLAINDATE` are computed at module load from the real clock, so a literal year turns into a failure on New Year's Day. Express expectations relative to `CURRENT_YEAR`. Do not compare anything against `CURRENT_PLAINDATE` by identity either — `currentDate()` bypasses the interning cache, so it is never `===` a `YearMonthDay.get()` of the same day.
+- **No locale or timezone dependence.** `mathUtils.format` is an `Intl.NumberFormat` on the machine default locale; leave it untested. The `test` script pins `TZ=UTC`.
+- **No network, gapi, OAuth, `localStorage`, or canvas.** Converters take literal fixtures, and the cache round-trip drives `JSON.stringify`/`JSON.parse` directly instead of going through `useData`.
+- **No snapshots**, so a failure names the property that broke rather than showing a diff to skim.
+- **Nothing asynchronous** — no timers, no promises, no `act()`.
+
+There are no DOM or component tests, and adding them is a bigger decision than it looks: Highcharts needs stubbing, MUI needs a `matchMedia` polyfill, and `useTextPlacement` would assert nothing real because jsdom returns 0 for `getBoundingClientRect()` and `scrollWidth`, collapsing every branch to "center". `tests/architecture.test.ts` covers the failure a mount test would most likely catch — it reads the source files and enforces both the `common/`-never-imports-a-domain rule and the requirement that every caller of a prototype extension imports the module installing it.
+
+Several tests pin behaviour that is wrong but deliberate to leave alone for now, and they say so in a comment. Do not "fix" the test when the behaviour is the thing under discussion — the show converter's pre-2006 orphan crash and the unguarded division in `assignPercents` are both recorded that way.
 
 ## Formatting
 
@@ -59,7 +76,7 @@ babel({
 }),
 ```
 
-Then `npx vite build 2>&1 | grep -E '^OK|^BAIL'`. Baseline is **79 compiled, 5 bailed** — three in `show/Stats.tsx`, one in `vg/CardMediaImage.tsx`, one in `common/Stats.tsx`, all compiler-internal limits. **Revert the logger afterwards.**
+Then `npx vite build 2>&1 | grep -E '^OK|^BAIL'`. Baseline is **78 compiled, 5 bailed** — three in `show/Stats.tsx`, one in `vg/CardMediaImage.tsx`, one in `common/Stats.tsx`, all compiler-internal limits. **Revert the logger afterwards.**
 
 Do not grep the built bundle for `useMemoCache` or `compiler-runtime` to check this — those names do not survive minification, and their absence proves nothing.
 

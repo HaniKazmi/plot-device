@@ -110,7 +110,7 @@ On mount the hook returns cached data synchronously from its `useState` initiali
 
 Two subtleties live in the serialisation boundary, and both are easy to break:
 
-1. **The cycle.** `Season.show` points back at its parent `Show`, so `JSON.stringify` would recurse forever. `useData` takes an optional `replacer` and an optional `reviver`, and `show/Show.tsx` supplies both as a matched pair (`dropSeasonParents` / `reviveSeasonParents`): one drops the `show` key on write, the other re-attaches the back-reference on read. Neither rule lives in the hook — a domain concern would otherwise silently eat any future field named `show` in another domain. Both are module-scope constants so the fetch effect can depend on them without re-firing. Any future model with parent pointers needs the same pair.
+1. **The cycle.** `Season.show` points back at its parent `Show`, so `JSON.stringify` would recurse forever. `useData` takes an optional `replacer` and an optional `reviver`, and `show/converter.ts` supplies both as a matched pair (`dropSeasonParents` / `reviveSeasonParents`): one drops the `show` key on write, the other re-attaches the back-reference on read. Neither rule lives in the hook — a domain concern would otherwise silently eat any future field named `show` in another domain. Both are module-scope constants so the fetch effect can depend on them without re-firing. Any future model with parent pointers needs the same pair.
 2. **Date revival.** The `JSON.parse` reviver converts **any key whose name contains `"Date"`** into a `PlainDate`. It is a deliberate convention, but it means a non-date field called e.g. `updateDate` would be silently corrupted on reload.
 
 Cache keys are per-domain literals (`"vg-data-cache"`, `"show-data-cache"`, `"movie-data-cache"`). There is no schema version in the key, so a change to a domain model's shape will meet stale cached objects on existing browsers.
@@ -138,7 +138,7 @@ The requested scope is `spreadsheets.readonly`. The application has no write pat
 
 The most involved shell. It accepts `data` as a _function of_ `cumulative` and returns flat `{ name, date, colour, value }` records; the component owns everything after that:
 
-1. `groupDate()` pivots the flat records into a dense `BarchartTable` (`group × date` matrix). Dates are densified by walking `PlainDate.iterateToDate`, so gaps become real columns instead of being skipped. Series are sorted by total, and leading cells before a series' first data point are set to `null` so lines start where the data does rather than at zero.
+1. `groupDate()` (in `common/barchartData.ts`, alongside the two transforms below) pivots the flat records into a dense `BarchartTable` (`group × date` matrix). Dates are densified by walking `PlainDate.iterateToDate`, so gaps become real columns instead of being skipped. Series are sorted by total, and leading cells before a series' first data point are set to `null` so lines start where the data does rather than at zero.
 2. `convertToCumulative()` and `convertToRanking()` are pure transforms over that matrix — cumulative area and bump-chart ranking are views of the same pivot, not separate queries.
 3. Clicking a column isolates that series (and clicking again restores all), implemented through Highcharts' plot-options event rather than React state.
 
@@ -146,7 +146,7 @@ Callers choose the measure (episodes vs hours, games vs hours) and pass `postAgg
 
 ### Sunburst — `common/Sunburst.tsx`
 
-Renders an arbitrary-depth hierarchy from a flat list. `generateSunburstData` builds path-style ids (`"-Nintendo-Switch-Zelda"`) and accumulates values into a `Map`, which makes grouping order fully dynamic: the caller passes `groups: K[]`, and `SunBurstControls` renders one select box per level so users re-nest the hierarchy at runtime. Domain meaning enters through four callbacks — `keyToVal`, `getCount`, `getColor`, `getLeafName`.
+Renders an arbitrary-depth hierarchy from a flat list. `generateSunburstData` (in `common/sunburstData.ts`) builds path-style ids (`"-Nintendo-Switch-Zelda"`) and accumulates values into a `Map`, which makes grouping order fully dynamic: the caller passes `groups: K[]`, and `SunBurstControls` renders one select box per level so users re-nest the hierarchy at runtime. Domain meaning enters through four callbacks — `keyToVal`, `getCount`, `getColor`, `getLeafName`.
 
 Depth follows the data: the leaf ring is `groups.length + 1`, so adding or removing a select box in a domain file changes the rings without touching `common/`. The Highcharts `render` callback that dims that ring lives at module scope (`dimLeafRing`) because Highcharts binds the chart to `this`, and the React Compiler cannot compile a function containing `this` — inlining it would silently opt the whole component out of memoization (§7).
 
@@ -154,7 +154,7 @@ Depth follows the data: the leaf ring is `groups.length + 1`, so adding or remov
 
 Hand-rolled SVG, not Highcharts, because the requirement was a Gantt-like packed timeline with rich hover cards. Two algorithms:
 
-- **Greedy interval packing** (`useTimelineRows`): sort by start date, place each item in the first row whose last item has already ended. Items are linked to their row neighbours (`previousDate` / `nextDate`) so the layout step knows how much empty space surrounds each bar.
+- **Greedy interval packing** (`packRows`, in `common/timelineLayout.ts`): sort by start date, place each item in the first row whose last item has already ended. Items are linked to their row neighbours (`previousDate` / `nextDate`) so the layout step knows how much empty space surrounds each bar.
 - **Measured text placement** (`useTextPlacement`): a `useLayoutEffect` reads real DOM geometry and decides per item whether its label fits inside the bar (centre), or should spill left or right into the gap, tracking per-row whether the right-hand gap is already claimed. Labels live in a `<foreignObject>` spanning the whole inter-item gap so they can overflow the bar without being clipped.
 
 The chart is fixed at `400vw` inside a scroll container, and the month/quarter/year axis is rendered separately beneath it.
@@ -210,7 +210,7 @@ Setup is the plugin's documented path: `@vitejs/plugin-react` exports `reactComp
 - **`this`** anywhere in the function. Highcharts binds the chart to `this` in its event callbacks, so those must live at module scope (see `dimLeafRing` in §6) or they take the whole component down with them.
 - **`??=`**, which the compiler cannot yet lower. Write `x = x ?? y` instead.
 
-At the time of writing 79 functions compile and 5 bail — four `MethodCall` codegen errors (three in `show/Stats.tsx`, one in `vg/CardMediaImage.tsx`) and one arrow-reordering limit in `common/Stats.tsx`. Those are compiler-internal limitations, not fixable from here, and none are on hot paths. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
+At the time of writing 78 functions compile and 5 bail — four `MethodCall` codegen errors (three in `show/Stats.tsx`, one in `vg/CardMediaImage.tsx`) and one arrow-reordering limit in `common/Stats.tsx`. Those are compiler-internal limitations, not fixable from here, and none are on hot paths. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
 
 The compiler costs about 4% of bundle size (~15KB gzipped) in injected cache slots. That is a deliberate trade, and `npm run analyze` exists to keep it honest.
 
@@ -263,7 +263,7 @@ Recorded so they are not mistaken for design:
 
 - **`holiday/` is a stub.** `HolidaysTab` is defined in `tabs.ts` but deliberately omitted from the exported `Tabs` array, so the route is unreachable. Its converter drops the dates its own `Holiday` type declares, and `Map.tsx` renders `data.toString()` as placeholder text. It also predates `useData` and hand-rolls its own module-level cache.
 - **`movie/` is early.** Its `Graphs.tsx` renders only the `Finished` grid — no stats, timeline, barchart, sunburst or filters yet, and `movie/types.ts` has no colour mappings. `Movie` carries `rating`, `score` and `director` that nothing currently displays.
-- **No automated tests.** Correctness rests on TypeScript's strictness, ESLint, and a handful of `console.assert` date-ordering checks inside the show converter.
+- **No DOM or component tests.** `tests/` covers pure logic — converters, filters, the reducer, the chart data transforms and the cache round trip — and deliberately stops there; AGENTS.md explains the trade. Nothing verifies that a chart renders, and the show converter's date ordering is still only a `console.assert`, which does not alter control flow.
 - **`.eslintrc.cjs` is dead.** ESLint 9 uses the flat `eslint.config.js`; the legacy file remains in the tree and is not applied. The flat config is also the weaker of the two — it drops the type-checked and React-specific rule sets the old file enabled.
 - **Cache keys are unversioned**, so domain model changes can meet stale `localStorage` objects (§4).
 - **Five React Compiler bailouts** remain (§7). Compiler-internal limits, none on hot paths, but they mean those functions get no auto-memoization.

@@ -70,13 +70,16 @@ The app is served at `http://localhost:5173`. Click **Authorise** in the app bar
 | ----------------- | -------------------------------------------------------------- |
 | `npm run dev`     | Vite dev server with HMR                                       |
 | `npm run build`   | `tsc` then `vite build`                                        |
+| `npm test`        | Vitest over `tests/`                                           |
 | `npm run preview` | Serve the production build locally                             |
 | `npm run lint`    | ESLint (flat config), including the React Compiler rules       |
 | `npm run format`  | Prettier over the repo                                         |
 | `npm run analyze` | Bundle breakdown via `source-map-explorer` (run after `build`) |
 | `npm run deploy`  | Build and publish to GitHub Pages at `plot.hani.fyi`           |
 
-There is no test framework in this project. Verification is `npx tsc --noEmit` plus `npm run lint`, both of which are expected to produce no output.
+Verification is `npm test`, `npx tsc --noEmit` and `npm run lint`; the last two are expected to produce no output. CI runs all three on every push and pull request.
+
+Tests cover pure logic only — converters, filters, the reducer, the chart data transforms and the cache round trip — and there are deliberately no DOM or component tests. See [AGENTS.md](./AGENTS.md) for why, and for the rules that keep the suite from flaking.
 
 ## Repository layout
 
@@ -87,6 +90,7 @@ src/
   utils/             prototype extensions, branded types, colour extraction
   vg/ show/ movie/   per-domain model, converter, filters, adapters
   holiday/           unfinished, currently unrouted
+tests/               mirrors src/, plus fixtures/ and an architecture guard
 extension/           standalone Chrome extension, outside the Vite build
 ```
 
