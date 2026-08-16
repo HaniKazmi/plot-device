@@ -237,10 +237,12 @@ describe("currentlyWatching", () => {
     expect(currentlyWatching(data).map((s) => s.show.name)).toEqual(["Severance", "Andor"]);
   });
 
-  it("throws when a watched show has no seasons at all", () => {
-    // `.at(-1)!` yields undefined and the endDate check dereferences it. Show.s carries no
-    // non-empty guarantee, and the converter's pre-2006 cutoff can empty it.
-    expect(() => currentlyWatching([show({ status: "Watching" })])).toThrow(TypeError);
+  it("throws by name when a watched show has no seasons at all", () => {
+    // A spreadsheet error rather than something to render around, so it stays a hard failure —
+    // but names the show instead of failing somewhere inside the card grid.
+    expect(() => currentlyWatching([show({ name: "Lost", status: "Watching" })])).toThrow(
+      'Show "Lost": is marked Watching but has no seasons',
+    );
   });
 
   it("returns nothing for empty data", () => {

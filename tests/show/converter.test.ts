@@ -105,11 +105,17 @@ describe("season fields", () => {
     expect(show.minutes).toBe(0);
   });
 
-  it("lets a blank episode count become NaN and poison the show total", () => {
-    const [show] = jsonConverter([showRow(), seasonRow({ Episode: "" })]);
+  it("counts an unparseable episode cell as 0 and says which row it was", () => {
+    // Left as NaN it would propagate through the show's episode total and every statistic
+    // derived from it, blanking numbers nowhere near the row at fault.
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
 
-    expect(show.s[0].e).toBeNaN();
-    expect(show.e).toBeNaN();
+    const [show] = jsonConverter([showRow({ Show: "Severance" }), seasonRow({ Season: "1", Episode: "" })]);
+
+    expect(show.s[0].e).toBe(0);
+    expect(show.e).toBe(0);
+    expect(error).toHaveBeenCalledWith(expect.stringContaining('season 1 of "Severance"'));
+    expect(error).toHaveBeenCalledWith(expect.stringContaining("counting it as 0"));
   });
 });
 
@@ -124,44 +130,52 @@ describe("the 2005 cutoff", () => {
     expect(show.s.map((s) => s.s)).toEqual([2]);
   });
 
-  it("throws when every season of a show is dropped, because the rollup indexes season zero", () => {
-    // The cutoff gates the season push but not the show creation, so the show survives with an
-    // empty season list and `show.s[0].startDate` dereferences undefined.
-    expect(() => jsonConverter([showRow(), seasonRow({ Start: "2004-01-01", End: "2004-06-01" })])).toThrow(TypeError);
+  it("throws by name when every season of a show falls before the cutoff", () => {
+    // The cutoff gates the season push but not the show creation, so the show reaches the
+    // rollup with nothing to summarise. That stays a hard failure — the sheet is wrong — but
+    // it names the show rather than dereferencing undefined somewhere downstream.
+    expect(() =>
+      jsonConverter([showRow({ Show: "Lost" }), seasonRow({ Start: "2004-01-01", End: "2004-06-01" })]),
+    ).toThrow('Show "Lost": has no seasons starting after 2005');
   });
 
-  it("throws when a show has no season rows at all", () => {
-    expect(() => jsonConverter([showRow()])).toThrow(TypeError);
+  it("throws by name when a show has no season rows at all", () => {
+    expect(() => jsonConverter([showRow({ Show: "Lost" })])).toThrow('Show "Lost"');
   });
 });
 
 describe("date ordering assertions", () => {
-  it("warns but keeps the season when its end precedes its start", () => {
-    // console.assert does not alter control flow, so the bad row still enters the dataset —
-    // unlike vg/, where an inverted pair throws out of the converter.
-    const assert = vi.spyOn(console, "assert").mockImplementation(() => {});
+  it("reports an inverted date pair with both dates, and keeps the season", () => {
+    // Logging does not alter control flow, so the bad row still enters the dataset — unlike
+    // vg/, where an inverted pair throws out of the converter.
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
 
-    const [show] = jsonConverter([showRow(), seasonRow({ Start: "2022-04-08", End: "2022-02-18" })]);
+    const [show] = jsonConverter([
+      showRow({ Show: "Severance" }),
+      seasonRow({ Season: "1", Start: "2022-04-08", End: "2022-02-18" }),
+    ]);
 
-    expect(assert).toHaveBeenCalledWith(false, "Dates are wrong", expect.anything());
+    expect(error).toHaveBeenCalledWith(expect.stringContaining("starts 2022-04-08 but ends 2022-02-18"));
     expect(show.s).toHaveLength(1);
   });
 
   it("stays quiet for a correctly ordered run", () => {
-    const assert = vi.spyOn(console, "assert").mockImplementation(() => {});
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
 
     jsonConverter([showRow(), seasonRow()]);
 
-    expect(assert).not.toHaveBeenCalledWith(false, expect.anything(), expect.anything());
+    expect(error).not.toHaveBeenCalled();
   });
 });
 
 describe("bad rows", () => {
-  it("throws when a season has no start date", () => {
-    expect(() => jsonConverter([showRow(), seasonRow({ Start: "" })])).toThrow("Unkown Date Format");
+  it("names the row and column when a season date will not parse", () => {
+    expect(() => jsonConverter([showRow({ Show: "Severance" }), seasonRow({ Season: "1", Start: "" })])).toThrow(
+      'Row 3, season 1 of "Severance", Start: Unkown Date Format',
+    );
   });
 
-  it("throws when the first data row is a season with no show to attach to", () => {
-    expect(() => jsonConverter([seasonRow()])).toThrow(TypeError);
+  it("says so when a season row appears before any show", () => {
+    expect(() => jsonConverter([seasonRow()])).toThrow("no show has been declared above it");
   });
 });

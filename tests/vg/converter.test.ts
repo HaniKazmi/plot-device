@@ -108,4 +108,21 @@ describe("bad rows", () => {
   it("throws on a partial date, because only full dates and bare years parse", () => {
     expect(() => convertOne({ "Start Date": "2017-03" })).toThrow("Unkown Date Format");
   });
+
+  it("names the sheet row, the game and the column that failed", () => {
+    expect(() => convertOne({ Game: "Zelda", "Start Date": "" })).toThrow('Row 2, "Zelda", Start Date');
+    expect(() => convertOne({ Game: "Zelda", Release: "" })).toThrow('Row 2, "Zelda", Release');
+  });
+
+  it("counts sheet rows past the header, so the number matches what is on screen", () => {
+    const rows = [vgRow(), vgRow(), vgRow({ Game: "Broken", "Start Date": "" })];
+
+    expect(() => jsonConverter(rows)).toThrow('Row 4, "Broken"');
+  });
+
+  it("names both dates when the pair is inverted", () => {
+    expect(() => convertOne({ Game: "Zelda", "Start Date": "2017-04-01", "End Date": "2017-03-03" })).toThrow(
+      'Row 2, "Zelda", played 2017-04-01 to 2017-03-03: Invalid comparison',
+    );
+  });
 });

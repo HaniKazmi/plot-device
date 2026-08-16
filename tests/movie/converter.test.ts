@@ -21,6 +21,17 @@ describe("row filtering", () => {
     expect(() => convertOne({ "Watch Date": "" })).toThrow("Unkown Date Format");
     expect(() => convertOne({ "Release Date": "" })).toThrow("Unkown Date Format");
   });
+
+  it("names the sheet row, the film and the column that failed", () => {
+    expect(() => convertOne({ Name: "Arrival", "Watch Date": "" })).toThrow('Row 2, "Arrival", Watch Date');
+  });
+
+  it("reports the row as numbered in the sheet, not after the incomplete rows were dropped", () => {
+    // The filter runs first, so a naive index would point at the wrong row.
+    const rows = [movieRow({ Genre: "" }), movieRow({ Name: "Broken", "Watch Date": "" })];
+
+    expect(() => jsonConverter(rows)).toThrow('Row 3, "Broken"');
+  });
 });
 
 describe("field parsing", () => {

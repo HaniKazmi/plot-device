@@ -1,4 +1,5 @@
 import type { YearNumber } from "../common/date";
+import { sheetError } from "../common/sheetError";
 import { format } from "../utils/mathUtils";
 import type { Season, Show } from "./types";
 import "../utils/arrayUtils";
@@ -74,14 +75,14 @@ export const recentlyComplete = (data: Show[], limit = 18) =>
 /**
  * The in-progress season of every show still being watched.
  *
- * `at(-1)` is asserted non-null: a show marked Watching whose season list is empty yields
- * undefined here, and the `endDate` check on the next line then throws. `Show.s` carries no
- * non-empty guarantee, and the converter's pre-2006 season cutoff is one way to produce one.
+ * A show marked Watching with no seasons is a spreadsheet error rather than something to
+ * render around, so it throws — but says which show, since the alternative is a bare
+ * "cannot read properties of undefined" from somewhere in the card grid.
  */
 export const currentlyWatching = (data: Show[]) =>
   data
     .filter((show) => show.status === "Watching")
-    .map((show) => show.s.at(-1)!)
+    .map((show) => show.s.at(-1) ?? sheetError(`Show "${show.name}"`, "is marked Watching but has no seasons"))
     .filter((season) => !season.endDate)
     .sortByKey("startDate");
 
