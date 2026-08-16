@@ -48,3 +48,23 @@ export const videoGame = (overrides: Partial<VideoGame> = {}): VideoGame =>
     banner: "banner.jpg",
     ...overrides,
   }) as VideoGame;
+
+/** A raw sheet row as `arrayToJson` hands it over: every column present, every value a string. */
+export const vgRow = (overrides: Record<string, string> = {}): Record<string, string> => ({
+  Game: "Breath of the Wild",
+  Platform: "Nintendo Switch",
+  Franchise: "Zelda",
+  Genre: "Action Adventure",
+  Theme: "Fantasy",
+  Format: "Physical",
+  Developer: "Nintendo EPD",
+  Publisher: "Nintendo",
+  Rating: "12+",
+  Status: "Beat",
+  "Start Date": "2017-03-03",
+  "End Date": "2017-04-01",
+  Release: "2017-03-03",
+  Hours: "50",
+  Banner: "botw.jpg",
+  ...overrides,
+});

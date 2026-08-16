@@ -23,7 +23,7 @@ export interface FilterState extends BaseFilterState<VideoGame, Measure> {
 
 export type FilterDispatch = FilterDispatchFor<FilterState>;
 
-const filters = (state: Omit<FilterState, "filter">): Predicate<VideoGame> => {
+export const filters = (state: Omit<FilterState, "filter">): Predicate<VideoGame> => {
   const predicates: Predicate<VideoGame>[] = [];
 
   if (!state.endless) predicates.push((vg) => vg.status !== "Endless");
@@ -56,7 +56,7 @@ const filters = (state: Omit<FilterState, "filter">): Predicate<VideoGame> => {
   return (vg: VideoGame) => predicates.every((p) => p(vg));
 };
 
-export const { useFilterReducer } = createFilterReducer<VideoGame, Measure, FilterState>(
+export const { useFilterReducer, reducer, initialState } = createFilterReducer<VideoGame, Measure, FilterState>(
   {
     endless: true,
     pokemon: true,

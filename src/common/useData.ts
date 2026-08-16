@@ -7,6 +7,18 @@ const storage = localStorage;
 
 const CACHE = new Map<string, unknown>();
 
+/**
+ * Any key whose name contains "Date" is revived as a `PlainDate`. It is a convention rather
+ * than a schema, so a non-date field named e.g. `updateDate` would be corrupted on reload.
+ * The round trip works because `toJSON` emits exactly what `PlainDate.from` parses.
+ */
+export const dateReviver = (key: string, value: unknown) => {
+  if (key.includes("Date")) {
+    return PlainDate.from(value as string);
+  }
+  return value as unknown;
+};
+
 const useData = <T>(
   storageKey: string,
   tab: Tab,
@@ -20,12 +32,7 @@ const useData = <T>(
     if (CACHE.has(storageKey)) return CACHE.get(storageKey) as T[];
     const tempData = storage.getItem(storageKey);
     if (tempData) {
-      const parsed = JSON.parse(tempData, (key, value) => {
-        if (key.includes("Date")) {
-          return PlainDate.from(value as string);
-        }
-        return value as unknown;
-      }) as T[];
+      const parsed = JSON.parse(tempData, dateReviver) as T[];
 
       reviver?.(parsed);
       return parsed;

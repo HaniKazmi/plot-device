@@ -14,7 +14,7 @@ export type FilterState = BaseFilterState<Show, Measure>;
 
 export type FilterDispatch = FilterDispatchFor<FilterState>;
 
-const filters = (state: Omit<FilterState, "filter">): Predicate<Show> => {
+export const filters = (state: Omit<FilterState, "filter">): Predicate<Show> => {
   const predicates: Predicate<Show>[] = [...yearPredicates<Show>(state)];
 
   if (state.guestMode) {
@@ -24,7 +24,7 @@ const filters = (state: Omit<FilterState, "filter">): Predicate<Show> => {
   return (show: Show) => predicates.every((p) => p(show));
 };
 
-export const { useFilterReducer } = createFilterReducer<Show, Measure, FilterState>(
+export const { useFilterReducer, reducer, initialState } = createFilterReducer<Show, Measure, FilterState>(
   {
     measure: "Episodes",
     yearType: "upto",

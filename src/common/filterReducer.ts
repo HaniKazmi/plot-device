@@ -81,5 +81,7 @@ export const createFilterReducer = <T, M extends string, S extends BaseFilterSta
     return [state, dispatch] as const;
   };
 
-  return { useFilterReducer };
+  // `reducer` and `initialState` come back out alongside the hook so the transitions can be
+  // exercised as plain values. Nothing in the app reads them.
+  return { useFilterReducer, reducer, initialState };
 };
