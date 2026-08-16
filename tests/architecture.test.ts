@@ -62,3 +62,29 @@ describe("prototype extensions are imported where they are used", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe("browser globals are not read at module load", () => {
+  // Node 24 and later expose localStorage and sessionStorage; Node 22, which CI runs, does not.
+  // A module-scope `const storage = localStorage` therefore imports fine on a developer machine
+  // and throws on CI — and would also break any non-browser use of the module. Reading the
+  // global inside the function that needs it costs nothing and works everywhere.
+  const BROWSER_GLOBALS = ["localStorage", "sessionStorage", "document", "window", "navigator"];
+
+  const allFiles = [
+    ...sourceFilesUnder("common"),
+    ...sourceFilesUnder("utils"),
+    ...DOMAINS.flatMap(sourceFilesUnder),
+    ...sourceFilesUnder("contexts"),
+  ];
+
+  it.each(BROWSER_GLOBALS)("no module-scope alias of %s", (global) => {
+    // Only top-level statements: an indented line is inside a function and evaluates lazily.
+    const pattern = new RegExp(`^(?:const|let|var)\\s+\\w+\\s*(?::[^=]+)?=\\s*${global}\\s*[;,]`, "m");
+
+    const offenders = allFiles
+      .filter((file) => pattern.test(readFileSync(file, "utf8")))
+      .map((file) => file.replace(SRC, "src"));
+
+    expect(offenders).toEqual([]);
+  });
+});

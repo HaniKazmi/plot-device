@@ -3,7 +3,8 @@ import { PlainDate } from "./date";
 import { useGoogleAuth } from "../contexts/GoogleAuthContext";
 import type { Tab } from "../tabs";
 
-const storage = localStorage;
+// Resolved per call rather than at module load; see the note in GoogleAuthContext.
+const storage = () => localStorage;
 
 const CACHE = new Map<string, unknown>();
 
@@ -30,7 +31,7 @@ const useData = <T>(
 
   const [data, setData] = useState<T[] | undefined>(() => {
     if (CACHE.has(storageKey)) return CACHE.get(storageKey) as T[];
-    const tempData = storage.getItem(storageKey);
+    const tempData = storage().getItem(storageKey);
     if (tempData) {
       const parsed = JSON.parse(tempData, dateReviver) as T[];
 
@@ -50,7 +51,7 @@ const useData = <T>(
         CACHE.set(storageKey, data);
         setData(data);
         setDataLoaded(true);
-        storage.setItem(storageKey, JSON.stringify(data, replacer));
+        storage().setItem(storageKey, JSON.stringify(data, replacer));
       })
       .catch(console.error);
   }, [apiReady, converter, storageKey, tab, fetchAndConvertSheet, replacer]);

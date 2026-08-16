@@ -85,6 +85,7 @@ Do not grep the built bundle for `useMemoCache` or `compiler-runtime` to check t
 Ordered by how quietly they fail.
 
 - **Never name a field `somethingDate` unless it is a `PlainDate`.** `useData`'s `JSON.parse` reviver converts _any_ key containing `"Date"`, so a `lastUpdateDate: string` comes back from cache as a broken date object. Only shows up after a reload.
+- **Never read a browser global at module scope.** `const storage = localStorage` at the top of a module makes merely importing it throw wherever the global is absent. Node exposes `localStorage` and `sessionStorage` from v24 but not on v22, which CI runs, so this passes locally and fails there. Read the global inside the function that needs it. `tests/architecture.test.ts` enforces this.
 - **Never add a field named `show` to a non-`show` domain.** `show/Show.tsx` passes a replacer that strips that key on cache write; it is scoped to that domain, but the name is the trigger.
 - **Cache keys are unversioned.** Changing a domain model's shape leaves stale objects in existing browsers' `localStorage`. When testing a model change, clear the relevant `*-data-cache` key first, or you will debug the old shape.
 - **`PlainDate.from()` throws on partial dates.** It dispatches on string length: 10 chars → `YearMonthDay`, 4 → `Year`. `"2024-05"` throws. That is deliberate — it surfaces bad sheet data loudly.

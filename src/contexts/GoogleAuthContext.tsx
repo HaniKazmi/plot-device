@@ -12,15 +12,17 @@ const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
 const DISCOVERY_DOCS = "https://sheets.googleapis.com/$discovery/rest?version=v4";
 const SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
 
-const storage = sessionStorage;
+// Resolved per call rather than at module load. Reading the global here would make merely
+// importing this module fail anywhere it does not exist, which is every non-browser context.
+const storage = () => sessionStorage;
 const storageKey = "gapi-token";
 
 type TokenClient = google.accounts.oauth2.TokenClient;
 
 const getValidToken = (): Token | undefined => {
-  const wrapper = parseTokenWrapper(storage.getItem(storageKey));
+  const wrapper = parseTokenWrapper(storage().getItem(storageKey));
   if (isTokenValid(wrapper, Date.now())) return wrapper!.token;
-  storage.removeItem(storageKey);
+  storage().removeItem(storageKey);
   return undefined;
 };
 
@@ -83,7 +85,7 @@ export const GoogleAuthProvider = ({ children }: { children: ReactNode }) => {
       scope: SCOPE,
       callback: (token) => {
         const expiry = expiryFor(token, Date.now());
-        storage.setItem(storageKey, JSON.stringify({ token, expiry } satisfies TokenWrapper));
+        storage().setItem(storageKey, JSON.stringify({ token, expiry } satisfies TokenWrapper));
         setTokenSet(true);
         if (typeof gapi !== "undefined" && gapi.client) {
           gapi.client.setToken(token);
@@ -114,7 +116,7 @@ export const GoogleAuthProvider = ({ children }: { children: ReactNode }) => {
 
   const revoke = apiReady
     ? () => {
-        storage.removeItem(storageKey);
+        storage().removeItem(storageKey);
         setTokenSet(false);
       }
     : undefined;
