@@ -2,24 +2,37 @@ export type LongPressEvent = "start" | "end" | "timeout";
 
 export type LongPressEffect = "schedule" | "cancel" | "longPress" | "click";
 
+export interface LongPressState {
+  /** Whether the long press has already fired for the press currently in progress. */
+  fired: boolean;
+}
+
+export const initialLongPressState: LongPressState = { fired: false };
+
 /**
- * What a press gesture should do in response to one event.
+ * What a press gesture should do in response to one event, and the state to carry forward.
  *
  * `start` always reschedules from scratch, so a repeated start — which touch devices produce,
  * because they emit both touch and compatibility mouse events — restarts the timer rather than
  * queueing a second one.
  *
- * `end` cancels the timer and always reports a click when one is wired up. It does not track
- * whether the long press already fired, so holding past the threshold and then releasing
- * reports both: the long press when the timer elapses, and a click on release.
+ * A press that has already triggered the long press reports no click when it ends. Releasing
+ * after a long press is the end of that gesture, not a tap on top of it.
  */
-export const longPressEffects = (event: LongPressEvent, hasClickHandler: boolean): LongPressEffect[] => {
+export const longPress = (
+  state: LongPressState,
+  event: LongPressEvent,
+  hasClickHandler: boolean,
+): { state: LongPressState; effects: LongPressEffect[] } => {
   switch (event) {
     case "start":
-      return ["cancel", "schedule"];
+      return { state: { fired: false }, effects: ["cancel", "schedule"] };
     case "timeout":
-      return ["longPress"];
+      return { state: { fired: true }, effects: ["longPress"] };
     case "end":
-      return hasClickHandler ? ["cancel", "click"] : ["cancel"];
+      return {
+        state: { fired: false },
+        effects: hasClickHandler && !state.fired ? ["cancel", "click"] : ["cancel"],
+      };
   }
 };

@@ -56,12 +56,18 @@ describe("groupGamesBy", () => {
     expect(groupGamesBy(data, "franchise", "Games")[0].all).toHaveLength(2);
   });
 
-  it('buckets a missing category under the literal string "undefined"', () => {
-    // Object.groupBy stringifies the key, so the absent value becomes a real group rather than
-    // being skipped. Only topNWithOther filters it back out; MostPlayedCategory does not.
-    const data = [videoGame({ franchise: undefined as unknown as string })];
+  it("leaves out games with no value for the category", () => {
+    // Object.groupBy stringifies its key, so without this these would collect under the
+    // literal string "undefined" and render as a category of that name.
+    const data = [videoGame({ franchise: "Zelda" }), videoGame({ franchise: undefined as unknown as string })];
 
-    expect(groupGamesBy(data, "franchise", "Games").map((g) => g.name)).toEqual(["undefined"]);
+    expect(groupGamesBy(data, "franchise", "Games").map((g) => g.name)).toEqual(["Zelda"]);
+  });
+
+  it("leaves out games whose category is an empty string", () => {
+    const data = [videoGame({ franchise: "Zelda" }), videoGame({ franchise: "" })];
+
+    expect(groupGamesBy(data, "franchise", "Games").map((g) => g.name)).toEqual(["Zelda"]);
   });
 
   it("returns nothing for an empty dataset", () => {
@@ -107,7 +113,7 @@ describe("topNWithOther", () => {
     expect(result.reduce((a, b) => a + b.percent, 0)).toBeCloseTo(100, 10);
   });
 
-  it("discards the undefined and empty-string buckets before ranking", () => {
+  it("inherits groupGamesBy's exclusion of games with no category", () => {
     const data = [
       videoGame({ franchise: "Zelda" }),
       videoGame({ franchise: "" }),

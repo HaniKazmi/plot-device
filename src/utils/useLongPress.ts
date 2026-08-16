@@ -1,8 +1,9 @@
 import { useRef, useLayoutEffect } from "react";
-import { longPressEffects, type LongPressEvent } from "./longPressReducer";
+import { initialLongPressState, longPress, type LongPressEvent, type LongPressState } from "./longPressReducer";
 
 const useLongPress = (onLongPress: () => void, onClick?: () => void, ms = 300) => {
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const state = useRef<LongPressState>(initialLongPressState);
 
   const onLongPressRef = useRef(onLongPress);
   const onClickRef = useRef(onClick);
@@ -12,9 +13,12 @@ const useLongPress = (onLongPress: () => void, onClick?: () => void, ms = 300) =
     onClickRef.current = onClick;
   });
 
-  // What each event means lives in longPressEffects; this only carries the effects out.
+  // What each event means lives in longPress; this only carries the effects out.
   const run = (event: LongPressEvent) => {
-    for (const effect of longPressEffects(event, !!onClickRef.current)) {
+    const next = longPress(state.current, event, !!onClickRef.current);
+    state.current = next.state;
+
+    for (const effect of next.effects) {
       switch (effect) {
         case "cancel":
           clearTimeout(timer.current);

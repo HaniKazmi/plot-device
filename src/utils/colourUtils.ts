@@ -40,12 +40,11 @@ export const imageToColour = (img: HTMLImageElement | string | undefined, setCol
     return undefined;
   }
 
-  // The two branches key the cache differently: a raw URL is encoded here, while an element's
-  // `src` comes back from the DOM already percent-encoded and is used as-is. `encodeURI` escapes
-  // `%` itself, so the two forms disagree for any URL containing a character it escapes, and
-  // such an image is looked up under a key it was never stored under.
+  // Keyed on the raw string both ways. `HTMLImageElement.src` is already percent-encoded by the
+  // DOM, so running the string branch through encodeURI would address a different entry — and
+  // encodeURI escapes `%` itself, so it cannot simply be applied to both.
   if (typeof img === "string") {
-    return map[encodeURI(img)];
+    return map[img];
   }
 
   if (setColour) {

@@ -40,24 +40,22 @@ describe("groupTotals", () => {
     expect(groupTotals(data, ["a", "b"], "status", byHours, colour).map((t) => t.percent)).toEqual([75, 25]);
   });
 
-  it("inflates the first segment by everything the whitelist leaves out", () => {
-    // The total is measured over the whole dataset but segments only cover the whitelist, so
-    // the uncovered rows are counted and then never drawn. assignPercents exists to absorb
-    // rounding shortfall and folds this much larger gap into entry zero instead.
-    // vg/Stats.tsx lists ["Beat", "Playing", "Endless", "Abandoned"] and omits the Status
-    // union's "Backlog" and "Next", so the Beat bar carries the whole backlog.
+  it("ignores values the whitelist leaves out rather than folding them into the first segment", () => {
+    // vg/Stats.tsx lists Beat, Playing, Endless and Abandoned, omitting the Status union's
+    // Backlog and Next. Measured against the whole dataset the uncovered rows would be counted
+    // and never drawn, and assignPercents — built to absorb rounding — would put that entire
+    // remainder on Beat.
     const data = rows("Beat", "Playing", "Backlog", "Backlog", "Next", "Next", "Next", "Next");
     const totals = groupTotals(data, ["Beat", "Playing"], "status", count, colour);
 
-    // Beat is 1 of 8 rows, but it renders as seven eighths of the bar.
-    expect(totals[0].name).toBe("Beat");
-    expect(totals[0].count).toBe(1);
-    expect(totals[0].percent).toBeCloseTo(87.5, 10);
-    expect(sumPercents(totals)).toBeCloseTo(100, 10);
+    expect(totals.map((t) => [t.name, t.count])).toEqual([
+      ["Beat", 1],
+      ["Playing", 1],
+    ]);
+    expect(totals.map((t) => t.percent)).toEqual([50, 50]);
   });
 
-  it("keeps the segment counts honest even while the percentages are not", () => {
-    // Anything reading `count` is unaffected; only the drawn width is wrong.
+  it("reads as a share of the groups shown, so the bar always fills", () => {
     const data = rows("a", "a", "unlisted");
     const [a] = groupTotals(data, ["a"], "status", count, colour);
 

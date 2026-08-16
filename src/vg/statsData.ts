@@ -24,13 +24,17 @@ export const topOptions = [
 
 export type TopOption = (typeof topOptions)[number];
 
-/** Groups completed, time-tracked games by a category, ordered most-played first. */
+/**
+ * Groups completed, time-tracked games by a category, ordered most-played first.
+ *
+ * A game with no value for the category is left out. `Object.groupBy` stringifies its key, so
+ * those would otherwise collect under the literal string "undefined" and render as a category
+ * of that name.
+ */
 export const groupGamesBy = (data: VideoGame[], key: VideoGameStringKeys, measure: Measure) =>
   Object.entries(
     Object.groupBy(
-      data.filter((game) => game.hours && game.endDate),
-      // Object.groupBy stringifies the key, so a game with no value for this category lands
-      // under the literal string "undefined" rather than being skipped.
+      data.filter((game) => game.hours && game.endDate && game[key]),
       (game) => game[key],
     ) as Record<string, VideoGame[]>,
   )
@@ -50,7 +54,7 @@ export const groupGamesBy = (data: VideoGame[], key: VideoGameStringKeys, measur
  * because it stands for several categories at once.
  */
 export const topNWithOther = (data: VideoGame[], key: VideoGameStringKeys, measure: Measure, limit = 5) => {
-  const allGroups = groupGamesBy(data, key, measure).filter(({ name }) => name && name !== "undefined" && name !== "");
+  const allGroups = groupGamesBy(data, key, measure);
 
   const grouped: { name: string; count: number; top?: VideoGame }[] = allGroups.slice(0, limit);
   const other = allGroups.slice(limit);
