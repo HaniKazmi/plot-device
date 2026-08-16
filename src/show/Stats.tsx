@@ -1,13 +1,21 @@
 import { AutoGraph, Pause, PlayArrow, ShowChart, TaskAlt, Timer, Update } from "@mui/icons-material";
 import Grid from "@mui/material/Grid";
-import { format } from "../utils/mathUtils";
 import { Season, Show, Status } from "./types";
 import { StatCard, StatList, StatsListProps, TotalStack } from "../common/Stats";
 import ShowCardMediaImage from "./CardMediaImage";
 import { statusToColour } from "../utils/types";
 import { Stack } from "@mui/material";
-import { CURRENT_YEAR, YearNumber } from "../common/date";
-import "../utils/arrayUtils";
+import { CURRENT_YEAR } from "../common/date";
+import {
+  allTimeTotals,
+  currentlyWatching,
+  perShowAverages,
+  recentlyComplete,
+  seasonsInYear,
+  statsCardLabelCurrentlyPlaying,
+  statsCardLabelRecentlyComplete,
+  yearlyAverages,
+} from "./statsData";
 
 const Stats = ({ data }: { data: Show[] }) => {
   return (
@@ -55,9 +63,7 @@ const Totals = ({ data }: { data: Show[] }) => {
 };
 
 const AllTime = ({ data }: { data: Show[] }) => {
-  const totalShows = data.length;
-  const totalEpisodes = data.sum("e");
-  const totalTime = Math.floor(data.sum("minutes") / 60);
+  const { shows: totalShows, episodes: totalEpisodes, hours: totalTime } = allTimeTotals(data);
   return (
     <StatCard
       icon={<Timer />}
@@ -72,10 +78,7 @@ const AllTime = ({ data }: { data: Show[] }) => {
 };
 
 const ThisYearSoFar = ({ data }: { data: Show[] }) => {
-  const filtered = data.flatMap((show) => show.s).filter((s) => s.startDate.year === CURRENT_YEAR);
-  const totalSeasons = filtered.length;
-  const totalEpisodes = filtered.sum("e");
-  const totalTime = Math.floor(filtered.sum("minutes") / 60);
+  const { seasons: totalSeasons, episodes: totalEpisodes, hours: totalTime } = seasonsInYear(data, CURRENT_YEAR);
   return (
     <StatCard
       icon={<Update />}
@@ -90,25 +93,7 @@ const ThisYearSoFar = ({ data }: { data: Show[] }) => {
 };
 
 const Averages = ({ data }: { data: Show[] }) => {
-  const grouped = data
-    .flatMap((show) => show.s)
-    .reduce(
-      (tree, s) => {
-        if (!s.minutes) return tree;
-        const year = s.startDate.year;
-        // Written out rather than `??=` because the React Compiler cannot lower that operator yet.
-        tree[year] = tree[year] ?? { seasons: 0, episodes: 0, minutes: 0 };
-        tree[year].seasons += 1;
-        tree[year].episodes += s.e;
-        tree[year].minutes += s.minutes;
-        return tree;
-      },
-      {} as Record<YearNumber, { seasons: number; episodes: number; minutes: number }>,
-    );
-
-  const seasons = Math.floor(Object.values(grouped).sum("seasons") / Object.keys(grouped).length);
-  const episodes = Math.floor(Object.values(grouped).sum("episodes") / Object.keys(grouped).length);
-  const hours = Math.floor(Object.values(grouped).sum("minutes") / Object.keys(grouped).length / 60);
+  const { seasons, episodes, hours } = yearlyAverages(data);
 
   return (
     <StatCard
@@ -124,10 +109,7 @@ const Averages = ({ data }: { data: Show[] }) => {
 };
 
 const AveragesPerShow = ({ data }: { data: Show[] }) => {
-  const filtered = data.flatMap((show) => show.s);
-  const totalSeasons = Math.round(filtered.length / data.length);
-  const totalEpisodes = Math.round(filtered.sum("e") / data.length);
-  const totalTime = Math.floor(filtered.sum("minutes") / 60 / data.length);
+  const { seasons: totalSeasons, episodes: totalEpisodes, hours: totalTime } = perShowAverages(data);
 
   return (
     <StatCard
@@ -143,11 +125,7 @@ const AveragesPerShow = ({ data }: { data: Show[] }) => {
 };
 
 const RecentlyComplete = ({ data }: { data: Show[] }) => {
-  const recent = data
-    .flatMap((show) => show.s)
-    .filter((season) => season.endDate)
-    .sortByKey("endDate")
-    .slice(0, 18);
+  const recent = recentlyComplete(data);
   return (
     <ShowStatList
       icon={<Pause />}
@@ -159,17 +137,8 @@ const RecentlyComplete = ({ data }: { data: Show[] }) => {
   );
 };
 
-const statsCardLabelRecentlyComplete = (season: Season) => [
-  [`S ${season.s}`, season.endDate?.toString() ?? ""],
-  [`${season.e} Eps`, `${format(Math.round(season.minutes / 60))} Hours`],
-];
-
 const CurrentlyPlaying = ({ data }: { data: Show[] }) => {
-  const recent = data
-    .filter((show) => show.status === "Watching")
-    .map((show) => show.s.at(-1)!)
-    .filter((season) => !season.endDate)
-    .sortByKey("startDate");
+  const recent = currentlyWatching(data);
   return (
     <ShowStatList
       icon={<PlayArrow />}
@@ -180,8 +149,6 @@ const CurrentlyPlaying = ({ data }: { data: Show[] }) => {
     />
   );
 };
-
-const statsCardLabelCurrentlyPlaying = (season: Season) => [[`S ${season.s}`, season.startDate?.toString() ?? ""]];
 
 const ShowStatList = (
   props: Omit<

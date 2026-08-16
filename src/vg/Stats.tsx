@@ -19,11 +19,21 @@ import {
   Whatshot,
 } from "@mui/icons-material";
 import Grid from "@mui/material/Grid";
-import { assignPercents, format } from "../utils/mathUtils";
+import { format } from "../utils/mathUtils";
+import {
+  groupGamesBy,
+  perGameAverages,
+  platformToShortChip,
+  statsCardLabelEndDateHours,
+  statsCardLabelStartDate,
+  topNWithOther,
+  topOptions,
+  yearlyAverages,
+  type TopOption,
+} from "./statsData";
 import {
   companyToColor,
   groupToColour,
-  platformToShort,
   videoGameOptions,
   type Company,
   type Measure,
@@ -278,18 +288,7 @@ const ThisYearSoFar = ({
 
 const Averages = ({ data, yearType }: { data: VideoGame[]; yearType: YearType }) => {
   if (yearType == "matching") return;
-  const grouped = data.reduce<Record<YearNumber, { games: number; hours: number }>>((tree, game) => {
-    if (!game.hours) return tree;
-    // Written out rather than `??=` because the React Compiler cannot lower that operator yet.
-    const gamesAndHours = tree[game.startDate.year] ?? { games: 0, hours: 0 };
-    tree[game.startDate.year] = gamesAndHours;
-    gamesAndHours.games += 1;
-    gamesAndHours.hours += game.hours;
-    return tree;
-  }, {});
-
-  const games = parseFloat((Object.values(grouped).sum("games") / Object.keys(grouped).length).toFixed(2));
-  const hours = parseFloat((Object.values(grouped).sum("hours") / Object.keys(grouped).length).toFixed(2));
+  const { games, hours } = yearlyAverages(data);
 
   return (
     <StatCard
@@ -304,9 +303,7 @@ const Averages = ({ data, yearType }: { data: VideoGame[]; yearType: YearType })
 };
 
 const AveragesPerGame = ({ data }: { data: VideoGame[] }) => {
-  const filtered = data.filter((game) => game.status === "Beat" && game.hours && game.numDays);
-  const hours = Math.round(filtered.sum("hours") / filtered.length);
-  const days = Math.round(filtered.sum("numDays") / filtered.length);
+  const { hours, days } = perGameAverages(data);
 
   return (
     <StatCard
@@ -372,22 +369,6 @@ const MostPlayedGames = ({ data, controls }: { data: VideoGame[]; controls: Reac
     />
   );
 };
-
-/** Groups completed, time-tracked games by a category, ordered most-played first. */
-const groupGamesBy = (data: VideoGame[], key: VideoGameStringKeys, measure: Measure) =>
-  Object.entries(
-    Object.groupBy(
-      data.filter((game) => game.hours && game.endDate),
-      (game) => game[key],
-    ) as Record<string, VideoGame[]>,
-  )
-    .map(([name, games]) => ({
-      name,
-      count: measure === "Hours" ? games.sum("hours") : games.length,
-      top: games.sortByKey("hours")[0],
-      all: games,
-    }))
-    .sortByKey("count");
 
 const MostPlayedCategory = ({
   data,
@@ -510,7 +491,7 @@ const TopCategories = ({ data, measure }: { data: VideoGame[]; measure: Measure 
   );
 };
 
-const optionIcons: Record<Exclude<VideoGameStringKeys, "name">, ReactNode> = {
+const optionIcons: Record<TopOption, ReactNode> = {
   company: <Business />,
   format: <Album />,
   franchise: <Stars />,
@@ -522,8 +503,6 @@ const optionIcons: Record<Exclude<VideoGameStringKeys, "name">, ReactNode> = {
   genre: <Category />,
 };
 
-const topOptions = Object.keys(optionIcons) as (keyof typeof optionIcons)[];
-
 const TopList = ({
   data,
   measure,
@@ -531,21 +510,13 @@ const TopList = ({
 }: {
   data: VideoGame[];
   measure: Measure;
-  defaultCategory: (typeof topOptions)[number];
+  defaultCategory: TopOption;
 }) => {
   const [option, controls] = useSelectBox(topOptions, defaultCategory);
   const colorOffset = topOptions.indexOf(option) * 3;
   const [hovered, setHovered] = useState<string | null>(null);
 
-  const allGroups = groupGamesBy(data, option, measure).filter(
-    ({ name }) => name && name !== "undefined" && name !== "",
-  );
-
-  const grouped: { name: string; count: number; top?: VideoGame }[] = allGroups.slice(0, 5);
-  const other = allGroups.slice(5);
-  if (other.length > 0) grouped.push({ name: "Other", count: other.sum("count") });
-
-  const most = assignPercents(grouped, grouped.sum("count"));
+  const most = topNWithOther(data, option, measure);
 
   const getColour = (struct: (typeof most)[0], index: number) => {
     if (struct.name === "Other") return "grey";
@@ -645,12 +616,6 @@ const TopList = ({
   );
 };
 
-const statsCardLabelEndDateHours = (game: VideoGame) => [
-  [game.endDate?.toString() ?? "", `${format(game.hours!)} Hours`],
-];
-
-const statsCardLabelStartDate = (game: VideoGame) => [[game.startDate?.toString() ?? ""]];
-
 const VgStatList = (
   props: Omit<
     StatsListProps<VideoGame>,
@@ -666,11 +631,6 @@ const VgStatList = (
     {...props}
   />
 );
-
-const platformToShortChip = (vg: VideoGame) => {
-  const [label, colour] = platformToShort(vg);
-  return { label, colour };
-};
 
 const vgStatListSharedProps: Pick<
   StatsListProps<VideoGame>,
