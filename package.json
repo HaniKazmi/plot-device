@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist --cname plot.hani.fyi",
+    "deploy": "gh-pages -d dist --cname plot.hani.fyi --no-history",
     "lint": "eslint .",
     "test": "TZ=UTC vitest run",
     "test:watch": "TZ=UTC vitest",

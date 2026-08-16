@@ -4,10 +4,11 @@ on:
   push:
   pull_request:
 
-# A new push to the same branch supersedes whatever is already running on it.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # A new push to a branch supersedes whatever is still running on it — except on master,
+  # where a cancelled run could interrupt a deploy midway through its push to gh-pages.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 jobs:
   verify:
@@ -28,3 +29,32 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+
+  deploy:
+    # Only ever runs off the back of a green verify, in the same run that produced it.
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+
+    # gh-pages pushes the built site to the gh-pages branch, which is what Pages serves.
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Identify the committer
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      # Runs the same script as a local deploy, so the two cannot drift. Its predeploy hook
+      # rebuilds, because jobs do not share a filesystem with verify.
+      - run: npm run deploy
