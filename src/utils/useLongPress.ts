@@ -1,4 +1,5 @@
-import { useCallback, useRef, useLayoutEffect } from "react";
+import { useRef, useLayoutEffect } from "react";
+import { longPressEffects, type LongPressEvent } from "./longPressReducer";
 
 const useLongPress = (onLongPress: () => void, onClick?: () => void, ms = 300) => {
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -11,25 +12,31 @@ const useLongPress = (onLongPress: () => void, onClick?: () => void, ms = 300) =
     onClickRef.current = onClick;
   });
 
-  const handleStart = useCallback(() => {
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      onLongPressRef.current();
-    }, ms);
-  }, [ms]);
-
-  const handleEnd = useCallback(() => {
-    clearTimeout(timer.current);
-    if (onClickRef.current) {
-      onClickRef.current();
+  // What each event means lives in longPressEffects; this only carries the effects out.
+  const run = (event: LongPressEvent) => {
+    for (const effect of longPressEffects(event, !!onClickRef.current)) {
+      switch (effect) {
+        case "cancel":
+          clearTimeout(timer.current);
+          break;
+        case "schedule":
+          timer.current = setTimeout(() => run("timeout"), ms);
+          break;
+        case "longPress":
+          onLongPressRef.current();
+          break;
+        case "click":
+          onClickRef.current?.();
+          break;
+      }
     }
-  }, []);
+  };
 
   return {
-    onMouseDown: handleStart,
-    onMouseUp: handleEnd,
-    onTouchStart: handleStart,
-    onTouchEnd: handleEnd,
+    onMouseDown: () => run("start"),
+    onMouseUp: () => run("end"),
+    onTouchStart: () => run("start"),
+    onTouchEnd: () => run("end"),
   };
 };
 

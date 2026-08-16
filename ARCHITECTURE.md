@@ -210,7 +210,7 @@ Setup is the plugin's documented path: `@vitejs/plugin-react` exports `reactComp
 - **`this`** anywhere in the function. Highcharts binds the chart to `this` in its event callbacks, so those must live at module scope (see `dimLeafRing` in §6) or they take the whole component down with them.
 - **`??=`**, which the compiler cannot yet lower. Write `x = x ?? y` instead.
 
-At the time of writing 78 functions compile and 5 bail — four `MethodCall` codegen errors (three in `show/Stats.tsx`, one in `vg/CardMediaImage.tsx`) and one arrow-reordering limit in `common/Stats.tsx`. Those are compiler-internal limitations, not fixable from here, and none are on hot paths. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
+At the time of writing 81 functions compile and 2 bail — a `MethodCall` codegen error in `vg/CardMediaImage.tsx` and an arrow-reordering limit in `common/Stats.tsx`. Both are compiler-internal limitations and neither is on a hot path. A `MethodCall` bailout does respond to moving the offending computation into a plain module, which is how the three `show/Stats.tsx` bailouts were cleared. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
 
 The compiler costs about 4% of bundle size (~15KB gzipped) in injected cache slots. That is a deliberate trade, and `npm run analyze` exists to keep it honest.
 
@@ -266,5 +266,5 @@ Recorded so they are not mistaken for design:
 - **No DOM or component tests.** `tests/` covers pure logic — converters, filters, the reducer, the chart data transforms and the cache round trip — and deliberately stops there; AGENTS.md explains the trade. Nothing verifies that a chart renders, and the show converter's date ordering is still only a `console.assert`, which does not alter control flow.
 - **`.eslintrc.cjs` is dead.** ESLint 9 uses the flat `eslint.config.js`; the legacy file remains in the tree and is not applied. The flat config is also the weaker of the two — it drops the type-checked and React-specific rule sets the old file enabled.
 - **Cache keys are unversioned**, so domain model changes can meet stale `localStorage` objects (§4).
-- **Five React Compiler bailouts** remain (§7). Compiler-internal limits, none on hot paths, but they mean those functions get no auto-memoization.
+- **Two React Compiler bailouts** remain (§7). Compiler-internal limits, neither on a hot path, but they mean those functions get no auto-memoization.
 - **`PlainDate.valueOf` returns a string**, so every date comparison goes through `toString()` and allocates. It is correct and the ordering is deliberate (§7), but the hot path — the timeline's greedy packing loop — does tens of thousands of comparisons per layout. A numeric sort key computed once per interned instance would preserve ordering exactly, including across mixed `Year`/`YearMonthDay`. Deliberately not done: it touches the most load-bearing class in the codebase for a win nobody has measured as necessary.

@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { Tab } from "../tabs.ts";
 import { arrayToJson } from "../utils/arrayUtils.ts";
+import { expiryFor, isTokenValid, parseTokenWrapper, type Token, type TokenWrapper } from "./token.ts";
 
 export const gapi_script = "https://apis.google.com/js/api.js";
 export const g_script = "https://accounts.google.com/gsi/client";
@@ -14,16 +15,11 @@ const SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
 const storage = sessionStorage;
 const storageKey = "gapi-token";
 
-type Token = google.accounts.oauth2.TokenResponse;
 type TokenClient = google.accounts.oauth2.TokenClient;
-interface TokenWrapper {
-  expiry: number;
-  token: Token;
-}
 
 const getValidToken = (): Token | undefined => {
-  const wrapper = JSON.parse(storage.getItem(storageKey) || "null") as TokenWrapper | null;
-  if (wrapper && wrapper.expiry > Date.now()) return wrapper.token;
+  const wrapper = parseTokenWrapper(storage.getItem(storageKey));
+  if (isTokenValid(wrapper, Date.now())) return wrapper!.token;
   storage.removeItem(storageKey);
   return undefined;
 };
@@ -86,7 +82,7 @@ export const GoogleAuthProvider = ({ children }: { children: ReactNode }) => {
       client_id: CLIENT_ID,
       scope: SCOPE,
       callback: (token) => {
-        const expiry = Date.now() + parseInt(token.expires_in) * 1000;
+        const expiry = expiryFor(token, Date.now());
         storage.setItem(storageKey, JSON.stringify({ token, expiry } satisfies TokenWrapper));
         setTokenSet(true);
         if (typeof gapi !== "undefined" && gapi.client) {
