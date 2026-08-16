@@ -27,7 +27,7 @@ export const ShowsTab: Tab = {
   id: "show",
   name: "Shows",
   spreadsheetId: "1M3om2DPLfRO5dKcUfYOIcSNoLThzMLp1iZLQX6qR3pY",
-  range: "Sheet1!A:N",
+  range: "Shows!A:P",
   component: Shows,
   primaryColour: "#df2020",
   secondaryColour: "#20dfdf",
