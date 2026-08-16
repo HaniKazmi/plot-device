@@ -5,7 +5,8 @@ import type { TypedCardMediaImage } from "./Card";
 import { useSelectBox } from "./SelectBoxHook";
 import { CloseFullscreen, Fullscreen } from "@mui/icons-material";
 import type { Year, YearMonthDay } from "./date";
-import "../utils/arrayUtils";
+import { finishedItems } from "./finishedData";
+import { withAlpha } from "../utils/colourUtils";
 
 const Finished = <
   U extends {
@@ -34,10 +35,7 @@ const Finished = <
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
 
   const slowData = useDeferredValue(data, []);
-  let recent = slowData.filter((show) => show.banner);
-  if (sort === "Date") {
-    recent = recent.sortByKey("startDate", false);
-  }
+  const recent = finishedItems(slowData, sort);
   const renderContent = (isDialog: boolean) => (
     <>
       <CardHeader
@@ -76,7 +74,7 @@ const Finished = <
               <Card
                 sx={{
                   height: "100%",
-                  borderColor: colour && colour(item) + 90,
+                  borderColor: colour && withAlpha(colour(item), "90"),
                   borderStyle: colour && "solid",
                   borderWidth: colour && 3,
                 }}

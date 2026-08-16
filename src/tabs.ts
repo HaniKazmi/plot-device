@@ -55,9 +55,16 @@ export const HolidaysTab: Tab = {
 
 const Tabs: Tab[] = [VideoGamesTab, ShowsTab, MoviesTab];
 
-export const useCurrentTab = (): Tab => {
-  const { pathname } = useLocation();
-  return Tabs.find((tab) => tab.id === pathname.replace(/^\//, "")) ?? Tabs[0];
-};
+/**
+ * The tab a route belongs to, falling back to the first one.
+ *
+ * The match is an exact, case-sensitive comparison against the tab id after a single leading
+ * slash is stripped, so a trailing slash or any nested path falls back rather than matching.
+ * `HolidaysTab` is deliberately absent from `tabs`, which is what makes its route unreachable.
+ */
+export const tabForPath = (pathname: string, tabs: readonly Tab[] = Tabs): Tab =>
+  tabs.find((tab) => tab.id === pathname.replace(/^\//, "")) ?? tabs[0];
+
+export const useCurrentTab = (): Tab => tabForPath(useLocation().pathname);
 
 export default Tabs;

@@ -1,4 +1,4 @@
-import { Predicate } from "../utils/types";
+import { Predicate, type KeysMatching } from "../utils/types";
 import { Measure, Platform, VideoGame } from "./types";
 import { CURRENT_YEAR, Year } from "../common/date";
 import {
@@ -73,3 +73,15 @@ export const { useFilterReducer, reducer, initialState } = createFilterReducer<V
   filters,
   (measure) => (measure === "Games" ? "Hours" : "Games"),
 );
+
+/**
+ * The distinct values a category takes across the data, for its multi-select.
+ *
+ * `toSorted` with no comparator sorts lexicographically, so an empty value sorts to the front
+ * and renders as a blank option — nothing filters those out.
+ */
+export const categoryOptions = <T extends KeysMatching<VideoGame, string>>(data: VideoGame[], category: T) =>
+  [...new Set(data.map((vg) => vg[category]))].toSorted();
+
+/** MUI hands a multi-select either an array or a comma-joined string, depending on the event. */
+export const toValueArray = (value: string | string[]) => (Array.isArray(value) ? value : value.split(","));

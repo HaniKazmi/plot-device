@@ -27,7 +27,7 @@ import {
 import { useState } from "react";
 import { platformToColor, VideoGame, type VideoGameStringKeys } from "./types";
 import Grid from "@mui/material/Grid";
-import { FilterDispatch, FilterState } from "./filterUtils";
+import { categoryOptions, toValueArray, type FilterDispatch, type FilterState } from "./filterUtils";
 import type { Colour, KeysMatching } from "../utils/types";
 
 const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: FilterDispatch; data: VideoGame[] }) => {
@@ -131,7 +131,7 @@ const FilterCategory = <T extends VideoGameStringKeys & keyof FilterState>({
   state: FilterState;
   dispatch: FilterDispatch;
 }) => {
-  const options = [...new Set(data.map((vg) => vg[category]))].toSorted();
+  const options = categoryOptions(data, category);
 
   return (
     <Grid
@@ -166,7 +166,7 @@ const FilterCategory = <T extends VideoGameStringKeys & keyof FilterState>({
               </Box>
             )}
             onChange={(event) => {
-              const value = Array.isArray(event.target.value) ? event.target.value : event.target.value.split(",");
+              const value = toValueArray(event.target.value);
               dispatch({ type: "updateFilter", filter: category, value });
             }}
           >
