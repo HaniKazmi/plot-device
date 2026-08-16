@@ -4,6 +4,7 @@ import { ShowsTab } from "../tabs";
 import { PlainDate, YearMonthDay } from "../common/date.ts";
 import useData from "../common/useData.ts";
 import { useFilterReducer } from "./filterUtils.ts";
+import "../utils/arrayUtils";
 
 const Graphs = lazy(() => import(/* webpackPrefetch: true */ "./Graphs"));
 

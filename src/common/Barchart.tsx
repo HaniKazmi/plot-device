@@ -16,6 +16,7 @@ import { Chart, Series, XAxis, YAxis, PlotOptions, Tooltip, Legend } from "../hi
 import type { Year, YearMonth } from "./date";
 import type { Colour } from "../utils/types";
 import type {} from "@mui/material/themeCssVarsAugmentation";
+import "../utils/mapUtils";
 
 type GraphType = "bar" | "line" | "bump";
 

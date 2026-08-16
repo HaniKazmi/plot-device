@@ -7,6 +7,7 @@ import ShowCardMediaImage from "./CardMediaImage";
 import { statusToColour } from "../utils/types";
 import { Stack } from "@mui/material";
 import { CURRENT_YEAR, YearNumber } from "../common/date";
+import "../utils/arrayUtils";
 
 const Stats = ({ data }: { data: Show[] }) => {
   return (

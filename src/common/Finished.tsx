@@ -5,6 +5,7 @@ import type { TypedCardMediaImage } from "./Card";
 import { useSelectBox } from "./SelectBoxHook";
 import { CloseFullscreen, Fullscreen } from "@mui/icons-material";
 import type { Year, YearMonthDay } from "./date";
+import "../utils/arrayUtils";
 
 const Finished = <
   U extends {

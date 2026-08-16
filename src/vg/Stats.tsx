@@ -54,6 +54,7 @@ import { CURRENT_YEAR, EARLIEST_YEAR, YearNumber } from "../common/date";
 import { useState, type ReactNode } from "react";
 import prepareForSlot from "../utils/prepareForSlot";
 import { useSelectBox } from "../common/SelectBoxHook";
+import "../utils/arrayUtils";
 
 const Stats = ({
   data,

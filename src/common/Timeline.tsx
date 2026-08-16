@@ -3,6 +3,8 @@ import { type ReactNode, useLayoutEffect, useRef, useState, type Ref, useMemo } 
 import type { Colour } from "../utils/types";
 import type { YearMonth, YearMonthDay } from "./date";
 import type {} from "@mui/material/themeCssVarsAugmentation";
+import "../utils/arrayUtils";
+import "../utils/mapUtils";
 
 export interface TimelineData {
   name: string;

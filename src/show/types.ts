@@ -26,7 +26,6 @@ export interface Season {
 
 export type Status = "Watching" | "Up To Date" | "Ended" | "Cancelled" | "Abandoned";
 
-
 export type ShowStringKeys = KeysMatching<Show, string>;
 
 export type Measure = "Shows" | "Episodes" | "Hours";

@@ -2,13 +2,7 @@
   "compilerOptions": {
     "target": "es2025",
     "useDefineForClassFields": true,
-    "lib": [
-      "DOM",
-      "DOM.Iterable",
-      "ES2023",
-      "ES2024",
-      "ES2025"
-    ],
+    "lib": ["DOM", "DOM.Iterable", "ES2023", "ES2024", "ES2025"],
     "module": "ESNext",
     "skipLibCheck": true,
     /* Bundler mode */
@@ -25,9 +19,7 @@
     "noFallthroughCasesInSwitch": true,
     "strictNullChecks": true
   },
-  "include": [
-    "src"
-  ],
+  "include": ["src", "tests"],
   "references": [
     {
       "path": "./tsconfig.node.json"

@@ -10,6 +10,8 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist --cname plot.hani.fyi",
     "lint": "eslint .",
+    "test": "TZ=UTC vitest run",
+    "test:watch": "TZ=UTC vitest",
     "format": "prettier --write .",
     "preview": "vite preview",
     "analyze": "source-map-explorer 'dist/assets/*.js' --no-border-checks"
@@ -35,6 +37,7 @@
     "@types/gapi.client": "^1.0.8",
     "@types/gapi.client.sheets": "^4.0.20201031",
     "@types/google.accounts": "~0.0.14",
+    "@types/node": "^26.2.0",
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.1",
     "@vitejs/plugin-react": "^6.0.1",
@@ -48,6 +51,7 @@
     "source-map-explorer": "^2.5.3",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.15.0",
-    "vite": "^8.0.3"
+    "vite": "^8.0.3",
+    "vitest": "^4.1.10"
   }
 }
