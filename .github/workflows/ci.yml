@@ -51,9 +51,20 @@ jobs:
       - run: npm ci
 
       - name: Identify the committer
+        # Read out of this checkout by gh-pages itself and written into its clone, so local
+        # config is enough here — unlike the credential below.
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      # gh-pages does not push from this checkout. It clones the repo into node_modules/.cache
+      # and pushes from there, and that fresh clone has none of the credentials actions/checkout
+      # wrote into this one's local config, so the push falls through to asking for a username on
+      # a machine with no terminal. Only a global rewrite reaches the clone.
+      - name: Authorise the push to gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
 
       # Runs the same script as a local deploy, so the two cannot drift. Its predeploy hook
       # rebuilds, because jobs do not share a filesystem with verify.
