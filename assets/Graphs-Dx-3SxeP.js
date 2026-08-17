@@ -1,0 +1,2 @@
+import{n as e,r as t,t as n}from"./Stack-CAhw1mS6.js";import{Tt as r,wt as i}from"./index-HGlCKyW2.js";var a=r(),o=i(),s=n=>{let r=(0,a.c)(4),{data:i}=n,s;r[0]===i?s=r[1]:(s=i.toString(),r[0]=i,r[1]=s);let c;return r[2]===s?c=r[3]:(c=(0,o.jsx)(t,{children:(0,o.jsx)(e,{children:s})}),r[2]=s,r[3]=c),c},c=e=>{let t=(0,a.c)(2),{data:r}=e,i;return t[0]===r?i=t[1]:(i=(0,o.jsx)(n,{spacing:2,children:(0,o.jsx)(s,{data:r})}),t[0]=r,t[1]=i),i};export{c as default};
+//# sourceMappingURL=Graphs-Dx-3SxeP.js.map
