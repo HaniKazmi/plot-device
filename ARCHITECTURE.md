@@ -159,6 +159,10 @@ Hand-rolled SVG, not Highcharts, because the requirement was a Gantt-like packed
 
 The chart is fixed at `400vw` inside a scroll container, and the month/quarter/year axis is rendered separately beneath it.
 
+A third piece is chrome rather than algorithm. `buildTicks` walks the month range once in `TimeLineChart`, and the resulting array feeds both the axis and `TimelineBackground`, which paints alternating year bands and year/quarter gridlines behind the bars. Sharing one array is the point: on a 22-row chart the axis is several hundred pixels below the top row, so a gridline that disagreed with its own label by even a pixel would misread every bar above it. The background is the first child of the `svg` because SVG paints in document order and has no `z-index`, and it is `pointer-events: none` so full-height rects do not become the topmost hit target across the whole chart.
+
+Two things in that layer are load-bearing and easy to undo by accident. The label `Box` sets `lineHeight` to the bar height because it is `position: fixed` with no `top` — it lands at the top of its row and is centred only by its own line box, so any change to bar height without the matching line height silently pushes every label off-centre. And the hover step on a bar is deliberately instant: a CSS transition there is created but its clock never advances, because the tooltip opening re-renders the row and restarts it every frame, leaving the bar pinned at its start value. Both `transform` and `filter` behave that way.
+
 ### Stats and cards
 
 `common/Stats.tsx` exports three composable pieces — `StatCard` (a row of labelled figures), `StatList` (a scrollable strip of media cards with a fullscreen dialog), and `TotalStack` (a proportional segmented bar with labels). It builds the bar from `Segment`, which lives in `common/Card.tsx` alongside the other proportional-bar primitives. Domain `Stats.tsx` files assemble these into a grid; they hold the arithmetic, the shells hold the layout.
@@ -217,7 +221,7 @@ Setup is the plugin's documented path: `@vitejs/plugin-react` exports `reactComp
 - **`this`** anywhere in the function. Highcharts binds the chart to `this` in its event callbacks, so those must live at module scope (see `dimLeafRing` in §6) or they take the whole component down with them.
 - **`??=`**, which the compiler cannot yet lower. Write `x = x ?? y` instead.
 
-At the time of writing 80 functions compile and 2 bail — a `MethodCall` codegen error in `vg/CardMediaImage.tsx` and an arrow-reordering limit in `common/Stats.tsx`. Both are compiler-internal limitations and neither is on a hot path. A `MethodCall` bailout does respond to moving the offending computation into a plain module, which is how the three `show/Stats.tsx` bailouts were cleared. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
+At the time of writing 81 functions compile and 2 bail — a `MethodCall` codegen error in `vg/CardMediaImage.tsx` and an arrow-reordering limit in `common/Stats.tsx`. Both are compiler-internal limitations and neither is on a hot path. A `MethodCall` bailout does respond to moving the offending computation into a plain module, which is how the three `show/Stats.tsx` bailouts were cleared. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
 
 The compiler costs about 4% of bundle size (~15KB gzipped) in injected cache slots. That is a deliberate trade, and `npm run analyze` exists to keep it honest.
 

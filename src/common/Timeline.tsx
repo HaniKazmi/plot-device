@@ -1,13 +1,16 @@
 import { Card, CardContent, Box, Tooltip, useTheme } from "@mui/material";
 import { type ReactNode, useLayoutEffect, useRef, useState, type Ref } from "react";
-import type { YearMonth, YearMonthDay } from "./date";
+import type { YearMonthDay } from "./date";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 import {
+  buildTicks,
   decidePlacement,
   packRows,
+  percentOfSpan,
   type Placement,
   type PositionedTimelineData,
   type TimelineData,
+  type TimelineTick,
 } from "./timelineLayout";
 
 export type { TimelineData };
@@ -16,9 +19,54 @@ export type { TimelineData };
 // Constants
 // ============================================================================
 const AXIS_HEIGHT = 45;
+/**
+ * Row pitch and padding are held to the height the chart has always been: the Shows timeline
+ * runs to 22 rows, and anything taller pushes it past the viewport and starts scrolling a chart
+ * that used to be readable in one glance. The padding is halved against the older figure because
+ * the height it feeds now accounts for the last row properly, giving real clearance at both ends
+ * rather than double at the top and none at the bottom.
+ */
 const ROW_HEIGHT = 25;
 const ROW_PADDING = 5;
-const SVG_PADDING = 20;
+const BAR_HEIGHT = ROW_HEIGHT - ROW_PADDING;
+const BAR_RADIUS = 6;
+/**
+ * A sliver is a real event, not a rounding error: at 400vw over a decade a single day is barely
+ * a pixel, so without a floor the shortest entries disappear entirely.
+ */
+const MIN_BAR_WIDTH = 4;
+const SVG_PADDING = 10;
+const LABEL_FONT_SIZE = 13;
+
+const pct = (percent: number) => `${percent}%`;
+
+/**
+ * Grow from the bar's own centre rather than its top edge. `fill-box` makes the rect's bounding
+ * box the transform origin; animating `y`/`height` instead is patchily supported.
+ *
+ * Hoisted so all 800-odd bars share one class and one object identity.
+ */
+const BAR_SX = {
+  transformBox: "fill-box",
+  transformOrigin: "center",
+} as const;
+
+/**
+ * The bar answers to its label as well as to itself, so the two never disagree about whether the
+ * pointer is on this item — a centred label covers its own bar, and an outside one does not.
+ *
+ * Safe to hang off the group only because the label's `foreignObject` is `pointer-events: none`;
+ * it spans the entire gap to the neighbouring items, and would otherwise light this bar up from
+ * hundreds of pixels away.
+ *
+ * The step is deliberately instant. A CSS transition here is created but its clock never
+ * advances — the tooltip opening re-renders the row, which restarts the transition every frame,
+ * so the bar stays pinned at its start value and never appears to move at all. Measured on both
+ * `transform` and `filter`; adding one back reintroduces a hover that silently does nothing.
+ */
+const ROW_SX = {
+  "&:hover rect": { transform: "scaleY(1.15)" },
+} as const;
 
 // ============================================================================
 // Types
@@ -42,17 +90,6 @@ type ItemRefs = {
   fo: SVGForeignObjectElement | null;
   text: HTMLDivElement | null;
 };
-
-// ============================================================================
-// Utility Functions
-// ============================================================================
-/**
- * The span from `start` to `end` as a percentage of the whole timeline grid, which is how every
- * element is positioned and sized. A negative `padding` shrinks the span, which is how a bar
- * leaves a gap before the next one.
- */
-const percentOfSpan = (start: YearMonthDay, end: YearMonthDay, totalDays: number, padding: number = 0) =>
-  ((start.daysTo(end)! + padding) / totalDays) * 100 + "%";
 
 // ============================================================================
 // Hooks
@@ -135,27 +172,83 @@ const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }) => {
   const latestEnd = positionedTimelineData.at(-1)!.end;
   const totalDays = earliestStart.daysTo(latestEnd)!;
 
+  // Walked once and handed to both consumers, so a gridline and the tick label beneath it are the
+  // same number rather than two derivations that agree by luck.
+  const ticks = buildTicks(earliestStart.toYearMonth(), latestEnd.toYearMonth(), totalDays);
+
+  // `maxRow` is the highest row index, so the last bar ends a full bar below its own offset.
+  const totalHeight = (maxRow + 1) * ROW_HEIGHT + SVG_PADDING * 2 - ROW_PADDING;
+
   return (
     <Box sx={{ width: "100%", maxHeight: "90vh", overflowX: "auto", overflowY: "auto" }}>
       <div
         style={{ width: "400vw", maxHeight: "90vh", position: "relative", display: "flex", flexDirection: "column" }}
       >
-        <div style={{ overflowY: "auto" }}>
+        {/* `minHeight: 0` because a column flex item defaults to `min-height: auto` and would
+            refuse to shrink below the grid's height — the scroll would fall through to the
+            container above and take the axis off-screen with it. */}
+        <div style={{ overflowY: "auto", minHeight: 0 }}>
           <TimelineGrid
             data={positionedTimelineData}
             startDate={earliestStart}
             endDate={latestEnd}
-            totalHeight={maxRow * ROW_HEIGHT + SVG_PADDING * 2}
+            totalHeight={totalHeight}
             totalDays={totalDays}
+            ticks={ticks}
           />
         </div>
-        <TimeAxis
-          startDate={earliestStart.toYearMonth()}
-          endDate={latestEnd.toYearMonth()}
-          totalDays={totalDays}
-        />
+        <TimeAxis ticks={ticks} />
       </div>
     </Box>
+  );
+};
+
+/**
+ * Year shading and gridlines, so a bar can be read against a date without tracing down to the
+ * axis — which on a tall chart is several hundred pixels away.
+ *
+ * Shaded by calendar-year parity rather than by position in the list, so the same years are
+ * shaded whatever date a given chart's data happens to begin on. Bands are drawn before lines so
+ * a year line sits on top of its own edge, and the whole layer is the first child of the `svg`
+ * because SVG paints in document order and has no `z-index`.
+ */
+const TimelineBackground = ({ ticks, height }: { ticks: TimelineTick[]; height: number }) => {
+  const theme = useTheme();
+
+  const yearStarts = [{ percent: 0, year: ticks[0].year }, ...ticks.filter((tick) => tick.level === "year")];
+  const bands = yearStarts
+    .map((band, index) => ({ ...band, end: yearStarts[index + 1]?.percent ?? 100 }))
+    .filter((band) => band.year % 2 === 0);
+
+  return (
+    // Full-height rects would otherwise be the topmost hit target across most of the chart.
+    <g pointerEvents="none">
+      {bands.map((band) => (
+        <rect
+          key={band.year}
+          x={pct(band.percent)}
+          y={0}
+          width={pct(band.end - band.percent)}
+          height={height}
+          style={{ fill: theme.vars.palette.divider }}
+          fillOpacity={0.35}
+        />
+      ))}
+      {ticks
+        .filter((tick) => tick.level !== "month")
+        .map((tick) => (
+          <line
+            key={tick.percent}
+            x1={pct(tick.percent)}
+            x2={pct(tick.percent)}
+            y1={0}
+            y2={height}
+            style={{ stroke: theme.vars.palette.divider }}
+            strokeOpacity={tick.level === "year" ? 1 : 0.45}
+            strokeWidth={1}
+          />
+        ))}
+    </g>
   );
 };
 
@@ -165,12 +258,14 @@ const TimelineGrid = ({
   endDate,
   totalHeight,
   totalDays,
+  ticks,
 }: {
   data: PositionedTimelineData[];
   startDate: YearMonthDay;
   endDate: YearMonthDay;
   totalHeight: number;
   totalDays: number;
+  ticks: TimelineTick[];
 }) => {
   const { layouts, setItemRef } = useTextPlacement(data);
 
@@ -179,6 +274,10 @@ const TimelineGrid = ({
       height={totalHeight}
       width="100%"
     >
+      <TimelineBackground
+        ticks={ticks}
+        height={totalHeight}
+      />
       {data.map((event) => (
         <TimelineText
           key={event.name}
@@ -224,10 +323,9 @@ const TimelineText = ({
   layoutInfo: LayoutInfo;
 }) => {
   // Calculate relative X/Y positioning and width of the visual bar
-  const x = percentOfSpan(startDate, event.start, totalDays, 0.75);
-  const width = percentOfSpan(event.start, event.end, totalDays, -0.75);
+  const x = pct(percentOfSpan(startDate, event.start, totalDays, 0.75));
+  const width = pct(percentOfSpan(event.start, event.end, totalDays, -0.75));
   const y = event.rowNumber * ROW_HEIGHT + SVG_PADDING + "px";
-  const height = ROW_HEIGHT - ROW_PADDING;
 
   // The `<foreignObject>` acts as a container for the text that spans the *entire available empty space*
   // between the previous event and the next event on this row.
@@ -235,36 +333,43 @@ const TimelineText = ({
   const availableLeft = percentOfSpan(spaceLeftStart, event.start, totalDays);
 
   const textContainerEnd = event.nextDate ?? endDate;
-  const totalTextContainerWidth = percentOfSpan(spaceLeftStart, textContainerEnd, totalDays);
+  const totalTextContainerWidth = pct(percentOfSpan(spaceLeftStart, textContainerEnd, totalDays));
 
   // Shift the foreign object to start exactly where the previous event ended
-  const foreignObjectX = `-${availableLeft}`;
+  const foreignObjectX = pct(-availableLeft);
 
   const leftPadding = layoutInfo.placement === "right" ? `${layoutInfo.barPx + 5}px` : "5px";
   const rightPadding = layoutInfo.placement === "left" ? `${layoutInfo.barPx + 5}px` : "5px";
   const leftPosition = `${layoutInfo.placement === "left" ? layoutInfo.availableLeftPx - layoutInfo.textPx : layoutInfo.availableLeftPx}px`;
 
   return (
-    <g
+    <Box
+      component="g"
       x={x}
       y={y}
       style={{ transform: `translate(${x}, ${y})` }}
+      sx={ROW_SX}
     >
-      <rect
+      <Box
+        component="rect"
         width={width}
-        height={height}
+        height={BAR_HEIGHT}
         fill={event.colour}
-        rx="5"
-        ry="5"
-        style={{ width: `max(${width}, 1px)` }}
+        rx={BAR_RADIUS}
+        style={{ width: `max(${width}, ${MIN_BAR_WIDTH}px)` }}
+        sx={BAR_SX}
         ref={rectRef}
       />
+      {/* The label spans the whole gap around its bar, so left to itself it would swallow the
+          pointer across most of the chart — including over the bar it sits on. The label re-enables
+          events for itself, which is what the tooltip hangs off. */}
       <foreignObject
         x={foreignObjectX}
         y="0"
         width={totalTextContainerWidth}
-        height={height}
+        height={BAR_HEIGHT}
         overflow="hidden"
+        pointerEvents="none"
         ref={foRef}
       >
         <Tooltip
@@ -279,10 +384,16 @@ const TimelineText = ({
           <Box
             sx={{
               position: "fixed",
+              pointerEvents: "auto",
               textOverflow: "ellipsis",
               overflow: "hidden",
               whiteSpace: "nowrap",
-              fontSize: 14,
+              fontSize: LABEL_FONT_SIZE,
+              fontWeight: 500,
+              // The label sets `left` but never `top`, so it lands at the top of its row and is
+              // centred only by its own line box. Matching that box to the bar is what keeps the
+              // text on the bar's centre line at any bar height.
+              lineHeight: `${BAR_HEIGHT}px`,
               paddingLeft: leftPadding,
               paddingRight: rightPadding,
               left: leftPosition,
@@ -298,34 +409,19 @@ const TimelineText = ({
           </Box>
         </Tooltip>
       </foreignObject>
-    </g>
+    </Box>
   );
 };
 
-const TimeAxis = ({
-  startDate,
-  endDate,
-  totalDays,
-}: {
-  startDate: YearMonth;
-  endDate: YearMonth;
-  totalDays: number;
-}) => {
+/**
+ * The month/quarter/year scale beneath the grid.
+ *
+ * A tick's significance is carried by its length, its weight and its strength together, all from
+ * the same token the labels use — so the axis reads as one piece of chrome and follows the colour
+ * scheme rather than a fixed grey.
+ */
+const TimeAxis = ({ ticks }: { ticks: TimelineTick[] }) => {
   const theme = useTheme();
-  const startDateDay = startDate.startOfMonth();
-
-  const ticks = startDate.iterateToDate(endDate).map((dateForTick) => {
-    const date = dateForTick.startOfMonth();
-    const x = percentOfSpan(startDateDay, date, totalDays);
-
-    return {
-      x,
-      label: dateForTick.monthString(),
-      isYear: dateForTick.month === 1,
-      isQuarter: dateForTick.month % 3 === 1,
-      yearLabel: dateForTick.year.toString(),
-    };
-  });
 
   return (
     <svg
@@ -334,26 +430,26 @@ const TimeAxis = ({
     >
       {ticks.map((tick) => (
         <g
-          x={tick.x}
-          key={tick.x}
-          style={{ transform: `translateX(${tick.x})` }}
+          key={tick.percent}
+          style={{ transform: `translateX(${pct(tick.percent)})` }}
         >
           <line
-            y1={tick.isYear ? 10 : tick.isQuarter ? 25 : 30}
+            y1={tick.level === "year" ? 10 : tick.level === "quarter" ? 25 : 30}
             y2={AXIS_HEIGHT - 2}
-            stroke={"#9B9B9B"}
-            strokeWidth="1"
+            style={{ stroke: theme.vars.palette.text.secondary }}
+            strokeOpacity={tick.level === "year" ? 1 : tick.level === "quarter" ? 0.6 : 0.3}
+            strokeWidth={tick.level === "year" ? 1.5 : 1}
           />
-          {tick.isQuarter && (
+          {tick.level !== "month" && (
             <text
               x="5"
               y="20"
               style={{ fill: theme.vars.palette.text.secondary, fontSize: 16 }}
             >
-              {tick.label}
+              {tick.monthLabel}
             </text>
           )}
-          {tick.isYear && (
+          {tick.level === "year" && (
             <text
               x="5"
               y="40"

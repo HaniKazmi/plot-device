@@ -1,5 +1,5 @@
 import type { Colour } from "../utils/types";
-import type { YearMonthDay } from "./date";
+import type { YearMonth, YearMonthDay } from "./date";
 import "../utils/arrayUtils";
 
 export interface TimelineData {
@@ -25,6 +25,44 @@ export interface PositionedTimelineData extends TimelineData {
   nextDate?: YearMonthDay;
   previousDate?: YearMonthDay;
 }
+
+/**
+ * The span from `start` to `end` as a percentage of the whole timeline grid, which is how every
+ * element is positioned and sized. A negative `padding` shrinks the span, which is how a bar
+ * leaves a gap before the next one.
+ */
+export const percentOfSpan = (start: YearMonthDay, end: YearMonthDay, totalDays: number, padding: number = 0) =>
+  ((start.daysTo(end)! + padding) / totalDays) * 100;
+
+export type TickLevel = "year" | "quarter" | "month";
+
+export interface TimelineTick {
+  /** Offset from the left edge of the grid, as a percentage of its full width. */
+  percent: number;
+  level: TickLevel;
+  monthLabel: string;
+  yearLabel: string;
+  year: number;
+}
+
+/**
+ * One walk of the month range, shared by the axis and by the gridlines drawn behind the bars.
+ *
+ * Both consume the same array so a year line and the year label beneath it cannot drift apart.
+ * `start` must be the date the bars themselves are measured from, or every tick is offset by
+ * however far the two origins differ.
+ */
+export const buildTicks = (start: YearMonth, end: YearMonth, totalDays: number): TimelineTick[] => {
+  const origin = start.startOfMonth();
+
+  return start.iterateToDate(end).map((month) => ({
+    percent: percentOfSpan(origin, month.startOfMonth(), totalDays),
+    level: month.month === 1 ? "year" : month.month % 3 === 1 ? "quarter" : "month",
+    monthLabel: month.monthString(),
+    yearLabel: month.year.toString(),
+    year: month.year,
+  }));
+};
 
 /**
  * Greedy interval packing. Sorts events chronologically and drops each into the first row
