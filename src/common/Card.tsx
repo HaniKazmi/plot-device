@@ -15,8 +15,8 @@ import {
   Typography,
   type ChipProps,
 } from "@mui/material";
-import { type FunctionComponent, type ReactNode, useRef, useState } from "react";
-import { imageToColour } from "../utils/colourUtils";
+import { type FunctionComponent, type ReactNode, useEffect, useRef, useState } from "react";
+import { cachedColour, extractColourFrom, withAlpha } from "../utils/colourUtils";
 import Grid from "@mui/material/Grid";
 import type { Colour } from "../utils/types";
 
@@ -57,8 +57,31 @@ export const CardMediaImage = ({
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   /** Lags `dialogOpen` on close so the detail tree survives the dialog's exit transition. */
   const [detailMounted, setDetailMounted] = useState<boolean>(false);
-  const [colour, setColour] = useState<Colour | undefined>(propColour ?? imageToColour(image));
+  // Only cards that opted into extraction seed from the cache, so a grid that means to stay
+  // uncoloured is not tinted by whatever another component happened to read first.
+  const [extracted, setExtracted] = useState<Colour | undefined>(() =>
+    extractColour ? cachedColour(image) : undefined,
+  );
+  // Derived rather than seeded into state, so a card whose `colour` prop changes under it — the
+  // same key showing a different item after a refetch — follows the prop instead of keeping the
+  // value it mounted with.
+  const colour = propColour ?? extracted;
   const imgRef = useRef<HTMLImageElement>(null);
+
+  const readColour = (img: HTMLImageElement | null) => {
+    if (img && !colour) extractColourFrom(img, setExtracted);
+  };
+
+  // `load` does not bubble, so React delivers it through a root listener that only sees events
+  // dispatched once the element is in the document. An image served from cache can finish before
+  // that, and then `onLoad` never runs and nothing else would ever ask for a colour. Checking the
+  // element after commit covers that case; `complete` with a non-zero `naturalWidth` means the
+  // image is there to be read whether or not the event arrived.
+  useEffect(() => {
+    const img = imgRef.current;
+    if (!extractColour || colour || !img?.complete || img.naturalWidth === 0) return;
+    extractColourFrom(img, setExtracted);
+  }, [extractColour, colour]);
 
   return (
     <Card
@@ -78,16 +101,16 @@ export const CardMediaImage = ({
           src={image}
           alt={alt}
           onClick={() => {
-            if (!colour) imageToColour(imgRef.current as HTMLImageElement, setColour);
+            // The detail dialog is themed from this colour, so it is worth reading even for a card
+            // that did not ask for one.
+            readColour(imgRef.current);
             setDialogOpen(true);
             setDetailMounted(true);
           }}
           loading={lazy ? "lazy" : undefined}
           ref={imgRef}
           onLoad={(el) => {
-            if (extractColour && !colour) {
-              imageToColour(el.target as HTMLImageElement, setColour);
-            }
+            if (extractColour) readColour(el.currentTarget);
           }}
           sx={sx}
         />
@@ -136,7 +159,7 @@ export const CardMediaImage = ({
           >
             <Box
               sx={{
-                background: `linear-gradient(to bottom, ${colour}00 80%, ${colour})`,
+                background: colour && `linear-gradient(to bottom, ${withAlpha(colour, "00")} 80%, ${colour})`,
                 position: "absolute",
                 top: "90%",
                 left: 0,

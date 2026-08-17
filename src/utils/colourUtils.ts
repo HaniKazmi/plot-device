@@ -1,4 +1,4 @@
-import { FastAverageColor } from "fast-average-color";
+import { FastAverageColor, type FastAverageColorResult } from "fast-average-color";
 import { Colour } from "./types";
 
 const fac = new FastAverageColor();
@@ -34,46 +34,112 @@ export const isUsableColour = (hex: string) => {
 /** Appends a hex alpha byte to a `#rrggbb` colour, e.g. `withAlpha(colour, "90")`. */
 export const withAlpha = (hex: string, alpha: string) => (hex + alpha) as Colour;
 
-export const imageToColour = (img: HTMLImageElement | string | undefined, setColour?: (colour: Colour) => void) => {
-  if (img === undefined || img === null) {
-    console.error("No Image");
-    return undefined;
+/**
+ * The one key both sides of the cache agree on.
+ *
+ * Colours are stored against `img.src`, which the DOM has already resolved and percent-encoded,
+ * while a lookup from a domain model holds the raw sheet value — `…/Ted Lasso` against
+ * `…/Ted%20Lasso`. The URL parser produces exactly what the DOM does and is a fixed point on its
+ * own output, so putting both sides through it makes them meet. `encodeURI` cannot do the job: it
+ * escapes `%` itself, so it corrupts the side that is already encoded.
+ *
+ * Unicode is not normalised, so the NFC and NFD spellings of one name stay distinct keys. That
+ * matches the DOM, and both sides derive from the same sheet string, so they agree regardless.
+ *
+ * Banners are absolute URLs; a relative one throws, and keeping it raw leaves it missing the cache
+ * rather than inventing a key for it.
+ */
+export const cacheKey = (url: string) => {
+  try {
+    return new URL(url).href;
+  } catch {
+    return url;
   }
-
-  // Keyed on the raw string both ways. `HTMLImageElement.src` is already percent-encoded by the
-  // DOM, so running the string branch through encodeURI would address a different entry — and
-  // encodeURI escapes `%` itself, so it cannot simply be applied to both.
-  if (typeof img === "string") {
-    return map[img];
-  }
-
-  if (setColour) {
-    if (map[img.src]) {
-      setColour(map[img.src]);
-    } else {
-      colourForImgAsync(img, setColour);
-    }
-  }
-
-  return map[img.src];
 };
 
-const colourForImgAsync = async (img: HTMLImageElement, setColour: (colour: Colour) => void) => {
-  try {
-    let colour = await fac.getColorAsync(img, {
-      algorithm: "dominant",
-      ignoredColor: [
-        [255, 255, 255, 255, 5], // white
-        [0, 0, 0, 255, 5], // black
-      ],
-    });
+/** The colour already read for a banner, if anything has read it this session. */
+export const cachedColour = (src: string | undefined) => (src ? map[cacheKey(src)] : undefined);
 
-    if (!isUsableColour(colour.hex)) {
-      colour = await fac.getColorAsync(img, { algorithm: "simple" });
+/** Hands over the cached colour, or reads one off the image and hands that over once it arrives. */
+export const extractColourFrom = (img: HTMLImageElement, onColour: (colour: Colour) => void) => {
+  const cached = cachedColour(img.src);
+  if (cached) {
+    onColour(cached);
+    return;
+  }
+
+  colourForImgAsync(img, onColour);
+};
+
+/**
+ * One extraction per src at a time. The same banner is rendered by several cards, and each one
+ * reading the canvas separately duplicates the decode; every subscriber gets the shared result.
+ */
+const inFlight = new Map<string, Promise<Colour | undefined>>();
+
+const colourForImgAsync = (img: HTMLImageElement, onColour: (colour: Colour) => void) => {
+  // Keyed the same way as `map`, so the two never disagree about what counts as one banner.
+  const key = cacheKey(img.src);
+  let pending = inFlight.get(key);
+  if (!pending) {
+    pending = extractColourFromImg(img, key);
+    inFlight.set(key, pending);
+  }
+  pending.then((colour) => colour && onColour(colour));
+};
+
+/**
+ * Whether the canvas read produced no pixels at all.
+ *
+ * Every fast-average-color algorithm bails to its `defaultColor` — fully transparent, and so
+ * `#000000` in hex — the moment the accumulated alpha is zero. A drawn image always carries
+ * alpha, so a zero total means `drawImage` wrote nothing, not that the banner is black. The two
+ * are indistinguishable from the hex alone, which is why the alpha channel is the thing checked.
+ */
+const isEmptyRead = (colour: FastAverageColorResult) => colour.value[3] === 0;
+
+/**
+ * A second pass costs one more decode and rescues an image whose pixels were not ready for the
+ * first. Past that the failure is not transient and retrying in a loop just burns main thread.
+ */
+const READ_ATTEMPTS = 2;
+
+const extractColourFromImg = async (img: HTMLImageElement, key: string): Promise<Colour | undefined> => {
+  try {
+    for (let attempt = 1; attempt <= READ_ATTEMPTS; attempt++) {
+      // `load` fires when the bytes have arrived, which is not when the pixels exist. Safari
+      // decodes lazily and discards the decoded frame of an image it is not currently painting,
+      // and drawing an image in that state to a canvas silently writes transparent pixels.
+      // `decode()` resolves only once there is a frame ready to draw; it also subsumes waiting
+      // for load, so an image that has not arrived yet is handled by the same await. A rejection
+      // still leaves the read worth attempting: fast-average-color reports its own error if the
+      // image really is unreadable.
+      await img.decode().catch(() => {});
+
+      let colour = await fac.getColorAsync(img, {
+        algorithm: "dominant",
+        ignoredColor: [
+          [255, 255, 255, 255, 5], // white
+          [0, 0, 0, 255, 5], // black
+        ],
+      });
+      if (isEmptyRead(colour)) continue;
+
+      if (!isUsableColour(colour.hex)) {
+        const simple = await fac.getColorAsync(img, { algorithm: "simple" });
+        if (!isEmptyRead(simple)) colour = simple;
+      }
+
+      return (map[key] = colour.hex as Colour);
     }
 
-    setColour((map[img.src] = colour.hex as Colour));
+    // Deliberately not cached and not applied: a card left with no colour keeps the theme's own
+    // background, and the next mount of the same banner gets to try again once it has decoded.
+    return undefined;
   } catch (err) {
-    console.error("Failed to extract color from image:", err);
+    console.error("Failed to extract color from image:", key, err);
+    return undefined;
+  } finally {
+    inFlight.delete(key);
   }
 };

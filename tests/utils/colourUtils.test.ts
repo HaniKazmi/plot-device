@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isUsableColour, luma, withAlpha } from "../../src/utils/colourUtils";
+import { cacheKey, isUsableColour, luma, withAlpha } from "../../src/utils/colourUtils";
 import type { Colour } from "../../src/utils/types";
 
 describe("luma", () => {
@@ -58,6 +58,41 @@ describe("isUsableColour", () => {
   it("rejects an unparseable colour, since it reads as 0", () => {
     // This is what sends a bad result to the fallback algorithm rather than accepting it.
     expect(isUsableColour("not a colour")).toBe(false);
+  });
+});
+
+describe("cacheKey", () => {
+  const BUCKET = "https://storage.googleapis.com/hanikazmi_plotdevice_show";
+
+  it("encodes a banner the way the DOM does, so a raw sheet value finds what an img.src stored", () => {
+    // Sheet cells hold the name unencoded, and almost every one of them contains a space.
+    expect(cacheKey(`${BUCKET}/Ted Lasso`)).toBe(`${BUCKET}/Ted%20Lasso`);
+    expect(cacheKey(`${BUCKET}/Star Trek: Strange New Worlds`)).toBe(`${BUCKET}/Star%20Trek:%20Strange%20New%20Worlds`);
+  });
+
+  it("is a fixed point on its own output, which is what makes reads and writes meet", () => {
+    // Writes come from `img.src`, already an encoded href; reads come from the raw sheet value.
+    // The two only agree if a second pass changes nothing.
+    const encoded = cacheKey(`${BUCKET}/Ted Lasso`);
+    expect(cacheKey(encoded)).toBe(encoded);
+  });
+
+  it("keeps the two Unicode spellings of one name apart, encoding each as UTF-8", () => {
+    // Escaped because the two are indistinguishable on screen: a precomposed U+00E9 against an
+    // e followed by a combining acute. Both spellings appear in the sheet, and the DOM draws the
+    // same distinction, so the cache agreeing with itself matters more than merging them.
+    expect(cacheKey(`${BUCKET}/Pok\u00e9mon`)).toBe(`${BUCKET}/Pok%C3%A9mon`);
+    expect(cacheKey(`${BUCKET}/Poke\u0301mon`)).toBe(`${BUCKET}/Poke%CC%81mon`);
+  });
+
+  it("leaves a bare percent alone rather than double-encoding it", () => {
+    // This is what rules out encodeURI, which escapes `%` and so corrupts an already-encoded src.
+    expect(cacheKey(`${BUCKET}/100% Orange Juice`)).toBe(`${BUCKET}/100%%20Orange%20Juice`);
+  });
+
+  it("hands back anything it cannot parse, leaving it out of the cache rather than inventing a key", () => {
+    expect(cacheKey("not a url")).toBe("not a url");
+    expect(cacheKey("")).toBe("");
   });
 });
 
