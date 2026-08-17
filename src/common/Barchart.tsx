@@ -43,14 +43,16 @@ const Barchart = ({
   const theme = useTheme();
 
   const effectiveCumulative = cumulative && graphType !== "bar";
-  const groupDateResults = groupDate(data(effectiveCumulative));
-  let { results } = groupDateResults;
-  const { dates, groups } = groupDateResults;
+  const { results: raw, dates, groups } = groupDate(data(effectiveCumulative));
 
-  if (effectiveCumulative) results = convertToCumulative(results);
-  if (postAggregate) results = results.map((row) => row.map((value) => (value == null ? value : postAggregate(value))));
-  const tooltipResults = results;
-  if (graphType === "bump") results = convertToRanking(results);
+  const accumulated = effectiveCumulative ? convertToCumulative(raw) : raw;
+  // The bump chart plots ranks, but its tooltip still reports the underlying measure.
+  const tooltipResults = postAggregate
+    ? accumulated.map((row) => row.map((value) => (value == null ? value : postAggregate(value))))
+    : accumulated;
+  const results = graphType === "bump" ? convertToRanking(tooltipResults) : tooltipResults;
+
+  const seriesType = getSeriesType(graphType, cumulative);
 
   return (
     <Card>
@@ -185,7 +187,7 @@ const Barchart = ({
             // @ts-expect-error: TS cannot infer Series component props for union of series types
             <Series
               key={groups[groupindex].name}
-              type={getSeriesType(graphType, cumulative)}
+              type={seriesType}
               data={values.map((val, valIndex) => ({
                 y: val,
                 tooltip: tooltipResults[groupindex][valIndex] ?? 0,

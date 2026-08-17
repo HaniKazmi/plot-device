@@ -62,6 +62,10 @@ export const createFilterReducer = <T, M extends string, S extends BaseFilterSta
         // Guest mode is set by the app, not the filter panel, so Clear must not unhide content.
         return withFilter({ ...initialValues, guestMode: state.guestMode });
       case "updateFilter":
+        // Rebuilding `filter` hands every consumer a new predicate identity and so a fresh pass
+        // over the whole dataset. A multi-select builds a new array on every real change, so an
+        // identity match here only ever means nothing moved.
+        if (state[action.filter] === action.value) return state;
         return withFilter({ ...state, [action.filter]: action.value });
       case "toggleMeasure":
         return { ...state, measure: nextMeasure(state.measure) };

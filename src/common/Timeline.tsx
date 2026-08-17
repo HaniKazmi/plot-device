@@ -2,7 +2,13 @@ import { Card, CardContent, Box, Tooltip, useTheme } from "@mui/material";
 import { type ReactNode, useLayoutEffect, useRef, useState, type Ref } from "react";
 import type { YearMonth, YearMonthDay } from "./date";
 import type {} from "@mui/material/themeCssVarsAugmentation";
-import { decidePlacement, packRows, type PositionedTimelineData, type TimelineData } from "./timelineLayout";
+import {
+  decidePlacement,
+  packRows,
+  type Placement,
+  type PositionedTimelineData,
+  type TimelineData,
+} from "./timelineLayout";
 
 export type { TimelineData };
 
@@ -18,7 +24,7 @@ const SVG_PADDING = 20;
 // Types
 // ============================================================================
 type LayoutInfo = {
-  placement: "center" | "right" | "left";
+  placement: Placement;
   textPx: number;
   barPx: number;
   availableLeftPx: number;
@@ -41,19 +47,12 @@ type ItemRefs = {
 // Utility Functions
 // ============================================================================
 /**
- * Calculates a horizontal X-offset as a percentage across the entire timeline grid.
- * Useful for finding where an element should start relative to the earliest date.
+ * The span from `start` to `end` as a percentage of the whole timeline grid, which is how every
+ * element is positioned and sized. A negative `padding` shrinks the span, which is how a bar
+ * leaves a gap before the next one.
  */
-const calculatePercentageOffset = (start: YearMonthDay, end: YearMonthDay, totalDays: number, padding: number = 0) => {
-  return ((start.daysTo(end)! + padding) / totalDays) * 100 + "%";
-};
-
-/**
- * Calculates an element's width as a percentage across the entire timeline grid.
- */
-const calculatePercentageWidth = (start: YearMonthDay, end: YearMonthDay, totalDays: number, padding: number = 0) => {
-  return ((start.daysTo(end)! - padding) / totalDays) * 100 + "%";
-};
+const percentOfSpan = (start: YearMonthDay, end: YearMonthDay, totalDays: number, padding: number = 0) =>
+  ((start.daysTo(end)! + padding) / totalDays) * 100 + "%";
 
 // ============================================================================
 // Hooks
@@ -150,13 +149,11 @@ const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }) => {
             totalDays={totalDays}
           />
         </div>
-        <div>
-          <TimeAxis
-            startDate={earliestStart.toYearMonth()}
-            endDate={latestEnd.toYearMonth()}
-            totalDays={totalDays}
-          />
-        </div>
+        <TimeAxis
+          startDate={earliestStart.toYearMonth()}
+          endDate={latestEnd.toYearMonth()}
+          totalDays={totalDays}
+        />
       </div>
     </Box>
   );
@@ -219,26 +216,25 @@ const TimelineText = ({
   layoutInfo: LayoutInfo;
 }) => {
   // Calculate relative X/Y positioning and width of the visual bar
-  const x = calculatePercentageOffset(startDate, event.start, totalDays, 0.75);
-  const width = calculatePercentageWidth(event.start, event.end, totalDays, 0.75);
+  const x = percentOfSpan(startDate, event.start, totalDays, 0.75);
+  const width = percentOfSpan(event.start, event.end, totalDays, -0.75);
   const y = event.rowNumber * ROW_HEIGHT + SVG_PADDING + "px";
   const height = ROW_HEIGHT - ROW_PADDING;
 
   // The `<foreignObject>` acts as a container for the text that spans the *entire available empty space*
   // between the previous event and the next event on this row.
   const spaceLeftStart = event.previousDate ?? startDate;
-  const availableLeft = calculatePercentageOffset(spaceLeftStart, event.start, totalDays);
+  const availableLeft = percentOfSpan(spaceLeftStart, event.start, totalDays);
 
   const textContainerEnd = event.nextDate ?? endDate;
-  const totalTextContainerWidth = calculatePercentageOffset(spaceLeftStart, textContainerEnd, totalDays);
+  const totalTextContainerWidth = percentOfSpan(spaceLeftStart, textContainerEnd, totalDays);
 
   // Shift the foreign object to start exactly where the previous event ended
   const foreignObjectX = `-${availableLeft}`;
 
-  const getLeftPadding = () => (layoutInfo.placement === "right" ? `${layoutInfo.barPx + 5}px` : "5px");
-  const getRightPadding = () => (layoutInfo.placement === "left" ? `${layoutInfo.barPx + 5}px` : "5px");
-  const getLeftPosition = () =>
-    `${layoutInfo.placement === "left" ? layoutInfo.availableLeftPx - layoutInfo.textPx : layoutInfo.availableLeftPx}px`;
+  const leftPadding = layoutInfo.placement === "right" ? `${layoutInfo.barPx + 5}px` : "5px";
+  const rightPadding = layoutInfo.placement === "left" ? `${layoutInfo.barPx + 5}px` : "5px";
+  const leftPosition = `${layoutInfo.placement === "left" ? layoutInfo.availableLeftPx - layoutInfo.textPx : layoutInfo.availableLeftPx}px`;
 
   return (
     <g
@@ -279,9 +275,9 @@ const TimelineText = ({
               overflow: "hidden",
               whiteSpace: "nowrap",
               fontSize: 14,
-              paddingLeft: getLeftPadding(),
-              paddingRight: getRightPadding(),
-              left: getLeftPosition(),
+              paddingLeft: leftPadding,
+              paddingRight: rightPadding,
+              left: leftPosition,
               width: layoutInfo.placement === "center" ? `${layoutInfo.barPx}px` : "fit-content",
               color: (theme) =>
                 layoutInfo.placement === "center"
@@ -312,7 +308,7 @@ const TimeAxis = ({
 
   const ticks = startDate.iterateToDate(endDate).map((dateForTick) => {
     const date = dateForTick.startOfMonth();
-    const x = calculatePercentageOffset(startDateDay, date, totalDays);
+    const x = percentOfSpan(startDateDay, date, totalDays);
 
     return {
       x,

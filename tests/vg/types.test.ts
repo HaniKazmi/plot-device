@@ -3,9 +3,9 @@ import { companyToColor, groupToColour, platformToColor, platformToShort, type P
 import { KNOWN_PLATFORMS, videoGame } from "../fixtures/vgRows";
 
 describe("platform colour lookups", () => {
-  it.each(KNOWN_PLATFORMS)("resolves %s through both the colour and the short-name list", (platform) => {
-    // platformToColor's switch and platformShortNames are maintained separately. A platform
-    // added to only one of them fails here rather than at render time.
+  it.each(KNOWN_PLATFORMS)("resolves %s to both a colour and a short name", (platform) => {
+    // A platform whose first word is not a known company reaches companyToColor and comes back
+    // undefined, so the colour assertion catches it here rather than at render time.
     expect(() => platformToColor(platform)).not.toThrow();
 
     const [short, colour] = platformToShort(videoGame({ platform }));

@@ -64,61 +64,53 @@ const days = startYear.daysTo(CURRENT_PLAINDATE)!;
 
 const ShowTimelineCard = ({ item }: { item: Show }) => {
   if (!item.startDate || item.startDate < startYear) return null;
-  const { segments, lastDate } = item.s.reduce(
-    (acc, season, index) => {
-      const seasonSegments = [];
+  const segments: ReactNode[] = [];
+  let lastDate = startYear;
 
-      // Calculate the empty gap from the last date to this season's start.
-      if (acc.lastDate < season.startDate) {
-        const daysToSeasonStart = acc.lastDate.daysTo(season.startDate)!;
-        const percentToSeasonStart = (daysToSeasonStart / days) * 100;
-        seasonSegments.push(
-          <TimelineEmptySegment
-            key={`${season.s}-before`}
-            percent={percentToSeasonStart}
-          />,
-        );
-      }
-
-      const endDate = season.endDate ?? CURRENT_PLAINDATE;
-      const seasonLengthPercent = Math.max((season.startDate.daysTo(endDate)! / days) * 100, 0.5);
-
-      // Add the segment for the current season.
-      seasonSegments.push(
-        <TimelineActivatedSegment
-          key={season.s}
-          percent={seasonLengthPercent}
-          backgroundColour={[
-            `${index % 2 === 0 ? "secondary" : "primary"}.light`,
-            `${index % 2 === 0 ? "secondary" : "primary"}.main`,
-          ]}
-          tooltip={
-            <>
-              <Typography
-                variant="h6"
-                align="center"
-              >
-                S{season.s}
-              </Typography>
-              <Typography>
-                {season.startDate.toString()} - {endDate.toString()}
-              </Typography>
-              <Typography>{season.e} Episodes</Typography>
-              <Typography>{Math.floor(season.minutes / 60)} Hours</Typography>
-            </>
-          }
+  item.s.forEach((season, index) => {
+    // Calculate the empty gap from the last date to this season's start.
+    if (lastDate < season.startDate) {
+      const daysToSeasonStart = lastDate.daysTo(season.startDate)!;
+      const percentToSeasonStart = (daysToSeasonStart / days) * 100;
+      segments.push(
+        <TimelineEmptySegment
+          key={`${season.s}-before`}
+          percent={percentToSeasonStart}
         />,
       );
+    }
 
-      // Return the new state for the next iteration.
-      return {
-        segments: [...acc.segments, ...seasonSegments], // Add the new segments
-        lastDate: endDate.increment(), // Set the lastDate for the next season
-      };
-    },
-    // Initial value for the accumulator.
-    { segments: [] as ReactNode[], lastDate: startYear },
-  );
+    const endDate = season.endDate ?? CURRENT_PLAINDATE;
+    const seasonLengthPercent = Math.max((season.startDate.daysTo(endDate)! / days) * 100, 0.5);
+
+    segments.push(
+      <TimelineActivatedSegment
+        key={season.s}
+        percent={seasonLengthPercent}
+        backgroundColour={[
+          `${index % 2 === 0 ? "secondary" : "primary"}.light`,
+          `${index % 2 === 0 ? "secondary" : "primary"}.main`,
+        ]}
+        tooltip={
+          <>
+            <Typography
+              variant="h6"
+              align="center"
+            >
+              S{season.s}
+            </Typography>
+            <Typography>
+              {season.startDate.toString()} - {endDate.toString()}
+            </Typography>
+            <Typography>{season.e} Episodes</Typography>
+            <Typography>{Math.floor(season.minutes / 60)} Hours</Typography>
+          </>
+        }
+      />,
+    );
+
+    lastDate = endDate.increment();
+  });
 
   if (lastDate < CURRENT_PLAINDATE) {
     const daysToEnd = lastDate.daysTo(CURRENT_PLAINDATE)!;

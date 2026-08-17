@@ -5,6 +5,7 @@ import { StatCard, StatList, StatsListProps, TotalStack } from "../common/Stats"
 import ShowCardMediaImage from "./CardMediaImage";
 import { statusToColour } from "../utils/types";
 import { Stack } from "@mui/material";
+import type { ReactNode } from "react";
 import { CURRENT_YEAR } from "../common/date";
 import {
   allTimeTotals,
@@ -26,10 +27,26 @@ const Stats = ({ data }: { data: Show[] }) => {
         alignItems: "stretch",
       }}
     >
-      <AllTime data={data} />
-      <ThisYearSoFar data={data} />
-      <Averages data={data} />
-      <AveragesPerShow data={data} />
+      <StatSummary
+        icon={<Timer />}
+        title="All Time"
+        stats={allTimeTotals(data)}
+      />
+      <StatSummary
+        icon={<Update />}
+        title={`In ${CURRENT_YEAR}`}
+        stats={seasonsInYear(data, CURRENT_YEAR)}
+      />
+      <StatSummary
+        icon={<ShowChart />}
+        title="Yearly Average"
+        stats={yearlyAverages(data)}
+      />
+      <StatSummary
+        icon={<AutoGraph />}
+        title="Show Average"
+        stats={perShowAverages(data)}
+      />
       <Totals data={data} />
       <CurrentlyPlaying data={data} />
       <RecentlyComplete data={data} />
@@ -62,67 +79,14 @@ const Totals = ({ data }: { data: Show[] }) => {
   );
 };
 
-const AllTime = ({ data }: { data: Show[] }) => {
-  const { shows: totalShows, episodes: totalEpisodes, hours: totalTime } = allTimeTotals(data);
-  return (
-    <StatCard
-      icon={<Timer />}
-      title="All Time"
-      content={[
-        ["Shows", totalShows],
-        ["Episodes", totalEpisodes],
-        ["Hours", totalTime],
-      ]}
-    />
-  );
-};
-
-const ThisYearSoFar = ({ data }: { data: Show[] }) => {
-  const { seasons: totalSeasons, episodes: totalEpisodes, hours: totalTime } = seasonsInYear(data, CURRENT_YEAR);
-  return (
-    <StatCard
-      icon={<Update />}
-      title={`In ${CURRENT_YEAR}`}
-      content={[
-        ["Seasons", totalSeasons],
-        ["Episodes", totalEpisodes],
-        ["Hours", totalTime],
-      ]}
-    />
-  );
-};
-
-const Averages = ({ data }: { data: Show[] }) => {
-  const { seasons, episodes, hours } = yearlyAverages(data);
-
-  return (
-    <StatCard
-      icon={<ShowChart />}
-      title="Yearly Average"
-      content={[
-        ["Seasons", seasons],
-        ["Episodes", episodes],
-        ["Hours", hours],
-      ]}
-    />
-  );
-};
-
-const AveragesPerShow = ({ data }: { data: Show[] }) => {
-  const { seasons: totalSeasons, episodes: totalEpisodes, hours: totalTime } = perShowAverages(data);
-
-  return (
-    <StatCard
-      icon={<AutoGraph />}
-      title="Show Average"
-      content={[
-        ["Seasons", totalSeasons],
-        ["Episodes", totalEpisodes],
-        ["Hours", totalTime],
-      ]}
-    />
-  );
-};
+/** Each `statsData` total is already keyed by the label it renders under, in display order. */
+const StatSummary = ({ icon, title, stats }: { icon: ReactNode; title: string; stats: Record<string, number> }) => (
+  <StatCard
+    icon={icon}
+    title={title}
+    content={Object.entries(stats).map(([key, value]) => [key[0].toUpperCase() + key.slice(1), value])}
+  />
+);
 
 const RecentlyComplete = ({ data }: { data: Show[] }) => {
   const recent = recentlyComplete(data);

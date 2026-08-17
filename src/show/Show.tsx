@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo } from "react";
+import { lazy, Suspense } from "react";
 import { ShowsTab } from "../tabs";
 import useData from "../common/useData.ts";
 import { useFilterReducer } from "./filterUtils.ts";
@@ -12,11 +12,12 @@ const ShowsGraph = () => {
   const [data] = useData(storageKey, ShowsTab, jsonConverter, reviveSeasonParents, dropSeasonParents);
 
   const [filterState, filterDispatch] = useFilterReducer();
-  const showData = useMemo(() => (data ? data.filter(filterState.filter) : []), [data, filterState.filter]);
 
   if (!data) {
     return null;
   }
+
+  const showData = data.filter(filterState.filter);
 
   return (
     <Suspense>

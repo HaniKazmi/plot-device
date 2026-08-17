@@ -80,37 +80,13 @@ export const companyToColor = ({ company }: { company: Company }) => {
   }
 };
 
-export const platformToColor = (platform: Platform | { platform: Platform }) => {
-  if (typeof platform === "object") {
-    platform = platform.platform;
-  }
-  switch (platform) {
-    case "PlayStation 2":
-    case "PlayStation 3":
-    case "PlayStation P":
-    case "PlayStation 4":
-    case "PlayStation 5":
-      return playstationColour;
-    case "Nintendo Wii":
-    case "Nintendo GBC":
-    case "Nintendo GBA":
-    case "Nintendo DS":
-    case "Nintendo 3DS":
-    case "Nintendo Switch":
-    case "Nintendo Switch 2":
-      return nintendoColour;
-    case "PC":
-      return pcColour;
-    case "iOS":
-      return iosColour;
-    case "Xbox 360":
-      return xboxColour;
-    default:
-      throw new Error("Unknown platform: " + platform);
-  }
-};
-
-const platformShortNames: Record<string, string> = {
+/**
+ * Every platform the app understands, and the short name charts label it with.
+ *
+ * This is also the set `platformToColor` validates against, so a console added here is
+ * understood everywhere at once.
+ */
+const platformShortNames: Record<Platform, string> = {
   "PlayStation 2": "PS2",
   "PlayStation 3": "PS3",
   "PlayStation P": "PSP",
@@ -126,6 +102,21 @@ const platformShortNames: Record<string, string> = {
   PC: "PC",
   iOS: "iOS",
   "Xbox 360": "360",
+};
+
+/**
+ * A platform's colour is its company's, which is the first word of the platform string — the
+ * same split `converter.ts` derives `company` with.
+ *
+ * Throws unless the platform is known *and* that first word is a company with a colour.
+ * `companyToColor` has no default branch, so a platform whose first word is not a bare company
+ * name would otherwise return `undefined` and render as an uncoloured bar.
+ */
+export const platformToColor = (platform: Platform | { platform: Platform }) => {
+  const value = typeof platform === "object" ? platform.platform : platform;
+  const colour = platformShortNames[value] && companyToColor({ company: value.split(" ")[0] as Company });
+  if (!colour) throw new Error("Unknown platform: " + value);
+  return colour;
 };
 
 export const platformToShort: (vg: VideoGame) => [string, Colour] = (vg) => {
@@ -151,11 +142,7 @@ export const ratingToColour = ({ rating }: VideoGame) => {
   }
 };
 
-const genreToColour = (genre: Genre | { genre: Genre }) => {
-  if (typeof genre === "object") {
-    genre = genre.genre;
-  }
-
+const genreToColour = ({ genre }: { genre: Genre }) => {
   switch (genre) {
     case "Action":
       return "#f44336" as Colour;
@@ -190,11 +177,7 @@ const genreToColour = (genre: Genre | { genre: Genre }) => {
   }
 };
 
-const franchiseToColour = (franchise: string | { franchise: string }) => {
-  if (typeof franchise === "object") {
-    franchise = franchise.franchise;
-  }
-
+const franchiseToColour = ({ franchise }: { franchise: string }) => {
   switch (franchise) {
     case "Pokémon":
       return "#FFCB05" as Colour;

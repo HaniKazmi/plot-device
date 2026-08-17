@@ -41,54 +41,52 @@ const NavBar = ({ setGuestMode }: { setGuestMode: (value: boolean) => void }) =>
   );
 
   return (
-    <>
-      <AppBar
-        position="static"
-        sx={{ marginBottom: (theme) => theme.spacing(2) }}
-        {...events}
-      >
-        <Toolbar>
-          <Score sx={{ display: "flex", mr: 1 }} />
-          <Typography
-            variant="h6"
-            noWrap
-            sx={{
-              mr: 2,
-              fontFamily: "cursive",
-              fontWeight: 700,
-              letterSpacing: ".3rem",
-              color: "inherit",
-              textDecoration: "none",
-              display: { xs: "none", md: "block" },
+    <AppBar
+      position="static"
+      sx={{ marginBottom: (theme) => theme.spacing(2) }}
+      {...events}
+    >
+      <Toolbar>
+        <Score sx={{ display: "flex", mr: 1 }} />
+        <Typography
+          variant="h6"
+          noWrap
+          sx={{
+            mr: 2,
+            fontFamily: "cursive",
+            fontWeight: 700,
+            letterSpacing: ".3rem",
+            color: "inherit",
+            textDecoration: "none",
+            display: { xs: "none", md: "block" },
+          }}
+        >
+          Plot Device
+        </Typography>
+        <Box sx={{ flexGrow: 1, display: "flex" }}>
+          <MuiTabs
+            textColor="inherit"
+            indicatorColor="secondary"
+            value={currTab.id}
+            onChange={(_, value: string) => {
+              navigate(value);
             }}
           >
-            Plot Device
-          </Typography>
-          <Box sx={{ flexGrow: 1, display: "flex" }}>
-            <MuiTabs
-              textColor="inherit"
-              indicatorColor="secondary"
-              value={currTab.id}
-              onChange={(_, value: string) => {
-                navigate(value);
-              }}
-            >
-              {Tabs.map((tab) => (
-                <MuiTab
-                  key={`muitab-${tab.id}`}
-                  label={tab.name}
-                  value={tab.id}
-                />
-              ))}
-            </MuiTabs>
-          </Box>
-          <Box sx={{ display: { xs: "none", md: "initial" } }}>{toolbar}</Box>
-        </Toolbar>
-        <Toolbar sx={{ display: { xs: "flex", md: "none" }, minHeight: 0, justifyContent: "flex-end" }}>
-          {toolbar}
-        </Toolbar>
-      </AppBar>
-    </>
+            {Tabs.map((tab) => (
+              <MuiTab
+                key={`muitab-${tab.id}`}
+                label={tab.name}
+                value={tab.id}
+              />
+            ))}
+          </MuiTabs>
+        </Box>
+        <Box sx={{ display: { xs: "none", md: "initial" } }}>{toolbar}</Box>
+      </Toolbar>
+      <Toolbar sx={{ display: { xs: "flex", md: "none" }, minHeight: 0, justifyContent: "flex-end" }}>
+        {toolbar}
+      </Toolbar>
+    </AppBar>
   );
 };
 

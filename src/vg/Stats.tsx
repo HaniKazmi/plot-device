@@ -41,7 +41,8 @@ import {
   type VideoGame,
   type VideoGameStringKeys,
 } from "./types";
-import { Segment, StatCard, StatList, StatsListCard, type StatsListProps, TotalStack } from "../common/Stats";
+import { StatCard, StatList, StatsListCard, type StatsListProps, TotalStack } from "../common/Stats";
+import { Segment } from "../common/Card";
 import { highchartsColors } from "../highcharts";
 import VgCardMediaImage from "./CardMediaImage";
 import {
@@ -87,17 +88,27 @@ const Stats = ({
         alignItems: "stretch",
       }}
     >
-      <AllTime
+      <YearTotals
         data={data}
         yearTo={yearTo}
         yearType={yearType}
         filterDispatch={filterDispatch}
+        icon={<Timer />}
+        activeYearType="upto"
+        renderValue={(value) => (
+          <Typography variant="h6">{value == CURRENT_YEAR ? "All Time" : `Up To ${value}`}</Typography>
+        )}
       />
-      <ThisYearSoFar
+      <YearTotals
         data={data}
         yearTo={yearTo}
         yearType={yearType}
         filterDispatch={filterDispatch}
+        icon={<Update />}
+        activeYearType="matching"
+        minWidth={120}
+        matches={(game) => game.startDate.year === yearTo}
+        renderValue={(value) => <Typography variant="h6">In {value}</Typography>}
       />
       <Averages
         data={data}
@@ -159,7 +170,7 @@ const Totals = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
           groupKey="company"
           group={companyList}
           groupToColour={(ele: Company) => companyToColor({ company: ele })}
-          measureLabel={measure === "Games" ? "Games" : "Hours"}
+          measureLabel={measure}
         />
       </Stack>
     </Grid>
@@ -203,84 +214,51 @@ const YearSelect = ({
   </FormControl>
 );
 
-const AllTime = ({
+/** The radio picks which of these two cards the year filter applies to, hence `activeYearType`. */
+const YearTotals = ({
   data,
   yearType,
   yearTo,
   filterDispatch,
+  icon,
+  activeYearType,
+  minWidth,
+  matches,
+  renderValue,
 }: {
   data: VideoGame[];
   yearType: YearType;
   yearTo: number;
   filterDispatch: FilterDispatch;
+  icon: ReactNode;
+  activeYearType: YearType;
+  minWidth?: number;
+  matches?: (game: VideoGame) => boolean;
+  renderValue: (value: number) => ReactNode;
 }) => {
-  const filtered = data.filter((game) => game.hours);
-  const time = filtered.sum("hours");
-  const games = filtered.length;
+  const filtered = data.filter((game) => game.hours && (!matches || matches(game)));
 
   return (
     <StatCard
-      icon={<Timer />}
+      icon={icon}
       title={
         <YearSelect
           yearTo={yearTo}
           filterDispatch={filterDispatch}
-          renderValue={(value) => (
-            <Typography variant="h6">{value == CURRENT_YEAR ? "All Time" : `Up To ${value}`}</Typography>
-          )}
+          minWidth={minWidth}
+          renderValue={renderValue}
         />
       }
       action={
         <Radio
           size="small"
-          checked={yearType == "upto"}
+          checked={yearType == activeYearType}
           onChange={() => filterDispatch({ type: "toggleYearType" })}
         />
       }
       content={[
-        ["Games", games],
-        ["Hours", time],
-      ]}
-    />
-  );
-};
-
-const ThisYearSoFar = ({
-  data,
-  yearTo,
-  yearType,
-  filterDispatch,
-}: {
-  data: VideoGame[];
-  yearTo: number;
-  yearType: YearType;
-  filterDispatch: FilterDispatch;
-}) => {
-  const filtered = data.filter((game) => game.startDate.year === yearTo && game.hours);
-  const time = filtered.sum("hours");
-  const games = filtered.length;
-
-  return (
-    <StatCard
-      icon={<Update />}
-      title={
-        <YearSelect
-          yearTo={yearTo}
-          filterDispatch={filterDispatch}
-          minWidth={120}
-          renderValue={(value) => <Typography variant="h6">In {value}</Typography>}
-        />
-      }
-      action={
-        <Radio
-          size="small"
-          checked={yearType == "matching"}
-          onChange={() => filterDispatch({ type: "toggleYearType" })}
-        />
-      }
-      content={[
-        ["Games", games],
-        ["Hours", time],
+        ["Games", filtered.length],
+        ["Hours", filtered.sum("hours")],
       ]}
     />
   );
@@ -469,27 +447,18 @@ const CurrentlyPlaying = ({ data }: { data: VideoGame[] }) => {
   );
 };
 
-const TopCategories = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
-  return (
-    <>
+const TopCategories = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => (
+  <>
+    {(["genre", "publisher", "franchise"] as const).map((category) => (
       <TopList
+        key={category}
         data={data}
         measure={measure}
-        defaultCategory="genre"
+        defaultCategory={category}
       />
-      <TopList
-        data={data}
-        measure={measure}
-        defaultCategory="publisher"
-      />
-      <TopList
-        data={data}
-        measure={measure}
-        defaultCategory="franchise"
-      />
-    </>
-  );
-};
+    ))}
+  </>
+);
 
 const optionIcons: Record<TopOption, ReactNode> = {
   company: <Business />,
@@ -616,22 +585,6 @@ const TopList = ({
   );
 };
 
-const VgStatList = (
-  props: Omit<
-    StatsListProps<VideoGame>,
-    "MediaComponent" | "chipComponent" | "nameComponent" | "controls" | keyof typeof vgStatListSharedProps
-  > &
-    Partial<Pick<StatsListProps<VideoGame>, "width" | "pictureWidth" | "controls">>,
-) => (
-  <StatList
-    chipComponent={platformToShortChip}
-    MediaComponent={VgCardMediaImage}
-    nameComponent={(entry) => entry.name}
-    {...vgStatListSharedProps}
-    {...props}
-  />
-);
-
 const vgStatListSharedProps: Pick<
   StatsListProps<VideoGame>,
   "aspectRatio" | "divider" | "width" | "pictureWidth" | "dialogPictureWidth"
@@ -642,5 +595,23 @@ const vgStatListSharedProps: Pick<
   pictureWidth: [12, 4, 6],
   dialogPictureWidth: [12, 6, 4],
 };
+
+// The omitted props are the ones this wrapper supplies; `width` and `pictureWidth` come back as
+// optional so a caller can override the shared default without being able to unset it.
+const VgStatList = (
+  props: Omit<
+    StatsListProps<VideoGame>,
+    "MediaComponent" | "chipComponent" | "nameComponent" | keyof typeof vgStatListSharedProps
+  > &
+    Partial<Pick<StatsListProps<VideoGame>, "width" | "pictureWidth">>,
+) => (
+  <StatList
+    chipComponent={platformToShortChip}
+    MediaComponent={VgCardMediaImage}
+    nameComponent={(entry) => entry.name}
+    {...vgStatListSharedProps}
+    {...props}
+  />
+);
 
 export default Stats;

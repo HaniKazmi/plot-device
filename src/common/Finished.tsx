@@ -4,17 +4,12 @@ import { useDeferredValue, useState } from "react";
 import type { TypedCardMediaImage } from "./Card";
 import { useSelectBox } from "./SelectBoxHook";
 import { CloseFullscreen, Fullscreen } from "@mui/icons-material";
-import type { Year, YearMonthDay } from "./date";
-import { finishedItems } from "./finishedData";
+import { finishedItems, type FinishedItem, type FinishedSort } from "./finishedData";
 import { withAlpha } from "../utils/colourUtils";
 
-const Finished = <
-  U extends {
-    banner?: string;
-    startDate?: YearMonthDay | Year;
-    name: string;
-  },
->({
+const sortOptions: FinishedSort[] = ["Date", "Name"];
+
+const Finished = <U extends FinishedItem>({
   title,
   data,
   width,
@@ -29,10 +24,11 @@ const Finished = <
   landscape?: boolean;
   MediaComponent: TypedCardMediaImage<U>;
 }) => {
-  const options: ("Date" | "Name")[] = ["Date", "Name"];
-  const [sort, selectBox] = useSelectBox(options, "Date");
+  const [sort, selectBox] = useSelectBox(sortOptions, "Date");
 
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  /** Lags `dialogOpen` on close so the grid survives the dialog's exit transition. */
+  const [dialogMounted, setDialogMounted] = useState<boolean>(false);
 
   const slowData = useDeferredValue(data, []);
   const recent = finishedItems(slowData, sort);
@@ -47,7 +43,12 @@ const Finished = <
               spacing={1}
             >
               {selectBox}
-              <IconButton onClick={() => setDialogOpen(!isDialog)}>
+              <IconButton
+                onClick={() => {
+                  setDialogOpen(!isDialog);
+                  if (!isDialog) setDialogMounted(true);
+                }}
+              >
                 {isDialog ? <CloseFullscreen color="primary" /> : <Fullscreen />}
               </IconButton>
             </Stack>
@@ -98,8 +99,9 @@ const Finished = <
       <Dialog
         open={dialogOpen}
         fullScreen
+        slotProps={{ transition: { onExited: () => setDialogMounted(false) } }}
       >
-        {renderContent(true)}
+        {dialogMounted && renderContent(true)}
       </Dialog>
     </Card>
   );

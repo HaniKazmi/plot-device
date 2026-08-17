@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo } from "react";
+import { lazy, Suspense } from "react";
 import { useFilterReducer } from "./filterUtils.ts";
 import { VideoGamesTab } from "../tabs";
 import useData from "../common/useData.ts";
@@ -11,11 +11,12 @@ const storageKey = "vg-data-cache";
 const GamesGraphs = () => {
   const [data, dataLoaded] = useData(storageKey, VideoGamesTab, jsonConverter);
   const [filterState, filterDispatch] = useFilterReducer();
-  const filteredData = useMemo(() => (data ? data.filter(filterState.filter) : []), [data, filterState.filter]);
 
   if (!data) {
     return null;
   }
+
+  const filteredData = data.filter(filterState.filter);
 
   return (
     <Suspense>

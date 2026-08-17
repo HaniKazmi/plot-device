@@ -161,7 +161,7 @@ The chart is fixed at `400vw` inside a scroll container, and the month/quarter/y
 
 ### Stats and cards
 
-`common/Stats.tsx` exports four composable pieces — `StatCard` (single figure or a split row), `StatList` (a scrollable strip of media cards with a fullscreen dialog, capped at 6 collapsed / 18 expanded), `TotalStack` (a proportional segmented bar with labels), and `Segment`. Domain `Stats.tsx` files assemble these into a grid; they hold the arithmetic, the shells hold the layout.
+`common/Stats.tsx` exports three composable pieces — `StatCard` (a row of labelled figures), `StatList` (a scrollable strip of media cards with a fullscreen dialog, capped at 6 collapsed / 18 expanded), and `TotalStack` (a proportional segmented bar with labels). It builds the bar from `Segment`, which lives in `common/Card.tsx` alongside the other proportional-bar primitives. Domain `Stats.tsx` files assemble these into a grid; they hold the arithmetic, the shells hold the layout.
 
 The one piece of shared arithmetic is `assignPercents` in `utils/mathUtils.ts`: it floors each slice at 0.5% so tiny categories stay visible, then absorbs the resulting shortfall into the first entry so the bar always fills exactly. `TotalStack` and `vg/`'s `TopList` both use it. `total` is a parameter rather than derived, because those two callers scope it differently — one over all data, one over just the rows on screen.
 
@@ -210,7 +210,7 @@ Setup is the plugin's documented path: `@vitejs/plugin-react` exports `reactComp
 - **`this`** anywhere in the function. Highcharts binds the chart to `this` in its event callbacks, so those must live at module scope (see `dimLeafRing` in §6) or they take the whole component down with them.
 - **`??=`**, which the compiler cannot yet lower. Write `x = x ?? y` instead.
 
-At the time of writing 81 functions compile and 2 bail — a `MethodCall` codegen error in `vg/CardMediaImage.tsx` and an arrow-reordering limit in `common/Stats.tsx`. Both are compiler-internal limitations and neither is on a hot path. A `MethodCall` bailout does respond to moving the offending computation into a plain module, which is how the three `show/Stats.tsx` bailouts were cleared. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
+At the time of writing 77 functions compile and 2 bail — a `MethodCall` codegen error in `vg/CardMediaImage.tsx` and an arrow-reordering limit in `common/Stats.tsx`. Both are compiler-internal limitations and neither is on a hot path. A `MethodCall` bailout does respond to moving the offending computation into a plain module, which is how the three `show/Stats.tsx` bailouts were cleared. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
 
 The compiler costs about 4% of bundle size (~15KB gzipped) in injected cache slots. That is a deliberate trade, and `npm run analyze` exists to keep it honest.
 

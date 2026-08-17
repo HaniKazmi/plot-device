@@ -41,7 +41,9 @@ export const groupGamesBy = (data: VideoGame[], key: VideoGameStringKeys, measur
     .map(([name, games]) => ({
       name,
       count: measure === "Hours" ? games.sum("hours") : games.length,
-      top: games.sortByKey("hours")[0],
+      // Scanned rather than sorted: only the longest-played game is wanted, and this runs once
+      // per category on every Top list.
+      top: games.reduce((best, game) => (game.hours! > best.hours! ? game : best)),
       all: games,
     }))
     .sortByKey("count");
@@ -78,10 +80,10 @@ export const yearlyAverages = (data: VideoGame[]) => {
     return tree;
   }, {});
 
-  const years = Object.keys(grouped).length;
+  const totals = Object.values(grouped);
   return {
-    games: parseFloat((Object.values(grouped).sum("games") / years).toFixed(2)),
-    hours: parseFloat((Object.values(grouped).sum("hours") / years).toFixed(2)),
+    games: parseFloat((totals.sum("games") / totals.length).toFixed(2)),
+    hours: parseFloat((totals.sum("hours") / totals.length).toFixed(2)),
   };
 };
 
