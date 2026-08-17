@@ -37,6 +37,12 @@ const BAR_RADIUS = 6;
 const MIN_BAR_WIDTH = 4;
 const SVG_PADDING = 10;
 const LABEL_FONT_SIZE = 13;
+/**
+ * Both sit below the bar labels, because the scale is chrome and the bars are the content — the
+ * axis reading larger than the data it measures is what made it shout.
+ */
+const MONTH_FONT_SIZE = 12;
+const YEAR_FONT_SIZE = 15;
 
 const pct = (percent: number) => `${percent}%`;
 
@@ -428,32 +434,47 @@ const TimeAxis = ({ ticks }: { ticks: TimelineTick[] }) => {
       height={AXIS_HEIGHT}
       width={"100%"}
     >
+      {/* Closes the scale off from the grid above it. Without a rule the ticks hang in space, and
+          the only thing marking where the chart ends is where the bars happen to stop. */}
+      <line
+        x1={0}
+        x2="100%"
+        y1={0}
+        y2={0}
+        style={{ stroke: theme.vars.palette.divider }}
+      />
       {ticks.map((tick) => (
         <g
           key={tick.percent}
           style={{ transform: `translateX(${pct(tick.percent)})` }}
         >
+          {/* A year runs the full height so it continues the gridline behind the bars into the
+              label naming it; the shorter marks stay inset, which is the hierarchy. */}
           <line
-            y1={tick.level === "year" ? 10 : tick.level === "quarter" ? 25 : 30}
+            y1={tick.level === "year" ? 0 : tick.level === "quarter" ? 25 : 30}
             y2={AXIS_HEIGHT - 2}
             style={{ stroke: theme.vars.palette.text.secondary }}
             strokeOpacity={tick.level === "year" ? 1 : tick.level === "quarter" ? 0.6 : 0.3}
             strokeWidth={tick.level === "year" ? 1.5 : 1}
           />
-          {tick.level !== "month" && (
+          {/* January is named by its year, so labelling the month as well says the same thing
+              twice and costs a quarter of the labels on a crowded scale. */}
+          {tick.level === "quarter" && (
             <text
               x="5"
               y="20"
-              style={{ fill: theme.vars.palette.text.secondary, fontSize: 16 }}
+              style={{ fill: theme.vars.palette.text.secondary, fontSize: MONTH_FONT_SIZE }}
             >
               {tick.monthLabel}
             </text>
           )}
+          {/* A tier of its own, so years read as the stratum you navigate by and the months as
+              subdivisions of one. Dropping January's month label leaves this line to itself. */}
           {tick.level === "year" && (
             <text
               x="5"
               y="40"
-              style={{ fill: theme.vars.palette.text.secondary, fontSize: 18, fontWeight: "bold" }}
+              style={{ fill: theme.vars.palette.text.primary, fontSize: YEAR_FONT_SIZE, fontWeight: "bold" }}
             >
               {tick.yearLabel}
             </text>
