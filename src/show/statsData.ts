@@ -65,12 +65,12 @@ export const perShowAverages = (data: Show[]) => {
   };
 };
 
-export const recentlyComplete = (data: Show[], limit = 18) =>
+/** Every finished season, newest first. How many of them fit is the card's decision. */
+export const recentlyComplete = (data: Show[]) =>
   data
     .flatMap((show) => show.s)
     .filter((season) => season.endDate)
-    .sortByKey("endDate")
-    .slice(0, limit);
+    .sortByKey("endDate");
 
 /**
  * The in-progress season of every show still being watched.

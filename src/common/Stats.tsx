@@ -1,4 +1,15 @@
-import { Card, CardContent, CardHeader, Dialog, Divider, IconButton, Stack, Typography } from "@mui/material";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  Dialog,
+  Divider,
+  IconButton,
+  Stack,
+  type SxProps,
+  type Theme,
+  Typography,
+} from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { format } from "../utils/mathUtils";
 import { groupTotals } from "./statsData";
@@ -82,6 +93,111 @@ export const StatCard = ({
   );
 };
 
+/** How many cards a strip shows collapsed, and how many its fullscreen dialog shows. */
+export const COLLAPSED_CARDS = 6;
+export const EXPANDED_CARDS = 18;
+
+/**
+ * A card that can also present itself fullscreen.
+ *
+ * `renderContent` is called twice — once inline, once for the dialog — and is handed the
+ * expand/collapse control to place wherever its header wants it. The dialog body is mounted
+ * only while open, so a strip of media cards is not built a second time behind a closed
+ * dialog, and `dialogMounted` lags `dialogOpen` so the body survives the exit transition.
+ */
+export const ExpandableCard = ({
+  renderContent,
+  expandable = true,
+  sx,
+}: {
+  renderContent: (isDialog: boolean, toggle: ReactNode) => ReactNode;
+  expandable?: boolean;
+  sx?: SxProps<Theme>;
+}) => {
+  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  const [dialogMounted, setDialogMounted] = useState<boolean>(false);
+
+  // The dialog always keeps its control, whatever `expandable` says. It is fullscreen with no
+  // `onClose`, so the button is the only way out, and a caller whose content shrinks while it is
+  // open — a select box in the header switching to a category with fewer groups — would
+  // otherwise strand the reader with nothing to click.
+  const toggle = (isDialog: boolean) =>
+    expandable || isDialog ? (
+      <IconButton
+        onClick={() => {
+          setDialogOpen(!isDialog);
+          if (!isDialog) setDialogMounted(true);
+        }}
+      >
+        {isDialog ? <CloseFullscreen color="primary" /> : <Fullscreen />}
+      </IconButton>
+    ) : null;
+
+  return (
+    <Card sx={sx}>
+      {renderContent(false, toggle(false))}
+      <Dialog
+        open={dialogOpen}
+        fullScreen
+        slotProps={{ transition: { onExited: () => setDialogMounted(false) } }}
+      >
+        {dialogMounted && renderContent(true, toggle(true))}
+      </Dialog>
+    </Card>
+  );
+};
+
+/**
+ * A strip of media cards, capped so a long list does not render in full.
+ *
+ * `limit` is passed in because how much fits depends on how the strip is laid out, but it is
+ * meant to come from `COLLAPSED_CARDS` / `EXPANDED_CARDS` rather than a literal. Slicing here
+ * rather than before the call is what keeps those constants meaningful — a caller that trimmed
+ * its own list first would silently ignore any change to them.
+ */
+export const StatsListGrid = <T,>({
+  content,
+  limit,
+  flexWrap,
+  cardKey,
+  labelComponent,
+  chipComponent,
+  ...props
+}: {
+  content: T[];
+  limit: number;
+  flexWrap?: { xs: "nowrap"; md: "wrap" | "nowrap" };
+  cardKey: (t: T) => string;
+  labelComponent: (t: T) => string[][];
+  chipComponent?: (t: T) => CardMediaImageProps["chip"];
+  pictureWidth: [number, number, number];
+  aspectRatio?: string;
+  divider?: boolean;
+  MediaComponent: TypedCardMediaImage<T>;
+}) => (
+  <CardContent>
+    <Grid
+      container
+      spacing={1}
+      sx={{
+        alignItems: "center",
+        overflow: "auto",
+        flexWrap,
+      }}
+    >
+      {content.slice(0, limit).map((entry) => (
+        <StatsListCard
+          key={cardKey(entry)}
+          item={entry}
+          labels={labelComponent(entry)}
+          chip={chipComponent?.(entry)}
+          {...props}
+        />
+      ))}
+    </Grid>
+  </CardContent>
+);
+
 export interface StatsListProps<T> {
   icon: ReactNode;
   title: string;
@@ -112,79 +228,47 @@ export const StatList = <T,>({
   dialogPictureWidth,
   controls,
   ...props
-}: StatsListProps<T>) => {
-  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
-  /** Lags `dialogOpen` on close so the grid survives the dialog's exit transition. */
-  const [dialogMounted, setDialogMounted] = useState<boolean>(false);
-
-  const renderContent = (isDialog: boolean) => (
-    <>
-      <CardHeader
-        title={title}
-        avatar={icon}
-        action={
-          <Stack direction="row-reverse">
-            {content.length > 6 && (
-              <IconButton
-                onClick={() => {
-                  setDialogOpen(!isDialog);
-                  if (!isDialog) setDialogMounted(true);
-                }}
-              >
-                {isDialog ? <CloseFullscreen color="primary" /> : <Fullscreen />}
-              </IconButton>
-            )}
-            {controls}
-          </Stack>
-        }
-        slotProps={{ title: { variant: "h6" } }}
-      />
-      <CardContent>
-        <Grid
-          container
-          spacing={1}
-          sx={{
-            alignItems: "center",
-            overflow: "auto",
-            flexWrap: isDialog ? undefined : { xs: "nowrap", md: wrap ? "wrap" : "nowrap" },
-          }}
-        >
-          {content.slice(0, isDialog || !wrap ? 18 : 6).map((entry) => (
-            <StatsListCard
-              key={`${title}-statslistcard-${nameComponent(entry)}`}
-              item={entry}
-              labels={labelComponent(entry)}
-              chip={chipComponent?.(entry)}
-              pictureWidth={isDialog ? dialogPictureWidth : pictureWidth}
-              {...props}
-            />
-          ))}
-        </Grid>
-      </CardContent>
-    </>
-  );
-
-  return (
-    <Grid
-      size={{
-        xs: width[0],
-        sm: width[1],
-        md: width[2],
-      }}
-    >
-      <Card sx={{ height: "100%" }}>
-        {renderContent(false)}
-        <Dialog
-          open={dialogOpen}
-          fullScreen
-          slotProps={{ transition: { onExited: () => setDialogMounted(false) } }}
-        >
-          {dialogMounted && renderContent(true)}
-        </Dialog>
-      </Card>
-    </Grid>
-  );
-};
+}: StatsListProps<T>) => (
+  <Grid
+    size={{
+      xs: width[0],
+      sm: width[1],
+      md: width[2],
+    }}
+  >
+    <ExpandableCard
+      sx={{ height: "100%" }}
+      expandable={content.length > COLLAPSED_CARDS}
+      renderContent={(isDialog, toggle) => (
+        <>
+          <CardHeader
+            title={title}
+            avatar={icon}
+            action={
+              <Stack direction="row-reverse">
+                {toggle}
+                {controls}
+              </Stack>
+            }
+            slotProps={{ title: { variant: "h6" } }}
+          />
+          <StatsListGrid
+            content={content}
+            // A non-wrapping strip scrolls sideways instead of clipping, so it can hold the
+            // expanded count without the card growing.
+            limit={isDialog || !wrap ? EXPANDED_CARDS : COLLAPSED_CARDS}
+            flexWrap={isDialog ? undefined : { xs: "nowrap", md: wrap ? "wrap" : "nowrap" }}
+            cardKey={(entry) => `${title}-statslistcard-${nameComponent(entry)}`}
+            labelComponent={labelComponent}
+            chipComponent={chipComponent}
+            pictureWidth={isDialog ? dialogPictureWidth : pictureWidth}
+            {...props}
+          />
+        </>
+      )}
+    />
+  </Grid>
+);
 
 export const StatsListCard = <T,>({
   item,
