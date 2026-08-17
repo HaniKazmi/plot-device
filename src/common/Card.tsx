@@ -1,5 +1,6 @@
 import {
   Box,
+  type BoxProps,
   Card,
   CardActionArea,
   CardContent,
@@ -310,14 +311,35 @@ export const FooterComponent = ({
   </CardContent>
 );
 
-export const TimelineEmptySegment = ({ percent }: { percent: number }) => (
+export const Segment = ({
+  percent,
+  backgroundColour,
+  spacing = 2,
+  sx,
+  ...props
+}: {
+  percent: number;
+  backgroundColour: string;
+  spacing?: number;
+} & BoxProps) => (
   <Box
     sx={{
       width: `${percent}%`,
-      height: (theme) => theme.spacing(1),
-      backgroundColor: "grey",
-      opacity: 0.8,
+      height: (theme) => theme.spacing(spacing),
+      backgroundColor: backgroundColour,
+      transition: "opacity 0.2s",
+      ...sx,
     }}
+    {...props}
+  />
+);
+
+export const TimelineEmptySegment = ({ percent }: { percent: number }) => (
+  <Segment
+    percent={percent}
+    spacing={1}
+    backgroundColour="grey"
+    sx={{ opacity: 0.8 }}
   />
 );
 
@@ -336,11 +358,10 @@ export const TimelineActivatedSegment = ({
     disableHoverListener={!tooltip}
     disableTouchListener={!tooltip}
   >
-    <Box
+    <Segment
+      percent={percent}
+      backgroundColour={backgroundColour[0]}
       sx={{
-        width: `${percent}%`,
-        height: (theme) => theme.spacing(2),
-        backgroundColor: backgroundColour[0],
         "&:hover": {
           height: (theme) => theme.spacing(3),
           backgroundColor: backgroundColour[1],

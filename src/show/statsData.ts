@@ -45,13 +45,13 @@ export const yearlyAverages = (data: Show[]) => {
       {} as Record<YearNumber, { seasons: number; episodes: number; minutes: number }>,
     );
 
-  const years = Object.keys(grouped).length;
+  const totals = Object.values(grouped);
   return {
-    seasons: Math.floor(Object.values(grouped).sum("seasons") / years),
-    episodes: Math.floor(Object.values(grouped).sum("episodes") / years),
+    seasons: Math.floor(totals.sum("seasons") / totals.length),
+    episodes: Math.floor(totals.sum("episodes") / totals.length),
     // Minutes are averaged first and converted second, so this is the floor of the average
     // hours rather than the average of per-year floored hours.
-    hours: Math.floor(Object.values(grouped).sum("minutes") / years / 60),
+    hours: Math.floor(totals.sum("minutes") / totals.length / 60),
   };
 };
 

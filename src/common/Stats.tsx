@@ -1,19 +1,8 @@
-import {
-  Box,
-  type BoxProps,
-  Card,
-  CardContent,
-  CardHeader,
-  Dialog,
-  Divider,
-  IconButton,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { Card, CardContent, CardHeader, Dialog, Divider, IconButton, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { format } from "../utils/mathUtils";
 import { groupTotals } from "./statsData";
-import { FooterComponent, type CardMediaImageProps, type TypedCardMediaImage } from "./Card";
+import { FooterComponent, Segment, type CardMediaImageProps, type TypedCardMediaImage } from "./Card";
 import { useState, type ReactNode } from "react";
 import type { Colour } from "../utils/types";
 import { CloseFullscreen, Fullscreen } from "@mui/icons-material";
@@ -27,56 +16,48 @@ export const StatCard = ({
   icon: ReactNode;
   title: ReactNode;
   action?: ReactNode;
-  content: string | [string, number][];
+  content: [string, number][];
 }) => {
-  const formattedContent =
-    typeof content === "string" ? (
-      <Typography
-        align="right"
-        variant="h4"
-      >
-        {content}
-      </Typography>
-    ) : (
-      <Stack
-        divider={
-          <Divider
-            orientation="vertical"
-            flexItem
-          />
-        }
-        direction={"row"}
-        sx={{
-          justifyContent: "space-evenly",
-        }}
-      >
-        {content.map(([key, val]) => (
-          <Stack
-            key={key}
-            direction={"column"}
+  const formattedContent = (
+    <Stack
+      divider={
+        <Divider
+          orientation="vertical"
+          flexItem
+        />
+      }
+      direction={"row"}
+      sx={{
+        justifyContent: "space-evenly",
+      }}
+    >
+      {content.map(([key, val]) => (
+        <Stack
+          key={key}
+          direction={"column"}
+          sx={{
+            flex: "1 1 0",
+          }}
+        >
+          <Typography
+            align="center"
+            variant="h5"
+          >
+            {format(val)}
+          </Typography>
+          <Typography
+            align="center"
+            variant="subtitle2"
             sx={{
-              flex: "1 1 0",
+              color: "text.secondary",
             }}
           >
-            <Typography
-              align="center"
-              variant="h5"
-            >
-              {format(val)}
-            </Typography>
-            <Typography
-              align="center"
-              variant="subtitle2"
-              sx={{
-                color: "text.secondary",
-              }}
-            >
-              {key}
-            </Typography>
-          </Stack>
-        ))}
-      </Stack>
-    );
+            {key}
+          </Typography>
+        </Stack>
+      ))}
+    </Stack>
+  );
   return (
     <Grid
       size={{
@@ -133,6 +114,8 @@ export const StatList = <T,>({
   ...props
 }: StatsListProps<T>) => {
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  /** Lags `dialogOpen` on close so the grid survives the dialog's exit transition. */
+  const [dialogMounted, setDialogMounted] = useState<boolean>(false);
 
   const renderContent = (isDialog: boolean) => (
     <>
@@ -142,7 +125,12 @@ export const StatList = <T,>({
         action={
           <Stack direction="row-reverse">
             {content.length > 6 && (
-              <IconButton onClick={() => setDialogOpen(!isDialog)}>
+              <IconButton
+                onClick={() => {
+                  setDialogOpen(!isDialog);
+                  if (!isDialog) setDialogMounted(true);
+                }}
+              >
                 {isDialog ? <CloseFullscreen color="primary" /> : <Fullscreen />}
               </IconButton>
             )}
@@ -189,8 +177,9 @@ export const StatList = <T,>({
         <Dialog
           open={dialogOpen}
           fullScreen
+          slotProps={{ transition: { onExited: () => setDialogMounted(false) } }}
         >
-          {renderContent(true)}
+          {dialogMounted && renderContent(true)}
         </Dialog>
       </Card>
     </Grid>
@@ -246,29 +235,6 @@ export const StatsListCard = <T,>({
     </Grid>
   );
 };
-
-export const Segment = ({
-  percent,
-  backgroundColour,
-  spacing = 2,
-  sx,
-  ...props
-}: {
-  percent: number;
-  backgroundColour: string;
-  spacing?: number;
-} & BoxProps) => (
-  <Box
-    sx={{
-      width: `${percent}%`,
-      height: (theme) => theme.spacing(spacing),
-      backgroundColor: backgroundColour,
-      transition: "opacity 0.2s",
-      ...sx,
-    }}
-    {...props}
-  />
-);
 
 export const TotalStack = <T extends string, U, K extends keyof U>({
   title,

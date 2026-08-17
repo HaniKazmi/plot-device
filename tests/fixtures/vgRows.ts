@@ -2,10 +2,9 @@ import { YearMonthDay } from "../../src/common/date";
 import type { VideoGame } from "../../src/vg/types";
 
 /**
- * Every platform the app claims to understand. `platformToColor` and `platformToShort` are
- * parallel lists in `vg/types.ts`, and this roster is what holds them together: adding a
- * console means adding it here too, and the completeness test then fails until both lists
- * cover it.
+ * Every platform the app claims to understand, mirroring `platformShortNames` in `vg/types.ts`.
+ * Adding a console means adding it here too, and the completeness test then fails until it
+ * resolves to both a colour and a short name.
  */
 export const KNOWN_PLATFORMS = [
   "PlayStation 2",

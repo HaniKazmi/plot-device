@@ -94,24 +94,15 @@ const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: Filte
             dispatch={dispatch}
             colourFunc={platformToColor}
           />
-          <FilterCategory
-            category="genre"
-            data={data}
-            state={state}
-            dispatch={dispatch}
-          />
-          <FilterCategory
-            category="publisher"
-            data={data}
-            state={state}
-            dispatch={dispatch}
-          />
-          <FilterCategory
-            category="franchise"
-            data={data}
-            state={state}
-            dispatch={dispatch}
-          />
+          {(["genre", "publisher", "franchise"] as const).map((category) => (
+            <FilterCategory
+              key={category}
+              category={category}
+              data={data}
+              state={state}
+              dispatch={dispatch}
+            />
+          ))}
         </Grid>
       </Drawer>
     </Stack>

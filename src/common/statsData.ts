@@ -19,8 +19,15 @@ export const groupTotals = <T extends string, U, K extends keyof U>(
   measureFunc: (data: U[]) => number,
   groupToColour: (ele: T) => Colour,
 ) => {
+  // Bucketed in one pass rather than filtering per group, which would walk the whole dataset
+  // once for every entry in `group`.
+  const buckets = new Map<T, U[]>(group.map((e) => [e, []]));
+  for (const item of data) {
+    buckets.get(item[groupKey] as T)?.push(item);
+  }
+
   const segments = group.flatMap((e) => {
-    const count = measureFunc(data.filter((item) => item[groupKey] === e));
+    const count = measureFunc(buckets.get(e)!);
     return count > 0 ? [{ name: e, count, colour: groupToColour(e) }] : [];
   });
 

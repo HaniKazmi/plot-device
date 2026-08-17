@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Tab } from "../tabs.ts";
 import { arrayToJson } from "../utils/arrayUtils.ts";
 import { expiryFor, isTokenValid, parseTokenWrapper, type Token, type TokenWrapper } from "./token.ts";
@@ -19,11 +19,21 @@ const storageKey = "gapi-token";
 
 type TokenClient = google.accounts.oauth2.TokenClient;
 
+const isGsiReady = () => typeof google !== "undefined" && !!google.accounts;
+const isGapiReady = () => typeof gapi !== "undefined";
+
 const getValidToken = (): Token | undefined => {
   const wrapper = parseTokenWrapper(storage().getItem(storageKey));
   if (isTokenValid(wrapper, Date.now())) return wrapper!.token;
   storage().removeItem(storageKey);
   return undefined;
+};
+
+const appendScript = (src: string) => {
+  const script = document.createElement("script");
+  script.src = src;
+  document.body.appendChild(script);
+  return script;
 };
 
 const useScript = (src: string, isReady: () => boolean) => {
@@ -32,24 +42,16 @@ const useScript = (src: string, isReady: () => boolean) => {
   useEffect(() => {
     if (loaded) return;
 
-    let script = document.querySelector(`script[src="${src}"]`) as HTMLScriptElement;
-    if (script) {
-      if (isReady()) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setLoaded(true);
-        return;
-      }
-      const handleLoad = () => setLoaded(true);
-      script.addEventListener("load", handleLoad);
-      return () => script.removeEventListener("load", handleLoad);
+    const existing = document.querySelector(`script[src="${src}"]`) as HTMLScriptElement | null;
+    if (existing && isReady()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLoaded(true);
+      return;
     }
 
-    script = document.createElement("script");
-    script.src = src;
+    const script = existing ?? appendScript(src);
     const handleLoad = () => setLoaded(true);
     script.addEventListener("load", handleLoad);
-    document.body.appendChild(script);
-
     return () => script.removeEventListener("load", handleLoad);
   }, [src, loaded, isReady]);
 
@@ -69,9 +71,6 @@ export const GoogleAuthProvider = ({ children }: { children: ReactNode }) => {
   const [tokenSet, setTokenSet] = useState(() => !!getValidToken());
   const [apiReadyToFetch, setApiReadyToFetch] = useState(false);
   const [tokenClient, setTokenClient] = useState<TokenClient>();
-
-  const isGsiReady = useCallback(() => typeof google !== "undefined" && !!google.accounts, []);
-  const isGapiReady = useCallback(() => typeof gapi !== "undefined", []);
 
   const gsiLoaded = useScript(g_script, isGsiReady);
   const gapiScriptLoaded = useScript(gapi_script, isGapiReady);
@@ -121,19 +120,19 @@ export const GoogleAuthProvider = ({ children }: { children: ReactNode }) => {
       }
     : undefined;
 
-  const fetchAndConvertSheet = useCallback(
-    async <T,>({ spreadsheetId, range }: Tab, jsonConverter: (array: Record<string, string>[]) => T): Promise<T> => {
-      try {
-        const response = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId, range });
-        return jsonConverter(arrayToJson(response.result.values!));
-      } catch (error) {
-        console.error(error);
-        setTokenSet(false);
-        throw error;
-      }
-    },
-    [],
-  );
+  const fetchAndConvertSheet = async <T,>(
+    { spreadsheetId, range }: Tab,
+    jsonConverter: (array: Record<string, string>[]) => T,
+  ): Promise<T> => {
+    try {
+      const response = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId, range });
+      return jsonConverter(arrayToJson(response.result.values!));
+    } catch (error) {
+      console.error(error);
+      setTokenSet(false);
+      throw error;
+    }
+  };
 
   return (
     <GoogleAuthContext.Provider value={{ apiReady, authorise, revoke, fetchAndConvertSheet }}>

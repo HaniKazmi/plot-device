@@ -1,8 +1,9 @@
 import type { Year, YearMonth } from "./date";
 import type { Colour } from "../utils/types";
+import "../utils/arrayUtils";
 import "../utils/mapUtils";
 
-export type BarchartTable = (number | null)[][];
+type BarchartTable = (number | null)[][];
 
 export const groupDate = (
   data: { name: string; date: YearMonth | Year; colour: Colour; value: number }[],
@@ -14,7 +15,7 @@ export const groupDate = (
 
   const results = data
     .filter((el) => el.date && el.value)
-    .sort((a, b) => (a.date === b.date ? 0 : a.date > b.date ? 1 : -1))
+    .sortByKey("date", true)
     .reduce(
       (result, el) => {
         if (!minDate) {
@@ -48,8 +49,8 @@ export const groupDate = (
     total,
   }));
 
-  groupEntries.sort((a, b) => a.total - b.total);
-  const sortedResults = groupEntries.map(({ index }) => results[index] ?? []);
+  const sortedEntries = groupEntries.sortByKey("total", true);
+  const sortedResults = sortedEntries.map(({ index }) => results[index] ?? []);
 
   sortedResults.forEach((groups) => {
     let started = false;
@@ -59,8 +60,10 @@ export const groupDate = (
     }
   });
 
-  const dates = minDate && maxDate ? minDate.iterateToDate(maxDate) : [];
-  const groups = groupEntries.map(({ name, colour }) => ({ name, colour }));
+  // Taken from the pivot's own keys rather than re-walked, so a column's position in `results`
+  // and its date cannot disagree.
+  const dates = Array.from(dateToIndex.keys());
+  const groups = sortedEntries.map(({ name, colour }) => ({ name, colour }));
   return { results: sortedResults, dates, groups };
 };
 

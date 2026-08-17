@@ -1,7 +1,6 @@
 import type { Colour } from "../utils/types";
 import type { YearMonthDay } from "./date";
 import "../utils/arrayUtils";
-import "../utils/mapUtils";
 
 export interface TimelineData {
   name: string;
@@ -24,45 +23,31 @@ export interface PositionedTimelineData extends TimelineData {
  * Returns the positioned events and the highest row index used (-1 when there is no data).
  */
 export const packRows = (timelineData: TimelineData[]) => {
-  if (timelineData.length === 0) return [[] as PositionedTimelineData[], 0] as const;
-
   const sortedData = timelineData.sortByKey("start", true);
 
-  // The end date of the last event placed in each row.
-  const rowEndDates: YearMonthDay[] = [];
-  const rows: Map<number, PositionedTimelineData[]> = new Map();
+  // The last event placed in each row, which carries that row's end date.
+  const lastInRow: PositionedTimelineData[] = [];
 
   const positionedRows = sortedData.map((row) => {
-    let targetRow = -1;
-
-    for (let i = 0; i < rowEndDates.length; i++) {
-      if (row.start >= rowEndDates[i]) {
-        targetRow = i;
-        break;
-      }
-    }
-
+    let targetRow = lastInRow.findIndex((last) => row.start >= last.end);
     if (targetRow === -1) {
-      targetRow = rowEndDates.length;
+      targetRow = lastInRow.length;
     }
-
-    rowEndDates[targetRow] = row.end;
 
     const newRow: PositionedTimelineData = { ...row, rowNumber: targetRow };
 
     // Link neighbouring events in the same row so the layout step knows how much empty space
     // surrounds each bar and can spill a label into it.
-    const dataForTargetRow = rows.setIfAbsent(targetRow, []);
-    if (dataForTargetRow.length > 0) {
-      const lastRow = dataForTargetRow[dataForTargetRow.length - 1];
-      lastRow.nextDate = newRow.start;
-      newRow.previousDate = lastRow.end;
+    const last = lastInRow[targetRow];
+    if (last) {
+      last.nextDate = newRow.start;
+      newRow.previousDate = last.end;
     }
-    dataForTargetRow.push(newRow);
+    lastInRow[targetRow] = newRow;
     return newRow;
   });
 
-  return [positionedRows, rowEndDates.length - 1] as const;
+  return [positionedRows, lastInRow.length - 1] as const;
 };
 
 export type Placement = "center" | "right" | "left";

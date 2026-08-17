@@ -1,4 +1,6 @@
-type ValueNumber<T> = keyof { [P in keyof T as T[P] extends number | undefined ? P : never]: T[P] };
+import type { KeysMatching } from "./types";
+
+type ValueNumber<T> = KeysMatching<T, number | undefined>;
 
 declare global {
   interface Array<T> {

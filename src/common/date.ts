@@ -122,13 +122,7 @@ export class YearMonth extends PlainDate {
   }
 
   increment() {
-    let newYear = this.year;
-    let newMonth = this.month + 1;
-
-    if (newMonth > 12) {
-      newMonth = 1;
-      newYear = (newYear + 1) as YearNumber;
-    }
+    const [newYear, newMonth] = nextMonth(this.year, this.month);
     return YearMonth.get(newYear, newMonth) as this;
   }
 
@@ -201,31 +195,17 @@ export class YearMonthDay extends PlainDate {
   }
 
   addMonth() {
-    let newYear = this.year;
-    let newMonth = this.month + 1;
-
-    if (newMonth > 12) {
-      newMonth = 1;
-      newYear = (newYear + 1) as YearNumber;
-    }
+    const [newYear, newMonth] = nextMonth(this.year, this.month);
     return YearMonthDay.get(newYear, newMonth, this.day);
   }
 
   increment() {
-    let newYear = this.year;
-    let newMonth = this.month;
-    let newDay = this.day + 1;
-
-    if (newDay > monthToDays(newMonth, newYear)) {
-      newDay = 1;
-      newMonth++;
+    if (this.day < monthToDays(this.month, this.year)) {
+      return YearMonthDay.get(this.year, this.month, this.day + 1) as this;
     }
 
-    if (newMonth > 12) {
-      newMonth = 1;
-      newYear = (newYear + 1) as YearNumber;
-    }
-    return YearMonthDay.get(newYear, newMonth, newDay) as this;
+    const [newYear, newMonth] = nextMonth(this.year, this.month);
+    return YearMonthDay.get(newYear, newMonth, 1) as this;
   }
 
   startOfYear() {
@@ -249,6 +229,9 @@ const monthToDays = (month: number, year: number) => {
 
   return monthToDaysArray[month - 1];
 };
+
+const nextMonth = (year: YearNumber, month: number): [YearNumber, number] =>
+  month === 12 ? [(year + 1) as YearNumber, 1] : [year, month + 1];
 
 export const CURRENT_PLAINDATE = YearMonthDay.currentDate();
 
