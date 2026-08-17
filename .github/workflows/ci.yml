@@ -66,6 +66,25 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
 
+      # Vite inlines import.meta.env at build time, so these have to be present for the build
+      # that produces the deployed bundle — not at runtime. A local deploy picks them up from
+      # .env.local, which is gitignored and so absent here; without them the bundle ships a
+      # literal undefined and Google Identity Services rejects it with "Missing required
+      # parameter client_id" on a site that otherwise looks fine.
+      #
+      # Checked before the build rather than after, because a missing value fails at the point
+      # a visitor clicks Authorise, not at the point it is baked in.
+      - name: Check the build has its Google credentials
+        env:
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          VITE_GOOGLE_API_KEY: ${{ secrets.VITE_GOOGLE_API_KEY }}
+        run: |
+          : "${VITE_GOOGLE_CLIENT_ID:?missing repository secret VITE_GOOGLE_CLIENT_ID}"
+          : "${VITE_GOOGLE_API_KEY:?missing repository secret VITE_GOOGLE_API_KEY}"
+
       # Runs the same script as a local deploy, so the two cannot drift. Its predeploy hook
       # rebuilds, because jobs do not share a filesystem with verify.
       - run: npm run deploy
+        env:
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          VITE_GOOGLE_API_KEY: ${{ secrets.VITE_GOOGLE_API_KEY }}
