@@ -1,9 +1,9 @@
-import { Card, CardHeader, CardContent, FormGroup, Dialog, Stack, IconButton } from "@mui/material";
+import { Card, CardHeader, CardContent, FormGroup, Stack } from "@mui/material";
 import Grid from "@mui/material/Grid";
-import { useDeferredValue, useState } from "react";
+import { useDeferredValue, type ReactNode } from "react";
 import type { TypedCardMediaImage } from "./Card";
 import { useSelectBox } from "./SelectBoxHook";
-import { CloseFullscreen, Fullscreen } from "@mui/icons-material";
+import { ExpandableCard } from "./Stats";
 import { finishedItems, type FinishedItem, type FinishedSort } from "./finishedData";
 import { withAlpha } from "../utils/colourUtils";
 
@@ -26,13 +26,9 @@ const Finished = <U extends FinishedItem>({
 }) => {
   const [sort, selectBox] = useSelectBox(sortOptions, "Date");
 
-  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
-  /** Lags `dialogOpen` on close so the grid survives the dialog's exit transition. */
-  const [dialogMounted, setDialogMounted] = useState<boolean>(false);
-
   const slowData = useDeferredValue(data, []);
   const recent = finishedItems(slowData, sort);
-  const renderContent = (isDialog: boolean) => (
+  const renderContent = (isDialog: boolean, toggle: ReactNode) => (
     <>
       <CardHeader
         title={title}
@@ -43,14 +39,7 @@ const Finished = <U extends FinishedItem>({
               spacing={1}
             >
               {selectBox}
-              <IconButton
-                onClick={() => {
-                  setDialogOpen(!isDialog);
-                  if (!isDialog) setDialogMounted(true);
-                }}
-              >
-                {isDialog ? <CloseFullscreen color="primary" /> : <Fullscreen />}
-              </IconButton>
+              {toggle}
             </Stack>
           </FormGroup>
         }
@@ -93,18 +82,7 @@ const Finished = <U extends FinishedItem>({
     </>
   );
 
-  return (
-    <Card>
-      {renderContent(false)}
-      <Dialog
-        open={dialogOpen}
-        fullScreen
-        slotProps={{ transition: { onExited: () => setDialogMounted(false) } }}
-      >
-        {dialogMounted && renderContent(true)}
-      </Dialog>
-    </Card>
-  );
+  return <ExpandableCard renderContent={renderContent} />;
 };
 
 export default Finished;

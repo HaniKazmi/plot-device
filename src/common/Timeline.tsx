@@ -196,6 +196,14 @@ const TimelineGrid = ({
   );
 };
 
+/**
+ * Defers a row's hover card to the moment MUI mounts the tooltip.
+ *
+ * The Popper renders nothing while closed, so passing this element costs one object per row
+ * and calling the thunk costs nothing until the pointer arrives.
+ */
+const LazyTooltip = ({ render }: { render: () => ReactNode }) => <>{render()}</>;
+
 const TimelineText = ({
   event,
   startDate,
@@ -261,7 +269,7 @@ const TimelineText = ({
       >
         <Tooltip
           disableInteractive
-          title={event.tooltip}
+          title={<LazyTooltip render={event.tooltip} />}
           slotProps={{
             tooltip: {
               sx: { backgroundColor: event.colour, width: "500px", maxWidth: "500px", minHeight: "325px" },

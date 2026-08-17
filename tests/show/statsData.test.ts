@@ -188,11 +188,10 @@ describe("recentlyComplete", () => {
     expect(recentlyComplete(data).map((s) => s.s)).toEqual([2]);
   });
 
-  it("caps the list, since the card only has room for so many", () => {
+  it("returns every finished season, leaving the cap to the card that renders them", () => {
     const data = [withSeasons({}, ...Array.from({ length: 25 }, (_, i) => ({ s: i })))];
 
-    expect(recentlyComplete(data)).toHaveLength(18);
-    expect(recentlyComplete(data, 5)).toHaveLength(5);
+    expect(recentlyComplete(data)).toHaveLength(25);
   });
 });
 

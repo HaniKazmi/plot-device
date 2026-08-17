@@ -4,7 +4,17 @@ import "../utils/arrayUtils";
 
 export interface TimelineData {
   name: string;
-  tooltip: React.ReactNode;
+  /**
+   * Built lazily: the timeline positions every row it is given, and the hover card is only ever
+   * mounted for the one the pointer is over. As a node, each row's card and its footer labels
+   * would be constructed up front and then held for the life of the layout, because `packRows`
+   * copies every row and `useTextPlacement` keys a map by those copies.
+   *
+   * Must return something to show. Being a thunk, it cannot be inspected before the pointer
+   * arrives, so MUI's "don't open an empty tooltip" check sees a wrapper that is always present
+   * — a row with no card gets a blank box on hover rather than no tooltip at all.
+   */
+  tooltip: () => React.ReactNode;
   colour: Colour;
   start: YearMonthDay;
   end: YearMonthDay;

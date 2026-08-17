@@ -25,7 +25,7 @@ const ShowTimeline = ({ data }: { data: Show[] }) => {
 
   const showData: TimelineData[] = titleData.map(([title, s, colour]) => ({
     name: title,
-    tooltip: (
+    tooltip: () => (
       <ShowCardMediaImage
         landscape
         item={s}

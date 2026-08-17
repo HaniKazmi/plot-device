@@ -41,7 +41,7 @@ import {
   type VideoGame,
   type VideoGameStringKeys,
 } from "./types";
-import { StatCard, StatList, StatsListCard, type StatsListProps, TotalStack } from "../common/Stats";
+import { EXPANDED_CARDS, StatCard, StatList, StatsListGrid, type StatsListProps, TotalStack } from "../common/Stats";
 import { Segment } from "../common/Card";
 import { highchartsColors } from "../highcharts";
 import VgCardMediaImage from "./CardMediaImage";
@@ -299,8 +299,7 @@ const RecentlyComplete = ({ data }: { data: VideoGame[] }) => {
   const recent = data
     .filter(({ party }) => !party)
     .filter((a) => a.hours && a.endDate)
-    .sortByKey("endDate")
-    .slice(0, 18);
+    .sortByKey("endDate");
   return (
     <VgStatList
       icon={<Pause />}
@@ -333,10 +332,7 @@ const MostPlayed = ({ data, measure }: { data: VideoGame[]; measure: Measure }) 
 };
 
 const MostPlayedGames = ({ data, controls }: { data: VideoGame[]; controls: ReactNode }) => {
-  const most = data
-    .filter((a) => a.hours && a.endDate)
-    .sortByKey("hours")
-    .slice(0, 18);
+  const most = data.filter((a) => a.hours && a.endDate).sortByKey("hours");
   return (
     <VgStatList
       controls={controls}
@@ -377,30 +373,19 @@ const MostPlayedCategory = ({
         }
         slotProps={{ title: { variant: "h6" } }}
       />
-      <CardContent>
-        <Grid
-          container
-          spacing={1}
-          sx={{
-            alignItems: "center",
-            overflow: "auto",
-          }}
-        >
-          {dialogContent.all.slice(0, 18).map((entry) => {
-            return (
-              <StatsListCard
-                key={category + "-statslistcard-" + entry.name}
-                item={entry}
-                labels={statsCardLabelEndDateHours(entry)}
-                chip={platformToShortChip(entry)}
-                pictureWidth={vgStatListSharedProps.dialogPictureWidth}
-                aspectRatio={vgStatListSharedProps.aspectRatio}
-                MediaComponent={VgCardMediaImage}
-              />
-            );
-          })}
-        </Grid>
-      </CardContent>
+      <StatsListGrid
+        // Sorted here rather than in `groupGamesBy`, which would sort every category on every
+        // render to serve the one being drilled into. The cap below keeps only the first 18, so
+        // an unsorted list would show an arbitrary handful under a card headed Most Played.
+        content={dialogContent.all.sortByKey("hours")}
+        limit={EXPANDED_CARDS}
+        cardKey={(entry) => category + "-statslistcard-" + entry.name}
+        labelComponent={statsCardLabelEndDateHours}
+        chipComponent={platformToShortChip}
+        pictureWidth={vgStatListSharedProps.dialogPictureWidth}
+        aspectRatio={vgStatListSharedProps.aspectRatio}
+        MediaComponent={VgCardMediaImage}
+      />
     </Dialog>
   ) : null;
 

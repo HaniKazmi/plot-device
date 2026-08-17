@@ -14,7 +14,7 @@ const VgTimeline = ({ data }: { data: VideoGame[] }) => {
     .filter(({ startDate }) => startDate instanceof YearMonthDay && startDate.year > 2014)
     .map((row) => ({
       name: row.name,
-      tooltip: (
+      tooltip: () => (
         <VgCardMediaImage
           item={row}
           extractColour

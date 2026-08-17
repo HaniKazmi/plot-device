@@ -161,13 +161,20 @@ The chart is fixed at `400vw` inside a scroll container, and the month/quarter/y
 
 ### Stats and cards
 
-`common/Stats.tsx` exports three composable pieces — `StatCard` (a row of labelled figures), `StatList` (a scrollable strip of media cards with a fullscreen dialog, capped at 6 collapsed / 18 expanded), and `TotalStack` (a proportional segmented bar with labels). It builds the bar from `Segment`, which lives in `common/Card.tsx` alongside the other proportional-bar primitives. Domain `Stats.tsx` files assemble these into a grid; they hold the arithmetic, the shells hold the layout.
+`common/Stats.tsx` exports three composable pieces — `StatCard` (a row of labelled figures), `StatList` (a scrollable strip of media cards with a fullscreen dialog), and `TotalStack` (a proportional segmented bar with labels). It builds the bar from `Segment`, which lives in `common/Card.tsx` alongside the other proportional-bar primitives. Domain `Stats.tsx` files assemble these into a grid; they hold the arithmetic, the shells hold the layout.
+
+`StatList` is itself assembled from two smaller shells that the same file exports, because a domain needed each of them on its own:
+
+- **`ExpandableCard`** owns "a card that can also present itself fullscreen". It calls its `renderContent` twice — inline and for the dialog — and hands it the expand control to place in whatever header it builds. The dialog body is mounted only while open, so a strip of cards is not built a second time behind a closed dialog, and an internal `dialogMounted` lags `dialogOpen` so the body survives the exit transition.
+- **`StatsListGrid`** owns the capped strip of media cards. The caps are `COLLAPSED_CARDS` and `EXPANDED_CARDS` (6 and 18), exported from the same module and applied _here_ rather than by callers — a caller that pre-sliced its own list would make raising either constant a no-op for that list.
+
+Each has a caller of its own beyond `StatList`: `Finished` is built on `ExpandableCard` but keeps its own item grid, because it renders bordered full-width cards rather than media cards; and `vg/`'s Most Played reaches for `StatsListGrid` directly to fill the dialog it opens when drilling into a category.
 
 The one piece of shared arithmetic is `assignPercents` in `utils/mathUtils.ts`: it floors each slice at 0.5% so tiny categories stay visible, then absorbs the resulting shortfall into the first entry so the bar always fills exactly. `TotalStack` and `vg/`'s `TopList` both use it. `total` is a parameter rather than derived, because those two callers scope it differently — one over all data, one over just the rows on screen.
 
 `common/Card.tsx` provides `CardMediaImage` plus the `TypedCardMediaImage<T>` contract that every domain implements (`show/`, `vg/`, `movie/`). This is the adapter type that lets generic components — `Finished`, `StatList`, timeline tooltips — render domain-specific artwork and detail panels without knowing the model. Two of its props are shaped by cost rather than convenience:
 
-- `detailComponent` is a thunk (`() => ReactNode`), not a node. `Finished` renders one card per item with no cap, and the dialog body is ~15 elements that are only ever mounted for the one card the user opens.
+- `detailComponent` is a thunk (`() => ReactNode`), not a node. `Finished` renders one card per item with no cap, and the dialog body is ~15 elements that are only ever mounted for the one card the user opens. `TimelineData.tooltip` is a thunk for the same reason and is the other place the convention applies: the timeline positions every row it is given, but only the hovered one needs a card, and a node would be built up front and then held for the life of the layout (§7, object lifetimes).
 - `extractColour` is an explicit opt-in. Deriving a card's theme from its artwork costs a canvas read per image, so it is requested rather than inferred from the presence of some other prop.
 
 ### Colour
@@ -210,7 +217,7 @@ Setup is the plugin's documented path: `@vitejs/plugin-react` exports `reactComp
 - **`this`** anywhere in the function. Highcharts binds the chart to `this` in its event callbacks, so those must live at module scope (see `dimLeafRing` in §6) or they take the whole component down with them.
 - **`??=`**, which the compiler cannot yet lower. Write `x = x ?? y` instead.
 
-At the time of writing 77 functions compile and 2 bail — a `MethodCall` codegen error in `vg/CardMediaImage.tsx` and an arrow-reordering limit in `common/Stats.tsx`. Both are compiler-internal limitations and neither is on a hot path. A `MethodCall` bailout does respond to moving the offending computation into a plain module, which is how the three `show/Stats.tsx` bailouts were cleared. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
+At the time of writing 80 functions compile and 2 bail — a `MethodCall` codegen error in `vg/CardMediaImage.tsx` and an arrow-reordering limit in `common/Stats.tsx`. Both are compiler-internal limitations and neither is on a hot path. A `MethodCall` bailout does respond to moving the offending computation into a plain module, which is how the three `show/Stats.tsx` bailouts were cleared. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
 
 The compiler costs about 4% of bundle size (~15KB gzipped) in injected cache slots. That is a deliberate trade, and `npm run analyze` exists to keep it honest.
 
@@ -219,7 +226,7 @@ The compiler costs about 4% of bundle size (~15KB gzipped) in injected cache slo
 It removes _repeated_ render work. It does not make eager work lazy, fix object lifetimes, or hoist anything out of a module-scope function. Those remain manual, and the codebase does them explicitly:
 
 - **Concurrent rendering.** `useDeferredValue(data, [])` in every `Graphs` module keeps filter interactions responsive while charts re-render at lower priority; `Finished` dims itself (`opacity: 0.5`) while its deferred value lags, making the trade visible rather than confusing. `lazy()` + `<Suspense>` around every `Graphs` module (with a `webpackPrefetch` hint) keeps chart libraries out of the initial bundle.
-- **Lazy construction.** `Card`'s `detailComponent` thunk (§6).
+- **Lazy construction.** `Card`'s `detailComponent` thunk and `TimelineData`'s `tooltip` thunk (§6), plus `ExpandableCard` mounting its dialog body only while open.
 - **Object lifetimes.** `Timeline`'s `useTextPlacement` keys a ref map by row objects that are rebuilt whenever data changes; entries are deleted once all three refs detach, or dead rows would retain their tooltip trees — and through them the domain records.
 - **Module-scope hoisting.** `Google.tsx` caches themes per tab and reads MUI's default palette once; `Sunburst` hoists an `Intl.Collator` rather than calling `localeCompare` across thousands of comparisons. The compiler's per-component cache is a fixed slot array, so it would not survive A → B → A navigation the way the theme `Map` does.
 
