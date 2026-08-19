@@ -13,14 +13,7 @@ const ShowTimeline = ({ data }: { data: Show[] }) => {
   const titleData: [string, Show | Season, Colour][] = groupData
     ? data.map((show) => [show.name, show, statusToColour(show)])
     : data.flatMap((show) =>
-        show.s.map(
-          (s) =>
-            [`${show.name} - S${s.s}${s.subtitle ? " - " + s.subtitle : ""}`, s, statusToColour(show)] as [
-              string,
-              Season,
-              Colour,
-            ],
-        ),
+        show.s.map((s) => [`${show.name} - S${s.s}`, s, statusToColour(show)] as [string, Season, Colour]),
       );
 
   const showData: TimelineData[] = titleData.map(([title, s, colour]) => ({

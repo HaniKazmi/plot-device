@@ -87,10 +87,10 @@ export const currentlyWatching = (data: Show[]) =>
     .sortByKey("startDate");
 
 export const statsCardLabelRecentlyComplete = (season: Season) => [
-  [`S ${season.s}`, season.endDate?.toString() ?? ""],
+  [`S${season.s}`, season.endDate?.toString() ?? ""],
   [`${season.e} Eps`, `${format(Math.round(season.minutes / 60))} Hours`],
 ];
 
 export const statsCardLabelCurrentlyPlaying = (season: Season) => [
-  [`S ${season.s}`, season.startDate?.toString() ?? ""],
+  [`S${season.s}`, season.startDate?.toString() ?? ""],
 ];
