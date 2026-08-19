@@ -117,6 +117,29 @@ describe("decidePlacement", () => {
     expect(decidePlacement({ ...base, leftWidth: 10, rightWidth: 200 }).placement).toBe("right");
   });
 
+  it("spans the bar and the gap together when neither holds the label alone", () => {
+    // 60px of text over a 40px bar with a 30px gap: too wide for either, whole across both.
+    expect(decidePlacement({ ...base, textWidth: 60, rectWidth: 40, leftWidth: 10, rightWidth: 30 })).toEqual({
+      placement: "span",
+      rightUsed: true,
+    });
+  });
+
+  it("leaves the gap to the neighbour when spanning would still not fit the label", () => {
+    // Claiming a gap and clipping anyway spends it for nothing; the next event may fit there whole.
+    expect(decidePlacement({ ...base, textWidth: 200, rectWidth: 40, leftWidth: 10, rightWidth: 30 })).toEqual({
+      placement: "center",
+      rightUsed: false,
+    });
+  });
+
+  it("does not span into a gap an earlier event has already claimed", () => {
+    expect(
+      decidePlacement({ ...base, textWidth: 60, rectWidth: 40, leftWidth: 10, rightWidth: 30, rightUsed: true })
+        .placement,
+    ).toBe("center");
+  });
+
   it("centres and overflows when neither gap can hold the label", () => {
     // Better a label that spills over its neighbours than one that vanishes.
     expect(decidePlacement({ ...base, leftWidth: 10, rightWidth: 10 })).toEqual({

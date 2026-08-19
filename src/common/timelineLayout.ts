@@ -68,6 +68,11 @@ export const buildTicks = (start: YearMonth, end: YearMonth, totalDays: number):
  * Greedy interval packing. Sorts events chronologically and drops each into the first row
  * whose last event has already ended, so rows stay dense without any bar overlapping another.
  *
+ * Taking the emptiest fitting row rather than the first would hand every label a wider gap to be
+ * written in, and costs no height — but it spreads events evenly down the chart instead of
+ * settling them towards the top, and the even scatter reads worse than the clipped labels it
+ * buys. Density is the shape of this chart; leave it alone.
+ *
  * Returns the positioned events and the highest row index used (-1 when there is no data).
  */
 export const packRows = (timelineData: TimelineData[]) => {
@@ -98,12 +103,19 @@ export const packRows = (timelineData: TimelineData[]) => {
   return [positionedRows, lastInRow.length - 1] as const;
 };
 
-export type Placement = "center" | "right" | "left";
+export type Placement = "center" | "right" | "left" | "span";
 
 /**
  * Where a label sits relative to its bar. A label that fits inside the bar is centred;
  * otherwise it spills into whichever gap can hold it, preferring the left so that a run of
  * labels does not chase the bars rightwards.
+ *
+ * A label too long for either gap on its own can still be whole if it starts on its bar and
+ * runs off the end into the gap, using both. That is `span`, and it is the last resort before
+ * clipping: it only applies when the two together hold the entire label, because it claims the
+ * gap from the next event, and a claim that still ends in an ellipsis is one the neighbour
+ * should have had. Spanning text crosses from the bar's colour onto the card, so it is the one
+ * placement that cannot take its contrast from either.
  *
  * `rightUsed` says whether an earlier event in the same row has already claimed the gap to
  * its right, which is the gap to this event's left.
@@ -124,6 +136,7 @@ export const decidePlacement = ({
   if (textWidth <= rectWidth) return { placement: "center", rightUsed: false };
   if (!rightUsed && textWidth < leftWidth) return { placement: "left", rightUsed: false };
   if (textWidth < rightWidth) return { placement: "right", rightUsed: true };
+  if (!rightUsed && textWidth < rectWidth + rightWidth) return { placement: "span", rightUsed: true };
   // Nothing fits, so the label stays centred and overflows its bar rather than disappearing.
   return { placement: "center", rightUsed };
 };

@@ -82,6 +82,7 @@ type LayoutInfo = {
   textPx: number;
   barPx: number;
   availableLeftPx: number;
+  availableRightPx: number;
 };
 
 const defaultLayout: LayoutInfo = {
@@ -89,6 +90,7 @@ const defaultLayout: LayoutInfo = {
   textPx: 0,
   barPx: 0,
   availableLeftPx: 0,
+  availableRightPx: 0,
 };
 
 type ItemRefs = {
@@ -151,6 +153,7 @@ const useTextPlacement = (data: PositionedTimelineData[]) => {
 
       map.set(event, {
         availableLeftPx: leftWidth,
+        availableRightPx: rightWidth,
         barPx: rectWidth,
         textPx: textWidth,
         placement: decision.placement,
@@ -347,6 +350,14 @@ const TimelineText = ({
   const leftPadding = layoutInfo.placement === "right" ? `${layoutInfo.barPx + 5}px` : "5px";
   const rightPadding = layoutInfo.placement === "left" ? `${layoutInfo.barPx + 5}px` : "5px";
   const leftPosition = `${layoutInfo.placement === "left" ? layoutInfo.availableLeftPx - layoutInfo.textPx : layoutInfo.availableLeftPx}px`;
+  // A span starts on the bar like a centred label but is free to run off its end, so its width is
+  // the two added together rather than either alone.
+  const labelWidth =
+    layoutInfo.placement === "center"
+      ? `${layoutInfo.barPx}px`
+      : layoutInfo.placement === "span"
+        ? `${layoutInfo.barPx + layoutInfo.availableRightPx}px`
+        : "fit-content";
 
   return (
     <Box
@@ -403,11 +414,30 @@ const TimelineText = ({
               paddingLeft: leftPadding,
               paddingRight: rightPadding,
               left: leftPosition,
-              width: layoutInfo.placement === "center" ? `${layoutInfo.barPx}px` : "fit-content",
+              width: labelWidth,
+              /**
+               * A span is the one label crossing from its bar onto the card, so no single colour
+               * has contrast for the whole run — and a halo only softens the mismatch rather than
+               * removing it, which shows up worst in the light scheme where the text is dark and
+               * the bar beneath it is not.
+               *
+               * Painting the glyphs with a gradient clipped to the text switches colour at the
+               * bar's edge to the pixel, so each half gets the contrast it would have had on its
+               * own. The stops are hard, and measured from the element's left edge, which is the
+               * bar's left edge.
+               */
               color: (theme) =>
-                layoutInfo.placement === "center"
-                  ? theme.palette.getContrastText(event.colour)
-                  : theme.vars.palette.text.primary,
+                layoutInfo.placement === "span"
+                  ? "transparent"
+                  : layoutInfo.placement === "center"
+                    ? theme.palette.getContrastText(event.colour)
+                    : theme.vars.palette.text.primary,
+              backgroundImage: (theme) =>
+                layoutInfo.placement === "span"
+                  ? `linear-gradient(to right, ${theme.palette.getContrastText(event.colour)} 0 ${layoutInfo.barPx}px, ${theme.vars.palette.text.primary} ${layoutInfo.barPx}px)`
+                  : undefined,
+              WebkitBackgroundClip: layoutInfo.placement === "span" ? "text" : undefined,
+              backgroundClip: layoutInfo.placement === "span" ? "text" : undefined,
             }}
             ref={textRef}
           >
