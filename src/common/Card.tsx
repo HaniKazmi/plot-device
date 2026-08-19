@@ -124,7 +124,7 @@ export const CardMediaImage = ({
               margin: 1,
               opacity: 0.8,
               backgroundColor: chip.colour ?? "primary.main",
-              color: (theme) => (chip.colour ? theme.palette.getContrastText(chip.colour) : undefined),
+              color: (theme) => theme.palette.getContrastText(chip.colour ?? colour ?? theme.palette.primary.main),
             }}
             label={chip.label}
             icon={chip.icon}

@@ -108,6 +108,7 @@ const CurrentlyPlaying = ({ data }: { data: Show[] }) => {
       icon={<PlayArrow />}
       title="Currently Watching"
       content={recent}
+      chipComponent={({ e }) => ({ label: `E ${e}` })}
       wrap={false}
       labelComponent={statsCardLabelCurrentlyPlaying}
     />
