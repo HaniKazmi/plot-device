@@ -11,6 +11,13 @@ export interface GameSpan extends StripSpan {
 }
 
 /**
+ * What makes one span distinct. Name and platform alone collide on a replay, which would stack two
+ * bands under one key — and a card comparing itself against its franchise needs the same answer
+ * without running the estimate below to get it.
+ */
+export const spanKey = (game: VideoGame) => `${game.name}-${game.platform}-${game.startDate}`;
+
+/**
  * The span each game occupies on a card's strip.
  *
  * Half the collection predates the habit of logging days and carries a bare year, so what to do
@@ -36,8 +43,7 @@ export const gameSpans = (games: VideoGame[], today: YearMonthDay): GameSpan[] =
     const start = slot?.start ?? game.startDate.firstDay();
 
     return {
-      // Name and platform alone collide on a replay, which would stack two bands under one key.
-      key: `${game.name}-${game.platform}-${game.startDate}`,
+      key: spanKey(game),
       start,
       // A game with no end date is still being played, whatever precision its start carries.
       end: game.endDate ? (slot?.end ?? game.endDate.lastDay()) : today,
@@ -46,6 +52,9 @@ export const gameSpans = (games: VideoGame[], today: YearMonthDay): GameSpan[] =
     };
   });
 };
+
+/** Every day of a year, built once: the array is the same on each call and its dates are interned. */
+const daysOfYear = new Map<number, YearMonthDay[]>();
 
 /**
  * Shares each year out between the games that name it and nothing more precise.
@@ -64,7 +73,11 @@ const estimateUndatedSpans = (games: VideoGame[]) => {
   const spans = new Map<VideoGame, { start: YearMonthDay; end: YearMonthDay }>();
 
   byYear.forEach((group, year) => {
-    const days = Year.get(year).firstDay().iterateToDate(Year.get(year).lastDay());
+    let days = daysOfYear.get(year);
+    if (!days) {
+      days = Year.get(year).firstDay().iterateToDate(Year.get(year).lastDay());
+      daysOfYear.set(year, days);
+    }
     const ordered = group.sortByKey("releaseDate", true);
     let cursor = 0;
 

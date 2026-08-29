@@ -22,8 +22,10 @@ import { CalendarMonthOutlined } from "@mui/icons-material";
 import { cachedColour, extractColourFrom } from "../utils/colourUtils";
 import { alpha } from "@mui/material/styles";
 import Grid from "@mui/material/Grid";
+import { format } from "../utils/mathUtils";
 import type { Colour } from "../utils/types";
 import type { TimelineTick } from "./timelineLayout";
+import type { StripBand, StripSpan } from "./timelineStripData";
 
 export interface CardMediaImageProps {
   image?: string;
@@ -31,11 +33,7 @@ export interface CardMediaImageProps {
   colour?: Colour;
   chip?: Pick<ChipProps, "label" | "icon" | "onClick" | "variant"> & { colour?: Colour };
   lazy?: boolean;
-  /**
-   * Given the card's colour, because the panel accents itself with the artwork's own and only
-   * this component ever extracts it.
-   */
-  footerComponent?: (colour?: Colour) => ReactNode;
+  footerComponent?: ReactNode;
   /**
    * Built lazily: `Finished` renders a card per item with no cap, and this tree is only ever
    * mounted for the one card whose dialog is open.
@@ -84,14 +82,17 @@ export const CardMediaImage = ({
   const imgRef = useRef<HTMLImageElement>(null);
 
   const theme = useTheme();
-  const dialogPalette = colour && artworkPalette(colour, theme);
+  const palette = artworkPalette(colour, theme);
 
   const readColour = (img: HTMLImageElement | null) => {
     if (img && !colour) extractColourFrom(img, setExtracted);
   };
 
-  const readRatio = (img: HTMLImageElement | null) => {
-    if (img?.naturalWidth) setRatio(img.naturalWidth / img.naturalHeight);
+  /** Everything an image is asked for once it has pixels. */
+  const readImage = (img: HTMLImageElement | null) => {
+    if (!img?.naturalWidth) return;
+    setRatio(img.naturalWidth / img.naturalHeight);
+    if (extractColour && !colour) extractColourFrom(img, setExtracted);
   };
 
   // `load` does not bubble, so React delivers it through a root listener that only sees events
@@ -101,81 +102,77 @@ export const CardMediaImage = ({
   // means the image is there to be read whether or not the event arrived.
   useEffect(() => {
     const img = imgRef.current;
-    if (!img?.complete || img.naturalWidth === 0) return;
-    setRatio(img.naturalWidth / img.naturalHeight);
-    if (extractColour && !colour) extractColourFrom(img, setExtracted);
+    if (img?.complete) readImage(img);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [extractColour, colour, image]);
 
   return (
-    <Card
-      variant="elevation"
-      sx={{
-        height: "100%",
-        position: "relative",
-        backgroundColor: colour,
-        display: landscape ? "flex" : undefined,
-        color: (theme) => colour && theme.palette.getContrastText(colour),
-      }}
-    >
-      <CardActionArea>
-        <CardMedia
-          height={"100%"}
-          component="img"
-          crossOrigin="anonymous"
-          src={image}
-          alt={alt}
-          onClick={() => {
-            // The detail dialog is themed from this colour, so it is worth reading even for a card
-            // that did not ask for one.
-            readColour(imgRef.current);
-            setDialogOpen(true);
-            setDetailMounted(true);
-          }}
-          loading={lazy ? "lazy" : undefined}
-          ref={imgRef}
-          onLoad={(el) => {
-            readRatio(el.currentTarget);
-            if (extractColour) readColour(el.currentTarget);
-          }}
-          sx={sx}
-        />
-        {chip && (
-          <Chip
-            sx={{
-              position: "absolute",
-              top: 0,
-              right: 0,
-              margin: 1,
-              opacity: 0.8,
-              backgroundColor: chip.colour ?? "primary.main",
-              color: (theme) => theme.palette.getContrastText(chip.colour ?? colour ?? theme.palette.primary.main),
-            }}
-            label={chip.label}
-            icon={chip.icon}
-            onClick={chip.onClick}
-            variant={chip.variant || "filled"}
-            size="small"
-          />
-        )}
-      </CardActionArea>
-      {footerComponent?.(colour)}
-      <Dialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        maxWidth={false}
-        scroll="body"
-        slots={{ transition: Grow }}
-        slotProps={{
-          paper: { sx: { backgroundColor: "unset", boxShadow: "unset", backgroundImage: "unset" } },
-          transition: { onExited: () => setDetailMounted(false) },
+    <ArtworkAccent.Provider value={colour}>
+      <Card
+        variant="elevation"
+        sx={{
+          height: "100%",
+          position: "relative",
+          backgroundColor: palette.ground,
+          display: landscape ? "flex" : undefined,
+          color: palette.onGround,
         }}
       >
-        <ArtworkPalette.Provider value={dialogPalette}>
+        <CardActionArea>
+          <CardMedia
+            height={"100%"}
+            component="img"
+            crossOrigin="anonymous"
+            src={image}
+            alt={alt}
+            onClick={() => {
+              // The detail dialog is themed from this colour, so it is worth reading even for a card
+              // that did not ask for one.
+              readColour(imgRef.current);
+              setDialogOpen(true);
+              setDetailMounted(true);
+            }}
+            loading={lazy ? "lazy" : undefined}
+            ref={imgRef}
+            onLoad={(el) => readImage(el.currentTarget)}
+            sx={sx}
+          />
+          {chip && (
+            <Chip
+              sx={{
+                position: "absolute",
+                top: 0,
+                right: 0,
+                margin: 1,
+                opacity: 0.8,
+                backgroundColor: chip.colour ?? "primary.main",
+                color: (theme) => theme.palette.getContrastText(chip.colour ?? colour ?? theme.palette.primary.main),
+              }}
+              label={chip.label}
+              icon={chip.icon}
+              onClick={chip.onClick}
+              variant={chip.variant || "filled"}
+              size="small"
+            />
+          )}
+        </CardActionArea>
+        {footerComponent}
+        <Dialog
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          maxWidth={false}
+          scroll="body"
+          slots={{ transition: Grow }}
+          slotProps={{
+            paper: { sx: { backgroundColor: "unset", boxShadow: "unset", backgroundImage: "unset" } },
+            transition: { onExited: () => setDetailMounted(false) },
+          }}
+        >
           <Card
             variant="elevation"
             sx={{
-              backgroundColor: colour,
-              color: (theme) => colour && theme.palette.getContrastText(colour),
+              backgroundColor: palette.ground,
+              color: palette.onGround,
             }}
           >
             <Box
@@ -229,7 +226,7 @@ export const CardMediaImage = ({
                 // sampled from. A gradient fading the image into the ground did the joining
                 // before, which reads as the artwork running out rather than as one card in two
                 // parts — and spent the bottom tenth of every image to do it.
-                borderTop: dialogPalette?.seam,
+                borderTop: palette.seam,
               }}
             >
               <Box
@@ -242,9 +239,9 @@ export const CardMediaImage = ({
               </Box>
             </Box>
           </Card>
-        </ArtworkPalette.Provider>
-      </Dialog>
-    </Card>
+        </Dialog>
+      </Card>
+    </ArtworkAccent.Provider>
   );
 };
 
@@ -259,7 +256,7 @@ export const DetailCard = ({
   value: string | ReactNode;
   large?: boolean;
 }) => {
-  const palette = useContext(ArtworkPalette);
+  const palette = useArtworkPalette();
 
   if (!value) return null;
   return (
@@ -279,7 +276,7 @@ export const DetailCard = ({
         variant="elevation"
         sx={{
           height: "100%",
-          background: colour ?? palette?.tile ?? "unset",
+          background: colour ?? palette.tile,
           color: (theme) => (colour ? theme.palette.getContrastText(colour) : "unset"),
         }}
       >
@@ -305,7 +302,7 @@ export const DetailCard = ({
             <Typography
               align="center"
               variant="caption"
-              sx={{ color: colour ? undefined : palette?.muted, opacity: colour || !palette ? 0.8 : 1 }}
+              sx={{ color: colour ? undefined : palette.muted, opacity: colour ? 0.8 : 1 }}
             >
               {label}
             </Typography>
@@ -326,15 +323,6 @@ export const DetailCard = ({
  * Beside a poster the panel is as tall as the artwork and the type cannot fill it — three lines
  * against a 2:3 poster leaves better than half the column empty. Pushing the title to the top and
  * the figures to the bottom spends that height as structure instead of leaving it as a gap.
- */
-/**
- * One hue in three tones. Laying black over the artwork's colour darkens it into a surface white
- * type sits on while leaving the hue plainly recognisable — the panel is still *that* orange —
- * where re-lighting the channels towards a target would trade the hue away for the weight.
- *
- * The seam is the only place the colour appears at full strength, and the dates and stat labels
- * take it mixed towards white. Grey against a coloured panel reads as dead; the panel's own hue
- * reads as chosen, and keeps the whole card to one colour in three tones plus white.
  */
 const SEAM_WIDTH = 3;
 /** Of the ground's own contrast colour: the secondary tone, the seam, and a tile's lift. */
@@ -357,30 +345,38 @@ const TILE_ALPHA = 0.1;
  * against a coloured surface reads as dead where the surface's own hue reads as chosen. Mixing the
  * two by hand lands in the same place and has to be told which way to mix.
  */
-const artworkPalette = (accent: Colour, theme: Theme) => {
-  const onGround = theme.palette.getContrastText(accent);
+const artworkPalette = (accent: Colour | undefined, theme: Theme) => {
+  // Extraction arrives seconds after the page, and sometimes not until a reload, so the
+  // colourless state is the one every card paints first. Filling the same shape from the theme
+  // keeps it inside the recipe: a surface reads `palette.muted` and never asks whether there is a
+  // palette to read, which is what would let the two halves drift apart.
+  const onGround = accent ? theme.palette.getContrastText(accent) : theme.palette.text.primary;
+  const line = accent ? alpha(onGround, SEAM_ALPHA) : theme.palette.divider;
 
   return {
-    ground: { backgroundColor: accent },
+    ground: accent ?? theme.palette.background.paper,
     onGround,
-    muted: alpha(onGround, MUTED_ALPHA),
+    muted: accent ? alpha(onGround, MUTED_ALPHA) : theme.palette.text.secondary,
     /** Rules and hairlines drawn on the ground: a gridline, an empty track, a seam. */
-    line: alpha(onGround, SEAM_ALPHA),
+    line,
     /** The edge where a surface meets the artwork it was sampled from. */
-    seam: `${SEAM_WIDTH}px solid ${alpha(onGround, SEAM_ALPHA)}`,
+    seam: `${SEAM_WIDTH}px solid ${line}`,
     /** A tile lifted off the ground it sits on, in whichever direction reads against it. */
-    tile: alpha(onGround, TILE_ALPHA),
+    tile: accent ? alpha(onGround, TILE_ALPHA) : theme.palette.action.hover,
   };
 };
 
 /**
- * The palette of the card a detail tile is sitting in.
+ * The accent every surface inside a card derives its palette from.
  *
- * A tile has to lift off a ground it does not choose and cannot see — the dialog's ground is the
- * artwork's own colour, which only the card knows. Passing it down instead would mean naming it at
- * every one of the two dozen tiles the three domains build, none of which is otherwise interested.
+ * A strip, a panel and a detail tile all sit on a ground they do not choose and cannot see — only
+ * the card knows what its artwork sampled to. Handing it down as a prop instead would mean naming
+ * it at each of the two dozen tiles the three domains build, and a second mechanism for the ones
+ * that are not tiles.
  */
-const ArtworkPalette = createContext<ReturnType<typeof artworkPalette> | undefined>(undefined);
+const ArtworkAccent = createContext<Colour | undefined>(undefined);
+
+const useArtworkPalette = () => artworkPalette(useContext(ArtworkAccent), useTheme());
 
 /**
  * The panel beside or beneath a hover card's artwork: what the item is, when, and how much of it.
@@ -392,21 +388,18 @@ const ArtworkPalette = createContext<ReturnType<typeof artworkPalette> | undefin
 export const CardPanel = ({
   title,
   subtitle,
-  accent,
   dateRange,
   stats,
-  landscape = false,
+  landscape,
 }: {
   title: string;
   subtitle?: string;
-  accent?: Colour;
   dateRange: string;
   stats: { value: number | string; label: string }[];
+  /** Beside the artwork rather than beneath it, so the panel has height to distribute. */
   landscape?: boolean;
 }) => {
-  const theme = useTheme();
-  const palette = accent && artworkPalette(accent, theme);
-  const muted = palette?.muted;
+  const palette = useArtworkPalette();
 
   return (
     <CardContent
@@ -418,17 +411,11 @@ export const CardPanel = ({
         gap: 2,
         width: "100%",
         ":last-child": { paddingBottom: 2 },
-        // Until the artwork has given up a colour the panel is the theme's own, so a card that
-        // paints before extraction finishes is plain rather than wrong.
-        ...(palette
-          ? {
-              ...palette.ground,
-              color: palette.onGround,
-              // Where the artwork meets the panel, so the two read as one card rather than as one
-              // pasted onto the other. Rotated with the layout, never both.
-              [landscape ? "borderLeft" : "borderTop"]: palette.seam,
-            }
-          : { backgroundColor: "background.paper", color: "text.primary" }),
+        backgroundColor: palette.ground,
+        color: palette.onGround,
+        // Where the artwork meets the panel, so the two read as one card rather than as one pasted
+        // onto the other. Rotated with the layout, never both.
+        [landscape ? "borderLeft" : "borderTop"]: palette.seam,
       }}
     >
       <Stack
@@ -446,7 +433,7 @@ export const CardPanel = ({
         {subtitle && (
           <Typography
             variant="body2"
-            sx={{ color: muted, opacity: muted ? 1 : 0.75 }}
+            sx={{ color: palette.muted }}
           >
             {subtitle}
           </Typography>
@@ -454,7 +441,7 @@ export const CardPanel = ({
         <Stack
           direction="row"
           spacing={0.75}
-          sx={{ alignItems: "center", color: muted, opacity: muted ? 1 : 0.75 }}
+          sx={{ alignItems: "center", color: palette.muted }}
         >
           <CalendarMonthOutlined sx={{ fontSize: 16 }} />
           <Typography variant="body2">{dateRange}</Typography>
@@ -470,8 +457,6 @@ export const CardPanel = ({
           {stats.map((stat) => (
             <StatTile
               key={stat.label}
-              muted={muted}
-              tile={palette?.tile}
               {...stat}
             />
           ))}
@@ -482,42 +467,36 @@ export const CardPanel = ({
 };
 
 /** A figure and what it counts, set apart from the prose so the numbers can be read at a glance. */
-const StatTile = ({
-  value,
-  label,
-  muted,
-  tile,
-}: {
-  value: number | string;
-  label: string;
-  muted?: string;
-  tile?: string;
-}) => (
-  <Box
-    sx={{
-      flex: 1,
-      padding: 1,
-      borderRadius: 1,
-      textAlign: "center",
-      // A wash of the ground's own contrast colour, so a tile lifts off a pale sample as readily
-      // as off a dark one.
-      backgroundColor: tile ?? "action.hover",
-    }}
-  >
-    <Typography
-      component="div"
-      sx={{ fontWeight: 700, fontSize: "1.25rem", lineHeight: 1.2 }}
+const StatTile = ({ value, label }: { value: number | string; label: string }) => {
+  const palette = useArtworkPalette();
+
+  return (
+    <Box
+      sx={{
+        flex: 1,
+        padding: 1,
+        borderRadius: 1,
+        textAlign: "center",
+        // A wash of the ground's own contrast colour, so a tile lifts off a pale sample as
+        // readily as off a dark one.
+        backgroundColor: palette.tile,
+      }}
     >
-      {value}
-    </Typography>
-    <Typography
-      variant="caption"
-      sx={{ color: muted, opacity: muted ? 1 : 0.75, letterSpacing: "0.08em", textTransform: "uppercase" }}
-    >
-      {label}
-    </Typography>
-  </Box>
-);
+      <Typography
+        component="div"
+        sx={{ fontWeight: 700, fontSize: "1.25rem", lineHeight: 1.2 }}
+      >
+        {typeof value === "number" ? format(value) : value}
+      </Typography>
+      <Typography
+        variant="caption"
+        sx={{ color: palette.muted, letterSpacing: "0.08em", textTransform: "uppercase" }}
+      >
+        {label}
+      </Typography>
+    </Box>
+  );
+};
 
 /**
  * The strip under a thumbnail. Painted from the same recipe as the hover card's panel, so the two
@@ -527,17 +506,8 @@ const StatTile = ({
  * belong to, which is why only the last is given the full tone. A label builder adding a row is
  * adding context, and belongs above the figures for the same reason.
  */
-export const FooterComponent = ({
-  labels,
-  divider,
-  accent,
-}: {
-  labels: ReactNode[][];
-  divider?: boolean;
-  accent?: Colour;
-}) => {
-  const theme = useTheme();
-  const palette = accent && artworkPalette(accent, theme);
+export const FooterComponent = ({ labels, divider }: { labels: string[][]; divider?: boolean }) => {
+  const palette = useArtworkPalette();
 
   return (
     <CardContent
@@ -545,7 +515,9 @@ export const FooterComponent = ({
         padding: "10px",
         ":last-child": { paddingBottom: "10px" },
         width: "100%",
-        ...(palette && { ...palette.ground, color: palette.onGround, borderTop: palette.seam }),
+        backgroundColor: palette.ground,
+        color: palette.onGround,
+        borderTop: palette.seam,
       }}
     >
       {labels.map((stacks, index) => (
@@ -557,27 +529,23 @@ export const FooterComponent = ({
               <Divider
                 orientation="vertical"
                 flexItem
-                sx={{ borderColor: palette?.muted, opacity: palette ? 0.4 : 1 }}
+                sx={{ borderColor: palette.line }}
               />
             ) : null
           }
           sx={{
             justifyContent: stacks.length === 1 ? "center" : "space-between",
-            color: palette && index < labels.length - 1 ? palette.muted : undefined,
+            color: index < labels.length - 1 ? palette.muted : undefined,
           }}
         >
-          {stacks.map((val, index) =>
-            typeof val === "string" ? (
-              <Typography
-                key={val}
-                variant="subtitle2"
-              >
-                {val}
-              </Typography>
-            ) : (
-              <div key={index}>{val}</div>
-            ),
-          )}
+          {stacks.map((val) => (
+            <Typography
+              key={val}
+              variant="subtitle2"
+            >
+              {val}
+            </Typography>
+          ))}
         </Stack>
       ))}
     </CardContent>
@@ -607,20 +575,15 @@ export const Segment = ({
   />
 );
 
-export interface TimelineBand {
-  key: string;
-  /** Offset from the left edge of the strip, as a percentage of its full width. */
-  startPercent: number;
-  widthPercent: number;
-  /** Row within the strip, from `buildStrip`. Bands sharing a lane never overlap. */
-  lane: number;
+/** A positioned span from `buildStrip`, plus how this strip means to draw it. */
+export type TimelineBand = Omit<StripBand<StripSpan>, "start" | "end"> & {
   colour: string;
   tooltip?: ReactNode;
   /** Context rather than the subject of the card, drawn dimmer. */
   muted?: boolean;
   /** The span is an estimate, drawn so its edges do not read as dates. */
   imprecise?: boolean;
-}
+};
 
 const STRIP_HEIGHT = 3;
 
@@ -643,7 +606,7 @@ export const TimelineCard = ({
   ticks: TimelineTick[];
   caption?: ReactNode;
 }) => {
-  const palette = useContext(ArtworkPalette);
+  const palette = useArtworkPalette();
 
   return (
     <Grid size={12}>
@@ -676,13 +639,10 @@ export const TimelineCard = ({
               // The empty track and the gridlines are drawn on the card's ground, so they are taken
               // from it. The theme's own tokens are mixed for the theme's background, which is not
               // what a strip on an extracted artwork colour is sitting on.
-              backgroundColor: palette?.tile ?? "action.disabledBackground",
+              backgroundColor: palette.tile,
             }}
           >
-            <TimelineScale
-              ticks={ticks}
-              line={palette?.line}
-            />
+            <TimelineScale ticks={ticks} />
             {bands.map((band) => (
               <TimelineBandBox
                 {...band}
@@ -706,25 +666,28 @@ export const TimelineCard = ({
  * compete with the bands they exist to measure — most of all on a card whose ground is an
  * extracted artwork colour, where they pick that colour up.
  */
-const TimelineScale = ({ ticks, line }: { ticks: TimelineTick[]; line?: string }) => (
-  // Full-height boxes would otherwise be the topmost hit target across the whole strip.
-  <Box sx={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
-    {ticks.map((tick) => (
-      <Box
-        key={tick.year}
-        sx={{
-          position: "absolute",
-          top: 0,
-          bottom: 0,
-          left: `${tick.percent}%`,
-          width: "1px",
-          backgroundColor: line ?? "divider",
-          opacity: line ? 1 : 0.7,
-        }}
-      />
-    ))}
-  </Box>
-);
+const TimelineScale = ({ ticks }: { ticks: TimelineTick[] }) => {
+  const palette = useArtworkPalette();
+
+  return (
+    // Full-height boxes would otherwise be the topmost hit target across the whole strip.
+    <Box sx={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+      {ticks.map((tick) => (
+        <Box
+          key={tick.year}
+          sx={{
+            position: "absolute",
+            top: 0,
+            bottom: 0,
+            left: `${tick.percent}%`,
+            width: "1px",
+            backgroundColor: palette.line,
+          }}
+        />
+      ))}
+    </Box>
+  );
+};
 
 /** Sparse enough that the labels do not collide at card width, and land on round years. */
 const LABEL_EVERY_YEARS = 5;

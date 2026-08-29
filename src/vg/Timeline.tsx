@@ -18,10 +18,9 @@ const VgTimeline = ({ data }: { data: VideoGame[] }) => {
         <VgCardMediaImage
           item={row}
           extractColour
-          footerComponent={(accent) => (
+          footerComponent={
             <CardPanel
               title={row.name}
-              accent={accent}
               dateRange={formatDateRange(row.startDate, row.endDate)}
               stats={
                 row.hours && row.numDays
@@ -32,7 +31,7 @@ const VgTimeline = ({ data }: { data: VideoGame[] }) => {
                   : []
               }
             />
-          )}
+          }
         />
       ),
       colour: platformToColor(row),

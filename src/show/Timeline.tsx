@@ -23,21 +23,20 @@ const ShowTimeline = ({ data }: { data: Show[] }) => {
         landscape
         item={s}
         extractColour
-        footerComponent={(accent) => (
+        footerComponent={
           <CardPanel
             landscape
             // The chart's own label for the bar, so the card names exactly what was hovered — a
             // season, or a whole show when the seasons are combined.
             title={title}
             subtitle={isShow(s) ? undefined : s.subtitle}
-            accent={accent}
             dateRange={formatDateRange(s.startDate, s.endDate)}
             stats={[
               { value: s.e, label: "Eps" },
               { value: Math.round(s.minutes / 60), label: "Hours" },
             ]}
           />
-        )}
+        }
       />
     ),
     colour: colour,

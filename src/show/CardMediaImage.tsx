@@ -3,7 +3,7 @@ import { CardMediaImage, DetailCard, TimelineCard, TypedCardMediaImage } from ".
 import { Season, Show, isShow } from "./types";
 import Grid from "@mui/material/Grid";
 import { statusToColour } from "../utils/types";
-import { CURRENT_PLAINDATE, YearMonthDay } from "../common/date";
+import { CURRENT_PLAINDATE, YearMonthDay, formatDateRange } from "../common/date";
 import { buildStrip, stripYearTicks } from "../common/timelineStripData";
 
 const ShowCardMediaImage = <T extends Show | Season>({ item, ...props }: Parameters<TypedCardMediaImage<T>>[0]) => {
@@ -76,12 +76,7 @@ const ShowTimelineCard = ({ item }: { item: Show }) => {
         // One hue in two strengths. Alternating across two palette colours makes adjacent seasons
         // distinguishable but reads as two different things being plotted.
         colour: index % 2 === 0 ? "secondary.light" : "secondary.main",
-        tooltip: (
-          <SeasonTooltip
-            season={band.season}
-            end={band.season.endDate ?? CURRENT_PLAINDATE}
-          />
-        ),
+        tooltip: <SeasonTooltip season={band.season} />,
       }))}
       laneCount={laneCount}
       ticks={SHOW_TICKS}
@@ -90,7 +85,7 @@ const ShowTimelineCard = ({ item }: { item: Show }) => {
   );
 };
 
-const SeasonTooltip = ({ season, end }: { season: Season; end: YearMonthDay }) => (
+const SeasonTooltip = ({ season }: { season: Season }) => (
   <>
     <Typography
       variant="h6"
@@ -98,9 +93,7 @@ const SeasonTooltip = ({ season, end }: { season: Season; end: YearMonthDay }) =
     >
       S{season.s}
     </Typography>
-    <Typography>
-      {season.startDate.toString()} - {end.toString()}
-    </Typography>
+    <Typography>{formatDateRange(season.startDate, season.endDate)}</Typography>
     <Typography>{season.e} Episodes</Typography>
     <Typography>{Math.floor(season.minutes / 60)} Hours</Typography>
   </>

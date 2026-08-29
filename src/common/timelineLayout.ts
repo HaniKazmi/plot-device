@@ -86,7 +86,10 @@ export const assignRows = <T extends { start: YearMonthDay; end: YearMonthDay }>
   const rowEnds: YearMonthDay[] = [];
 
   return items.map((item) => {
-    let row = rowEnds.findIndex((end) => end.lte(item.start));
+    // `lte` stringifies both sides and `toString` rebuilds the string every call, so the probe
+    // would re-derive this one once per row it walks past.
+    const start = item.start.toString();
+    let row = rowEnds.findIndex((end) => end.toString() <= start);
     if (row === -1) row = rowEnds.push(item.end) - 1;
     else rowEnds[row] = item.end;
     return row;

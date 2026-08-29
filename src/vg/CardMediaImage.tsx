@@ -3,9 +3,9 @@ import { CardMediaImage, DetailCard, TimelineCard, TypedCardMediaImage } from ".
 import { VideoGame, companyToColor, platformToColor, ratingToColour } from "./types";
 import Grid from "@mui/material/Grid";
 import { statusToColour } from "../utils/types";
-import { CURRENT_PLAINDATE, Year, YearMonthDay } from "../common/date";
+import { CURRENT_PLAINDATE, Year, YearMonthDay, formatDateRange } from "../common/date";
 import { buildStrip, stripYearTicks } from "../common/timelineStripData";
-import { gameSpans } from "./cardData";
+import { gameSpans, spanKey } from "./cardData";
 import { useFranchiseGames } from "./franchiseContext";
 
 const VgCardMediaImage: TypedCardMediaImage<VideoGame> = ({ item, ...props }) => (
@@ -98,9 +98,6 @@ const VG_TICKS = stripYearTicks(VG_EPOCH, CURRENT_PLAINDATE);
  */
 const VgTimelineCard = ({ item: game }: { item: VideoGame }) => {
   const franchise = useFranchiseGames(game);
-  // The subject's own span, so the comparison below reuses the key `gameSpans` builds rather than
-  // depending on the index and the card having been handed the same object.
-  const [subject] = gameSpans([game], CURRENT_PLAINDATE);
 
   const { bands, laneCount } = buildStrip(gameSpans(franchise, CURRENT_PLAINDATE), VG_EPOCH, CURRENT_PLAINDATE);
 
@@ -111,7 +108,7 @@ const VgTimelineCard = ({ item: game }: { item: VideoGame }) => {
       bands={bands.map((band) => ({
         ...band,
         colour: platformToColor(band.game),
-        muted: band.key !== subject.key,
+        muted: band.key !== spanKey(game),
         imprecise: !band.precise,
         tooltip: <GameTooltip game={band.game} />,
       }))}
@@ -143,9 +140,7 @@ const GameTooltip = ({ game }: { game: VideoGame }) => (
         </Typography>
       </>
     ) : (
-      <Typography>
-        {game.startDate.toString()} - {game.endDate?.toString() ?? "present"}
-      </Typography>
+      <Typography>{formatDateRange(game.startDate, game.endDate)}</Typography>
     )}
     {game.numDays ? <Typography>{game.numDays} Days</Typography> : null}
     {game.hours ? <Typography>{game.hours} Hours</Typography> : null}
