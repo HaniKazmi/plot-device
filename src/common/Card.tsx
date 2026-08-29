@@ -335,76 +335,90 @@ export const CardPanel = ({
   dateRange: string;
   stats: { value: number | string; unit: string; label: string }[];
   landscape?: boolean;
-}) => (
-  <CardContent
-    sx={{
-      display: "flex",
-      flexDirection: "column",
-      // Only a panel with height to spare has anything to distribute.
-      justifyContent: landscape ? "space-between" : "center",
-      alignItems: landscape ? "flex-start" : "center",
-      gap: 2,
-      width: "100%",
-      backgroundColor: "background.paper",
-      color: "text.primary",
-      ":last-child": { paddingBottom: 2 },
-    }}
-  >
-    <Stack
-      spacing={1}
-      sx={{ alignItems: landscape ? "flex-start" : "center" }}
-    >
-      <Typography
-        variant="h6"
-        sx={{ fontWeight: 700, lineHeight: 1.25, textAlign: landscape ? "left" : "center" }}
-      >
-        {title}
-      </Typography>
-      {badge && (
-        <Chip
-          size="small"
-          label={badge}
-          sx={(theme) => ({
-            fontWeight: 600,
-            // The accent fills the badge rather than colouring its text. An extracted colour is
-            // only held above luma 30, which is dark enough to disappear as text on a dark panel,
-            // and the panel's own ground follows the colour scheme — so contrast is taken from the
-            // accent itself, which holds whichever way round the scheme is.
-            backgroundColor: accent,
-            color: accent && theme.palette.getContrastText(accent),
-          })}
-        />
-      )}
-    </Stack>
-    <Stack
-      spacing={1.5}
-      sx={{ width: "100%", alignItems: landscape ? "flex-start" : "center" }}
+}) => {
+  const badgeChip = badge && (
+    <Chip
+      size="small"
+      label={badge}
+      sx={(theme) => ({
+        fontWeight: 600,
+        // The accent fills the badge rather than colouring its text. An extracted colour is only
+        // held above luma 30, which is dark enough to disappear as text on a dark panel, and the
+        // panel's own ground follows the colour scheme — so contrast is taken from the accent
+        // itself, which holds whichever way round the scheme is.
+        backgroundColor: accent,
+        color: accent && theme.palette.getContrastText(accent),
+      })}
+    />
+  );
+
+  return (
+    <CardContent
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        // Only a panel with height to spare has anything to distribute.
+        justifyContent: landscape ? "space-between" : "flex-start",
+        gap: 2,
+        width: "100%",
+        backgroundColor: "background.paper",
+        color: "text.primary",
+        ":last-child": { paddingBottom: 2 },
+      }}
     >
       <Stack
-        direction="row"
-        spacing={0.75}
-        sx={{ alignItems: "center", color: "text.secondary" }}
+        spacing={1}
+        sx={{ alignItems: "flex-start" }}
       >
-        <CalendarMonthOutlined sx={{ fontSize: 16 }} />
-        <Typography variant="body2">{dateRange}</Typography>
+        <Typography
+          variant="h6"
+          sx={{ fontWeight: 700, lineHeight: 1.25 }}
+        >
+          {title}
+        </Typography>
+        {/* Beside the artwork the badge anchors a title block that has a whole column's height to
+            itself. Beneath the artwork there is no height to spend, and a badge given a row of its
+            own fills a fourteenth of it, so there it goes down to share a line with the dates. */}
+        {landscape && badgeChip}
       </Stack>
-      {stats.length > 0 && (
+
+      <Stack
+        spacing={1.5}
+        sx={{ width: "100%", alignItems: "flex-start" }}
+      >
         <Stack
           direction="row"
           spacing={1}
-          sx={{ width: "100%" }}
+          sx={{ alignItems: "center", flexWrap: "wrap" }}
         >
-          {stats.map((stat) => (
-            <StatTile
-              key={stat.label}
-              {...stat}
-            />
-          ))}
+          {!landscape && badgeChip}
+          <Stack
+            direction="row"
+            spacing={0.75}
+            sx={{ alignItems: "center", color: "text.secondary" }}
+          >
+            <CalendarMonthOutlined sx={{ fontSize: 16 }} />
+            <Typography variant="body2">{dateRange}</Typography>
+          </Stack>
         </Stack>
-      )}
-    </Stack>
-  </CardContent>
-);
+        {stats.length > 0 && (
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{ width: "100%" }}
+          >
+            {stats.map((stat) => (
+              <StatTile
+                key={stat.label}
+                {...stat}
+              />
+            ))}
+          </Stack>
+        )}
+      </Stack>
+    </CardContent>
+  );
+};
 
 /** A figure and what it counts, set apart from the prose so the numbers can be read at a glance. */
 const StatTile = ({ value, unit, label }: { value: number | string; unit: string; label: string }) => (
