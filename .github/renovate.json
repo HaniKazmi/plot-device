@@ -20,6 +20,11 @@
       "groupName": "react compiler"
     },
     {
+      "description": "TypeScript 7 is the native port, and no typescript-eslint release supports it yet: 8.68 declares `typescript: >=4.8.4 <6.1.0`, and TypeScript's 6.x line ends at 6.0.3, so that ceiling is exactly every 6 there will be. eslint is what the mismatch breaks, which is not where an upgrade PR is read. A version ceiling rather than a blanket ban on majors, so 6.x fixes keep arriving and lifting the bound stays a deliberate act once typescript-eslint admits 7 — at which point the two want moving together.",
+      "matchPackageNames": ["typescript"],
+      "allowedVersions": "<7"
+    },
+    {
       "matchManagers": ["github-actions"],
       "groupName": "github actions"
     }
