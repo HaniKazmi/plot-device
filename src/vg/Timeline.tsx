@@ -21,14 +21,13 @@ const VgTimeline = ({ data }: { data: VideoGame[] }) => {
           footerComponent={(accent) => (
             <CardPanel
               title={row.name}
-              badge={row.platform}
               accent={accent}
               dateRange={formatDateRange(row.startDate, row.endDate)}
               stats={
                 row.hours && row.numDays
                   ? [
-                      { value: row.hours, unit: "hrs", label: "Played" },
-                      { value: row.numDays, unit: "days", label: "Duration" },
+                      { value: row.hours, label: "Hours" },
+                      { value: row.numDays, label: "Days" },
                     ]
                   : []
               }

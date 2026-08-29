@@ -1,6 +1,6 @@
 import { CardHeader, FormGroup, FormControlLabel, Switch } from "@mui/material";
 import { useState } from "react";
-import { Season, Show, isShow } from "./types";
+import { Season, Show } from "./types";
 import Timeline, { TimelineData } from "../common/Timeline";
 import { Colour, statusToColour } from "../utils/types";
 import { CURRENT_PLAINDATE, formatDateRange } from "../common/date";
@@ -26,13 +26,14 @@ const ShowTimeline = ({ data }: { data: Show[] }) => {
         footerComponent={(accent) => (
           <CardPanel
             landscape
-            title={isShow(s) ? s.name : s.show.name}
-            badge={isShow(s) ? undefined : `Season ${s.s}`}
+            // The chart's own label for the bar, so the card names exactly what was hovered — a
+            // season, or a whole show when the seasons are combined.
+            title={title}
             accent={accent}
             dateRange={formatDateRange(s.startDate, s.endDate)}
             stats={[
-              { value: s.e, unit: "eps", label: "Watched" },
-              { value: Math.round(s.minutes / 60), unit: "hrs", label: "Runtime" },
+              { value: s.e, label: "Eps" },
+              { value: Math.round(s.minutes / 60), label: "Hours" },
             ]}
           />
         )}

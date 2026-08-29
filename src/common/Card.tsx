@@ -19,6 +19,7 @@ import {
 import { type FunctionComponent, type ReactNode, useEffect, useRef, useState } from "react";
 import { CalendarMonthOutlined } from "@mui/icons-material";
 import { cachedColour, extractColourFrom, withAlpha } from "../utils/colourUtils";
+import { lighten } from "@mui/material/styles";
 import Grid from "@mui/material/Grid";
 import type { Colour } from "../utils/types";
 import type { TimelineTick } from "./timelineLayout";
@@ -321,36 +322,40 @@ export const DetailCard = ({
  * against a 2:3 poster leaves better than half the column empty. Pushing the title to the top and
  * the figures to the bottom spends that height as structure instead of leaving it as a gap.
  */
+/**
+ * One hue in three tones. Laying black over the artwork's colour darkens it into a surface white
+ * type sits on while leaving the hue plainly recognisable — the panel is still *that* orange —
+ * where re-lighting the channels towards a target would trade the hue away for the weight.
+ *
+ * The seam is the only place the colour appears at full strength, and the dates and stat labels
+ * take it mixed towards white. Grey against a coloured panel reads as dead; the panel's own hue
+ * reads as chosen, and keeps the whole card to one colour in three tones plus white.
+ */
+const PANEL_OVERLAY = "rgba(0, 0, 0, 0.55)";
+const SEAM_WIDTH = 3;
+const MUTED_TOWARDS_WHITE = 0.65;
+
+/**
+ * The panel beside or beneath a hover card's artwork: what the item is, when, and how much of it.
+ *
+ * Beside a poster the panel is as tall as the artwork and the type cannot fill it — three lines
+ * against a 2:3 poster leaves better than half the column empty. Pushing the title to the top and
+ * the figures to the bottom spends that height as structure instead of leaving it as a gap.
+ */
 export const CardPanel = ({
   title,
-  badge,
   accent,
   dateRange,
   stats,
   landscape = false,
 }: {
   title: string;
-  badge?: string;
   accent?: Colour;
   dateRange: string;
-  stats: { value: number | string; unit: string; label: string }[];
+  stats: { value: number | string; label: string }[];
   landscape?: boolean;
 }) => {
-  const badgeChip = badge && (
-    <Chip
-      size="small"
-      label={badge}
-      sx={(theme) => ({
-        fontWeight: 600,
-        // The accent fills the badge rather than colouring its text. An extracted colour is only
-        // held above luma 30, which is dark enough to disappear as text on a dark panel, and the
-        // panel's own ground follows the colour scheme — so contrast is taken from the accent
-        // itself, which holds whichever way round the scheme is.
-        backgroundColor: accent,
-        color: accent && theme.palette.getContrastText(accent),
-      })}
-    />
-  );
+  const muted = accent && lighten(accent, MUTED_TOWARDS_WHITE);
 
   return (
     <CardContent
@@ -361,13 +366,26 @@ export const CardPanel = ({
         justifyContent: landscape ? "space-between" : "flex-start",
         gap: 2,
         width: "100%",
-        backgroundColor: "background.paper",
-        color: "text.primary",
         ":last-child": { paddingBottom: 2 },
+        // Until the artwork has given up a colour the panel is the theme's own, so a card that
+        // paints before extraction finishes is plain rather than wrong.
+        ...(accent
+          ? {
+              // Set as two properties rather than the shorthand: in `background`, a bare colour
+              // after a comma is not a valid layer, so the colour half is dropped and the overlay
+              // is left sitting on nothing.
+              backgroundImage: `linear-gradient(${PANEL_OVERLAY}, ${PANEL_OVERLAY})`,
+              backgroundColor: accent,
+              color: "common.white",
+              // Where the artwork meets the panel, so the two read as one card rather than as one
+              // pasted onto the other. Rotated with the layout, never both.
+              [landscape ? "borderLeft" : "borderTop"]: `${SEAM_WIDTH}px solid ${accent}`,
+            }
+          : { backgroundColor: "background.paper", color: "text.primary" }),
       }}
     >
       <Stack
-        spacing={1}
+        spacing={0.5}
         sx={{ alignItems: "flex-start" }}
       >
         <Typography
@@ -376,59 +394,46 @@ export const CardPanel = ({
         >
           {title}
         </Typography>
-        {/* Beside the artwork the badge anchors a title block that has a whole column's height to
-            itself. Beneath the artwork there is no height to spend, and a badge given a row of its
-            own fills a fourteenth of it, so there it goes down to share a line with the dates. */}
-        {landscape && badgeChip}
+        <Stack
+          direction="row"
+          spacing={0.75}
+          sx={{ alignItems: "center", color: muted, opacity: muted ? 1 : 0.75 }}
+        >
+          <CalendarMonthOutlined sx={{ fontSize: 16 }} />
+          <Typography variant="body2">{dateRange}</Typography>
+        </Stack>
       </Stack>
 
-      <Stack
-        spacing={1.5}
-        sx={{ width: "100%", alignItems: "flex-start" }}
-      >
+      {stats.length > 0 && (
         <Stack
           direction="row"
           spacing={1}
-          sx={{ alignItems: "center", flexWrap: "wrap" }}
+          sx={{ width: "100%" }}
         >
-          {!landscape && badgeChip}
-          <Stack
-            direction="row"
-            spacing={0.75}
-            sx={{ alignItems: "center", color: "text.secondary" }}
-          >
-            <CalendarMonthOutlined sx={{ fontSize: 16 }} />
-            <Typography variant="body2">{dateRange}</Typography>
-          </Stack>
+          {stats.map((stat) => (
+            <StatTile
+              key={stat.label}
+              muted={muted}
+              {...stat}
+            />
+          ))}
         </Stack>
-        {stats.length > 0 && (
-          <Stack
-            direction="row"
-            spacing={1}
-            sx={{ width: "100%" }}
-          >
-            {stats.map((stat) => (
-              <StatTile
-                key={stat.label}
-                {...stat}
-              />
-            ))}
-          </Stack>
-        )}
-      </Stack>
+      )}
     </CardContent>
   );
 };
 
 /** A figure and what it counts, set apart from the prose so the numbers can be read at a glance. */
-const StatTile = ({ value, unit, label }: { value: number | string; unit: string; label: string }) => (
+const StatTile = ({ value, label, muted }: { value: number | string; label: string; muted?: string }) => (
   <Box
     sx={{
       flex: 1,
       padding: 1,
       borderRadius: 1,
       textAlign: "center",
-      backgroundColor: "action.hover",
+      // A wash over the panel rather than a colour of its own, so a tile is always a step lighter
+      // than whatever the artwork made the ground.
+      backgroundColor: "rgba(255, 255, 255, 0.07)",
     }}
   >
     <Typography
@@ -436,17 +441,10 @@ const StatTile = ({ value, unit, label }: { value: number | string; unit: string
       sx={{ fontWeight: 700, fontSize: "1.25rem", lineHeight: 1.2 }}
     >
       {value}
-      <Typography
-        component="span"
-        variant="body2"
-        sx={{ marginLeft: 0.5, fontWeight: 400, color: "text.secondary" }}
-      >
-        {unit}
-      </Typography>
     </Typography>
     <Typography
       variant="caption"
-      sx={{ color: "text.secondary", letterSpacing: "0.08em", textTransform: "uppercase" }}
+      sx={{ color: muted, opacity: muted ? 1 : 0.75, letterSpacing: "0.08em", textTransform: "uppercase" }}
     >
       {label}
     </Typography>
