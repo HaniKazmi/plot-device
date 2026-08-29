@@ -1,16 +1,12 @@
 import { CardContent, Typography } from "@mui/material";
-import {
-  CardMediaImage,
-  DetailCard,
-  TimelineActivatedSegment,
-  TimelineCard,
-  TimelineEmptySegment,
-  TypedCardMediaImage,
-} from "../common/Card";
-import { VideoGame, companyToColor, ratingToColour } from "./types";
+import { CardMediaImage, DetailCard, TimelineCard, TypedCardMediaImage } from "../common/Card";
+import { VideoGame, companyToColor, platformToColor, ratingToColour } from "./types";
 import Grid from "@mui/material/Grid";
 import { statusToColour } from "../utils/types";
-import { CURRENT_PLAINDATE, YearMonthDay } from "../common/date";
+import { CURRENT_PLAINDATE, Year, YearMonthDay, formatDateRange } from "../common/date";
+import { buildStrip, stripYearTicks } from "../common/timelineStripData";
+import { gameSpans, spanKey } from "./cardData";
+import { useFranchiseGames } from "./franchiseContext";
 
 const VgCardMediaImage: TypedCardMediaImage<VideoGame> = ({ item, ...props }) => (
   <CardMediaImage
@@ -93,57 +89,63 @@ const VgCardMediaImage: TypedCardMediaImage<VideoGame> = ({ item, ...props }) =>
   />
 );
 
-const startYear = YearMonthDay.get(2004, 1, 1);
-const days = startYear.daysTo(CURRENT_PLAINDATE)!;
+const VG_EPOCH = YearMonthDay.get(2004, 1, 1);
+const VG_TICKS = stripYearTicks(VG_EPOCH, CURRENT_PLAINDATE);
 
+/**
+ * The whole franchise, not just the game the card is about: a series played across a decade is
+ * the thing the strip has to say, and the opened game is where in it you are.
+ */
 const VgTimelineCard = ({ item: game }: { item: VideoGame }) => {
-  if (game.startDate < startYear) return null;
+  const franchise = useFranchiseGames(game);
 
-  const startDate = game.startDate.startOfYear();
-  const endDate = game.endDate
-    ? game.endDate instanceof YearMonthDay
-      ? game.endDate
-      : startDate.addMonth()
-    : CURRENT_PLAINDATE;
-  const startDays = startYear.daysTo(startDate)!;
-  const startPercent = (startDays / days) * 100;
-  const gameLengthPercent = Math.max(((game.numDays ?? startDate.daysTo(endDate)!) / days) * 100, 0.5);
-  const endPercent = 100 - gameLengthPercent - startPercent;
+  const { bands, laneCount } = buildStrip(gameSpans(franchise, CURRENT_PLAINDATE), VG_EPOCH, CURRENT_PLAINDATE);
+  const subject = spanKey(game);
+
+  if (bands.length === 0) return null;
 
   return (
     <TimelineCard
-      segments={[
-        <TimelineEmptySegment
-          key={0}
-          percent={startPercent}
-        />,
-        <TimelineActivatedSegment
-          key={1}
-          percent={gameLengthPercent}
-          backgroundColour={["secondary.dark", "secondary.light"]}
-          tooltip={
-            <>
-              {game.numDays ? (
-                <>
-                  <Typography>
-                    Played {game.startDate.toString()} - {endDate.toString()}
-                  </Typography>
-                  <Typography>{game.numDays} Days</Typography>
-                </>
-              ) : (
-                <Typography>Played in {game.startDate.toString()}</Typography>
-              )}
-              <Typography>{game.hours} Hours</Typography>
-            </>
-          }
-        />,
-        <TimelineEmptySegment
-          key={2}
-          percent={endPercent}
-        />,
-      ]}
+      bands={bands.map((band) => ({
+        ...band,
+        colour: platformToColor(band.game),
+        muted: band.key !== subject,
+        imprecise: !band.precise,
+        tooltip: <GameTooltip game={band.game} />,
+      }))}
+      laneCount={laneCount}
+      ticks={VG_TICKS}
+      caption={franchise.length > 1 ? `${game.franchise} · ${franchise.length} games` : undefined}
     />
   );
 };
+
+const GameTooltip = ({ game }: { game: VideoGame }) => (
+  <>
+    <Typography
+      variant="h6"
+      align="center"
+    >
+      {game.name}
+    </Typography>
+    {game.startDate instanceof Year ? (
+      // The year is all the sheet holds, so it is all this says. Where the band sits inside that
+      // year is an estimate, and the caption is what stops it being read as a date.
+      <>
+        <Typography>Played in {game.startDate.toString()}</Typography>
+        <Typography
+          variant="caption"
+          sx={{ opacity: 0.7 }}
+        >
+          No month recorded — placed by release date
+        </Typography>
+      </>
+    ) : (
+      <Typography>{formatDateRange(game.startDate, game.endDate)}</Typography>
+    )}
+    {game.numDays ? <Typography>{game.numDays} Days</Typography> : null}
+    {game.hours ? <Typography>{game.hours} Hours</Typography> : null}
+  </>
+);
 
 export default VgCardMediaImage;

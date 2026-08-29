@@ -5,7 +5,9 @@ import Barchart from "./Barchart";
 import Finished from "../common/Finished";
 import Timeline from "./Timeline";
 import CardMediaImage from "./CardMediaImage";
-import { FilterDispatch, FilterState } from "./filterUtils";
+import { FilterDispatch, FilterState, guestFilter } from "./filterUtils";
+import { FranchiseContext } from "./franchiseContext";
+import { franchiseIndex } from "./cardData";
 import { memo, useDeferredValue, useState } from "react";
 import { Snackbar, Stack } from "@mui/material";
 import Filter from "./Filter";
@@ -23,7 +25,12 @@ const SuspenseBlock = ({
   filterState: FilterState;
   filterDispatch: FilterDispatch;
 }) => (
-  <>
+  // Built from the unfiltered data, because a card's franchise strip is about the series and not
+  // about the current view — filtering to one platform would otherwise amputate it. Guest mode is
+  // the exception: it hides content rather than narrowing a view, so it is applied here too.
+  <FranchiseContext.Provider
+    value={franchiseIndex(filterState.guestMode ? unfilteredData.filter(guestFilter) : unfilteredData)}
+  >
     <Graphs
       data={filteredData}
       filterState={filterState}
@@ -35,7 +42,7 @@ const SuspenseBlock = ({
       data={unfilteredData}
     />
     <DataLoadedSnackbar open={dataLoaded} />
-  </>
+  </FranchiseContext.Provider>
 );
 
 const Graphs = memo(

@@ -105,6 +105,26 @@ describe("season fields", () => {
     expect(show.minutes).toBe(0);
   });
 
+  it("leaves a blank subtitle undefined, which is what the type has always claimed", () => {
+    // The column is blank for most seasons, and an empty string would have every reader test for
+    // it separately — or render an empty line.
+    const [show] = jsonConverter([showRow(), seasonRow({ Subtitle: "" })]);
+
+    expect(show.s[0].subtitle).toBeUndefined();
+  });
+
+  it("trims a padded subtitle, because the sheet has a few", () => {
+    const [show] = jsonConverter([showRow(), seasonRow({ Subtitle: " Despair Arc" })]);
+
+    expect(show.s[0].subtitle).toBe("Despair Arc");
+  });
+
+  it("keeps a subtitle that is there", () => {
+    const [show] = jsonConverter([showRow(), seasonRow({ Subtitle: "Water" })]);
+
+    expect(show.s[0].subtitle).toBe("Water");
+  });
+
   it("counts an unparseable episode cell as 0 and says which row it was", () => {
     // Left as NaN it would propagate through the show's episode total and every statistic
     // derived from it, blanking numbers nowhere near the row at fault.

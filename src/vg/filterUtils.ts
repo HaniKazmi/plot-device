@@ -23,6 +23,13 @@ export interface FilterState extends BaseFilterState<VideoGame, Measure> {
 
 export type FilterDispatch = FilterDispatchFor<FilterState>;
 
+/**
+ * Named rather than inlined into `filters` because guest mode has to be applied a second time,
+ * to the franchise index built from the unfiltered data — an index that skipped it would put
+ * hidden games straight back on screen through a card strip.
+ */
+export const guestFilter: Predicate<VideoGame> = (vg) => !vg.theme.includes("Adult");
+
 export const filters = (state: Omit<FilterState, "filter">): Predicate<VideoGame> => {
   const predicates: Predicate<VideoGame>[] = [];
 
@@ -50,7 +57,7 @@ export const filters = (state: Omit<FilterState, "filter">): Predicate<VideoGame
   predicates.push(...yearPredicates<VideoGame>(state));
 
   if (state.guestMode) {
-    predicates.push((vg) => !vg.theme.includes("Adult"));
+    predicates.push(guestFilter);
   }
 
   return (vg: VideoGame) => predicates.every((p) => p(vg));

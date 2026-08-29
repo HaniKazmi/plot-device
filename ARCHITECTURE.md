@@ -163,6 +163,16 @@ A third piece is chrome rather than algorithm. `buildTicks` walks the month rang
 
 Two things in that layer are load-bearing and easy to undo by accident. The label `Box` sets `lineHeight` to the bar height because it is `position: fixed` with no `top` — it lands at the top of its row and is centred only by its own line box, so any change to bar height without the matching line height silently pushes every label off-centre. And the hover step on a bar is deliberately instant: a CSS transition there is created but its clock never advances, because the tooltip opening re-renders the row and restarts it every frame, leaving the bar pinned at its start value. Both `transform` and `filter` behave that way.
 
+### Card strip — `common/timelineStripData.ts`
+
+The proportional bar on an expanded card: every season of a show, every game in a franchise, against a fixed epoch–today scale. `buildStrip` returns each span as a percentage offset and width alongside the caller's own fields, so a domain never has to key its records back out of the result.
+
+Bands are positioned rather than chained. Walking gaps and bars in sequence turns an overlap into a negative gap, which drifts every later bar along the strip, and lets a minimum width push the total past 100% so flex shrink quietly distorts all of them — and a franchise produces overlaps routinely.
+
+Spans that do overlap take separate lanes, because a band drawn over another hides it completely and takes the pointer with it, leaving no way to reach the buried one. Only a genuine overlap opens a lane: a span abutting the one before it — a season handed over to the next, a game to its sequel — stays in the lane and is tiled clear of it instead, because a lane costs every band in the strip a share of its height. Both rules are date-based and shared with the full timeline through `assignRows` in `common/timelineLayout.ts`, so the two charts cannot come to disagree about what counts as an overlap. The year gridlines come from that module's `buildTicks` for the same reason.
+
+The renderer is `TimelineCard` in `common/Card.tsx`, which takes bands and ticks rather than nodes: the shell owns the whole coordinate space, so a caller reads `startPercent` and `widthPercent` and never asks how they were arrived at. Orientation lives entirely there — the data is percentages and knows nothing about which axis it will be drawn on.
+
 ### Stats and cards
 
 `common/Stats.tsx` exports three composable pieces — `StatCard` (a row of labelled figures), `StatList` (a scrollable strip of media cards with a fullscreen dialog), and `TotalStack` (a proportional segmented bar with labels). It builds the bar from `Segment`, which lives in `common/Card.tsx` alongside the other proportional-bar primitives. Domain `Stats.tsx` files assemble these into a grid; they hold the arithmetic, the shells hold the layout.
@@ -187,6 +197,14 @@ The one piece of shared arithmetic is `assignPercents` in `utils/mathUtils.ts`: 
 
 Fixed colours are the other half of the system: `types.ts` in each domain maps platforms, genres, franchises and ratings to brand-accurate hex values, and `utils/types.ts` holds the cross-domain `statusToColour`. All of them return the branded `Colour` type.
 
+`artworkPalette` in `common/Card.tsx` is what every surface carrying a sampled colour reads: a thumbnail's footer strip, a timeline hover card's panel, and the expanded card's ground, tiles and strip. One recipe rather than several treatments that happen to rhyme.
+
+The ground is the sample exactly, because that is what ties a surface to the artwork beside it. Extraction holds anything between luma 30 and 230, so which of black and white can be read on it changes from card to card — the type is therefore derived from the ground with `getContrastText` rather than fixed, and turns over with it. The remaining tones are that same contrast colour made transparent: over a coloured ground it composites to a tint of the ground's own hue, which is what a secondary tone wants to be, and it needs no rule for which direction to mix in. That covers the muted tone for dates and labels, the rules and empty tracks, the wash that lifts a tile, and the three-pixel seam every surface draws where it meets its artwork.
+
+The palette is total: with no sampled colour it fills the same shape from the theme. Extraction arrives seconds after the page and sometimes not until a reload, so the colourless state is the one every card paints first — leaving it outside the recipe is what would let the two halves drift apart, and it means no surface carries a branch asking whether there is a palette to read.
+
+`CardMediaImage` publishes its accent on a context, and every surface inside it — panel, strip, detail tile, stat tile — derives the palette from that. The card is the only thing that knows its own ground, and the alternative is naming it at each of the two dozen `DetailCard`s the three domains build, plus a second mechanism for the surfaces that are not tiles.
+
 ## 7. Cross-cutting design decisions
 
 ### `PlainDate` instead of `Date`
@@ -200,7 +218,9 @@ Design properties worth knowing:
 - **Serialisation symmetry.** `toJSON` emits the same string that `PlainDate.from()` parses, which is what makes the localStorage round-trip in §4 possible.
 - **Dispatch by length.** `from()` returns `YearMonthDay` for a 10-character string and `Year` for a 4-character one, and throws otherwise — so a partial `"2024-05"` is a loud failure, not a silent one.
 
-`daysTo` deliberately returns `undefined` when either side is year-only, which is how duration-based features degrade rather than fabricate precision.
+`firstDay()` / `lastDay()` give the range a value denotes — a whole year for `Year`, a single day for `YearMonthDay` — so a consumer states which end of an imprecise date it wants instead of picking one by reaching for a subclass.
+
+`daysTo` deliberately returns `undefined` when either side is year-only, which is how duration-based features degrade rather than fabricate precision. Where a chart cannot degrade — half the games carry a bare year, and a strip has to put them somewhere — the estimate is made once, explicitly, and labelled: `vg/cardData.ts` shares each year out between the games naming it in release order, floored by the fact that a game cannot be played before it was released, and marks the spans `precise: false` so they are drawn as estimates rather than dates.
 
 ### Prototype augmentation
 
@@ -221,7 +241,7 @@ Setup is the plugin's documented path: `@vitejs/plugin-react` exports `reactComp
 - **`this`** anywhere in the function. Highcharts binds the chart to `this` in its event callbacks, so those must live at module scope (see `dimLeafRing` in §6) or they take the whole component down with them.
 - **`??=`**, which the compiler cannot yet lower. Write `x = x ?? y` instead.
 
-At the time of writing 81 functions compile and 2 bail — a `MethodCall` codegen error in `vg/CardMediaImage.tsx` and an arrow-reordering limit in `common/Stats.tsx`. Both are compiler-internal limitations and neither is on a hot path. A `MethodCall` bailout does respond to moving the offending computation into a plain module, which is how the three `show/Stats.tsx` bailouts were cleared. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
+At the time of writing 83 functions compile and 10 bail, all of them on one compiler-internal limit: `BuildHIR::lowerAssignment` cannot lower a destructured prop that carries a default value, so `({ landscape = false })` takes its whole component out. That covers `common/Card.tsx`, `common/Stats.tsx`, `common/Finished.tsx` and `vg/Stats.tsx`. A `MethodCall` bailout, the other kind seen here, does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
 
 The compiler costs about 4% of bundle size (~15KB gzipped) in injected cache slots. That is a deliberate trade, and `npm run analyze` exists to keep it honest.
 
@@ -277,5 +297,5 @@ Recorded so they are not mistaken for design:
 - **No DOM or component tests.** `tests/` covers pure logic — converters, filters, the reducer, the chart data transforms and the cache round trip — and deliberately stops there; AGENTS.md explains the trade. Nothing verifies that a chart renders, and the show converter's date ordering is still only a `console.assert`, which does not alter control flow.
 - **`.eslintrc.cjs` is dead.** ESLint 9 uses the flat `eslint.config.js`; the legacy file remains in the tree and is not applied. The flat config is also the weaker of the two — it drops the type-checked and React-specific rule sets the old file enabled.
 - **Cache keys are unversioned**, so domain model changes can meet stale `localStorage` objects (§4).
-- **Two React Compiler bailouts** remain (§7). Compiler-internal limits, neither on a hot path, but they mean those functions get no auto-memoization.
+- **Ten React Compiler bailouts** remain (§7), all on the same limit: a destructured prop with a default value opts its component out. Four are in `common/Card.tsx`, which every media card in the app renders, so this is the one bailout that is on a hot path.
 - **`PlainDate.valueOf` returns a string**, so every date comparison goes through `toString()` and allocates. It is correct and the ordering is deliberate (§7), but the hot path — the timeline's greedy packing loop — does tens of thousands of comparisons per layout. A numeric sort key computed once per interned instance would preserve ordering exactly, including across mixed `Year`/`YearMonthDay`. Deliberately not done: it touches the most load-bearing class in the codebase for a win nobody has measured as necessary.

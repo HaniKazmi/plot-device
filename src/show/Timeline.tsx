@@ -1,11 +1,11 @@
-import { CardHeader, FormGroup, FormControlLabel, Switch, Typography } from "@mui/material";
+import { CardHeader, FormGroup, FormControlLabel, Switch } from "@mui/material";
 import { useState } from "react";
-import { Season, Show } from "./types";
+import { Season, Show, isShow } from "./types";
 import Timeline, { TimelineData } from "../common/Timeline";
 import { Colour, statusToColour } from "../utils/types";
-import { CURRENT_PLAINDATE } from "../common/date";
+import { CURRENT_PLAINDATE, formatDateRange } from "../common/date";
 import ShowCardMediaImage from "./CardMediaImage";
-import { FooterComponent } from "../common/Card";
+import { CardPanel } from "../common/Card";
 
 const ShowTimeline = ({ data }: { data: Show[] }) => {
   const [groupData, setGroupData] = useState(false);
@@ -24,13 +24,17 @@ const ShowTimeline = ({ data }: { data: Show[] }) => {
         item={s}
         extractColour
         footerComponent={
-          <FooterComponent
-            labels={[
-              [<Typography variant="h6">{title}</Typography>],
-              [`${s.startDate.toString()} - ${s.endDate?.toString() ?? "present"}`],
-              [...(s.e && s.minutes ? [`${s.e} Eps`, `${Math.round(s.minutes / 60)} Hours`] : [])],
+          <CardPanel
+            landscape
+            // The chart's own label for the bar, so the card names exactly what was hovered — a
+            // season, or a whole show when the seasons are combined.
+            title={title}
+            subtitle={isShow(s) ? undefined : s.subtitle}
+            dateRange={formatDateRange(s.startDate, s.endDate)}
+            stats={[
+              { value: s.e, label: "Eps" },
+              { value: Math.round(s.minutes / 60), label: "Hours" },
             ]}
-            justify
           />
         }
       />

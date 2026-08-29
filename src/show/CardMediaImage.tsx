@@ -1,17 +1,10 @@
 import { CardContent, Typography } from "@mui/material";
-import {
-  CardMediaImage,
-  DetailCard,
-  TimelineActivatedSegment,
-  TimelineCard,
-  TimelineEmptySegment,
-  TypedCardMediaImage,
-} from "../common/Card";
+import { CardMediaImage, DetailCard, TimelineCard, TypedCardMediaImage } from "../common/Card";
 import { Season, Show, isShow } from "./types";
 import Grid from "@mui/material/Grid";
 import { statusToColour } from "../utils/types";
-import { CURRENT_PLAINDATE, YearMonthDay } from "../common/date";
-import type { ReactNode } from "react";
+import { CURRENT_PLAINDATE, YearMonthDay, formatDateRange } from "../common/date";
+import { buildStrip, stripYearTicks } from "../common/timelineStripData";
 
 const ShowCardMediaImage = <T extends Show | Season>({ item, ...props }: Parameters<TypedCardMediaImage<T>>[0]) => {
   const show = isShow(item) ? item : item.show;
@@ -59,71 +52,51 @@ const ShowCardMediaImage = <T extends Show | Season>({ item, ...props }: Paramet
   );
 };
 
-const startYear = YearMonthDay.get(2008, 1, 1);
-const days = startYear.daysTo(CURRENT_PLAINDATE)!;
+const SHOW_EPOCH = YearMonthDay.get(2008, 1, 1);
+const SHOW_TICKS = stripYearTicks(SHOW_EPOCH, CURRENT_PLAINDATE);
 
 const ShowTimelineCard = ({ item }: { item: Show }) => {
-  if (!item.startDate || item.startDate < startYear) return null;
-  const segments: ReactNode[] = [];
-  let lastDate = startYear;
+  const { bands, laneCount } = buildStrip(
+    item.s.map((season) => ({
+      key: `S${season.s}`,
+      start: season.startDate,
+      end: season.endDate ?? CURRENT_PLAINDATE,
+      season,
+    })),
+    SHOW_EPOCH,
+    CURRENT_PLAINDATE,
+  );
 
-  item.s.forEach((season, index) => {
-    // Calculate the empty gap from the last date to this season's start.
-    if (lastDate < season.startDate) {
-      const daysToSeasonStart = lastDate.daysTo(season.startDate)!;
-      const percentToSeasonStart = (daysToSeasonStart / days) * 100;
-      segments.push(
-        <TimelineEmptySegment
-          key={`${season.s}-before`}
-          percent={percentToSeasonStart}
-        />,
-      );
-    }
+  if (bands.length === 0) return null;
 
-    const endDate = season.endDate ?? CURRENT_PLAINDATE;
-    const seasonLengthPercent = Math.max((season.startDate.daysTo(endDate)! / days) * 100, 0.5);
-
-    segments.push(
-      <TimelineActivatedSegment
-        key={season.s}
-        percent={seasonLengthPercent}
-        backgroundColour={[
-          `${index % 2 === 0 ? "secondary" : "primary"}.light`,
-          `${index % 2 === 0 ? "secondary" : "primary"}.main`,
-        ]}
-        tooltip={
-          <>
-            <Typography
-              variant="h6"
-              align="center"
-            >
-              S{season.s}
-            </Typography>
-            <Typography>
-              {season.startDate.toString()} - {endDate.toString()}
-            </Typography>
-            <Typography>{season.e} Episodes</Typography>
-            <Typography>{Math.floor(season.minutes / 60)} Hours</Typography>
-          </>
-        }
-      />,
-    );
-
-    lastDate = endDate.increment();
-  });
-
-  if (lastDate < CURRENT_PLAINDATE) {
-    const daysToEnd = lastDate.daysTo(CURRENT_PLAINDATE)!;
-    const percentToEnd = (daysToEnd / days) * 100;
-    segments.push(
-      <TimelineEmptySegment
-        key={"last"}
-        percent={percentToEnd}
-      />,
-    );
-  }
-
-  return <TimelineCard segments={segments} />;
+  return (
+    <TimelineCard
+      bands={bands.map((band, index) => ({
+        ...band,
+        // One hue in two strengths. Alternating across two palette colours makes adjacent seasons
+        // distinguishable but reads as two different things being plotted.
+        colour: index % 2 === 0 ? "secondary.light" : "secondary.main",
+        tooltip: <SeasonTooltip season={band.season} />,
+      }))}
+      laneCount={laneCount}
+      ticks={SHOW_TICKS}
+      caption={`${item.s.length} ${item.s.length === 1 ? "season" : "seasons"}`}
+    />
+  );
 };
+
+const SeasonTooltip = ({ season }: { season: Season }) => (
+  <>
+    <Typography
+      variant="h6"
+      align="center"
+    >
+      S{season.s}
+    </Typography>
+    <Typography>{formatDateRange(season.startDate, season.endDate)}</Typography>
+    <Typography>{season.e} Episodes</Typography>
+    <Typography>{Math.floor(season.minutes / 60)} Hours</Typography>
+  </>
+);
 
 export default ShowCardMediaImage;

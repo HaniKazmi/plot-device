@@ -44,6 +44,9 @@ const LABEL_FONT_SIZE = 13;
 const MONTH_FONT_SIZE = 12;
 const YEAR_FONT_SIZE = 15;
 
+/** The mat of bar colour around a hover card, which shows its own extracted colour inside. */
+const TOOLTIP_MAT = 4;
+
 const pct = (percent: number) => `${percent}%`;
 
 /**
@@ -390,12 +393,30 @@ const TimelineText = ({
         ref={foRef}
       >
         <Tooltip
+          arrow
           disableInteractive
           title={<LazyTooltip render={event.tooltip} />}
           slotProps={{
             tooltip: {
-              sx: { backgroundColor: event.colour, width: "500px", maxWidth: "500px", minHeight: "325px" },
+              sx: (theme) => ({
+                backgroundColor: event.colour,
+                // Even on all four sides, and the outer radius set to the card's own plus the gap.
+                // A mat of one thickness reads as a frame; the default padding is wider at the
+                // sides than the top and pinches at every corner, which reads as a mistake.
+                padding: `${TOOLTIP_MAT}px`,
+                borderRadius: `${Number(theme.shape.borderRadius) + TOOLTIP_MAT}px`,
+                // The card inside carries an elevation of its own, which the mat then covers. The
+                // shadow has to sit on the outside to lift the whole card off the chart it is
+                // drawn over — and a hover card that casts nothing reads as part of the grid.
+                boxShadow: theme.shadows[8],
+                width: "500px",
+                maxWidth: "500px",
+              }),
             },
+            // The arrow takes the tooltip's default ground rather than the one set above, so the
+            // colour has to be given to it again. It is what makes the mat mean something: the
+            // card is that colour because it belongs to the bar the arrow points back at.
+            arrow: { sx: { color: event.colour } },
           }}
         >
           <Box

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { YearMonth, YearMonthDay } from "../../src/common/date";
-import { buildTicks, decidePlacement, packRows, type TimelineData } from "../../src/common/timelineLayout";
+import { assignRows, buildTicks, decidePlacement, packRows, type TimelineData } from "../../src/common/timelineLayout";
 import type { Colour } from "../../src/utils/types";
 
 const item = (name: string, start: [number, number, number], end: [number, number, number]): TimelineData => ({
@@ -9,6 +9,41 @@ const item = (name: string, start: [number, number, number], end: [number, numbe
   colour: "#ff0000" as Colour,
   start: YearMonthDay.get(...start),
   end: YearMonthDay.get(...end),
+});
+
+const interval = (start: [number, number, number], end: [number, number, number]) => ({
+  start: YearMonthDay.get(...start),
+  end: YearMonthDay.get(...end),
+});
+
+describe("assignRows", () => {
+  // The rule both the full timeline and the card strip pack by, which is why it lives here.
+  it("keeps items that do not overlap on one row", () => {
+    expect(assignRows([interval([2024, 1, 1], [2024, 2, 1]), interval([2024, 3, 1], [2024, 4, 1])])).toEqual([0, 0]);
+  });
+
+  it("opens a row for an item that overlaps the one before it", () => {
+    expect(assignRows([interval([2024, 1, 1], [2024, 6, 1]), interval([2024, 3, 1], [2024, 4, 1])])).toEqual([0, 1]);
+  });
+
+  it("keeps an item that starts the day another ends on the same row", () => {
+    // A handoff, not concurrent activity: separating these would say both were going at once.
+    expect(assignRows([interval([2024, 1, 1], [2024, 3, 1]), interval([2024, 3, 1], [2024, 4, 1])])).toEqual([0, 0]);
+  });
+
+  it("reuses a row that has freed up rather than always opening a new one", () => {
+    expect(
+      assignRows([
+        interval([2024, 1, 1], [2024, 12, 1]),
+        interval([2024, 2, 1], [2024, 3, 1]),
+        interval([2024, 4, 1], [2024, 5, 1]),
+      ]),
+    ).toEqual([0, 1, 1]);
+  });
+
+  it("returns nothing for nothing", () => {
+    expect(assignRows([])).toEqual([]);
+  });
 });
 
 describe("packRows", () => {

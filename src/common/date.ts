@@ -51,6 +51,17 @@ export abstract class PlainDate {
 
   abstract increment(): this;
 
+  /**
+   * The first and last day this value can mean. A `Year` denotes a whole year and a `YearMonth` a
+   * whole month, so the two differ for them and coincide for a `YearMonthDay`.
+   *
+   * This is how a consumer states which end of an imprecise date it wants, rather than reaching
+   * for a subclass and picking one by accident.
+   */
+  abstract firstDay(): YearMonthDay;
+
+  abstract lastDay(): YearMonthDay;
+
   iterateToDate(endDate: PlainDate): this[] {
     const array: this[] = [];
     // eslint-disable-next-line @typescript-eslint/no-this-alias
@@ -96,8 +107,12 @@ export class Year extends PlainDate {
     return this;
   }
 
-  startOfYear() {
+  firstDay() {
     return YearMonthDay.get(this.year, 1, 1);
+  }
+
+  lastDay() {
+    return YearMonthDay.get(this.year, 12, 31);
   }
 }
 
@@ -142,6 +157,14 @@ export class YearMonth extends PlainDate {
 
   startOfMonth() {
     return YearMonthDay.get(this.year, this.month, 1);
+  }
+
+  firstDay() {
+    return this.startOfMonth();
+  }
+
+  lastDay() {
+    return YearMonthDay.get(this.year, this.month, monthToDays(this.month, this.year));
   }
 }
 
@@ -208,7 +231,11 @@ export class YearMonthDay extends PlainDate {
     return YearMonthDay.get(newYear, newMonth, 1) as this;
   }
 
-  startOfYear() {
+  firstDay() {
+    return this;
+  }
+
+  lastDay() {
     return this;
   }
 
@@ -232,6 +259,28 @@ const monthToDays = (month: number, year: number) => {
 
 const nextMonth = (year: YearNumber, month: number): [YearNumber, number] =>
   month === 12 ? [(year + 1) as YearNumber, 1] : [year, month + 1];
+
+/**
+ * A range the way a reader says one — "6 Sep – 20 Oct 2023", with the year given once when both
+ * ends share it, and dropped to just the year where that is all the source recorded.
+ *
+ * `PlainDate.toString` is the machine form: it sorts, round-trips through storage and never
+ * argues about a locale. This is the other job, and keeping the two apart is what stops either
+ * being bent towards the other.
+ */
+export const formatDateRange = (start: YearMonthDay | Year, end?: YearMonthDay | Year) => {
+  if (!end) return `${describeDate(start)} – present`;
+  // Interning is bypassed by `currentDate`, so identity is not a safe test for the same day.
+  if (start.toString() === end.toString()) return describeDate(start);
+
+  const sameYear = start.year === end.year;
+  return `${describeDate(start, !sameYear)} – ${describeDate(end)}`;
+};
+
+const describeDate = (date: YearMonthDay | Year, withYear = true) =>
+  date instanceof YearMonthDay
+    ? `${date.day} ${date.toYearMonth().monthString()}${withYear ? ` ${date.year}` : ""}`
+    : `${date.year}`;
 
 export const CURRENT_PLAINDATE = YearMonthDay.currentDate();
 
