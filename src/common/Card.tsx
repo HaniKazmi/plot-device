@@ -14,12 +14,13 @@ import {
   Theme,
   Tooltip,
   Typography,
+  useTheme,
   type ChipProps,
 } from "@mui/material";
 import { type FunctionComponent, type ReactNode, useEffect, useRef, useState } from "react";
 import { CalendarMonthOutlined } from "@mui/icons-material";
 import { cachedColour, extractColourFrom, withAlpha } from "../utils/colourUtils";
-import { lighten } from "@mui/material/styles";
+import { alpha } from "@mui/material/styles";
 import Grid from "@mui/material/Grid";
 import type { Colour } from "../utils/types";
 import type { TimelineTick } from "./timelineLayout";
@@ -331,32 +332,40 @@ export const DetailCard = ({
  * take it mixed towards white. Grey against a coloured panel reads as dead; the panel's own hue
  * reads as chosen, and keeps the whole card to one colour in three tones plus white.
  */
-const PANEL_OVERLAY = "rgba(0, 0, 0, 0.55)";
 const SEAM_WIDTH = 3;
-const MUTED_TOWARDS_WHITE = 0.65;
+/** Of the ground's own contrast colour: the secondary tone, the seam, and a tile's lift. */
+const MUTED_ALPHA = 0.72;
+const SEAM_ALPHA = 0.22;
+const TILE_ALPHA = 0.1;
 
 /**
  * One hue in three tones, derived from a colour sampled off artwork. Every surface that carries a
  * sampled colour takes its ground, its type and its accent from here, so a thumbnail's strip and
  * the hover card above it are the same recipe rather than two treatments that happen to rhyme.
  *
- * The ground is the sample under black rather than the sample itself. Sampling holds anything
- * between luma 30 and 230, so used raw it is a near-white surface on one card and a near-black one
- * on the next — and the type then has to keep changing colour to follow it, which is where
- * contrast gets thin. Under a fixed overlay the hue stays plainly recognisable and white always
- * reads. The secondary tone is that same hue mixed towards white, because grey on a coloured
- * ground reads as dead where the ground's own hue reads as chosen.
+ * The ground is the sample exactly, because that is what ties a surface to the art beside it.
+ * Sampling holds anything between luma 30 and 230, so which of black and white can be read on it
+ * changes from card to card — the type is therefore derived from the ground rather than fixed, and
+ * turns over with it.
+ *
+ * The other two tones are that same contrast colour made transparent. Over a coloured ground it
+ * composites to a tint of the ground's own hue, which is what a secondary tone wants to be: grey
+ * against a coloured surface reads as dead where the surface's own hue reads as chosen. Mixing the
+ * two by hand lands in the same place and has to be told which way to mix.
  */
-const artworkPalette = (accent: Colour) => ({
-  ground: {
-    backgroundColor: accent,
-    backgroundImage: `linear-gradient(${PANEL_OVERLAY}, ${PANEL_OVERLAY})`,
-  },
-  onGround: "common.white",
-  muted: lighten(accent, MUTED_TOWARDS_WHITE),
-  /** The sample at full strength, for the edge where a surface meets the artwork it came from. */
-  seam: `${SEAM_WIDTH}px solid ${accent}`,
-});
+const artworkPalette = (accent: Colour, theme: Theme) => {
+  const onGround = theme.palette.getContrastText(accent);
+
+  return {
+    ground: { backgroundColor: accent },
+    onGround,
+    muted: alpha(onGround, MUTED_ALPHA),
+    /** The edge where a surface meets the artwork it was sampled from. */
+    seam: `${SEAM_WIDTH}px solid ${alpha(onGround, SEAM_ALPHA)}`,
+    /** A tile lifted off the ground it sits on, in whichever direction reads against it. */
+    tile: alpha(onGround, TILE_ALPHA),
+  };
+};
 
 /**
  * The panel beside or beneath a hover card's artwork: what the item is, when, and how much of it.
@@ -380,7 +389,8 @@ export const CardPanel = ({
   stats: { value: number | string; label: string }[];
   landscape?: boolean;
 }) => {
-  const palette = accent && artworkPalette(accent);
+  const theme = useTheme();
+  const palette = accent && artworkPalette(accent, theme);
   const muted = palette?.muted;
 
   return (
@@ -446,6 +456,7 @@ export const CardPanel = ({
             <StatTile
               key={stat.label}
               muted={muted}
+              tile={palette?.tile}
               {...stat}
             />
           ))}
@@ -456,16 +467,26 @@ export const CardPanel = ({
 };
 
 /** A figure and what it counts, set apart from the prose so the numbers can be read at a glance. */
-const StatTile = ({ value, label, muted }: { value: number | string; label: string; muted?: string }) => (
+const StatTile = ({
+  value,
+  label,
+  muted,
+  tile,
+}: {
+  value: number | string;
+  label: string;
+  muted?: string;
+  tile?: string;
+}) => (
   <Box
     sx={{
       flex: 1,
       padding: 1,
       borderRadius: 1,
       textAlign: "center",
-      // A wash over the panel rather than a colour of its own, so a tile is always a step lighter
-      // than whatever the artwork made the ground.
-      backgroundColor: "rgba(255, 255, 255, 0.07)",
+      // A wash of the ground's own contrast colour, so a tile lifts off a pale sample as readily
+      // as off a dark one.
+      backgroundColor: tile ?? "action.hover",
     }}
   >
     <Typography
@@ -500,7 +521,8 @@ export const FooterComponent = ({
   divider?: boolean;
   accent?: Colour;
 }) => {
-  const palette = accent && artworkPalette(accent);
+  const theme = useTheme();
+  const palette = accent && artworkPalette(accent, theme);
 
   return (
     <CardContent
