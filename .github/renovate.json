@@ -1,0 +1,28 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "timezone": "Europe/London",
+  "schedule": ["* 0-6 * * 0"],
+  "description": [
+    "Weekly, because a personal dashboard has no cadence to keep up with, and each run costs a full tsc, lint, test and vite build. Batching a week of bumps into one wake-up keeps the queue readable.",
+    "Nothing automerges: a merge to master deploys to plot.hani.fyi in the same CI run, so an automerged bump is a production deploy with nobody looking. The suite is pure logic and there are no DOM or component tests, so a green run says the bundle builds and the arithmetic holds — not that a chart still renders."
+  ],
+  "automerge": false,
+  "packageRules": [
+    {
+      "description": "vite.config.ts strips this package's series autoloaders by regex against its compiled output, matching a literal `const seriesModuleLoaders = {...}`. A replace that finds nothing returns the code unchanged, so a release reshaping that declaration leaves the plugin doing nothing and the autoloaders back in the bundle — a silent size regression rather than a build failure. A bump here wants `npm run analyze` read against the committed analyze.json. Ungrouped so that check has one PR to happen in.",
+      "matchPackageNames": ["@highcharts/react"],
+      "groupName": "highcharts"
+    },
+    {
+      "description": "One thing in two packages: eslint-plugin-react-hooks@7's recommended config is the React Compiler's own rule set, so a gap between them changes which violations get reported without changing which exist. A compiler bump also moves the bailout count, and nothing in CI can see a bailout — `this` and `??=` compile fine and quietly lose memoization. The check is the logger procedure in AGENTS.md, run by hand, so both move in one PR and one pass covers them.",
+      "matchPackageNames": ["babel-plugin-react-compiler", "eslint-plugin-react-hooks"],
+      "groupName": "react compiler"
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions"
+    }
+  ],
+  "configMigration": true
+}
