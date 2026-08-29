@@ -86,6 +86,7 @@ Ordered by how quietly they fail.
 
 - **Never name a field `somethingDate` unless it is a `PlainDate`.** `useData`'s `JSON.parse` reviver converts _any_ key containing `"Date"`, so a `lastUpdateDate: string` comes back from cache as a broken date object. Only shows up after a reload.
 - **Never read a browser global at module scope.** `const storage = localStorage` at the top of a module makes merely importing it throw wherever the global is absent. Node exposes `localStorage` and `sessionStorage` from v24 but not on v22, which CI runs, so this passes locally and fails there. Read the global inside the function that needs it. `tests/architecture.test.ts` enforces this.
+- **Never put a bare colour after a comma in the `background` shorthand.** `background: linear-gradient(a, a), ${colour}` looks like an overlay over a colour and is not: only the last layer may carry a background-colour, and it is space-separated. A colour written as its own comma-separated layer is not a valid `<bg-image>`, so that half is dropped and the computed value reads `linear-gradient(a, a), none` — an overlay sitting on nothing. Set `backgroundImage` and `backgroundColour` as two properties instead.
 - **Never add a field named `show` to a non-`show` domain.** `show/Show.tsx` passes a replacer that strips that key on cache write; it is scoped to that domain, but the name is the trigger.
 - **Cache keys are unversioned.** Changing a domain model's shape leaves stale objects in existing browsers' `localStorage`. When testing a model change, clear the relevant `*-data-cache` key first, or you will debug the old shape.
 - **`PlainDate.from()` throws on partial dates.** It dispatches on string length: 10 chars → `YearMonthDay`, 4 → `Year`. `"2024-05"` throws. That is deliberate — it surfaces bad sheet data loudly.
@@ -114,6 +115,7 @@ Authentication notes that will otherwise waste your time:
 - The OAuth token lives in **`sessionStorage`, which is per-tab**. A login in one tab does not carry to another. Click **Authorise** in the app bar in the tab you are actually driving.
 - A failed sheet fetch clears the token and flips the button back to "Authorise" — so an empty page plus an "Authorise" button usually means an auth problem, not a rendering bug. Check the console before assuming your change broke something.
 - Data is cached in `localStorage`, so the app paints before auth completes. A stale render can outlive a broken change.
+- **Extracted artwork colours arrive seconds after the page does**, and sometimes not at all until a reload. Anything painted from one — a card's ground, a footer strip, a hover panel — renders in the theme's own colours until then, which looks like the styling has broken rather than like it has not arrived. Confirm against a card whose colour has landed before concluding anything about colour-dependent CSS.
 
 **To test without touching real data**, seed the caches directly and reload — `useData` reads them synchronously on mount, and with no token it will not overwrite them:
 
