@@ -86,7 +86,9 @@ const estimateUndatedSpans = (games: VideoGame[]) => {
       // played, which is a contradiction the strip should survive rather than adjudicate.
       const floor =
         game.releaseDate.year === year ? Math.min(days.length - 1, days[0].daysTo(game.releaseDate)! - 1) : 0;
-      const start = Math.max(cursor, floor);
+      // Clamped for the same reason the floor is: a group that fills its year exactly leaves the
+      // cursor one day past the end of it, and the day a span opens on has to be a day that exists.
+      const start = Math.min(days.length - 1, Math.max(cursor, floor));
       const width = Math.max(1, Math.floor((days.length - start) / (ordered.length - index)));
       const end = Math.min(days.length - 1, start + width - 1);
 

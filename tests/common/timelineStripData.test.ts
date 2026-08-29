@@ -125,6 +125,19 @@ describe("buildStrip lanes", () => {
     ]);
   });
 
+  it("tiles spans at the right edge apart rather than clamping them back into one stack", () => {
+    // Tiling has nowhere left to put these, and the fallback that matters is which way it fails:
+    // holding them inside the scale would return them to exactly the stack tiling exists to
+    // break up, with all but the last unhoverable. Overhanging leaves each one's left edge on
+    // the strip and lets the track clip the rest.
+    const last: [number, number, number] = [2024, 1, 1];
+    const { bands } = buildStrip([span("a", last, last), span("b", last, last), span("c", last, last)], EPOCH, TODAY);
+
+    expect(new Set(bands.map((band) => band.startPercent)).size).toBe(3);
+    expect(bands[1].startPercent).toBeGreaterThan(bands[0].startPercent);
+    expect(bands[2].startPercent).toBeGreaterThan(bands[1].startPercent);
+  });
+
   it("still opens a lane for a span buried inside another, which tiling cannot rescue", () => {
     const { bands, laneCount } = buildStrip(
       [span("long", [2021, 1, 1], [2023, 1, 1]), span("day", [2022, 1, 1], [2022, 1, 1])],

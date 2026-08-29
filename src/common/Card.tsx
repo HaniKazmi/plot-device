@@ -49,6 +49,22 @@ export type TypedCardMediaImage<T> = FunctionComponent<
   Omit<CardMediaImageProps, "image" | "alt" | "detailComponent"> & { item: T }
 >;
 
+/**
+ * Everything an image is asked for once it has pixels. At module scope because the effect below
+ * calls it too, and a component-scope function is a new value every render — either a dependency
+ * that re-runs the effect on each one, or a suppressed rule.
+ */
+const readImage = (
+  img: HTMLImageElement | null,
+  extract: boolean,
+  setRatio: (ratio: number) => void,
+  setExtracted: (colour: Colour) => void,
+) => {
+  if (!img?.naturalWidth) return;
+  setRatio(img.naturalWidth / img.naturalHeight);
+  if (extract) extractColourFrom(img, setExtracted);
+};
+
 export const CardMediaImage = ({
   image,
   alt,
@@ -88,13 +104,6 @@ export const CardMediaImage = ({
     if (img && !colour) extractColourFrom(img, setExtracted);
   };
 
-  /** Everything an image is asked for once it has pixels. */
-  const readImage = (img: HTMLImageElement | null) => {
-    if (!img?.naturalWidth) return;
-    setRatio(img.naturalWidth / img.naturalHeight);
-    if (extractColour && !colour) extractColourFrom(img, setExtracted);
-  };
-
   // `load` does not bubble, so React delivers it through a root listener that only sees events
   // dispatched once the element is in the document. An image served from cache can finish before
   // that, and then `onLoad` never runs and nothing else would ever ask it for a colour or a shape.
@@ -102,8 +111,7 @@ export const CardMediaImage = ({
   // means the image is there to be read whether or not the event arrived.
   useEffect(() => {
     const img = imgRef.current;
-    if (img?.complete) readImage(img);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (img?.complete) readImage(img, extractColour && !colour, setRatio, setExtracted);
   }, [extractColour, colour, image]);
 
   return (
@@ -134,7 +142,7 @@ export const CardMediaImage = ({
             }}
             loading={lazy ? "lazy" : undefined}
             ref={imgRef}
-            onLoad={(el) => readImage(el.currentTarget)}
+            onLoad={(el) => readImage(el.currentTarget, extractColour && !colour, setRatio, setExtracted)}
             sx={sx}
           />
           {chip && (

@@ -100,6 +100,7 @@ const VgTimelineCard = ({ item: game }: { item: VideoGame }) => {
   const franchise = useFranchiseGames(game);
 
   const { bands, laneCount } = buildStrip(gameSpans(franchise, CURRENT_PLAINDATE), VG_EPOCH, CURRENT_PLAINDATE);
+  const subject = spanKey(game);
 
   if (bands.length === 0) return null;
 
@@ -108,7 +109,7 @@ const VgTimelineCard = ({ item: game }: { item: VideoGame }) => {
       bands={bands.map((band) => ({
         ...band,
         colour: platformToColor(band.game),
-        muted: band.key !== spanKey(game),
+        muted: band.key !== subject,
         imprecise: !band.precise,
         tooltip: <GameTooltip game={band.game} />,
       }))}

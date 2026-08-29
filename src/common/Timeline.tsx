@@ -411,7 +411,6 @@ const TimelineText = ({
                 boxShadow: theme.shadows[8],
                 width: "500px",
                 maxWidth: "500px",
-                minHeight: "325px",
               }),
             },
             // The arrow takes the tooltip's default ground rather than the one set above, so the

@@ -89,9 +89,14 @@ export const buildStrip = <T extends StripSpan>(spans: T[], epoch: YearMonthDay,
     // This is also what keeps several entries recorded on a single date visible. Giving each of
     // them a lane would work too, and costs far more: a lane is a share of the strip's whole
     // height, spent on every band in it, to separate spans that never actually overlapped.
+    //
+    // A lane whose last band already reaches the right edge has nowhere left to tile into. The
+    // band overhangs and is clipped by the track rather than being pulled back to fit, because
+    // pulling it back lands it on top of the band it was being moved clear of — and then every
+    // later band in that lane clamps to the same spot, which is the stack this exists to break up.
     const lane = lanes[index];
     const drawnTo = laneDrawnTo[lane];
-    if (drawnTo !== undefined && startPercent < drawnTo) startPercent = Math.min(drawnTo, 100 - widthPercent);
+    if (drawnTo !== undefined && startPercent < drawnTo) startPercent = drawnTo;
     laneDrawnTo[lane] = startPercent + widthPercent;
 
     return { ...span, startPercent, widthPercent, lane } as StripBand<T>;

@@ -116,6 +116,19 @@ describe("gameSpans for undated years", () => {
     expect(span.start <= span.end).toBe(true);
   });
 
+  it("keeps a game floored onto the last day of its year off the whole of that year", () => {
+    // The share-out leaves the cursor one past the end of a year it fills exactly, so a second
+    // game floored onto that last day asks for the day after it — a day the year does not have.
+    // The estimate then has no start, and the fallback for a game with no estimate is 1 January,
+    // which draws a December release across the entire year and over its neighbour.
+    const spans = gameSpans([undated("first", 2008, [2008, 12, 31]), undated("second", 2008, [2008, 12, 31])], TODAY);
+
+    spans.forEach((span) => {
+      expect(span.start >= YearMonthDay.get(2008, 12, 1)).toBe(true);
+      expect(span.start <= span.end).toBe(true);
+    });
+  });
+
   it("estimates each year independently", () => {
     const spans = gameSpans([undated("a", 2008, [2001, 1, 1]), undated("b", 2010, [2002, 1, 1])], TODAY);
 
