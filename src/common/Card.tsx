@@ -17,7 +17,7 @@ import {
   useTheme,
   type ChipProps,
 } from "@mui/material";
-import { type FunctionComponent, type ReactNode, useEffect, useRef, useState } from "react";
+import { createContext, useContext, type FunctionComponent, type ReactNode, useEffect, useRef, useState } from "react";
 import { CalendarMonthOutlined } from "@mui/icons-material";
 import { cachedColour, extractColourFrom, withAlpha } from "../utils/colourUtils";
 import { alpha } from "@mui/material/styles";
@@ -82,6 +82,9 @@ export const CardMediaImage = ({
    */
   const [ratio, setRatio] = useState<number | undefined>(undefined);
   const imgRef = useRef<HTMLImageElement>(null);
+
+  const theme = useTheme();
+  const dialogPalette = colour && artworkPalette(colour, theme);
 
   const readColour = (img: HTMLImageElement | null) => {
     if (img && !colour) extractColourFrom(img, setExtracted);
@@ -167,82 +170,84 @@ export const CardMediaImage = ({
           transition: { onExited: () => setDetailMounted(false) },
         }}
       >
-        <Card
-          variant="elevation"
-          sx={{
-            backgroundColor: colour,
-            color: (theme) => colour && theme.palette.getContrastText(colour),
-          }}
-        >
-          <Box
-            onClick={() => setDialogOpen(false)}
+        <ArtworkPalette.Provider value={dialogPalette}>
+          <Card
+            variant="elevation"
             sx={{
-              position: "relative",
+              backgroundColor: colour,
+              color: (theme) => colour && theme.palette.getContrastText(colour),
             }}
           >
             <Box
-              sx={{
-                background: colour && `linear-gradient(to bottom, ${withAlpha(colour, "00")} 80%, ${colour})`,
-                position: "absolute",
-                top: "90%",
-                left: 0,
-                right: 0,
-                bottom: 0,
-              }}
-            />
-            <CardMedia
-              component="img"
-              crossOrigin="anonymous"
-              sx={(theme) => {
-                // `svh` and not `vh`, because a phone reports `vh` with its toolbar retracted, so
-                // an image sized to it overflows the screen it is meant to fit. `dvh` would track
-                // the toolbar instead, and resize the artwork under the reader at the moment they
-                // scroll past it to the details.
-                const room = {
-                  width: `calc(100vw - ${theme.spacing(4)})`,
-                  height: `calc(100svh - ${theme.spacing(4)})`,
-                };
-
-                return {
-                  objectFit: "contain",
-                  display: "block",
-                  // On their own these only ever take away: an element with an automatic width is
-                  // already its intrinsic width, so artwork smaller than the screen stays small.
-                  // They are still the whole rule until the shape is known.
-                  maxWidth: room.width,
-                  maxHeight: room.height,
-                  ...(ratio && {
-                    // Filling the width and deriving the height scales the artwork up as well as
-                    // down. Which of the two is the binding one is left to `min`, so it is decided
-                    // against the room actually available and decided again on a rotation — where
-                    // a stored answer would be the one from whichever way round the screen was
-                    // when the image loaded.
-                    width: `min(${room.width}, calc(${room.height} * ${ratio}))`,
-                    height: "auto",
-                  }),
-                };
-              }}
-              src={image}
-              title={alt}
-              loading="lazy"
               onClick={() => setDialogOpen(false)}
-            />
-          </Box>
-          <Box
-            sx={{
-              display: "flex",
-            }}
-          >
-            <Box
               sx={{
-                flexGrow: "1",
-                width: "0px",
+                position: "relative",
               }}
             >
-              {detailMounted && detailComponent?.()}
+              <Box
+                sx={{
+                  background: colour && `linear-gradient(to bottom, ${withAlpha(colour, "00")} 80%, ${colour})`,
+                  position: "absolute",
+                  top: "90%",
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                }}
+              />
+              <CardMedia
+                component="img"
+                crossOrigin="anonymous"
+                sx={(theme) => {
+                  // `svh` and not `vh`, because a phone reports `vh` with its toolbar retracted, so
+                  // an image sized to it overflows the screen it is meant to fit. `dvh` would track
+                  // the toolbar instead, and resize the artwork under the reader at the moment they
+                  // scroll past it to the details.
+                  const room = {
+                    width: `calc(100vw - ${theme.spacing(4)})`,
+                    height: `calc(100svh - ${theme.spacing(4)})`,
+                  };
+
+                  return {
+                    objectFit: "contain",
+                    display: "block",
+                    // On their own these only ever take away: an element with an automatic width is
+                    // already its intrinsic width, so artwork smaller than the screen stays small.
+                    // They are still the whole rule until the shape is known.
+                    maxWidth: room.width,
+                    maxHeight: room.height,
+                    ...(ratio && {
+                      // Filling the width and deriving the height scales the artwork up as well as
+                      // down. Which of the two is the binding one is left to `min`, so it is decided
+                      // against the room actually available and decided again on a rotation — where
+                      // a stored answer would be the one from whichever way round the screen was
+                      // when the image loaded.
+                      width: `min(${room.width}, calc(${room.height} * ${ratio}))`,
+                      height: "auto",
+                    }),
+                  };
+                }}
+                src={image}
+                title={alt}
+                loading="lazy"
+                onClick={() => setDialogOpen(false)}
+              />
             </Box>
-          </Box>
-        </Card>
+            <Box
+              sx={{
+                display: "flex",
+              }}
+            >
+              <Box
+                sx={{
+                  flexGrow: "1",
+                  width: "0px",
+                }}
+              >
+                {detailMounted && detailComponent?.()}
+              </Box>
+            </Box>
+          </Card>
+        </ArtworkPalette.Provider>
       </Dialog>
     </Card>
   );
@@ -259,6 +264,8 @@ export const DetailCard = ({
   value: string | ReactNode;
   large?: boolean;
 }) => {
+  const palette = useContext(ArtworkPalette);
+
   if (!value) return null;
   return (
     <Grid
@@ -267,15 +274,17 @@ export const DetailCard = ({
         md: large ? 6 : 3,
       }}
     >
-      {/* Elevated, against the theme's outlined default. These cards paint their own ground — an
-          extracted artwork colour, or `unset` so the tinted panel behind shows through — and the
-          outlined variant draws a `divider` hairline, a neutral grey laid over whatever that ground
-          turns out to be. A raised edge is what separates a tile here. */}
+      {/* Elevated, against the theme's outlined default: the outlined variant draws a `divider`
+          hairline, a neutral grey laid over whatever ground the artwork turned out to be.
+
+          A tile carrying a colour of its own paints it. The rest take a wash of the card's own
+          contrast colour, so they lift off a pale sample as readily as off a dark one — a raised
+          edge alone all but disappears against a light ground. */}
       <Card
         variant="elevation"
         sx={{
           height: "100%",
-          background: colour ?? "unset",
+          background: colour ?? palette?.tile ?? "unset",
           color: (theme) => (colour ? theme.palette.getContrastText(colour) : "unset"),
         }}
       >
@@ -301,7 +310,7 @@ export const DetailCard = ({
             <Typography
               align="center"
               variant="caption"
-              sx={{ opacity: 0.8 }}
+              sx={{ color: colour ? undefined : palette?.muted, opacity: colour || !palette ? 0.8 : 1 }}
             >
               {label}
             </Typography>
@@ -360,12 +369,23 @@ const artworkPalette = (accent: Colour, theme: Theme) => {
     ground: { backgroundColor: accent },
     onGround,
     muted: alpha(onGround, MUTED_ALPHA),
+    /** Rules and hairlines drawn on the ground: a gridline, an empty track, a seam. */
+    line: alpha(onGround, SEAM_ALPHA),
     /** The edge where a surface meets the artwork it was sampled from. */
     seam: `${SEAM_WIDTH}px solid ${alpha(onGround, SEAM_ALPHA)}`,
     /** A tile lifted off the ground it sits on, in whichever direction reads against it. */
     tile: alpha(onGround, TILE_ALPHA),
   };
 };
+
+/**
+ * The palette of the card a detail tile is sitting in.
+ *
+ * A tile has to lift off a ground it does not choose and cannot see — the dialog's ground is the
+ * artwork's own colour, which only the card knows. Passing it down instead would mean naming it at
+ * every one of the two dozen tiles the three domains build, none of which is otherwise interested.
+ */
+const ArtworkPalette = createContext<ReturnType<typeof artworkPalette> | undefined>(undefined);
 
 /**
  * The panel beside or beneath a hover card's artwork: what the item is, when, and how much of it.
@@ -627,51 +647,61 @@ export const TimelineCard = ({
   laneCount: number;
   ticks: TimelineTick[];
   caption?: ReactNode;
-}) => (
-  <Grid size={12}>
-    <Card
-      variant="elevation"
-      sx={{ height: "100%", background: "unset", color: "unset" }}
-    >
-      <CardContent
-        sx={{
-          ":last-child": { paddingBottom: 1 },
-          height: "100%",
-          padding: 1,
-          paddingTop: 0,
-        }}
+}) => {
+  const palette = useContext(ArtworkPalette);
+
+  return (
+    <Grid size={12}>
+      <Card
+        variant="elevation"
+        sx={{ height: "100%", background: "unset", color: "unset" }}
       >
-        {caption && (
-          <Typography
-            variant="caption"
-            sx={{ display: "block", opacity: 0.7, paddingBottom: 0.5 }}
-          >
-            {caption}
-          </Typography>
-        )}
-        <Box
+        <CardContent
           sx={{
-            position: "relative",
-            height: (theme) => theme.spacing(STRIP_HEIGHT),
-            borderRadius: 1,
-            overflow: "hidden",
-            backgroundColor: "action.disabledBackground",
+            ":last-child": { paddingBottom: 1 },
+            height: "100%",
+            padding: 1,
+            paddingTop: 0,
           }}
         >
-          <TimelineScale ticks={ticks} />
-          {bands.map((band) => (
-            <TimelineBandBox
-              {...band}
-              laneCount={laneCount}
-              key={band.key}
+          {caption && (
+            <Typography
+              variant="caption"
+              sx={{ display: "block", opacity: 0.7, paddingBottom: 0.5 }}
+            >
+              {caption}
+            </Typography>
+          )}
+          <Box
+            sx={{
+              position: "relative",
+              height: (theme) => theme.spacing(STRIP_HEIGHT),
+              borderRadius: 1,
+              overflow: "hidden",
+              // The empty track and the gridlines are drawn on the card's ground, so they are taken
+              // from it. The theme's own tokens are mixed for the theme's background, which is not
+              // what a strip on an extracted artwork colour is sitting on.
+              backgroundColor: palette?.tile ?? "action.disabledBackground",
+            }}
+          >
+            <TimelineScale
+              ticks={ticks}
+              line={palette?.line}
             />
-          ))}
-        </Box>
-        <TimelineAxis ticks={ticks} />
-      </CardContent>
-    </Card>
-  </Grid>
-);
+            {bands.map((band) => (
+              <TimelineBandBox
+                {...band}
+                laneCount={laneCount}
+                key={band.key}
+              />
+            ))}
+          </Box>
+          <TimelineAxis ticks={ticks} />
+        </CardContent>
+      </Card>
+    </Grid>
+  );
+};
 
 /**
  * A gridline per year, so a band can be read against a date without hovering it.
@@ -681,7 +711,7 @@ export const TimelineCard = ({
  * compete with the bands they exist to measure — most of all on a card whose ground is an
  * extracted artwork colour, where they pick that colour up.
  */
-const TimelineScale = ({ ticks }: { ticks: TimelineTick[] }) => (
+const TimelineScale = ({ ticks, line }: { ticks: TimelineTick[]; line?: string }) => (
   // Full-height boxes would otherwise be the topmost hit target across the whole strip.
   <Box sx={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
     {ticks.map((tick) => (
@@ -693,8 +723,8 @@ const TimelineScale = ({ ticks }: { ticks: TimelineTick[] }) => (
           bottom: 0,
           left: `${tick.percent}%`,
           width: "1px",
-          backgroundColor: "divider",
-          opacity: 0.7,
+          backgroundColor: line ?? "divider",
+          opacity: line ? 1 : 0.7,
         }}
       />
     ))}
