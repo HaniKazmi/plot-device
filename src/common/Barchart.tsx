@@ -184,7 +184,6 @@ const Barchart = ({
             }}
           />
           {results.map((values, groupindex) => (
-            // @ts-expect-error: TS cannot infer Series component props for union of series types
             <Series
               key={groups[groupindex].name}
               type={seriesType}
