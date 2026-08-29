@@ -2,15 +2,28 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- SVG first: every current browser prefers it and it stays sharp at any size. `favicon.ico`
+         is the fallback, and also what a browser asks for at the root before it has parsed any of
+         this. `apple-touch-icon` is opaque and square on purpose — iOS composites transparency
+         onto black and applies its own corner mask, so a rounded RGBA icon comes out twice-rounded
+         with black in the gaps. -->
     <link
       rel="icon"
-      type="image/png"
-      href="/icon.png"
+      href="/favicon.svg"
+      type="image/svg+xml"
+    />
+    <link
+      rel="icon"
+      href="/favicon.ico"
+      sizes="32x32"
     />
     <link
       rel="apple-touch-icon"
-      type="image/png"
-      href="icon-large.png"
+      href="/apple-touch-icon.png"
+    />
+    <link
+      rel="manifest"
+      href="/manifest.webmanifest"
     />
     <meta
       name="viewport"

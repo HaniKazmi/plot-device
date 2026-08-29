@@ -86,6 +86,7 @@ export const CardMediaImage = ({
 
   return (
     <Card
+      variant="elevation"
       sx={{
         height: "100%",
         position: "relative",
@@ -147,6 +148,7 @@ export const CardMediaImage = ({
         }}
       >
         <Card
+          variant="elevation"
           sx={{
             backgroundColor: colour,
             color: (theme) => colour && theme.palette.getContrastText(colour),
@@ -222,7 +224,12 @@ export const DetailCard = ({
         md: large ? 6 : 3,
       }}
     >
+      {/* Elevated, against the theme's outlined default. These cards paint their own ground — an
+          extracted artwork colour, or `unset` so the tinted panel behind shows through — and the
+          outlined variant draws a `divider` hairline, a neutral grey laid over whatever that ground
+          turns out to be. A raised edge is what separates a tile here. */}
       <Card
+        variant="elevation"
         sx={{
           height: "100%",
           background: colour ?? "unset",
@@ -374,7 +381,10 @@ export const TimelineActivatedSegment = ({
 export const TimelineCard = ({ segments }: { segments: ReactNode[] }) => {
   return (
     <Grid size={12}>
-      <Card sx={{ height: "100%", background: "unset", color: "unset" }}>
+      <Card
+        variant="elevation"
+        sx={{ height: "100%", background: "unset", color: "unset" }}
+      >
         <CardContent
           sx={{
             ":last-child": { paddingBottom: 0 },

@@ -48,17 +48,23 @@ const NavBar = ({ setGuestMode }: { setGuestMode: (value: boolean) => void }) =>
     >
       <Toolbar>
         <Score sx={{ display: "flex", mr: 1 }} />
+        {/* `cursive` is a generic family, so the wordmark resolves to Snell Roundhand on macOS and
+            to something else on every other platform — the one piece of the page whose shape is
+            decided by the reader's OS. Weight and tracking give it the same treatment the index at
+            hani.fyi and the status page use, which `system-ui` renders identically everywhere.
+
+            Shown at every width: at this size it costs the tabs about six characters, where the h6
+            it replaces cost enough to be worth hiding on a phone. */}
         <Typography
-          variant="h6"
           noWrap
           sx={{
-            mr: 2,
-            fontFamily: "cursive",
-            fontWeight: 700,
-            letterSpacing: ".3rem",
+            mr: { xs: 1, md: 2 },
+            fontSize: "0.875rem",
+            fontWeight: 600,
+            letterSpacing: "0.07em",
+            textTransform: "uppercase",
             color: "inherit",
             textDecoration: "none",
-            display: { xs: "none", md: "block" },
           }}
         >
           Plot Device

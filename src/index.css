@@ -1,11 +1,11 @@
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  /* Type and both surface colours come from the MUI theme, which `CssBaseline` applies to `body`.
+     Naming them here too only decides what the page looks like for the instant before that lands,
+     and a hardcoded dark ground is the wrong answer for a reader in light mode.
 
+     `color-scheme` stays: it is what the theme cannot set, and it is what makes the scrollbars and
+     the native form controls follow the scheme rather than staying light on a dark page. */
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;

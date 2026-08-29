@@ -142,38 +142,47 @@ export const ratingToColour = ({ rating }: VideoGame) => {
   }
 };
 
+/**
+ * Genres carry no colour of their own, so this ramp is chosen rather than reproduced. Hue is
+ * what separates two genres and luminance is held equal across all of them, which is what lets
+ * one set of values sit on a #ffffff card and a #1d2126 card alike. A colour picked for the
+ * light card alone washes out on the dark one; `#ffeb3b` against white is 1.22:1.
+ *
+ * Ratings and franchises deliberately do not draw on this: a rating ramp encodes an order and a
+ * franchise colour is somebody's brand, so neither is free to be reassigned for contrast.
+ */
 const genreToColour = ({ genre }: { genre: Genre }) => {
   switch (genre) {
     case "Action":
-      return "#f44336" as Colour;
+      return "#d55b4e" as Colour;
     case "Adventure":
-      return "#4caf50" as Colour;
+      return "#2b944e" as Colour;
     case "Action Adventure":
-      return "#ff9800" as Colour;
+      return "#c06d24" as Colour;
     case "Driving/Racing":
-      return "#ffeb3b" as Colour;
+      return "#9f7d1a" as Colour;
     case "Fighting":
-      return "#d32f2f" as Colour;
+      return "#cc5e79" as Colour;
     case "Party Games":
-      return "#e91e63" as Colour;
+      return "#c859a3" as Colour;
     case "Platformer":
-      return "#03a9f4" as Colour;
+      return "#3985d1" as Colour;
     case "Puzzle":
-      return "#9c27b0" as Colour;
+      return "#9a6dcc" as Colour;
     case "Role Playing":
-      return "#673ab7" as Colour;
+      return "#7e76d1" as Colour;
     case "Shooter":
-      return "#607d8b" as Colour;
+      return "#658697" as Colour;
     case "Simulation":
-      return "#00bcd4" as Colour;
+      return "#24908c" as Colour;
     case "Strategy":
-      return "#3f51b5" as Colour;
+      return "#6b7fbd" as Colour;
     case "Visual Novel":
-      return "#ff4081" as Colour;
+      return "#b761be" as Colour;
     case "Music/Rhythm":
-      return "#cddc39" as Colour;
+      return "#668e2f" as Colour;
     default:
-      return "#9e9e9e" as Colour;
+      return "#7d828c" as Colour;
   }
 };
 

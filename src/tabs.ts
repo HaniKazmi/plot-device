@@ -21,6 +21,8 @@ export const VideoGamesTab: Tab = {
   spreadsheetId: "1JCAN_lB2QaVxj1rD4f88mN4tHjmhxF3CZlGtZGwYCLk",
   range: "Games List!A:Z",
   component: VideoGames,
+  primaryColour: "#1976d2",
+  secondaryColour: "#ffd166",
 };
 
 export const ShowsTab: Tab = {
@@ -39,8 +41,8 @@ export const MoviesTab: Tab = {
   spreadsheetId: "1M3om2DPLfRO5dKcUfYOIcSNoLThzMLp1iZLQX6qR3pY",
   range: "Movies!A:K",
   component: Movies,
-  primaryColour: "#ff7b54",
-  secondaryColour: "#11698e",
+  primaryColour: "#c25410",
+  secondaryColour: "#ffc48a",
 };
 
 export const HolidaysTab: Tab = {
