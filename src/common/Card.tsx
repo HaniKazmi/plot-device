@@ -20,6 +20,7 @@ import { type FunctionComponent, type ReactNode, useEffect, useRef, useState } f
 import { cachedColour, extractColourFrom, withAlpha } from "../utils/colourUtils";
 import Grid from "@mui/material/Grid";
 import type { Colour } from "../utils/types";
+import type { TimelineTick } from "./timelineLayout";
 
 export interface CardMediaImageProps {
   image?: string;
@@ -341,69 +342,202 @@ export const Segment = ({
   />
 );
 
-export const TimelineEmptySegment = ({ percent }: { percent: number }) => (
-  <Segment
-    percent={percent}
-    spacing={1}
-    backgroundColour="grey"
-    sx={{ opacity: 0.8 }}
-  />
-);
-
-export const TimelineActivatedSegment = ({
-  percent,
-  tooltip,
-  backgroundColour,
-}: {
-  percent: number;
+export interface TimelineBand {
+  key: string;
+  /** Offset from the left edge of the strip, as a percentage of its full width. */
+  startPercent: number;
+  widthPercent: number;
+  /** Row within the strip, from `buildStrip`. Bands sharing a lane never overlap. */
+  lane: number;
+  colour: string;
   tooltip?: ReactNode;
-  backgroundColour: [string, string];
-}) => (
-  <Tooltip
-    title={tooltip}
-    placement="top"
-    disableHoverListener={!tooltip}
-    disableTouchListener={!tooltip}
-  >
-    <Segment
-      percent={percent}
-      backgroundColour={backgroundColour[0]}
-      sx={{
-        "&:hover": {
-          height: (theme) => theme.spacing(3),
-          backgroundColor: backgroundColour[1],
-        },
-      }}
-    />
-  </Tooltip>
-);
+  /** Context rather than the subject of the card, drawn dimmer. */
+  muted?: boolean;
+  /** The span is an estimate, drawn so its edges do not read as dates. */
+  imprecise?: boolean;
+}
 
-export const TimelineCard = ({ segments }: { segments: ReactNode[] }) => {
-  return (
-    <Grid size={12}>
-      <Card
-        variant="elevation"
-        sx={{ height: "100%", background: "unset", color: "unset" }}
+const STRIP_HEIGHT = 3;
+
+/**
+ * A proportional strip of tracked spans against a fixed scale — the seasons of a show, the games
+ * in a franchise.
+ *
+ * Bands are positioned rather than chained, so the shell owns the whole coordinate space and a
+ * caller cannot couple to it: everything here reads `startPercent` and `widthPercent` off
+ * `buildStrip` and never asks how they were arrived at.
+ */
+export const TimelineCard = ({
+  bands,
+  laneCount,
+  ticks,
+  caption,
+}: {
+  bands: TimelineBand[];
+  laneCount: number;
+  ticks: TimelineTick[];
+  caption?: ReactNode;
+}) => (
+  <Grid size={12}>
+    <Card
+      variant="elevation"
+      sx={{ height: "100%", background: "unset", color: "unset" }}
+    >
+      <CardContent
+        sx={{
+          ":last-child": { paddingBottom: 1 },
+          height: "100%",
+          padding: 1,
+          paddingTop: 0,
+        }}
       >
-        <CardContent
+        {caption && (
+          <Typography
+            variant="caption"
+            sx={{ display: "block", opacity: 0.7, paddingBottom: 0.5 }}
+          >
+            {caption}
+          </Typography>
+        )}
+        <Box
           sx={{
-            ":last-child": { paddingBottom: 0 },
-            height: "100%",
-            padding: 1,
-            paddingTop: 0,
+            position: "relative",
+            height: (theme) => theme.spacing(STRIP_HEIGHT),
+            borderRadius: 1,
+            overflow: "hidden",
+            backgroundColor: "action.disabledBackground",
           }}
         >
-          <Stack
-            direction="row"
-            sx={{
-              alignItems: "center",
-              height: (theme) => theme.spacing(3),
-            }}
-          >
-            {segments}
-          </Stack>
-        </CardContent>
-      </Card>
-    </Grid>
+          <TimelineScale ticks={ticks} />
+          {bands.map((band) => (
+            <TimelineBandBox
+              {...band}
+              laneCount={laneCount}
+              key={band.key}
+            />
+          ))}
+        </Box>
+        <TimelineAxis ticks={ticks} />
+      </CardContent>
+    </Card>
+  </Grid>
+);
+
+/**
+ * A gridline per year, so a band can be read against a date without hovering it.
+ *
+ * Lines only. Shading alternate years the way the full timeline does works there because the
+ * chart is hundreds of pixels tall; on a strip this short the filled years read as bars and
+ * compete with the bands they exist to measure — most of all on a card whose ground is an
+ * extracted artwork colour, where they pick that colour up.
+ */
+const TimelineScale = ({ ticks }: { ticks: TimelineTick[] }) => (
+  // Full-height boxes would otherwise be the topmost hit target across the whole strip.
+  <Box sx={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+    {ticks.map((tick) => (
+      <Box
+        key={tick.year}
+        sx={{
+          position: "absolute",
+          top: 0,
+          bottom: 0,
+          left: `${tick.percent}%`,
+          width: "1px",
+          backgroundColor: "divider",
+          opacity: 0.7,
+        }}
+      />
+    ))}
+  </Box>
+);
+
+/** Sparse enough that the labels do not collide at card width, and land on round years. */
+const LABEL_EVERY_YEARS = 5;
+
+const TimelineAxis = ({ ticks }: { ticks: TimelineTick[] }) => (
+  <Box sx={{ position: "relative", height: 14, marginTop: 0.25 }}>
+    {ticks
+      .filter((tick) => tick.year % LABEL_EVERY_YEARS === 0)
+      .map((tick) => (
+        <Typography
+          key={tick.year}
+          variant="caption"
+          sx={{
+            position: "absolute",
+            left: `${tick.percent}%`,
+            transform: "translateX(-50%)",
+            fontSize: 10,
+            lineHeight: "14px",
+            opacity: 0.6,
+            userSelect: "none",
+          }}
+        >
+          {`\u2019${(tick.year % 100).toString().padStart(2, "0")}`}
+        </Typography>
+      ))}
+  </Box>
+);
+
+const FADED_ENDS = "linear-gradient(to right, transparent, #000 25%, #000 75%, transparent)";
+
+/** Of the lane, so lanes stay visibly separate whatever the strip is divided into. */
+const LANE_PADDING = 0.08;
+/** Of the whole strip, and only when there is one lane to inset within. */
+const MUTED_INSET = 0.2;
+
+const TimelineBandBox = ({
+  startPercent,
+  widthPercent,
+  lane,
+  laneCount,
+  colour,
+  tooltip,
+  muted,
+  imprecise,
+}: TimelineBand & { laneCount: number }) => {
+  const laneHeight = 100 / laneCount;
+  // On a single lane the card's own game keeps the full height and its siblings are inset, which
+  // is the clearest reading of "this one, among these". Once the strip is divided there is no
+  // height left to spend on that — a sibling inset within an eight-pixel lane is a hairline — so
+  // every band fills its lane and the distinction falls to opacity alone.
+  const inset = laneCount > 1 ? laneHeight * LANE_PADDING : muted ? 100 * MUTED_INSET : 0;
+
+  return (
+    <Tooltip
+      title={tooltip}
+      placement="top"
+      disableHoverListener={!tooltip}
+      disableTouchListener={!tooltip}
+    >
+      <Box
+        sx={{
+          position: "absolute",
+          left: `${startPercent}%`,
+          width: `${widthPercent}%`,
+          // Hover leaves every box where it is: growing one reflows the row under the pointer,
+          // and a transition on it never advances, because the tooltip opening re-renders the
+          // strip and restarts the clock every frame.
+          top: `${lane * laneHeight + inset}%`,
+          height: `${laneHeight - inset * 2}%`,
+          backgroundColor: colour,
+          opacity: muted ? 0.6 : 1,
+          // An estimated span dissolves at both ends rather than stopping at one, because a hard
+          // edge is a date and this band does not have one. Square-cut too, so the rounded caps
+          // stay the mark of a span the sheet actually pinned down.
+          ...(imprecise && {
+            maskImage: FADED_ENDS,
+            WebkitMaskImage: FADED_ENDS,
+          }),
+          // The card's own game against its context. Opacity alone does not carry it once the
+          // bands are lane-height: each one is coloured by its own platform, so a dimmed band
+          // beside a differently-coloured one reads as a different platform rather than as
+          // context. `currentColor` is the ground's contrast text, so the ring lands legibly on
+          // an extracted artwork colour whichever way that fell.
+          boxShadow: muted ? undefined : "inset 0 0 0 1px currentColor",
+          borderRadius: imprecise ? 0 : 0.5,
+          "&:hover": { opacity: 1, filter: "brightness(1.25)" },
+        }}
+      />
+    </Tooltip>
   );
 };

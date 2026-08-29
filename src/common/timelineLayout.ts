@@ -65,28 +65,47 @@ export const buildTicks = (start: YearMonth, end: YearMonth, totalDays: number):
 };
 
 /**
- * Greedy interval packing. Sorts events chronologically and drops each into the first row
- * whose last event has already ended, so rows stay dense without any bar overlapping another.
+ * Greedy interval packing: each item goes in the first row whose last item has already ended, so
+ * rows stay dense without any two items in one row overlapping.
  *
  * Taking the emptiest fitting row rather than the first would hand every label a wider gap to be
  * written in, and costs no height — but it spreads events evenly down the chart instead of
  * settling them towards the top, and the even scatter reads worse than the clipped labels it
  * buys. Density is the shape of this chart; leave it alone.
  *
- * Returns the positioned events and the highest row index used (-1 when there is no data).
+ * A row is free from the day its last item ends rather than from the day after: an end date is
+ * the day that item finished, and the next may start the same day. Splitting a handoff across
+ * rows would say both were going at once.
+ *
+ * `items` must already be in start order — a row's last item is then also its latest-ending,
+ * which is what lets one date per row stand for the whole of it. Returns a row index per item,
+ * in the order given.
+ */
+export const assignRows = <T extends { start: YearMonthDay; end: YearMonthDay }>(items: readonly T[]) => {
+  /** The day each row's last item ends, from which the row is free again. */
+  const rowEnds: YearMonthDay[] = [];
+
+  return items.map((item) => {
+    let row = rowEnds.findIndex((end) => end.lte(item.start));
+    if (row === -1) row = rowEnds.push(item.end) - 1;
+    else rowEnds[row] = item.end;
+    return row;
+  });
+};
+
+/**
+ * The packed rows, plus the highest row index used (-1 when there is no data). Links each item to
+ * its row neighbours on the way through, which is what the label step measures its gaps against.
  */
 export const packRows = (timelineData: TimelineData[]) => {
   const sortedData = timelineData.sortByKey("start", true);
+  const rows = assignRows(sortedData);
 
-  // The last event placed in each row, which carries that row's end date.
+  // The last event placed in each row.
   const lastInRow: PositionedTimelineData[] = [];
 
-  const positionedRows = sortedData.map((row) => {
-    let targetRow = lastInRow.findIndex((last) => row.start >= last.end);
-    if (targetRow === -1) {
-      targetRow = lastInRow.length;
-    }
-
+  const positionedRows = sortedData.map((row, index) => {
+    const targetRow = rows[index];
     const newRow: PositionedTimelineData = { ...row, rowNumber: targetRow };
 
     // Link neighbouring events in the same row so the layout step knows how much empty space

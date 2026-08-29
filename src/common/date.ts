@@ -51,6 +51,17 @@ export abstract class PlainDate {
 
   abstract increment(): this;
 
+  /**
+   * The first and last day this value can mean. A `Year` denotes a whole year and a `YearMonth` a
+   * whole month, so the two differ for them and coincide for a `YearMonthDay`.
+   *
+   * This is how a consumer states which end of an imprecise date it wants, rather than reaching
+   * for a subclass and picking one by accident.
+   */
+  abstract firstDay(): YearMonthDay;
+
+  abstract lastDay(): YearMonthDay;
+
   iterateToDate(endDate: PlainDate): this[] {
     const array: this[] = [];
     // eslint-disable-next-line @typescript-eslint/no-this-alias
@@ -96,8 +107,12 @@ export class Year extends PlainDate {
     return this;
   }
 
-  startOfYear() {
+  firstDay() {
     return YearMonthDay.get(this.year, 1, 1);
+  }
+
+  lastDay() {
+    return YearMonthDay.get(this.year, 12, 31);
   }
 }
 
@@ -142,6 +157,14 @@ export class YearMonth extends PlainDate {
 
   startOfMonth() {
     return YearMonthDay.get(this.year, this.month, 1);
+  }
+
+  firstDay() {
+    return this.startOfMonth();
+  }
+
+  lastDay() {
+    return YearMonthDay.get(this.year, this.month, monthToDays(this.month, this.year));
   }
 }
 
@@ -208,7 +231,11 @@ export class YearMonthDay extends PlainDate {
     return YearMonthDay.get(newYear, newMonth, 1) as this;
   }
 
-  startOfYear() {
+  firstDay() {
+    return this;
+  }
+
+  lastDay() {
     return this;
   }
 

@@ -17,7 +17,7 @@ const VgBarchart = ({ data, measure, yearType }: { data: VideoGame[]; measure: M
         date:
           cumulative || yearType === "matching"
             ? game.startDate instanceof Year
-              ? game.startDate.startOfYear().toYearMonth()
+              ? game.startDate.firstDay().toYearMonth()
               : game.startDate.toYearMonth()
             : game.startDate.toYear(),
         colour: groupToColour(group, game),

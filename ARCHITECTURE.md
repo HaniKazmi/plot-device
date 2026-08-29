@@ -200,7 +200,9 @@ Design properties worth knowing:
 - **Serialisation symmetry.** `toJSON` emits the same string that `PlainDate.from()` parses, which is what makes the localStorage round-trip in §4 possible.
 - **Dispatch by length.** `from()` returns `YearMonthDay` for a 10-character string and `Year` for a 4-character one, and throws otherwise — so a partial `"2024-05"` is a loud failure, not a silent one.
 
-`daysTo` deliberately returns `undefined` when either side is year-only, which is how duration-based features degrade rather than fabricate precision.
+`firstDay()` / `lastDay()` give the range a value denotes — a whole year for `Year`, a single day for `YearMonthDay` — so a consumer states which end of an imprecise date it wants instead of picking one by reaching for a subclass.
+
+`daysTo` deliberately returns `undefined` when either side is year-only, which is how duration-based features degrade rather than fabricate precision. Where a chart cannot degrade — half the games carry a bare year, and a strip has to put them somewhere — the estimate is made once, explicitly, and labelled: `vg/cardData.ts` shares each year out between the games naming it in release order, floored by the fact that a game cannot be played before it was released, and marks the spans `precise: false` so they are drawn as estimates rather than dates.
 
 ### Prototype augmentation
 
@@ -221,7 +223,7 @@ Setup is the plugin's documented path: `@vitejs/plugin-react` exports `reactComp
 - **`this`** anywhere in the function. Highcharts binds the chart to `this` in its event callbacks, so those must live at module scope (see `dimLeafRing` in §6) or they take the whole component down with them.
 - **`??=`**, which the compiler cannot yet lower. Write `x = x ?? y` instead.
 
-At the time of writing 81 functions compile and 2 bail — a `MethodCall` codegen error in `vg/CardMediaImage.tsx` and an arrow-reordering limit in `common/Stats.tsx`. Both are compiler-internal limitations and neither is on a hot path. A `MethodCall` bailout does respond to moving the offending computation into a plain module, which is how the three `show/Stats.tsx` bailouts were cleared. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
+At the time of writing 81 functions compile and 9 bail, all of them on one compiler-internal limit: `BuildHIR::lowerAssignment` cannot lower a destructured prop that carries a default value, so `({ landscape = false })` takes its whole component out. That covers `common/Card.tsx`, `common/Stats.tsx`, `common/Finished.tsx` and `vg/Stats.tsx`. A `MethodCall` bailout, the other kind seen here, does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
 
 The compiler costs about 4% of bundle size (~15KB gzipped) in injected cache slots. That is a deliberate trade, and `npm run analyze` exists to keep it honest.
 
@@ -277,5 +279,5 @@ Recorded so they are not mistaken for design:
 - **No DOM or component tests.** `tests/` covers pure logic — converters, filters, the reducer, the chart data transforms and the cache round trip — and deliberately stops there; AGENTS.md explains the trade. Nothing verifies that a chart renders, and the show converter's date ordering is still only a `console.assert`, which does not alter control flow.
 - **`.eslintrc.cjs` is dead.** ESLint 9 uses the flat `eslint.config.js`; the legacy file remains in the tree and is not applied. The flat config is also the weaker of the two — it drops the type-checked and React-specific rule sets the old file enabled.
 - **Cache keys are unversioned**, so domain model changes can meet stale `localStorage` objects (§4).
-- **Two React Compiler bailouts** remain (§7). Compiler-internal limits, neither on a hot path, but they mean those functions get no auto-memoization.
+- **Nine React Compiler bailouts** remain (§7), all on the same limit: a destructured prop with a default value opts its component out. Four are in `common/Card.tsx`, which every media card in the app renders, so this is the one bailout that is on a hot path.
 - **`PlainDate.valueOf` returns a string**, so every date comparison goes through `toString()` and allocates. It is correct and the ordering is deliberate (§7), but the hot path — the timeline's greedy packing loop — does tens of thousands of comparisons per layout. A numeric sort key computed once per interned instance would preserve ordering exactly, including across mixed `Year`/`YearMonthDay`. Deliberately not done: it touches the most load-bearing class in the codebase for a win nobody has measured as necessary.

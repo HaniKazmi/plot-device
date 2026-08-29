@@ -76,7 +76,7 @@ babel({
 }),
 ```
 
-Then `npx vite build 2>&1 | grep -E '^OK|^BAIL'`. Baseline is **81 compiled, 2 bailed** — one in `vg/CardMediaImage.tsx`, one in `common/Stats.tsx`, both compiler-internal limits. Moving a computation out of a component is a reliable way to clear a `MethodCall` bailout: the three that `show/Stats.tsx` used to carry went away when its arithmetic moved to `statsData.ts`. **Revert the logger afterwards.**
+Then `npx vite build 2>&1 | grep -E '^OK|^BAIL'`. Baseline is **81 compiled, 9 bailed**, spread across `common/Card.tsx`, `common/Stats.tsx`, `common/Finished.tsx` and `vg/Stats.tsx`. Every one of them is the same compiler-internal limit — `BuildHIR::lowerAssignment … got: AssignmentPattern`, which is a destructured prop carrying a default value (`landscape = false`). Compare against that, not against zero. Moving a computation out of a component is a reliable way to clear a `MethodCall` bailout, which is a different failure and does respond. **Revert the logger afterwards.**
 
 Do not grep the built bundle for `useMemoCache` or `compiler-runtime` to check this — those names do not survive minification, and their absence proves nothing.
 
