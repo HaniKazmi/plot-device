@@ -11,16 +11,7 @@ export type Colour = Distinct<string, "Colour">;
  * the other way, so utils/ never imports from a domain folder.
  */
 export type ColourableStatus =
-  | "Abandoned"
-  | "Beat"
-  | "Ended"
-  | "Cancelled"
-  | "Endless"
-  | "Up To Date"
-  | "Playing"
-  | "Watching"
-  | "Next"
-  | "Backlog";
+  "Abandoned" | "Beat" | "Ended" | "Cancelled" | "Endless" | "Up To Date" | "Playing" | "Watching" | "Next" | "Backlog";
 
 export const statusToColour = ({ status }: { status: ColourableStatus }) => {
   switch (status) {
