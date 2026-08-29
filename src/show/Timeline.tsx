@@ -1,11 +1,11 @@
-import { CardHeader, FormGroup, FormControlLabel, Switch, Typography } from "@mui/material";
+import { CardHeader, FormGroup, FormControlLabel, Switch } from "@mui/material";
 import { useState } from "react";
-import { Season, Show } from "./types";
+import { Season, Show, isShow } from "./types";
 import Timeline, { TimelineData } from "../common/Timeline";
 import { Colour, statusToColour } from "../utils/types";
-import { CURRENT_PLAINDATE } from "../common/date";
+import { CURRENT_PLAINDATE, formatDateRange } from "../common/date";
 import ShowCardMediaImage from "./CardMediaImage";
-import { FooterComponent } from "../common/Card";
+import { CardPanel } from "../common/Card";
 
 const ShowTimeline = ({ data }: { data: Show[] }) => {
   const [groupData, setGroupData] = useState(false);
@@ -23,16 +23,19 @@ const ShowTimeline = ({ data }: { data: Show[] }) => {
         landscape
         item={s}
         extractColour
-        footerComponent={
-          <FooterComponent
-            labels={[
-              [<Typography variant="h6">{title}</Typography>],
-              [`${s.startDate.toString()} - ${s.endDate?.toString() ?? "present"}`],
-              [...(s.e && s.minutes ? [`${s.e} Eps`, `${Math.round(s.minutes / 60)} Hours`] : [])],
+        footerComponent={(accent) => (
+          <CardPanel
+            landscape
+            title={isShow(s) ? s.name : s.show.name}
+            badge={isShow(s) ? undefined : `Season ${s.s}`}
+            accent={accent}
+            dateRange={formatDateRange(s.startDate, s.endDate)}
+            stats={[
+              { value: s.e, unit: "eps", label: "Watched" },
+              { value: Math.round(s.minutes / 60), unit: "hrs", label: "Runtime" },
             ]}
-            justify
           />
-        }
+        )}
       />
     ),
     colour: colour,

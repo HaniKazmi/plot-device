@@ -308,12 +308,12 @@ export const StatsListCard = <T,>({
           sx={{ aspectRatio, flexShrink: 0 }}
           chip={chip}
           extractColour
-          footerComponent={
+          footerComponent={() => (
             <FooterComponent
               labels={labels}
               divider={divider}
             />
-          }
+          )}
         />
       </Card>
     </Grid>

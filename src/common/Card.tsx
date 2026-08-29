@@ -17,6 +17,7 @@ import {
   type ChipProps,
 } from "@mui/material";
 import { type FunctionComponent, type ReactNode, useEffect, useRef, useState } from "react";
+import { CalendarMonthOutlined } from "@mui/icons-material";
 import { cachedColour, extractColourFrom, withAlpha } from "../utils/colourUtils";
 import Grid from "@mui/material/Grid";
 import type { Colour } from "../utils/types";
@@ -28,7 +29,11 @@ export interface CardMediaImageProps {
   colour?: Colour;
   chip?: Pick<ChipProps, "label" | "icon" | "onClick" | "variant"> & { colour?: Colour };
   lazy?: boolean;
-  footerComponent?: ReactNode;
+  /**
+   * Given the card's colour, because the panel accents itself with the artwork's own and only
+   * this component ever extracts it.
+   */
+  footerComponent?: (colour?: Colour) => ReactNode;
   /**
    * Built lazily: `Finished` renders a card per item with no cap, and this tree is only ever
    * mounted for the one card whose dialog is open.
@@ -148,7 +153,7 @@ export const CardMediaImage = ({
           />
         )}
       </CardActionArea>
-      {footerComponent}
+      {footerComponent?.(colour)}
       <Dialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
@@ -305,15 +310,136 @@ export const DetailCard = ({
   );
 };
 
-export const FooterComponent = ({
-  labels,
-  divider,
-  justify,
+/**
+ * The panel beside or beneath a hover card's artwork: what the item is, when, and how much of it.
+ *
+ * It paints its own ground rather than sitting on the card's extracted colour, so the artwork is
+ * the only place that colour appears at full strength and the type has a settled surface to be
+ * read against. The colour comes back as the badge's accent, which is enough to tie the two.
+ *
+ * Beside a poster the panel is as tall as the artwork and the type cannot fill it — three lines
+ * against a 2:3 poster leaves better than half the column empty. Pushing the title to the top and
+ * the figures to the bottom spends that height as structure instead of leaving it as a gap.
+ */
+export const CardPanel = ({
+  title,
+  badge,
+  accent,
+  dateRange,
+  stats,
+  landscape = false,
 }: {
-  labels: ReactNode[][];
-  divider?: boolean;
-  justify?: boolean;
+  title: string;
+  badge?: string;
+  accent?: Colour;
+  dateRange: string;
+  stats: { value: number | string; unit: string; label: string }[];
+  landscape?: boolean;
 }) => (
+  <CardContent
+    sx={{
+      display: "flex",
+      flexDirection: "column",
+      // Only a panel with height to spare has anything to distribute.
+      justifyContent: landscape ? "space-between" : "center",
+      alignItems: landscape ? "flex-start" : "center",
+      gap: 2,
+      width: "100%",
+      backgroundColor: "background.paper",
+      color: "text.primary",
+      ":last-child": { paddingBottom: 2 },
+    }}
+  >
+    <Stack
+      spacing={1}
+      sx={{ alignItems: landscape ? "flex-start" : "center" }}
+    >
+      <Typography
+        variant="h6"
+        sx={{ fontWeight: 700, lineHeight: 1.25, textAlign: landscape ? "left" : "center" }}
+      >
+        {title}
+      </Typography>
+      {badge && (
+        <Chip
+          size="small"
+          label={badge}
+          sx={(theme) => ({
+            fontWeight: 600,
+            // The accent fills the badge rather than colouring its text. An extracted colour is
+            // only held above luma 30, which is dark enough to disappear as text on a dark panel,
+            // and the panel's own ground follows the colour scheme — so contrast is taken from the
+            // accent itself, which holds whichever way round the scheme is.
+            backgroundColor: accent,
+            color: accent && theme.palette.getContrastText(accent),
+          })}
+        />
+      )}
+    </Stack>
+    <Stack
+      spacing={1.5}
+      sx={{ width: "100%", alignItems: landscape ? "flex-start" : "center" }}
+    >
+      <Stack
+        direction="row"
+        spacing={0.75}
+        sx={{ alignItems: "center", color: "text.secondary" }}
+      >
+        <CalendarMonthOutlined sx={{ fontSize: 16 }} />
+        <Typography variant="body2">{dateRange}</Typography>
+      </Stack>
+      {stats.length > 0 && (
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{ width: "100%" }}
+        >
+          {stats.map((stat) => (
+            <StatTile
+              key={stat.label}
+              {...stat}
+            />
+          ))}
+        </Stack>
+      )}
+    </Stack>
+  </CardContent>
+);
+
+/** A figure and what it counts, set apart from the prose so the numbers can be read at a glance. */
+const StatTile = ({ value, unit, label }: { value: number | string; unit: string; label: string }) => (
+  <Box
+    sx={{
+      flex: 1,
+      padding: 1,
+      borderRadius: 1,
+      textAlign: "center",
+      backgroundColor: "action.hover",
+    }}
+  >
+    <Typography
+      component="div"
+      sx={{ fontWeight: 700, fontSize: "1.25rem", lineHeight: 1.2 }}
+    >
+      {value}
+      <Typography
+        component="span"
+        variant="body2"
+        sx={{ marginLeft: 0.5, fontWeight: 400, color: "text.secondary" }}
+      >
+        {unit}
+      </Typography>
+    </Typography>
+    <Typography
+      variant="caption"
+      sx={{ color: "text.secondary", letterSpacing: "0.08em", textTransform: "uppercase" }}
+    >
+      {label}
+    </Typography>
+  </Box>
+);
+
+export const FooterComponent = ({ labels, divider }: { labels: ReactNode[][]; divider?: boolean }) => (
   <CardContent
     sx={{
       padding: "10px",
@@ -334,7 +460,7 @@ export const FooterComponent = ({
           ) : null
         }
         sx={{
-          justifyContent: stacks.length === 1 ? "center" : justify ? "space-around" : "space-between",
+          justifyContent: stacks.length === 1 ? "center" : "space-between",
         }}
       >
         {stacks.map((val, index) =>

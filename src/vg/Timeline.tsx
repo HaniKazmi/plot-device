@@ -1,10 +1,10 @@
-import { CardHeader, FormControlLabel, FormGroup, Switch, Typography } from "@mui/material";
+import { CardHeader, FormControlLabel, FormGroup, Switch } from "@mui/material";
 import { useState } from "react";
 import { VideoGame, platformToColor } from "./types";
 import Timeline, { TimelineData } from "../common/Timeline";
-import { CURRENT_PLAINDATE, YearMonthDay } from "../common/date";
+import { CURRENT_PLAINDATE, YearMonthDay, formatDateRange } from "../common/date";
 import VgCardMediaImage from "./CardMediaImage";
-import { FooterComponent } from "../common/Card";
+import { CardPanel } from "../common/Card";
 
 const VgTimeline = ({ data }: { data: VideoGame[] }) => {
   const [partyEnabled, setParty] = useState(false);
@@ -18,16 +18,22 @@ const VgTimeline = ({ data }: { data: VideoGame[] }) => {
         <VgCardMediaImage
           item={row}
           extractColour
-          footerComponent={
-            <FooterComponent
-              labels={[
-                [<Typography variant="h6">{row.name}</Typography>],
-                [`${row.startDate.toString()} - ${row.endDate?.toString() ?? "present"}`],
-                [...(row.hours && row.numDays ? [`${row.hours} Hours`, `${row.numDays} Days`] : [])],
-              ]}
-              justify
+          footerComponent={(accent) => (
+            <CardPanel
+              title={row.name}
+              badge={row.platform}
+              accent={accent}
+              dateRange={formatDateRange(row.startDate, row.endDate)}
+              stats={
+                row.hours && row.numDays
+                  ? [
+                      { value: row.hours, unit: "hrs", label: "Played" },
+                      { value: row.numDays, unit: "days", label: "Duration" },
+                    ]
+                  : []
+              }
             />
-          }
+          )}
         />
       ),
       colour: platformToColor(row),

@@ -260,6 +260,28 @@ const monthToDays = (month: number, year: number) => {
 const nextMonth = (year: YearNumber, month: number): [YearNumber, number] =>
   month === 12 ? [(year + 1) as YearNumber, 1] : [year, month + 1];
 
+/**
+ * A range the way a reader says one — "6 Sep – 20 Oct 2023", with the year given once when both
+ * ends share it, and dropped to just the year where that is all the source recorded.
+ *
+ * `PlainDate.toString` is the machine form: it sorts, round-trips through storage and never
+ * argues about a locale. This is the other job, and keeping the two apart is what stops either
+ * being bent towards the other.
+ */
+export const formatDateRange = (start: YearMonthDay | Year, end?: YearMonthDay | Year) => {
+  if (!end) return `${describeDate(start)} – present`;
+  // Interning is bypassed by `currentDate`, so identity is not a safe test for the same day.
+  if (start.toString() === end.toString()) return describeDate(start);
+
+  const sameYear = start.year === end.year;
+  return `${describeDate(start, !sameYear)} – ${describeDate(end)}`;
+};
+
+const describeDate = (date: YearMonthDay | Year, withYear = true) =>
+  date instanceof YearMonthDay
+    ? `${date.day} ${date.toYearMonth().monthString()}${withYear ? ` ${date.year}` : ""}`
+    : `${date.year}`;
+
 export const CURRENT_PLAINDATE = YearMonthDay.currentDate();
 
 export const CURRENT_YEAR = CURRENT_PLAINDATE.year;
