@@ -336,6 +336,29 @@ const SEAM_WIDTH = 3;
 const MUTED_TOWARDS_WHITE = 0.65;
 
 /**
+ * One hue in three tones, derived from a colour sampled off artwork. Every surface that carries a
+ * sampled colour takes its ground, its type and its accent from here, so a thumbnail's strip and
+ * the hover card above it are the same recipe rather than two treatments that happen to rhyme.
+ *
+ * The ground is the sample under black rather than the sample itself. Sampling holds anything
+ * between luma 30 and 230, so used raw it is a near-white surface on one card and a near-black one
+ * on the next — and the type then has to keep changing colour to follow it, which is where
+ * contrast gets thin. Under a fixed overlay the hue stays plainly recognisable and white always
+ * reads. The secondary tone is that same hue mixed towards white, because grey on a coloured
+ * ground reads as dead where the ground's own hue reads as chosen.
+ */
+const artworkPalette = (accent: Colour) => ({
+  ground: {
+    backgroundColor: accent,
+    backgroundImage: `linear-gradient(${PANEL_OVERLAY}, ${PANEL_OVERLAY})`,
+  },
+  onGround: "common.white",
+  muted: lighten(accent, MUTED_TOWARDS_WHITE),
+  /** The sample at full strength, for the edge where a surface meets the artwork it came from. */
+  seam: `${SEAM_WIDTH}px solid ${accent}`,
+});
+
+/**
  * The panel beside or beneath a hover card's artwork: what the item is, when, and how much of it.
  *
  * Beside a poster the panel is as tall as the artwork and the type cannot fill it — three lines
@@ -357,7 +380,8 @@ export const CardPanel = ({
   stats: { value: number | string; label: string }[];
   landscape?: boolean;
 }) => {
-  const muted = accent && lighten(accent, MUTED_TOWARDS_WHITE);
+  const palette = accent && artworkPalette(accent);
+  const muted = palette?.muted;
 
   return (
     <CardContent
@@ -371,17 +395,13 @@ export const CardPanel = ({
         ":last-child": { paddingBottom: 2 },
         // Until the artwork has given up a colour the panel is the theme's own, so a card that
         // paints before extraction finishes is plain rather than wrong.
-        ...(accent
+        ...(palette
           ? {
-              // Set as two properties rather than the shorthand: in `background`, a bare colour
-              // after a comma is not a valid layer, so the colour half is dropped and the overlay
-              // is left sitting on nothing.
-              backgroundImage: `linear-gradient(${PANEL_OVERLAY}, ${PANEL_OVERLAY})`,
-              backgroundColor: accent,
-              color: "common.white",
+              ...palette.ground,
+              color: palette.onGround,
               // Where the artwork meets the panel, so the two read as one card rather than as one
               // pasted onto the other. Rotated with the layout, never both.
-              [landscape ? "borderLeft" : "borderTop"]: `${SEAM_WIDTH}px solid ${accent}`,
+              [landscape ? "borderLeft" : "borderTop"]: palette.seam,
             }
           : { backgroundColor: "background.paper", color: "text.primary" }),
       }}
@@ -463,46 +483,69 @@ const StatTile = ({ value, label, muted }: { value: number | string; label: stri
   </Box>
 );
 
-export const FooterComponent = ({ labels, divider }: { labels: ReactNode[][]; divider?: boolean }) => (
-  <CardContent
-    sx={{
-      padding: "10px",
-      ":last-child": { paddingBottom: "10px" },
-      width: "100%",
-    }}
-  >
-    {labels.map((stacks, index) => (
-      <Stack
-        key={`stacks-${index}`}
-        direction="row"
-        divider={
-          divider ? (
-            <Divider
-              orientation="vertical"
-              flexItem
-            />
-          ) : null
-        }
-        sx={{
-          justifyContent: stacks.length === 1 ? "center" : "space-between",
-        }}
-      >
-        {stacks.map((val, index) =>
-          typeof val === "string" ? (
-            <Typography
-              key={val}
-              variant="subtitle2"
-            >
-              {val}
-            </Typography>
-          ) : (
-            <div key={index}>{val}</div>
-          ),
-        )}
-      </Stack>
-    ))}
-  </CardContent>
-);
+/**
+ * The strip under a thumbnail. Painted from the same recipe as the hover card's panel, so the two
+ * are one system and the type does not have to invert on a pale sample to stay readable.
+ *
+ * Rows read bottom-up: the last one carries the figures and anything above it is the context they
+ * belong to, which is why only the last is given the full tone. A label builder adding a row is
+ * adding context, and belongs above the figures for the same reason.
+ */
+export const FooterComponent = ({
+  labels,
+  divider,
+  accent,
+}: {
+  labels: ReactNode[][];
+  divider?: boolean;
+  accent?: Colour;
+}) => {
+  const palette = accent && artworkPalette(accent);
+
+  return (
+    <CardContent
+      sx={{
+        padding: "10px",
+        ":last-child": { paddingBottom: "10px" },
+        width: "100%",
+        ...(palette && { ...palette.ground, color: palette.onGround, borderTop: palette.seam }),
+      }}
+    >
+      {labels.map((stacks, index) => (
+        <Stack
+          key={`stacks-${index}`}
+          direction="row"
+          divider={
+            divider ? (
+              <Divider
+                orientation="vertical"
+                flexItem
+                sx={{ borderColor: palette?.muted, opacity: palette ? 0.4 : 1 }}
+              />
+            ) : null
+          }
+          sx={{
+            justifyContent: stacks.length === 1 ? "center" : "space-between",
+            color: palette && index < labels.length - 1 ? palette.muted : undefined,
+          }}
+        >
+          {stacks.map((val, index) =>
+            typeof val === "string" ? (
+              <Typography
+                key={val}
+                variant="subtitle2"
+              >
+                {val}
+              </Typography>
+            ) : (
+              <div key={index}>{val}</div>
+            ),
+          )}
+        </Stack>
+      ))}
+    </CardContent>
+  );
+};
 
 export const Segment = ({
   percent,

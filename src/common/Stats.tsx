@@ -308,10 +308,11 @@ export const StatsListCard = <T,>({
           sx={{ aspectRatio, flexShrink: 0 }}
           chip={chip}
           extractColour
-          footerComponent={() => (
+          footerComponent={(accent) => (
             <FooterComponent
               labels={labels}
               divider={divider}
+              accent={accent}
             />
           )}
         />
