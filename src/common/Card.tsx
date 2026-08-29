@@ -19,7 +19,7 @@ import {
 } from "@mui/material";
 import { createContext, useContext, type FunctionComponent, type ReactNode, useEffect, useRef, useState } from "react";
 import { CalendarMonthOutlined } from "@mui/icons-material";
-import { cachedColour, extractColourFrom, withAlpha } from "../utils/colourUtils";
+import { cachedColour, extractColourFrom } from "../utils/colourUtils";
 import { alpha } from "@mui/material/styles";
 import Grid from "@mui/material/Grid";
 import type { Colour } from "../utils/types";
@@ -184,16 +184,6 @@ export const CardMediaImage = ({
                 position: "relative",
               }}
             >
-              <Box
-                sx={{
-                  background: colour && `linear-gradient(to bottom, ${withAlpha(colour, "00")} 80%, ${colour})`,
-                  position: "absolute",
-                  top: "90%",
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                }}
-              />
               <CardMedia
                 component="img"
                 crossOrigin="anonymous"
@@ -235,6 +225,11 @@ export const CardMediaImage = ({
             <Box
               sx={{
                 display: "flex",
+                // The same line every other surface draws where it meets the artwork it was
+                // sampled from. A gradient fading the image into the ground did the joining
+                // before, which reads as the artwork running out rather than as one card in two
+                // parts — and spent the bottom tenth of every image to do it.
+                borderTop: dialogPalette?.seam,
               }}
             >
               <Box
