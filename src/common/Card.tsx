@@ -68,22 +68,33 @@ export const CardMediaImage = ({
   // same key showing a different item after a refetch — follows the prop instead of keeping the
   // value it mounted with.
   const colour = propColour ?? extracted;
+  /**
+   * The artwork's shape, which is what lets the dialog scale it up to the viewport rather than
+   * only down. Held as the ratio rather than as the decision it feeds, so the decision can be left
+   * to CSS and re-made on a resize or a rotation without a listener.
+   */
+  const [ratio, setRatio] = useState<number | undefined>(undefined);
   const imgRef = useRef<HTMLImageElement>(null);
 
   const readColour = (img: HTMLImageElement | null) => {
     if (img && !colour) extractColourFrom(img, setExtracted);
   };
 
+  const readRatio = (img: HTMLImageElement | null) => {
+    if (img?.naturalWidth) setRatio(img.naturalWidth / img.naturalHeight);
+  };
+
   // `load` does not bubble, so React delivers it through a root listener that only sees events
   // dispatched once the element is in the document. An image served from cache can finish before
-  // that, and then `onLoad` never runs and nothing else would ever ask for a colour. Checking the
-  // element after commit covers that case; `complete` with a non-zero `naturalWidth` means the
-  // image is there to be read whether or not the event arrived.
+  // that, and then `onLoad` never runs and nothing else would ever ask it for a colour or a shape.
+  // Checking the element after commit covers that case; `complete` with a non-zero `naturalWidth`
+  // means the image is there to be read whether or not the event arrived.
   useEffect(() => {
     const img = imgRef.current;
-    if (!extractColour || colour || !img?.complete || img.naturalWidth === 0) return;
-    extractColourFrom(img, setExtracted);
-  }, [extractColour, colour]);
+    if (!img?.complete || img.naturalWidth === 0) return;
+    setRatio(img.naturalWidth / img.naturalHeight);
+    if (extractColour && !colour) extractColourFrom(img, setExtracted);
+  }, [extractColour, colour, image]);
 
   return (
     <Card
@@ -113,6 +124,7 @@ export const CardMediaImage = ({
           loading={lazy ? "lazy" : undefined}
           ref={imgRef}
           onLoad={(el) => {
+            readRatio(el.currentTarget);
             if (extractColour) readColour(el.currentTarget);
           }}
           sx={sx}
@@ -174,11 +186,34 @@ export const CardMediaImage = ({
             <CardMedia
               component="img"
               crossOrigin="anonymous"
-              sx={{
-                objectFit: "contain",
-                maxHeight: (theme) => `calc(100vh - ${theme.spacing(4)})`,
-                maxWidth: (theme) => `calc(100vw - ${theme.spacing(4)})`,
-                display: "block",
+              sx={(theme) => {
+                // `svh` and not `vh`, because a phone reports `vh` with its toolbar retracted, so
+                // an image sized to it overflows the screen it is meant to fit. `dvh` would track
+                // the toolbar instead, and resize the artwork under the reader at the moment they
+                // scroll past it to the details.
+                const room = {
+                  width: `calc(100vw - ${theme.spacing(4)})`,
+                  height: `calc(100svh - ${theme.spacing(4)})`,
+                };
+
+                return {
+                  objectFit: "contain",
+                  display: "block",
+                  // On their own these only ever take away: an element with an automatic width is
+                  // already its intrinsic width, so artwork smaller than the screen stays small.
+                  // They are still the whole rule until the shape is known.
+                  maxWidth: room.width,
+                  maxHeight: room.height,
+                  ...(ratio && {
+                    // Filling the width and deriving the height scales the artwork up as well as
+                    // down. Which of the two is the binding one is left to `min`, so it is decided
+                    // against the room actually available and decided again on a rotation — where
+                    // a stored answer would be the one from whichever way round the screen was
+                    // when the image loaded.
+                    width: `min(${room.width}, calc(${room.height} * ${ratio}))`,
+                    height: "auto",
+                  }),
+                };
               }}
               src={image}
               title={alt}
