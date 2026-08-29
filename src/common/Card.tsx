@@ -344,12 +344,14 @@ const MUTED_TOWARDS_WHITE = 0.65;
  */
 export const CardPanel = ({
   title,
+  subtitle,
   accent,
   dateRange,
   stats,
   landscape = false,
 }: {
   title: string;
+  subtitle?: string;
   accent?: Colour;
   dateRange: string;
   stats: { value: number | string; label: string }[];
@@ -394,6 +396,16 @@ export const CardPanel = ({
         >
           {title}
         </Typography>
+        {/* Part of what the thing is called, but not the part the chart labels its bar with, so
+            it sits under the title in the same tone the dates take. */}
+        {subtitle && (
+          <Typography
+            variant="body2"
+            sx={{ color: muted, opacity: muted ? 1 : 0.75 }}
+          >
+            {subtitle}
+          </Typography>
+        )}
         <Stack
           direction="row"
           spacing={0.75}

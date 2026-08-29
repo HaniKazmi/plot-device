@@ -49,7 +49,9 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       const season: Season = {
         s: parseFloat(row.Season),
         e,
-        subtitle: row.Subtitle,
+        // The column is blank for most seasons and padded on a few, so it is normalised here
+        // rather than at each reader — and `undefined` is what the type has always claimed.
+        subtitle: row.Subtitle.trim() || undefined,
         startDate,
         endDate,
         episodeLength: episodeLength as number,

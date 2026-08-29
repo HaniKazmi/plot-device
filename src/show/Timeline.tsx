@@ -1,6 +1,6 @@
 import { CardHeader, FormGroup, FormControlLabel, Switch } from "@mui/material";
 import { useState } from "react";
-import { Season, Show } from "./types";
+import { Season, Show, isShow } from "./types";
 import Timeline, { TimelineData } from "../common/Timeline";
 import { Colour, statusToColour } from "../utils/types";
 import { CURRENT_PLAINDATE, formatDateRange } from "../common/date";
@@ -29,6 +29,7 @@ const ShowTimeline = ({ data }: { data: Show[] }) => {
             // The chart's own label for the bar, so the card names exactly what was hovered — a
             // season, or a whole show when the seasons are combined.
             title={title}
+            subtitle={isShow(s) ? undefined : s.subtitle}
             accent={accent}
             dateRange={formatDateRange(s.startDate, s.endDate)}
             stats={[
