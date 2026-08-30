@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { YearMonth, YearMonthDay } from "../../src/common/date";
-import { assignRows, buildTicks, decidePlacement, packRows, type TimelineData } from "../../src/common/timelineLayout";
+import {
+  assignRows,
+  buildTicks,
+  decidePlacement,
+  packRows,
+  yearAtPercent,
+  yearMarkers,
+  type TimelineData,
+} from "../../src/common/timelineLayout";
 import type { Colour } from "../../src/utils/types";
 
 const item = (name: string, start: [number, number, number], end: [number, number, number]): TimelineData => ({
@@ -220,5 +228,60 @@ describe("buildTicks", () => {
 
   it("carries the month and year labels the axis renders", () => {
     expect(ticks[0]).toMatchObject({ monthLabel: "Jan", yearLabel: "2024", year: 2024 });
+  });
+});
+
+describe("yearMarkers", () => {
+  const markersFrom = (start: [number, number], end: [number, number]) => {
+    const totalDays = YearMonthDay.get(start[0], start[1], 1).daysTo(YearMonthDay.get(end[0], end[1], 1))!;
+    return yearMarkers(buildTicks(YearMonth.get(...start), YearMonth.get(...end), totalDays));
+  };
+
+  it("pins the opening year to the left edge, so a chart starting mid-year still owns it", () => {
+    const markers = markersFrom([2022, 6], [2024, 6]);
+    expect(markers[0]).toEqual({ year: 2022, percent: 0 });
+  });
+
+  it("names each year once when the data itself starts in January", () => {
+    // The January tick and the pinned opening are the same marker. Two of them would give the
+    // shading a zero-width band and the nav two chips for one year.
+    const markers = markersFrom([2022, 1], [2024, 6]);
+    expect(markers.map((marker) => marker.year)).toEqual([2022, 2023, 2024]);
+    expect(markers[0].percent).toBe(0);
+  });
+
+  it("puts every later year on its own January", () => {
+    const markers = markersFrom([2022, 6], [2024, 6]);
+    expect(markers.map((marker) => marker.year)).toEqual([2022, 2023, 2024]);
+    expect(markers[1].percent).toBeGreaterThan(0);
+    expect(markers[2].percent).toBeGreaterThan(markers[1].percent);
+  });
+
+  it("has nothing to mark on an empty tick list", () => {
+    expect(yearMarkers([])).toEqual([]);
+  });
+});
+
+describe("yearAtPercent", () => {
+  const markers = [
+    { year: 2022, percent: 0 },
+    { year: 2023, percent: 25 },
+    { year: 2024, percent: 60 },
+  ];
+
+  it("reads a position inside a year as that year rather than the next", () => {
+    expect(yearAtPercent(markers, 40)).toBe(2023);
+  });
+
+  it("takes a year's own edge as that year, which is where a chip scrolls to", () => {
+    expect(yearAtPercent(markers, 25)).toBe(2023);
+  });
+
+  it("holds the last year to the right-hand end", () => {
+    expect(yearAtPercent(markers, 100)).toBe(2024);
+  });
+
+  it("has no answer before the first marker, which is only reachable with no data", () => {
+    expect(yearAtPercent([], 0)).toBeUndefined();
   });
 });
