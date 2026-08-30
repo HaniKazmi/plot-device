@@ -113,8 +113,10 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
   );
   // Derived rather than seeded into state, so a card whose `colour` prop changes under it — the
   // same key showing a different item after a refetch — follows the prop instead of keeping the
-  // value it mounted with.
-  const colour = propColour ?? extracted;
+  // value it mounted with. `||` rather than `??`: colour lookups answer `""` for a value outside
+  // their vocabulary, and the empty string reaching `getContrastText` through the chip's fallback
+  // chain throws and takes the whole page down — "no colour" has to mean `undefined` from here on.
+  const colour = propColour || extracted;
   /**
    * The artwork's shape, which is what lets the dialog scale it up to the viewport rather than
    * only down. Held as the ratio rather than as the decision it feeds, so the decision can be left
