@@ -1,4 +1,10 @@
-import { CardPanel, type CardMediaImageProps, type PanelStat, type TypedCardMediaImage } from "./Card";
+import {
+  CardPanel,
+  type CardMediaImageProps,
+  type PanelStat,
+  type PanelSubtitlePart,
+  type TypedCardMediaImage,
+} from "./Card";
 
 /**
  * How tall the artwork is beside the panel, and on a phone above it.
@@ -35,7 +41,7 @@ export const Hero = <T,>(props: {
   /** The line above the title, saying why this item is the one shown. */
   kicker: string;
   title: string;
-  subtitle?: string;
+  subtitle?: string | PanelSubtitlePart[];
   stats: HeroStat[];
   /** The same corner badge the item's thumbnail carries, so the promoted one is not the bare one. */
   chip?: CardMediaImageProps["chip"];

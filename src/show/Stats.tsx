@@ -30,7 +30,7 @@ import { DrilldownDialog } from "../common/DrilldownDialog";
 import { YearSelect } from "../common/YearSelect";
 import { Hero } from "../common/Hero";
 import ShowCardMediaImage from "./CardMediaImage";
-import { NEUTRAL_FILL, statusToColour } from "../utils/types";
+import { genreToColour, NEUTRAL_FILL, statusToColour } from "../utils/types";
 import { Radio, Stack, Typography } from "@mui/material";
 import { capitalize } from "@mui/material/utils";
 import { useState, type ReactNode } from "react";
@@ -177,7 +177,8 @@ const ShowHero = ({ season }: { season: Season }) => {
       // The same badge the strip's cards carry, so being promoted does not cost the show its place.
       chip={{ label: `S${season.s}E${season.e}`, colour: statusToColour(season.show) }}
       title={season.show.name}
-      subtitle={[season.show.network, season.show.genre].filter(Boolean).join(" · ")}
+      // The genre wears the same swatch its ledger row and every genre wedge on the tab wear.
+      subtitle={[{ text: season.show.network }, { text: season.show.genre, swatch: genreToColour(season.show.genre) }]}
       stats={showHeroStats(season, franchise.length, CURRENT_PLAINDATE)}
     />
   );

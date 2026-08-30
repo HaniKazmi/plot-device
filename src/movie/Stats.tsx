@@ -29,7 +29,7 @@ import { topNWithOther } from "../common/statsData";
 import { useSelectBox } from "../common/SelectBoxHook";
 import { useFranchiseMovies } from "./franchiseContext";
 import { format } from "../utils/mathUtils";
-import { NEUTRAL_FILL } from "../utils/types";
+import { genreToColour, NEUTRAL_FILL } from "../utils/types";
 import { highchartsColors } from "../highcharts";
 import MovieCardMediaImage from "./CardMediaImage";
 import { MOVIE_SECTIONS } from "./sections";
@@ -159,7 +159,8 @@ const MovieHero = ({ movie }: { movie: Movie }) => {
       // The same badge the strips' posters carry, so being promoted does not cost the film its score.
       chip={movieScoreChip(movie)}
       title={movie.name}
-      subtitle={[movie.director, movie.genre].filter(Boolean).join(" · ")}
+      // The genre wears the same swatch its ledger row and every genre wedge on the tab wear.
+      subtitle={[{ text: movie.director }, { text: movie.genre, swatch: genreToColour(movie.genre) }]}
       stats={movieHeroStats(movie, franchise.length)}
     />
   );

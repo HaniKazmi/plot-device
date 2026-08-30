@@ -33,6 +33,7 @@ import {
 } from "./statsData";
 import {
   companyToColor,
+  genreToColour,
   groupToColour,
   videoGameOptions,
   type Company,
@@ -161,7 +162,8 @@ const VgHero = ({ game }: { game: VideoGame }) => {
       // promoted to the top of the page does not cost this game its platform.
       chip={platformToShortChip(game)}
       title={game.name}
-      subtitle={[game.platform, game.genre].filter(Boolean).join(" · ")}
+      // The genre wears the same swatch its ledger row and every genre wedge on the tab wear.
+      subtitle={[{ text: game.platform }, { text: game.genre, swatch: genreToColour(game) }]}
       stats={heroStats(game, franchise, CURRENT_PLAINDATE)}
     />
   );

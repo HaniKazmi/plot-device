@@ -18,7 +18,7 @@ import {
   type ChipProps,
   type TypographyProps,
 } from "@mui/material";
-import { type FunctionComponent, type ReactNode, useEffect, useRef, useState } from "react";
+import { Fragment, type FunctionComponent, type ReactNode, useEffect, useRef, useState } from "react";
 import { CalendarMonthOutlined } from "@mui/icons-material";
 import { cachedColour, extractColourFrom } from "../utils/colourUtils";
 import { ArtworkAccent, artworkPalette, useArtworkPalette } from "./artworkPalette";
@@ -354,6 +354,16 @@ export interface PanelStat {
 }
 
 /**
+ * One segment of a panel's subtitle — "Apple TV", "Thriller" — with the swatch the app already
+ * speaks that segment's colour in, where it has one. Parts with no text are dropped, so a caller
+ * lists its fields without testing which the sheet filled in.
+ */
+export interface PanelSubtitlePart {
+  text: string;
+  swatch?: Colour;
+}
+
+/**
  * How a panel sits against the artwork it belongs to, which decides the edge the two share and
  * whether the panel has height to spend.
  *
@@ -389,7 +399,8 @@ export const CardPanel = ({
   kicker?: string;
   title: string;
   titleVariant?: TypographyProps["variant"];
-  subtitle?: string;
+  /** Plain prose, or parts carrying the swatches a legend elsewhere honours. */
+  subtitle?: string | PanelSubtitlePart[];
   /** Absent where the card names its dates some other way, as the hero's kicker does. */
   dateRange?: string;
   stats: PanelStat[];
@@ -455,14 +466,36 @@ export const CardPanel = ({
         </Typography>
         {/* Part of what the thing is called, but not the part the chart labels its bar with, so
             it sits under the title in the same tone the dates take. */}
-        {subtitle && (
-          <Typography
-            variant="body2"
-            sx={{ color: palette.muted }}
-          >
-            {subtitle}
-          </Typography>
-        )}
+        {subtitle &&
+          (Array.isArray(subtitle) ? (
+            <Stack
+              direction="row"
+              spacing={0.75}
+              sx={{ alignItems: "center", flexWrap: "wrap", color: palette.muted }}
+            >
+              {subtitle
+                .filter((part) => part.text)
+                .map((part, index) => (
+                  <Fragment key={part.text}>
+                    {index > 0 && <Typography variant="body2">·</Typography>}
+                    {part.swatch && (
+                      <Swatch
+                        colour={part.swatch}
+                        size={INLINE_SWATCH_SIZE}
+                      />
+                    )}
+                    <Typography variant="body2">{part.text}</Typography>
+                  </Fragment>
+                ))}
+            </Stack>
+          ) : (
+            <Typography
+              variant="body2"
+              sx={{ color: palette.muted }}
+            >
+              {subtitle}
+            </Typography>
+          ))}
         {dateRange && (
           <Stack
             direction="row"
