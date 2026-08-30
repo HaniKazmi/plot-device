@@ -124,14 +124,20 @@ export const GoogleAuthProvider = ({ children }: { children: ReactNode }) => {
     { spreadsheetId, range }: Tab,
     jsonConverter: (array: Record<string, string>[]) => T,
   ): Promise<T> => {
+    // Only the request is guarded. A converter throw means the sheet holds something it should
+    // not, and clearing the token for that turns a data fault into an apparent auth fault: the
+    // NavBar falls back to "Authorise", every other tab loses its session too, and authorising
+    // again refetches the same bad cell and clears it again, with nothing on screen to say why.
+    let response;
     try {
-      const response = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId, range });
-      return jsonConverter(arrayToJson(response.result.values!));
+      response = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId, range });
     } catch (error) {
       console.error(error);
       setTokenSet(false);
       throw error;
     }
+
+    return jsonConverter(arrayToJson(response.result.values!));
   };
 
   return (

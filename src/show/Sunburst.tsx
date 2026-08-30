@@ -1,10 +1,10 @@
 import { useState } from "react";
 import type { KeysMatching } from "../utils/types";
-import { groupToColour, type Measure, type Show } from "./types";
+import { groupToColour, typeToName, type Measure, type Show } from "./types";
 import Sunburst, { SunBurstControls } from "../common/Sunburst";
 import { format } from "../utils/mathUtils";
 
-type OptionKeys = KeysMatching<Show, string | Show["startDate"] | Show["anime"]> | "show";
+type OptionKeys = KeysMatching<Show, string | Show["startDate"]> | "show";
 
 const ShowSunburst = ({ data, measure }: { data: Show[]; measure: Measure }) => {
   const [controlStates, setControlStates] = useState<OptionKeys[]>(["status", "startDate", "show"]);
@@ -24,8 +24,8 @@ const ShowSunburst = ({ data, measure }: { data: Show[]; measure: Measure }) => 
               return season.startDate.yearString();
             case "show":
               return season.show.name;
-            case "anime":
-              return season.show.anime ? "Anime" : "Western";
+            case "type":
+              return typeToName(season.show.type);
             default:
               return String(season.show[key as keyof Show]);
           }
@@ -45,6 +45,16 @@ const ShowSunburst = ({ data, measure }: { data: Show[]; measure: Measure }) => 
   );
 };
 
-const options: OptionKeys[] = ["name", "status", "startDate", "show", "anime"];
+const options: OptionKeys[] = [
+  "name",
+  "status",
+  "startDate",
+  "show",
+  "type",
+  "genre",
+  "network",
+  "rating",
+  "franchise",
+];
 
 export default ShowSunburst;

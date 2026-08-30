@@ -37,6 +37,56 @@ export type ColourableStatus =
 export const NEUTRAL_FILL = "#7d828c" as Colour;
 
 /**
+ * Every certificate the sheets record, written the way its own board writes it.
+ *
+ * Games are recorded as PEGI, which carries the suffix (`16+`); Shows and Movies as BBFC, which
+ * writes the bare number (`15`). Both notations are kept as the sheet holds them, because a card's
+ * badge should read the way the certificate does.
+ *
+ * The ten are listed rather than derived by crossing the ages with an optional suffix: the two
+ * boards do not issue the same set — PEGI has no 15 and BBFC no 16 — so a cross product admits
+ * `15+` and `16`, which is the shape the likeliest typo takes and would pass validation.
+ */
+const AGE_RATINGS = ["3", "7", "12", "15", "18", "3+", "7+", "12+", "16+", "18+"] as const;
+export type AgeRating = (typeof AGE_RATINGS)[number];
+
+/**
+ * Whether a sheet cell holds an age rating, so a converter can reject a bad one where it still
+ * knows which row it came from. Without this the first sign of trouble is `ageRatingToColour`
+ * throwing from inside a render, naming a value but not the show or film that carried it.
+ */
+export const isAgeRating = (value: string): value is AgeRating => (AGE_RATINGS as readonly string[]).includes(value);
+
+/**
+ * Traffic-light lightness: two greens for what a child can watch unaccompanied, two ambers for
+ * the middle, red for adults only. The pairs separate by lightness within a hue, which is what
+ * lets 3 and 7 read as one band while still being told apart side by side.
+ *
+ * The colour tracks the age, not the notation, so a PEGI 12+ game and a BBFC 12 film carry the
+ * same swatch — the two scales are never drawn on one chart, and a reader moving between tabs
+ * would otherwise have to learn the same ramp twice. BBFC 15 and PEGI 16 are one tier under two
+ * boards' names and share the band for the same reason.
+ */
+export const ageRatingToColour = (rating: AgeRating) => {
+  switch (parseInt(rating, 10)) {
+    case 3:
+      return "#88c32f" as Colour;
+    case 7:
+      return "#6d9c26" as Colour;
+    case 12:
+      return "#c27400" as Colour;
+    case 15:
+    case 16:
+      return "rgb(242,144,0)" as Colour;
+    case 18:
+      return "#d60015" as Colour;
+    default:
+      // Throws rather than falling back, which is what catches a typo in the spreadsheet.
+      throw new Error("Unknown rating: " + rating);
+  }
+};
+
+/**
  * Hue says how a thing ended; lightness says whether it is still moving.
  *
  * Cyan is in progress, blue is open-ended, green finished well, amber was stopped by someone

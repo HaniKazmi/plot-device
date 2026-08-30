@@ -1,6 +1,7 @@
 import { CardContent, Grid } from "@mui/material";
 import { CardMediaImage, DetailCard, TypedCardMediaImage } from "../common/Card";
 import { Movie } from "./types";
+import { namesTheSameThing } from "../utils/stringUtils";
 
 const MovieCardMediaImage: TypedCardMediaImage<Movie> = ({ item, ...props }) => (
   <CardMediaImage
@@ -30,12 +31,32 @@ const MovieCardMediaImage: TypedCardMediaImage<Movie> = ({ item, ...props }) => 
           />
           <DetailCard
             label="Genre"
-            value={item.genre}
+            value={[item.genre, ...item.genres].join(" · ")}
           />
           <DetailCard
             label="Director"
             value={item.director}
           />
+          {/* A film with no wider franchise carries its own name in the column, so the tile
+              appears only where it names something to belong to rather than the film over again. */}
+          {!namesTheSameThing(item.franchise, item.name) && (
+            <DetailCard
+              label="Franchise"
+              value={item.franchise}
+            />
+          )}
+          {item.score !== undefined && (
+            <DetailCard
+              label="Score"
+              value={`${item.score}/10`}
+            />
+          )}
+          {item.cinema && (
+            <DetailCard
+              label="Seen In"
+              value="Cinema"
+            />
+          )}
         </Grid>
       </CardContent>
     )}

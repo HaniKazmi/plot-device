@@ -10,7 +10,8 @@ import {
 } from "../common/Card";
 import { Season, Show, isShow } from "./types";
 import Grid from "@mui/material/Grid";
-import { statusToColour } from "../utils/types";
+import { ageRatingToColour, statusToColour } from "../utils/types";
+import { namesTheSameThing } from "../utils/stringUtils";
 import { CURRENT_PLAINDATE, YearMonthDay, formatDateRange } from "../common/date";
 import { buildStrip, stripYearTicks } from "../common/timelineStripData";
 
@@ -22,13 +23,29 @@ const showStats = (show: Show): CardStat[] => [
 ];
 
 /**
- * The facts that are not figures. No swatches: a show has no platform, genre or rating map, and
- * the one field that does carry a colour — status — is already a filled tile above.
+ * The facts that are not figures.
+ *
+ * Only the rating carries a swatch — it is the one of these the app colours anywhere else, so the
+ * swatch names a legend the charts honour. Status has a colour too and is already a filled tile
+ * above, so repeating it here would say it twice.
  */
-const showRows = (show: Show): LedgerRow[] => [
-  { label: "Watched", value: formatDateRange(show.startDate, show.endDate) },
-  { label: "Last Watched", value: `S${show.s.length}E${show.s.at(-1)!.e}` },
-];
+const showRows = (show: Show): LedgerRow[] => {
+  const rows: LedgerRow[] = [
+    { label: "Watched", value: formatDateRange(show.startDate, show.endDate) },
+    { label: "Last Watched", value: `S${show.s.length}E${show.s.at(-1)!.e}` },
+    // The primary genre leads and the rest follow it, which is the order the sheet holds them in
+    // and the order the charts group by.
+    { label: "Genre", value: [show.genre, ...show.genres].join(" · ") },
+    { label: "Network", value: show.network },
+    { label: "Rating", value: show.rating, swatch: ageRatingToColour(show.rating) },
+  ];
+
+  // A show with no wider franchise carries its own name in the column, so the row appears only
+  // where it names something the show belongs to rather than the show over again.
+  if (!namesTheSameThing(show.franchise, show.name)) rows.push({ label: "Franchise", value: show.franchise });
+
+  return rows;
+};
 
 const ShowCardMediaImage = <T extends Show | Season>({ item, ...props }: Parameters<TypedCardMediaImage<T>>[0]) => {
   const show = isShow(item) ? item : item.show;

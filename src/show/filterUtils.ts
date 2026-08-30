@@ -18,7 +18,7 @@ export const filters = (state: Omit<FilterState, "filter">): Predicate<Show> => 
   const predicates: Predicate<Show>[] = [...yearPredicates<Show>(state)];
 
   if (state.guestMode) {
-    predicates.push((show) => !show.anime);
+    predicates.push((show) => show.type !== "anime");
   }
 
   return (show: Show) => predicates.every((p) => p(show));

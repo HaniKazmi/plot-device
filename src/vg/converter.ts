@@ -1,5 +1,5 @@
 import { PlainDate } from "../common/date.ts";
-import { describing, sheetRow } from "../common/sheetError.ts";
+import { describing, readAgeRating, sheetRow } from "../common/sheetError.ts";
 import type { Company, Format, Platform, Status, VideoGame } from "./types";
 
 export const jsonConverter = (json: Record<string, string>[]) => {
@@ -28,7 +28,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       format: row.Format as Format,
       developer: row.Developer,
       publisher: row.Publisher,
-      rating: row.Rating,
+      rating: readAgeRating(row.Rating, `${where}, Rating`),
       status: status,
       party: party,
       startDate: startDate,

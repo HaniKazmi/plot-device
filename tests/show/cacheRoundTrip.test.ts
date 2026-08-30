@@ -8,7 +8,7 @@ const rows = [
   showRow({ Show: "Severance" }),
   seasonRow({ Season: "1", Episode: "9", Start: "2022-02-18", End: "2022-04-08", Episodes: "45" }),
   seasonRow({ Season: "2", Episode: "10", Start: "2025-01-17", End: "", Episodes: "50" }),
-  showRow({ Show: "Andor", Anime: "TRUE" }),
+  showRow({ Show: "Andor", Type: "anime" }),
   seasonRow({ Season: "1", Episode: "12", Start: "2022-09-21", End: "2022-11-23", Episodes: "40" }),
 ];
 
@@ -64,8 +64,15 @@ describe("the localStorage round trip", () => {
 
     expect(severance.e).toBe(19);
     expect(severance.minutes).toBe(9 * 45 + 10 * 50);
-    expect(andor.anime).toBe(true);
-    expect(severance.anime).toBe(false);
+    expect(andor.type).toBe("anime");
+    expect(severance.type).toBe("show");
+    expect(severance.genre).toBe("Sci-Fi");
+    // An array survives JSON as an array, but only if the replacer leaves it alone — the same
+    // replacer that has to strip the season back-references two levels down.
+    expect(severance.genres).toEqual(["Drama", "Thriller"]);
+    expect(severance.network).toBe("Apple TV+");
+    expect(severance.rating).toBe("15");
+    expect(severance.franchise).toBe("Severance");
   });
 });
 

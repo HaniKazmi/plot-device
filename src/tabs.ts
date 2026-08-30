@@ -9,6 +9,12 @@ export interface Tab {
   id: string;
   name: string;
   spreadsheetId: string;
+  /**
+   * Deliberately wider than the columns in use. `arrayToJson` keys each row by its header name, so
+   * a range only has to *cover* a column for the converter to find it — but a column added or
+   * moved past the end of a tight range simply stops arriving, with no error anywhere. That has
+   * silently dropped a field twice. Trailing empty columns cost one extra key and nothing else.
+   */
   range: string;
   component: FunctionComponent;
   primaryColour?: string;
@@ -29,7 +35,7 @@ export const ShowsTab: Tab = {
   id: "show",
   name: "Shows",
   spreadsheetId: "1M3om2DPLfRO5dKcUfYOIcSNoLThzMLp1iZLQX6qR3pY",
-  range: "Shows!A:P",
+  range: "Shows!A:Z",
   component: Shows,
   primaryColour: "#9a282f",
   secondaryColour: "#53c1c7",
@@ -39,7 +45,7 @@ export const MoviesTab: Tab = {
   id: "movies",
   name: "Movies",
   spreadsheetId: "1M3om2DPLfRO5dKcUfYOIcSNoLThzMLp1iZLQX6qR3pY",
-  range: "Movies!A:K",
+  range: "Movies!A:Z",
   component: Movies,
   primaryColour: "#c25410",
   secondaryColour: "#ffc48a",

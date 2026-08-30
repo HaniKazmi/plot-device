@@ -40,20 +40,55 @@ describe("field parsing", () => {
     expect(convertOne().releaseDate).toBe(YearMonthDay.get(2016, 11, 11));
   });
 
-  it("yields NaN for blank numbers rather than undefined, unlike the games converter", () => {
-    const movie = convertOne({ Rating: "", Score: "", Runtime: "" });
+  it("drops a blank score rather than carrying NaN, which any average would spread", () => {
+    // A film nobody scored is absent from the column, which is not the same as scoring it zero.
+    expect(convertOne({ Score: "" }).score).toBeUndefined();
+    expect(convertOne({ Score: "9" }).score).toBe(9);
+  });
 
-    expect(movie.rating).toBeNaN();
-    expect(movie.score).toBeNaN();
-    expect(movie.minutes).toBeNaN();
+  it("reads the runtime out of the sheet's own NNNmin form", () => {
+    expect(convertOne({ Runtime: "116min" }).minutes).toBe(116);
+  });
+
+  it("rejects a rating the colour map could not paint, naming the row and the film", () => {
+    // Left to reach ageRatingToColour, a bad cell throws from inside a render instead — naming
+    // the value but not which film carried it.
+    expect(() => convertOne({ Rating: "" })).toThrow('Row 2, "Arrival", Rating: "" is not an age rating');
+    expect(() => convertOne({ Rating: "PG-13" })).toThrow("not an age rating");
+  });
+
+  it("accepts the BBFC numbers this sheet records, alongside the PEGI form games use", () => {
+    expect(convertOne({ Rating: "3" }).rating).toBe("3");
+    expect(convertOne({ Rating: "15" }).rating).toBe("15");
+  });
+
+  it("splits the secondary genres on the comma the sheet separates them with", () => {
+    expect(convertOne({ Genres: "Drama, Mystery" }).genres).toEqual(["Drama", "Mystery"]);
+    // Written both ways in the sheet, so the space cannot be part of the separator.
+    expect(convertOne({ Genres: "Drama,Mystery" }).genres).toEqual(["Drama", "Mystery"]);
+  });
+
+  it("gives a film with no secondary genres an empty list, not a list holding an empty string", () => {
+    // Every reader counts or renders this list directly, and [""] shows up as a blank entry and
+    // as a genre of its own in any tally.
+    expect(convertOne({ Genres: "" }).genres).toEqual([]);
+  });
+
+  it("reads the cinema flag only from the literal string TRUE", () => {
+    // The sheet writes nothing at all for the false case, so anything else is false rather than
+    // an error — including the lower-case spelling, which the sheet never produces.
+    expect(convertOne({ Cinema: "TRUE" }).cinema).toBe(true);
+    expect(convertOne({ Cinema: "" }).cinema).toBe(false);
+    expect(convertOne({ Cinema: "true" }).cinema).toBe(false);
   });
 
   it("carries the remaining columns through untouched", () => {
     const movie = convertOne();
 
     expect(movie.name).toBe("Arrival");
-    expect(movie.genre).toBe("Science Fiction");
+    expect(movie.genre).toBe("Sci-Fi");
+    expect(movie.franchise).toBe("Arrival");
     expect(movie.director).toBe("Denis Villeneuve");
-    expect(movie.minutes).toBe(116);
+    expect(movie.banner).toBe("arrival.jpg");
   });
 });

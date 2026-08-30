@@ -1,18 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CURRENT_YEAR, YearMonthDay, type YearNumber } from "../../src/common/date";
 import { filters, initialState, type FilterState } from "../../src/show/filterUtils";
-import type { Show } from "../../src/show/types";
-
-const show = (overrides: Partial<Show> = {}): Show => ({
-  name: "Severance",
-  status: "Watching",
-  startDate: YearMonthDay.get(2022, 2, 18),
-  anime: false,
-  s: [],
-  e: 9,
-  minutes: 405,
-  ...overrides,
-});
+import { show } from "../fixtures/shows";
 
 const state = (overrides: Partial<FilterState> = {}): Omit<FilterState, "filter"> => ({
   ...initialState,
@@ -25,7 +14,7 @@ describe("the default state", () => {
     // sessions ever see.
     const keep = filters(state());
 
-    expect(keep(show({ anime: true }))).toBe(true);
+    expect(keep(show({ type: "anime" }))).toBe(true);
     expect(keep(show({ startDate: YearMonthDay.get(2008, 1, 1) }))).toBe(true);
   });
 });
@@ -35,8 +24,8 @@ describe("guest mode", () => {
     // The same flag hides adult-themed games on the games tab — same switch, different rule.
     const keep = filters(state({ guestMode: true }));
 
-    expect(keep(show({ anime: true }))).toBe(false);
-    expect(keep(show({ anime: false }))).toBe(true);
+    expect(keep(show({ type: "anime" }))).toBe(false);
+    expect(keep(show({ type: "show" }))).toBe(true);
   });
 });
 

@@ -1,3 +1,5 @@
+import { isAgeRating, type AgeRating } from "../utils/types";
+
 /**
  * Bad spreadsheet data is meant to fail loudly rather than be papered over, but a bare
  * `Unkown Date Format: ` or `Cannot read properties of undefined` says nothing about which row
@@ -25,3 +27,14 @@ export const describing = <T>(context: string, parse: () => T): T => {
 export const sheetError = (context: string, detail: string): never => {
   throw new Error(`${context}: ${detail}`);
 };
+
+/**
+ * Reads a certificate cell, rejecting one the colour map could not paint.
+ *
+ * All three sheets record an age rating and all three feed it to `ageRatingToColour`, which throws
+ * on a value it does not know. Left to reach that, the failure surfaces from inside a render and
+ * names the value but not the row carrying it — so every converter reads the column through here
+ * instead, while it still knows which row it is on.
+ */
+export const readAgeRating = (value = "", where: string): AgeRating =>
+  isAgeRating(value) ? value : sheetError(where, `"${value}" is not an age rating`);

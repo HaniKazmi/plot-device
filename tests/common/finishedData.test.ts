@@ -5,6 +5,7 @@ import {
   finishedBucket,
   finishedCount,
   finishedItems,
+  finishedKey,
   orderedBuckets,
 } from "../../src/common/finishedData";
 
@@ -145,5 +146,44 @@ describe("bucketLabel", () => {
   it("shows anything that is not a year as itself", () => {
     expect(bucketLabel("M")).toBe("M");
     expect(bucketLabel("1")).toBe("1");
+  });
+});
+
+describe("finishedKey", () => {
+  const released = (name: string, year: number) => ({
+    name,
+    banner: "a.jpg",
+    startDate: YearMonthDay.get(2020, 1, 1),
+    releaseDate: YearMonthDay.get(year, 1, 1),
+  });
+
+  it("tells a remake apart from the film it remakes", () => {
+    // Three pairs on the movies wall share a title exactly. Keyed on the name alone React cannot
+    // tell the two cards apart and may render one of the pair in place of the other.
+    expect(finishedKey(released("The Lion King", 1994))).not.toBe(finishedKey(released("The Lion King", 2019)));
+  });
+
+  it("names the year a reader would disambiguate by", () => {
+    expect(finishedKey(released("Rebecca", 1940))).toBe("Rebecca (1940)");
+  });
+
+  it("does not move when the watching does", () => {
+    // Watching something again rewrites its watch date. A key built on that would change with it,
+    // remounting the card and dropping the colour extracted from its artwork.
+    const first = { ...released("Peter Pan", 1953), startDate: YearMonthDay.get(2002, 9, 11) };
+    const rewatched = { ...first, startDate: YearMonthDay.get(2024, 3, 1) };
+
+    expect(finishedKey(rewatched)).toBe(finishedKey(first));
+  });
+
+  it("falls back to the bare name where a domain dates only the watching", () => {
+    // Shows carry no release date, and no two shows on record share a title.
+    expect(finishedKey({ name: "Severance", banner: "a.jpg" })).toBe("Severance");
+  });
+
+  it("reads a year-only release date, which games record", () => {
+    expect(finishedKey({ name: "Ocarina of Time", banner: "a.jpg", releaseDate: Year.get(1998) })).toBe(
+      "Ocarina of Time (1998)",
+    );
   });
 });

@@ -8,7 +8,7 @@ import { useSelectBox } from "./SelectBoxHook";
 import { ScrollMarker, ScrollMarkerRail } from "./ScrollMarker";
 import { useScrollMarker } from "./ScrollMarkerHook";
 import { ExpandableCard } from "./Stats";
-import { finishedBucket, finishedItems, type FinishedItem, type FinishedSort } from "./finishedData";
+import { finishedBucket, finishedItems, finishedKey, type FinishedItem, type FinishedSort } from "./finishedData";
 import { withAlpha } from "../utils/colourUtils";
 
 const sortOptions: FinishedSort[] = ["Date", "Name"];
@@ -74,7 +74,7 @@ const Finished = <U extends FinishedItem>({
         >
           {recent.map((item) => (
             <Grid
-              key={`${item.name}-${isDialog ? "dialog" : "card"}`}
+              key={`${finishedKey(item)}-${isDialog ? "dialog" : "card"}`}
               // Written at render from the same item and sort the order came from, so the marker
               // reads a position off the DOM instead of keeping a parallel list to index into.
               data-bucket={finishedBucket(item, sort) ?? undefined}

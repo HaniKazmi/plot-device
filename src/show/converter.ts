@@ -1,6 +1,7 @@
 import { PlainDate, YearMonthDay } from "../common/date.ts";
-import { describing, sheetError, sheetRow } from "../common/sheetError.ts";
-import type { Season, Show, Status } from "./types";
+import { describing, readAgeRating, sheetError, sheetRow } from "../common/sheetError.ts";
+import { splitCell } from "../utils/stringUtils";
+import type { Season, Show, Status, Type } from "./types";
 import "../utils/arrayUtils";
 
 // Season.show is a back-reference to its parent, so it has to be dropped before serialising
@@ -21,7 +22,14 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       show = {
         name: row.Show,
         status: row.Status as Status,
-        anime: row.Anime === "TRUE",
+        type: row.Type as Type,
+        genre: row.Genre,
+        // Genres is the sheet's last column, and the API ends a row at its final filled cell, so
+        // a show without it arrives with no key at all rather than an empty string.
+        genres: splitCell(row.Genres),
+        network: row.Network,
+        rating: readAgeRating(row.Rating, `Row ${sheetRow(index)}, "${row.Show}", Rating`),
+        franchise: row.Franchise,
         banner: row.Banner,
         s: [],
       };
