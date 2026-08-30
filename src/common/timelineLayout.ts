@@ -143,6 +143,26 @@ export const scrollAtPercent = (markers: readonly YearMarker[], percent: number,
 };
 
 /**
+ * How far a jump has to travel before the animation stops being worth anything, as a multiple of
+ * the viewport it crosses.
+ */
+const FAR_JUMP_VIEWPORTS = 1.5;
+
+/**
+ * How a jump of `distance` across a `viewport` should move: animated, or straight there.
+ *
+ * A smooth scroll runs longer the further it travels, and both surfaces this serves are several
+ * viewports long — a chart four wide, a wall a thousand cards deep. Past a viewport and a half the
+ * content in between passes too fast to follow, so the animation is only a wait, and the rail's own
+ * highlight is what orients the reader either way. Short hops keep it, because over that distance
+ * the movement is what says the view scrolled rather than changed.
+ *
+ * `distance` is signed, so a caller hands over the delta it already has.
+ */
+export const scrollBehaviourFor = (distance: number, viewport: number): ScrollBehavior =>
+  Math.abs(distance) > viewport * FAR_JUMP_VIEWPORTS ? "auto" : "smooth";
+
+/**
  * Greedy interval packing: each item goes in the first row whose last item has already ended, so
  * rows stay dense without any two items in one row overlapping.
  *

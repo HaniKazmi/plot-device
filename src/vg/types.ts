@@ -1,5 +1,5 @@
 import type { Year, YearMonthDay } from "../common/date";
-import { statusToColour, type Colour, type KeysMatching } from "../utils/types";
+import { NEUTRAL_FILL, statusToColour, type Colour, type KeysMatching } from "../utils/types";
 
 export interface VideoGame {
   name: string;
@@ -74,54 +74,29 @@ export type Measure = "Hours" | "Games";
  * neighbour. The cost is that the two neutrals separate from each other and from PlayStation by
  * lightness and warmth rather than hue, which is below what colour alone should carry — the
  * wedge labels, legend names and the 2px gaps between segments are load-bearing for those pairs.
+ *
+ * The accents are the brand hexes themselves, for the chip in a card's corner. A chip is a few
+ * dozen pixels of solid colour carrying two or three letters, so it is read as a badge rather than
+ * compared against its neighbours — full saturation is what makes it recognisable at that size,
+ * and there is no adjacent wedge for it to have to separate from.
  */
-const nintendoFill = "#d74840" as Colour;
-const playstationFill = "#2474cf" as Colour;
-const xboxFill = "#139948" as Colour;
-const pcFill = "#9d8358" as Colour;
-const iosFill = "#6e737a" as Colour;
+const companyColours: Record<Company, { fill: Colour; accent: Colour }> = {
+  Nintendo: { fill: "#d74840" as Colour, accent: "#e60012" as Colour },
+  PlayStation: { fill: "#2474cf" as Colour, accent: "#0070cc" as Colour },
+  Xbox: { fill: "#139948" as Colour, accent: "#107c10" as Colour },
+  PC: { fill: "#9d8358" as Colour, accent: "#b5a596" as Colour },
+  iOS: { fill: "#6e737a" as Colour, accent: "#555555" as Colour },
+};
 
 /**
- * The brand hexes, for the chip in a card's corner. A chip is a few dozen pixels of solid colour
- * carrying two or three letters, so it is read as a badge rather than compared against its
- * neighbours — full saturation is what makes it recognisable at that size, and there is no
- * adjacent wedge for it to have to separate from.
+ * The chart fill. `undefined` for a company outside the table, which is what lets `platformToColor`
+ * turn a platform string whose first word is not a bare company name into a loud error rather than
+ * an uncoloured bar.
  */
-const nintendoAccent = "#e60012" as Colour;
-const playstationAccent = "#0070cc" as Colour;
-const xboxAccent = "#107c10" as Colour;
-const pcAccent = "#b5a596" as Colour;
-const iosAccent = "#555555" as Colour;
+export const companyToColor = ({ company }: { company: Company }): Colour => companyColours[company]?.fill;
 
-export const companyToColor = ({ company }: { company: Company }) => {
-  switch (company) {
-    case "Nintendo":
-      return nintendoFill;
-    case "PlayStation":
-      return playstationFill;
-    case "Xbox":
-      return xboxFill;
-    case "PC":
-      return pcFill;
-    case "iOS":
-      return iosFill;
-  }
-};
-
-export const companyToAccent = ({ company }: { company: Company }) => {
-  switch (company) {
-    case "Nintendo":
-      return nintendoAccent;
-    case "PlayStation":
-      return playstationAccent;
-    case "Xbox":
-      return xboxAccent;
-    case "PC":
-      return pcAccent;
-    case "iOS":
-      return iosAccent;
-  }
-};
+/** The brand hex, drawn only in a card's corner chip. `undefined` outside the table, as above. */
+export const companyToAccent = ({ company }: { company: Company }): Colour => companyColours[company]?.accent;
 
 /**
  * Every platform the app understands, and the short name charts label it with.
@@ -152,8 +127,8 @@ const platformShortNames: Record<Platform, string> = {
  * same split `converter.ts` derives `company` with.
  *
  * Throws unless the platform is known *and* that first word is a company with a colour.
- * `companyToColor` has no default branch, so a platform whose first word is not a bare company
- * name would otherwise return `undefined` and render as an uncoloured bar.
+ * `companyToColor` answers `undefined` off its table, so a platform whose first word is not a bare
+ * company name would otherwise render as an uncoloured bar.
  */
 export const platformToColor = (platform: Platform | { platform: Platform }) => {
   const value = typeof platform === "object" ? platform.platform : platform;
@@ -246,7 +221,7 @@ export const genreToColour = ({ genre }: { genre: Genre }) => {
     case "Music/Rhythm":
       return "#00a4b1" as Colour;
     default:
-      return "#7d828c" as Colour;
+      return NEUTRAL_FILL;
   }
 };
 

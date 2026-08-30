@@ -268,6 +268,12 @@ thing an anchor has to clear. Chips scroll rather than link, because the app is 
 bare `id` for its `scroll-margin-top`: without it the browser lands a section's top edge
 underneath the sticky rail, hiding the thing the reader was sent to see.
 
+The same module holds the two arrangements a section is built out of, because they are page
+structure rather than visualisation: `StatBand`, the stretched row of stat cards, and `ChartPair`,
+the md-split that stands a sunburst beside a barchart. Both take children and nothing else. Writing
+the grid container out at each of the eight sites instead spreads one spacing rule across two
+domains, and leaves the reason a tab pairs those two charts stated twice.
+
 Each domain's `sections.ts` owns the id map and builds the chip list. The ids have two holders —
 `Stats` carries the bands above the charts, `Graphs` everything below — and the list is built from
 the same test `Stats` makes about whether there is anything to lead with, so a chip never points
@@ -328,7 +334,7 @@ Setup is the plugin's documented path: `@vitejs/plugin-react` exports `reactComp
 - **`this`** anywhere in the function. Highcharts binds the chart to `this` in its event callbacks, so those must live at module scope (see `dimLeafRing` in §6) or they take the whole component down with them.
 - **`??=`**, which the compiler cannot yet lower. Write `x = x ?? y` instead.
 
-At the time of writing 102 functions compile and 8 bail, all of them on one compiler-internal limit: `BuildHIR::lowerAssignment` cannot lower a destructured prop that carries a default value, so `({ landscape = false })` takes its whole component out. That covers `common/Card.tsx`, `common/Stats.tsx`, `common/Finished.tsx` and `vg/Stats.tsx`. A `MethodCall` bailout, the other kind seen here, does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
+At the time of writing 105 functions compile and 8 bail, all of them on one compiler-internal limit: `BuildHIR::lowerAssignment` cannot lower a destructured prop that carries a default value, so `({ landscape = false })` takes its whole component out. That covers `common/Card.tsx`, `common/Stats.tsx`, `common/Finished.tsx` and `vg/Stats.tsx`. A `MethodCall` bailout, the other kind seen here, does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
 
 The compiler costs about 4% of bundle size (~15KB gzipped) in injected cache slots. That is a deliberate trade, and `npm run analyze` exists to keep it honest.
 

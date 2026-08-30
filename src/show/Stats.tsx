@@ -1,5 +1,4 @@
 import { AutoGraph, Pause, PlayArrow, ShowChart, TaskAlt, Timer, Update } from "@mui/icons-material";
-import Grid from "@mui/material/Grid";
 import { Season, Show, Status } from "./types";
 import { StatCard, StatList, StatsListProps, TotalsBand, VitalsCard } from "../common/Stats";
 import ShowCardMediaImage from "./CardMediaImage";
@@ -7,7 +6,7 @@ import { statusToColour } from "../utils/types";
 import { Stack } from "@mui/material";
 import type { ReactNode } from "react";
 import { CURRENT_YEAR } from "../common/date";
-import { Section } from "../common/SectionRail";
+import { Section, StatBand } from "../common/SectionRail";
 import { SHOW_SECTIONS } from "./sections";
 import {
   allTimeTotals,
@@ -29,25 +28,13 @@ const Stats = ({ data, watching }: { data: Show[]; watching: Season[] }) => {
           the same value whether the rail offers a chip pointing here. */}
       {watching.length > 0 && (
         <Section id={SHOW_SECTIONS.now}>
-          <Grid
-            container
-            spacing={1}
-            sx={{
-              alignItems: "stretch",
-            }}
-          >
+          <StatBand>
             <CurrentlyWatching watching={watching} />
-          </Grid>
+          </StatBand>
         </Section>
       )}
       <Section id={SHOW_SECTIONS.vitals}>
-        <Grid
-          container
-          spacing={1}
-          sx={{
-            alignItems: "stretch",
-          }}
-        >
+        <StatBand>
           <StatSummary
             icon={<Timer />}
             title="All Time"
@@ -69,18 +56,12 @@ const Stats = ({ data, watching }: { data: Show[]; watching: Season[] }) => {
             stats={perShowAverages(data)}
           />
           <Vitals data={data} />
-        </Grid>
+        </StatBand>
       </Section>
       <Section id={SHOW_SECTIONS.explore}>
-        <Grid
-          container
-          spacing={1}
-          sx={{
-            alignItems: "stretch",
-          }}
-        >
+        <StatBand>
           <RecentlyComplete data={data} />
-        </Grid>
+        </StatBand>
       </Section>
     </Stack>
   );

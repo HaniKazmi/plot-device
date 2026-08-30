@@ -6,6 +6,7 @@ import {
   decidePlacement,
   packRows,
   percentAtScroll,
+  scrollBehaviourFor,
   scrollAtPercent,
   yearAtPercent,
   yearMarkers,
@@ -354,5 +355,23 @@ describe("the year nav's scroll mapping", () => {
   it("has nothing to map with no data, rather than dividing by an empty span", () => {
     expect(percentAtScroll([], 0, maxScroll)).toBe(0);
     expect(scrollAtPercent([], 50, maxScroll)).toBe(0);
+  });
+});
+
+describe("scrollBehaviourFor", () => {
+  const viewport = 1000;
+
+  it("animates a hop short enough that the movement says the view scrolled", () => {
+    expect(scrollBehaviourFor(200, viewport)).toBe("smooth");
+    expect(scrollBehaviourFor(-200, viewport)).toBe("smooth");
+  });
+
+  it("goes straight there past a viewport and a half, where the animation is only a wait", () => {
+    expect(scrollBehaviourFor(1501, viewport)).toBe("auto");
+    expect(scrollBehaviourFor(-1501, viewport)).toBe("auto");
+  });
+
+  it("keeps the animation exactly at the threshold, which is the last distance worth following", () => {
+    expect(scrollBehaviourFor(1500, viewport)).toBe("smooth");
   });
 });

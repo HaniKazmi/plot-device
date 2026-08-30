@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Year, YearMonth, YearMonthDay } from "../../src/common/date";
+import { shortYear, Year, YearMonth, YearMonthDay } from "../../src/common/date";
 
 describe("firstDay and lastDay", () => {
   // A date's precision is carried by its class, but until these a caller could only get at one end
@@ -24,5 +24,16 @@ describe("firstDay and lastDay", () => {
 
     expect(day.firstDay()).toBe(day);
     expect(day.lastDay()).toBe(day);
+  });
+});
+
+describe("shortYear", () => {
+  it("gives a year as a narrow scale labels one, with a typographic apostrophe", () => {
+    expect(shortYear(2024)).toBe("\u201924");
+  });
+
+  it("pads a single-digit remainder, so a column of labels is one width", () => {
+    expect(shortYear(2008)).toBe("\u201908");
+    expect(shortYear(2000)).toBe("\u201900");
   });
 });

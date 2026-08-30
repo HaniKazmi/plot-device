@@ -14,6 +14,17 @@ export type ColourableStatus =
   "Abandoned" | "Beat" | "Ended" | "Cancelled" | "Endless" | "Up To Date" | "Playing" | "Watching" | "Next" | "Backlog";
 
 /**
+ * The colour of absence: a state that has not started, a category with no colour of its own, the
+ * "Other" bucket a top-N list collects the tail into.
+ *
+ * One value across all three, so a reader who has learnt that this grey means "nothing to say
+ * here" reads it the same on every chart. Black beside coloured fills reads as another hue rather
+ * than as absence, and it clears 3:1 against both surfaces the app paints on (#ffffff and #1d2126
+ * paper) as every fill here must.
+ */
+export const NEUTRAL_FILL = "#7d828c" as Colour;
+
+/**
  * Hue says how a thing ended; lightness says whether it is still moving.
  *
  * Cyan is in progress, blue is open-ended, green finished well, amber was stopped by someone
@@ -46,6 +57,6 @@ export const statusToColour = ({ status }: { status: ColourableStatus }) => {
       return "#00a5a6" as Colour;
     case "Next":
     case "Backlog":
-      return "#7d828c" as Colour;
+      return NEUTRAL_FILL;
   }
 };

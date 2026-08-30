@@ -1,16 +1,28 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { SCROLL_MARGIN } from "./SectionRail";
+import { CHIP_HEIGHT } from "./ChipRail";
 import { orderedBuckets } from "./finishedData";
+import { scrollBehaviourFor } from "./timelineLayout";
+
+/** Just clear of the rail, which is the only thing pinned above it. */
+export const MARKER_TOP = SCROLL_MARGIN + 8;
+
+/**
+ * How far past a landed card's top edge the reading line falls.
+ *
+ * `jumpTo` brings a card's top to rest at `MARKER_TOP`, and `topmostBucket` names the first card
+ * whose bottom is still below the reading line, so the two agree only while a card is taller than
+ * this: a shorter one would land entirely above the line and the marker would name the row after
+ * it, leaving a chip lit that is not the one clicked. Grid cards are artwork and never this flat.
+ */
+const CARD_DEPTH = 40;
 
 /**
  * The line the marker reads the page at: far enough below the sticky rail that the row it names
  * is one the reader can actually see, and the same line the section itself is measured against so
  * the pill appears exactly when the row it would name is the topmost one.
  */
-const READING_LINE = 120;
-
-/** Just clear of the rail, which is the only thing pinned above it. */
-export const MARKER_TOP = SCROLL_MARGIN + 8;
+const READING_LINE = MARKER_TOP + CARD_DEPTH;
 
 /**
  * The narrowest gutter the pill is centred in. Below this the page container has effectively
@@ -24,15 +36,15 @@ const EDGE_INSET = 8;
 /** Where the rail stops short of the viewport's bottom edge, so it reads as a column and not a fill. */
 const RAIL_BOTTOM_INSET = 16;
 
-/**
- * The least height one rail chip needs: the chip itself plus the smallest gap that still reads as
- * separate targets. Below this the chips touch, so a rail that would need less falls back to the
- * pill rather than shrinking into an unreadable stack.
- */
-export const CHIP_SLOT = 28;
+/** The smallest gap between two chips that still reads as two targets rather than a stack. */
+const CHIP_GAP = 6;
 
-/** The height of a rail chip, and so of the label the pill and the rail share a vocabulary with. */
-export const CHIP_HEIGHT = 22;
+/**
+ * The least height one rail chip needs: the chip itself plus that gap. Below this the chips touch,
+ * so a rail that would need less falls back to the pill rather than shrinking into an unreadable
+ * stack.
+ */
+export const CHIP_SLOT = CHIP_HEIGHT + CHIP_GAP;
 
 /** How long the settle loop leaves between measurements, which is long enough for a decoded image to land. */
 const SETTLE_STEP = 90;
@@ -144,15 +156,21 @@ export const useScrollMarker = (
       setLeft(roomy ? rect.left / 2 : rect.left + EDGE_INSET);
       setBucket(topmostBucket(cards));
       setRailHeight(window.innerHeight - MARKER_TOP - RAIL_BOTTOM_INSET);
-      // Only a sort or a data change rewrites this, but it is derived on the marker's own cadence
-      // so the two answers always describe the same DOM. Comparing the joined labels is what keeps
-      // that free: a scroll that leaves the wall alone sets the array it already holds and
-      // re-renders nothing, where a fresh array every event would re-render the whole wall.
+    };
+
+    // Read once per commit rather than per scroll event. The wall runs to a thousand cards, and
+    // only a sort or a data change rewrites their labels — both of which land here as a re-run,
+    // where a scroll or a resize moves the page without touching one. Comparing the joined labels
+    // keeps the re-run free where it changed nothing: a fetch returning the same rows sets the
+    // array already held and re-renders nothing, where a fresh array would re-render the wall.
+    const cards = grid.current;
+    if (cards) {
       const found = orderedBuckets(
         [...cards.querySelectorAll<HTMLElement>("[data-bucket]")].map((card) => card.dataset.bucket),
       );
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setBuckets((held) => (held.join("|") === found.join("|") ? held : found));
-    };
+    }
 
     update();
     window.addEventListener("scroll", update, { passive: true });
@@ -187,15 +205,7 @@ export const useScrollMarker = (
     if (!first) return;
 
     const top = window.scrollY + first.getBoundingClientRect().top - MARKER_TOP;
-    /**
-     * A smooth scroll runs longer the further it travels, and this wall is a thousand cards deep:
-     * crossing it takes seconds during which the rows in between pass too fast to read. Past a
-     * viewport and a half there is nothing left to follow, so the animation is only a wait — the
-     * rail's own highlight is what orients the reader either way. Short hops keep it, because over
-     * that distance the movement is what says the page scrolled rather than changed.
-     */
-    const far = Math.abs(top - window.scrollY) > window.innerHeight * 1.5;
-    window.scrollTo({ top, behavior: far ? "auto" : "smooth" });
+    window.scrollTo({ top, behavior: scrollBehaviourFor(top - window.scrollY, window.innerHeight) });
 
     // Only the newest jump owns the page: a second chip clicked while the first is still settling
     // would otherwise have two loops correcting towards different cards.
