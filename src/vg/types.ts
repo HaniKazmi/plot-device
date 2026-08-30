@@ -195,8 +195,9 @@ export const ratingToColour = ({ rating }: VideoGame) => {
  * one set of values sit on a #ffffff card and a #1d2126 card alike. A colour picked for the
  * light card alone washes out on the dark one; `#ffeb3b` against white is 1.22:1.
  *
- * Ratings and franchises deliberately do not draw on this: a rating ramp encodes an order and a
- * franchise colour is somebody's brand, so neither is free to be reassigned for contrast.
+ * Ratings and franchises deliberately do not draw on this: a rating ramp encodes an order, and a
+ * franchise colour is somebody's brand, which keeps its hue and chroma and yields only lightness
+ * to contrast. Neither is free to be reassigned a hue the way a genre is.
  */
 const genreToColour = ({ genre }: { genre: Genre }) => {
   switch (genre) {
@@ -233,48 +234,62 @@ const genreToColour = ({ genre }: { genre: Genre }) => {
   }
 };
 
+/**
+ * A franchise's own brand hex, filling the sunburst's franchise ring and the Top Franchise bar.
+ *
+ * Hue and chroma are the brand's and are kept exactly; only lightness moves, and only as far as
+ * clearing 3:1 against both surfaces the app paints on (#ffffff paper and #1d2126 paper) demands.
+ * Pokémon's #FFCB05 is 1.52:1 on white and Persona's #10145A is 1.02:1 on dark, so a yellow
+ * deepens to a gold and a navy lifts to a royal blue rather than being reassigned. Chroma gives
+ * way only where the new lightness leaves sRGB — the gold and Warcraft's are the two that do.
+ *
+ * What that costs is separation between brands that already share a hue. Mario, Marvel,
+ * Xenoblade, Fate, Mass Effect and Yakuza are six reds inside 5° of each other, and clamping
+ * them into one lightness band leaves them near-indistinguishable side by side. The wedge
+ * labels, the legend names and the gaps between segments are load-bearing for that group.
+ */
 const franchiseToColour = ({ franchise }: { franchise: string }) => {
   switch (franchise) {
     case "Pokémon":
-      return "#FFCB05" as Colour;
+      return "#B69000" as Colour;
     case "Final Fantasy":
-      return "#00AEEF" as Colour;
+      return "#039FDB" as Colour;
     case "Ace Attorney":
-      return "#1434A4" as Colour;
+      return "#3963D6" as Colour;
     case "Mario":
       return "#E60012" as Colour;
     case "Call of Duty":
-      return "#4B5320" as Colour;
+      return "#666F3B" as Colour;
     case "Dragon Ball":
       return "#F85B1A" as Colour;
     case "Assassin's Creed":
-      return "#D1D5DB" as Colour;
+      return "#92959B" as Colour;
     case "Legend of Zelda":
       return "#1A8A34" as Colour;
     case "Marvel":
       return "#ED1D24" as Colour;
     case "Tales":
-      return "#4FD1C5" as Colour;
+      return "#00A69B" as Colour;
     case "Uncharted":
-      return "#C3B091" as Colour;
+      return "#A59274" as Colour;
     case "Yakuza":
-      return "#A31925" as Colour;
+      return "#C0393D" as Colour;
     case "Super Smash Bros.":
       return "#FF4500" as Colour;
     case "Xenoblade":
       return "#E60026" as Colour;
     case "Fate":
-      return "#B91216" as Colour;
+      return "#CB2C28" as Colour;
     case "Warcraft":
-      return "#F8B700" as Colour;
+      return "#BF8C02" as Colour;
     case "Mass Effect":
       return "#D12026" as Colour;
     case "Witcher":
-      return "#9CA3AF" as Colour;
+      return "#8F95A1" as Colour;
     case "Civilization":
-      return "#005E9B" as Colour;
+      return "#1E6FAD" as Colour;
     case "Persona":
-      return "#10145A" as Colour;
+      return "#5266B2" as Colour;
     default:
       return "" as Colour;
   }
