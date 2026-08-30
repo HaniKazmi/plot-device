@@ -6,6 +6,7 @@ import Sunburst from "./Sunburst";
 import Stats from "./Stats";
 import { Section, SectionRail } from "../common/SectionRail";
 import { SHOW_SECTIONS, showSections } from "./sections";
+import { currentlyWatching } from "./statsData";
 import Timeline from "./Timeline";
 import { Show } from "./types";
 import ShowCardMediaImage from "./CardMediaImage";
@@ -24,11 +25,18 @@ const Graphs = ({
   filterDispatch: FilterDispatch;
 }) => {
   const deferredData = useDeferredValue(data, []);
+  // Answered once for the page: it decides both whether the "now" strip is rendered and whether
+  // the rail offers a chip pointing at it, and two derivations of one test are two that can differ.
+  const watching = currentlyWatching(data);
+
   return (
     <>
       <Stack spacing={2}>
-        <SectionRail sections={showSections(data)} />
-        <Stats data={data} />
+        <SectionRail sections={showSections(watching.length > 0)} />
+        <Stats
+          data={data}
+          watching={watching}
+        />
         <Section id={SHOW_SECTIONS.timeline}>
           <Timeline data={deferredData} />
         </Section>

@@ -16,11 +16,13 @@ import {
   Typography,
   useTheme,
   type ChipProps,
+  type TypographyProps,
 } from "@mui/material";
 import { type FunctionComponent, type ReactNode, useEffect, useRef, useState } from "react";
 import { CalendarMonthOutlined } from "@mui/icons-material";
 import { cachedColour, extractColourFrom } from "../utils/colourUtils";
 import { ArtworkAccent, artworkPalette, useArtworkPalette } from "./artworkPalette";
+import { LABEL_SX } from "./typography";
 import Grid from "@mui/material/Grid";
 import { format } from "../utils/mathUtils";
 import type { Colour } from "../utils/types";
@@ -46,6 +48,11 @@ export interface CardMediaImageProps {
    */
   cardSx?: SxProps<Theme>;
   landscape?: boolean;
+  /**
+   * Whether the artwork column is the width of the card or the width of the artwork. "aside" is
+   * for a card whose panel sits beside the image and has to be given the remaining width.
+   */
+  mediaLayout?: "fill" | "aside";
   /** Derive the card's theme colour from the image once it loads. Costs a canvas read per image. */
   extractColour?: boolean;
 }
@@ -70,6 +77,22 @@ const readImage = (
   if (extract) extractColourFrom(img, setExtracted);
 };
 
+/**
+ * The artwork column beside a panel rather than filling the card above one.
+ *
+ * `CardActionArea` is `width: 100%`, which as a flex item resolves its basis to the whole card:
+ * the panel beside it is then dividing up no free space at all, and collapses to the width of its
+ * longest word while the artwork sits in a column of empty ground. Basis `auto` against a
+ * shrink-to-fit width makes the column however wide the artwork turned out to be at its own
+ * height, and the panel takes the rest. `flex-start` ends the column where the artwork does
+ * rather than stretching it to a taller panel.
+ */
+const ASIDE_ACTION_AREA_SX = {
+  flex: "0 0 auto",
+  width: { xs: "100%", md: "auto" },
+  alignSelf: "flex-start",
+} as const;
+
 export const CardMediaImage = ({
   image,
   alt,
@@ -80,6 +103,7 @@ export const CardMediaImage = ({
   detailComponent,
   landscape = false,
   extractColour = false,
+  mediaLayout,
   sx,
   cardSx,
 }: CardMediaImageProps) => {
@@ -137,7 +161,7 @@ export const CardMediaImage = ({
           ...(Array.isArray(cardSx) ? cardSx : [cardSx]),
         ]}
       >
-        <CardActionArea>
+        <CardActionArea sx={mediaLayout === "aside" ? ASIDE_ACTION_AREA_SX : undefined}>
           <CardMedia
             height={"100%"}
             component="img"
@@ -333,52 +357,109 @@ export const DetailCard = ({
 };
 
 /**
- * The panel beside or beneath a hover card's artwork: what the item is, when, and how much of it.
+ * A figure and what it counts, as a panel carries them: a headline number over its label.
+ */
+export interface PanelStat {
+  value: number | string;
+  label: string;
+}
+
+/**
+ * How a panel sits against the artwork it belongs to, which decides the edge the two share and
+ * whether the panel has height to spend.
  *
- * Beside a poster the panel is as tall as the artwork and the type cannot fill it — three lines
- * against a 2:3 poster leaves better than half the column empty. Pushing the title to the top and
- * the figures to the bottom spends that height as structure instead of leaving it as a gap.
+ * - `beneath` — under the artwork, as tall as its own type. Nothing to distribute.
+ * - `beside` — next to a poster, and as tall as it. Three lines against a 2:3 poster leaves
+ *   better than half the column empty, so the title takes the top and the figures the bottom
+ *   edge, spending that height as structure rather than leaving it as a gap.
+ * - `hero` — beside the artwork once there is width for it and beneath it on a phone, with the
+ *   seam rotating to the edge the two actually share. The content stays together at the top:
+ *   this panel is as tall as a 300px banner across a 300px column, which is more height than
+ *   three lines and a row of tiles can fill, and pushing the tiles to the far edge opens a void
+ *   in the middle of the card rather than structuring it.
+ */
+export type PanelLayout = "beneath" | "beside" | "hero";
+
+/**
+ * The panel beside or beneath a card's artwork: what the item is, when, and how much of it.
+ *
+ * One recipe for every card that carries words on a sampled ground — the timeline's hover cards
+ * and the page's hero alike — because a second implementation of the same palette is two things
+ * to keep in step.
  */
 export const CardPanel = ({
+  kicker,
   title,
+  titleVariant,
   subtitle,
   dateRange,
   stats,
-  landscape,
+  layout,
+  minHeight,
 }: {
+  /** The line above the title, saying why this item is the one being shown. */
+  kicker?: string;
   title: string;
+  titleVariant?: TypographyProps["variant"];
   subtitle?: string;
-  dateRange: string;
-  stats: { value: number | string; label: string }[];
-  /** Beside the artwork rather than beneath it, so the panel has height to distribute. */
-  landscape?: boolean;
+  /** Absent where the card names its dates some other way, as the hero's kicker does. */
+  dateRange?: string;
+  stats: PanelStat[];
+  layout?: PanelLayout;
+  /** Holds the panel to the artwork's height, so the card is the height of the picture in it. */
+  minHeight?: number;
 }) => {
   const palette = useArtworkPalette();
+  const beside = layout === "beside";
+  const hero = layout === "hero";
 
   return (
     <CardContent
       sx={{
         display: "flex",
         flexDirection: "column",
-        // Only a panel with height to spare has anything to distribute.
-        justifyContent: landscape ? "space-between" : "flex-start",
+        // Only a panel with height to spare has anything to distribute, and only one whose height
+        // its own type earned should distribute it.
+        justifyContent: beside ? "space-between" : "flex-start",
         gap: 2,
-        width: "100%",
+        // Basis zero and free to grow, so a panel beside the artwork is exactly the row minus the
+        // artwork column rather than a share of it.
+        ...(hero ? { flex: "1 1 0" } : { width: "100%" }),
+        // A flex item's floor is its content's intrinsic width. Without this a long title sets
+        // that floor to the width of its longest word and the panel refuses to wrap or shrink.
+        minWidth: 0,
+        ...(minHeight && { minHeight: { md: minHeight } }),
         ":last-child": { paddingBottom: 2 },
         backgroundColor: palette.ground,
         color: palette.onGround,
         // Where the artwork meets the panel, so the two read as one card rather than as one pasted
-        // onto the other. Rotated with the layout, never both.
-        [landscape ? "borderLeft" : "borderTop"]: palette.seam,
+        // onto the other. One edge, never both, and the hero's rotates with its own layout.
+        // Written out rather than as one computed key, which the React Compiler cannot lower and
+        // bails on — taking every card in the app out of memoization with it.
+        ...(hero
+          ? { borderTop: { xs: palette.seam, md: "none" }, borderLeft: { xs: "none", md: palette.seam } }
+          : beside
+            ? { borderLeft: palette.seam }
+            : { borderTop: palette.seam }),
       }}
     >
       <Stack
         spacing={0.5}
         sx={{ alignItems: "flex-start" }}
       >
+        {kicker && (
+          <Typography
+            variant="caption"
+            sx={{ color: palette.muted, ...LABEL_SX }}
+          >
+            {kicker}
+          </Typography>
+        )}
         <Typography
-          variant="h6"
-          sx={{ fontWeight: 700, lineHeight: 1.25 }}
+          variant={titleVariant ?? "h6"}
+          // A title long enough to have no break opportunity would otherwise set the panel's
+          // intrinsic width and push itself out past the card's edge.
+          sx={{ fontWeight: 700, lineHeight: 1.2, overflowWrap: "break-word", width: "100%" }}
         >
           {title}
         </Typography>
@@ -392,21 +473,31 @@ export const CardPanel = ({
             {subtitle}
           </Typography>
         )}
-        <Stack
-          direction="row"
-          spacing={0.75}
-          sx={{ alignItems: "center", color: palette.muted }}
-        >
-          <CalendarMonthOutlined sx={{ fontSize: 16 }} />
-          <Typography variant="body2">{dateRange}</Typography>
-        </Stack>
+        {dateRange && (
+          <Stack
+            direction="row"
+            spacing={0.75}
+            sx={{ alignItems: "center", color: palette.muted }}
+          >
+            <CalendarMonthOutlined sx={{ fontSize: 16 }} />
+            <Typography variant="body2">{dateRange}</Typography>
+          </Stack>
+        )}
       </Stack>
 
       {stats.length > 0 && (
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{ width: "100%" }}
+        <Box
+          sx={{
+            display: "grid",
+            // Two figures per row where there is only a phone's width, one row of all of them
+            // once there is width for it.
+            gridTemplateColumns: {
+              xs: `repeat(${Math.min(stats.length, 2)}, 1fr)`,
+              sm: `repeat(${stats.length}, 1fr)`,
+            },
+            gap: 1,
+            width: "100%",
+          }}
         >
           {stats.map((stat) => (
             <StatTile
@@ -414,7 +505,7 @@ export const CardPanel = ({
               {...stat}
             />
           ))}
-        </Stack>
+        </Box>
       )}
     </CardContent>
   );
@@ -446,7 +537,7 @@ export const StatTile = ({ value, label }: { value: number | string; label: stri
       </Typography>
       <Typography
         variant="caption"
-        sx={{ color: palette.muted, letterSpacing: "0.08em", textTransform: "uppercase" }}
+        sx={{ color: palette.muted, ...LABEL_SX }}
       >
         {label}
       </Typography>

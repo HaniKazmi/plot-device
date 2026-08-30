@@ -1,12 +1,15 @@
-import { Card, CardContent, Box, Chip, Tooltip, useTheme, type Theme } from "@mui/material";
+import { Card, CardContent, Box, Tooltip, useTheme, type Theme } from "@mui/material";
 import { type ReactNode, useLayoutEffect, useRef, useState, type Ref } from "react";
 import type { YearMonthDay } from "./date";
 import type {} from "@mui/material/themeCssVarsAugmentation";
+import { ChipRail } from "./ChipRail";
 import {
   buildTicks,
   decidePlacement,
   packRows,
+  percentAtScroll,
   percentOfSpan,
+  scrollAtPercent,
   yearAtPercent,
   yearMarkers,
   type Placement,
@@ -205,17 +208,17 @@ const useTextPlacement = (data: PositionedTimelineData[]) => {
  * be the end people actually look at. The browser clamps an over-large `scrollLeft`, so asking for
  * the whole scroll width is the same as asking for the maximum without measuring it.
  *
- * `resetKey` is a primitive rather than the data array, which is rebuilt on every render of the
- * domain component above: depending on the array would re-run this on each one and drag the chart
- * back to the right edge while the reader was scrolling it. It still has to be a dependency, not
- * an empty list, because the chart renders nothing at all until it has data — on a first visit
- * with an empty cache there is no element here to scroll.
+ * `hasData` is the whole key, and it is a boolean for the reason it exists at all: the chart
+ * renders nothing until it has data, so on a first visit with an empty cache there is no element
+ * here to scroll and the opening has to wait for one. Anything finer — the row count, the data
+ * array — re-runs on a filter interaction and drags the chart back to the right edge out from
+ * under a reader who had scrolled somewhere else.
  */
-const useOpenAtLatest = (ref: React.RefObject<HTMLDivElement | null>, resetKey: number) => {
+const useOpenAtLatest = (ref: React.RefObject<HTMLDivElement | null>, hasData: boolean) => {
   useLayoutEffect(() => {
     const element = ref.current;
     if (element) element.scrollLeft = element.scrollWidth;
-  }, [ref, resetKey]);
+  }, [ref, hasData]);
 };
 
 // ============================================================================
@@ -223,8 +226,8 @@ const useOpenAtLatest = (ref: React.RefObject<HTMLDivElement | null>, resetKey: 
 // ============================================================================
 const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [activeYear, setActiveYear] = useState<number | undefined>(undefined);
-  useOpenAtLatest(scrollRef, timelineData.length);
+  const [scrolledYear, setScrolledYear] = useState<number | undefined>(undefined);
+  useOpenAtLatest(scrollRef, timelineData.length > 0);
   const [positionedTimelineData, maxRow] = packRows(timelineData);
 
   if (positionedTimelineData.length === 0) {
@@ -244,9 +247,33 @@ const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }) => {
 
   const markers = yearMarkers(ticks);
 
+  /**
+   * The chip the rail lights up.
+   *
+   * Never a year the rebuilt chart does not have: a filter interaction leaves the reader's scroll
+   * position where it was and can drop the year they were looking at, and a chip naming an absent
+   * year points at nothing. The nearest surviving year is what stands in until the next scroll
+   * corrects it. With nothing scrolled yet this is the latest year, which is the end the chart
+   * opens at.
+   */
+  const activeYear = markers.findLast((marker) => marker.year <= (scrolledYear ?? Infinity))?.year ?? markers[0]?.year;
+
+  const maxScrollOf = (element: HTMLDivElement) => element.scrollWidth - element.clientWidth;
+
   const scrollToPercent = (percent: number) => {
     const element = scrollRef.current;
-    if (element) element.scrollTo({ left: (percent / 100) * element.scrollWidth, behavior: "smooth" });
+    if (!element) return;
+
+    const left = scrollAtPercent(markers, percent, maxScrollOf(element));
+    /**
+     * A smooth scroll runs longer the further it travels, and this chart is four viewports wide:
+     * crossing it takes seconds, during which the years in between pass too fast to read anyway.
+     * Past a viewport and a half there is nothing left to follow, so the animation is only a wait
+     * — and the axis at the far end is what orients the reader either way. Short hops keep it,
+     * because over that distance the movement is what says the chart scrolled rather than changed.
+     */
+    const far = Math.abs(left - element.scrollLeft) > element.clientWidth * 1.5;
+    element.scrollTo({ left, behavior: far ? "auto" : "smooth" });
   };
 
   return (
@@ -263,10 +290,16 @@ const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }) => {
          * A JSX handler rather than a listener in an effect because `markers` is rebuilt each
          * render: an effect would need it as a dependency and reattach just as often, and reading
          * it through a ref to avoid that is machinery for a listener React already manages.
+         *
+         * The offset is read against the range `scrollLeft` can actually reach rather than against
+         * the grid's own width — see `percentAtScroll`, which owns both directions of that mapping.
          */
         onScroll={(event) =>
-          setActiveYear(
-            yearAtPercent(markers, (event.currentTarget.scrollLeft / event.currentTarget.scrollWidth) * 100),
+          setScrolledYear(
+            yearAtPercent(
+              markers,
+              percentAtScroll(markers, event.currentTarget.scrollLeft, maxScrollOf(event.currentTarget)),
+            ),
           )
         }
       >
@@ -284,6 +317,7 @@ const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }) => {
               totalHeight={totalHeight}
               totalDays={totalDays}
               ticks={ticks}
+              markers={markers}
             />
           </div>
           <TimeAxis ticks={ticks} />
@@ -302,9 +336,10 @@ const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }) => {
  * A chip per year, which is the only way to cross the chart short of dragging through four
  * viewport widths.
  *
- * Positions come from the same tick walk the axis and the gridlines use, so a chip cannot land
- * anywhere but on the year line it names. Two digits because the axis beneath already spells the
- * year out, and a row of full years is wide enough to need scrolling itself on a phone.
+ * The chips are evenly spaced rather than placed at their own percentages: a year is one click,
+ * and evenly spaced targets are easier to hit than ones bunched wherever the data is dense. Two
+ * digits because the axis above already spells the year out, and a row of full years is wide
+ * enough to need scrolling itself on a phone.
  *
  * The active chip is derived from the scroll position rather than set on click, so dragging the
  * chart moves the highlight too and the row reads as a position indicator either way.
@@ -318,39 +353,24 @@ const YearNav = ({
   activeYear: number | undefined;
   onSelect: (percent: number) => void;
 }) => (
-  <Box
+  <ChipRail
+    items={markers.map((marker) => ({
+      id: marker.year.toString(),
+      label: `'${marker.year.toString().slice(-2)}`,
+    }))}
+    activeId={activeYear?.toString()}
+    onSelect={(id) => onSelect(markers.find((marker) => marker.year.toString() === id)!.percent)}
     sx={{
-      display: "flex",
       // Spread across the same width the chart occupies, so the row reads as a scale under it
-      // rather than as a cluster of buttons beside it. The chips are not positioned at their own
-      // percentages — a year is one click, and evenly spaced targets are easier to hit than ones
-      // bunched wherever the data happens to be dense.
+      // rather than as a cluster of buttons beside it. Once the chips no longer fit, the free
+      // space is negative and `space-between` falls back to packing them from the left, which is
+      // what makes scrolling the sane degradation.
       justifyContent: "space-between",
       gap: 0.5,
       paddingTop: 1,
-      // Once the chips no longer fit, the free space is negative and `space-between` falls back to
-      // packing them from the left, which is what makes scrolling the sane degradation: the row
-      // keeps its reading order and its first chip stays at the edge it started from.
-      overflowX: "auto",
-      // A scrollbar under a 22px row would cost as much height as the row itself.
-      scrollbarWidth: "none",
-      "::-webkit-scrollbar": { display: "none" },
     }}
-  >
-    {markers.map((marker) => (
-      <Chip
-        key={marker.year}
-        label={`'${marker.year.toString().slice(-2)}`}
-        size="small"
-        color={marker.year === activeYear ? "primary" : "default"}
-        variant={marker.year === activeYear ? "filled" : "outlined"}
-        onClick={() => onSelect(marker.percent)}
-        // Flex items shrink before they overflow, so without this a narrow viewport squeezes two
-        // digits into an ellipsis rather than letting the row scroll.
-        sx={{ height: 22, fontSize: 12, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}
-      />
-    ))}
-  </Box>
+    chipSx={{ height: 22, fontSize: 12, fontVariantNumeric: "tabular-nums" }}
+  />
 );
 
 /**
@@ -362,12 +382,19 @@ const YearNav = ({
  * a year line sits on top of its own edge, and the whole layer is the first child of the `svg`
  * because SVG paints in document order and has no `z-index`.
  */
-const TimelineBackground = ({ ticks, height }: { ticks: TimelineTick[]; height: number }) => {
+const TimelineBackground = ({
+  ticks,
+  markers,
+  height,
+}: {
+  ticks: TimelineTick[];
+  markers: YearMarker[];
+  height: number;
+}) => {
   const theme = useTheme();
 
-  const yearStarts = yearMarkers(ticks);
-  const bands = yearStarts
-    .map((band, index) => ({ ...band, end: yearStarts[index + 1]?.percent ?? 100 }))
+  const bands = markers
+    .map((band, index) => ({ ...band, end: markers[index + 1]?.percent ?? 100 }))
     .filter((band) => band.year % 2 === 0);
 
   return (
@@ -409,6 +436,7 @@ const TimelineGrid = ({
   totalHeight,
   totalDays,
   ticks,
+  markers,
 }: {
   data: PositionedTimelineData[];
   startDate: YearMonthDay;
@@ -416,6 +444,7 @@ const TimelineGrid = ({
   totalHeight: number;
   totalDays: number;
   ticks: TimelineTick[];
+  markers: YearMarker[];
 }) => {
   const { layouts, setItemRef } = useTextPlacement(data);
 
@@ -426,6 +455,7 @@ const TimelineGrid = ({
     >
       <TimelineBackground
         ticks={ticks}
+        markers={markers}
         height={totalHeight}
       />
       {data.map((event) => (
