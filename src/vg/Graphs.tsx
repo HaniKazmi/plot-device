@@ -15,6 +15,7 @@ import { ChartPair, Section, SectionRail } from "../common/SectionRail";
 import { VG_SECTIONS, vgSections } from "./sections";
 import { currentlyPlaying } from "./statsData";
 import { format } from "../utils/mathUtils";
+import { finishedCount } from "../common/finishedData";
 
 const SuspenseBlock = ({
   filteredData,
@@ -99,7 +100,7 @@ const Graphs = memo(
           <Finished
             MediaComponent={CardMediaImage}
             title="All Games"
-            count={`${format(data.length)} games`}
+            count={`${format(finishedCount(data))} games`}
             data={data}
             width={4}
             colour={companyToColor}

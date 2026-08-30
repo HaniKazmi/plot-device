@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { Year, YearMonthDay } from "../../src/common/date";
-import { bucketLabel, finishedBucket, finishedItems, orderedBuckets } from "../../src/common/finishedData";
+import {
+  bucketLabel,
+  finishedBucket,
+  finishedCount,
+  finishedItems,
+  orderedBuckets,
+} from "../../src/common/finishedData";
 
 const item = (name: string, banner: string | undefined, year?: number) => ({
   name,
@@ -59,6 +65,15 @@ describe("finishedItems", () => {
   });
 });
 
+describe("finishedCount", () => {
+  it("counts the population the grid renders rather than the data handed in", () => {
+    const data = [item("with", "a.jpg", 2020), item("blank", "", 2021), item("without", undefined, 2022)];
+
+    expect(finishedCount(data)).toBe(1);
+    expect(finishedCount(data)).toBe(finishedItems(data, "Date").length);
+  });
+});
+
 describe("finishedBucket", () => {
   it("reads a year off the date under the date sort", () => {
     expect(finishedBucket(item("Zelda", "a.jpg", 2023), "Date")).toBe("2023");
@@ -101,8 +116,15 @@ describe("finishedBucket", () => {
 });
 
 describe("orderedBuckets", () => {
-  it("keeps wall order rather than sorting, so a rail's highlight only ever travels one way", () => {
+  it("keeps wall order rather than sorting, deduped to each bucket's first appearance", () => {
     expect(orderedBuckets(["2024", "2024", "2023", "2021"])).toEqual(["2024", "2023", "2021"]);
+  });
+
+  it("collapses a run of one bucket to a single entry, which is every year under the date sort", () => {
+    // A year's cards are contiguous and the year does not return, so the date sort's buckets come
+    // out strictly descending and a rail's highlight travels one way down them. The name sort has
+    // no such guarantee — see below.
+    expect(orderedBuckets(["2024", "2023", "2023", "2022"])).toEqual(["2024", "2023", "2022"]);
   });
 
   it("holds a bucket at its first appearance when the wall returns to it later", () => {

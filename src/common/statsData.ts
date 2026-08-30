@@ -3,7 +3,7 @@ import type { Colour } from "../utils/types";
 import "../utils/arrayUtils";
 
 /**
- * Turns a whitelist of group values into the proportional segments of a `TotalStack`, dropping
+ * Turns a whitelist of group values into the proportional segments of a `TotalsBand`, dropping
  * any group nothing falls into.
  *
  * The percentages are scoped to the segments actually drawn rather than to the whole dataset,

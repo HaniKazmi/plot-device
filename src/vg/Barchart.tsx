@@ -1,4 +1,5 @@
 import { useSelectBox } from "../common/SelectBoxHook";
+import { format } from "../utils/mathUtils";
 import { groupToColour, videoGameOptions, type Measure, type VideoGame, type VideoGameStringKeys } from "./types";
 import Barchart from "../common/Barchart";
 import { Year } from "../common/date";
@@ -30,6 +31,10 @@ const VgBarchart = ({ data, measure, yearType }: { data: VideoGame[]; measure: M
     <Barchart
       data={barchartData}
       title={`${measure} by year`}
+      // The games behind the columns rather than the rows the chart is fed, which drop to those
+      // with hours under the Hours measure — a population that changed with the toggle would read
+      // as the library itself having shrunk.
+      count={`${format(data.length)} games`}
       controls={controls}
     />
   );

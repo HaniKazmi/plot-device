@@ -44,7 +44,7 @@ const CHIP_GAP = 6;
  * so a rail that would need less falls back to the pill rather than shrinking into an unreadable
  * stack.
  */
-export const CHIP_SLOT = CHIP_HEIGHT + CHIP_GAP;
+const CHIP_SLOT = CHIP_HEIGHT + CHIP_GAP;
 
 /** How long the settle loop leaves between measurements, which is long enough for a decoded image to land. */
 const SETTLE_STEP = 90;
@@ -129,6 +129,15 @@ export const useScrollMarker = (
   const [railHeight, setRailHeight] = useState(0);
   /** Which jump is allowed to move the page, so a settling one stops the moment it is superseded. */
   const jump = useRef(0);
+  /**
+   * The wall's cards in document order, queried once per commit rather than per scroll event.
+   *
+   * A scroll or a resize moves the page without changing which cards are on it: only a new sort,
+   * new data or a mount rewrites them, and each of those lands as a re-run of the effect below,
+   * which is where this is refilled. A card that leaves the document between two of those re-runs
+   * is what `jumpTo`'s `isConnected` check answers for.
+   */
+  const wall = useRef<HTMLElement[]>([]);
 
   // A settle loop outlives the click that started it by up to a second, and it scrolls the window
   // rather than anything it owns — an unmounted wall correcting towards a card that has gone would
@@ -154,7 +163,7 @@ export const useScrollMarker = (
       const roomy = rect.left >= MIN_GUTTER;
       setCentred(roomy);
       setLeft(roomy ? rect.left / 2 : rect.left + EDGE_INSET);
-      setBucket(topmostBucket(cards));
+      setBucket(topmostBucket(wall.current));
       setRailHeight(window.innerHeight - MARKER_TOP - RAIL_BOTTOM_INSET);
     };
 
@@ -165,10 +174,8 @@ export const useScrollMarker = (
     // array already held and re-renders nothing, where a fresh array would re-render the wall.
     const cards = grid.current;
     if (cards) {
-      const found = orderedBuckets(
-        [...cards.querySelectorAll<HTMLElement>("[data-bucket]")].map((card) => card.dataset.bucket),
-      );
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      wall.current = [...cards.querySelectorAll<HTMLElement>("[data-bucket]")];
+      const found = orderedBuckets(wall.current.map((card) => card.dataset.bucket));
       setBuckets((held) => (held.join("|") === found.join("|") ? held : found));
     }
 
@@ -197,11 +204,7 @@ export const useScrollMarker = (
    * stopped moving, which is what the settle loop below re-measures towards.
    */
   const jumpTo = (target: string) => {
-    const cards = grid.current;
-    if (!cards) return;
-    const first = [...cards.querySelectorAll<HTMLElement>("[data-bucket]")].find(
-      (card) => card.dataset.bucket === target,
-    );
+    const first = wall.current.find((card) => card.dataset.bucket === target);
     if (!first) return;
 
     const top = window.scrollY + first.getBoundingClientRect().top - MARKER_TOP;
@@ -230,6 +233,10 @@ export const useScrollMarker = (
     const tick = () => {
       if (jump.current !== token) return stop();
       if (Date.now() > expires) return stop();
+      // A re-render that drops the target — a refetch or a filter — detaches the node, whose rect
+      // then reads all-zero and turns every remaining tick into the same −MARKER_TOP correction. A
+      // reorder keeps the node, since the wrappers are keyed by name.
+      if (!first.isConnected) return stop();
 
       const now = window.scrollY;
       // A moving page is worth waiting out — a smooth scroll runs for many frames — but only for
@@ -279,8 +286,7 @@ export const useScrollMarker = (
  * Cards with no bucket carry no attribute, so an undated item is skipped by the query rather than
  * filtered out here.
  */
-const topmostBucket = (grid: HTMLElement): string | null => {
-  const cards = grid.querySelectorAll<HTMLElement>("[data-bucket]");
+const topmostBucket = (cards: readonly HTMLElement[]): string | null => {
   let low = 0;
   let high = cards.length - 1;
   let found: HTMLElement | null = null;

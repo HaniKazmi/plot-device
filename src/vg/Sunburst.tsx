@@ -13,7 +13,7 @@ const VgSunburst = ({ data, measure }: { data: VideoGame[]; measure: Measure }) 
 
   return (
     <Sunburst
-      title="Where the hours went"
+      title={`Where the ${measure.toLowerCase()} went`}
       count={`${format(data.length)} games`}
       data={data}
       groups={controlStates}

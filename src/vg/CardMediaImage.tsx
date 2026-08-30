@@ -19,16 +19,26 @@ import { useFranchiseGames } from "./franchiseContext";
 /**
  * The figures the card leads with. Each is conditional on the sheet holding it: an in-progress
  * game may have no hours logged, and a game logged with a bare year cannot be counted days into.
+ *
+ * Zero is unrecorded rather than a measurement in both, which is why the test is truthiness: a
+ * tile reading zero hours says the game was played for none, where saying nothing says the truth.
  */
 const gameStats = (game: VideoGame): CardStat[] => {
   const stats: CardStat[] = [];
 
   if (game.hours) stats.push({ label: "Hours", value: game.hours });
-  if (game.numDays !== undefined) stats.push({ label: "Days To Beat", value: game.numDays });
+  if (game.numDays) stats.push({ label: "Days To Beat", value: game.numDays });
   stats.push({ label: "Status", value: game.status, colour: statusToColour(game) });
 
   return stats;
 };
+
+/**
+ * The facts a ledger line carries, joined only where the sheet holds them. A blank part joined
+ * unconditionally leaves the separator behind it — "12 May 2019 · " — which reads as a value that
+ * failed to load rather than as one the sheet never had.
+ */
+const joinParts = (parts: (string | undefined)[]): string => parts.filter(Boolean).join(" · ");
 
 /**
  * Everything else the sheet records, one fact per line, with related facts on the same line: a
@@ -45,12 +55,11 @@ const gameRows = (game: VideoGame): LedgerRow[] => {
     // The brand hex rather than the chart fill, on the same rule the corner chip follows: this is
     // a badge at a badge's size, not a value being compared against its neighbours.
     { label: "Platform", value: game.platform, swatch: companyToAccent(game) },
-    { label: "Released", value: `${formatDate(game.releaseDate)} · ${game.format}` },
+    { label: "Released", value: joinParts([formatDate(game.releaseDate), game.format]) },
   ];
 
-  const makers = [game.developer, game.publisher].filter(Boolean);
   // One name where the studio published itself, rather than the same word twice.
-  const by = [...new Set(makers)].join(" · ");
+  const by = joinParts([...new Set([game.developer, game.publisher])]);
   if (by) rows.push({ label: "By", value: by });
 
   if (game.franchise) {
@@ -59,12 +68,14 @@ const gameRows = (game: VideoGame): LedgerRow[] => {
     rows.push({ label: "Franchise", value: game.franchise, swatch: franchiseToColour(game) || undefined });
   }
 
-  const themes = game.theme.filter(Boolean);
-  rows.push({
-    label: "Genre",
-    value: themes.length > 0 ? `${game.genre} · ${themes.join(" – ")}` : game.genre,
-    swatch: genreToColour(game),
-  });
+  if (game.genre) {
+    const themes = game.theme.filter(Boolean);
+    rows.push({
+      label: "Genre",
+      value: joinParts([game.genre, themes.join(" – ")]),
+      swatch: genreToColour(game),
+    });
+  }
   rows.push({ label: "PEGI", value: game.rating, swatch: ratingToColour(game) });
 
   return rows;

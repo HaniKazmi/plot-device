@@ -19,6 +19,7 @@ import {
   Whatshot,
 } from "@mui/icons-material";
 import Grid from "@mui/material/Grid";
+import { capitalize } from "@mui/material/utils";
 import { format } from "../utils/mathUtils";
 import {
   groupGamesBy,
@@ -536,7 +537,7 @@ const TopList = ({
     <Grid size={{ xs: 12, sm: 6, md: 4 }}>
       <Card sx={{ height: "100%" }}>
         <SectionHeader
-          title={`Top ${option.charAt(0).toUpperCase() + option.slice(1)}`}
+          title={`Top ${capitalize(option)}`}
           icon={optionIcons[option]}
           action={controls}
         />

@@ -1,4 +1,5 @@
 import { Box, Chip, type SxProps, type Theme } from "@mui/material";
+import { NUMERIC_LABEL_SX } from "./typography";
 
 export interface ChipRailItem {
   id: string;
@@ -15,9 +16,8 @@ export const CHIP_HEIGHT = 22;
  * What every rail's chips are, beyond being chips.
  *
  * A fixed height rather than the size's own, because a rail spread down a gutter or across a chart
- * is a scale, and a scale's marks are one size. Tabular figures because most of these labels are
- * years: proportional digits change a chip's width with the numerals in it, so a row of them
- * shifts sideways as the highlight moves through it. Chips never shrink either — a flex item gives
+ * is a scale, and a scale's marks are one size. The type is the numeric label treatment, since most
+ * of these labels are years. Chips never shrink either — a flex item gives
  * up width before it overflows, so without that a narrow viewport ellipsises the labels instead of
  * letting the row scroll, which is the degradation that keeps the reading order and the first
  * chip's edge.
@@ -25,8 +25,7 @@ export const CHIP_HEIGHT = 22;
 const CHIP_SX = {
   flexShrink: 0,
   height: CHIP_HEIGHT,
-  fontSize: 12,
-  fontVariantNumeric: "tabular-nums",
+  ...NUMERIC_LABEL_SX,
 } as const;
 
 /**
@@ -42,7 +41,6 @@ export const ChipRail = ({
   onSelect,
   label,
   sx,
-  chipSx,
 }: {
   items: ChipRailItem[];
   activeId: string | undefined;
@@ -54,8 +52,6 @@ export const ChipRail = ({
    */
   label?: string;
   sx?: SxProps<Theme>;
-  /** What this rail's chips are beyond `CHIP_SX`, where one rail needs something of its own. */
-  chipSx?: SxProps<Theme>;
 }) => (
   <Box
     component={label ? "nav" : "div"}
@@ -80,7 +76,7 @@ export const ChipRail = ({
         color={item.id === activeId ? "primary" : "default"}
         variant={item.id === activeId ? "filled" : "outlined"}
         onClick={() => onSelect(item.id)}
-        sx={[CHIP_SX, ...(Array.isArray(chipSx) ? chipSx : [chipSx])]}
+        sx={CHIP_SX}
       />
     ))}
   </Box>

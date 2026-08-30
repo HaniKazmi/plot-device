@@ -51,9 +51,9 @@ const ShowTimeline = ({ data }: { data: Show[] }) => {
     <Timeline data={showData}>
       <SectionHeader
         icon={<TimelineIcon />}
-        title="Every season"
+        title={groupData ? "Every show" : "Every season"}
         // The bars actually drawn, which the switch beside it changes from one per season to one
-        // per show — so the noun turns over with the count rather than outliving it.
+        // per show — so the title and the count turn over with the bars rather than outliving them.
         count={`${format(titleData.length)} ${groupData ? "shows" : "seasons"}`}
         action={
           <FormGroup row>

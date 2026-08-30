@@ -17,6 +17,9 @@ import type { ReactNode } from "react";
  * a `div`, because the count inside it is a `Typography` of its own and a block inside the span
  * `CardHeader` would otherwise wrap the title in is not valid markup.
  *
+ * A shell with one visual identity hardcodes its own icon — every barchart is a barchart — while a
+ * header a domain builds passes one, because the section it heads is the domain's to name.
+ *
  * The icon rides inside the title row rather than in `CardHeader`'s avatar slot: the avatar
  * centres itself against the whole header, and a header whose controls stack two or three selects
  * high leaves the icon floating below the title line it belongs to. The theme pins the content to
