@@ -73,16 +73,20 @@ export const scoreBand = (score: number | undefined): ScoreBand => {
 };
 
 /**
- * A sequential green ramp, greyed and pale at the bottom and deep and vivid at the top, because a
- * score is ordered and quality reads greener the more of it there is. Unscored takes the neutral
- * the charts already use for "nothing to say here". Every value meets the fill contract.
+ * Red through amber to green, because a score is valenced and not merely ordered — a 2 is a
+ * different judgement from an 8, and hue is what can say so. Hue has to carry the scale anyway:
+ * the fill contract confines every value to one narrow lightness band, so a single-hue ramp only
+ * has five near-identical steps to give, and its palest step lands a hair from the neutral that
+ * means Unscored. Lightness arches — dark at both poles, lightest at the amber middle — so
+ * neighbouring bands separate by brightness as well as hue. The middle amber sits a step lighter
+ * and yellower than the Cinema gold in the band below it. Every value meets the fill contract.
  */
 const scoreBandColours: Record<ScoreBand, Colour> = {
-  "9–10": "#037c4c" as Colour,
-  "7–8": "#188857" as Colour,
-  "5–6": "#339265" as Colour,
-  "3–4": "#559776" as Colour,
-  "1–2": "#7d988b" as Colour,
+  "9–10": "#037f45" as Colour,
+  "7–8": "#309826" as Colour,
+  "5–6": "#af8e0e" as Colour,
+  "3–4": "#cc5917" as Colour,
+  "1–2": "#d4223a" as Colour,
   Unscored: NEUTRAL_FILL,
 };
 
