@@ -86,7 +86,14 @@ const getTheme = (tab: Tab) => {
     shape: { borderRadius: 8 },
     // `CssBaseline` otherwise sets Roboto, which is not loaded here and resolves to Helvetica.
     // `system-ui` is the one stack all three sites can name: the status page can load no webfont.
-    typography: { fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif' },
+    typography: {
+      fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
+      // `h6` is the section-title role every card header takes, so weighting and tightening it
+      // here is what makes a page of cards read as one set of headings rather than as whatever
+      // each shell happened to ask for. 650 is a step above the body's semibold without reaching
+      // the bold the panel titles inside a card use, which keeps a heading above its own content.
+      h6: { fontWeight: 650, letterSpacing: "-0.01em" },
+    },
     components: {
       // A hairline instead of a raised edge, which is how the other two sites separate a card from
       // the page. Floating surfaces — menus, dialogs, popovers — keep their elevation: a shadow is

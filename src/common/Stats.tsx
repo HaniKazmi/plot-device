@@ -55,6 +55,9 @@ export const StatCard = ({
           <Typography
             align="center"
             variant="h5"
+            // A row of figures that refresh under the filters, so proportional digits would move
+            // each one sideways as its own width changed while its neighbours stood still.
+            sx={{ fontVariantNumeric: "tabular-nums" }}
           >
             {format(val)}
           </Typography>

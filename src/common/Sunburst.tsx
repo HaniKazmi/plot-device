@@ -1,6 +1,8 @@
-import { Card, CardContent, CardHeader, FormGroup, useTheme } from "@mui/material";
+import { Card, CardContent, FormGroup, useTheme } from "@mui/material";
+import { DonutLarge } from "@mui/icons-material";
 import { useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { Chart, SunburstSeries } from "../highcharts";
+import { SectionHeader } from "./SectionHeader";
 import { SelectBox } from "./SelectionComponents";
 import type { Colour } from "../utils/types";
 import { generateSunburstData } from "./sunburstData";
@@ -22,11 +24,16 @@ const dimLeafRing = (leafLevel: number) =>
   };
 
 const Sunburst = <T, K extends string>({
+  title,
+  count,
   data,
   controls,
   groups,
   options,
 }: {
+  /** What the chart is of, in the caller's own words — a shell cannot know it counts games. */
+  title: string;
+  count?: string;
   controls: ReactNode;
   data: T[];
   groups: K[];
@@ -46,8 +53,10 @@ const Sunburst = <T, K extends string>({
 
   return (
     <Card>
-      <CardHeader
-        title="Sunburst"
+      <SectionHeader
+        icon={<DonutLarge />}
+        title={title}
+        count={count}
         action={controls}
       />
       <CardContent>

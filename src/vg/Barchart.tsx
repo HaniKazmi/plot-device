@@ -29,7 +29,7 @@ const VgBarchart = ({ data, measure, yearType }: { data: VideoGame[]; measure: M
   return (
     <Barchart
       data={barchartData}
-      title={`${measure} Played`}
+      title={`${measure} by year`}
       controls={controls}
     />
   );

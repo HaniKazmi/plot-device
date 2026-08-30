@@ -195,6 +195,8 @@ A row carries a colour swatch exactly where the app already speaks that field's 
 
 ### Stats and cards
 
+`common/SectionHeader.tsx` is the header every chart card wears: icon and title left, a muted population count beside the title, controls pinned right. It is a thin arrangement over `CardHeader`, so the theme's `MuiCardHeader` spacing and the `h6` weight reach it without a second set of rules to keep in step. The count arrives as an already-worded string — a `common/` shell cannot know it is counting games — which is why the chart shells take `title` (and, where a population means something, `count`) as props and the timelines are handed a whole header by their domain.
+
 `common/Stats.tsx` exports three composable pieces — `StatCard` (a row of labelled figures), `StatList` (a scrollable strip of media cards with a fullscreen dialog), and `TotalStack` (a proportional segmented bar with labels). It builds the bar from `Segment`, which lives in `common/Card.tsx` alongside the other proportional-bar primitives. Domain `Stats.tsx` files assemble these into a grid; they hold the arithmetic, the shells hold the layout.
 
 `StatList` is itself assembled from two smaller shells that the same file exports, because a domain needed each of them on its own:
@@ -300,7 +302,7 @@ Setup is the plugin's documented path: `@vitejs/plugin-react` exports `reactComp
 - **`this`** anywhere in the function. Highcharts binds the chart to `this` in its event callbacks, so those must live at module scope (see `dimLeafRing` in §6) or they take the whole component down with them.
 - **`??=`**, which the compiler cannot yet lower. Write `x = x ?? y` instead.
 
-At the time of writing 98 functions compile and 8 bail, all of them on one compiler-internal limit: `BuildHIR::lowerAssignment` cannot lower a destructured prop that carries a default value, so `({ landscape = false })` takes its whole component out. That covers `common/Card.tsx`, `common/Stats.tsx`, `common/Finished.tsx` and `vg/Stats.tsx`. A `MethodCall` bailout, the other kind seen here, does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
+At the time of writing 99 functions compile and 8 bail, all of them on one compiler-internal limit: `BuildHIR::lowerAssignment` cannot lower a destructured prop that carries a default value, so `({ landscape = false })` takes its whole component out. That covers `common/Card.tsx`, `common/Stats.tsx`, `common/Finished.tsx` and `vg/Stats.tsx`. A `MethodCall` bailout, the other kind seen here, does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
 
 The compiler costs about 4% of bundle size (~15KB gzipped) in injected cache slots. That is a deliberate trade, and `npm run analyze` exists to keep it honest.
 
