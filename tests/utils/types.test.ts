@@ -3,14 +3,14 @@ import { statusToColour, type ColourableStatus } from "../../src/utils/types";
 
 describe("statusToColour", () => {
   it.each([
-    ["Abandoned", "#af5074"],
-    ["Beat", "#50a170"],
-    ["Ended", "#50a170"],
-    ["Cancelled", "#a36e09"],
-    ["Endless", "#5376b8"],
-    ["Up To Date", "#5376b8"],
-    ["Playing", "#00a39a"],
-    ["Watching", "#00a39a"],
+    ["Abandoned", "#ba3a71"],
+    ["Beat", "#29a259"],
+    ["Ended", "#29a259"],
+    ["Cancelled", "#a36500"],
+    ["Endless", "#3a6cce"],
+    ["Up To Date", "#3a6cce"],
+    ["Playing", "#00a5a6"],
+    ["Watching", "#00a5a6"],
     ["Next", "black"],
     ["Backlog", "black"],
   ] satisfies [ColourableStatus, string][])("maps %s to %s", (status, expected) => {

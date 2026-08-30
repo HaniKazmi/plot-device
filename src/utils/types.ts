@@ -16,18 +16,18 @@ export type ColourableStatus =
 export const statusToColour = ({ status }: { status: ColourableStatus }) => {
   switch (status) {
     case "Abandoned":
-      return "#af5074" as Colour;
+      return "#ba3a71" as Colour;
     case "Beat":
     case "Ended":
-      return "#50a170" as Colour;
+      return "#29a259" as Colour;
     case "Cancelled":
-      return "#a36e09" as Colour;
+      return "#a36500" as Colour;
     case "Endless":
     case "Up To Date":
-      return "#5376b8" as Colour;
+      return "#3a6cce" as Colour;
     case "Playing":
     case "Watching":
-      return "#00a39a" as Colour;
+      return "#00a5a6" as Colour;
     case "Next":
     case "Backlog":
       return "black" as Colour;
