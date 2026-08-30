@@ -63,17 +63,23 @@ export type Measure = "Hours" | "Games";
  * A company has two colours, and which one is right depends on how much of the screen it covers.
  *
  * The fills below are the ones chart geometry uses — sunburst wedges, barchart series, timeline
- * bars, stacked segments, card strips. They are normalised into one lightness band with a chroma
- * floor, so five of them side by side stay separable under colour-vision deficiency and each one
- * clears 3:1 against both surfaces the app paints on (#ffffff paper and #1d2126 paper). A brand
- * hex is chosen to stand alone against white, and a set of them is not a scale: Nintendo's #e60012
- * next to iOS's #555555 reads as one shouting value beside one absent one.
+ * bars, stacked segments, card strips. They sit in one lightness band, so each clears 3:1 against
+ * both surfaces the app paints on (#ffffff paper and #1d2126 paper), and each keeps its brand's
+ * hue. A brand hex is chosen to stand alone against white, and a set of them is not a scale:
+ * Nintendo's #e60012 at full saturation beside four neighbours reads as one shouting value.
+ *
+ * PC and iOS stay neutral because neutrality is those brands' identity — a taupe and a space
+ * grey, clamped only in lightness. Giving either a real hue would make it separable at a glance
+ * but would name the wrong brand; a blue-violet iOS in particular reads as PlayStation's
+ * neighbour. The cost is that the two neutrals separate from each other and from PlayStation by
+ * lightness and warmth rather than hue, which is below what colour alone should carry — the
+ * wedge labels, legend names and the 2px gaps between segments are load-bearing for those pairs.
  */
 const nintendoFill = "#c25e55" as Colour;
 const playstationFill = "#4b7cba" as Colour;
 const xboxFill = "#4d965f" as Colour;
-const pcFill = "#b7893b" as Colour;
-const iosFill = "#6970b7" as Colour;
+const pcFill = "#9d8358" as Colour;
+const iosFill = "#6e737a" as Colour;
 
 /**
  * The brand hexes, for the chip in a card's corner. A chip is a few dozen pixels of solid colour
