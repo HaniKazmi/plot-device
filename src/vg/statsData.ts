@@ -1,4 +1,4 @@
-import type { YearMonthDay, YearNumber } from "../common/date";
+import { formatDate, type YearMonthDay, type YearNumber } from "../common/date";
 import { assignPercents, format } from "../utils/mathUtils";
 import { platformToShort, type Measure, type VideoGame, type VideoGameStringKeys } from "./types";
 import "../utils/arrayUtils";
@@ -136,12 +136,13 @@ export const perGameAverages = (data: VideoGame[]) => {
   };
 };
 
-// `hours` is asserted because every caller filters on it first.
+// `hours` is asserted because every caller filters on it first. Dates are in the reader's voice
+// and not the machine's, which is the same one the card behind the thumbnail speaks.
 export const statsCardLabelEndDateHours = (game: VideoGame) => [
-  [game.endDate?.toString() ?? "", `${format(game.hours!)} Hours`],
+  [game.endDate ? formatDate(game.endDate) : "", `${format(game.hours!)} Hours`],
 ];
 
-export const statsCardLabelStartDate = (game: VideoGame) => [[game.startDate?.toString() ?? ""]];
+export const statsCardLabelStartDate = (game: VideoGame) => [[game.startDate ? formatDate(game.startDate) : ""]];
 
 export const platformToShortChip = (vg: VideoGame) => {
   const [label, colour] = platformToShort(vg);

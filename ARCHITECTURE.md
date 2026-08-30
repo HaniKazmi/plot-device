@@ -181,6 +181,18 @@ Spans that do overlap take separate lanes, because a band drawn over another hid
 
 The renderer is `TimelineCard` in `common/Card.tsx`, which takes bands and ticks rather than nodes: the shell owns the whole coordinate space, so a caller reads `startPercent` and `widthPercent` and never asks how they were arrived at. Orientation lives entirely there — the data is percentages and knows nothing about which axis it will be drawn on.
 
+### The expanded card — `HeroStatRow` and `MetadataLedger`
+
+Below the strip, an opened card says its facts in two tiers rather than as one uniform grid of tiles. A grid gives a game's publisher the same weight as its hours, which is the one thing a reader is least likely to have opened the card for.
+
+`HeroStatRow` is the figures — a game's hours and days to beat, a show's episodes and hours — as large tiles. `StatTile` carries them at a `hero` size and paints its own ground where the field has a colour: status is a fill in every chart on the tab, so the status tile is that fill with `getContrastText` type, on the same rule the chip in the card's corner follows.
+
+`MetadataLedger` is everything else, as label/value lines in two CSS columns at `md` and one below it. Columns rather than a grid because the rows are independent: a grid holds each pair to the tallest row on it, so a value that wraps opens a gap beside it. Related facts share a line — a release is a date and a format, a game is made by a developer for a publisher — which is what keeps the ledger to a third of the height the tiles took.
+
+A row carries a colour swatch exactly where the app already speaks that field's colour somewhere else: platform, franchise, genre, rating, status. Developer, publisher, format and dates get none, because a swatch on a field with no colour vocabulary teaches a legend no chart honours. Both shells take plain `{label, value, …}` arrays, so `common/` never learns what a PEGI rating is; the two `CardMediaImage` files build the arrays and choose the omissions, since a tile reading zero because the sheet recorded nothing says something false where saying nothing says the truth.
+
+`DetailCard`, the uniform tile, remains for `movie/`, which has too few facts for the split to buy anything.
+
 ### Stats and cards
 
 `common/Stats.tsx` exports three composable pieces — `StatCard` (a row of labelled figures), `StatList` (a scrollable strip of media cards with a fullscreen dialog), and `TotalStack` (a proportional segmented bar with labels). It builds the bar from `Segment`, which lives in `common/Card.tsx` alongside the other proportional-bar primitives. Domain `Stats.tsx` files assemble these into a grid; they hold the arithmetic, the shells hold the layout.
@@ -250,7 +262,7 @@ The ground is the sample exactly, because that is what ties a surface to the art
 
 The palette is total: with no sampled colour it fills the same shape from the theme. Extraction arrives seconds after the page and sometimes not until a reload, so the colourless state is the one every card paints first — leaving it outside the recipe is what would let the two halves drift apart, and it means no surface carries a branch asking whether there is a palette to read.
 
-`CardMediaImage` publishes its accent on that module's context, and every surface inside it — panel, strip, detail tile, stat tile — derives the palette from that. The card is the only thing that knows its own ground, and the alternative is naming it at each of the two dozen `DetailCard`s the three domains build, plus a second mechanism for the surfaces that are not tiles.
+`CardMediaImage` publishes its accent on that module's context, and every surface inside it — panel, strip, hero tile, ledger row — derives the palette from that. The card is the only thing that knows its own ground, and the alternative is naming it at each of the tiles and rows the three domains build, plus a second mechanism for the surfaces that are not tiles.
 
 ## 7. Cross-cutting design decisions
 
@@ -288,7 +300,7 @@ Setup is the plugin's documented path: `@vitejs/plugin-react` exports `reactComp
 - **`this`** anywhere in the function. Highcharts binds the chart to `this` in its event callbacks, so those must live at module scope (see `dimLeafRing` in §6) or they take the whole component down with them.
 - **`??=`**, which the compiler cannot yet lower. Write `x = x ?? y` instead.
 
-At the time of writing 95 functions compile and 8 bail, all of them on one compiler-internal limit: `BuildHIR::lowerAssignment` cannot lower a destructured prop that carries a default value, so `({ landscape = false })` takes its whole component out. That covers `common/Card.tsx`, `common/Stats.tsx`, `common/Finished.tsx` and `vg/Stats.tsx`. A `MethodCall` bailout, the other kind seen here, does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
+At the time of writing 98 functions compile and 8 bail, all of them on one compiler-internal limit: `BuildHIR::lowerAssignment` cannot lower a destructured prop that carries a default value, so `({ landscape = false })` takes its whole component out. That covers `common/Card.tsx`, `common/Stats.tsx`, `common/Finished.tsx` and `vg/Stats.tsx`. A `MethodCall` bailout, the other kind seen here, does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
 
 The compiler costs about 4% of bundle size (~15KB gzipped) in injected cache slots. That is a deliberate trade, and `npm run analyze` exists to keep it honest.
 

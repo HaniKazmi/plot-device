@@ -1,10 +1,34 @@
 import { CardContent, Typography } from "@mui/material";
-import { CardMediaImage, DetailCard, TimelineCard, TypedCardMediaImage } from "../common/Card";
+import {
+  CardMediaImage,
+  HeroStatRow,
+  MetadataLedger,
+  TimelineCard,
+  TypedCardMediaImage,
+  type CardStat,
+  type LedgerRow,
+} from "../common/Card";
 import { Season, Show, isShow } from "./types";
 import Grid from "@mui/material/Grid";
 import { statusToColour } from "../utils/types";
 import { CURRENT_PLAINDATE, YearMonthDay, formatDateRange } from "../common/date";
 import { buildStrip, stripYearTicks } from "../common/timelineStripData";
+
+/** The figures the card leads with: how much of the show there is, and whether it is still going. */
+const showStats = (show: Show): CardStat[] => [
+  { label: "Episodes", value: show.e },
+  { label: "Hours", value: Math.floor(show.minutes / 60) },
+  { label: "Status", value: show.status, colour: statusToColour(show) },
+];
+
+/**
+ * The facts that are not figures. No swatches: a show has no platform, genre or rating map, and
+ * the one field that does carry a colour — status — is already a filled tile above.
+ */
+const showRows = (show: Show): LedgerRow[] => [
+  { label: "Watched", value: formatDateRange(show.startDate, show.endDate) },
+  { label: "Last Watched", value: `S${show.s.length}E${show.s.at(-1)!.e}` },
+];
 
 const ShowCardMediaImage = <T extends Show | Season>({ item, ...props }: Parameters<TypedCardMediaImage<T>>[0]) => {
   const show = isShow(item) ? item : item.show;
@@ -19,31 +43,8 @@ const ShowCardMediaImage = <T extends Show | Season>({ item, ...props }: Paramet
             spacing={1}
           >
             <ShowTimelineCard item={show} />
-            <DetailCard
-              label="Start Date"
-              value={show.startDate.toString()}
-            />
-            <DetailCard
-              label="End Date"
-              value={show.endDate?.toString()}
-            />
-            <DetailCard
-              colour={statusToColour(show)}
-              label="Status"
-              value={show.status}
-            />
-            <DetailCard
-              label="Last Watched"
-              value={`S${show.s.length}E${show.s.at(-1)!.e}`}
-            />
-            <DetailCard
-              label="Hours"
-              value={Math.floor(show.minutes / 60)}
-            />
-            <DetailCard
-              label="Episodes"
-              value={show.e}
-            />
+            <HeroStatRow stats={showStats(show)} />
+            <MetadataLedger rows={showRows(show)} />
           </Grid>
         </CardContent>
       )}
@@ -80,7 +81,7 @@ const ShowTimelineCard = ({ item }: { item: Show }) => {
       }))}
       laneCount={laneCount}
       ticks={SHOW_TICKS}
-      caption={`${item.s.length} ${item.s.length === 1 ? "season" : "seasons"}`}
+      caption={`${item.name} · ${item.s.length} ${item.s.length === 1 ? "season" : "seasons"} · ${SHOW_EPOCH.year} – today`}
     />
   );
 };

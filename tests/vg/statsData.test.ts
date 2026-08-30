@@ -5,6 +5,8 @@ import {
   groupGamesBy,
   heroStats,
   perGameAverages,
+  statsCardLabelEndDateHours,
+  statsCardLabelStartDate,
   topNWithOther,
   topOptions,
   yearlyAverages,
@@ -303,5 +305,28 @@ describe("heroStats", () => {
     const game = videoGame({ startDate: YearMonthDay.get(2025, 1, 1), hours: 5, franchise: "" });
 
     expect(heroStats(game, [game], today).map((stat) => stat.label)).toEqual(["Hours"]);
+  });
+});
+
+describe("statsCardLabel", () => {
+  it("prints dates in the reader's voice, not the machine's", () => {
+    // The thumbnail's footer and the card it opens speak one date format, so a reader is not
+    // asked to translate between them on the same screen.
+    const game = videoGame({
+      startDate: YearMonthDay.get(2014, 11, 27),
+      endDate: YearMonthDay.get(2016, 11, 24),
+      hours: 40,
+    });
+
+    expect(statsCardLabelEndDateHours(game)[0][0]).toBe("24 Nov 2016");
+    expect(statsCardLabelStartDate(game)[0][0]).toBe("27 Nov 2014");
+  });
+
+  it("prints a bare year as the year, since that is all the sheet recorded", () => {
+    expect(statsCardLabelStartDate(videoGame({ startDate: Year.get(2007) }))[0][0]).toBe("2007");
+  });
+
+  it("leaves the date blank rather than printing nothing-in-particular for an unfinished game", () => {
+    expect(statsCardLabelEndDateHours(videoGame({ endDate: undefined, hours: 40 }))[0][0]).toBe("");
   });
 });
