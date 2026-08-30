@@ -51,7 +51,7 @@ import {
   TotalsBand,
   VitalsCard,
 } from "../common/Stats";
-import { Segment } from "../common/Card";
+import { ProportionalBar } from "../common/Card";
 import { highchartsColors } from "../highcharts";
 import VgCardMediaImage from "./CardMediaImage";
 import {
@@ -113,10 +113,8 @@ const Stats = ({
             alignItems: "stretch",
           }}
         >
-          <Vitals
-            data={data}
-            measure={measure}
-          />
+          {/* The year controls in these cards filter the whole page, and a control's effects flow
+              down the page, never up — so the cards come before the bands they redraw. */}
           <YearTotals
             data={data}
             yearTo={yearTo}
@@ -144,6 +142,10 @@ const Stats = ({
             yearType={yearType}
           />
           <AveragesPerGame data={data} />
+          <Vitals
+            data={data}
+            measure={measure}
+          />
         </Grid>
       </Section>
       <Section id={VG_SECTIONS.top}>
@@ -542,6 +544,12 @@ const TopList = ({
     return groupCol || highchartsColors[(index + colorOffset) % highchartsColors.length];
   };
 
+  const items = most.map((struct, index) => ({
+    name: struct.name,
+    percent: struct.percent,
+    colour: getColour(struct, index),
+  }));
+
   return (
     <Grid size={{ xs: 12, sm: 6, md: 4 }}>
       <Card sx={{ height: "100%" }}>
@@ -559,28 +567,11 @@ const TopList = ({
             height: "100%",
           }}
         >
-          <Stack
-            direction="row"
-            spacing={0.25}
-            sx={{
-              alignItems: "center",
-              height: (theme) => theme.spacing(3),
-            }}
-          >
-            {most.map((struct, index) => (
-              <Segment
-                key={`top-${struct.name}`}
-                percent={struct.percent}
-                backgroundColour={getColour(struct, index)}
-                onMouseEnter={() => setHovered(struct.name)}
-                onMouseLeave={() => setHovered(null)}
-                sx={{
-                  opacity: hovered && hovered !== struct.name ? 0.3 : 1,
-                  cursor: "pointer",
-                }}
-              />
-            ))}
-          </Stack>
+          <ProportionalBar
+            items={items}
+            hovered={hovered}
+            onHover={setHovered}
+          />
           <Stack
             direction="column"
             spacing={1}
@@ -594,6 +585,8 @@ const TopList = ({
                 key={`col-${struct.name}`}
                 direction="row"
                 spacing={1}
+                onMouseEnter={() => setHovered(struct.name)}
+                onMouseLeave={() => setHovered(null)}
                 sx={{
                   width: "100%",
                   alignItems: "center",
@@ -612,8 +605,6 @@ const TopList = ({
                   }}
                 />
                 <Typography
-                  onMouseEnter={() => setHovered(struct.name)}
-                  onMouseLeave={() => setHovered(null)}
                   variant="body2"
                   sx={{ flexGrow: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
                 >

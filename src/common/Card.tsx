@@ -622,6 +622,53 @@ export const Segment = ({
   />
 );
 
+/**
+ * One proportional bar: the segments of a whole in a row, with the hover dim that ties the bar to
+ * whatever legend a caller stands beside it.
+ *
+ * All of the geometry — height, corner radius, the gap between segments — is fixed here, so every
+ * bar in the app is the same object: a bar that read differently from its neighbours would invite
+ * a meaning the difference does not carry.
+ *
+ * The dim is controlled rather than held here: a legend outside this shell has to fade in step
+ * with it, so both halves read one `hovered` name.
+ */
+const BAR_HEIGHT = 1.5;
+
+export const ProportionalBar = ({
+  items,
+  hovered,
+  onHover,
+}: {
+  items: { name: string; percent: number; colour: string }[];
+  hovered: string | null;
+  onHover: (name: string | null) => void;
+}) => (
+  <Stack
+    direction="row"
+    spacing={0.25}
+    sx={{ alignItems: "center" }}
+  >
+    {items.map((item) => (
+      <Segment
+        key={item.name}
+        percent={item.percent}
+        backgroundColour={item.colour}
+        spacing={BAR_HEIGHT}
+        onMouseEnter={() => onHover(item.name)}
+        onMouseLeave={() => onHover(null)}
+        sx={{
+          borderRadius: 0.5,
+          opacity: hovered && hovered !== item.name ? 0.3 : 1,
+          // A segment answers a hover and nothing else. A pointer cursor here promises a drilldown
+          // that does not exist, and the dim already says the segment is live.
+          cursor: "default",
+        }}
+      />
+    ))}
+  </Stack>
+);
+
 /** A positioned span from `buildStrip`, plus how this strip means to draw it. */
 export type TimelineBand = Omit<StripBand<StripSpan>, "start" | "end"> & {
   colour: string;
