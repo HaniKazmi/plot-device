@@ -51,11 +51,11 @@ import {
   TotalsBand,
   VitalsCard,
 } from "../common/Stats";
-import { ProportionalBar } from "../common/Card";
+import { ProportionalBar, Swatch } from "../common/Card";
+import { SectionHeader } from "../common/SectionHeader";
 import { highchartsColors } from "../highcharts";
 import VgCardMediaImage from "./CardMediaImage";
 import {
-  Box,
   Card,
   CardContent,
   CardHeader,
@@ -69,10 +69,10 @@ import {
   Typography,
 } from "@mui/material";
 import type { FilterDispatch, YearType } from "./filterUtils";
-import { statusToColour } from "../utils/types";
+import { NEUTRAL_FILL, statusToColour } from "../utils/types";
 import { CURRENT_PLAINDATE, CURRENT_YEAR, EARLIEST_YEAR, formatDate, YearNumber } from "../common/date";
 import { Hero } from "../common/Hero";
-import { Section } from "../common/SectionRail";
+import { Section, StatBand } from "../common/SectionRail";
 import { useFranchiseGames } from "./franchiseContext";
 import { VG_SECTIONS } from "./sections";
 import { useState, type ReactNode } from "react";
@@ -106,13 +106,7 @@ const Stats = ({
         </Section>
       )}
       <Section id={VG_SECTIONS.vitals}>
-        <Grid
-          container
-          spacing={1}
-          sx={{
-            alignItems: "stretch",
-          }}
-        >
+        <StatBand>
           {/* The year controls in these cards filter the whole page, and a control's effects flow
               down the page, never up — so the cards come before the bands they redraw. */}
           <YearTotals
@@ -146,30 +140,18 @@ const Stats = ({
             data={data}
             measure={measure}
           />
-        </Grid>
+        </StatBand>
       </Section>
       <Section id={VG_SECTIONS.top}>
-        <Grid
-          container
-          spacing={1}
-          sx={{
-            alignItems: "stretch",
-          }}
-        >
+        <StatBand>
           <TopCategories
             data={data}
             measure={measure}
           />
-        </Grid>
+        </StatBand>
       </Section>
       <Section id={VG_SECTIONS.explore}>
-        <Grid
-          container
-          spacing={1}
-          sx={{
-            alignItems: "stretch",
-          }}
-        >
+        <StatBand>
           <MostPlayed
             data={data}
             measure={measure}
@@ -177,7 +159,7 @@ const Stats = ({
           <RecentlyComplete data={data} />
           {/* Everything being played that the hero above is not already showing. */}
           <CurrentlyPlaying playing={playing.slice(1)} />
-        </Grid>
+        </StatBand>
       </Section>
     </Stack>
   );
@@ -539,7 +521,7 @@ const TopList = ({
   const most = topNWithOther(data, option, measure);
 
   const getColour = (struct: (typeof most)[0], index: number) => {
-    if (struct.name === "Other") return "grey";
+    if (struct.name === "Other") return NEUTRAL_FILL;
     const groupCol = struct.top ? groupToColour(option, struct.top) : "";
     return groupCol || highchartsColors[(index + colorOffset) % highchartsColors.length];
   };
@@ -553,13 +535,10 @@ const TopList = ({
   return (
     <Grid size={{ xs: 12, sm: 6, md: 4 }}>
       <Card sx={{ height: "100%" }}>
-        <CardHeader
-          title={`Top ${option}`}
-          avatar={optionIcons[option]}
+        <SectionHeader
+          title={`Top ${option.charAt(0).toUpperCase() + option.slice(1)}`}
+          icon={optionIcons[option]}
           action={controls}
-          slotProps={{
-            title: { variant: "h6", sx: { textTransform: "capitalize" } },
-          }}
         />
         <CardContent
           sx={{
@@ -595,14 +574,11 @@ const TopList = ({
                   cursor: "default",
                 }}
               >
-                <Box
-                  sx={{
-                    width: 16,
-                    height: 16,
-                    backgroundColor: getColour(struct, index),
-                    borderRadius: 0.5,
-                    flexShrink: 0,
-                  }}
+                <Swatch
+                  colour={getColour(struct, index)}
+                  // Larger than the inline mark a wrapping legend uses: this legend is a ranked
+                  // column, so the swatch leads each row rather than sitting inside a line of it.
+                  size={16}
                 />
                 <Typography
                   variant="body2"

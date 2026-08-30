@@ -10,9 +10,8 @@ import { FranchiseContext } from "./franchiseContext";
 import { franchiseIndex } from "./cardData";
 import { memo, useDeferredValue, useState } from "react";
 import { Snackbar, Stack } from "@mui/material";
-import Grid from "@mui/material/Grid";
 import Filter from "./Filter";
-import { Section, SectionRail } from "../common/SectionRail";
+import { ChartPair, Section, SectionRail } from "../common/SectionRail";
 import { VG_SECTIONS, vgSections } from "./sections";
 import { currentlyPlaying } from "./statsData";
 import { format } from "../utils/mathUtils";
@@ -80,27 +79,21 @@ const Graphs = memo(
           <Timeline data={deferredData} />
         </Section>
         <Section id={VG_SECTIONS.charts}>
-          {/* Side by side once there is width for it: the two answer the same question — where
-              the hours went — through a hierarchy and through time, and reading one against the
-              other is the point of having both. */}
-          <Grid
-            container
-            spacing={2}
-          >
-            <Grid size={{ xs: 12, md: 6 }}>
+          <ChartPair
+            left={
               <Sunburst
                 data={deferredData}
                 measure={filterState.measure}
               />
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
+            }
+            right={
               <Barchart
                 data={deferredData}
                 measure={filterState.measure}
                 yearType={filterState.yearType}
               />
-            </Grid>
-          </Grid>
+            }
+          />
         </Section>
         <Section id={VG_SECTIONS.library}>
           <Finished

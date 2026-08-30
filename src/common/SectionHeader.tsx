@@ -63,5 +63,3 @@ export const SectionHeader = ({
     action={action}
   />
 );
-
-export default SectionHeader;

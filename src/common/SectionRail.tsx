@@ -1,4 +1,5 @@
 import { Box } from "@mui/material";
+import Grid from "@mui/material/Grid";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ChipRail, type ChipRailItem } from "./ChipRail";
 
@@ -31,6 +32,39 @@ export const Section = ({ id, children }: { id: string; children: ReactNode }) =
   >
     {children}
   </Box>
+);
+
+/**
+ * A band of stat cards across a section.
+ *
+ * Cards stretch to the tallest of the row rather than each sitting at its own height, so a row of
+ * them reads as one band with a single lower edge instead of a ragged set of tiles.
+ */
+export const StatBand = ({ children }: { children: ReactNode }) => (
+  <Grid
+    container
+    spacing={1}
+    sx={{ alignItems: "stretch" }}
+  >
+    {children}
+  </Grid>
+);
+
+/**
+ * Two charts side by side once there is width for them, stacked below it.
+ *
+ * The pairing is the point wherever it appears: the two answer the same question — where the hours
+ * went — through a hierarchy and through time, and reading one against the other is why a tab
+ * carries both.
+ */
+export const ChartPair = ({ left, right }: { left: ReactNode; right: ReactNode }) => (
+  <Grid
+    container
+    spacing={2}
+  >
+    <Grid size={{ xs: 12, md: 6 }}>{left}</Grid>
+    <Grid size={{ xs: 12, md: 6 }}>{right}</Grid>
+  </Grid>
 );
 
 /**

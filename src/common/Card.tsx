@@ -22,6 +22,7 @@ import { type FunctionComponent, type ReactNode, useEffect, useRef, useState } f
 import { CalendarMonthOutlined } from "@mui/icons-material";
 import { cachedColour, extractColourFrom } from "../utils/colourUtils";
 import { ArtworkAccent, artworkPalette, useArtworkPalette } from "./artworkPalette";
+import { shortYear } from "./date";
 import { LABEL_SX } from "./typography";
 import Grid from "@mui/material/Grid";
 import { format } from "../utils/mathUtils";
@@ -49,10 +50,10 @@ export interface CardMediaImageProps {
   cardSx?: SxProps<Theme>;
   landscape?: boolean;
   /**
-   * Whether the artwork column is the width of the card or the width of the artwork. "aside" is
-   * for a card whose panel sits beside the image and has to be given the remaining width.
+   * `"aside"` for a card whose panel sits beside the image and has to be given the remaining
+   * width; left off, the artwork column is the width of the card.
    */
-  mediaLayout?: "fill" | "aside";
+  mediaLayout?: "aside";
   /** Derive the card's theme colour from the image once it loads. Costs a canvas read per image. */
   extractColour?: boolean;
 }
@@ -288,39 +289,30 @@ export const CardMediaImage = ({
   );
 };
 
-export const DetailCard = ({
-  colour,
-  label,
-  value,
-  large,
-}: {
-  colour?: string;
-  label: string;
-  value: string | ReactNode;
-  large?: boolean;
-}) => {
+export const DetailCard = ({ label, value }: { label: string; value: string | ReactNode }) => {
   const palette = useArtworkPalette();
 
   if (!value) return null;
   return (
     <Grid
       size={{
-        xs: large ? 12 : 6,
-        md: large ? 6 : 3,
+        xs: 6,
+        md: 3,
       }}
     >
       {/* Elevated, against the theme's outlined default: the outlined variant draws a `divider`
-          hairline, a neutral grey laid over whatever ground the artwork turned out to be.
-
-          A tile carrying a colour of its own paints it. The rest take a wash of the card's own
-          contrast colour, so they lift off a pale sample as readily as off a dark one — a raised
-          edge alone all but disappears against a light ground. */}
+          hairline, a neutral grey laid over whatever ground the artwork turned out to be. A wash
+          of the card's own contrast colour instead, so a tile lifts off a pale sample as readily
+          as off a dark one — a raised edge alone all but disappears against a light ground. */}
       <Card
         variant="elevation"
         sx={{
           height: "100%",
-          background: colour ?? palette.tile,
-          color: (theme) => (colour ? theme.palette.getContrastText(colour) : "unset"),
+          background: palette.tile,
+          // A `Paper` paints `text.primary` of its own, which is the theme's colour and not the
+          // one the dialog's card derived from its artwork. Unset lets that contrast colour reach
+          // the tile, so the type turns over with the ground rather than against it.
+          color: "unset",
         }}
       >
         <CardContent
@@ -345,7 +337,7 @@ export const DetailCard = ({
             <Typography
               align="center"
               variant="caption"
-              sx={{ color: colour ? undefined : palette.muted, opacity: colour ? 0.8 : 1 }}
+              sx={{ color: palette.muted }}
             >
               {label}
             </Typography>
@@ -486,28 +478,7 @@ export const CardPanel = ({
         )}
       </Stack>
 
-      {stats.length > 0 && (
-        <Box
-          sx={{
-            display: "grid",
-            // Two figures per row where there is only a phone's width, one row of all of them
-            // once there is width for it.
-            gridTemplateColumns: {
-              xs: `repeat(${Math.min(stats.length, 2)}, 1fr)`,
-              sm: `repeat(${stats.length}, 1fr)`,
-            },
-            gap: 1,
-            width: "100%",
-          }}
-        >
-          {stats.map((stat) => (
-            <StatTile
-              key={stat.label}
-              {...stat}
-            />
-          ))}
-        </Box>
-      )}
+      {stats.length > 0 && <StatTileGrid stats={stats} />}
     </CardContent>
   );
 };
@@ -519,6 +490,35 @@ export const CardPanel = ({
 export interface CardStat extends PanelStat {
   colour?: Colour;
 }
+
+/**
+ * A row of figures: two per row where there is only a phone's width, one row of all of them once
+ * there is width for it.
+ *
+ * One rule wherever tiles appear — a panel's, an expanded card's — because two grids that wrapped
+ * at different counts would put the same two figures on one line in one place and two in another.
+ */
+const StatTileGrid = ({ stats, size }: { stats: CardStat[]; size?: "hero" }) => (
+  <Box
+    sx={{
+      display: "grid",
+      gridTemplateColumns: {
+        xs: `repeat(${Math.min(stats.length, 2)}, 1fr)`,
+        sm: `repeat(${stats.length}, 1fr)`,
+      },
+      gap: 1,
+      width: "100%",
+    }}
+  >
+    {stats.map((stat) => (
+      <StatTile
+        key={stat.label}
+        {...stat}
+        size={size}
+      />
+    ))}
+  </Box>
+);
 
 /** A figure and what it counts, set apart from the prose so the numbers can be read at a glance. */
 export const StatTile = ({ value, label, colour, size }: CardStat & { size?: "hero" }) => {
@@ -576,52 +576,39 @@ export const HeroStatRow = ({ stats }: { stats: CardStat[] }) => {
 
   return (
     <Grid size={12}>
-      <Box
-        sx={{
-          display: "grid",
-          // Two figures per row where there is only a phone's width, one row of all of them once
-          // there is width for it — the same rule the panel's tiles follow.
-          gridTemplateColumns: {
-            xs: `repeat(${Math.min(stats.length, 2)}, 1fr)`,
-            sm: `repeat(${stats.length}, 1fr)`,
-          },
-          gap: 1,
-        }}
-      >
-        {stats.map((stat) => (
-          <StatTile
-            key={stat.label}
-            {...stat}
-            size="hero"
-          />
-        ))}
-      </Box>
+      <StatTileGrid
+        stats={stats}
+        size="hero"
+      />
     </Grid>
   );
 };
 
-/** Of a swatch, in pixels: a legend's mark, small enough to sit on a line of body text. */
-const SWATCH_SIZE = 10;
-
 /**
- * The mark a chart legend puts beside a name, on a line of prose.
+ * The mark a legend puts beside a name.
  *
  * It appears exactly where the app already speaks that field's colour somewhere else — a platform,
  * a franchise, a genre, a rating, a status. A swatch on a field with no colour vocabulary invents
  * one, and then the reader has learnt a legend that no chart honours.
+ *
+ * `size` is the caller's because the mark is read against what it sits beside: 10 on a line of
+ * body text, larger in a ranked column where it is the row's leading element.
  */
-const Swatch = ({ colour }: { colour: Colour }) => (
+export const Swatch = ({ colour, size }: { colour: string; size: number }) => (
   <Box
     component="span"
     sx={{
       flexShrink: 0,
-      width: SWATCH_SIZE,
-      height: SWATCH_SIZE,
+      width: size,
+      height: size,
       borderRadius: 0.5,
       backgroundColor: colour,
     }}
   />
 );
+
+/** A swatch on a line of prose, small enough not to outweigh the text it marks. */
+export const INLINE_SWATCH_SIZE = 10;
 
 /** One fact about an item: what it is called, what it says, and its colour where it has one. */
 export interface LedgerRow {
@@ -677,7 +664,12 @@ export const MetadataLedger = ({ rows }: { rows: LedgerRow[] }) => {
               // baseline of its own and would hang below the text it belongs to.
               sx={{ alignItems: "center", minWidth: 0 }}
             >
-              {row.swatch && <Swatch colour={row.swatch} />}
+              {row.swatch && (
+                <Swatch
+                  colour={row.swatch}
+                  size={INLINE_SWATCH_SIZE}
+                />
+              )}
               <Typography
                 variant="body2"
                 sx={{ textAlign: "right" }}
@@ -954,7 +946,7 @@ const TimelineAxis = ({ ticks }: { ticks: TimelineTick[] }) => (
             userSelect: "none",
           }}
         >
-          {`\u2019${(tick.year % 100).toString().padStart(2, "0")}`}
+          {shortYear(tick.year)}
         </Typography>
       ))}
   </Box>

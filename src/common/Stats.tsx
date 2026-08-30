@@ -1,5 +1,4 @@
 import {
-  Box,
   Card,
   CardContent,
   CardHeader,
@@ -14,8 +13,16 @@ import {
 import Grid from "@mui/material/Grid";
 import { format } from "../utils/mathUtils";
 import { groupTotals } from "./statsData";
-import { FooterComponent, ProportionalBar, type CardMediaImageProps, type TypedCardMediaImage } from "./Card";
+import {
+  FooterComponent,
+  INLINE_SWATCH_SIZE,
+  ProportionalBar,
+  Swatch,
+  type CardMediaImageProps,
+  type TypedCardMediaImage,
+} from "./Card";
 import { LABEL_SX } from "./typography";
+import { SectionHeader } from "./SectionHeader";
 import { useState, type ReactNode } from "react";
 import type { Colour } from "../utils/types";
 import { CloseFullscreen, Fullscreen } from "@mui/icons-material";
@@ -246,16 +253,15 @@ export const StatList = <T,>({
       expandable={content.length > COLLAPSED_CARDS}
       renderContent={(isDialog, toggle) => (
         <>
-          <CardHeader
+          <SectionHeader
             title={title}
-            avatar={icon}
+            icon={icon}
             action={
               <Stack direction="row-reverse">
                 {toggle}
                 {controls}
               </Stack>
             }
-            slotProps={{ title: { variant: "h6" } }}
           />
           <StatsListGrid
             content={content}
@@ -413,14 +419,9 @@ export const TotalsBand = <T extends string, U, K extends keyof U>({
               transition: "opacity 0.2s",
             }}
           >
-            <Box
-              sx={{
-                width: 10,
-                height: 10,
-                borderRadius: 0.5,
-                flexShrink: 0,
-                backgroundColor: struct.colour,
-              }}
+            <Swatch
+              colour={struct.colour}
+              size={INLINE_SWATCH_SIZE}
             />
             <Typography variant="body2">{struct.name}</Typography>
             <Typography

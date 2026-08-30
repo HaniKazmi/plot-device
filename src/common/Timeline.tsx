@@ -1,6 +1,6 @@
 import { Card, CardContent, Box, Tooltip, useTheme, type Theme } from "@mui/material";
 import { type ReactNode, useLayoutEffect, useRef, useState, type Ref } from "react";
-import type { YearMonthDay } from "./date";
+import { shortYear, type YearMonthDay } from "./date";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 import { ChipRail } from "./ChipRail";
 import {
@@ -10,6 +10,7 @@ import {
   percentAtScroll,
   percentOfSpan,
   scrollAtPercent,
+  scrollBehaviourFor,
   yearAtPercent,
   yearMarkers,
   type Placement,
@@ -265,15 +266,7 @@ const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }) => {
     if (!element) return;
 
     const left = scrollAtPercent(markers, percent, maxScrollOf(element));
-    /**
-     * A smooth scroll runs longer the further it travels, and this chart is four viewports wide:
-     * crossing it takes seconds, during which the years in between pass too fast to read anyway.
-     * Past a viewport and a half there is nothing left to follow, so the animation is only a wait
-     * — and the axis at the far end is what orients the reader either way. Short hops keep it,
-     * because over that distance the movement is what says the chart scrolled rather than changed.
-     */
-    const far = Math.abs(left - element.scrollLeft) > element.clientWidth * 1.5;
-    element.scrollTo({ left, behavior: far ? "auto" : "smooth" });
+    element.scrollTo({ left, behavior: scrollBehaviourFor(left - element.scrollLeft, element.clientWidth) });
   };
 
   return (
@@ -356,7 +349,7 @@ const YearNav = ({
   <ChipRail
     items={markers.map((marker) => ({
       id: marker.year.toString(),
-      label: `'${marker.year.toString().slice(-2)}`,
+      label: shortYear(marker.year),
     }))}
     activeId={activeYear?.toString()}
     onSelect={(id) => onSelect(markers.find((marker) => marker.year.toString() === id)!.percent)}
@@ -369,7 +362,6 @@ const YearNav = ({
       gap: 0.5,
       paddingTop: 1,
     }}
-    chipSx={{ height: 22, fontSize: 12, fontVariantNumeric: "tabular-nums" }}
   />
 );
 

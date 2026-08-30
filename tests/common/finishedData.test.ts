@@ -117,7 +117,7 @@ describe("orderedBuckets", () => {
 
 describe("bucketLabel", () => {
   it("shortens a year to two digits, since the rail is one chip wide", () => {
-    expect(bucketLabel("2024")).toBe("'24");
+    expect(bucketLabel("2024")).toBe("\u201924");
   });
 
   it("shows anything that is not a year as itself", () => {

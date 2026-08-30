@@ -1,4 +1,4 @@
-import { PlainDate, type Year, type YearMonthDay } from "./date";
+import { PlainDate, shortYear, type Year, type YearMonthDay } from "./date";
 import "../utils/arrayUtils";
 
 export type FinishedItem = {
@@ -70,4 +70,4 @@ export const orderedBuckets = (labels: readonly (string | null | undefined)[]): 
  * The rail is a column a chip wide in the page's gutter, so a four-digit year is the one label
  * that would set that column's width by itself.
  */
-export const bucketLabel = (bucket: string): string => (/^\d{4}$/.test(bucket) ? `'${bucket.slice(-2)}` : bucket);
+export const bucketLabel = (bucket: string): string => (/^\d{4}$/.test(bucket) ? shortYear(Number(bucket)) : bucket);

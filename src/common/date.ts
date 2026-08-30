@@ -284,6 +284,16 @@ export const formatDateRange = (start: YearMonthDay | Year, end?: YearMonthDay |
  */
 export const formatDate = (date: YearMonthDay | Year) => describeDate(date);
 
+/**
+ * A year as a scale labels one — "’24".
+ *
+ * Every axis and chip rail narrow enough to have a year set its width uses this form, so the one
+ * spelling lives here: a right single quotation mark rather than an ASCII apostrophe, which a text
+ * renderer draws as a straight tick, and two padded digits so a pre-2010 year is still two columns
+ * wide and a column of them lines up.
+ */
+export const shortYear = (year: number) => `’${(year % 100).toString().padStart(2, "0")}`;
+
 const describeDate = (date: YearMonthDay | Year, withYear = true) =>
   date instanceof YearMonthDay
     ? `${date.day} ${date.toYearMonth().monthString()}${withYear ? ` ${date.year}` : ""}`
