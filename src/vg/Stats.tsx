@@ -21,7 +21,9 @@ import {
 import Grid from "@mui/material/Grid";
 import { format } from "../utils/mathUtils";
 import {
+  currentlyPlaying,
   groupGamesBy,
+  heroStats,
   perGameAverages,
   platformToShortChip,
   statsCardLabelEndDateHours,
@@ -61,7 +63,11 @@ import {
 } from "@mui/material";
 import type { FilterDispatch, YearType } from "./filterUtils";
 import { statusToColour } from "../utils/types";
-import { CURRENT_YEAR, EARLIEST_YEAR, YearNumber } from "../common/date";
+import { CURRENT_PLAINDATE, CURRENT_YEAR, EARLIEST_YEAR, formatDate, YearNumber } from "../common/date";
+import { Hero } from "../common/Hero";
+import { Section } from "../common/SectionRail";
+import { useFranchiseGames } from "./franchiseContext";
+import { VG_SECTIONS } from "./sections";
 import { useState, type ReactNode } from "react";
 import prepareForSlot from "../utils/prepareForSlot";
 import { useSelectBox } from "../common/SelectBoxHook";
@@ -80,99 +86,155 @@ const Stats = ({
   yearTo: YearNumber;
   filterDispatch: FilterDispatch;
 }) => {
+  const playing = currentlyPlaying(data);
+
   return (
-    <Grid
-      container
-      spacing={1}
-      sx={{
-        alignItems: "stretch",
-      }}
-    >
-      <YearTotals
-        data={data}
-        yearTo={yearTo}
-        yearType={yearType}
-        filterDispatch={filterDispatch}
-        icon={<Timer />}
-        activeYearType="upto"
-        renderValue={(value) => (
-          <Typography variant="h6">{value == CURRENT_YEAR ? "All Time" : `Up To ${value}`}</Typography>
-        )}
-      />
-      <YearTotals
-        data={data}
-        yearTo={yearTo}
-        yearType={yearType}
-        filterDispatch={filterDispatch}
-        icon={<Update />}
-        activeYearType="matching"
-        minWidth={120}
-        matches={(game) => game.startDate.year === yearTo}
-        renderValue={(value) => <Typography variant="h6">In {value}</Typography>}
-      />
-      <Averages
-        data={data}
-        yearType={yearType}
-      />
-      <AveragesPerGame data={data} />
-      <Totals
-        data={data}
-        measure={measure}
-      />
-      <CurrentlyPlaying data={data} />
-      <TopCategories
-        data={data}
-        measure={measure}
-      />
-      <MostPlayed
-        data={data}
-        measure={measure}
-      />
-      <RecentlyComplete data={data} />
-    </Grid>
+    <Stack spacing={2}>
+      {/* No game in progress and there is no "now" to lead with. `Graphs` decides whether to
+          offer the rail chip on the same test, so a chip never points at an absent anchor. */}
+      {playing.length > 0 && (
+        <Section id={VG_SECTIONS.now}>
+          <VgHero game={playing[0]} />
+        </Section>
+      )}
+      <Section id={VG_SECTIONS.vitals}>
+        <Grid
+          container
+          spacing={1}
+          sx={{
+            alignItems: "stretch",
+          }}
+        >
+          <Vitals
+            data={data}
+            measure={measure}
+          />
+          <YearTotals
+            data={data}
+            yearTo={yearTo}
+            yearType={yearType}
+            filterDispatch={filterDispatch}
+            icon={<Timer />}
+            activeYearType="upto"
+            renderValue={(value) => (
+              <Typography variant="h6">{value == CURRENT_YEAR ? "All Time" : `Up To ${value}`}</Typography>
+            )}
+          />
+          <YearTotals
+            data={data}
+            yearTo={yearTo}
+            yearType={yearType}
+            filterDispatch={filterDispatch}
+            icon={<Update />}
+            activeYearType="matching"
+            minWidth={120}
+            matches={(game) => game.startDate.year === yearTo}
+            renderValue={(value) => <Typography variant="h6">In {value}</Typography>}
+          />
+          <Averages
+            data={data}
+            yearType={yearType}
+          />
+          <AveragesPerGame data={data} />
+        </Grid>
+      </Section>
+      <Section id={VG_SECTIONS.top}>
+        <Grid
+          container
+          spacing={1}
+          sx={{
+            alignItems: "stretch",
+          }}
+        >
+          <TopCategories
+            data={data}
+            measure={measure}
+          />
+        </Grid>
+      </Section>
+      <Section id={VG_SECTIONS.explore}>
+        <Grid
+          container
+          spacing={1}
+          sx={{
+            alignItems: "stretch",
+          }}
+        >
+          <MostPlayed
+            data={data}
+            measure={measure}
+          />
+          <RecentlyComplete data={data} />
+          {/* Everything being played that the hero above is not already showing. */}
+          <CurrentlyPlaying playing={playing.slice(1)} />
+        </Grid>
+      </Section>
+    </Stack>
   );
 };
 
-const Totals = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
+/**
+ * The franchise comes from the index the tab already built for the card strips rather than from
+ * a second grouping of the same data, so the hero and the strip inside the card it opens cannot
+ * come to disagree about how many games a series holds.
+ */
+const VgHero = ({ game }: { game: VideoGame }) => {
+  const franchise = useFranchiseGames(game);
+
+  return (
+    <Hero
+      item={game}
+      MediaComponent={VgCardMediaImage}
+      kicker={`Currently playing · since ${formatDate(game.startDate)}`}
+      title={game.name}
+      subtitle={[game.platform, game.genre].filter(Boolean).join(" · ")}
+      stats={heroStats(game, franchise, CURRENT_PLAINDATE)}
+    />
+  );
+};
+
+/**
+ * Status and platforms as one band rather than two cards.
+ *
+ * They answer the same question at the same altitude — what the library is made of — so they read
+ * as one thing to scan past on the way to the charts. Two full cards spent most of a screen
+ * saying it.
+ */
+const Vitals = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
   const statusList: Status[] = ["Beat", "Playing", "Endless", "Abandoned"];
   const companyList: Company[] = ["Nintendo", "PlayStation", "PC", "iOS", "Xbox"];
   const measureFunc = (data: VideoGame[]) => (measure == "Games" ? data.length : data.sum("hours"));
+
   return (
-    <Grid
-      size={{
-        xs: 12,
-        sm: 12,
-        md: 8,
-      }}
-    >
-      <Stack
-        spacing={1}
-        sx={{
-          justifyContent: "space-between",
-          height: "100%",
-        }}
-      >
-        <TotalStack
-          title={"Status"}
-          icon={<TaskAlt />}
-          data={data}
-          measureFunc={measureFunc}
-          groupKey="status"
-          group={statusList}
-          groupToColour={(ele: Status) => statusToColour({ status: ele })}
-          measureLabel={measure}
-        />
-        <TotalStack
-          title={"Platforms"}
-          icon={<VideogameAsset />}
-          data={data}
-          measureFunc={measureFunc}
-          groupKey="company"
-          group={companyList}
-          groupToColour={(ele: Company) => companyToColor({ company: ele })}
-          measureLabel={measure}
-        />
-      </Stack>
+    <Grid size={12}>
+      <Card sx={{ height: "100%" }}>
+        <CardContent sx={{ ":last-child": { paddingBottom: 2 } }}>
+          <Stack spacing={2}>
+            <TotalStack
+              compact
+              title={"Status"}
+              icon={<TaskAlt />}
+              data={data}
+              measureFunc={measureFunc}
+              groupKey="status"
+              group={statusList}
+              groupToColour={(ele: Status) => statusToColour({ status: ele })}
+              measureLabel={measure}
+            />
+            <TotalStack
+              compact
+              title={"Platforms"}
+              icon={<VideogameAsset />}
+              data={data}
+              measureFunc={measureFunc}
+              groupKey="company"
+              group={companyList}
+              groupToColour={(ele: Company) => companyToColor({ company: ele })}
+              measureLabel={measure}
+            />
+          </Stack>
+        </CardContent>
+      </Card>
     </Grid>
   );
 };
@@ -416,14 +478,13 @@ const MostPlayedCategory = ({
   );
 };
 
-const CurrentlyPlaying = ({ data }: { data: VideoGame[] }) => {
-  const recent = data.filter((a) => a.status === "Playing").sortByKey("startDate");
-  if (recent.length == 0) return null;
+const CurrentlyPlaying = ({ playing }: { playing: VideoGame[] }) => {
+  if (playing.length == 0) return null;
   return (
     <VgStatList
       icon={<PlayArrow />}
-      title="Currently Playing"
-      content={recent}
+      title="Also Playing"
+      content={playing}
       labelComponent={statsCardLabelStartDate}
       wrap={false}
       width={[12, 12, 4]}

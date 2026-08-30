@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { YearMonthDay } from "../../src/common/date";
-import { groupGamesBy, perGameAverages, topNWithOther, topOptions, yearlyAverages } from "../../src/vg/statsData";
+import { Year, YearMonthDay } from "../../src/common/date";
+import {
+  currentlyPlaying,
+  groupGamesBy,
+  heroStats,
+  perGameAverages,
+  topNWithOther,
+  topOptions,
+  yearlyAverages,
+} from "../../src/vg/statsData";
 import { videoGame } from "../fixtures/vgRows";
 
 describe("groupGamesBy", () => {
@@ -224,5 +232,76 @@ describe("perGameAverages", () => {
 
   it("yields NaN when nothing qualifies", () => {
     expect(perGameAverages([]).hours).toBeNaN();
+  });
+});
+
+describe("currentlyPlaying", () => {
+  it("keeps only games still being played, most recently started first", () => {
+    const data = [
+      videoGame({ name: "Older", status: "Playing", startDate: YearMonthDay.get(2024, 1, 1) }),
+      videoGame({ name: "Beaten", status: "Beat" }),
+      videoGame({ name: "Newer", status: "Playing", startDate: YearMonthDay.get(2024, 6, 1) }),
+    ];
+
+    expect(currentlyPlaying(data).map((game) => game.name)).toEqual(["Newer", "Older"]);
+  });
+
+  it("is empty rather than throwing when nothing is in progress", () => {
+    expect(currentlyPlaying([videoGame({ status: "Beat" })])).toEqual([]);
+  });
+});
+
+describe("heroStats", () => {
+  const today = YearMonthDay.get(2024, 3, 11);
+
+  it("counts the days the game has been in progress, both ends included", () => {
+    // The inclusive count `numDays` and the Days To Beat card already use, so a game shows the
+    // same span before and after it is finished.
+    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: undefined, franchise: "" });
+
+    expect(heroStats(game, [game], today)).toEqual([{ label: "Days In", value: 11 }]);
+  });
+
+  it("reports the hours the sheet has logged against a game still being played", () => {
+    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: 12, franchise: "" });
+
+    expect(heroStats(game, [game], today)).toContainEqual({ label: "Hours", value: 12 });
+  });
+
+  it("leaves the hours out rather than reporting zero for a game with none logged", () => {
+    // The sheet only fills hours in for some in-progress games, and a tile reading 0 asserts
+    // that none have been played rather than that none have been recorded.
+    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: 0, franchise: "" });
+
+    expect(heroStats(game, [game], today).map((stat) => stat.label)).toEqual(["Days In"]);
+  });
+
+  it("places the game in its series once the series has more than one game", () => {
+    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: undefined, franchise: "Zelda" });
+
+    expect(heroStats(game, [game, videoGame(), videoGame()], today)).toContainEqual({
+      label: "Zelda Games",
+      value: 3,
+    });
+  });
+
+  it("says nothing about a series holding only this game", () => {
+    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: undefined, franchise: "Zelda" });
+
+    expect(heroStats(game, [game], today).map((stat) => stat.label)).toEqual(["Days In"]);
+  });
+
+  it("skips the day count for a game the sheet recorded as a bare year", () => {
+    // `daysTo` refuses to answer across a year-only date rather than inventing a day for it.
+    const game = videoGame({ startDate: Year.get(2024), hours: 5, franchise: "" });
+
+    expect(heroStats(game, [game], today).map((stat) => stat.label)).toEqual(["Hours"]);
+  });
+
+  it("skips the day count rather than throwing on a start date in the future", () => {
+    // `daysTo` throws on a backwards comparison, which a mistyped sheet row can produce.
+    const game = videoGame({ startDate: YearMonthDay.get(2025, 1, 1), hours: 5, franchise: "" });
+
+    expect(heroStats(game, [game], today).map((stat) => stat.label)).toEqual(["Hours"]);
   });
 });
