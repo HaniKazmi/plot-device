@@ -14,7 +14,6 @@ import { ageRatingToColour, genreToColour } from "../utils/types";
 import { namesTheSameThing } from "../utils/stringUtils";
 import { CURRENT_PLAINDATE, YearMonthDay, formatDate } from "../common/date";
 import { buildStrip, stripYearTicks } from "../common/timelineStripData";
-import { gapLabel } from "./statsData";
 import { useFranchiseMovies } from "./franchiseContext";
 
 /**
@@ -35,18 +34,13 @@ const movieStats = (movie: Movie): CardStat[] => [
  * The facts that are not figures.
  *
  * A row carries a swatch exactly where the app speaks that field's colour somewhere else — the
- * genre shares the shows tab's vocabulary, the rating the games tab's map. The Waited row is the
- * release→watch gap in the reader's own units, and disappears where the watch predates the
- * release rather than reporting a negative wait.
+ * genre shares the shows tab's vocabulary, the rating the games tab's map.
  */
 const movieRows = (movie: Movie): LedgerRow[] => {
   const rows: LedgerRow[] = [
     { label: "Watched", value: formatDate(movie.startDate) },
     { label: "Released", value: formatDate(movie.releaseDate) },
   ];
-
-  const waited = gapLabel(movie);
-  if (waited) rows.push({ label: "Waited", value: waited });
 
   rows.push(
     { label: "By", value: movie.director },

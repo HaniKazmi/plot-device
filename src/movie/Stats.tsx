@@ -44,7 +44,6 @@ import {
 import {
   allTimeTotals,
   filmsInYear,
-  gapSummary,
   groupMoviesBy,
   movieTopOptions,
   perFilmAverages,
@@ -101,7 +100,6 @@ const Stats = ({
             stats={yearlyAverages(data)}
           />
           <FilmAverage data={data} />
-          <ReleaseToWatch data={data} />
           <Vitals
             data={data}
             measure={measure}
@@ -224,21 +222,6 @@ const FilmAverage = ({ data }: { data: Movie[] }) => {
       content={[
         ["Minutes", minutes],
         ["Score", score],
-      ]}
-    />
-  );
-};
-
-/** The movie-native card: how long a film waits between coming out and being watched. */
-const ReleaseToWatch = ({ data }: { data: Movie[] }) => {
-  const { medianYears, sameYearPercent } = gapSummary(data);
-  return (
-    <StatCard
-      icon={<History />}
-      title="Release → Watch"
-      content={[
-        ["Median Years", medianYears],
-        ["Same Year %", sameYearPercent],
       ]}
     />
   );

@@ -2,6 +2,8 @@ import type { Year, YearMonthDay } from "../common/date";
 import {
   NEUTRAL_FILL,
   ageRatingToColour,
+  decadeToColour,
+  releaseDecade,
   statusToColour,
   type AgeRating,
   type Colour,
@@ -253,8 +255,11 @@ const franchiseColours: Record<string, Colour> = {
 export const franchiseToColour = ({ franchise }: { franchise: string }): Colour =>
   franchiseColours[franchise] ?? ("" as Colour);
 
-export const groupToColour = (group: keyof VideoGame | "none", game: VideoGame) => {
+export const groupToColour = (group: keyof VideoGame | "none" | "decade", game: VideoGame) => {
   switch (group) {
+    case "decade":
+      // The shared ramp, so a decade wedge means the same thing beside the Movies tab's.
+      return decadeToColour(releaseDecade(game.releaseDate.year));
     case "company":
       return companyToColor(game);
     case "status":
