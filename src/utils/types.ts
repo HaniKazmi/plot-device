@@ -13,23 +13,39 @@ export type Colour = Distinct<string, "Colour">;
 export type ColourableStatus =
   "Abandoned" | "Beat" | "Ended" | "Cancelled" | "Endless" | "Up To Date" | "Playing" | "Watching" | "Next" | "Backlog";
 
+/**
+ * Hue says how a thing ended; lightness says whether it is still moving.
+ *
+ * Cyan is in progress, blue is open-ended, green finished well, amber was stopped by someone
+ * else, rose was stopped by choice — and the five step down in lightness in that order, so a
+ * chart squinted at answers "how much of this is still alive?" before a single hue is read.
+ * Active states are the lightest and most vivid; the finished green sits a chroma step below the
+ * other terminal states, because it is the majority of every status chart and a majority at full
+ * saturation is a wall, while Cancelled and Abandoned are the exceptions worth noticing.
+ *
+ * Next and Backlog have not started, so they take the same neutral grey the charts' "Other"
+ * buckets wear: an inert state wants an inert colour, and black beside coloured fills reads as a
+ * sixth hue rather than as absence.
+ *
+ * Every value clears 3:1 against both surfaces the app paints on (#ffffff and #1d2126 paper).
+ */
 export const statusToColour = ({ status }: { status: ColourableStatus }) => {
   switch (status) {
     case "Abandoned":
-      return "#ba3a71" as Colour;
+      return "#d10074" as Colour;
     case "Beat":
     case "Ended":
-      return "#29a259" as Colour;
+      return "#338c5f" as Colour;
     case "Cancelled":
-      return "#a36500" as Colour;
+      return "#9b6200" as Colour;
     case "Endless":
     case "Up To Date":
-      return "#3a6cce" as Colour;
+      return "#2f75ff" as Colour;
     case "Playing":
     case "Watching":
       return "#00a5a6" as Colour;
     case "Next":
     case "Backlog":
-      return "black" as Colour;
+      return "#7d828c" as Colour;
   }
 };
