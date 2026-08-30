@@ -190,10 +190,26 @@ export const ratingToColour = ({ rating }: VideoGame) => {
 };
 
 /**
- * Genres carry no colour of their own, so this ramp is chosen rather than reproduced. Hue is
- * what separates two genres and luminance is held equal across all of them, which is what lets
- * one set of values sit on a #ffffff card and a #1d2126 card alike. A colour picked for the
- * light card alone washes out on the dark one; `#ffeb3b` against white is 1.22:1.
+ * A genre has no brand to reproduce, so each colour is chosen to *represent* the genre: flame for
+ * Action, exploration green for Adventure, the leather-bronze between them for Action Adventure,
+ * a dashboard amber for Driving/Racing, military olive for Shooter, crimson for Fighting, party
+ * magenta, sakura pink for Visual Novel, sky blue for Platformer, steel blue for Strategy, indigo
+ * for Role Playing, violet for Puzzle, a blueprint teal for Simulation and cyan for Music/Rhythm.
+ * Action takes the flame end of red rather than a pillar-box red because sRGB has no bright red:
+ * red only exists low in the lightness range, and Fighting's crimson is what occupies it.
+ *
+ * Every value sits in the same lightness band as the company fills, so each clears 3:1 against
+ * both surfaces the app paints on (#ffffff paper and #1d2126 paper), with chroma taken as high as
+ * sRGB allows at that lightness. A colour picked for the light card alone washes out on the dark
+ * one; `#ffeb3b` against white is 1.22:1. Fourteen hues in one band is more than hue alone can
+ * separate — 27° apart is roughly ΔE 7, and telling two fills apart wants 15 — so lightness
+ * alternates around the hue wheel and neighbours land at opposite ends of the band.
+ *
+ * Strategy is the one deliberately deep member of the blues. A red-blind reader sees violet as
+ * blue, so a light steel blue beside Puzzle's light violet is ΔE 1 to them however far apart the
+ * hues are; only lightness separates that pair, and the two are adjacent on the Top Genre bar.
+ * Platformer's sky blue is then the light half of the same hue, which is what those two names
+ * mean anyway.
  *
  * Ratings and franchises deliberately do not draw on this: a rating ramp encodes an order, and a
  * franchise colour is somebody's brand, which keeps its hue and chroma and yields only lightness
@@ -202,33 +218,33 @@ export const ratingToColour = ({ rating }: VideoGame) => {
 const genreToColour = ({ genre }: { genre: Genre }) => {
   switch (genre) {
     case "Action":
-      return "#d55b4e" as Colour;
+      return "#fe4c00" as Colour;
     case "Adventure":
-      return "#2b944e" as Colour;
+      return "#13ac00" as Colour;
     case "Action Adventure":
-      return "#c06d24" as Colour;
+      return "#a85500" as Colour;
     case "Driving/Racing":
-      return "#9f7d1a" as Colour;
+      return "#ae9200" as Colour;
     case "Fighting":
-      return "#cc5e79" as Colour;
+      return "#d5005e" as Colour;
     case "Party Games":
-      return "#c859a3" as Colour;
+      return "#bc00c8" as Colour;
     case "Platformer":
-      return "#3985d1" as Colour;
+      return "#3893ff" as Colour;
     case "Puzzle":
-      return "#9a6dcc" as Colour;
+      return "#c357ff" as Colour;
     case "Role Playing":
-      return "#7e76d1" as Colour;
+      return "#7543ff" as Colour;
     case "Shooter":
-      return "#658697" as Colour;
+      return "#667100" as Colour;
     case "Simulation":
-      return "#24908c" as Colour;
+      return "#008268" as Colour;
     case "Strategy":
-      return "#6b7fbd" as Colour;
+      return "#0072c5" as Colour;
     case "Visual Novel":
-      return "#b761be" as Colour;
+      return "#ff1da7" as Colour;
     case "Music/Rhythm":
-      return "#668e2f" as Colour;
+      return "#00a4b1" as Colour;
     default:
       return "#7d828c" as Colour;
   }
@@ -239,9 +255,23 @@ const genreToColour = ({ genre }: { genre: Genre }) => {
  *
  * Hue and chroma are the brand's and are kept exactly; only lightness moves, and only as far as
  * clearing 3:1 against both surfaces the app paints on (#ffffff paper and #1d2126 paper) demands.
- * Pokémon's #FFCB05 is 1.52:1 on white and Persona's #10145A is 1.02:1 on dark, so a yellow
- * deepens to a gold and a navy lifts to a royal blue rather than being reassigned. Chroma gives
- * way only where the new lightness leaves sRGB — the gold and Warcraft's are the two that do.
+ * Yakuza's #A31925 is 2.10:1 on dark and Civilization's #005E9B is 2.37:1, so both lift a step
+ * rather than being reassigned a hue. Chroma gives way only where the clamped lightness leaves
+ * sRGB, which Final Fantasy's cyan is the one entry to still do.
+ *
+ * Where a brand *is* its brightness or its darkness, that clamp destroys the thing it was meant
+ * to preserve: a yellow held to 3:1 on white is no longer yellow, it is a brown-gold, and Persona
+ * held to 3:1 on dark is a royal blue rather than a near-black indigo. Those entries relax the
+ * floor on the offending surface to 2.2:1 and clamp only to that, keeping the full 3:1 on the
+ * other. Pokémon, Warcraft, Assassin's Creed, Uncharted and Tales are the bright five; Persona
+ * and Ace Attorney the deep two. The relief is that nothing here is colour alone — the sunburst
+ * labels its wedges and the Top Franchise list carries a named legend — which is exactly the
+ * secondary encoding a sub-3:1 fill is allowed to lean on. Two of the five also regain the chroma
+ * a darker clamp took out of them: yellow's gamut widens as it lightens.
+ *
+ * Call of Duty keeps the plain clamp despite being a military drab, because dropping its olive
+ * deeper collapses it onto Mario's red under red-blind vision — ΔE 1.8 where the clamped value
+ * holds 7.7, and those two are neighbours on the Top Franchise bar.
  *
  * What that costs is separation between brands that already share a hue. Mario, Marvel,
  * Xenoblade, Fate, Mass Effect and Yakuza are six reds inside 5° of each other, and clamping
@@ -251,11 +281,11 @@ const genreToColour = ({ genre }: { genre: Genre }) => {
 const franchiseToColour = ({ franchise }: { franchise: string }) => {
   switch (franchise) {
     case "Pokémon":
-      return "#B69000" as Colour;
+      return "#d3a700" as Colour;
     case "Final Fantasy":
       return "#039FDB" as Colour;
     case "Ace Attorney":
-      return "#3963D6" as Colour;
+      return "#2b52c3" as Colour;
     case "Mario":
       return "#E60012" as Colour;
     case "Call of Duty":
@@ -263,15 +293,15 @@ const franchiseToColour = ({ franchise }: { franchise: string }) => {
     case "Dragon Ball":
       return "#F85B1A" as Colour;
     case "Assassin's Creed":
-      return "#92959B" as Colour;
+      return "#a9adb3" as Colour;
     case "Legend of Zelda":
       return "#1A8A34" as Colour;
     case "Marvel":
       return "#ED1D24" as Colour;
     case "Tales":
-      return "#00A69B" as Colour;
+      return "#38bfb4" as Colour;
     case "Uncharted":
-      return "#A59274" as Colour;
+      return "#bdaa8b" as Colour;
     case "Yakuza":
       return "#C0393D" as Colour;
     case "Super Smash Bros.":
@@ -281,7 +311,7 @@ const franchiseToColour = ({ franchise }: { franchise: string }) => {
     case "Fate":
       return "#CB2C28" as Colour;
     case "Warcraft":
-      return "#BF8C02" as Colour;
+      return "#dda300" as Colour;
     case "Mass Effect":
       return "#D12026" as Colour;
     case "Witcher":
@@ -289,7 +319,7 @@ const franchiseToColour = ({ franchise }: { franchise: string }) => {
     case "Civilization":
       return "#1E6FAD" as Colour;
     case "Persona":
-      return "#5266B2" as Colour;
+      return "#4557a2" as Colour;
     default:
       return "" as Colour;
   }
