@@ -14,7 +14,7 @@ import {
 import Grid from "@mui/material/Grid";
 import { format } from "../utils/mathUtils";
 import { groupTotals } from "./statsData";
-import { FooterComponent, Segment, type CardMediaImageProps, type TypedCardMediaImage } from "./Card";
+import { FooterComponent, ProportionalBar, type CardMediaImageProps, type TypedCardMediaImage } from "./Card";
 import { LABEL_SX } from "./typography";
 import { useState, type ReactNode } from "react";
 import type { Colour } from "../utils/types";
@@ -367,6 +367,9 @@ export const TotalsBand = <T extends string, U, K extends keyof U>({
   measureLabel: string;
 }) => {
   const totals = groupTotals(data, group, groupKey, measureFunc ?? countOf, groupToColour);
+  // Held per band rather than per card: a card stacks several bands, and hovering one group of a
+  // library should not fade the band answering a different question.
+  const [hovered, setHovered] = useState<string | null>(null);
 
   return (
     <Stack spacing={1}>
@@ -383,21 +386,11 @@ export const TotalsBand = <T extends string, U, K extends keyof U>({
           {title}
         </Typography>
       </Stack>
-      <Stack
-        direction="row"
-        spacing={0.25}
-        sx={{ alignItems: "center" }}
-      >
-        {totals.map((struct) => (
-          <Segment
-            key={struct.name}
-            percent={struct.percent}
-            backgroundColour={struct.colour}
-            spacing={1.5}
-            sx={{ borderRadius: 0.5 }}
-          />
-        ))}
-      </Stack>
+      <ProportionalBar
+        items={totals}
+        hovered={hovered}
+        onHover={setHovered}
+      />
       {/* Wrapping rather than a column each: the legend is as wide as the words in it, so however
         many groups there are they fill the lines they need and stop. */}
       <Stack
@@ -409,7 +402,13 @@ export const TotalsBand = <T extends string, U, K extends keyof U>({
             key={struct.name}
             direction="row"
             spacing={0.75}
-            sx={{ alignItems: "center" }}
+            onMouseEnter={() => setHovered(struct.name)}
+            onMouseLeave={() => setHovered(null)}
+            sx={{
+              alignItems: "center",
+              opacity: hovered && hovered !== struct.name ? 0.3 : 1,
+              transition: "opacity 0.2s",
+            }}
           >
             <Box
               sx={{

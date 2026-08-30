@@ -48,7 +48,6 @@ const Stats = ({ data, watching }: { data: Show[]; watching: Season[] }) => {
             alignItems: "stretch",
           }}
         >
-          <Vitals data={data} />
           <StatSummary
             icon={<Timer />}
             title="All Time"
@@ -69,6 +68,7 @@ const Stats = ({ data, watching }: { data: Show[]; watching: Season[] }) => {
             title="Show Average"
             stats={perShowAverages(data)}
           />
+          <Vitals data={data} />
         </Grid>
       </Section>
       <Section id={SHOW_SECTIONS.explore}>
