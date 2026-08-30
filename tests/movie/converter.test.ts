@@ -82,6 +82,11 @@ describe("field parsing", () => {
     expect(convertOne({ Cinema: "true" }).cinema).toBe(false);
   });
 
+  it("reads the anime flag the same way as cinema: TRUE or blank, nothing else", () => {
+    expect(convertOne({ Anime: "TRUE" }).anime).toBe(true);
+    expect(convertOne({ Anime: "" }).anime).toBe(false);
+  });
+
   it("carries the remaining columns through untouched", () => {
     const movie = convertOne();
 

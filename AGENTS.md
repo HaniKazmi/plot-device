@@ -77,7 +77,7 @@ babel({
 }),
 ```
 
-Then `npx vite build 2>&1 | grep -E '^OK|^BAIL'`. Baseline is **111 compiled, 0 bailed** — any `BAIL` line is something you introduced. The commonest way to introduce one is a destructured prop default (`landscape = false`), which surfaces as `BuildHIR::lowerAssignment … got: AssignmentPattern`; the fix idiom is above. Moving a computation out of a component is a reliable way to clear a `MethodCall` bailout, which is a different failure and does respond. **Revert the logger afterwards.**
+Then `npx vite build 2>&1 | grep -E '^OK|^BAIL'`. Baseline is **149 compiled, 0 bailed** — any `BAIL` line is something you introduced. The commonest way to introduce one is a destructured prop default (`landscape = false`), which surfaces as `BuildHIR::lowerAssignment … got: AssignmentPattern`; the fix idiom is above. Moving a computation out of a component is a reliable way to clear a `MethodCall` bailout, which is a different failure and does respond. **Revert the logger afterwards.**
 
 Do not grep the built bundle for `useMemoCache` or `compiler-runtime` to check this — those names do not survive minification, and their absence proves nothing.
 
@@ -89,7 +89,7 @@ Ordered by how quietly they fail.
 - **Never read a browser global at module scope.** `const storage = localStorage` at the top of a module makes merely importing it throw wherever the global is absent. Node exposes `localStorage` and `sessionStorage` from v24 but not on v22, which CI runs, so this passes locally and fails there. Read the global inside the function that needs it. `tests/architecture.test.ts` enforces this.
 - **Never put a bare colour after a comma in the `background` shorthand.** `background: linear-gradient(a, a), ${colour}` looks like an overlay over a colour and is not: only the last layer may carry a background-colour, and it is space-separated. A colour written as its own comma-separated layer is not a valid `<bg-image>`, so that half is dropped and the computed value reads `linear-gradient(a, a), none` — an overlay sitting on nothing. Set `backgroundImage` and `backgroundColour` as two properties instead.
 - **Never add a field named `show` to a non-`show` domain.** `show/Show.tsx` passes a replacer that strips that key on cache write; it is scoped to that domain, but the name is the trigger.
-- **Cache keys are unversioned.** Changing a domain model's shape leaves stale objects in existing browsers' `localStorage`. When testing a model change, clear the relevant `*-data-cache` key first, or you will debug the old shape.
+- **Cache keys are versioned — bump the version when the model's shape changes.** `dataCacheKey(domain, version)` in `common/useData.ts` builds the key (`vg-data-cache-v1`, `show-data-cache-v2`, `movie-data-cache-v3`), and `dropSupersededVersions` clears the previous key on first load. A field added without a bump is simply absent on a returning visitor's cached objects — the component reading it fails, or worse reads a silent default, and only on other people's browsers.
 - **`PlainDate.from()` throws on partial dates.** It dispatches on string length: 10 chars → `YearMonthDay`, 4 → `Year`. `"2024-05"` throws. That is deliberate — it surfaces bad sheet data loudly.
 - **Colour lookups throw on unknown values** (`platformToShort`, `ratingToColour`). Also deliberate: it catches typos in the spreadsheet. Do not soften them to a fallback colour.
 - **Adding a `Tab` to `src/tabs.ts` is two steps** — define it _and_ add it to the exported `Tabs` array. The router and nav bar are generated from that array. `HolidaysTab` is defined but intentionally omitted, which is why `src/holiday/` is unreachable. It is unfinished, not broken; leave it alone unless asked.
@@ -121,12 +121,12 @@ Authentication notes that will otherwise waste your time:
 **To test without touching real data**, seed the caches directly and reload — `useData` reads them synchronously on mount, and with no token it will not overwrite them:
 
 ```js
-localStorage.setItem("vg-data-cache", JSON.stringify(games));
-localStorage.setItem("show-data-cache", JSON.stringify(shows));
-localStorage.setItem("movie-data-cache", JSON.stringify(movies));
+localStorage.setItem("vg-data-cache-v1", JSON.stringify(games));
+localStorage.setItem("show-data-cache-v2", JSON.stringify(shows));
+localStorage.setItem("movie-data-cache-v3", JSON.stringify(movies));
 ```
 
-Dates go in as ISO strings (`"2024-05-01"`); the reviver turns them into `PlainDate`s. Omit `Season.show` — the reviver re-attaches it. Values must be ones the colour maps recognise (see the trap above) or rendering throws.
+Dates go in as ISO strings (`"2024-05-01"`); the reviver turns them into `PlainDate`s. Omit `Season.show` — the reviver re-attaches it. Values must be ones the colour maps recognise (see the trap above) or rendering throws. The version suffixes are whatever each domain's entry file currently passes to `dataCacheKey` — seeding the bare unversioned key seeds nothing, because `dropSupersededVersions` deletes it on load.
 
 If you seed fake data, **clear those keys afterwards** so you do not leave test data in the user's browser.
 

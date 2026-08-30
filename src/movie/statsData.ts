@@ -92,43 +92,6 @@ export const perFilmAverages = (data: Movie[]) => {
   };
 };
 
-/**
- * Days between a film's release and it being watched, or nothing where the watch predates the
- * release — a preview screening, or a sheet slip — since `daysTo` throws on a backwards pair and
- * a negative wait is not a figure worth charting.
- */
-export const releaseToWatchGap = (movie: Movie) =>
-  movie.releaseDate.lte(movie.startDate) ? movie.releaseDate.daysTo(movie.startDate) : undefined;
-
-/**
- * The library's release→watch story in two figures: the median years waited, and how much of it
- * was seen the year it came out. Median rather than mean — a handful of decades-old classics
- * watched recently drag a mean by years each, and the answer should describe the habit, not the
- * outliers.
- */
-export const gapSummary = (data: Movie[]) => {
-  const gaps = data
-    .map(releaseToWatchGap)
-    .filter((days): days is number => days !== undefined)
-    .toSorted((a, b) => a - b);
-  const median = gaps.length ? gaps[Math.floor(gaps.length / 2)] : 0;
-  const sameYear = data.filter((movie) => movie.releaseDate.year === movie.startDate.year).length;
-  return {
-    medianYears: Math.round((median / 365.25) * 10) / 10,
-    sameYearPercent: data.length ? Math.round((sameYear / data.length) * 100) : 0,
-  };
-};
-
-/** The wait between release and watch, in the reader's own units: years, months, or "same week". */
-export const gapLabel = (movie: Movie) => {
-  const days = releaseToWatchGap(movie);
-  if (days === undefined) return undefined;
-  if (days < 8) return "same week";
-  if (days < 62) return `${Math.round(days / 7)} weeks`;
-  if (days < 730) return `${Math.round(days / 30.44)} months`;
-  return `${Math.round(days / 365.25)} years`;
-};
-
 // Dates are in the reader's voice and not the machine's, which is the same one the card behind
 // the thumbnail speaks. One cell per row: these sit under posters a third the width of the
 // banners the other tabs label, and two cells collide into one run of digits. The score is

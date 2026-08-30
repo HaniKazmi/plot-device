@@ -18,5 +18,6 @@ export const movieRow = (overrides: Record<string, string> = {}): Record<string,
   Franchise: "Arrival",
   Director: "Denis Villeneuve",
   Banner: "arrival.jpg",
+  Anime: "",
   ...overrides,
 });
