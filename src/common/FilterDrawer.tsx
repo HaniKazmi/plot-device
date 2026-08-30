@@ -152,7 +152,7 @@ export const FilterCategory = ({
   options: readonly string[];
   selected: readonly string[];
   onChange: (values: string[]) => void;
-  colourFor?: (value: string) => Colour;
+  colourFor?: (value: string) => Colour | undefined;
 }) => (
   <Grid
     size={{

@@ -35,10 +35,12 @@ export const topNWithOther = <T>(allGroups: TopGroup<T>[], limit = 5) => {
  * `assignPercents` folds its shortfall into the first entry, so that entire remainder would
  * silently inflate whichever group happens to be listed first.
  */
-export const groupTotals = <T extends string, U, K extends keyof U>(
+export const groupTotals = <T extends string, U>(
   data: U[],
   group: T[],
-  groupKey: K,
+  // An accessor rather than a key, so a derived grouping — a score band, a decade — costs the
+  // caller a function instead of a field on the model.
+  groupOf: (item: U) => T,
   measureFunc: (data: U[]) => number,
   groupToColour: (ele: T) => Colour,
 ) => {
@@ -46,7 +48,7 @@ export const groupTotals = <T extends string, U, K extends keyof U>(
   // once for every entry in `group`.
   const buckets = new Map<T, U[]>(group.map((e) => [e, []]));
   for (const item of data) {
-    buckets.get(item[groupKey] as T)?.push(item);
+    buckets.get(groupOf(item))?.push(item);
   }
 
   const segments = group.flatMap((e) => {

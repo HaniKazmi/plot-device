@@ -46,17 +46,17 @@ import { TopListCard } from "../common/TopList";
 import { DrilldownDialog } from "../common/DrilldownDialog";
 import { highchartsColors } from "../highcharts";
 import VgCardMediaImage from "./CardMediaImage";
-import { FormControl, MenuItem, Radio, Select, Stack, Typography } from "@mui/material";
+import { Radio, Stack, Typography } from "@mui/material";
 import type { FilterDispatch, YearType } from "./filterUtils";
 import { NEUTRAL_FILL, statusToColour } from "../utils/types";
-import { CURRENT_PLAINDATE, CURRENT_YEAR, EARLIEST_YEAR, formatDate, YearNumber } from "../common/date";
+import { CURRENT_PLAINDATE, CURRENT_YEAR, formatDate, YearNumber } from "../common/date";
 import { Hero } from "../common/Hero";
 import { Section, StatBand } from "../common/SectionRail";
 import { useFranchiseGames } from "./franchiseContext";
 import { VG_SECTIONS } from "./sections";
 import { useState, type ReactNode } from "react";
-import prepareForSlot from "../utils/prepareForSlot";
 import { useSelectBox } from "../common/SelectBoxHook";
+import { YearSelect } from "../common/YearSelect";
 import "../utils/arrayUtils";
 
 const Stats = ({
@@ -205,44 +205,6 @@ const Vitals = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
   );
 };
 
-const YearSelect = ({
-  yearTo,
-  filterDispatch,
-  renderValue,
-  // Applied below the pattern: a default inside it bails the component out of the React Compiler.
-  minWidth: minWidthProp,
-}: {
-  yearTo: number;
-  filterDispatch: FilterDispatch;
-  renderValue: (value: number) => ReactNode;
-  minWidth?: number;
-}) => (
-  <FormControl
-    variant="standard"
-    sx={{ minWidth: minWidthProp ?? 130, margin: 0 }}
-  >
-    <Select
-      SelectDisplayProps={{ style: { padding: 0 } }}
-      value={yearTo}
-      displayEmpty
-      onChange={(event) =>
-        filterDispatch({ type: "updateFilter", filter: "yearTo", value: event.target.value as YearNumber })
-      }
-      renderValue={(value) => renderValue(value as number)}
-      slots={{ root: prepareForSlot("span") }}
-    >
-      {Array.from({ length: CURRENT_YEAR - EARLIEST_YEAR + 1 }, (_, i) => CURRENT_YEAR - i).map((year) => (
-        <MenuItem
-          key={year}
-          value={year}
-        >
-          {year}
-        </MenuItem>
-      ))}
-    </Select>
-  </FormControl>
-);
-
 /** The radio picks which of these two cards the year filter applies to, hence `activeYearType`. */
 const YearTotals = ({
   data,
@@ -272,8 +234,8 @@ const YearTotals = ({
       icon={icon}
       title={
         <YearSelect
-          yearTo={yearTo}
-          filterDispatch={filterDispatch}
+          value={yearTo as YearNumber}
+          onChange={(value) => filterDispatch({ type: "updateFilter", filter: "yearTo", value })}
           minWidth={minWidth}
           renderValue={renderValue}
         />

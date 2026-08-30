@@ -15,4 +15,11 @@ describe("showSections", () => {
     const withoutNow = Object.values(SHOW_SECTIONS).filter((id) => id !== SHOW_SECTIONS.now);
     expect(showSections(false).map((section) => section.id)).toEqual(withoutNow);
   });
+
+  it("places the Top chip between Vitals and Explore", () => {
+    const ids = showSections(false).map((section) => section.id);
+
+    expect(ids.indexOf(SHOW_SECTIONS.top)).toBe(ids.indexOf(SHOW_SECTIONS.vitals) + 1);
+    expect(ids.indexOf(SHOW_SECTIONS.explore)).toBe(ids.indexOf(SHOW_SECTIONS.top) + 1);
+  });
 });

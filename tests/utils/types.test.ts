@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   ageRatingToColour,
+  genreToColour,
   isAgeRating,
+  NEUTRAL_FILL,
   statusToColour,
   type AgeRating,
   type ColourableStatus,
@@ -124,5 +126,35 @@ describe("ageRatingToColour", () => {
     // render the wrong badge in silence.
     expect(() => ageRatingToColour("PG" as AgeRating)).toThrow("Unknown rating: PG");
     expect(() => ageRatingToColour("21" as AgeRating)).toThrow("Unknown rating: 21");
+  });
+});
+
+describe("genreToColour", () => {
+  // The distinct values both the Shows and Movies sheets' Genre columns carry.
+  const liveGenres = [
+    "Action",
+    "Adventure",
+    "Comedy",
+    "Drama",
+    "Fantasy",
+    "Horror",
+    "Mystery",
+    "Romance",
+    "Sci-Fi",
+    "Thriller",
+    "True Story",
+  ];
+
+  it.each(liveGenres)("gives %s a fill of its own rather than the neutral fallback", (genre) => {
+    expect(genreToColour(genre)).not.toBe(NEUTRAL_FILL);
+  });
+
+  it("falls back to the neutral fill for a genre neither sheet has taught it yet, since the column is open-ended", () => {
+    expect(genreToColour("Documentary")).toBe(NEUTRAL_FILL);
+  });
+
+  it("shares Action and Adventure's hue with the Games tab, so one hue means one genre across all three tabs", () => {
+    expect(genreToColour("Action")).toBe("#fe4c00");
+    expect(genreToColour("Adventure")).toBe("#13ac00");
   });
 });

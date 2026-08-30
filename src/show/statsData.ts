@@ -1,8 +1,79 @@
-import { formatDate, type YearNumber } from "../common/date";
+import { formatDate, type YearMonthDay, type YearNumber } from "../common/date";
 import { sheetError } from "../common/sheetError";
 import { format } from "../utils/mathUtils";
-import type { Season, Show } from "./types";
+import { typeToName, type Measure, type Season, type Show } from "./types";
 import "../utils/arrayUtils";
+
+/**
+ * The categories the Top list offers, in the order its select box shows them.
+ *
+ * The order is load-bearing beyond presentation: `TopList` turns a category's index into a
+ * Highcharts palette offset, so reordering this recolours those charts.
+ */
+export const showTopOptions = ["genre", "network", "franchise", "type", "status", "rating"] as const;
+
+export type ShowTopOption = (typeof showTopOptions)[number];
+
+/**
+ * A grouping's value for one show, worded the way a card should read it — the type column is
+ * lower case and answers through `typeToName`.
+ */
+const showGroupValue = (show: Show, key: ShowTopOption): string => {
+  if (key === "type") return typeToName(show.type);
+  return show[key];
+};
+
+const measureOf = (shows: Show[], measure: Measure) => {
+  if (measure === "Hours") return Math.floor(shows.sum("minutes") / 60);
+  if (measure === "Episodes") return shows.sum("e");
+  return shows.length;
+};
+
+/**
+ * Groups shows by a category, ordered most-watched first. Shows rather than seasons, so a
+ * drill-down opens on show cards and the counts read in the units the rest of the tab uses.
+ *
+ * A show with no value for the category is left out, and a franchise "group" of one show is
+ * too: the column repeats a standalone show's own name, so a one-member group is a show naming
+ * itself, not a series — while a series' first show genuinely shares the franchise's name and
+ * must stay in it.
+ */
+export const groupShowsBy = (data: Show[], key: ShowTopOption, measure: Measure) =>
+  Object.entries(
+    Object.groupBy(
+      data.filter((show) => showGroupValue(show, key)),
+      (show) => showGroupValue(show, key),
+    ) as Record<string, Show[]>,
+  )
+    .filter(([, shows]) => key !== "franchise" || shows.length > 1)
+    .map(([name, shows]) => ({
+      name,
+      count: measureOf(shows, measure),
+      // Scanned rather than sorted: only the most-watched show is wanted, for the group's artwork.
+      top: shows.reduce((best, show) => (show.minutes > best.minutes ? show : best)),
+      all: shows,
+    }))
+    .sortByKey("count");
+
+/**
+ * The honest progress figures for a season being watched: pace, never a fraction. The sheet
+ * records episodes *watched* and knows nothing about how many have aired, so a "6 of 10" would
+ * be a number the data does not contain.
+ *
+ * `today` is a parameter rather than read from the clock, so the figures are a function of the
+ * data alone. Each figure is dropped where the sheet cannot support it: no runtime means no
+ * hours, a start after `today` means no day count (`daysTo` throws backwards), and a pace over
+ * less than a week is a projection rather than a rate.
+ */
+export const watchingProgress = (season: Season, today: YearMonthDay) => {
+  const days = season.startDate.lte(today) ? season.startDate.daysTo(today) : undefined;
+  return {
+    episodes: season.e,
+    hours: season.minutes ? Math.floor(season.minutes / 60) : undefined,
+    days,
+    perWeek: days !== undefined && days >= 7 ? Math.round((season.e / (days / 7)) * 10) / 10 : undefined,
+  };
+};
 
 export const allTimeTotals = (data: Show[]) => ({
   shows: data.length,
@@ -63,6 +134,26 @@ export const perShowAverages = (data: Show[]) => {
     episodes: Math.round(filtered.sum("e") / data.length),
     hours: Math.floor(filtered.sum("minutes") / 60 / data.length),
   };
+};
+
+/**
+ * Minutes per episode over everything watched — the one place `episodeLength` reaches a figure.
+ * Derived from total minutes over total episodes rather than averaging the per-season lengths,
+ * so a twenty-episode season counts twenty times and a two-episode one twice.
+ */
+export const minutesPerEpisode = (data: Show[]) => {
+  const seasons = data.flatMap((show) => show.s);
+  const episodes = seasons.sum("e");
+  return episodes ? Math.round(seasons.sum("minutes") / episodes) : 0;
+};
+
+/** Two footer rows: when the watch started and how long it has run, then how much and how fast. */
+export const statsCardLabelWatching = (season: Season, today: YearMonthDay) => {
+  const { episodes, days, perWeek } = watchingProgress(season, today);
+  return [
+    [formatDate(season.startDate), days !== undefined ? `${format(days)} days in` : ""],
+    [`${episodes} eps`, perWeek !== undefined ? `${perWeek}/wk` : ""],
+  ];
 };
 
 /** Every finished season, newest first. How many of them fit is the card's decision. */

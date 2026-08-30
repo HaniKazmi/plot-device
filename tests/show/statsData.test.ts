@@ -3,11 +3,15 @@ import { YearMonthDay, type YearNumber } from "../../src/common/date";
 import {
   allTimeTotals,
   currentlyWatching,
+  groupShowsBy,
+  minutesPerEpisode,
   perShowAverages,
   recentlyComplete,
   seasonsInYear,
   statsCardLabelCurrentlyPlaying,
   statsCardLabelRecentlyComplete,
+  statsCardLabelWatching,
+  watchingProgress,
   yearlyAverages,
 } from "../../src/show/statsData";
 import type { Season, Show } from "../../src/show/types";
@@ -261,5 +265,171 @@ describe("statsCardLabel", () => {
 
   it("leaves the date blank rather than printing nothing-in-particular when a season is unfinished", () => {
     expect(statsCardLabelRecentlyComplete(season(show(), { endDate: undefined }))[0][1]).toBe("");
+  });
+});
+
+describe("groupShowsBy", () => {
+  it("orders groups by count, most-watched first", () => {
+    const data = [
+      show({ genre: "Drama" }),
+      show({ name: "Andor", genre: "Drama" }),
+      show({ name: "Alien", genre: "Horror" }),
+    ];
+
+    expect(groupShowsBy(data, "genre", "Shows").map((g) => g.name)).toEqual(["Drama", "Horror"]);
+  });
+
+  it("counts Hours as the floor of the group's total minutes over sixty", () => {
+    const data = [show({ genre: "Drama", minutes: 90 }), show({ name: "Andor", genre: "Drama", minutes: 90 })];
+
+    expect(groupShowsBy(data, "genre", "Hours")[0].count).toBe(3);
+  });
+
+  it("counts Episodes as the group's summed episode total", () => {
+    const data = [show({ genre: "Drama", e: 9 }), show({ name: "Andor", genre: "Drama", e: 12 })];
+
+    expect(groupShowsBy(data, "genre", "Episodes")[0].count).toBe(21);
+  });
+
+  it("counts Shows as the number of shows in the group", () => {
+    const data = [
+      show({ genre: "Drama" }),
+      show({ name: "Andor", genre: "Drama" }),
+      show({ name: "Alien", genre: "Horror" }),
+    ];
+
+    expect(groupShowsBy(data, "genre", "Shows")[0].count).toBe(2);
+  });
+
+  it("picks the show with the most minutes as the group's artwork", () => {
+    const data = [show({ genre: "Drama", minutes: 100 }), show({ name: "Andor", genre: "Drama", minutes: 500 })];
+
+    expect(groupShowsBy(data, "genre", "Shows")[0].top.name).toBe("Andor");
+  });
+
+  it("drops franchise groups of one show — a standalone naming itself is not a series", () => {
+    // 229 of 308 shows carry their own name in the franchise column, so grouping by franchise
+    // without this would turn most of the library into franchises of one. The test is the
+    // group's size, not the name: a series' first show genuinely shares the franchise's name.
+    const data = [
+      show({ name: "Severance", franchise: "Severance" }),
+      show({ name: "The Boys", franchise: "The Boys" }),
+      show({ name: "Gen V", franchise: "The Boys" }),
+    ];
+
+    const groups = groupShowsBy(data, "franchise", "Shows");
+    expect(groups.map((g) => g.name)).toEqual(["The Boys"]);
+    // The self-named first entry stays in its series rather than being read as a standalone.
+    expect(groups[0].all.map((s) => s.name)).toEqual(["The Boys", "Gen V"]);
+  });
+
+  it("drops a franchise seen only once, even when the show does not name itself", () => {
+    const data = [show({ name: "The Mandalorian", franchise: "Star Wars" })];
+
+    expect(groupShowsBy(data, "franchise", "Shows")).toEqual([]);
+  });
+
+  it("groups a real franchise across the shows that share it", () => {
+    const data = [
+      show({ name: "A New Hope", franchise: "Star Wars" }),
+      show({ name: "The Mandalorian", franchise: "Star Wars" }),
+    ];
+
+    expect(groupShowsBy(data, "franchise", "Shows")[0]).toMatchObject({ name: "Star Wars", count: 2 });
+  });
+
+  it("title-cases the type group names through typeToName", () => {
+    const data = [show({ type: "anime" }), show({ name: "Andor", type: "show" })];
+
+    expect(
+      groupShowsBy(data, "type", "Shows")
+        .map((g) => g.name)
+        .toSorted(),
+    ).toEqual(["Anime", "Show"]);
+  });
+});
+
+describe("watchingProgress", () => {
+  it("returns hours undefined when the season has no recorded runtime", () => {
+    const today = YearMonthDay.get(2022, 3, 1);
+
+    expect(watchingProgress(season(show(), { minutes: 0 }), today).hours).toBeUndefined();
+  });
+
+  it("floors hours from minutes when the season has a runtime", () => {
+    const today = YearMonthDay.get(2022, 3, 1);
+
+    expect(watchingProgress(season(show(), { minutes: 130 }), today).hours).toBe(2);
+  });
+
+  it("leaves days undefined instead of calling the backwards comparison daysTo throws on", () => {
+    // A season logged with a future start date should not crash the card it feeds.
+    const today = YearMonthDay.get(2022, 1, 1);
+    const notYetStarted = season(show(), { startDate: YearMonthDay.get(2022, 4, 1) });
+
+    expect(() => watchingProgress(notYetStarted, today)).not.toThrow();
+    expect(watchingProgress(notYetStarted, today).days).toBeUndefined();
+  });
+
+  it("counts the days elapsed since the season started, the start day itself included", () => {
+    const today = YearMonthDay.get(2022, 1, 10);
+    const s = season(show(), { startDate: YearMonthDay.get(2022, 1, 1) });
+
+    expect(watchingProgress(s, today).days).toBe(10);
+  });
+
+  it("leaves the pace undefined under a week of watching, since it would be a projection rather than a rate", () => {
+    const today = YearMonthDay.get(2022, 1, 3);
+    const s = season(show(), { startDate: YearMonthDay.get(2022, 1, 1) });
+
+    expect(watchingProgress(s, today).perWeek).toBeUndefined();
+  });
+
+  it("rounds the weekly pace to one decimal place", () => {
+    const today = YearMonthDay.get(2022, 1, 28);
+    const s = season(show(), { startDate: YearMonthDay.get(2022, 1, 1), e: 14 });
+
+    // 14 episodes over 28 days is exactly 3.5 a week.
+    expect(watchingProgress(s, today).perWeek).toBe(3.5);
+  });
+});
+
+describe("minutesPerEpisode", () => {
+  it("weights by episode count rather than averaging the per-season lengths", () => {
+    // A season with more episodes should count proportionally more toward the average: a naive
+    // average of 30 and 120 minutes-per-episode would be 75, not the 34 this weights to.
+    const data = [withSeasons({}, { e: 20, minutes: 600 }), withSeasons({ name: "Andor" }, { e: 1, minutes: 120 })];
+
+    expect(minutesPerEpisode(data)).toBe(34);
+  });
+
+  it("returns zero when nothing has been watched, rather than dividing by zero", () => {
+    expect(minutesPerEpisode([show({ name: "Empty" })])).toBe(0);
+  });
+});
+
+describe("statsCardLabelWatching", () => {
+  it("prints the start date and days-in on the first row, episodes and pace on the second", () => {
+    const today = YearMonthDay.get(2022, 1, 28);
+    const s = season(show(), { startDate: YearMonthDay.get(2022, 1, 1), e: 14, minutes: 0 });
+
+    expect(statsCardLabelWatching(s, today)).toEqual([
+      ["1 Jan 2022", "28 days in"],
+      ["14 eps", "3.5/wk"],
+    ]);
+  });
+
+  it("leaves the days-in cell blank when the season has not started yet", () => {
+    const today = YearMonthDay.get(2022, 1, 1);
+    const notYetStarted = season(show(), { startDate: YearMonthDay.get(2022, 4, 1) });
+
+    expect(statsCardLabelWatching(notYetStarted, today)[0][1]).toBe("");
+  });
+
+  it("leaves the pace cell blank when fewer than a week has passed", () => {
+    const today = YearMonthDay.get(2022, 1, 3);
+    const s = season(show(), { startDate: YearMonthDay.get(2022, 1, 1) });
+
+    expect(statsCardLabelWatching(s, today)[1][1]).toBe("");
   });
 });

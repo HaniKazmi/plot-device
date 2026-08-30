@@ -8,6 +8,7 @@
 export const SHOW_SECTIONS = {
   now: "show-now",
   vitals: "show-vitals",
+  top: "show-top",
   explore: "show-explore",
   timeline: "show-timeline",
   charts: "show-charts",
@@ -24,6 +25,7 @@ export const SHOW_SECTIONS = {
 export const showSections = (hasNow: boolean) => [
   ...(hasNow ? [{ id: SHOW_SECTIONS.now, label: "Now" }] : []),
   { id: SHOW_SECTIONS.vitals, label: "Vitals" },
+  { id: SHOW_SECTIONS.top, label: "Top" },
   { id: SHOW_SECTIONS.explore, label: "Explore" },
   { id: SHOW_SECTIONS.timeline, label: "Timeline" },
   { id: SHOW_SECTIONS.charts, label: "Charts" },

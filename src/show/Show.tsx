@@ -10,7 +10,7 @@ const Graphs = lazy(() => import(/* webpackPrefetch: true */ "./Graphs"));
 const storageKey = dataCacheKey("show", 2);
 
 const ShowsGraph = () => {
-  const [data] = useData(storageKey, ShowsTab, jsonConverter, reviveSeasonParents, dropSeasonParents);
+  const [data, dataLoaded] = useData(storageKey, ShowsTab, jsonConverter, reviveSeasonParents, dropSeasonParents);
 
   const [filterState, filterDispatch] = useFilterReducer();
 
@@ -23,7 +23,9 @@ const ShowsGraph = () => {
   return (
     <Suspense>
       <Graphs
-        data={showData}
+        filteredData={showData}
+        unfilteredData={data}
+        dataLoaded={dataLoaded}
         filterState={filterState}
         filterDispatch={filterDispatch}
       />

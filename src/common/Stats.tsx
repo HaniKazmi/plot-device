@@ -362,27 +362,28 @@ export const VitalsCard = ({ children }: { children: ReactNode }) => (
  * instead of standing each group in a column of its own — five groups as five headings, five
  * figures and a swatch each is a card the height of the charts it is meant to introduce.
  */
-export const TotalsBand = <T extends string, U, K extends keyof U>({
-  title,
-  data,
-  measureFunc,
-  groupKey,
-  group,
-  groupToColour,
-  icon,
-  measureLabel,
-}: {
+export const TotalsBand = <T extends string, U, K extends keyof U>(props: {
   title: string;
   data: U[];
   /** How much each group counts for. Its own size, where a domain has nothing else to measure. */
   measureFunc?: (data: U[]) => number;
-  groupKey: K;
+  /** The field the group lives on; superseded by `groupOf` where it is a derivation instead. */
+  groupKey?: K;
   group: T[];
+  /** Where the group is a derivation rather than a field — a score band, a decade. */
+  groupOf?: (item: U) => T;
   groupToColour: (ele: T) => Colour;
+  /** How a group value reads in the legend, where the sheet's own casing should not. */
+  groupToLabel?: (ele: T) => string;
   icon: ReactNode;
   measureLabel: string;
 }) => {
-  const totals = groupTotals(data, group, groupKey, measureFunc ?? countOf, groupToColour);
+  const { title, data, measureFunc, groupKey, group, groupToColour, icon, measureLabel } = props;
+  // Defaults read off `props` rather than the destructuring pattern — a default there bails the
+  // component out of the React Compiler.
+  const groupOf = props.groupOf ?? ((item: U) => item[groupKey as K] as T);
+  const groupToLabel = props.groupToLabel ?? String;
+  const totals = groupTotals(data, group, groupOf, measureFunc ?? countOf, groupToColour);
   // Held per band rather than per card: a card stacks several bands, and hovering one group of a
   // library should not fade the band answering a different question.
   const [hovered, setHovered] = useState<string | null>(null);
@@ -430,7 +431,7 @@ export const TotalsBand = <T extends string, U, K extends keyof U>({
               colour={struct.colour}
               size={INLINE_SWATCH_SIZE}
             />
-            <Typography variant="body2">{struct.name}</Typography>
+            <Typography variant="body2">{groupToLabel(struct.name)}</Typography>
             <Typography
               variant="body2"
               sx={{ color: "text.secondary", fontVariantNumeric: "tabular-nums" }}
