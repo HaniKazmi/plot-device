@@ -275,13 +275,21 @@ export const useScrollMarker = (
   return { bucket, visible, left, centred, buckets, railHeight, rail, jumpTo };
 };
 
+/** Two cards whose tops sit within this of each other share a row. */
+const ROW_EPSILON = 2;
+
 /**
- * The bucket of the first card still below the reading line, found by binary search.
+ * The bucket of the reading row's last card, with the row found by binary search.
  *
  * The wall runs to a thousand cards and this answers every scroll event, so measuring each card
  * in turn would be a thousand layout reads a frame. Document order is reading order and cards in
  * a row share an edge, so the rects' bottoms are non-decreasing down the list and the first one
  * past the line can be halved in on instead.
+ *
+ * The row's LAST card is the one that names it, because a bucket boundary falls mid-row for most
+ * buckets: the row a jump lands at the top then opens with the previous bucket's spill and ends
+ * in the one that was clicked, and naming the leading card would light the chip beside the one
+ * the reader pressed. Walking to the row's end costs at most a column count of extra reads.
  *
  * Cards with no bucket carry no attribute, so an undated item is skipped by the query rather than
  * filtered out here.
@@ -289,18 +297,25 @@ export const useScrollMarker = (
 const topmostBucket = (cards: readonly HTMLElement[]): string | null => {
   let low = 0;
   let high = cards.length - 1;
-  let found: HTMLElement | null = null;
+  let found = -1;
 
   while (low <= high) {
     const mid = (low + high) >> 1;
     const card = cards[mid];
     if (card.getBoundingClientRect().bottom > READING_LINE) {
-      found = card;
+      found = mid;
       high = mid - 1;
     } else {
       low = mid + 1;
     }
   }
+  if (found < 0) return null;
 
-  return found?.dataset.bucket ?? null;
+  const rowTop = cards[found].getBoundingClientRect().top;
+  let last = found;
+  while (last + 1 < cards.length && Math.abs(cards[last + 1].getBoundingClientRect().top - rowTop) <= ROW_EPSILON) {
+    last += 1;
+  }
+
+  return cards[last].dataset.bucket ?? null;
 };
