@@ -18,17 +18,26 @@ export const ChipRail = ({
   items,
   activeId,
   onSelect,
+  label,
   sx,
   chipSx,
 }: {
   items: ChipRailItem[];
   activeId: string | undefined;
   onSelect: (id: string) => void;
+  /**
+   * What the rail is for, where it needs saying. A rail floating beside the content it moves
+   * through has nothing around it naming it, so it becomes a landmark; one sitting under the
+   * page's heading is already introduced by what it is next to.
+   */
+  label?: string;
   sx?: SxProps<Theme>;
   /** What this rail's chips are, beyond being chips — a fixed height, tabular figures. */
   chipSx?: SxProps<Theme>;
 }) => (
   <Box
+    component={label ? "nav" : "div"}
+    aria-label={label}
     sx={[
       {
         display: "flex",

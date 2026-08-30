@@ -5,7 +5,7 @@ import { useDeferredValue, useRef, type ReactNode } from "react";
 import type { TypedCardMediaImage } from "./Card";
 import { SectionHeader } from "./SectionHeader";
 import { useSelectBox } from "./SelectBoxHook";
-import { ScrollMarker } from "./ScrollMarker";
+import { ScrollMarker, ScrollMarkerRail } from "./ScrollMarker";
 import { useScrollMarker } from "./ScrollMarkerHook";
 import { ExpandableCard } from "./Stats";
 import { finishedBucket, finishedItems, type FinishedItem, type FinishedSort } from "./finishedData";
@@ -95,13 +95,33 @@ const Finished = <U extends FinishedItem>({
                   item={item}
                   landscape={landscape}
                   lazy
+                  /**
+                   * The height every card holds before its artwork arrives.
+                   *
+                   * A lazily loaded image reserves nothing, so a wall of them stands at a fifth of
+                   * its real height — 7,000 pixels against 33,000 for 322 games — and every offset
+                   * measured in it is short by the artwork that has not loaded yet. Scrolling into
+                   * the wall is what makes that artwork load, so the page grows under the reader
+                   * and a position measured a moment ago is already wrong; a jump far down the
+                   * sort asks for an offset the document does not yet have and lands clamped at
+                   * its bottom instead.
+                   *
+                   * `auto` before the ratio is what keeps this a reservation rather than a crop:
+                   * the artwork's own shape wins the moment it is known, and this stands in only
+                   * while there is none. What is left to settle after one lands is a card's own
+                   * rounding rather than a card's height — a landscape wall's banners are 16:9
+                   * within a few percent, and a portrait wall's posters 2:3.
+                   */
+                  sx={{ aspectRatio: landscape ? "auto 16 / 9" : "auto 2 / 3" }}
                 />
               </Card>
             </Grid>
           ))}
         </Grid>
       </CardContent>
-      {!isDialog && <ScrollMarker {...marker} />}
+      {/* Two presentations of one derivation: the rail where the gutter and the viewport hold it,
+          the pill everywhere else. Which one is the hook's answer, so they cannot both appear. */}
+      {!isDialog && (marker.rail ? <ScrollMarkerRail {...marker} /> : <ScrollMarker {...marker} />)}
     </Box>
   );
 
