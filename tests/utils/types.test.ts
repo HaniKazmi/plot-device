@@ -3,22 +3,23 @@ import { statusToColour, type ColourableStatus } from "../../src/utils/types";
 
 describe("statusToColour", () => {
   it.each([
-    ["Abandoned", "#d62728"],
-    ["Beat", "#2ca02c"],
-    ["Ended", "#2ca02c"],
-    ["Cancelled", "#d67728"],
-    ["Endless", "#1f77b4"],
-    ["Up To Date", "#1f77b4"],
-    ["Playing", "#17becf"],
-    ["Watching", "#17becf"],
+    ["Abandoned", "#af5074"],
+    ["Beat", "#50a170"],
+    ["Ended", "#50a170"],
+    ["Cancelled", "#a36e09"],
+    ["Endless", "#5376b8"],
+    ["Up To Date", "#5376b8"],
+    ["Playing", "#00a39a"],
+    ["Watching", "#00a39a"],
     ["Next", "black"],
     ["Backlog", "black"],
   ] satisfies [ColourableStatus, string][])("maps %s to %s", (status, expected) => {
     expect(statusToColour({ status })).toBe(expected);
   });
 
-  it("keeps Cancelled and Abandoned distinct, one hex digit apart", () => {
-    // #d67728 vs #d62728 — close enough that a typo in either reads as the other on screen.
+  it("keeps Cancelled and Abandoned on separate colours", () => {
+    // The two are adjacent in every status chart and mean opposite things about who stopped
+    // watching, so collapsing them onto one value hides the distinction rather than muting it.
     expect(statusToColour({ status: "Cancelled" })).not.toBe(statusToColour({ status: "Abandoned" }));
   });
 

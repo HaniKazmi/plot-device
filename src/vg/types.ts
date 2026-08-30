@@ -59,24 +59,61 @@ export type Genre =
 
 export type Measure = "Hours" | "Games";
 
-const nintendoColour = "#e60012" as Colour;
-const playstationColour = "#0070cc" as Colour;
-const xboxColour = "#107c10" as Colour;
-const pcColour = "#b5a596" as Colour;
-const iosColour = "#555555" as Colour;
+/**
+ * A company has two colours, and which one is right depends on how much of the screen it covers.
+ *
+ * The fills below are the ones chart geometry uses — sunburst wedges, barchart series, timeline
+ * bars, stacked segments, card strips. They are normalised into one lightness band with a chroma
+ * floor, so five of them side by side stay separable under colour-vision deficiency and each one
+ * clears 3:1 against both surfaces the app paints on (#ffffff paper and #1d2126 paper). A brand
+ * hex is chosen to stand alone against white, and a set of them is not a scale: Nintendo's #e60012
+ * next to iOS's #555555 reads as one shouting value beside one absent one.
+ */
+const nintendoFill = "#c25e55" as Colour;
+const playstationFill = "#4b7cba" as Colour;
+const xboxFill = "#4d965f" as Colour;
+const pcFill = "#b7893b" as Colour;
+const iosFill = "#6970b7" as Colour;
+
+/**
+ * The brand hexes, for the chip in a card's corner. A chip is a few dozen pixels of solid colour
+ * carrying two or three letters, so it is read as a badge rather than compared against its
+ * neighbours — full saturation is what makes it recognisable at that size, and there is no
+ * adjacent wedge for it to have to separate from.
+ */
+const nintendoAccent = "#e60012" as Colour;
+const playstationAccent = "#0070cc" as Colour;
+const xboxAccent = "#107c10" as Colour;
+const pcAccent = "#b5a596" as Colour;
+const iosAccent = "#555555" as Colour;
 
 export const companyToColor = ({ company }: { company: Company }) => {
   switch (company) {
     case "Nintendo":
-      return nintendoColour;
+      return nintendoFill;
     case "PlayStation":
-      return playstationColour;
+      return playstationFill;
     case "Xbox":
-      return xboxColour;
+      return xboxFill;
     case "PC":
-      return pcColour;
+      return pcFill;
     case "iOS":
-      return iosColour;
+      return iosFill;
+  }
+};
+
+export const companyToAccent = ({ company }: { company: Company }) => {
+  switch (company) {
+    case "Nintendo":
+      return nintendoAccent;
+    case "PlayStation":
+      return playstationAccent;
+    case "Xbox":
+      return xboxAccent;
+    case "PC":
+      return pcAccent;
+    case "iOS":
+      return iosAccent;
   }
 };
 
@@ -119,10 +156,14 @@ export const platformToColor = (platform: Platform | { platform: Platform }) => 
   return colour;
 };
 
+/**
+ * The corner chip: a short console name and the company's accent, which is the one place the
+ * brand hex is drawn rather than the chart fill.
+ */
 export const platformToShort: (vg: VideoGame) => [string, Colour] = (vg) => {
   const short = platformShortNames[vg.platform];
   if (!short) throw new Error("Unknown platform: " + vg.platform);
-  return [short, companyToColor(vg)];
+  return [short, companyToAccent(vg)];
 };
 
 export const ratingToColour = ({ rating }: VideoGame) => {
