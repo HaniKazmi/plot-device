@@ -39,3 +39,35 @@ export const finishedBucket = (item: FinishedItem, sort: FinishedSort): string |
   if (typeof value === "string") return value.charAt(0).toUpperCase() || null;
   return null;
 };
+
+/**
+ * The buckets a wall contains, each at its first appearance and in the order the wall presents
+ * them — years descending under the date sort, letters in whatever order the franchise-grouped
+ * sheet order reaches them under the name sort.
+ *
+ * Wall order rather than sorted order is what makes a jump rail readable as a position: the
+ * highlight travels down it as the reader scrolls down the page. Re-sorting the letters would
+ * make it jump about instead.
+ *
+ * Cards with no bucket carry no label at all, so an undated item contributes nothing rather than
+ * an empty entry.
+ */
+export const orderedBuckets = (labels: readonly (string | null | undefined)[]): string[] => {
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+  labels.forEach((label) => {
+    if (!label || seen.has(label)) return;
+    seen.add(label);
+    ordered.push(label);
+  });
+  return ordered;
+};
+
+/**
+ * A bucket as a jump rail draws it: a year in the two-digit form the timeline's year chips use,
+ * anything else as itself.
+ *
+ * The rail is a column a chip wide in the page's gutter, so a four-digit year is the one label
+ * that would set that column's width by itself.
+ */
+export const bucketLabel = (bucket: string): string => (/^\d{4}$/.test(bucket) ? `'${bucket.slice(-2)}` : bucket);

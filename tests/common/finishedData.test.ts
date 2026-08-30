@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Year, YearMonthDay } from "../../src/common/date";
-import { finishedBucket, finishedItems } from "../../src/common/finishedData";
+import { bucketLabel, finishedBucket, finishedItems, orderedBuckets } from "../../src/common/finishedData";
 
 const item = (name: string, banner: string | undefined, year?: number) => ({
   name,
@@ -97,5 +97,31 @@ describe("finishedBucket", () => {
 
     expect(finishedBucket(both, "Date")).toBe("2023");
     expect(finishedBucket(both, "Name")).toBe("M");
+  });
+});
+
+describe("orderedBuckets", () => {
+  it("keeps wall order rather than sorting, so a rail's highlight only ever travels one way", () => {
+    expect(orderedBuckets(["2024", "2024", "2023", "2021"])).toEqual(["2024", "2023", "2021"]);
+  });
+
+  it("holds a bucket at its first appearance when the wall returns to it later", () => {
+    // The name sort groups by franchise, so one letter can open the wall and reappear far down it.
+    expect(orderedBuckets(["Z", "A", "Z", "B"])).toEqual(["Z", "A", "B"]);
+  });
+
+  it("contributes nothing for a card with no bucket, which carries no attribute at all", () => {
+    expect(orderedBuckets(["2024", undefined, null, "", "2023"])).toEqual(["2024", "2023"]);
+  });
+});
+
+describe("bucketLabel", () => {
+  it("shortens a year to two digits, since the rail is one chip wide", () => {
+    expect(bucketLabel("2024")).toBe("'24");
+  });
+
+  it("shows anything that is not a year as itself", () => {
+    expect(bucketLabel("M")).toBe("M");
+    expect(bucketLabel("1")).toBe("1");
   });
 });
