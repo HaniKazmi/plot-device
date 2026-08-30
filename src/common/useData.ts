@@ -9,6 +9,36 @@ const storage = () => localStorage;
 const CACHE = new Map<string, unknown>();
 
 /**
+ * A cache key that changes when the shape behind it does.
+ *
+ * A domain's cached objects outlive any change to its model, and the hook hands them to the page
+ * synchronously before the first fetch — so a field that became required is simply absent on a
+ * returning visitor's first paint, and the component reading it throws. A visitor who never
+ * authorises is left on that copy indefinitely, so the window is not a brief one.
+ *
+ * Bump `version` in the domain's own call whenever its model gains, drops or retypes a field.
+ * `dropSupersededVersions` then clears what the previous key held, so a rename does not leave its
+ * predecessor's copy in the profile for good.
+ */
+export const dataCacheKey = (domain: string, version: number) => `${domain}-data-cache-v${version}`;
+
+/**
+ * The keys holding an earlier shape of the same domain's cache, given everything in storage.
+ *
+ * Matched on the domain's own prefix rather than a list of past versions, so retiring a shape
+ * means bumping one number and nothing here. The bare `<domain>-data-cache` is included because
+ * it is the shape that predates versioning; a different domain's key shares no prefix and is left
+ * alone, which is what keeps one tab's bump from emptying another's cache.
+ */
+export const supersededKeys = (activeKey: string, existing: readonly string[]) => {
+  const prefix = activeKey.slice(0, activeKey.lastIndexOf("-v"));
+  return existing.filter((key) => key !== activeKey && (key === prefix || key.startsWith(`${prefix}-v`)));
+};
+
+const dropSupersededVersions = (activeKey: string) =>
+  supersededKeys(activeKey, Object.keys(storage())).forEach((key) => storage().removeItem(key));
+
+/**
  * Any key whose name contains "Date" is revived as a `PlainDate`. It is a convention rather
  * than a schema, so a non-date field named e.g. `updateDate` would be corrupted on reload.
  * The round trip works because `toJSON` emits exactly what `PlainDate.from` parses.
@@ -31,6 +61,7 @@ const useData = <T>(
 
   const [data, setData] = useState<T[] | undefined>(() => {
     if (CACHE.has(storageKey)) return CACHE.get(storageKey) as T[];
+    dropSupersededVersions(storageKey);
     const tempData = storage().getItem(storageKey);
     if (tempData) {
       const parsed = JSON.parse(tempData, dateReviver) as T[];

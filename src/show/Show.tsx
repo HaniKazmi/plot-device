@@ -1,12 +1,13 @@
 import { lazy, Suspense } from "react";
 import { ShowsTab } from "../tabs";
-import useData from "../common/useData.ts";
+import useData, { dataCacheKey } from "../common/useData.ts";
 import { useFilterReducer } from "./filterUtils.ts";
 import { dropSeasonParents, jsonConverter, reviveSeasonParents } from "./converter.ts";
 
 const Graphs = lazy(() => import(/* webpackPrefetch: true */ "./Graphs"));
 
-const storageKey = "show-data-cache";
+// v2: the backfilled columns became required, so a v1 object is missing fields the cards read.
+const storageKey = dataCacheKey("show", 2);
 
 const ShowsGraph = () => {
   const [data] = useData(storageKey, ShowsTab, jsonConverter, reviveSeasonParents, dropSeasonParents);
