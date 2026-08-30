@@ -585,6 +585,18 @@ const TimelineText = ({
             // colour has to be given to it again. It is what makes the mat mean something: the
             // card is that colour because it belongs to the bar the arrow points back at.
             arrow: { sx: { color: event.colour } },
+            // A 500px card opening below a bar in the lower half of the screen runs off the
+            // bottom of the viewport, and the chart scrolls sideways rather than down, so there
+            // is nothing to scroll to reach the rest of it. Flipping above the bar is the whole
+            // fix — a height cap would truncate the card instead, and the card is the content.
+            // `altAxis` keeps the same card inside the left and right edges at either end of a
+            // four-viewport-wide chart, where a bar sits hard against the container.
+            popper: {
+              modifiers: [
+                { name: "flip", options: { fallbackPlacements: ["top", "bottom"] } },
+                { name: "preventOverflow", options: { altAxis: true, padding: 8 } },
+              ],
+            },
           }}
         >
           <Box
