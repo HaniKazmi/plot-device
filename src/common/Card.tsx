@@ -370,8 +370,9 @@ export interface PanelStat {
  *
  * - `beneath` — under the artwork, as tall as its own type. Nothing to distribute.
  * - `beside` — next to a poster, and as tall as it. Three lines against a 2:3 poster leaves
- *   better than half the column empty, so the title takes the top and the figures the bottom
- *   edge, spending that height as structure rather than leaving it as a gap.
+ *   better than half the column empty, and that height goes above and below the content in equal
+ *   measure: a block centred in its column reads as composed, where content pinned to both edges
+ *   reads as a gap opened in the middle of the card.
  * - `hero` — beside the artwork once there is width for it and beneath it on a phone, with the
  *   seam rotating to the edge the two actually share. The content stays together at the top:
  *   this panel is as tall as a 300px banner across a 300px column, which is more height than
@@ -418,9 +419,9 @@ export const CardPanel = ({
       sx={{
         display: "flex",
         flexDirection: "column",
-        // Only a panel with height to spare has anything to distribute, and only one whose height
-        // its own type earned should distribute it.
-        justifyContent: beside ? "space-between" : "flex-start",
+        // Only a panel with height to spare has anything to place the content in, and it keeps
+        // that content as one block with the spare height shared evenly either side of it.
+        justifyContent: beside ? "center" : "flex-start",
         gap: 2,
         // Basis zero and free to grow, so a panel beside the artwork is exactly the row minus the
         // artwork column rather than a share of it.
