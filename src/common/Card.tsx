@@ -94,20 +94,15 @@ const ASIDE_ACTION_AREA_SX = {
   alignSelf: "flex-start",
 } as const;
 
-export const CardMediaImage = ({
-  image,
-  alt,
-  chip,
-  colour: propColour,
-  lazy = false,
-  footerComponent,
-  detailComponent,
-  landscape = false,
-  extractColour = false,
-  mediaLayout,
-  sx,
-  cardSx,
-}: CardMediaImageProps) => {
+export const CardMediaImage = (props: CardMediaImageProps) => {
+  const { image, alt, chip, colour: propColour, footerComponent, detailComponent, mediaLayout, sx, cardSx } = props;
+  // Defaults are read off `props` rather than written in the destructuring pattern: a default
+  // there is an assignment the React Compiler cannot lower, and it bails the whole component out
+  // of memoization — silently, since the code still runs. `extractColour` must resolve before the
+  // `useState` initialiser below that reads it.
+  const lazy = props.lazy ?? false;
+  const landscape = props.landscape ?? false;
+  const extractColour = props.extractColour ?? false;
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   /** Lags `dialogOpen` on close so the detail tree survives the dialog's exit transition. */
   const [detailMounted, setDetailMounted] = useState<boolean>(false);
@@ -741,25 +736,30 @@ export const FooterComponent = ({ labels, divider }: { labels: string[][]; divid
 export const Segment = ({
   percent,
   backgroundColour,
-  spacing = 2,
+  spacing: spacingProp,
   sx,
   ...props
 }: {
   percent: number;
   backgroundColour: string;
   spacing?: number;
-} & BoxProps) => (
-  <Box
-    sx={{
-      width: `${percent}%`,
-      height: (theme) => theme.spacing(spacing),
-      backgroundColor: backgroundColour,
-      transition: "opacity 0.2s",
-      ...sx,
-    }}
-    {...props}
-  />
-);
+} & BoxProps) => {
+  // The default is applied after the pattern — inside it, it bails the component out of the React
+  // Compiler — while the rename keeps `spacing` out of the rest object spread into `Box`.
+  const spacing = spacingProp ?? 2;
+  return (
+    <Box
+      sx={{
+        width: `${percent}%`,
+        height: (theme) => theme.spacing(spacing),
+        backgroundColor: backgroundColour,
+        transition: "opacity 0.2s",
+        ...sx,
+      }}
+      {...props}
+    />
+  );
+};
 
 /**
  * One proportional bar: the segments of a whole in a row, with the hover dim that ties the bar to

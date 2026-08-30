@@ -19,7 +19,7 @@ const Finished = <U extends FinishedItem>({
   data,
   width,
   colour,
-  landscape = false,
+  landscape: landscapeProp,
   MediaComponent,
 }: {
   title: string;
@@ -31,6 +31,8 @@ const Finished = <U extends FinishedItem>({
   landscape?: boolean;
   MediaComponent: TypedCardMediaImage<U>;
 }) => {
+  // Applied after the pattern: a default inside it bails the component out of the React Compiler.
+  const landscape = landscapeProp ?? false;
   const [sort, selectBox] = useSelectBox(sortOptions, "Date");
 
   const slowData = useDeferredValue(data, []);

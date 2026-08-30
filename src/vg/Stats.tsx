@@ -231,7 +231,8 @@ const YearSelect = ({
   yearTo,
   filterDispatch,
   renderValue,
-  minWidth = 130,
+  // Applied below the pattern: a default inside it bails the component out of the React Compiler.
+  minWidth: minWidthProp,
 }: {
   yearTo: number;
   filterDispatch: FilterDispatch;
@@ -240,7 +241,7 @@ const YearSelect = ({
 }) => (
   <FormControl
     variant="standard"
-    sx={{ minWidth, margin: 0 }}
+    sx={{ minWidth: minWidthProp ?? 130, margin: 0 }}
   >
     <Select
       SelectDisplayProps={{ style: { padding: 0 } }}

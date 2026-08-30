@@ -119,13 +119,15 @@ export const EXPANDED_CARDS = 18;
  */
 export const ExpandableCard = ({
   renderContent,
-  expandable = true,
+  expandable: expandableProp,
   sx,
 }: {
   renderContent: (isDialog: boolean, toggle: ReactNode) => ReactNode;
   expandable?: boolean;
   sx?: SxProps<Theme>;
 }) => {
+  // Applied after the pattern: a default inside it bails the component out of the React Compiler.
+  const expandable = expandableProp ?? true;
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [dialogMounted, setDialogMounted] = useState<boolean>(false);
 
@@ -235,51 +237,56 @@ export const StatList = <T,>({
   nameComponent,
   chipComponent,
   labelComponent,
-  wrap = true,
+  // Renamed and defaulted below the pattern: a default inside it bails the component out of the
+  // React Compiler, and the rename keeps `wrap` out of the rest object handed to `StatsListGrid`.
+  wrap: wrapProp,
   pictureWidth,
   dialogPictureWidth,
   controls,
   ...props
-}: StatsListProps<T>) => (
-  <Grid
-    size={{
-      xs: width[0],
-      sm: width[1],
-      md: width[2],
-    }}
-  >
-    <ExpandableCard
-      sx={{ height: "100%" }}
-      expandable={content.length > COLLAPSED_CARDS}
-      renderContent={(isDialog, toggle) => (
-        <>
-          <SectionHeader
-            title={title}
-            icon={icon}
-            action={
-              <Stack direction="row-reverse">
-                {toggle}
-                {controls}
-              </Stack>
-            }
-          />
-          <StatsListGrid
-            content={content}
-            // A non-wrapping strip scrolls sideways instead of clipping, so it can hold the
-            // expanded count without the card growing.
-            limit={isDialog || !wrap ? EXPANDED_CARDS : COLLAPSED_CARDS}
-            flexWrap={isDialog ? undefined : { xs: "nowrap", md: wrap ? "wrap" : "nowrap" }}
-            cardKey={(entry) => `${title}-statslistcard-${nameComponent(entry)}`}
-            labelComponent={labelComponent}
-            chipComponent={chipComponent}
-            pictureWidth={isDialog ? dialogPictureWidth : pictureWidth}
-            {...props}
-          />
-        </>
-      )}
-    />
-  </Grid>
-);
+}: StatsListProps<T>) => {
+  const wrap = wrapProp ?? true;
+  return (
+    <Grid
+      size={{
+        xs: width[0],
+        sm: width[1],
+        md: width[2],
+      }}
+    >
+      <ExpandableCard
+        sx={{ height: "100%" }}
+        expandable={content.length > COLLAPSED_CARDS}
+        renderContent={(isDialog, toggle) => (
+          <>
+            <SectionHeader
+              title={title}
+              icon={icon}
+              action={
+                <Stack direction="row-reverse">
+                  {toggle}
+                  {controls}
+                </Stack>
+              }
+            />
+            <StatsListGrid
+              content={content}
+              // A non-wrapping strip scrolls sideways instead of clipping, so it can hold the
+              // expanded count without the card growing.
+              limit={isDialog || !wrap ? EXPANDED_CARDS : COLLAPSED_CARDS}
+              flexWrap={isDialog ? undefined : { xs: "nowrap", md: wrap ? "wrap" : "nowrap" }}
+              cardKey={(entry) => `${title}-statslistcard-${nameComponent(entry)}`}
+              labelComponent={labelComponent}
+              chipComponent={chipComponent}
+              pictureWidth={isDialog ? dialogPictureWidth : pictureWidth}
+              {...props}
+            />
+          </>
+        )}
+      />
+    </Grid>
+  );
+};
 
 export const StatsListCard = <T,>({
   item,
