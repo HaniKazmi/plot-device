@@ -1,4 +1,5 @@
 import { Year, YearMonthDay } from "../common/date";
+import { franchiseIndex as buildFranchiseIndex } from "../common/franchiseIndex";
 import type { StripSpan } from "../common/timelineStripData";
 import type { VideoGame } from "./types";
 import "../utils/arrayUtils";
@@ -106,8 +107,4 @@ const estimateUndatedSpans = (games: VideoGame[]) => {
  * The empty franchise is skipped: it is the sheet's "no series", and grouping on it would hand
  * every unaffiliated game a strip several hundred bands deep.
  */
-export const franchiseIndex = (games: VideoGame[]) =>
-  games.reduce((index, game) => {
-    if (game.franchise) index.setIfAbsent(game.franchise, []).push(game);
-    return index;
-  }, new Map<string, VideoGame[]>());
+export const franchiseIndex = (games: VideoGame[]) => buildFranchiseIndex(games, (game) => game.franchise);

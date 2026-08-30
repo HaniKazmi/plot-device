@@ -8,8 +8,9 @@ import CardMediaImage from "./CardMediaImage";
 import { FilterDispatch, FilterState, guestFilter } from "./filterUtils";
 import { FranchiseContext } from "./franchiseContext";
 import { franchiseIndex } from "./cardData";
-import { memo, useDeferredValue, useState } from "react";
-import { Snackbar, Stack } from "@mui/material";
+import { memo, useDeferredValue } from "react";
+import { Stack } from "@mui/material";
+import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
 import Filter from "./Filter";
 import { ChartPair, Section, SectionRail } from "../common/SectionRail";
 import { VG_SECTIONS, vgSections } from "./sections";
@@ -113,18 +114,5 @@ const Graphs = memo(
 );
 
 Graphs.displayName = "Graphs";
-
-const DataLoadedSnackbar = ({ open }: { open: boolean }) => {
-  const [snackbarClosed, setSnackbarClosed] = useState(false);
-
-  return (
-    <Snackbar
-      open={open && !snackbarClosed}
-      autoHideDuration={1000}
-      onClose={() => setSnackbarClosed(true)}
-      message="Refresh Complete"
-    />
-  );
-};
 
 export default SuspenseBlock;

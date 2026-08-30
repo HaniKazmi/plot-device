@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupTotals } from "../../src/common/statsData";
+import { groupTotals, topNWithOther, type TopGroup } from "../../src/common/statsData";
 import type { Colour } from "../../src/utils/types";
 
 type Row = { status: string; hours: number };
@@ -71,5 +71,34 @@ describe("groupTotals", () => {
     const totals = groupTotals(rows("a"), ["a"], "status", count, (e) => `${e}-colour` as Colour);
 
     expect(totals[0].colour).toBe("a-colour");
+  });
+});
+
+const groups = (...counts: number[]): TopGroup<string>[] =>
+  counts.map((count, i) => ({ name: `g${i}`, count, top: `top-g${i}` }));
+
+describe("topNWithOther", () => {
+  it("keeps the first `limit` groups and folds the rest into Other", () => {
+    const result = topNWithOther(groups(10, 5, 4, 3, 2, 1, 1), 5);
+
+    expect(result.map((r) => r.name)).toEqual(["g0", "g1", "g2", "g3", "g4", "Other"]);
+    expect(result.at(-1)!.count).toBe(2);
+  });
+
+  it("adds no Other bucket when nothing overflows the limit", () => {
+    expect(topNWithOther(groups(3, 2), 5).map((r) => r.name)).toEqual(["g0", "g1"]);
+  });
+
+  it("gives Other no top item, because it stands for several groups at once", () => {
+    const result = topNWithOther(groups(5, 4, 3), 2);
+
+    expect(result.at(-1)!.name).toBe("Other");
+    expect(result.at(-1)!.top).toBeUndefined();
+  });
+
+  it("scopes percentages to the rows returned, so they always sum to 100", () => {
+    const result = topNWithOther(groups(6, 3, 1, 1, 1, 1), 4);
+
+    expect(result.reduce((a, b) => a + b.percent, 0)).toBeCloseTo(100, 10);
   });
 });

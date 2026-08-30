@@ -1,5 +1,6 @@
 import { formatDate, type YearMonthDay, type YearNumber } from "../common/date";
-import { assignPercents, format } from "../utils/mathUtils";
+import { format } from "../utils/mathUtils";
+import { topNWithOther as topGroupsWithOther } from "../common/statsData";
 import { platformToShort, type Measure, type VideoGame, type VideoGameStringKeys } from "./types";
 import "../utils/arrayUtils";
 
@@ -48,22 +49,9 @@ export const groupGamesBy = (data: VideoGame[], key: VideoGameStringKeys, measur
     }))
     .sortByKey("count");
 
-/**
- * The top `limit` categories plus an "Other" bucket holding the rest, as percentages.
- *
- * The percentages are scoped to the rows returned rather than to the whole dataset, so they
- * always sum to 100 — "Other" is what makes that true. The bucket carries no `top` game,
- * because it stands for several categories at once.
- */
-export const topNWithOther = (data: VideoGame[], key: VideoGameStringKeys, measure: Measure, limit = 5) => {
-  const allGroups = groupGamesBy(data, key, measure);
-
-  const grouped: { name: string; count: number; top?: VideoGame }[] = allGroups.slice(0, limit);
-  const other = allGroups.slice(limit);
-  if (other.length > 0) grouped.push({ name: "Other", count: other.sum("count") });
-
-  return assignPercents(grouped, grouped.sum("count"));
-};
+/** The top `limit` categories plus an "Other" bucket, as percentages — see `common/statsData`. */
+export const topNWithOther = (data: VideoGame[], key: VideoGameStringKeys, measure: Measure, limit = 5) =>
+  topGroupsWithOther(groupGamesBy(data, key, measure), limit);
 
 /**
  * Games and hours per year, averaged over the years that have any time-tracked game. Years with

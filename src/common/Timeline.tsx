@@ -3,6 +3,7 @@ import { type ReactNode, useLayoutEffect, useRef, useState, type Ref } from "rea
 import { shortYear, type YearMonthDay } from "./date";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 import { ChipRail } from "./ChipRail";
+import { LazyTooltip } from "./LazyTooltip";
 import {
   buildTicks,
   decidePlacement,
@@ -466,14 +467,6 @@ const TimelineGrid = ({
     </svg>
   );
 };
-
-/**
- * Defers a row's hover card to the moment MUI mounts the tooltip.
- *
- * The Popper renders nothing while closed, so passing this element costs one object per row
- * and calling the thunk costs nothing until the pointer arrives.
- */
-const LazyTooltip = ({ render }: { render: () => ReactNode }) => <>{render()}</>;
 
 const TimelineText = ({
   event,

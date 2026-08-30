@@ -2,6 +2,29 @@ import { assignPercents } from "../utils/mathUtils";
 import type { Colour } from "../utils/types";
 import "../utils/arrayUtils";
 
+/** One group of a Top list: its name, its share of the measure, and its biggest item for artwork. */
+export interface TopGroup<T> {
+  name: string;
+  count: number;
+  top?: T;
+}
+
+/**
+ * The top `limit` groups plus an "Other" bucket holding the rest, as percentages.
+ *
+ * Takes groups already reduced and ordered largest-first — how a domain groups and measures is
+ * its own. The percentages are scoped to the rows returned rather than to the whole dataset, so
+ * they always sum to 100 — "Other" is what makes that true. The bucket carries no `top` item,
+ * because it stands for several groups at once.
+ */
+export const topNWithOther = <T>(allGroups: TopGroup<T>[], limit = 5) => {
+  const grouped: TopGroup<T>[] = allGroups.slice(0, limit);
+  const other = allGroups.slice(limit);
+  if (other.length > 0) grouped.push({ name: "Other", count: other.sum("count") });
+
+  return assignPercents(grouped, grouped.sum("count"));
+};
+
 /**
  * Turns a whitelist of group values into the proportional segments of a `TotalsBand`, dropping
  * any group nothing falls into.

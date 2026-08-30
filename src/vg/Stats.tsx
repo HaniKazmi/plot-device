@@ -3,7 +3,6 @@ import {
   AutoGraph,
   Business,
   Category,
-  CloseFullscreen,
   Code,
   ExpandCircleDown,
   Pause,
@@ -18,7 +17,6 @@ import {
   VideogameAsset,
   Whatshot,
 } from "@mui/icons-material";
-import Grid from "@mui/material/Grid";
 import { capitalize } from "@mui/material/utils";
 import { format } from "../utils/mathUtils";
 import {
@@ -43,32 +41,12 @@ import {
   type VideoGame,
   type VideoGameStringKeys,
 } from "./types";
-import {
-  EXPANDED_CARDS,
-  StatCard,
-  StatList,
-  StatsListGrid,
-  type StatsListProps,
-  TotalsBand,
-  VitalsCard,
-} from "../common/Stats";
-import { ProportionalBar, Swatch } from "../common/Card";
-import { SectionHeader } from "../common/SectionHeader";
+import { StatCard, StatList, type StatsListProps, TotalsBand, VitalsCard } from "../common/Stats";
+import { TopListCard } from "../common/TopList";
+import { DrilldownDialog } from "../common/DrilldownDialog";
 import { highchartsColors } from "../highcharts";
 import VgCardMediaImage from "./CardMediaImage";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  Dialog,
-  FormControl,
-  IconButton,
-  MenuItem,
-  Radio,
-  Select,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { FormControl, MenuItem, Radio, Select, Stack, Typography } from "@mui/material";
 import type { FilterDispatch, YearType } from "./filterUtils";
 import { NEUTRAL_FILL, statusToColour } from "../utils/types";
 import { CURRENT_PLAINDATE, CURRENT_YEAR, EARLIEST_YEAR, formatDate, YearNumber } from "../common/date";
@@ -411,33 +389,20 @@ const MostPlayedCategory = ({
   const [dialogContent, setDialogContent] = useState<(typeof most)[number] | null>(null);
 
   const dialog = dialogContent ? (
-    <Dialog
-      open
-      fullScreen
-    >
-      <CardHeader
-        title={dialogContent.name}
-        action={
-          <IconButton onClick={() => setDialogContent(null)}>
-            <CloseFullscreen color="primary" />
-          </IconButton>
-        }
-        slotProps={{ title: { variant: "h6" } }}
-      />
-      <StatsListGrid
-        // Sorted here rather than in `groupGamesBy`, which would sort every category on every
-        // render to serve the one being drilled into. The cap below keeps only the first 18, so
-        // an unsorted list would show an arbitrary handful under a card headed Most Played.
-        content={dialogContent.all.sortByKey("hours")}
-        limit={EXPANDED_CARDS}
-        cardKey={(entry) => category + "-statslistcard-" + entry.name}
-        labelComponent={statsCardLabelEndDateHours}
-        chipComponent={platformToShortChip}
-        pictureWidth={vgStatListSharedProps.dialogPictureWidth}
-        aspectRatio={vgStatListSharedProps.aspectRatio}
-        MediaComponent={VgCardMediaImage}
-      />
-    </Dialog>
+    <DrilldownDialog
+      title={dialogContent.name}
+      onClose={() => setDialogContent(null)}
+      // Sorted here rather than in `groupGamesBy`, which would sort every category on every
+      // render to serve the one being drilled into. The dialog caps at the first 18, so an
+      // unsorted list would show an arbitrary handful under a card headed Most Played.
+      content={dialogContent.all.sortByKey("hours")}
+      cardKey={(entry) => category + "-statslistcard-" + entry.name}
+      labelComponent={statsCardLabelEndDateHours}
+      chipComponent={platformToShortChip}
+      pictureWidth={vgStatListSharedProps.dialogPictureWidth}
+      aspectRatio={vgStatListSharedProps.aspectRatio}
+      MediaComponent={VgCardMediaImage}
+    />
   ) : null;
 
   return (
@@ -518,10 +483,11 @@ const TopList = ({
 }) => {
   const [option, controls] = useSelectBox(topOptions, defaultCategory);
   const colorOffset = topOptions.indexOf(option) * 3;
-  const [hovered, setHovered] = useState<string | null>(null);
 
   const most = topNWithOther(data, option, measure);
 
+  // Categories with no vocabulary of their own take a palette colour offset by the option's
+  // index, so switching category recolours consistently; "Other" is always the neutral bucket.
   const getColour = (struct: (typeof most)[0], index: number) => {
     if (struct.name === "Other") return NEUTRAL_FILL;
     const groupCol = struct.top ? groupToColour(option, struct.top) : "";
@@ -530,76 +496,19 @@ const TopList = ({
 
   const items = most.map((struct, index) => ({
     name: struct.name,
+    count: struct.count,
     percent: struct.percent,
     colour: getColour(struct, index),
   }));
 
   return (
-    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-      <Card sx={{ height: "100%" }}>
-        <SectionHeader
-          title={`Top ${capitalize(option)}`}
-          icon={optionIcons[option]}
-          action={controls}
-        />
-        <CardContent
-          sx={{
-            ":last-child": { paddingBottom: 1 },
-            height: "100%",
-          }}
-        >
-          <ProportionalBar
-            items={items}
-            hovered={hovered}
-            onHover={setHovered}
-          />
-          <Stack
-            direction="column"
-            spacing={1}
-            sx={{
-              alignItems: "stretch",
-              mt: 2,
-            }}
-          >
-            {most.map((struct, index) => (
-              <Stack
-                key={`col-${struct.name}`}
-                direction="row"
-                spacing={1}
-                onMouseEnter={() => setHovered(struct.name)}
-                onMouseLeave={() => setHovered(null)}
-                sx={{
-                  width: "100%",
-                  alignItems: "center",
-                  opacity: hovered && hovered !== struct.name ? 0.3 : 1,
-                  transition: "opacity 0.2s",
-                  cursor: "default",
-                }}
-              >
-                <Swatch
-                  colour={getColour(struct, index)}
-                  // Larger than the inline mark a wrapping legend uses: this legend is a ranked
-                  // column, so the swatch leads each row rather than sitting inside a line of it.
-                  size={16}
-                />
-                <Typography
-                  variant="body2"
-                  sx={{ flexGrow: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
-                >
-                  {struct.name}
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{ flexShrink: 0 }}
-                >
-                  {`${format(struct.count)} ${measure}`}
-                </Typography>
-              </Stack>
-            ))}
-          </Stack>
-        </CardContent>
-      </Card>
-    </Grid>
+    <TopListCard
+      title={`Top ${capitalize(option)}`}
+      icon={optionIcons[option]}
+      controls={controls}
+      items={items}
+      measureLabel={measure}
+    />
   );
 };
 
