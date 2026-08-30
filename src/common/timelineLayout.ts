@@ -99,6 +99,50 @@ export const yearAtPercent = (markers: readonly YearMarker[], percent: number) =
   markers.findLast((marker) => marker.percent <= percent)?.year;
 
 /**
+ * The span of grid the year nav is a scale over: from the first marker, pinned at 0, to the last.
+ */
+const markerSpan = (markers: readonly YearMarker[]) => markers.at(-1)?.percent ?? 0;
+
+/**
+ * A pixel of tolerance, so a browser landing a hair short of a marker still names it.
+ *
+ * `scrollLeft` is fractional and a smooth scroll settles on whatever subpixel the compositor
+ * reached, so an exact `<=` against a marker's own target lights the chip before it half the time.
+ */
+const SCROLL_TOLERANCE_PX = 1;
+
+/**
+ * The two directions of the year nav's mapping between a scroll offset and a position on the grid.
+ *
+ * The chart is four viewports wide, so `scrollLeft` only ever reaches `scrollWidth - clientWidth`
+ * — three quarters of the grid. Reading a marker's own percentage as a scroll fraction therefore
+ * leaves the last quarter of the years unreachable: every chip in it clamps to the same edge, and
+ * the highlight saturates on whichever year that edge lands in.
+ *
+ * The whole marker span is mapped linearly onto the reachable range instead, which makes the rail
+ * a position indicator over that range rather than a set of anchors. The first chip still lands
+ * its year line exactly on the left edge and the last still reaches the end of the chart; the
+ * years between land progressively further into the viewport, so a lit chip names a year on
+ * screen rather than the one at the left edge. That is the price of every chip being reachable
+ * and of the mapping being a bijection — clicking a chip lights that chip, and dragging the chart
+ * moves the highlight through every year in turn.
+ */
+export const percentAtScroll = (markers: readonly YearMarker[], scrollLeft: number, maxScroll: number) => {
+  const span = markerSpan(markers);
+  // The whole chart fits, so there is no position to read: the reader can see the latest year,
+  // which is the end the chart opens at.
+  if (maxScroll <= 0) return span;
+  return Math.min(span, ((scrollLeft + SCROLL_TOLERANCE_PX) / maxScroll) * span);
+};
+
+/** The inverse: where to scroll so that `percent` of the grid is the position being read. */
+export const scrollAtPercent = (markers: readonly YearMarker[], percent: number, maxScroll: number) => {
+  const span = markerSpan(markers);
+  if (span <= 0 || maxScroll <= 0) return 0;
+  return (percent / span) * maxScroll;
+};
+
+/**
  * Greedy interval packing: each item goes in the first row whose last item has already ended, so
  * rows stay dense without any two items in one row overlapping.
  *

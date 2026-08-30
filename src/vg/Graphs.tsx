@@ -14,6 +14,7 @@ import Grid from "@mui/material/Grid";
 import Filter from "./Filter";
 import { Section, SectionRail } from "../common/SectionRail";
 import { VG_SECTIONS, vgSections } from "./sections";
+import { currentlyPlaying } from "./statsData";
 
 const SuspenseBlock = ({
   filteredData,
@@ -59,11 +60,16 @@ const Graphs = memo(
     filterDispatch: FilterDispatch;
   }) => {
     const deferredData = useDeferredValue(data, []);
+    // Answered once for the page: it decides both whether the hero is rendered and whether the
+    // rail offers a chip pointing at it, and two derivations of one test are two that can differ.
+    const playing = currentlyPlaying(data);
+
     return (
       <Stack spacing={2}>
-        <SectionRail sections={vgSections(data)} />
+        <SectionRail sections={vgSections(playing.length > 0)} />
         <Stats
           data={data}
+          playing={playing}
           yearType={filterState.yearType}
           yearTo={filterState.yearTo}
           measure={filterState.measure}

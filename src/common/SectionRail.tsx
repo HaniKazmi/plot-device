@@ -1,11 +1,9 @@
-import { Box, Chip, Stack } from "@mui/material";
-import { useEffect, useState, type ReactNode } from "react";
+import { Box } from "@mui/material";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ChipRail, type ChipRailItem } from "./ChipRail";
 
-export interface RailSection {
-  /** Matches the `id` of the `Section` this chip scrolls to. */
-  id: string;
-  label: string;
-}
+/** A chip in the rail. The `id` matches the `Section` it scrolls to. */
+export type RailSection = ChipRailItem;
 
 /**
  * How far below the top of the viewport an anchored section comes to rest, in pixels.
@@ -45,7 +43,10 @@ export const SectionRail = (props: { sections: RailSection[] }) => {
   const active = useActiveSection(props.sections);
 
   return (
-    <Box
+    <ChipRail
+      items={props.sections}
+      activeId={active}
+      onSelect={(id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })}
       sx={{
         position: "sticky",
         top: 0,
@@ -57,30 +58,8 @@ export const SectionRail = (props: { sections: RailSection[] }) => {
         borderBottom: 1,
         borderColor: "divider",
         paddingY: 1,
-        overflowX: "auto",
-        // A phone cannot show seven chips at once, and a scrollbar drawn across them would cost
-        // more height than the chips themselves.
-        scrollbarWidth: "none",
-        "::-webkit-scrollbar": { display: "none" },
       }}
-    >
-      <Stack
-        direction="row"
-        spacing={1}
-        sx={{ width: "max-content" }}
-      >
-        {props.sections.map((section) => (
-          <Chip
-            key={section.id}
-            label={section.label}
-            size="small"
-            color={section.id === active ? "primary" : "default"}
-            variant={section.id === active ? "filled" : "outlined"}
-            onClick={() => document.getElementById(section.id)?.scrollIntoView({ behavior: "smooth" })}
-          />
-        ))}
-      </Stack>
-    </Box>
+    />
   );
 };
 
@@ -94,22 +73,32 @@ export const SectionRail = (props: { sections: RailSection[] }) => {
 const useActiveSection = (sections: RailSection[]) => {
   const [active, setActive] = useState<string | undefined>(undefined);
   const ids = sections.map((section) => section.id).join(",");
+  /**
+   * Whether each section is in the band, for all of them rather than the ones that just changed.
+   *
+   * An observer callback carries only what crossed the boundary this time, so answering from the
+   * entries alone is answering about a subset: scrolling up out of a section reports that one
+   * leaving and says nothing about the one now filling the band, and the rail keeps a departed
+   * section lit until something else happens to cross.
+   */
+  const intersecting = useRef(new Map<string, boolean>());
 
   useEffect(() => {
-    const elements = ids
-      .split(",")
-      .map((id) => document.getElementById(id))
-      .filter((element) => element !== null);
+    const order = ids.split(",");
+    // The sections are the ones this rail names now, so an id that has gone takes its answer
+    // with it rather than lingering as a section that can never be observed again.
+    intersecting.current = new Map();
+
+    const elements = order.map((id) => document.getElementById(id)).filter((element) => element !== null);
 
     const observer = new IntersectionObserver(
       (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        // Nothing in the band happens between two sections and while a smooth scroll is in
-        // flight. Holding the last answer is what stops the rail blanking as the reader passes
-        // a boundary.
-        if (visible.length > 0) setActive(visible[0].target.id);
+        entries.forEach((entry) => intersecting.current.set(entry.target.id, entry.isIntersecting));
+        // The rail's order is the page's order, so the first one still in the band is the
+        // topmost. Nothing is in the band between two sections and while a smooth scroll is in
+        // flight; holding the last answer there is what stops the rail blanking at a boundary.
+        const current = order.find((id) => intersecting.current.get(id));
+        if (current) setActive(current);
       },
       { rootMargin: ACTIVE_BAND },
     );

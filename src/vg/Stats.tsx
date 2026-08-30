@@ -21,7 +21,6 @@ import {
 import Grid from "@mui/material/Grid";
 import { format } from "../utils/mathUtils";
 import {
-  currentlyPlaying,
   groupGamesBy,
   heroStats,
   perGameAverages,
@@ -43,7 +42,15 @@ import {
   type VideoGame,
   type VideoGameStringKeys,
 } from "./types";
-import { EXPANDED_CARDS, StatCard, StatList, StatsListGrid, type StatsListProps, TotalStack } from "../common/Stats";
+import {
+  EXPANDED_CARDS,
+  StatCard,
+  StatList,
+  StatsListGrid,
+  type StatsListProps,
+  TotalsBand,
+  VitalsCard,
+} from "../common/Stats";
 import { Segment } from "../common/Card";
 import { highchartsColors } from "../highcharts";
 import VgCardMediaImage from "./CardMediaImage";
@@ -75,23 +82,24 @@ import "../utils/arrayUtils";
 
 const Stats = ({
   data,
+  playing,
   measure,
   yearType,
   yearTo,
   filterDispatch,
 }: {
   data: VideoGame[];
+  /** Every game in progress, most recently started first. Computed by `Graphs`, which also
+      decides on it whether the rail offers a chip pointing at the hero below. */
+  playing: VideoGame[];
   measure: Measure;
   yearType: YearType;
   yearTo: YearNumber;
   filterDispatch: FilterDispatch;
 }) => {
-  const playing = currentlyPlaying(data);
-
   return (
     <Stack spacing={2}>
-      {/* No game in progress and there is no "now" to lead with. `Graphs` decides whether to
-          offer the rail chip on the same test, so a chip never points at an absent anchor. */}
+      {/* No game in progress and there is no "now" to lead with. */}
       {playing.length > 0 && (
         <Section id={VG_SECTIONS.now}>
           <VgHero game={playing[0]} />
@@ -186,6 +194,9 @@ const VgHero = ({ game }: { game: VideoGame }) => {
       item={game}
       MediaComponent={VgCardMediaImage}
       kicker={`Currently playing · since ${formatDate(game.startDate)}`}
+      // The same badge every other playing game carries in the strip below, so being the one
+      // promoted to the top of the page does not cost this game its platform.
+      chip={platformToShortChip(game)}
       title={game.name}
       subtitle={[game.platform, game.genre].filter(Boolean).join(" · ")}
       stats={heroStats(game, franchise, CURRENT_PLAINDATE)}
@@ -206,36 +217,28 @@ const Vitals = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
   const measureFunc = (data: VideoGame[]) => (measure == "Games" ? data.length : data.sum("hours"));
 
   return (
-    <Grid size={12}>
-      <Card sx={{ height: "100%" }}>
-        <CardContent sx={{ ":last-child": { paddingBottom: 2 } }}>
-          <Stack spacing={2}>
-            <TotalStack
-              compact
-              title={"Status"}
-              icon={<TaskAlt />}
-              data={data}
-              measureFunc={measureFunc}
-              groupKey="status"
-              group={statusList}
-              groupToColour={(ele: Status) => statusToColour({ status: ele })}
-              measureLabel={measure}
-            />
-            <TotalStack
-              compact
-              title={"Platforms"}
-              icon={<VideogameAsset />}
-              data={data}
-              measureFunc={measureFunc}
-              groupKey="company"
-              group={companyList}
-              groupToColour={(ele: Company) => companyToColor({ company: ele })}
-              measureLabel={measure}
-            />
-          </Stack>
-        </CardContent>
-      </Card>
-    </Grid>
+    <VitalsCard>
+      <TotalsBand
+        title={"Status"}
+        icon={<TaskAlt />}
+        data={data}
+        measureFunc={measureFunc}
+        groupKey="status"
+        group={statusList}
+        groupToColour={(ele: Status) => statusToColour({ status: ele })}
+        measureLabel={measure}
+      />
+      <TotalsBand
+        title={"Platforms"}
+        icon={<VideogameAsset />}
+        data={data}
+        measureFunc={measureFunc}
+        groupKey="company"
+        group={companyList}
+        groupToColour={(ele: Company) => companyToColor({ company: ele })}
+        measureLabel={measure}
+      />
+    </VitalsCard>
   );
 };
 

@@ -1,6 +1,3 @@
-import { currentlyPlaying } from "./statsData";
-import type { VideoGame } from "./types";
-
 /**
  * The anchors the page's sticky rail scrolls to, in the order the page runs.
  *
@@ -20,13 +17,14 @@ export const VG_SECTIONS = {
 } as const;
 
 /**
- * The rail's chips for this data.
+ * The rail's chips for this page.
  *
- * The hero is conditional on there being a game in progress, and this makes the same test `Stats`
- * makes — a chip whose anchor is not on the page scrolls nowhere and looks broken.
+ * The hero is only rendered when a game is in progress, so whether it is there is passed in
+ * rather than derived a second time — a chip whose anchor is not on the page scrolls nowhere and
+ * looks broken, and one test answered once cannot come apart from itself.
  */
-export const vgSections = (data: VideoGame[]) => [
-  ...(currentlyPlaying(data).length > 0 ? [{ id: VG_SECTIONS.now, label: "Now" }] : []),
+export const vgSections = (hasNow: boolean) => [
+  ...(hasNow ? [{ id: VG_SECTIONS.now, label: "Now" }] : []),
   { id: VG_SECTIONS.vitals, label: "Vitals" },
   { id: VG_SECTIONS.top, label: "Top" },
   { id: VG_SECTIONS.explore, label: "Explore" },

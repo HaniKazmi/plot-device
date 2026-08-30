@@ -15,6 +15,7 @@ import Grid from "@mui/material/Grid";
 import { format } from "../utils/mathUtils";
 import { groupTotals } from "./statsData";
 import { FooterComponent, Segment, type CardMediaImageProps, type TypedCardMediaImage } from "./Card";
+import { LABEL_SX } from "./typography";
 import { useState, type ReactNode } from "react";
 import type { Colour } from "../utils/types";
 import { CloseFullscreen, Fullscreen } from "@mui/icons-material";
@@ -321,205 +322,117 @@ export const StatsListCard = <T,>({
   );
 };
 
-export const TotalStack = <T extends string, U, K extends keyof U>({
+/**
+ * The card the vitals bands sit in — one card however many bands a domain stacks in it.
+ *
+ * A band has no card of its own because two of them side by side spent most of a screen saying
+ * what the library is made of. Sharing the card is what makes them read as one figure at one
+ * altitude rather than as two competing summaries.
+ */
+export const VitalsCard = ({ children }: { children: ReactNode }) => (
+  <Grid size={12}>
+    <Card sx={{ height: "100%" }}>
+      <CardContent sx={{ ":last-child": { paddingBottom: 2 } }}>
+        <Stack spacing={2}>{children}</Stack>
+      </CardContent>
+    </Card>
+  </Grid>
+);
+
+/**
+ * What a library is made of, as one proportional bar and a legend: statuses, platforms.
+ *
+ * Read at a glance rather than studied, so the legend wraps along one line beside the figures
+ * instead of standing each group in a column of its own — five groups as five headings, five
+ * figures and a swatch each is a card the height of the charts it is meant to introduce.
+ */
+export const TotalsBand = <T extends string, U, K extends keyof U>({
   title,
   data,
-  measureFunc = (data: U[]) => data.length,
+  measureFunc,
   groupKey,
   group,
   groupToColour,
   icon,
   measureLabel,
-  compact,
 }: {
   title: string;
   data: U[];
+  /** How much each group counts for. Its own size, where a domain has nothing else to measure. */
   measureFunc?: (data: U[]) => number;
   groupKey: K;
   group: T[];
   groupToColour: (ele: T) => Colour;
   icon: ReactNode;
   measureLabel: string;
-  /**
-   * The band a page reads at a glance rather than the card it studies: no card of its own, no
-   * header, and the labels alongside the bar instead of standing in columns under it. A caller
-   * stacking two of these supplies the one card they share.
-   */
-  compact?: boolean;
 }) => {
-  const totals = groupTotals(data, group, groupKey, measureFunc, groupToColour);
-
-  if (compact)
-    return (
-      <CompactTotals
-        title={title}
-        icon={icon}
-        totals={totals}
-        measureLabel={measureLabel}
-      />
-    );
-
-  const topToBottomSx = {
-    textOrientation: { xs: "sideways", md: "initial" },
-    writingMode: { xs: "vertical-lr", md: "initial" },
-  };
+  const totals = groupTotals(data, group, groupKey, measureFunc ?? countOf, groupToColour);
 
   return (
-    <Card sx={{ height: "100%" }}>
-      <CardHeader
-        title={title}
-        avatar={icon}
-        slotProps={{
-          title: { variant: "h6" },
-        }}
-      />
-      <CardContent
-        sx={{
-          ":last-child": { paddingBottom: 1 },
-          height: "100%",
-        }}
+    <Stack spacing={1}>
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{ alignItems: "center", color: "text.secondary" }}
       >
-        <Stack
-          direction="row"
-          spacing={0.5}
-          sx={{
-            alignItems: "center",
-            height: (theme) => theme.spacing(3),
-          }}
+        {icon}
+        <Typography
+          variant="subtitle2"
+          sx={LABEL_SX}
         >
-          {totals.map((struct) => (
-            <Segment
-              key={struct.name}
-              percent={struct.percent}
-              backgroundColour={struct.colour}
-            />
-          ))}
-        </Stack>
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{
-            alignItems: "flex-start",
-          }}
-        >
-          {totals.map((struct) => (
-            <Stack
-              key={struct.name}
-              direction="column"
-              spacing={{ xs: 1, md: 0 }}
+          {title}
+        </Typography>
+      </Stack>
+      <Stack
+        direction="row"
+        spacing={0.25}
+        sx={{ alignItems: "center" }}
+      >
+        {totals.map((struct) => (
+          <Segment
+            key={struct.name}
+            percent={struct.percent}
+            backgroundColour={struct.colour}
+            spacing={1.5}
+            sx={{ borderRadius: 0.5 }}
+          />
+        ))}
+      </Stack>
+      {/* Wrapping rather than a column each: the legend is as wide as the words in it, so however
+        many groups there are they fill the lines they need and stop. */}
+      <Stack
+        direction="row"
+        sx={{ flexWrap: "wrap", columnGap: 2, rowGap: 0.5 }}
+      >
+        {totals.map((struct) => (
+          <Stack
+            key={struct.name}
+            direction="row"
+            spacing={0.75}
+            sx={{ alignItems: "center" }}
+          >
+            <Box
               sx={{
-                width: "100%",
+                width: 10,
+                height: 10,
+                borderRadius: 0.5,
+                flexShrink: 0,
+                backgroundColor: struct.colour,
               }}
+            />
+            <Typography variant="body2">{struct.name}</Typography>
+            <Typography
+              variant="body2"
+              sx={{ color: "text.secondary", fontVariantNumeric: "tabular-nums" }}
             >
-              <Segment
-                percent={100}
-                backgroundColour={struct.colour}
-                spacing={1}
-              />
-              <Stack
-                direction={{ xs: "row-reverse", md: "column" }}
-                sx={{
-                  width: "100%",
-                }}
-              >
-                <Typography
-                  sx={topToBottomSx}
-                  variant="h6"
-                >
-                  {struct.name}
-                </Typography>
-                <Typography
-                  sx={topToBottomSx}
-                  variant="body1"
-                >{`${struct.count} ${measureLabel}`}</Typography>
-              </Stack>
-            </Stack>
-          ))}
-        </Stack>
-      </CardContent>
-    </Card>
+              {`${format(struct.count)} ${measureLabel}`}
+            </Typography>
+          </Stack>
+        ))}
+      </Stack>
+    </Stack>
   );
 };
 
-/**
- * A `TotalStack` reduced to its bar and its legend.
- *
- * The full card gives each group a column of its own, which is what makes it readable and also
- * what makes it tall: five groups is five headings, five figures and a swatch each. A page that
- * has already said what it is about at the top wants the same figures as a band it can pass over,
- * so the legend wraps along one line and the bar loses two thirds of its height.
- */
-const CompactTotals = <T extends string>({
-  title,
-  icon,
-  totals,
-  measureLabel,
-}: {
-  title: string;
-  icon: ReactNode;
-  totals: { name: T; count: number; percent: number; colour: Colour }[];
-  measureLabel: string;
-}) => (
-  <Stack spacing={1}>
-    <Stack
-      direction="row"
-      spacing={1}
-      sx={{ alignItems: "center", color: "text.secondary" }}
-    >
-      {icon}
-      <Typography
-        variant="subtitle2"
-        sx={{ letterSpacing: "0.08em", textTransform: "uppercase" }}
-      >
-        {title}
-      </Typography>
-    </Stack>
-    <Stack
-      direction="row"
-      spacing={0.25}
-      sx={{ alignItems: "center" }}
-    >
-      {totals.map((struct) => (
-        <Segment
-          key={struct.name}
-          percent={struct.percent}
-          backgroundColour={struct.colour}
-          spacing={1.5}
-          sx={{ borderRadius: 0.5 }}
-        />
-      ))}
-    </Stack>
-    {/* Wrapping rather than a column each: the legend is as wide as the words in it, so however
-        many groups there are they fill the lines they need and stop. */}
-    <Stack
-      direction="row"
-      sx={{ flexWrap: "wrap", columnGap: 2, rowGap: 0.5 }}
-    >
-      {totals.map((struct) => (
-        <Stack
-          key={struct.name}
-          direction="row"
-          spacing={0.75}
-          sx={{ alignItems: "center" }}
-        >
-          <Box
-            sx={{
-              width: 10,
-              height: 10,
-              borderRadius: 0.5,
-              flexShrink: 0,
-              backgroundColor: struct.colour,
-            }}
-          />
-          <Typography variant="body2">{struct.name}</Typography>
-          <Typography
-            variant="body2"
-            sx={{ color: "text.secondary", fontVariantNumeric: "tabular-nums" }}
-          >
-            {`${format(struct.count)} ${measureLabel}`}
-          </Typography>
-        </Stack>
-      ))}
-    </Stack>
-  </Stack>
-);
+/** A group's own size, which is what a domain with nothing else to measure counts by. */
+const countOf = (data: unknown[]) => data.length;

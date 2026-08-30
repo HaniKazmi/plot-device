@@ -1,6 +1,3 @@
-import { currentlyWatching } from "./statsData";
-import type { Show } from "./types";
-
 /**
  * The anchors the page's sticky rail scrolls to, in the order the page runs.
  *
@@ -18,13 +15,14 @@ export const SHOW_SECTIONS = {
 } as const;
 
 /**
- * The rail's chips for this data.
+ * The rail's chips for this page.
  *
- * "Now" is conditional on there being a season in progress, and this makes the same test `Stats`
- * makes — a chip whose anchor is not on the page scrolls nowhere and looks broken.
+ * "Now" is only rendered when a season is in progress, so whether it is there is passed in rather
+ * than derived a second time — a chip whose anchor is not on the page scrolls nowhere and looks
+ * broken, and one test answered once cannot come apart from itself.
  */
-export const showSections = (data: Show[]) => [
-  ...(currentlyWatching(data).length > 0 ? [{ id: SHOW_SECTIONS.now, label: "Now" }] : []),
+export const showSections = (hasNow: boolean) => [
+  ...(hasNow ? [{ id: SHOW_SECTIONS.now, label: "Now" }] : []),
   { id: SHOW_SECTIONS.vitals, label: "Vitals" },
   { id: SHOW_SECTIONS.explore, label: "Explore" },
   { id: SHOW_SECTIONS.timeline, label: "Timeline" },

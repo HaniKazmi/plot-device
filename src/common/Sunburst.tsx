@@ -52,7 +52,15 @@ const Sunburst = <T, K extends string>({
       />
       <CardContent>
         <Chart
-          containerProps={{ style: { height: "100vh" } }}
+          /**
+           * The chart shares a row with the barchart at half width each, so the two are read
+           * against one another and a column of empty ground under one of them is the thing that
+           * breaks the row. A sunburst is a circle: its diameter is capped by the width of a
+           * half-width column, so past that point extra height buys nothing and the ceiling is a
+           * fixed figure rather than a fraction. Below it the viewport still governs, and never
+           * past the `80vh` the barchart beside it takes.
+           */
+          containerProps={{ style: { height: "min(80vh, 700px)" } }}
           options={{
             chart: {
               backgroundColor: "transparent",

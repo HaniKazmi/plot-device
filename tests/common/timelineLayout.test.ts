@@ -5,6 +5,8 @@ import {
   buildTicks,
   decidePlacement,
   packRows,
+  percentAtScroll,
+  scrollAtPercent,
   yearAtPercent,
   yearMarkers,
   type TimelineData,
@@ -283,5 +285,74 @@ describe("yearAtPercent", () => {
 
   it("has no answer before the first marker, which is only reachable with no data", () => {
     expect(yearAtPercent([], 0)).toBeUndefined();
+  });
+});
+
+describe("the year nav's scroll mapping", () => {
+  // Spread so the last marker is well past the three quarters of the grid a 400vw chart can
+  // scroll to, which is the range the naive mapping cannot reach.
+  const markers = [
+    { year: 2020, percent: 0 },
+    { year: 2022, percent: 40 },
+    { year: 2024, percent: 80 },
+    { year: 2026, percent: 95 },
+  ];
+  /** A four-viewport chart: three quarters of the grid width is all `scrollLeft` can reach. */
+  const gridWidth = 4000;
+  const maxScroll = gridWidth * 0.75;
+
+  /**
+   * The invariant the whole mapping exists to hold: the two directions are inverses, so a chip
+   * lights itself. It has to hold for the first and last years as well as the ones between, and
+   * for the tail past the three quarters of the grid `scrollLeft` can reach — reading a marker's
+   * own percentage as a scroll fraction satisfies the middle and silently fails there.
+   */
+  const roundTrips = (against: number) =>
+    markers.map((marker) =>
+      yearAtPercent(markers, percentAtScroll(markers, scrollAtPercent(markers, marker.percent, against), against)),
+    );
+
+  it("lights the chip that was clicked, for every year including the unreachable tail", () => {
+    expect(roundTrips(maxScroll)).toEqual([2020, 2022, 2024, 2026]);
+  });
+
+  it("holds however much less than the grid the reachable range is", () => {
+    // A container a third of the grid wide, and one barely narrower than it: the mapping is over
+    // whatever `scrollLeft` can reach, so neither ratio may change which chip answers.
+    expect(roundTrips(gridWidth * 0.67)).toEqual([2020, 2022, 2024, 2026]);
+    expect(roundTrips(gridWidth * 0.05)).toEqual([2020, 2022, 2024, 2026]);
+  });
+
+  it("still names the year when a smooth scroll settles a fraction short of its target", () => {
+    const landed = scrollAtPercent(markers, 40, maxScroll) - 0.5;
+    expect(yearAtPercent(markers, percentAtScroll(markers, landed, maxScroll))).toBe(2022);
+  });
+
+  it("opens on the latest year, because the chart opens at its right-hand end", () => {
+    expect(yearAtPercent(markers, percentAtScroll(markers, maxScroll, maxScroll))).toBe(2026);
+  });
+
+  it("starts on the earliest year at the left edge", () => {
+    expect(scrollAtPercent(markers, 0, maxScroll)).toBe(0);
+    expect(yearAtPercent(markers, percentAtScroll(markers, 0, maxScroll))).toBe(2020);
+  });
+
+  it("moves the highlight through every year in turn as the chart is dragged", () => {
+    const seen: number[] = [];
+    for (let scroll = 0; scroll <= maxScroll; scroll += maxScroll / 200) {
+      const year = yearAtPercent(markers, percentAtScroll(markers, scroll, maxScroll));
+      if (year !== undefined && year !== seen.at(-1)) seen.push(year);
+    }
+    expect(seen).toEqual([2020, 2022, 2024, 2026]);
+  });
+
+  it("reads a chart that fits its container as being at its latest year", () => {
+    expect(percentAtScroll(markers, 0, 0)).toBe(95);
+    expect(scrollAtPercent(markers, 40, 0)).toBe(0);
+  });
+
+  it("has nothing to map with no data, rather than dividing by an empty span", () => {
+    expect(percentAtScroll([], 0, maxScroll)).toBe(0);
+    expect(scrollAtPercent([], 50, maxScroll)).toBe(0);
   });
 });

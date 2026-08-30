@@ -1,17 +1,16 @@
 import { AutoGraph, Pause, PlayArrow, ShowChart, TaskAlt, Timer, Update } from "@mui/icons-material";
 import Grid from "@mui/material/Grid";
 import { Season, Show, Status } from "./types";
-import { StatCard, StatList, StatsListProps, TotalStack } from "../common/Stats";
+import { StatCard, StatList, StatsListProps, TotalsBand, VitalsCard } from "../common/Stats";
 import ShowCardMediaImage from "./CardMediaImage";
 import { statusToColour } from "../utils/types";
-import { Card, CardContent, Stack } from "@mui/material";
+import { Stack } from "@mui/material";
 import type { ReactNode } from "react";
 import { CURRENT_YEAR } from "../common/date";
 import { Section } from "../common/SectionRail";
 import { SHOW_SECTIONS } from "./sections";
 import {
   allTimeTotals,
-  currentlyWatching,
   perShowAverages,
   recentlyComplete,
   seasonsInYear,
@@ -20,16 +19,14 @@ import {
   yearlyAverages,
 } from "./statsData";
 
-const Stats = ({ data }: { data: Show[] }) => {
-  const watching = currentlyWatching(data);
-
+const Stats = ({ data, watching }: { data: Show[]; watching: Season[] }) => {
   return (
     <Stack spacing={2}>
       {/* What is in flight, and the page's "now" — a strip rather than one item raised above the
           rest, because several shows are always on the go and picking one of them to lead with
           means inventing a tie-break the data does not have. Nothing being watched and the
-          section is not rendered at all; `Graphs` offers the rail chip on the same test, so a
-          chip never points at an absent anchor. */}
+          section is not rendered at all. `watching` is computed by `Graphs`, which decides on
+          the same value whether the rail offers a chip pointing here. */}
       {watching.length > 0 && (
         <Section id={SHOW_SECTIONS.now}>
           <Grid
@@ -94,22 +91,17 @@ const Vitals = ({ data }: { data: Show[] }) => {
   const statusList: Status[] = ["Watching", "Up To Date", "Ended", "Cancelled", "Abandoned"];
 
   return (
-    <Grid size={12}>
-      <Card sx={{ height: "100%" }}>
-        <CardContent sx={{ ":last-child": { paddingBottom: 2 } }}>
-          <TotalStack
-            compact
-            title={"Status"}
-            icon={<TaskAlt />}
-            data={data}
-            groupKey="status"
-            group={statusList}
-            groupToColour={(ele: Status) => statusToColour({ status: ele })}
-            measureLabel="Shows"
-          />
-        </CardContent>
-      </Card>
-    </Grid>
+    <VitalsCard>
+      <TotalsBand
+        title={"Status"}
+        icon={<TaskAlt />}
+        data={data}
+        groupKey="status"
+        group={statusList}
+        groupToColour={(ele: Status) => statusToColour({ status: ele })}
+        measureLabel="Shows"
+      />
+    </VitalsCard>
   );
 };
 
