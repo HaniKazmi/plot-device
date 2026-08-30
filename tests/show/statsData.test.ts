@@ -6,6 +6,8 @@ import {
   perShowAverages,
   recentlyComplete,
   seasonsInYear,
+  statsCardLabelCurrentlyPlaying,
+  statsCardLabelRecentlyComplete,
   yearlyAverages,
 } from "../../src/show/statsData";
 import type { Season, Show } from "../../src/show/types";
@@ -246,5 +248,24 @@ describe("currentlyWatching", () => {
 
   it("returns nothing for empty data", () => {
     expect(currentlyWatching([])).toEqual([]);
+  });
+});
+
+describe("statsCardLabel", () => {
+  it("prints dates in the reader's voice, not the machine's", () => {
+    // The thumbnail's footer and the card it opens speak one date format, so a reader is not
+    // asked to translate between them on the same screen.
+    const parent = show();
+
+    expect(statsCardLabelRecentlyComplete(season(parent, { endDate: YearMonthDay.get(2022, 4, 8) }))[0][1]).toBe(
+      "8 Apr 2022",
+    );
+    expect(statsCardLabelCurrentlyPlaying(season(parent, { startDate: YearMonthDay.get(2022, 2, 18) }))[0][1]).toBe(
+      "18 Feb 2022",
+    );
+  });
+
+  it("leaves the date blank rather than printing nothing-in-particular when a season is unfinished", () => {
+    expect(statsCardLabelRecentlyComplete(season(show(), { endDate: undefined }))[0][1]).toBe("");
   });
 });

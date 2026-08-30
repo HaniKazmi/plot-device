@@ -1,4 +1,4 @@
-import type { YearNumber } from "../common/date";
+import { formatDate, type YearNumber } from "../common/date";
 import { sheetError } from "../common/sheetError";
 import { format } from "../utils/mathUtils";
 import type { Season, Show } from "./types";
@@ -86,11 +86,13 @@ export const currentlyWatching = (data: Show[]) =>
     .filter((season) => !season.endDate)
     .sortByKey("startDate");
 
+// Dates are in the reader's voice and not the machine's, which is the same one the card behind
+// the thumbnail speaks.
 export const statsCardLabelRecentlyComplete = (season: Season) => [
-  [`S${season.s}`, season.endDate?.toString() ?? ""],
+  [`S${season.s}`, season.endDate ? formatDate(season.endDate) : ""],
   [`${season.e} Eps`, `${format(Math.round(season.minutes / 60))} Hours`],
 ];
 
 export const statsCardLabelCurrentlyPlaying = (season: Season) => [
-  [`S${season.s}`, season.startDate?.toString() ?? ""],
+  [`S${season.s}`, season.startDate ? formatDate(season.startDate) : ""],
 ];

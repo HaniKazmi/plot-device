@@ -215,7 +215,7 @@ export const ratingToColour = ({ rating }: VideoGame) => {
  * franchise colour is somebody's brand, which keeps its hue and chroma and yields only lightness
  * to contrast. Neither is free to be reassigned a hue the way a genre is.
  */
-const genreToColour = ({ genre }: { genre: Genre }) => {
+export const genreToColour = ({ genre }: { genre: Genre }) => {
   switch (genre) {
     case "Action":
       return "#fe4c00" as Colour;
@@ -278,7 +278,7 @@ const genreToColour = ({ genre }: { genre: Genre }) => {
  * them into one lightness band leaves them near-indistinguishable side by side. The wedge
  * labels, the legend names and the gaps between segments are load-bearing for that group.
  */
-const franchiseToColour = ({ franchise }: { franchise: string }) => {
+export const franchiseToColour = ({ franchise }: { franchise: string }) => {
   switch (franchise) {
     case "Pokémon":
       return "#d3a700" as Colour;

@@ -511,8 +511,16 @@ export const CardPanel = ({
   );
 };
 
+/**
+ * A figure and what it counts, plus the colour the app already speaks that figure in where it has
+ * one — a status, which is a fill in every chart on the tab.
+ */
+export interface CardStat extends PanelStat {
+  colour?: Colour;
+}
+
 /** A figure and what it counts, set apart from the prose so the numbers can be read at a glance. */
-export const StatTile = ({ value, label }: { value: number | string; label: string }) => {
+export const StatTile = ({ value, label, colour, size }: CardStat & { size?: "hero" }) => {
   const palette = useArtworkPalette();
 
   return (
@@ -522,26 +530,164 @@ export const StatTile = ({ value, label }: { value: number | string; label: stri
         padding: 1,
         borderRadius: 1,
         textAlign: "center",
-        // A wash of the ground's own contrast colour, so a tile lifts off a pale sample as
-        // readily as off a dark one.
-        backgroundColor: palette.tile,
+        // A tile carrying a colour of its own paints it, exactly as the chip in a card's corner
+        // does. The rest take a wash of the ground's own contrast colour, so they lift off a pale
+        // sample as readily as off a dark one.
+        backgroundColor: colour ?? palette.tile,
+        color: (theme) => (colour ? theme.palette.getContrastText(colour) : undefined),
       }}
     >
       <Typography
         component="div"
         // Tabular figures so a row of tiles lines its digits up rather than shifting with the
         // widths of whichever numerals the data happened to produce.
-        sx={{ fontWeight: 700, fontSize: "1.25rem", lineHeight: 1.2, fontVariantNumeric: "tabular-nums" }}
+        sx={{
+          fontWeight: 700,
+          fontSize: size === "hero" ? "1.5rem" : "1.25rem",
+          lineHeight: 1.2,
+          fontVariantNumeric: "tabular-nums",
+        }}
       >
         {typeof value === "number" ? format(value) : value}
       </Typography>
       <Typography
         variant="caption"
-        sx={{ color: palette.muted, ...LABEL_SX }}
+        // A coloured tile's caption is its own contrast text held back, because `muted` is mixed
+        // from the card's ground and this tile is not sitting on it.
+        sx={{ color: colour ? undefined : palette.muted, opacity: colour ? 0.8 : 1, ...LABEL_SX }}
       >
         {label}
       </Typography>
     </Box>
+  );
+};
+
+/**
+ * The figures an expanded card leads with, directly under its strip: the two or three numbers
+ * that answer "how much of this was there?" before any of the prose beneath is read.
+ *
+ * Callers pass only the stats they actually hold. A tile reading zero because the sheet recorded
+ * nothing says something false where saying nothing says the truth, so the omission is the
+ * caller's to make and this shell lays out whatever it is handed.
+ */
+export const HeroStatRow = ({ stats }: { stats: CardStat[] }) => {
+  if (stats.length === 0) return null;
+
+  return (
+    <Grid size={12}>
+      <Box
+        sx={{
+          display: "grid",
+          // Two figures per row where there is only a phone's width, one row of all of them once
+          // there is width for it — the same rule the panel's tiles follow.
+          gridTemplateColumns: {
+            xs: `repeat(${Math.min(stats.length, 2)}, 1fr)`,
+            sm: `repeat(${stats.length}, 1fr)`,
+          },
+          gap: 1,
+        }}
+      >
+        {stats.map((stat) => (
+          <StatTile
+            key={stat.label}
+            {...stat}
+            size="hero"
+          />
+        ))}
+      </Box>
+    </Grid>
+  );
+};
+
+/** Of a swatch, in pixels: a legend's mark, small enough to sit on a line of body text. */
+const SWATCH_SIZE = 10;
+
+/**
+ * The mark a chart legend puts beside a name, on a line of prose.
+ *
+ * It appears exactly where the app already speaks that field's colour somewhere else — a platform,
+ * a franchise, a genre, a rating, a status. A swatch on a field with no colour vocabulary invents
+ * one, and then the reader has learnt a legend that no chart honours.
+ */
+const Swatch = ({ colour }: { colour: Colour }) => (
+  <Box
+    component="span"
+    sx={{
+      flexShrink: 0,
+      width: SWATCH_SIZE,
+      height: SWATCH_SIZE,
+      borderRadius: 0.5,
+      backgroundColor: colour,
+    }}
+  />
+);
+
+/** One fact about an item: what it is called, what it says, and its colour where it has one. */
+export interface LedgerRow {
+  label: string;
+  value: ReactNode;
+  /** Only where a chart or a chip elsewhere in the app already paints this field. */
+  swatch?: Colour;
+}
+
+/**
+ * The facts about an item that are not figures, as a ledger rather than as tiles.
+ *
+ * A grid of equal tiles gives a game's publisher the same weight as its hours, which is the one
+ * thing the reader is least likely to have opened the card for. Label and value on one line reads
+ * at a glance and costs a fifth of the height, which is what leaves room for the figures above to
+ * be large.
+ *
+ * Two columns are CSS columns rather than a grid because the rows are independent: a grid would
+ * hold each pair to the tallest row on it, and a value that wraps would open a gap beside it.
+ * `break-inside` is what keeps a row from being split across the column boundary.
+ */
+export const MetadataLedger = ({ rows }: { rows: LedgerRow[] }) => {
+  const palette = useArtworkPalette();
+
+  if (rows.length === 0) return null;
+
+  return (
+    <Grid size={12}>
+      <Box sx={{ columnCount: { xs: 1, md: 2 }, columnGap: 3 }}>
+        {rows.map((row) => (
+          <Box
+            key={row.label}
+            sx={{
+              breakInside: "avoid",
+              display: "flex",
+              alignItems: "baseline",
+              justifyContent: "space-between",
+              gap: 2,
+              paddingY: 0.75,
+              borderBottom: `1px solid ${palette.line}`,
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{ color: palette.muted, flexShrink: 0, ...LABEL_SX }}
+            >
+              {row.label}
+            </Typography>
+            <Stack
+              direction="row"
+              spacing={0.75}
+              // Centred against the line rather than sat on its baseline: a square has no
+              // baseline of its own and would hang below the text it belongs to.
+              sx={{ alignItems: "center", minWidth: 0 }}
+            >
+              {row.swatch && <Swatch colour={row.swatch} />}
+              <Typography
+                variant="body2"
+                sx={{ textAlign: "right" }}
+              >
+                {row.value}
+              </Typography>
+            </Stack>
+          </Box>
+        ))}
+      </Box>
+    </Grid>
   );
 };
 
@@ -719,6 +865,9 @@ export const TimelineCard = ({
           {caption && (
             <Typography
               variant="caption"
+              // One line, whatever the name in it turned out to be: a caption that wraps pushes
+              // the strip down by its own height, and the strip is what the card is measuring.
+              noWrap
               sx={{ display: "block", opacity: 0.7, paddingBottom: 0.5 }}
             >
               {caption}

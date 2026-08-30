@@ -1,12 +1,74 @@
 import { CardContent, Typography } from "@mui/material";
-import { CardMediaImage, DetailCard, TimelineCard, TypedCardMediaImage } from "../common/Card";
-import { VideoGame, companyToColor, platformToColor, ratingToColour } from "./types";
+import {
+  CardMediaImage,
+  HeroStatRow,
+  MetadataLedger,
+  TimelineCard,
+  TypedCardMediaImage,
+  type CardStat,
+  type LedgerRow,
+} from "../common/Card";
+import { VideoGame, companyToAccent, franchiseToColour, genreToColour, platformToColor, ratingToColour } from "./types";
 import Grid from "@mui/material/Grid";
 import { statusToColour } from "../utils/types";
-import { CURRENT_PLAINDATE, Year, YearMonthDay, formatDateRange } from "../common/date";
+import { CURRENT_PLAINDATE, Year, YearMonthDay, formatDate, formatDateRange } from "../common/date";
 import { buildStrip, stripYearTicks } from "../common/timelineStripData";
 import { gameSpans, spanKey } from "./cardData";
 import { useFranchiseGames } from "./franchiseContext";
+
+/**
+ * The figures the card leads with. Each is conditional on the sheet holding it: an in-progress
+ * game may have no hours logged, and a game logged with a bare year cannot be counted days into.
+ */
+const gameStats = (game: VideoGame): CardStat[] => {
+  const stats: CardStat[] = [];
+
+  if (game.hours) stats.push({ label: "Hours", value: game.hours });
+  if (game.numDays !== undefined) stats.push({ label: "Days To Beat", value: game.numDays });
+  stats.push({ label: "Status", value: game.status, colour: statusToColour(game) });
+
+  return stats;
+};
+
+/**
+ * Everything else the sheet records, one fact per line, with related facts on the same line: a
+ * release is a date and a format, and a game is made by a developer for a publisher.
+ *
+ * A swatch appears only where the colour is one the app already speaks — the platform's brand
+ * accent is the badge in this card's own corner, and franchise, genre and rating each fill a ring
+ * or a bar on the tab behind it. The rest are text, because inventing a colour for a publisher
+ * teaches the reader a legend no chart honours.
+ */
+const gameRows = (game: VideoGame): LedgerRow[] => {
+  const rows: LedgerRow[] = [
+    { label: "Played", value: formatDateRange(game.startDate, game.endDate) },
+    // The brand hex rather than the chart fill, on the same rule the corner chip follows: this is
+    // a badge at a badge's size, not a value being compared against its neighbours.
+    { label: "Platform", value: game.platform, swatch: companyToAccent(game) },
+    { label: "Released", value: `${formatDate(game.releaseDate)} · ${game.format}` },
+  ];
+
+  const makers = [game.developer, game.publisher].filter(Boolean);
+  // One name where the studio published itself, rather than the same word twice.
+  const by = [...new Set(makers)].join(" · ");
+  if (by) rows.push({ label: "By", value: by });
+
+  if (game.franchise) {
+    // Unknown franchises fall through to an empty colour, which is no swatch rather than a black
+    // square standing for nothing.
+    rows.push({ label: "Franchise", value: game.franchise, swatch: franchiseToColour(game) || undefined });
+  }
+
+  const themes = game.theme.filter(Boolean);
+  rows.push({
+    label: "Genre",
+    value: themes.length > 0 ? `${game.genre} · ${themes.join(" – ")}` : game.genre,
+    swatch: genreToColour(game),
+  });
+  rows.push({ label: "PEGI", value: game.rating, swatch: ratingToColour(game) });
+
+  return rows;
+};
 
 const VgCardMediaImage: TypedCardMediaImage<VideoGame> = ({ item, ...props }) => (
   <CardMediaImage
@@ -19,69 +81,8 @@ const VgCardMediaImage: TypedCardMediaImage<VideoGame> = ({ item, ...props }) =>
           spacing={1}
         >
           <VgTimelineCard item={item} />
-          <DetailCard
-            label="Start Date"
-            value={item.startDate.toString()}
-          />
-          <DetailCard
-            label="End Date"
-            value={item.endDate?.toString()}
-          />
-          <DetailCard
-            label="Days To Beat"
-            value={item.numDays}
-          />
-          <DetailCard
-            label="Hours"
-            value={item.hours}
-          />
-
-          <DetailCard
-            colour={statusToColour(item)}
-            label="Status"
-            value={item.status}
-          />
-          <DetailCard
-            colour={companyToColor(item)}
-            label="Platform"
-            value={item.platform}
-          />
-          <DetailCard
-            label="Release Date"
-            value={item.releaseDate.toString()}
-          />
-          <DetailCard
-            label="Format"
-            value={item.format}
-          />
-
-          <DetailCard
-            label="Developer"
-            value={item.developer}
-          />
-          <DetailCard
-            label="Publisher"
-            value={item.publisher}
-          />
-          <DetailCard
-            label="Franchise"
-            value={item.franchise}
-          />
-          <DetailCard
-            colour={ratingToColour(item)}
-            label="PEGI"
-            value={item.rating}
-          />
-
-          <DetailCard
-            label="Genre"
-            value={item.genre}
-          />
-          <DetailCard
-            large
-            label="Themes"
-            value={item.theme.join(" - ")}
-          />
+          <HeroStatRow stats={gameStats(item)} />
+          <MetadataLedger rows={gameRows(item)} />
         </Grid>
       </CardContent>
     )}
@@ -115,7 +116,9 @@ const VgTimelineCard = ({ item: game }: { item: VideoGame }) => {
       }))}
       laneCount={laneCount}
       ticks={VG_TICKS}
-      caption={franchise.length > 1 ? `${game.franchise} · ${franchise.length} games` : undefined}
+      caption={
+        franchise.length > 1 ? `${game.franchise} · ${franchise.length} games · ${VG_EPOCH.year} – today` : undefined
+      }
     />
   );
 };
@@ -132,7 +135,7 @@ const GameTooltip = ({ game }: { game: VideoGame }) => (
       // The year is all the sheet holds, so it is all this says. Where the band sits inside that
       // year is an estimate, and the caption is what stops it being read as a date.
       <>
-        <Typography>Played in {game.startDate.toString()}</Typography>
+        <Typography>Played in {formatDate(game.startDate)}</Typography>
         <Typography
           variant="caption"
           sx={{ opacity: 0.7 }}
