@@ -64,6 +64,40 @@ export const buildTicks = (start: YearMonth, end: YearMonth, totalDays: number):
   }));
 };
 
+/** A year's left edge on the grid, as a percentage of its full width. */
+export interface YearMarker {
+  year: number;
+  percent: number;
+}
+
+/**
+ * Where each calendar year begins on the grid.
+ *
+ * The first entry is pinned to 0 because a chart rarely starts in January: the opening year owns
+ * the grid from its left edge, not from the January that precedes the data. When the data does
+ * start in January that tick is the same marker, so years are folded to one entry each — two
+ * markers naming the same year would give the shading two bands and the nav two chips.
+ */
+export const yearMarkers = (ticks: readonly TimelineTick[]): YearMarker[] => {
+  if (ticks.length === 0) return [];
+
+  const starts = [
+    { year: ticks[0].year, percent: 0 },
+    ...ticks.filter((tick) => tick.level === "year").map((tick) => ({ year: tick.year, percent: tick.percent })),
+  ];
+
+  return starts.filter((marker, index) => index === 0 || marker.year !== starts[index - 1].year);
+};
+
+/**
+ * The year occupying a given percentage of the grid — the last one to have started by then, which
+ * is what makes a position anywhere inside a year read as that year rather than as the next.
+ *
+ * `undefined` only before the first marker, which the callers reach when there is no data at all.
+ */
+export const yearAtPercent = (markers: readonly YearMarker[], percent: number) =>
+  markers.findLast((marker) => marker.percent <= percent)?.year;
+
 /**
  * Greedy interval packing: each item goes in the first row whose last item has already ended, so
  * rows stay dense without any two items in one row overlapping.

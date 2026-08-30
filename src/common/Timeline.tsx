@@ -1,4 +1,4 @@
-import { Card, CardContent, Box, Tooltip, useTheme } from "@mui/material";
+import { Card, CardContent, Box, Chip, Tooltip, useTheme, type Theme } from "@mui/material";
 import { type ReactNode, useLayoutEffect, useRef, useState, type Ref } from "react";
 import type { YearMonthDay } from "./date";
 import type {} from "@mui/material/themeCssVarsAugmentation";
@@ -7,10 +7,13 @@ import {
   decidePlacement,
   packRows,
   percentOfSpan,
+  yearAtPercent,
+  yearMarkers,
   type Placement,
   type PositionedTimelineData,
   type TimelineData,
   type TimelineTick,
+  type YearMarker,
 } from "./timelineLayout";
 
 export type { TimelineData };
@@ -48,6 +51,30 @@ const YEAR_FONT_SIZE = 15;
 const TOOLTIP_MAT = 4;
 
 const pct = (percent: number) => `${percent}%`;
+
+/**
+ * The chart is four viewports wide, and a bar runs to the container's edge at every scroll
+ * position, so nothing in the picture says it continues. The scrollbar is the one thing that can
+ * say so at no cost per frame: styling it at all opts macOS out of overlay scrollbars, which hide
+ * themselves the moment scrolling stops, and a thumb a quarter of the track long states both that
+ * there is more and how much.
+ *
+ * `scrollbarWidth`/`scrollbarColor` are what Firefox reads and `::-webkit-scrollbar` the rest, so
+ * both are given, from the same two tokens. The thumb takes the secondary text tone rather than
+ * the divider: it is a control to be aimed at, and at 10px a divider-weight bar disappears into
+ * the card it sits on.
+ */
+const scrollSx = (theme: Theme) => ({
+  width: "100%",
+  maxHeight: "90vh",
+  overflowX: "auto",
+  overflowY: "auto",
+  scrollbarWidth: "thin",
+  scrollbarColor: `${theme.vars.palette.text.secondary} ${theme.vars.palette.divider}`,
+  "&::-webkit-scrollbar": { width: 10, height: 10 },
+  "&::-webkit-scrollbar-track": { backgroundColor: theme.vars.palette.divider, borderRadius: 5 },
+  "&::-webkit-scrollbar-thumb": { backgroundColor: theme.vars.palette.text.secondary, borderRadius: 5 },
+});
 
 /**
  * Grow from the bar's own centre rather than its top edge. `fill-box` makes the rect's bounding
@@ -170,10 +197,34 @@ const useTextPlacement = (data: PositionedTimelineData[]) => {
   return { layouts, setItemRef };
 };
 
+/**
+ * Opens the chart at its most recent end.
+ *
+ * The chart is four viewports wide, so the newest data starts off-screen entirely; the year nav
+ * below it is what makes the older end reachable in one click, which is what lets the default view
+ * be the end people actually look at. The browser clamps an over-large `scrollLeft`, so asking for
+ * the whole scroll width is the same as asking for the maximum without measuring it.
+ *
+ * `resetKey` is a primitive rather than the data array, which is rebuilt on every render of the
+ * domain component above: depending on the array would re-run this on each one and drag the chart
+ * back to the right edge while the reader was scrolling it. It still has to be a dependency, not
+ * an empty list, because the chart renders nothing at all until it has data — on a first visit
+ * with an empty cache there is no element here to scroll.
+ */
+const useOpenAtLatest = (ref: React.RefObject<HTMLDivElement | null>, resetKey: number) => {
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (element) element.scrollLeft = element.scrollWidth;
+  }, [ref, resetKey]);
+};
+
 // ============================================================================
 // Components
 // ============================================================================
 const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [activeYear, setActiveYear] = useState<number | undefined>(undefined);
+  useOpenAtLatest(scrollRef, timelineData.length);
   const [positionedTimelineData, maxRow] = packRows(timelineData);
 
   if (positionedTimelineData.length === 0) {
@@ -191,29 +242,116 @@ const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }) => {
   // `maxRow` is the highest row index, so the last bar ends a full bar below its own offset.
   const totalHeight = (maxRow + 1) * ROW_HEIGHT + SVG_PADDING * 2 - ROW_PADDING;
 
+  const markers = yearMarkers(ticks);
+
+  const scrollToPercent = (percent: number) => {
+    const element = scrollRef.current;
+    if (element) element.scrollTo({ left: (percent / 100) * element.scrollWidth, behavior: "smooth" });
+  };
+
   return (
-    <Box sx={{ width: "100%", maxHeight: "90vh", overflowX: "auto", overflowY: "auto" }}>
-      <div
-        style={{ width: "400vw", maxHeight: "90vh", position: "relative", display: "flex", flexDirection: "column" }}
+    <>
+      <Box
+        ref={scrollRef}
+        sx={scrollSx}
+        /**
+         * The scroll position reaches React as the year it lands in and nothing else, so the
+         * hundreds of events a single drag produces settle to one state change per year crossed —
+         * setting a state to the value it already holds costs no render. Holding the raw offset
+         * instead would re-render the whole chart on every frame of every scroll.
+         *
+         * A JSX handler rather than a listener in an effect because `markers` is rebuilt each
+         * render: an effect would need it as a dependency and reattach just as often, and reading
+         * it through a ref to avoid that is machinery for a listener React already manages.
+         */
+        onScroll={(event) =>
+          setActiveYear(
+            yearAtPercent(markers, (event.currentTarget.scrollLeft / event.currentTarget.scrollWidth) * 100),
+          )
+        }
       >
-        {/* `minHeight: 0` because a column flex item defaults to `min-height: auto` and would
-            refuse to shrink below the grid's height — the scroll would fall through to the
-            container above and take the axis off-screen with it. */}
-        <div style={{ overflowY: "auto", minHeight: 0 }}>
-          <TimelineGrid
-            data={positionedTimelineData}
-            startDate={earliestStart}
-            endDate={latestEnd}
-            totalHeight={totalHeight}
-            totalDays={totalDays}
-            ticks={ticks}
-          />
+        <div
+          style={{ width: "400vw", maxHeight: "90vh", position: "relative", display: "flex", flexDirection: "column" }}
+        >
+          {/* `minHeight: 0` because a column flex item defaults to `min-height: auto` and would
+              refuse to shrink below the grid's height — the scroll would fall through to the
+              container above and take the axis off-screen with it. */}
+          <div style={{ overflowY: "auto", minHeight: 0 }}>
+            <TimelineGrid
+              data={positionedTimelineData}
+              startDate={earliestStart}
+              endDate={latestEnd}
+              totalHeight={totalHeight}
+              totalDays={totalDays}
+              ticks={ticks}
+            />
+          </div>
+          <TimeAxis ticks={ticks} />
         </div>
-        <TimeAxis ticks={ticks} />
-      </div>
-    </Box>
+      </Box>
+      <YearNav
+        markers={markers}
+        activeYear={activeYear}
+        onSelect={scrollToPercent}
+      />
+    </>
   );
 };
+
+/**
+ * A chip per year, which is the only way to cross the chart short of dragging through four
+ * viewport widths.
+ *
+ * Positions come from the same tick walk the axis and the gridlines use, so a chip cannot land
+ * anywhere but on the year line it names. Two digits because the axis beneath already spells the
+ * year out, and a row of full years is wide enough to need scrolling itself on a phone.
+ *
+ * The active chip is derived from the scroll position rather than set on click, so dragging the
+ * chart moves the highlight too and the row reads as a position indicator either way.
+ */
+const YearNav = ({
+  markers,
+  activeYear,
+  onSelect,
+}: {
+  markers: YearMarker[];
+  activeYear: number | undefined;
+  onSelect: (percent: number) => void;
+}) => (
+  <Box
+    sx={{
+      display: "flex",
+      // Spread across the same width the chart occupies, so the row reads as a scale under it
+      // rather than as a cluster of buttons beside it. The chips are not positioned at their own
+      // percentages — a year is one click, and evenly spaced targets are easier to hit than ones
+      // bunched wherever the data happens to be dense.
+      justifyContent: "space-between",
+      gap: 0.5,
+      paddingTop: 1,
+      // Once the chips no longer fit, the free space is negative and `space-between` falls back to
+      // packing them from the left, which is what makes scrolling the sane degradation: the row
+      // keeps its reading order and its first chip stays at the edge it started from.
+      overflowX: "auto",
+      // A scrollbar under a 22px row would cost as much height as the row itself.
+      scrollbarWidth: "none",
+      "::-webkit-scrollbar": { display: "none" },
+    }}
+  >
+    {markers.map((marker) => (
+      <Chip
+        key={marker.year}
+        label={`'${marker.year.toString().slice(-2)}`}
+        size="small"
+        color={marker.year === activeYear ? "primary" : "default"}
+        variant={marker.year === activeYear ? "filled" : "outlined"}
+        onClick={() => onSelect(marker.percent)}
+        // Flex items shrink before they overflow, so without this a narrow viewport squeezes two
+        // digits into an ellipsis rather than letting the row scroll.
+        sx={{ height: 22, fontSize: 12, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}
+      />
+    ))}
+  </Box>
+);
 
 /**
  * Year shading and gridlines, so a bar can be read against a date without tracing down to the
@@ -227,7 +365,7 @@ const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }) => {
 const TimelineBackground = ({ ticks, height }: { ticks: TimelineTick[]; height: number }) => {
   const theme = useTheme();
 
-  const yearStarts = [{ percent: 0, year: ticks[0].year }, ...ticks.filter((tick) => tick.level === "year")];
+  const yearStarts = yearMarkers(ticks);
   const bands = yearStarts
     .map((band, index) => ({ ...band, end: yearStarts[index + 1]?.percent ?? 100 }))
     .filter((band) => band.year % 2 === 0);
