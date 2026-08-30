@@ -30,6 +30,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
           banner: row.Banner,
           // The sheet writes only the true case and leaves the cell blank otherwise.
           cinema: row.Cinema === "TRUE",
+          anime: row.Anime === "TRUE",
         } as Movie;
       })
   );

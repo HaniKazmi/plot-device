@@ -961,7 +961,7 @@ const LANE_PADDING = 0.08;
 /** Of the whole strip, and only when there is one lane to inset within. */
 const MUTED_INSET = 0.2;
 
-const TimelineBandBox = ({
+export const TimelineBandBox = ({
   startPercent,
   widthPercent,
   lane,
