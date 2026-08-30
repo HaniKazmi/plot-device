@@ -6,8 +6,8 @@ import { dropSeasonParents, jsonConverter, reviveSeasonParents } from "./convert
 
 const Graphs = lazy(() => import(/* webpackPrefetch: true */ "./Graphs"));
 
-// v2: the backfilled columns became required, so a v1 object is missing fields the cards read.
-const storageKey = dataCacheKey("show", 2);
+// v3: lastWatchedDate was added; a v2 object without it would simply never elect a hero.
+const storageKey = dataCacheKey("show", 3);
 
 const ShowsGraph = () => {
   const [data, dataLoaded] = useData(storageKey, ShowsTab, jsonConverter, reviveSeasonParents, dropSeasonParents);

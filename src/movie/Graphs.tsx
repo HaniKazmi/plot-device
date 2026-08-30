@@ -64,7 +64,7 @@ const Graphs = memo(
 
     return (
       <Stack spacing={2}>
-        <SectionRail sections={movieSections()} />
+        <SectionRail sections={movieSections(data.length > 0)} />
         <Stats
           data={data}
           measure={filterState.measure}

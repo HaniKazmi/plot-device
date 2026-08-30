@@ -122,7 +122,7 @@ Authentication notes that will otherwise waste your time:
 
 ```js
 localStorage.setItem("vg-data-cache-v1", JSON.stringify(games));
-localStorage.setItem("show-data-cache-v2", JSON.stringify(shows));
+localStorage.setItem("show-data-cache-v3", JSON.stringify(shows));
 localStorage.setItem("movie-data-cache-v3", JSON.stringify(movies));
 ```
 

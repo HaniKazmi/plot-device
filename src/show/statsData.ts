@@ -147,6 +147,36 @@ export const minutesPerEpisode = (data: Show[]) => {
   return episodes ? Math.round(seasons.sum("minutes") / episodes) : 0;
 };
 
+/**
+ * The season the hero leads with: among everything being watched, the one whose show the sheet's
+ * Last Watched column marks as most recent. Answers nothing when no watching show carries the
+ * column — the sheet predates it, or nothing is marked yet — and the page then falls back to the
+ * plain strip rather than promoting a show by a tie-break the data does not hold.
+ */
+export const heroSeason = (watching: Season[]) =>
+  watching
+    .filter((season) => season.show.lastWatchedDate)
+    .reduce<Season | undefined>(
+      (best, season) => (!best || best.show.lastWatchedDate!.lte(season.show.lastWatchedDate!) ? season : best),
+      undefined,
+    );
+
+/**
+ * The figures the hero carries about the season it is showing — the same honest set the strip's
+ * footers use, at tile size. Each is dropped where the sheet cannot support it, and the
+ * franchise tile appears only where there is a series to count.
+ */
+export const showHeroStats = (season: Season, franchiseCount: number, today: YearMonthDay) => {
+  const { episodes, days, perWeek } = watchingProgress(season, today);
+  const stats: { label: string; value: number | string }[] = [{ label: "Episodes", value: episodes }];
+
+  if (days !== undefined) stats.push({ label: "Days In", value: days });
+  if (perWeek !== undefined) stats.push({ label: "Eps / Week", value: perWeek });
+  if (franchiseCount > 1) stats.push({ label: `${season.show.franchise} Shows`, value: franchiseCount });
+
+  return stats;
+};
+
 /** Two footer rows: when the watch started and how long it has run, then how much and how fast. */
 export const statsCardLabelWatching = (season: Season, today: YearMonthDay) => {
   const { episodes, days, perWeek } = watchingProgress(season, today);

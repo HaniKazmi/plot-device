@@ -274,9 +274,13 @@ The one piece of shared arithmetic is `assignPercents` in `utils/mathUtils.ts`: 
 Both tracked domains lay their page out by temperature: what is being played or watched now, then
 what the library is made of, then what can be explored, then the deep dives. Three shells carry it.
 
-Only Games leads with a single item. Several shows are always in flight at once, so choosing one of
-them to raise above the rest means inventing a tie-break the data does not hold — the Shows page
-opens on the currently-watching strip instead, and its "Now" anchor points there.
+All three tabs lead with a single item, each by a tie-break its data genuinely holds. Games
+promotes the game in progress. Movies promotes the film watched most recently, which every film's
+watch date defines. Shows is the one that needs the sheet's help: several shows are always in
+flight at once, so the current one is whatever the Status cell on an in-progress season row marks
+with a last-watched date — and until the sheet marks anything, the page falls back to the
+currently-watching strip alone rather than promoting a show by a tie-break the data does not
+hold. The rest of the in-flight shows stay in a compact "Also Watching" strip under the hero.
 
 `Hero` (`common/Hero.tsx`) presents one item large. Its figures are the item's own — hours logged,
 days in, the size of its franchise — and each tile is dropped rather than shown as a zero when the

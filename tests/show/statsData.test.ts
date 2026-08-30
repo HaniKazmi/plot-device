@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { YearMonthDay, type YearNumber } from "../../src/common/date";
 import {
   allTimeTotals,
+  heroSeason,
+  showHeroStats,
   currentlyWatching,
   groupShowsBy,
   minutesPerEpisode,
@@ -431,5 +433,53 @@ describe("statsCardLabelWatching", () => {
     const s = season(show(), { startDate: YearMonthDay.get(2022, 1, 1) });
 
     expect(statsCardLabelWatching(s, today)[1][1]).toBe("");
+  });
+});
+
+describe("heroSeason", () => {
+  const watchingSeason = (name: string, lastWatched?: YearMonthDay) => {
+    const parent = show({ name, lastWatchedDate: lastWatched });
+    parent.s = [season(parent, { startDate: YearMonthDay.get(2026, 1, 5) })];
+    return parent.s[0];
+  };
+
+  it("picks the season whose show the Last Watched column marks as most recent", () => {
+    const older = watchingSeason("The Expanse", YearMonthDay.get(2026, 8, 1));
+    const newer = watchingSeason("Severance", YearMonthDay.get(2026, 8, 28));
+
+    expect(heroSeason([older, newer])).toBe(newer);
+    expect(heroSeason([newer, older])).toBe(newer);
+  });
+
+  it("ignores watching shows the column does not mark", () => {
+    const unmarked = watchingSeason("One Piece");
+    const marked = watchingSeason("Severance", YearMonthDay.get(2026, 8, 28));
+
+    expect(heroSeason([unmarked, marked])).toBe(marked);
+  });
+
+  it("elects nobody when no watching show carries the column, rather than inventing a tie-break", () => {
+    // The sheet may predate the column entirely; the page then keeps the plain strip.
+    expect(heroSeason([watchingSeason("A"), watchingSeason("B")])).toBeUndefined();
+  });
+});
+
+describe("showHeroStats", () => {
+  const today = YearMonthDay.get(2026, 2, 2);
+  const heroOf = (franchiseCount: number) => {
+    const parent = show({ franchise: "Star Trek" });
+    parent.s = [season(parent, { startDate: YearMonthDay.get(2026, 1, 5), e: 8 })];
+    return showHeroStats(parent.s[0], franchiseCount, today);
+  };
+
+  it("carries the strip's own honest figures at tile size: episodes, days in, pace", () => {
+    const labels = heroOf(1).map((stat) => stat.label);
+
+    expect(labels).toEqual(["Episodes", "Days In", "Eps / Week"]);
+  });
+
+  it("adds a franchise tile only where there is a series to count", () => {
+    expect(heroOf(3).at(-1)).toEqual({ label: "Star Trek Shows", value: 3 });
+    expect(heroOf(1).map((stat) => stat.label)).not.toContain("Star Trek Shows");
   });
 });

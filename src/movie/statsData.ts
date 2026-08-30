@@ -92,6 +92,24 @@ export const perFilmAverages = (data: Movie[]) => {
   };
 };
 
+/** The film watched most recently — the page's hero. Every film has a watch date, so with any
+ * data at all there is one. */
+export const latestWatched = (data: Movie[]) => (data.length ? data.sortByKey("startDate")[0] : undefined);
+
+/**
+ * The figures the hero carries about the film it is showing. The score is dropped when the film
+ * was never rated, and the franchise tile appears only where there is a series to count.
+ */
+export const movieHeroStats = (movie: Movie, franchiseCount: number) => {
+  const stats: { label: string; value: number | string }[] = [];
+
+  if (movie.score !== undefined) stats.push({ label: "Score", value: `${movie.score}/10` });
+  stats.push({ label: "Minutes", value: movie.minutes });
+  if (franchiseCount > 1) stats.push({ label: `${movie.franchise} Films`, value: franchiseCount });
+
+  return stats;
+};
+
 // Dates are in the reader's voice and not the machine's, which is the same one the card behind
 // the thumbnail speaks. One cell per row: these sit under posters a third the width of the
 // banners the other tabs label, and two cells collide into one run of digits. The score is

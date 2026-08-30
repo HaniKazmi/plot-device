@@ -26,6 +26,11 @@ export interface Show {
   rating: AgeRating;
   /** A show with no wider franchise carries its own name here, which 229 of 308 shows do. */
   franchise: string;
+  /**
+   * When an episode was last watched, rolled up from the seasons — the sheet's own answer to
+   * which of several in-flight shows is the current one. Absent until the sheet marks it.
+   */
+  lastWatchedDate?: YearMonthDay;
   s: Season[];
   e: number;
   minutes: number;
@@ -40,6 +45,8 @@ export interface Season {
   endDate?: YearMonthDay;
   episodeLength: number;
   minutes: number;
+  /** When an episode of this season was last watched. Most rows leave the column blank. */
+  lastWatchedDate?: YearMonthDay;
   show: Show;
 }
 

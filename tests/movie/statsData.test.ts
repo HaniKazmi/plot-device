@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { YearMonthDay } from "../../src/common/date";
-import { groupMoviesBy, movieGroupValue, perFilmAverages, yearlyAverages } from "../../src/movie/statsData";
+import {
+  groupMoviesBy,
+  latestWatched,
+  movieGroupValue,
+  movieHeroStats,
+  perFilmAverages,
+  yearlyAverages,
+} from "../../src/movie/statsData";
 import { movie } from "../fixtures/movies";
 
 describe("movieGroupValue", () => {
@@ -102,5 +109,33 @@ describe("perFilmAverages", () => {
     const data = [movie({ minutes: 100, score: undefined }), movie({ minutes: 200, score: 8 })];
 
     expect(perFilmAverages(data).minutes).toBe(150);
+  });
+});
+
+describe("latestWatched", () => {
+  it("answers the film watched most recently, which every watch date defines", () => {
+    const older = movie({ name: "Alien", startDate: YearMonthDay.get(2014, 10, 30) });
+    const newer = movie({ name: "Weapons", startDate: YearMonthDay.get(2026, 8, 9) });
+
+    expect(latestWatched([older, newer])).toBe(newer);
+  });
+
+  it("answers nothing for an empty page rather than throwing", () => {
+    expect(latestWatched([])).toBeUndefined();
+  });
+});
+
+describe("movieHeroStats", () => {
+  it("drops the score tile for an unscored film — 0/10 says something false", () => {
+    const labels = movieHeroStats(movie({ score: undefined }), 1).map((stat) => stat.label);
+
+    expect(labels).toEqual(["Minutes"]);
+  });
+
+  it("says the score in its own notation and counts the franchise only when it is a series", () => {
+    const stats = movieHeroStats(movie({ score: 8, franchise: "Dune" }), 2);
+
+    expect(stats[0]).toEqual({ label: "Score", value: "8/10" });
+    expect(stats.at(-1)).toEqual({ label: "Dune Films", value: 2 });
   });
 });

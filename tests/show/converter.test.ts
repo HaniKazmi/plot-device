@@ -177,6 +177,40 @@ describe("season fields", () => {
   });
 });
 
+describe("last watched, via the Status column on season rows", () => {
+  it("parses the date off an in-progress season row and rolls it up to the show", () => {
+    const [show] = jsonConverter([showRow(), seasonRow({ End: "", Status: "2026-08-28" })]);
+
+    expect(show.s[0].lastWatchedDate).toBe(YearMonthDay.get(2026, 8, 28));
+    expect(show.lastWatchedDate).toBe(YearMonthDay.get(2026, 8, 28));
+  });
+
+  it("ignores the cell on a season that has ended", () => {
+    // The sheet maintains the cell for the season in progress; a value nobody clears on a
+    // finished season must not elect an old watch as the current one.
+    const [show] = jsonConverter([showRow(), seasonRow({ End: "2026-04-08", Status: "2026-03-01" })]);
+
+    expect(show.s[0].lastWatchedDate).toBeUndefined();
+    expect(show.lastWatchedDate).toBeUndefined();
+  });
+
+  it("rolls up the latest value any in-progress season records", () => {
+    const [show] = jsonConverter([
+      showRow(),
+      seasonRow({ Season: "1", End: "", Status: "2026-08-28" }),
+      seasonRow({ Season: "1.5", Start: "2026-01-05", End: "", Status: "2025-11-02" }),
+    ]);
+
+    expect(show.lastWatchedDate).toBe(YearMonthDay.get(2026, 8, 28));
+  });
+
+  it("leaves the field undefined when the cell is blank, which is every season before the convention", () => {
+    const [show] = jsonConverter([showRow(), seasonRow({ End: "", Status: "" })]);
+
+    expect(show.lastWatchedDate).toBeUndefined();
+  });
+});
+
 describe("the 2005 cutoff", () => {
   it("drops a season that started in or before 2005 while keeping later ones", () => {
     const [show] = jsonConverter([

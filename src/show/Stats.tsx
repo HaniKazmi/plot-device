@@ -28,12 +28,13 @@ import { StatCard, StatList, StatsListProps, TotalsBand, VitalsCard } from "../c
 import { TopListCard } from "../common/TopList";
 import { DrilldownDialog } from "../common/DrilldownDialog";
 import { YearSelect } from "../common/YearSelect";
+import { Hero } from "../common/Hero";
 import ShowCardMediaImage from "./CardMediaImage";
 import { NEUTRAL_FILL, statusToColour } from "../utils/types";
 import { Radio, Stack, Typography } from "@mui/material";
 import { capitalize } from "@mui/material/utils";
 import { useState, type ReactNode } from "react";
-import { CURRENT_PLAINDATE, CURRENT_YEAR, type YearNumber } from "../common/date";
+import { CURRENT_PLAINDATE, CURRENT_YEAR, formatDate, type YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
 import { Section, StatBand } from "../common/SectionRail";
 import { SHOW_SECTIONS } from "./sections";
@@ -43,6 +44,8 @@ import type { FilterDispatch } from "./filterUtils";
 import {
   allTimeTotals,
   groupShowsBy,
+  heroSeason,
+  showHeroStats,
   minutesPerEpisode,
   perShowAverages,
   recentlyComplete,
@@ -55,6 +58,7 @@ import {
 } from "./statsData";
 import { topNWithOther } from "../common/statsData";
 import { useSelectBox } from "../common/SelectBoxHook";
+import { useFranchiseShows } from "./franchiseContext";
 import "../utils/arrayUtils";
 
 const Stats = ({
@@ -74,18 +78,13 @@ const Stats = ({
 }) => {
   return (
     <Stack spacing={2}>
-      {/* What is in flight, and the page's "now" — a strip rather than one item raised above the
-          rest, because several shows are always on the go and picking one of them to lead with
-          means inventing a tie-break the data does not have. Nothing being watched and the
-          section is not rendered at all. `watching` is computed by `Graphs`, which decides on
-          the same value whether the rail offers a chip pointing here. */}
-      {watching.length > 0 && (
-        <Section id={SHOW_SECTIONS.now}>
-          <StatBand>
-            <CurrentlyWatching watching={watching} />
-          </StatBand>
-        </Section>
-      )}
+      {/* The page's "now": the show the sheet's Last Watched column marks as current, promoted
+          the way the games tab promotes the game in progress, with the rest of the in-flight
+          shows in a compact strip below it. Until the sheet marks anything the hero has no
+          honest pick — several shows are always on the go — and the strip stands alone.
+          Nothing being watched and the section is not rendered at all. `watching` is computed
+          by `Graphs`, which decides on the same value whether the rail offers a chip here. */}
+      {watching.length > 0 && <Now watching={watching} />}
       <Section id={SHOW_SECTIONS.vitals}>
         <StatBand>
           {/* The year controls in these cards filter the whole page, and a control's effects flow
@@ -141,6 +140,49 @@ const Stats = ({
         </StatBand>
       </Section>
     </Stack>
+  );
+};
+
+const Now = ({ watching }: { watching: Season[] }) => {
+  const hero = heroSeason(watching);
+  const rest = hero ? watching.filter((season) => season !== hero) : watching;
+
+  return (
+    <Section id={SHOW_SECTIONS.now}>
+      <Stack spacing={2}>
+        {hero && <ShowHero season={hero} />}
+        {rest.length > 0 && (
+          <StatBand>
+            <CurrentlyWatching
+              watching={rest}
+              title={hero ? "Also Watching" : "Currently Watching"}
+            />
+          </StatBand>
+        )}
+      </Stack>
+    </Section>
+  );
+};
+
+/**
+ * The franchise count comes from the index the tab already built for the card strips, so the
+ * hero and the strip inside the card it opens cannot disagree about how many shows a series
+ * holds.
+ */
+const ShowHero = ({ season }: { season: Season }) => {
+  const franchise = useFranchiseShows(season.show);
+
+  return (
+    <Hero
+      item={season}
+      MediaComponent={ShowCardMediaImage}
+      kicker={`Currently watching · last episode ${formatDate(season.show.lastWatchedDate!)}`}
+      // The same badge the strip's cards carry, so being promoted does not cost the show its place.
+      chip={{ label: `S${season.s}E${season.e}`, colour: statusToColour(season.show) }}
+      title={season.show.name}
+      subtitle={[season.show.network, season.show.genre].filter(Boolean).join(" · ")}
+      stats={showHeroStats(season, franchise.length, CURRENT_PLAINDATE)}
+    />
   );
 };
 
@@ -414,18 +456,15 @@ const MostWatchedCategory = ({
   );
 };
 
-const CurrentlyWatching = ({ watching }: { watching: Season[] }) => (
+const CurrentlyWatching = ({ watching, title }: { watching: Season[]; title: string }) => (
   <ShowStatList
     icon={<PlayArrow />}
-    title="Currently Watching"
+    title={title}
     content={watching}
     // One badge saying exactly where you are, in the colour every chart paints "still going" in.
     chipComponent={(season) => ({ label: `S${season.s}E${season.e}`, colour: statusToColour(season.show) })}
     wrap={false}
     labelComponent={(season) => statsCardLabelWatching(season, CURRENT_PLAINDATE)}
-    // Larger cards than the finished strips: this is the page's "now", and what it costs — fewer
-    // cards before the strip scrolls — is fine for a list that is rarely more than a handful.
-    pictureWidth={[12, 6, 4]}
   />
 );
 

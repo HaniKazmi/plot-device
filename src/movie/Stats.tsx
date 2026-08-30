@@ -21,11 +21,13 @@ import { StatCard, StatList, StatsListProps, TotalsBand, VitalsCard } from "../c
 import { TopListCard } from "../common/TopList";
 import { DrilldownDialog } from "../common/DrilldownDialog";
 import { YearSelect } from "../common/YearSelect";
+import { Hero } from "../common/Hero";
 import { Section, StatBand } from "../common/SectionRail";
-import { CURRENT_YEAR, type YearNumber } from "../common/date";
+import { CURRENT_YEAR, formatDate, type YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
 import { topNWithOther } from "../common/statsData";
 import { useSelectBox } from "../common/SelectBoxHook";
+import { useFranchiseMovies } from "./franchiseContext";
 import { format } from "../utils/mathUtils";
 import { NEUTRAL_FILL } from "../utils/types";
 import { highchartsColors } from "../highcharts";
@@ -33,6 +35,7 @@ import MovieCardMediaImage from "./CardMediaImage";
 import { MOVIE_SECTIONS } from "./sections";
 import type { FilterDispatch } from "./filterUtils";
 import {
+  cinemaLabel,
   cinemaToColour,
   groupToColour,
   scoreBand,
@@ -44,6 +47,8 @@ import {
 import {
   allTimeTotals,
   filmsInYear,
+  latestWatched,
+  movieHeroStats,
   groupMoviesBy,
   movieTopOptions,
   perFilmAverages,
@@ -67,8 +72,18 @@ const Stats = ({
   yearTo: YearNumber;
   filterDispatch: FilterDispatch;
 }) => {
+  const latest = latestWatched(data);
+
   return (
     <Stack spacing={2}>
+      {/* The page's "now": every film has a watch date, so the most recent one is well defined
+          and there is no tie-break to invent. Rendered only when anything survives the filters,
+          which is the same test the rail's "Latest" chip is built from. */}
+      {latest && (
+        <Section id={MOVIE_SECTIONS.latest}>
+          <MovieHero movie={latest} />
+        </Section>
+      )}
       <Section id={MOVIE_SECTIONS.vitals}>
         <StatBand>
           {/* The year controls in these cards filter the whole page, and a control's effects flow
@@ -125,6 +140,28 @@ const Stats = ({
         </StatBand>
       </Section>
     </Stack>
+  );
+};
+
+/**
+ * The franchise count comes from the index the tab already built for the card strips, so the
+ * hero and the strip inside the card it opens cannot disagree about how many films a series
+ * holds.
+ */
+const MovieHero = ({ movie }: { movie: Movie }) => {
+  const franchise = useFranchiseMovies(movie);
+
+  return (
+    <Hero
+      item={movie}
+      MediaComponent={MovieCardMediaImage}
+      kicker={`Latest watch · ${formatDate(movie.startDate)} · ${cinemaLabel(movie)}`}
+      // The same badge the strips' posters carry, so being promoted does not cost the film its score.
+      chip={movieScoreChip(movie)}
+      title={movie.name}
+      subtitle={[movie.director, movie.genre].filter(Boolean).join(" · ")}
+      stats={movieHeroStats(movie, franchise.length)}
+    />
   );
 };
 
@@ -290,12 +327,12 @@ const TopList = ({
   );
 };
 
-/** The tab's closest thing to a "now": what was watched most recently. */
+/** Everything recently watched that the hero above is not already showing. */
 const RecentlyWatched = ({ data }: { data: Movie[] }) => (
   <MovieStatList
     icon={<Weekend />}
     title="Recently Watched"
-    content={data.sortByKey("startDate")}
+    content={data.sortByKey("startDate").slice(1)}
     labelComponent={statsCardLabelWatched}
   />
 );

@@ -54,6 +54,15 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       const episodeLength = row.Episodes ? parseInt(row.Episodes) : undefined;
       const e = Number.isNaN(episodes) ? 0 : episodes;
 
+      // A season row reuses the Status column for when an episode was last watched — the cell is
+      // otherwise always blank, since status is a show-row fact. Read only while the season has
+      // no end date: the sheet maintains the cell for the season in progress, and honouring it on
+      // a finished season would let a value nobody clears elect an old watch as the current one.
+      const lastWatchedDate =
+        row.Status && !endDate
+          ? describing(`${where}, Status (last watched)`, () => PlainDate.from(row.Status) as YearMonthDay)
+          : undefined;
+
       const season: Season = {
         s: parseFloat(row.Season),
         e,
@@ -64,6 +73,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
         endDate,
         episodeLength: episodeLength as number,
         minutes: episodeLength ? episodeLength * e : 0,
+        lastWatchedDate,
         show: show as Show,
       };
 
@@ -90,6 +100,13 @@ export const jsonConverter = (json: Record<string, string>[]) => {
     show.endDate = show.s.at(-1)?.endDate;
     show.e = show.s.sum("e");
     show.minutes = show.s.sum("minutes");
+    // The latest any season records, not the last season's: a stale value on an old row must not
+    // beat a fresh one, wherever the sheet happens to carry it.
+    show.lastWatchedDate = show.s.reduce<YearMonthDay | undefined>(
+      (latest, season) =>
+        season.lastWatchedDate && (!latest || latest.lte(season.lastWatchedDate)) ? season.lastWatchedDate : latest,
+      undefined,
+    );
     if (show.endDate && show.startDate > show.endDate) {
       console.error(`Show "${show.name}": starts ${show.startDate} but ends ${show.endDate}`);
     }
