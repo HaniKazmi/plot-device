@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { YearMonthDay } from "../../src/common/date";
-import { finishedItems } from "../../src/common/finishedData";
+import { Year, YearMonthDay } from "../../src/common/date";
+import { finishedBucket, finishedItems } from "../../src/common/finishedData";
 
 const item = (name: string, banner: string | undefined, year?: number) => ({
   name,
@@ -56,5 +56,46 @@ describe("finishedItems", () => {
 
   it("returns nothing for empty data", () => {
     expect(finishedItems([], "Date")).toEqual([]);
+  });
+});
+
+describe("finishedBucket", () => {
+  it("reads a year off the date under the date sort", () => {
+    expect(finishedBucket(item("Zelda", "a.jpg", 2023), "Date")).toBe("2023");
+  });
+
+  it("gives a year-only date the same year a full date gives", () => {
+    const yearOnly = { name: "Old", banner: "a.jpg", startDate: Year.get(2007) };
+
+    expect(finishedBucket(yearOnly, "Date")).toBe("2007");
+    expect(finishedBucket(item("New", "a.jpg", 2007), "Date")).toBe("2007");
+  });
+
+  it("has no bucket for an undated item, which is one the date sort puts first", () => {
+    expect(finishedBucket(item("Undated", "a.jpg"), "Date")).toBeNull();
+  });
+
+  it("reads a leading letter off the name under the name sort", () => {
+    expect(finishedBucket(item("Metroid", "a.jpg", 2023), "Name")).toBe("M");
+  });
+
+  it("uppercases a lowercase leading letter, so one section has one label", () => {
+    expect(finishedBucket(item("iO", "a.jpg"), "Name")).toBe("I");
+  });
+
+  it("keeps a leading digit or symbol as itself rather than dropping it", () => {
+    expect(finishedBucket(item("1080 Snowboarding", "a.jpg"), "Name")).toBe("1");
+  });
+
+  it("has no bucket for an empty name, which has no letter to show", () => {
+    expect(finishedBucket(item("", "a.jpg"), "Name")).toBeNull();
+  });
+
+  it("ignores the field the other sort would have read", () => {
+    // The bucket follows the sort, so the same item answers differently under each.
+    const both = item("Metroid", "a.jpg", 2023);
+
+    expect(finishedBucket(both, "Date")).toBe("2023");
+    expect(finishedBucket(both, "Name")).toBe("M");
   });
 });

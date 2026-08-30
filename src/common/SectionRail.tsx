@@ -12,7 +12,7 @@ export type RailSection = ChipRailItem;
  * away by the time an anchor is used — so this is the rail's own height plus enough that the
  * section's heading is not sitting against it.
  */
-const SCROLL_MARGIN = 72;
+export const SCROLL_MARGIN = 72;
 
 /** Where the observer calls a section current: from just under the rail to the upper third. */
 const ACTIVE_BAND = `-${SCROLL_MARGIN}px 0px -66% 0px`;

@@ -193,6 +193,14 @@ A row carries a colour swatch exactly where the app already speaks that field's 
 
 `DetailCard`, the uniform tile, remains for `movie/`, which has too few facts for the split to buy anything.
 
+### Scroll marker — `common/ScrollMarkerHook.ts`
+
+The library grids are hundreds of banner cards deep with nothing between them, so a reader scrolled into one has no way to tell where in the sort order they are. A pill fixed just under the section rail names it: the year of the topmost visible row under the date sort, that row's leading letter under the name sort. `finishedBucket` derives the label from the same field `finishedItems` orders by, so the marker and the wall cannot disagree about which field is in play, and it answers `null` for a value with no short form — an undated item, which the date sort places first, so the topmost card genuinely can be one.
+
+Each card wrapper carries its label as a `data-bucket` attribute, and the scroll handler binary-searches the wrappers for the first whose rect clears the reading line. The wall runs to a thousand cards and the handler answers every scroll event, so measuring each in turn would be a thousand layout reads a frame; document order is reading order and a row's cards share an edge, so the rects are ordered and can be halved in on. Each answer — label, visibility, offset, whether that offset is a centre — is a primitive in its own state, so a scroll that changes none of them re-renders nothing, where one state object would allocate a fresh one per event and re-render the whole wall.
+
+The gutter the pill floats in is measured from the section's own rect rather than from the container's breakpoints, so no copy of those margins lives here. Below the width that gutter needs, the pill tucks inside the container's leading edge instead.
+
 ### Stats and cards
 
 `common/SectionHeader.tsx` is the header every chart card wears: icon and title left, a muted population count beside the title, controls pinned right. It is a thin arrangement over `CardHeader`, so the theme's `MuiCardHeader` spacing and the `h6` weight reach it without a second set of rules to keep in step. The count arrives as an already-worded string — a `common/` shell cannot know it is counting games — which is why the chart shells take `title` (and, where a population means something, `count`) as props and the timelines are handed a whole header by their domain.
@@ -302,7 +310,7 @@ Setup is the plugin's documented path: `@vitejs/plugin-react` exports `reactComp
 - **`this`** anywhere in the function. Highcharts binds the chart to `this` in its event callbacks, so those must live at module scope (see `dimLeafRing` in §6) or they take the whole component down with them.
 - **`??=`**, which the compiler cannot yet lower. Write `x = x ?? y` instead.
 
-At the time of writing 99 functions compile and 8 bail, all of them on one compiler-internal limit: `BuildHIR::lowerAssignment` cannot lower a destructured prop that carries a default value, so `({ landscape = false })` takes its whole component out. That covers `common/Card.tsx`, `common/Stats.tsx`, `common/Finished.tsx` and `vg/Stats.tsx`. A `MethodCall` bailout, the other kind seen here, does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
+At the time of writing 101 functions compile and 8 bail, all of them on one compiler-internal limit: `BuildHIR::lowerAssignment` cannot lower a destructured prop that carries a default value, so `({ landscape = false })` takes its whole component out. That covers `common/Card.tsx`, `common/Stats.tsx`, `common/Finished.tsx` and `vg/Stats.tsx`. A `MethodCall` bailout, the other kind seen here, does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
 
 The compiler costs about 4% of bundle size (~15KB gzipped) in injected cache slots. That is a deliberate trade, and `npm run analyze` exists to keep it honest.
 
