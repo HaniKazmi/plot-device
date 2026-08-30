@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { companyToColor, groupToColour, platformToColor, platformToShort, type Platform } from "../../src/vg/types";
+import {
+  companyToAccent,
+  companyToColor,
+  groupToColour,
+  platformToColor,
+  platformToShort,
+  type Platform,
+} from "../../src/vg/types";
 import { KNOWN_PLATFORMS, videoGame } from "../fixtures/vgRows";
 
 describe("platform colour lookups", () => {
@@ -34,13 +41,25 @@ describe("platform colour lookups", () => {
   it("takes the short name from the platform but the colour from the company", () => {
     const game = videoGame({ platform: "Nintendo 3DS", company: "Nintendo" });
 
-    expect(platformToShort(game)).toEqual(["3DS", companyToColor(game)]);
+    expect(platformToShort(game)).toEqual(["3DS", companyToAccent(game)]);
+  });
+
+  it("gives the corner chip the brand accent, not the muted fill charts are drawn in", () => {
+    // The two lookups exist to differ: a chip is read on its own and wants full saturation,
+    // while five fills sit side by side in one chart and have to stay separable there.
+    const game = videoGame({ platform: "Nintendo 3DS", company: "Nintendo" });
+
+    expect(companyToAccent(game)).not.toBe(companyToColor(game));
+    expect(platformToColor(game.platform)).toBe(companyToColor(game));
   });
 });
 
 describe("companyToColor", () => {
   it.each(["Nintendo", "PlayStation", "Xbox", "PC", "iOS"] as const)("has a colour for %s", (company) => {
     expect(companyToColor({ company })).toBeTruthy();
+    // Both halves cover the same set, or a console draws its chip from a lookup that has no
+    // entry for it and renders on the theme's primary as if it had no company at all.
+    expect(companyToAccent({ company })).toBeTruthy();
   });
 
   it("returns undefined for an unknown company instead of throwing", () => {
@@ -55,7 +74,7 @@ describe("groupToColour", () => {
     const game = videoGame();
 
     expect(groupToColour("company", game)).toBe(companyToColor(game));
-    expect(groupToColour("status", game)).toBe("#2ca02c");
+    expect(groupToColour("status", game)).toBe("#50a170");
     expect(groupToColour("rating", game)).toBe("#c27400");
   });
 
