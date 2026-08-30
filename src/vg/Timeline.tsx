@@ -1,10 +1,13 @@
-import { CardHeader, FormControlLabel, FormGroup, Switch } from "@mui/material";
+import { FormControlLabel, FormGroup, Switch } from "@mui/material";
+import { Timeline as TimelineIcon } from "@mui/icons-material";
 import { useState } from "react";
+import { SectionHeader } from "../common/SectionHeader";
 import { VideoGame, platformToColor } from "./types";
 import Timeline, { TimelineData } from "../common/Timeline";
 import { CURRENT_PLAINDATE, YearMonthDay, formatDateRange } from "../common/date";
 import VgCardMediaImage from "./CardMediaImage";
 import { CardPanel } from "../common/Card";
+import { format } from "../utils/mathUtils";
 
 const VgTimeline = ({ data }: { data: VideoGame[] }) => {
   const [partyEnabled, setParty] = useState(false);
@@ -40,8 +43,12 @@ const VgTimeline = ({ data }: { data: VideoGame[] }) => {
     }));
   return (
     <Timeline data={gameData}>
-      <CardHeader
-        title="Timeline"
+      <SectionHeader
+        icon={<TimelineIcon />}
+        title="Every playthrough"
+        // The bars actually drawn, which the Party switch and the chart's own 2015 floor both
+        // narrow — so the figure answers for the picture rather than for the tab's filters.
+        count={`${format(gameData.length)} games`}
         action={
           <FormGroup row>
             <FormControlLabel

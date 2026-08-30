@@ -1,5 +1,8 @@
-import { CardHeader, FormGroup, FormControlLabel, Switch } from "@mui/material";
+import { FormGroup, FormControlLabel, Switch } from "@mui/material";
+import { Timeline as TimelineIcon } from "@mui/icons-material";
 import { useState } from "react";
+import { SectionHeader } from "../common/SectionHeader";
+import { format } from "../utils/mathUtils";
 import { Season, Show, isShow } from "./types";
 import Timeline, { TimelineData } from "../common/Timeline";
 import { Colour, statusToColour } from "../utils/types";
@@ -46,8 +49,12 @@ const ShowTimeline = ({ data }: { data: Show[] }) => {
 
   return (
     <Timeline data={showData}>
-      <CardHeader
-        title="Timeline"
+      <SectionHeader
+        icon={<TimelineIcon />}
+        title="Every season"
+        // The bars actually drawn, which the switch beside it changes from one per season to one
+        // per show — so the noun turns over with the count rather than outliving it.
+        count={`${format(titleData.length)} ${groupData ? "shows" : "seasons"}`}
         action={
           <FormGroup row>
             <FormControlLabel

@@ -1,7 +1,9 @@
-import { Card, CardHeader, CardContent, FormGroup, Stack } from "@mui/material";
+import { Card, CardContent, FormGroup, Stack } from "@mui/material";
 import Grid from "@mui/material/Grid";
+import { GridView } from "@mui/icons-material";
 import { useDeferredValue, type ReactNode } from "react";
 import type { TypedCardMediaImage } from "./Card";
+import { SectionHeader } from "./SectionHeader";
 import { useSelectBox } from "./SelectBoxHook";
 import { ExpandableCard } from "./Stats";
 import { finishedItems, type FinishedItem, type FinishedSort } from "./finishedData";
@@ -11,6 +13,7 @@ const sortOptions: FinishedSort[] = ["Date", "Name"];
 
 const Finished = <U extends FinishedItem>({
   title,
+  count,
   data,
   width,
   colour,
@@ -18,6 +21,8 @@ const Finished = <U extends FinishedItem>({
   MediaComponent,
 }: {
   title: string;
+  /** What the grid is over, in the caller's own words. Optional: a domain may have no noun yet. */
+  count?: string;
   data: readonly U[];
   width: number;
   colour?: (item: U) => string;
@@ -30,8 +35,10 @@ const Finished = <U extends FinishedItem>({
   const recent = finishedItems(slowData, sort);
   const renderContent = (isDialog: boolean, toggle: ReactNode) => (
     <>
-      <CardHeader
+      <SectionHeader
+        icon={<GridView />}
         title={title}
+        count={count}
         action={
           <FormGroup>
             <Stack

@@ -1,7 +1,6 @@
 import {
   Card,
   CardContent,
-  CardHeader,
   FormControlLabel,
   FormGroup,
   Stack,
@@ -12,6 +11,7 @@ import {
 } from "@mui/material";
 import { type ReactNode, useState } from "react";
 import { BarChart, PinOutlined, SsidChart } from "@mui/icons-material";
+import { SectionHeader } from "./SectionHeader";
 import { Chart, Series, XAxis, YAxis, PlotOptions, Tooltip, Legend } from "../highcharts";
 import type { Year, YearMonth } from "./date";
 import type { Colour } from "../utils/types";
@@ -56,7 +56,8 @@ const Barchart = ({
 
   return (
     <Card>
-      <CardHeader
+      <SectionHeader
+        icon={<BarChart />}
         title={title}
         action={
           <FormGroup>

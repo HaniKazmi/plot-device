@@ -3,6 +3,7 @@ import { groupToColour, videoGameOptions, VideoGameStringKeys, type Measure, typ
 import type { KeysMatching } from "../utils/types";
 import { PlainDate } from "../common/date";
 import Sunburst, { SunBurstControls } from "../common/Sunburst";
+import { format } from "../utils/mathUtils";
 
 type OptionKeys = VideoGameStringKeys | KeysMatching<VideoGame, VideoGame["startDate"]>;
 const options: OptionKeys[] = [...videoGameOptions, "startDate"];
@@ -12,6 +13,8 @@ const VgSunburst = ({ data, measure }: { data: VideoGame[]; measure: Measure }) 
 
   return (
     <Sunburst
+      title="Where the hours went"
+      count={`${format(data.length)} games`}
       data={data}
       groups={controlStates}
       options={{

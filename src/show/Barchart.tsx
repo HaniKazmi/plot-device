@@ -18,7 +18,10 @@ const optionToName = (season: Season, option: Option) => {
 };
 
 const ShowBarchart = ({ data, measure }: { data: Show[]; measure: Measure }) => {
-  const [group, controls] = useSelectBox(options, "none");
+  // Grouped by status from the start, so the columns are born carrying the one distinction the
+  // tab is about — what is still running against what is done — rather than a single flat colour
+  // the reader has to open a select box to break apart.
+  const [group, controls] = useSelectBox(options, "status");
   const barchartData = (cumulative: boolean) =>
     data
       .flatMap((show) => show.s)
@@ -31,7 +34,7 @@ const ShowBarchart = ({ data, measure }: { data: Show[]; measure: Measure }) => 
 
   return (
     <Barchart
-      title={measure === "Episodes" ? "Episodes Watched" : "Hours Watched"}
+      title={`${measure === "Episodes" ? "Episodes" : "Hours"} by year`}
       data={barchartData}
       postAggregate={measure === "Hours" ? (minutes) => Math.floor(minutes / 60) : undefined}
       controls={controls}
