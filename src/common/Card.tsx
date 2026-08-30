@@ -362,10 +362,9 @@ export interface PanelStat {
  *   better than half the column empty, so the title takes the top and the figures the bottom
  *   edge, spending that height as structure rather than leaving it as a pool around the middle.
  * - `hero` — beside the artwork once there is width for it and beneath it on a phone, with the
- *   seam rotating to the edge the two actually share. The content stays together at the top:
- *   this panel is as tall as a 300px banner across a 300px column, which is more height than
- *   three lines and a row of tiles can fill, and pushing the tiles to the far edge opens a void
- *   in the middle of the card rather than structuring it.
+ *   seam rotating to the edge the two actually share. The height is spent the way `beside`
+ *   spends it — title at the top, tiles on the bottom edge — so the hero and the hover cards
+ *   read as one treatment at two sizes.
  */
 export type PanelLayout = "beneath" | "beside" | "hero";
 
@@ -407,10 +406,11 @@ export const CardPanel = ({
       sx={{
         display: "flex",
         flexDirection: "column",
-        // Beside a poster the panel is as tall as the artwork and three lines cannot fill it, so
+        // Beside or hero, the panel is as tall as the artwork and a few lines cannot fill it, so
         // the title takes the top edge and the figures the bottom, spending that height as
-        // structure rather than pooling it around a centred block.
-        justifyContent: beside ? "space-between" : "flex-start",
+        // structure rather than pooling it around a centred block. Only `beneath` has no height
+        // to distribute.
+        justifyContent: beside || hero ? "space-between" : "flex-start",
         gap: 2,
         // Basis zero and free to grow, so a panel beside the artwork is exactly the row minus the
         // artwork column rather than a share of it.

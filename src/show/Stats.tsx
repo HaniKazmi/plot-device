@@ -145,20 +145,17 @@ const Stats = ({
 
 const Now = ({ watching }: { watching: Season[] }) => {
   const hero = heroSeason(watching);
-  const rest = hero ? watching.filter((season) => season !== hero) : watching;
 
   return (
     <Section id={SHOW_SECTIONS.now}>
       <Stack spacing={2}>
         {hero && <ShowHero season={hero} />}
-        {rest.length > 0 && (
-          <StatBand>
-            <CurrentlyWatching
-              watching={rest}
-              title={hero ? "Also Watching" : "Currently Watching"}
-            />
-          </StatBand>
-        )}
+        {/* The whole in-flight list, the hero's show included: the hero is a spotlight on the
+            strip, not a removal from it, so the strip stays the one complete answer to "what is
+            being watched". */}
+        <StatBand>
+          <CurrentlyWatching watching={watching} />
+        </StatBand>
       </Stack>
     </Section>
   );
@@ -176,7 +173,7 @@ const ShowHero = ({ season }: { season: Season }) => {
     <Hero
       item={season}
       MediaComponent={ShowCardMediaImage}
-      kicker={`Currently watching · last episode ${formatDate(season.show.lastWatchedDate!)}`}
+      kicker={`Last watched · ${formatDate(season.show.lastWatchedDate!)}`}
       // The same badge the strip's cards carry, so being promoted does not cost the show its place.
       chip={{ label: `S${season.s}E${season.e}`, colour: statusToColour(season.show) }}
       title={season.show.name}
@@ -456,10 +453,10 @@ const MostWatchedCategory = ({
   );
 };
 
-const CurrentlyWatching = ({ watching, title }: { watching: Season[]; title: string }) => (
+const CurrentlyWatching = ({ watching }: { watching: Season[] }) => (
   <ShowStatList
     icon={<PlayArrow />}
-    title={title}
+    title="Currently Watching"
     content={watching}
     // One badge saying exactly where you are, in the colour every chart paints "still going" in.
     chipComponent={(season) => ({ label: `S${season.s}E${season.e}`, colour: statusToColour(season.show) })}

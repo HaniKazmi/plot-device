@@ -327,12 +327,15 @@ const TopList = ({
   );
 };
 
-/** Everything recently watched that the hero above is not already showing. */
+/**
+ * The full list, the hero's film included: the hero is a spotlight on this strip, not a removal
+ * from it, so the strip stays the one complete answer to "what was watched lately".
+ */
 const RecentlyWatched = ({ data }: { data: Movie[] }) => (
   <MovieStatList
     icon={<Weekend />}
     title="Recently Watched"
-    content={data.sortByKey("startDate").slice(1)}
+    content={data.sortByKey("startDate")}
     labelComponent={statsCardLabelWatched}
   />
 );
