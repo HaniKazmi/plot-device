@@ -14,6 +14,7 @@ import type { FilterDispatch, FilterState } from "./filterUtils";
 import { Functions, Timer } from "@mui/icons-material";
 import { useDeferredValue } from "react";
 import { format } from "../utils/mathUtils";
+import { finishedCount } from "../common/finishedData";
 
 const Graphs = ({
   data,
@@ -59,7 +60,7 @@ const Graphs = ({
         <Section id={SHOW_SECTIONS.library}>
           <Finished
             title="All Shows"
-            count={`${format(data.length)} shows`}
+            count={`${format(finishedCount(data))} shows`}
             data={data}
             width={3}
             colour={statusToColour}

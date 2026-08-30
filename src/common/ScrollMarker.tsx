@@ -2,6 +2,7 @@ import { Box } from "@mui/material";
 import { ChipRail, CHIP_HEIGHT } from "./ChipRail";
 import { bucketLabel } from "./finishedData";
 import { MARKER_TOP, type ScrollMarkerState } from "./ScrollMarkerHook";
+import { NUMERIC_LABEL_SX } from "./typography";
 
 /**
  * A pill naming the reader's place in the sort, floating beside the wall it describes.
@@ -30,13 +31,12 @@ export const ScrollMarker = ({ bucket, visible, left, centred }: ScrollMarkerSta
       borderColor: "divider",
       backgroundColor: "background.paper",
       boxShadow: 2,
-      fontSize: 12,
+      ...NUMERIC_LABEL_SX,
       fontWeight: 650,
       // The pill is what stands in for the rail, so it is the height of a chip in it: the two
       // never appear together, and a label that changed size as the viewport crossed the
       // threshold would read as a different thing rather than the same one relocating.
       lineHeight: `${CHIP_HEIGHT}px`,
-      fontVariantNumeric: "tabular-nums",
     }}
   >
     {bucket}

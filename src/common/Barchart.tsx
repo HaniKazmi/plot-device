@@ -28,11 +28,14 @@ const getSeriesType = (graphType: GraphType, cumulative: boolean): "column" | "s
 
 const Barchart = ({
   title,
+  count,
   data,
   postAggregate,
   controls,
 }: {
   title: string;
+  /** What the chart is over, already worded by its domain. */
+  count?: string;
   data: (cumulative: boolean) => { name: string; date: YearMonth | Year; colour: Colour; value: number }[];
   /** Converts each aggregated value, e.g. minutes to hours. Empty cells stay empty. */
   postAggregate?: (value: number) => number;
@@ -59,6 +62,7 @@ const Barchart = ({
       <SectionHeader
         icon={<BarChart />}
         title={title}
+        count={count}
         action={
           <FormGroup>
             {controls}

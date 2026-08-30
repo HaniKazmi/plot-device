@@ -63,9 +63,9 @@ export type Measure = "Hours" | "Games";
  * A company has two colours, and which one is right depends on how much of the screen it covers.
  *
  * The fills below are the ones chart geometry uses — sunburst wedges, barchart series, timeline
- * bars, stacked segments, card strips. They sit in one lightness band, so each clears 3:1 against
- * both surfaces the app paints on (#ffffff paper and #1d2126 paper), and each keeps its brand's
- * hue. A brand hex is chosen to stand alone against white, and a set of them is not a scale:
+ * bars, stacked segments, card strips. They meet the fill contract on `NEUTRAL_FILL`, in one
+ * lightness band, and each keeps its brand's hue. A brand hex is chosen to stand alone against
+ * white, and a set of them is not a scale:
  * Nintendo's #e60012 at full saturation beside four neighbours reads as one shouting value.
  *
  * PC and iOS stay neutral because neutrality is those brands' identity — a taupe and a space
@@ -173,10 +173,9 @@ export const ratingToColour = ({ rating }: VideoGame) => {
  * Action takes the flame end of red rather than a pillar-box red because sRGB has no bright red:
  * red only exists low in the lightness range, and Fighting's crimson is what occupies it.
  *
- * Every value sits in the same lightness band as the company fills, so each clears 3:1 against
- * both surfaces the app paints on (#ffffff paper and #1d2126 paper), with chroma taken as high as
- * sRGB allows at that lightness. A colour picked for the light card alone washes out on the dark
- * one; `#ffeb3b` against white is 1.22:1. Fourteen hues in one band is more than hue alone can
+ * Every value sits in the same lightness band as the company fills, meeting the fill contract on
+ * `NEUTRAL_FILL`, with chroma taken as high as sRGB allows at that lightness. Fourteen hues in one
+ * band is more than hue alone can
  * separate — 27° apart is roughly ΔE 7, and telling two fills apart wants 15 — so lightness
  * alternates around the hue wheel and neighbours land at opposite ends of the band.
  *
@@ -190,58 +189,40 @@ export const ratingToColour = ({ rating }: VideoGame) => {
  * franchise colour is somebody's brand, which keeps its hue and chroma and yields only lightness
  * to contrast. Neither is free to be reassigned a hue the way a genre is.
  */
-export const genreToColour = ({ genre }: { genre: Genre }) => {
-  switch (genre) {
-    case "Action":
-      return "#fe4c00" as Colour;
-    case "Adventure":
-      return "#13ac00" as Colour;
-    case "Action Adventure":
-      return "#a85500" as Colour;
-    case "Driving/Racing":
-      return "#ae9200" as Colour;
-    case "Fighting":
-      return "#d5005e" as Colour;
-    case "Party Games":
-      return "#bc00c8" as Colour;
-    case "Platformer":
-      return "#3893ff" as Colour;
-    case "Puzzle":
-      return "#c357ff" as Colour;
-    case "Role Playing":
-      return "#7543ff" as Colour;
-    case "Shooter":
-      return "#667100" as Colour;
-    case "Simulation":
-      return "#008268" as Colour;
-    case "Strategy":
-      return "#0072c5" as Colour;
-    case "Visual Novel":
-      return "#ff1da7" as Colour;
-    case "Music/Rhythm":
-      return "#00a4b1" as Colour;
-    default:
-      return NEUTRAL_FILL;
-  }
+const genreColours: Record<Genre, Colour> = {
+  Action: "#fe4c00" as Colour,
+  Adventure: "#13ac00" as Colour,
+  "Action Adventure": "#a85500" as Colour,
+  "Driving/Racing": "#ae9200" as Colour,
+  Fighting: "#d5005e" as Colour,
+  "Party Games": "#bc00c8" as Colour,
+  Platformer: "#3893ff" as Colour,
+  Puzzle: "#c357ff" as Colour,
+  "Role Playing": "#7543ff" as Colour,
+  Shooter: "#667100" as Colour,
+  Simulation: "#008268" as Colour,
+  Strategy: "#0072c5" as Colour,
+  "Visual Novel": "#ff1da7" as Colour,
+  "Music/Rhythm": "#00a4b1" as Colour,
 };
+
+export const genreToColour = ({ genre }: { genre: Genre }): Colour => genreColours[genre] ?? NEUTRAL_FILL;
 
 /**
  * A franchise's own brand hex, filling the sunburst's franchise ring and the Top Franchise bar.
  *
  * Hue and chroma are the brand's and are kept exactly; only lightness moves, and only as far as
- * clearing 3:1 against both surfaces the app paints on (#ffffff paper and #1d2126 paper) demands.
- * Yakuza's #A31925 is 2.10:1 on dark and Civilization's #005E9B is 2.37:1, so both lift a step
- * rather than being reassigned a hue. Chroma gives way only where the clamped lightness leaves
- * sRGB, which Final Fantasy's cyan is the one entry to still do.
+ * the fill contract on `NEUTRAL_FILL` demands. Yakuza's #A31925 is 2.10:1 on dark and
+ * Civilization's #005E9B is 2.37:1, so both lift a step rather than being reassigned a hue. Chroma
+ * gives way only where the clamped lightness leaves sRGB, which Final Fantasy's cyan is the one
+ * entry to still do.
  *
- * Where a brand *is* its brightness or its darkness, that clamp destroys the thing it was meant
- * to preserve: a yellow held to 3:1 on white is no longer yellow, it is a brown-gold, and Persona
- * held to 3:1 on dark is a royal blue rather than a near-black indigo. Those entries relax the
- * floor on the offending surface to 2.2:1 and clamp only to that, keeping the full 3:1 on the
- * other. Pokémon, Warcraft, Assassin's Creed, Uncharted and Tales are the bright five; Persona
- * and Ace Attorney the deep two. The relief is that nothing here is colour alone — the sunburst
- * labels its wedges and the Top Franchise list carries a named legend — which is exactly the
- * secondary encoding a sub-3:1 fill is allowed to lean on. Two of the five also regain the chroma
+ * Seven entries take that contract's relief, because the clamp would destroy the thing it was
+ * meant to preserve: a yellow held to 3:1 on white is no longer yellow, it is a brown-gold, and
+ * Persona held to 3:1 on dark is a royal blue rather than a near-black indigo. Pokémon, Warcraft,
+ * Assassin's Creed, Uncharted and Tales are the bright five; Persona and Ace Attorney the deep
+ * two. What earns them the relief is that nothing here is colour alone — the sunburst labels its
+ * wedges and the Top Franchise list carries a named legend. Two of the five also regain the chroma
  * a darker clamp took out of them: yellow's gamut widens as it lightens.
  *
  * Call of Duty keeps the plain clamp despite being a military drab, because dropping its olive
@@ -253,52 +234,32 @@ export const genreToColour = ({ genre }: { genre: Genre }) => {
  * them into one lightness band leaves them near-indistinguishable side by side. The wedge
  * labels, the legend names and the gaps between segments are load-bearing for that group.
  */
-export const franchiseToColour = ({ franchise }: { franchise: string }) => {
-  switch (franchise) {
-    case "Pokémon":
-      return "#d3a700" as Colour;
-    case "Final Fantasy":
-      return "#039FDB" as Colour;
-    case "Ace Attorney":
-      return "#2b52c3" as Colour;
-    case "Mario":
-      return "#E60012" as Colour;
-    case "Call of Duty":
-      return "#666F3B" as Colour;
-    case "Dragon Ball":
-      return "#F85B1A" as Colour;
-    case "Assassin's Creed":
-      return "#a9adb3" as Colour;
-    case "Legend of Zelda":
-      return "#1A8A34" as Colour;
-    case "Marvel":
-      return "#ED1D24" as Colour;
-    case "Tales":
-      return "#38bfb4" as Colour;
-    case "Uncharted":
-      return "#bdaa8b" as Colour;
-    case "Yakuza":
-      return "#C0393D" as Colour;
-    case "Super Smash Bros.":
-      return "#FF4500" as Colour;
-    case "Xenoblade":
-      return "#E60026" as Colour;
-    case "Fate":
-      return "#CB2C28" as Colour;
-    case "Warcraft":
-      return "#dda300" as Colour;
-    case "Mass Effect":
-      return "#D12026" as Colour;
-    case "Witcher":
-      return "#8F95A1" as Colour;
-    case "Civilization":
-      return "#1E6FAD" as Colour;
-    case "Persona":
-      return "#4557a2" as Colour;
-    default:
-      return "" as Colour;
-  }
+const franchiseColours: Record<string, Colour> = {
+  Pokémon: "#d3a700" as Colour,
+  "Final Fantasy": "#039FDB" as Colour,
+  "Ace Attorney": "#2b52c3" as Colour,
+  Mario: "#E60012" as Colour,
+  "Call of Duty": "#666F3B" as Colour,
+  "Dragon Ball": "#F85B1A" as Colour,
+  "Assassin's Creed": "#a9adb3" as Colour,
+  "Legend of Zelda": "#1A8A34" as Colour,
+  Marvel: "#ED1D24" as Colour,
+  Tales: "#38bfb4" as Colour,
+  Uncharted: "#bdaa8b" as Colour,
+  Yakuza: "#C0393D" as Colour,
+  "Super Smash Bros.": "#FF4500" as Colour,
+  Xenoblade: "#E60026" as Colour,
+  Fate: "#CB2C28" as Colour,
+  Warcraft: "#dda300" as Colour,
+  "Mass Effect": "#D12026" as Colour,
+  Witcher: "#8F95A1" as Colour,
+  Civilization: "#1E6FAD" as Colour,
+  Persona: "#4557a2" as Colour,
 };
+
+/** The empty colour for a franchise outside the table, which every caller reads as no colour at all. */
+export const franchiseToColour = ({ franchise }: { franchise: string }): Colour =>
+  franchiseColours[franchise] ?? ("" as Colour);
 
 export const groupToColour = (group: keyof VideoGame | "none", game: VideoGame) => {
   switch (group) {

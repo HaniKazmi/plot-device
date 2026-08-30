@@ -11,7 +11,7 @@ const ShowSunburst = ({ data, measure }: { data: Show[]; measure: Measure }) => 
 
   return (
     <Sunburst
-      title="Where the hours went"
+      title={`Where the ${measure.toLowerCase()} went`}
       // The shows behind the rings rather than the seasons the chart is fed, which is the unit
       // the tab's other sections count in.
       count={`${format(data.length)} shows`}
