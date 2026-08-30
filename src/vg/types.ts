@@ -75,9 +75,9 @@ export type Measure = "Hours" | "Games";
  * lightness and warmth rather than hue, which is below what colour alone should carry — the
  * wedge labels, legend names and the 2px gaps between segments are load-bearing for those pairs.
  */
-const nintendoFill = "#c25e55" as Colour;
-const playstationFill = "#4b7cba" as Colour;
-const xboxFill = "#4d965f" as Colour;
+const nintendoFill = "#d74840" as Colour;
+const playstationFill = "#2474cf" as Colour;
+const xboxFill = "#139948" as Colour;
 const pcFill = "#9d8358" as Colour;
 const iosFill = "#6e737a" as Colour;
 

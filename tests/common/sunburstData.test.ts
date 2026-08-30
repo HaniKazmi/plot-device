@@ -16,7 +16,7 @@ const build = (data: Game[], groups: ("company" | "platform")[] = ["company", "p
   generateSunburstData(data, groups, {
     keyToVal: (item, key) => item[key],
     getCount: (item) => item.hours,
-    getColor: () => "#c25e55" as Colour,
+    getColor: () => "#d74840" as Colour,
     getLeafName: (item) => item.name,
   });
 

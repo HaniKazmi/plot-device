@@ -41,8 +41,8 @@ describe("isShow", () => {
 
 describe("groupToColour", () => {
   it("colours by status, the only grouping shows have a palette for", () => {
-    expect(groupToColour("status", show())).toBe("#00a39a");
-    expect(groupToColour("status", { ...show(), status: "Ended" })).toBe("#50a170");
+    expect(groupToColour("status", show())).toBe("#00a5a6");
+    expect(groupToColour("status", { ...show(), status: "Ended" })).toBe("#29a259");
   });
 
   it("falls back to an empty string for every other grouping", () => {

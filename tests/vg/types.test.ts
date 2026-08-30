@@ -74,7 +74,7 @@ describe("groupToColour", () => {
     const game = videoGame();
 
     expect(groupToColour("company", game)).toBe(companyToColor(game));
-    expect(groupToColour("status", game)).toBe("#50a170");
+    expect(groupToColour("status", game)).toBe("#29a259");
     expect(groupToColour("rating", game)).toBe("#c27400");
   });
 
