@@ -17,10 +17,10 @@ import {
   useTheme,
   type ChipProps,
 } from "@mui/material";
-import { createContext, useContext, type FunctionComponent, type ReactNode, useEffect, useRef, useState } from "react";
+import { type FunctionComponent, type ReactNode, useEffect, useRef, useState } from "react";
 import { CalendarMonthOutlined } from "@mui/icons-material";
 import { cachedColour, extractColourFrom } from "../utils/colourUtils";
-import { alpha } from "@mui/material/styles";
+import { ArtworkAccent, artworkPalette, useArtworkPalette } from "./artworkPalette";
 import Grid from "@mui/material/Grid";
 import { format } from "../utils/mathUtils";
 import type { Colour } from "../utils/types";
@@ -40,6 +40,11 @@ export interface CardMediaImageProps {
    */
   detailComponent?: () => ReactNode;
   sx?: SxProps<Theme>;
+  /**
+   * The card itself rather than the artwork inside it. A caller that lays the artwork and a panel
+   * out against each other — the hero — owns that axis, and only the card can carry it.
+   */
+  cardSx?: SxProps<Theme>;
   landscape?: boolean;
   /** Derive the card's theme colour from the image once it loads. Costs a canvas read per image. */
   extractColour?: boolean;
@@ -76,6 +81,7 @@ export const CardMediaImage = ({
   landscape = false,
   extractColour = false,
   sx,
+  cardSx,
 }: CardMediaImageProps) => {
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   /** Lags `dialogOpen` on close so the detail tree survives the dialog's exit transition. */
@@ -118,13 +124,18 @@ export const CardMediaImage = ({
     <ArtworkAccent.Provider value={colour}>
       <Card
         variant="elevation"
-        sx={{
-          height: "100%",
-          position: "relative",
-          backgroundColor: palette.ground,
-          display: landscape ? "flex" : undefined,
-          color: palette.onGround,
-        }}
+        // The array form rather than a spread: `SxProps` is also legally a function or an array,
+        // neither of which survives being spread into an object literal.
+        sx={[
+          {
+            height: "100%",
+            position: "relative",
+            backgroundColor: palette.ground,
+            display: landscape ? "flex" : undefined,
+            color: palette.onGround,
+          },
+          ...(Array.isArray(cardSx) ? cardSx : [cardSx]),
+        ]}
       >
         <CardActionArea>
           <CardMedia
@@ -324,71 +335,6 @@ export const DetailCard = ({
 /**
  * The panel beside or beneath a hover card's artwork: what the item is, when, and how much of it.
  *
- * It paints its own ground rather than sitting on the card's extracted colour, so the artwork is
- * the only place that colour appears at full strength and the type has a settled surface to be
- * read against. The colour comes back as the badge's accent, which is enough to tie the two.
- *
- * Beside a poster the panel is as tall as the artwork and the type cannot fill it — three lines
- * against a 2:3 poster leaves better than half the column empty. Pushing the title to the top and
- * the figures to the bottom spends that height as structure instead of leaving it as a gap.
- */
-const SEAM_WIDTH = 3;
-/** Of the ground's own contrast colour: the secondary tone, the seam, and a tile's lift. */
-const MUTED_ALPHA = 0.72;
-const SEAM_ALPHA = 0.22;
-const TILE_ALPHA = 0.1;
-
-/**
- * One hue in three tones, derived from a colour sampled off artwork. Every surface that carries a
- * sampled colour takes its ground, its type and its accent from here, so a thumbnail's strip and
- * the hover card above it are the same recipe rather than two treatments that happen to rhyme.
- *
- * The ground is the sample exactly, because that is what ties a surface to the art beside it.
- * Sampling holds anything between luma 30 and 230, so which of black and white can be read on it
- * changes from card to card — the type is therefore derived from the ground rather than fixed, and
- * turns over with it.
- *
- * The other two tones are that same contrast colour made transparent. Over a coloured ground it
- * composites to a tint of the ground's own hue, which is what a secondary tone wants to be: grey
- * against a coloured surface reads as dead where the surface's own hue reads as chosen. Mixing the
- * two by hand lands in the same place and has to be told which way to mix.
- */
-const artworkPalette = (accent: Colour | undefined, theme: Theme) => {
-  // Extraction arrives seconds after the page, and sometimes not until a reload, so the
-  // colourless state is the one every card paints first. Filling the same shape from the theme
-  // keeps it inside the recipe: a surface reads `palette.muted` and never asks whether there is a
-  // palette to read, which is what would let the two halves drift apart.
-  const onGround = accent ? theme.palette.getContrastText(accent) : theme.palette.text.primary;
-  const line = accent ? alpha(onGround, SEAM_ALPHA) : theme.palette.divider;
-
-  return {
-    ground: accent ?? theme.palette.background.paper,
-    onGround,
-    muted: accent ? alpha(onGround, MUTED_ALPHA) : theme.palette.text.secondary,
-    /** Rules and hairlines drawn on the ground: a gridline, an empty track, a seam. */
-    line,
-    /** The edge where a surface meets the artwork it was sampled from. */
-    seam: `${SEAM_WIDTH}px solid ${line}`,
-    /** A tile lifted off the ground it sits on, in whichever direction reads against it. */
-    tile: accent ? alpha(onGround, TILE_ALPHA) : theme.palette.action.hover,
-  };
-};
-
-/**
- * The accent every surface inside a card derives its palette from.
- *
- * A strip, a panel and a detail tile all sit on a ground they do not choose and cannot see — only
- * the card knows what its artwork sampled to. Handing it down as a prop instead would mean naming
- * it at each of the two dozen tiles the three domains build, and a second mechanism for the ones
- * that are not tiles.
- */
-const ArtworkAccent = createContext<Colour | undefined>(undefined);
-
-const useArtworkPalette = () => artworkPalette(useContext(ArtworkAccent), useTheme());
-
-/**
- * The panel beside or beneath a hover card's artwork: what the item is, when, and how much of it.
- *
  * Beside a poster the panel is as tall as the artwork and the type cannot fill it — three lines
  * against a 2:3 poster leaves better than half the column empty. Pushing the title to the top and
  * the figures to the bottom spends that height as structure instead of leaving it as a gap.
@@ -475,7 +421,7 @@ export const CardPanel = ({
 };
 
 /** A figure and what it counts, set apart from the prose so the numbers can be read at a glance. */
-const StatTile = ({ value, label }: { value: number | string; label: string }) => {
+export const StatTile = ({ value, label }: { value: number | string; label: string }) => {
   const palette = useArtworkPalette();
 
   return (
@@ -492,7 +438,9 @@ const StatTile = ({ value, label }: { value: number | string; label: string }) =
     >
       <Typography
         component="div"
-        sx={{ fontWeight: 700, fontSize: "1.25rem", lineHeight: 1.2 }}
+        // Tabular figures so a row of tiles lines its digits up rather than shifting with the
+        // widths of whichever numerals the data happened to produce.
+        sx={{ fontWeight: 700, fontSize: "1.25rem", lineHeight: 1.2, fontVariantNumeric: "tabular-nums" }}
       >
         {typeof value === "number" ? format(value) : value}
       </Typography>

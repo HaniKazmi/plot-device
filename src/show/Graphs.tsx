@@ -1,8 +1,11 @@
 import { Fab, Stack } from "@mui/material";
+import Grid from "@mui/material/Grid";
 import Finished from "../common/Finished";
 import Barchart from "./Barchart";
 import Sunburst from "./Sunburst";
 import Stats from "./Stats";
+import { Section, SectionRail } from "../common/SectionRail";
+import { SHOW_SECTIONS, showSections } from "./sections";
 import Timeline from "./Timeline";
 import { Show } from "./types";
 import ShowCardMediaImage from "./CardMediaImage";
@@ -24,23 +27,42 @@ const Graphs = ({
   return (
     <>
       <Stack spacing={2}>
+        <SectionRail sections={showSections(data)} />
         <Stats data={data} />
-        <Timeline data={deferredData} />
-        <Barchart
-          data={deferredData}
-          measure={filterState.measure}
-        />
-        <Sunburst
-          data={deferredData}
-          measure={filterState.measure}
-        />
-        <Finished
-          title="All Shows"
-          data={data}
-          width={3}
-          colour={statusToColour}
-          MediaComponent={ShowCardMediaImage}
-        />
+        <Section id={SHOW_SECTIONS.timeline}>
+          <Timeline data={deferredData} />
+        </Section>
+        <Section id={SHOW_SECTIONS.charts}>
+          {/* Side by side once there is width for it: the two answer the same question — where
+              the hours went — through a hierarchy and through time, and reading one against the
+              other is the point of having both. */}
+          <Grid
+            container
+            spacing={2}
+          >
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Sunburst
+                data={deferredData}
+                measure={filterState.measure}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Barchart
+                data={deferredData}
+                measure={filterState.measure}
+              />
+            </Grid>
+          </Grid>
+        </Section>
+        <Section id={SHOW_SECTIONS.library}>
+          <Finished
+            title="All Shows"
+            data={data}
+            width={3}
+            colour={statusToColour}
+            MediaComponent={ShowCardMediaImage}
+          />
+        </Section>
       </Stack>
       <Stack
         direction="column"

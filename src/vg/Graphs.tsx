@@ -10,7 +10,10 @@ import { FranchiseContext } from "./franchiseContext";
 import { franchiseIndex } from "./cardData";
 import { memo, useDeferredValue, useState } from "react";
 import { Snackbar, Stack } from "@mui/material";
+import Grid from "@mui/material/Grid";
 import Filter from "./Filter";
+import { Section, SectionRail } from "../common/SectionRail";
+import { VG_SECTIONS, vgSections } from "./sections";
 
 const SuspenseBlock = ({
   filteredData,
@@ -58,6 +61,7 @@ const Graphs = memo(
     const deferredData = useDeferredValue(data, []);
     return (
       <Stack spacing={2}>
+        <SectionRail sections={vgSections(data)} />
         <Stats
           data={data}
           yearType={filterState.yearType}
@@ -65,24 +69,42 @@ const Graphs = memo(
           measure={filterState.measure}
           filterDispatch={filterDispatch}
         />
-        <Timeline data={deferredData} />
-        <Sunburst
-          data={deferredData}
-          measure={filterState.measure}
-        />
-        <Barchart
-          data={deferredData}
-          measure={filterState.measure}
-          yearType={filterState.yearType}
-        />
-        <Finished
-          MediaComponent={CardMediaImage}
-          title="All Games"
-          data={data}
-          width={4}
-          colour={companyToColor}
-          landscape
-        />
+        <Section id={VG_SECTIONS.timeline}>
+          <Timeline data={deferredData} />
+        </Section>
+        <Section id={VG_SECTIONS.charts}>
+          {/* Side by side once there is width for it: the two answer the same question — where
+              the hours went — through a hierarchy and through time, and reading one against the
+              other is the point of having both. */}
+          <Grid
+            container
+            spacing={2}
+          >
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Sunburst
+                data={deferredData}
+                measure={filterState.measure}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Barchart
+                data={deferredData}
+                measure={filterState.measure}
+                yearType={filterState.yearType}
+              />
+            </Grid>
+          </Grid>
+        </Section>
+        <Section id={VG_SECTIONS.library}>
+          <Finished
+            MediaComponent={CardMediaImage}
+            title="All Games"
+            data={data}
+            width={4}
+            colour={companyToColor}
+            landscape
+          />
+        </Section>
       </Stack>
     );
   },

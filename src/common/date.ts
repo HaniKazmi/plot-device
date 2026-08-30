@@ -277,6 +277,13 @@ export const formatDateRange = (start: YearMonthDay | Year, end?: YearMonthDay |
   return `${describeDate(start, !sameYear)} – ${describeDate(end)}`;
 };
 
+/**
+ * One date the way a reader says one — "6 Sep 2023", or just the year where that is all the
+ * source recorded. The single-ended half of `formatDateRange`, for a line that already says which
+ * end of something it is quoting.
+ */
+export const formatDate = (date: YearMonthDay | Year) => describeDate(date);
+
 const describeDate = (date: YearMonthDay | Year, withYear = true) =>
   date instanceof YearMonthDay
     ? `${date.day} ${date.toYearMonth().monthString()}${withYear ? ` ${date.year}` : ""}`

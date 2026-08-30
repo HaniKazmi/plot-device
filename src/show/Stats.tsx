@@ -4,9 +4,11 @@ import { Season, Show, Status } from "./types";
 import { StatCard, StatList, StatsListProps, TotalStack } from "../common/Stats";
 import ShowCardMediaImage from "./CardMediaImage";
 import { statusToColour } from "../utils/types";
-import { Stack } from "@mui/material";
+import { Card, CardContent, Stack } from "@mui/material";
 import type { ReactNode } from "react";
 import { CURRENT_YEAR } from "../common/date";
+import { Section } from "../common/SectionRail";
+import { SHOW_SECTIONS } from "./sections";
 import {
   allTimeTotals,
   currentlyWatching,
@@ -19,62 +21,94 @@ import {
 } from "./statsData";
 
 const Stats = ({ data }: { data: Show[] }) => {
+  const watching = currentlyWatching(data);
+
   return (
-    <Grid
-      container
-      spacing={1}
-      sx={{
-        alignItems: "stretch",
-      }}
-    >
-      <StatSummary
-        icon={<Timer />}
-        title="All Time"
-        stats={allTimeTotals(data)}
-      />
-      <StatSummary
-        icon={<Update />}
-        title={`In ${CURRENT_YEAR}`}
-        stats={seasonsInYear(data, CURRENT_YEAR)}
-      />
-      <StatSummary
-        icon={<ShowChart />}
-        title="Yearly Average"
-        stats={yearlyAverages(data)}
-      />
-      <StatSummary
-        icon={<AutoGraph />}
-        title="Show Average"
-        stats={perShowAverages(data)}
-      />
-      <Totals data={data} />
-      <CurrentlyPlaying data={data} />
-      <RecentlyComplete data={data} />
-    </Grid>
+    <Stack spacing={2}>
+      {/* What is in flight, and the page's "now" — a strip rather than one item raised above the
+          rest, because several shows are always on the go and picking one of them to lead with
+          means inventing a tie-break the data does not have. Nothing being watched and the
+          section is not rendered at all; `Graphs` offers the rail chip on the same test, so a
+          chip never points at an absent anchor. */}
+      {watching.length > 0 && (
+        <Section id={SHOW_SECTIONS.now}>
+          <Grid
+            container
+            spacing={1}
+            sx={{
+              alignItems: "stretch",
+            }}
+          >
+            <CurrentlyWatching watching={watching} />
+          </Grid>
+        </Section>
+      )}
+      <Section id={SHOW_SECTIONS.vitals}>
+        <Grid
+          container
+          spacing={1}
+          sx={{
+            alignItems: "stretch",
+          }}
+        >
+          <Vitals data={data} />
+          <StatSummary
+            icon={<Timer />}
+            title="All Time"
+            stats={allTimeTotals(data)}
+          />
+          <StatSummary
+            icon={<Update />}
+            title={`In ${CURRENT_YEAR}`}
+            stats={seasonsInYear(data, CURRENT_YEAR)}
+          />
+          <StatSummary
+            icon={<ShowChart />}
+            title="Yearly Average"
+            stats={yearlyAverages(data)}
+          />
+          <StatSummary
+            icon={<AutoGraph />}
+            title="Show Average"
+            stats={perShowAverages(data)}
+          />
+        </Grid>
+      </Section>
+      <Section id={SHOW_SECTIONS.explore}>
+        <Grid
+          container
+          spacing={1}
+          sx={{
+            alignItems: "stretch",
+          }}
+        >
+          <RecentlyComplete data={data} />
+        </Grid>
+      </Section>
+    </Stack>
   );
 };
 
-const Totals = ({ data }: { data: Show[] }) => {
+/** The one band saying what the library is made of, dense enough to scan past. */
+const Vitals = ({ data }: { data: Show[] }) => {
   const statusList: Status[] = ["Watching", "Up To Date", "Ended", "Cancelled", "Abandoned"];
+
   return (
     <Grid size={12}>
-      <Stack
-        spacing={1}
-        sx={{
-          justifyContent: "space-between",
-          height: "100%",
-        }}
-      >
-        <TotalStack
-          title={"Status"}
-          icon={<TaskAlt />}
-          data={data}
-          groupKey="status"
-          group={statusList}
-          groupToColour={(ele: Status) => statusToColour({ status: ele })}
-          measureLabel="Shows"
-        />
-      </Stack>
+      <Card sx={{ height: "100%" }}>
+        <CardContent sx={{ ":last-child": { paddingBottom: 2 } }}>
+          <TotalStack
+            compact
+            title={"Status"}
+            icon={<TaskAlt />}
+            data={data}
+            groupKey="status"
+            group={statusList}
+            groupToColour={(ele: Status) => statusToColour({ status: ele })}
+            measureLabel="Shows"
+          />
+        </CardContent>
+      </Card>
     </Grid>
   );
 };
@@ -101,19 +135,16 @@ const RecentlyComplete = ({ data }: { data: Show[] }) => {
   );
 };
 
-const CurrentlyPlaying = ({ data }: { data: Show[] }) => {
-  const recent = currentlyWatching(data);
-  return (
-    <ShowStatList
-      icon={<PlayArrow />}
-      title="Currently Watching"
-      content={recent}
-      chipComponent={({ e }) => ({ label: `E ${e}` })}
-      wrap={false}
-      labelComponent={statsCardLabelCurrentlyPlaying}
-    />
-  );
-};
+const CurrentlyWatching = ({ watching }: { watching: Season[] }) => (
+  <ShowStatList
+    icon={<PlayArrow />}
+    title="Currently Watching"
+    content={watching}
+    chipComponent={({ e }) => ({ label: `E ${e}` })}
+    wrap={false}
+    labelComponent={statsCardLabelCurrentlyPlaying}
+  />
+);
 
 const ShowStatList = (
   props: Omit<

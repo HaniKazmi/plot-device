@@ -1,4 +1,5 @@
 import {
+  Box,
   Card,
   CardContent,
   CardHeader,
@@ -329,6 +330,7 @@ export const TotalStack = <T extends string, U, K extends keyof U>({
   groupToColour,
   icon,
   measureLabel,
+  compact,
 }: {
   title: string;
   data: U[];
@@ -338,8 +340,24 @@ export const TotalStack = <T extends string, U, K extends keyof U>({
   groupToColour: (ele: T) => Colour;
   icon: ReactNode;
   measureLabel: string;
+  /**
+   * The band a page reads at a glance rather than the card it studies: no card of its own, no
+   * header, and the labels alongside the bar instead of standing in columns under it. A caller
+   * stacking two of these supplies the one card they share.
+   */
+  compact?: boolean;
 }) => {
   const totals = groupTotals(data, group, groupKey, measureFunc, groupToColour);
+
+  if (compact)
+    return (
+      <CompactTotals
+        title={title}
+        icon={icon}
+        totals={totals}
+        measureLabel={measureLabel}
+      />
+    );
 
   const topToBottomSx = {
     textOrientation: { xs: "sideways", md: "initial" },
@@ -422,3 +440,86 @@ export const TotalStack = <T extends string, U, K extends keyof U>({
     </Card>
   );
 };
+
+/**
+ * A `TotalStack` reduced to its bar and its legend.
+ *
+ * The full card gives each group a column of its own, which is what makes it readable and also
+ * what makes it tall: five groups is five headings, five figures and a swatch each. A page that
+ * has already said what it is about at the top wants the same figures as a band it can pass over,
+ * so the legend wraps along one line and the bar loses two thirds of its height.
+ */
+const CompactTotals = <T extends string>({
+  title,
+  icon,
+  totals,
+  measureLabel,
+}: {
+  title: string;
+  icon: ReactNode;
+  totals: { name: T; count: number; percent: number; colour: Colour }[];
+  measureLabel: string;
+}) => (
+  <Stack spacing={1}>
+    <Stack
+      direction="row"
+      spacing={1}
+      sx={{ alignItems: "center", color: "text.secondary" }}
+    >
+      {icon}
+      <Typography
+        variant="subtitle2"
+        sx={{ letterSpacing: "0.08em", textTransform: "uppercase" }}
+      >
+        {title}
+      </Typography>
+    </Stack>
+    <Stack
+      direction="row"
+      spacing={0.25}
+      sx={{ alignItems: "center" }}
+    >
+      {totals.map((struct) => (
+        <Segment
+          key={struct.name}
+          percent={struct.percent}
+          backgroundColour={struct.colour}
+          spacing={1.5}
+          sx={{ borderRadius: 0.5 }}
+        />
+      ))}
+    </Stack>
+    {/* Wrapping rather than a column each: the legend is as wide as the words in it, so however
+        many groups there are they fill the lines they need and stop. */}
+    <Stack
+      direction="row"
+      sx={{ flexWrap: "wrap", columnGap: 2, rowGap: 0.5 }}
+    >
+      {totals.map((struct) => (
+        <Stack
+          key={struct.name}
+          direction="row"
+          spacing={0.75}
+          sx={{ alignItems: "center" }}
+        >
+          <Box
+            sx={{
+              width: 10,
+              height: 10,
+              borderRadius: 0.5,
+              flexShrink: 0,
+              backgroundColor: struct.colour,
+            }}
+          />
+          <Typography variant="body2">{struct.name}</Typography>
+          <Typography
+            variant="body2"
+            sx={{ color: "text.secondary", fontVariantNumeric: "tabular-nums" }}
+          >
+            {`${format(struct.count)} ${measureLabel}`}
+          </Typography>
+        </Stack>
+      ))}
+    </Stack>
+  </Stack>
+);

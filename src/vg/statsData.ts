@@ -1,4 +1,4 @@
-import type { YearNumber } from "../common/date";
+import type { YearMonthDay, YearNumber } from "../common/date";
 import { assignPercents, format } from "../utils/mathUtils";
 import { platformToShort, type Measure, type VideoGame, type VideoGameStringKeys } from "./types";
 import "../utils/arrayUtils";
@@ -85,6 +85,46 @@ export const yearlyAverages = (data: VideoGame[]) => {
     games: parseFloat((totals.sum("games") / totals.length).toFixed(2)),
     hours: parseFloat((totals.sum("hours") / totals.length).toFixed(2)),
   };
+};
+
+/**
+ * Every game still being played, most recently started first — so the first entry is the one a
+ * page leading with a single game should lead with.
+ */
+export const currentlyPlaying = (data: VideoGame[]) =>
+  data.filter((game) => game.status === "Playing").sortByKey("startDate");
+
+/**
+ * The figures the hero carries about the game it is showing.
+ *
+ * They are the game's own and not the library's: the All Time and in-year cards sit a few hundred
+ * pixels below the hero and are the single home of those totals, so repeating them here is one
+ * number in two places waiting to disagree.
+ *
+ * Every tile is conditional on the sheet holding what it reports. An in-progress game may have no
+ * hours logged yet, a game logged with a bare year cannot be counted days into, and a game with
+ * no siblings has no series to be placed in — and a tile reading zero says something false in all
+ * three cases where saying nothing says the truth.
+ *
+ * `franchise` is the game's siblings including itself, which is what `franchiseIndex` already
+ * groups for the card strips. `today` is a parameter rather than read from the clock, so the
+ * figures are a function of the data alone.
+ */
+export const heroStats = (game: VideoGame, franchise: VideoGame[], today: YearMonthDay) => {
+  const stats: { label: string; value: number | string }[] = [];
+
+  if (game.hours) stats.push({ label: "Hours", value: game.hours });
+
+  // `daysTo` throws rather than answering backwards, and returns nothing across a year-only
+  // date. Both are the same answer here: there is no day count to show.
+  const days = game.startDate.lte(today) ? game.startDate.daysTo(today) : undefined;
+  if (days !== undefined) stats.push({ label: "Days In", value: days });
+
+  if (game.franchise && franchise.length > 1) {
+    stats.push({ label: `${game.franchise} Games`, value: franchise.length });
+  }
+
+  return stats;
 };
 
 /** Hours and days-to-beat averaged over games that were actually beaten and timed. */

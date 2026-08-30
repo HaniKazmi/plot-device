@@ -191,19 +191,53 @@ The one piece of shared arithmetic is `assignPercents` in `utils/mathUtils.ts`: 
 - `detailComponent` is a thunk (`() => ReactNode`), not a node. `Finished` renders one card per item with no cap, and the dialog body is ~15 elements that are only ever mounted for the one card the user opens. `TimelineData.tooltip` is a thunk for the same reason and is the other place the convention applies: the timeline positions every row it is given, but only the hovered one needs a card, and a node would be built up front and then held for the life of the layout (§7, object lifetimes).
 - `extractColour` is an explicit opt-in. Deriving a card's theme from its artwork costs a canvas read per image, so it is requested rather than inferred from the presence of some other prop.
 
+### Page architecture — hero, rail, sections
+
+Both tracked domains lay their page out by temperature: what is being played or watched now, then
+what the library is made of, then what can be explored, then the deep dives. Three shells carry it.
+
+Only Games leads with a single item. Several shows are always in flight at once, so choosing one of
+them to raise above the rest means inventing a tie-break the data does not hold — the Shows page
+opens on the currently-watching strip instead, and its "Now" anchor points there.
+
+`Hero` (`common/Hero.tsx`) presents one item large. Its figures are the item's own — hours logged,
+days in, the size of its franchise — and each tile is dropped rather than shown as a zero when the
+sheet does not hold it. The library's totals stay in the cards below it, which are their single
+home. Only the artwork's height is fixed, so the hero is one height whatever it shows while every
+poster and banner keeps its own shape uncropped.
+
+It renders the domain's own
+`TypedCardMediaImage` rather than a bare image, which is what keeps it in step with every card
+below it: the artwork opens the same expanded dialog a thumbnail does, and the panel rides in as
+that card's `footerComponent`, which is what puts it inside the `ArtworkAccent` the image
+publishes. Reading the accent any other way would mean sampling the same image twice and painting
+from whichever answer arrived first.
+
+`SectionRail` and `Section` (`common/SectionRail.tsx`) are the page's own table of contents,
+pinned under the app bar — which is `position: static` and scrolls away, so the rail is the only
+thing an anchor has to clear. Chips scroll rather than link, because the app is served under a
+`HashRouter` and an `href="#timeline"` would be read as a route. `Section` exists rather than a
+bare `id` for its `scroll-margin-top`: without it the browser lands a section's top edge
+underneath the sticky rail, hiding the thing the reader was sent to see.
+
+Each domain's `sections.ts` owns the id map and builds the chip list. The ids have two holders —
+`Stats` carries the bands above the charts, `Graphs` everything below — and the list is built from
+the same test `Stats` makes about whether there is anything to lead with, so a chip never points
+at an anchor that is not on the page.
+
 ### Colour
 
 `utils/colourUtils.ts` extracts a dominant colour from each banner image with `fast-average-color`, ignoring near-white and near-black. If the result's ITU-R BT.709 luma falls outside 30–230 it retries with the `simple` algorithm, avoiding unreadable extremes. Results are memoised by image src. Cards then set text colour via MUI's `getContrastText`, so a card's palette derives entirely from its artwork.
 
 Fixed colours are the other half of the system: `types.ts` in each domain maps platforms, genres, franchises and ratings to brand-accurate hex values, and `utils/types.ts` holds the cross-domain `statusToColour`. All of them return the branded `Colour` type.
 
-`artworkPalette` in `common/Card.tsx` is what every surface carrying a sampled colour reads: a thumbnail's footer strip, a timeline hover card's panel, and the expanded card's ground, tiles and strip. One recipe rather than several treatments that happen to rhyme.
+`artworkPalette` in `common/artworkPalette.ts` is what every surface carrying a sampled colour reads: a thumbnail's footer strip, a timeline hover card's panel, the hero band's ground, and the expanded card's ground, tiles and strip. It sits in a module of its own rather than beside the card that publishes the accent, because a hook exported from a file of components is a hot-reload boundary the lint rules refuse. One recipe rather than several treatments that happen to rhyme.
 
 The ground is the sample exactly, because that is what ties a surface to the artwork beside it. Extraction holds anything between luma 30 and 230, so which of black and white can be read on it changes from card to card — the type is therefore derived from the ground with `getContrastText` rather than fixed, and turns over with it. The remaining tones are that same contrast colour made transparent: over a coloured ground it composites to a tint of the ground's own hue, which is what a secondary tone wants to be, and it needs no rule for which direction to mix in. That covers the muted tone for dates and labels, the rules and empty tracks, the wash that lifts a tile, and the three-pixel seam every surface draws where it meets its artwork.
 
 The palette is total: with no sampled colour it fills the same shape from the theme. Extraction arrives seconds after the page and sometimes not until a reload, so the colourless state is the one every card paints first — leaving it outside the recipe is what would let the two halves drift apart, and it means no surface carries a branch asking whether there is a palette to read.
 
-`CardMediaImage` publishes its accent on a context, and every surface inside it — panel, strip, detail tile, stat tile — derives the palette from that. The card is the only thing that knows its own ground, and the alternative is naming it at each of the two dozen `DetailCard`s the three domains build, plus a second mechanism for the surfaces that are not tiles.
+`CardMediaImage` publishes its accent on that module's context, and every surface inside it — panel, strip, detail tile, stat tile — derives the palette from that. The card is the only thing that knows its own ground, and the alternative is naming it at each of the two dozen `DetailCard`s the three domains build, plus a second mechanism for the surfaces that are not tiles.
 
 ## 7. Cross-cutting design decisions
 
@@ -241,7 +275,7 @@ Setup is the plugin's documented path: `@vitejs/plugin-react` exports `reactComp
 - **`this`** anywhere in the function. Highcharts binds the chart to `this` in its event callbacks, so those must live at module scope (see `dimLeafRing` in §6) or they take the whole component down with them.
 - **`??=`**, which the compiler cannot yet lower. Write `x = x ?? y` instead.
 
-At the time of writing 83 functions compile and 10 bail, all of them on one compiler-internal limit: `BuildHIR::lowerAssignment` cannot lower a destructured prop that carries a default value, so `({ landscape = false })` takes its whole component out. That covers `common/Card.tsx`, `common/Stats.tsx`, `common/Finished.tsx` and `vg/Stats.tsx`. A `MethodCall` bailout, the other kind seen here, does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
+At the time of writing 90 functions compile and 10 bail, all of them on one compiler-internal limit: `BuildHIR::lowerAssignment` cannot lower a destructured prop that carries a default value, so `({ landscape = false })` takes its whole component out. That covers `common/Card.tsx`, `common/Stats.tsx`, `common/Finished.tsx` and `vg/Stats.tsx`. A `MethodCall` bailout, the other kind seen here, does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
 
 The compiler costs about 4% of bundle size (~15KB gzipped) in injected cache slots. That is a deliberate trade, and `npm run analyze` exists to keep it honest.
 
