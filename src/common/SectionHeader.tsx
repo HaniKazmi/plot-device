@@ -16,6 +16,11 @@ import type { ReactNode } from "react";
  * `title` is rendered at `h6` — the section-title role the theme weights — and the whole line is
  * a `div`, because the count inside it is a `Typography` of its own and a block inside the span
  * `CardHeader` would otherwise wrap the title in is not valid markup.
+ *
+ * The icon rides inside the title row rather than in `CardHeader`'s avatar slot: the avatar
+ * centres itself against the whole header, and a header whose controls stack two or three selects
+ * high leaves the icon floating below the title line it belongs to. The theme pins the content to
+ * the top, so a row the icon is part of keeps the two together at any header height.
  */
 export const SectionHeader = ({
   icon,
@@ -30,22 +35,28 @@ export const SectionHeader = ({
   action?: ReactNode;
 }) => (
   <CardHeader
-    avatar={icon}
     title={
       <Stack
         direction="row"
-        spacing={1}
-        sx={{ alignItems: "baseline", flexWrap: "wrap" }}
+        spacing={1.5}
+        sx={{ alignItems: "center" }}
       >
-        <span>{title}</span>
-        {count && (
-          <Typography
-            variant="body2"
-            sx={{ color: "text.secondary", fontVariantNumeric: "tabular-nums" }}
-          >
-            {count}
-          </Typography>
-        )}
+        {icon}
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{ alignItems: "baseline", flexWrap: "wrap" }}
+        >
+          <span>{title}</span>
+          {count && (
+            <Typography
+              variant="body2"
+              sx={{ color: "text.secondary", fontVariantNumeric: "tabular-nums" }}
+            >
+              {count}
+            </Typography>
+          )}
+        </Stack>
       </Stack>
     }
     slotProps={{ title: { variant: "h6", component: "div" } }}
