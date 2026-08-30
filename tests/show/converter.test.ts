@@ -71,7 +71,7 @@ describe("flattening the sheet into nested shows", () => {
       'Row 2, "Severance", Rating: "" is not an age rating',
     );
     expect(() => jsonConverter([showRow({ Rating: "PG" }), seasonRow()])).toThrow("not an age rating");
-    // The duration cell format the column briefly carried: 360h is 15 days, not a certificate.
+    // A duration is not a certificate: a cell formatted as one reads "360h  00m", not "15".
     expect(() => jsonConverter([showRow({ Rating: "360h  00m" }), seasonRow()])).toThrow("not an age rating");
   });
 

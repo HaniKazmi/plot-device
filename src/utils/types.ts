@@ -37,24 +37,25 @@ export type ColourableStatus =
 export const NEUTRAL_FILL = "#7d828c" as Colour;
 
 /**
- * The minimum age a rating names, which is the one thing every board the sheets use agrees on.
+ * Every certificate the sheets record, written the way its own board writes it.
  *
- * Games are recorded as PEGI and write the suffix (`16+`); Shows and Movies are recorded as BBFC
- * and write the bare number (`15`). Both notations are kept as the sheet holds them, because a
- * card's badge should read the way the certificate does, and 15 and 16 are different boards'
- * names for the same tier rather than a value either could be normalised onto.
+ * Games are recorded as PEGI, which carries the suffix (`16+`); Shows and Movies as BBFC, which
+ * writes the bare number (`15`). Both notations are kept as the sheet holds them, because a card's
+ * badge should read the way the certificate does.
+ *
+ * The ten are listed rather than derived by crossing the ages with an optional suffix: the two
+ * boards do not issue the same set — PEGI has no 15 and BBFC no 16 — so a cross product admits
+ * `15+` and `16`, which is the shape the likeliest typo takes and would pass validation.
  */
-const AGE_RATING_YEARS = [3, 7, 12, 15, 16, 18] as const;
-type AgeRatingYears = (typeof AGE_RATING_YEARS)[number];
-export type AgeRating = `${AgeRatingYears}` | `${AgeRatingYears}+`;
+const AGE_RATINGS = ["3", "7", "12", "15", "18", "3+", "7+", "12+", "16+", "18+"] as const;
+export type AgeRating = (typeof AGE_RATINGS)[number];
 
 /**
  * Whether a sheet cell holds an age rating, so a converter can reject a bad one where it still
  * knows which row it came from. Without this the first sign of trouble is `ageRatingToColour`
  * throwing from inside a render, naming a value but not the show or film that carried it.
  */
-export const isAgeRating = (value: string): value is AgeRating =>
-  AGE_RATING_YEARS.some((years) => value === `${years}` || value === `${years}+`);
+export const isAgeRating = (value: string): value is AgeRating => (AGE_RATINGS as readonly string[]).includes(value);
 
 /**
  * Traffic-light lightness: two greens for what a child can watch unaccompanied, two ambers for
@@ -67,7 +68,7 @@ export const isAgeRating = (value: string): value is AgeRating =>
  * boards' names and share the band for the same reason.
  */
 export const ageRatingToColour = (rating: AgeRating) => {
-  switch (parseInt(rating, 10) as AgeRatingYears) {
+  switch (parseInt(rating, 10)) {
     case 3:
       return "#88c32f" as Colour;
     case 7:

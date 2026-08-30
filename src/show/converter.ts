@@ -1,6 +1,6 @@
 import { PlainDate, YearMonthDay } from "../common/date.ts";
-import { describing, sheetError, sheetRow } from "../common/sheetError.ts";
-import { isAgeRating, type AgeRating } from "../utils/types";
+import { describing, readAgeRating, sheetError, sheetRow } from "../common/sheetError.ts";
+import { splitCell } from "../utils/stringUtils";
 import type { Season, Show, Status, Type } from "./types";
 import "../utils/arrayUtils";
 
@@ -11,28 +11,6 @@ export const reviveSeasonParents = (shows: Show[]) => shows.forEach((show) => sh
 
 /** Seasons that started this early are dropped; the data before it is not trustworthy. */
 const EARLIEST_SEASON_YEAR = 2005;
-
-/**
- * The secondary genres arrive as one comma-separated cell. Empty parts are dropped so a show with
- * none has an empty list rather than a list holding one empty string, which every reader would
- * otherwise have to filter before counting or rendering it.
- *
- * The cell is the sheet's last column, and the API ends a row at its final filled cell, so a show
- * without it arrives with no key at all rather than an empty string.
- */
-const splitGenres = (value: string | undefined) =>
-  (value ?? "")
-    .split(",")
-    .map((genre) => genre.trim())
-    .filter(Boolean);
-
-/**
- * Rejects a rating the colour map could not paint, while the row it came from is still known.
- * Left to reach `ageRatingToColour`, a bad cell throws from inside a render instead, naming the
- * value but not the show carrying it.
- */
-const readRating = (value: string | undefined, where: string): AgeRating =>
-  isAgeRating(value ?? "") ? (value as AgeRating) : sheetError(where, `"${value ?? ""}" is not an age rating`);
 
 const describeSeason = (row: Record<string, string>, show: Partial<Show>, index: number) =>
   `Row ${sheetRow(index)}, season ${row.Season || "?"} of "${show.name ?? "?"}"`;
@@ -46,9 +24,11 @@ export const jsonConverter = (json: Record<string, string>[]) => {
         status: row.Status as Status,
         type: row.Type as Type,
         genre: row.Genre,
-        genres: splitGenres(row.Genres),
+        // Genres is the sheet's last column, and the API ends a row at its final filled cell, so
+        // a show without it arrives with no key at all rather than an empty string.
+        genres: splitCell(row.Genres),
         network: row.Network,
-        rating: readRating(row.Rating, `Row ${sheetRow(index)}, "${row.Show}", Rating`),
+        rating: readAgeRating(row.Rating, `Row ${sheetRow(index)}, "${row.Show}", Rating`),
         franchise: row.Franchise,
         banner: row.Banner,
         s: [],

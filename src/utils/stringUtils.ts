@@ -14,8 +14,25 @@
  */
 export const namesTheSameThing = (a: string, b: string) => normaliseTitle(a) === normaliseTitle(b);
 
+// Trimmed before the article is stripped, or a cell with a leading space keeps its "The".
 const normaliseTitle = (title: string) =>
   title
+    .trim()
     .toLowerCase()
-    .replace(/^the\s+/, "")
-    .trim();
+    .replace(/^the\s+/, "");
+
+/**
+ * A sheet cell holding a comma-separated list, as that list.
+ *
+ * Empty parts are dropped, so a blank cell is an empty array rather than one holding an empty
+ * string — every reader counts or renders these directly, and `[""]` shows up as a blank entry and
+ * as a value of its own in any tally. A cell the row ended before arrives as `undefined`.
+ *
+ * The separator is fixed because the sheets write these lists both ways, `a, b` and `a,b`, so the
+ * space cannot be part of it and each part is trimmed instead.
+ */
+export const splitCell = (value: string | undefined) =>
+  (value ?? "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);

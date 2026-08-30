@@ -21,8 +21,9 @@ export type FinishedSort = "Date" | "Name";
  * The release year is the half added because it is what a reader tells them apart by, and because
  * it never moves. A watch date separates the same three pairs today, but watching something again
  * rewrites it, and a key that changes remounts the card and loses its extracted artwork colour.
- * A domain that dates only the watching supplies no release date and keeps the bare name, which
- * is unique across every show and game on record.
+ * Any domain whose model names a field `releaseDate` is picked up here without touching this
+ * module, which is how games get the same treatment. One that dates only the watching supplies
+ * none and keeps the bare name — no two shows on record share a title.
  */
 export const finishedKey = (item: FinishedItem) =>
   item.releaseDate ? `${item.name} (${item.releaseDate.year})` : item.name;

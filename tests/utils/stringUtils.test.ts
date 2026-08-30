@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { namesTheSameThing } from "../../src/utils/stringUtils";
+import { namesTheSameThing, splitCell } from "../../src/utils/stringUtils";
 
 describe("namesTheSameThing", () => {
   it("matches a title against itself", () => {
@@ -35,5 +35,24 @@ describe("namesTheSameThing", () => {
   it("strips only a leading article, not one inside the title", () => {
     // "The" appears mid-title constantly, and collapsing those would merge unrelated names.
     expect(namesTheSameThing("Night of the Hunter", "Night of Hunter")).toBe(false);
+  });
+});
+
+describe("splitCell", () => {
+  it("splits on the comma, with or without the space the sheets also write", () => {
+    expect(splitCell("Drama, Mystery")).toEqual(["Drama", "Mystery"]);
+    expect(splitCell("Drama,Mystery")).toEqual(["Drama", "Mystery"]);
+  });
+
+  it("gives an empty list rather than one holding an empty string", () => {
+    // Readers count and render these directly, so [""] would show up as a blank entry and as a
+    // value of its own in any tally.
+    expect(splitCell("")).toEqual([]);
+    expect(splitCell(",, ,")).toEqual([]);
+  });
+
+  it("treats a cell the row ended before as empty", () => {
+    // The API ends a row at its last filled cell, so a trailing column can be absent entirely.
+    expect(splitCell(undefined)).toEqual([]);
   });
 });

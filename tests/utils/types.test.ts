@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { ageRatingToColour, statusToColour, type AgeRating, type ColourableStatus } from "../../src/utils/types";
+import {
+  ageRatingToColour,
+  isAgeRating,
+  statusToColour,
+  type AgeRating,
+  type ColourableStatus,
+} from "../../src/utils/types";
 
 describe("statusToColour", () => {
   it.each([
@@ -100,6 +106,16 @@ describe("ageRatingToColour", () => {
 
     expect(new Set(bbfc.map(ageRatingToColour)).size).toBe(bbfc.length);
     expect(new Set(pegi.map(ageRatingToColour)).size).toBe(pegi.length);
+  });
+
+  it("rejects a certificate neither board issues", () => {
+    // PEGI has no 15 and BBFC no 16, so the ten valid values are listed rather than crossed with
+    // an optional suffix — a cross product would accept both of these, which is the shape the
+    // likeliest typo takes.
+    expect(isAgeRating("15+")).toBe(false);
+    expect(isAgeRating("16")).toBe(false);
+    expect(isAgeRating("15")).toBe(true);
+    expect(isAgeRating("16+")).toBe(true);
   });
 
   it("throws on a rating outside the union rather than falling back", () => {
