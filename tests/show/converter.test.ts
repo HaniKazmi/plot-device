@@ -37,12 +37,50 @@ describe("flattening the sheet into nested shows", () => {
     expect(show.s.every((season) => season.show === show)).toBe(true);
   });
 
-  it("reads anime only from the literal string TRUE", () => {
-    const anime = (value: string) => jsonConverter([showRow({ Anime: value }), seasonRow()])[0].anime;
+  it("carries the show-level columns through as the sheet holds them", () => {
+    const [show] = jsonConverter([showRow(), seasonRow()]);
 
-    expect(anime("TRUE")).toBe(true);
-    expect(anime("true")).toBe(false);
-    expect(anime("")).toBe(false);
+    expect(show.type).toBe("show");
+    expect(show.genre).toBe("Sci-Fi");
+    expect(show.network).toBe("Apple TV+");
+    expect(show.rating).toBe("15");
+    expect(show.franchise).toBe("Severance");
+    expect(show.banner).toBe("severance.jpg");
+  });
+
+  it("splits the secondary genres on the comma the sheet separates them with", () => {
+    const genres = (value: string) => jsonConverter([showRow({ Genres: value }), seasonRow()])[0].genres;
+
+    expect(genres("Drama, Thriller")).toEqual(["Drama", "Thriller"]);
+    // Written both ways in the sheet, so the space cannot be part of the separator.
+    expect(genres("Drama,Thriller")).toEqual(["Drama", "Thriller"]);
+  });
+
+  it("gives a show with no secondary genres an empty list, not a list holding an empty string", () => {
+    // Every reader counts or renders this list directly, and [""] shows up as a blank entry and
+    // as a genre of its own in any tally. Genres is the sheet's last column, so a row can also
+    // end before it and carry no key at all.
+    expect(jsonConverter([showRow({ Genres: "" }), seasonRow()])[0].genres).toEqual([]);
+    expect(jsonConverter([showRow({ Genres: undefined }), seasonRow()])[0].genres).toEqual([]);
+  });
+
+  it("rejects a rating the colour map could not paint, naming the row and the show", () => {
+    // Left to reach ageRatingToColour, a bad cell throws from inside a render instead — naming
+    // the value but not which of three hundred shows carried it.
+    expect(() => jsonConverter([showRow({ Rating: "" }), seasonRow()])).toThrow(
+      'Row 2, "Severance", Rating: "" is not an age rating',
+    );
+    expect(() => jsonConverter([showRow({ Rating: "PG" }), seasonRow()])).toThrow("not an age rating");
+    // The duration cell format the column briefly carried: 360h is 15 days, not a certificate.
+    expect(() => jsonConverter([showRow({ Rating: "360h  00m" }), seasonRow()])).toThrow("not an age rating");
+  });
+
+  it("accepts the BBFC numbers this sheet records, alongside the PEGI form games use", () => {
+    const rating = (value: string) => jsonConverter([showRow({ Rating: value }), seasonRow()])[0].rating;
+
+    expect(rating("3")).toBe("3");
+    expect(rating("15")).toBe("15");
+    expect(rating("18")).toBe("18");
   });
 });
 

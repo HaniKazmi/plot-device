@@ -1,5 +1,12 @@
 import type { Year, YearMonthDay } from "../common/date";
-import { NEUTRAL_FILL, statusToColour, type Colour, type KeysMatching } from "../utils/types";
+import {
+  NEUTRAL_FILL,
+  ageRatingToColour,
+  statusToColour,
+  type AgeRating,
+  type Colour,
+  type KeysMatching,
+} from "../utils/types";
 
 export interface VideoGame {
   name: string;
@@ -10,7 +17,7 @@ export interface VideoGame {
   franchise: string;
   genre: Genre;
   theme: string[];
-  rating: string;
+  rating: AgeRating;
   releaseDate: YearMonthDay;
   format: Format;
   status: Status;
@@ -147,22 +154,7 @@ export const platformToShort: (vg: VideoGame) => [string, Colour] = (vg) => {
   return [short, companyToAccent(vg)];
 };
 
-export const ratingToColour = ({ rating }: VideoGame) => {
-  switch (rating) {
-    case "3+":
-      return "#88c32f" as Colour;
-    case "7+":
-      return "#6d9c26" as Colour;
-    case "12+":
-      return "#c27400" as Colour;
-    case "16+":
-      return "rgb(242,144,0)" as Colour;
-    case "18+":
-      return "#d60015" as Colour;
-    default:
-      throw new Error("Unknown rating: " + rating);
-  }
-};
+export const ratingToColour = ({ rating }: VideoGame) => ageRatingToColour(rating);
 
 /**
  * A genre has no brand to reproduce, so each colour is chosen to *represent* the genre: flame for

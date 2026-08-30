@@ -1,16 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { YearMonthDay } from "../../src/common/date";
-import { groupToColour, isShow, type Season, type Show } from "../../src/show/types";
-
-const show = (): Show => ({
-  name: "Severance",
-  status: "Watching",
-  startDate: YearMonthDay.get(2022, 2, 18),
-  anime: false,
-  s: [],
-  e: 9,
-  minutes: 400,
-});
+import { groupToColour, isShow, typeToName, type Season, type Show } from "../../src/show/types";
+import { ageRatingToColour } from "../../src/utils/types";
+import { show } from "../fixtures/shows";
 
 const season = (parent: Show): Season => ({
   s: 1,
@@ -45,11 +37,29 @@ describe("groupToColour", () => {
     expect(groupToColour("status", { ...show(), status: "Ended" })).toBe("#338c5f");
   });
 
+  it("paints a rating with the same map the games tab uses", () => {
+    // An age rating is the one field all three tabs record, so a swatch has to mean the same
+    // thing on each — these sheets write BBFC bare numbers where games write PEGI.
+    expect(groupToColour("rating", show({ rating: "15" }))).toBe(ageRatingToColour("15"));
+    expect(groupToColour("rating", show({ rating: "18" }))).toBe(ageRatingToColour("18"));
+  });
+
   it("falls back to an empty string for every other grouping", () => {
-    // Shows have no genre or franchise colouring the way games do; "" hands the choice to
-    // Highcharts rather than inventing one.
+    // Genre, network and franchise carry no colour vocabulary on this tab; "" hands the choice
+    // to Highcharts rather than inventing one.
     expect(groupToColour("name", show())).toBe("");
-    expect(groupToColour("anime", show())).toBe("");
+    expect(groupToColour("type", show())).toBe("");
+    expect(groupToColour("genre", show())).toBe("");
+    expect(groupToColour("network", show())).toBe("");
+    expect(groupToColour("franchise", show())).toBe("");
     expect(groupToColour("none", show())).toBe("");
+  });
+});
+
+describe("typeToName", () => {
+  it("title-cases the sheet's lower-case values", () => {
+    // The sheet holds "show"/"anime"; a wedge or a legend entry should not.
+    expect(typeToName("show")).toBe("Show");
+    expect(typeToName("anime")).toBe("Anime");
   });
 });

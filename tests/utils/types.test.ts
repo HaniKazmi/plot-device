@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { statusToColour, type ColourableStatus } from "../../src/utils/types";
+import { ageRatingToColour, statusToColour, type AgeRating, type ColourableStatus } from "../../src/utils/types";
 
 describe("statusToColour", () => {
   it.each([
@@ -55,5 +55,58 @@ describe("statusToColour", () => {
     const unknown = statusToColour({ status: "Postponed" as ColourableStatus });
 
     expect(unknown).toBeUndefined();
+  });
+});
+
+describe("ageRatingToColour", () => {
+  it.each([
+    ["3+", "#88c32f"],
+    ["7+", "#6d9c26"],
+    ["12+", "#c27400"],
+    ["16+", "rgb(242,144,0)"],
+    ["18+", "#d60015"],
+  ] satisfies [AgeRating, string][])("maps the PEGI rating %s to %s", (rating, expected) => {
+    expect(ageRatingToColour(rating)).toBe(expected);
+  });
+
+  it.each([
+    ["3", "#88c32f"],
+    ["7", "#6d9c26"],
+    ["12", "#c27400"],
+    ["15", "rgb(242,144,0)"],
+    ["18", "#d60015"],
+  ] satisfies [AgeRating, string][])("maps the BBFC rating %s to %s", (rating, expected) => {
+    expect(ageRatingToColour(rating)).toBe(expected);
+  });
+
+  it("gives an age the same colour whichever board named it", () => {
+    // Games record PEGI and Shows and Movies record BBFC, so the same age reaches this function
+    // written two ways. A reader moving between tabs should not have to learn the ramp twice.
+    expect(ageRatingToColour("12")).toBe(ageRatingToColour("12+"));
+    expect(ageRatingToColour("18")).toBe(ageRatingToColour("18+"));
+  });
+
+  it("puts BBFC 15 and PEGI 16 on one band, because they are one tier", () => {
+    // Neither scale holds both values, so no chart ever draws them side by side needing to tell
+    // them apart — and giving the tier two colours would split it across the two tabs.
+    expect(ageRatingToColour("15")).toBe(ageRatingToColour("16+"));
+  });
+
+  it("gives every age within one scale a colour of its own", () => {
+    // A swatch is the only thing distinguishing two ratings at a glance, so a shared value
+    // inside a single board's scale would make the badge decorative rather than informative.
+    const bbfc: AgeRating[] = ["3", "7", "12", "15", "18"];
+    const pegi: AgeRating[] = ["3+", "7+", "12+", "16+", "18+"];
+
+    expect(new Set(bbfc.map(ageRatingToColour)).size).toBe(bbfc.length);
+    expect(new Set(pegi.map(ageRatingToColour)).size).toBe(pegi.length);
+  });
+
+  it("throws on a rating outside the union rather than falling back", () => {
+    // Every domain casts a sheet cell straight to AgeRating, so a typo or a certificate from a
+    // board neither scale covers arrives here. Throwing surfaces it; a fallback colour would
+    // render the wrong badge in silence.
+    expect(() => ageRatingToColour("PG" as AgeRating)).toThrow("Unknown rating: PG");
+    expect(() => ageRatingToColour("21" as AgeRating)).toThrow("Unknown rating: 21");
   });
 });

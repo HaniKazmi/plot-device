@@ -1,18 +1,18 @@
 import { useSelectBox } from "../common/SelectBoxHook";
-import { groupToColour, type Measure, type Season, type Show, type ShowStringKeys } from "./types";
+import { groupToColour, typeToName, type Measure, type Season, type Show, type ShowStringKeys } from "./types";
 import Barchart from "../common/Barchart";
 import { format } from "../utils/mathUtils";
 
-type Option = ShowStringKeys | "anime" | "none";
+type Option = ShowStringKeys | "none";
 
-const options: Option[] = ["none", "name", "status", "anime"];
+const options: Option[] = ["none", "name", "status", "type", "genre", "network", "rating", "franchise"];
 
 const optionToName = (season: Season, option: Option) => {
   switch (option) {
     case "none":
       return "";
-    case "anime":
-      return season.show.anime ? "Anime" : "Western";
+    case "type":
+      return typeToName(season.show.type);
     default:
       return season.show[option];
   }

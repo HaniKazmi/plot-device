@@ -97,6 +97,8 @@ Converters do real modelling work, not just field renaming:
 - **`show/`** reduces a _flat_ sheet into a _nested_ one. Rows with a non-empty `Show` column open a new show; subsequent rows are seasons belonging to it. Afterwards it rolls season totals up into the parent (`startDate`, `endDate`, episode and minute sums) and asserts date ordering with `console.assert`. Seasons keep a `show` back-reference, which makes the object graph cyclic — see §4.
 - **`movie/`** drops rows with an empty `Genre`, which is how partially-entered rows are excluded.
 
+Both `show/` and `movie/` split a comma-separated `Genres` cell into the genres beyond the primary one, and reject an age rating outside `AgeRating` through `sheetError` — a bad certificate names its row here rather than throwing later from inside a chart's colour lookup.
+
 ## 4. Caching and hydration
 
 `common/useData.ts` implements a two-tier cache:
@@ -283,7 +285,7 @@ at an anchor that is not on the page.
 
 `utils/colourUtils.ts` extracts a dominant colour from each banner image with `fast-average-color`, ignoring near-white and near-black. If the result's ITU-R BT.709 luma falls outside 30–230 it retries with the `simple` algorithm, avoiding unreadable extremes. Results are memoised by image src. Cards then set text colour via MUI's `getContrastText`, so a card's palette derives entirely from its artwork.
 
-Fixed colours are the other half of the system: `types.ts` in each domain maps platforms, genres, franchises and ratings to values, and `utils/types.ts` holds the cross-domain `statusToColour`. All of them return the branded `Colour` type. What a brand hex is used for depends on how much of the screen it covers, and `vg/types.ts` splits it in two:
+Fixed colours are the other half of the system: `types.ts` in each domain maps platforms, genres, franchises and ratings to values, and `utils/types.ts` holds the cross-domain ones — `statusToColour`, and `ageRatingToColour` over the `AgeRating` union all three domains record a certificate into. Games are logged as PEGI and write the suffix (`16+`), Shows and Movies as BBFC and write the bare number (`15`); the colour keys off the age rather than the notation, so one swatch means one thing across the tabs, and `isAgeRating` lets each converter reject a bad cell while it still knows which row it came from. All of them return the branded `Colour` type. What a brand hex is used for depends on how much of the screen it covers, and `vg/types.ts` splits it in two:
 
 - **Fills** are what chart geometry takes — sunburst wedges, barchart series, timeline bars, stacked segments, card strips. They sit in one lightness band so each clears 3:1 against both surfaces the app paints on (`#ffffff` paper and `#1d2126` paper) while keeping its brand's hue. A brand hex is chosen to stand alone against white, and a set of them is not a scale: Nintendo's `#e60012` at full saturation beside four neighbours reads as one shouting value. PC and iOS stay neutral because neutrality is those brands' identity, clamped in lightness alone.
 - **Accents** are the brand hexes themselves, drawn only in a card's corner chip — a few dozen pixels carrying two or three letters, read as a badge rather than compared against a neighbour, with nothing adjacent to separate from.
@@ -355,11 +357,11 @@ The distinctive part is that filter state carries a composed `filter` predicate 
 
 The generic half lives in `common/filterReducer.ts`. `createFilterReducer(initialValues, filters, nextMeasure)` returns a domain's `useFilterReducer`, and owns everything that is the same everywhere: the action union, the `useOutletContext` guest-mode wiring, rebuilding `filter` after each change, and the shared `yearPredicates` (an "up to" ceiling that disappears once it reaches the current year, or an exact-year match). Each domain supplies only what is genuinely its own — the initial values of its own fields, how to turn that state into a predicate, and how its measure toggles.
 
-`vg/filterUtils.ts` demonstrates the full pattern — boolean toggles, multi-select categories derived from the data itself (`[...new Set(data.map(...))]`), a year cutoff, and a Games/Hours measure. `show/filterUtils.ts` is down to its measure pair and an anime predicate; it still carries the year fields, which have no UI on that tab yet but let a year filter be added without reworking state.
+`vg/filterUtils.ts` demonstrates the full pattern — boolean toggles, multi-select categories derived from the data itself (`[...new Set(data.map(...))]`), a year cutoff, and a Games/Hours measure. `show/filterUtils.ts` is down to its measure pair and a predicate on `Show.type`; it still carries the year fields, which have no UI on that tab yet but let a year filter be added without reworking state.
 
 ### Guest mode
 
-Long-pressing the AppBar (`utils/useLongPress.ts`, 300 ms) sets `guestMode`, which flows down through the router's outlet context into each domain's reducer and appends a predicate — hiding adult-themed games and anime. It is a presentation filter, not a security boundary: the underlying data is already loaded, and the mode is one-way until reload.
+Long-pressing the AppBar (`utils/useLongPress.ts`, 300 ms) sets `guestMode`, which flows down through the router's outlet context into each domain's reducer and appends a predicate — hiding adult-themed games and anime. It is a presentation filter, not a security boundary: the underlying data is already loaded, and the mode is one-way until reload. On Shows the predicate reads `type`, which every show carries. Movies records an anime flag too but the converter does not read it, so the 4 anime films on that tab stay visible.
 
 ### Theming and routing
 
@@ -386,7 +388,7 @@ Routing uses `HashRouter` because the app is served from GitHub Pages, which can
 Recorded so they are not mistaken for design:
 
 - **`holiday/` is a stub.** `HolidaysTab` is defined in `tabs.ts` but deliberately omitted from the exported `Tabs` array, so the route is unreachable. Its converter drops the dates its own `Holiday` type declares, and `Map.tsx` renders `data.toString()` as placeholder text. It also predates `useData` and hand-rolls its own module-level cache.
-- **`movie/` is early.** Its `Graphs.tsx` renders only the `Finished` grid — no stats, timeline, barchart, sunburst or filters yet, and `movie/types.ts` has no colour mappings. `Movie` carries `rating`, `score` and `director` that nothing currently displays.
+- **`movie/` is early.** Its `Graphs.tsx` renders only the `Finished` grid — no stats, timeline, barchart, sunburst or filters yet, and `movie/types.ts` has no colour mappings of its own beyond the shared `ageRatingToColour`. The expanded card shows every field the converter reads, but nothing aggregates them.
 - **No DOM or component tests.** `tests/` covers pure logic — converters, filters, the reducer, the chart data transforms and the cache round trip — and deliberately stops there; AGENTS.md explains the trade. Nothing verifies that a chart renders, and the show converter's date ordering is still only a `console.assert`, which does not alter control flow.
 - **`.eslintrc.cjs` is dead.** ESLint 9 uses the flat `eslint.config.js`; the legacy file remains in the tree and is not applied. The flat config is also the weaker of the two — it drops the type-checked and React-specific rule sets the old file enabled.
 - **Cache keys are unversioned**, so domain model changes can meet stale `localStorage` objects (§4).

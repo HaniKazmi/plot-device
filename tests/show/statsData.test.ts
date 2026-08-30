@@ -11,17 +11,11 @@ import {
   yearlyAverages,
 } from "../../src/show/statsData";
 import type { Season, Show } from "../../src/show/types";
+import { show as buildShow } from "../fixtures/shows";
 
-const show = (overrides: Partial<Show> = {}): Show => ({
-  name: "Severance",
-  status: "Watching",
-  startDate: YearMonthDay.get(2022, 2, 18),
-  anime: false,
-  s: [],
-  e: 0,
-  minutes: 0,
-  ...overrides,
-});
+// The stats here count episodes and minutes, so they start from zero and each test adds what it
+// is measuring; the shared builder carries a populated show.
+const show = (overrides: Partial<Show> = {}): Show => buildShow({ e: 0, minutes: 0, ...overrides });
 
 const season = (parent: Show, overrides: Partial<Season> = {}): Season => ({
   s: 1,

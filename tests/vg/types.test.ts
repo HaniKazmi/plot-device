@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { AgeRating } from "../../src/utils/types";
 import {
   companyToAccent,
   companyToColor,
@@ -85,6 +86,8 @@ describe("groupToColour", () => {
   });
 
   it("propagates the rating throw, because grouping by rating renders every game", () => {
-    expect(() => groupToColour("rating", videoGame({ rating: "" }))).toThrow("Unknown rating");
+    // The cast is the point: the union describes what the sheet should hold, and a blank cell
+    // is what it holds when someone forgets — that has to reach the throw rather than a fallback.
+    expect(() => groupToColour("rating", videoGame({ rating: "" as AgeRating }))).toThrow("Unknown rating");
   });
 });

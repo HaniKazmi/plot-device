@@ -4,10 +4,28 @@ import "../utils/arrayUtils";
 export type FinishedItem = {
   banner?: string;
   startDate?: YearMonthDay | Year;
+  /** Optional because only some domains date the work itself; see `finishedKey`. */
+  releaseDate?: YearMonthDay | Year;
   name: string;
 };
 
 export type FinishedSort = "Date" | "Name";
+
+/**
+ * A stable identity for one card on the wall.
+ *
+ * A title is not unique: a remake carries its original's exactly, and three pairs on the movies
+ * wall do — Rebecca, The Lion King, Peter Pan. Keyed on the name alone React cannot tell the two
+ * apart and may render one of each pair in place of the other, or drop it.
+ *
+ * The release year is the half added because it is what a reader tells them apart by, and because
+ * it never moves. A watch date separates the same three pairs today, but watching something again
+ * rewrites it, and a key that changes remounts the card and loses its extracted artwork colour.
+ * A domain that dates only the watching supplies no release date and keeps the bare name, which
+ * is unique across every show and game on record.
+ */
+export const finishedKey = (item: FinishedItem) =>
+  item.releaseDate ? `${item.name} (${item.releaseDate.year})` : item.name;
 
 /**
  * The items a Finished grid shows: only those with artwork, newest first.
