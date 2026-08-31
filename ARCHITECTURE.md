@@ -43,7 +43,7 @@ There is no backend, no database, and no build-time data. Three Google Sheets ar
                     └───────────────────┬───────────────────────┘
                                         │
                     ┌───────────────────▼───────────────────────┐
-  domain            │  vg/ · show/ · movie/ · holiday/           │
+  domain            │  vg/ · show/ · movie/ · holiday/ · omnibus/│
                     │  model, converter, filters, adapters       │
                     └───────────────────┬───────────────────────┘
                                         │
@@ -63,6 +63,8 @@ There is no backend, no database, and no build-time data. Three Google Sheets ar
 The load-bearing rule is the boundary between the bottom two layers and the domain layer above them: **`common/` and `utils/` never import from `vg/`, `show/`, `movie/` or `holiday/`.** Generic components receive behaviour as props and callbacks; domain folders supply the meaning. Everything reusable in this codebase lives on that seam.
 
 The rule holds with no exceptions, and the direction matters. Where the shared layer needs a domain vocabulary, it declares its own and lets each domain's type stay assignable to it — `utils/types.ts` owns a `ColourableStatus` union that both `show/types.ts` and `vg/types.ts` satisfy, rather than importing their `Status` unions. Inverting that would create an import cycle, since both domains import `statusToColour` back out.
+
+`omnibus/` sits in the domain layer beside the other three, not above it: it imports `vg/`, `show/` and `movie/` and composes their output, which is exactly what a domain folder is for. It reads no sheet of its own — see §3 — so it is the one domain with no converter, and everything else about it (filters, adapters, a lazy `Graphs.tsx`) follows the same shape as the other three. The rule this layer exists to protect is unchanged: nothing in `common/` or `utils/` imports `omnibus/`, and `omnibus/` reaching upward into three domains at once is what the layer is built to allow, not an exception to it.
 
 ## 3. The data pipeline
 
@@ -98,6 +100,8 @@ Converters do real modelling work, not just field renaming:
 - **`movie/`** drops rows with an empty `Genre`, which is how partially-entered rows are excluded.
 
 Both `show/` and `movie/` split a comma-separated `Genres` cell into the genres beyond the primary one, and reject an age rating outside `AgeRating` through `sheetError` — a bad certificate names its row here rather than throwing later from inside a chart's colour lookup.
+
+Omnibus runs no pipeline of its own. Each domain's `Data.tsx` entry point calls `useData` with a config object (`vgDataConfig`, `showDataConfig`, `movieDataConfig`) exported from the file that already owns the converter, version and — for Shows — the replacer/reviver pair; `omnibus/Omnibus.tsx` imports the same three configs and calls `useData` with each of them again. Both callers therefore go through one converter and one cache key per domain, so the version a returning visitor's cache was written under can never drift between a tab and Omnibus reading the same rows. `omnibus/adapter.ts` is the fourth stage the three domains' output feeds into: `toOmniItems` flattens `Show[]` at the season rather than the show — a season is the unit that was actually watched, and the parent show's name, genre, franchise and certificate travel onto each of its seasons' `OmniItem`s.
 
 ## 4. Caching and hydration
 
@@ -140,8 +144,8 @@ The requested scope is `spreadsheets.readonly`. The application has no write pat
 
 The most involved shell. It accepts `data` as a _function of_ `cumulative` and returns flat `{ name, date, colour, value }` records; the component owns everything after that:
 
-1. `groupDate()` (in `common/barchartData.ts`, alongside the two transforms below) pivots the flat records into a dense `BarchartTable` (`group × date` matrix). Dates are densified by walking `PlainDate.iterateToDate`, so gaps become real columns instead of being skipped. Series are sorted by total, and leading cells before a series' first data point are set to `null` so lines start where the data does rather than at zero.
-2. `convertToCumulative()` and `convertToRanking()` are pure transforms over that matrix — cumulative area and bump-chart ranking are views of the same pivot, not separate queries.
+1. `groupDate()` (in `common/barchartData.ts`, alongside the transforms below) pivots the flat records into a dense `BarchartTable` (`group × date` matrix). Dates are densified by walking `PlainDate.iterateToDate`, so gaps become real columns instead of being skipped. Series are sorted by total, and leading cells before a series' first data point are set to `null` so lines start where the data does rather than at zero.
+2. `convertToCumulative()`, `convertToShare()` and `convertToRanking()` are pure transforms over that matrix — cumulative area, per-column composition and bump-chart ranking are views of the same pivot, not separate queries. One `View` control (`Totals` · `Share` · `Cumulative` · `Rank`) owns all four, replacing what used to be a chart-type toggle beside a separate cumulative switch: the combinations those two controls allowed were never four independent choices, since a cumulative bar and a ranked total both plot the same pivot into the same shape twice. `Share` divides each cell by its own column's total — a zero column would divide by zero, so a column with nothing in it yields zero cells rather than `NaN` reaching a series — and is always taken over the raw measure, never through `postAggregate`: two callers pass a flooring minutes-to-hours conversion, and the share of floored values is not the share of the values behind them. `Rank` ranks the same per-column measure `Totals` plots, and keeps that measure as its tooltip figure, so the axis can plot position while the hover card still states the underlying number.
 3. Clicking a column isolates that series (and clicking again restores all), implemented through Highcharts' plot-options event rather than React state.
 
 Callers choose the measure (episodes vs hours, games vs hours) and pass `postAggregate`, a scalar `(value: number) => number` applied after aggregation — `show/` uses it to turn accumulated minutes into hours. It is deliberately scalar: the shell owns table traversal and the null-vs-zero rule, so callers cannot couple to the pivot's internal shape.
@@ -186,6 +190,59 @@ rather than stacking. One tick array feeds every row's gridlines and the single 
 stack, the same one-array rule the full timeline follows. Hover cards arrive through
 `common/LazyTooltip`, so positioning hundreds of marks builds only the handful of cards actually
 hovered.
+
+### Omnibus — `omnibus/`
+
+The fourth domain draws no chart of its own kind; every surface is a `common/` shell fed the union
+(`OmniItem[]`) instead of one medium's rows, so the page reuses the same visual vocabulary the
+three tabs already speak rather than inventing a mixed-media one.
+
+**The Now band** (`omnibus/Stats.tsx`) is what none of the three tabs can show on its own: what
+each medium is currently on, side by side. `electNow` in `omnibus/adapter.ts` reuses each domain's
+own election — `currentlyPlaying`, `heroSeason(currentlyWatching(...))`, `latestWatched` — so a
+card here can never disagree with the hero its home tab would show for the same item. A medium with
+nothing in flight contributes no card rather than an empty one, and the band itself is absent when
+none of the three has anything to say. Each card renders the domain's own `TypedCardMediaImage`, so
+its artwork still opens that domain's expanded card — the composing layer supplies only the corner
+chip that jumps to the home tab.
+
+**Crossings** (`omnibus/crossingsData.ts`) finds the franchises the reader has met in more than one
+medium and draws each as a strip: one lane per medium present, packed with `common/timelineStripData`'s
+`buildStrip` exactly as a show's own season strip is, so the two charts cannot come to disagree
+about what counts as an overlap. A franchise groups on the raw franchise column, the same column
+`movieFranchise`/`showFranchise` group on, which is what lets a series' founding entry keep naming
+itself the way it already does on its own tab; `namesTheSameThing` instead drops a whole group where
+_every_ entry in it repeats the franchise name, since that group has no series structure left to
+draw a lane for. A film is a point (`start === end`), which the shared strip floors to its minimum
+band width the way the Movies ribbon already does. A bare-year game date draws its whole year rather
+than the share `vg/cardData.ts` would estimate for a single game's own strip — a franchise lane
+holds two or three entries, not a library to divide a year between — and is marked `precise: false`
+so the edges read as an estimate.
+
+**The gallery** (`omnibus/Gallery.tsx`, `omnibus/galleryData.ts`) shelves the union by genre,
+franchise, rating or decade, each shelf a `common/Filmstrip` (below) with a drill-down behind its
+handle. Every category is a field all three media record — `groupByCategory` skips an empty value,
+so a category one medium answered `""` to would drop that medium off the wall with no error to say
+so. "Decade" reads as the decade the reader _met_ the item, not the decade it was made: Shows carries
+no release date anywhere in its model, so a release-decade category would be answerable by only two
+of the three media.
+
+**Recently Finished** (`omnibus/RecentlyFinished.tsx`) is the list each tab already keeps for
+itself, asked once across all three: `recentlyFinished` in `omnibus/adapter.ts` keeps only items
+with a `closeDate`, since an item still in progress is not finished and listing it says something
+false — the same filter also leaves every entry with a date to sort by. The library wall
+(`common/Finished`) is not reached from the union; see §10.
+
+`common/Filmstrip.tsx` is the layout arrangement the gallery and Recently Finished both stand on: a
+row of artwork at one fixed height, each child keeping its own width, scrolled rather than wrapped
+or cropped when it overflows. Height is the only dimension it fixes, which is what lets a 16:9
+banner and a 2:3 poster share one row without either being cropped — the reason this is a strip
+and not a grid, since a grid cell has a width and a width plus a height is a crop.
+
+`omnibus/CardMediaImage.tsx` is the `TypedCardMediaImage<OmniItem>` every one of these surfaces
+renders through: it dispatches `item.source` to the domain's own component by `item.medium`, so a
+picture in the gallery or the crossings' hover cards opens that domain's real expanded card, strip
+and ledger rather than a fourth, poorer copy of them.
 
 ### Filter drawer, Top lists and drill-down — shared shells
 
@@ -383,7 +440,7 @@ Setup is the plugin's documented path: `@vitejs/plugin-react` exports `reactComp
 - **`this`** anywhere in the function. Highcharts binds the chart to `this` in its event callbacks, so those must live at module scope (see `dimLeafRing` in §6) or they take the whole component down with them.
 - **`??=`**, which the compiler cannot yet lower. Write `x = x ?? y` instead.
 
-A third construct bails the same way: a **destructured prop with a default value** (`({ landscape = false })`) is an assignment pattern `BuildHIR::lowerAssignment` cannot lower, and it takes the whole component out. Components here therefore read defaults off the props object (`const landscape = props.landscape ?? false`), or rename in the pattern and default below it where a rest spread must not pick the prop up. Every function currently compiles — the baseline is **149 compiled, 0 bailed** — so any bailout is a regression. A `MethodCall` bailout, the other kind seen here, does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
+A third construct bails the same way: a **destructured prop with a default value** (`({ landscape = false })`) is an assignment pattern `BuildHIR::lowerAssignment` cannot lower, and it takes the whole component out. Components here therefore read defaults off the props object (`const landscape = props.landscape ?? false`), or rename in the pattern and default below it where a rest spread must not pick the prop up. Every function currently compiles — the baseline is **168 compiled, 0 bailed** — so any bailout is a regression. A `MethodCall` bailout, the other kind seen here, does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
 
 The compiler costs about 4% of bundle size (~15KB gzipped) in injected cache slots. That is a deliberate trade, and `npm run analyze` exists to keep it honest.
 
@@ -414,11 +471,13 @@ Long-pressing the AppBar (`utils/useLongPress.ts`, 300 ms) sets `guestMode`, whi
 
 `Google.tsx` builds an MUI theme per tab from its `primaryColour` / `secondaryColour`, using CSS variables with a dark colour scheme, and emits a matching `theme-color` meta tag. Themes are cached in a `Map` keyed by tab id — building one walks both colour schemes, typography, shadows and the whole CSS-variable map, and a stable identity also stops the MUI tree re-evaluating `sx` on navigation. Each section therefore has its own identity while sharing one component library. Both `Google.tsx` and `NavBar.tsx` resolve the active tab through `useCurrentTab` in `tabs.ts`.
 
-Routing uses `HashRouter` because the app is served from GitHub Pages, which cannot rewrite deep paths to `index.html`.
+Routing uses `HashRouter` because the app is served from GitHub Pages, which cannot rewrite deep paths to `index.html`. The root route and the fallback for an unmatched path are both positional rather than named: `App.tsx` renders `Tabs[0].component` for the index route, and `tabForPath` in `tabs.ts` falls back to `tabs[0]` for any path that names no tab, root included. A tab's place in the exported `Tabs` array therefore decides what a bare `/` opens — Omnibus leads the array for exactly that reason.
 
 ## 8. Extension points
 
-**Adding a data source.** Add a `Tab` to `src/tabs.ts` (sheet id, A1 range, route id, component, colours), then add it to the exported `Tabs` array — the router and nav bar are both generated from that array. Create `src/<domain>/` with `types.ts`, a `<Domain>.tsx` entry that calls `useData` with a `jsonConverter`, and a lazy `Graphs.tsx`. Implement `CardMediaImage` against `TypedCardMediaImage<T>` to get `Finished` and `StatList` for free.
+**Adding a data source.** Add a `Tab` to `src/tabs.ts` (sheet id, A1 range, route id, component, colours), then add it to the exported `Tabs` array — the router and nav bar are both generated from that array, and a tab's position in it also decides what the root route falls back to (§7, Theming and routing). Create `src/<domain>/` with `types.ts`, a `<Domain>.tsx` entry that calls `useData` with a `jsonConverter`, and a lazy `Graphs.tsx`. Implement `CardMediaImage` against `TypedCardMediaImage<T>` to get `Finished` and `StatList` for free.
+
+**Composing existing data sources, without a sheet of its own.** `omnibus/` is the reference: its `Tab` carries no `spreadsheetId`/`range` (both are optional on `Tab` for exactly this case, and `SheetTab` restates them as required for anything that fetches), and its entry point calls `useData` with each of the composed domains' own exported config rather than a converter of its own. A pure adapter (`omnibus/adapter.ts`) then flattens and re-shapes their output into one vocabulary the shared shells can render. The one rule this still has to hold is the domain layer's own: the new folder may import the domains it composes, never the other way, and it stays outside `common/`/`utils/` for the same reason every other domain does.
 
 **Adding a visualisation.** If it is domain-agnostic, build it in `common/` taking data plus callbacks, and add a thin adapter per domain. If it needs domain knowledge, it belongs in the domain folder. The existing shells are the reference for how much to invert: `Sunburst` takes four callbacks, `Barchart` takes a data function and a scalar `postAggregate`. Keep the inversion at the level of _values and meaning_ — never hand a caller an internal data structure, and never let a shell branch on a domain-specific field.
 
@@ -438,3 +497,4 @@ Recorded so they are not mistaken for design:
 - **No DOM or component tests.** `tests/` covers pure logic — converters, filters, the reducer, the chart data transforms and the cache round trip — and deliberately stops there; AGENTS.md explains the trade. Nothing verifies that a chart renders, and the show converter's date ordering is still only a `console.assert`, which does not alter control flow.
 - **`.eslintrc.cjs` is dead.** ESLint 9 uses the flat `eslint.config.js`; the legacy file remains in the tree and is not applied. The flat config is also the weaker of the two — it drops the type-checked and React-specific rule sets the old file enabled.
 - **`PlainDate.valueOf` returns a string**, so every date comparison goes through `toString()` and allocates. It is correct and the ordering is deliberate (§7), but the hot path — the timeline's greedy packing loop — does tens of thousands of comparisons per layout. A numeric sort key computed once per interned instance would preserve ordering exactly, including across mixed `Year`/`YearMonthDay`. Deliberately not done: it touches the most load-bearing class in the codebase for a win nobody has measured as necessary.
+- **Omnibus has no library wall.** `common/Finished` keys a card with `finishedKey`, which falls back to the bare item name whenever the item carries no `releaseDate` — a rule that holds within one domain because no two shows on record share a title, but not across a union where every season of a multi-season show carries its show's own name: a mixed wall would key every one of that show's seasons identically and React would drop or swap the cards. Reaching a wall means giving `OmniItem` a release date, a banner and a start date to satisfy the shell's contract, an `aspectOf` callback so the wall's height reservation (§6, Scroll marker — "the wall has to reserve its own height") can generalise across banners and posters in the same grid, and bucket semantics for the scroll marker across three media's own conventions. Recently Finished (§6) covers the same "what closed, newest first" question today, expanding fullscreen to the whole run in place of a wall.

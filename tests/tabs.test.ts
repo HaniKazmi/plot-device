@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import Tabs, { HolidaysTab, MoviesTab, OmnibusTab, ShowsTab, VideoGamesTab, otherTabs, tabForPath } from "../src/tabs";
 
 describe("the tab registry", () => {
-  it("routes Games, Shows, Movies and Omnibus", () => {
-    expect(Tabs.map((tab) => tab.id)).toEqual(["vg", "show", "movies", "omnibus"]);
+  it("routes Omnibus, Games, Shows and Movies", () => {
+    expect(Tabs.map((tab) => tab.id)).toEqual(["omnibus", "vg", "show", "movies"]);
   });
 
   it("leaves Holidays defined but unrouted, which is what makes the section unreachable", () => {
@@ -44,28 +44,28 @@ describe("tabForPath", () => {
     expect(tabForPath("show")).toBe(ShowsTab);
   });
 
-  it("falls back to Games at the root", () => {
-    expect(tabForPath("/")).toBe(VideoGamesTab);
-    expect(tabForPath("")).toBe(VideoGamesTab);
+  it("falls back to Omnibus at the root", () => {
+    expect(tabForPath("/")).toBe(OmnibusTab);
+    expect(tabForPath("")).toBe(OmnibusTab);
   });
 
   it("falls back rather than matching a trailing slash or a nested path", () => {
     // Only one leading slash is stripped and the comparison is exact, so nothing below a tab
     // resolves to it.
-    expect(tabForPath("/show/")).toBe(VideoGamesTab);
-    expect(tabForPath("/show/detail")).toBe(VideoGamesTab);
+    expect(tabForPath("/show/")).toBe(OmnibusTab);
+    expect(tabForPath("/show/detail")).toBe(OmnibusTab);
   });
 
   it("is case sensitive", () => {
-    expect(tabForPath("/SHOW")).toBe(VideoGamesTab);
+    expect(tabForPath("/SHOW")).toBe(OmnibusTab);
   });
 
-  it("sends the unrouted holiday path to Games", () => {
-    expect(tabForPath("/holiday")).toBe(VideoGamesTab);
+  it("sends the unrouted holiday path to Omnibus", () => {
+    expect(tabForPath("/holiday")).toBe(OmnibusTab);
   });
 
   it("strips exactly one leading slash", () => {
-    expect(tabForPath("//show")).toBe(VideoGamesTab);
+    expect(tabForPath("//show")).toBe(OmnibusTab);
   });
 
   it("resolves against a caller-supplied list", () => {
@@ -78,9 +78,9 @@ describe("otherTabs", () => {
     // The current tab is deliberately absent: the rail offers movement, not orientation, and a
     // chip for where the reader already is would rebuild the app bar the rail stands in for.
     expect(otherTabs(ShowsTab)).toEqual([
+      { id: "omnibus", label: "Omnibus" },
       { id: "vg", label: "Games" },
       { id: "movies", label: "Movies" },
-      { id: "omnibus", label: "Omnibus" },
     ]);
   });
 

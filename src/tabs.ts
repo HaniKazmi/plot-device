@@ -76,20 +76,26 @@ export const HolidaysTab: SheetTab = {
 };
 
 /**
- * The fourth tab reads no sheet of its own: it mounts the three domains' own data configurations
- * and composes their output, so a medium's rows reach it through exactly the converter and cache
- * its home tab uses. A neutral graphite theme, because the medium trio is the only colour the
- * page has to say anything with.
+ * The tab reads no sheet of its own: it mounts the three domains' own data configurations and
+ * composes their output, so a medium's rows reach it through exactly the converter and cache its
+ * home tab uses. A vibrant violet-and-mint theme, unused by any other tab, since this is the tab
+ * a reader lands on first — the medium trio in `omnibus/types.ts` stays untouched by it, since
+ * that is chart vocabulary rather than page theme.
  */
 export const OmnibusTab: Tab = {
   id: "omnibus",
   name: "Omnibus",
   component: Omnibus,
-  primaryColour: "#4a515c",
-  secondaryColour: "#9aa3ad",
+  primaryColour: "#6a48d7",
+  secondaryColour: "#5ad0b6",
 };
 
-const Tabs: Tab[] = [VideoGamesTab, ShowsTab, MoviesTab, OmnibusTab];
+/**
+ * Omnibus leads the array, which is what puts it at the root route: `App.tsx` renders
+ * `Tabs[0].component` for the index route, and `tabForPath` falls back to `tabs[0]` for any path
+ * that matches no tab id, root included.
+ */
+const Tabs: Tab[] = [OmnibusTab, VideoGamesTab, ShowsTab, MoviesTab];
 
 /**
  * The tab a route belongs to, falling back to the first one.
