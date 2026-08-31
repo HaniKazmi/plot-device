@@ -1,4 +1,5 @@
 import { PlainDate } from "../common/date.ts";
+import { dataCacheKey, type DataConfig } from "../common/useData.ts";
 import { describing, readAgeRating, sheetRow } from "../common/sheetError.ts";
 import type { Company, Format, Platform, Status, VideoGame } from "./types";
 
@@ -39,4 +40,13 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       banner: row.Banner,
     } as VideoGame;
   });
+};
+
+/**
+ * The cache this converter's output is read back from, shared by the Games tab and by Omnibus so
+ * a version bump cannot land at one of them alone.
+ */
+export const vgDataConfig: DataConfig<VideoGame> = {
+  storageKey: dataCacheKey("vg", 1),
+  converter: jsonConverter,
 };

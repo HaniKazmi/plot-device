@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import Tabs, { HolidaysTab, MoviesTab, ShowsTab, VideoGamesTab, otherTabs, tabForPath } from "../src/tabs";
+import Tabs, { HolidaysTab, MoviesTab, OmnibusTab, ShowsTab, VideoGamesTab, otherTabs, tabForPath } from "../src/tabs";
 
 describe("the tab registry", () => {
-  it("routes Games, Shows and Movies", () => {
-    expect(Tabs.map((tab) => tab.id)).toEqual(["vg", "show", "movies"]);
+  it("routes Games, Shows, Movies and Omnibus", () => {
+    expect(Tabs.map((tab) => tab.id)).toEqual(["vg", "show", "movies", "omnibus"]);
   });
 
   it("leaves Holidays defined but unrouted, which is what makes the section unreachable", () => {
@@ -15,11 +15,20 @@ describe("the tab registry", () => {
     expect(new Set(Tabs.map((tab) => tab.id)).size).toBe(Tabs.length);
   });
 
-  it("names a sheet and a range for every tab", () => {
+  it("names a sheet and a range together, or neither", () => {
+    // A range without a sheet is a tab that cannot fetch and does not say so; `SheetTab` requires
+    // both, which is what keeps either half from being forgotten alone.
     for (const tab of Tabs) {
-      expect(tab.spreadsheetId).toBeTruthy();
-      expect(tab.range).toMatch(/^.+!.+$/);
+      expect(!!tab.range).toBe(!!tab.spreadsheetId);
+      if (tab.range) expect(tab.range).toMatch(/^.+!.+$/);
     }
+  });
+
+  it("leaves Omnibus without a sheet of its own, since it composes the other three", () => {
+    // Naming one of the three here would point the app bar's Sheet button at a third of what the
+    // page is showing, and `SheetTab` is what keeps a fetch from being handed this tab at all.
+    expect(OmnibusTab.spreadsheetId).toBeUndefined();
+    expect(OmnibusTab.range).toBeUndefined();
   });
 });
 
@@ -28,6 +37,7 @@ describe("tabForPath", () => {
     expect(tabForPath("/vg")).toBe(VideoGamesTab);
     expect(tabForPath("/show")).toBe(ShowsTab);
     expect(tabForPath("/movies")).toBe(MoviesTab);
+    expect(tabForPath("/omnibus")).toBe(OmnibusTab);
   });
 
   it("matches the bare id with no leading slash", () => {
@@ -70,6 +80,7 @@ describe("otherTabs", () => {
     expect(otherTabs(ShowsTab)).toEqual([
       { id: "vg", label: "Games" },
       { id: "movies", label: "Movies" },
+      { id: "omnibus", label: "Omnibus" },
     ]);
   });
 

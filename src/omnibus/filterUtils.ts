@@ -1,0 +1,72 @@
+import { CURRENT_YEAR, type YearNumber } from "../common/date";
+import {
+  createFilterReducer,
+  type BaseFilterState,
+  type FilterDispatchFor,
+  type YearType,
+} from "../common/filterReducer";
+import type { Predicate } from "../utils/types";
+import type { OmniItem } from "./adapter";
+import type { Measure, Medium } from "./types";
+
+export interface FilterState extends BaseFilterState<OmniItem, Measure> {
+  /** One switch per medium: the page's whole point is comparing them, so any subset is a view. */
+  game: boolean;
+  show: boolean;
+  movie: boolean;
+  genre: string[];
+  franchise: string[];
+}
+
+export type FilterDispatch = FilterDispatchFor<FilterState>;
+
+/**
+ * The year cutoff over the attribution year rather than the shared `yearPredicates`.
+ *
+ * The shared one reads `startDate.year`, and an `OmniItem` has no start date to read — a game
+ * played across a new year counts to the year it was finished, and that answer is already on the
+ * record. The semantics are otherwise exactly the shared ones: "up to" is a ceiling that
+ * disappears once it reaches the current year, "matching" is an exact year.
+ */
+const omniYearPredicates = (state: { yearTo: YearNumber; yearType: YearType }): Predicate<OmniItem>[] => {
+  if (state.yearType === "matching") return [(item) => item.year === state.yearTo];
+  if (state.yearTo !== CURRENT_YEAR) return [(item) => item.year <= state.yearTo];
+  return [];
+};
+
+/**
+ * Guest mode pushes no predicate here. It is applied per library by each domain's own rule before
+ * the union is built (`visibleLibrary`), because the Now band elects from the domain records and
+ * would otherwise headline a title the charts had already hidden.
+ */
+export const filters = (state: Omit<FilterState, "filter">): Predicate<OmniItem> => {
+  const predicates: Predicate<OmniItem>[] = [];
+
+  const media: Medium[] = (["game", "show", "movie"] as const).filter((medium) => state[medium]);
+  if (media.length < 3) predicates.push((item) => media.includes(item.medium));
+
+  if (state.genre.length > 0) predicates.push((item) => state.genre.includes(item.genre));
+  if (state.franchise.length > 0) predicates.push((item) => state.franchise.includes(item.franchise));
+
+  predicates.push(...omniYearPredicates(state));
+
+  return (item: OmniItem) => predicates.every((p) => p(item));
+};
+
+export const { useFilterReducer, reducer, initialState } = createFilterReducer<OmniItem, Measure, FilterState>(
+  {
+    game: true,
+    show: true,
+    movie: true,
+    genre: [],
+    franchise: [],
+    // Hours is the unit the three media are actually comparable in. Items equates a hundred-hour
+    // game with a two-hour film, which is a real question but not the one the page opens on.
+    measure: "Hours",
+    yearType: "upto",
+    yearTo: CURRENT_YEAR,
+    guestMode: false,
+  },
+  filters,
+  (measure) => (measure === "Hours" ? "Items" : "Hours"),
+);

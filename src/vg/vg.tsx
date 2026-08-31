@@ -1,15 +1,13 @@
 import { lazy, Suspense } from "react";
 import { useFilterReducer } from "./filterUtils.ts";
 import { VideoGamesTab } from "../tabs";
-import useData, { dataCacheKey } from "../common/useData.ts";
-import { jsonConverter } from "./converter.ts";
+import useData from "../common/useData.ts";
+import { vgDataConfig } from "./converter.ts";
 
 const Graphs = lazy(() => import(/* webpackPrefetch: true */ "./Graphs"));
 
-const storageKey = dataCacheKey("vg", 1);
-
 const GamesGraphs = () => {
-  const [data, dataLoaded] = useData(storageKey, VideoGamesTab, jsonConverter);
+  const [data, dataLoaded] = useData(vgDataConfig, VideoGamesTab);
   const [filterState, filterDispatch] = useFilterReducer();
 
   if (!data) {

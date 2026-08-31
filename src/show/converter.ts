@@ -1,4 +1,5 @@
 import { PlainDate, YearMonthDay } from "../common/date.ts";
+import { dataCacheKey, type DataConfig } from "../common/useData.ts";
 import { describing, readAgeRating, sheetError, sheetRow } from "../common/sheetError.ts";
 import { splitCell } from "../utils/stringUtils";
 import type { Season, Show, Status, Type } from "./types";
@@ -113,4 +114,18 @@ export const jsonConverter = (json: Record<string, string>[]) => {
   });
 
   return showData;
+};
+
+/**
+ * The cache this converter's output is read back from, shared by the Shows tab and by Omnibus.
+ * The replacer/reviver pair travels with it: a cache written without the parent pointers is only
+ * readable by the reviver that puts them back, and neither half means anything alone.
+ *
+ * v3: a cached object written before `lastWatchedDate` carries none, and no hero is ever elected.
+ */
+export const showDataConfig: DataConfig<Show> = {
+  storageKey: dataCacheKey("show", 3),
+  converter: jsonConverter,
+  reviver: reviveSeasonParents,
+  replacer: dropSeasonParents,
 };

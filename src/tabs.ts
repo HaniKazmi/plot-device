@@ -4,24 +4,38 @@ import Holiday from "./holiday/Holiday";
 import Shows from "./show/Show";
 import VideoGames from "./vg/vg";
 import Movies from "./movie/Movie";
+import Omnibus from "./omnibus/Omnibus";
 
 export interface Tab {
   id: string;
   name: string;
-  spreadsheetId: string;
+  /**
+   * The sheet this tab is the dashboard for, absent on a tab that has one of its own. Omnibus
+   * composes the three sheets the other tabs already fetch, so a sheet id here would name one of
+   * them arbitrarily — and the "Sheet" button in the app bar would send a reader to a third of
+   * what they are looking at.
+   */
+  spreadsheetId?: string;
   /**
    * Deliberately wider than the columns in use. `arrayToJson` keys each row by its header name, so
    * a range only has to *cover* a column for the converter to find it — but a column added or
    * moved past the end of a tight range simply stops arriving, with no error anywhere. That has
    * silently dropped a field twice. Trailing empty columns cost one extra key and nothing else.
    */
-  range: string;
+  range?: string;
   component: FunctionComponent;
   primaryColour?: string;
   secondaryColour?: string;
 }
 
-export const VideoGamesTab: Tab = {
+/**
+ * A tab that names a sheet, which is what `useData` and `fetchAndConvertSheet` require. Keeping
+ * the requirement in the type rather than in an assertion is what lets a sheetless tab exist at
+ * all without either faking an id or leaving every fetch to check for one.
+ */
+export type SheetTab = Tab & Required<Pick<Tab, "spreadsheetId" | "range">>;
+
+export const VideoGamesTab: SheetTab = {
   id: "vg",
   name: "Games",
   spreadsheetId: "1JCAN_lB2QaVxj1rD4f88mN4tHjmhxF3CZlGtZGwYCLk",
@@ -31,7 +45,7 @@ export const VideoGamesTab: Tab = {
   secondaryColour: "#e4b750",
 };
 
-export const ShowsTab: Tab = {
+export const ShowsTab: SheetTab = {
   id: "show",
   name: "Shows",
   spreadsheetId: "1M3om2DPLfRO5dKcUfYOIcSNoLThzMLp1iZLQX6qR3pY",
@@ -41,7 +55,7 @@ export const ShowsTab: Tab = {
   secondaryColour: "#53c1c7",
 };
 
-export const MoviesTab: Tab = {
+export const MoviesTab: SheetTab = {
   id: "movies",
   name: "Movies",
   spreadsheetId: "1M3om2DPLfRO5dKcUfYOIcSNoLThzMLp1iZLQX6qR3pY",
@@ -51,7 +65,7 @@ export const MoviesTab: Tab = {
   secondaryColour: "#ffc48a",
 };
 
-export const HolidaysTab: Tab = {
+export const HolidaysTab: SheetTab = {
   id: "holiday",
   name: "Holiday",
   spreadsheetId: "1tjcFfNZau5DElrTos2RFjpvYWJJleTQIg8kWxdjdgnc",
@@ -61,7 +75,21 @@ export const HolidaysTab: Tab = {
   secondaryColour: "#142771",
 };
 
-const Tabs: Tab[] = [VideoGamesTab, ShowsTab, MoviesTab];
+/**
+ * The fourth tab reads no sheet of its own: it mounts the three domains' own data configurations
+ * and composes their output, so a medium's rows reach it through exactly the converter and cache
+ * its home tab uses. A neutral graphite theme, because the medium trio is the only colour the
+ * page has to say anything with.
+ */
+export const OmnibusTab: Tab = {
+  id: "omnibus",
+  name: "Omnibus",
+  component: Omnibus,
+  primaryColour: "#4a515c",
+  secondaryColour: "#9aa3ad",
+};
+
+const Tabs: Tab[] = [VideoGamesTab, ShowsTab, MoviesTab, OmnibusTab];
 
 /**
  * The tab a route belongs to, falling back to the first one.

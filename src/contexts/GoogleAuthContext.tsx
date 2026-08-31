@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { Tab } from "../tabs.ts";
+import { SheetTab } from "../tabs.ts";
 import { arrayToJson } from "../utils/arrayUtils.ts";
 import { expiryFor, isTokenValid, parseTokenWrapper, type Token, type TokenWrapper } from "./token.ts";
 
@@ -62,7 +62,7 @@ interface GoogleAuthContextType {
   apiReady: boolean;
   authorise?: () => void;
   revoke?: () => void;
-  fetchAndConvertSheet: <T>(tab: Tab, jsonConverter: (array: Record<string, string>[]) => T) => Promise<T>;
+  fetchAndConvertSheet: <T>(tab: SheetTab, jsonConverter: (array: Record<string, string>[]) => T) => Promise<T>;
 }
 
 const GoogleAuthContext = createContext<GoogleAuthContextType | null>(null);
@@ -121,7 +121,7 @@ export const GoogleAuthProvider = ({ children }: { children: ReactNode }) => {
     : undefined;
 
   const fetchAndConvertSheet = async <T,>(
-    { spreadsheetId, range }: Tab,
+    { spreadsheetId, range }: SheetTab,
     jsonConverter: (array: Record<string, string>[]) => T,
   ): Promise<T> => {
     // Only the request is guarded. A converter throw means the sheet holds something it should
