@@ -1,7 +1,7 @@
 import { PlainDate } from "../common/date.ts";
 import { dataCacheKey, type DataConfig } from "../common/useData.ts";
 import { describing, readAgeRating, sheetRow } from "../common/sheetError.ts";
-import type { Company, Format, Platform, Status, VideoGame } from "./types";
+import type { Company, Format, Gameplay, Platform, Status, VideoGame } from "./types";
 
 export const jsonConverter = (json: Record<string, string>[]) => {
   return json.map((row, index) => {
@@ -24,7 +24,11 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       platform: row.Platform as Platform,
       company: row.Platform.split(" ")[0] as Company,
       franchise: row.Franchise,
-      genre: row.Genre,
+      // 10 of 340 rows name no genre. Defaulting here rather than at each surface makes the field
+      // total, so no reader carries a guard of its own — and `"Other"` is off the shared ramp, so
+      // it draws as the neutral every "nothing to say here" bucket already wears.
+      genre: row.Genre || "Other",
+      gameplay: row.Gameplay as Gameplay,
       theme: row.Theme.split("\n"),
       format: row.Format as Format,
       developer: row.Developer,
@@ -45,8 +49,11 @@ export const jsonConverter = (json: Record<string, string>[]) => {
 /**
  * The cache this converter's output is read back from, shared by the Games tab and by Omnibus so
  * a version bump cannot land at one of them alone.
+ *
+ * v2: a cached object written before this carries the *gameplay* vocabulary under `genre` and no
+ * `gameplay` at all, so every genre surface would colour a gameplay value against the shared ramp.
  */
 export const vgDataConfig: DataConfig<VideoGame> = {
-  storageKey: dataCacheKey("vg", 1),
+  storageKey: dataCacheKey("vg", 2),
   converter: jsonConverter,
 };

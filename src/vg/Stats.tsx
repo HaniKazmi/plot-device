@@ -7,6 +7,7 @@ import {
   Pause,
   PlayArrow,
   ShowChart,
+  SportsEsports,
   Stars,
   Storefront,
   TaskAlt,
@@ -31,7 +32,6 @@ import {
 } from "./statsData";
 import {
   companyToColor,
-  genreToColour,
   groupToColour,
   videoGameOptions,
   type Company,
@@ -44,6 +44,7 @@ import { StatCard, StatList, type StatsListProps, TotalsBand, VitalsCard, YearTo
 import { TopListCard } from "../common/TopList";
 import { GroupedStatList } from "../common/GroupedStatList";
 import VgCardMediaImage from "./CardMediaImage";
+import { gameSubtitle } from "./cardData";
 import { Stack, Typography } from "@mui/material";
 import type { FilterDispatch, YearType } from "./filterUtils";
 import { statusToColour } from "../utils/types";
@@ -157,8 +158,7 @@ const VgHero = ({ game }: { game: VideoGame }) => {
       // promoted to the top of the page does not cost this game its platform.
       chip={platformToShortChip(game)}
       title={game.name}
-      // The genre wears the same swatch its ledger row and every genre wedge on the tab wear.
-      subtitle={[{ text: game.platform }, { text: game.genre, swatch: genreToColour(game) }]}
+      subtitle={gameSubtitle(game)}
       stats={heroStats(game, franchise, CURRENT_PLAINDATE)}
     />
   );
@@ -331,7 +331,7 @@ const CurrentlyPlaying = ({ playing }: { playing: VideoGame[] }) => {
 
 const TopCategories = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => (
   <>
-    {(["genre", "publisher", "franchise"] as const).map((category) => (
+    {(["gameplay", "publisher", "franchise"] as const).map((category) => (
       <TopListCard
         key={category}
         options={topOptions}
@@ -354,6 +354,7 @@ const optionIcons: Record<TopOption, ReactNode> = {
   publisher: <Storefront />,
   rating: <VerifiedUser />,
   status: <TaskAlt />,
+  gameplay: <SportsEsports />,
   genre: <Category />,
 };
 

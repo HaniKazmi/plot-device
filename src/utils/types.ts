@@ -124,19 +124,24 @@ export const statusToColour = ({ status }: { status: ColourableStatus }) => {
 };
 
 /**
- * The genre vocabulary Shows and Movies share. It lives here rather than in either domain for the
- * same reason `ageRatingToColour` does: the two record overlapping genre sets in one spreadsheet,
- * and one swatch has to mean one thing across both tabs.
+ * The genre vocabulary all three tracked sheets share. It lives here rather than in any one domain
+ * for the same reason `ageRatingToColour` does: Games, Shows and Movies each record their Genre
+ * column in this one vocabulary, and a swatch has to mean the same thing on every tab. That is
+ * what lets the Omnibus bridge a game to a film under one genre name without a mapping in code.
  *
- * Each hue is chosen to *represent* its genre. Action and Adventure keep the hues
- * `vg/types.ts` paints those same genre names with, so the two genres all three tabs record
- * read as one thing everywhere; the other hexes also reappear in vg's table but under
- * *different* genres — deliberate palette recycling, safe because no chart ever shows the two
- * vocabularies side by side, and not a correspondence to preserve. Every value meets the fill
- * contract above.
+ * Each hue is chosen to *represent* its genre, and every value meets the fill contract above.
+ *
+ * Nine of these hexes also appear in `vg/types.ts`'s gameplay table under other names — Fantasy's
+ * indigo is Role Playing's, Mystery's teal is Simulation's. That is palette recycling rather than
+ * a correspondence, and the Games tab is the one place both vocabularies are drawn: a card there
+ * states each in turn, so its `mutedGenreToColour` mutes this ramp to keep the two swatches from
+ * landing on one colour. Action and Adventure are the deliberate exception, matching in both
+ * tables because those two names mean the same thing in both vocabularies.
  *
  * The lookup falls to `NEUTRAL_FILL` rather than throwing: the genre column is open-ended, and a
- * new genre appearing in the sheet should render as "no colour yet", not take the tab down.
+ * new genre appearing in the sheet should render as "no colour yet", not take the tab down. The
+ * Games converter's `"Other"` default for an unrecorded genre relies on that — it is deliberately
+ * absent from the table, since a colour of its own would dress the absence of a genre up as one.
  */
 const genreColours: Record<string, Colour> = {
   Action: "#fe4c00" as Colour,

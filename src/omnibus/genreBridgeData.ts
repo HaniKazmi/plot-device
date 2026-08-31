@@ -32,11 +32,10 @@ export interface GenreBridgeRow {
  * Only the primary genre counts. Shows and Movies carry secondary genres and Games carry themes
  * instead, so folding the secondaries in would give two of the three media a second vote each.
  *
- * The vocabularies themselves are **not** merged, which is the open decision this ships with: the
- * Games sheet's genre column overlaps the screen one on Action and Adventure alone, so a merge
- * would be a mapping written here rather than a fact either sheet records. The cost of leaving it
- * is that a genre the two vocabularies name differently — a games "RPG" against a screen "Drama" —
- * never meets itself, and the bridge is honestly short as a result.
+ * All three sheets record the same genre vocabulary, so a genre meets itself across media without
+ * a mapping written here — which is what this chart needs to be true, since a row is exactly the
+ * claim that one genre name spans more than one medium. A vocabulary of its own on any sheet would
+ * make every one of its genres a single-medium row and drop them all at the filter below.
  */
 export const genreBridge = (items: OmniItem[]): GenreBridgeRow[] => {
   const byGenre = items.reduce((index, item) => {
