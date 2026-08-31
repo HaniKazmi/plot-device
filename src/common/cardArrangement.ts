@@ -32,6 +32,22 @@ const shapeArrangements: Record<ArtworkShape, CardArrangement> = {
 export const shapeToArrangement = (shape: ArtworkShape): CardArrangement => shapeArrangements[shape];
 
 /**
+ * The shape every artwork of a kind is drawn at: banners 16:9, posters 2:3.
+ *
+ * The ratio a layout measures is this one and never the file's own. Artwork is authored to it, but
+ * an individual image can be off by a few pixels, and a band that took each picture's measured ratio
+ * would stand its two poster cards at different widths for a reason no reader can see — a mistake in
+ * one file becoming a visible difference in the page. Sizing from the declared ratio makes every
+ * poster card identical and leaves an off-size file to be letterboxed rather than to move the layout.
+ */
+const shapeRatios: Record<ArtworkShape, string> = {
+  landscape: "16 / 9",
+  portrait: "2 / 3",
+};
+
+export const shapeToRatio = (shape: ArtworkShape): string => shapeRatios[shape];
+
+/**
  * The height a card holds for artwork it has not loaded yet.
  *
  * A lazily loaded image contributes nothing of its own, so a wall or a strip of them stands at a
@@ -41,8 +57,8 @@ export const shapeToArrangement = (shape: ArtworkShape): CardArrangement => shap
  * the moment it is known, and this stands in only while there is none.
  */
 const shapeAspects: Record<ArtworkShape, string> = {
-  landscape: "auto 16 / 9",
-  portrait: "auto 2 / 3",
+  landscape: `auto ${shapeRatios.landscape}`,
+  portrait: `auto ${shapeRatios.portrait}`,
 };
 
 export const shapeToAspect = (shape: ArtworkShape): string => shapeAspects[shape];

@@ -357,6 +357,12 @@ read down a column and so are given lines to wrap onto with a three-line ceiling
 fits as many figures as the column holds and wraps the rest, since a third tile in a 60px slot is
 narrower than the word under the figure and would be pushed past the card's edge.
 
+The ratio a layout measures is the declared one and never a file's own pixels. Artwork is authored
+to 16:9 and 2:3, but an individual file can be off by a few pixels, and the Now band would then stand
+its two poster cards at different widths for a reason no reader can see — one bad export becoming a
+visible difference in the page. Sizing from the declared ratio makes every card of a kind identical
+and leaves an off-size file to be letterboxed until it is redrawn.
+
 Bare artwork is not arranged at all. The rule divides a card between a picture and a column of text,
 so a gallery shelf's pictures — which carry no words — keep the whole card; applying it there hands
 half the width to a panel that is not present and draws the picture at half the size.

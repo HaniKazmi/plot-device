@@ -1,6 +1,5 @@
 import { Hub, Layers, Timer, Update } from "@mui/icons-material";
-import { Stack, Typography } from "@mui/material";
-import Grid from "@mui/material/Grid";
+import { Box, Stack, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { CardPanel, type PanelStat, type PanelSubtitlePart, type TypedCardMediaImage } from "../common/Card";
 import { CURRENT_PLAINDATE, CURRENT_YEAR, formatDate, type YearNumber } from "../common/date";
@@ -22,6 +21,7 @@ import { crossingEntries, type Crossing } from "./crossingsData";
 import type { FilterDispatch } from "./filterUtils";
 import { OMNIBUS_SECTIONS } from "./sections";
 import { media, mediumToColour, mediumToLabel, mediumToShape, type Measure, type Medium } from "./types";
+import { shapeToRatio } from "../common/cardArrangement";
 
 const Stats = ({
   data,
@@ -135,15 +135,20 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
   };
 
   return (
-    <Grid
-      container
-      spacing={1}
-      // Each card is the height of what is in it, rather than every card the height of the tallest.
-      // The two shapes cannot reach a common height with their artwork intact: a banner across a
-      // third of the band is 228px tall and a poster beside its words is 304, so holding both to one
-      // height spends the difference either on ground around a floating picture or on a crop. A card
-      // that ends where its own artwork ends is the one arrangement where every picture is whole.
-      sx={{ alignItems: "flex-start" }}
+    <Box
+      sx={{
+        display: "flex",
+        // Stacked on a phone, where a card is the screen's width and there is no row to be part of.
+        flexDirection: { xs: "column", md: "row" },
+        // A row of one height with the widths following, which is how every strip on this page
+        // holds mixed artwork: an equal-thirds grid gives each card a width it did not ask for, and
+        // the two shapes then reach that width at different heights. Sharing the height and letting
+        // the widths differ is the same trade the other way round, and it is the one that leaves
+        // every picture whole — a poster card comes out near-square and a banner card wider.
+        flexWrap: { md: "wrap" },
+        alignItems: "stretch",
+        gap: 1,
+      }}
     >
       {now.game && (
         <NowCard
@@ -188,12 +193,35 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
           stats={movieHeroStats(now.movie, 1)}
         />
       )}
-    </Grid>
+    </Box>
   );
 };
 
 /**
- * One medium's current item, at a third of the band.
+ * The band's geometry: one height for the row, and a width per card that follows from it.
+ *
+ * The widths are stated rather than left to the artwork's own pixels for two reasons. A flex row
+ * asks an item how wide it wants to be before any height is known, and a picture asked that answers
+ * with its file's width — a 600px poster then claims 600px and drags the row to 900 tall. And the
+ * files are not all exactly on their ratio yet, so a measured width would stand the two poster cards
+ * at different sizes for a reason no reader can see.
+ *
+ * The three numbers hold each other:
+ *
+ * - the poster cards are a full-height poster — the height times two thirds — plus a column of text;
+ * - the banner card is narrower, and the banner across it takes nine sixteenths of that width in
+ *   height (180px at 320), which leaves the remaining 200px of the row to its kicker, title,
+ *   subtitle and two figures. A wider banner card is a taller picture and a squeezed panel;
+ * - together they come to 1,222px, which is what lets all three stand on one row at a desktop width
+ *   rather than wrapping.
+ */
+const NOW_HEIGHT = 380;
+const NOW_TEXT_WIDTH = 190;
+const NOW_BANNER_CARD_WIDTH = 320;
+const NOW_POSTER_ART_WIDTH = Math.round((NOW_HEIGHT * 2) / 3);
+
+/**
+ * One medium's current item.
  *
  * The corner chip names the medium in its own fill and is what carries the reader to that tab —
  * the artwork itself already opens the domain's expanded card, which is the other thing a reader
@@ -210,19 +238,44 @@ const NowCard = <T,>(props: {
   stats: PanelStat[];
 }) => {
   const shape = mediumToShape(props.medium);
+  const beside = shape === "portrait";
 
   return (
-    <Grid size={{ xs: 12, md: 4 }}>
+    <Box
+      sx={{
+        flex: "0 0 auto",
+        // Each card the width its own picture makes it, rather than every card a third of the band.
+        width: { xs: "100%", md: beside ? NOW_POSTER_ART_WIDTH + NOW_TEXT_WIDTH : NOW_BANNER_CARD_WIDTH },
+        maxWidth: "100%",
+        // A floor and not a fixed height, so a title that runs to another line grows the row rather
+        // than being clipped by it; the cards stretch together, so they still share one height.
+        minHeight: { md: NOW_HEIGHT },
+        display: "flex",
+      }}
+    >
       <props.MediaComponent
         item={props.item}
         extractColour
         shape={shape}
+        // The caller has sized the artwork itself, so the column is the picture's width rather than
+        // a share of a card whose width was imposed on it.
+        mediaLayout={beside ? "aside" : undefined}
         chip={{ label: mediumToLabel(props.medium), colour: mediumToColour(props.medium), onClick: props.onJump }}
-        // Whichever axis the arrangement gave it, filled edge to edge, with the other axis its own.
-        // The card is then the size of its picture plus its words, and nothing is cropped to fit or
-        // left floating in ground: a poster fills the column beside the panel, a banner the whole
-        // width above it.
-        sx={{ width: "100%", height: "auto", display: "block" }}
+        cardSx={{ flexDirection: { xs: "column", md: "row" }, width: "100%" }}
+        sx={{
+          // Sized from the shape every artwork of this kind is drawn at, never from the file's own
+          // pixels, so the two poster cards are identical and an off-size file cannot make one of
+          // them wider than the other. `contain` is what keeps such a file uncropped until it is
+          // redrawn; artwork that matches the ratio fills the box exactly and nothing is letterboxed.
+          aspectRatio: shapeToRatio(shape),
+          objectFit: "contain",
+          display: "block",
+          ...(beside
+            ? // Its column exactly, and the whole height of the row beside the words.
+              { width: { xs: "100%", md: NOW_POSTER_ART_WIDTH }, height: { xs: "auto", md: "100%" } }
+            : // Spans the card it was given; the ratio above then decides its height.
+              { width: "100%", height: "auto" }),
+        }}
         footerComponent={
           <CardPanel
             kicker={props.kicker}
@@ -233,7 +286,7 @@ const NowCard = <T,>(props: {
           />
         }
       />
-    </Grid>
+    </Box>
   );
 };
 
