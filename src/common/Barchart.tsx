@@ -1,29 +1,33 @@
-import {
-  Card,
-  CardContent,
-  FormControlLabel,
-  FormGroup,
-  Stack,
-  Switch,
-  ToggleButton,
-  ToggleButtonGroup,
-  useTheme,
-} from "@mui/material";
+import { Card, CardContent, FormGroup, ToggleButton, ToggleButtonGroup, useTheme } from "@mui/material";
 import { type ReactNode, useState } from "react";
-import { BarChart, PinOutlined, SsidChart } from "@mui/icons-material";
+import { BarChart, Percent, PinOutlined, SsidChart } from "@mui/icons-material";
 import { SectionHeader } from "./SectionHeader";
 import { Chart, Series, XAxis, YAxis, PlotOptions, Tooltip, Legend } from "../highcharts";
 import type { Year, YearMonth } from "./date";
 import type { Colour } from "../utils/types";
 import type {} from "@mui/material/themeCssVarsAugmentation";
-import { convertToCumulative, convertToRanking, groupDate } from "./barchartData";
+import { convertToCumulative, convertToRanking, convertToShare, groupDate } from "./barchartData";
 
-type GraphType = "bar" | "line" | "bump";
+/**
+ * The four questions the same pivot answers: how much, of what it was made, how it accumulated,
+ * and who led. One control rather than a chart-type toggle beside a cumulative switch, because
+ * the combinations that pair allows are not four independent choices — a cumulative bar and a
+ * ranked total are the same picture twice.
+ */
+type View = "Totals" | "Share" | "Cumulative" | "Rank";
 
-const getSeriesType = (graphType: GraphType, cumulative: boolean): "column" | "spline" | "area" => {
-  if (graphType === "bar") return "column";
-  if (graphType === "bump") return "spline";
-  return cumulative ? "area" : "spline";
+const views: { view: View; icon: ReactNode }[] = [
+  { view: "Rank", icon: <PinOutlined /> },
+  { view: "Cumulative", icon: <SsidChart /> },
+  { view: "Share", icon: <Percent /> },
+  { view: "Totals", icon: <BarChart /> },
+];
+
+const seriesTypes: Record<View, "column" | "spline" | "area"> = {
+  Totals: "column",
+  Share: "column",
+  Cumulative: "area",
+  Rank: "spline",
 };
 
 const Barchart = ({
@@ -41,21 +45,26 @@ const Barchart = ({
   postAggregate?: (value: number) => number;
   controls: ReactNode;
 }) => {
-  const [graphType, setGraphType] = useState<GraphType>("bar");
-  const [cumulative, setCumulative] = useState(false);
+  const [view, setView] = useState<View>("Totals");
   const theme = useTheme();
 
-  const effectiveCumulative = cumulative && graphType !== "bar";
-  const { results: raw, dates, groups } = groupDate(data(effectiveCumulative));
+  const cumulative = view === "Cumulative";
+  const { results: raw, dates, groups } = groupDate(data(cumulative));
 
-  const accumulated = effectiveCumulative ? convertToCumulative(raw) : raw;
-  // The bump chart plots ranks, but its tooltip still reports the underlying measure.
-  const tooltipResults = postAggregate
-    ? accumulated.map((row) => row.map((value) => (value == null ? value : postAggregate(value))))
-    : accumulated;
-  const results = graphType === "bump" ? convertToRanking(tooltipResults) : tooltipResults;
+  const accumulated = cumulative ? convertToCumulative(raw) : raw;
+  // Share is taken over the raw measure and never through `postAggregate`, which callers are free
+  // to make non-linear — a flooring minutes-to-hours conversion is what two of them pass, and the
+  // share of floored values is not the share of the values behind them.
+  const share = view === "Share";
+  // Rank plots positions, but its tooltip still reports the underlying measure.
+  const tooltipResults = share
+    ? convertToShare(raw)
+    : postAggregate
+      ? accumulated.map((row) => row.map((value) => (value == null ? value : postAggregate(value))))
+      : accumulated;
+  const results = view === "Rank" ? convertToRanking(tooltipResults) : tooltipResults;
 
-  const seriesType = getSeriesType(graphType, cumulative);
+  const seriesType = seriesTypes[view];
 
   return (
     <Card>
@@ -66,44 +75,23 @@ const Barchart = ({
         action={
           <FormGroup>
             {controls}
-            <Stack direction={"row"}>
-              {graphType !== "bar" && (
-                <FormControlLabel
-                  label="Cumulative"
-                  control={
-                    <Switch
-                      checked={cumulative}
-                      onChange={(_, checked) => setCumulative(checked)}
-                    />
-                  }
-                />
-              )}
-              <ToggleButtonGroup
-                color="primary"
-                value={graphType}
-                exclusive
-                onChange={(_, val: GraphType | null) => val && setGraphType(val)}
-              >
+            <ToggleButtonGroup
+              color="primary"
+              value={view}
+              exclusive
+              onChange={(_, val: View | null) => val && setView(val)}
+            >
+              {views.map(({ view: value, icon }) => (
                 <ToggleButton
-                  value={"bump"}
+                  key={value}
+                  value={value}
+                  aria-label={value}
                   sx={{ border: 0 }}
                 >
-                  <PinOutlined />
+                  {icon}
                 </ToggleButton>
-                <ToggleButton
-                  value={"line"}
-                  sx={{ border: 0 }}
-                >
-                  <SsidChart />
-                </ToggleButton>
-                <ToggleButton
-                  value={"bar"}
-                  sx={{ border: 0 }}
-                >
-                  <BarChart />
-                </ToggleButton>
-              </ToggleButtonGroup>
-            </Stack>
+              ))}
+            </ToggleButtonGroup>
           </FormGroup>
         }
       />
@@ -132,8 +120,9 @@ const Barchart = ({
             title={{
               text: undefined,
             }}
-            reversed={graphType === "bump"}
-            floor={graphType === "bump" ? 1 : undefined}
+            reversed={view === "Rank"}
+            floor={view === "Rank" ? 1 : undefined}
+            max={share ? 100 : undefined}
             minTickInterval={1}
             labels={{
               style: {
@@ -179,7 +168,10 @@ const Barchart = ({
               },
             } as Record<string, unknown>)}
           />
-          <Tooltip />
+          <Tooltip
+            valueSuffix={share ? "%" : undefined}
+            valueDecimals={share ? 1 : undefined}
+          />
           <Legend
             enabled={groups.length > 1}
             verticalAlign="top"

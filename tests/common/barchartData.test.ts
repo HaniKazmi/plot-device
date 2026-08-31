@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { convertToCumulative, convertToRanking, groupDate } from "../../src/common/barchartData";
+import { convertToCumulative, convertToRanking, convertToShare, groupDate } from "../../src/common/barchartData";
 import { YearMonth } from "../../src/common/date";
 import type { Colour } from "../../src/utils/types";
 
@@ -116,6 +116,66 @@ describe("convertToCumulative", () => {
 
   it("returns an empty table unchanged", () => {
     expect(convertToCumulative([])).toEqual([]);
+  });
+});
+
+describe("convertToShare", () => {
+  it("gives each column's cells their percentage of that column", () => {
+    expect(
+      convertToShare([
+        [1, 3],
+        [3, 1],
+      ]),
+    ).toEqual([
+      [25, 75],
+      [75, 25],
+    ]);
+  });
+
+  it("fills every column to 100, whatever the column's size", () => {
+    const results = convertToShare([
+      [1, 1000],
+      [2, 1],
+      [3, 7],
+    ]);
+
+    for (let col = 0; col < 2; col++) {
+      expect(results.reduce((total, row) => total + (row[col] ?? 0), 0)).toBeCloseTo(100);
+    }
+  });
+
+  it("gives a lone group the whole column", () => {
+    expect(convertToShare([[7, 2]])).toEqual([[100, 100]]);
+  });
+
+  it("answers zero for a column that totals zero, so no NaN reaches a series", () => {
+    // A dividing guard rather than a rendering one: NaN draws as a gap, which the chart already
+    // uses to mean a series that has not started.
+    expect(
+      convertToShare([
+        [0, 4],
+        [0, 0],
+      ]),
+    ).toEqual([
+      [0, 100],
+      [0, 0],
+    ]);
+  });
+
+  it("holds the leading nulls, so a late series still starts at its own first point", () => {
+    expect(
+      convertToShare([
+        [null, 1],
+        [5, 1],
+      ]),
+    ).toEqual([
+      [null, 50],
+      [100, 50],
+    ]);
+  });
+
+  it("returns an empty table unchanged", () => {
+    expect(convertToShare([])).toEqual([]);
   });
 });
 
