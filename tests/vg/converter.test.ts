@@ -108,12 +108,22 @@ describe("genre and gameplay", () => {
     expect(game.gameplay).toBe("Role Playing");
   });
 
-  it("calls a game with no genre Other, so the field is answerable for every row", () => {
-    expect(convertOne({ Genre: "" }).genre).toBe("Other");
+  it("rejects a blank gameplay rather than letting an empty cell reach the tab", () => {
+    // Cast unchecked it renders as a nameless filter chip and a ledger row with no value, which
+    // reads as a style with no colour yet rather than as a cell nobody filled in.
+    expect(() => convertOne({ Gameplay: "" })).toThrow('"" is not a gameplay style');
   });
 
-  it("leaves gameplay alone when the sheet says nothing, because no reader defaults it", () => {
-    expect(convertOne({ Gameplay: "" }).gameplay).toBe("");
+  it("rejects a misspelt gameplay, naming the row so the sheet can be fixed", () => {
+    expect(() => convertOne({ Game: "Zelda", Gameplay: "Role-Playing" })).toThrow(
+      'Row 2, "Zelda", Gameplay: "Role-Playing" is not a gameplay style',
+    );
+  });
+
+  it("still defaults a blank genre, which is an exemption for rows not yet filled in", () => {
+    // Deliberately unlike gameplay above: 10 of 340 rows have no genre, so this one column
+    // tolerates a blank until the sheet catches up.
+    expect(convertOne({ Genre: "" }).genre).toBe("Other");
   });
 });
 
