@@ -21,7 +21,7 @@ import { crossingEntries, type Crossing } from "./crossingsData";
 import type { FilterDispatch } from "./filterUtils";
 import { OMNIBUS_SECTIONS } from "./sections";
 import { media, mediumToColour, mediumToLabel, mediumToShape, type Measure, type Medium } from "./types";
-import { shapeToRatio } from "../common/cardArrangement";
+import { shapeRatioValues, shapeToRatio } from "../common/cardArrangement";
 
 const Stats = ({
   data,
@@ -220,7 +220,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
 const NOW_HEIGHT = 380;
 const NOW_TEXT_WIDTH = 190;
 const NOW_BANNER_CARD_WIDTH = 320;
-const NOW_POSTER_ART_WIDTH = Math.round((NOW_HEIGHT * 2) / 3);
+const NOW_POSTER_ART_WIDTH = Math.round(NOW_HEIGHT * shapeRatioValues.portrait);
 
 /**
  * One medium's current item.

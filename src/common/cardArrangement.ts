@@ -32,7 +32,8 @@ const shapeArrangements: Record<ArtworkShape, CardArrangement> = {
 export const shapeToArrangement = (shape: ArtworkShape): CardArrangement => shapeArrangements[shape];
 
 /**
- * The shape every artwork of a kind is drawn at: banners 16:9, posters 2:3.
+ * The shape every artwork of a kind is drawn at: banners 16:9, posters 680×1000 — the exact pixel
+ * size the poster buckets hold, so a canonical file fills its box with nothing left over.
  *
  * The ratio a layout measures is this one and never the file's own. Artwork is authored to it, but
  * an individual image can be off by a few pixels, and a band that took each picture's measured ratio
@@ -40,9 +41,14 @@ export const shapeToArrangement = (shape: ArtworkShape): CardArrangement => shap
  * one file becoming a visible difference in the page. Sizing from the declared ratio makes every
  * poster card identical and leaves an off-size file to be letterboxed rather than to move the layout.
  */
+export const shapeRatioValues: Record<ArtworkShape, number> = {
+  landscape: 16 / 9,
+  portrait: 680 / 1000,
+};
+
 const shapeRatios: Record<ArtworkShape, string> = {
   landscape: "16 / 9",
-  portrait: "2 / 3",
+  portrait: "680 / 1000",
 };
 
 export const shapeToRatio = (shape: ArtworkShape): string => shapeRatios[shape];
