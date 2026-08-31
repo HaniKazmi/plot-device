@@ -1,4 +1,4 @@
-import { Layers, Timer, Update } from "@mui/icons-material";
+import { Hub, Layers, Timer, Update } from "@mui/icons-material";
 import { Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { useNavigate } from "react-router-dom";
@@ -6,7 +6,7 @@ import { CardPanel, type PanelStat, type PanelSubtitlePart, type TypedCardMediaI
 import { CURRENT_PLAINDATE, CURRENT_YEAR, formatDate, type YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
 import { Section, StatBand } from "../common/SectionRail";
-import { TotalsBand, VitalsCard, YearTotals } from "../common/Stats";
+import { StatCard, TotalsBand, VitalsCard, YearTotals } from "../common/Stats";
 import { genreToColour } from "../utils/types";
 import MovieCardMediaImage from "../movie/CardMediaImage";
 import { cinemaLabel } from "../movie/types";
@@ -18,6 +18,7 @@ import { heroStats } from "../vg/statsData";
 import { genreToColour as vgGenreToColour } from "../vg/types";
 import { MoviesTab, ShowsTab, VideoGamesTab, type Tab } from "../tabs";
 import { electNow, hasNow, measureOf, unionTotals, type OmniItem } from "./adapter";
+import { crossingEntries, type Crossing } from "./crossingsData";
 import type { FilterDispatch } from "./filterUtils";
 import { OMNIBUS_SECTIONS } from "./sections";
 import { media, mediumToColour, mediumToLabel, type Measure, type Medium } from "./types";
@@ -32,6 +33,7 @@ const NOW_MEDIA_HEIGHT = 170;
 const Stats = ({
   data,
   now,
+  crossings,
   earliestYear,
   measure,
   yearType,
@@ -41,6 +43,8 @@ const Stats = ({
   data: OmniItem[];
   /** Computed by `Graphs`, which decides on the same value whether the rail offers a Now chip. */
   now: ReturnType<typeof electNow>;
+  /** The same list the Crossings section draws, so the count and the strips cannot disagree. */
+  crossings: Crossing[];
   /** The union's own first year, so the select's floor does not rise with the filters. */
   earliestYear?: YearNumber;
   measure: Measure;
@@ -100,8 +104,21 @@ const Stats = ({
               measureLabel={measure}
             />
           </VitalsCard>
+          {/* The one figure on this page that could not be read off any of the three tabs: a
+              franchise is only a crossing when more than one of them holds it. */}
+          <StatCard
+            icon={<Hub />}
+            title="Crossings"
+            content={[
+              ["Franchises", crossings.length],
+              ["Entries", crossingEntries(crossings)],
+            ]}
+          />
         </StatBand>
       </Section>
+      {/* This file holds the bands above the charts and nothing else. The browse surfaces — the
+          gallery, and recently finished with the library wall — belong to `Graphs`, at the
+          `OMNIBUS_SECTIONS.gallery` and `.finished` anchors it already leaves a slot for. */}
     </Stack>
   );
 };
@@ -139,9 +156,10 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
           kicker={`Playing · since ${formatDate(now.game.startDate)}`}
           title={now.game.name}
           subtitle={[{ text: now.game.platform }, { text: now.game.genre, swatch: vgGenreToColour(now.game) }]}
-          // The franchise tile is dropped by passing the game alone: the card strips this page
-          // will grow are Phase C's, and a count taken from a second grouping here would be a
-          // second answer to a question the cards below already answer.
+          // The franchise tile is dropped by passing the game alone. The Crossings section is
+          // where this page states what a franchise spans, and it is drawn from the filtered
+          // union — while the hero is elected from the library and the filters do not narrow it,
+          // so a tile here would quote a number that moves under a control the card ignores.
           stats={heroStats(now.game, [now.game], CURRENT_PLAINDATE)}
         />
       )}

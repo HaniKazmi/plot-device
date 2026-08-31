@@ -1,17 +1,23 @@
 import { memo } from "react";
-import type { YearNumber } from "../common/date";
+import { CURRENT_PLAINDATE, CURRENT_YEAR, YearMonthDay, type YearNumber } from "../common/date";
 import { Stack } from "@mui/material";
 import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
 import { franchiseIndex } from "../common/franchiseIndex";
-import { SectionRail } from "../common/SectionRail";
+import { Section, SectionRail } from "../common/SectionRail";
+import { stripYearTicks } from "../common/timelineStripData";
 import { FranchiseContext as MovieFranchiseContext, movieFranchise } from "../movie/franchiseContext";
 import { FranchiseContext as ShowFranchiseContext, showFranchise } from "../show/franchiseContext";
 import { FranchiseContext as VgFranchiseContext } from "../vg/franchiseContext";
 import { useOtherTabs } from "../tabs";
 import { earliestYear, electNow, hasNow, type Library, type OmniItem } from "./adapter";
+import Barchart from "./Barchart";
+import Crossings from "./Crossings";
+import { crossings } from "./crossingsData";
 import Filter from "./Filter";
+import GenreBridge from "./GenreBridge";
+import { genreBridge } from "./genreBridgeData";
 import Stats from "./Stats";
-import { omnibusSections } from "./sections";
+import { OMNIBUS_SECTIONS, omnibusSections } from "./sections";
 import type { FilterDispatch, FilterState } from "./filterUtils";
 
 /**
@@ -80,21 +86,59 @@ const Graphs = memo(
     // rail offers a chip pointing at it, and two derivations of one test are two that can differ.
     const now = electNow(library, filterState);
 
+    // One scale for every strip on the page, taken from the union's own first year rather than
+    // from each franchise's: two strips measured against their own spans would put a franchise
+    // that ran for three years and one that ran for twenty at the same width.
+    const epoch = YearMonthDay.get(earliestYear ?? CURRENT_YEAR, 1, 1);
+    // Derived here and handed to both the section and the vitals card, on the `now` rule: the
+    // grouping is not cheap, and two derivations of it could report different counts.
+    const crossed = crossings(data, epoch, CURRENT_PLAINDATE);
+    const bridge = genreBridge(data);
+
     return (
       <Stack spacing={2}>
         <SectionRail
-          sections={omnibusSections(hasNow(now))}
+          sections={omnibusSections({
+            now: hasNow(now),
+            crossings: crossed.length > 0,
+            genres: bridge.length > 0,
+          })}
           tabs={tabs}
         />
         <Stats
           data={data}
           now={now}
+          crossings={crossed}
           earliestYear={earliestYear}
           measure={filterState.measure}
           yearType={filterState.yearType}
           yearTo={filterState.yearTo}
           filterDispatch={filterDispatch}
         />
+        <Section id={OMNIBUS_SECTIONS.charts}>
+          <Barchart
+            data={data}
+            measure={filterState.measure}
+          />
+        </Section>
+        {crossed.length > 0 && (
+          <Section id={OMNIBUS_SECTIONS.crossings}>
+            <Crossings
+              crossings={crossed}
+              ticks={stripYearTicks(epoch, CURRENT_PLAINDATE)}
+            />
+          </Section>
+        )}
+        {/* Phase C2's browse surfaces go here, in the page's temperature order: the gallery at
+            `OMNIBUS_SECTIONS.gallery`, then recently finished and the library wall at
+            `OMNIBUS_SECTIONS.finished`. Both ids are already in the map; each needs its chip
+            added to `omnibusSections` and gated on having anything to show, the way Crossings and
+            Genres are here. */}
+        {bridge.length > 0 && (
+          <Section id={OMNIBUS_SECTIONS.genres}>
+            <GenreBridge rows={bridge} />
+          </Section>
+        )}
       </Stack>
     );
   },
