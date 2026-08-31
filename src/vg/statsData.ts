@@ -1,5 +1,6 @@
 import { formatDate, type YearMonthDay, type YearNumber } from "../common/date";
-import { assignPercents, format } from "../utils/mathUtils";
+import { format } from "../utils/mathUtils";
+import { groupByCategory } from "../common/statsData";
 import { platformToShort, type Measure, type VideoGame, type VideoGameStringKeys } from "./types";
 import "../utils/arrayUtils";
 
@@ -25,44 +26,21 @@ export const topOptions = [
 export type TopOption = (typeof topOptions)[number];
 
 /**
- * Groups completed, time-tracked games by a category, ordered most-played first.
- *
- * A game with no value for the category is left out. `Object.groupBy` stringifies its key, so
- * those would otherwise collect under the literal string "undefined" and render as a category
- * of that name.
+ * Groups completed, time-tracked games by a category, ordered most-played first. The artwork
+ * scan is a reduce rather than a sort: only the longest-played game is wanted.
  */
 export const groupGamesBy = (data: VideoGame[], key: VideoGameStringKeys, measure: Measure) =>
-  Object.entries(
-    Object.groupBy(
-      data.filter((game) => game.hours && game.endDate && game[key]),
-      (game) => game[key],
-    ) as Record<string, VideoGame[]>,
-  )
-    .map(([name, games]) => ({
-      name,
-      count: measure === "Hours" ? games.sum("hours") : games.length,
-      // Scanned rather than sorted: only the longest-played game is wanted, and this runs once
-      // per category on every Top list.
-      top: games.reduce((best, game) => (game.hours! > best.hours! ? game : best)),
-      all: games,
-    }))
-    .sortByKey("count");
+  groupByCategory(
+    data.filter((game) => game.hours && game.endDate),
+    (game) => game[key],
+    (games) => (measure === "Hours" ? games.sum("hours") : games.length),
+    (games) => games.reduce((best, game) => (game.hours! > best.hours! ? game : best)),
+  );
 
-/**
- * The top `limit` categories plus an "Other" bucket holding the rest, as percentages.
- *
- * The percentages are scoped to the rows returned rather than to the whole dataset, so they
- * always sum to 100 — "Other" is what makes that true. The bucket carries no `top` game,
- * because it stands for several categories at once.
- */
-export const topNWithOther = (data: VideoGame[], key: VideoGameStringKeys, measure: Measure, limit = 5) => {
-  const allGroups = groupGamesBy(data, key, measure);
-
-  const grouped: { name: string; count: number; top?: VideoGame }[] = allGroups.slice(0, limit);
-  const other = allGroups.slice(limit);
-  if (other.length > 0) grouped.push({ name: "Other", count: other.sum("count") });
-
-  return assignPercents(grouped, grouped.sum("count"));
+/** Count and hours over the time-tracked games — what both year cards total, scoped by the caller. */
+export const gamesAndHours = (data: VideoGame[]) => {
+  const timed = data.filter((game) => game.hours);
+  return { games: timed.length, hours: timed.sum("hours") };
 };
 
 /**

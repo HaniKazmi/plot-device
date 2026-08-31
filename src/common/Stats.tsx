@@ -24,7 +24,11 @@ import {
 import { LABEL_SX } from "./typography";
 import { SectionHeader } from "./SectionHeader";
 import { useState, type ReactNode } from "react";
+import { Radio } from "@mui/material";
 import type { Colour } from "../utils/types";
+import { YearSelect } from "./YearSelect";
+import type { YearType } from "./filterReducer";
+import type { YearNumber } from "./date";
 import { CloseFullscreen, Fullscreen } from "@mui/icons-material";
 
 export const StatCard = ({
@@ -105,9 +109,82 @@ export const StatCard = ({
   );
 };
 
+/** Each `statsData` total is already keyed by the label it renders under, in display order. */
+export const StatSummary = ({
+  icon,
+  title,
+  stats,
+}: {
+  icon: ReactNode;
+  title: string;
+  stats: Record<string, number>;
+}) => (
+  <StatCard
+    icon={icon}
+    title={title}
+    content={Object.entries(stats).map(([key, value]) => [key[0].toUpperCase() + key.slice(1), value])}
+  />
+);
+
+/**
+ * The vitals card carrying the page-wide year controls: a year select as its title and the radio
+ * that picks which of the two year cards the filter applies to, hence `activeYearType`. The
+ * figures themselves arrive as a keyed record, already scoped by the caller to whatever the card
+ * claims to total.
+ */
+export const YearTotals = ({
+  yearType,
+  yearTo,
+  filterDispatch,
+  icon,
+  activeYearType,
+  minWidth,
+  earliestYear,
+  stats,
+  renderValue,
+}: {
+  yearType: YearType;
+  yearTo: YearNumber;
+  /**
+   * Typed as exactly the two actions this card sends, so every domain's dispatch — each a
+   * `FilterDispatchFor` over its own wider state — fits structurally without a generic.
+   */
+  filterDispatch: (
+    action: { type: "updateFilter"; filter: "yearTo"; value: YearNumber } | { type: "toggleYearType" },
+  ) => void;
+  icon: ReactNode;
+  activeYearType: YearType;
+  minWidth?: number;
+  /** Passed through to the year select, for a domain whose data starts before the app-wide floor. */
+  earliestYear?: YearNumber;
+  stats: Record<string, number>;
+  renderValue: (value: number) => ReactNode;
+}) => (
+  <StatCard
+    icon={icon}
+    title={
+      <YearSelect
+        value={yearTo}
+        onChange={(value) => filterDispatch({ type: "updateFilter", filter: "yearTo", value })}
+        minWidth={minWidth}
+        earliestYear={earliestYear}
+        renderValue={renderValue}
+      />
+    }
+    action={
+      <Radio
+        size="small"
+        checked={yearType == activeYearType}
+        onChange={() => filterDispatch({ type: "toggleYearType" })}
+      />
+    }
+    content={Object.entries(stats).map(([key, value]) => [key[0].toUpperCase() + key.slice(1), value])}
+  />
+);
+
 /** How many cards a strip shows collapsed, and how many its fullscreen dialog shows. */
 export const COLLAPSED_CARDS = 6;
-export const EXPANDED_CARDS = 18;
+export const EXPANDED_CARDS = 500;
 
 /**
  * A card that can also present itself fullscreen.
@@ -119,13 +196,15 @@ export const EXPANDED_CARDS = 18;
  */
 export const ExpandableCard = ({
   renderContent,
-  expandable = true,
+  expandable: expandableProp,
   sx,
 }: {
   renderContent: (isDialog: boolean, toggle: ReactNode) => ReactNode;
   expandable?: boolean;
   sx?: SxProps<Theme>;
 }) => {
+  // Applied after the pattern: a default inside it bails the component out of the React Compiler.
+  const expandable = expandableProp ?? true;
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [dialogMounted, setDialogMounted] = useState<boolean>(false);
 
@@ -235,51 +314,56 @@ export const StatList = <T,>({
   nameComponent,
   chipComponent,
   labelComponent,
-  wrap = true,
+  // Renamed and defaulted below the pattern: a default inside it bails the component out of the
+  // React Compiler, and the rename keeps `wrap` out of the rest object handed to `StatsListGrid`.
+  wrap: wrapProp,
   pictureWidth,
   dialogPictureWidth,
   controls,
   ...props
-}: StatsListProps<T>) => (
-  <Grid
-    size={{
-      xs: width[0],
-      sm: width[1],
-      md: width[2],
-    }}
-  >
-    <ExpandableCard
-      sx={{ height: "100%" }}
-      expandable={content.length > COLLAPSED_CARDS}
-      renderContent={(isDialog, toggle) => (
-        <>
-          <SectionHeader
-            title={title}
-            icon={icon}
-            action={
-              <Stack direction="row-reverse">
-                {toggle}
-                {controls}
-              </Stack>
-            }
-          />
-          <StatsListGrid
-            content={content}
-            // A non-wrapping strip scrolls sideways instead of clipping, so it can hold the
-            // expanded count without the card growing.
-            limit={isDialog || !wrap ? EXPANDED_CARDS : COLLAPSED_CARDS}
-            flexWrap={isDialog ? undefined : { xs: "nowrap", md: wrap ? "wrap" : "nowrap" }}
-            cardKey={(entry) => `${title}-statslistcard-${nameComponent(entry)}`}
-            labelComponent={labelComponent}
-            chipComponent={chipComponent}
-            pictureWidth={isDialog ? dialogPictureWidth : pictureWidth}
-            {...props}
-          />
-        </>
-      )}
-    />
-  </Grid>
-);
+}: StatsListProps<T>) => {
+  const wrap = wrapProp ?? true;
+  return (
+    <Grid
+      size={{
+        xs: width[0],
+        sm: width[1],
+        md: width[2],
+      }}
+    >
+      <ExpandableCard
+        sx={{ height: "100%" }}
+        expandable={content.length > COLLAPSED_CARDS}
+        renderContent={(isDialog, toggle) => (
+          <>
+            <SectionHeader
+              title={title}
+              icon={icon}
+              action={
+                <Stack direction="row-reverse">
+                  {toggle}
+                  {controls}
+                </Stack>
+              }
+            />
+            <StatsListGrid
+              content={content}
+              // A non-wrapping strip scrolls sideways instead of clipping, so it can hold the
+              // expanded count without the card growing.
+              limit={isDialog || !wrap ? EXPANDED_CARDS : COLLAPSED_CARDS}
+              flexWrap={isDialog ? undefined : { xs: "nowrap", md: wrap ? "wrap" : "nowrap" }}
+              cardKey={(entry) => `${title}-statslistcard-${nameComponent(entry)}`}
+              labelComponent={labelComponent}
+              chipComponent={chipComponent}
+              pictureWidth={isDialog ? dialogPictureWidth : pictureWidth}
+              {...props}
+            />
+          </>
+        )}
+      />
+    </Grid>
+  );
+};
 
 export const StatsListCard = <T,>({
   item,
@@ -318,6 +402,9 @@ export const StatsListCard = <T,>({
           item={item}
           sx={{ aspectRatio, flexShrink: 0 }}
           chip={chip}
+          // A dialog list can run to hundreds of cards; off-screen artwork loads as it scrolls
+          // into view rather than all at once on open.
+          lazy
           extractColour
           footerComponent={
             <FooterComponent
@@ -355,27 +442,25 @@ export const VitalsCard = ({ children }: { children: ReactNode }) => (
  * instead of standing each group in a column of its own — five groups as five headings, five
  * figures and a swatch each is a card the height of the charts it is meant to introduce.
  */
-export const TotalsBand = <T extends string, U, K extends keyof U>({
-  title,
-  data,
-  measureFunc,
-  groupKey,
-  group,
-  groupToColour,
-  icon,
-  measureLabel,
-}: {
+export const TotalsBand = <T extends string, U>(props: {
   title: string;
   data: U[];
   /** How much each group counts for. Its own size, where a domain has nothing else to measure. */
   measureFunc?: (data: U[]) => number;
-  groupKey: K;
   group: T[];
+  /** The group an item belongs to — a field read, or a derivation like a score band. */
+  groupOf: (item: U) => T;
   groupToColour: (ele: T) => Colour;
+  /** How a group value reads in the legend, where the sheet's own casing should not. */
+  groupToLabel?: (ele: T) => string;
   icon: ReactNode;
   measureLabel: string;
 }) => {
-  const totals = groupTotals(data, group, groupKey, measureFunc ?? countOf, groupToColour);
+  const { title, data, measureFunc, group, groupOf, groupToColour, icon, measureLabel } = props;
+  // Read off `props` rather than defaulted in the destructuring pattern — a default there bails
+  // the component out of the React Compiler.
+  const groupToLabel = props.groupToLabel ?? String;
+  const totals = groupTotals(data, group, groupOf, measureFunc ?? countOf, groupToColour);
   // Held per band rather than per card: a card stacks several bands, and hovering one group of a
   // library should not fade the band answering a different question.
   const [hovered, setHovered] = useState<string | null>(null);
@@ -423,7 +508,7 @@ export const TotalsBand = <T extends string, U, K extends keyof U>({
               colour={struct.colour}
               size={INLINE_SWATCH_SIZE}
             />
-            <Typography variant="body2">{struct.name}</Typography>
+            <Typography variant="body2">{groupToLabel(struct.name)}</Typography>
             <Typography
               variant="body2"
               sx={{ color: "text.secondary", fontVariantNumeric: "tabular-nums" }}

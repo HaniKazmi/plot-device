@@ -18,7 +18,7 @@ import {
   type ChipProps,
   type TypographyProps,
 } from "@mui/material";
-import { type FunctionComponent, type ReactNode, useEffect, useRef, useState } from "react";
+import { Fragment, type FunctionComponent, type ReactNode, useEffect, useRef, useState } from "react";
 import { CalendarMonthOutlined } from "@mui/icons-material";
 import { cachedColour, extractColourFrom } from "../utils/colourUtils";
 import { ArtworkAccent, artworkPalette, useArtworkPalette } from "./artworkPalette";
@@ -94,20 +94,15 @@ const ASIDE_ACTION_AREA_SX = {
   alignSelf: "flex-start",
 } as const;
 
-export const CardMediaImage = ({
-  image,
-  alt,
-  chip,
-  colour: propColour,
-  lazy = false,
-  footerComponent,
-  detailComponent,
-  landscape = false,
-  extractColour = false,
-  mediaLayout,
-  sx,
-  cardSx,
-}: CardMediaImageProps) => {
+export const CardMediaImage = (props: CardMediaImageProps) => {
+  const { image, alt, chip, colour: propColour, footerComponent, detailComponent, mediaLayout, sx, cardSx } = props;
+  // Defaults are read off `props` rather than written in the destructuring pattern: a default
+  // there is an assignment the React Compiler cannot lower, and it bails the whole component out
+  // of memoization — silently, since the code still runs. `extractColour` must resolve before the
+  // `useState` initialiser below that reads it.
+  const lazy = props.lazy ?? false;
+  const landscape = props.landscape ?? false;
+  const extractColour = props.extractColour ?? false;
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   /** Lags `dialogOpen` on close so the detail tree survives the dialog's exit transition. */
   const [detailMounted, setDetailMounted] = useState<boolean>(false);
@@ -118,8 +113,10 @@ export const CardMediaImage = ({
   );
   // Derived rather than seeded into state, so a card whose `colour` prop changes under it — the
   // same key showing a different item after a refetch — follows the prop instead of keeping the
-  // value it mounted with.
-  const colour = propColour ?? extracted;
+  // value it mounted with. `||` rather than `??`: colour lookups answer `""` for a value outside
+  // their vocabulary, and the empty string reaching `getContrastText` through the chip's fallback
+  // chain throws and takes the whole page down — "no colour" has to mean `undefined` from here on.
+  const colour = propColour || extracted;
   /**
    * The artwork's shape, which is what lets the dialog scale it up to the viewport rather than
    * only down. Held as the ratio rather than as the decision it feeds, so the decision can be left
@@ -357,6 +354,16 @@ export interface PanelStat {
 }
 
 /**
+ * One segment of a panel's subtitle — "Apple TV", "Thriller" — with the swatch the app already
+ * speaks that segment's colour in, where it has one. Parts with no text are dropped, so a caller
+ * lists its fields without testing which the sheet filled in.
+ */
+export interface PanelSubtitlePart {
+  text: string;
+  swatch?: Colour;
+}
+
+/**
  * How a panel sits against the artwork it belongs to, which decides the edge the two share and
  * whether the panel has height to spend.
  *
@@ -365,10 +372,9 @@ export interface PanelStat {
  *   better than half the column empty, so the title takes the top and the figures the bottom
  *   edge, spending that height as structure rather than leaving it as a pool around the middle.
  * - `hero` — beside the artwork once there is width for it and beneath it on a phone, with the
- *   seam rotating to the edge the two actually share. The content stays together at the top:
- *   this panel is as tall as a 300px banner across a 300px column, which is more height than
- *   three lines and a row of tiles can fill, and pushing the tiles to the far edge opens a void
- *   in the middle of the card rather than structuring it.
+ *   seam rotating to the edge the two actually share. The height is spent the way `beside`
+ *   spends it — title at the top, tiles on the bottom edge — so the hero and the hover cards
+ *   read as one treatment at two sizes.
  */
 export type PanelLayout = "beneath" | "beside" | "hero";
 
@@ -393,7 +399,8 @@ export const CardPanel = ({
   kicker?: string;
   title: string;
   titleVariant?: TypographyProps["variant"];
-  subtitle?: string;
+  /** Plain prose, or parts carrying the swatches a legend elsewhere honours. */
+  subtitle?: string | PanelSubtitlePart[];
   /** Absent where the card names its dates some other way, as the hero's kicker does. */
   dateRange?: string;
   stats: PanelStat[];
@@ -410,10 +417,11 @@ export const CardPanel = ({
       sx={{
         display: "flex",
         flexDirection: "column",
-        // Beside a poster the panel is as tall as the artwork and three lines cannot fill it, so
+        // Beside or hero, the panel is as tall as the artwork and a few lines cannot fill it, so
         // the title takes the top edge and the figures the bottom, spending that height as
-        // structure rather than pooling it around a centred block.
-        justifyContent: beside ? "space-between" : "flex-start",
+        // structure rather than pooling it around a centred block. Only `beneath` has no height
+        // to distribute.
+        justifyContent: beside || hero ? "space-between" : "flex-start",
         gap: 2,
         // Basis zero and free to grow, so a panel beside the artwork is exactly the row minus the
         // artwork column rather than a share of it.
@@ -458,14 +466,36 @@ export const CardPanel = ({
         </Typography>
         {/* Part of what the thing is called, but not the part the chart labels its bar with, so
             it sits under the title in the same tone the dates take. */}
-        {subtitle && (
-          <Typography
-            variant="body2"
-            sx={{ color: palette.muted }}
-          >
-            {subtitle}
-          </Typography>
-        )}
+        {subtitle &&
+          (Array.isArray(subtitle) ? (
+            <Stack
+              direction="row"
+              spacing={0.75}
+              sx={{ alignItems: "center", flexWrap: "wrap", color: palette.muted }}
+            >
+              {subtitle
+                .filter((part) => part.text)
+                .map((part, index) => (
+                  <Fragment key={part.text}>
+                    {index > 0 && <Typography variant="body2">·</Typography>}
+                    {part.swatch && (
+                      <Swatch
+                        colour={part.swatch}
+                        size={INLINE_SWATCH_SIZE}
+                      />
+                    )}
+                    <Typography variant="body2">{part.text}</Typography>
+                  </Fragment>
+                ))}
+            </Stack>
+          ) : (
+            <Typography
+              variant="body2"
+              sx={{ color: palette.muted }}
+            >
+              {subtitle}
+            </Typography>
+          ))}
         {dateRange && (
           <Stack
             direction="row"
@@ -741,25 +771,30 @@ export const FooterComponent = ({ labels, divider }: { labels: string[][]; divid
 export const Segment = ({
   percent,
   backgroundColour,
-  spacing = 2,
+  spacing: spacingProp,
   sx,
   ...props
 }: {
   percent: number;
   backgroundColour: string;
   spacing?: number;
-} & BoxProps) => (
-  <Box
-    sx={{
-      width: `${percent}%`,
-      height: (theme) => theme.spacing(spacing),
-      backgroundColor: backgroundColour,
-      transition: "opacity 0.2s",
-      ...sx,
-    }}
-    {...props}
-  />
-);
+} & BoxProps) => {
+  // The default is applied after the pattern — inside it, it bails the component out of the React
+  // Compiler — while the rename keeps `spacing` out of the rest object spread into `Box`.
+  const spacing = spacingProp ?? 2;
+  return (
+    <Box
+      sx={{
+        width: `${percent}%`,
+        height: (theme) => theme.spacing(spacing),
+        backgroundColor: backgroundColour,
+        transition: "opacity 0.2s",
+        ...sx,
+      }}
+      {...props}
+    />
+  );
+};
 
 /**
  * One proportional bar: the segments of a whole in a row, with the hover dim that ties the bar to
@@ -959,7 +994,7 @@ const LANE_PADDING = 0.08;
 /** Of the whole strip, and only when there is one lane to inset within. */
 const MUTED_INSET = 0.2;
 
-const TimelineBandBox = ({
+export const TimelineBandBox = ({
   startPercent,
   widthPercent,
   lane,
@@ -968,7 +1003,8 @@ const TimelineBandBox = ({
   tooltip,
   muted,
   imprecise,
-}: TimelineBand & { laneCount: number }) => {
+  frameless,
+}: TimelineBand & { laneCount: number; frameless?: boolean }) => {
   const laneHeight = 100 / laneCount;
   // On a single lane the card's own game keeps the full height and its siblings are inset, which
   // is the clearest reading of "this one, among these". Once the strip is divided there is no
@@ -1006,8 +1042,11 @@ const TimelineBandBox = ({
           // bands are lane-height: each one is coloured by its own platform, so a dimmed band
           // beside a differently-coloured one reads as a different platform rather than as
           // context. `currentColor` is the ground's contrast text, so the ring lands legibly on
-          // an extracted artwork colour whichever way that fell.
-          boxShadow: muted ? undefined : "inset 0 0 0 1px currentColor",
+          // an extracted artwork colour whichever way that fell. A caller with no subject to
+          // single out — the ribbon, where every mark is a peer — opts out with `frameless`:
+          // on a mark floored to a couple of pixels the ring would be most of the mark, burying
+          // the fill it exists to set apart.
+          boxShadow: muted || frameless ? undefined : "inset 0 0 0 1px currentColor",
           borderRadius: imprecise ? 0 : 0.5,
           "&:hover": { opacity: 1, filter: "brightness(1.25)" },
         }}

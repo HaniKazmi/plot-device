@@ -7,10 +7,10 @@ import {
   perGameAverages,
   statsCardLabelEndDateHours,
   statsCardLabelStartDate,
-  topNWithOther,
   topOptions,
   yearlyAverages,
 } from "../../src/vg/statsData";
+import { topNWithOther } from "../../src/common/statsData";
 import { videoGame } from "../fixtures/vgRows";
 
 describe("groupGamesBy", () => {
@@ -90,14 +90,14 @@ describe("topNWithOther", () => {
     Array.from({ length: count }, (_, i) => videoGame({ franchise: `F${i}`, hours: count - i }));
 
   it("keeps every category when there are no more than the limit", () => {
-    const result = topNWithOther(many(5), "franchise", "Hours");
+    const result = topNWithOther(groupGamesBy(many(5), "franchise", "Hours"));
 
     expect(result).toHaveLength(5);
     expect(result.some((r) => r.name === "Other")).toBe(false);
   });
 
   it("collapses everything past the limit into one Other bucket", () => {
-    const result = topNWithOther(many(8), "franchise", "Hours");
+    const result = topNWithOther(groupGamesBy(many(8), "franchise", "Hours"));
 
     expect(result.map((r) => r.name)).toEqual(["F0", "F1", "F2", "F3", "F4", "Other"]);
     // F5 + F6 + F7 by hours.
@@ -105,20 +105,24 @@ describe("topNWithOther", () => {
   });
 
   it("gives Other no top game, because it stands for several categories", () => {
-    const result = topNWithOther(many(8), "franchise", "Hours");
+    const result = topNWithOther(groupGamesBy(many(8), "franchise", "Hours"));
 
     expect(result.at(-1)!.top).toBeUndefined();
     expect(result[0].top).toBeDefined();
   });
 
   it("honours a caller-supplied limit", () => {
-    expect(topNWithOther(many(8), "franchise", "Hours", 2).map((r) => r.name)).toEqual(["F0", "F1", "Other"]);
+    expect(topNWithOther(groupGamesBy(many(8), "franchise", "Hours"), 2).map((r) => r.name)).toEqual([
+      "F0",
+      "F1",
+      "Other",
+    ]);
   });
 
   it("fills the bar exactly, because the percentages are scoped to the rows shown", () => {
     // Unlike groupTotals, nothing is left out here — Other accounts for the remainder — so the
     // first entry absorbs only rounding.
-    const result = topNWithOther(many(8), "franchise", "Hours");
+    const result = topNWithOther(groupGamesBy(many(8), "franchise", "Hours"));
 
     expect(result.reduce((a, b) => a + b.percent, 0)).toBeCloseTo(100, 10);
   });
@@ -130,7 +134,7 @@ describe("topNWithOther", () => {
       videoGame({ franchise: undefined as unknown as string }),
     ];
 
-    expect(topNWithOther(data, "franchise", "Games").map((r) => r.name)).toEqual(["Zelda"]);
+    expect(topNWithOther(groupGamesBy(data, "franchise", "Games")).map((r) => r.name)).toEqual(["Zelda"]);
   });
 });
 

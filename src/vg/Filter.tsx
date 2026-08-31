@@ -1,240 +1,50 @@
-import {
-  AllInclusive,
-  CatchingPokemonTwoTone,
-  Clear,
-  FilterAlt,
-  Functions,
-  QuestionMark,
-  Timer,
-  type SvgIconComponent,
-} from "@mui/icons-material";
-import {
-  Box,
-  Button,
-  Chip,
-  Drawer,
-  Fab,
-  FormControl,
-  FormControlLabel,
-  InputLabel,
-  MenuItem,
-  Select,
-  Stack,
-  Switch,
-  ToggleButton,
-  Typography,
-} from "@mui/material";
-import { useState } from "react";
-import { platformToColor, VideoGame, type VideoGameStringKeys } from "./types";
-import Grid from "@mui/material/Grid";
-import { categoryOptions, toValueArray, type FilterDispatch, type FilterState } from "./filterUtils";
-import type { Colour, KeysMatching } from "../utils/types";
+import { AllInclusive, CatchingPokemonTwoTone, Functions, QuestionMark, Timer } from "@mui/icons-material";
+import { platformToColor, type Platform, type VideoGame } from "./types";
+import { categoryOptions } from "../common/filterOptions";
+import { FilterCategory, FilterDrawer, FilterToggle } from "../common/FilterDrawer";
+import type { FilterDispatch, FilterState } from "./filterUtils";
 
-const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: FilterDispatch; data: VideoGame[] }) => {
-  const [drawerOpen, setDrawerOpen] = useState(false);
+const toggles = [
+  { toggle: "endless", Icon: AllInclusive },
+  { toggle: "unconfirmed", Icon: QuestionMark },
+  { toggle: "pokemon", Icon: CatchingPokemonTwoTone },
+] as const;
 
-  return (
-    <Stack
-      direction="column"
-      spacing={2}
-      sx={{ position: "fixed", right: (theme) => theme.spacing(2), bottom: (theme) => theme.spacing(2) }}
-    >
-      <Fab
-        color="secondary"
-        onClick={() => dispatch({ type: "toggleMeasure" })}
-      >
-        {state.measure === "Games" ? <Functions /> : <Timer />}
-      </Fab>
-      <Fab
-        color="primary"
-        onClick={() => setDrawerOpen(!drawerOpen)}
-      >
-        <FilterAlt />
-      </Fab>
-      <Drawer
-        anchor="bottom"
-        open={drawerOpen}
-        variant="persistent"
-        onClose={() => setDrawerOpen(false)}
-      >
-        <Grid
-          container
-          spacing={1}
-          sx={{
-            margin: 2,
-            justifyContent: "space-between",
-          }}
-        >
-          <FilterToggle
-            toggle="endless"
-            Icon={AllInclusive}
-            dispatch={dispatch}
-            state={state}
-          />
-          <FilterToggle
-            toggle="unconfirmed"
-            Icon={QuestionMark}
-            dispatch={dispatch}
-            state={state}
-          />
-          <FilterToggle
-            toggle="pokemon"
-            Icon={CatchingPokemonTwoTone}
-            dispatch={dispatch}
-            state={state}
-          />
-          <FilterReset
-            dispatch={dispatch}
-            setDrawerOpen={setDrawerOpen}
-          />
-          <FilterCategory
-            category="platform"
-            data={data}
-            state={state}
-            dispatch={dispatch}
-            colourFunc={platformToColor}
-          />
-          {(["genre", "publisher", "franchise"] as const).map((category) => (
-            <FilterCategory
-              key={category}
-              category={category}
-              data={data}
-              state={state}
-              dispatch={dispatch}
-            />
-          ))}
-        </Grid>
-      </Drawer>
-    </Stack>
-  );
-};
-
-const FilterCategory = <T extends VideoGameStringKeys & keyof FilterState>({
-  data,
-  category,
-  colourFunc,
-  state,
-  dispatch,
-}: {
-  data: VideoGame[];
-  category: T;
-  colourFunc?: (platform: VideoGame[T]) => Colour;
-  state: FilterState;
-  dispatch: FilterDispatch;
-}) => {
-  const options = categoryOptions(data, category);
-
-  return (
-    <Grid
-      size={{
-        xs: 12,
-        md: 6,
-      }}
-    >
-      <Stack direction="row">
-        <FormControl fullWidth>
-          <InputLabel sx={{ textTransform: "capitalize" }}>{category}</InputLabel>
-          <Select
-            value={state[category]}
-            label={category}
-            multiple
-            renderValue={(selected) => (
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                {selected.map((value) => {
-                  const colour = colourFunc?.(value as VideoGame[T]);
-                  return (
-                    <Chip
-                      size="small"
-                      key={value}
-                      label={value}
-                      sx={{
-                        backgroundColor: colour,
-                        color: colour && ((theme) => theme.palette.getContrastText(colour)),
-                      }}
-                    />
-                  );
-                })}
-              </Box>
-            )}
-            onChange={(event) => {
-              const value = toValueArray(event.target.value);
-              dispatch({ type: "updateFilter", filter: category, value });
-            }}
-          >
-            {options.map((option) => (
-              <MenuItem
-                key={option}
-                value={option}
-              >
-                {option}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        {state[category].length > 0 && (
-          <ToggleButton
-            value="clear"
-            onChange={() => {
-              dispatch({ type: "updateFilter", filter: category, value: [] });
-            }}
-          >
-            <Clear />
-          </ToggleButton>
-        )}
-      </Stack>
-    </Grid>
-  );
-};
-
-interface FilterDispatchProp {
-  dispatch: FilterDispatch;
-}
-
-const FilterReset = ({ dispatch, setDrawerOpen }: FilterDispatchProp & { setDrawerOpen: (b: boolean) => void }) => (
-  <Grid
-    size={{ xs: 12, md: "grow" }}
-    sx={{
-      display: { xs: "flex" },
-      justifyContent: { xs: "center", md: "end" },
-      order: { xs: 1, md: 0 },
-    }}
-  >
-    <Button onClick={() => dispatch({ type: "resetFilters" })}>Clear</Button>
-    <Button onClick={() => setDrawerOpen(false)}>Close</Button>
-  </Grid>
-);
-
-const FilterToggle = ({
-  state,
-  dispatch,
-  toggle,
-  Icon,
-}: FilterDispatchProp & { toggle: KeysMatching<FilterState, boolean>; state: FilterState; Icon: SvgIconComponent }) => (
-  <Grid
-    size={{
-      xs: 4,
-      md: 2,
-    }}
-  >
-    <FormControlLabel
-      control={
-        <Switch
-          checked={state[toggle]}
-          onChange={(_, checked) => dispatch({ type: "updateFilter", filter: toggle, value: checked })}
+const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: FilterDispatch; data: VideoGame[] }) => (
+  <FilterDrawer
+    measureIcon={state.measure === "Games" ? <Functions /> : <Timer />}
+    onToggleMeasure={() => dispatch({ type: "toggleMeasure" })}
+    onReset={() => dispatch({ type: "resetFilters" })}
+    toggles={toggles.map(({ toggle, Icon }) => (
+      <FilterToggle
+        key={toggle}
+        label={toggle}
+        icon={Icon}
+        checked={state[toggle]}
+        onChange={(checked) => dispatch({ type: "updateFilter", filter: toggle, value: checked })}
+      />
+    ))}
+    categories={
+      <>
+        <FilterCategory
+          label="platform"
+          options={categoryOptions(data, (vg) => vg.platform)}
+          selected={state.platform}
+          onChange={(value) => dispatch({ type: "updateFilter", filter: "platform", value: value as Platform[] })}
+          colourFor={(value) => platformToColor(value as Platform)}
         />
-      }
-      label={
-        <Typography
-          sx={{
-            textTransform: "capitalize",
-          }}
-        >
-          <Icon sx={{ verticalAlign: "middle" }} /> {toggle}
-        </Typography>
-      }
-      labelPlacement="top"
-    />
-  </Grid>
+        {(["genre", "publisher", "franchise"] as const).map((category) => (
+          <FilterCategory
+            key={category}
+            label={category}
+            options={categoryOptions(data, (vg) => vg[category])}
+            selected={state[category]}
+            onChange={(value) => dispatch({ type: "updateFilter", filter: category, value })}
+          />
+        ))}
+      </>
+    }
+  />
 );
 
 export default Filter;

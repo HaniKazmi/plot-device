@@ -3,9 +3,10 @@ import { format } from "../utils/mathUtils";
 import { groupToColour, videoGameOptions, type Measure, type VideoGame, type VideoGameStringKeys } from "./types";
 import Barchart from "../common/Barchart";
 import { Year } from "../common/date";
+import { releaseDecade } from "../utils/types";
 import type { YearType } from "./filterUtils";
 
-const options: Readonly<VideoGameStringKeys | "none">[] = ["none", ...videoGameOptions];
+const options: Readonly<VideoGameStringKeys | "none" | "decade">[] = ["none", ...videoGameOptions, "decade"];
 
 const VgBarchart = ({ data, measure, yearType }: { data: VideoGame[]; measure: Measure; yearType: YearType }) => {
   const [group, controls] = useSelectBox(options, "company");
@@ -22,7 +23,7 @@ const VgBarchart = ({ data, measure, yearType }: { data: VideoGame[]; measure: M
               : game.startDate.toYearMonth()
             : game.startDate.toYear(),
         colour: groupToColour(group, game),
-        name: group === "none" ? "" : game[group],
+        name: group === "none" ? "" : group === "decade" ? releaseDecade(game.releaseDate.year) : game[group],
         value,
       };
     });

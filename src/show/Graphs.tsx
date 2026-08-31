@@ -1,42 +1,84 @@
-import { Fab, Stack } from "@mui/material";
+import { Stack } from "@mui/material";
 import Finished from "../common/Finished";
 import Barchart from "./Barchart";
 import Sunburst from "./Sunburst";
 import Stats from "./Stats";
 import { ChartPair, Section, SectionRail } from "../common/SectionRail";
+import { useOtherTabs } from "../tabs";
 import { SHOW_SECTIONS, showSections } from "./sections";
 import { currentlyWatching } from "./statsData";
 import Timeline from "./Timeline";
 import { Show } from "./types";
 import ShowCardMediaImage from "./CardMediaImage";
 import { statusToColour } from "../utils/types";
-import type { FilterDispatch, FilterState } from "./filterUtils";
-import { Functions, Timer } from "@mui/icons-material";
-import { useDeferredValue } from "react";
+import { guestFilter, type FilterDispatch, type FilterState } from "./filterUtils";
+import { FranchiseContext, showFranchise } from "./franchiseContext";
+import { visibleFranchiseIndex } from "../common/franchiseIndex";
+import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
+import Filter from "./Filter";
+import { memo, useDeferredValue } from "react";
 import { format } from "../utils/mathUtils";
 import { finishedCount } from "../common/finishedData";
 
-const Graphs = ({
-  data,
+const SuspenseBlock = ({
+  filteredData,
+  unfilteredData,
+  dataLoaded,
   filterState,
   filterDispatch,
 }: {
-  data: Show[];
+  filteredData: Show[];
+  unfilteredData: Show[];
+  dataLoaded: boolean;
   filterState: FilterState;
   filterDispatch: FilterDispatch;
-}) => {
-  const deferredData = useDeferredValue(data, []);
-  // Answered once for the page: it decides both whether the "now" strip is rendered and whether
-  // the rail offers a chip pointing at it, and two derivations of one test are two that can differ.
-  const watching = currentlyWatching(data);
+}) => (
+  <FranchiseContext.Provider
+    value={visibleFranchiseIndex(unfilteredData, showFranchise, filterState.guestMode, guestFilter)}
+  >
+    <Graphs
+      data={filteredData}
+      filterState={filterState}
+      filterDispatch={filterDispatch}
+    />
+    <Filter
+      state={filterState}
+      dispatch={filterDispatch}
+      data={unfilteredData}
+    />
+    <DataLoadedSnackbar open={dataLoaded} />
+  </FranchiseContext.Provider>
+);
 
-  return (
-    <>
+const Graphs = memo(
+  ({
+    data,
+    filterState,
+    filterDispatch,
+  }: {
+    data: Show[];
+    filterState: FilterState;
+    filterDispatch: FilterDispatch;
+  }) => {
+    const deferredData = useDeferredValue(data, []);
+    const tabs = useOtherTabs();
+    // Answered once for the page: it decides both whether the "now" strip is rendered and whether
+    // the rail offers a chip pointing at it, and two derivations of one test are two that can differ.
+    const watching = currentlyWatching(data);
+
+    return (
       <Stack spacing={2}>
-        <SectionRail sections={showSections(watching.length > 0)} />
+        <SectionRail
+          sections={showSections(watching.length > 0)}
+          tabs={tabs}
+        />
         <Stats
           data={data}
           watching={watching}
+          measure={filterState.measure}
+          yearType={filterState.yearType}
+          yearTo={filterState.yearTo}
+          filterDispatch={filterDispatch}
         />
         <Section id={SHOW_SECTIONS.timeline}>
           <Timeline data={deferredData} />
@@ -68,20 +110,10 @@ const Graphs = ({
           />
         </Section>
       </Stack>
-      <Stack
-        direction="column"
-        spacing={2}
-        sx={{ position: "fixed", right: (theme) => theme.spacing(2), bottom: (theme) => theme.spacing(2) }}
-      >
-        <Fab
-          color="secondary"
-          onClick={() => filterDispatch({ type: "toggleMeasure" })}
-        >
-          {filterState.measure === "Episodes" ? <Functions /> : <Timer />}
-        </Fab>
-      </Stack>
-    </>
-  );
-};
+    );
+  },
+);
 
-export default Graphs;
+Graphs.displayName = "Graphs";
+
+export default SuspenseBlock;

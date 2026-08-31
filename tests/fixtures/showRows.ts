@@ -3,7 +3,9 @@
  *
  * The sheet is flat and order-dependent — a non-empty `Show` cell opens a show and every row
  * after it with an empty `Show` cell is one of its seasons. Note the two similarly named
- * columns: `Episode` is the episode count, `Episodes` is the runtime of one episode.
+ * columns: `Episode` is the episode count, `Episodes` is the runtime of one episode. `Status`
+ * changes meaning by row kind: a show's status on show rows, a last-watched date on in-progress
+ * season rows.
  *
  * `Genres` is the sheet's last column, so a row can end before it and carry no key at all.
  * Overriding a column to `undefined` drops the key, which is how such a row actually arrives.

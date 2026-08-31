@@ -13,6 +13,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       .map(({ row, index }) => {
         const where = `Row ${sheetRow(index)}, "${row.Name || "?"}"`;
         const score = parseInt(row.Score);
+        const minutes = parseInt(row.Runtime);
 
         return {
           name: row.Name,
@@ -22,7 +23,10 @@ export const jsonConverter = (json: Record<string, string>[]) => {
           // A film nobody scored is left out rather than counted as NaN, which would propagate
           // into any average taken over the column and blank the figure far from here.
           score: Number.isNaN(score) ? undefined : score,
-          minutes: parseInt(row.Runtime),
+          // A blank Runtime becomes 0 rather than NaN — `sum` accumulates with `+`, so one NaN
+          // would blank every hours total and average taken over the column. Unlike `score`,
+          // `minutes` is not optional on the model, so 0 is the value that keeps sums honest.
+          minutes: Number.isNaN(minutes) ? 0 : minutes,
           genre: row.Genre,
           genres: splitCell(row.Genres),
           franchise: row.Franchise,
@@ -30,6 +34,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
           banner: row.Banner,
           // The sheet writes only the true case and leaves the cell blank otherwise.
           cinema: row.Cinema === "TRUE",
+          anime: row.Anime === "TRUE",
         } as Movie;
       })
   );

@@ -1,7 +1,7 @@
-import { Box } from "@mui/material";
+import { Box, Divider } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ChipRail, type ChipRailItem } from "./ChipRail";
+import { ChipRail, RailChip, type ChipRailItem } from "./ChipRail";
 
 /** A chip in the rail. The `id` matches the `Section` it scrolls to. */
 export type RailSection = ChipRailItem;
@@ -70,20 +70,51 @@ export const ChartPair = ({ left, right }: { left: ReactNode; right: ReactNode }
 /**
  * The page's own table of contents, pinned under the app bar.
  *
- * Chips scroll rather than link: the app is served under a `HashRouter`, so an `href="#timeline"`
- * would be read as a route and navigate away from the page it was meant to move within.
+ * Section chips scroll rather than link: the app is served under a `HashRouter`, so an
+ * `href="#timeline"` would be read as a route and navigate away from the page it was meant to
+ * move within. The `tabs` chips are the one exception — they exist to leave the page.
+ *
+ * While the rail is stuck, the app bar has scrolled away and the rail is the only navigation on
+ * screen — so it leads with chips for the *other* tabs, ahead of a divider. Only the others: the
+ * current tab is where the reader already is, and a third chip would rebuild the app bar rather
+ * than offer the two jumps it cannot. Unstuck, the app bar is in view saying the same thing, and
+ * the chips would say it twice — so they are not rendered at all. Each chip carries its own
+ * `jump`, so what a tab id means stays with the registry that owns it.
  */
-export const SectionRail = (props: { sections: RailSection[] }) => {
+export const SectionRail = (props: { sections: RailSection[]; tabs?: (RailSection & { jump: () => void })[] }) => {
   const active = useActiveSection(props.sections);
+  const [railRef, stuck] = useStuck();
+
+  const tabChips = stuck && props.tabs && props.tabs.length > 0 && (
+    <>
+      {props.tabs.map((tab) => (
+        <RailChip
+          key={tab.id}
+          label={tab.label}
+          onClick={tab.jump}
+        />
+      ))}
+      <Divider
+        orientation="vertical"
+        flexItem
+        sx={{ flexShrink: 0 }}
+      />
+    </>
+  );
 
   return (
     <ChipRail
+      ref={railRef}
       items={props.sections}
       activeId={active}
+      leading={tabChips || undefined}
       onSelect={(id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })}
       sx={{
         position: "sticky",
-        top: 0,
+        // A pixel above the top rather than at it, so being stuck is observable: fully visible
+        // means in flow, one clipped pixel means pinned — which is also exactly when the static
+        // app bar above has left the viewport.
+        top: "-1px",
         // Under dialogs and the app bar, over the page it scrolls across.
         zIndex: (theme) => theme.zIndex.appBar - 1,
         // The page's own ground and not a card's: the rail sits on the page rather than in one,
@@ -95,6 +126,32 @@ export const SectionRail = (props: { sections: RailSection[] }) => {
       }}
     />
   );
+};
+
+/**
+ * Whether the sticky rail is currently pinned, read off its own single clipped pixel: at
+ * `top: -1px` a stuck rail's top edge sits above the viewport, and only then. Observing the rail
+ * itself is what avoids a sentinel element, which as a sibling inside the page's spaced `Stack`
+ * would open a gap of its own above the rail. The threshold at one is what makes the observer
+ * fire on both crossings; the answer is read off the edge's sign rather than the ratio, because
+ * sub-pixel layout leaves a fully visible rail fractionally short of ratio one and a comparison
+ * against it pinned forever.
+ */
+const useStuck = () => {
+  const railRef = useRef<HTMLDivElement>(null);
+  const [stuck, setStuck] = useState(false);
+
+  useEffect(() => {
+    const rail = railRef.current;
+    if (!rail) return;
+    const observer = new IntersectionObserver(([entry]) => setStuck(entry.boundingClientRect.top < 0), {
+      threshold: [1],
+    });
+    observer.observe(rail);
+    return () => observer.disconnect();
+  }, []);
+
+  return [railRef, stuck] as const;
 };
 
 /**

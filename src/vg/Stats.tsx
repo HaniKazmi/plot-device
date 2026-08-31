@@ -3,9 +3,7 @@ import {
   AutoGraph,
   Business,
   Category,
-  CloseFullscreen,
   Code,
-  ExpandCircleDown,
   Pause,
   PlayArrow,
   ShowChart,
@@ -18,23 +16,22 @@ import {
   VideogameAsset,
   Whatshot,
 } from "@mui/icons-material";
-import Grid from "@mui/material/Grid";
-import { capitalize } from "@mui/material/utils";
 import { format } from "../utils/mathUtils";
 import {
+  gamesAndHours,
   groupGamesBy,
   heroStats,
   perGameAverages,
   platformToShortChip,
   statsCardLabelEndDateHours,
   statsCardLabelStartDate,
-  topNWithOther,
   topOptions,
   yearlyAverages,
   type TopOption,
 } from "./statsData";
 import {
   companyToColor,
+  genreToColour,
   groupToColour,
   videoGameOptions,
   type Company,
@@ -43,41 +40,19 @@ import {
   type VideoGame,
   type VideoGameStringKeys,
 } from "./types";
-import {
-  EXPANDED_CARDS,
-  StatCard,
-  StatList,
-  StatsListGrid,
-  type StatsListProps,
-  TotalsBand,
-  VitalsCard,
-} from "../common/Stats";
-import { ProportionalBar, Swatch } from "../common/Card";
-import { SectionHeader } from "../common/SectionHeader";
-import { highchartsColors } from "../highcharts";
+import { StatCard, StatList, type StatsListProps, TotalsBand, VitalsCard, YearTotals } from "../common/Stats";
+import { TopListCard } from "../common/TopList";
+import { GroupedStatList } from "../common/GroupedStatList";
 import VgCardMediaImage from "./CardMediaImage";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  Dialog,
-  FormControl,
-  IconButton,
-  MenuItem,
-  Radio,
-  Select,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { Stack, Typography } from "@mui/material";
 import type { FilterDispatch, YearType } from "./filterUtils";
-import { NEUTRAL_FILL, statusToColour } from "../utils/types";
-import { CURRENT_PLAINDATE, CURRENT_YEAR, EARLIEST_YEAR, formatDate, YearNumber } from "../common/date";
+import { statusToColour } from "../utils/types";
+import { CURRENT_PLAINDATE, CURRENT_YEAR, formatDate, YearNumber } from "../common/date";
 import { Hero } from "../common/Hero";
 import { Section, StatBand } from "../common/SectionRail";
 import { useFranchiseGames } from "./franchiseContext";
 import { VG_SECTIONS } from "./sections";
-import { useState, type ReactNode } from "react";
-import prepareForSlot from "../utils/prepareForSlot";
+import type { ReactNode } from "react";
 import { useSelectBox } from "../common/SelectBoxHook";
 import "../utils/arrayUtils";
 
@@ -111,25 +86,24 @@ const Stats = ({
           {/* The year controls in these cards filter the whole page, and a control's effects flow
               down the page, never up — so the cards come before the bands they redraw. */}
           <YearTotals
-            data={data}
             yearTo={yearTo}
             yearType={yearType}
             filterDispatch={filterDispatch}
             icon={<Timer />}
             activeYearType="upto"
+            stats={gamesAndHours(data)}
             renderValue={(value) => (
               <Typography variant="h6">{value == CURRENT_YEAR ? "All Time" : `Up To ${value}`}</Typography>
             )}
           />
           <YearTotals
-            data={data}
             yearTo={yearTo}
             yearType={yearType}
             filterDispatch={filterDispatch}
             icon={<Update />}
             activeYearType="matching"
             minWidth={120}
-            matches={(game) => game.startDate.year === yearTo}
+            stats={gamesAndHours(data.filter((game) => game.startDate.year === yearTo))}
             renderValue={(value) => <Typography variant="h6">In {value}</Typography>}
           />
           <Averages
@@ -183,7 +157,8 @@ const VgHero = ({ game }: { game: VideoGame }) => {
       // promoted to the top of the page does not cost this game its platform.
       chip={platformToShortChip(game)}
       title={game.name}
-      subtitle={[game.platform, game.genre].filter(Boolean).join(" · ")}
+      // The genre wears the same swatch its ledger row and every genre wedge on the tab wear.
+      subtitle={[{ text: game.platform }, { text: game.genre, swatch: genreToColour(game) }]}
       stats={heroStats(game, franchise, CURRENT_PLAINDATE)}
     />
   );
@@ -208,8 +183,8 @@ const Vitals = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
         icon={<TaskAlt />}
         data={data}
         measureFunc={measureFunc}
-        groupKey="status"
         group={statusList}
+        groupOf={(game) => game.status}
         groupToColour={(ele: Status) => statusToColour({ status: ele })}
         measureLabel={measure}
       />
@@ -218,99 +193,12 @@ const Vitals = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
         icon={<VideogameAsset />}
         data={data}
         measureFunc={measureFunc}
-        groupKey="company"
         group={companyList}
+        groupOf={(game) => game.company}
         groupToColour={(ele: Company) => companyToColor({ company: ele })}
         measureLabel={measure}
       />
     </VitalsCard>
-  );
-};
-
-const YearSelect = ({
-  yearTo,
-  filterDispatch,
-  renderValue,
-  minWidth = 130,
-}: {
-  yearTo: number;
-  filterDispatch: FilterDispatch;
-  renderValue: (value: number) => ReactNode;
-  minWidth?: number;
-}) => (
-  <FormControl
-    variant="standard"
-    sx={{ minWidth, margin: 0 }}
-  >
-    <Select
-      SelectDisplayProps={{ style: { padding: 0 } }}
-      value={yearTo}
-      displayEmpty
-      onChange={(event) =>
-        filterDispatch({ type: "updateFilter", filter: "yearTo", value: event.target.value as YearNumber })
-      }
-      renderValue={(value) => renderValue(value as number)}
-      slots={{ root: prepareForSlot("span") }}
-    >
-      {Array.from({ length: CURRENT_YEAR - EARLIEST_YEAR + 1 }, (_, i) => CURRENT_YEAR - i).map((year) => (
-        <MenuItem
-          key={year}
-          value={year}
-        >
-          {year}
-        </MenuItem>
-      ))}
-    </Select>
-  </FormControl>
-);
-
-/** The radio picks which of these two cards the year filter applies to, hence `activeYearType`. */
-const YearTotals = ({
-  data,
-  yearType,
-  yearTo,
-  filterDispatch,
-  icon,
-  activeYearType,
-  minWidth,
-  matches,
-  renderValue,
-}: {
-  data: VideoGame[];
-  yearType: YearType;
-  yearTo: number;
-  filterDispatch: FilterDispatch;
-  icon: ReactNode;
-  activeYearType: YearType;
-  minWidth?: number;
-  matches?: (game: VideoGame) => boolean;
-  renderValue: (value: number) => ReactNode;
-}) => {
-  const filtered = data.filter((game) => game.hours && (!matches || matches(game)));
-
-  return (
-    <StatCard
-      icon={icon}
-      title={
-        <YearSelect
-          yearTo={yearTo}
-          filterDispatch={filterDispatch}
-          minWidth={minWidth}
-          renderValue={renderValue}
-        />
-      }
-      action={
-        <Radio
-          size="small"
-          checked={yearType == activeYearType}
-          onChange={() => filterDispatch({ type: "toggleYearType" })}
-        />
-      }
-      content={[
-        ["Games", filtered.length],
-        ["Hours", filtered.sum("hours")],
-      ]}
-    />
   );
 };
 
@@ -405,64 +293,24 @@ const MostPlayedCategory = ({
   category: VideoGameStringKeys;
   controls: ReactNode;
 }) => {
-  const most = groupGamesBy(data, category, measure);
-
-  const [dialogContent, setDialogContent] = useState<(typeof most)[number] | null>(null);
-
-  const dialog = dialogContent ? (
-    <Dialog
-      open
-      fullScreen
-    >
-      <CardHeader
-        title={dialogContent.name}
-        action={
-          <IconButton onClick={() => setDialogContent(null)}>
-            <CloseFullscreen color="primary" />
-          </IconButton>
-        }
-        slotProps={{ title: { variant: "h6" } }}
-      />
-      <StatsListGrid
-        // Sorted here rather than in `groupGamesBy`, which would sort every category on every
-        // render to serve the one being drilled into. The cap below keeps only the first 18, so
-        // an unsorted list would show an arbitrary handful under a card headed Most Played.
-        content={dialogContent.all.sortByKey("hours")}
-        limit={EXPANDED_CARDS}
-        cardKey={(entry) => category + "-statslistcard-" + entry.name}
-        labelComponent={statsCardLabelEndDateHours}
-        chipComponent={platformToShortChip}
-        pictureWidth={vgStatListSharedProps.dialogPictureWidth}
-        aspectRatio={vgStatListSharedProps.aspectRatio}
-        MediaComponent={VgCardMediaImage}
-      />
-    </Dialog>
-  ) : null;
-
   return (
-    <>
-      <StatList
-        icon={<Whatshot />}
-        controls={controls}
-        title="Most Played"
-        content={most}
-        chipComponent={(entry) => ({
-          icon: <ExpandCircleDown color="action" />,
-          onClick: () => setDialogContent(entry),
-        })}
-        labelComponent={(item: (typeof most)[0]) => [[item.name, `${format(item.count)} ${measure}`]]}
-        MediaComponent={(props) => (
-          <VgCardMediaImage
-            {...props}
-            item={props.item.top}
-            colour={groupToColour(category, props.item.top)}
-          />
-        )}
-        nameComponent={(entry) => entry.name}
-        {...vgStatListSharedProps}
-      />
-      {dialog}
-    </>
+    <GroupedStatList
+      icon={<Whatshot />}
+      controls={controls}
+      title="Most Played"
+      option={category}
+      groups={groupGamesBy(data, category, measure)}
+      labelComponent={(group) => [[group.name, `${format(group.count)} ${measure}`]]}
+      colourOf={(top) => groupToColour(category, top)}
+      MediaComponent={VgCardMediaImage}
+      // A dialog under a card headed Most Played opens largest-first, whatever slice of it the
+      // reader scrolls.
+      dialogSort={(games) => games.sortByKey("hours")}
+      nameOf={(game) => game.name}
+      dialogLabelComponent={statsCardLabelEndDateHours}
+      dialogChipComponent={platformToShortChip}
+      {...vgStatListSharedProps}
+    />
   );
 };
 
@@ -484,11 +332,14 @@ const CurrentlyPlaying = ({ playing }: { playing: VideoGame[] }) => {
 const TopCategories = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => (
   <>
     {(["genre", "publisher", "franchise"] as const).map((category) => (
-      <TopList
+      <TopListCard
         key={category}
-        data={data}
-        measure={measure}
-        defaultCategory={category}
+        options={topOptions}
+        defaultOption={category}
+        icons={optionIcons}
+        groups={(option) => groupGamesBy(data, option, measure)}
+        colourOf={(option, top: VideoGame) => groupToColour(option, top)}
+        measureLabel={measure}
       />
     ))}
   </>
@@ -504,102 +355,6 @@ const optionIcons: Record<TopOption, ReactNode> = {
   rating: <VerifiedUser />,
   status: <TaskAlt />,
   genre: <Category />,
-};
-
-const TopList = ({
-  data,
-  measure,
-  defaultCategory,
-}: {
-  data: VideoGame[];
-  measure: Measure;
-  defaultCategory: TopOption;
-}) => {
-  const [option, controls] = useSelectBox(topOptions, defaultCategory);
-  const colorOffset = topOptions.indexOf(option) * 3;
-  const [hovered, setHovered] = useState<string | null>(null);
-
-  const most = topNWithOther(data, option, measure);
-
-  const getColour = (struct: (typeof most)[0], index: number) => {
-    if (struct.name === "Other") return NEUTRAL_FILL;
-    const groupCol = struct.top ? groupToColour(option, struct.top) : "";
-    return groupCol || highchartsColors[(index + colorOffset) % highchartsColors.length];
-  };
-
-  const items = most.map((struct, index) => ({
-    name: struct.name,
-    percent: struct.percent,
-    colour: getColour(struct, index),
-  }));
-
-  return (
-    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-      <Card sx={{ height: "100%" }}>
-        <SectionHeader
-          title={`Top ${capitalize(option)}`}
-          icon={optionIcons[option]}
-          action={controls}
-        />
-        <CardContent
-          sx={{
-            ":last-child": { paddingBottom: 1 },
-            height: "100%",
-          }}
-        >
-          <ProportionalBar
-            items={items}
-            hovered={hovered}
-            onHover={setHovered}
-          />
-          <Stack
-            direction="column"
-            spacing={1}
-            sx={{
-              alignItems: "stretch",
-              mt: 2,
-            }}
-          >
-            {most.map((struct, index) => (
-              <Stack
-                key={`col-${struct.name}`}
-                direction="row"
-                spacing={1}
-                onMouseEnter={() => setHovered(struct.name)}
-                onMouseLeave={() => setHovered(null)}
-                sx={{
-                  width: "100%",
-                  alignItems: "center",
-                  opacity: hovered && hovered !== struct.name ? 0.3 : 1,
-                  transition: "opacity 0.2s",
-                  cursor: "default",
-                }}
-              >
-                <Swatch
-                  colour={getColour(struct, index)}
-                  // Larger than the inline mark a wrapping legend uses: this legend is a ranked
-                  // column, so the swatch leads each row rather than sitting inside a line of it.
-                  size={16}
-                />
-                <Typography
-                  variant="body2"
-                  sx={{ flexGrow: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
-                >
-                  {struct.name}
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{ flexShrink: 0 }}
-                >
-                  {`${format(struct.count)} ${measure}`}
-                </Typography>
-              </Stack>
-            ))}
-          </Stack>
-        </CardContent>
-      </Card>
-    </Grid>
-  );
 };
 
 const vgStatListSharedProps: Pick<

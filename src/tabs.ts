@@ -1,5 +1,5 @@
 import type { FunctionComponent } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Holiday from "./holiday/Holiday";
 import Shows from "./show/Show";
 import VideoGames from "./vg/vg";
@@ -74,5 +74,30 @@ export const tabForPath = (pathname: string, tabs: readonly Tab[] = Tabs): Tab =
   tabs.find((tab) => tab.id === pathname.replace(/^\//, "")) ?? tabs[0];
 
 export const useCurrentTab = (): Tab => tabForPath(useLocation().pathname);
+
+/**
+ * Every routed tab but the current one, as chips for the section rail — the jumps the rail can
+ * offer once the app bar has scrolled away. The current tab is deliberately absent: it is where
+ * the reader already is, and the rail offers movement, not orientation.
+ */
+export const otherTabs = (current: Tab, tabs: readonly Tab[] = Tabs) =>
+  tabs.filter((tab) => tab !== current).map((tab) => ({ id: tab.id, label: tab.name }));
+
+/**
+ * The rail's tab chips with their navigation attached here, where the id-is-a-route convention
+ * already lives — the rail itself never learns what an id means. A jump also starts at the top
+ * of the target page: the reader is deep in this one, and a route change alone leaves the
+ * scroll offset where it is.
+ */
+export const useOtherTabs = () => {
+  const navigate = useNavigate();
+  return otherTabs(useCurrentTab()).map((tab) => ({
+    ...tab,
+    jump: () => {
+      navigate(`/${tab.id}`);
+      window.scrollTo({ top: 0 });
+    },
+  }));
+};
 
 export default Tabs;

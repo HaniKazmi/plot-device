@@ -1,4 +1,5 @@
 import { Box, Chip, type SxProps, type Theme } from "@mui/material";
+import type { ReactNode, Ref } from "react";
 import { NUMERIC_LABEL_SX } from "./typography";
 
 export interface ChipRailItem {
@@ -28,6 +29,18 @@ const CHIP_SX = {
   ...NUMERIC_LABEL_SX,
 } as const;
 
+/** One rail chip, exported so a caller can put chips of its own in the `leading` slot. */
+export const RailChip = ({ label, active, onClick }: { label: string; active?: boolean; onClick: () => void }) => (
+  <Chip
+    label={label}
+    size="small"
+    color={active ? "primary" : "default"}
+    variant={active ? "filled" : "outlined"}
+    onClick={onClick}
+    sx={CHIP_SX}
+  />
+);
+
 /**
  * A scrolling row of chips, one of which is current.
  *
@@ -39,12 +52,17 @@ export const ChipRail = ({
   items,
   activeId,
   onSelect,
+  leading,
   label,
   sx,
+  ref,
 }: {
   items: ChipRailItem[];
   activeId: string | undefined;
   onSelect: (id: string) => void;
+  /** Rendered inside the row before the items — chips that belong to the rail but not the list. */
+  leading?: ReactNode;
+  ref?: Ref<HTMLDivElement>;
   /**
    * What the rail is for, where it needs saying. A rail floating beside the content it moves
    * through has nothing around it naming it, so it becomes a landmark; one sitting under the
@@ -56,6 +74,7 @@ export const ChipRail = ({
   <Box
     component={label ? "nav" : "div"}
     aria-label={label}
+    ref={ref}
     sx={[
       {
         display: "flex",
@@ -68,15 +87,13 @@ export const ChipRail = ({
       ...(Array.isArray(sx) ? sx : [sx]),
     ]}
   >
+    {leading}
     {items.map((item) => (
-      <Chip
+      <RailChip
         key={item.id}
         label={item.label}
-        size="small"
-        color={item.id === activeId ? "primary" : "default"}
-        variant={item.id === activeId ? "filled" : "outlined"}
+        active={item.id === activeId}
         onClick={() => onSelect(item.id)}
-        sx={CHIP_SX}
       />
     ))}
   </Box>

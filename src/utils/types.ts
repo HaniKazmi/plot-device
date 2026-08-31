@@ -122,3 +122,54 @@ export const statusToColour = ({ status }: { status: ColourableStatus }) => {
       return NEUTRAL_FILL;
   }
 };
+
+/**
+ * The genre vocabulary Shows and Movies share. It lives here rather than in either domain for the
+ * same reason `ageRatingToColour` does: the two record overlapping genre sets in one spreadsheet,
+ * and one swatch has to mean one thing across both tabs.
+ *
+ * Each hue is chosen to *represent* its genre. Action and Adventure keep the hues
+ * `vg/types.ts` paints those same genre names with, so the two genres all three tabs record
+ * read as one thing everywhere; the other hexes also reappear in vg's table but under
+ * *different* genres — deliberate palette recycling, safe because no chart ever shows the two
+ * vocabularies side by side, and not a correspondence to preserve. Every value meets the fill
+ * contract above.
+ *
+ * The lookup falls to `NEUTRAL_FILL` rather than throwing: the genre column is open-ended, and a
+ * new genre appearing in the sheet should render as "no colour yet", not take the tab down.
+ */
+const genreColours: Record<string, Colour> = {
+  Action: "#fe4c00" as Colour,
+  Adventure: "#13ac00" as Colour,
+  Comedy: "#ae9200" as Colour,
+  Drama: "#0072c5" as Colour,
+  Fantasy: "#7543ff" as Colour,
+  Horror: "#d5005e" as Colour,
+  Mystery: "#008268" as Colour,
+  Romance: "#ff1da7" as Colour,
+  "Sci-Fi": "#00a4b1" as Colour,
+  Thriller: "#667100" as Colour,
+  "True Story": "#a85500" as Colour,
+};
+
+export const genreToColour = (genre: string): Colour => genreColours[genre] ?? NEUTRAL_FILL;
+
+/**
+ * Release decades as an ordered ramp: one bronze hue with only lightness stepping, oldest
+ * lightest, because a decade is ordered data and a categorical hue set would deny that. Seven
+ * steps is what the fill contract leaves room for between the two papers, so everything before
+ * 1970 shares one bucket — the sheets hold a handful of films there and no games at all.
+ */
+const decadeColours: Record<string, Colour> = {
+  "Pre-1970": "#c08938" as Colour,
+  "1970s": "#b68335" as Colour,
+  "1980s": "#ad7c32" as Colour,
+  "1990s": "#a3742f" as Colour,
+  "2000s": "#996d2c" as Colour,
+  "2010s": "#91672a" as Colour,
+  "2020s": "#8e6529" as Colour,
+};
+
+export const releaseDecade = (year: number): string => (year < 1970 ? "Pre-1970" : `${Math.floor(year / 10) * 10}s`);
+
+export const decadeToColour = (decade: string): Colour => decadeColours[decade] ?? NEUTRAL_FILL;

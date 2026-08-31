@@ -7,11 +7,13 @@ import Timeline from "./Timeline";
 import CardMediaImage from "./CardMediaImage";
 import { FilterDispatch, FilterState, guestFilter } from "./filterUtils";
 import { FranchiseContext } from "./franchiseContext";
-import { franchiseIndex } from "./cardData";
-import { memo, useDeferredValue, useState } from "react";
-import { Snackbar, Stack } from "@mui/material";
+import { visibleFranchiseIndex } from "../common/franchiseIndex";
+import { memo, useDeferredValue } from "react";
+import { Stack } from "@mui/material";
+import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
 import Filter from "./Filter";
 import { ChartPair, Section, SectionRail } from "../common/SectionRail";
+import { useOtherTabs } from "../tabs";
 import { VG_SECTIONS, vgSections } from "./sections";
 import { currentlyPlaying } from "./statsData";
 import { format } from "../utils/mathUtils";
@@ -30,11 +32,8 @@ const SuspenseBlock = ({
   filterState: FilterState;
   filterDispatch: FilterDispatch;
 }) => (
-  // Built from the unfiltered data, because a card's franchise strip is about the series and not
-  // about the current view — filtering to one platform would otherwise amputate it. Guest mode is
-  // the exception: it hides content rather than narrowing a view, so it is applied here too.
   <FranchiseContext.Provider
-    value={franchiseIndex(filterState.guestMode ? unfilteredData.filter(guestFilter) : unfilteredData)}
+    value={visibleFranchiseIndex(unfilteredData, (game) => game.franchise, filterState.guestMode, guestFilter)}
   >
     <Graphs
       data={filteredData}
@@ -61,13 +60,17 @@ const Graphs = memo(
     filterDispatch: FilterDispatch;
   }) => {
     const deferredData = useDeferredValue(data, []);
+    const tabs = useOtherTabs();
     // Answered once for the page: it decides both whether the hero is rendered and whether the
     // rail offers a chip pointing at it, and two derivations of one test are two that can differ.
     const playing = currentlyPlaying(data);
 
     return (
       <Stack spacing={2}>
-        <SectionRail sections={vgSections(playing.length > 0)} />
+        <SectionRail
+          sections={vgSections(playing.length > 0)}
+          tabs={tabs}
+        />
         <Stats
           data={data}
           playing={playing}
@@ -113,18 +116,5 @@ const Graphs = memo(
 );
 
 Graphs.displayName = "Graphs";
-
-const DataLoadedSnackbar = ({ open }: { open: boolean }) => {
-  const [snackbarClosed, setSnackbarClosed] = useState(false);
-
-  return (
-    <Snackbar
-      open={open && !snackbarClosed}
-      autoHideDuration={1000}
-      onClose={() => setSnackbarClosed(true)}
-      message="Refresh Complete"
-    />
-  );
-};
 
 export default SuspenseBlock;

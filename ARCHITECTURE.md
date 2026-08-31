@@ -115,7 +115,7 @@ Two subtleties live in the serialisation boundary, and both are easy to break:
 1. **The cycle.** `Season.show` points back at its parent `Show`, so `JSON.stringify` would recurse forever. `useData` takes an optional `replacer` and an optional `reviver`, and `show/converter.ts` supplies both as a matched pair (`dropSeasonParents` / `reviveSeasonParents`): one drops the `show` key on write, the other re-attaches the back-reference on read. Neither rule lives in the hook — a domain concern would otherwise silently eat any future field named `show` in another domain. Both are module-scope constants so the fetch effect can depend on them without re-firing. Any future model with parent pointers needs the same pair.
 2. **Date revival.** The `JSON.parse` reviver converts **any key whose name contains `"Date"`** into a `PlainDate`. It is a deliberate convention, but it means a non-date field called e.g. `updateDate` would be silently corrupted on reload.
 
-Cache keys are per-domain literals (`"vg-data-cache"`, `"show-data-cache"`, `"movie-data-cache"`). There is no schema version in the key, so a change to a domain model's shape will meet stale cached objects on existing browsers.
+Cache keys are versioned per domain — `dataCacheKey(domain, version)` yields `vg-data-cache-v1`, `show-data-cache-v3`, `movie-data-cache-v3` — and `dropSupersededVersions` clears a domain's earlier keys on first load. A model-shape change therefore means bumping the version in that domain's own entry file; forgetting the bump leaves returning visitors' cached objects missing the new field, silently, until their next authorised fetch.
 
 ## 5. Authentication
 
@@ -173,6 +173,37 @@ What React holds is a year and nothing else: the `onScroll` handler reads the of
 
 Two things in that layer are load-bearing and easy to undo by accident. The label `Box` sets `lineHeight` to the bar height because it is `position: fixed` with no `top` — it lands at the top of its row and is centred only by its own line box, so any change to bar height without the matching line height silently pushes every label off-centre. And the hover step on a bar is deliberately instant: a CSS transition there is created but its clock never advances, because the tooltip opening re-renders the row and restarts it every frame, leaving the bar pinned at its start value. Both `transform` and `filter` behave that way.
 
+### Event ribbon — `common/EventRibbon.tsx`
+
+The Movies watch timeline. A film is a point in time, and the packed timeline cannot hold points:
+`assignRows` frees a row the moment a span ends, and a point ends the moment it starts, so a whole
+library of them packs into one row of a chart four viewports wide. The ribbon fixes the rows
+instead — one track per calendar year on a shared 1 January – 31 December scale, each film a mark
+at its watch date — so density within a year and seasonality across years read at a glance. The
+marks are `buildStrip`'s point-event handling doing the work: a single day floors to the minimum
+band width, and films watched within days of each other tile clear of one another inside the lane
+rather than stacking. One tick array feeds every row's gridlines and the single axis beneath the
+stack, the same one-array rule the full timeline follows. Hover cards arrive through
+`common/LazyTooltip`, so positioning hundreds of marks builds only the handful of cards actually
+hovered.
+
+### Filter drawer, Top lists and drill-down — shared shells
+
+Three pieces the Games tab grew first are now domain-blind shells every tab assembles from.
+`common/FilterDrawer` owns the two floating buttons, the bottom drawer and the Clear/Close row,
+taking the domain's toggles and category multi-selects as fully controlled children —
+`FilterToggle` and `FilterCategory` alongside it, with `common/filterOptions` deriving each
+select's values from the data. `common/TopList`'s `TopListCard` is the "Top X" card — proportional
+bar, ranked swatch legend, shared hover dim — over items that arrive already coloured and already
+reduced to percentages by `common/statsData`'s `topNWithOther`; how a domain groups and colours is
+exactly what varies, so none of it lives in the shell. `common/GroupedStatList` is the strip of
+grouped cards that drills into a group: it owns the open handle, the expand badge that sets it, and
+the drill-down's card keys, and mounts `common/DrilldownDialog` — the fullscreen list itself — only
+while a group is picked, so a domain supplies its groups, its labels and its artwork and nothing
+else. The franchise
+machinery is shared the same way: `common/franchiseIndex` groups by whatever accessor a domain
+passes, and `common/franchiseContext`'s factory threads the index down to the card strips.
+
 ### Card strip — `common/timelineStripData.ts`
 
 The proportional bar on an expanded card: every season of a show, every game in a franchise, against a fixed epoch–today scale. `buildStrip` returns each span as a percentage offset and width alongside the caller's own fields, so a domain never has to key its records back out of the result.
@@ -193,7 +224,7 @@ Below the strip, an opened card says its facts in two tiers rather than as one u
 
 A row carries a colour swatch exactly where the app already speaks that field's colour somewhere else: platform, franchise, genre, rating, status. Developer, publisher, format and dates get none, because a swatch on a field with no colour vocabulary teaches a legend no chart honours. Both shells take plain `{label, value, …}` arrays, so `common/` never learns what a PEGI rating is; the two `CardMediaImage` files build the arrays and choose the omissions, since a tile reading zero because the sheet recorded nothing says something false where saying nothing says the truth.
 
-`DetailCard`, the uniform tile, remains for `movie/`, which has too few facts for the split to buy anything.
+All three domains use the two-tier treatment; `DetailCard`, the uniform tile, remains exported for the next domain that starts with too few facts for the split to buy anything.
 
 ### Scroll marker — `common/ScrollMarkerHook.ts`
 
@@ -230,9 +261,9 @@ The bucket list re-derives at the marker's own cadence, so both answers always d
 `StatList` is itself assembled from two smaller shells that the same file exports, because a domain needed each of them on its own:
 
 - **`ExpandableCard`** owns "a card that can also present itself fullscreen". It calls its `renderContent` twice — inline and for the dialog — and hands it the expand control to place in whatever header it builds. The dialog body is mounted only while open, so a strip of cards is not built a second time behind a closed dialog, and an internal `dialogMounted` lags `dialogOpen` so the body survives the exit transition.
-- **`StatsListGrid`** owns the capped strip of media cards. The caps are `COLLAPSED_CARDS` and `EXPANDED_CARDS` (6 and 18), exported from the same module and applied _here_ rather than by callers — a caller that pre-sliced its own list would make raising either constant a no-op for that list.
+- **`StatsListGrid`** owns the capped strip of media cards. The caps are `COLLAPSED_CARDS` and `EXPANDED_CARDS` (6, and 500 — effectively "everything", so a drill-down dialog shows the whole group), exported from the same module and applied _here_ rather than by callers — a caller that pre-sliced its own list would make changing either constant a no-op for that list. Card artwork loads lazily, which is what makes the uncapped dialog affordable.
 
-Each has a caller of its own beyond `StatList`: `Finished` is built on `ExpandableCard` but keeps its own item grid, because it renders bordered full-width cards rather than media cards; and `vg/`'s Most Played reaches for `StatsListGrid` directly to fill the dialog it opens when drilling into a category.
+Each has a caller of its own beyond `StatList`: `Finished` is built on `ExpandableCard` but keeps its own item grid, because it renders bordered full-width cards rather than media cards; and `DrilldownDialog` reaches for `StatsListGrid` directly to fill the fullscreen list a grouped card drills into.
 
 The one piece of shared arithmetic is `assignPercents` in `utils/mathUtils.ts`: it floors each slice at 0.5% so tiny categories stay visible, then absorbs the resulting shortfall into the first entry so the bar always fills exactly. `TotalsBand` and `vg/`'s `TopList` both use it. `total` is a parameter rather than derived, because those two callers scope it differently — one over all data, one over just the rows on screen.
 
@@ -246,9 +277,13 @@ The one piece of shared arithmetic is `assignPercents` in `utils/mathUtils.ts`: 
 Both tracked domains lay their page out by temperature: what is being played or watched now, then
 what the library is made of, then what can be explored, then the deep dives. Three shells carry it.
 
-Only Games leads with a single item. Several shows are always in flight at once, so choosing one of
-them to raise above the rest means inventing a tie-break the data does not hold — the Shows page
-opens on the currently-watching strip instead, and its "Now" anchor points there.
+All three tabs lead with a single item, each by a tie-break its data genuinely holds. Games
+promotes the game in progress. Movies promotes the film watched most recently, which every film's
+watch date defines. Shows is the one that needs the sheet's help: several shows are always in
+flight at once, so the current one is whatever the Status cell on an in-progress season row marks
+with a last-watched date — and until the sheet marks anything, the page falls back to the
+currently-watching strip alone rather than promoting a show by a tie-break the data does not
+hold. The rest of the in-flight shows stay in a compact "Also Watching" strip under the hero.
 
 `Hero` (`common/Hero.tsx`) presents one item large. Its figures are the item's own — hours logged,
 days in, the size of its franchise — and each tile is dropped rather than shown as a zero when the
@@ -289,6 +324,18 @@ Fixed colours are the other half of the system: `types.ts` in each domain maps p
 
 - **Fills** are what chart geometry takes — sunburst wedges, barchart series, timeline bars, stacked segments, card strips. They sit in one lightness band so each clears 3:1 against both surfaces the app paints on (`#ffffff` paper and `#1d2126` paper) while keeping its brand's hue. A brand hex is chosen to stand alone against white, and a set of them is not a scale: Nintendo's `#e60012` at full saturation beside four neighbours reads as one shouting value. PC and iOS stay neutral because neutrality is those brands' identity, clamped in lightness alone.
 - **Accents** are the brand hexes themselves, drawn only in a card's corner chip — a few dozen pixels carrying two or three letters, read as a badge rather than compared against a neighbour, with nothing adjacent to separate from.
+
+Three vocabularies live in `utils/types.ts` because more than one tab speaks them. `genreToColour`
+is the ramp Shows and Movies share — the two record overlapping genre sets in one spreadsheet, and
+one hue has to mean one genre on both tabs; where a genre also exists on the Games tab (Action,
+Adventure) the hue is the same one `vg/types.ts` uses. It falls to `NEUTRAL_FILL` off-table rather
+than throwing, because the genre column is open-ended. The decade ramp under `decadeToColour` is
+one bronze hue stepping in lightness — a decade is ordered data, so a categorical hue set would
+deny the order — bucketing everything before 1970, which is as many steps as the fill contract
+leaves room for. Movies adds two vocabularies of its own in `movie/types.ts`: five score bands as
+a sequential green ramp with Unscored on the neutral, and the Cinema/Home pair. Shows colours its
+networks as brand-derived fills with `""` off-table — the column gains a new streamer whenever one
+launches, and a crash is the wrong response to that — and its two types exhaustively.
 
 Franchise colours follow the same lightness rule rather than a ramp: hue and chroma are the brand's and are kept exactly, and only lightness moves, as far as clearing 3:1 against both papers demands and no further. Chroma gives way only where the new lightness leaves sRGB. The cost is separation between brands that already share a hue — six of them are reds inside 5° of each other — so wedge labels, legend names and the gaps between segments are load-bearing for that group. Genres are the one set free to be assigned a hue, because they carry no brand: that ramp separates by hue and holds luminance equal across all of them.
 
@@ -336,7 +383,7 @@ Setup is the plugin's documented path: `@vitejs/plugin-react` exports `reactComp
 - **`this`** anywhere in the function. Highcharts binds the chart to `this` in its event callbacks, so those must live at module scope (see `dimLeafRing` in §6) or they take the whole component down with them.
 - **`??=`**, which the compiler cannot yet lower. Write `x = x ?? y` instead.
 
-At the time of writing 105 functions compile and 8 bail, all of them on one compiler-internal limit: `BuildHIR::lowerAssignment` cannot lower a destructured prop that carries a default value, so `({ landscape = false })` takes its whole component out. That covers `common/Card.tsx`, `common/Stats.tsx`, `common/Finished.tsx` and `vg/Stats.tsx`. A `MethodCall` bailout, the other kind seen here, does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
+A third construct bails the same way: a **destructured prop with a default value** (`({ landscape = false })`) is an assignment pattern `BuildHIR::lowerAssignment` cannot lower, and it takes the whole component out. Components here therefore read defaults off the props object (`const landscape = props.landscape ?? false`), or rename in the pattern and default below it where a rest spread must not pick the prop up. Every function currently compiles — the baseline is **149 compiled, 0 bailed** — so any bailout is a regression. A `MethodCall` bailout, the other kind seen here, does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
 
 The compiler costs about 4% of bundle size (~15KB gzipped) in injected cache slots. That is a deliberate trade, and `npm run analyze` exists to keep it honest.
 
@@ -357,11 +404,11 @@ The distinctive part is that filter state carries a composed `filter` predicate 
 
 The generic half lives in `common/filterReducer.ts`. `createFilterReducer(initialValues, filters, nextMeasure)` returns a domain's `useFilterReducer`, and owns everything that is the same everywhere: the action union, the `useOutletContext` guest-mode wiring, rebuilding `filter` after each change, and the shared `yearPredicates` (an "up to" ceiling that disappears once it reaches the current year, or an exact-year match). Each domain supplies only what is genuinely its own — the initial values of its own fields, how to turn that state into a predicate, and how its measure toggles.
 
-`vg/filterUtils.ts` demonstrates the full pattern — boolean toggles, multi-select categories derived from the data itself (`[...new Set(data.map(...))]`), a year cutoff, and a Games/Hours measure. `show/filterUtils.ts` is down to its measure pair and a predicate on `Show.type`; it still carries the year fields, which have no UI on that tab yet but let a year filter be added without reworking state.
+`vg/filterUtils.ts` demonstrates the full pattern — boolean toggles, multi-select categories derived from the data itself through `common/filterOptions`, a year cutoff, and a Games/Hours measure — and `show/` and `movie/` now carry the same shape with their own toggles and categories. The drawer itself is one shell, `common/FilterDrawer`, taking the measure icon, the reset action, and the domain's toggles and selects as fully controlled children. The one deliberate divergence is the Shows year predicate: the shared `yearPredicates` reads `startDate.year`, which for a show is its first season, so that tab asks "has a season started in (or by) the year" instead — keeping the filter and the seasons-in-year vitals card answering the same question.
 
 ### Guest mode
 
-Long-pressing the AppBar (`utils/useLongPress.ts`, 300 ms) sets `guestMode`, which flows down through the router's outlet context into each domain's reducer and appends a predicate — hiding adult-themed games and anime. It is a presentation filter, not a security boundary: the underlying data is already loaded, and the mode is one-way until reload. On Shows the predicate reads `type`, which every show carries. Movies records an anime flag too but the converter does not read it, so the 4 anime films on that tab stay visible.
+Long-pressing the AppBar (`utils/useLongPress.ts`, 300 ms) sets `guestMode`, which flows down through the router's outlet context into each domain's reducer and appends a predicate — hiding adult-themed games and anime. It is a presentation filter, not a security boundary: the underlying data is already loaded, and the mode is one-way until reload. On Shows the predicate reads `type`, which every show carries; on Movies it reads the `anime` flag the converter takes from the sheet's own column.
 
 ### Theming and routing
 
@@ -388,9 +435,6 @@ Routing uses `HashRouter` because the app is served from GitHub Pages, which can
 Recorded so they are not mistaken for design:
 
 - **`holiday/` is a stub.** `HolidaysTab` is defined in `tabs.ts` but deliberately omitted from the exported `Tabs` array, so the route is unreachable. Its converter drops the dates its own `Holiday` type declares, and `Map.tsx` renders `data.toString()` as placeholder text. It also predates `useData` and hand-rolls its own module-level cache.
-- **`movie/` is early.** Its `Graphs.tsx` renders only the `Finished` grid — no stats, timeline, barchart, sunburst or filters yet, and `movie/types.ts` has no colour mappings of its own beyond the shared `ageRatingToColour`. The expanded card shows every field the converter reads, but nothing aggregates them.
 - **No DOM or component tests.** `tests/` covers pure logic — converters, filters, the reducer, the chart data transforms and the cache round trip — and deliberately stops there; AGENTS.md explains the trade. Nothing verifies that a chart renders, and the show converter's date ordering is still only a `console.assert`, which does not alter control flow.
 - **`.eslintrc.cjs` is dead.** ESLint 9 uses the flat `eslint.config.js`; the legacy file remains in the tree and is not applied. The flat config is also the weaker of the two — it drops the type-checked and React-specific rule sets the old file enabled.
-- **Cache keys are unversioned**, so domain model changes can meet stale `localStorage` objects (§4).
-- **Eight React Compiler bailouts** remain (§7), all on the same limit: a destructured prop with a default value opts its component out. Four are in `common/Card.tsx`, which every media card in the app renders, so this is the one bailout that is on a hot path.
 - **`PlainDate.valueOf` returns a string**, so every date comparison goes through `toString()` and allocates. It is correct and the ordering is deliberate (§7), but the hot path — the timeline's greedy packing loop — does tens of thousands of comparisons per layout. A numeric sort key computed once per interned instance would preserve ordering exactly, including across mixed `Year`/`YearMonthDay`. Deliberately not done: it touches the most load-bearing class in the codebase for a win nobody has measured as necessary.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import Tabs, { HolidaysTab, MoviesTab, ShowsTab, VideoGamesTab, tabForPath } from "../src/tabs";
+import Tabs, { HolidaysTab, MoviesTab, ShowsTab, VideoGamesTab, otherTabs, tabForPath } from "../src/tabs";
 
 describe("the tab registry", () => {
   it("routes Games, Shows and Movies", () => {
@@ -60,5 +60,20 @@ describe("tabForPath", () => {
 
   it("resolves against a caller-supplied list", () => {
     expect(tabForPath("/holiday", [HolidaysTab, VideoGamesTab])).toBe(HolidaysTab);
+  });
+});
+
+describe("otherTabs", () => {
+  it("offers every routed tab but the current one, as rail chips", () => {
+    // The current tab is deliberately absent: the rail offers movement, not orientation, and a
+    // chip for where the reader already is would rebuild the app bar the rail stands in for.
+    expect(otherTabs(ShowsTab)).toEqual([
+      { id: "vg", label: "Games" },
+      { id: "movies", label: "Movies" },
+    ]);
+  });
+
+  it("never offers the unrouted Holidays tab", () => {
+    expect(otherTabs(VideoGamesTab).map((tab) => tab.id)).not.toContain(HolidaysTab.id);
   });
 });
