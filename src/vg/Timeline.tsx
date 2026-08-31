@@ -4,25 +4,9 @@ import { useState } from "react";
 import { SectionHeader } from "../common/SectionHeader";
 import { VideoGame, platformToColor } from "./types";
 import Timeline, { TimelineData } from "../common/Timeline";
-import { CURRENT_PLAINDATE, YearMonthDay, formatDateRange } from "../common/date";
-import VgCardMediaImage from "./CardMediaImage";
-import { CardPanel, type PanelStat } from "../common/Card";
+import { CURRENT_PLAINDATE, YearMonthDay } from "../common/date";
+import { VgHoverCard } from "./CardMediaImage";
 import { format } from "../utils/mathUtils";
-
-/**
- * The figures the hover card carries, each one only where the sheet holds it.
- *
- * Zero is unrecorded rather than a measurement in both — the same reading the expanded card's
- * hero tiles take — so a game with hours logged and no days still says its hours.
- */
-const gameStats = ({ hours, numDays }: VideoGame): PanelStat[] => {
-  const stats: PanelStat[] = [];
-
-  if (hours) stats.push({ value: hours, label: "Hours" });
-  if (numDays) stats.push({ value: numDays, label: "Days" });
-
-  return stats;
-};
 
 const VgTimeline = ({ data }: { data: VideoGame[] }) => {
   const [partyEnabled, setParty] = useState(false);
@@ -32,19 +16,7 @@ const VgTimeline = ({ data }: { data: VideoGame[] }) => {
     .filter(({ startDate }) => startDate instanceof YearMonthDay && startDate.year > 2014)
     .map((row) => ({
       name: row.name,
-      tooltip: () => (
-        <VgCardMediaImage
-          item={row}
-          extractColour
-          footerComponent={
-            <CardPanel
-              title={row.name}
-              dateRange={formatDateRange(row.startDate, row.endDate)}
-              stats={gameStats(row)}
-            />
-          }
-        />
-      ),
+      tooltip: () => <VgHoverCard item={row} />,
       colour: platformToColor(row),
       start: row.startDate as YearMonthDay,
       end: (row.endDate as YearMonthDay | undefined) ?? CURRENT_PLAINDATE,

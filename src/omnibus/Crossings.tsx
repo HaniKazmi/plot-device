@@ -6,7 +6,7 @@ import { LazyTooltip } from "../common/LazyTooltip";
 import { SectionHeader } from "../common/SectionHeader";
 import type { TimelineTick } from "../common/timelineLayout";
 import { format } from "../utils/mathUtils";
-import OmniCardMediaImage, { OmniCardPanel } from "./CardMediaImage";
+import { OmniHoverCard } from "./CardMediaImage";
 import type { Crossing } from "./crossingsData";
 import { mediumToColour, mediumToLabel } from "./types";
 
@@ -96,17 +96,7 @@ const toBand = (band: Crossing["bands"][number]): TimelineBand => ({
   lane: band.lane,
   colour: mediumToColour(band.item.medium),
   imprecise: !band.precise,
-  tooltip: (
-    <LazyTooltip
-      render={() => (
-        <OmniCardMediaImage
-          item={band.item}
-          extractColour
-          footerComponent={<OmniCardPanel item={band.item} />}
-        />
-      )}
-    />
-  ),
+  tooltip: <LazyTooltip render={() => <OmniHoverCard item={band.item} />} />,
 });
 
 export default Crossings;

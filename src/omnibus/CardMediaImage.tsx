@@ -1,12 +1,11 @@
-import { CardPanel, type TypedCardMediaImage } from "../common/Card";
-import { formatDate, formatDateRange } from "../common/date";
-import MovieCardMediaImage from "../movie/CardMediaImage";
+import { type TypedCardMediaImage } from "../common/Card";
+import MovieCardMediaImage, { MovieHoverCard } from "../movie/CardMediaImage";
 import type { Movie } from "../movie/types";
-import ShowCardMediaImage from "../show/CardMediaImage";
+import ShowCardMediaImage, { ShowHoverCard } from "../show/CardMediaImage";
 import type { Season } from "../show/types";
-import VgCardMediaImage from "../vg/CardMediaImage";
+import VgCardMediaImage, { VgHoverCard } from "../vg/CardMediaImage";
 import type { VideoGame } from "../vg/types";
-import { omniTitle, type OmniItem } from "./adapter";
+import { type OmniItem } from "./adapter";
 import { mediumToShape } from "./types";
 
 /**
@@ -57,51 +56,25 @@ const OmniCardMediaImage: TypedCardMediaImage<OmniItem> = ({ item, ...props }) =
 };
 
 /**
- * The panel beside a mixed-media card: what the item is, when it ran, and how much of it there was,
- * each medium in the figures its own tab keeps it in.
+ * One item of the union as its own tab's hover card.
  *
- * Hours are not the unit here even though the page's measure is: a film is minutes and a season is
- * episodes, and a card is where a medium is allowed to speak for itself. The comparison the page
- * exists to make is made in the charts above, on the union's own vocabulary.
+ * The three domains' own components, rendered untouched. Assembling a panel here instead is what let
+ * this tab's hover cards drift from the ones the home tabs show: they came to carry different
+ * figures — a film lost its score — and, because this tab's cards also declare an artwork shape, a
+ * different arrangement, which stretched a show's card out of the proportions its own tab draws it
+ * at. Dispatching to the domain leaves nothing here that can disagree.
+ *
+ * `source` is cast rather than narrowed for the reason above: TypeScript cannot tell the three
+ * records apart by shape, and `medium` is the discriminant the item already carries.
  */
-export const OmniCardPanel = ({ item }: { item: OmniItem }) => {
+export const OmniHoverCard = ({ item }: { item: OmniItem }) => {
   switch (item.medium) {
-    case "game": {
-      const game = item.source as VideoGame;
-      return (
-        <CardPanel
-          title={game.name}
-          subtitle={game.platform}
-          dateRange={formatDateRange(game.startDate, game.endDate)}
-          stats={game.hours ? [{ value: game.hours, label: "Hours" }] : []}
-        />
-      );
-    }
-    case "show": {
-      const season = item.source as Season;
-      return (
-        <CardPanel
-          title={omniTitle(item)}
-          subtitle={season.show.network}
-          dateRange={formatDateRange(season.startDate, season.endDate)}
-          stats={[
-            { value: season.e, label: "Eps" },
-            { value: Math.floor(season.minutes / 60), label: "Hours" },
-          ]}
-        />
-      );
-    }
-    case "movie": {
-      const movie = item.source as Movie;
-      return (
-        <CardPanel
-          title={movie.name}
-          subtitle={movie.director}
-          dateRange={formatDate(movie.startDate)}
-          stats={[{ value: movie.minutes, label: "Min" }]}
-        />
-      );
-    }
+    case "game":
+      return <VgHoverCard item={item.source as VideoGame} />;
+    case "show":
+      return <ShowHoverCard item={item.source as Season} />;
+    case "movie":
+      return <MovieHoverCard item={item.source as Movie} />;
   }
 };
 

@@ -1,6 +1,7 @@
 import { CardContent, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import {
+  CardPanel,
   CardMediaImage,
   HeroStatRow,
   MetadataLedger,
@@ -128,6 +129,32 @@ const WatchTooltip = ({ movie }: { movie: Movie }) => (
     {movie.score !== undefined && <Typography>Scored {movie.score}/10</Typography>}
     <Typography>{movie.minutes} Minutes</Typography>
   </>
+);
+
+/**
+ * The card a hovered mark shows: the artwork, what the film is, when it was seen, and its figures.
+ *
+ * A component rather than a shape each chart assembles, because the Omnibus shows the same card for
+ * a film and a second assembly of it is a second thing to keep in step. The subtitle is the pair the
+ * tab's hero says, and the score is dropped where the film was never scored rather than reading zero.
+ */
+export const MovieHoverCard = ({ item }: { item: Movie }) => (
+  <MovieCardMediaImage
+    item={item}
+    extractColour
+    footerComponent={
+      <CardPanel
+        layout="beside"
+        title={item.name}
+        subtitle={[{ text: item.director }, { text: item.genre, swatch: genreToColour(item.genre) }]}
+        dateRange={formatDate(item.startDate)}
+        stats={[
+          ...(item.score !== undefined ? [{ value: item.score, label: "Score" }] : []),
+          { value: item.minutes, label: "Min" },
+        ]}
+      />
+    }
+  />
 );
 
 export default MovieCardMediaImage;

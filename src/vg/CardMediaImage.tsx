@@ -1,5 +1,7 @@
 import { CardContent, Typography } from "@mui/material";
 import {
+  CardPanel,
+  type PanelStat,
   CardMediaImage,
   HeroStatRow,
   MetadataLedger,
@@ -160,6 +162,44 @@ const GameTooltip = ({ game }: { game: VideoGame }) => (
     {game.numDays ? <Typography>{game.numDays} Days</Typography> : null}
     {game.hours ? <Typography>{game.hours} Hours</Typography> : null}
   </>
+);
+
+/**
+ * The figures a hover card carries, each only where the sheet holds it. Zero is unrecorded rather
+ * than a measurement, which is why the test is truthiness: a tile reading zero hours says the game
+ * was played for none, where saying nothing says the truth.
+ */
+const gameHoverStats = ({ hours, numDays }: VideoGame): PanelStat[] => {
+  const stats: PanelStat[] = [];
+
+  if (hours) stats.push({ value: hours, label: "Hours" });
+  if (numDays) stats.push({ value: numDays, label: "Days" });
+
+  return stats;
+};
+
+/**
+ * The card a hovered bar shows: the artwork, what the game is, when it ran, how much of it there
+ * was.
+ *
+ * A component rather than a shape each chart assembles, because the Omnibus shows the same card for
+ * a game and a second assembly of it is a second thing to keep in step — which is exactly what the
+ * two surfaces failed to do. The subtitle is the pair the tab's hero says, so a game is named the
+ * same way wherever it is promoted.
+ */
+export const VgHoverCard = ({ item }: { item: VideoGame }) => (
+  <VgCardMediaImage
+    item={item}
+    extractColour
+    footerComponent={
+      <CardPanel
+        title={item.name}
+        subtitle={[{ text: item.platform }, { text: item.genre, swatch: genreToColour(item) }]}
+        dateRange={formatDateRange(item.startDate, item.endDate)}
+        stats={gameHoverStats(item)}
+      />
+    }
+  />
 );
 
 export default VgCardMediaImage;
