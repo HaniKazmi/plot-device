@@ -3,14 +3,13 @@ import Grid from "@mui/material/Grid";
 import { SectionHeader } from "../common/SectionHeader";
 import { EventRibbon } from "../common/EventRibbon";
 import { LazyTooltip } from "../common/LazyTooltip";
-import { CardPanel } from "../common/Card";
 import { buildTicks } from "../common/timelineLayout";
-import { YearMonth, formatDate, shortYear } from "../common/date";
+import { YearMonth, shortYear } from "../common/date";
 import { useSelectBox } from "../common/SelectBoxHook";
 import { format } from "../utils/mathUtils";
 import { groupToColour, type Movie } from "./types";
 import { watchRibbonYears } from "./watchTimelineData";
-import MovieCardMediaImage from "./CardMediaImage";
+import { MovieHoverCard } from "./CardMediaImage";
 
 /**
  * Every row is the same 1 January – 31 December, so the months are walked once for all of them —
@@ -32,27 +31,8 @@ const WatchTimeline = ({ data }: { data: Movie[] }) => {
       ...band,
       // Every colour option here has a total vocabulary, so a mark is never left uncoloured.
       colour: groupToColour(colourBy, band.movie),
-      tooltip: (
-        <LazyTooltip
-          render={() => (
-            <MovieCardMediaImage
-              item={band.movie}
-              extractColour
-              footerComponent={
-                <CardPanel
-                  layout="beside"
-                  title={band.movie.name}
-                  dateRange={formatDate(band.movie.startDate)}
-                  stats={[
-                    ...(band.movie.score !== undefined ? [{ value: band.movie.score, label: "Score" }] : []),
-                    { value: band.movie.minutes, label: "Min" },
-                  ]}
-                />
-              }
-            />
-          )}
-        />
-      ),
+      hoverCard: true,
+      tooltip: <LazyTooltip render={() => <MovieHoverCard item={band.movie} />} />,
     })),
   }));
 

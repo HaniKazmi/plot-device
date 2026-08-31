@@ -294,6 +294,12 @@ export interface StatsListProps<T> {
   title: string;
   controls?: ReactNode;
   content: T[];
+  /**
+   * The population the header states, worded by the caller — a shell cannot know it is counting
+   * seasons. It is given how many cards are actually drawn as well as how many there are, because
+   * the strip is capped and a cut a header does not state is a cut the reader cannot see.
+   */
+  count?: (shown: number, total: number) => string;
   width: [number, number, number];
   nameComponent: (t: T) => string;
   labelComponent: (t: T) => string[][];
@@ -314,6 +320,7 @@ export const StatList = <T,>({
   nameComponent,
   chipComponent,
   labelComponent,
+  count,
   // Renamed and defaulted below the pattern: a default inside it bails the component out of the
   // React Compiler, and the rename keeps `wrap` out of the rest object handed to `StatsListGrid`.
   wrap: wrapProp,
@@ -334,32 +341,38 @@ export const StatList = <T,>({
       <ExpandableCard
         sx={{ height: "100%" }}
         expandable={content.length > COLLAPSED_CARDS}
-        renderContent={(isDialog, toggle) => (
-          <>
-            <SectionHeader
-              title={title}
-              icon={icon}
-              action={
-                <Stack direction="row-reverse">
-                  {toggle}
-                  {controls}
-                </Stack>
-              }
-            />
-            <StatsListGrid
-              content={content}
-              // A non-wrapping strip scrolls sideways instead of clipping, so it can hold the
-              // expanded count without the card growing.
-              limit={isDialog || !wrap ? EXPANDED_CARDS : COLLAPSED_CARDS}
-              flexWrap={isDialog ? undefined : { xs: "nowrap", md: wrap ? "wrap" : "nowrap" }}
-              cardKey={(entry) => `${title}-statslistcard-${nameComponent(entry)}`}
-              labelComponent={labelComponent}
-              chipComponent={chipComponent}
-              pictureWidth={isDialog ? dialogPictureWidth : pictureWidth}
-              {...props}
-            />
-          </>
-        )}
+        renderContent={(isDialog, toggle) => {
+          // A non-wrapping strip scrolls sideways instead of clipping, so it can hold the expanded
+          // count without the card growing. Answered once and shared, so the header states the cut
+          // the grid actually applies.
+          const limit = isDialog || !wrap ? EXPANDED_CARDS : COLLAPSED_CARDS;
+
+          return (
+            <>
+              <SectionHeader
+                title={title}
+                icon={icon}
+                count={count?.(Math.min(content.length, limit), content.length)}
+                action={
+                  <Stack direction="row-reverse">
+                    {toggle}
+                    {controls}
+                  </Stack>
+                }
+              />
+              <StatsListGrid
+                content={content}
+                limit={limit}
+                flexWrap={isDialog ? undefined : { xs: "nowrap", md: wrap ? "wrap" : "nowrap" }}
+                cardKey={(entry) => `${title}-statslistcard-${nameComponent(entry)}`}
+                labelComponent={labelComponent}
+                chipComponent={chipComponent}
+                pictureWidth={isDialog ? dialogPictureWidth : pictureWidth}
+                {...props}
+              />
+            </>
+          );
+        }}
       />
     </Grid>
   );

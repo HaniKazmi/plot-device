@@ -18,10 +18,18 @@ import {
   type ChipProps,
   type TypographyProps,
 } from "@mui/material";
-import { Fragment, type FunctionComponent, type ReactNode, useEffect, useRef, useState } from "react";
+import { type FunctionComponent, type ReactElement, type ReactNode, useEffect, useRef, useState } from "react";
 import { CalendarMonthOutlined } from "@mui/icons-material";
 import { cachedColour, extractColourFrom } from "../utils/colourUtils";
 import { ArtworkAccent, artworkPalette, useArtworkPalette } from "./artworkPalette";
+import { HoverCardTooltip } from "./HoverCardTooltip";
+import {
+  CardArrangementProvider,
+  shapeToArrangement,
+  shapeToAspect,
+  useCardArrangement,
+  type ArtworkShape,
+} from "./cardArrangement";
 import { shortYear } from "./date";
 import { LABEL_SX } from "./typography";
 import Grid from "@mui/material/Grid";
@@ -54,6 +62,18 @@ export interface CardMediaImageProps {
    * width; left off, the artwork column is the width of the card.
    */
   mediaLayout?: "aside";
+  /**
+   * The shape of the artwork, for a surface holding more than one of them: the card then reserves
+   * that shape before the image loads and arranges itself by it — a poster takes its words in a
+   * column beside it, a banner stacks them underneath.
+   *
+   * The Omnibus is the surface that needs it, because a mixed row is where a single arrangement
+   * fails: a banner is four times as wide as it is tall, so words beside it get a sliver of a
+   * column, while a poster is half as wide as it is tall, so the strip beneath it is a hundred
+   * pixels across and clamps every title to three characters. A tab whose artwork is all one shape
+   * has no such row and says nothing here, keeping the arrangement its own layout gives it.
+   */
+  shape?: ArtworkShape;
   /** Derive the card's theme colour from the image once it loads. Costs a canvas read per image. */
   extractColour?: boolean;
 }
@@ -94,6 +114,27 @@ const ASIDE_ACTION_AREA_SX = {
   alignSelf: "flex-start",
 } as const;
 
+/**
+ * The same column, for a card arranged by its artwork's shape rather than by a caller that pinned
+ * the artwork's size.
+ *
+ * The ceiling is what the difference is for. This card's width is imposed on it — a grid cell, a
+ * band — and the artwork's own pixels are several times that, so shrink-to-fit alone hands the
+ * whole card to the picture and leaves the words nothing. Half is the most a poster can claim, so
+ * there is always a column to set a name in. Stretching rather than ending at the artwork, because
+ * a card in a band is as tall as the tallest card beside it and a picture that stops short of that
+ * leaves a panel of bare ground under itself.
+ */
+const SHAPE_ASIDE_ACTION_AREA_SX = {
+  flex: "0 0 auto",
+  width: "auto",
+  maxWidth: "50%",
+  alignSelf: "stretch",
+} as const;
+
+/** Artwork filling a column it did not choose the width of, at its own ratio and uncropped. */
+const SHAPE_ASIDE_MEDIA_SX = { maxWidth: "100%", height: "auto", display: "block" } as const;
+
 export const CardMediaImage = (props: CardMediaImageProps) => {
   const { image, alt, chip, colour: propColour, footerComponent, detailComponent, mediaLayout, sx, cardSx } = props;
   // Defaults are read off `props` rather than written in the destructuring pattern: a default
@@ -103,6 +144,14 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
   const lazy = props.lazy ?? false;
   const landscape = props.landscape ?? false;
   const extractColour = props.extractColour ?? false;
+  const shape = props.shape;
+  /**
+   * A card with no words is not arranged at all. The rule divides the card between a picture and a
+   * column of text, so applying it to bare artwork hands half the card to a panel that is not there
+   * and draws the picture at half the size it was given room for — which is what a shelf of pictures
+   * at one height is.
+   */
+  const beside = shape !== undefined && shapeToArrangement(shape) === "beside" && footerComponent !== undefined;
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   /** Lags `dialogOpen` on close so the detail tree survives the dialog's exit transition. */
   const [detailMounted, setDetailMounted] = useState<boolean>(false);
@@ -153,51 +202,66 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
             height: "100%",
             position: "relative",
             backgroundColor: palette.ground,
-            display: landscape ? "flex" : undefined,
+            display: landscape || beside ? "flex" : undefined,
             color: palette.onGround,
           },
           ...(Array.isArray(cardSx) ? cardSx : [cardSx]),
         ]}
       >
-        <CardActionArea sx={mediaLayout === "aside" ? ASIDE_ACTION_AREA_SX : undefined}>
-          <CardMedia
-            height={"100%"}
-            component="img"
-            crossOrigin="anonymous"
-            src={image}
-            alt={alt}
-            onClick={() => {
-              // The detail dialog is themed from this colour, so it is worth reading even for a card
-              // that did not ask for one.
-              readColour(imgRef.current);
-              setDialogOpen(true);
-              setDetailMounted(true);
-            }}
-            loading={lazy ? "lazy" : undefined}
-            ref={imgRef}
-            onLoad={(el) => readImage(el.currentTarget, extractColour && !colour, setRatio, setExtracted)}
-            sx={sx}
-          />
-          {chip && (
-            <Chip
-              sx={{
-                position: "absolute",
-                top: 0,
-                right: 0,
-                margin: 1,
-                opacity: 0.8,
-                backgroundColor: chip.colour ?? "primary.main",
-                color: (theme) => theme.palette.getContrastText(chip.colour ?? colour ?? theme.palette.primary.main),
+        {/* The card's own two halves and nothing else. Context crosses a portal, so a provider
+            wrapping the dialog below would hand the expanded card the arrangement of the thumbnail
+            it was opened from — a detail tree laid out beside a poster that is not there. The
+            dialog draws its own full-width artwork and takes the default. */}
+        <CardArrangementProvider value={beside ? "beside" : "stacked"}>
+          <CardActionArea
+            sx={mediaLayout === "aside" ? ASIDE_ACTION_AREA_SX : beside ? SHAPE_ASIDE_ACTION_AREA_SX : undefined}
+          >
+            <CardMedia
+              height={"100%"}
+              component="img"
+              crossOrigin="anonymous"
+              src={image}
+              alt={alt}
+              onClick={() => {
+                // The detail dialog is themed from this colour, so it is worth reading even for a card
+                // that did not ask for one.
+                readColour(imgRef.current);
+                setDialogOpen(true);
+                setDetailMounted(true);
               }}
-              label={chip.label}
-              icon={chip.icon}
-              onClick={chip.onClick}
-              variant={chip.variant || "filled"}
-              size="small"
+              loading={lazy ? "lazy" : undefined}
+              ref={imgRef}
+              onLoad={(el) => readImage(el.currentTarget, extractColour && !colour, setRatio, setExtracted)}
+              // The shape's own rules first and the caller's after them, so a caller that pins a
+              // height still wins and one that pins nothing gets the reservation and the column
+              // sizing without asking. A card that named no shape is left exactly as its caller
+              // dressed it.
+              sx={[
+                ...(shape ? [{ aspectRatio: shapeToAspect(shape), ...(beside && SHAPE_ASIDE_MEDIA_SX) }] : []),
+                ...(Array.isArray(sx) ? sx : [sx]),
+              ]}
             />
-          )}
-        </CardActionArea>
-        {footerComponent}
+            {chip && (
+              <Chip
+                sx={{
+                  position: "absolute",
+                  top: 0,
+                  right: 0,
+                  margin: 1,
+                  opacity: 0.8,
+                  backgroundColor: chip.colour ?? "primary.main",
+                  color: (theme) => theme.palette.getContrastText(chip.colour ?? colour ?? theme.palette.primary.main),
+                }}
+                label={chip.label}
+                icon={chip.icon}
+                onClick={chip.onClick}
+                variant={chip.variant || "filled"}
+                size="small"
+              />
+            )}
+          </CardActionArea>
+          {footerComponent}
+        </CardArrangementProvider>
         <Dialog
           open={dialogOpen}
           onClose={() => setDialogOpen(false)}
@@ -367,6 +431,11 @@ export interface PanelSubtitlePart {
  * How a panel sits against the artwork it belongs to, which decides the edge the two share and
  * whether the panel has height to spend.
  *
+ * A panel left to itself follows the card it is inside: a card arranged by its artwork's shape
+ * publishes that arrangement and the panel reads it, so the two halves of one card cannot come to
+ * disagree about which way round they are. Naming it is for a caller whose layout says something
+ * the card does not — the hero's breakpoint-dependent arrangement, or a tooltip laid out by hand.
+ *
  * - `beneath` — under the artwork, as tall as its own type. Nothing to distribute.
  * - `beside` — next to a poster, and as tall as it. Three lines against a 2:3 poster leaves
  *   better than half the column empty, so the title takes the top and the figures the bottom
@@ -404,13 +473,19 @@ export const CardPanel = ({
   /** Absent where the card names its dates some other way, as the hero's kicker does. */
   dateRange?: string;
   stats: PanelStat[];
+  /** Only where the caller's layout says something its card does not. */
   layout?: PanelLayout;
   /** Holds the panel to the artwork's height, so the card is the height of the picture in it. */
   minHeight?: number;
 }) => {
   const palette = useArtworkPalette();
-  const beside = layout === "beside";
-  const hero = layout === "hero";
+  const arrangement = useCardArrangement();
+  const resolved = layout ?? (arrangement === "beside" ? "beside" : "beneath");
+  const beside = resolved === "beside";
+  const hero = resolved === "hero";
+  // The parts that actually say something. A caller lists its fields without testing which the
+  // sheet filled in, and the count is what decides which part is last and so carries no separator.
+  const said = Array.isArray(subtitle) ? subtitle.filter((part) => part.text) : [];
 
   return (
     <CardContent
@@ -419,8 +494,10 @@ export const CardPanel = ({
         flexDirection: "column",
         // Beside or hero, the panel is as tall as the artwork and a few lines cannot fill it, so
         // the title takes the top edge and the figures the bottom, spending that height as
-        // structure rather than pooling it around a centred block. Only `beneath` has no height
-        // to distribute.
+        // structure rather than pooling it around a centred block. A stacked panel is the height of
+        // its own lines and has nothing to distribute — spreading them to fill a taller box pulls
+        // the kicker off its title and opens a gap above the figures, which is the wrong way to use
+        // spare height. Where a stacked card has any, it belongs to the picture.
         justifyContent: beside || hero ? "space-between" : "flex-start",
         gap: 2,
         // Basis zero and free to grow, so a panel beside the artwork is exactly the row minus the
@@ -468,26 +545,38 @@ export const CardPanel = ({
             it sits under the title in the same tone the dates take. */}
         {subtitle &&
           (Array.isArray(subtitle) ? (
-            <Stack
-              direction="row"
-              spacing={0.75}
-              sx={{ alignItems: "center", flexWrap: "wrap", color: palette.muted }}
+            // Each part is one box rather than three loose ones, because a line break falls between
+            // flex items: with the swatch, the separator and the text each an item of the wrapping
+            // row, a narrow column breaks a mark off the thing it marks. Grouped, the only place a
+            // break can fall is between parts, and the separator closes its own part rather than
+            // opening the next — a line that ends "Apple TV ·" says a part is still to come, where
+            // one that opens "· True Story" reads as joined to nothing.
+            <Box
+              sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 0.75, color: palette.muted }}
             >
-              {subtitle
-                .filter((part) => part.text)
-                .map((part, index) => (
-                  <Fragment key={part.text}>
-                    {index > 0 && <Typography variant="body2">·</Typography>}
-                    {part.swatch && (
-                      <Swatch
-                        colour={part.swatch}
-                        size={INLINE_SWATCH_SIZE}
-                      />
-                    )}
-                    <Typography variant="body2">{part.text}</Typography>
-                  </Fragment>
-                ))}
-            </Stack>
+              {said.map((part, index) => (
+                <Box
+                  key={part.text}
+                  // The floor is what lets a part longer than the whole column wrap inside
+                  // itself rather than push the row wider than the card.
+                  sx={{ display: "inline-flex", alignItems: "center", columnGap: 0.75, minWidth: 0 }}
+                >
+                  {part.swatch && (
+                    <Swatch
+                      colour={part.swatch}
+                      size={INLINE_SWATCH_SIZE}
+                    />
+                  )}
+                  <Typography
+                    variant="body2"
+                    sx={{ overflowWrap: "anywhere" }}
+                  >
+                    {part.text}
+                  </Typography>
+                  {index < said.length - 1 && <Typography variant="body2">·</Typography>}
+                </Box>
+              ))}
+            </Box>
           ) : (
             <Typography
               variant="body2"
@@ -528,27 +617,41 @@ export interface CardStat extends PanelStat {
  * One rule wherever tiles appear — a panel's, an expanded card's — because two grids that wrapped
  * at different counts would put the same two figures on one line in one place and two in another.
  */
-const StatTileGrid = ({ stats, size }: { stats: CardStat[]; size?: "hero" }) => (
-  <Box
-    sx={{
-      display: "grid",
-      gridTemplateColumns: {
-        xs: `repeat(${Math.min(stats.length, 2)}, 1fr)`,
-        sm: `repeat(${stats.length}, 1fr)`,
-      },
-      gap: 1,
-      width: "100%",
-    }}
-  >
-    {stats.map((stat) => (
-      <StatTile
-        key={stat.label}
-        {...stat}
-        size={size}
-      />
-    ))}
-  </Box>
-);
+const StatTileGrid = ({ stats, size }: { stats: CardStat[]; size?: "hero" }) => {
+  const beside = useCardArrangement() === "beside";
+
+  return (
+    <Box
+      sx={{
+        display: "grid",
+        // Beside a poster the row is a column's width rather than a card's, and a third tile in it
+        // is narrower than the word under the figure — the label then sets the grid's floor and the
+        // last tile is pushed past the card's edge. Fitting as many as the column holds and wrapping
+        // the rest keeps every figure the panel was given, which the alternative — carrying fewer
+        // beside than beneath — does not.
+        gridTemplateColumns: beside
+          ? `repeat(auto-fit, minmax(${BESIDE_TILE_FLOOR}px, 1fr))`
+          : {
+              xs: `repeat(${Math.min(stats.length, 2)}, 1fr)`,
+              sm: `repeat(${stats.length}, 1fr)`,
+            },
+        gap: 1,
+        width: "100%",
+      }}
+    >
+      {stats.map((stat) => (
+        <StatTile
+          key={stat.label}
+          {...stat}
+          size={size}
+        />
+      ))}
+    </Box>
+  );
+};
+
+/** Wide enough for a figure and the word under it, which is what decides how many share a row. */
+const BESIDE_TILE_FLOOR = 72;
 
 /** A figure and what it counts, set apart from the prose so the numbers can be read at a glance. */
 export const StatTile = ({ value, label, colour, size }: CardStat & { size?: "hero" }) => {
@@ -721,19 +824,34 @@ export const MetadataLedger = ({ rows }: { rows: LedgerRow[] }) => {
  * Rows read bottom-up: the last one carries the figures and anything above it is the context they
  * belong to, which is why only the last is given the full tone. A label builder adding a row is
  * adding context, and belongs above the figures for the same reason.
+ *
+ * Beside a poster the same rows are read down a column instead of across a strip. A strip's width is
+ * the whole card and a column's is what the artwork left, so the row that fits on one line under a
+ * banner is three or four words wide here — the names are given lines to wrap onto, and a ceiling
+ * that stops one from outgrowing the picture it belongs to.
  */
+const BESIDE_LABEL_LINES = 3;
+
 export const FooterComponent = ({ labels, divider }: { labels: string[][]; divider?: boolean }) => {
   const palette = useArtworkPalette();
+  const beside = useCardArrangement() === "beside";
 
   return (
     <CardContent
       sx={{
         padding: "10px",
         ":last-child": { paddingBottom: "10px" },
-        width: "100%",
+        // Basis zero and free to grow, so the column is exactly the card minus the artwork rather
+        // than a share of it; the floor is what lets a long word wrap instead of setting the width.
+        ...(beside ? { flex: "1 1 0", minWidth: 0, display: "flex", flexDirection: "column" } : { width: "100%" }),
+        // Centred against the artwork's height, which is what the card's height is. Under a banner
+        // there is no spare height to place the rows in.
+        ...(beside && { justifyContent: "center" }),
         backgroundColor: palette.ground,
         color: palette.onGround,
-        borderTop: palette.seam,
+        // The one edge the two halves share. Written out rather than as one computed key, which the
+        // React Compiler cannot lower — and bailing here takes every card in the app with it.
+        ...(beside ? { borderLeft: palette.seam } : { borderTop: palette.seam }),
       }}
     >
       {labels.map((stacks, index) => (
@@ -741,7 +859,7 @@ export const FooterComponent = ({ labels, divider }: { labels: string[][]; divid
           key={`stacks-${index}`}
           direction="row"
           divider={
-            divider ? (
+            divider && !beside ? (
               <Divider
                 orientation="vertical"
                 flexItem
@@ -750,7 +868,10 @@ export const FooterComponent = ({ labels, divider }: { labels: string[][]; divid
             ) : null
           }
           sx={{
-            justifyContent: stacks.length === 1 ? "center" : "space-between",
+            // Beside, a row opens a line of prose; under the artwork it is spread across the card.
+            justifyContent: beside ? "flex-start" : stacks.length === 1 ? "center" : "space-between",
+            columnGap: beside ? 0.75 : 0,
+            flexWrap: beside ? "wrap" : "nowrap",
             color: index < labels.length - 1 ? palette.muted : undefined,
           }}
         >
@@ -758,6 +879,19 @@ export const FooterComponent = ({ labels, divider }: { labels: string[][]; divid
             <Typography
               key={val}
               variant="subtitle2"
+              sx={
+                beside
+                  ? {
+                      lineHeight: 1.3,
+                      overflowWrap: "break-word",
+                      minWidth: 0,
+                      display: "-webkit-box",
+                      WebkitBoxOrient: "vertical",
+                      WebkitLineClamp: BESIDE_LABEL_LINES,
+                      overflow: "hidden",
+                    }
+                  : undefined
+              }
             >
               {val}
             </Typography>
@@ -847,6 +981,13 @@ export const ProportionalBar = ({
 export type TimelineBand = Omit<StripBand<StripSpan>, "start" | "end"> & {
   colour: string;
   tooltip?: ReactNode;
+  /**
+   * The tooltip is the item's whole hover card rather than a line naming the span, so it is mounted
+   * the way every chart in the app mounts one — at the shared width, on a mat of the band's own
+   * colour. A strip whose bands only name themselves keeps the plain tooltip: the mat and the width
+   * are for a card, and a line of text in a 500px box is mostly empty ground.
+   */
+  hoverCard?: boolean;
   /** Context rather than the subject of the card, drawn dimmer. */
   muted?: boolean;
   /** The span is an estimate, drawn so its edges do not read as dates. */
@@ -994,6 +1135,42 @@ const LANE_PADDING = 0.08;
 /** Of the whole strip, and only when there is one lane to inset within. */
 const MUTED_INSET = 0.2;
 
+/**
+ * A band's tooltip, mounted as whichever of the two things it is.
+ *
+ * Both kinds sit on the same band, so the choice is made here rather than at each strip: a caller
+ * says what its tooltip is and never how wide it should be.
+ */
+const BandTooltip = ({
+  colour,
+  title,
+  hoverCard,
+  children,
+}: {
+  colour: string;
+  title?: ReactNode;
+  hoverCard?: boolean;
+  children: ReactElement;
+}) =>
+  hoverCard ? (
+    <HoverCardTooltip
+      colour={colour}
+      title={title}
+      placement="top"
+    >
+      {children}
+    </HoverCardTooltip>
+  ) : (
+    <Tooltip
+      title={title}
+      placement="top"
+      disableHoverListener={!title}
+      disableTouchListener={!title}
+    >
+      {children}
+    </Tooltip>
+  );
+
 export const TimelineBandBox = ({
   startPercent,
   widthPercent,
@@ -1001,6 +1178,7 @@ export const TimelineBandBox = ({
   laneCount,
   colour,
   tooltip,
+  hoverCard,
   muted,
   imprecise,
   frameless,
@@ -1013,11 +1191,10 @@ export const TimelineBandBox = ({
   const inset = laneCount > 1 ? laneHeight * LANE_PADDING : muted ? 100 * MUTED_INSET : 0;
 
   return (
-    <Tooltip
+    <BandTooltip
+      colour={colour}
       title={tooltip}
-      placement="top"
-      disableHoverListener={!tooltip}
-      disableTouchListener={!tooltip}
+      hoverCard={hoverCard}
     >
       <Box
         sx={{
@@ -1051,6 +1228,6 @@ export const TimelineBandBox = ({
           "&:hover": { opacity: 1, filter: "brightness(1.25)" },
         }}
       />
-    </Tooltip>
+    </BandTooltip>
   );
 };

@@ -3,12 +3,11 @@ import { Timeline as TimelineIcon } from "@mui/icons-material";
 import { useState } from "react";
 import { SectionHeader } from "../common/SectionHeader";
 import { format } from "../utils/mathUtils";
-import { Season, Show, isShow } from "./types";
+import { Season, Show } from "./types";
 import Timeline, { TimelineData } from "../common/Timeline";
 import { Colour, statusToColour } from "../utils/types";
-import { CURRENT_PLAINDATE, formatDateRange } from "../common/date";
-import ShowCardMediaImage from "./CardMediaImage";
-import { CardPanel } from "../common/Card";
+import { CURRENT_PLAINDATE } from "../common/date";
+import { ShowHoverCard } from "./CardMediaImage";
 
 const ShowTimeline = ({ data }: { data: Show[] }) => {
   const [groupData, setGroupData] = useState(false);
@@ -22,24 +21,9 @@ const ShowTimeline = ({ data }: { data: Show[] }) => {
   const showData: TimelineData[] = titleData.map(([title, s, colour]) => ({
     name: title,
     tooltip: () => (
-      <ShowCardMediaImage
-        landscape
+      <ShowHoverCard
         item={s}
-        extractColour
-        footerComponent={
-          <CardPanel
-            layout="beside"
-            // The chart's own label for the bar, so the card names exactly what was hovered — a
-            // season, or a whole show when the seasons are combined.
-            title={title}
-            subtitle={isShow(s) ? undefined : s.subtitle}
-            dateRange={formatDateRange(s.startDate, s.endDate)}
-            stats={[
-              { value: s.e, label: "Eps" },
-              { value: Math.round(s.minutes / 60), label: "Hours" },
-            ]}
-          />
-        }
+        title={title}
       />
     ),
     colour: colour,

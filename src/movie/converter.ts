@@ -1,4 +1,5 @@
 import { PlainDate } from "../common/date";
+import { dataCacheKey, type DataConfig } from "../common/useData";
 import { describing, readAgeRating, sheetRow } from "../common/sheetError";
 import { splitCell } from "../utils/stringUtils";
 import type { Movie } from "./types";
@@ -38,4 +39,16 @@ export const jsonConverter = (json: Record<string, string>[]) => {
         } as Movie;
       })
   );
+};
+
+/**
+ * The cache this converter's output is read back from, shared by the Movies tab and by Omnibus so
+ * a version bump cannot land at one of them alone.
+ *
+ * v3: a cached object written before `anime` reads as false for every film, and guest mode then
+ * hides nothing.
+ */
+export const movieDataConfig: DataConfig<Movie> = {
+  storageKey: dataCacheKey("movie", 3),
+  converter: jsonConverter,
 };

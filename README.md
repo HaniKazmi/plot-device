@@ -1,6 +1,6 @@
 # Plot Device
 
-Plot Device is a personal data dashboard and media consumption tracker built with React, TypeScript, and Vite. It reads tracking data directly from Google Sheets and renders it as interactive Highcharts visualisations for Video Games, TV Shows and Movies.
+Plot Device is a personal data dashboard and media consumption tracker built with React, TypeScript, and Vite. It reads tracking data directly from Google Sheets and renders it as interactive Highcharts visualisations for Video Games, TV Shows and Movies, plus an Omnibus tab that composes all three into one cross-media view.
 
 There is no backend and no database — a spreadsheet _is_ the storage layer, and every fetch, parse, aggregation and render happens in the browser. The deployed site is a static bundle on GitHub Pages.
 
@@ -11,10 +11,11 @@ There is no backend and no database — a spreadsheet _is_ the storage layer, an
 - **Google Sheets as a backend** — reads via the Sheets API with a read-only scope; the app never writes.
 - **Data visualisation** — stat cards, a packed SVG timeline, sunburst hierarchies you can re-nest at runtime, and bar/line/bump charts, powered by [Highcharts](https://www.highcharts.com/).
 - **Media tracking** — Video Games, Shows and Movies, each with its own model, filters and theme colour.
+- **Omnibus** — a fourth tab, and the one the app opens on, composing the other three's own data into a cross-media Now band, totals, a by-year chart with a Totals/Share/Cumulative/Rank view switch, cross-media franchise crossings, a browsable gallery, and a recently-finished list.
 - **Client-side rendering** — Google Identity Services plus `gapi`, authenticating and fetching straight from the browser.
 - **Cache-first loading** — the dashboard paints from `localStorage` before authentication completes, then refreshes.
 
-A fourth section, Holidays, exists in the source but is deliberately unrouted while it is unfinished.
+A fifth section, Holidays, exists in the source but is deliberately unrouted while it is unfinished.
 
 ## Tech stack
 
@@ -85,13 +86,14 @@ Tests cover pure logic only — converters, filters, the reducer, the chart data
 
 ```
 src/
-  tabs.ts            data-source registry: sheet id, range, route, colours
-  common/            domain-blind chart shells, date model, data hook
-  utils/             prototype extensions, branded types, colour extraction
-  vg/ show/ movie/   per-domain model, converter, filters, adapters
-  holiday/           unfinished, currently unrouted
-tests/               mirrors src/, plus fixtures/ and an architecture guard
-extension/           standalone Chrome extension, outside the Vite build
+  tabs.ts              data-source registry: sheet id, range, route, colours
+  common/              domain-blind chart shells, date model, data hook
+  utils/               prototype extensions, branded types, colour extraction
+  vg/ show/ movie/     per-domain model, converter, filters, adapters
+  omnibus/             composes vg/show/movie's own data; no sheet of its own
+  holiday/             unfinished, currently unrouted
+tests/                 mirrors src/, plus fixtures/ and an architecture guard
+extension/             standalone Chrome extension, outside the Vite build
 ```
 
 `extension/` is a Chrome MV3 extension loaded unpacked. It adds image context-menu items that hand off to macOS Shortcuts for uploading banner artwork, and is untouched by `npm run build`.

@@ -1,5 +1,6 @@
 import { CardContent, Typography } from "@mui/material";
 import {
+  CardPanel,
   CardMediaImage,
   HeroStatRow,
   MetadataLedger,
@@ -13,6 +14,7 @@ import Grid from "@mui/material/Grid";
 import { ageRatingToColour, genreToColour, statusToColour } from "../utils/types";
 import { namesTheSameThing } from "../utils/stringUtils";
 import { CURRENT_PLAINDATE, YearMonthDay, formatDateRange } from "../common/date";
+import { hoverCardArtworkSx } from "../common/cardArrangement";
 import { buildStrip, stripYearTicks } from "../common/timelineStripData";
 import { seasonSpans } from "./cardData";
 import { useFranchiseShows } from "./franchiseContext";
@@ -176,5 +178,46 @@ const SeasonTooltip = ({ season, named }: { season: Season; named?: boolean }) =
     <Typography>{Math.floor(season.minutes / 60)} Hours</Typography>
   </>
 );
+
+/**
+ * The card a hovered bar shows: the artwork, what was watched, when, and how much of it.
+ *
+ * A component rather than a shape each chart assembles, because the Omnibus shows the same card for
+ * a season and a second assembly of it is a second thing to keep in step. `title` is the chart's own
+ * label for the bar, so the card names exactly what was hovered — a season, or a whole show where
+ * the seasons are combined.
+ *
+ * The subtitle carries the season's own name where the sheet gives it one, then the pair the tab's
+ * hero says. Parts with no text are dropped, so a season without a name of its own simply reads
+ * network and genre.
+ */
+export const ShowHoverCard = <T extends Show | Season>({ item, title }: { item: T; title?: string }) => {
+  const show = isShow(item) ? item : item.show;
+
+  return (
+    <ShowCardMediaImage
+      item={item}
+      landscape
+      extractColour
+      sx={hoverCardArtworkSx("portrait")}
+      footerComponent={
+        <CardPanel
+          layout="beside"
+          title={title ?? (isShow(item) ? item.name : `${show.name} S${item.s}`)}
+          subtitle={[
+            { text: isShow(item) ? "" : (item.subtitle ?? "") },
+            { text: show.network },
+            { text: show.genre, swatch: genreToColour(show.genre) },
+          ]}
+          dateRange={formatDateRange(item.startDate, item.endDate)}
+          stats={[
+            { value: item.e, label: "Eps" },
+            { value: Math.round(item.minutes / 60), label: "Hours" },
+          ]}
+        />
+      }
+    />
+  );
+};
 
 export default ShowCardMediaImage;

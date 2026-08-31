@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { PlainDate } from "./date";
 import { useGoogleAuth } from "../contexts/GoogleAuthContext";
-import type { Tab } from "../tabs";
+import type { SheetTab } from "../tabs";
 
 // Resolved per call rather than at module load; see the note in GoogleAuthContext.
 const storage = () => localStorage;
@@ -50,12 +50,33 @@ export const dateReviver = (key: string, value: unknown) => {
   return value as unknown;
 };
 
+/**
+ * Everything about a domain's cached shape, as one value the domain owns.
+ *
+ * The version, the converter and any replacer/reviver pair are a matched set — a cache written by
+ * one converter is only readable by the reviver that matches it — and the Omnibus tab mounts the
+ * same three domains the home tabs do. Passing them as separate arguments at two call sites is
+ * what lets a version bump land at one of them.
+ *
+ * A config must be a module-scope constant: the fetch effect depends on it, and a fresh object per
+ * render would refire the fetch on every one.
+ *
+ * The tab is deliberately not a field. A config lives in its domain's `converter.ts`, which
+ * `tabs.ts` imports transitively through that domain's entry component — so a tab read here at
+ * module scope is read while `tabs.ts` is still evaluating, and its exports are still in the
+ * temporal dead zone. The caller passes it instead, from a component body that runs long after.
+ */
+export interface DataConfig<T> {
+  storageKey: string;
+  converter: (json: Record<string, string>[]) => T[];
+  /** Re-attaches whatever `replacer` dropped — the two are written as a pair or not at all. */
+  reviver?: (items: T[]) => void;
+  replacer?: (key: string, value: unknown) => unknown;
+}
+
 const useData = <T>(
-  storageKey: string,
-  tab: Tab,
-  converter: (json: Record<string, string>[]) => T[],
-  reviver?: (items: T[]) => void,
-  replacer?: (key: string, value: unknown) => unknown,
+  { storageKey, converter, reviver, replacer }: DataConfig<T>,
+  tab: SheetTab,
 ): [T[] | undefined, boolean] => {
   const [dataLoaded, setDataLoaded] = useState(false);
 

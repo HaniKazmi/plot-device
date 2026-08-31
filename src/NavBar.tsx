@@ -13,13 +13,17 @@ const NavBar = ({ setGuestMode }: { setGuestMode: (value: boolean) => void }) =>
 
   const toolbar = (
     <>
-      <Button
-        color="inherit"
-        target="_blank"
-        href={`https://docs.google.com/spreadsheets/d/${currTab.spreadsheetId}`}
-      >
-        Sheet
-      </Button>
+      {/* Only where the tab has a sheet of its own. A tab composing several has no single one to
+          open, and the button would otherwise link to `/d/undefined`. */}
+      {currTab.spreadsheetId && (
+        <Button
+          color="inherit"
+          target="_blank"
+          href={`https://docs.google.com/spreadsheets/d/${currTab.spreadsheetId}`}
+        >
+          Sheet
+        </Button>
+      )}
       {!authorise && !revoke && <Button color="inherit">Authorising</Button>}
       {authorise && (
         <Button

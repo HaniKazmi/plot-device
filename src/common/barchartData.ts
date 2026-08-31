@@ -81,6 +81,26 @@ export const convertToCumulative = (groupToDateToValue: BarchartTable) => {
   });
 };
 
+/**
+ * Each cell as a percentage of its own column, so the columns read as composition rather than
+ * size. A column totalling zero yields zeros: dividing by it would send NaN into a series, which
+ * Highcharts draws as a gap indistinguishable from a series that has not started.
+ */
+export const convertToShare = (groupToDateToValue: BarchartTable): BarchartTable => {
+  const numCols = groupToDateToValue[0]?.length ?? 0;
+  const totals: number[] = [];
+
+  for (let col = 0; col < numCols; col++) {
+    totals[col] = groupToDateToValue.reduce((total, row) => total + (row[col] ?? 0), 0);
+  }
+
+  // Null before a group's first data point survives the transform, or every series would start at
+  // the left edge of the chart.
+  return groupToDateToValue.map((row) =>
+    row.map((value, col) => (value == null ? null : totals[col] ? (value / totals[col]) * 100 : 0)),
+  );
+};
+
 export const convertToRanking = (groupToDateToValue: BarchartTable) => {
   const newArray: number[][] = groupToDateToValue.map(() => []);
   const numCols = groupToDateToValue[0]?.length ?? 0;
