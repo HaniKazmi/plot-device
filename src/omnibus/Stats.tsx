@@ -169,7 +169,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
           medium="show"
           MediaComponent={ShowCardMediaImage}
           onJump={jump(ShowsTab)}
-          kicker={`Watching · last ${formatDate(now.show.show.lastWatchedDate!)}`}
+          kicker={`Last watched · ${formatDate(now.show.show.lastWatchedDate!)}`}
           title={`${now.show.show.name} S${now.show.s}`}
           subtitle={[
             { text: now.show.show.network },

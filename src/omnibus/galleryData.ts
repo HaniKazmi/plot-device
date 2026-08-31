@@ -7,9 +7,12 @@ import {
   type AgeRating,
   type Colour,
 } from "../utils/types";
+import type { Movie } from "../movie/types";
+import type { Season } from "../show/types";
 import { measureOf, omniBanner, type OmniItem } from "./adapter";
 import type { Measure } from "./types";
 import "../utils/arrayUtils";
+import "../utils/mapUtils";
 
 /**
  * The ways the gallery groups the union.
@@ -71,12 +74,61 @@ export const galleryColour = (name: string, category: GalleryCategory): Colour |
 export const galleryItems = (items: OmniItem[]): OmniItem[] => items.filter((item) => omniBanner(item));
 
 /**
+ * The work an item belongs to, which is what a shelf lists one picture of.
+ *
+ * A season is the unit the union counts in everywhere else — it is the thing actually watched in a
+ * year — but a wall of pictures draws one banner per show, so a six-season show would stand on its
+ * genre shelf as six copies of the same artwork and crowd every other show off the strip. Shows key
+ * on the parent record itself, which is exact: every season of one show holds the same object. A
+ * film keys on its title and release, so a rewatch joins the first viewing while a remake of the
+ * same name stays a work of its own. A game is already one row per work and keys on that row.
+ */
+const workOf = (item: OmniItem): unknown => {
+  switch (item.medium) {
+    case "show":
+      return (item.source as Season).show;
+    case "movie": {
+      const movie = item.source as Movie;
+      return `${movie.name}-${movie.releaseDate}`;
+    }
+    case "game":
+      return item.source;
+  }
+};
+
+/**
+ * One item per work per shelf, carrying the work's whole time on that shelf.
+ *
+ * Collapsing per shelf rather than over the union is what keeps a shelf's own meaning: a show whose
+ * seasons closed in two decades genuinely met the reader in both, and stands once on each. The
+ * representative is the biggest member, so the picture is the one the reader spent most of, and its
+ * hours are the bucket's sum — which is what leaves both measures honest through `measureOf`, Items
+ * counting works and Hours still counting every season.
+ */
+export const galleryWorks = (items: OmniItem[], category: GalleryCategory): OmniItem[] => {
+  const shelves = new Map<string, Map<unknown, OmniItem[]>>();
+  for (const item of items) {
+    shelves
+      .setIfAbsent(galleryValue(item, category), new Map<unknown, OmniItem[]>())
+      .setIfAbsent(workOf(item), [])
+      .push(item);
+  }
+
+  return [...shelves.values()].flatMap((works) =>
+    [...works.values()].map((entries) =>
+      entries.length === 1 ? entries[0] : { ...galleryStripOrder(entries)[0], hours: entries.sum("hours") },
+    ),
+  );
+};
+
+/**
  * The shelves for a category, largest first, each keeping its members for the drill-down.
  *
  * Ordered and measured by the page's own measure, so switching to Items reorders the shelves the
- * way it reorders every other ranking here. A franchise shelf holding one item is dropped on the
+ * way it reorders every other ranking here. A franchise shelf holding one work is dropped on the
  * shared rule: the column repeats a standalone title, so a group of one is an item naming itself
- * rather than a series.
+ * rather than a series — counted in works, so a single show carrying its own name as a franchise is
+ * one entry however many seasons it ran.
  */
 export const galleryGroups = (
   items: OmniItem[],
@@ -84,7 +136,7 @@ export const galleryGroups = (
   measure: Measure,
 ): DrilldownGroup<OmniItem>[] =>
   groupByCategory(
-    items,
+    galleryWorks(items, category),
     (item) => galleryValue(item, category),
     (group) => measureOf(group, measure),
     // The shelf's biggest entry fronts it, and is also the first picture on it — a shelf leads
