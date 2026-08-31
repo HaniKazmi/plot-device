@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { groupToColour, type Measure, type Movie, type MovieGroup } from "./types";
 import Sunburst, { SunBurstControls } from "../common/Sunburst";
-import { movieGroupValue, type MovieTopOption } from "./statsData";
+import { movieGroupValue } from "./statsData";
 import { format } from "../utils/mathUtils";
 
 type OptionKeys = Exclude<MovieGroup, "none"> | "startDate" | "name";
@@ -30,13 +30,14 @@ const MovieSunburst = ({ data, measure }: { data: Movie[]; measure: Measure }) =
             default:
               // The derived keys — decade, cinema, score — share one definition with the Top
               // band and the drill-down, so a film cannot land in different buckets per chart.
-              return movieGroupValue(movie, key as MovieTopOption) || movie.name;
+              return movieGroupValue(movie, key) || movie.name;
           }
         },
         // Floored per film rather than post-aggregated because the shell has no `postAggregate`;
         // the shows tab counts the same way, and one convention beats two.
         getCount: ({ minutes }) => (measure === "Hours" ? minutes && Math.floor(minutes / 60) : 1),
-        getColor: (movie, firstGroup) => groupToColour(firstGroup as MovieGroup, movie) || undefined,
+        getColor: (movie, firstGroup) =>
+          firstGroup === "startDate" ? undefined : groupToColour(firstGroup, movie) || undefined,
         getLeafName: (movie) => movie.name,
       }}
       controls={

@@ -128,9 +128,12 @@ export const statusToColour = ({ status }: { status: ColourableStatus }) => {
  * same reason `ageRatingToColour` does: the two record overlapping genre sets in one spreadsheet,
  * and one swatch has to mean one thing across both tabs.
  *
- * Each hue is chosen to *represent* its genre, and where a genre also exists on the Games tab the
- * hue is the same one `vg/types.ts` paints it with — Action is flame and Adventure is
- * exploration-green on all three tabs. Every value meets the fill contract above.
+ * Each hue is chosen to *represent* its genre. Action and Adventure keep the hues
+ * `vg/types.ts` paints those same genre names with, so the two genres all three tabs record
+ * read as one thing everywhere; the other hexes also reappear in vg's table but under
+ * *different* genres — deliberate palette recycling, safe because no chart ever shows the two
+ * vocabularies side by side, and not a correspondence to preserve. Every value meets the fill
+ * contract above.
  *
  * The lookup falls to `NEUTRAL_FILL` rather than throwing: the genre column is open-ended, and a
  * new genre appearing in the sheet should render as "no colour yet", not take the tab down.

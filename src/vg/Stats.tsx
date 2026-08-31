@@ -17,16 +17,15 @@ import {
   VideogameAsset,
   Whatshot,
 } from "@mui/icons-material";
-import { capitalize } from "@mui/material/utils";
 import { format } from "../utils/mathUtils";
 import {
+  gamesAndHours,
   groupGamesBy,
   heroStats,
   perGameAverages,
   platformToShortChip,
   statsCardLabelEndDateHours,
   statsCardLabelStartDate,
-  topNWithOther,
   topOptions,
   yearlyAverages,
   type TopOption,
@@ -42,14 +41,13 @@ import {
   type VideoGame,
   type VideoGameStringKeys,
 } from "./types";
-import { StatCard, StatList, type StatsListProps, TotalsBand, VitalsCard } from "../common/Stats";
+import { StatCard, StatList, type StatsListProps, TotalsBand, VitalsCard, YearTotals } from "../common/Stats";
 import { TopListCard } from "../common/TopList";
 import { DrilldownDialog } from "../common/DrilldownDialog";
-import { highchartsColors } from "../highcharts";
 import VgCardMediaImage from "./CardMediaImage";
-import { Radio, Stack, Typography } from "@mui/material";
+import { Stack, Typography } from "@mui/material";
 import type { FilterDispatch, YearType } from "./filterUtils";
-import { NEUTRAL_FILL, statusToColour } from "../utils/types";
+import { statusToColour } from "../utils/types";
 import { CURRENT_PLAINDATE, CURRENT_YEAR, formatDate, YearNumber } from "../common/date";
 import { Hero } from "../common/Hero";
 import { Section, StatBand } from "../common/SectionRail";
@@ -57,7 +55,6 @@ import { useFranchiseGames } from "./franchiseContext";
 import { VG_SECTIONS } from "./sections";
 import { useState, type ReactNode } from "react";
 import { useSelectBox } from "../common/SelectBoxHook";
-import { YearSelect } from "../common/YearSelect";
 import "../utils/arrayUtils";
 
 const Stats = ({
@@ -90,25 +87,24 @@ const Stats = ({
           {/* The year controls in these cards filter the whole page, and a control's effects flow
               down the page, never up — so the cards come before the bands they redraw. */}
           <YearTotals
-            data={data}
             yearTo={yearTo}
             yearType={yearType}
             filterDispatch={filterDispatch}
             icon={<Timer />}
             activeYearType="upto"
+            stats={gamesAndHours(data)}
             renderValue={(value) => (
               <Typography variant="h6">{value == CURRENT_YEAR ? "All Time" : `Up To ${value}`}</Typography>
             )}
           />
           <YearTotals
-            data={data}
             yearTo={yearTo}
             yearType={yearType}
             filterDispatch={filterDispatch}
             icon={<Update />}
             activeYearType="matching"
             minWidth={120}
-            matches={(game) => game.startDate.year === yearTo}
+            stats={gamesAndHours(data.filter((game) => game.startDate.year === yearTo))}
             renderValue={(value) => <Typography variant="h6">In {value}</Typography>}
           />
           <Averages
@@ -188,8 +184,8 @@ const Vitals = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
         icon={<TaskAlt />}
         data={data}
         measureFunc={measureFunc}
-        groupKey="status"
         group={statusList}
+        groupOf={(game) => game.status}
         groupToColour={(ele: Status) => statusToColour({ status: ele })}
         measureLabel={measure}
       />
@@ -198,62 +194,12 @@ const Vitals = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
         icon={<VideogameAsset />}
         data={data}
         measureFunc={measureFunc}
-        groupKey="company"
         group={companyList}
+        groupOf={(game) => game.company}
         groupToColour={(ele: Company) => companyToColor({ company: ele })}
         measureLabel={measure}
       />
     </VitalsCard>
-  );
-};
-
-/** The radio picks which of these two cards the year filter applies to, hence `activeYearType`. */
-const YearTotals = ({
-  data,
-  yearType,
-  yearTo,
-  filterDispatch,
-  icon,
-  activeYearType,
-  minWidth,
-  matches,
-  renderValue,
-}: {
-  data: VideoGame[];
-  yearType: YearType;
-  yearTo: number;
-  filterDispatch: FilterDispatch;
-  icon: ReactNode;
-  activeYearType: YearType;
-  minWidth?: number;
-  matches?: (game: VideoGame) => boolean;
-  renderValue: (value: number) => ReactNode;
-}) => {
-  const filtered = data.filter((game) => game.hours && (!matches || matches(game)));
-
-  return (
-    <StatCard
-      icon={icon}
-      title={
-        <YearSelect
-          value={yearTo as YearNumber}
-          onChange={(value) => filterDispatch({ type: "updateFilter", filter: "yearTo", value })}
-          minWidth={minWidth}
-          renderValue={renderValue}
-        />
-      }
-      action={
-        <Radio
-          size="small"
-          checked={yearType == activeYearType}
-          onChange={() => filterDispatch({ type: "toggleYearType" })}
-        />
-      }
-      content={[
-        ["Games", filtered.length],
-        ["Hours", filtered.sum("hours")],
-      ]}
-    />
   );
 };
 
@@ -414,11 +360,14 @@ const CurrentlyPlaying = ({ playing }: { playing: VideoGame[] }) => {
 const TopCategories = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => (
   <>
     {(["genre", "publisher", "franchise"] as const).map((category) => (
-      <TopList
+      <TopListCard
         key={category}
-        data={data}
-        measure={measure}
-        defaultCategory={category}
+        options={topOptions}
+        defaultOption={category}
+        icons={optionIcons}
+        groups={(option) => groupGamesBy(data, option, measure)}
+        colourOf={(option, top: VideoGame) => groupToColour(option, top)}
+        measureLabel={measure}
       />
     ))}
   </>
@@ -434,46 +383,6 @@ const optionIcons: Record<TopOption, ReactNode> = {
   rating: <VerifiedUser />,
   status: <TaskAlt />,
   genre: <Category />,
-};
-
-const TopList = ({
-  data,
-  measure,
-  defaultCategory,
-}: {
-  data: VideoGame[];
-  measure: Measure;
-  defaultCategory: TopOption;
-}) => {
-  const [option, controls] = useSelectBox(topOptions, defaultCategory);
-  const colorOffset = topOptions.indexOf(option) * 3;
-
-  const most = topNWithOther(data, option, measure);
-
-  // Categories with no vocabulary of their own take a palette colour offset by the option's
-  // index, so switching category recolours consistently; "Other" is always the neutral bucket.
-  const getColour = (struct: (typeof most)[0], index: number) => {
-    if (struct.name === "Other") return NEUTRAL_FILL;
-    const groupCol = struct.top ? groupToColour(option, struct.top) : "";
-    return groupCol || highchartsColors[(index + colorOffset) % highchartsColors.length];
-  };
-
-  const items = most.map((struct, index) => ({
-    name: struct.name,
-    count: struct.count,
-    percent: struct.percent,
-    colour: getColour(struct, index),
-  }));
-
-  return (
-    <TopListCard
-      title={`Top ${capitalize(option)}`}
-      icon={optionIcons[option]}
-      controls={controls}
-      items={items}
-      measureLabel={measure}
-    />
-  );
 };
 
 const vgStatListSharedProps: Pick<

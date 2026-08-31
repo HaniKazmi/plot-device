@@ -13,7 +13,7 @@ import ShowCardMediaImage from "./CardMediaImage";
 import { statusToColour } from "../utils/types";
 import { guestFilter, type FilterDispatch, type FilterState } from "./filterUtils";
 import { FranchiseContext, showFranchise } from "./franchiseContext";
-import { franchiseIndex } from "../common/franchiseIndex";
+import { visibleFranchiseIndex } from "../common/franchiseIndex";
 import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
 import Filter from "./Filter";
 import { memo, useDeferredValue } from "react";
@@ -33,11 +33,8 @@ const SuspenseBlock = ({
   filterState: FilterState;
   filterDispatch: FilterDispatch;
 }) => (
-  // Built from the unfiltered data, because a card's franchise strip is about the series and not
-  // about the current view — filtering to one network would otherwise amputate it. Guest mode is
-  // the exception: it hides content rather than narrowing a view, so it is applied here too.
   <FranchiseContext.Provider
-    value={franchiseIndex(filterState.guestMode ? unfilteredData.filter(guestFilter) : unfilteredData, showFranchise)}
+    value={visibleFranchiseIndex(unfilteredData, showFranchise, filterState.guestMode, guestFilter)}
   >
     <Graphs
       data={filteredData}

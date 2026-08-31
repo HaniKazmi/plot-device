@@ -7,7 +7,7 @@ import Timeline from "./Timeline";
 import CardMediaImage from "./CardMediaImage";
 import { FilterDispatch, FilterState, guestFilter } from "./filterUtils";
 import { FranchiseContext } from "./franchiseContext";
-import { franchiseIndex } from "./cardData";
+import { visibleFranchiseIndex } from "../common/franchiseIndex";
 import { memo, useDeferredValue } from "react";
 import { Stack } from "@mui/material";
 import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
@@ -32,11 +32,8 @@ const SuspenseBlock = ({
   filterState: FilterState;
   filterDispatch: FilterDispatch;
 }) => (
-  // Built from the unfiltered data, because a card's franchise strip is about the series and not
-  // about the current view — filtering to one platform would otherwise amputate it. Guest mode is
-  // the exception: it hides content rather than narrowing a view, so it is applied here too.
   <FranchiseContext.Provider
-    value={franchiseIndex(filterState.guestMode ? unfilteredData.filter(guestFilter) : unfilteredData)}
+    value={visibleFranchiseIndex(unfilteredData, (game) => game.franchise, filterState.guestMode, guestFilter)}
   >
     <Graphs
       data={filteredData}

@@ -1,8 +1,7 @@
 import { Animation, Functions, StarBorder, Timer, Weekend } from "@mui/icons-material";
 import { ageRatingToColour, genreToColour, type AgeRating } from "../utils/types";
 import type { Movie } from "./types";
-import { namesTheSameThing } from "../utils/stringUtils";
-import { categoryOptions } from "../common/filterOptions";
+import { categoryOptions, franchiseOptions } from "../common/filterOptions";
 import { FilterCategory, FilterDrawer, FilterToggle } from "../common/FilterDrawer";
 import type { FilterDispatch, FilterState } from "./filterUtils";
 
@@ -57,11 +56,11 @@ const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: Filte
         />
         <FilterCategory
           label="franchise"
-          // Films with no wider franchise carry their own name in the column; erasing those keeps
-          // the list to franchises that actually group anything.
-          options={categoryOptions(data, (movie) =>
-            namesTheSameThing(movie.franchise, movie.name) ? "" : movie.franchise,
-          ).filter(Boolean)}
+          options={franchiseOptions(
+            data,
+            (movie) => movie.franchise,
+            (movie) => movie.name,
+          )}
           selected={state.franchise}
           onChange={(value) => dispatch({ type: "updateFilter", filter: "franchise", value })}
         />

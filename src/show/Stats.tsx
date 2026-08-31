@@ -24,22 +24,19 @@ import {
   type Status,
   type Type,
 } from "./types";
-import { StatCard, StatList, StatsListProps, TotalsBand, VitalsCard } from "../common/Stats";
+import { StatCard, StatList, StatsListProps, StatSummary, TotalsBand, VitalsCard, YearTotals } from "../common/Stats";
 import { TopListCard } from "../common/TopList";
 import { DrilldownDialog } from "../common/DrilldownDialog";
-import { YearSelect } from "../common/YearSelect";
 import { Hero } from "../common/Hero";
 import ShowCardMediaImage from "./CardMediaImage";
-import { genreToColour, NEUTRAL_FILL, statusToColour } from "../utils/types";
-import { Radio, Stack, Typography } from "@mui/material";
-import { capitalize } from "@mui/material/utils";
+import { genreToColour, statusToColour } from "../utils/types";
+import { Stack, Typography } from "@mui/material";
 import { useState, type ReactNode } from "react";
 import { CURRENT_PLAINDATE, CURRENT_YEAR, formatDate, type YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
 import { Section, StatBand } from "../common/SectionRail";
 import { SHOW_SECTIONS } from "./sections";
 import { format } from "../utils/mathUtils";
-import { highchartsColors } from "../highcharts";
 import type { FilterDispatch } from "./filterUtils";
 import {
   allTimeTotals,
@@ -56,7 +53,6 @@ import {
   yearlyAverages,
   type ShowTopOption,
 } from "./statsData";
-import { topNWithOther } from "../common/statsData";
 import { useSelectBox } from "../common/SelectBoxHook";
 import { useFranchiseShows } from "./franchiseContext";
 import "../utils/arrayUtils";
@@ -198,8 +194,8 @@ const Vitals = ({ data, measure }: { data: Show[]; measure: Measure }) => {
         icon={<TaskAlt />}
         data={data}
         measureFunc={measureFunc}
-        groupKey="status"
         group={statusList}
+        groupOf={(show) => show.status}
         groupToColour={(ele: Status) => statusToColour({ status: ele })}
         measureLabel={measure}
       />
@@ -208,8 +204,8 @@ const Vitals = ({ data, measure }: { data: Show[]; measure: Measure }) => {
         icon={<Animation />}
         data={data}
         measureFunc={measureFunc}
-        groupKey="type"
         group={typeList}
+        groupOf={(show) => show.type}
         groupToColour={(ele: Type) => typeToColour({ type: ele })}
         groupToLabel={typeToName}
         measureLabel={measure}
@@ -217,56 +213,6 @@ const Vitals = ({ data, measure }: { data: Show[]; measure: Measure }) => {
     </VitalsCard>
   );
 };
-
-/** The radio picks which of these two cards the year filter applies to, hence `activeYearType`. */
-const YearTotals = ({
-  yearType,
-  yearTo,
-  filterDispatch,
-  icon,
-  activeYearType,
-  minWidth,
-  stats,
-  renderValue,
-}: {
-  yearType: YearType;
-  yearTo: number;
-  filterDispatch: FilterDispatch;
-  icon: ReactNode;
-  activeYearType: YearType;
-  minWidth?: number;
-  stats: Record<string, number>;
-  renderValue: (value: number) => ReactNode;
-}) => (
-  <StatCard
-    icon={icon}
-    title={
-      <YearSelect
-        value={yearTo as YearNumber}
-        onChange={(value) => filterDispatch({ type: "updateFilter", filter: "yearTo", value })}
-        minWidth={minWidth}
-        renderValue={renderValue}
-      />
-    }
-    action={
-      <Radio
-        size="small"
-        checked={yearType == activeYearType}
-        onChange={() => filterDispatch({ type: "toggleYearType" })}
-      />
-    }
-    content={Object.entries(stats).map(([key, value]) => [key[0].toUpperCase() + key.slice(1), value])}
-  />
-);
-
-/** Each `statsData` total is already keyed by the label it renders under, in display order. */
-const StatSummary = ({ icon, title, stats }: { icon: ReactNode; title: string; stats: Record<string, number> }) => (
-  <StatCard
-    icon={icon}
-    title={title}
-    content={Object.entries(stats).map(([key, value]) => [key[0].toUpperCase() + key.slice(1), value])}
-  />
-);
 
 const ShowAverage = ({ data }: { data: Show[] }) => {
   const { seasons, episodes, hours } = perShowAverages(data);
@@ -287,11 +233,14 @@ const ShowAverage = ({ data }: { data: Show[] }) => {
 const TopCategories = ({ data, measure }: { data: Show[]; measure: Measure }) => (
   <>
     {(["genre", "network", "franchise"] as const).map((category) => (
-      <TopList
+      <TopListCard
         key={category}
-        data={data}
-        measure={measure}
-        defaultCategory={category}
+        options={showTopOptions}
+        defaultOption={category}
+        icons={optionIcons}
+        groups={(option) => groupShowsBy(data, option, measure)}
+        colourOf={(option, top: Show) => groupToColour(option, top)}
+        measureLabel={measure}
       />
     ))}
   </>
@@ -304,46 +253,6 @@ const optionIcons: Record<ShowTopOption, ReactNode> = {
   type: <Animation />,
   status: <TaskAlt />,
   rating: <VerifiedUser />,
-};
-
-const TopList = ({
-  data,
-  measure,
-  defaultCategory,
-}: {
-  data: Show[];
-  measure: Measure;
-  defaultCategory: ShowTopOption;
-}) => {
-  const [option, controls] = useSelectBox(showTopOptions, defaultCategory);
-  const colorOffset = showTopOptions.indexOf(option) * 3;
-
-  const most = topNWithOther(groupShowsBy(data, option, measure));
-
-  // Categories with no vocabulary of their own take a palette colour offset by the option's
-  // index, so switching category recolours consistently; "Other" is always the neutral bucket.
-  const getColour = (struct: (typeof most)[0], index: number) => {
-    if (struct.name === "Other") return NEUTRAL_FILL;
-    const groupCol = struct.top ? groupToColour(option, struct.top) : "";
-    return groupCol || highchartsColors[(index + colorOffset) % highchartsColors.length];
-  };
-
-  const items = most.map((struct, index) => ({
-    name: struct.name,
-    count: struct.count,
-    percent: struct.percent,
-    colour: getColour(struct, index),
-  }));
-
-  return (
-    <TopListCard
-      title={`Top ${capitalize(option)}`}
-      icon={optionIcons[option]}
-      controls={controls}
-      items={items}
-      measureLabel={measure}
-    />
-  );
 };
 
 const RecentlyComplete = ({ data }: { data: Show[] }) => {

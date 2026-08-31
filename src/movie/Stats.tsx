@@ -14,23 +14,19 @@ import {
   Weekend,
   Whatshot,
 } from "@mui/icons-material";
-import { Radio, Stack, Typography } from "@mui/material";
-import { capitalize } from "@mui/material/utils";
+import { Stack, Typography } from "@mui/material";
 import { useState, type ReactNode } from "react";
-import { StatCard, StatList, StatsListProps, TotalsBand, VitalsCard } from "../common/Stats";
+import { StatCard, StatList, StatsListProps, StatSummary, TotalsBand, VitalsCard, YearTotals } from "../common/Stats";
 import { TopListCard } from "../common/TopList";
 import { DrilldownDialog } from "../common/DrilldownDialog";
-import { YearSelect } from "../common/YearSelect";
 import { Hero } from "../common/Hero";
 import { Section, StatBand } from "../common/SectionRail";
 import { CURRENT_YEAR, formatDate, type YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
-import { topNWithOther } from "../common/statsData";
 import { useSelectBox } from "../common/SelectBoxHook";
 import { useFranchiseMovies } from "./franchiseContext";
 import { format } from "../utils/mathUtils";
-import { genreToColour, NEUTRAL_FILL } from "../utils/types";
-import { highchartsColors } from "../highcharts";
+import { genreToColour } from "../utils/types";
 import MovieCardMediaImage from "./CardMediaImage";
 import { MOVIE_SECTIONS } from "./sections";
 import type { FilterDispatch } from "./filterUtils";
@@ -201,56 +197,6 @@ const Vitals = ({ data, measure }: { data: Movie[]; measure: Measure }) => {
   );
 };
 
-/** The radio picks which of these two cards the year filter applies to, hence `activeYearType`. */
-const YearTotals = ({
-  yearType,
-  yearTo,
-  filterDispatch,
-  icon,
-  activeYearType,
-  minWidth,
-  stats,
-  renderValue,
-}: {
-  yearType: YearType;
-  yearTo: number;
-  filterDispatch: FilterDispatch;
-  icon: ReactNode;
-  activeYearType: YearType;
-  minWidth?: number;
-  stats: Record<string, number>;
-  renderValue: (value: number) => ReactNode;
-}) => (
-  <StatCard
-    icon={icon}
-    title={
-      <YearSelect
-        value={yearTo as YearNumber}
-        onChange={(value) => filterDispatch({ type: "updateFilter", filter: "yearTo", value })}
-        minWidth={minWidth}
-        renderValue={renderValue}
-      />
-    }
-    action={
-      <Radio
-        size="small"
-        checked={yearType == activeYearType}
-        onChange={() => filterDispatch({ type: "toggleYearType" })}
-      />
-    }
-    content={Object.entries(stats).map(([key, value]) => [key[0].toUpperCase() + key.slice(1), value])}
-  />
-);
-
-/** Each `statsData` total is already keyed by the label it renders under, in display order. */
-const StatSummary = ({ icon, title, stats }: { icon: ReactNode; title: string; stats: Record<string, number> }) => (
-  <StatCard
-    icon={icon}
-    title={title}
-    content={Object.entries(stats).map(([key, value]) => [key[0].toUpperCase() + key.slice(1), value])}
-  />
-);
-
 const FilmAverage = ({ data }: { data: Movie[] }) => {
   const { minutes, score } = perFilmAverages(data);
   return (
@@ -268,11 +214,14 @@ const FilmAverage = ({ data }: { data: Movie[] }) => {
 const TopCategories = ({ data, measure }: { data: Movie[]; measure: Measure }) => (
   <>
     {(["genre", "director", "franchise"] as const).map((category) => (
-      <TopList
+      <TopListCard
         key={category}
-        data={data}
-        measure={measure}
-        defaultCategory={category}
+        options={movieTopOptions}
+        defaultOption={category}
+        icons={optionIcons}
+        groups={(option) => groupMoviesBy(data, option, measure)}
+        colourOf={(option, top: Movie) => groupToColour(option, top)}
+        measureLabel={measure}
       />
     ))}
   </>
@@ -286,46 +235,6 @@ const optionIcons: Record<MovieTopOption, ReactNode> = {
   decade: <History />,
   cinema: <Theaters />,
   score: <Grade />,
-};
-
-const TopList = ({
-  data,
-  measure,
-  defaultCategory,
-}: {
-  data: Movie[];
-  measure: Measure;
-  defaultCategory: MovieTopOption;
-}) => {
-  const [option, controls] = useSelectBox(movieTopOptions, defaultCategory);
-  const colorOffset = movieTopOptions.indexOf(option) * 3;
-
-  const most = topNWithOther(groupMoviesBy(data, option, measure));
-
-  // Categories with no vocabulary of their own take a palette colour offset by the option's
-  // index, so switching category recolours consistently; "Other" is always the neutral bucket.
-  const getColour = (struct: (typeof most)[0], index: number) => {
-    if (struct.name === "Other") return NEUTRAL_FILL;
-    const groupCol = struct.top ? groupToColour(option, struct.top) : "";
-    return groupCol || highchartsColors[(index + colorOffset) % highchartsColors.length];
-  };
-
-  const items = most.map((struct, index) => ({
-    name: struct.name,
-    count: struct.count,
-    percent: struct.percent,
-    colour: getColour(struct, index),
-  }));
-
-  return (
-    <TopListCard
-      title={`Top ${capitalize(option)}`}
-      icon={optionIcons[option]}
-      controls={controls}
-      items={items}
-      measureLabel={measure}
-    />
-  );
 };
 
 /**

@@ -1,7 +1,8 @@
 import { formatDate, type YearNumber } from "../common/date";
 import { format } from "../utils/mathUtils";
 import { releaseDecade } from "../utils/types";
-import { cinemaLabel, scoreBand, type Measure, type Movie } from "./types";
+import { cinemaLabel, scoreBand, type Measure, type Movie, type MovieGroup } from "./types";
+import { groupByCategory, realFranchisesOnly } from "../common/statsData";
 import "../utils/arrayUtils";
 
 /**
@@ -17,9 +18,11 @@ export type MovieTopOption = (typeof movieTopOptions)[number];
 /**
  * A grouping's value for one film, worded the way a card should read it. This is the single
  * definition of the three derived keys — decade, cinema, score band — so the sunburst, barchart,
- * Top band and drill-down cannot come to disagree about which bucket a film is in.
+ * Top band and drill-down cannot come to disagree about which bucket a film is in. It answers
+ * for the whole `MovieGroup` union rather than only the Top list's options, so a chart offering
+ * any grouping calls it without a cast.
  */
-export const movieGroupValue = (movie: Movie, key: MovieTopOption): string => {
+export const movieGroupValue = (movie: Movie, key: Exclude<MovieGroup, "none">): string => {
   switch (key) {
     case "decade":
       return releaseDecade(movie.releaseDate.year);
@@ -36,27 +39,17 @@ const measureOf = (movies: Movie[], measure: Measure) =>
   measure === "Hours" ? Math.floor(movies.sum("minutes") / 60) : movies.length;
 
 /**
- * Groups films by a category, ordered most-watched first. A film with no value for the category
- * is left out, and a franchise "group" of one film is too: the column repeats a standalone
- * film's own name, so a one-member group is a film naming itself, not a series — while a series'
- * first film genuinely shares the franchise's name and must stay in it.
+ * Groups films by a category, ordered most-watched first. The artwork scan is a reduce rather
+ * than a sort: only the longest film is wanted.
  */
 export const groupMoviesBy = (data: Movie[], key: MovieTopOption, measure: Measure) =>
-  Object.entries(
-    Object.groupBy(
-      data.filter((movie) => movieGroupValue(movie, key)),
-      (movie) => movieGroupValue(movie, key),
-    ) as Record<string, Movie[]>,
-  )
-    .filter(([, movies]) => key !== "franchise" || movies.length > 1)
-    .map(([name, movies]) => ({
-      name,
-      count: measureOf(movies, measure),
-      // Scanned rather than sorted: only the longest film is wanted, for the group's artwork.
-      top: movies.reduce((best, movie) => (movie.minutes > best.minutes ? movie : best)),
-      all: movies,
-    }))
-    .sortByKey("count");
+  groupByCategory(
+    data,
+    (movie) => movieGroupValue(movie, key),
+    (movies) => measureOf(movies, measure),
+    (movies) => movies.reduce((best, movie) => (movie.minutes > best.minutes ? movie : best)),
+    key === "franchise" ? realFranchisesOnly : undefined,
+  );
 
 export const allTimeTotals = (data: Movie[]) => ({
   films: data.length,

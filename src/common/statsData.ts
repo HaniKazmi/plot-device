@@ -1,6 +1,7 @@
 import { assignPercents } from "../utils/mathUtils";
 import type { Colour } from "../utils/types";
 import "../utils/arrayUtils";
+import "../utils/mapUtils";
 
 /** One group of a Top list: its name, its share of the measure, and its biggest item for artwork. */
 export interface TopGroup<T> {
@@ -8,6 +9,41 @@ export interface TopGroup<T> {
   count: number;
   top?: T;
 }
+
+/**
+ * Groups items by whatever `valueOf` answers, ordered by the measure, largest first.
+ *
+ * The four things that vary between tabs are all accessors: the group a row belongs to (skipped
+ * when it answers `""`), how much a group counts for, which member fronts it as artwork, and
+ * whether a group is worth keeping at all — the franchise rule, where a one-member group is a
+ * standalone item naming itself rather than a series. The value is derived once per item, since
+ * a category grouping runs once per Top card per render.
+ */
+export const groupByCategory = <T>(
+  data: readonly T[],
+  valueOf: (item: T) => string,
+  measureOf: (items: T[]) => number,
+  bestOf: (items: T[]) => T,
+  keepGroup: (items: T[]) => boolean = () => true,
+) => {
+  const buckets = new Map<string, T[]>();
+  for (const item of data) {
+    const value = valueOf(item);
+    if (value) buckets.setIfAbsent(value, []).push(item);
+  }
+
+  return [...buckets.entries()]
+    .filter(([, items]) => keepGroup(items))
+    .map(([name, items]) => ({ name, count: measureOf(items), top: bestOf(items), all: items }))
+    .sortByKey("count");
+};
+
+/**
+ * The franchise rule for `groupByCategory`: the column repeats a standalone item's own name, so a
+ * one-member group is an item naming itself, not a series — while a series' first entry genuinely
+ * shares the franchise's name and must stay in it.
+ */
+export const realFranchisesOnly = <T>(items: T[]) => items.length > 1;
 
 /**
  * The top `limit` groups plus an "Other" bucket holding the rest, as percentages.

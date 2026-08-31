@@ -1,5 +1,5 @@
 import type { FunctionComponent } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Holiday from "./holiday/Holiday";
 import Shows from "./show/Show";
 import VideoGames from "./vg/vg";
@@ -83,6 +83,21 @@ export const useCurrentTab = (): Tab => tabForPath(useLocation().pathname);
 export const otherTabs = (current: Tab, tabs: readonly Tab[] = Tabs) =>
   tabs.filter((tab) => tab !== current).map((tab) => ({ id: tab.id, label: tab.name }));
 
-export const useOtherTabs = () => otherTabs(useCurrentTab());
+/**
+ * The rail's tab chips with their navigation attached here, where the id-is-a-route convention
+ * already lives — the rail itself never learns what an id means. A jump also starts at the top
+ * of the target page: the reader is deep in this one, and a route change alone leaves the
+ * scroll offset where it is.
+ */
+export const useOtherTabs = () => {
+  const navigate = useNavigate();
+  return otherTabs(useCurrentTab()).map((tab) => ({
+    ...tab,
+    jump: () => {
+      navigate(`/${tab.id}`);
+      window.scrollTo({ top: 0 });
+    },
+  }));
+};
 
 export default Tabs;

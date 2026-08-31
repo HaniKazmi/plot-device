@@ -1,7 +1,6 @@
 import { Box, Divider } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
 import { ChipRail, RailChip, type ChipRailItem } from "./ChipRail";
 
 /** A chip in the rail. The `id` matches the `Section` it scrolls to. */
@@ -79,12 +78,12 @@ export const ChartPair = ({ left, right }: { left: ReactNode; right: ReactNode }
  * screen — so it leads with chips for the *other* tabs, ahead of a divider. Only the others: the
  * current tab is where the reader already is, and a third chip would rebuild the app bar rather
  * than offer the two jumps it cannot. Unstuck, the app bar is in view saying the same thing, and
- * the chips would say it twice — so they are not rendered at all.
+ * the chips would say it twice — so they are not rendered at all. Each chip carries its own
+ * `jump`, so what a tab id means stays with the registry that owns it.
  */
-export const SectionRail = (props: { sections: RailSection[]; tabs?: RailSection[] }) => {
+export const SectionRail = (props: { sections: RailSection[]; tabs?: (RailSection & { jump: () => void })[] }) => {
   const active = useActiveSection(props.sections);
   const [railRef, stuck] = useStuck();
-  const navigate = useNavigate();
 
   const tabChips = stuck && props.tabs && props.tabs.length > 0 && (
     <>
@@ -92,12 +91,7 @@ export const SectionRail = (props: { sections: RailSection[]; tabs?: RailSection
         <RailChip
           key={tab.id}
           label={tab.label}
-          onClick={() => {
-            navigate(`/${tab.id}`);
-            // A jump between tabs starts at the top of the target page — the reader is deep in
-            // this one, and route changes alone leave the scroll offset where it is.
-            window.scrollTo({ top: 0 });
-          }}
+          onClick={tab.jump}
         />
       ))}
       <Divider

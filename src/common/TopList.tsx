@@ -1,46 +1,63 @@
 import { Card, CardContent, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
+import { capitalize } from "@mui/material/utils";
 import { useState, type ReactNode } from "react";
 import { ProportionalBar, Swatch } from "./Card";
 import { SectionHeader } from "./SectionHeader";
+import { useSelectBox } from "./SelectBoxHook";
+import { topNWithOther, type TopGroup } from "./statsData";
 import { format } from "../utils/mathUtils";
-
-export interface TopListItem {
-  name: string;
-  count: number;
-  percent: number;
-  colour: string;
-}
+import { NEUTRAL_FILL, type Colour } from "../utils/types";
+import { highchartsColors } from "../highcharts";
 
 /**
- * A "Top X" card: a proportional bar over the leading groups with a ranked legend beneath it.
+ * A "Top X" card: a category select, a proportional bar over the leading groups, and a ranked
+ * legend beneath it.
  *
- * Items arrive already coloured and already reduced to percentages — how a domain groups, caps
- * and colours its categories is exactly what varies between tabs, so none of it lives here.
- * What is shared is the presentation and the hover: pointing at a legend row or a bar segment
- * dims everything else, tying the two together.
+ * The card owns everything that is the same on every tab — the select box, the top-five-plus-Other
+ * reduction, and the colour policy: "Other" is always the neutral bucket, a group whose domain has
+ * a colour vocabulary wears it, and one without takes a palette colour offset by the option's
+ * index so switching category recolours consistently. What a domain supplies is exactly what
+ * varies: its option list (whose order feeds that offset), an icon per option, how to group, and
+ * its colour vocabularies.
  */
-export const TopListCard = ({
-  title,
-  icon,
-  controls,
-  items,
-  measureLabel,
-}: {
-  title: string;
-  icon: ReactNode;
-  controls?: ReactNode;
-  items: TopListItem[];
+export const TopListCard = <O extends string, T>(props: {
+  /** The categories on offer, in select-box order — the order is load-bearing for the palette offset. */
+  options: readonly O[];
+  defaultOption: O;
+  icons: Record<O, ReactNode>;
+  /** The groups for an option, already measured and ordered largest-first. */
+  groups: (option: O) => TopGroup<T>[];
+  /** The colour a group's fronting item wears under this option, or `""` where none exists. */
+  colourOf: (option: O, top: T) => Colour | "";
   measureLabel: string;
 }) => {
+  const { options, icons, groups, colourOf, measureLabel } = props;
+  const [option, controls] = useSelectBox(options, props.defaultOption);
+  const colorOffset = options.indexOf(option) * 3;
   const [hovered, setHovered] = useState<string | null>(null);
+
+  const most = topNWithOther(groups(option));
+
+  const getColour = (struct: (typeof most)[0], index: number) => {
+    if (struct.name === "Other") return NEUTRAL_FILL;
+    const groupCol = struct.top ? colourOf(option, struct.top) : "";
+    return groupCol || highchartsColors[(index + colorOffset) % highchartsColors.length];
+  };
+
+  const items = most.map((struct, index) => ({
+    name: struct.name,
+    count: struct.count,
+    percent: struct.percent,
+    colour: getColour(struct, index),
+  }));
 
   return (
     <Grid size={{ xs: 12, sm: 6, md: 4 }}>
       <Card sx={{ height: "100%" }}>
         <SectionHeader
-          title={title}
-          icon={icon}
+          title={`Top ${capitalize(option)}`}
+          icon={icons[option]}
           action={controls}
         />
         <CardContent

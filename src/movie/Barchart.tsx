@@ -1,7 +1,7 @@
 import { useSelectBox } from "../common/SelectBoxHook";
 import { groupToColour, type Measure, type Movie, type MovieGroup } from "./types";
 import Barchart from "../common/Barchart";
-import { movieGroupValue, type MovieTopOption } from "./statsData";
+import { movieGroupValue } from "./statsData";
 import { format } from "../utils/mathUtils";
 
 type Option = Exclude<MovieGroup, "name"> | "none";
@@ -27,7 +27,7 @@ const MovieBarchart = ({ data, measure }: { data: Movie[]; measure: Measure }) =
       return {
         date: cumulative ? date.toYearMonth() : date.toYear(),
         colour: groupToColour(group, movie),
-        name: group === "none" ? "" : movieGroupValue(movie, group as MovieTopOption) || movie.name,
+        name: group === "none" ? "" : movieGroupValue(movie, group) || movie.name,
         value: measure === "Films" ? 1 : movie.minutes,
       };
     });

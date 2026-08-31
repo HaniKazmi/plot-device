@@ -35,78 +35,80 @@ export const EventRibbon = ({
   rows: RibbonRow[];
   ticks: TimelineTick[];
   children: ReactNode;
-}) => (
-  <Card>
-    {children}
-    <CardContent sx={{ ":last-child": { paddingBottom: 2 } }}>
-      <Stack spacing={0.75}>
-        {rows.map((row) => (
-          <Stack
-            key={row.key}
-            direction="row"
-            spacing={1}
-            sx={{ alignItems: "center" }}
-          >
-            <Typography
-              variant="caption"
-              sx={{
-                width: (theme) => theme.spacing(LABEL_WIDTH),
-                flexShrink: 0,
-                textAlign: "right",
-                color: "text.secondary",
-                fontVariantNumeric: "tabular-nums",
-                userSelect: "none",
-              }}
+}) => {
+  // Filtered once for all rows rather than once per row: twenty rows share one set of gridlines.
+  const gridTicks = ticks.filter((tick) => tick.percent > 0);
+  return (
+    <Card>
+      {children}
+      <CardContent sx={{ ":last-child": { paddingBottom: 2 } }}>
+        <Stack spacing={0.75}>
+          {rows.map((row) => (
+            <Stack
+              key={row.key}
+              direction="row"
+              spacing={1}
+              sx={{ alignItems: "center" }}
             >
-              {row.label}
-            </Typography>
-            <Box
-              sx={{
-                position: "relative",
-                flexGrow: 1,
-                height: (theme) => theme.spacing(TRACK_HEIGHT),
-                borderRadius: 1,
-                overflow: "hidden",
-                backgroundColor: "action.hover",
-              }}
-            >
-              <RibbonScale ticks={ticks} />
-              {row.bands.map((band) => (
-                <TimelineBandBox
-                  {...band}
-                  laneCount={row.laneCount}
-                  key={band.key}
-                />
-              ))}
-            </Box>
-          </Stack>
-        ))}
-        <RibbonAxis ticks={ticks} />
-      </Stack>
-    </CardContent>
-  </Card>
-);
+              <Typography
+                variant="caption"
+                sx={{
+                  width: (theme) => theme.spacing(LABEL_WIDTH),
+                  flexShrink: 0,
+                  textAlign: "right",
+                  color: "text.secondary",
+                  fontVariantNumeric: "tabular-nums",
+                  userSelect: "none",
+                }}
+              >
+                {row.label}
+              </Typography>
+              <Box
+                sx={{
+                  position: "relative",
+                  flexGrow: 1,
+                  height: (theme) => theme.spacing(TRACK_HEIGHT),
+                  borderRadius: 1,
+                  overflow: "hidden",
+                  backgroundColor: "action.hover",
+                }}
+              >
+                <RibbonScale ticks={gridTicks} />
+                {row.bands.map((band) => (
+                  <TimelineBandBox
+                    {...band}
+                    laneCount={row.laneCount}
+                    key={band.key}
+                  />
+                ))}
+              </Box>
+            </Stack>
+          ))}
+          <RibbonAxis ticks={ticks} />
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+};
 
 /** Month gridlines, the quarter ones a step stronger so the eye has something to count by. */
 const RibbonScale = ({ ticks }: { ticks: TimelineTick[] }) => (
   // Full-height boxes would otherwise be the topmost hit target across the whole track.
   <Box sx={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
-    {ticks
-      .filter((tick) => tick.percent > 0)
-      .map((tick) => (
-        <Box
-          key={tick.monthLabel}
-          sx={{
-            position: "absolute",
-            top: 0,
-            bottom: 0,
-            left: `${tick.percent}%`,
-            width: "1px",
-            backgroundColor: "divider",
-            opacity: tick.level === "month" ? 0.5 : 1,
-          }}
-        />
-      ))}
+    {ticks.map((tick) => (
+      <Box
+        key={tick.monthLabel}
+        sx={{
+          position: "absolute",
+          top: 0,
+          bottom: 0,
+          left: `${tick.percent}%`,
+          width: "1px",
+          backgroundColor: "divider",
+          opacity: tick.level === "month" ? 0.5 : 1,
+        }}
+      />
+    ))}
   </Box>
 );
 

@@ -2,6 +2,7 @@ import { formatDate, type YearMonthDay, type YearNumber } from "../common/date";
 import { sheetError } from "../common/sheetError";
 import { format } from "../utils/mathUtils";
 import { typeToName, type Measure, type Season, type Show } from "./types";
+import { groupByCategory, realFranchisesOnly } from "../common/statsData";
 import "../utils/arrayUtils";
 
 /**
@@ -32,28 +33,16 @@ const measureOf = (shows: Show[], measure: Measure) => {
 /**
  * Groups shows by a category, ordered most-watched first. Shows rather than seasons, so a
  * drill-down opens on show cards and the counts read in the units the rest of the tab uses.
- *
- * A show with no value for the category is left out, and a franchise "group" of one show is
- * too: the column repeats a standalone show's own name, so a one-member group is a show naming
- * itself, not a series — while a series' first show genuinely shares the franchise's name and
- * must stay in it.
+ * The artwork scan is a reduce rather than a sort: only the most-watched show is wanted.
  */
 export const groupShowsBy = (data: Show[], key: ShowTopOption, measure: Measure) =>
-  Object.entries(
-    Object.groupBy(
-      data.filter((show) => showGroupValue(show, key)),
-      (show) => showGroupValue(show, key),
-    ) as Record<string, Show[]>,
-  )
-    .filter(([, shows]) => key !== "franchise" || shows.length > 1)
-    .map(([name, shows]) => ({
-      name,
-      count: measureOf(shows, measure),
-      // Scanned rather than sorted: only the most-watched show is wanted, for the group's artwork.
-      top: shows.reduce((best, show) => (show.minutes > best.minutes ? show : best)),
-      all: shows,
-    }))
-    .sortByKey("count");
+  groupByCategory(
+    data,
+    (show) => showGroupValue(show, key),
+    (shows) => measureOf(shows, measure),
+    (shows) => shows.reduce((best, show) => (show.minutes > best.minutes ? show : best)),
+    key === "franchise" ? realFranchisesOnly : undefined,
+  );
 
 /**
  * The honest progress figures for a season being watched: pace, never a fraction. The sheet

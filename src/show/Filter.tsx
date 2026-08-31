@@ -1,8 +1,7 @@
 import { Animation, Block, Functions, Timer } from "@mui/icons-material";
 import { genreToColour } from "../utils/types";
 import { networkToColour, typeToColour, type Show, type Type } from "./types";
-import { namesTheSameThing } from "../utils/stringUtils";
-import { categoryOptions } from "../common/filterOptions";
+import { categoryOptions, franchiseOptions } from "../common/filterOptions";
 import { FilterCategory, FilterDrawer, FilterToggle } from "../common/FilterDrawer";
 import type { FilterDispatch, FilterState } from "./filterUtils";
 
@@ -52,11 +51,11 @@ const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: Filte
         />
         <FilterCategory
           label="franchise"
-          // Shows with no wider franchise carry their own name in the column; erasing those keeps
-          // the list to franchises that actually group anything.
-          options={categoryOptions(data, (show) =>
-            namesTheSameThing(show.franchise, show.name) ? "" : show.franchise,
-          ).filter(Boolean)}
+          options={franchiseOptions(
+            data,
+            (show) => show.franchise,
+            (show) => show.name,
+          )}
           selected={state.franchise}
           onChange={(value) => dispatch({ type: "updateFilter", filter: "franchise", value })}
         />

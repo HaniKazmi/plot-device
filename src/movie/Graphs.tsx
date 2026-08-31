@@ -12,7 +12,7 @@ import { ChartPair, Section, SectionRail } from "../common/SectionRail";
 import { useOtherTabs } from "../tabs";
 import { MOVIE_SECTIONS, movieSections } from "./sections";
 import { FranchiseContext, movieFranchise } from "./franchiseContext";
-import { franchiseIndex } from "../common/franchiseIndex";
+import { visibleFranchiseIndex } from "../common/franchiseIndex";
 import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
 import { guestFilter, type FilterDispatch, type FilterState } from "./filterUtils";
 import { format } from "../utils/mathUtils";
@@ -31,11 +31,8 @@ const SuspenseBlock = ({
   filterState: FilterState;
   filterDispatch: FilterDispatch;
 }) => (
-  // Built from the unfiltered data, because a card's franchise strip is about the series and not
-  // about the current view — filtering to one genre would otherwise amputate it. Guest mode is
-  // the exception: it hides content rather than narrowing a view, so it is applied here too.
   <FranchiseContext.Provider
-    value={franchiseIndex(filterState.guestMode ? unfilteredData.filter(guestFilter) : unfilteredData, movieFranchise)}
+    value={visibleFranchiseIndex(unfilteredData, movieFranchise, filterState.guestMode, guestFilter)}
   >
     <Graphs
       data={filteredData}

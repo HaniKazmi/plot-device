@@ -24,7 +24,11 @@ import {
 import { LABEL_SX } from "./typography";
 import { SectionHeader } from "./SectionHeader";
 import { useState, type ReactNode } from "react";
+import { Radio } from "@mui/material";
 import type { Colour } from "../utils/types";
+import { YearSelect } from "./YearSelect";
+import type { YearType } from "./filterReducer";
+import type { YearNumber } from "./date";
 import { CloseFullscreen, Fullscreen } from "@mui/icons-material";
 
 export const StatCard = ({
@@ -104,6 +108,75 @@ export const StatCard = ({
     </Grid>
   );
 };
+
+/** Each `statsData` total is already keyed by the label it renders under, in display order. */
+export const StatSummary = ({
+  icon,
+  title,
+  stats,
+}: {
+  icon: ReactNode;
+  title: string;
+  stats: Record<string, number>;
+}) => (
+  <StatCard
+    icon={icon}
+    title={title}
+    content={Object.entries(stats).map(([key, value]) => [key[0].toUpperCase() + key.slice(1), value])}
+  />
+);
+
+/**
+ * The vitals card carrying the page-wide year controls: a year select as its title and the radio
+ * that picks which of the two year cards the filter applies to, hence `activeYearType`. The
+ * figures themselves arrive as a keyed record, already scoped by the caller to whatever the card
+ * claims to total.
+ */
+export const YearTotals = ({
+  yearType,
+  yearTo,
+  filterDispatch,
+  icon,
+  activeYearType,
+  minWidth,
+  stats,
+  renderValue,
+}: {
+  yearType: YearType;
+  yearTo: YearNumber;
+  /**
+   * Typed as exactly the two actions this card sends, so every domain's dispatch — each a
+   * `FilterDispatchFor` over its own wider state — fits structurally without a generic.
+   */
+  filterDispatch: (
+    action: { type: "updateFilter"; filter: "yearTo"; value: YearNumber } | { type: "toggleYearType" },
+  ) => void;
+  icon: ReactNode;
+  activeYearType: YearType;
+  minWidth?: number;
+  stats: Record<string, number>;
+  renderValue: (value: number) => ReactNode;
+}) => (
+  <StatCard
+    icon={icon}
+    title={
+      <YearSelect
+        value={yearTo}
+        onChange={(value) => filterDispatch({ type: "updateFilter", filter: "yearTo", value })}
+        minWidth={minWidth}
+        renderValue={renderValue}
+      />
+    }
+    action={
+      <Radio
+        size="small"
+        checked={yearType == activeYearType}
+        onChange={() => filterDispatch({ type: "toggleYearType" })}
+      />
+    }
+    content={Object.entries(stats).map(([key, value]) => [key[0].toUpperCase() + key.slice(1), value])}
+  />
+);
 
 /** How many cards a strip shows collapsed, and how many its fullscreen dialog shows. */
 export const COLLAPSED_CARDS = 6;
@@ -325,6 +398,9 @@ export const StatsListCard = <T,>({
           item={item}
           sx={{ aspectRatio, flexShrink: 0 }}
           chip={chip}
+          // A dialog list can run to hundreds of cards; off-screen artwork loads as it scrolls
+          // into view rather than all at once on open.
+          lazy
           extractColour
           footerComponent={
             <FooterComponent
@@ -362,26 +438,23 @@ export const VitalsCard = ({ children }: { children: ReactNode }) => (
  * instead of standing each group in a column of its own — five groups as five headings, five
  * figures and a swatch each is a card the height of the charts it is meant to introduce.
  */
-export const TotalsBand = <T extends string, U, K extends keyof U>(props: {
+export const TotalsBand = <T extends string, U>(props: {
   title: string;
   data: U[];
   /** How much each group counts for. Its own size, where a domain has nothing else to measure. */
   measureFunc?: (data: U[]) => number;
-  /** The field the group lives on; superseded by `groupOf` where it is a derivation instead. */
-  groupKey?: K;
   group: T[];
-  /** Where the group is a derivation rather than a field — a score band, a decade. */
-  groupOf?: (item: U) => T;
+  /** The group an item belongs to — a field read, or a derivation like a score band. */
+  groupOf: (item: U) => T;
   groupToColour: (ele: T) => Colour;
   /** How a group value reads in the legend, where the sheet's own casing should not. */
   groupToLabel?: (ele: T) => string;
   icon: ReactNode;
   measureLabel: string;
 }) => {
-  const { title, data, measureFunc, groupKey, group, groupToColour, icon, measureLabel } = props;
-  // Defaults read off `props` rather than the destructuring pattern — a default there bails the
-  // component out of the React Compiler.
-  const groupOf = props.groupOf ?? ((item: U) => item[groupKey as K] as T);
+  const { title, data, measureFunc, group, groupOf, groupToColour, icon, measureLabel } = props;
+  // Read off `props` rather than defaulted in the destructuring pattern — a default there bails
+  // the component out of the React Compiler.
   const groupToLabel = props.groupToLabel ?? String;
   const totals = groupTotals(data, group, groupOf, measureFunc ?? countOf, groupToColour);
   // Held per band rather than per card: a card stacks several bands, and hovering one group of a
