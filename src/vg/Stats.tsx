@@ -4,7 +4,6 @@ import {
   Business,
   Category,
   Code,
-  ExpandCircleDown,
   Pause,
   PlayArrow,
   ShowChart,
@@ -43,7 +42,7 @@ import {
 } from "./types";
 import { StatCard, StatList, type StatsListProps, TotalsBand, VitalsCard, YearTotals } from "../common/Stats";
 import { TopListCard } from "../common/TopList";
-import { DrilldownDialog } from "../common/DrilldownDialog";
+import { GroupedStatList } from "../common/GroupedStatList";
 import VgCardMediaImage from "./CardMediaImage";
 import { Stack, Typography } from "@mui/material";
 import type { FilterDispatch, YearType } from "./filterUtils";
@@ -53,7 +52,7 @@ import { Hero } from "../common/Hero";
 import { Section, StatBand } from "../common/SectionRail";
 import { useFranchiseGames } from "./franchiseContext";
 import { VG_SECTIONS } from "./sections";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useSelectBox } from "../common/SelectBoxHook";
 import "../utils/arrayUtils";
 
@@ -294,51 +293,24 @@ const MostPlayedCategory = ({
   category: VideoGameStringKeys;
   controls: ReactNode;
 }) => {
-  const most = groupGamesBy(data, category, measure);
-
-  const [dialogContent, setDialogContent] = useState<(typeof most)[number] | null>(null);
-
-  const dialog = dialogContent ? (
-    <DrilldownDialog
-      title={dialogContent.name}
-      onClose={() => setDialogContent(null)}
-      // Sorted here rather than in `groupGamesBy`, which would sort every category on every
-      // render to serve the one being drilled into. A dialog under a card headed
-      // Most Played has to open largest-first, whatever slice of it the reader scrolls.
-      content={dialogContent.all.sortByKey("hours")}
-      cardKey={(entry) => category + "-statslistcard-" + entry.name}
-      labelComponent={statsCardLabelEndDateHours}
-      chipComponent={platformToShortChip}
-      pictureWidth={vgStatListSharedProps.dialogPictureWidth}
-      aspectRatio={vgStatListSharedProps.aspectRatio}
-      MediaComponent={VgCardMediaImage}
-    />
-  ) : null;
-
   return (
-    <>
-      <StatList
-        icon={<Whatshot />}
-        controls={controls}
-        title="Most Played"
-        content={most}
-        chipComponent={(entry) => ({
-          icon: <ExpandCircleDown color="action" />,
-          onClick: () => setDialogContent(entry),
-        })}
-        labelComponent={(item: (typeof most)[0]) => [[item.name, `${format(item.count)} ${measure}`]]}
-        MediaComponent={(props) => (
-          <VgCardMediaImage
-            {...props}
-            item={props.item.top}
-            colour={groupToColour(category, props.item.top)}
-          />
-        )}
-        nameComponent={(entry) => entry.name}
-        {...vgStatListSharedProps}
-      />
-      {dialog}
-    </>
+    <GroupedStatList
+      icon={<Whatshot />}
+      controls={controls}
+      title="Most Played"
+      option={category}
+      groups={groupGamesBy(data, category, measure)}
+      labelComponent={(group) => [[group.name, `${format(group.count)} ${measure}`]]}
+      colourOf={(top) => groupToColour(category, top)}
+      MediaComponent={VgCardMediaImage}
+      // A dialog under a card headed Most Played opens largest-first, whatever slice of it the
+      // reader scrolls.
+      dialogSort={(games) => games.sortByKey("hours")}
+      nameOf={(game) => game.name}
+      dialogLabelComponent={statsCardLabelEndDateHours}
+      dialogChipComponent={platformToShortChip}
+      {...vgStatListSharedProps}
+    />
   );
 };
 

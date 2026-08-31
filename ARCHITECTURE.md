@@ -196,8 +196,11 @@ taking the domain's toggles and category multi-selects as fully controlled child
 select's values from the data. `common/TopList`'s `TopListCard` is the "Top X" card — proportional
 bar, ranked swatch legend, shared hover dim — over items that arrive already coloured and already
 reduced to percentages by `common/statsData`'s `topNWithOther`; how a domain groups and colours is
-exactly what varies, so none of it lives in the shell. `common/DrilldownDialog` is the fullscreen
-list a grouped card opens into, mounted by the caller only while a group is picked. The franchise
+exactly what varies, so none of it lives in the shell. `common/GroupedStatList` is the strip of
+grouped cards that drills into a group: it owns the open handle, the expand badge that sets it, and
+the drill-down's card keys, and mounts `common/DrilldownDialog` — the fullscreen list itself — only
+while a group is picked, so a domain supplies its groups, its labels and its artwork and nothing
+else. The franchise
 machinery is shared the same way: `common/franchiseIndex` groups by whatever accessor a domain
 passes, and `common/franchiseContext`'s factory threads the index down to the card strips.
 
@@ -260,7 +263,7 @@ The bucket list re-derives at the marker's own cadence, so both answers always d
 - **`ExpandableCard`** owns "a card that can also present itself fullscreen". It calls its `renderContent` twice — inline and for the dialog — and hands it the expand control to place in whatever header it builds. The dialog body is mounted only while open, so a strip of cards is not built a second time behind a closed dialog, and an internal `dialogMounted` lags `dialogOpen` so the body survives the exit transition.
 - **`StatsListGrid`** owns the capped strip of media cards. The caps are `COLLAPSED_CARDS` and `EXPANDED_CARDS` (6, and 500 — effectively "everything", so a drill-down dialog shows the whole group), exported from the same module and applied _here_ rather than by callers — a caller that pre-sliced its own list would make changing either constant a no-op for that list. Card artwork loads lazily, which is what makes the uncapped dialog affordable.
 
-Each has a caller of its own beyond `StatList`: `Finished` is built on `ExpandableCard` but keeps its own item grid, because it renders bordered full-width cards rather than media cards; and `vg/`'s Most Played reaches for `StatsListGrid` directly to fill the dialog it opens when drilling into a category.
+Each has a caller of its own beyond `StatList`: `Finished` is built on `ExpandableCard` but keeps its own item grid, because it renders bordered full-width cards rather than media cards; and `DrilldownDialog` reaches for `StatsListGrid` directly to fill the fullscreen list a grouped card drills into.
 
 The one piece of shared arithmetic is `assignPercents` in `utils/mathUtils.ts`: it floors each slice at 0.5% so tiny categories stay visible, then absorbs the resulting shortfall into the first entry so the bar always fills exactly. `TotalsBand` and `vg/`'s `TopList` both use it. `total` is a parameter rather than derived, because those two callers scope it differently — one over all data, one over just the rows on screen.
 

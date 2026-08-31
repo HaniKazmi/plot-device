@@ -36,11 +36,11 @@ export const movieGroupValue = (movie: Movie, key: Exclude<MovieGroup, "none">):
 };
 
 /**
- * The earliest watch date in the sheet is late 1997, so every scale that spans the whole library
+ * The earliest watch date in the sheet is early 2001, so every scale that spans the whole library
  * opens that January — the card strips, and the floor of the year select. One constant, so the
  * select cannot offer a year the strips do not draw.
  */
-export const MOVIE_EPOCH = YearMonthDay.get(1997, 1, 1);
+export const MOVIE_EPOCH = YearMonthDay.get(2001, 1, 1);
 
 /** How much a set of films counts for under the active measure — the one home of the /60 floor. */
 export const measureOf = (movies: Movie[], measure: Measure) =>

@@ -1,6 +1,5 @@
 import {
   Category,
-  ExpandCircleDown,
   Grade,
   History,
   LocalMovies,
@@ -15,10 +14,10 @@ import {
   Whatshot,
 } from "@mui/icons-material";
 import { Stack, Typography } from "@mui/material";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { StatCard, StatList, StatsListProps, StatSummary, TotalsBand, VitalsCard, YearTotals } from "../common/Stats";
 import { TopListCard } from "../common/TopList";
-import { DrilldownDialog } from "../common/DrilldownDialog";
+import { GroupedStatList } from "../common/GroupedStatList";
 import { Hero } from "../common/Hero";
 import { Section, StatBand } from "../common/SectionRail";
 import { CURRENT_YEAR, formatDate, type YearNumber } from "../common/date";
@@ -277,52 +276,24 @@ const BestRated = ({ data }: { data: Movie[] }) => {
 
 const MostWatched = ({ data, measure }: { data: Movie[]; measure: Measure }) => {
   const [option, controls] = useSelectBox(movieTopOptions, "franchise");
-  const most = groupMoviesBy(data, option, measure);
-
-  const [dialogContent, setDialogContent] = useState<(typeof most)[number] | null>(null);
-
-  const dialog = dialogContent ? (
-    <DrilldownDialog
-      title={dialogContent.name}
-      onClose={() => setDialogContent(null)}
-      // Sorted here rather than in `groupMoviesBy`, which would sort every category on every
-      // render to serve the one being drilled into.
-      content={dialogContent.all.sortByKey("minutes")}
-      cardKey={(entry) => option + "-statslistcard-" + entry.name}
-      labelComponent={statsCardLabelWatched}
-      chipComponent={movieScoreChip}
-      pictureWidth={movieStatListSharedProps.dialogPictureWidth}
-      aspectRatio={movieStatListSharedProps.aspectRatio}
-      MediaComponent={MovieCardMediaImage}
-    />
-  ) : null;
-
   return (
-    <>
-      <StatList
-        icon={<Whatshot />}
-        controls={controls}
-        title="Most Watched"
-        content={most}
-        chipComponent={(entry) => ({
-          icon: <ExpandCircleDown color="action" />,
-          onClick: () => setDialogContent(entry),
-        })}
-        // The name and the figure stacked rather than side by side — under a poster there is no
-        // width for both on one line.
-        labelComponent={(item: (typeof most)[0]) => [[item.name], [`${format(item.count)} ${measure}`]]}
-        MediaComponent={(props) => (
-          <MovieCardMediaImage
-            {...props}
-            item={props.item.top}
-            colour={groupToColour(option, props.item.top)}
-          />
-        )}
-        nameComponent={(entry) => entry.name}
-        {...movieStatListSharedProps}
-      />
-      {dialog}
-    </>
+    <GroupedStatList
+      icon={<Whatshot />}
+      controls={controls}
+      title="Most Watched"
+      option={option}
+      groups={groupMoviesBy(data, option, measure)}
+      // The name and the figure stacked rather than side by side — under a poster there is no
+      // width for both on one line.
+      labelComponent={(group) => [[group.name], [`${format(group.count)} ${measure}`]]}
+      colourOf={(top) => groupToColour(option, top)}
+      MediaComponent={MovieCardMediaImage}
+      dialogSort={(movies) => movies.sortByKey("minutes")}
+      nameOf={(movie) => movie.name}
+      dialogLabelComponent={statsCardLabelWatched}
+      dialogChipComponent={movieScoreChip}
+      {...movieStatListSharedProps}
+    />
   );
 };
 

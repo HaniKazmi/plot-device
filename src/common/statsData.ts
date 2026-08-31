@@ -10,6 +10,12 @@ export interface TopGroup<T> {
   top?: T;
 }
 
+/** A group that keeps its members, so a card fronting it can drill into what it is made of. */
+export interface DrilldownGroup<T> extends TopGroup<T> {
+  top: T;
+  all: T[];
+}
+
 /**
  * Groups items by whatever `valueOf` answers, ordered by the measure, largest first.
  *

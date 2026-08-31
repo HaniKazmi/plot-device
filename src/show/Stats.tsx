@@ -2,7 +2,6 @@ import {
   Animation,
   AutoGraph,
   Category,
-  ExpandCircleDown,
   Pause,
   PlayArrow,
   ShowChart,
@@ -26,12 +25,12 @@ import {
 } from "./types";
 import { StatCard, StatList, StatsListProps, StatSummary, TotalsBand, VitalsCard, YearTotals } from "../common/Stats";
 import { TopListCard } from "../common/TopList";
-import { DrilldownDialog } from "../common/DrilldownDialog";
+import { GroupedStatList } from "../common/GroupedStatList";
 import { Hero } from "../common/Hero";
 import ShowCardMediaImage from "./CardMediaImage";
 import { genreToColour, statusToColour } from "../utils/types";
 import { Stack, Typography } from "@mui/material";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { CURRENT_PLAINDATE, CURRENT_YEAR, formatDate, type YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
 import { Section, StatBand } from "../common/SectionRail";
@@ -315,53 +314,25 @@ const MostWatchedCategory = ({
   category: ShowTopOption;
   controls: ReactNode;
 }) => {
-  const most = groupShowsBy(data, category, measure);
-
-  const [dialogContent, setDialogContent] = useState<(typeof most)[number] | null>(null);
-
-  const dialog = dialogContent ? (
-    <DrilldownDialog
-      title={dialogContent.name}
-      onClose={() => setDialogContent(null)}
-      // Sorted here rather than in `groupShowsBy`, which would sort every category on every
-      // render to serve the one being drilled into.
-      content={dialogContent.all.sortByKey("minutes")}
-      cardKey={(entry) => category + "-statslistcard-" + entry.name}
-      labelComponent={(show) => [[`${format(show.e)} Eps`, `${format(Math.floor(show.minutes / 60))} Hours`]]}
-      chipComponent={(show) => ({ label: show.status, colour: statusToColour(show) })}
-      pictureWidth={[6, 4, 2]}
-      aspectRatio="16/9"
-      MediaComponent={ShowCardMediaImage}
-    />
-  ) : null;
-
   return (
-    <>
-      <StatList
-        icon={<Whatshot />}
-        controls={controls}
-        title="Most Watched"
-        content={most}
-        chipComponent={(entry) => ({
-          icon: <ExpandCircleDown color="action" />,
-          onClick: () => setDialogContent(entry),
-        })}
-        labelComponent={(item: (typeof most)[0]) => [[item.name, `${format(item.count)} ${measure}`]]}
-        MediaComponent={(props) => (
-          <ShowCardMediaImage
-            {...props}
-            item={props.item.top}
-            colour={groupToColour(category, props.item.top)}
-          />
-        )}
-        nameComponent={(entry) => entry.name}
-        aspectRatio="16/9"
-        width={[12, 12, 12]}
-        pictureWidth={[6, 4, 2]}
-        dialogPictureWidth={[6, 4, 2]}
-      />
-      {dialog}
-    </>
+    <GroupedStatList
+      icon={<Whatshot />}
+      controls={controls}
+      title="Most Watched"
+      option={category}
+      groups={groupShowsBy(data, category, measure)}
+      labelComponent={(group) => [[group.name, `${format(group.count)} ${measure}`]]}
+      colourOf={(top) => groupToColour(category, top)}
+      MediaComponent={ShowCardMediaImage}
+      dialogSort={(shows) => shows.sortByKey("minutes")}
+      nameOf={(show) => show.name}
+      dialogLabelComponent={(show) => [[`${format(show.e)} Eps`, `${format(Math.floor(show.minutes / 60))} Hours`]]}
+      dialogChipComponent={(show) => ({ label: show.status, colour: statusToColour(show) })}
+      aspectRatio="16/9"
+      width={[12, 12, 12]}
+      pictureWidth={[6, 4, 2]}
+      dialogPictureWidth={[6, 4, 2]}
+    />
   );
 };
 
