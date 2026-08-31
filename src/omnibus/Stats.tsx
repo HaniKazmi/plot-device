@@ -9,7 +9,6 @@ import { Section, StatBand } from "../common/SectionRail";
 import { StatCard, TotalsBand, VitalsCard, YearTotals } from "../common/Stats";
 import { genreToColour } from "../utils/types";
 import MovieCardMediaImage from "../movie/CardMediaImage";
-import { cinemaLabel } from "../movie/types";
 import { movieHeroStats } from "../movie/statsData";
 import ShowCardMediaImage from "../show/CardMediaImage";
 import { showHeroStats } from "../show/statsData";
@@ -121,6 +120,11 @@ const Stats = ({
  * What each medium is on right now, side by side — the one view none of the three tabs can show,
  * and the reason the page opens with it rather than with a total.
  *
+ * A card's kicker here says only when, where the home tabs' heroes name the fact as well. The chip
+ * in the corner already says which medium the card is, and the card says the rest — so "last
+ * watched" over a show and "latest watch" over a film were labelling the one thing a date beside a
+ * medium cannot be mistaken for. The home heroes keep theirs: nothing beside them says it.
+ *
  * Each card is the domain's own: its artwork, its badge, and the figures its own hero carries, so
  * a game reads in hours and days and a season in episodes and pace. A medium with nothing in
  * flight simply contributes no card, rather than a card saying nothing.
@@ -157,7 +161,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
           medium="game"
           MediaComponent={VgCardMediaImage}
           onJump={jump(VideoGamesTab)}
-          kicker={`Playing · since ${formatDate(now.game.startDate)}`}
+          kicker={`Since ${formatDate(now.game.startDate)}`}
           title={now.game.name}
           subtitle={[{ text: now.game.platform }, { text: now.game.genre, swatch: vgGenreToColour(now.game) }]}
           // The franchise tile is dropped by passing the game alone. The Crossings section is
@@ -173,7 +177,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
           medium="show"
           MediaComponent={ShowCardMediaImage}
           onJump={jump(ShowsTab)}
-          kicker={`Last watched · ${formatDate(now.show.show.lastWatchedDate!)}`}
+          kicker={formatDate(now.show.show.lastWatchedDate!)}
           title={`${now.show.show.name} S${now.show.s}`}
           subtitle={[
             { text: now.show.show.network },
@@ -190,7 +194,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
           medium="movie"
           MediaComponent={MovieCardMediaImage}
           onJump={jump(MoviesTab)}
-          kicker={`Latest watch · ${formatDate(now.movie.startDate)} · ${cinemaLabel(now.movie)}`}
+          kicker={formatDate(now.movie.startDate)}
           title={now.movie.name}
           subtitle={[{ text: now.movie.director }, { text: now.movie.genre, swatch: genreToColour(now.movie.genre) }]}
           stats={movieHeroStats(now.movie, 1)}

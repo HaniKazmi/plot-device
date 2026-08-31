@@ -473,6 +473,9 @@ export const CardPanel = ({
   const resolved = layout ?? (arrangement === "beside" ? "beside" : "beneath");
   const beside = resolved === "beside";
   const hero = resolved === "hero";
+  // The parts that actually say something. A caller lists its fields without testing which the
+  // sheet filled in, and the count is what decides which part is last and so carries no separator.
+  const said = Array.isArray(subtitle) ? subtitle.filter((part) => part.text) : [];
 
   return (
     <CardContent
@@ -534,36 +537,35 @@ export const CardPanel = ({
           (Array.isArray(subtitle) ? (
             // Each part is one box rather than three loose ones, because a line break falls between
             // flex items: with the swatch, the separator and the text each an item of the wrapping
-            // row, a narrow column breaks a mark off the thing it marks and leaves a separator
-            // hanging at the end of a line. Grouped, the only place a break can fall is between
-            // parts, and the separator leads its own part so it travels with the words it joins.
+            // row, a narrow column breaks a mark off the thing it marks. Grouped, the only place a
+            // break can fall is between parts, and the separator closes its own part rather than
+            // opening the next — a line that ends "Apple TV ·" says a part is still to come, where
+            // one that opens "· True Story" reads as joined to nothing.
             <Box
               sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 0.75, color: palette.muted }}
             >
-              {subtitle
-                .filter((part) => part.text)
-                .map((part, index) => (
-                  <Box
-                    key={part.text}
-                    // The floor is what lets a part longer than the whole column wrap inside
-                    // itself rather than push the row wider than the card.
-                    sx={{ display: "inline-flex", alignItems: "center", columnGap: 0.75, minWidth: 0 }}
+              {said.map((part, index) => (
+                <Box
+                  key={part.text}
+                  // The floor is what lets a part longer than the whole column wrap inside
+                  // itself rather than push the row wider than the card.
+                  sx={{ display: "inline-flex", alignItems: "center", columnGap: 0.75, minWidth: 0 }}
+                >
+                  {part.swatch && (
+                    <Swatch
+                      colour={part.swatch}
+                      size={INLINE_SWATCH_SIZE}
+                    />
+                  )}
+                  <Typography
+                    variant="body2"
+                    sx={{ overflowWrap: "anywhere" }}
                   >
-                    {index > 0 && <Typography variant="body2">·</Typography>}
-                    {part.swatch && (
-                      <Swatch
-                        colour={part.swatch}
-                        size={INLINE_SWATCH_SIZE}
-                      />
-                    )}
-                    <Typography
-                      variant="body2"
-                      sx={{ overflowWrap: "anywhere" }}
-                    >
-                      {part.text}
-                    </Typography>
-                  </Box>
-                ))}
+                    {part.text}
+                  </Typography>
+                  {index < said.length - 1 && <Typography variant="body2">·</Typography>}
+                </Box>
+              ))}
             </Box>
           ) : (
             <Typography
