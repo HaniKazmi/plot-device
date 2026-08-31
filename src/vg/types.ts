@@ -64,21 +64,37 @@ export type Format = "Physical" | "Digital" | "Pirated" | "Subscription";
 export type Status = "Playing" | "Endless" | "Abandoned" | "Beat" | "Backlog" | "Next";
 export type Company = "PlayStation" | "Nintendo" | "PC" | "iOS" | "Xbox";
 export type Platform = `${Company}${string}`;
-export type Gameplay =
-  | "Action"
-  | "Adventure"
-  | "Action Adventure"
-  | "Driving/Racing"
-  | "Fighting"
-  | "Party Games"
-  | "Platformer"
-  | "Puzzle"
-  | "Role Playing"
-  | "Shooter"
-  | "Simulation"
-  | "Strategy"
-  | "Visual Novel"
-  | "Music/Rhythm";
+/**
+ * Listed rather than written as a bare union so the converter can check a cell against it while it
+ * still knows which row it came from. `gameplayColours` is keyed on the union, so a value added
+ * here is a compile error until it has a fill.
+ */
+const GAMEPLAY = [
+  "Action",
+  "Adventure",
+  "Action Adventure",
+  "Driving/Racing",
+  "Fighting",
+  "Party Games",
+  "Platformer",
+  "Puzzle",
+  "Role Playing",
+  "Shooter",
+  "Simulation",
+  "Strategy",
+  "Visual Novel",
+  "Music/Rhythm",
+] as const;
+
+export type Gameplay = (typeof GAMEPLAY)[number];
+
+/**
+ * Whether a sheet cell holds a gameplay style, so the converter can reject a blank or misspelt one
+ * where it still knows the row. Without it the cell is cast unchecked and the first sign of trouble
+ * is a wedge quietly wearing the neutral, which reads as a style with no colour yet rather than as
+ * a cell nobody filled in.
+ */
+export const isGameplay = (value: string): value is Gameplay => (GAMEPLAY as readonly string[]).includes(value);
 
 export type Measure = "Hours" | "Games";
 
