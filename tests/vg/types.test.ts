@@ -1,14 +1,17 @@
 import { describe, expect, it } from "vitest";
-import type { AgeRating } from "../../src/utils/types";
+import { NEUTRAL_FILL, genreToColour, type AgeRating } from "../../src/utils/types";
 import {
   companyToAccent,
   companyToColor,
+  mutedGenreToColour,
+  gameplayToColour,
   groupToColour,
   platformToColor,
   platformToShort,
   type Platform,
 } from "../../src/vg/types";
 import { KNOWN_PLATFORMS, videoGame } from "../fixtures/vgRows";
+import { PAPERS, contrast, liveGenres } from "../fixtures/colour";
 
 describe("platform colour lookups", () => {
   it.each(KNOWN_PLATFORMS)("resolves %s to both a colour and a short name", (platform) => {
@@ -77,6 +80,17 @@ describe("groupToColour", () => {
     expect(groupToColour("company", game)).toBe(companyToColor(game));
     expect(groupToColour("status", game)).toBe("#338c5f");
     expect(groupToColour("rating", game)).toBe("#c27400");
+    expect(groupToColour("gameplay", game)).toBe(gameplayToColour(game));
+    expect(groupToColour("genre", game)).toBe(mutedGenreToColour(game.genre));
+  });
+
+  it("draws the two vocabularies apart even where their tables share a hex", () => {
+    // Nine hexes appear in both tables under different names, and a card states both vocabularies
+    // in turn — 81 of 340 games pair a gameplay and a genre that share one, 78 of them this pair.
+    const shared = videoGame({ gameplay: "Role Playing", genre: "Fantasy" });
+
+    expect(gameplayToColour(shared)).toBe(genreToColour("Fantasy"));
+    expect(groupToColour("gameplay", shared)).not.toBe(groupToColour("genre", shared));
   });
 
   it("falls back to an empty string for a group with no colour of its own", () => {
@@ -89,5 +103,22 @@ describe("groupToColour", () => {
     // The cast is the point: the union describes what the sheet should hold, and a blank cell
     // is what it holds when someone forgets — that has to reach the throw rather than a fallback.
     expect(() => groupToColour("rating", videoGame({ rating: "" as AgeRating }))).toThrow("Unknown rating");
+  });
+});
+
+describe("mutedGenreToColour", () => {
+  it.each(liveGenres)("keeps %s clear of both papers, so muting does not cost the fill contract", (genre) => {
+    // Muting pulls a fill toward its own luminance in linear light, so contrast is untouched and
+    // whatever the source cleared the muted value clears. Nothing else asserts this contract, and
+    // a fill that fails it is legible in one colour scheme and invisible in the other.
+    expect(contrast(mutedGenreToColour(genre), PAPERS.light)).toBeGreaterThanOrEqual(3);
+    expect(contrast(mutedGenreToColour(genre), PAPERS.dark)).toBeGreaterThanOrEqual(3);
+  });
+
+  it("passes the neutral through undimmed, so absence is one grey on every tab", () => {
+    // NEUTRAL_FILL is a blue-grey rather than achromatic, so desaturating it would move it — and
+    // move it for exactly the games the converter's "Other" default lands on.
+    expect(mutedGenreToColour("Documentary")).toBe(NEUTRAL_FILL);
+    expect(mutedGenreToColour("Other")).toBe(NEUTRAL_FILL);
   });
 });

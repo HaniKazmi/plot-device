@@ -14,7 +14,6 @@ import ShowCardMediaImage from "../show/CardMediaImage";
 import { showHeroStats } from "../show/statsData";
 import VgCardMediaImage from "../vg/CardMediaImage";
 import { heroStats } from "../vg/statsData";
-import { genreToColour as vgGenreToColour } from "../vg/types";
 import { MoviesTab, ShowsTab, VideoGamesTab, type Tab } from "../tabs";
 import { electNow, hasNow, measureOf, unionTotals, type OmniItem } from "./adapter";
 import { crossingEntries, type Crossing } from "./crossingsData";
@@ -163,7 +162,9 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
           onJump={jump(VideoGamesTab)}
           kicker={`Since ${formatDate(now.game.startDate)}`}
           title={now.game.name}
-          subtitle={[{ text: now.game.platform }, { text: now.game.genre, swatch: vgGenreToColour(now.game) }]}
+          // The shared ramp at full chroma, like the two cards beside it: this page draws no
+          // gameplay vocabulary, so the collision the Games tab dims for does not arise here.
+          subtitle={[{ text: now.game.platform }, { text: now.game.genre, swatch: genreToColour(now.game.genre) }]}
           // The franchise tile is dropped by passing the game alone. The Crossings section is
           // where this page states what a franchise spans, and it is drawn from the filtered
           // union — while the hero is elected from the library and the filters do not narrow it,

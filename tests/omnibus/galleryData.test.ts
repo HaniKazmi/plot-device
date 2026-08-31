@@ -71,8 +71,8 @@ describe("shelving", () => {
     toOmniItems(
       library({
         games: [
-          videoGame({ name: "Halo", genre: "Shooter", hours: 40 }),
-          videoGame({ name: "Halo 2", genre: "Shooter", hours: 10 }),
+          videoGame({ name: "Halo", genre: "Action", gameplay: "Shooter", hours: 40 }),
+          videoGame({ name: "Halo 2", genre: "Action", gameplay: "Shooter", hours: 10 }),
         ],
         movies: [movie({ name: "Arrival", genre: "Sci-Fi", minutes: 120 })],
       }),
@@ -81,7 +81,7 @@ describe("shelving", () => {
   it("orders shelves by the page's measure, largest first", () => {
     const groups = galleryGroups(items(), "genre", "Hours");
 
-    expect(groups.map((group) => group.name)).toEqual(["Shooter", "Sci-Fi"]);
+    expect(groups.map((group) => group.name)).toEqual(["Action", "Sci-Fi"]);
     expect(groups[0].count).toBe(50);
   });
 

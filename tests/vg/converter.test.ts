@@ -99,6 +99,24 @@ describe("numDays", () => {
   });
 });
 
+describe("genre and gameplay", () => {
+  it("keeps the two vocabularies in their own fields", () => {
+    // The sheet holds both, and the columns are adjacent: reading either into the other's field
+    // colours a value against a ramp that has no entry for it, silently, on every chart at once.
+    const game = convertOne({ Genre: "Fantasy", Gameplay: "Role Playing" });
+    expect(game.genre).toBe("Fantasy");
+    expect(game.gameplay).toBe("Role Playing");
+  });
+
+  it("calls a game with no genre Other, so the field is answerable for every row", () => {
+    expect(convertOne({ Genre: "" }).genre).toBe("Other");
+  });
+
+  it("leaves gameplay alone when the sheet says nothing, because no reader defaults it", () => {
+    expect(convertOne({ Gameplay: "" }).gameplay).toBe("");
+  });
+});
+
 describe("bad rows", () => {
   it("throws on a blank start date instead of dropping the row", () => {
     // Unlike movie/, this converter filters nothing, so a trailing blank row reaches here.

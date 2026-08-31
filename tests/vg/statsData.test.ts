@@ -149,6 +149,7 @@ describe("topOptions", () => {
       "publisher",
       "rating",
       "status",
+      "gameplay",
       "genre",
     ]);
   });

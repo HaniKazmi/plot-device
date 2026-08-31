@@ -95,7 +95,7 @@ Each stage has exactly one job, and only `jsonConverter` knows anything about a 
 
 Converters do real modelling work, not just field renaming:
 
-- **`vg/`** derives `company` by splitting the platform string, folds a `"Party"` status into `status: "Endless"` plus a `party` boolean, and computes `numDays` from the date pair.
+- **`vg/`** derives `company` by splitting the platform string, folds a `"Party"` status into `status: "Endless"` plus a `party` boolean, computes `numDays` from the date pair, and defaults an unrecorded `genre` to `"Other"` — the sheet leaves it blank on 10 of 340 rows, and defaulting once here is what lets every reader treat the field as answerable.
 - **`show/`** reduces a _flat_ sheet into a _nested_ one. Rows with a non-empty `Show` column open a new show; subsequent rows are seasons belonging to it. Afterwards it rolls season totals up into the parent (`startDate`, `endDate`, episode and minute sums) and asserts date ordering with `console.assert`. Seasons keep a `show` back-reference, which makes the object graph cyclic — see §4.
 - **`movie/`** drops rows with an empty `Genre`, which is how partially-entered rows are excluded.
 
@@ -440,10 +440,36 @@ Fixed colours are the other half of the system: `types.ts` in each domain maps p
 - **Accents** are the brand hexes themselves, drawn only in a card's corner chip — a few dozen pixels carrying two or three letters, read as a badge rather than compared against a neighbour, with nothing adjacent to separate from.
 
 Three vocabularies live in `utils/types.ts` because more than one tab speaks them. `genreToColour`
-is the ramp Shows and Movies share — the two record overlapping genre sets in one spreadsheet, and
-one hue has to mean one genre on both tabs; where a genre also exists on the Games tab (Action,
-Adventure) the hue is the same one `vg/types.ts` uses. It falls to `NEUTRAL_FILL` off-table rather
-than throwing, because the genre column is open-ended. The decade ramp under `decadeToColour` is
+is the ramp all three tracked sheets share — each records its Genre column in one vocabulary, and
+one hue has to mean one genre on every tab, which is what lets the Omnibus bridge a game to a film
+under a single name rather than through a mapping written in code. It falls to `NEUTRAL_FILL`
+off-table rather than throwing, because the genre column is open-ended — which is also what makes
+the Games converter's `"Other"` default for an unrecorded genre land on the neutral for free.
+
+Games is the one tab that draws a second, overlapping vocabulary beside it: `gameplay` is how a
+game is played where `genre` is what it is about, and nine of `vg/types.ts`'s gameplay hexes are
+shared genre hexes under other names. A card states both in turn — the hero and hover subtitles set
+the two swatches side by side, and the ledger stacks the Gameplay row on the Genre row — so at full
+chroma 81 of 340 games would draw them in one colour, 78 of those Role Playing beside Fantasy.
+`gameGenreToColour` cuts the shared ramp's chroma on that tab alone, so saturated reads as "how you
+play" and muted as "what it is about". Only that tab dims: the other three draw no gameplay
+vocabulary and so have no collision, and genre is the primary vocabulary on all of them. The cost
+is that a Fantasy swatch on Games is quieter than a Fantasy wedge on Shows.
+
+It is the cards that need this, not the charts — every chart here draws one vocabulary at a time,
+for the reasons `mutedGenreToColour` gives. The neutral is the one value it passes through
+untouched: absence is not a vocabulary that needs telling apart, and it has to stay one grey across
+every tab.
+
+The mute is `desaturate` in `utils/colourUtils.ts`, which pulls each channel toward the colour's
+own luminance **in linear light**. Luminance is a linear combination of the linear channels, so
+that blend cannot move it, and since contrast depends on luminance alone every muted genre clears
+exactly what its source cleared — the fill contract carries over rather than needing to be
+re-argued. That exactness is load-bearing, not fastidiousness: four entries in the shared ramp sit
+within 0.1 of the 3:1 floor on the dark paper, and the same blend done in sRGB space darkens
+enough to take Horror from 3.08 to 2.50.
+
+The decade ramp under `decadeToColour` is
 one bronze hue stepping in lightness — a decade is ordered data, so a categorical hue set would
 deny the order — bucketing everything before 1970, which is as many steps as the fill contract
 leaves room for. Movies adds two vocabularies of its own in `movie/types.ts`: five score bands as
