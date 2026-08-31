@@ -12,9 +12,10 @@ import {
 import { cinemaLabel, scoreBand, scoreBandToColour, type Movie } from "./types";
 import { ageRatingToColour, genreToColour } from "../utils/types";
 import { namesTheSameThing } from "../utils/stringUtils";
-import { CURRENT_PLAINDATE, YearMonthDay, formatDate } from "../common/date";
+import { CURRENT_PLAINDATE, formatDate } from "../common/date";
 import { buildStrip, stripYearTicks } from "../common/timelineStripData";
 import { useFranchiseMovies } from "./franchiseContext";
+import { MOVIE_EPOCH } from "./statsData";
 
 /**
  * The figures the card leads with. The score takes the coloured tile — it is the one figure with
@@ -77,8 +78,6 @@ const MovieCardMediaImage: TypedCardMediaImage<Movie> = ({ item, ...props }) => 
   />
 );
 
-/** The earliest watch date in the sheet is late 1997, so the scale opens that January. */
-const MOVIE_EPOCH = YearMonthDay.get(1997, 1, 1);
 const MOVIE_TICKS = stripYearTicks(MOVIE_EPOCH, CURRENT_PLAINDATE);
 
 /**

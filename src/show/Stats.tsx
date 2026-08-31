@@ -42,6 +42,7 @@ import {
   allTimeTotals,
   groupShowsBy,
   heroSeason,
+  measureOf,
   showHeroStats,
   minutesPerEpisode,
   perShowAverages,
@@ -184,8 +185,7 @@ const ShowHero = ({ season }: { season: Season }) => {
 const Vitals = ({ data, measure }: { data: Show[]; measure: Measure }) => {
   const statusList: Status[] = ["Watching", "Up To Date", "Ended", "Cancelled", "Abandoned"];
   const typeList: Type[] = ["show", "anime"];
-  const measureFunc = (shows: Show[]) =>
-    measure === "Episodes" ? shows.sum("e") : Math.floor(shows.sum("minutes") / 60);
+  const measureFunc = (shows: Show[]) => measureOf(shows, measure);
 
   return (
     <VitalsCard>
@@ -330,6 +330,7 @@ const MostWatchedCategory = ({
       labelComponent={(show) => [[`${format(show.e)} Eps`, `${format(Math.floor(show.minutes / 60))} Hours`]]}
       chipComponent={(show) => ({ label: show.status, colour: statusToColour(show) })}
       pictureWidth={[6, 4, 2]}
+      aspectRatio="16/9"
       MediaComponent={ShowCardMediaImage}
     />
   ) : null;
@@ -354,6 +355,7 @@ const MostWatchedCategory = ({
           />
         )}
         nameComponent={(entry) => entry.name}
+        aspectRatio="16/9"
         width={[12, 12, 12]}
         pictureWidth={[6, 4, 2]}
         dialogPictureWidth={[6, 4, 2]}
@@ -385,6 +387,9 @@ const ShowStatList = (
   <StatList
     MediaComponent={ShowCardMediaImage}
     nameComponent={(entry) => entry.show.name + entry.s}
+    // Banners, so the lazily-loaded artwork reserves its height — a dialog of cards with no
+    // reserved ratio all sits inside the viewport at once and fetches every image immediately.
+    aspectRatio="16/9"
     width={[12, 12, 12]}
     pictureWidth={[6, 4, 2]}
     dialogPictureWidth={[6, 4, 2]}
@@ -403,6 +408,7 @@ const ShowsStatList = (
     MediaComponent={ShowCardMediaImage}
     nameComponent={(entry) => entry.name}
     chipComponent={(show) => ({ label: show.status, colour: statusToColour(show) })}
+    aspectRatio="16/9"
     width={[12, 12, 12]}
     pictureWidth={[6, 4, 2]}
     dialogPictureWidth={[6, 4, 2]}

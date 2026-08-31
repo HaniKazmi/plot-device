@@ -10,7 +10,6 @@ import {
   perShowAverages,
   recentlyComplete,
   seasonsInYear,
-  statsCardLabelCurrentlyPlaying,
   statsCardLabelRecentlyComplete,
   statsCardLabelWatching,
   watchingProgress,
@@ -259,9 +258,6 @@ describe("statsCardLabel", () => {
 
     expect(statsCardLabelRecentlyComplete(season(parent, { endDate: YearMonthDay.get(2022, 4, 8) }))[0][1]).toBe(
       "8 Apr 2022",
-    );
-    expect(statsCardLabelCurrentlyPlaying(season(parent, { startDate: YearMonthDay.get(2022, 2, 18) }))[0][1]).toBe(
-      "18 Feb 2022",
     );
   });
 

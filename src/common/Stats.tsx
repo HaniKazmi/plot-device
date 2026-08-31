@@ -139,6 +139,7 @@ export const YearTotals = ({
   icon,
   activeYearType,
   minWidth,
+  earliestYear,
   stats,
   renderValue,
 }: {
@@ -154,6 +155,8 @@ export const YearTotals = ({
   icon: ReactNode;
   activeYearType: YearType;
   minWidth?: number;
+  /** Passed through to the year select, for a domain whose data starts before the app-wide floor. */
+  earliestYear?: YearNumber;
   stats: Record<string, number>;
   renderValue: (value: number) => ReactNode;
 }) => (
@@ -164,6 +167,7 @@ export const YearTotals = ({
         value={yearTo}
         onChange={(value) => filterDispatch({ type: "updateFilter", filter: "yearTo", value })}
         minWidth={minWidth}
+        earliestYear={earliestYear}
         renderValue={renderValue}
       />
     }

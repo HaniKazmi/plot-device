@@ -1003,7 +1003,8 @@ export const TimelineBandBox = ({
   tooltip,
   muted,
   imprecise,
-}: TimelineBand & { laneCount: number }) => {
+  frameless,
+}: TimelineBand & { laneCount: number; frameless?: boolean }) => {
   const laneHeight = 100 / laneCount;
   // On a single lane the card's own game keeps the full height and its siblings are inset, which
   // is the clearest reading of "this one, among these". Once the strip is divided there is no
@@ -1041,8 +1042,11 @@ export const TimelineBandBox = ({
           // bands are lane-height: each one is coloured by its own platform, so a dimmed band
           // beside a differently-coloured one reads as a different platform rather than as
           // context. `currentColor` is the ground's contrast text, so the ring lands legibly on
-          // an extracted artwork colour whichever way that fell.
-          boxShadow: muted ? undefined : "inset 0 0 0 1px currentColor",
+          // an extracted artwork colour whichever way that fell. A caller with no subject to
+          // single out — the ribbon, where every mark is a peer — opts out with `frameless`:
+          // on a mark floored to a couple of pixels the ring would be most of the mark, burying
+          // the fill it exists to set apart.
+          boxShadow: muted || frameless ? undefined : "inset 0 0 0 1px currentColor",
           borderRadius: imprecise ? 0 : 0.5,
           "&:hover": { opacity: 1, filter: "brightness(1.25)" },
         }}

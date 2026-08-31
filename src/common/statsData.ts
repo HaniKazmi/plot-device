@@ -32,10 +32,17 @@ export const groupByCategory = <T>(
     if (value) buckets.setIfAbsent(value, []).push(item);
   }
 
-  return [...buckets.entries()]
-    .filter(([, items]) => keepGroup(items))
-    .map(([name, items]) => ({ name, count: measureOf(items), top: bestOf(items), all: items }))
-    .sortByKey("count");
+  return (
+    [...buckets.entries()]
+      .filter(([, items]) => keepGroup(items))
+      .map(([name, items]) => ({ name, count: measureOf(items), top: bestOf(items), all: items }))
+      // A group measuring 0 is dropped rather than listed: `sortByKey` puts falsy values first in
+      // both directions, so a 0 would head this largest-first list — and downstream, a run of
+      // all-zero groups would hand `assignPercents` a zero total, spreading NaN across the whole
+      // proportional bar. Under an Hours measure a real group can floor to 0.
+      .filter((group) => group.count > 0)
+      .sortByKey("count")
+  );
 };
 
 /**

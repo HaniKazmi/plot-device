@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupTotals, topNWithOther, type TopGroup } from "../../src/common/statsData";
+import { groupByCategory, groupTotals, topNWithOther, type TopGroup } from "../../src/common/statsData";
 import type { Colour } from "../../src/utils/types";
 
 type Row = { status: string; hours: number };
@@ -84,6 +84,26 @@ describe("groupTotals", () => {
 
 const groups = (...counts: number[]): TopGroup<string>[] =>
   counts.map((count, i) => ({ name: `g${i}`, count, top: `top-g${i}` }));
+
+describe("groupByCategory", () => {
+  it("drops a group whose measure is zero rather than listing it", () => {
+    // `sortByKey` puts falsy values first in both directions, so a 0 would head this
+    // largest-first list — and a run of all-zero groups would hand `assignPercents` a zero
+    // total, spreading NaN across the whole proportional bar. An Hours measure floors a real
+    // group to 0, so the case is ordinary data, not corruption.
+    const data: Row[] = [
+      { status: "a", hours: 3 },
+      { status: "b", hours: 0 },
+    ];
+    const groups = groupByCategory(
+      data,
+      (row) => row.status,
+      (items) => items.reduce((total, item) => total + item.hours, 0),
+      (items) => items[0],
+    );
+    expect(groups.map((group) => group.name)).toEqual(["a"]);
+  });
+});
 
 describe("topNWithOther", () => {
   it("keeps the first `limit` groups and folds the rest into Other", () => {

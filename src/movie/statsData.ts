@@ -1,4 +1,4 @@
-import { formatDate, type YearNumber } from "../common/date";
+import { formatDate, YearMonthDay, type YearNumber } from "../common/date";
 import { format } from "../utils/mathUtils";
 import { releaseDecade } from "../utils/types";
 import { cinemaLabel, scoreBand, type Measure, type Movie, type MovieGroup } from "./types";
@@ -35,7 +35,15 @@ export const movieGroupValue = (movie: Movie, key: Exclude<MovieGroup, "none">):
   }
 };
 
-const measureOf = (movies: Movie[], measure: Measure) =>
+/**
+ * The earliest watch date in the sheet is late 1997, so every scale that spans the whole library
+ * opens that January — the card strips, and the floor of the year select. One constant, so the
+ * select cannot offer a year the strips do not draw.
+ */
+export const MOVIE_EPOCH = YearMonthDay.get(1997, 1, 1);
+
+/** How much a set of films counts for under the active measure — the one home of the /60 floor. */
+export const measureOf = (movies: Movie[], measure: Measure) =>
   measure === "Hours" ? Math.floor(movies.sum("minutes") / 60) : movies.length;
 
 /**
@@ -86,8 +94,12 @@ export const perFilmAverages = (data: Movie[]) => {
 };
 
 /** The film watched most recently — the page's hero. Every film has a watch date, so with any
- * data at all there is one. */
-export const latestWatched = (data: Movie[]) => (data.length ? data.sortByKey("startDate")[0] : undefined);
+ * data at all there is one. A scan rather than a sort: only the latest is wanted. */
+export const latestWatched = (data: Movie[]) =>
+  data.reduce<Movie | undefined>(
+    (latest, movie) => (!latest || latest.startDate.lte(movie.startDate) ? movie : latest),
+    undefined,
+  );
 
 /**
  * The figures the hero carries about the film it is showing. The score is dropped when the film

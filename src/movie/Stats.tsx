@@ -44,6 +44,8 @@ import {
   allTimeTotals,
   filmsInYear,
   latestWatched,
+  measureOf,
+  MOVIE_EPOCH,
   movieHeroStats,
   groupMoviesBy,
   movieTopOptions,
@@ -90,6 +92,7 @@ const Stats = ({
             filterDispatch={filterDispatch}
             icon={<Timer />}
             activeYearType="upto"
+            earliestYear={MOVIE_EPOCH.year}
             stats={allTimeTotals(data)}
             renderValue={(value) => (
               <Typography variant="h6">{value == CURRENT_YEAR ? "All Time" : `Up To ${value}`}</Typography>
@@ -102,6 +105,7 @@ const Stats = ({
             icon={<Update />}
             activeYearType="matching"
             minWidth={120}
+            earliestYear={MOVIE_EPOCH.year}
             stats={filmsInYear(data, yearTo)}
             renderValue={(value) => <Typography variant="h6">In {value}</Typography>}
           />
@@ -168,8 +172,7 @@ const MovieHero = ({ movie }: { movie: Movie }) => {
  * tall as the charts it introduces.
  */
 const Vitals = ({ data, measure }: { data: Movie[]; measure: Measure }) => {
-  const measureFunc = (movies: Movie[]) =>
-    measure === "Films" ? movies.length : Math.floor(movies.sum("minutes") / 60);
+  const measureFunc = (movies: Movie[]) => measureOf(movies, measure);
 
   return (
     <VitalsCard>
@@ -259,7 +262,9 @@ const BestRated = ({ data }: { data: Movie[] }) => {
     .filter((movie) => movie.score !== undefined)
     // Watch date breaks the tie: many films share a nine, and the recent ones say more.
     .sortByKey("startDate")
-    .sortByKey("score");
+    // A numeric sort rather than `sortByKey`, which puts falsy values first in both directions —
+    // a film honestly scored 0 would head a list titled "Best Rated".
+    .toSorted((a, b) => b.score! - a.score!);
   return (
     <MovieStatList
       icon={<Grade />}

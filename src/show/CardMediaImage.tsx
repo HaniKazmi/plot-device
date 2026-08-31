@@ -36,7 +36,9 @@ const showStats = (show: Show): CardStat[] => [
 const showRows = (show: Show): LedgerRow[] => {
   const rows: LedgerRow[] = [
     { label: "Watched", value: formatDateRange(show.startDate, show.endDate) },
-    { label: "Last Watched", value: `S${show.s.length}E${show.s.at(-1)!.e}` },
+    // The latest season's own number, not the array length — the converter drops pre-2006
+    // seasons, so a show with early seasons dropped holds fewer entries than its numbering.
+    { label: "Last Watched", value: `S${show.s.at(-1)!.s}E${show.s.at(-1)!.e}` },
     // The primary genre leads and the rest follow it, which is the order the sheet holds them in
     // and the order the charts group by.
     { label: "Genre", value: [show.genre, ...show.genres].join(" · "), swatch: genreToColour(show.genre) },

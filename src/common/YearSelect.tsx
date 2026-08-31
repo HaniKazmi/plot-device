@@ -15,6 +15,8 @@ export const YearSelect = (props: {
   onChange: (year: YearNumber) => void;
   renderValue: (value: number) => ReactNode;
   minWidth?: number;
+  /** The oldest year on offer — a domain whose data starts earlier than the default passes its own floor. */
+  earliestYear?: YearNumber;
 }) => (
   <FormControl
     variant="standard"
@@ -28,14 +30,16 @@ export const YearSelect = (props: {
       renderValue={(value) => props.renderValue(value as number)}
       slots={{ root: prepareForSlot("span") }}
     >
-      {Array.from({ length: CURRENT_YEAR - EARLIEST_YEAR + 1 }, (_, i) => CURRENT_YEAR - i).map((year) => (
-        <MenuItem
-          key={year}
-          value={year}
-        >
-          {year}
-        </MenuItem>
-      ))}
+      {Array.from({ length: CURRENT_YEAR - (props.earliestYear ?? EARLIEST_YEAR) + 1 }, (_, i) => CURRENT_YEAR - i).map(
+        (year) => (
+          <MenuItem
+            key={year}
+            value={year}
+          >
+            {year}
+          </MenuItem>
+        ),
+      )}
     </Select>
   </FormControl>
 );

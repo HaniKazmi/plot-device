@@ -36,8 +36,6 @@ export const EventRibbon = ({
   ticks: TimelineTick[];
   children: ReactNode;
 }) => {
-  // Filtered once for all rows rather than once per row: twenty rows share one set of gridlines.
-  const gridTicks = ticks.filter((tick) => tick.percent > 0);
   return (
     <Card>
       {children}
@@ -73,11 +71,14 @@ export const EventRibbon = ({
                   backgroundColor: "action.hover",
                 }}
               >
-                <RibbonScale ticks={gridTicks} />
+                <RibbonScale ticks={ticks} />
                 {row.bands.map((band) => (
                   <TimelineBandBox
                     {...band}
                     laneCount={row.laneCount}
+                    // Every mark here is a peer — there is no "this one, among these" for the
+                    // subject ring to say, and at point-event widths it would drown the fill.
+                    frameless
                     key={band.key}
                   />
                 ))}

@@ -303,8 +303,8 @@ const MostPlayedCategory = ({
       title={dialogContent.name}
       onClose={() => setDialogContent(null)}
       // Sorted here rather than in `groupGamesBy`, which would sort every category on every
-      // render to serve the one being drilled into. The dialog caps at the first 18, so an
-      // unsorted list would show an arbitrary handful under a card headed Most Played.
+      // render to serve the one being drilled into. A dialog under a card headed
+      // Most Played has to open largest-first, whatever slice of it the reader scrolls.
       content={dialogContent.all.sortByKey("hours")}
       cardKey={(entry) => category + "-statslistcard-" + entry.name}
       labelComponent={statsCardLabelEndDateHours}

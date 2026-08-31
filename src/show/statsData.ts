@@ -24,7 +24,8 @@ const showGroupValue = (show: Show, key: ShowTopOption): string => {
   return show[key];
 };
 
-const measureOf = (shows: Show[], measure: Measure) => {
+/** How much a set of shows counts for under the active measure — the one home of the /60 floor. */
+export const measureOf = (shows: Show[], measure: Measure) => {
   if (measure === "Hours") return Math.floor(shows.sum("minutes") / 60);
   if (measure === "Episodes") return shows.sum("e");
   return shows.length;
@@ -201,8 +202,4 @@ export const currentlyWatching = (data: Show[]) =>
 export const statsCardLabelRecentlyComplete = (season: Season) => [
   [`S${season.s}`, season.endDate ? formatDate(season.endDate) : ""],
   [`${season.e} Eps`, `${format(Math.round(season.minutes / 60))} Hours`],
-];
-
-export const statsCardLabelCurrentlyPlaying = (season: Season) => [
-  [`S${season.s}`, season.startDate ? formatDate(season.startDate) : ""],
 ];

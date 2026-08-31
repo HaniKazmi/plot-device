@@ -48,5 +48,5 @@ export const watchRibbonYears = (data: Movie[]): RibbonYear[] => {
       );
       return { year, bands, laneCount };
     })
-    .toSorted((a, b) => a.year - b.year);
+    .sortByKey("year", true);
 };

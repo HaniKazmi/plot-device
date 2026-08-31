@@ -50,6 +50,13 @@ describe("field parsing", () => {
     expect(convertOne({ Runtime: "116min" }).minutes).toBe(116);
   });
 
+  it("reads a blank runtime as zero rather than NaN, which any sum would spread", () => {
+    // `sum` accumulates with `+`, so one NaN blanks every hours total and average far from the
+    // row that carried it. Unlike score, minutes is not optional on the model, so 0 is the
+    // value that keeps sums honest.
+    expect(convertOne({ Runtime: "" }).minutes).toBe(0);
+  });
+
   it("rejects a rating the colour map could not paint, naming the row and the film", () => {
     // Left to reach ageRatingToColour, a bad cell throws from inside a render instead — naming
     // the value but not which film carried it.
