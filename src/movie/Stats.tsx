@@ -26,7 +26,7 @@ import { useSelectBox } from "../common/SelectBoxHook";
 import { useFranchiseMovies } from "./franchiseContext";
 import { format } from "../utils/mathUtils";
 import { genreToColour } from "../utils/types";
-import MovieCardMediaImage, { MOVIE_ARTWORK_SHAPE } from "./CardMediaImage";
+import MovieCardMediaImage from "./CardMediaImage";
 import { MOVIE_SECTIONS } from "./sections";
 import type { FilterDispatch } from "./filterUtils";
 import {
@@ -154,7 +154,6 @@ const MovieHero = ({ movie }: { movie: Movie }) => {
     <Hero
       item={movie}
       MediaComponent={MovieCardMediaImage}
-      shape={MOVIE_ARTWORK_SHAPE}
       kicker={`Latest watch · ${formatDate(movie.startDate)} · ${cinemaLabel(movie)}`}
       // The same badge the strips' posters carry, so being promoted does not cost the film its score.
       chip={movieScoreChip(movie)}
@@ -306,14 +305,14 @@ const movieScoreChip = (movie: Movie) =>
 
 const movieStatListSharedProps: Pick<
   StatsListProps<Movie>,
-  "divider" | "width" | "pictureWidth" | "dialogPictureWidth"
+  "aspectRatio" | "divider" | "width" | "pictureWidth" | "dialogPictureWidth"
 > = {
+  // Posters, not banners — the cards keep the shape the library grid shows them at.
+  aspectRatio: "2/3",
   divider: true,
   width: [12, 12, 4],
-  // Two to a row rather than three: a poster seats its name beside itself, so a card here is
-  // spending its width twice, and a third of a third-width card leaves each half 58 pixels.
-  pictureWidth: [6, 6, 6],
-  dialogPictureWidth: [6, 4, 3],
+  pictureWidth: [6, 4, 4],
+  dialogPictureWidth: [6, 3, 2],
 };
 
 const MovieStatList = (

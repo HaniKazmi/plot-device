@@ -11,7 +11,6 @@ import {
 } from "../common/Card";
 import { cinemaLabel, scoreBand, scoreBandToColour, type Movie } from "./types";
 import { ageRatingToColour, genreToColour } from "../utils/types";
-import type { ArtworkShape } from "../common/cardArrangement";
 import { namesTheSameThing } from "../utils/stringUtils";
 import { CURRENT_PLAINDATE, formatDate } from "../common/date";
 import { buildStrip, stripYearTicks } from "../common/timelineStripData";
@@ -59,18 +58,10 @@ const movieRows = (movie: Movie): LedgerRow[] => {
   return rows;
 };
 
-/**
- * Films are logged with poster art, so a film card seats its words beside the picture. Stated once
- * here and read by the hero and the library wall as well, which is what keeps the shape a card
- * reserves and the shape it is arranged for the same answer.
- */
-export const MOVIE_ARTWORK_SHAPE: ArtworkShape = "portrait";
-
 const MovieCardMediaImage: TypedCardMediaImage<Movie> = ({ item, ...props }) => (
   <CardMediaImage
     alt={item.name}
     image={item.banner}
-    shape={MOVIE_ARTWORK_SHAPE}
     detailComponent={() => (
       <CardContent>
         <Grid

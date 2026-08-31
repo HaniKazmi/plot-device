@@ -45,14 +45,26 @@ export interface CardMediaImageProps {
   detailComponent?: () => ReactNode;
   sx?: SxProps<Theme>;
   /**
-   * The card itself rather than the artwork inside it. A caller that pins how the two halves stand
-   * against each other — the hero — owns that axis, and only the card can carry it.
+   * The card itself rather than the artwork inside it. A caller that lays the artwork and a panel
+   * out against each other — the hero — owns that axis, and only the card can carry it.
    */
   cardSx?: SxProps<Theme>;
+  landscape?: boolean;
   /**
-   * The shape the artwork comes in, which is the only thing that decides the card's arrangement.
-   * Each domain's own `CardMediaImage` states it once; a caller passing mixed media states it per
-   * item.
+   * `"aside"` for a card whose panel sits beside the image and has to be given the remaining
+   * width; left off, the artwork column is the width of the card.
+   */
+  mediaLayout?: "aside";
+  /**
+   * The shape of the artwork, for a surface holding more than one of them: the card then reserves
+   * that shape before the image loads and arranges itself by it — a poster takes its words in a
+   * column beside it, a banner stacks them underneath.
+   *
+   * The Omnibus is the surface that needs it, because a mixed row is where a single arrangement
+   * fails: a banner is four times as wide as it is tall, so words beside it get a sliver of a
+   * column, while a poster is half as wide as it is tall, so the strip beneath it is a hundred
+   * pixels across and clamps every title to three characters. A tab whose artwork is all one shape
+   * has no such row and says nothing here, keeping the arrangement its own layout gives it.
    */
   shape?: ArtworkShape;
   /** Derive the card's theme colour from the image once it loads. Costs a canvas read per image. */
@@ -85,43 +97,52 @@ const readImage = (
  * `CardActionArea` is `width: 100%`, which as a flex item resolves its basis to the whole card:
  * the panel beside it is then dividing up no free space at all, and collapses to the width of its
  * longest word while the artwork sits in a column of empty ground. Basis `auto` against a
- * shrink-to-fit width makes the column however wide the artwork turned out to be, and the panel
- * takes the rest. `flex-start` ends the column where the artwork does rather than stretching it to
- * a taller panel.
- *
- * The ceiling is what makes one rule serve both kinds of caller. Where the card's width is imposed
- * from outside — a grid cell, a shelf — the artwork's own pixels are far wider than the cell, and
- * shrink-to-fit alone would take the whole card and leave the panel nothing; half is the most a
- * poster can claim, so the words always have a column. Where the caller pins the artwork's size
- * instead — the hero, a hover card — the artwork is already narrower than that and the ceiling
- * never binds.
+ * shrink-to-fit width makes the column however wide the artwork turned out to be at its own
+ * height, and the panel takes the rest. `flex-start` ends the column where the artwork does
+ * rather than stretching it to a taller panel.
  */
 const ASIDE_ACTION_AREA_SX = {
   flex: "0 0 auto",
-  width: "auto",
-  maxWidth: "50%",
+  width: { xs: "100%", md: "auto" },
   alignSelf: "flex-start",
 } as const;
 
+/**
+ * The same column, for a card arranged by its artwork's shape rather than by a caller that pinned
+ * the artwork's size.
+ *
+ * The ceiling is what the difference is for. This card's width is imposed on it — a grid cell, a
+ * band — and the artwork's own pixels are several times that, so shrink-to-fit alone hands the
+ * whole card to the picture and leaves the words nothing. Half is the most a poster can claim, so
+ * there is always a column to set a name in. Stretching rather than ending at the artwork, because
+ * a card in a band is as tall as the tallest card beside it and a picture that stops short of that
+ * leaves a panel of bare ground under itself.
+ */
+const SHAPE_ASIDE_ACTION_AREA_SX = {
+  flex: "0 0 auto",
+  width: "auto",
+  maxWidth: "50%",
+  alignSelf: "stretch",
+} as const;
+
 /** Artwork filling a column it did not choose the width of, at its own ratio and uncropped. */
-const ASIDE_MEDIA_SX = { maxWidth: "100%", height: "auto", display: "block" } as const;
+const SHAPE_ASIDE_MEDIA_SX = { maxWidth: "100%", height: "auto", display: "block" } as const;
 
 export const CardMediaImage = (props: CardMediaImageProps) => {
-  const { image, alt, chip, colour: propColour, footerComponent, detailComponent, sx, cardSx } = props;
+  const { image, alt, chip, colour: propColour, footerComponent, detailComponent, mediaLayout, sx, cardSx } = props;
   // Defaults are read off `props` rather than written in the destructuring pattern: a default
   // there is an assignment the React Compiler cannot lower, and it bails the whole component out
   // of memoization — silently, since the code still runs. `extractColour` must resolve before the
   // `useState` initialiser below that reads it.
   const lazy = props.lazy ?? false;
-  const shape = props.shape ?? "landscape";
+  const landscape = props.landscape ?? false;
   const extractColour = props.extractColour ?? false;
+  const shape = props.shape;
   /**
-   * Portrait artwork takes the words beside it; landscape artwork stacks them underneath.
-   *
-   * A card with no words is not arranged at all. The beside rule divides the card between a picture
-   * and a column of text, so applying it to bare artwork hands half the card to a panel that is not
-   * there and draws the picture at half the size it was given room for — which is what a shelf of
-   * pictures at one height is, and what the library wall is.
+   * A card with no words is not arranged at all. The rule divides the card between a picture and a
+   * column of text, so applying it to bare artwork hands half the card to a panel that is not there
+   * and draws the picture at half the size it was given room for — which is what a shelf of pictures
+   * at one height is.
    */
   const beside = shape === "portrait" && footerComponent !== undefined;
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
@@ -165,7 +186,7 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
 
   return (
     <ArtworkAccent.Provider value={colour}>
-      <CardArrangementProvider value={shape}>
+      <CardArrangementProvider value={beside ? "beside" : "stacked"}>
         <Card
           variant="elevation"
           // The array form rather than a spread: `SxProps` is also legally a function or an array,
@@ -175,13 +196,15 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
               height: "100%",
               position: "relative",
               backgroundColor: palette.ground,
-              display: beside ? "flex" : undefined,
+              display: landscape || beside ? "flex" : undefined,
               color: palette.onGround,
             },
             ...(Array.isArray(cardSx) ? cardSx : [cardSx]),
           ]}
         >
-          <CardActionArea sx={beside ? ASIDE_ACTION_AREA_SX : undefined}>
+          <CardActionArea
+            sx={mediaLayout === "aside" ? ASIDE_ACTION_AREA_SX : beside ? SHAPE_ASIDE_ACTION_AREA_SX : undefined}
+          >
             <CardMedia
               height={"100%"}
               component="img"
@@ -199,10 +222,11 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
               ref={imgRef}
               onLoad={(el) => readImage(el.currentTarget, extractColour && !colour, setRatio, setExtracted)}
               // The shape's own rules first and the caller's after them, so a caller that pins a
-              // height — the hero, a shelf — still wins, and one that pins nothing gets the
-              // reservation and the column sizing without asking.
+              // height still wins and one that pins nothing gets the reservation and the column
+              // sizing without asking. A card that named no shape is left exactly as its caller
+              // dressed it.
               sx={[
-                { aspectRatio: shapeToAspect(shape), ...(beside && ASIDE_MEDIA_SX) },
+                ...(shape ? [{ aspectRatio: shapeToAspect(shape), ...(beside && SHAPE_ASIDE_MEDIA_SX) }] : []),
                 ...(Array.isArray(sx) ? sx : [sx]),
               ]}
             />
@@ -396,10 +420,10 @@ export interface PanelSubtitlePart {
  * How a panel sits against the artwork it belongs to, which decides the edge the two share and
  * whether the panel has height to spend.
  *
- * A panel inside a card does not name this: the card publishes its artwork's shape and the panel
- * reads it, so the two halves of one card cannot come to disagree about which way round they are.
- * It is named only where a caller means something the shape does not decide — the hero's own
- * breakpoint-dependent arrangement.
+ * A panel left to itself follows the card it is inside: a card arranged by its artwork's shape
+ * publishes that arrangement and the panel reads it, so the two halves of one card cannot come to
+ * disagree about which way round they are. Naming it is for a caller whose layout says something
+ * the card does not — the hero's breakpoint-dependent arrangement, or a tooltip laid out by hand.
  *
  * - `beneath` — under the artwork, as tall as its own type. Nothing to distribute.
  * - `beside` — next to a poster, and as tall as it. Three lines against a 2:3 poster leaves
@@ -438,14 +462,14 @@ export const CardPanel = ({
   /** Absent where the card names its dates some other way, as the hero's kicker does. */
   dateRange?: string;
   stats: PanelStat[];
-  /** Only where the caller means something its card's own shape does not decide. */
+  /** Only where the caller's layout says something its card does not. */
   layout?: PanelLayout;
   /** Holds the panel to the artwork's height, so the card is the height of the picture in it. */
   minHeight?: number;
 }) => {
   const palette = useArtworkPalette();
   const arrangement = useCardArrangement();
-  const resolved = layout ?? (arrangement === "portrait" ? "beside" : "beneath");
+  const resolved = layout ?? (arrangement === "beside" ? "beside" : "beneath");
   const beside = resolved === "beside";
   const hero = resolved === "hero";
 
@@ -565,27 +589,41 @@ export interface CardStat extends PanelStat {
  * One rule wherever tiles appear — a panel's, an expanded card's — because two grids that wrapped
  * at different counts would put the same two figures on one line in one place and two in another.
  */
-const StatTileGrid = ({ stats, size }: { stats: CardStat[]; size?: "hero" }) => (
-  <Box
-    sx={{
-      display: "grid",
-      gridTemplateColumns: {
-        xs: `repeat(${Math.min(stats.length, 2)}, 1fr)`,
-        sm: `repeat(${stats.length}, 1fr)`,
-      },
-      gap: 1,
-      width: "100%",
-    }}
-  >
-    {stats.map((stat) => (
-      <StatTile
-        key={stat.label}
-        {...stat}
-        size={size}
-      />
-    ))}
-  </Box>
-);
+const StatTileGrid = ({ stats, size }: { stats: CardStat[]; size?: "hero" }) => {
+  const beside = useCardArrangement() === "beside";
+
+  return (
+    <Box
+      sx={{
+        display: "grid",
+        // Beside a poster the row is a column's width rather than a card's, and a third tile in it
+        // is narrower than the word under the figure — the label then sets the grid's floor and the
+        // last tile is pushed past the card's edge. Fitting as many as the column holds and wrapping
+        // the rest keeps every figure the panel was given, which the alternative — carrying fewer
+        // beside than beneath — does not.
+        gridTemplateColumns: beside
+          ? `repeat(auto-fit, minmax(${BESIDE_TILE_FLOOR}px, 1fr))`
+          : {
+              xs: `repeat(${Math.min(stats.length, 2)}, 1fr)`,
+              sm: `repeat(${stats.length}, 1fr)`,
+            },
+        gap: 1,
+        width: "100%",
+      }}
+    >
+      {stats.map((stat) => (
+        <StatTile
+          key={stat.label}
+          {...stat}
+          size={size}
+        />
+      ))}
+    </Box>
+  );
+};
+
+/** Wide enough for a figure and the word under it, which is what decides how many share a row. */
+const BESIDE_TILE_FLOOR = 72;
 
 /** A figure and what it counts, set apart from the prose so the numbers can be read at a glance. */
 export const StatTile = ({ value, label, colour, size }: CardStat & { size?: "hero" }) => {
@@ -759,16 +797,16 @@ export const MetadataLedger = ({ rows }: { rows: LedgerRow[] }) => {
  * belong to, which is why only the last is given the full tone. A label builder adding a row is
  * adding context, and belongs above the figures for the same reason.
  *
- * Beside a poster the same rows are read down a column instead of across a strip. A strip's width
- * is the whole card and a column's is what the artwork left, so the row that fits on one line under
- * a banner is three or four words wide here — the names are given the lines to wrap onto and a
- * ceiling that stops one from outgrowing the picture it belongs to.
+ * Beside a poster the same rows are read down a column instead of across a strip. A strip's width is
+ * the whole card and a column's is what the artwork left, so the row that fits on one line under a
+ * banner is three or four words wide here — the names are given lines to wrap onto, and a ceiling
+ * that stops one from outgrowing the picture it belongs to.
  */
 const BESIDE_LABEL_LINES = 3;
 
 export const FooterComponent = ({ labels, divider }: { labels: string[][]; divider?: boolean }) => {
   const palette = useArtworkPalette();
-  const beside = useCardArrangement() === "portrait";
+  const beside = useCardArrangement() === "beside";
 
   return (
     <CardContent
@@ -777,17 +815,14 @@ export const FooterComponent = ({ labels, divider }: { labels: string[][]; divid
         ":last-child": { paddingBottom: "10px" },
         // Basis zero and free to grow, so the column is exactly the card minus the artwork rather
         // than a share of it; the floor is what lets a long word wrap instead of setting the width.
-        ...(beside ? { flex: "1 1 0", minWidth: 0 } : { width: "100%" }),
-        display: "flex",
-        flexDirection: "column",
+        ...(beside ? { flex: "1 1 0", minWidth: 0, display: "flex", flexDirection: "column" } : { width: "100%" }),
         // Centred against the artwork's height, which is what the card's height is. Under a banner
         // there is no spare height to place the rows in.
-        justifyContent: beside ? "center" : "flex-start",
+        ...(beside && { justifyContent: "center" }),
         backgroundColor: palette.ground,
         color: palette.onGround,
-        // The one edge the two halves share, which is the left of the panel where it sits beside
-        // the picture. Written out rather than as one computed key, which the React Compiler
-        // cannot lower — and bailing here takes every card in the app out of memoization.
+        // The one edge the two halves share. Written out rather than as one computed key, which the
+        // React Compiler cannot lower — and bailing here takes every card in the app with it.
         ...(beside ? { borderLeft: palette.seam } : { borderTop: palette.seam }),
       }}
     >
@@ -805,8 +840,7 @@ export const FooterComponent = ({ labels, divider }: { labels: string[][]; divid
             ) : null
           }
           sx={{
-            // Beside, a row is read as the start of a line of prose; under the artwork it is
-            // spread across the card's whole width.
+            // Beside, a row opens a line of prose; under the artwork it is spread across the card.
             justifyContent: beside ? "flex-start" : stacks.length === 1 ? "center" : "space-between",
             columnGap: beside ? 0.75 : 0,
             flexWrap: beside ? "wrap" : "nowrap",

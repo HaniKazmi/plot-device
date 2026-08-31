@@ -23,13 +23,6 @@ import type { FilterDispatch } from "./filterUtils";
 import { OMNIBUS_SECTIONS } from "./sections";
 import { media, mediumToColour, mediumToLabel, mediumToShape, type Measure, type Medium } from "./types";
 
-/**
- * How tall a Now card's artwork is. Height alone is fixed and the width follows the shape, so a
- * banner and a poster sit at one height in one row without either being cropped — the banner across
- * its card with the words under it, the poster beside its own.
- */
-const NOW_MEDIA_HEIGHT = 170;
-
 const Stats = ({
   data,
   now,
@@ -145,7 +138,12 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
     <Grid
       container
       spacing={1}
-      sx={{ alignItems: "stretch" }}
+      // Each card is the height of what is in it, rather than every card the height of the tallest.
+      // The two shapes cannot reach a common height with their artwork intact: a banner across a
+      // third of the band is 228px tall and a poster beside its words is 304, so holding both to one
+      // height spends the difference either on ground around a floating picture or on a crop. A card
+      // that ends where its own artwork ends is the one arrangement where every picture is whole.
+      sx={{ alignItems: "flex-start" }}
     >
       {now.game && (
         <NowCard
@@ -210,32 +208,33 @@ const NowCard = <T,>(props: {
   title: string;
   subtitle: PanelSubtitlePart[];
   stats: PanelStat[];
-}) => (
-  <Grid size={{ xs: 12, md: 4 }}>
-    <props.MediaComponent
-      item={props.item}
-      extractColour
-      chip={{ label: mediumToLabel(props.medium), colour: mediumToColour(props.medium), onClick: props.onJump }}
-      sx={
-        mediumToShape(props.medium) === "portrait"
-          ? // Beside the panel, so the poster's width is its own and the words get the rest of the
-            // card — which is where the figures go too, rather than crammed under a 113px picture.
-            { height: NOW_MEDIA_HEIGHT, width: "auto", display: "block" }
-          : // Above the panel and across the card, contained so the ratio the banner was made in
-            // survives whatever width the third of a band turns out to be.
-            { height: NOW_MEDIA_HEIGHT, width: "100%", objectFit: "contain", display: "block" }
-      }
-      footerComponent={
-        <CardPanel
-          kicker={props.kicker}
-          title={props.title}
-          titleVariant="h6"
-          subtitle={props.subtitle}
-          stats={props.stats}
-        />
-      }
-    />
-  </Grid>
-);
+}) => {
+  const shape = mediumToShape(props.medium);
+
+  return (
+    <Grid size={{ xs: 12, md: 4 }}>
+      <props.MediaComponent
+        item={props.item}
+        extractColour
+        shape={shape}
+        chip={{ label: mediumToLabel(props.medium), colour: mediumToColour(props.medium), onClick: props.onJump }}
+        // Whichever axis the arrangement gave it, filled edge to edge, with the other axis its own.
+        // The card is then the size of its picture plus its words, and nothing is cropped to fit or
+        // left floating in ground: a poster fills the column beside the panel, a banner the whole
+        // width above it.
+        sx={{ width: "100%", height: "auto", display: "block" }}
+        footerComponent={
+          <CardPanel
+            kicker={props.kicker}
+            title={props.title}
+            titleVariant="h6"
+            subtitle={props.subtitle}
+            stats={props.stats}
+          />
+        }
+      />
+    </Grid>
+  );
+};
 
 export default Stats;

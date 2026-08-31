@@ -11,7 +11,6 @@ import {
 import { VideoGame, companyToAccent, franchiseToColour, genreToColour, platformToColor, ratingToColour } from "./types";
 import Grid from "@mui/material/Grid";
 import { statusToColour } from "../utils/types";
-import type { ArtworkShape } from "../common/cardArrangement";
 import { CURRENT_PLAINDATE, Year, YearMonthDay, formatDate, formatDateRange } from "../common/date";
 import { buildStrip, stripYearTicks } from "../common/timelineStripData";
 import { gameSpans, spanKey } from "./cardData";
@@ -82,18 +81,10 @@ const gameRows = (game: VideoGame): LedgerRow[] => {
   return rows;
 };
 
-/**
- * Games are logged with banner art, so a game card stacks its words under the picture. Stated
- * once here and read by the hero and the library wall as well, which is what keeps the shape a
- * card reserves and the shape it is arranged for the same answer.
- */
-export const VG_ARTWORK_SHAPE: ArtworkShape = "landscape";
-
 const VgCardMediaImage: TypedCardMediaImage<VideoGame> = ({ item, ...props }) => (
   <CardMediaImage
     alt={item.name}
     image={item.banner}
-    shape={VG_ARTWORK_SHAPE}
     detailComponent={() => (
       <CardContent>
         <Grid

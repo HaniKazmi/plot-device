@@ -5,16 +5,13 @@ import {
   type PanelSubtitlePart,
   type TypedCardMediaImage,
 } from "./Card";
-import type { ArtworkShape } from "./cardArrangement";
 
 /**
- * How tall the artwork is, whichever side of the panel it is on.
+ * How tall the artwork is beside the panel, and on a phone above it.
  *
  * Height is the only dimension fixed, so the hero is the same height whatever it is showing while
  * the artwork keeps its own shape — a 16:9 banner comes out around 533px wide and a 2:3 poster
- * around 200px, and neither is cut into. Letting a stacked banner set its own height instead makes
- * it as tall as two thirds of the card is wide, which puts everything the page is about below the
- * fold.
+ * around 200px, and neither is cut into.
  */
 const MEDIA_HEIGHT = 300;
 
@@ -41,11 +38,6 @@ export type HeroStat = PanelStat;
 export const Hero = <T,>(props: {
   item: T;
   MediaComponent: TypedCardMediaImage<T>;
-  /**
-   * The domain's own artwork shape, which arranges the hero the way it arranges every card below
-   * it: a poster takes the panel beside it, a banner takes it underneath.
-   */
-  shape: ArtworkShape;
   /** The line above the title, saying why this item is the one shown. */
   kicker: string;
   title: string;
@@ -53,57 +45,39 @@ export const Hero = <T,>(props: {
   stats: HeroStat[];
   /** The same corner badge the item's thumbnail carries, so the promoted one is not the bare one. */
   chip?: CardMediaImageProps["chip"];
-}) => {
-  const beside = props.shape === "portrait";
-
-  return (
-    <props.MediaComponent
-      item={props.item}
-      extractColour
-      chip={props.chip}
-      cardSx={
-        beside
-          ? // Beside once there is width for it, stacked on a phone — where a 200px poster beside a
-            // panel leaves the panel a column too narrow to set a title in.
-            { flexDirection: { xs: "column", md: "row" }, alignItems: "flex-start", overflow: "hidden" }
-          : { overflow: "hidden" }
-      }
-      sx={
-        beside
-          ? {
-              // Height alone is pinned and the width follows the artwork's own ratio, so nothing is
-              // cut into. Left to itself the artwork sets the height instead, and a 2:3 poster at
-              // natural size makes the hero taller than the screen.
-              width: { xs: "100%", md: "auto" },
-              height: { xs: "auto", md: MEDIA_HEIGHT },
-              maxWidth: { md: MEDIA_MAX_WIDTH },
-              objectFit: "contain",
-              display: "block",
-            }
-          : {
-              // A banner spanning the card sets its own height at nine sixteenths of it, which is
-              // most of a screen. Pinning the height and containing within the full width keeps the
-              // whole picture: what is left over falls as the card's own sampled ground either
-              // side, which is the same ground the panel under it is painted on.
-              width: "100%",
-              height: MEDIA_HEIGHT,
-              objectFit: "contain",
-              display: "block",
-            }
-      }
-      footerComponent={
-        <CardPanel
-          // Named rather than left to the card's shape: this is the one panel whose arrangement
-          // turns over at a breakpoint, and beside on a phone is not what the shape alone says.
-          layout={beside ? "hero" : "beneath"}
-          kicker={props.kicker}
-          title={props.title}
-          titleVariant="h4"
-          subtitle={props.subtitle}
-          stats={props.stats}
-          minHeight={beside ? MEDIA_HEIGHT : undefined}
-        />
-      }
-    />
-  );
-};
+}) => (
+  <props.MediaComponent
+    item={props.item}
+    extractColour
+    landscape
+    // The panel sits beside the artwork and needs the width the artwork did not take.
+    mediaLayout="aside"
+    chip={props.chip}
+    cardSx={{
+      flexDirection: { xs: "column", md: "row" },
+      alignItems: "flex-start",
+      overflow: "hidden",
+    }}
+    sx={{
+      // Height alone is pinned and the width follows the artwork's own ratio, so nothing is cut
+      // into. Left to itself the artwork sets the height instead, and a 2:3 poster at natural
+      // size makes the hero taller than the screen and pushes the rest of the page below the fold.
+      width: { xs: "100%", md: "auto" },
+      height: { xs: "auto", md: MEDIA_HEIGHT },
+      maxWidth: { md: MEDIA_MAX_WIDTH },
+      objectFit: "contain",
+      display: "block",
+    }}
+    footerComponent={
+      <CardPanel
+        layout="hero"
+        kicker={props.kicker}
+        title={props.title}
+        titleVariant="h4"
+        subtitle={props.subtitle}
+        stats={props.stats}
+        minHeight={MEDIA_HEIGHT}
+      />
+    }
+  />
+);

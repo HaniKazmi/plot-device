@@ -43,7 +43,7 @@ import {
 import { StatCard, StatList, type StatsListProps, TotalsBand, VitalsCard, YearTotals } from "../common/Stats";
 import { TopListCard } from "../common/TopList";
 import { GroupedStatList } from "../common/GroupedStatList";
-import VgCardMediaImage, { VG_ARTWORK_SHAPE } from "./CardMediaImage";
+import VgCardMediaImage from "./CardMediaImage";
 import { Stack, Typography } from "@mui/material";
 import type { FilterDispatch, YearType } from "./filterUtils";
 import { statusToColour } from "../utils/types";
@@ -152,7 +152,6 @@ const VgHero = ({ game }: { game: VideoGame }) => {
     <Hero
       item={game}
       MediaComponent={VgCardMediaImage}
-      shape={VG_ARTWORK_SHAPE}
       kicker={`Currently playing · since ${formatDate(game.startDate)}`}
       // The same badge every other playing game carries in the strip below, so being the one
       // promoted to the top of the page does not cost this game its platform.
@@ -360,8 +359,9 @@ const optionIcons: Record<TopOption, ReactNode> = {
 
 const vgStatListSharedProps: Pick<
   StatsListProps<VideoGame>,
-  "divider" | "width" | "pictureWidth" | "dialogPictureWidth"
+  "aspectRatio" | "divider" | "width" | "pictureWidth" | "dialogPictureWidth"
 > = {
+  aspectRatio: "16/9",
   divider: true,
   width: [12, 12, 6],
   pictureWidth: [12, 4, 6],

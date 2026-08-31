@@ -19,6 +19,7 @@ const Finished = <U extends FinishedItem>({
   data,
   width,
   colour,
+  landscape: landscapeProp,
   MediaComponent,
 }: {
   title: string;
@@ -27,8 +28,11 @@ const Finished = <U extends FinishedItem>({
   data: readonly U[];
   width: number;
   colour?: (item: U) => string;
+  landscape?: boolean;
   MediaComponent: TypedCardMediaImage<U>;
 }) => {
+  // Applied after the pattern: a default inside it bails the component out of the React Compiler.
+  const landscape = landscapeProp ?? false;
   const [sort, selectBox] = useSelectBox(sortOptions, "Date");
 
   const slowData = useDeferredValue(data, []);
@@ -89,17 +93,28 @@ const Finished = <U extends FinishedItem>({
                   borderWidth: colour && 3,
                 }}
               >
-                {/* The reservation the card holds before its artwork arrives is the shape's, and
-                    the wall is what most depends on it: a lazily loaded image reserves nothing, so
-                    a wall of them stands at a fifth of its real height — 7,000 pixels against
-                    33,000 for 322 games — and every offset the scroll marker measures is short by
-                    the artwork not loaded yet. Scrolling into the wall is what makes that artwork
-                    load, so the page grows under the reader and a jump far down the sort asks for
-                    an offset the document does not have and lands clamped at its bottom. What is
-                    left to settle once one lands is a card's own rounding rather than its height. */}
                 <MediaComponent
                   item={item}
+                  landscape={landscape}
                   lazy
+                  /**
+                   * The height every card holds before its artwork arrives.
+                   *
+                   * A lazily loaded image reserves nothing, so a wall of them stands at a fifth of
+                   * its real height — 7,000 pixels against 33,000 for 322 games — and every offset
+                   * measured in it is short by the artwork that has not loaded yet. Scrolling into
+                   * the wall is what makes that artwork load, so the page grows under the reader
+                   * and a position measured a moment ago is already wrong; a jump far down the
+                   * sort asks for an offset the document does not yet have and lands clamped at
+                   * its bottom instead.
+                   *
+                   * `auto` before the ratio is what keeps this a reservation rather than a crop:
+                   * the artwork's own shape wins the moment it is known, and this stands in only
+                   * while there is none. What is left to settle after one lands is a card's own
+                   * rounding rather than a card's height — a landscape wall's banners are 16:9
+                   * within a few percent, and a portrait wall's posters 2:3.
+                   */
+                  sx={{ aspectRatio: landscape ? "auto 16 / 9" : "auto 2 / 3" }}
                 />
               </Card>
             </Grid>

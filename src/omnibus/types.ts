@@ -1,8 +1,5 @@
 import type { ArtworkShape } from "../common/cardArrangement";
-import { MOVIE_ARTWORK_SHAPE } from "../movie/CardMediaImage";
-import { SHOW_ARTWORK_SHAPE } from "../show/CardMediaImage";
 import type { Colour } from "../utils/types";
-import { VG_ARTWORK_SHAPE } from "../vg/CardMediaImage";
 
 /**
  * The three things this tab counts. Singular and lower case because it is a discriminant on a
@@ -41,17 +38,17 @@ const mediumLabels: Record<Medium, string> = {
 export const mediumToLabel = (medium: Medium): string => mediumLabels[medium];
 
 /**
- * The shape a medium's artwork comes in: games are banners, shows and films are posters.
+ * The shape a medium's artwork comes in: the Games sheet holds banners, the Shows and Movies sheets
+ * hold posters.
  *
- * The same answer each home tab gives — the values are its own `*_ARTWORK_SHAPE` — because a card
- * on this tab is that tab's card and has to be arranged and reserved the way it is there. Read
- * from the item's medium rather than declared once for the surface, since the whole point of the
- * union is that one row holds all three.
+ * Only this tab asks. A home tab's artwork is all one shape, so its layout is drawn for that shape
+ * and the question never comes up; here a single row holds all three, which is why every card on
+ * the page reserves and arranges itself from the item's own medium.
  */
 const mediumShapes: Record<Medium, ArtworkShape> = {
-  game: VG_ARTWORK_SHAPE,
-  show: SHOW_ARTWORK_SHAPE,
-  movie: MOVIE_ARTWORK_SHAPE,
+  game: "landscape",
+  show: "portrait",
+  movie: "portrait",
 };
 
 export const mediumToShape = (medium: Medium): ArtworkShape => mediumShapes[medium];

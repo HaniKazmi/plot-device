@@ -53,7 +53,7 @@ The compiler is enabled and auto-memoizes render-phase work (§7 of ARCHITECTURE
 - **Never add `useMemo` or `useCallback`.** If you catch yourself reaching for one, the compiler already handles it. Hand-placed memos are redundant and drift out of sync with their dependencies.
 - **Never write `this` inside a component or hook.** It opts that whole function out of compilation, silently. Third-party callbacks that bind `this` (Highcharts does this on chart events) must live at module scope — see `dimLeafRing` in `common/Sunburst.tsx` for the pattern.
 - **Never write `??=`.** The compiler cannot lower it yet and bails on the enclosing function. Write `x = x ?? y`.
-- **Never give a destructured prop a default value.** `({ lazy = false })` is an assignment pattern the compiler cannot lower, and it takes the whole component out. Destructure without the default and read it off the props object — `const lazy = props.lazy ?? false` — or rename in the pattern (`wrap: wrapProp`) and default below it when a rest spread must not pick the prop up.
+- **Never give a destructured prop a default value.** `({ landscape = false })` is an assignment pattern the compiler cannot lower, and it takes the whole component out. Destructure without the default and read it off the props object — `const landscape = props.landscape ?? false` — or rename in the pattern (`landscape: landscapeProp`) and default below it when a rest spread must not pick the prop up.
 
 `eslint-plugin-react-hooks@7`'s recommended config _is_ the compiler rule set, so `npm run lint` catches most violations. It does **not** catch the `this`, `??=` or destructured-default bailouts — those compile fine and just quietly lose memoization.
 
@@ -77,7 +77,7 @@ babel({
 }),
 ```
 
-Then `npx vite build 2>&1 | grep -E '^OK|^BAIL'`. Baseline is **169 compiled, 0 bailed** — any `BAIL` line is something you introduced. The commonest way to introduce one is a destructured prop default (`lazy = false`), which surfaces as `BuildHIR::lowerAssignment … got: AssignmentPattern`; the fix idiom is above. Moving a computation out of a component is a reliable way to clear a `MethodCall` bailout, which is a different failure and does respond. **Revert the logger afterwards.**
+Then `npx vite build 2>&1 | grep -E '^OK|^BAIL'`. Baseline is **169 compiled, 0 bailed** — any `BAIL` line is something you introduced. The commonest way to introduce one is a destructured prop default (`landscape = false`), which surfaces as `BuildHIR::lowerAssignment … got: AssignmentPattern`; the fix idiom is above. Moving a computation out of a component is a reliable way to clear a `MethodCall` bailout, which is a different failure and does respond. **Revert the logger afterwards.**
 
 Do not grep the built bundle for `useMemoCache` or `compiler-runtime` to check this — those names do not survive minification, and their absence proves nothing.
 

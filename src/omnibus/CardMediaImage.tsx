@@ -7,6 +7,7 @@ import type { Season } from "../show/types";
 import VgCardMediaImage from "../vg/CardMediaImage";
 import type { VideoGame } from "../vg/types";
 import { omniTitle, type OmniItem } from "./adapter";
+import { mediumToShape } from "./types";
 
 /**
  * One item of the union as its own tab's card.
@@ -22,11 +23,17 @@ import { omniTitle, type OmniItem } from "./adapter";
  * apart by shape, and `medium` is the discriminant the item already carries.
  */
 const OmniCardMediaImage: TypedCardMediaImage<OmniItem> = ({ item, ...props }) => {
+  // What the card is reserved at and arranged by. Passed here rather than set inside each domain's
+  // component, so a home tab — every card of which is one shape already — keeps the layout its own
+  // page was drawn for and only this tab's mixed rows arrange themselves per item.
+  const shape = mediumToShape(item.medium);
+
   switch (item.medium) {
     case "game":
       return (
         <VgCardMediaImage
           item={item.source as VideoGame}
+          shape={shape}
           {...props}
         />
       );
@@ -34,6 +41,7 @@ const OmniCardMediaImage: TypedCardMediaImage<OmniItem> = ({ item, ...props }) =
       return (
         <ShowCardMediaImage
           item={item.source as Season}
+          shape={shape}
           {...props}
         />
       );
@@ -41,6 +49,7 @@ const OmniCardMediaImage: TypedCardMediaImage<OmniItem> = ({ item, ...props }) =
       return (
         <MovieCardMediaImage
           item={item.source as Movie}
+          shape={shape}
           {...props}
         />
       );
