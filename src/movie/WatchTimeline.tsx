@@ -31,6 +31,7 @@ const WatchTimeline = ({ data }: { data: Movie[] }) => {
       ...band,
       // Every colour option here has a total vocabulary, so a mark is never left uncoloured.
       colour: groupToColour(colourBy, band.movie),
+      hoverCard: true,
       tooltip: <LazyTooltip render={() => <MovieHoverCard item={band.movie} />} />,
     })),
   }));

@@ -18,10 +18,19 @@ import {
   type ChipProps,
   type TypographyProps,
 } from "@mui/material";
-import { Fragment, type FunctionComponent, type ReactNode, useEffect, useRef, useState } from "react";
+import {
+  Fragment,
+  type FunctionComponent,
+  type ReactElement,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { CalendarMonthOutlined } from "@mui/icons-material";
 import { cachedColour, extractColourFrom } from "../utils/colourUtils";
 import { ArtworkAccent, artworkPalette, useArtworkPalette } from "./artworkPalette";
+import { HoverCardTooltip } from "./HoverCardTooltip";
 import { CardArrangementProvider, shapeToAspect, useCardArrangement, type ArtworkShape } from "./cardArrangement";
 import { shortYear } from "./date";
 import { LABEL_SX } from "./typography";
@@ -953,6 +962,13 @@ export const ProportionalBar = ({
 export type TimelineBand = Omit<StripBand<StripSpan>, "start" | "end"> & {
   colour: string;
   tooltip?: ReactNode;
+  /**
+   * The tooltip is the item's whole hover card rather than a line naming the span, so it is mounted
+   * the way every chart in the app mounts one — at the shared width, on a mat of the band's own
+   * colour. A strip whose bands only name themselves keeps the plain tooltip: the mat and the width
+   * are for a card, and a line of text in a 500px box is mostly empty ground.
+   */
+  hoverCard?: boolean;
   /** Context rather than the subject of the card, drawn dimmer. */
   muted?: boolean;
   /** The span is an estimate, drawn so its edges do not read as dates. */
@@ -1100,6 +1116,42 @@ const LANE_PADDING = 0.08;
 /** Of the whole strip, and only when there is one lane to inset within. */
 const MUTED_INSET = 0.2;
 
+/**
+ * A band's tooltip, mounted as whichever of the two things it is.
+ *
+ * Both kinds sit on the same band, so the choice is made here rather than at each strip: a caller
+ * says what its tooltip is and never how wide it should be.
+ */
+const BandTooltip = ({
+  colour,
+  title,
+  hoverCard,
+  children,
+}: {
+  colour: string;
+  title?: ReactNode;
+  hoverCard?: boolean;
+  children: ReactElement;
+}) =>
+  hoverCard ? (
+    <HoverCardTooltip
+      colour={colour}
+      title={title}
+      placement="top"
+    >
+      {children}
+    </HoverCardTooltip>
+  ) : (
+    <Tooltip
+      title={title}
+      placement="top"
+      disableHoverListener={!title}
+      disableTouchListener={!title}
+    >
+      {children}
+    </Tooltip>
+  );
+
 export const TimelineBandBox = ({
   startPercent,
   widthPercent,
@@ -1107,6 +1159,7 @@ export const TimelineBandBox = ({
   laneCount,
   colour,
   tooltip,
+  hoverCard,
   muted,
   imprecise,
   frameless,
@@ -1119,11 +1172,10 @@ export const TimelineBandBox = ({
   const inset = laneCount > 1 ? laneHeight * LANE_PADDING : muted ? 100 * MUTED_INSET : 0;
 
   return (
-    <Tooltip
+    <BandTooltip
+      colour={colour}
       title={tooltip}
-      placement="top"
-      disableHoverListener={!tooltip}
-      disableTouchListener={!tooltip}
+      hoverCard={hoverCard}
     >
       <Box
         sx={{
@@ -1157,6 +1209,6 @@ export const TimelineBandBox = ({
           "&:hover": { opacity: 1, filter: "brightness(1.25)" },
         }}
       />
-    </Tooltip>
+    </BandTooltip>
   );
 };

@@ -96,6 +96,7 @@ const toBand = (band: Crossing["bands"][number]): TimelineBand => ({
   lane: band.lane,
   colour: mediumToColour(band.item.medium),
   imprecise: !band.precise,
+  hoverCard: true,
   tooltip: <LazyTooltip render={() => <OmniHoverCard item={band.item} />} />,
 });
 

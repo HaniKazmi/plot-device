@@ -330,6 +330,13 @@ The one piece of shared arithmetic is `assignPercents` in `utils/mathUtils.ts`: 
 - `extractColour` is an explicit opt-in. Deriving a card's theme from its artwork costs a canvas read per image, so it is requested rather than inferred from the presence of some other prop.
 - `shape` is how a card arranges itself when the surface holds more than one shape of artwork, and only the Omnibus passes it (§6, the mixed-media rule).
 
+Every chart mounts that card through one shell, `common/HoverCardTooltip.tsx`: the shared width, a
+mat of the hovered bar's own colour with the arrow to match, and the flip that keeps a tall card on
+screen in a chart that scrolls sideways. A tooltip's own ceiling is 300px, so a chart left to mount
+its own opens a card two thirds the size of its neighbour's — which is what the Omnibus did. A band
+whose tooltip only names its span keeps the plain tooltip; `hoverCard` on the band is what asks for
+the card treatment, because a line of text in a 500px box is mostly empty ground.
+
 Each domain also exports the **hover card** its charts show — `VgHoverCard`, `ShowHoverCard`,
 `MovieHoverCard`, beside its `CardMediaImage`. A chart names the component rather than assembling a
 panel, and the Omnibus dispatches to the same three by medium, so a hovered bar shows the same card
@@ -486,7 +493,7 @@ Setup is the plugin's documented path: `@vitejs/plugin-react` exports `reactComp
 - **`this`** anywhere in the function. Highcharts binds the chart to `this` in its event callbacks, so those must live at module scope (see `dimLeafRing` in §6) or they take the whole component down with them.
 - **`??=`**, which the compiler cannot yet lower. Write `x = x ?? y` instead.
 
-A third construct bails the same way: a **destructured prop with a default value** (`({ landscape = false })`) is an assignment pattern `BuildHIR::lowerAssignment` cannot lower, and it takes the whole component out. Components here therefore read defaults off the props object (`const landscape = props.landscape ?? false`), or rename in the pattern and default below it where a rest spread must not pick the prop up. Every function currently compiles — the baseline is **172 compiled, 0 bailed** — so any bailout is a regression. A `MethodCall` bailout, the other kind seen here, does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
+A third construct bails the same way: a **destructured prop with a default value** (`({ landscape = false })`) is an assignment pattern `BuildHIR::lowerAssignment` cannot lower, and it takes the whole component out. Components here therefore read defaults off the props object (`const landscape = props.landscape ?? false`), or rename in the pattern and default below it where a rest spread must not pick the prop up. Every function currently compiles — the baseline is **174 compiled, 0 bailed** — so any bailout is a regression. A `MethodCall` bailout, the other kind seen here, does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
 
 The compiler costs about 4% of bundle size (~15KB gzipped) in injected cache slots. That is a deliberate trade, and `npm run analyze` exists to keep it honest.
 

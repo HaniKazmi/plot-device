@@ -141,6 +141,7 @@ const WatchTooltip = ({ movie }: { movie: Movie }) => (
 export const MovieHoverCard = ({ item }: { item: Movie }) => (
   <MovieCardMediaImage
     item={item}
+    landscape
     extractColour
     footerComponent={
       <CardPanel
