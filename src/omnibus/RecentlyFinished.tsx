@@ -27,7 +27,10 @@ const RecentlyFinished = ({ items }: { items: OmniItem[] }) => (
       nameComponent={omniKey}
       labelComponent={omniLabels}
       chipComponent={omniMediumChip}
-      pictureWidth={[6, 4, 2]}
+      // Wider than a single-medium list runs, because half of these cards spend their width twice:
+      // a poster seats its name beside itself, so a two-column cell leaves the name 74 pixels and
+      // clamps every title in the run. Three columns give the picture and the words a column each.
+      pictureWidth={[12, 6, 3]}
       dialogPictureWidth={[6, 4, 2]}
       divider
       MediaComponent={OmniCardMediaImage}

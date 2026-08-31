@@ -22,6 +22,7 @@ import { Fragment, type FunctionComponent, type ReactNode, useEffect, useRef, us
 import { CalendarMonthOutlined } from "@mui/icons-material";
 import { cachedColour, extractColourFrom } from "../utils/colourUtils";
 import { ArtworkAccent, artworkPalette, useArtworkPalette } from "./artworkPalette";
+import { CardArrangementProvider, shapeToAspect, useCardArrangement, type ArtworkShape } from "./cardArrangement";
 import { shortYear } from "./date";
 import { LABEL_SX } from "./typography";
 import Grid from "@mui/material/Grid";
@@ -44,16 +45,16 @@ export interface CardMediaImageProps {
   detailComponent?: () => ReactNode;
   sx?: SxProps<Theme>;
   /**
-   * The card itself rather than the artwork inside it. A caller that lays the artwork and a panel
-   * out against each other — the hero — owns that axis, and only the card can carry it.
+   * The card itself rather than the artwork inside it. A caller that pins how the two halves stand
+   * against each other — the hero — owns that axis, and only the card can carry it.
    */
   cardSx?: SxProps<Theme>;
-  landscape?: boolean;
   /**
-   * `"aside"` for a card whose panel sits beside the image and has to be given the remaining
-   * width; left off, the artwork column is the width of the card.
+   * The shape the artwork comes in, which is the only thing that decides the card's arrangement.
+   * Each domain's own `CardMediaImage` states it once; a caller passing mixed media states it per
+   * item.
    */
-  mediaLayout?: "aside";
+  shape?: ArtworkShape;
   /** Derive the card's theme colour from the image once it loads. Costs a canvas read per image. */
   extractColour?: boolean;
 }
@@ -84,25 +85,45 @@ const readImage = (
  * `CardActionArea` is `width: 100%`, which as a flex item resolves its basis to the whole card:
  * the panel beside it is then dividing up no free space at all, and collapses to the width of its
  * longest word while the artwork sits in a column of empty ground. Basis `auto` against a
- * shrink-to-fit width makes the column however wide the artwork turned out to be at its own
- * height, and the panel takes the rest. `flex-start` ends the column where the artwork does
- * rather than stretching it to a taller panel.
+ * shrink-to-fit width makes the column however wide the artwork turned out to be, and the panel
+ * takes the rest. `flex-start` ends the column where the artwork does rather than stretching it to
+ * a taller panel.
+ *
+ * The ceiling is what makes one rule serve both kinds of caller. Where the card's width is imposed
+ * from outside — a grid cell, a shelf — the artwork's own pixels are far wider than the cell, and
+ * shrink-to-fit alone would take the whole card and leave the panel nothing; half is the most a
+ * poster can claim, so the words always have a column. Where the caller pins the artwork's size
+ * instead — the hero, a hover card — the artwork is already narrower than that and the ceiling
+ * never binds.
  */
 const ASIDE_ACTION_AREA_SX = {
   flex: "0 0 auto",
-  width: { xs: "100%", md: "auto" },
+  width: "auto",
+  maxWidth: "50%",
   alignSelf: "flex-start",
 } as const;
 
+/** Artwork filling a column it did not choose the width of, at its own ratio and uncropped. */
+const ASIDE_MEDIA_SX = { maxWidth: "100%", height: "auto", display: "block" } as const;
+
 export const CardMediaImage = (props: CardMediaImageProps) => {
-  const { image, alt, chip, colour: propColour, footerComponent, detailComponent, mediaLayout, sx, cardSx } = props;
+  const { image, alt, chip, colour: propColour, footerComponent, detailComponent, sx, cardSx } = props;
   // Defaults are read off `props` rather than written in the destructuring pattern: a default
   // there is an assignment the React Compiler cannot lower, and it bails the whole component out
   // of memoization — silently, since the code still runs. `extractColour` must resolve before the
   // `useState` initialiser below that reads it.
   const lazy = props.lazy ?? false;
-  const landscape = props.landscape ?? false;
+  const shape = props.shape ?? "landscape";
   const extractColour = props.extractColour ?? false;
+  /**
+   * Portrait artwork takes the words beside it; landscape artwork stacks them underneath.
+   *
+   * A card with no words is not arranged at all. The beside rule divides the card between a picture
+   * and a column of text, so applying it to bare artwork hands half the card to a panel that is not
+   * there and draws the picture at half the size it was given room for — which is what a shelf of
+   * pictures at one height is, and what the library wall is.
+   */
+  const beside = shape === "portrait" && footerComponent !== undefined;
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   /** Lags `dialogOpen` on close so the detail tree survives the dialog's exit transition. */
   const [detailMounted, setDetailMounted] = useState<boolean>(false);
@@ -144,144 +165,152 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
 
   return (
     <ArtworkAccent.Provider value={colour}>
-      <Card
-        variant="elevation"
-        // The array form rather than a spread: `SxProps` is also legally a function or an array,
-        // neither of which survives being spread into an object literal.
-        sx={[
-          {
-            height: "100%",
-            position: "relative",
-            backgroundColor: palette.ground,
-            display: landscape ? "flex" : undefined,
-            color: palette.onGround,
-          },
-          ...(Array.isArray(cardSx) ? cardSx : [cardSx]),
-        ]}
-      >
-        <CardActionArea sx={mediaLayout === "aside" ? ASIDE_ACTION_AREA_SX : undefined}>
-          <CardMedia
-            height={"100%"}
-            component="img"
-            crossOrigin="anonymous"
-            src={image}
-            alt={alt}
-            onClick={() => {
-              // The detail dialog is themed from this colour, so it is worth reading even for a card
-              // that did not ask for one.
-              readColour(imgRef.current);
-              setDialogOpen(true);
-              setDetailMounted(true);
-            }}
-            loading={lazy ? "lazy" : undefined}
-            ref={imgRef}
-            onLoad={(el) => readImage(el.currentTarget, extractColour && !colour, setRatio, setExtracted)}
-            sx={sx}
-          />
-          {chip && (
-            <Chip
-              sx={{
-                position: "absolute",
-                top: 0,
-                right: 0,
-                margin: 1,
-                opacity: 0.8,
-                backgroundColor: chip.colour ?? "primary.main",
-                color: (theme) => theme.palette.getContrastText(chip.colour ?? colour ?? theme.palette.primary.main),
-              }}
-              label={chip.label}
-              icon={chip.icon}
-              onClick={chip.onClick}
-              variant={chip.variant || "filled"}
-              size="small"
-            />
-          )}
-        </CardActionArea>
-        {footerComponent}
-        <Dialog
-          open={dialogOpen}
-          onClose={() => setDialogOpen(false)}
-          maxWidth={false}
-          scroll="body"
-          slots={{ transition: Grow }}
-          slotProps={{
-            paper: { sx: { backgroundColor: "unset", boxShadow: "unset", backgroundImage: "unset" } },
-            transition: { onExited: () => setDetailMounted(false) },
-          }}
-        >
-          <Card
-            variant="elevation"
-            sx={{
+      <CardArrangementProvider value={shape}>
+        <Card
+          variant="elevation"
+          // The array form rather than a spread: `SxProps` is also legally a function or an array,
+          // neither of which survives being spread into an object literal.
+          sx={[
+            {
+              height: "100%",
+              position: "relative",
               backgroundColor: palette.ground,
+              display: beside ? "flex" : undefined,
               color: palette.onGround,
+            },
+            ...(Array.isArray(cardSx) ? cardSx : [cardSx]),
+          ]}
+        >
+          <CardActionArea sx={beside ? ASIDE_ACTION_AREA_SX : undefined}>
+            <CardMedia
+              height={"100%"}
+              component="img"
+              crossOrigin="anonymous"
+              src={image}
+              alt={alt}
+              onClick={() => {
+                // The detail dialog is themed from this colour, so it is worth reading even for a card
+                // that did not ask for one.
+                readColour(imgRef.current);
+                setDialogOpen(true);
+                setDetailMounted(true);
+              }}
+              loading={lazy ? "lazy" : undefined}
+              ref={imgRef}
+              onLoad={(el) => readImage(el.currentTarget, extractColour && !colour, setRatio, setExtracted)}
+              // The shape's own rules first and the caller's after them, so a caller that pins a
+              // height — the hero, a shelf — still wins, and one that pins nothing gets the
+              // reservation and the column sizing without asking.
+              sx={[
+                { aspectRatio: shapeToAspect(shape), ...(beside && ASIDE_MEDIA_SX) },
+                ...(Array.isArray(sx) ? sx : [sx]),
+              ]}
+            />
+            {chip && (
+              <Chip
+                sx={{
+                  position: "absolute",
+                  top: 0,
+                  right: 0,
+                  margin: 1,
+                  opacity: 0.8,
+                  backgroundColor: chip.colour ?? "primary.main",
+                  color: (theme) => theme.palette.getContrastText(chip.colour ?? colour ?? theme.palette.primary.main),
+                }}
+                label={chip.label}
+                icon={chip.icon}
+                onClick={chip.onClick}
+                variant={chip.variant || "filled"}
+                size="small"
+              />
+            )}
+          </CardActionArea>
+          {footerComponent}
+          <Dialog
+            open={dialogOpen}
+            onClose={() => setDialogOpen(false)}
+            maxWidth={false}
+            scroll="body"
+            slots={{ transition: Grow }}
+            slotProps={{
+              paper: { sx: { backgroundColor: "unset", boxShadow: "unset", backgroundImage: "unset" } },
+              transition: { onExited: () => setDetailMounted(false) },
             }}
           >
-            <Box
-              onClick={() => setDialogOpen(false)}
+            <Card
+              variant="elevation"
               sx={{
-                position: "relative",
-              }}
-            >
-              <CardMedia
-                component="img"
-                crossOrigin="anonymous"
-                sx={(theme) => {
-                  // `svh` and not `vh`, because a phone reports `vh` with its toolbar retracted, so
-                  // an image sized to it overflows the screen it is meant to fit. `dvh` would track
-                  // the toolbar instead, and resize the artwork under the reader at the moment they
-                  // scroll past it to the details.
-                  const room = {
-                    width: `calc(100vw - ${theme.spacing(4)})`,
-                    height: `calc(100svh - ${theme.spacing(4)})`,
-                  };
-
-                  return {
-                    objectFit: "contain",
-                    display: "block",
-                    // On their own these only ever take away: an element with an automatic width is
-                    // already its intrinsic width, so artwork smaller than the screen stays small.
-                    // They are still the whole rule until the shape is known.
-                    maxWidth: room.width,
-                    maxHeight: room.height,
-                    ...(ratio && {
-                      // Filling the width and deriving the height scales the artwork up as well as
-                      // down. Which of the two is the binding one is left to `min`, so it is decided
-                      // against the room actually available and decided again on a rotation — where
-                      // a stored answer would be the one from whichever way round the screen was
-                      // when the image loaded.
-                      width: `min(${room.width}, calc(${room.height} * ${ratio}))`,
-                      height: "auto",
-                    }),
-                  };
-                }}
-                src={image}
-                title={alt}
-                loading="lazy"
-                onClick={() => setDialogOpen(false)}
-              />
-            </Box>
-            <Box
-              sx={{
-                display: "flex",
-                // The same line every other surface draws where it meets the artwork it was
-                // sampled from. A gradient fading the image into the ground did the joining
-                // before, which reads as the artwork running out rather than as one card in two
-                // parts — and spent the bottom tenth of every image to do it.
-                borderTop: palette.seam,
+                backgroundColor: palette.ground,
+                color: palette.onGround,
               }}
             >
               <Box
+                onClick={() => setDialogOpen(false)}
                 sx={{
-                  flexGrow: "1",
-                  width: "0px",
+                  position: "relative",
                 }}
               >
-                {detailMounted && detailComponent?.()}
+                <CardMedia
+                  component="img"
+                  crossOrigin="anonymous"
+                  sx={(theme) => {
+                    // `svh` and not `vh`, because a phone reports `vh` with its toolbar retracted, so
+                    // an image sized to it overflows the screen it is meant to fit. `dvh` would track
+                    // the toolbar instead, and resize the artwork under the reader at the moment they
+                    // scroll past it to the details.
+                    const room = {
+                      width: `calc(100vw - ${theme.spacing(4)})`,
+                      height: `calc(100svh - ${theme.spacing(4)})`,
+                    };
+
+                    return {
+                      objectFit: "contain",
+                      display: "block",
+                      // On their own these only ever take away: an element with an automatic width is
+                      // already its intrinsic width, so artwork smaller than the screen stays small.
+                      // They are still the whole rule until the shape is known.
+                      maxWidth: room.width,
+                      maxHeight: room.height,
+                      ...(ratio && {
+                        // Filling the width and deriving the height scales the artwork up as well as
+                        // down. Which of the two is the binding one is left to `min`, so it is decided
+                        // against the room actually available and decided again on a rotation — where
+                        // a stored answer would be the one from whichever way round the screen was
+                        // when the image loaded.
+                        width: `min(${room.width}, calc(${room.height} * ${ratio}))`,
+                        height: "auto",
+                      }),
+                    };
+                  }}
+                  src={image}
+                  title={alt}
+                  loading="lazy"
+                  onClick={() => setDialogOpen(false)}
+                />
               </Box>
-            </Box>
-          </Card>
-        </Dialog>
-      </Card>
+              <Box
+                sx={{
+                  display: "flex",
+                  // The same line every other surface draws where it meets the artwork it was
+                  // sampled from. A gradient fading the image into the ground did the joining
+                  // before, which reads as the artwork running out rather than as one card in two
+                  // parts — and spent the bottom tenth of every image to do it.
+                  borderTop: palette.seam,
+                }}
+              >
+                <Box
+                  sx={{
+                    flexGrow: "1",
+                    width: "0px",
+                  }}
+                >
+                  {detailMounted && detailComponent?.()}
+                </Box>
+              </Box>
+            </Card>
+          </Dialog>
+        </Card>
+      </CardArrangementProvider>
     </ArtworkAccent.Provider>
   );
 };
@@ -367,6 +396,11 @@ export interface PanelSubtitlePart {
  * How a panel sits against the artwork it belongs to, which decides the edge the two share and
  * whether the panel has height to spend.
  *
+ * A panel inside a card does not name this: the card publishes its artwork's shape and the panel
+ * reads it, so the two halves of one card cannot come to disagree about which way round they are.
+ * It is named only where a caller means something the shape does not decide — the hero's own
+ * breakpoint-dependent arrangement.
+ *
  * - `beneath` — under the artwork, as tall as its own type. Nothing to distribute.
  * - `beside` — next to a poster, and as tall as it. Three lines against a 2:3 poster leaves
  *   better than half the column empty, so the title takes the top and the figures the bottom
@@ -404,13 +438,16 @@ export const CardPanel = ({
   /** Absent where the card names its dates some other way, as the hero's kicker does. */
   dateRange?: string;
   stats: PanelStat[];
+  /** Only where the caller means something its card's own shape does not decide. */
   layout?: PanelLayout;
   /** Holds the panel to the artwork's height, so the card is the height of the picture in it. */
   minHeight?: number;
 }) => {
   const palette = useArtworkPalette();
-  const beside = layout === "beside";
-  const hero = layout === "hero";
+  const arrangement = useCardArrangement();
+  const resolved = layout ?? (arrangement === "portrait" ? "beside" : "beneath");
+  const beside = resolved === "beside";
+  const hero = resolved === "hero";
 
   return (
     <CardContent
@@ -721,19 +758,37 @@ export const MetadataLedger = ({ rows }: { rows: LedgerRow[] }) => {
  * Rows read bottom-up: the last one carries the figures and anything above it is the context they
  * belong to, which is why only the last is given the full tone. A label builder adding a row is
  * adding context, and belongs above the figures for the same reason.
+ *
+ * Beside a poster the same rows are read down a column instead of across a strip. A strip's width
+ * is the whole card and a column's is what the artwork left, so the row that fits on one line under
+ * a banner is three or four words wide here — the names are given the lines to wrap onto and a
+ * ceiling that stops one from outgrowing the picture it belongs to.
  */
+const BESIDE_LABEL_LINES = 3;
+
 export const FooterComponent = ({ labels, divider }: { labels: string[][]; divider?: boolean }) => {
   const palette = useArtworkPalette();
+  const beside = useCardArrangement() === "portrait";
 
   return (
     <CardContent
       sx={{
         padding: "10px",
         ":last-child": { paddingBottom: "10px" },
-        width: "100%",
+        // Basis zero and free to grow, so the column is exactly the card minus the artwork rather
+        // than a share of it; the floor is what lets a long word wrap instead of setting the width.
+        ...(beside ? { flex: "1 1 0", minWidth: 0 } : { width: "100%" }),
+        display: "flex",
+        flexDirection: "column",
+        // Centred against the artwork's height, which is what the card's height is. Under a banner
+        // there is no spare height to place the rows in.
+        justifyContent: beside ? "center" : "flex-start",
         backgroundColor: palette.ground,
         color: palette.onGround,
-        borderTop: palette.seam,
+        // The one edge the two halves share, which is the left of the panel where it sits beside
+        // the picture. Written out rather than as one computed key, which the React Compiler
+        // cannot lower — and bailing here takes every card in the app out of memoization.
+        ...(beside ? { borderLeft: palette.seam } : { borderTop: palette.seam }),
       }}
     >
       {labels.map((stacks, index) => (
@@ -741,7 +796,7 @@ export const FooterComponent = ({ labels, divider }: { labels: string[][]; divid
           key={`stacks-${index}`}
           direction="row"
           divider={
-            divider ? (
+            divider && !beside ? (
               <Divider
                 orientation="vertical"
                 flexItem
@@ -750,7 +805,11 @@ export const FooterComponent = ({ labels, divider }: { labels: string[][]; divid
             ) : null
           }
           sx={{
-            justifyContent: stacks.length === 1 ? "center" : "space-between",
+            // Beside, a row is read as the start of a line of prose; under the artwork it is
+            // spread across the card's whole width.
+            justifyContent: beside ? "flex-start" : stacks.length === 1 ? "center" : "space-between",
+            columnGap: beside ? 0.75 : 0,
+            flexWrap: beside ? "wrap" : "nowrap",
             color: index < labels.length - 1 ? palette.muted : undefined,
           }}
         >
@@ -758,6 +817,19 @@ export const FooterComponent = ({ labels, divider }: { labels: string[][]; divid
             <Typography
               key={val}
               variant="subtitle2"
+              sx={
+                beside
+                  ? {
+                      lineHeight: 1.3,
+                      overflowWrap: "break-word",
+                      minWidth: 0,
+                      display: "-webkit-box",
+                      WebkitBoxOrient: "vertical",
+                      WebkitLineClamp: BESIDE_LABEL_LINES,
+                      overflow: "hidden",
+                    }
+                  : undefined
+              }
             >
               {val}
             </Typography>

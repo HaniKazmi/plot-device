@@ -40,7 +40,6 @@ const WatchTimeline = ({ data }: { data: Movie[] }) => {
               extractColour
               footerComponent={
                 <CardPanel
-                  layout="beside"
                   title={band.movie.name}
                   dateRange={formatDate(band.movie.startDate)}
                   stats={[

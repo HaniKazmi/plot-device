@@ -11,6 +11,7 @@ import {
 import { Season, Show, isShow, networkToColour } from "./types";
 import Grid from "@mui/material/Grid";
 import { ageRatingToColour, genreToColour, statusToColour } from "../utils/types";
+import type { ArtworkShape } from "../common/cardArrangement";
 import { namesTheSameThing } from "../utils/stringUtils";
 import { CURRENT_PLAINDATE, YearMonthDay, formatDateRange } from "../common/date";
 import { buildStrip, stripYearTicks } from "../common/timelineStripData";
@@ -58,12 +59,20 @@ const showRows = (show: Show): LedgerRow[] => {
   return rows;
 };
 
+/**
+ * Shows are logged with poster art, so a show card seats its words beside the picture. Stated once
+ * here and read by the hero and the library wall as well, which is what keeps the shape a card
+ * reserves and the shape it is arranged for the same answer.
+ */
+export const SHOW_ARTWORK_SHAPE: ArtworkShape = "portrait";
+
 const ShowCardMediaImage = <T extends Show | Season>({ item, ...props }: Parameters<TypedCardMediaImage<T>>[0]) => {
   const show = isShow(item) ? item : item.show;
   return (
     <CardMediaImage
       alt={show.name}
       image={show.banner}
+      shape={SHOW_ARTWORK_SHAPE}
       detailComponent={() => (
         <CardContent>
           <Grid

@@ -21,12 +21,12 @@ import { electNow, hasNow, measureOf, unionTotals, type OmniItem } from "./adapt
 import { crossingEntries, type Crossing } from "./crossingsData";
 import type { FilterDispatch } from "./filterUtils";
 import { OMNIBUS_SECTIONS } from "./sections";
-import { media, mediumToColour, mediumToLabel, type Measure, type Medium } from "./types";
+import { media, mediumToColour, mediumToLabel, mediumToShape, type Measure, type Medium } from "./types";
 
 /**
- * How tall a Now card's artwork is. Height alone is fixed and the width is the artwork's own, so a
- * banner and a poster sit at one height in one row without either being cropped — the letterboxing
- * falls on the card's own sampled ground, which is what the three cards have in common anyway.
+ * How tall a Now card's artwork is. Height alone is fixed and the width follows the shape, so a
+ * banner and a poster sit at one height in one row without either being cropped — the banner across
+ * its card with the words under it, the poster beside its own.
  */
 const NOW_MEDIA_HEIGHT = 170;
 
@@ -216,12 +216,15 @@ const NowCard = <T,>(props: {
       item={props.item}
       extractColour
       chip={{ label: mediumToLabel(props.medium), colour: mediumToColour(props.medium), onClick: props.onJump }}
-      sx={{
-        height: NOW_MEDIA_HEIGHT,
-        width: "100%",
-        objectFit: "contain",
-        display: "block",
-      }}
+      sx={
+        mediumToShape(props.medium) === "portrait"
+          ? // Beside the panel, so the poster's width is its own and the words get the rest of the
+            // card — which is where the figures go too, rather than crammed under a 113px picture.
+            { height: NOW_MEDIA_HEIGHT, width: "auto", display: "block" }
+          : // Above the panel and across the card, contained so the ratio the banner was made in
+            // survives whatever width the third of a band turns out to be.
+            { height: NOW_MEDIA_HEIGHT, width: "100%", objectFit: "contain", display: "block" }
+      }
       footerComponent={
         <CardPanel
           kicker={props.kicker}

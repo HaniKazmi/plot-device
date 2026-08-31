@@ -36,10 +36,9 @@ export const GroupedStatList = <T,>(props: {
   width: StatsListProps<T>["width"];
   pictureWidth: StatsListProps<T>["pictureWidth"];
   dialogPictureWidth: StatsListProps<T>["dialogPictureWidth"];
-  aspectRatio?: string;
   divider?: boolean;
 }) => {
-  const { option, colourOf, MediaComponent, dialogSort, nameOf, dialogPictureWidth, aspectRatio } = props;
+  const { option, colourOf, MediaComponent, dialogSort, nameOf, dialogPictureWidth } = props;
   const [dialogContent, setDialogContent] = useState<DrilldownGroup<T> | null>(null);
 
   const dialog = dialogContent ? (
@@ -53,7 +52,6 @@ export const GroupedStatList = <T,>(props: {
       labelComponent={props.dialogLabelComponent}
       chipComponent={props.dialogChipComponent}
       pictureWidth={dialogPictureWidth}
-      aspectRatio={aspectRatio}
       MediaComponent={MediaComponent}
     />
   ) : null;
@@ -81,7 +79,6 @@ export const GroupedStatList = <T,>(props: {
         width={props.width}
         pictureWidth={props.pictureWidth}
         dialogPictureWidth={dialogPictureWidth}
-        aspectRatio={aspectRatio}
         divider={props.divider}
       />
       {dialog}

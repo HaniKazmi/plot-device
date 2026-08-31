@@ -297,7 +297,7 @@ The chips are spread with `space-between` across the full span rather than packe
 
 Jump and highlight share their geometry rather than agreeing by convention. `jumpTo` brings a bucket's first card to rest at the marker's own top offset, which puts its bottom past the reading line, so `topmostBucket` names the bucket that was clicked on the very next scroll event — the click never sets the highlight. The distance rule is the timeline's: smooth under a viewport and a half, instant beyond, where the animation would only be a wait.
 
-**The wall has to reserve its own height, or no offset measured in it means anything.** Grid artwork is `loading="lazy"`, and an image that has not loaded contributes no height of its own, so a wall of them stands at a fraction of its real size — 7,152 pixels against 33,541 for 322 games. Every offset read from it is short by all the artwork below, and scrolling into a region is what makes that region load, so the page grows under the reader as they travel. A jump far down the sort then asks for an offset the document does not yet have and lands clamped at its bottom, a decade short of the chip that was clicked. `Finished` therefore reserves the shape on the grid's media: `aspect-ratio: auto 16 / 9` for a landscape wall's banners, `auto 2 / 3` for a portrait wall's posters. The leading `auto` is what keeps it a reservation rather than a crop — the artwork's own shape wins the moment it is known — and it takes the cold document to within 0.1% of its loaded height. Only `Finished` sets it, so the hero, the timeline tooltips and the stat strips that share `CardMediaImage` are untouched.
+**The wall has to reserve its own height, or no offset measured in it means anything.** Grid artwork is `loading="lazy"`, and an image that has not loaded contributes no height of its own, so a wall of them stands at a fraction of its real size — 7,152 pixels against 33,541 for 322 games. Every offset read from it is short by all the artwork below, and scrolling into a region is what makes that region load, so the page grows under the reader as they travel. A jump far down the sort then asks for an offset the document does not yet have and lands clamped at its bottom, a decade short of the chip that was clicked. Every card therefore reserves its artwork's shape, from the one table in `common/cardArrangement.ts`: `aspect-ratio: auto 16 / 9` for a banner, `auto 2 / 3` for a poster. The leading `auto` is what keeps it a reservation rather than a crop — the artwork's own shape wins the moment it is known — and it takes the cold wall to within 0.1% of its loaded height. It is the card that reserves rather than the wall, because the same reservation is what stops a shelf of lazily loaded pictures from lying about its scroll width, and one table is what keeps the shape a card reserves and the shape it is arranged for the same answer.
 
 What is left after that is a card's own rounding, and a bounded settle loop absorbs it. It re-measures the target's own rect on a ~90ms cadence and issues instant corrective scrolls until the card's top is within two pixels of the marker offset. Corrections are always instant however the jump was made, since a correction is the same landing arriving at its real offset rather than a second jump.
 
@@ -329,6 +329,34 @@ The one piece of shared arithmetic is `assignPercents` in `utils/mathUtils.ts`: 
 - `detailComponent` is a thunk (`() => ReactNode`), not a node. `Finished` renders one card per item with no cap, and the dialog body is ~15 elements that are only ever mounted for the one card the user opens. `TimelineData.tooltip` is a thunk for the same reason and is the other place the convention applies: the timeline positions every row it is given, but only the hovered one needs a card, and a node would be built up front and then held for the life of the layout (§7, object lifetimes).
 - `extractColour` is an explicit opt-in. Deriving a card's theme from its artwork costs a canvas read per image, so it is requested rather than inferred from the presence of some other prop.
 
+### One arrangement rule — `common/cardArrangement.ts`
+
+Every card that carries both artwork and words is arranged by one rule: **landscape artwork stacks
+its words below, portrait artwork seats them beside**. Games are logged with banners and Shows and
+Movies with posters, so the rule sorts itself across the tabs and, on the Omnibus, within a single
+row.
+
+It is one rule because the two shapes fail in opposite directions under either single arrangement. A
+banner is four times as wide as it is tall, so words under it get the width they need and words
+beside it get a sliver; a poster is half as wide as it is tall, and the strip beneath it is a hundred
+pixels across, which is what truncated every title in a mixed row to three characters. Arranging by
+shape gives each of them the axis it has room on, and a mixed row then varies gently in width at one
+height instead of holding half its cards to a shape their artwork does not have.
+
+What travels is the artwork's **shape**, not the arrangement: each domain's `CardMediaImage` names
+its own once (`VG_ARTWORK_SHAPE` and its two siblings) and `CardMediaImage` decides everything that
+follows from it — the card's axis, the artwork column, the reservation, and which edge carries the
+seam. `CardPanel` and `FooterComponent` read the shape off the card's own context rather than taking
+it as a prop, because the panel is the caller's node: passing it down would mean every card site in
+three domains repeating the decision, and a caller naming the arrangement itself can put a
+beside-styled panel on a stacked card, which is what several of them did. The one caller that still
+names a layout is `Hero`, whose arrangement turns over at a breakpoint — a 200px poster beside a
+panel leaves no column to set a title in on a phone — which the shape alone does not say.
+
+Bare artwork is not arranged at all. The rule divides a card between a picture and a column of text,
+so a shelf picture or a wall card with no words keeps the whole card; applying it there hands half
+the width to a panel that is not present and draws the picture at half the size.
+
 ### Page architecture — hero, rail, sections
 
 Both tracked domains lay their page out by temperature: what is being played or watched now, then
@@ -345,8 +373,11 @@ hold. The rest of the in-flight shows stay in a compact "Also Watching" strip un
 `Hero` (`common/Hero.tsx`) presents one item large. Its figures are the item's own — hours logged,
 days in, the size of its franchise — and each tile is dropped rather than shown as a zero when the
 sheet does not hold it. The library's totals stay in the cards below it, which are their single
-home. Only the artwork's height is fixed, so the hero is one height whatever it shows while every
-poster and banner keeps its own shape uncropped.
+home. Only the artwork's height is fixed, so a poster and a banner keep their own shapes uncropped
+and neither can set the hero's height from its own pixels: a banner spanning the card would stand at
+nine sixteenths of it, which is most of a screen and puts everything the page is about below the
+fold. Which side the panel lands on is the shape's, so the Games hero stacks and the other two seat
+their poster beside — the same rule every card below them follows.
 
 It renders the domain's own
 `TypedCardMediaImage` rather than a bare image, which is what keeps it in step with every card
@@ -440,7 +471,7 @@ Setup is the plugin's documented path: `@vitejs/plugin-react` exports `reactComp
 - **`this`** anywhere in the function. Highcharts binds the chart to `this` in its event callbacks, so those must live at module scope (see `dimLeafRing` in §6) or they take the whole component down with them.
 - **`??=`**, which the compiler cannot yet lower. Write `x = x ?? y` instead.
 
-A third construct bails the same way: a **destructured prop with a default value** (`({ landscape = false })`) is an assignment pattern `BuildHIR::lowerAssignment` cannot lower, and it takes the whole component out. Components here therefore read defaults off the props object (`const landscape = props.landscape ?? false`), or rename in the pattern and default below it where a rest spread must not pick the prop up. Every function currently compiles — the baseline is **168 compiled, 0 bailed** — so any bailout is a regression. A `MethodCall` bailout, the other kind seen here, does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
+A third construct bails the same way: a **destructured prop with a default value** (`({ lazy = false })`) is an assignment pattern `BuildHIR::lowerAssignment` cannot lower, and it takes the whole component out. Components here therefore read defaults off the props object (`const lazy = props.lazy ?? false`), or rename in the pattern and default below it where a rest spread must not pick the prop up. Every function currently compiles — the baseline is **169 compiled, 0 bailed** — so any bailout is a regression. A `MethodCall` bailout, the other kind seen here, does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
 
 The compiler costs about 4% of bundle size (~15KB gzipped) in injected cache slots. That is a deliberate trade, and `npm run analyze` exists to keep it honest.
 

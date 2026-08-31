@@ -23,12 +23,10 @@ const ShowTimeline = ({ data }: { data: Show[] }) => {
     name: title,
     tooltip: () => (
       <ShowCardMediaImage
-        landscape
         item={s}
         extractColour
         footerComponent={
           <CardPanel
-            layout="beside"
             // The chart's own label for the bar, so the card names exactly what was hovered — a
             // season, or a whole show when the seasons are combined.
             title={title}

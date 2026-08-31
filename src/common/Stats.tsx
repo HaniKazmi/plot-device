@@ -262,7 +262,6 @@ export const StatsListGrid = <T,>({
   labelComponent: (t: T) => string[][];
   chipComponent?: (t: T) => CardMediaImageProps["chip"];
   pictureWidth: [number, number, number];
-  aspectRatio?: string;
   divider?: boolean;
   MediaComponent: TypedCardMediaImage<T>;
 }) => (
@@ -301,7 +300,6 @@ export interface StatsListProps<T> {
   chipComponent?: (t: T) => CardMediaImageProps["chip"];
   pictureWidth: [number, number, number];
   dialogPictureWidth: [number, number, number];
-  aspectRatio?: string;
   divider?: boolean;
   wrap?: boolean;
 }
@@ -370,7 +368,6 @@ export const StatsListCard = <T,>({
   labels,
   chip,
   pictureWidth,
-  aspectRatio,
   divider,
   MediaComponent,
 }: {
@@ -378,7 +375,6 @@ export const StatsListCard = <T,>({
   labels: string[][];
   chip?: CardMediaImageProps["chip"];
   pictureWidth: [number, number, number];
-  aspectRatio?: string;
   divider?: boolean;
   MediaComponent: TypedCardMediaImage<T>;
 }) => {
@@ -400,7 +396,7 @@ export const StatsListCard = <T,>({
       >
         <MediaComponent
           item={item}
-          sx={{ aspectRatio, flexShrink: 0 }}
+          sx={{ flexShrink: 0 }}
           chip={chip}
           // A dialog list can run to hundreds of cards; off-screen artwork loads as it scrolls
           // into view rather than all at once on open.

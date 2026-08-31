@@ -19,7 +19,6 @@ export const DrilldownDialog = <T,>({
   labelComponent,
   chipComponent,
   pictureWidth,
-  aspectRatio,
   divider,
   MediaComponent,
 }: {
@@ -30,7 +29,6 @@ export const DrilldownDialog = <T,>({
   labelComponent: (t: T) => string[][];
   chipComponent?: (t: T) => CardMediaImageProps["chip"];
   pictureWidth: [number, number, number];
-  aspectRatio?: string;
   divider?: boolean;
   MediaComponent: TypedCardMediaImage<T>;
 }) => (
@@ -54,7 +52,6 @@ export const DrilldownDialog = <T,>({
       labelComponent={labelComponent}
       chipComponent={chipComponent}
       pictureWidth={pictureWidth}
-      aspectRatio={aspectRatio}
       divider={divider}
       MediaComponent={MediaComponent}
     />

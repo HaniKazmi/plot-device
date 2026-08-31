@@ -27,7 +27,7 @@ import { StatCard, StatList, StatsListProps, StatSummary, TotalsBand, VitalsCard
 import { TopListCard } from "../common/TopList";
 import { GroupedStatList } from "../common/GroupedStatList";
 import { Hero } from "../common/Hero";
-import ShowCardMediaImage from "./CardMediaImage";
+import ShowCardMediaImage, { SHOW_ARTWORK_SHAPE } from "./CardMediaImage";
 import { genreToColour, statusToColour } from "../utils/types";
 import { Stack, Typography } from "@mui/material";
 import type { ReactNode } from "react";
@@ -169,6 +169,7 @@ const ShowHero = ({ season }: { season: Season }) => {
     <Hero
       item={season}
       MediaComponent={ShowCardMediaImage}
+      shape={SHOW_ARTWORK_SHAPE}
       kicker={`Last watched · ${formatDate(season.show.lastWatchedDate!)}`}
       // The same badge the strip's cards carry, so being promoted does not cost the show its place.
       chip={{ label: `S${season.s}E${season.e}`, colour: statusToColour(season.show) }}
@@ -328,7 +329,6 @@ const MostWatchedCategory = ({
       nameOf={(show) => show.name}
       dialogLabelComponent={(show) => [[`${format(show.e)} Eps`, `${format(Math.floor(show.minutes / 60))} Hours`]]}
       dialogChipComponent={(show) => ({ label: show.status, colour: statusToColour(show) })}
-      aspectRatio="auto 2 / 3"
       width={[12, 12, 12]}
       pictureWidth={[6, 4, 2]}
       dialogPictureWidth={[6, 4, 2]}
@@ -358,11 +358,6 @@ const ShowStatList = (
   <StatList
     MediaComponent={ShowCardMediaImage}
     nameComponent={(entry) => entry.show.name + entry.s}
-    // The wall's poster reservation, so lazily-loaded artwork holds its height — a dialog of
-    // cards with no reserved ratio all sits inside the viewport at once and fetches every image
-    // immediately. The leading `auto` keeps it a reservation rather than a crop: show artwork is
-    // portrait, and a fixed ratio would cover-crop every poster into a landscape sliver.
-    aspectRatio="auto 2 / 3"
     width={[12, 12, 12]}
     pictureWidth={[6, 4, 2]}
     dialogPictureWidth={[6, 4, 2]}
@@ -381,7 +376,6 @@ const ShowsStatList = (
     MediaComponent={ShowCardMediaImage}
     nameComponent={(entry) => entry.name}
     chipComponent={(show) => ({ label: show.status, colour: statusToColour(show) })}
-    aspectRatio="auto 2 / 3"
     width={[12, 12, 12]}
     pictureWidth={[6, 4, 2]}
     dialogPictureWidth={[6, 4, 2]}

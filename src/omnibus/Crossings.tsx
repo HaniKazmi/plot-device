@@ -102,12 +102,7 @@ const toBand = (band: Crossing["bands"][number]): TimelineBand => ({
         <OmniCardMediaImage
           item={band.item}
           extractColour
-          footerComponent={
-            <OmniCardPanel
-              item={band.item}
-              layout="beside"
-            />
-          }
+          footerComponent={<OmniCardPanel item={band.item} />}
         />
       )}
     />

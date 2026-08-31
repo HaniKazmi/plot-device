@@ -45,9 +45,10 @@ const categoryTitles: Record<GalleryCategory, string> = {
 /**
  * The library as pictures: a shelf per group, each a row of artwork at one height.
  *
- * The three walls this is assembled from each show one shape — banners on two tabs, posters on the
- * third — so the mixing is the whole point of the surface, and nothing is cropped to hide it. A
- * picture opens its own tab's expanded card; the shelf's own handle opens the whole shelf.
+ * The three walls this is assembled from do not agree on a shape — banners on the Games tab,
+ * posters on the other two — so the mixing is the whole point of the surface, and nothing is
+ * cropped to hide it. A picture opens its own tab's expanded card; the shelf's own handle opens the
+ * whole shelf.
  */
 const Gallery = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
   const [category, controls] = useSelectBox(GALLERY_CATEGORIES, "genre");
@@ -161,8 +162,9 @@ const Shelf = ({
             item={item}
             lazy
             chip={omniMediumChip(item)}
-            // The strip fixes the height and the artwork keeps its own width, so a banner and a
-            // poster stand at one height in the shapes they were made in.
+            // Bare artwork, so the shelf fixes the height and each picture keeps its own width: a
+            // banner and a poster stand at one height in the shapes they were made in. Nothing here
+            // carries words, which is the one surface the arrangement rule has nothing to say about.
             sx={{ height: FILMSTRIP_HEIGHT, width: "auto", display: "block" }}
           />
         ))}
