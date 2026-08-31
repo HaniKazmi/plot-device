@@ -1,19 +1,12 @@
 import { Card, CardContent, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { Hub } from "@mui/icons-material";
-import { CardPanel, Swatch, TimelineCard, INLINE_SWATCH_SIZE, type TimelineBand } from "../common/Card";
+import { Swatch, TimelineCard, INLINE_SWATCH_SIZE, type TimelineBand } from "../common/Card";
 import { LazyTooltip } from "../common/LazyTooltip";
 import { SectionHeader } from "../common/SectionHeader";
-import { formatDate, formatDateRange } from "../common/date";
 import type { TimelineTick } from "../common/timelineLayout";
 import { format } from "../utils/mathUtils";
-import MovieCardMediaImage from "../movie/CardMediaImage";
-import type { Movie } from "../movie/types";
-import ShowCardMediaImage from "../show/CardMediaImage";
-import type { Season } from "../show/types";
-import VgCardMediaImage from "../vg/CardMediaImage";
-import type { VideoGame } from "../vg/types";
-import type { OmniItem } from "./adapter";
+import OmniCardMediaImage, { OmniCardPanel } from "./CardMediaImage";
 import type { Crossing } from "./crossingsData";
 import { mediumToColour, mediumToLabel } from "./types";
 
@@ -103,76 +96,22 @@ const toBand = (band: Crossing["bands"][number]): TimelineBand => ({
   lane: band.lane,
   colour: mediumToColour(band.item.medium),
   imprecise: !band.precise,
-  tooltip: <LazyTooltip render={() => <CrossingCard item={band.item} />} />,
+  tooltip: (
+    <LazyTooltip
+      render={() => (
+        <OmniCardMediaImage
+          item={band.item}
+          extractColour
+          footerComponent={
+            <OmniCardPanel
+              item={band.item}
+              layout="beside"
+            />
+          }
+        />
+      )}
+    />
+  ),
 });
-
-/**
- * The hovered entry, as its own tab's card.
- *
- * A switch here rather than a `TypedCardMediaImage<OmniItem>` of its own: the mixed-media adapter
- * is what the browse surfaces need and this is the one surface wanting it so far. The three
- * franchise indexes are provided above this tab, so a card's own strip answers with its series.
- */
-const CrossingCard = ({ item }: { item: OmniItem }) => {
-  switch (item.medium) {
-    case "game": {
-      const game = item.source as VideoGame;
-      return (
-        <VgCardMediaImage
-          item={game}
-          extractColour
-          footerComponent={
-            <CardPanel
-              layout="beside"
-              title={game.name}
-              subtitle={game.platform}
-              dateRange={formatDateRange(game.startDate, game.endDate)}
-              stats={game.hours ? [{ value: game.hours, label: "Hours" }] : []}
-            />
-          }
-        />
-      );
-    }
-    case "show": {
-      const season = item.source as Season;
-      return (
-        <ShowCardMediaImage
-          item={season}
-          extractColour
-          footerComponent={
-            <CardPanel
-              layout="beside"
-              title={`${season.show.name} S${season.s}`}
-              subtitle={season.show.network}
-              dateRange={formatDateRange(season.startDate, season.endDate)}
-              stats={[
-                { value: season.e, label: "Eps" },
-                { value: Math.floor(season.minutes / 60), label: "Hours" },
-              ]}
-            />
-          }
-        />
-      );
-    }
-    case "movie": {
-      const movie = item.source as Movie;
-      return (
-        <MovieCardMediaImage
-          item={movie}
-          extractColour
-          footerComponent={
-            <CardPanel
-              layout="beside"
-              title={movie.name}
-              subtitle={movie.director}
-              dateRange={formatDate(movie.startDate)}
-              stats={[{ value: movie.minutes, label: "Min" }]}
-            />
-          }
-        />
-      );
-    }
-  }
-};
 
 export default Crossings;

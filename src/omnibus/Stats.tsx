@@ -117,8 +117,8 @@ const Stats = ({
         </StatBand>
       </Section>
       {/* This file holds the bands above the charts and nothing else. The browse surfaces — the
-          gallery, and recently finished with the library wall — belong to `Graphs`, at the
-          `OMNIBUS_SECTIONS.gallery` and `.finished` anchors it already leaves a slot for. */}
+          gallery and recently finished — belong to `Graphs`, at the `OMNIBUS_SECTIONS.gallery`
+          and `.finished` anchors. */}
     </Stack>
   );
 };

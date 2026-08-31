@@ -5,7 +5,11 @@ import {
   electNow,
   measureOf,
   ofMedium,
+  omniBanner,
   omniHours,
+  omniKey,
+  omniTitle,
+  recentlyFinished,
   toOmniItems,
   unionTotals,
   visibleLibrary,
@@ -26,8 +30,12 @@ const library = (overrides: Partial<Library> = {}): Library => ({ games: [], sho
  */
 const showWith = (seasons: { start: number; end?: number; minutes?: number }[], overrides = {}) => {
   const parent = show({ startDate: YearMonthDay.get(seasons[0].start, 3, 1), ...overrides });
-  parent.s = seasons.map(({ start, end, minutes }) =>
+  // Numbered from the position rather than from `parent.s.length`, which is still the empty array
+  // while this map runs — a show whose seasons all called themselves S1 would hide exactly the
+  // collision the card keys have to survive.
+  parent.s = seasons.map(({ start, end, minutes }, index) =>
     season(parent, {
+      s: index + 1,
       startDate: YearMonthDay.get(start, 3, 1),
       endDate: end ? YearMonthDay.get(end, 6, 1) : undefined,
       minutes: minutes ?? 405,
@@ -218,6 +226,77 @@ describe("union totals", () => {
     );
 
     expect(earliestYear(items)).toBe(2004 as YearNumber);
+  });
+});
+
+describe("what a browse surface reads off an item", () => {
+  it("draws a season as its show, which is where the sheets keep the artwork", () => {
+    const parent = showWith([{ start: 2021, end: 2022 }]);
+    const [item] = toOmniItems(library({ shows: [parent] }));
+
+    expect(omniBanner(item)).toBe(parent.banner);
+  });
+
+  it("has no artwork for a game the sheet never gave one, which is what keeps it off a wall", () => {
+    const [item] = toOmniItems(library({ games: [videoGame({ banner: undefined })] }));
+
+    expect(omniBanner(item)).toBeUndefined();
+  });
+
+  it("names a season by its number, so a strip of one show's seasons is not six identical labels", () => {
+    const items = toOmniItems(library({ shows: [showWith([{ start: 2021, end: 2022 }, { start: 2023 }])] }));
+
+    expect(items.map(omniTitle)).toEqual(["Severance S1", "Severance S2"]);
+  });
+
+  it("gives every item of one show a key of its own", () => {
+    // Every season carries its show's name, so a key built from the name alone repeats — and React
+    // renders one card of the pair in place of the other, or drops it.
+    const items = toOmniItems(library({ shows: [showWith([{ start: 2021, end: 2022 }, { start: 2023 }])] }));
+
+    expect(new Set(items.map(omniKey)).size).toBe(items.length);
+  });
+
+  it("gives two watches of one film keys of their own", () => {
+    const items = toOmniItems(
+      library({
+        movies: [
+          movie({ name: "Arrival", startDate: YearMonthDay.get(2017, 2, 1) }),
+          movie({ name: "Arrival", startDate: YearMonthDay.get(2024, 9, 3) }),
+        ],
+      }),
+    );
+
+    expect(new Set(items.map(omniKey)).size).toBe(2);
+  });
+});
+
+describe("recently finished", () => {
+  const items = () =>
+    toOmniItems(
+      library({
+        games: [
+          videoGame({ startDate: YearMonthDay.get(2023, 1, 1), endDate: YearMonthDay.get(2023, 5, 4) }),
+          videoGame({ startDate: YearMonthDay.get(2024, 2, 2), endDate: undefined }),
+        ],
+        movies: [movie({ startDate: YearMonthDay.get(2024, 3, 9) })],
+      }),
+    );
+
+  it("puts the newest close first, whichever medium it came from", () => {
+    expect(recentlyFinished(items()).map((item) => String(item.closeDate))).toEqual(["2024-03-09", "2023-05-04"]);
+  });
+
+  it("leaves out what has not finished, rather than listing it last", () => {
+    // An item with no close date is still being played or watched, and calling it recently
+    // finished says something false — where a six-card strip would never reach it anyway.
+    expect(recentlyFinished(items()).every((item) => item.closeDate)).toBe(true);
+  });
+
+  it("has nothing to show for a library still entirely in progress", () => {
+    const open = toOmniItems(library({ games: [videoGame({ endDate: undefined })] }));
+
+    expect(recentlyFinished(open)).toEqual([]);
   });
 });
 

@@ -1,4 +1,4 @@
-import type { PlainDate, YearNumber } from "../common/date";
+import type { Year, YearMonthDay, YearNumber } from "../common/date";
 import type { AgeRating } from "../utils/types";
 import type { Movie } from "../movie/types";
 import type { Season, Show } from "../show/types";
@@ -42,8 +42,12 @@ export interface OmniItem {
   /**
    * When it finished, absent while it is still going. A film has no separate close — being
    * watched is the whole of it — so its watch date is also its close.
+   *
+   * The two concrete kinds all three sheets record, rather than a bare `PlainDate`: a card states
+   * this date in the reader's own form, and `formatDate` takes the kinds that have one. A
+   * `YearMonth` has no such form and no sheet holds one.
    */
-  closeDate?: PlainDate;
+  closeDate?: YearMonthDay | Year;
   /**
    * The year it counts towards: the year it ended, or the year it started where it has not.
    * Always answerable, since every record in all three sheets carries a start.
@@ -156,6 +160,44 @@ export const unionTotals = (items: OmniItem[]) => ({
   items: items.length,
   years: new Set(items.map((item) => item.year)).size,
 });
+
+/**
+ * The artwork an item is shown as, which is its own tab's: a season is drawn as its show, since
+ * the sheets hold one banner per show and a season has no picture of its own.
+ *
+ * The browse surfaces are walls of pictures, so an item with none is not on them — the rule
+ * `finishedItems` already applies to every domain's library grid.
+ */
+export const omniBanner = (item: OmniItem): string | undefined =>
+  item.medium === "show" ? (item.source as Season).show.banner : (item.source as VideoGame | Movie).banner;
+
+/**
+ * What the item is called on a card: a season says which season it is, because a strip of six
+ * cards all reading the same show name says nothing about what was watched.
+ */
+export const omniTitle = (item: OmniItem): string =>
+  item.medium === "show" ? `${item.name} S${(item.source as Season).s}` : item.name;
+
+/**
+ * A stable identity for one item across the union.
+ *
+ * The name alone is not one: every season of a show carries its show's name, and a film watched
+ * twice is two rows with one title. Keyed on the name, React cannot tell those apart and drops or
+ * swaps cards. The medium and the item's own close date separate the rest — a replay finished on
+ * the same day as the first run is the only collision left, and no sheet holds one.
+ */
+export const omniKey = (item: OmniItem): string => `${item.medium}-${omniTitle(item)}-${item.closeDate ?? "open"}`;
+
+/**
+ * What was finished most recently, newest first.
+ *
+ * Only what has actually closed: an item with no close date is still being played or watched, and
+ * listing it under "recently finished" says something false. That also leaves every entry with a
+ * date to sort by, where `sortByKey` would otherwise head the list with the undated ones — it puts
+ * falsy values first in both directions.
+ */
+export const recentlyFinished = (items: OmniItem[]): OmniItem[] =>
+  items.filter((item) => item.closeDate).sortByKey("closeDate");
 
 /** Items of one medium, which is how every per-medium figure on the page is scoped. */
 export const ofMedium = (items: OmniItem[], medium: Medium) => items.filter((item) => item.medium === medium);

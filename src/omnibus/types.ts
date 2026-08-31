@@ -37,6 +37,22 @@ const mediumLabels: Record<Medium, string> = {
 export const mediumToLabel = (medium: Medium): string => mediumLabels[medium];
 
 /**
+ * The shape a medium's artwork comes in: games and shows are banners, films are posters.
+ *
+ * `auto` before the ratio makes it a reservation rather than a crop — the artwork's own shape wins
+ * the moment it is known, and this holds the space until then. What that buys is a strip or a wall
+ * of lazily loaded pictures that is its real size cold, rather than one that grows under the
+ * reader as the images arrive.
+ */
+const mediumAspects: Record<Medium, string> = {
+  game: "auto 16 / 9",
+  show: "auto 16 / 9",
+  movie: "auto 2 / 3",
+};
+
+export const mediumToAspect = (medium: Medium): string => mediumAspects[medium];
+
+/**
  * The page-wide measure. An hour is an hour across the three, and an item is a game, a season or
  * a film — the unit each medium is actually logged in, which is why the second measure is not
  * "titles": a show is not comparable to a film, but a season watched is comparable to a film seen.

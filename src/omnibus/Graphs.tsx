@@ -9,12 +9,15 @@ import { FranchiseContext as MovieFranchiseContext, movieFranchise } from "../mo
 import { FranchiseContext as ShowFranchiseContext, showFranchise } from "../show/franchiseContext";
 import { FranchiseContext as VgFranchiseContext } from "../vg/franchiseContext";
 import { useOtherTabs } from "../tabs";
-import { earliestYear, electNow, hasNow, type Library, type OmniItem } from "./adapter";
+import { earliestYear, electNow, hasNow, recentlyFinished, type Library, type OmniItem } from "./adapter";
 import Barchart from "./Barchart";
 import Crossings from "./Crossings";
 import { crossings } from "./crossingsData";
 import Filter from "./Filter";
+import Gallery from "./Gallery";
+import { galleryItems } from "./galleryData";
 import GenreBridge from "./GenreBridge";
+import RecentlyFinished from "./RecentlyFinished";
 import { genreBridge } from "./genreBridgeData";
 import Stats from "./Stats";
 import { OMNIBUS_SECTIONS, omnibusSections } from "./sections";
@@ -94,6 +97,11 @@ const Graphs = memo(
     // grouping is not cheap, and two derivations of it could report different counts.
     const crossed = crossings(data, epoch, CURRENT_PLAINDATE);
     const bridge = genreBridge(data);
+    // The two browse surfaces answer over what is left after the filters, and each is answered
+    // once: the section renders from the same array the rail's chip is gated on, so a chip cannot
+    // offer a shelf with nothing on it.
+    const shelved = galleryItems(data);
+    const finished = recentlyFinished(data);
 
     return (
       <Stack spacing={2}>
@@ -101,6 +109,8 @@ const Graphs = memo(
           sections={omnibusSections({
             now: hasNow(now),
             crossings: crossed.length > 0,
+            gallery: shelved.length > 0,
+            finished: finished.length > 0,
             genres: bridge.length > 0,
           })}
           tabs={tabs}
@@ -129,11 +139,19 @@ const Graphs = memo(
             />
           </Section>
         )}
-        {/* Phase C2's browse surfaces go here, in the page's temperature order: the gallery at
-            `OMNIBUS_SECTIONS.gallery`, then recently finished and the library wall at
-            `OMNIBUS_SECTIONS.finished`. Both ids are already in the map; each needs its chip
-            added to `omnibusSections` and gated on having anything to show, the way Crossings and
-            Genres are here. */}
+        {shelved.length > 0 && (
+          <Section id={OMNIBUS_SECTIONS.gallery}>
+            <Gallery
+              data={shelved}
+              measure={filterState.measure}
+            />
+          </Section>
+        )}
+        {finished.length > 0 && (
+          <Section id={OMNIBUS_SECTIONS.finished}>
+            <RecentlyFinished items={finished} />
+          </Section>
+        )}
         {bridge.length > 0 && (
           <Section id={OMNIBUS_SECTIONS.genres}>
             <GenreBridge rows={bridge} />

@@ -21,16 +21,25 @@ export const OMNIBUS_SECTIONS = {
 /**
  * The rail's chips for this page.
  *
- * Three of the sections are rendered only where they have something to say, so whether each is
+ * Most of the sections are rendered only where they have something to say, so whether each is
  * there is passed in rather than derived a second time — one test answered once cannot come apart
  * from itself. Crossings and Genres are both about a franchise or a genre spanning more than one
  * medium, so a reader who has switched two of the three off empties them structurally rather than
- * by accident.
+ * by accident; the two browse surfaces empty where the filters leave nothing with artwork, and
+ * nothing finished, respectively.
  */
-export const omnibusSections = (has: { now: boolean; crossings: boolean; genres: boolean }) => [
+export const omnibusSections = (has: {
+  now: boolean;
+  crossings: boolean;
+  gallery: boolean;
+  finished: boolean;
+  genres: boolean;
+}) => [
   ...(has.now ? [{ id: OMNIBUS_SECTIONS.now, label: "Now" }] : []),
   { id: OMNIBUS_SECTIONS.vitals, label: "Vitals" },
   { id: OMNIBUS_SECTIONS.charts, label: "By Year" },
   ...(has.crossings ? [{ id: OMNIBUS_SECTIONS.crossings, label: "Crossings" }] : []),
+  ...(has.gallery ? [{ id: OMNIBUS_SECTIONS.gallery, label: "Gallery" }] : []),
+  ...(has.finished ? [{ id: OMNIBUS_SECTIONS.finished, label: "Finished" }] : []),
   ...(has.genres ? [{ id: OMNIBUS_SECTIONS.genres, label: "Genres" }] : []),
 ];
