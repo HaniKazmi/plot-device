@@ -285,9 +285,22 @@ const NowCard = <T,>(props: {
           flexDirection: { xs: "column", md: "row" },
           width: "100%",
           // The banner card gives up the padding under its last line so the picture above can have
-          // it. Only this card: a poster card's lower edge is the poster itself, with no padding
-          // there to reclaim.
-          ...(beside ? {} : { "& > .MuiCardContent-root:last-child": { paddingBottom: 0 } }),
+          // it, and its words then take the height the picture left rather than ending where the
+          // text happens to end. Both are what put the last tile on the card's lower edge, level
+          // with the poster beside it — a picture has no padding and no slack, so the poster card
+          // ends exactly there and the banner card has to be made to.
+          //
+          // The card has to be told it is a column for the second half: a stacked card is a block,
+          // and a child of a block cannot grow into the height its fixed-height parent has left
+          // over. Only this card — a poster card's lower edge is already its picture.
+          ...(beside
+            ? {}
+            : {
+                display: "flex",
+                flexDirection: "column",
+                "& > .MuiCardContent-root:last-child": { paddingBottom: 0 },
+                "& > .MuiCardContent-root": { flexGrow: 1 },
+              }),
         }}
         sx={{
           // Sized from the shape every artwork of this kind is drawn at, never from the file's own
