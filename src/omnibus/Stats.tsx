@@ -223,12 +223,12 @@ const NOW_HEIGHT = 380;
 const NOW_TEXT_WIDTH = 185;
 
 /**
- * What the banner card's words come to: the panel's own lines, with its lower padding given up.
+ * What the banner card's words come to: the panel's own lines plus the same lower inset every
+ * panel in the row keeps.
  *
- * A card that ends in padding ends in a band of ground, and this one is the only card in the row
- * with an edge below its text to spend — the poster cards end in a picture. Handing it to the
- * banner instead is what makes the picture the full width of the row's tallest possible card rather
- * than that minus a margin nothing is printed in.
+ * The row's shared baseline is the tiles', not the cards': the poster cards' tiles end one
+ * padding above their card's edge, so the banner card's last tile has to end there too — flush
+ * to the card instead puts it a full inset below its neighbours'.
  */
 const NOW_BANNER_TEXT_HEIGHT = 195;
 
@@ -285,10 +285,10 @@ const NowCard = <T,>(props: {
           flexDirection: { xs: "column", md: "row" },
           width: "100%",
           // The banner card is a column whose picture is the part that gives: the words are the
-          // height of their own lines and no more, the padding under the last of them is dropped,
-          // and everything else in the card belongs to the picture above. So the last tile lands on
-          // the card's lower edge — level with the poster beside it, which ends there because a
-          // picture has no padding — at whatever height the row settles on.
+          // height of their own lines plus the row's shared lower inset, and everything else in
+          // the card belongs to the picture above. So the last tile lands one inset above the
+          // card's lower edge — level with the tiles of the poster cards beside it, whose panels
+          // keep that same inset — at whatever height the row settles on.
           //
           // Sizing it the other way round is what put the tile off that line twice. Giving the
           // words the leftover height leaves them spread apart in a card taller than the picture
@@ -305,7 +305,9 @@ const NowCard = <T,>(props: {
                 // out of the card; `contain` is what keeps that a height and never a crop.
                 "& > .MuiCardActionArea-root": { flex: "1 1 auto", minHeight: 0 },
                 "& > .MuiCardContent-root": { flex: "0 0 auto" },
-                "& > .MuiCardContent-root:last-child": { paddingBottom: 0 },
+                // The default inset kept, not dropped: it is the poster panels' inset too, and
+                // the row's tiles align through it.
+                "& > .MuiCardContent-root:last-child": { paddingBottom: 2 },
               }),
         }}
         sx={{
