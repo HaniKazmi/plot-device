@@ -178,7 +178,9 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
             { text: now.show.show.network },
             { text: now.show.show.genre, swatch: genreToColour(now.show.show.genre) },
           ]}
-          stats={showHeroStats(now.show, 1, CURRENT_PLAINDATE)}
+          // The rate tile stays on the Shows tab's own hero; beside a poster this card's text
+          // column holds two figures comfortably and three crowd it.
+          stats={showHeroStats(now.show, 1, CURRENT_PLAINDATE).filter((stat) => stat.label !== "Eps / Week")}
         />
       )}
       {now.movie && (
