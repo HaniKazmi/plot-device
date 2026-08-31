@@ -284,22 +284,28 @@ const NowCard = <T,>(props: {
         cardSx={{
           flexDirection: { xs: "column", md: "row" },
           width: "100%",
-          // The banner card gives up the padding under its last line so the picture above can have
-          // it, and its words then take the height the picture left rather than ending where the
-          // text happens to end. Both are what put the last tile on the card's lower edge, level
-          // with the poster beside it — a picture has no padding and no slack, so the poster card
-          // ends exactly there and the banner card has to be made to.
+          // The banner card is a column whose picture is the part that gives: the words are the
+          // height of their own lines and no more, the padding under the last of them is dropped,
+          // and everything else in the card belongs to the picture above. So the last tile lands on
+          // the card's lower edge — level with the poster beside it, which ends there because a
+          // picture has no padding — at whatever height the row settles on.
           //
-          // The card has to be told it is a column for the second half: a stacked card is a block,
-          // and a child of a block cannot grow into the height its fixed-height parent has left
-          // over. Only this card — a poster card's lower edge is already its picture.
+          // Sizing it the other way round is what put the tile off that line twice. Giving the
+          // words the leftover height leaves them spread apart in a card taller than the picture
+          // wanted, and hangs the tile below the edge in one shorter; deriving the card's height
+          // from its own picture instead of taking the row's makes it a card of its own height in a
+          // row of one. The card is only told to be a column here because a stacked card is a
+          // block, and a block's children cannot divide up its height.
           ...(beside
             ? {}
             : {
                 display: "flex",
                 flexDirection: "column",
+                // The picture takes what the words leave, down to nothing rather than pushing them
+                // out of the card; `contain` is what keeps that a height and never a crop.
+                "& > .MuiCardActionArea-root": { flex: "1 1 auto", minHeight: 0 },
+                "& > .MuiCardContent-root": { flex: "0 0 auto" },
                 "& > .MuiCardContent-root:last-child": { paddingBottom: 0 },
-                "& > .MuiCardContent-root": { flexGrow: 1 },
               }),
         }}
         sx={{
@@ -313,8 +319,10 @@ const NowCard = <T,>(props: {
           ...(beside
             ? // Its column exactly, and the whole height of the row beside the words.
               { width: { xs: "100%", md: NOW_POSTER_ART_WIDTH }, height: { xs: "auto", md: "100%" } }
-            : // Spans the card it was given; the ratio above then decides its height.
-              { width: "100%", height: "auto" }),
+            : // The slot the words left it, filled. At the height the row is built around that slot
+              // is exactly the card's width at 16:9 and the banner fills it edge to edge; a row
+              // driven taller by another card spends the difference here rather than on the words.
+              { width: "100%", height: { xs: "auto", md: "100%" } }),
         }}
         footerComponent={
           <CardPanel

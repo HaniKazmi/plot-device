@@ -487,13 +487,13 @@ export const CardPanel = ({
       sx={{
         display: "flex",
         flexDirection: "column",
-        // Where the panel is given more height than its lines need, the title takes the top edge
-        // and the figures the bottom, spending that height as structure rather than leaving it as
-        // ground below the last tile. That is most of what a panel beside a poster is, but a
-        // stacked panel in a card of a fixed height has the same spare height to spend — and where
-        // there is none, which is every panel sized by its own content, this is what `flex-start`
-        // would have done anyway.
-        justifyContent: "space-between",
+        // Beside or hero, the panel is as tall as the artwork and a few lines cannot fill it, so
+        // the title takes the top edge and the figures the bottom, spending that height as
+        // structure rather than pooling it around a centred block. A stacked panel is the height of
+        // its own lines and has nothing to distribute — spreading them to fill a taller box pulls
+        // the kicker off its title and opens a gap above the figures, which is the wrong way to use
+        // spare height. Where a stacked card has any, it belongs to the picture.
+        justifyContent: beside || hero ? "space-between" : "flex-start",
         gap: 2,
         // Basis zero and free to grow, so a panel beside the artwork is exactly the row minus the
         // artwork column rather than a share of it.
