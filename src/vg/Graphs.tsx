@@ -13,6 +13,7 @@ import { Stack } from "@mui/material";
 import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
 import Filter from "./Filter";
 import { ChartPair, Section, SectionRail } from "../common/SectionRail";
+import { useOtherTabs } from "../tabs";
 import { VG_SECTIONS, vgSections } from "./sections";
 import { currentlyPlaying } from "./statsData";
 import { format } from "../utils/mathUtils";
@@ -62,13 +63,17 @@ const Graphs = memo(
     filterDispatch: FilterDispatch;
   }) => {
     const deferredData = useDeferredValue(data, []);
+    const tabs = useOtherTabs();
     // Answered once for the page: it decides both whether the hero is rendered and whether the
     // rail offers a chip pointing at it, and two derivations of one test are two that can differ.
     const playing = currentlyPlaying(data);
 
     return (
       <Stack spacing={2}>
-        <SectionRail sections={vgSections(playing.length > 0)} />
+        <SectionRail
+          sections={vgSections(playing.length > 0)}
+          tabs={tabs}
+        />
         <Stats
           data={data}
           playing={playing}

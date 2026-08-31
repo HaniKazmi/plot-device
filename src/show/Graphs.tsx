@@ -4,6 +4,7 @@ import Barchart from "./Barchart";
 import Sunburst from "./Sunburst";
 import Stats from "./Stats";
 import { ChartPair, Section, SectionRail } from "../common/SectionRail";
+import { useOtherTabs } from "../tabs";
 import { SHOW_SECTIONS, showSections } from "./sections";
 import { currentlyWatching } from "./statsData";
 import Timeline from "./Timeline";
@@ -63,13 +64,17 @@ const Graphs = memo(
     filterDispatch: FilterDispatch;
   }) => {
     const deferredData = useDeferredValue(data, []);
+    const tabs = useOtherTabs();
     // Answered once for the page: it decides both whether the "now" strip is rendered and whether
     // the rail offers a chip pointing at it, and two derivations of one test are two that can differ.
     const watching = currentlyWatching(data);
 
     return (
       <Stack spacing={2}>
-        <SectionRail sections={showSections(watching.length > 0)} />
+        <SectionRail
+          sections={showSections(watching.length > 0)}
+          tabs={tabs}
+        />
         <Stats
           data={data}
           watching={watching}

@@ -75,4 +75,14 @@ export const tabForPath = (pathname: string, tabs: readonly Tab[] = Tabs): Tab =
 
 export const useCurrentTab = (): Tab => tabForPath(useLocation().pathname);
 
+/**
+ * Every routed tab but the current one, as chips for the section rail — the jumps the rail can
+ * offer once the app bar has scrolled away. The current tab is deliberately absent: it is where
+ * the reader already is, and the rail offers movement, not orientation.
+ */
+export const otherTabs = (current: Tab, tabs: readonly Tab[] = Tabs) =>
+  tabs.filter((tab) => tab !== current).map((tab) => ({ id: tab.id, label: tab.name }));
+
+export const useOtherTabs = () => otherTabs(useCurrentTab());
+
 export default Tabs;

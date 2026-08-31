@@ -9,6 +9,7 @@ import Barchart from "./Barchart";
 import WatchTimeline from "./WatchTimeline";
 import Filter from "./Filter";
 import { ChartPair, Section, SectionRail } from "../common/SectionRail";
+import { useOtherTabs } from "../tabs";
 import { MOVIE_SECTIONS, movieSections } from "./sections";
 import { FranchiseContext, movieFranchise } from "./franchiseContext";
 import { franchiseIndex } from "../common/franchiseIndex";
@@ -61,10 +62,14 @@ const Graphs = memo(
     filterDispatch: FilterDispatch;
   }) => {
     const deferredData = useDeferredValue(data, []);
+    const tabs = useOtherTabs();
 
     return (
       <Stack spacing={2}>
-        <SectionRail sections={movieSections(data.length > 0)} />
+        <SectionRail
+          sections={movieSections(data.length > 0)}
+          tabs={tabs}
+        />
         <Stats
           data={data}
           measure={filterState.measure}

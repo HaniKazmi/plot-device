@@ -107,7 +107,7 @@ export const StatCard = ({
 
 /** How many cards a strip shows collapsed, and how many its fullscreen dialog shows. */
 export const COLLAPSED_CARDS = 6;
-export const EXPANDED_CARDS = 18;
+export const EXPANDED_CARDS = 500;
 
 /**
  * A card that can also present itself fullscreen.
