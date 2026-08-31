@@ -204,22 +204,40 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
  *
  * The widths are stated rather than left to the artwork's own pixels for two reasons. A flex row
  * asks an item how wide it wants to be before any height is known, and a picture asked that answers
- * with its file's width — a 600px poster then claims 600px and drags the row to 900 tall. And the
- * files are not all exactly on their ratio yet, so a measured width would stand the two poster cards
- * at different sizes for a reason no reader can see.
+ * with its file's width — a 680px poster then claims 680px and drags the row past 1,000 tall. And a
+ * file that is off its declared ratio would stand the two poster cards at different sizes for a
+ * reason no reader can see.
  *
- * The three numbers hold each other:
+ * The numbers hold each other, and the height is what they are all measured against:
  *
- * - the poster cards are a full-height poster — the height times two thirds — plus a column of text;
- * - the banner card is narrower, and the banner across it takes nine sixteenths of that width in
- *   height (180px at 320), which leaves the remaining 200px of the row to its kicker, title,
- *   subtitle and two figures. A wider banner card is a taller picture and a squeezed panel;
- * - together they come to 1,222px, which is what lets all three stand on one row at a desktop width
+ * - a poster card is a full-height poster — the height at the poster's own ratio — plus its text;
+ * - the banner card is the height too, spent the other way round: its picture spans the card, so the
+ *   card's width is what decides how much of the height the picture takes and how much is left for
+ *   the words. Sizing the card from that leftover rather than picking a width is what makes the
+ *   banner card come out exactly the row's height, so no card carries a strip of ground its
+ *   neighbours do not;
+ * - together they come to 1,231px, which is what lets all three stand on one row at a desktop width
  *   rather than wrapping.
  */
 const NOW_HEIGHT = 380;
-const NOW_TEXT_WIDTH = 190;
-const NOW_BANNER_CARD_WIDTH = 320;
+const NOW_TEXT_WIDTH = 185;
+
+/**
+ * What the banner card's words come to: the panel's own lines, with its lower padding given up.
+ *
+ * A card that ends in padding ends in a band of ground, and this one is the only card in the row
+ * with an edge below its text to spend — the poster cards end in a picture. Handing it to the
+ * banner instead is what makes the picture the full width of the row's tallest possible card rather
+ * than that minus a margin nothing is printed in.
+ */
+const NOW_BANNER_TEXT_HEIGHT = 195;
+
+/**
+ * The banner card is as wide as its picture needs to be to take the rest of the height at 16:9.
+ * Stated this way round, the card cannot come out taller than the row and leave a hairline of ground
+ * under the posters beside it.
+ */
+const NOW_BANNER_CARD_WIDTH = Math.round((NOW_HEIGHT - NOW_BANNER_TEXT_HEIGHT) * shapeRatioValues.landscape);
 const NOW_POSTER_ART_WIDTH = Math.round(NOW_HEIGHT * shapeRatioValues.portrait);
 
 /**
@@ -263,7 +281,14 @@ const NowCard = <T,>(props: {
         // a share of a card whose width was imposed on it.
         mediaLayout={beside ? "aside" : undefined}
         chip={{ label: mediumToLabel(props.medium), colour: mediumToColour(props.medium), onClick: props.onJump }}
-        cardSx={{ flexDirection: { xs: "column", md: "row" }, width: "100%" }}
+        cardSx={{
+          flexDirection: { xs: "column", md: "row" },
+          width: "100%",
+          // The banner card gives up the padding under its last line so the picture above can have
+          // it. Only this card: a poster card's lower edge is the poster itself, with no padding
+          // there to reclaim.
+          ...(beside ? {} : { "& > .MuiCardContent-root:last-child": { paddingBottom: 0 } }),
+        }}
         sx={{
           // Sized from the shape every artwork of this kind is drawn at, never from the file's own
           // pixels, so the two poster cards are identical and an off-size file cannot make one of
