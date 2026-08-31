@@ -14,6 +14,8 @@ import { cinemaLabel, scoreBand, scoreBandToColour, type Movie } from "./types";
 import { ageRatingToColour, genreToColour } from "../utils/types";
 import { namesTheSameThing } from "../utils/stringUtils";
 import { CURRENT_PLAINDATE, formatDate } from "../common/date";
+import { shapeToRatio } from "../common/cardArrangement";
+import { HOVER_CARD_ASIDE_ARTWORK_HEIGHT } from "../common/HoverCardTooltip";
 import { buildStrip, stripYearTicks } from "../common/timelineStripData";
 import { useFranchiseMovies } from "./franchiseContext";
 import { MOVIE_EPOCH } from "./statsData";
@@ -143,6 +145,18 @@ export const MovieHoverCard = ({ item }: { item: Movie }) => (
     item={item}
     landscape
     extractColour
+    // The shape held firmly rather than as the `auto` reservation the walls use, because a
+    // tooltip is positioned once, against the card as it stands the moment it opens. An image
+    // that has not loaded has no size of its own, so the card opens short, the picture then
+    // adds a few hundred pixels to it, and the popper never reflows — which is how a card seen
+    // for the first time lands off the screen and the same card seen again does not. Reserved
+    // at the ratio the artwork is drawn at, the card is the same size before and after.
+    sx={{
+      aspectRatio: shapeToRatio("portrait"),
+      height: HOVER_CARD_ASIDE_ARTWORK_HEIGHT,
+      width: "auto",
+      flexShrink: 0,
+    }}
     footerComponent={
       <CardPanel
         layout="beside"

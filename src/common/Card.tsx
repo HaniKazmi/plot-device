@@ -18,15 +18,7 @@ import {
   type ChipProps,
   type TypographyProps,
 } from "@mui/material";
-import {
-  Fragment,
-  type FunctionComponent,
-  type ReactElement,
-  type ReactNode,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { type FunctionComponent, type ReactElement, type ReactNode, useEffect, useRef, useState } from "react";
 import { CalendarMonthOutlined } from "@mui/icons-material";
 import { cachedColour, extractColourFrom } from "../utils/colourUtils";
 import { ArtworkAccent, artworkPalette, useArtworkPalette } from "./artworkPalette";
@@ -540,15 +532,23 @@ export const CardPanel = ({
             it sits under the title in the same tone the dates take. */}
         {subtitle &&
           (Array.isArray(subtitle) ? (
-            <Stack
-              direction="row"
-              spacing={0.75}
-              sx={{ alignItems: "center", flexWrap: "wrap", color: palette.muted }}
+            // Each part is one box rather than three loose ones, because a line break falls between
+            // flex items: with the swatch, the separator and the text each an item of the wrapping
+            // row, a narrow column breaks a mark off the thing it marks and leaves a separator
+            // hanging at the end of a line. Grouped, the only place a break can fall is between
+            // parts, and the separator leads its own part so it travels with the words it joins.
+            <Box
+              sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 0.75, color: palette.muted }}
             >
               {subtitle
                 .filter((part) => part.text)
                 .map((part, index) => (
-                  <Fragment key={part.text}>
+                  <Box
+                    key={part.text}
+                    // The floor is what lets a part longer than the whole column wrap inside
+                    // itself rather than push the row wider than the card.
+                    sx={{ display: "inline-flex", alignItems: "center", columnGap: 0.75, minWidth: 0 }}
+                  >
                     {index > 0 && <Typography variant="body2">·</Typography>}
                     {part.swatch && (
                       <Swatch
@@ -556,10 +556,15 @@ export const CardPanel = ({
                         size={INLINE_SWATCH_SIZE}
                       />
                     )}
-                    <Typography variant="body2">{part.text}</Typography>
-                  </Fragment>
+                    <Typography
+                      variant="body2"
+                      sx={{ overflowWrap: "anywhere" }}
+                    >
+                      {part.text}
+                    </Typography>
+                  </Box>
                 ))}
-            </Stack>
+            </Box>
           ) : (
             <Typography
               variant="body2"

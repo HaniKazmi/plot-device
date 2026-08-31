@@ -1,5 +1,6 @@
 import { Hub, Layers, Timer, Update } from "@mui/icons-material";
 import { Box, Stack, Typography } from "@mui/material";
+import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { useNavigate } from "react-router-dom";
 import { CardPanel, type PanelStat, type PanelSubtitlePart, type TypedCardMediaImage } from "../common/Card";
 import { CURRENT_PLAINDATE, CURRENT_YEAR, formatDate, type YearNumber } from "../common/date";
@@ -220,7 +221,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
  *   rather than wrapping.
  */
 const NOW_HEIGHT = 380;
-const NOW_TEXT_WIDTH = 185;
+const NOW_TEXT_WIDTH = 176;
 
 /**
  * What the banner card's words come to: the panel's own lines plus the same lower inset every
@@ -233,12 +234,71 @@ const NOW_TEXT_WIDTH = 185;
 const NOW_BANNER_TEXT_HEIGHT = 195;
 
 /**
+ * What the words come to when the title fits on one line, which is the shortest the card plans for.
+ *
+ * The pair of budgets is what bounds the card's width, and the band's: at the tall end the card is
+ * its narrowest and at the short end its widest, and the row still holds three cards across a
+ * desktop at either. A panel outside the pair is read as the nearer of the two rather than sizing
+ * the card from it, so a title that runs to a third line cannot narrow the card into wrapping the
+ * title further still.
+ */
+const NOW_BANNER_TEXT_MIN_HEIGHT = 185;
+
+/**
  * The banner card is as wide as its picture needs to be to take the rest of the height at 16:9.
  * Stated this way round, the card cannot come out taller than the row and leave a hairline of ground
- * under the posters beside it.
+ * under the posters beside it — and the picture fills the slot exactly rather than sitting in a
+ * band of its own ground, which is what a width picked in advance leaves whenever the words come to
+ * anything other than the height it was picked for.
  */
-const NOW_BANNER_CARD_WIDTH = Math.round((NOW_HEIGHT - NOW_BANNER_TEXT_HEIGHT) * shapeRatioValues.landscape);
+const bannerCardWidth = (textHeight: number) =>
+  Math.round(
+    (NOW_HEIGHT - Math.min(Math.max(textHeight, NOW_BANNER_TEXT_MIN_HEIGHT), NOW_BANNER_TEXT_HEIGHT)) *
+      shapeRatioValues.landscape,
+  );
+
+/** What the card is drawn at until its words have been measured, so nothing jumps on first paint. */
+const NOW_BANNER_CARD_WIDTH = bannerCardWidth(NOW_BANNER_TEXT_HEIGHT);
 const NOW_POSTER_ART_WIDTH = Math.round(NOW_HEIGHT * shapeRatioValues.portrait);
+
+/**
+ * The banner card's width, following the height its words actually came to.
+ *
+ * The height cannot be known in CSS — it is however many lines the title took at whatever width the
+ * card ended up — and it cannot be derived by letting the card shrink-wrap its picture either: a
+ * flex row asks an image how wide it wants to be before any height is settled, and the answer is
+ * the file's own 1,600 pixels. So it is measured, the way the timeline measures its labels before
+ * placing them.
+ *
+ * The loop this closes settles rather than runs: a wider card can only take a title off a second
+ * line, never onto one, so the height it measures is non-increasing in the width it sets and the
+ * two budgets bound both ends. The one-pixel threshold is what keeps a sub-pixel remeasure from
+ * being a render.
+ */
+const useBannerCardWidth = (cardRef: RefObject<HTMLDivElement | null>, measuring: boolean) => {
+  const [width, setWidth] = useState<number>(NOW_BANNER_CARD_WIDTH);
+
+  useLayoutEffect(() => {
+    if (!measuring) return;
+    // The panel is the card's own node rather than one this file rendered, so it is found in the
+    // DOM — the same way the scroll marker reads the wall it measures.
+    const panel = cardRef.current?.querySelector(".MuiCardContent-root");
+    if (!panel) return;
+
+    const read = () =>
+      setWidth((held) => {
+        const next = bannerCardWidth(panel.getBoundingClientRect().height);
+        return Math.abs(next - held) > 1 ? next : held;
+      });
+
+    read();
+    const observer = new ResizeObserver(read);
+    observer.observe(panel);
+    return () => observer.disconnect();
+  }, [cardRef, measuring]);
+
+  return width;
+};
 
 /**
  * One medium's current item.
@@ -259,13 +319,16 @@ const NowCard = <T,>(props: {
 }) => {
   const shape = mediumToShape(props.medium);
   const beside = shape === "portrait";
+  const cardRef = useRef<HTMLDivElement>(null);
+  const bannerWidth = useBannerCardWidth(cardRef, !beside);
 
   return (
     <Box
+      ref={cardRef}
       sx={{
         flex: "0 0 auto",
         // Each card the width its own picture makes it, rather than every card a third of the band.
-        width: { xs: "100%", md: beside ? NOW_POSTER_ART_WIDTH + NOW_TEXT_WIDTH : NOW_BANNER_CARD_WIDTH },
+        width: { xs: "100%", md: beside ? NOW_POSTER_ART_WIDTH + NOW_TEXT_WIDTH : bannerWidth },
         maxWidth: "100%",
         // A floor and not a fixed height, so a title that runs to another line grows the row rather
         // than being clipped by it; the cards stretch together, so they still share one height.
