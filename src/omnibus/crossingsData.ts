@@ -1,4 +1,4 @@
-import { Year, type YearMonthDay } from "../common/date";
+import { CURRENT_YEAR, Year, YearMonthDay } from "../common/date";
 import { buildStrip, type StripBand, type StripSpan } from "../common/timelineStripData";
 import { namesTheSameThing } from "../utils/stringUtils";
 import type { Movie } from "../movie/types";
@@ -83,36 +83,65 @@ const crossingSpan = (item: OmniItem, key: string, today: YearMonthDay): Crossin
  * there met by sharing a title. What that costs is the single-film-plus-single-game adaptation,
  * which is indistinguishable from the coincidence by anything the sheets record.
  *
- * `epoch` is the union's own first year rather than the group's, so every strip on the page is one
- * scale and two franchises can be read against each other.
+ * The `epoch` is answered here rather than taken from the caller, and it is the earliest *start*
+ * among the entries actually drawn. An item's attribution year is the year it ended, so a scale
+ * opened on that would leave every entry begun before it clamped flat against the left edge by
+ * `buildStrip` — drawn as a band starting on the epoch, with nothing saying it did not. One scale
+ * for every strip on the page, so a franchise that ran for three years and one that ran for twenty
+ * are not drawn at the same width.
  */
-export const crossings = (items: OmniItem[], epoch: YearMonthDay, today: YearMonthDay): Crossing[] => {
+export const crossings = (items: OmniItem[], today: YearMonthDay): { found: Crossing[]; epoch: YearMonthDay } => {
   const byFranchise = items.reduce((index, item) => {
     if (item.franchise) index.setIfAbsent(item.franchise, []).push(item);
     return index;
   }, new Map<string, OmniItem[]>());
 
-  return [...byFranchise.entries()]
+  const groups = [...byFranchise.entries()]
     .filter(
       ([franchise, group]) =>
         new Set(group.map((item) => item.medium)).size > 1 &&
         group.some((item) => !namesTheSameThing(franchise, item.name)),
     )
-    .map(([franchise, group]) => buildCrossing(franchise, group, epoch, today))
-    .sortByKey("entries");
+    .map(([franchise, group]) => ({ franchise, entries: group.length, lanes: crossingLanes(group, today) }));
+
+  // Floored to the January of that year, because `stripYearTicks` measures its gridlines from the
+  // first of the epoch's month and a scale opened mid-month puts every year line off by the
+  // difference. Nothing crossed leaves no strip to draw, so the year is only a value for the ticks
+  // the caller does not render.
+  const epoch = YearMonthDay.get(earliestStart(groups) ?? CURRENT_YEAR, 1, 1);
+
+  return { found: groups.map((group) => buildCrossing(group, epoch, today)).sortByKey("entries"), epoch };
 };
 
-const buildCrossing = (franchise: string, group: OmniItem[], epoch: YearMonthDay, today: YearMonthDay): Crossing => {
-  const present = media.filter((medium) => group.some((item) => item.medium === medium));
+/** One list of spans per medium the group holds, in the page's medium order. */
+const crossingLanes = (group: OmniItem[], today: YearMonthDay) =>
+  media
+    .filter((medium) => group.some((item) => item.medium === medium))
+    .map((medium) => ({
+      medium,
+      spans: group
+        .filter((item) => item.medium === medium)
+        // The index is what keeps a key unique through a replay or a rewatch, where name, medium
+        // and even the dates repeat.
+        .map((item, index) => crossingSpan(item, `${medium}-${index}-${item.name}`, today)),
+    }));
+
+type CrossingGroup = { franchise: string; entries: number; lanes: ReturnType<typeof crossingLanes> };
+
+/** The year the first of the drawn entries begins in, which is where the shared scale opens. */
+const earliestStart = (groups: CrossingGroup[]): number | undefined =>
+  groups
+    .flatMap((group) => group.lanes.flatMap((lane) => lane.spans))
+    .reduce<number | undefined>(
+      (earliest, span) => (!earliest || span.start.year < earliest ? span.start.year : earliest),
+      undefined,
+    );
+
+const buildCrossing = (group: CrossingGroup, epoch: YearMonthDay, today: YearMonthDay): Crossing => {
   const bands: StripBand<CrossingSpan>[] = [];
   let lanesSpent = 0;
 
-  present.forEach((medium) => {
-    const spans = group
-      .filter((item) => item.medium === medium)
-      // The index is what keeps a key unique through a replay or a rewatch, where name, medium and
-      // even the dates repeat.
-      .map((item, index) => crossingSpan(item, `${medium}-${index}-${item.name}`, today));
+  group.lanes.forEach(({ spans }) => {
     const strip = buildStrip(spans, epoch, today);
 
     bands.push(...strip.bands.map((band) => ({ ...band, lane: band.lane + lanesSpent })));
@@ -121,7 +150,13 @@ const buildCrossing = (franchise: string, group: OmniItem[], epoch: YearMonthDay
     lanesSpent += strip.laneCount;
   });
 
-  return { franchise, media: present, entries: group.length, bands, laneCount: lanesSpent };
+  return {
+    franchise: group.franchise,
+    media: group.lanes.map((lane) => lane.medium),
+    entries: group.entries,
+    bands,
+    laneCount: lanesSpent,
+  };
 };
 
 /** How many entries the crossings hold between them — the figure the vitals card states. */

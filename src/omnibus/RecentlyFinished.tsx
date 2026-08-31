@@ -1,6 +1,7 @@
 import { History } from "@mui/icons-material";
 import { StatBand } from "../common/SectionRail";
 import { StatList } from "../common/Stats";
+import { format } from "../utils/mathUtils";
 import { omniKey, type OmniItem } from "./adapter";
 import OmniCardMediaImage from "./CardMediaImage";
 import { omniLabels, omniMediumChip } from "./cardData";
@@ -10,8 +11,12 @@ import { omniLabels, omniMediumChip } from "./cardData";
  *
  * This is the list each of the three tabs keeps for itself, asked once across all of them — the
  * only place a season finished on Tuesday and a film seen on Wednesday appear in the order they
- * actually happened. The badge names the medium, since the artwork alone does not, and the strip
- * expands to the whole run rather than only the six the card holds.
+ * actually happened. The badge names the medium, since the artwork alone does not.
+ *
+ * The strip is capped where every card strip in the app is, and expanding lifts the cap to the
+ * dialog's own. Over three libraries the run can outrun that too, so the header states how many of
+ * it are drawn — the way the crossings and the gallery state theirs — rather than letting the cut
+ * pass as the whole list.
  */
 const RecentlyFinished = ({ items }: { items: OmniItem[] }) => (
   <StatBand>
@@ -19,6 +24,7 @@ const RecentlyFinished = ({ items }: { items: OmniItem[] }) => (
       icon={<History />}
       title="Recently Finished"
       content={items}
+      count={(shown, total) => (shown < total ? `${format(shown)} of ${format(total)}` : format(total))}
       // Full width: a mixed row is read across, and half a row of it beside another card would
       // hold three cards where the strip's whole point is the run.
       width={[12, 12, 12]}

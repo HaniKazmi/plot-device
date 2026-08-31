@@ -58,11 +58,11 @@ const OmniCardMediaImage: TypedCardMediaImage<OmniItem> = ({ item, ...props }) =
 /**
  * One item of the union as its own tab's hover card.
  *
- * The three domains' own components, rendered untouched. Assembling a panel here instead is what let
- * this tab's hover cards drift from the ones the home tabs show: they came to carry different
- * figures — a film lost its score — and, because this tab's cards also declare an artwork shape, a
- * different arrangement, which stretched a show's card out of the proportions its own tab draws it
- * at. Dispatching to the domain leaves nothing here that can disagree.
+ * The three domains' own components, rendered untouched. A panel assembled here instead is a second
+ * card for the same item, free to state different figures from the one its home tab shows — and,
+ * because this tab's cards also declare an artwork shape, to arrange them differently, stretching a
+ * show's card out of the proportions its own tab draws it at. Dispatching to the domain leaves
+ * nothing here that can disagree.
  *
  * `source` is cast rather than narrowed for the reason above: TypeScript cannot tell the three
  * records apart by shape, and `medium` is the discriminant the item already carries.

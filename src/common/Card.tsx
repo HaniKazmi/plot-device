@@ -23,7 +23,13 @@ import { CalendarMonthOutlined } from "@mui/icons-material";
 import { cachedColour, extractColourFrom } from "../utils/colourUtils";
 import { ArtworkAccent, artworkPalette, useArtworkPalette } from "./artworkPalette";
 import { HoverCardTooltip } from "./HoverCardTooltip";
-import { CardArrangementProvider, shapeToAspect, useCardArrangement, type ArtworkShape } from "./cardArrangement";
+import {
+  CardArrangementProvider,
+  shapeToArrangement,
+  shapeToAspect,
+  useCardArrangement,
+  type ArtworkShape,
+} from "./cardArrangement";
 import { shortYear } from "./date";
 import { LABEL_SX } from "./typography";
 import Grid from "@mui/material/Grid";
@@ -145,7 +151,7 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
    * and draws the picture at half the size it was given room for — which is what a shelf of pictures
    * at one height is.
    */
-  const beside = shape === "portrait" && footerComponent !== undefined;
+  const beside = shape !== undefined && shapeToArrangement(shape) === "beside" && footerComponent !== undefined;
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   /** Lags `dialogOpen` on close so the detail tree survives the dialog's exit transition. */
   const [detailMounted, setDetailMounted] = useState<boolean>(false);
@@ -187,22 +193,26 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
 
   return (
     <ArtworkAccent.Provider value={colour}>
-      <CardArrangementProvider value={beside ? "beside" : "stacked"}>
-        <Card
-          variant="elevation"
-          // The array form rather than a spread: `SxProps` is also legally a function or an array,
-          // neither of which survives being spread into an object literal.
-          sx={[
-            {
-              height: "100%",
-              position: "relative",
-              backgroundColor: palette.ground,
-              display: landscape || beside ? "flex" : undefined,
-              color: palette.onGround,
-            },
-            ...(Array.isArray(cardSx) ? cardSx : [cardSx]),
-          ]}
-        >
+      <Card
+        variant="elevation"
+        // The array form rather than a spread: `SxProps` is also legally a function or an array,
+        // neither of which survives being spread into an object literal.
+        sx={[
+          {
+            height: "100%",
+            position: "relative",
+            backgroundColor: palette.ground,
+            display: landscape || beside ? "flex" : undefined,
+            color: palette.onGround,
+          },
+          ...(Array.isArray(cardSx) ? cardSx : [cardSx]),
+        ]}
+      >
+        {/* The card's own two halves and nothing else. Context crosses a portal, so a provider
+            wrapping the dialog below would hand the expanded card the arrangement of the thumbnail
+            it was opened from — a detail tree laid out beside a poster that is not there. The
+            dialog draws its own full-width artwork and takes the default. */}
+        <CardArrangementProvider value={beside ? "beside" : "stacked"}>
           <CardActionArea
             sx={mediaLayout === "aside" ? ASIDE_ACTION_AREA_SX : beside ? SHAPE_ASIDE_ACTION_AREA_SX : undefined}
           >
@@ -251,91 +261,91 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
             )}
           </CardActionArea>
           {footerComponent}
-          <Dialog
-            open={dialogOpen}
-            onClose={() => setDialogOpen(false)}
-            maxWidth={false}
-            scroll="body"
-            slots={{ transition: Grow }}
-            slotProps={{
-              paper: { sx: { backgroundColor: "unset", boxShadow: "unset", backgroundImage: "unset" } },
-              transition: { onExited: () => setDetailMounted(false) },
+        </CardArrangementProvider>
+        <Dialog
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          maxWidth={false}
+          scroll="body"
+          slots={{ transition: Grow }}
+          slotProps={{
+            paper: { sx: { backgroundColor: "unset", boxShadow: "unset", backgroundImage: "unset" } },
+            transition: { onExited: () => setDetailMounted(false) },
+          }}
+        >
+          <Card
+            variant="elevation"
+            sx={{
+              backgroundColor: palette.ground,
+              color: palette.onGround,
             }}
           >
-            <Card
-              variant="elevation"
+            <Box
+              onClick={() => setDialogOpen(false)}
               sx={{
-                backgroundColor: palette.ground,
-                color: palette.onGround,
+                position: "relative",
+              }}
+            >
+              <CardMedia
+                component="img"
+                crossOrigin="anonymous"
+                sx={(theme) => {
+                  // `svh` and not `vh`, because a phone reports `vh` with its toolbar retracted, so
+                  // an image sized to it overflows the screen it is meant to fit. `dvh` would track
+                  // the toolbar instead, and resize the artwork under the reader at the moment they
+                  // scroll past it to the details.
+                  const room = {
+                    width: `calc(100vw - ${theme.spacing(4)})`,
+                    height: `calc(100svh - ${theme.spacing(4)})`,
+                  };
+
+                  return {
+                    objectFit: "contain",
+                    display: "block",
+                    // On their own these only ever take away: an element with an automatic width is
+                    // already its intrinsic width, so artwork smaller than the screen stays small.
+                    // They are still the whole rule until the shape is known.
+                    maxWidth: room.width,
+                    maxHeight: room.height,
+                    ...(ratio && {
+                      // Filling the width and deriving the height scales the artwork up as well as
+                      // down. Which of the two is the binding one is left to `min`, so it is decided
+                      // against the room actually available and decided again on a rotation — where
+                      // a stored answer would be the one from whichever way round the screen was
+                      // when the image loaded.
+                      width: `min(${room.width}, calc(${room.height} * ${ratio}))`,
+                      height: "auto",
+                    }),
+                  };
+                }}
+                src={image}
+                title={alt}
+                loading="lazy"
+                onClick={() => setDialogOpen(false)}
+              />
+            </Box>
+            <Box
+              sx={{
+                display: "flex",
+                // The same line every other surface draws where it meets the artwork it was
+                // sampled from. A gradient fading the image into the ground did the joining
+                // before, which reads as the artwork running out rather than as one card in two
+                // parts — and spent the bottom tenth of every image to do it.
+                borderTop: palette.seam,
               }}
             >
               <Box
-                onClick={() => setDialogOpen(false)}
                 sx={{
-                  position: "relative",
+                  flexGrow: "1",
+                  width: "0px",
                 }}
               >
-                <CardMedia
-                  component="img"
-                  crossOrigin="anonymous"
-                  sx={(theme) => {
-                    // `svh` and not `vh`, because a phone reports `vh` with its toolbar retracted, so
-                    // an image sized to it overflows the screen it is meant to fit. `dvh` would track
-                    // the toolbar instead, and resize the artwork under the reader at the moment they
-                    // scroll past it to the details.
-                    const room = {
-                      width: `calc(100vw - ${theme.spacing(4)})`,
-                      height: `calc(100svh - ${theme.spacing(4)})`,
-                    };
-
-                    return {
-                      objectFit: "contain",
-                      display: "block",
-                      // On their own these only ever take away: an element with an automatic width is
-                      // already its intrinsic width, so artwork smaller than the screen stays small.
-                      // They are still the whole rule until the shape is known.
-                      maxWidth: room.width,
-                      maxHeight: room.height,
-                      ...(ratio && {
-                        // Filling the width and deriving the height scales the artwork up as well as
-                        // down. Which of the two is the binding one is left to `min`, so it is decided
-                        // against the room actually available and decided again on a rotation — where
-                        // a stored answer would be the one from whichever way round the screen was
-                        // when the image loaded.
-                        width: `min(${room.width}, calc(${room.height} * ${ratio}))`,
-                        height: "auto",
-                      }),
-                    };
-                  }}
-                  src={image}
-                  title={alt}
-                  loading="lazy"
-                  onClick={() => setDialogOpen(false)}
-                />
+                {detailMounted && detailComponent?.()}
               </Box>
-              <Box
-                sx={{
-                  display: "flex",
-                  // The same line every other surface draws where it meets the artwork it was
-                  // sampled from. A gradient fading the image into the ground did the joining
-                  // before, which reads as the artwork running out rather than as one card in two
-                  // parts — and spent the bottom tenth of every image to do it.
-                  borderTop: palette.seam,
-                }}
-              >
-                <Box
-                  sx={{
-                    flexGrow: "1",
-                    width: "0px",
-                  }}
-                >
-                  {detailMounted && detailComponent?.()}
-                </Box>
-              </Box>
-            </Card>
-          </Dialog>
-        </Card>
-      </CardArrangementProvider>
+            </Box>
+          </Card>
+        </Dialog>
+      </Card>
     </ArtworkAccent.Provider>
   );
 };

@@ -1,5 +1,5 @@
-import { memo } from "react";
-import { CURRENT_PLAINDATE, CURRENT_YEAR, YearMonthDay, type YearNumber } from "../common/date";
+import { memo, useDeferredValue } from "react";
+import { CURRENT_PLAINDATE, type YearNumber } from "../common/date";
 import { Stack } from "@mui/material";
 import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
 import { franchiseIndex } from "../common/franchiseIndex";
@@ -84,31 +84,32 @@ const Graphs = memo(
     filterState: FilterState;
     filterDispatch: FilterDispatch;
   }) => {
+    // The charts and the browse surfaces re-render at lower priority, so a filter toggle answers
+    // at once on a page composing three libraries; the bands above them read the fresh array, the
+    // way every other tab splits the two.
+    const deferredData = useDeferredValue(data, []);
     const tabs = useOtherTabs();
     // Answered once for the page: it decides both whether the Now band is rendered and whether the
     // rail offers a chip pointing at it, and two derivations of one test are two that can differ.
     const now = electNow(library, filterState);
 
-    // One scale for every strip on the page, taken from the union's own first year rather than
-    // from each franchise's: two strips measured against their own spans would put a franchise
-    // that ran for three years and one that ran for twenty at the same width.
-    const epoch = YearMonthDay.get(earliestYear ?? CURRENT_YEAR, 1, 1);
     // Derived here and handed to both the section and the vitals card, on the `now` rule: the
-    // grouping is not cheap, and two derivations of it could report different counts.
-    const crossed = crossings(data, epoch, CURRENT_PLAINDATE);
-    const bridge = genreBridge(data);
+    // grouping is not cheap, and two derivations of it could report different counts. The epoch is
+    // the crossings' own, because the scale has to open where the earliest drawn entry begins.
+    const crossed = crossings(deferredData, CURRENT_PLAINDATE);
+    const bridge = genreBridge(deferredData);
     // The two browse surfaces answer over what is left after the filters, and each is answered
     // once: the section renders from the same array the rail's chip is gated on, so a chip cannot
     // offer a shelf with nothing on it.
-    const shelved = galleryItems(data);
-    const finished = recentlyFinished(data);
+    const shelved = galleryItems(deferredData);
+    const finished = recentlyFinished(deferredData);
 
     return (
       <Stack spacing={2}>
         <SectionRail
           sections={omnibusSections({
             now: hasNow(now),
-            crossings: crossed.length > 0,
+            crossings: crossed.found.length > 0,
             gallery: shelved.length > 0,
             finished: finished.length > 0,
             genres: bridge.length > 0,
@@ -118,7 +119,7 @@ const Graphs = memo(
         <Stats
           data={data}
           now={now}
-          crossings={crossed}
+          crossings={crossed.found}
           earliestYear={earliestYear}
           measure={filterState.measure}
           yearType={filterState.yearType}
@@ -127,15 +128,15 @@ const Graphs = memo(
         />
         <Section id={OMNIBUS_SECTIONS.charts}>
           <Barchart
-            data={data}
+            data={deferredData}
             measure={filterState.measure}
           />
         </Section>
-        {crossed.length > 0 && (
+        {crossed.found.length > 0 && (
           <Section id={OMNIBUS_SECTIONS.crossings}>
             <Crossings
-              crossings={crossed}
-              ticks={stripYearTicks(epoch, CURRENT_PLAINDATE)}
+              crossings={crossed.found}
+              ticks={stripYearTicks(crossed.epoch, CURRENT_PLAINDATE)}
             />
           </Section>
         )}

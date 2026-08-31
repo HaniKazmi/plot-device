@@ -6,8 +6,6 @@ import { movie } from "../fixtures/movies";
 import { season, show } from "../fixtures/shows";
 import { videoGame } from "../fixtures/vgRows";
 
-/** A scale wide enough to hold every span below, so nothing is dropped by the epoch clamp. */
-const EPOCH = YearMonthDay.get(2000, 1, 1);
 const TODAY = YearMonthDay.get(2025, 12, 31);
 
 const library = (overrides: Partial<Library> = {}): Library => ({ games: [], shows: [], movies: [], ...overrides });
@@ -18,7 +16,7 @@ const showWith = (name: string, franchise: string, start: number) => {
   return parent;
 };
 
-const found = (items: OmniItem[]) => crossings(items, EPOCH, TODAY);
+const found = (items: OmniItem[]) => crossings(items, TODAY).found;
 
 describe("which franchises are crossings", () => {
   it("keeps a franchise the reader met in more than one medium", () => {
@@ -218,9 +216,37 @@ describe("how a crossing is laid out", () => {
     expect(result[0].bands.find((band) => band.item.medium === "game")!.end).toBe(TODAY);
   });
 
+  it("opens the scale where the earliest entry starts, not where its attribution year falls", () => {
+    // An item counts to the year it *ended*, so a game begun in 1995 and finished in 2001 is a
+    // 2001 item. A scale opened on that year would clamp six years of the band flat against the
+    // left edge, drawn as a band beginning on the epoch with nothing saying it did not.
+    const result = crossings(
+      toOmniItems(
+        library({
+          games: [
+            videoGame({
+              name: "GoldenEye",
+              franchise: "Bond",
+              startDate: YearMonthDay.get(1995, 6, 1),
+              endDate: YearMonthDay.get(2001, 6, 1),
+            }),
+          ],
+          movies: [movie({ name: "Skyfall", franchise: "Bond", startDate: YearMonthDay.get(2003, 6, 1) })],
+        }),
+      ),
+      TODAY,
+    );
+    const game = result.found[0].bands.find((band) => band.item.medium === "game")!;
+
+    expect(result.epoch).toBe(YearMonthDay.get(1995, 1, 1));
+    // Its own June rather than the strip's left edge, which is what a clamped span reads as.
+    expect(game.startPercent).toBeGreaterThan(0);
+    expect(game.widthPercent).toBeGreaterThan(15);
+  });
+
   it("measures every crossing against one scale, so two of them can be read side by side", () => {
-    // The epoch is the union's own first year rather than each group's, which is what stops a
-    // three-year franchise and a twenty-year one being drawn at the same width.
+    // One epoch for every strip rather than each group's own, which is what stops a three-year
+    // franchise and a twenty-year one being drawn at the same width.
     const result = found(
       toOmniItems(
         library({

@@ -53,8 +53,6 @@ const LABEL_FONT_SIZE = 13;
 const MONTH_FONT_SIZE = 12;
 const YEAR_FONT_SIZE = 15;
 
-/** The mat of bar colour around a hover card, which shows its own extracted colour inside. */
-
 const pct = (percent: number) => `${percent}%`;
 
 /**

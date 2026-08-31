@@ -10,7 +10,7 @@ export interface Tab {
   id: string;
   name: string;
   /**
-   * The sheet this tab is the dashboard for, absent on a tab that has one of its own. Omnibus
+   * The sheet this tab is the dashboard for, absent on a tab that has none of its own. Omnibus
    * composes the three sheets the other tabs already fetch, so a sheet id here would name one of
    * them arbitrarily — and the "Sheet" button in the app bar would send a reader to a third of
    * what they are looking at.

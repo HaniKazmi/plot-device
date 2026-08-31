@@ -21,7 +21,7 @@ import { crossingEntries, type Crossing } from "./crossingsData";
 import type { FilterDispatch } from "./filterUtils";
 import { OMNIBUS_SECTIONS } from "./sections";
 import { media, mediumToColour, mediumToLabel, mediumToShape, type Measure, type Medium } from "./types";
-import { shapeRatioValues, shapeToRatio } from "../common/cardArrangement";
+import { shapeRatioValues, shapeToArrangement, shapeToRatio } from "../common/cardArrangement";
 
 const Stats = ({
   data,
@@ -185,7 +185,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
           ]}
           // The rate tile stays on the Shows tab's own hero; beside a poster this card's text
           // column holds two figures comfortably and three crowd it.
-          stats={showHeroStats(now.show, 1, CURRENT_PLAINDATE).filter((stat) => stat.label !== "Eps / Week")}
+          stats={showHeroStats(now.show, 1, CURRENT_PLAINDATE, { pace: false })}
         />
       )}
       {now.movie && (
@@ -322,7 +322,7 @@ const NowCard = <T,>(props: {
   stats: PanelStat[];
 }) => {
   const shape = mediumToShape(props.medium);
-  const beside = shape === "portrait";
+  const beside = shapeToArrangement(shape) === "beside";
   const cardRef = useRef<HTMLDivElement>(null);
   const bannerWidth = useBannerCardWidth(cardRef, !beside);
 
@@ -357,9 +357,9 @@ const NowCard = <T,>(props: {
           // card's lower edge — level with the tiles of the poster cards beside it, whose panels
           // keep that same inset — at whatever height the row settles on.
           //
-          // Sizing it the other way round is what put the tile off that line twice. Giving the
-          // words the leftover height leaves them spread apart in a card taller than the picture
-          // wanted, and hangs the tile below the edge in one shorter; deriving the card's height
+          // Giving the words the leftover height instead leaves them spread apart in a card taller
+          // than the picture wanted, and hangs the tile below the edge in one shorter; deriving the
+          // card's height
           // from its own picture instead of taking the row's makes it a card of its own height in a
           // row of one. The card is only told to be a column here because a stacked card is a
           // block, and a block's children cannot divide up its height.

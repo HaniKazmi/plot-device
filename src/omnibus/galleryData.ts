@@ -116,7 +116,7 @@ export const galleryWorks = (items: OmniItem[], category: GalleryCategory): Omni
 
   return [...shelves.values()].flatMap((works) =>
     [...works.values()].map((entries) =>
-      entries.length === 1 ? entries[0] : { ...galleryStripOrder(entries)[0], hours: entries.sum("hours") },
+      entries.length === 1 ? entries[0] : { ...galleryTop(entries), hours: entries.sum("hours") },
     ),
   );
 };
@@ -141,9 +141,20 @@ export const galleryGroups = (
     (group) => measureOf(group, measure),
     // The shelf's biggest entry fronts it, and is also the first picture on it — a shelf leads
     // with the thing the reader spent most of it on.
-    (group) => galleryStripOrder(group)[0],
+    galleryTop,
     category === "franchise" ? realFranchisesOnly : undefined,
-  );
+  )
+    // Ordered once here rather than again at each surface: the shelf, its drill-down and the card
+    // fronting it all read one array, so the strip cannot open with a different picture than the
+    // one the group claims.
+    .map((group) => ({ ...group, all: galleryStripOrder(group.all) }));
 
 /** A shelf's own order: biggest first, which is the order its fronting card claims. */
 export const galleryStripOrder = (items: OmniItem[]): OmniItem[] => items.sortByKey("hours");
+
+/**
+ * The biggest of a set, read in one pass rather than by sorting the whole of it to look at the
+ * front. `>` keeps the first of equals, which is the order a stable sort would have left them in.
+ */
+const galleryTop = (items: OmniItem[]): OmniItem =>
+  items.reduce((best, item) => (item.hours > best.hours ? item : best));

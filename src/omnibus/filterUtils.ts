@@ -7,7 +7,7 @@ import {
 } from "../common/filterReducer";
 import type { Predicate } from "../utils/types";
 import type { OmniItem } from "./adapter";
-import type { Measure, Medium } from "./types";
+import { media, type Measure } from "./types";
 
 export interface FilterState extends BaseFilterState<OmniItem, Measure> {
   /** One switch per medium: the page's whole point is comparing them, so any subset is a view. */
@@ -42,8 +42,10 @@ const omniYearPredicates = (state: { yearTo: YearNumber; yearType: YearType }): 
 export const filters = (state: Omit<FilterState, "filter">): Predicate<OmniItem> => {
   const predicates: Predicate<OmniItem>[] = [];
 
-  const media: Medium[] = (["game", "show", "movie"] as const).filter((medium) => state[medium]);
-  if (media.length < 3) predicates.push((item) => media.includes(item.medium));
+  // The exported list rather than one written out again, so a fourth medium is switchable here the
+  // moment it exists rather than passing this predicate unchallenged.
+  const shown = media.filter((medium) => state[medium]);
+  if (shown.length < media.length) predicates.push((item) => shown.includes(item.medium));
 
   if (state.genre.length > 0) predicates.push((item) => state.genre.includes(item.genre));
   if (state.franchise.length > 0) predicates.push((item) => state.franchise.includes(item.franchise));

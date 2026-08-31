@@ -151,17 +151,33 @@ export const heroSeason = (watching: Season[]) =>
       undefined,
     );
 
+/** Which of the optional figures a caller has room for. */
+export interface ShowHeroStatOptions {
+  /** The episodes-per-week tile. */
+  pace?: boolean;
+}
+
 /**
  * The figures the hero carries about the season it is showing — the same honest set the strip's
  * footers use, at tile size. Each is dropped where the sheet cannot support it, and the
  * franchise tile appears only where there is a series to count.
+ *
+ * `pace` is what a caller with less room to spend turns off — the Omnibus's Now band, where the
+ * card's words sit in a column beside a poster and hold two figures comfortably. Asked for by
+ * name rather than filtered out of the result afterwards, so rewording a label cannot quietly put
+ * the tile back.
  */
-export const showHeroStats = (season: Season, franchiseCount: number, today: YearMonthDay) => {
+export const showHeroStats = (
+  season: Season,
+  franchiseCount: number,
+  today: YearMonthDay,
+  options?: ShowHeroStatOptions,
+) => {
   const { episodes, days, perWeek } = watchingProgress(season, today);
   const stats: { label: string; value: number | string }[] = [{ label: "Episodes", value: episodes }];
 
   if (days !== undefined) stats.push({ label: "Days In", value: days });
-  if (perWeek !== undefined) stats.push({ label: "Eps / Week", value: perWeek });
+  if (perWeek !== undefined && (options?.pace ?? true)) stats.push({ label: "Eps / Week", value: perWeek });
   if (franchiseCount > 1) stats.push({ label: `${season.show.franchise} Shows`, value: franchiseCount });
 
   return stats;

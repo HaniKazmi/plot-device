@@ -14,7 +14,7 @@ import { VideoGame, companyToAccent, franchiseToColour, genreToColour, platformT
 import Grid from "@mui/material/Grid";
 import { statusToColour } from "../utils/types";
 import { CURRENT_PLAINDATE, Year, YearMonthDay, formatDate, formatDateRange } from "../common/date";
-import { shapeToRatio } from "../common/cardArrangement";
+import { hoverCardArtworkSx } from "../common/cardArrangement";
 import { buildStrip, stripYearTicks } from "../common/timelineStripData";
 import { gameSpans, spanKey } from "./cardData";
 import { useFranchiseGames } from "./franchiseContext";
@@ -184,21 +184,15 @@ const gameHoverStats = ({ hours, numDays }: VideoGame): PanelStat[] => {
  * was.
  *
  * A component rather than a shape each chart assembles, because the Omnibus shows the same card for
- * a game and a second assembly of it is a second thing to keep in step — which is exactly what the
- * two surfaces failed to do. The subtitle is the pair the tab's hero says, so a game is named the
- * same way wherever it is promoted.
+ * a game and a second assembly of it is a second thing to keep in step — one that can come to carry
+ * different figures or a different arrangement from this one. The subtitle is the pair the tab's
+ * hero says, so a game is named the same way wherever it is promoted.
  */
 export const VgHoverCard = ({ item }: { item: VideoGame }) => (
   <VgCardMediaImage
     item={item}
     extractColour
-    // The shape held firmly rather than as the `auto` reservation the walls use, because a
-    // tooltip is positioned once, against the card as it stands the moment it opens. An image
-    // that has not loaded has no size of its own, so the card opens short, the picture then
-    // adds a few hundred pixels to it, and the popper never reflows — which is how a card seen
-    // for the first time lands off the screen and the same card seen again does not. Reserved
-    // at the ratio the artwork is drawn at, the card is the same size before and after.
-    sx={{ aspectRatio: shapeToRatio("landscape"), width: "100%", display: "block" }}
+    sx={hoverCardArtworkSx("landscape")}
     footerComponent={
       <CardPanel
         title={item.name}

@@ -22,17 +22,6 @@ const MAT = 4;
 const WIDTH = 500;
 
 /**
- * How tall a poster stands beside the words, which is what its width then follows from.
- *
- * Pinned on the height rather than the width, for the reason the hero pins the same axis: a picture
- * asked how wide it wants to be answers with its file's own pixels, and a hover card has no outside
- * width to shrink that against the way a card in a grid does. A height plus the declared ratio gives
- * the card the same size before its image has loaded as after, which is what the popper needs — it
- * positions the card once, at the moment it opens.
- */
-export const HOVER_CARD_ASIDE_ARTWORK_HEIGHT = 348;
-
-/**
  * How every chart in the app mounts an item's hover card.
  *
  * The mat is what ties the card to the bar it came from: the card is drawn on the bar's colour and

@@ -85,3 +85,37 @@ const CardArrangementContext = createContext<CardArrangement>("stacked");
 export const CardArrangementProvider = CardArrangementContext.Provider;
 
 export const useCardArrangement = (): CardArrangement => useContext(CardArrangementContext);
+
+/**
+ * How tall a poster stands beside the words, which is what its width then follows from.
+ *
+ * Pinned on the height rather than the width, for the reason the hero pins the same axis: a picture
+ * asked how wide it wants to be answers with its file's own pixels, and a hover card has no outside
+ * width to shrink that against the way a card in a grid does. A height plus the declared ratio gives
+ * the card the same size before its image has loaded as after, which is what the popper needs — it
+ * positions the card once, at the moment it opens.
+ */
+const HOVER_CARD_ASIDE_ARTWORK_HEIGHT = 348;
+
+/**
+ * The size a hover card's artwork is held at, by the shape it is drawn in.
+ *
+ * The shape is held firmly rather than as the `auto` reservation the walls use, because a tooltip
+ * is positioned once, against the card as it stands the moment it opens. An image that has not
+ * loaded has no size of its own, so the card opens short, the picture then adds a few hundred
+ * pixels to it, and the popper never reflows — a card seen for the first time lands off the screen
+ * where the same card seen again does not. Reserved at the ratio the artwork is drawn at, the card
+ * is the same size before and after.
+ *
+ * A poster stands beside the words and so is pinned on its height; a banner spans the card above
+ * them and takes its width.
+ */
+export const hoverCardArtworkSx = (shape: ArtworkShape) =>
+  shape === "portrait"
+    ? {
+        aspectRatio: shapeToRatio("portrait"),
+        height: HOVER_CARD_ASIDE_ARTWORK_HEIGHT,
+        width: "auto",
+        flexShrink: 0,
+      }
+    : { aspectRatio: shapeToRatio("landscape"), width: "100%", display: "block" };

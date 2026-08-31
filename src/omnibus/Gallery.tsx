@@ -11,13 +11,7 @@ import { format } from "../utils/mathUtils";
 import { omniKey, type OmniItem } from "./adapter";
 import OmniCardMediaImage from "./CardMediaImage";
 import { omniLabels, omniMediumChip } from "./cardData";
-import {
-  GALLERY_CATEGORIES,
-  galleryColour,
-  galleryGroups,
-  galleryStripOrder,
-  type GalleryCategory,
-} from "./galleryData";
+import { GALLERY_CATEGORIES, galleryColour, galleryGroups, type GalleryCategory } from "./galleryData";
 import type { Measure } from "./types";
 
 /**
@@ -90,7 +84,7 @@ const Gallery = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
         <DrilldownDialog
           title={`${title} · ${drilldown.name}`}
           onClose={() => setDrilldown(null)}
-          content={galleryStripOrder(drilldown.all)}
+          content={drilldown.all}
           cardKey={(item) => `${category}-${omniKey(item)}`}
           labelComponent={omniLabels}
           chipComponent={omniMediumChip}
@@ -120,7 +114,6 @@ const Shelf = ({
   onOpen: () => void;
 }) => {
   const colour = galleryColour(group.name, category);
-  const shown = galleryStripOrder(group.all);
 
   return (
     <Stack spacing={0.5}>
@@ -156,7 +149,7 @@ const Shelf = ({
         </IconButton>
       </Stack>
       <Filmstrip height={FILMSTRIP_HEIGHT}>
-        {shown.slice(0, PICTURES_SHOWN).map((item) => (
+        {group.all.slice(0, PICTURES_SHOWN).map((item) => (
           <OmniCardMediaImage
             key={omniKey(item)}
             item={item}
