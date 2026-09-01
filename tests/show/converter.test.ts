@@ -54,6 +54,27 @@ describe("flattening the sheet into nested shows", () => {
     );
   });
 
+  it("rejects a season dated to a bare year, which no chart can place", () => {
+    // Cast to a full date instead, it reaches `buildStrip` and throws "Invalid comparison" out of
+    // a render naming no row — a season is packed against its neighbours, and a whole year
+    // overlaps all of them.
+    expect(() => jsonConverter([showRow(), seasonRow({ Start: "2022" })])).toThrow(
+      '"2022" is a bare year, not a full date',
+    );
+  });
+
+  it("rejects a bare year on the end as readily as on the start", () => {
+    // Both ends go through the same reader, so a season cannot be recorded at two precisions —
+    // there is no mixed-pair case left for this converter to have an opinion about.
+    expect(() => jsonConverter([showRow(), seasonRow({ Start: "2022-02-18", End: "2022" })])).toThrow(
+      '"2022" is a bare year, not a full date',
+    );
+  });
+
+  it("leaves a season still running alone, where there is no end to agree with", () => {
+    expect(() => jsonConverter([showRow(), seasonRow({ Start: "2022-02-18", End: "" })])).not.toThrow();
+  });
+
   it("asks the question only of a row that opens a show, since a season carries no genre", () => {
     // Every season row leaves the column blank — the value belongs to the show above it — so a
     // check applied to both would reject the whole sheet on its second row.

@@ -140,6 +140,12 @@ describe("genre and gameplay", () => {
     );
   });
 
+  it("reports the missing genre on a row the sheet truncated, not the first date it cannot parse", () => {
+    // Genre sits left of the date columns, so a row nobody finished is missing those too. Read in
+    // sheet order the dates complain first, about a cell that is only a symptom.
+    expect(() => jsonConverter([{ Game: "Half", Platform: "PC" }])).toThrow('Row 2, "Half", Genre: no genre recorded');
+  });
+
   it("rejects a blank genre the way it rejects a blank gameplay", () => {
     // The ramp answers the neutral for a genre it has no entry for, so a blank reaching a chart is
     // indistinguishable from a genre nobody has coloured yet. The row is only nameable here.
