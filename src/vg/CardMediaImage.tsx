@@ -1,17 +1,15 @@
-import { CardContent, Typography } from "@mui/material";
+import { Typography } from "@mui/material";
 import {
   CardPanel,
   type PanelStat,
   CardMediaImage,
-  HeroStatRow,
-  MetadataLedger,
+  CardDetailBody,
   TimelineCard,
   TypedCardMediaImage,
   type CardStat,
   type LedgerRow,
 } from "../common/Card";
 import { VideoGame, companyToAccent, gameplayToColour, platformToColor, ratingToColour } from "./types";
-import Grid from "@mui/material/Grid";
 import { franchiseToColour, genreToColour, statusToColour, type Scheme } from "../utils/types";
 import { useScheme } from "../common/useScheme";
 import { CURRENT_PLAINDATE, Year, YearMonthDay, formatDate, formatDateRange } from "../common/date";
@@ -89,25 +87,15 @@ const gameRows = (game: VideoGame, scheme: Scheme): LedgerRow[] => {
   return rows;
 };
 
-/**
- * A component rather than JSX inside the thunk, so the scheme is read where the body is built.
- * Reading it in the card itself would put a context subscription on every card of an uncapped
- * wall to serve the one that is open, which is the cost the thunk exists to avoid.
- */
 const VgCardDetail = ({ item }: { item: VideoGame }) => {
   const scheme = useScheme();
 
   return (
-    <CardContent>
-      <Grid
-        container
-        spacing={1}
-      >
-        <VgTimelineCard item={item} />
-        <HeroStatRow stats={gameStats(item, scheme)} />
-        <MetadataLedger rows={gameRows(item, scheme)} />
-      </Grid>
-    </CardContent>
+    <CardDetailBody
+      strip={<VgTimelineCard item={item} />}
+      stats={gameStats(item, scheme)}
+      rows={gameRows(item, scheme)}
+    />
   );
 };
 

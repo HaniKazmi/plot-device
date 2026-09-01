@@ -1411,3 +1411,37 @@ export const TimelineBandBox = ({
     </BandTooltip>
   );
 };
+
+/**
+ * The body of an expanded card: the item's strip, its figures, and its ledger, in that order.
+ *
+ * The three tiers are the card's own arrangement rather than each domain's — a tab that laid them
+ * out again could lay them out differently, and the order is the whole point of the two-tier
+ * treatment: a strip placing the item in time, then the figures a reader opened the card for, then
+ * everything else as label-and-value lines that a grid would hold to the tallest row on it.
+ *
+ * A component rather than JSX inside a caller's thunk, so the scheme each domain reads is read
+ * where the body is built. Reading it in the card itself would put a context subscription on every
+ * card of an uncapped wall to serve the one that is open, which is the cost the thunk avoids.
+ */
+export const CardDetailBody = ({
+  strip,
+  stats,
+  rows,
+}: {
+  /** The item's own proportional strip, which only its domain can build. */
+  strip: ReactNode;
+  stats: CardStat[];
+  rows: LedgerRow[];
+}) => (
+  <CardContent>
+    <Grid
+      container
+      spacing={1}
+    >
+      {strip}
+      <HeroStatRow stats={stats} />
+      <MetadataLedger rows={rows} />
+    </Grid>
+  </CardContent>
+);

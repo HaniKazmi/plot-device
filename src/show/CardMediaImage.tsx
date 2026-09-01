@@ -1,16 +1,14 @@
-import { CardContent, Typography } from "@mui/material";
+import { Typography } from "@mui/material";
 import {
   CardPanel,
   CardMediaImage,
-  HeroStatRow,
-  MetadataLedger,
+  CardDetailBody,
   TimelineCard,
   TypedCardMediaImage,
   type CardStat,
   type LedgerRow,
 } from "../common/Card";
 import { Season, Show, isShow, networkToColour } from "./types";
-import Grid from "@mui/material/Grid";
 import { ageRatingToColour, franchiseToColour, genreToColour, statusToColour, type Scheme } from "../utils/types";
 import { useScheme } from "../common/useScheme";
 import { namesTheSameThing } from "../utils/stringUtils";
@@ -64,25 +62,15 @@ const showRows = (show: Show, scheme: Scheme): LedgerRow[] => {
   return rows;
 };
 
-/**
- * A component rather than JSX inside the thunk, so the scheme is read where the body is built.
- * Reading it in the card itself would put a context subscription on every card of an uncapped
- * wall to serve the one that is open, which is the cost the thunk exists to avoid.
- */
 const ShowCardDetail = ({ show }: { show: Show }) => {
   const scheme = useScheme();
 
   return (
-    <CardContent>
-      <Grid
-        container
-        spacing={1}
-      >
-        <ShowTimelineCard item={show} />
-        <HeroStatRow stats={showStats(show, scheme)} />
-        <MetadataLedger rows={showRows(show, scheme)} />
-      </Grid>
-    </CardContent>
+    <CardDetailBody
+      strip={<ShowTimelineCard item={show} />}
+      stats={showStats(show, scheme)}
+      rows={showRows(show, scheme)}
+    />
   );
 };
 
