@@ -124,8 +124,13 @@ export const ageRatingBand = (rating: AgeRating): string => {
  * a necessary one — a chart that draws 3 and 7 in one fill cannot be read. What makes the split
  * visible is doing it on **hue as well as lightness**. This band is 0.142 of lightness wide, so a
  * pair separated by lightness alone lands about dE 11 apart where telling two fills apart wants
- * 15; separated on both axes they reach 19.0 and 15.0. The sweep stays monotone in hue and in
- * lightness, so the traffic light still reads at a glance.
+ * 15; separated on both axes they reach 19.0 and 15.0.
+ *
+ * Hue sweeps monotonically — 142° at 3 down to 25° at 18 — and that is what carries the traffic
+ * light. Lightness deliberately does not: it alternates high-low-high-low across the sweep, which
+ * is the second axis doing its job. A monotone ramp would put its two closest hues, 3 beside 7 and
+ * 12 beside 15/16, at adjacent lightnesses too, and those are the exact pairs the divergence from
+ * PEGI's own colours exists to tell apart.
  *
  * Keyed by band, so the colour tracks the age and not the notation: a PEGI 12+ game and a BBFC 12
  * film carry the same swatch — the two scales are never drawn on one chart, and a reader moving
@@ -141,8 +146,14 @@ const bandColours: Record<string, Fill> = {
   "18": fill("#a10017", "#de0024"),
 };
 
-/** Every band the ratings table colours, so the fill-contract test cannot fall behind it. */
-export const AGE_BANDS = Object.keys(bandColours);
+/**
+ * Every band the ratings table colours, in ramp order.
+ *
+ * Written out rather than taken from `Object.keys`: four of the five keys are canonical array
+ * indices and `"15/16"` is not, so JS enumerates them `3, 7, 12, 18, 15/16` — which would put 18
+ * inside the ramp it is the end of, for any consumer that trusted the order.
+ */
+export const AGE_BANDS = ["3", "7", "12", "15/16", "18"];
 
 /** The colour of a band, for a surface that has already grouped and holds the band and not a row. */
 export const ageBandToColour = (band: string, scheme: Scheme): Colour => {

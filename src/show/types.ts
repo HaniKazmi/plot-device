@@ -1,6 +1,7 @@
 import { YearMonthDay } from "../common/date";
 import {
   KeysMatching,
+  NEUTRAL_FILL,
   ageRatingToColour,
   fill,
   franchiseToColour,
@@ -84,7 +85,8 @@ export const isShow = (arg: Show | Season): arg is Show => "name" in arg;
 const networkColours: Record<string, Fill> = {
   Netflix: fill("#e50914", "#e50914"),
   "Prime Video": fill("#009fd5", "#00a8e1"),
-  "Disney+": fill("#0e7c8c", "#127e8e"),
+  // Deep, so it clears the Shows app bar, which is a teal of its own at the top of this page.
+  "Disney+": fill("#005353", "#42a3a3"),
   Hulu: fill("#00ab5e", "#1ce783"),
   // Keyed on what the sheet writes. The brand is HBO Max and its 2025 rebrand made it
   // monochrome, which is why this is a graphite rather than the purple the name suggests.
@@ -119,7 +121,14 @@ const typeColours: Record<Type, Fill> = {
   anime: fill("#c42b91", "#de47a8"),
 };
 
-export const typeToColour = ({ type }: { type: Type }, scheme: Scheme): Colour => pick(typeColours[type], scheme);
+export const typeToColour = ({ type }: { type: Type }, scheme: Scheme): Colour => {
+  const colour = typeColours[type];
+  // `converter.ts` casts the Type cell without validating it, and the filter drawer derives its
+  // options from those raw values, so a blank or misspelt cell reaches here. It answers the
+  // neutral rather than throwing: an uncoloured wedge is a smaller failure than a tab that will
+  // not render.
+  return pick(colour ?? NEUTRAL_FILL, scheme);
+};
 
 export const groupToColour = (group: keyof Show | "none" | "show", show: Show, scheme: Scheme) => {
   switch (group) {

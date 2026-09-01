@@ -69,11 +69,24 @@ export const MoviesTab: SheetTab = {
  * composes their output, so a medium's rows reach it through exactly the converter and cache its
  * home tab uses.
  *
- * Its indigo is one of five hues taken from the arcs the status ramp leaves free, so no tab's app
- * bar lands on a vocabulary its own page draws — `Barchart` paints a single-group series in
- * `palette.primary.main`, which makes a theme chart geometry and not only chrome. The medium trio
- * in `omnibus/types.ts` is chosen from the same five hues, by hand — nothing derives one from the
- * other, so moving a tab's primary means moving its medium fill in the same edit.
+ * Its violet is one of five hues taken from the arcs the **status** ramp leaves free, which is the
+ * one vocabulary every tab draws. That is as far as the rule goes: a tab also draws the genre ramp,
+ * which covers the whole wheel, and its own branded tables, so no hue clears everything on its own
+ * page: Games sits 5.8 from the Party Games fill, against the 19.5 that separates the four tab
+ * colours from each other. What keeps that from misleading is that the two never
+ * appear as peers: a primary is a full-width band or a lone series, a vocabulary fill is a mark
+ * inside a card, and `Barchart` only reaches for the primary when a chart has no other series to
+ * confuse it with.
+ *
+ * Every primary clears 3:1 on both papers, because `Google.tsx` writes one hex into both colour
+ * schemes and `Barchart` paints a single-group series in `palette.primary.main` — a theme colour is
+ * chart geometry, so it is held to the same floor as a `Fill`. The contract test asserts it
+ * alongside every other table, which is the only floor under a colour that lives out here on a
+ * `Tab` rather than in one of the tables.
+ *
+ * The medium trio in `omnibus/types.ts` is chosen from the same five hues, by hand — nothing
+ * derives one from the other, so moving a tab's primary means moving its medium fill in the same
+ * edit.
  *
  * A secondary is **not** its primary's complement. The five primaries are spread around the wheel,
  * so 180° from any one of them lands on another: complements put the Movies accent 3.2 dE from the
@@ -86,7 +99,7 @@ export const OmnibusTab: Tab = {
   id: "omnibus",
   name: "Omnibus",
   component: Omnibus,
-  primaryColour: "#6217f6",
+  primaryColour: "#7553ff",
   secondaryColour: "#ee9300",
 };
 

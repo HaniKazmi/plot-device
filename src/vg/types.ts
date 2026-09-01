@@ -121,14 +121,6 @@ export type Measure = "Hours" | "Games";
  * 11.8, which is under the 15 two fills want: the wedge labels and legend names stay load-bearing
  * for that pair, and they meet only in the Top Platform list where every row is named.
  *
- * iOS is neutral because Apple's identity is neutral, and warm rather than cool because the
- * neutral grey and Steam's blue are both cool: a cool iOS is squeezed between two values it
- * cannot clear, where Apple's warm finishes — starlight, champagne, the aluminium — differ from
- * each by hue direction at chroma this low. It still sits 9.3 dE from `NEUTRAL_FILL`, under the
- * 15 two fills want, because three low-chroma values cannot all clear each other in this band:
- * the wedge labels, legend names and the 2px gaps between segments stay load-bearing for that
- * pair. They meet only in the Top Platform list, where every row is named.
- *
  * The accents are the brand hexes themselves, for the chip in a card's corner. A chip is a few
  * dozen pixels of solid colour carrying two or three letters, so it is read as a badge rather than
  * compared against its neighbours — full saturation is what makes it recognisable at that size,
@@ -229,11 +221,19 @@ export const ratingToColour = ({ rating }: VideoGame, scheme: Scheme) => ageRati
  * Platformer's sky blue is then the light half of the same hue, which is what those two names
  * mean anyway.
  *
- * Exactly two of these hexes are also in the shared genre ramp: Action and Adventure, which mean
- * the same thing in both vocabularies and so are deliberately the same colour. Nothing else
- * collides, which is what lets a card state both vocabularies in sequence — the hero and hover
- * subtitles set the two swatches side by side, and the ledger stacks the Gameplay row on the
- * Genre row — with both at full chroma and no mute between them.
+ * Action and Adventure are the same hex as their genre namesakes, deliberately: those names mean
+ * the same thing whichever vocabulary says them. The rest are pushed as far from the genre ramp as
+ * one lightness band holds, which is not always far. Fourteen gameplay hues and eleven genre hues
+ * are twenty-five values that would each need 15 dE of room, and the band has nowhere near that —
+ * so Role Playing sits 2.3 from Thriller on the dark paper, where the only lightness that would
+ * clear it is a lavender at a third of the hue's chroma. A card states both vocabularies at full
+ * chroma anyway, because the two are always *labelled* where they meet: the ledger stacks a
+ * Gameplay row on a Genre row, and the hero and hover subtitles name each swatch beside it. The
+ * swatch says which chart a value is drawn in; the label is what says which of the two it is.
+ *
+ * Desaturating one of the ramps does not buy this back — it separates the two vocabularies by kind
+ * without moving a single pair, and muting the genre ramp by 45% leaves the worst cross-table pair
+ * at 4.5 dE and puts *more* pairs under 15, not fewer.
  *
  * Ratings and franchises deliberately do not draw on this: a rating ramp encodes an order, and a
  * franchise colour is somebody's brand, which keeps its hue and chroma and yields only lightness
@@ -242,15 +242,15 @@ export const ratingToColour = ({ rating }: VideoGame, scheme: Scheme) => ageRati
 const gameplayColours: Record<Gameplay, Fill> = {
   Action: fill("#d85900", "#ff762c"),
   Adventure: fill("#008c36", "#00d556"),
-  "Action Adventure": fill("#8c4e00", "#c67200"),
+  "Action Adventure": fill("#be6c00", "#ffa243"),
   "Driving/Racing": fill("#a98300", "#fac300"),
   Fighting: fill("#a50045", "#df005f"),
   "Party Games": fill("#b700b9", "#ec00ed"),
   Platformer: fill("#0089ea", "#3ca2ff"),
   Puzzle: fill("#a834ff", "#ad4cff"),
-  "Role Playing": fill("#6300fa", "#734eff"),
+  "Role Playing": fill("#4800bc", "#7046ff"),
   Shooter: fill("#5d5b00", "#908c00"),
-  Simulation: fill("#006d5d", "#00a790"),
+  Simulation: fill("#006d5d", "#00ebcb"),
   Strategy: fill("#005ba5", "#007ee1"),
   "Visual Novel": fill("#e60098", "#ff30ad"),
   "Music/Rhythm": fill("#00899b", "#00cbe3"),

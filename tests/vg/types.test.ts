@@ -46,13 +46,21 @@ describe("platform colour lookups", () => {
     expect(platformToShort(game)).toEqual(["3DS", companyToAccent(game)]);
   });
 
-  it("gives the corner chip the brand accent, not the muted fill charts are drawn in", () => {
-    // The two lookups exist to differ: a chip is read on its own and wants full saturation,
-    // while five fills sit side by side in one chart and have to stay separable there.
-    const game = videoGame({ platform: "Nintendo 3DS", company: "Nintendo" });
+  it("gives the corner chip the brand accent, which the fill leaves only where it has to", () => {
+    // The accent is the published hex and never moves; a fill is that hex pulled to whatever
+    // lightness clears its own paper. So the two coincide for a brand that already clears — and
+    // asserting they always differ passes on nothing but hex case, which is how Nintendo's
+    // #E60012 chip and #e60012 fill read as two colours to a test and one colour to a reader.
+    const nintendo = videoGame({ platform: "Nintendo 3DS", company: "Nintendo" });
+    expect(companyToAccent(nintendo)?.toLowerCase()).toBe(companyToColor(nintendo, "light")?.toLowerCase());
 
-    expect(companyToAccent(game)).not.toBe(companyToColor(game, "light"));
-    expect(platformToColor(game.platform, "light")).toBe(companyToColor(game, "light"));
+    // PC and iOS are where they genuinely part: neither brand hex survives the fill contract.
+    for (const company of ["PC", "iOS"] as const) {
+      const game = videoGame({ company });
+      expect(companyToAccent(game)?.toLowerCase(), company).not.toBe(companyToColor(game, "light")?.toLowerCase());
+    }
+
+    expect(platformToColor(nintendo.platform, "light")).toBe(companyToColor(nintendo, "light"));
   });
 });
 
