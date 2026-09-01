@@ -1,6 +1,5 @@
 import type { FunctionComponent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import Holiday from "./holiday/Holiday";
 import Shows from "./show/Show";
 import VideoGames from "./vg/vg";
 import Movies from "./movie/Movie";
@@ -41,8 +40,8 @@ export const VideoGamesTab: SheetTab = {
   spreadsheetId: "1JCAN_lB2QaVxj1rD4f88mN4tHjmhxF3CZlGtZGwYCLk",
   range: "Games List!A:Z",
   component: VideoGames,
-  primaryColour: "#4759b7",
-  secondaryColour: "#e4b750",
+  primaryColour: "#d019ca",
+  secondaryColour: "#00bb7e",
 };
 
 export const ShowsTab: SheetTab = {
@@ -51,8 +50,8 @@ export const ShowsTab: SheetTab = {
   spreadsheetId: "1M3om2DPLfRO5dKcUfYOIcSNoLThzMLp1iZLQX6qR3pY",
   range: "Shows!A:Z",
   component: Shows,
-  primaryColour: "#9a282f",
-  secondaryColour: "#53c1c7",
+  primaryColour: "#127d9c",
+  secondaryColour: "#ff77a0",
 };
 
 export const MoviesTab: SheetTab = {
@@ -61,33 +60,34 @@ export const MoviesTab: SheetTab = {
   spreadsheetId: "1M3om2DPLfRO5dKcUfYOIcSNoLThzMLp1iZLQX6qR3pY",
   range: "Movies!A:Z",
   component: Movies,
-  primaryColour: "#c25410",
-  secondaryColour: "#ffc48a",
-};
-
-export const HolidaysTab: SheetTab = {
-  id: "holiday",
-  name: "Holiday",
-  spreadsheetId: "1tjcFfNZau5DElrTos2RFjpvYWJJleTQIg8kWxdjdgnc",
-  range: "Locations!A:Z",
-  component: Holiday,
-  primaryColour: "#277114",
-  secondaryColour: "#142771",
+  primaryColour: "#de4412",
+  secondaryColour: "#4099ff",
 };
 
 /**
  * The tab reads no sheet of its own: it mounts the three domains' own data configurations and
  * composes their output, so a medium's rows reach it through exactly the converter and cache its
- * home tab uses. A vibrant violet-and-mint theme, unused by any other tab, since this is the tab
- * a reader lands on first — the medium trio in `omnibus/types.ts` stays untouched by it, since
- * that is chart vocabulary rather than page theme.
+ * home tab uses.
+ *
+ * Its indigo is one of five hues taken from the arcs the status ramp leaves free, so no tab's app
+ * bar lands on a vocabulary its own page draws — `Barchart` paints a single-group series in
+ * `palette.primary.main`, which makes a theme chart geometry and not only chrome. The medium trio
+ * in `omnibus/types.ts` is chosen from the same five hues, by hand — nothing derives one from the
+ * other, so moving a tab's primary means moving its medium fill in the same edit.
+ *
+ * A secondary is **not** its primary's complement. The five primaries are spread around the wheel,
+ * so 180° from any one of them lands on another: complements put the Movies accent 3.2 dE from the
+ * Shows app bar and the Omnibus accent 3.4 from Books'. Each secondary instead takes the midpoint
+ * of a gap *between* two primaries, so the ten interleave — no accent reads as another tab's bar,
+ * and the closest of all ten pairs is 16.1 dE. Each still lands over 31 dE from its own primary,
+ * which is what `NavBar`'s indicator needs: it is drawn on that primary.
  */
 export const OmnibusTab: Tab = {
   id: "omnibus",
   name: "Omnibus",
   component: Omnibus,
-  primaryColour: "#6a48d7",
-  secondaryColour: "#5ad0b6",
+  primaryColour: "#6217f6",
+  secondaryColour: "#ee9300",
 };
 
 /**
@@ -102,7 +102,6 @@ const Tabs: Tab[] = [OmnibusTab, VideoGamesTab, ShowsTab, MoviesTab];
  *
  * The match is an exact, case-sensitive comparison against the tab id after a single leading
  * slash is stripped, so a trailing slash or any nested path falls back rather than matching.
- * `HolidaysTab` is deliberately absent from `tabs`, which is what makes its route unreachable.
  */
 export const tabForPath = (pathname: string, tabs: readonly Tab[] = Tabs): Tab =>
   tabs.find((tab) => tab.id === pathname.replace(/^\//, "")) ?? tabs[0];

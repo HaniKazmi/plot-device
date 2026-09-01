@@ -11,7 +11,8 @@ import {
 } from "../common/Card";
 import { Season, Show, isShow, networkToColour } from "./types";
 import Grid from "@mui/material/Grid";
-import { ageRatingToColour, genreToColour, statusToColour } from "../utils/types";
+import { ageRatingToColour, genreToColour, statusToColour, type Scheme } from "../utils/types";
+import { useScheme } from "../common/useScheme";
 import { namesTheSameThing } from "../utils/stringUtils";
 import { CURRENT_PLAINDATE, YearMonthDay, formatDateRange } from "../common/date";
 import { hoverCardArtworkSx } from "../common/cardArrangement";
@@ -20,11 +21,11 @@ import { seasonSpans } from "./cardData";
 import { useFranchiseShows } from "./franchiseContext";
 
 /** The figures the card leads with: how much of the show there is, and whether it is still going. */
-const showStats = (show: Show): CardStat[] => [
+const showStats = (show: Show, scheme: Scheme): CardStat[] => [
   { label: "Seasons", value: show.s.length },
   { label: "Episodes", value: show.e },
   { label: "Hours", value: Math.floor(show.minutes / 60) },
-  { label: "Status", value: show.status, colour: statusToColour(show) },
+  { label: "Status", value: show.status, colour: statusToColour(show, scheme) },
 ];
 
 /**
@@ -35,7 +36,7 @@ const showStats = (show: Show): CardStat[] => [
  * table where it has an entry. Status has a colour too and is already a filled tile above, so
  * repeating it here would say it twice.
  */
-const showRows = (show: Show): LedgerRow[] => {
+const showRows = (show: Show, scheme: Scheme): LedgerRow[] => {
   const rows: LedgerRow[] = [
     { label: "Watched", value: formatDateRange(show.startDate, show.endDate) },
     // The latest season's own number, not the array length — the converter drops pre-2006
@@ -43,9 +44,9 @@ const showRows = (show: Show): LedgerRow[] => {
     { label: "Last Watched", value: `S${show.s.at(-1)!.s}E${show.s.at(-1)!.e}` },
     // The primary genre leads and the rest follow it, which is the order the sheet holds them in
     // and the order the charts group by.
-    { label: "Genre", value: [show.genre, ...show.genres].join(" · "), swatch: genreToColour(show.genre) },
-    { label: "Network", value: show.network, swatch: networkToColour(show) || undefined },
-    { label: "Rating", value: show.rating, swatch: ageRatingToColour(show.rating) },
+    { label: "Genre", value: [show.genre, ...show.genres].join(" · "), swatch: genreToColour(show.genre, scheme) },
+    { label: "Network", value: show.network, swatch: networkToColour(show, scheme) || undefined },
+    { label: "Rating", value: show.rating, swatch: ageRatingToColour(show.rating, scheme) },
   ];
 
   // The runtime of the most recent season's episodes — where the seasons disagree, the latest is
@@ -60,24 +61,36 @@ const showRows = (show: Show): LedgerRow[] => {
   return rows;
 };
 
+/**
+ * A component rather than JSX inside the thunk, so the scheme is read where the body is built.
+ * Reading it in the card itself would put a context subscription on every card of an uncapped
+ * wall to serve the one that is open, which is the cost the thunk exists to avoid.
+ */
+const ShowCardDetail = ({ show }: { show: Show }) => {
+  const scheme = useScheme();
+
+  return (
+    <CardContent>
+      <Grid
+        container
+        spacing={1}
+      >
+        <ShowTimelineCard item={show} />
+        <HeroStatRow stats={showStats(show, scheme)} />
+        <MetadataLedger rows={showRows(show, scheme)} />
+      </Grid>
+    </CardContent>
+  );
+};
+
 const ShowCardMediaImage = <T extends Show | Season>({ item, ...props }: Parameters<TypedCardMediaImage<T>>[0]) => {
   const show = isShow(item) ? item : item.show;
+
   return (
     <CardMediaImage
       alt={show.name}
       image={show.banner}
-      detailComponent={() => (
-        <CardContent>
-          <Grid
-            container
-            spacing={1}
-          >
-            <ShowTimelineCard item={show} />
-            <HeroStatRow stats={showStats(show)} />
-            <MetadataLedger rows={showRows(show)} />
-          </Grid>
-        </CardContent>
-      )}
+      detailComponent={() => <ShowCardDetail show={show} />}
       {...props}
     />
   );
@@ -109,6 +122,8 @@ const ShowTimelineCard = ({ item }: { item: Show }) => {
  * with every show but the card's own muted, the rule the games strip follows.
  */
 const FranchiseStrip = ({ show, siblings }: { show: Show; siblings: Show[] }) => {
+  const scheme = useScheme();
+
   const { bands, laneCount } = buildStrip(seasonSpans(siblings, CURRENT_PLAINDATE), SHOW_EPOCH, CURRENT_PLAINDATE);
 
   if (bands.length === 0) return null;
@@ -118,7 +133,7 @@ const FranchiseStrip = ({ show, siblings }: { show: Show; siblings: Show[] }) =>
     <TimelineCard
       bands={bands.map((band) => ({
         ...band,
-        colour: statusToColour(band.season.show),
+        colour: statusToColour(band.season.show, scheme),
         muted: band.season.show.name !== show.name,
         tooltip: (
           <SeasonTooltip
@@ -192,6 +207,8 @@ const SeasonTooltip = ({ season, named }: { season: Season; named?: boolean }) =
  * network and genre.
  */
 export const ShowHoverCard = <T extends Show | Season>({ item, title }: { item: T; title?: string }) => {
+  const scheme = useScheme();
+
   const show = isShow(item) ? item : item.show;
 
   return (
@@ -207,7 +224,7 @@ export const ShowHoverCard = <T extends Show | Season>({ item, title }: { item: 
           subtitle={[
             { text: isShow(item) ? "" : (item.subtitle ?? "") },
             { text: show.network },
-            { text: show.genre, swatch: genreToColour(show.genre) },
+            { text: show.genre, swatch: genreToColour(show.genre, scheme) },
           ]}
           dateRange={formatDateRange(item.startDate, item.endDate)}
           stats={[

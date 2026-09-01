@@ -6,9 +6,12 @@ import { VideoGame, platformToColor } from "./types";
 import Timeline, { TimelineData } from "../common/Timeline";
 import { CURRENT_PLAINDATE, YearMonthDay } from "../common/date";
 import { VgHoverCard } from "./CardMediaImage";
+import { useScheme } from "../common/useScheme";
 import { format } from "../utils/mathUtils";
 
 const VgTimeline = ({ data }: { data: VideoGame[] }) => {
+  const scheme = useScheme();
+
   const [partyEnabled, setParty] = useState(false);
 
   const gameData: TimelineData[] = data
@@ -17,7 +20,7 @@ const VgTimeline = ({ data }: { data: VideoGame[] }) => {
     .map((row) => ({
       name: row.name,
       tooltip: () => <VgHoverCard item={row} />,
-      colour: platformToColor(row),
+      colour: platformToColor(row, scheme),
       start: row.startDate as YearMonthDay,
       end: (row.endDate as YearMonthDay | undefined) ?? CURRENT_PLAINDATE,
     }));

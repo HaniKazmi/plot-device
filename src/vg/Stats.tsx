@@ -48,6 +48,7 @@ import { gameSubtitle } from "./cardData";
 import { Stack, Typography } from "@mui/material";
 import type { FilterDispatch, YearType } from "./filterUtils";
 import { statusToColour } from "../utils/types";
+import { useScheme } from "../common/useScheme";
 import { CURRENT_PLAINDATE, CURRENT_YEAR, formatDate, YearNumber } from "../common/date";
 import { Hero } from "../common/Hero";
 import { Section, StatBand } from "../common/SectionRail";
@@ -147,6 +148,8 @@ const Stats = ({
  * come to disagree about how many games a series holds.
  */
 const VgHero = ({ game }: { game: VideoGame }) => {
+  const scheme = useScheme();
+
   const franchise = useFranchiseGames(game);
 
   return (
@@ -158,7 +161,7 @@ const VgHero = ({ game }: { game: VideoGame }) => {
       // promoted to the top of the page does not cost this game its platform.
       chip={platformToShortChip(game)}
       title={game.name}
-      subtitle={gameSubtitle(game)}
+      subtitle={gameSubtitle(game, scheme)}
       stats={heroStats(game, franchise, CURRENT_PLAINDATE)}
     />
   );
@@ -172,6 +175,8 @@ const VgHero = ({ game }: { game: VideoGame }) => {
  * saying it.
  */
 const Vitals = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
+  const scheme = useScheme();
+
   const statusList: Status[] = ["Beat", "Playing", "Endless", "Abandoned"];
   const companyList: Company[] = ["Nintendo", "PlayStation", "PC", "iOS", "Xbox"];
   const measureFunc = (data: VideoGame[]) => (measure == "Games" ? data.length : data.sum("hours"));
@@ -185,7 +190,7 @@ const Vitals = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
         measureFunc={measureFunc}
         group={statusList}
         groupOf={(game) => game.status}
-        groupToColour={(ele: Status) => statusToColour({ status: ele })}
+        groupToColour={(ele: Status) => statusToColour({ status: ele }, scheme)}
         measureLabel={measure}
       />
       <TotalsBand
@@ -195,7 +200,7 @@ const Vitals = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
         measureFunc={measureFunc}
         group={companyList}
         groupOf={(game) => game.company}
-        groupToColour={(ele: Company) => companyToColor({ company: ele })}
+        groupToColour={(ele: Company) => companyToColor({ company: ele }, scheme)}
         measureLabel={measure}
       />
     </VitalsCard>
@@ -293,6 +298,8 @@ const MostPlayedCategory = ({
   category: VideoGameStringKeys;
   controls: ReactNode;
 }) => {
+  const scheme = useScheme();
+
   return (
     <GroupedStatList
       icon={<Whatshot />}
@@ -301,7 +308,7 @@ const MostPlayedCategory = ({
       option={category}
       groups={groupGamesBy(data, category, measure)}
       labelComponent={(group) => [[group.name, `${format(group.count)} ${measure}`]]}
-      colourOf={(top) => groupToColour(category, top)}
+      colourOf={(top) => groupToColour(category, top, scheme)}
       MediaComponent={VgCardMediaImage}
       // A dialog under a card headed Most Played opens largest-first, whatever slice of it the
       // reader scrolls.
@@ -329,21 +336,25 @@ const CurrentlyPlaying = ({ playing }: { playing: VideoGame[] }) => {
   );
 };
 
-const TopCategories = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => (
-  <>
-    {(["gameplay", "publisher", "franchise"] as const).map((category) => (
-      <TopListCard
-        key={category}
-        options={topOptions}
-        defaultOption={category}
-        icons={optionIcons}
-        groups={(option) => groupGamesBy(data, option, measure)}
-        colourOf={(option, top: VideoGame) => groupToColour(option, top)}
-        measureLabel={measure}
-      />
-    ))}
-  </>
-);
+const TopCategories = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
+  const scheme = useScheme();
+
+  return (
+    <>
+      {(["gameplay", "publisher", "franchise"] as const).map((category) => (
+        <TopListCard
+          key={category}
+          options={topOptions}
+          defaultOption={category}
+          icons={optionIcons}
+          groups={(option) => groupGamesBy(data, option, measure)}
+          colourOf={(option, top: VideoGame) => groupToColour(option, top, scheme)}
+          measureLabel={measure}
+        />
+      ))}
+    </>
+  );
+};
 
 const optionIcons: Record<TopOption, ReactNode> = {
   company: <Business />,

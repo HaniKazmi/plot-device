@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { YearMonthDay } from "../../src/common/date";
 import type { AgeRating } from "../../src/utils/types";
-import { decadeToColour, NEUTRAL_FILL, releaseDecade } from "../../src/utils/types";
+import { decadeToColour, neutralFill, releaseDecade } from "../../src/utils/types";
 import {
   cinemaToColour,
   groupToColour,
@@ -28,7 +28,7 @@ const LIVE_GENRES = [
 
 describe("genre colours", () => {
   it.each(LIVE_GENRES)("resolves %s to a colour of its own, not the neutral fallback", (genre) => {
-    expect(groupToColour("genre", movie({ genre }))).not.toBe(NEUTRAL_FILL);
+    expect(groupToColour("genre", movie({ genre }), "light")).not.toBe(neutralFill("light"));
   });
 });
 
@@ -51,19 +51,19 @@ describe("scoreBand", () => {
 
 describe("scoreBandToColour", () => {
   it.each(scoreBands)("has a colour for every band, including %s", (band) => {
-    expect(scoreBandToColour(band)).toBeTruthy();
+    expect(scoreBandToColour(band, "light")).toBeTruthy();
   });
 
   it("gives Unscored the neutral fill, the colour of 'nothing to say here'", () => {
-    expect(scoreBandToColour("Unscored" as ScoreBand)).toBe(NEUTRAL_FILL);
+    expect(scoreBandToColour("Unscored" as ScoreBand, "light")).toBe(neutralFill("light"));
   });
 });
 
 describe("cinemaToColour", () => {
   it("gives Cinema and Home distinct fills", () => {
-    expect(cinemaToColour("Cinema")).not.toBe(cinemaToColour("Home"));
-    expect(cinemaToColour("Cinema")).toBeTruthy();
-    expect(cinemaToColour("Home")).toBeTruthy();
+    expect(cinemaToColour("Cinema", "light")).not.toBe(cinemaToColour("Home", "light"));
+    expect(cinemaToColour("Cinema", "light")).toBeTruthy();
+    expect(cinemaToColour("Home", "light")).toBeTruthy();
   });
 });
 
@@ -71,34 +71,34 @@ describe("groupToColour", () => {
   it("takes decade from the release year, not the watch year", () => {
     const film = movie({ releaseDate: YearMonthDay.get(1965, 1, 1), startDate: YearMonthDay.get(2020, 1, 1) });
 
-    expect(groupToColour("decade", film)).toBe(decadeToColour(releaseDecade(1965)));
+    expect(groupToColour("decade", film, "light")).toBe(decadeToColour(releaseDecade(1965), "light"));
   });
 
   it("dispatches cinema and score through their own lookups", () => {
     const film = movie({ cinema: true, score: 9 });
 
-    expect(groupToColour("cinema", film)).toBe(cinemaToColour("Cinema"));
-    expect(groupToColour("score", film)).toBe(scoreBandToColour("9–10"));
+    expect(groupToColour("cinema", film, "light")).toBe(cinemaToColour("Cinema", "light"));
+    expect(groupToColour("score", film, "light")).toBe(scoreBandToColour("9–10", "light"));
   });
 
   it("hands franchise, director and name to Highcharts, since none carries a colour of its own", () => {
-    expect(groupToColour("franchise", movie())).toBe("");
-    expect(groupToColour("director", movie())).toBe("");
-    expect(groupToColour("name", movie())).toBe("");
+    expect(groupToColour("franchise", movie(), "light")).toBe("");
+    expect(groupToColour("director", movie(), "light")).toBe("");
+    expect(groupToColour("name", movie(), "light")).toBe("");
   });
 
   it("propagates the rating throw, the deliberate catch for a spreadsheet typo", () => {
-    expect(() => groupToColour("rating", movie({ rating: "PG-13" as AgeRating }))).toThrow("Unknown rating");
+    expect(() => groupToColour("rating", movie({ rating: "PG-13" as AgeRating }), "light")).toThrow("Unknown rating");
   });
 });
 
 describe("releaseDecade and decadeToColour", () => {
   it("resolves a pre-1970 year to a real fill, not the neutral fallback", () => {
     expect(releaseDecade(1965)).toBe("Pre-1970");
-    expect(decadeToColour(releaseDecade(1965))).not.toBe(NEUTRAL_FILL);
+    expect(decadeToColour(releaseDecade(1965), "light")).not.toBe(neutralFill("light"));
   });
 
   it("falls back to the neutral fill for a decade string it does not recognise", () => {
-    expect(decadeToColour("Not-A-Decade")).toBe(NEUTRAL_FILL);
+    expect(decadeToColour("Not-A-Decade", "light")).toBe(neutralFill("light"));
   });
 });

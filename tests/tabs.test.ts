@@ -1,14 +1,9 @@
 import { describe, expect, it } from "vitest";
-import Tabs, { HolidaysTab, MoviesTab, OmnibusTab, ShowsTab, VideoGamesTab, otherTabs, tabForPath } from "../src/tabs";
+import Tabs, { MoviesTab, OmnibusTab, ShowsTab, VideoGamesTab, otherTabs, tabForPath } from "../src/tabs";
 
 describe("the tab registry", () => {
   it("routes Omnibus, Games, Shows and Movies", () => {
     expect(Tabs.map((tab) => tab.id)).toEqual(["omnibus", "vg", "show", "movies"]);
-  });
-
-  it("leaves Holidays defined but unrouted, which is what makes the section unreachable", () => {
-    expect(HolidaysTab.id).toBe("holiday");
-    expect(Tabs).not.toContain(HolidaysTab);
   });
 
   it("gives every tab a distinct id, since the theme cache is keyed on it", () => {
@@ -60,8 +55,8 @@ describe("tabForPath", () => {
     expect(tabForPath("/SHOW")).toBe(OmnibusTab);
   });
 
-  it("sends the unrouted holiday path to Omnibus", () => {
-    expect(tabForPath("/holiday")).toBe(OmnibusTab);
+  it("falls back to the first tab for a well-formed path naming no tab", () => {
+    expect(tabForPath("/books")).toBe(OmnibusTab);
   });
 
   it("strips exactly one leading slash", () => {
@@ -69,7 +64,9 @@ describe("tabForPath", () => {
   });
 
   it("resolves against a caller-supplied list", () => {
-    expect(tabForPath("/holiday", [HolidaysTab, VideoGamesTab])).toBe(HolidaysTab);
+    expect(tabForPath("/show", [ShowsTab, MoviesTab])).toBe(ShowsTab);
+    // The supplied list's own first entry is the fallback, not the module's.
+    expect(tabForPath("/vg", [ShowsTab, MoviesTab])).toBe(ShowsTab);
   });
 });
 
@@ -82,9 +79,5 @@ describe("otherTabs", () => {
       { id: "vg", label: "Games" },
       { id: "movies", label: "Movies" },
     ]);
-  });
-
-  it("never offers the unrouted Holidays tab", () => {
-    expect(otherTabs(VideoGamesTab).map((tab) => tab.id)).not.toContain(HolidaysTab.id);
   });
 });

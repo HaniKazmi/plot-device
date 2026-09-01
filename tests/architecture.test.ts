@@ -9,7 +9,7 @@ const SRC = fileURLToPath(new URL("../src", import.meta.url));
 // Omnibus is a domain that composes domains: the guard below still forbids common/ and utils/
 // from importing it, and omnibus/ importing vg/, show/ and movie/ is the direction that keeps
 // every shared shell domain-blind.
-const DOMAINS = ["vg", "show", "movie", "holiday", "omnibus"];
+const DOMAINS = ["vg", "show", "movie", "omnibus"];
 
 /** Both `import x from "y"` and the bare `import "y"` side-effect form. */
 const IMPORT_SPECIFIER = /(?:from\s+|import\s+)["']([^"']+)["']/g;

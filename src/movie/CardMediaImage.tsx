@@ -11,13 +11,14 @@ import {
   type LedgerRow,
 } from "../common/Card";
 import { cinemaLabel, scoreBand, scoreBandToColour, type Movie } from "./types";
-import { ageRatingToColour, genreToColour } from "../utils/types";
+import { ageRatingToColour, genreToColour, type Scheme } from "../utils/types";
 import { namesTheSameThing } from "../utils/stringUtils";
 import { CURRENT_PLAINDATE, formatDate } from "../common/date";
 import { hoverCardArtworkSx } from "../common/cardArrangement";
 import { buildStrip, stripYearTicks } from "../common/timelineStripData";
 import { useFranchiseMovies } from "./franchiseContext";
 import { MOVIE_EPOCH } from "./statsData";
+import { useScheme } from "../common/useScheme";
 
 /**
  * The figures the card leads with. The score takes the coloured tile — it is the one figure with
@@ -25,9 +26,9 @@ import { MOVIE_EPOCH } from "./statsData";
  * entirely when the film was never scored: a tile reading 0/10 says something false where saying
  * nothing says the truth.
  */
-const movieStats = (movie: Movie): CardStat[] => [
+const movieStats = (movie: Movie, scheme: Scheme): CardStat[] => [
   ...(movie.score !== undefined
-    ? [{ label: "Score", value: `${movie.score}/10`, colour: scoreBandToColour(scoreBand(movie.score)) }]
+    ? [{ label: "Score", value: `${movie.score}/10`, colour: scoreBandToColour(scoreBand(movie.score), scheme) }]
     : []),
   { label: "Minutes", value: movie.minutes },
   { label: "Seen in", value: cinemaLabel(movie) },
@@ -39,7 +40,7 @@ const movieStats = (movie: Movie): CardStat[] => [
  * A row carries a swatch exactly where the app speaks that field's colour somewhere else — the
  * genre shares the shows tab's vocabulary, the rating the games tab's map.
  */
-const movieRows = (movie: Movie): LedgerRow[] => {
+const movieRows = (movie: Movie, scheme: Scheme): LedgerRow[] => {
   const rows: LedgerRow[] = [
     { label: "Watched", value: formatDate(movie.startDate) },
     { label: "Released", value: formatDate(movie.releaseDate) },
@@ -49,8 +50,8 @@ const movieRows = (movie: Movie): LedgerRow[] => {
     { label: "By", value: movie.director },
     // The primary genre leads and the rest follow it, which is the order the sheet holds them in
     // and the order the charts group by.
-    { label: "Genre", value: [movie.genre, ...movie.genres].join(" · "), swatch: genreToColour(movie.genre) },
-    { label: "Rating", value: movie.rating, swatch: ageRatingToColour(movie.rating) },
+    { label: "Genre", value: [movie.genre, ...movie.genres].join(" · "), swatch: genreToColour(movie.genre, scheme) },
+    { label: "Rating", value: movie.rating, swatch: ageRatingToColour(movie.rating, scheme) },
   );
 
   // A film with no wider franchise carries its own name in the column, so the row appears only
@@ -60,22 +61,33 @@ const movieRows = (movie: Movie): LedgerRow[] => {
   return rows;
 };
 
+/**
+ * A component rather than JSX inside the thunk, so the scheme is read where the body is built.
+ * Reading it in the card itself would put a context subscription on every card of an uncapped
+ * wall to serve the one that is open, which is the cost the thunk exists to avoid.
+ */
+const MovieCardDetail = ({ item }: { item: Movie }) => {
+  const scheme = useScheme();
+
+  return (
+    <CardContent>
+      <Grid
+        container
+        spacing={1}
+      >
+        <MovieTimelineCard item={item} />
+        <HeroStatRow stats={movieStats(item, scheme)} />
+        <MetadataLedger rows={movieRows(item, scheme)} />
+      </Grid>
+    </CardContent>
+  );
+};
+
 const MovieCardMediaImage: TypedCardMediaImage<Movie> = ({ item, ...props }) => (
   <CardMediaImage
     alt={item.name}
     image={item.banner}
-    detailComponent={() => (
-      <CardContent>
-        <Grid
-          container
-          spacing={1}
-        >
-          <MovieTimelineCard item={item} />
-          <HeroStatRow stats={movieStats(item)} />
-          <MetadataLedger rows={movieRows(item)} />
-        </Grid>
-      </CardContent>
-    )}
+    detailComponent={() => <MovieCardDetail item={item} />}
     {...props}
   />
 );
@@ -88,6 +100,8 @@ const MOVIE_TICKS = stripYearTicks(MOVIE_EPOCH, CURRENT_PLAINDATE);
  * than stacking. Standalone films get no strip at all: one mark on three decades says nothing.
  */
 const MovieTimelineCard = ({ item }: { item: Movie }) => {
+  const scheme = useScheme();
+
   const siblings = useFranchiseMovies(item);
 
   const { bands, laneCount } = buildStrip(
@@ -107,7 +121,7 @@ const MovieTimelineCard = ({ item }: { item: Movie }) => {
     <TimelineCard
       bands={bands.map((band) => ({
         ...band,
-        colour: genreToColour(band.movie.genre),
+        colour: genreToColour(band.movie.genre, scheme),
         muted: band.movie.name !== item.name,
         tooltip: <WatchTooltip movie={band.movie} />,
       }))}
@@ -139,25 +153,29 @@ const WatchTooltip = ({ movie }: { movie: Movie }) => (
  * a film and a second assembly of it is a second thing to keep in step. The subtitle is the pair the
  * tab's hero says, and the score is dropped where the film was never scored rather than reading zero.
  */
-export const MovieHoverCard = ({ item }: { item: Movie }) => (
-  <MovieCardMediaImage
-    item={item}
-    landscape
-    extractColour
-    sx={hoverCardArtworkSx("portrait")}
-    footerComponent={
-      <CardPanel
-        layout="beside"
-        title={item.name}
-        subtitle={[{ text: item.director }, { text: item.genre, swatch: genreToColour(item.genre) }]}
-        dateRange={formatDate(item.startDate)}
-        stats={[
-          ...(item.score !== undefined ? [{ value: item.score, label: "Score" }] : []),
-          { value: item.minutes, label: "Min" },
-        ]}
-      />
-    }
-  />
-);
+export const MovieHoverCard = ({ item }: { item: Movie }) => {
+  const scheme = useScheme();
+
+  return (
+    <MovieCardMediaImage
+      item={item}
+      landscape
+      extractColour
+      sx={hoverCardArtworkSx("portrait")}
+      footerComponent={
+        <CardPanel
+          layout="beside"
+          title={item.name}
+          subtitle={[{ text: item.director }, { text: item.genre, swatch: genreToColour(item.genre, scheme) }]}
+          dateRange={formatDate(item.startDate)}
+          stats={[
+            ...(item.score !== undefined ? [{ value: item.score, label: "Score" }] : []),
+            { value: item.minutes, label: "Min" },
+          ]}
+        />
+      }
+    />
+  );
+};
 
 export default MovieCardMediaImage;

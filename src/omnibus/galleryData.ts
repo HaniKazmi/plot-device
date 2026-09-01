@@ -7,6 +7,7 @@ import {
   genreToColour,
   releaseDecade,
   type Colour,
+  type Scheme,
 } from "../utils/types";
 import type { Movie } from "../movie/types";
 import type { Season } from "../show/types";
@@ -74,14 +75,14 @@ export const galleryValue = (item: OmniItem, category: GalleryCategory): string 
  * certificate, a decade. Franchises have no cross-media vocabulary: each tab colours its own, and a
  * swatch invented for the union would teach a legend no chart on the page honours.
  */
-export const galleryColour = (name: string, category: GalleryCategory): Colour | undefined => {
+export const galleryColour = (name: string, category: GalleryCategory, scheme: Scheme): Colour | undefined => {
   switch (category) {
     case "genre":
-      return genreToColour(name);
+      return genreToColour(name, scheme);
     case "rating":
-      return ageBandToColour(name);
+      return ageBandToColour(name, scheme);
     case "decade":
-      return decadeToColour(name);
+      return decadeToColour(name, scheme);
     case "franchise":
       return undefined;
   }

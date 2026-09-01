@@ -3,9 +3,9 @@
  *
  * `utils/colourUtils` has its own linearisation, and asserting it against itself would pass however
  * wrong it was — so this is a second implementation of the WCAG formulae rather than an import.
- * One copy, because two tests lean on it for different claims: that `desaturate` holds luminance,
- * and that the muted genre ramp still clears the fill contract. Two copies drifting would leave
- * one of those quietly asserting something else.
+ * `fillContract.test.ts` holds every table to 3:1 through it, which is the assertion the whole
+ * colour system rests on: computing it from the code under test would let a bug in that code make
+ * the contract pass.
  */
 
 const channel = (hex: string, shift: number) => {
@@ -29,8 +29,8 @@ export const PAPERS = { light: "#ffffff", dark: "#1d2126" };
  * own — its ten are a subset of the other two's.
  *
  * Shared because two files test different properties over the same vocabulary, and a sheet gaining
- * a genre has to reach both: the shared ramp must colour it, and the muted ramp must still clear
- * both papers with it.
+ * a genre has to reach both: the shared ramp has to answer for it, and whatever it answers has to
+ * clear the fill contract on the paper it is drawn on.
  */
 export const liveGenres = [
   "Action",

@@ -3,6 +3,7 @@ import { groupToColour, type Measure, type Movie, type MovieGroup } from "./type
 import Barchart from "../common/Barchart";
 import { movieGroupValue } from "./statsData";
 import { format } from "../utils/mathUtils";
+import { useScheme } from "../common/useScheme";
 
 type Option = Exclude<MovieGroup, "name"> | "none";
 
@@ -16,6 +17,8 @@ const options: Option[] = ["none", "genre", "rating", "cinema", "decade", "score
 const axisOptions = ["Watched", "Released"] as const;
 
 const MovieBarchart = ({ data, measure }: { data: Movie[]; measure: Measure }) => {
+  const scheme = useScheme();
+
   // Grouped by genre from the start — the one distinction this tab is about, as company is on
   // the games tab.
   const [group, groupControls] = useSelectBox(options, "genre");
@@ -26,7 +29,7 @@ const MovieBarchart = ({ data, measure }: { data: Movie[]; measure: Measure }) =
       const date = axis === "Watched" ? movie.startDate : movie.releaseDate;
       return {
         date: cumulative ? date.toYearMonth() : date.toYear(),
-        colour: groupToColour(group, movie),
+        colour: groupToColour(group, movie, scheme),
         name: group === "none" ? "" : movieGroupValue(movie, group) || movie.name,
         value: measure === "Films" ? 1 : movie.minutes,
       };

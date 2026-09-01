@@ -1,15 +1,18 @@
 import type { Year, YearMonthDay } from "../common/date";
-import { desaturate } from "../utils/colourUtils";
 import {
   NEUTRAL_FILL,
   ageRatingToColour,
   decadeToColour,
+  fill,
   genreToColour,
+  pick,
   releaseDecade,
   statusToColour,
   type AgeRating,
   type Colour,
+  type Fill,
   type KeysMatching,
+  type Scheme,
 } from "../utils/types";
 
 export interface VideoGame {
@@ -69,7 +72,7 @@ export type Platform = `${Company}${string}`;
  * still knows which row it came from. `gameplayColours` is keyed on the union, so a value added
  * here is a compile error until it has a fill.
  */
-const GAMEPLAY = [
+export const GAMEPLAY = [
   "Action",
   "Adventure",
   "Action Adventure",
@@ -102,37 +105,54 @@ export type Measure = "Hours" | "Games";
  * A company has two colours, and which one is right depends on how much of the screen it covers.
  *
  * The fills below are the ones chart geometry uses — sunburst wedges, barchart series, timeline
- * bars, stacked segments, card strips. They meet the fill contract on `NEUTRAL_FILL`, in one
- * lightness band, and each keeps its brand's hue. A brand hex is chosen to stand alone against
- * white, and a set of them is not a scale:
- * Nintendo's #e60012 at full saturation beside four neighbours reads as one shouting value.
+ * bars, stacked segments, card strips. Each keeps its brand's hue and meets the fill contract on
+ * `NEUTRAL_FILL`, half by half.
  *
- * PC and iOS stay neutral because neutrality is those brands' identity — a taupe and a space
- * grey, clamped only in lightness. Giving either a real hue would make it separable at a glance
- * but would name the wrong brand; a blue-violet iOS in particular reads as PlayStation's
- * neighbour. The cost is that the two neutrals separate from each other and from PlayStation by
- * lightness and warmth rather than hue, which is below what colour alone should carry — the
- * wedge labels, legend names and the 2px gaps between segments are load-bearing for those pairs.
+ * PC is the one entry with no brand to reproduce — it is a category, not a company — so it takes
+ * the amber of the beige box rather than a vendor's hex. Steam is the obvious anchor and the wrong
+ * one: its whole palette is a cool blue-grey family sitting on PlayStation's own hue, and two blues
+ * separated only by lightness and chroma read as one blue however far apart they measure.
+ *
+ * Putting PC in the warm arc is what lets the other two entries be themselves. PlayStation keeps
+ * its published #006FCD on both papers, and iOS returns to Apple's own space grey and silver — its
+ * warm cast existed only to escape a blue PC, and with the cool region holding nothing but iOS and
+ * the neutral, a lightness gap is enough to separate them. That gap is the table's weakest link at
+ * 11.8, which is under the 15 two fills want: the wedge labels and legend names stay load-bearing
+ * for that pair, and they meet only in the Top Platform list where every row is named.
+ *
+ * iOS is neutral because Apple's identity is neutral, and warm rather than cool because the
+ * neutral grey and Steam's blue are both cool: a cool iOS is squeezed between two values it
+ * cannot clear, where Apple's warm finishes — starlight, champagne, the aluminium — differ from
+ * each by hue direction at chroma this low. It still sits 9.3 dE from `NEUTRAL_FILL`, under the
+ * 15 two fills want, because three low-chroma values cannot all clear each other in this band:
+ * the wedge labels, legend names and the 2px gaps between segments stay load-bearing for that
+ * pair. They meet only in the Top Platform list, where every row is named.
  *
  * The accents are the brand hexes themselves, for the chip in a card's corner. A chip is a few
  * dozen pixels of solid colour carrying two or three letters, so it is read as a badge rather than
  * compared against its neighbours — full saturation is what makes it recognisable at that size,
  * and there is no adjacent wedge for it to have to separate from.
  */
-const companyColours: Record<Company, { fill: Colour; accent: Colour }> = {
-  Nintendo: { fill: "#d74840" as Colour, accent: "#e60012" as Colour },
-  PlayStation: { fill: "#2474cf" as Colour, accent: "#0070cc" as Colour },
-  Xbox: { fill: "#139948" as Colour, accent: "#107c10" as Colour },
-  PC: { fill: "#9d8358" as Colour, accent: "#b5a596" as Colour },
-  iOS: { fill: "#6e737a" as Colour, accent: "#555555" as Colour },
+const companyColours: Record<Company, { fill: Fill; accent: Colour }> = {
+  Nintendo: { fill: fill("#e60012", "#e60012"), accent: "#E60012" as Colour },
+  PlayStation: { fill: fill("#006fcd", "#0270ce"), accent: "#006FCD" as Colour },
+  Xbox: { fill: fill("#107c10", "#21871f"), accent: "#107C10" as Colour },
+  PC: { fill: fill("#c08600", "#ffb411"), accent: "#c9a227" as Colour },
+  iOS: { fill: fill("#4a5360", "#b0b8c3"), accent: "#8e8e93" as Colour },
 };
+
+/** Every company the table colours, so the fill-contract test cannot fall behind it. */
+export const COMPANIES = Object.keys(companyColours) as Company[];
 
 /**
  * The chart fill. `undefined` for a company outside the table, which is what lets `platformToColor`
  * turn a platform string whose first word is not a bare company name into a loud error rather than
  * an uncoloured bar.
  */
-export const companyToColor = ({ company }: { company: Company }): Colour => companyColours[company]?.fill;
+export const companyToColor = ({ company }: { company: Company }, scheme: Scheme): Colour => {
+  const colour = companyColours[company]?.fill;
+  return colour && pick(colour, scheme);
+};
 
 /** The brand hex, drawn only in a card's corner chip. `undefined` outside the table, as above. */
 export const companyToAccent = ({ company }: { company: Company }): Colour => companyColours[company]?.accent;
@@ -169,9 +189,9 @@ const platformShortNames: Record<Platform, string> = {
  * `companyToColor` answers `undefined` off its table, so a platform whose first word is not a bare
  * company name would otherwise render as an uncoloured bar.
  */
-export const platformToColor = (platform: Platform | { platform: Platform }) => {
+export const platformToColor = (platform: Platform | { platform: Platform }, scheme: Scheme) => {
   const value = typeof platform === "object" ? platform.platform : platform;
-  const colour = platformShortNames[value] && companyToColor({ company: value.split(" ")[0] as Company });
+  const colour = platformShortNames[value] && companyToColor({ company: value.split(" ")[0] as Company }, scheme);
   if (!colour) throw new Error("Unknown platform: " + value);
   return colour;
 };
@@ -186,7 +206,7 @@ export const platformToShort: (vg: VideoGame) => [string, Colour] = (vg) => {
   return [short, companyToAccent(vg)];
 };
 
-export const ratingToColour = ({ rating }: VideoGame) => ageRatingToColour(rating);
+export const ratingToColour = ({ rating }: VideoGame, scheme: Scheme) => ageRatingToColour(rating, scheme);
 
 /**
  * A gameplay style has no brand to reproduce, so each colour is chosen to *represent* it: flame for
@@ -197,11 +217,10 @@ export const ratingToColour = ({ rating }: VideoGame) => ageRatingToColour(ratin
  * Action takes the flame end of red rather than a pillar-box red because sRGB has no bright red:
  * red only exists low in the lightness range, and Fighting's crimson is what occupies it.
  *
- * Every value sits in the same lightness band as the company fills, meeting the fill contract on
- * `NEUTRAL_FILL`, with chroma taken as high as sRGB allows at that lightness. Fourteen hues in one
- * band is more than hue alone can
- * separate — 27° apart is roughly ΔE 7, and telling two fills apart wants 15 — so lightness
- * alternates around the hue wheel and neighbours land at opposite ends of the band.
+ * Every value meets the fill contract on `NEUTRAL_FILL`, with chroma taken as high as sRGB allows
+ * at its lightness. Fourteen hues is more than hue alone can separate — 27° apart is roughly dE 7,
+ * and telling two fills apart wants 15 — so lightness alternates around the hue wheel and
+ * neighbours land at opposite ends of the band.
  *
  * Strategy is the one deliberately deep member of the blues. A red-blind reader sees violet as
  * blue, so a light steel blue beside Puzzle's light violet is ΔE 1 to them however far apart the
@@ -209,153 +228,109 @@ export const ratingToColour = ({ rating }: VideoGame) => ageRatingToColour(ratin
  * Platformer's sky blue is then the light half of the same hue, which is what those two names
  * mean anyway.
  *
- * Nine of these hexes are also in the shared genre ramp under other names, and Action and Adventure
- * are the deliberate exception — those two names mean the same thing in both vocabularies. That
- * collision is what `mutedGenreToColour` below exists to break; the count and the reasoning are
- * there.
+ * Exactly two of these hexes are also in the shared genre ramp: Action and Adventure, which mean
+ * the same thing in both vocabularies and so are deliberately the same colour. Nothing else
+ * collides, which is what lets a card state both vocabularies in sequence — the hero and hover
+ * subtitles set the two swatches side by side, and the ledger stacks the Gameplay row on the
+ * Genre row — with both at full chroma and no mute between them.
  *
  * Ratings and franchises deliberately do not draw on this: a rating ramp encodes an order, and a
  * franchise colour is somebody's brand, which keeps its hue and chroma and yields only lightness
  * to contrast. Neither is free to be reassigned a hue the way a gameplay style is.
  */
-const gameplayColours: Record<Gameplay, Colour> = {
-  Action: "#fe4c00" as Colour,
-  Adventure: "#13ac00" as Colour,
-  "Action Adventure": "#a85500" as Colour,
-  "Driving/Racing": "#ae9200" as Colour,
-  Fighting: "#d5005e" as Colour,
-  "Party Games": "#bc00c8" as Colour,
-  Platformer: "#3893ff" as Colour,
-  Puzzle: "#c357ff" as Colour,
-  "Role Playing": "#7543ff" as Colour,
-  Shooter: "#667100" as Colour,
-  Simulation: "#008268" as Colour,
-  Strategy: "#0072c5" as Colour,
-  "Visual Novel": "#ff1da7" as Colour,
-  "Music/Rhythm": "#00a4b1" as Colour,
+const gameplayColours: Record<Gameplay, Fill> = {
+  Action: fill("#d85900", "#ff762c"),
+  Adventure: fill("#008c36", "#00d556"),
+  "Action Adventure": fill("#8c4e00", "#c67200"),
+  "Driving/Racing": fill("#a98300", "#fac300"),
+  Fighting: fill("#a50045", "#df005f"),
+  "Party Games": fill("#b700b9", "#ec00ed"),
+  Platformer: fill("#0089ea", "#3ca2ff"),
+  Puzzle: fill("#a834ff", "#ad4cff"),
+  "Role Playing": fill("#6300fa", "#734eff"),
+  Shooter: fill("#5d5b00", "#908c00"),
+  Simulation: fill("#006d5d", "#00a790"),
+  Strategy: fill("#005ba5", "#007ee1"),
+  "Visual Novel": fill("#e60098", "#ff30ad"),
+  "Music/Rhythm": fill("#00899b", "#00cbe3"),
 };
 
-export const gameplayToColour = ({ gameplay }: { gameplay: Gameplay }): Colour =>
-  gameplayColours[gameplay] ?? NEUTRAL_FILL;
-
-/**
- * How much chroma the genre ramp gives up on this tab. Calibrated against the gameplay table above:
- * far enough that the two read as different kinds of thing, no further than the shared hexes need.
- */
-const GENRE_MUTE = 0.45;
-
-/**
- * Keyed on the ramp's own hex rather than the genre name, which bounds it at the twelve values the
- * table can answer. The genre column is open-ended, so a name-keyed cache would grow with the sheet.
- */
-const mutedGenres = new Map<Colour, Colour>();
-
-/**
- * The shared genre ramp with its chroma cut, for the one tab that draws a genre beside a gameplay
- * style.
- *
- * The two tables share nine hexes under different names, and a card states both vocabularies in
- * sequence — the hero and hover subtitles put the swatches side by side, and the ledger stacks the
- * Gameplay row on the Genre row. At full chroma 81 of 340 games would draw those two swatches in
- * one colour, 78 of them Role Playing beside Fantasy. Taking the chroma out leaves the pair
- * separable as *kinds* — saturated is how you play, muted is what it is about — which is what
- * avoids needing 25 hues to be mutually distinguishable inside one lightness band.
- *
- * The charts need none of this and are not what this is for. Each draws one vocabulary at a time:
- * a Top card and a barchart group by a single field, and a sunburst colours every ring from
- * `groups[0]`, so nesting Genre inside Gameplay paints the whole tree in the gameplay colour.
- *
- * `desaturate` holds luminance exactly — see its own doc for why that is load-bearing — so the fill
- * contract carries over untouched.
- *
- * The neutral is passed through rather than dimmed. It is the colour of absence, one value across
- * every tab, and absence is not one of the two vocabularies that need telling apart — dimming it
- * would give this tab a private grey, and give it to exactly the games the `"Other"` default lands
- * on.
- *
- * Only this tab dims. Shows, Movies and the Omnibus draw no gameplay vocabulary and so have no
- * collision, and genre is the primary vocabulary on all three — muting them to fix this tab would
- * be backwards. The cost is that a Fantasy swatch here is quieter than a Fantasy wedge on Shows.
- */
-export const mutedGenreToColour = (genre: string): Colour => {
-  const base = genreToColour(genre);
-  if (base === NEUTRAL_FILL) return base;
-
-  let muted = mutedGenres.get(base);
-  if (muted === undefined) mutedGenres.set(base, (muted = desaturate(base, GENRE_MUTE)));
-  return muted;
-};
+export const gameplayToColour = ({ gameplay }: { gameplay: Gameplay }, scheme: Scheme): Colour =>
+  pick(gameplayColours[gameplay] ?? NEUTRAL_FILL, scheme);
 
 /**
  * A franchise's own brand hex, filling the sunburst's franchise ring and the Top Franchise bar.
  *
  * Hue and chroma are the brand's and are kept exactly; only lightness moves, and only as far as
- * the fill contract on `NEUTRAL_FILL` demands. Yakuza's #A31925 is 2.10:1 on dark and
- * Civilization's #005E9B is 2.37:1, so both lift a step rather than being reassigned a hue. Chroma
- * gives way only where the clamped lightness leaves sRGB, which Final Fantasy's cyan is the one
- * entry to still do.
+ * the fill contract on `NEUTRAL_FILL` demands of the half being drawn. A brand already inside the
+ * band on both papers therefore carries one value twice — Mario, Marvel and Zelda all do.
  *
- * Seven entries take that contract's relief, because the clamp would destroy the thing it was
- * meant to preserve: a yellow held to 3:1 on white is no longer yellow, it is a brown-gold, and
- * Persona held to 3:1 on dark is a royal blue rather than a near-black indigo. Pokémon, Warcraft,
- * Assassin's Creed, Uncharted and Tales are the bright five; Persona and Ace Attorney the deep
- * two. What earns them the relief is that nothing here is colour alone — the sunburst labels its
- * wedges and the Top Franchise list carries a named legend. Two of the five also regain the chroma
- * a darker clamp took out of them: yellow's gamut widens as it lightens.
+ * Six entries relax the floor on the **white paper alone**, keeping the full 3:1 on the dark one.
+ * The relief is what the fill contract allows where colour is not carrying the meaning by itself,
+ * and this is that case: the sunburst labels its franchise ring, the Top Franchise list names every
+ * row beside its swatch, and a card strip is captioned with the franchise it draws.
  *
- * Call of Duty keeps the plain clamp despite being a military drab, because dropping its olive
- * deeper collapses it onto Mario's red under red-blind vision — ΔE 1.8 where the clamped value
- * holds 7.7, and those two are neighbours on the Top Franchise bar.
+ * Four of them — Witcher, Uncharted, Assassin's Creed and Tales — need only 2.2:1 and then carry
+ * their brand hex exactly on both papers. Pokémon and Warcraft are the two whose identity *is*
+ * their brightness, and they go to 1.8: a yellow held to 3:1 on white is not a yellow but a
+ * brown-gold, which is 20.8 dE from what Pokémon actually looks like. At 1.8 that falls to 5.2 and
+ * `#ffcb05` is recognisable again. Every other entry meets the full contract on both halves, and
+ * every dark half here is the brand hex untouched.
  *
- * What that costs is separation between brands that already share a hue. Mario, Marvel,
- * Xenoblade, Fate, Mass Effect and Yakuza are six reds inside 5° of each other, and clamping
- * them into one lightness band leaves them near-indistinguishable side by side. The wedge
- * labels, the legend names and the gaps between segments are load-bearing for that group.
+ * What the clamp costs is separation between brands that already share a hue. Mario, Marvel,
+ * Xenoblade, Fate, Mass Effect and Yakuza are six reds inside 5° of each other, and holding them
+ * to one band leaves them near-indistinguishable side by side. The wedge labels, the legend names
+ * and the gaps between segments are load-bearing for that group.
  */
-const franchiseColours: Record<string, Colour> = {
-  Pokémon: "#d3a700" as Colour,
-  "Final Fantasy": "#039FDB" as Colour,
-  "Ace Attorney": "#2b52c3" as Colour,
-  Mario: "#E60012" as Colour,
-  "Call of Duty": "#666F3B" as Colour,
-  "Dragon Ball": "#F85B1A" as Colour,
-  "Assassin's Creed": "#a9adb3" as Colour,
-  "Legend of Zelda": "#1A8A34" as Colour,
-  Marvel: "#ED1D24" as Colour,
-  Tales: "#38bfb4" as Colour,
-  Uncharted: "#bdaa8b" as Colour,
-  Yakuza: "#C0393D" as Colour,
-  "Super Smash Bros.": "#FF4500" as Colour,
-  Xenoblade: "#E60026" as Colour,
-  Fate: "#CB2C28" as Colour,
-  Warcraft: "#dda300" as Colour,
-  "Mass Effect": "#D12026" as Colour,
-  Witcher: "#8F95A1" as Colour,
-  Civilization: "#1E6FAD" as Colour,
-  Persona: "#4557a2" as Colour,
+const franchiseColours: Record<string, Fill> = {
+  Pokémon: fill("#ebbb00", "#ffcb05"),
+  "Final Fantasy": fill("#009eda", "#039fdb"),
+  "Ace Attorney": fill("#2b52c3", "#3c66d9"),
+  Mario: fill("#e60012", "#e60012"),
+  "Call of Duty": fill("#666f3b", "#6d7642"),
+  "Dragon Ball": fill("#f45712", "#f85b1a"),
+  "Assassin's Creed": fill("#a9adb3", "#a9adb3"),
+  "Legend of Zelda": fill("#1a8a34", "#1a8a34"),
+  Marvel: fill("#ed1d24", "#ed1d24"),
+  Tales: fill("#38bfb4", "#38bfb4"),
+  Uncharted: fill("#bdaa8b", "#bdaa8b"),
+  Yakuza: fill("#c0393d", "#c0393d"),
+  "Super Smash Bros.": fill("#ff4500", "#ff4500"),
+  Xenoblade: fill("#e60026", "#e60026"),
+  Fate: fill("#cb2c28", "#cb2c28"),
+  Warcraft: fill("#fcb249", "#ffb54c"),
+  "Mass Effect": fill("#d12026", "#d12026"),
+  Witcher: fill("#8f95a1", "#8f95a1"),
+  Civilization: fill("#1e6fad", "#2575b3"),
+  Persona: fill("#4557a2", "#566ab7"),
 };
 
-/** The empty colour for a franchise outside the table, which every caller reads as no colour at all. */
-export const franchiseToColour = ({ franchise }: { franchise: string }): Colour =>
-  franchiseColours[franchise] ?? ("" as Colour);
+/** Every franchise the table colours; anything else reads as having no colour of its own. */
+export const FRANCHISE_NAMES = Object.keys(franchiseColours);
 
-export const groupToColour = (group: keyof VideoGame | "none" | "decade", game: VideoGame) => {
+/** The empty colour for a franchise outside the table, which every caller reads as no colour at all. */
+export const franchiseToColour = ({ franchise }: { franchise: string }, scheme: Scheme): Colour => {
+  const colour = franchiseColours[franchise];
+  return colour ? pick(colour, scheme) : ("" as Colour);
+};
+
+export const groupToColour = (group: keyof VideoGame | "none" | "decade", game: VideoGame, scheme: Scheme) => {
   switch (group) {
     case "decade":
       // The shared ramp, so a decade wedge means the same thing beside the Movies tab's.
-      return decadeToColour(releaseDecade(game.releaseDate.year));
+      return decadeToColour(releaseDecade(game.releaseDate.year), scheme);
     case "company":
-      return companyToColor(game);
+      return companyToColor(game, scheme);
     case "status":
-      return statusToColour(game);
+      return statusToColour(game, scheme);
     case "rating":
-      return ratingToColour(game);
+      return ratingToColour(game, scheme);
     case "gameplay":
-      return gameplayToColour(game);
+      return gameplayToColour(game, scheme);
     case "genre":
-      return mutedGenreToColour(game.genre);
+      return genreToColour(game.genre, scheme);
     case "franchise":
-      return franchiseToColour(game);
+      return franchiseToColour(game, scheme);
     default:
       return "" as Colour;
   }

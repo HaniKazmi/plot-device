@@ -1,5 +1,5 @@
 import type { ArtworkShape } from "../common/cardArrangement";
-import type { Colour } from "../utils/types";
+import { fill, pick, type Colour, type Fill, type Scheme } from "../utils/types";
 
 /**
  * The three things this tab counts. Singular and lower case because it is a discriminant on a
@@ -13,20 +13,28 @@ export const media: readonly Medium[] = ["game", "show", "movie"];
 /**
  * The one vocabulary this tab teaches, and the only colour on the page carrying meaning.
  *
- * Each value meets the fill contract on `NEUTRAL_FILL`: 3:1 against both the #ffffff and #1d2126
- * papers, in one lightness band so no medium reads as louder than the others. The hues are the
- * home tabs' own accents pulled into that band — a games indigo, a shows red, a movies amber — so
- * a reader arriving from a tab finds the colour it was already wearing. Red and amber are 60°
- * apart at equal lightness, which is the pair a red-blind reader has least of; the legend beside
- * every bar and the medium name on every strip are what carry that pair.
+ * Each value meets the fill contract on `NEUTRAL_FILL`, half by half, and no medium reads as
+ * louder than the others. The hues are the home tabs' own — arcade magenta for Games, screen-glow
+ * teal for Shows, cinema red for Movies — so a reader arriving from a tab finds the colour it was
+ * already wearing, and they cannot be chosen independently of `tabs.ts` without the two drifting.
+ * The closest pair is 16.8 dE, which is above what two fills need to be told apart; the legend
+ * beside every bar and the medium name on every strip carry the rest.
  */
-const mediumColours: Record<Medium, Colour> = {
-  game: "#5b6cc9" as Colour,
-  show: "#bd3f46" as Colour,
-  movie: "#bd8900" as Colour,
+const mediumColours: Record<Medium, Fill> = {
+  game: fill("#bc00b6", "#ea00e3"),
+  show: fill("#007f9f", "#00afdb"),
+  movie: fill("#c93700", "#f34400"),
 };
 
-export const mediumToColour = (medium: Medium): Colour => mediumColours[medium];
+/**
+ * The colour a Books medium takes when that tab arrives, held here so the wheel it comes from
+ * stays one decision. It is deliberately not a `Medium` yet: adding the union member before the
+ * sheet exists would demand a `"book"` arm in `galleryData`, `crossingsData` and both switches in
+ * `CardMediaImage` with no data behind any of them.
+ */
+export const BOOK_FILL = fill("#857200", "#c6ac00");
+
+export const mediumToColour = (medium: Medium, scheme: Scheme): Colour => pick(mediumColours[medium], scheme);
 
 /** How a medium reads in a legend, a header or a chip — the home tab's own name for itself. */
 const mediumLabels: Record<Medium, string> = {

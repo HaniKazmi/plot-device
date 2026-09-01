@@ -8,14 +8,17 @@ import Timeline, { TimelineData } from "../common/Timeline";
 import { Colour, statusToColour } from "../utils/types";
 import { CURRENT_PLAINDATE } from "../common/date";
 import { ShowHoverCard } from "./CardMediaImage";
+import { useScheme } from "../common/useScheme";
 
 const ShowTimeline = ({ data }: { data: Show[] }) => {
+  const scheme = useScheme();
+
   const [groupData, setGroupData] = useState(false);
 
   const titleData: [string, Show | Season, Colour][] = groupData
-    ? data.map((show) => [show.name, show, statusToColour(show)])
+    ? data.map((show) => [show.name, show, statusToColour(show, scheme)])
     : data.flatMap((show) =>
-        show.s.map((s) => [`${show.name} - S${s.s}`, s, statusToColour(show)] as [string, Season, Colour]),
+        show.s.map((s) => [`${show.name} - S${s.s}`, s, statusToColour(show, scheme)] as [string, Season, Colour]),
       );
 
   const showData: TimelineData[] = titleData.map(([title, s, colour]) => ({

@@ -4,6 +4,7 @@ import { format } from "../utils/mathUtils";
 import type { OmniItem } from "./adapter";
 import { BARCHART_SPLITS, omniBarchartRows } from "./barchartData";
 import type { Measure } from "./types";
+import { useScheme } from "../common/useScheme";
 
 /**
  * The union year by year, split by whichever vocabulary the reader picks.
@@ -18,10 +19,12 @@ import type { Measure } from "./types";
  * lines; a dozen genres or five certificates is the shape those views were built for.
  */
 const OmnibusBarchart = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
+  const scheme = useScheme();
+
   const [split, controls] = useSelectBox(BARCHART_SPLITS, "medium");
   // Built once and both plotted and counted, because a split can drop a row whose column the sheet
   // has not filled in yet — a header counting what went in would overstate what came out.
-  const rows = omniBarchartRows(data, measure, split);
+  const rows = omniBarchartRows(data, measure, split, scheme);
 
   return (
     <Barchart

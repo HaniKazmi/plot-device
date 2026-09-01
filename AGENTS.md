@@ -77,7 +77,7 @@ babel({
 }),
 ```
 
-Then `npx vite build 2>&1 | grep -E '^OK|^BAIL'`. Baseline is **179 compiled, 0 bailed** — any `BAIL` line is something you introduced. The commonest way to introduce one is a destructured prop default (`landscape = false`), which surfaces as `BuildHIR::lowerAssignment … got: AssignmentPattern`; the fix idiom is above. Moving a computation out of a component is a reliable way to clear a `MethodCall` bailout, which is a different failure and does respond. **Revert the logger afterwards.**
+Then `npx vite build 2>&1 | grep -E '^OK|^BAIL'`. Baseline is **180 compiled, 0 bailed** — any `BAIL` line is something you introduced. The commonest way to introduce one is a destructured prop default (`landscape = false`), which surfaces as `BuildHIR::lowerAssignment … got: AssignmentPattern`; the fix idiom is above. Moving a computation out of a component is a reliable way to clear a `MethodCall` bailout, which is a different failure and does respond. **Revert the logger afterwards.**
 
 Do not grep the built bundle for `useMemoCache` or `compiler-runtime` to check this — those names do not survive minification, and their absence proves nothing.
 
@@ -92,13 +92,15 @@ Ordered by how quietly they fail.
 - **Cache keys are versioned — bump the version when the model's shape changes.** `dataCacheKey(domain, version)` in `common/useData.ts` builds the key (`vg-data-cache-v1`, `show-data-cache-v3`, `movie-data-cache-v3`), and `dropSupersededVersions` clears the previous key on first load. A field added without a bump is simply absent on a returning visitor's cached objects — the component reading it fails, or worse reads a silent default, and only on other people's browsers.
 - **`PlainDate.from()` throws on partial dates.** It dispatches on string length: 10 chars → `YearMonthDay`, 4 → `Year`. `"2024-05"` throws. That is deliberate — it surfaces bad sheet data loudly.
 - **Colour lookups throw on unknown values** (`platformToShort`, `ratingToColour`). Also deliberate: it catches typos in the spreadsheet. Do not soften them to a fallback colour.
-- **Adding a `Tab` to `src/tabs.ts` is two steps** — define it _and_ add it to the exported `Tabs` array. The router and nav bar are generated from that array, and so is the root route: `App.tsx` renders `Tabs[0].component` for `/`, and `tabForPath`'s fallback is also `tabs[0]`, so the array's order — not any flag on a `Tab` — decides which tab a bare visit opens on. `HolidaysTab` is defined but intentionally omitted, which is why `src/holiday/` is unreachable. It is unfinished, not broken; leave it alone unless asked.
+- **Every colour lookup takes a `Scheme`.** A fill is a `Fill` — a light/dark pair — so `genreToColour(genre)` alone does not type-check; components read the current paper from `useScheme()` and pure builders take it as a parameter. Reading `theme.palette.mode` instead gives the light scheme's literal whatever is on screen, because the theme is built with `cssVariables: true`.
+- **A network is keyed on the string the sheet writes, not the brand's current name.** `HBO` is the sheet's value even though the brand is HBO Max; renaming the key silently drops the colour and the chart falls back to a palette hue with no error.
+- **Adding a `Tab` to `src/tabs.ts` is two steps** — define it _and_ add it to the exported `Tabs` array. The router and nav bar are generated from that array, and so is the root route: `App.tsx` renders `Tabs[0].component` for `/`, and `tabForPath`'s fallback is also `tabs[0]`, so the array's order — not any flag on a `Tab` — decides which tab a bare visit opens on. Omnibus leads the array, which is why a bare visit opens on it.
 - **`.eslintrc.cjs` is dead.** ESLint 9 uses the flat `eslint.config.js`. Editing the legacy file has no effect.
 - **`extension/` is outside the Vite build.** Plain JS, loaded unpacked, shares no code with the app. `npm run build` does not touch it.
 
 ## Where code goes
 
-The one rule that matters: **`common/` and `utils/` never import from `vg/`, `show/`, `movie/`, `holiday/` or `omnibus/`.** `tests/architecture.test.ts` enforces it by reading the source files.
+The one rule that matters: **`common/` and `utils/` never import from `vg/`, `show/`, `movie/` or `omnibus/`.** `tests/architecture.test.ts` enforces it by reading the source files.
 
 - New _visualisation behaviour_ → `common/`, parameterised by props and callbacks.
 - New _domain knowledge_ → the domain folder, as a thin adapter over a `common/` shell.

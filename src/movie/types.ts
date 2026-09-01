@@ -3,11 +3,15 @@ import {
   ageRatingToColour,
   decadeToColour,
   genreToColour,
+  fill,
   NEUTRAL_FILL,
+  pick,
   releaseDecade,
   type AgeRating,
   type Colour,
+  type Fill,
   type KeysMatching,
+  type Scheme,
 } from "../utils/types";
 
 export interface Movie {
@@ -50,13 +54,14 @@ export type MovieGroup = MovieStringKeys | "none" | "decade" | "cinema" | "score
 export const cinemaLabel = ({ cinema }: Movie) => (cinema ? "Cinema" : "Home");
 
 /** Exhaustive over the two values `cinemaLabel` can answer, so both always have a fill. */
-const cinemaColours: Record<"Cinema" | "Home", Colour> = {
+const cinemaColours: Record<"Cinema" | "Home", Fill> = {
   // The outing takes the marquee gold; the sofa a settled slate blue. Both meet the fill contract.
-  Cinema: "#af7d09" as Colour,
-  Home: "#4574b5" as Colour,
+  Cinema: fill("#b57800", "#ec9e00"),
+  Home: fill("#0e6ab4", "#3789d5"),
 };
 
-export const cinemaToColour = (label: string): Colour => cinemaColours[label as "Cinema" | "Home"] ?? NEUTRAL_FILL;
+export const cinemaToColour = (label: string, scheme: Scheme): Colour =>
+  pick(cinemaColours[label as "Cinema" | "Home"] ?? NEUTRAL_FILL, scheme);
 
 export const scoreBands = ["9–10", "7–8", "5–6", "3–4", "1–2", "Unscored"] as const;
 
@@ -81,32 +86,32 @@ export const scoreBand = (score: number | undefined): ScoreBand => {
  * neighbouring bands separate by brightness as well as hue. The middle amber sits a step lighter
  * and yellower than the Cinema gold in the band below it. Every value meets the fill contract.
  */
-const scoreBandColours: Record<ScoreBand, Colour> = {
-  "9–10": "#037f45" as Colour,
-  "7–8": "#309826" as Colour,
-  "5–6": "#af8e0e" as Colour,
-  "3–4": "#cc5917" as Colour,
-  "1–2": "#d4223a" as Colour,
+const scoreBandColours: Record<ScoreBand, Fill> = {
+  "9–10": fill("#007338", "#04ab57"),
+  "7–8": fill("#298d00", "#63c94a"),
+  "5–6": fill("#ac8b00", "#f8cc20"),
+  "3–4": fill("#b65800", "#ea7300"),
+  "1–2": fill("#af0025", "#de1e39"),
   Unscored: NEUTRAL_FILL,
 };
 
-export const scoreBandToColour = (band: ScoreBand): Colour => scoreBandColours[band];
+export const scoreBandToColour = (band: ScoreBand, scheme: Scheme): Colour => pick(scoreBandColours[band], scheme);
 
-export const ratingToColour = ({ rating }: Movie) => ageRatingToColour(rating);
+export const ratingToColour = ({ rating }: Movie, scheme: Scheme) => ageRatingToColour(rating, scheme);
 
-export const groupToColour = (group: MovieGroup, movie: Movie): Colour => {
+export const groupToColour = (group: MovieGroup, movie: Movie, scheme: Scheme): Colour => {
   switch (group) {
     case "genre":
       // The vocabulary Shows shares, so one hue means one genre on both tabs.
-      return genreToColour(movie.genre);
+      return genreToColour(movie.genre, scheme);
     case "rating":
-      return ratingToColour(movie);
+      return ratingToColour(movie, scheme);
     case "cinema":
-      return cinemaToColour(cinemaLabel(movie));
+      return cinemaToColour(cinemaLabel(movie), scheme);
     case "decade":
-      return decadeToColour(releaseDecade(movie.releaseDate.year));
+      return decadeToColour(releaseDecade(movie.releaseDate.year), scheme);
     case "score":
-      return scoreBandToColour(scoreBand(movie.score));
+      return scoreBandToColour(scoreBand(movie.score), scheme);
     default:
       // Franchise and director have no colour vocabulary — most films name themselves in the
       // franchise column, and directors are an open set of names with no brand to reproduce.

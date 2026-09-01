@@ -17,6 +17,7 @@ import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
 import { guestFilter, type FilterDispatch, type FilterState } from "./filterUtils";
 import { format } from "../utils/mathUtils";
 import { finishedCount } from "../common/finishedData";
+import { useScheme } from "../common/useScheme";
 
 const SuspenseBlock = ({
   filteredData,
@@ -58,6 +59,8 @@ const Graphs = memo(
     filterState: FilterState;
     filterDispatch: FilterDispatch;
   }) => {
+    const scheme = useScheme();
+
     const deferredData = useDeferredValue(data, []);
     const tabs = useOtherTabs();
 
@@ -101,7 +104,7 @@ const Graphs = memo(
             width={3}
             // Rating rather than genre for the border: `ageRatingToColour` is validated at convert
             // time and total, so it cannot throw across a wall of hundreds of cards.
-            colour={ratingToColour}
+            colour={(item) => ratingToColour(item, scheme)}
             MediaComponent={MovieCardMediaImage}
           />
         </Section>

@@ -2,15 +2,16 @@ import type { CardMediaImageProps } from "../common/Card";
 import { formatDate } from "../common/date";
 import { omniTitle, type OmniItem } from "./adapter";
 import { mediumToColour, mediumToLabel } from "./types";
+import type { Scheme } from "../utils/types";
 
 /**
  * The corner badge every mixed-media card wears: the medium, in the fill it is drawn in everywhere
  * else on the page. It is the one thing artwork alone cannot say, and the only vocabulary this tab
  * teaches, so it goes on the picture rather than in a legend beside it.
  */
-export const omniMediumChip = (item: OmniItem): CardMediaImageProps["chip"] => ({
+export const omniMediumChip = (item: OmniItem, scheme: Scheme): CardMediaImageProps["chip"] => ({
   label: mediumToLabel(item.medium),
-  colour: mediumToColour(item.medium),
+  colour: mediumToColour(item.medium, scheme),
 });
 
 /**

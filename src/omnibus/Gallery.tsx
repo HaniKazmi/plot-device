@@ -24,6 +24,7 @@ import {
 } from "./galleryData";
 import { mediumToColour, mediumToName, type Measure } from "./types";
 import { LABEL_SX } from "../common/typography";
+import { useScheme } from "../common/useScheme";
 
 /**
  * How many shelves the section draws, and how many pictures stand on one before the rest are left
@@ -91,6 +92,8 @@ const categoryTitles: Record<GalleryCategory, string> = {
  * whole shelf, and the section's opens the shelves the collapsed card had no room for.
  */
 const Gallery = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
+  const scheme = useScheme();
+
   const [category, controls] = useSelectBox(GALLERY_CATEGORIES, "genre");
   const [sort, setSort] = useState<GallerySort>("size");
   const [drilldown, setDrilldown] = useState<ShelfGroup | null>(null);
@@ -161,7 +164,7 @@ const Gallery = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
           content={drilldown.all}
           cardKey={(item) => `${category}-${omniKey(item)}`}
           labelComponent={omniLabels}
-          chipComponent={omniMediumChip}
+          chipComponent={(item) => omniMediumChip(item, scheme)}
           pictureWidth={[6, 4, 2]}
           MediaComponent={OmniCardMediaImage}
         />
@@ -188,7 +191,9 @@ const Shelf = ({
   /** Takes the shelf rather than closing over it, so the caller can pass its setter unwrapped. */
   onOpen: (group: ShelfGroup) => void;
 }) => {
-  const colour = galleryColour(group.name, category);
+  const scheme = useScheme();
+
+  const colour = galleryColour(group.name, category, scheme);
 
   return (
     <Stack spacing={0.5}>
@@ -250,7 +255,9 @@ const Shelf = ({
  * a gold band and a blue one are both legible.
  */
 const MediumLabel = ({ item }: { item: OmniItem }) => {
-  const colour = mediumToColour(item.medium);
+  const scheme = useScheme();
+
+  const colour = mediumToColour(item.medium, scheme);
 
   return (
     <Box

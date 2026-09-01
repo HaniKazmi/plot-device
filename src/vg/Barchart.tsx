@@ -2,6 +2,7 @@ import { useSelectBox } from "../common/SelectBoxHook";
 import { format } from "../utils/mathUtils";
 import { groupToColour, videoGameOptions, type Measure, type VideoGame, type VideoGameStringKeys } from "./types";
 import Barchart from "../common/Barchart";
+import { useScheme } from "../common/useScheme";
 import { Year } from "../common/date";
 import { releaseDecade } from "../utils/types";
 import type { YearType } from "./filterUtils";
@@ -9,6 +10,8 @@ import type { YearType } from "./filterUtils";
 const options: Readonly<VideoGameStringKeys | "none" | "decade">[] = ["none", ...videoGameOptions, "decade"];
 
 const VgBarchart = ({ data, measure, yearType }: { data: VideoGame[]; measure: Measure; yearType: YearType }) => {
+  const scheme = useScheme();
+
   const [group, controls] = useSelectBox(options, "company");
   const barchartData = (cumulative: boolean) =>
     data.flatMap((game) => {
@@ -22,7 +25,7 @@ const VgBarchart = ({ data, measure, yearType }: { data: VideoGame[]; measure: M
               ? game.startDate.firstDay().toYearMonth()
               : game.startDate.toYearMonth()
             : game.startDate.toYear(),
-        colour: groupToColour(group, game),
+        colour: groupToColour(group, game, scheme),
         name: group === "none" ? "" : group === "decade" ? releaseDecade(game.releaseDate.year) : game[group],
         value,
       };

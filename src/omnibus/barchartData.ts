@@ -1,5 +1,5 @@
 import { Year } from "../common/date";
-import type { Colour } from "../utils/types";
+import type { Colour, Scheme } from "../utils/types";
 import type { OmniItem } from "./adapter";
 import { galleryColour, galleryValue } from "./galleryData";
 import { mediumToColour, mediumToLabel, type Measure } from "./types";
@@ -45,12 +45,12 @@ const splitName = (item: OmniItem, split: BarchartSplit): string =>
  * with — one uncoloured series against eleven, rather than a crash on a genre it has not been
  * given yet.
  */
-const splitColour = (item: OmniItem, split: BarchartSplit, name: string): Colour =>
+const splitColour = (item: OmniItem, split: BarchartSplit, name: string, scheme: Scheme): Colour =>
   split === "medium"
-    ? mediumToColour(item.medium)
+    ? mediumToColour(item.medium, scheme)
     : // Never undefined for these two: `galleryColour` answers that only for a franchise, which is
       // the one grouping this chart does not offer.
-      (galleryColour(name, split) as Colour);
+      (galleryColour(name, split, scheme) as Colour);
 
 /**
  * The union as the barchart pivot wants it: one row per item, keyed by the chosen series and by
@@ -65,6 +65,7 @@ export const omniBarchartRows = (
   items: OmniItem[],
   measure: Measure,
   split: BarchartSplit,
+  scheme: Scheme,
 ): { name: string; date: Year; colour: Colour; value: number }[] =>
   items
     // Derived once and carried, rather than asked for again by the filter, the row and the colour
@@ -77,7 +78,7 @@ export const omniBarchartRows = (
     .map(({ item, name }) => ({
       name,
       date: Year.get(item.year),
-      colour: splitColour(item, split, name),
+      colour: splitColour(item, split, name, scheme),
       // Exact hours, floored once per column by `postAggregate`: the share view takes its
       // percentages from these raw values, and the share of floored hours is not the share of the
       // hours behind them.

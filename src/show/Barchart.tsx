@@ -2,6 +2,7 @@ import { useSelectBox } from "../common/SelectBoxHook";
 import { groupToColour, typeToName, type Measure, type Season, type Show, type ShowStringKeys } from "./types";
 import Barchart from "../common/Barchart";
 import { format } from "../utils/mathUtils";
+import { useScheme } from "../common/useScheme";
 
 type Option = ShowStringKeys | "none";
 
@@ -19,6 +20,8 @@ const optionToName = (season: Season, option: Option) => {
 };
 
 const ShowBarchart = ({ data, measure }: { data: Show[]; measure: Measure }) => {
+  const scheme = useScheme();
+
   // Grouped by status from the start, so the columns are born carrying the one distinction the
   // tab is about — what is still running against what is done — rather than a single flat colour
   // the reader has to open a select box to break apart.
@@ -28,7 +31,7 @@ const ShowBarchart = ({ data, measure }: { data: Show[]; measure: Measure }) => 
       .flatMap((show) => show.s)
       .map((season) => ({
         date: cumulative ? season.startDate.toYearMonth() : season.startDate.toYear(),
-        colour: groupToColour(group, season.show),
+        colour: groupToColour(group, season.show, scheme),
         name: optionToName(season, group),
         value: measure === "Episodes" ? season.e : season.minutes,
       }));
