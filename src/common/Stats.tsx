@@ -23,6 +23,7 @@ import {
 } from "./Card";
 import { dimSx, LABEL_SX, MUTED_FIGURE_SX } from "./typography";
 import { SectionHeader } from "./SectionHeader";
+import { shapeToRatio, type ArtworkShape } from "./cardArrangement";
 import { useState, type ReactNode } from "react";
 import { Radio } from "@mui/material";
 import type { Colour } from "../utils/types";
@@ -325,7 +326,7 @@ export const StatsListGrid = <T,>({
   labelComponent: (t: T) => string[][];
   chipComponent?: (t: T) => CardMediaImageProps["chip"];
   pictureWidth: [number, number, number];
-  aspectRatio?: string;
+  shape?: ArtworkShape;
   divider?: boolean;
   MediaComponent: TypedCardMediaImage<T>;
 }) => (
@@ -378,7 +379,7 @@ export interface StatsListProps<T> {
   chipComponent?: (t: T) => CardMediaImageProps["chip"];
   pictureWidth: [number, number, number];
   dialogPictureWidth: [number, number, number];
-  aspectRatio?: string;
+  shape?: ArtworkShape;
   divider?: boolean;
   wrap?: boolean;
 }
@@ -457,7 +458,7 @@ export const StatsListCard = <T,>({
   labels,
   chip,
   pictureWidth,
-  aspectRatio,
+  shape,
   divider,
   MediaComponent,
 }: {
@@ -465,7 +466,7 @@ export const StatsListCard = <T,>({
   labels: string[][];
   chip?: CardMediaImageProps["chip"];
   pictureWidth: [number, number, number];
-  aspectRatio?: string;
+  shape?: ArtworkShape;
   divider?: boolean;
   MediaComponent: TypedCardMediaImage<T>;
 }) => {
@@ -487,7 +488,15 @@ export const StatsListCard = <T,>({
       >
         <MediaComponent
           item={item}
-          sx={{ aspectRatio, flexShrink: 0 }}
+          // Applied here rather than handed on as `shape`, which `CardMediaImage` also takes and
+          // means something else by: there it selects the arrangement, and this card supplies a
+          // footer, so forwarding it would seat every poster's words in a column beside it —
+          // the layout the Omnibus's mixed rows are alone in wanting.
+          //
+          // Held firmly, without the leading `auto` a wall's reservation uses: a strip lays its
+          // cards out side by side and an artwork a few pixels off its shape would stand at a
+          // different width from its neighbours, for a reason no reader can see.
+          sx={{ aspectRatio: shape && shapeToRatio(shape), flexShrink: 0 }}
           chip={chip}
           // A dialog list can run to hundreds of cards; off-screen artwork loads as it scrolls
           // into view rather than all at once on open.

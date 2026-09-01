@@ -2,6 +2,7 @@ import { CloseFullscreen } from "@mui/icons-material";
 import { CardHeader, Dialog, IconButton } from "@mui/material";
 import { EXPANDED_CARDS, StatsListGrid } from "./Stats";
 import type { CardMediaImageProps, TypedCardMediaImage } from "./Card";
+import type { ArtworkShape } from "./cardArrangement";
 
 /**
  * The fullscreen list a grouped card drills into: a header naming the group, and the group's
@@ -19,7 +20,7 @@ export const DrilldownDialog = <T,>({
   labelComponent,
   chipComponent,
   pictureWidth,
-  aspectRatio,
+  shape,
   divider,
   MediaComponent,
 }: {
@@ -30,7 +31,7 @@ export const DrilldownDialog = <T,>({
   labelComponent: (t: T) => string[][];
   chipComponent?: (t: T) => CardMediaImageProps["chip"];
   pictureWidth: [number, number, number];
-  aspectRatio?: string;
+  shape?: ArtworkShape;
   divider?: boolean;
   MediaComponent: TypedCardMediaImage<T>;
 }) => (
@@ -54,7 +55,7 @@ export const DrilldownDialog = <T,>({
       labelComponent={labelComponent}
       chipComponent={chipComponent}
       pictureWidth={pictureWidth}
-      aspectRatio={aspectRatio}
+      shape={shape}
       divider={divider}
       MediaComponent={MediaComponent}
     />

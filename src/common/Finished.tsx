@@ -10,6 +10,7 @@ import { useScrollMarker } from "./ScrollMarkerHook";
 import { ExpandableCard } from "./Stats";
 import { finishedBucket, finishedItems, finishedKey, type FinishedItem, type FinishedSort } from "./finishedData";
 import { withAlpha } from "../utils/colourUtils";
+import { shapeToAspect } from "./cardArrangement";
 
 const sortOptions: FinishedSort[] = ["Date", "Franchise"];
 
@@ -108,13 +109,13 @@ const Finished = <U extends FinishedItem>({
                    * sort asks for an offset the document does not yet have and lands clamped at
                    * its bottom instead.
                    *
-                   * `auto` before the ratio is what keeps this a reservation rather than a crop:
-                   * the artwork's own shape wins the moment it is known, and this stands in only
-                   * while there is none. What is left to settle after one lands is a card's own
-                   * rounding rather than a card's height — a landscape wall's banners are 16:9
-                   * within a few percent, and a portrait wall's posters 2:3.
+                   * `shapeToAspect` prefixes the ratio with `auto`, which is what keeps this a
+                   * reservation rather than a crop: the artwork's own shape wins the moment it is
+                   * known, and the declared figure stands in only while there is none. What is
+                   * left to settle after one lands is a card's own rounding rather than a card's
+                   * height, because every file is authored to the shape it declares.
                    */
-                  sx={{ aspectRatio: landscape ? "auto 16 / 9" : "auto 2 / 3" }}
+                  sx={{ aspectRatio: shapeToAspect(landscape ? "landscape" : "portrait") }}
                 />
               </Card>
             </Grid>

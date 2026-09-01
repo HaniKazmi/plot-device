@@ -353,9 +353,9 @@ const optionIcons: Record<TopOption, ReactNode> = {
 
 const vgStatListSharedProps: Pick<
   StatsListProps<VideoGame>,
-  "aspectRatio" | "divider" | "width" | "pictureWidth" | "dialogPictureWidth"
+  "shape" | "divider" | "width" | "pictureWidth" | "dialogPictureWidth"
 > = {
-  aspectRatio: "16/9",
+  shape: "landscape",
   divider: true,
   width: [12, 12, 6],
   pictureWidth: [12, 4, 6],
