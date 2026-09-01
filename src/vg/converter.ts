@@ -1,4 +1,4 @@
-import { PlainDate } from "../common/date.ts";
+import { PlainDate, YearMonthDay } from "../common/date.ts";
 import { dataCacheKey, type DataConfig } from "../common/useData.ts";
 import { describing, readAgeRating, readGenre, sheetError, sheetRow } from "../common/sheetError.ts";
 import { isGameplay, type Company, type Format, type Platform, type Status, type VideoGame } from "./types";
@@ -12,6 +12,15 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       ? describing(`${where}, End Date`, () => PlainDate.from(row["End Date"]))
       : undefined;
     const releaseDate = describing(`${where}, Release`, () => PlainDate.from(row.Release));
+
+    // A played-on pair is both full dates or both bare years; one of each is a cell somebody
+    // half-filled. Asked here rather than left to `daysTo`, which answers `undefined` across mixed
+    // precision — so the pair would pass silently — except where the two happen to share a year,
+    // when its ordering guard compares "2020-01-15" against "2020" as strings, finds the longer
+    // one greater, and reports a transposition that is not there.
+    if (endDate && startDate instanceof YearMonthDay !== endDate instanceof YearMonthDay) {
+      sheetError(`${where}, played ${startDate} to ${endDate}`, "one date is a bare year and the other is not");
+    }
 
     // Throws when the pair is inverted, which is the point — but say which pair.
     const numDays = describing(`${where}, played ${startDate} to ${endDate}`, () => startDate.daysTo(endDate));

@@ -37,7 +37,14 @@ export interface VideoGame {
   gameplay: Gameplay;
   theme: string[];
   rating: AgeRating;
-  releaseDate: YearMonthDay;
+  /**
+   * Either precision, because the sheet holds both: a release is often recorded as a bare year,
+   * and `PlainDate.from` answers a `Year` for one. Narrowing this to `YearMonthDay` states
+   * something the converter does not produce, and a reader who believes it reaches for `daysTo`
+   * against a full date — which throws where the two share a year, since the longer string
+   * compares greater and the ordering guard reads that as a transposition.
+   */
+  releaseDate: YearMonthDay | Year;
   format: Format;
   status: Status;
   party?: boolean;

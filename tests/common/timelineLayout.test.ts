@@ -4,6 +4,7 @@ import {
   assignRows,
   buildTicks,
   decidePlacement,
+  latestEnd,
   packRows,
   percentAtScroll,
   scrollBehaviourFor,
@@ -373,5 +374,31 @@ describe("scrollBehaviourFor", () => {
 
   it("keeps the animation exactly at the threshold, which is the last distance worth following", () => {
     expect(scrollBehaviourFor(1500, viewport)).toBe("smooth");
+  });
+});
+
+describe("latestEnd", () => {
+  const item = (start: [number, number, number], end: [number, number, number]) => ({
+    start: YearMonthDay.get(...start),
+    end: YearMonthDay.get(...end),
+  });
+
+  it("answers the last day anything runs to, not the end of the last thing to start", () => {
+    // The case the packed rows produce constantly: something still in progress carries today as
+    // its end, and anything shorter that started after it finishes first.
+    const ongoing = item([2018, 1, 1], [2026, 9, 1]);
+    const recent = item([2026, 8, 20], [2026, 8, 25]);
+
+    expect(latestEnd([ongoing, recent])).toBe(YearMonthDay.get(2026, 9, 1));
+  });
+
+  it("agrees with the last item where the ends do run in start order", () => {
+    expect(latestEnd([item([2020, 1, 1], [2020, 6, 1]), item([2021, 1, 1], [2021, 6, 1])])).toBe(
+      YearMonthDay.get(2021, 6, 1),
+    );
+  });
+
+  it("answers undefined for no items, so a caller cannot measure a grid over nothing", () => {
+    expect(latestEnd([])).toBeUndefined();
   });
 });

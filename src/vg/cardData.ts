@@ -85,10 +85,17 @@ const estimateUndatedSpans = (games: VideoGame[]) => {
     let cursor = 0;
 
     ordered.forEach((game, index) => {
+      // How far into its year a release falls, which is only answerable from a full date: a game
+      // released in the year it was played, recorded as the bare year, could have come out on any
+      // day of it, so the whole year is open. Asking `daysTo` anyway throws, because a January 1st
+      // stringifies longer than the year it sits in and its ordering guard reads that as inverted.
+      //
       // Clamped because a sheet can carry a release date later than the year it says the game was
       // played, which is a contradiction the strip should survive rather than adjudicate.
       const floor =
-        game.releaseDate.year === year ? Math.min(days.length - 1, days[0].daysTo(game.releaseDate)! - 1) : 0;
+        game.releaseDate instanceof YearMonthDay && game.releaseDate.year === year
+          ? Math.min(days.length - 1, days[0].daysTo(game.releaseDate)! - 1)
+          : 0;
       // Clamped for the same reason the floor is: a group that fills its year exactly leaves the
       // cursor one day past the end of it, and the day a span opens on has to be a day that exists.
       const start = Math.min(days.length - 1, Math.max(cursor, floor));

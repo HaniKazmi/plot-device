@@ -311,8 +311,10 @@ const MostPlayedCategory = ({
       colourOf={(top) => groupToColour(category, top, scheme)}
       MediaComponent={VgCardMediaImage}
       // A dialog under a card headed Most Played opens largest-first, whatever slice of it the
-      // reader scrolls.
-      dialogSort={(games) => games.sortByKey("hours")}
+      // reader scrolls. A numeric sort rather than `sortByKey`, which tests each key for falsiness
+      // before comparing — the group keeps its untimed members, and every one of them would head
+      // the list.
+      dialogSort={(games) => games.toSorted((a, b) => (b.hours ?? 0) - (a.hours ?? 0))}
       nameOf={(game) => game.name}
       dialogLabelComponent={statsCardLabelEndDateHours}
       dialogChipComponent={platformToShortChip}

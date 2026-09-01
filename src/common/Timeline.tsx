@@ -10,6 +10,7 @@ import { useOpenAtLatest } from "./useOpenAtLatest";
 import {
   buildTicks,
   decidePlacement,
+  latestEnd,
   packRows,
   percentAtScroll,
   percentOfSpan,
@@ -212,12 +213,12 @@ const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }) => {
   }
 
   const earliestStart = positionedTimelineData[0].start.startOfMonth();
-  const latestEnd = positionedTimelineData.at(-1)!.end;
-  const totalDays = earliestStart.daysTo(latestEnd)!;
+  const gridEnd = latestEnd(positionedTimelineData)!;
+  const totalDays = earliestStart.daysTo(gridEnd)!;
 
   // Walked once and handed to both consumers, so a gridline and the tick label beneath it are the
   // same number rather than two derivations that agree by luck.
-  const ticks = buildTicks(earliestStart.toYearMonth(), latestEnd.toYearMonth(), totalDays);
+  const ticks = buildTicks(earliestStart.toYearMonth(), gridEnd.toYearMonth(), totalDays);
 
   // `maxRow` is the highest row index, so the last bar ends a full bar below its own offset.
   const totalHeight = (maxRow + 1) * ROW_HEIGHT + SVG_PADDING * 2 - ROW_PADDING;
@@ -282,7 +283,7 @@ const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }) => {
             <TimelineGrid
               data={positionedTimelineData}
               startDate={earliestStart}
-              endDate={latestEnd}
+              endDate={gridEnd}
               totalHeight={totalHeight}
               totalDays={totalDays}
               ticks={ticks}
