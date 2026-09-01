@@ -95,7 +95,7 @@ Each stage has exactly one job, and only `jsonConverter` knows anything about a 
 
 Converters do real modelling work, not just field renaming:
 
-- **`vg/`** derives `company` by splitting the platform string, folds a `"Party"` status into `status: "Endless"` plus a `party` boolean, computes `numDays` from the date pair, and defaults an unrecorded `genre` to `"Other"` — the sheet leaves it blank on 10 of 340 rows, and defaulting once here is what lets every reader treat the field as answerable.
+- **`vg/`** derives `company` by splitting the platform string, folds a `"Party"` status into `status: "Endless"` plus a `party` boolean, and computes `numDays` from the date pair.
 - **`show/`** reduces a _flat_ sheet into a _nested_ one. Rows with a non-empty `Show` column open a new show; subsequent rows are seasons belonging to it. Afterwards it rolls season totals up into the parent (`startDate`, `endDate`, episode and minute sums) and asserts date ordering with `console.assert`. Seasons keep a `show` back-reference, which makes the object graph cyclic — see §4.
 - **`movie/`** drops rows with an empty `Genre`, which is how partially-entered rows are excluded.
 
@@ -225,7 +225,26 @@ handle. Every category is a field all three media record — `groupByCategory` s
 so a category one medium answered `""` to would drop that medium off the wall with no error to say
 so. "Decade" reads as the decade the reader _met_ the item, not the decade it was made: Shows carries
 no release date anywhere in its model, so a release-decade category would be answerable by only two
-of the three media.
+of the three media. The section is an `ExpandableCard`, so the six shelves the card holds are not
+the whole answer: expanded, it draws as many shelves as keep its pictures inside the same budget a
+drill-down dialog spends, which is twenty-five. Deriving that from the picture count rather than
+picking a shelf count is what keeps the four categories comparable — grouping by franchise yields
+115 shelves against genre's 12, so an uncapped expansion would mount over two thousand cards on one
+category and a couple of hundred on the others.
+
+Two orders are on offer, and one control drives both the shelves and the pictures on them: a
+gallery whose shelves came newest first while every strip still led with a decade-old entry would
+be answering two questions at once, so the shelf's fronting card is the strip's first picture
+either way. The shelves are cut _after_ the sort, so the six on the card are the six biggest or
+the six most recent rather than the recent among the biggest. Recency is a date and not the `year`
+an item already carries: twelve genres over a library this size nearly all hold something from the
+current year, which leaves almost every shelf tied and the control visibly inert. It is carried on
+a `metDate` beside `year` rather than written over it in any case — `galleryGroups` re-derives a
+shelf from the collapsed item and the decade category reads `year`, so a show whose seasons closed
+in two decades would have both of its copies claim the later one and empty the earlier shelf. A
+work's date is the last of the entries collapsed into it and not its representative's, since the
+representative is the biggest entry rather than the last; an item with no close is dated now,
+because an open item is the one being met.
 
 **Recently Finished** (`omnibus/RecentlyFinished.tsx`) is the list each tab already keeps for
 itself, asked once across all three: `recentlyFinished` in `omnibus/adapter.ts` keeps only items
@@ -238,6 +257,13 @@ row of artwork at one fixed height, each child keeping its own width, scrolled r
 or cropped when it overflows. Height is the only dimension it fixes, which is what lets a 16:9
 banner and a 2:3 poster share one row without either being cropped — the reason this is a strip
 and not a grid, since a grid cell has a width and a width plus a height is a crop.
+
+It states that height on its children rather than leaving them to ask for it. A card is
+`height: 100%`, and 100% of the strip's box is the row plus the allowance the strip adds for its own
+scrollbar — so a card left to resolve it stands ten pixels taller than the picture inside it and
+paints its own ground under every one of them. The selector is doubled (`&& > *`) because the card
+carries a one-class rule about the same property, and two selectors of equal weight are settled by
+insertion order, which puts a child's class after its parent's.
 
 `omnibus/CardMediaImage.tsx` is the `TypedCardMediaImage<OmniItem>` every one of these surfaces
 renders through: it dispatches `item.source` to the domain's own component by `item.medium`, so a
@@ -318,7 +344,7 @@ The bucket list re-derives at the marker's own cadence, so both answers always d
 `StatList` is itself assembled from two smaller shells that the same file exports, because a domain needed each of them on its own:
 
 - **`ExpandableCard`** owns "a card that can also present itself fullscreen". It calls its `renderContent` twice — inline and for the dialog — and hands it the expand control to place in whatever header it builds. The dialog body is mounted only while open, so a strip of cards is not built a second time behind a closed dialog, and an internal `dialogMounted` lags `dialogOpen` so the body survives the exit transition.
-- **`StatsListGrid`** owns the capped strip of media cards. The caps are `COLLAPSED_CARDS` and `EXPANDED_CARDS` (6, and 500 — effectively "everything", so a drill-down dialog shows the whole group), exported from the same module and applied _here_ rather than by callers — a caller that pre-sliced its own list would make changing either constant a no-op for that list. Card artwork loads lazily, which is what makes the uncapped dialog affordable.
+- **`StatsListGrid`** owns the capped strip of media cards. The caps are `COLLAPSED_CARDS` and `EXPANDED_CARDS` (6, and 500 — effectively "everything", so a drill-down dialog shows the whole group), exported from the same module and applied _here_ rather than by callers — a caller that pre-sliced its own list would make changing either constant a no-op for that list. Six is what a half-width card holds without growing past the charts beside it; a strip laid out differently passes its own figure through `StatList`'s `collapsed`, which is a limit and still never a list. The Omnibus's Recently Finished passes eight — it runs the full width at three columns, so four cards land on a row and six leave the second one half empty. Card artwork loads lazily, which is what makes the uncapped dialog affordable.
 
 Each has a caller of its own beyond `StatList`: `Finished` is built on `ExpandableCard` but keeps its own item grid, because it renders bordered full-width cards rather than media cards; and `DrilldownDialog` reaches for `StatsListGrid` directly to fill the fullscreen list a grouped card drills into.
 
@@ -434,42 +460,16 @@ at an anchor that is not on the page.
 
 `utils/colourUtils.ts` extracts a dominant colour from each banner image with `fast-average-color`, ignoring near-white and near-black. If the result's ITU-R BT.709 luma falls outside 30–230 it retries with the `simple` algorithm, avoiding unreadable extremes. Results are memoised by image src. Cards then set text colour via MUI's `getContrastText`, so a card's palette derives entirely from its artwork.
 
-Fixed colours are the other half of the system: `types.ts` in each domain maps platforms, genres, franchises and ratings to values, and `utils/types.ts` holds the cross-domain ones — `statusToColour`, and `ageRatingToColour` over the `AgeRating` union all three domains record a certificate into. Games are logged as PEGI and write the suffix (`16+`), Shows and Movies as BBFC and write the bare number (`15`); the colour keys off the age rather than the notation, so one swatch means one thing across the tabs, and `isAgeRating` lets each converter reject a bad cell while it still knows which row it came from. All of them return the branded `Colour` type. What a brand hex is used for depends on how much of the screen it covers, and `vg/types.ts` splits it in two:
+Fixed colours are the other half of the system: `types.ts` in each domain maps platforms, genres, franchises and ratings to values, and `utils/types.ts` holds the cross-domain ones — `statusToColour`, and `ageRatingToColour` over the `AgeRating` union all three domains record a certificate into. Games are logged as PEGI and write the suffix (`16+`), Shows and Movies as BBFC and write the bare number (`15`); the colour keys off the age rather than the notation, so one swatch means one thing across the tabs, and `isAgeRating` lets each converter reject a bad cell while it still knows which row it came from. `ageRatingBand` is that same tier named rather than coloured, and is what the colour is looked up by, so a surface that groups across both boards and the swatch it draws cannot disagree about which certificates are one thing. Only a grouping reads it — the Omnibus gallery's Rating shelves, where the raw cell would stand a PEGI 16 game apart from the BBFC 15 film it sits at the same age as and split every other tier by its suffix. A card still states the certificate its own row carries, since that is the value the reader would find in the sheet. All of them return the branded `Colour` type. What a brand hex is used for depends on how much of the screen it covers, and `vg/types.ts` splits it in two:
 
 - **Fills** are what chart geometry takes — sunburst wedges, barchart series, timeline bars, stacked segments, card strips. They sit in one lightness band so each clears 3:1 against both surfaces the app paints on (`#ffffff` paper and `#1d2126` paper) while keeping its brand's hue. A brand hex is chosen to stand alone against white, and a set of them is not a scale: Nintendo's `#e60012` at full saturation beside four neighbours reads as one shouting value. PC and iOS stay neutral because neutrality is those brands' identity, clamped in lightness alone.
 - **Accents** are the brand hexes themselves, drawn only in a card's corner chip — a few dozen pixels carrying two or three letters, read as a badge rather than compared against a neighbour, with nothing adjacent to separate from.
 
 Three vocabularies live in `utils/types.ts` because more than one tab speaks them. `genreToColour`
-is the ramp all three tracked sheets share — each records its Genre column in one vocabulary, and
-one hue has to mean one genre on every tab, which is what lets the Omnibus bridge a game to a film
-under a single name rather than through a mapping written in code. It falls to `NEUTRAL_FILL`
-off-table rather than throwing, because the genre column is open-ended — which is also what makes
-the Games converter's `"Other"` default for an unrecorded genre land on the neutral for free.
-
-Games is the one tab that draws a second, overlapping vocabulary beside it: `gameplay` is how a
-game is played where `genre` is what it is about, and nine of `vg/types.ts`'s gameplay hexes are
-shared genre hexes under other names. A card states both in turn — the hero and hover subtitles set
-the two swatches side by side, and the ledger stacks the Gameplay row on the Genre row — so at full
-chroma 81 of 340 games would draw them in one colour, 78 of those Role Playing beside Fantasy.
-`gameGenreToColour` cuts the shared ramp's chroma on that tab alone, so saturated reads as "how you
-play" and muted as "what it is about". Only that tab dims: the other three draw no gameplay
-vocabulary and so have no collision, and genre is the primary vocabulary on all of them. The cost
-is that a Fantasy swatch on Games is quieter than a Fantasy wedge on Shows.
-
-It is the cards that need this, not the charts — every chart here draws one vocabulary at a time,
-for the reasons `mutedGenreToColour` gives. The neutral is the one value it passes through
-untouched: absence is not a vocabulary that needs telling apart, and it has to stay one grey across
-every tab.
-
-The mute is `desaturate` in `utils/colourUtils.ts`, which pulls each channel toward the colour's
-own luminance **in linear light**. Luminance is a linear combination of the linear channels, so
-that blend cannot move it, and since contrast depends on luminance alone every muted genre clears
-exactly what its source cleared — the fill contract carries over rather than needing to be
-re-argued. That exactness is load-bearing, not fastidiousness: four entries in the shared ramp sit
-within 0.1 of the 3:1 floor on the dark paper, and the same blend done in sRGB space darkens
-enough to take Horror from 3.08 to 2.50.
-
-The decade ramp under `decadeToColour` is
+is the ramp Shows and Movies share — the two record overlapping genre sets in one spreadsheet, and
+one hue has to mean one genre on both tabs; where a genre also exists on the Games tab (Action,
+Adventure) the hue is the same one `vg/types.ts` uses. It falls to `NEUTRAL_FILL` off-table rather
+than throwing, because the genre column is open-ended. The decade ramp under `decadeToColour` is
 one bronze hue stepping in lightness — a decade is ordered data, so a categorical hue set would
 deny the order — bucketing everything before 1970, which is as many steps as the fill contract
 leaves room for. Movies adds two vocabularies of its own in `movie/types.ts`: five score bands as

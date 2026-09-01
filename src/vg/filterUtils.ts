@@ -17,7 +17,6 @@ export interface FilterState extends BaseFilterState<VideoGame, Measure> {
   unconfirmed: boolean;
   franchise: string[];
   platform: Platform[];
-  gameplay: string[];
   genre: string[];
   publisher: string[];
 }
@@ -52,7 +51,6 @@ export const filters = (state: Omit<FilterState, "filter">): Predicate<VideoGame
 
   if (state.franchise.length > 0) predicates.push((vg) => state.franchise.includes(vg.franchise));
   if (state.platform.length > 0) predicates.push((vg) => state.platform.includes(vg.platform));
-  if (state.gameplay.length > 0) predicates.push((vg) => state.gameplay.includes(vg.gameplay));
   if (state.genre.length > 0) predicates.push((vg) => state.genre.includes(vg.genre));
   if (state.publisher.length > 0) predicates.push((vg) => state.publisher.includes(vg.publisher));
 
@@ -72,7 +70,6 @@ export const { useFilterReducer, reducer, initialState } = createFilterReducer<V
     unconfirmed: true,
     franchise: [],
     platform: [],
-    gameplay: [],
     genre: [],
     publisher: [],
     measure: "Games",

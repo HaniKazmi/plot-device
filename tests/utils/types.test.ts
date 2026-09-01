@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  ageRatingBand,
   ageRatingToColour,
   genreToColour,
   isAgeRating,
@@ -8,7 +9,6 @@ import {
   type AgeRating,
   type ColourableStatus,
 } from "../../src/utils/types";
-import { liveGenres } from "../fixtures/colour";
 
 describe("statusToColour", () => {
   it.each([
@@ -130,10 +130,52 @@ describe("ageRatingToColour", () => {
   });
 });
 
+describe("ageRatingBand", () => {
+  it("names one tier once, whichever board wrote the certificate", () => {
+    // A grouping over the raw cell splits every tier by its suffix, so the same age stands as two
+    // groups and the two halves are drawn in the same colour beside each other.
+    expect(ageRatingBand("12")).toBe(ageRatingBand("12+"));
+    expect(ageRatingBand("18")).toBe(ageRatingBand("18+"));
+  });
+
+  it("puts BBFC 15 and PEGI 16 on one band, the tier whose number the boards disagree on", () => {
+    expect(ageRatingBand("15")).toBe(ageRatingBand("16+"));
+  });
+
+  it("names that band after both numbers, since no sheet writes a PEGI 16 game as a 15", () => {
+    expect(ageRatingBand("16+")).toBe("15/16");
+    expect(ageRatingBand("12+")).toBe("12");
+  });
+
+  it("leaves the ten certificates as five bands, one per age the library records", () => {
+    const every: AgeRating[] = ["3", "7", "12", "15", "18", "3+", "7+", "12+", "16+", "18+"];
+
+    expect(new Set(every.map(ageRatingBand)).size).toBe(5);
+  });
+
+  it("throws on a certificate outside the union rather than banding it as something", () => {
+    // The colour is looked up by band, so a fallback here would reach the swatch as a wrong
+    // colour rather than as an error naming the value.
+    expect(() => ageRatingBand("PG" as AgeRating)).toThrow("Unknown rating: PG");
+  });
+});
+
 describe("genreToColour", () => {
-  // All three Genre columns are written in this one vocabulary, which is what lets the Omnibus
-  // bridge a game to a film under one name. A value off the table renders as "no colour yet"
-  // rather than throwing, so a typo in a sheet is invisible unless something asserts the set.
+  // The distinct values both the Shows and Movies sheets' Genre columns carry.
+  const liveGenres = [
+    "Action",
+    "Adventure",
+    "Comedy",
+    "Drama",
+    "Fantasy",
+    "Horror",
+    "Mystery",
+    "Romance",
+    "Sci-Fi",
+    "Thriller",
+    "True Story",
+  ];
+
   it.each(liveGenres)("gives %s a fill of its own rather than the neutral fallback", (genre) => {
     expect(genreToColour(genre)).not.toBe(NEUTRAL_FILL);
   });
@@ -142,9 +184,8 @@ describe("genreToColour", () => {
     expect(genreToColour("Documentary")).toBe(NEUTRAL_FILL);
   });
 
-  it("gives Other the neutral, which is what makes the Games converter's default honest", () => {
-    // A blank Games genre becomes "Other". It is deliberately absent from the table: a colour of
-    // its own would dress the absence of a genre up as one.
-    expect(genreToColour("Other")).toBe(NEUTRAL_FILL);
+  it("shares Action and Adventure's hue with the Games tab, so one hue means one genre across all three tabs", () => {
+    expect(genreToColour("Action")).toBe("#fe4c00");
+    expect(genreToColour("Adventure")).toBe("#13ac00");
   });
 });

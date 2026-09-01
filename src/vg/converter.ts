@@ -1,7 +1,7 @@
 import { PlainDate } from "../common/date.ts";
 import { dataCacheKey, type DataConfig } from "../common/useData.ts";
-import { describing, readAgeRating, sheetError, sheetRow } from "../common/sheetError.ts";
-import { isGameplay, type Company, type Format, type Platform, type Status, type VideoGame } from "./types";
+import { describing, readAgeRating, sheetRow } from "../common/sheetError.ts";
+import type { Company, Format, Platform, Status, VideoGame } from "./types";
 
 export const jsonConverter = (json: Record<string, string>[]) => {
   return json.map((row, index) => {
@@ -24,18 +24,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       platform: row.Platform as Platform,
       company: row.Platform.split(" ")[0] as Company,
       franchise: row.Franchise,
-      // An exemption, not the rule: 10 of 340 rows have no genre yet, and until they are filled in
-      // this defaults rather than throwing the way the cells beside it do. `"Other"` is off the
-      // shared ramp, so those games draw as the neutral rather than claiming a genre they lack.
-      // Delete this the day the column is complete — a blank genre should fail like a blank
-      // gameplay does.
-      genre: row.Genre || "Other",
-      // Checked rather than cast: a blank or misspelt cell is a sheet error, and the row is only
-      // nameable here. Cast unchecked it reaches `gameplayToColour`, whose neutral fallback makes
-      // it look like a style awaiting a colour rather than a cell awaiting a value.
-      gameplay: isGameplay(row.Gameplay)
-        ? row.Gameplay
-        : sheetError(`${where}, Gameplay`, `"${row.Gameplay ?? ""}" is not a gameplay style`),
+      genre: row.Genre,
       theme: row.Theme.split("\n"),
       format: row.Format as Format,
       developer: row.Developer,
@@ -56,11 +45,8 @@ export const jsonConverter = (json: Record<string, string>[]) => {
 /**
  * The cache this converter's output is read back from, shared by the Games tab and by Omnibus so
  * a version bump cannot land at one of them alone.
- *
- * v2: a cached object written before this carries the *gameplay* vocabulary under `genre` and no
- * `gameplay` at all, so every genre surface would colour a gameplay value against the shared ramp.
  */
 export const vgDataConfig: DataConfig<VideoGame> = {
-  storageKey: dataCacheKey("vg", 2),
+  storageKey: dataCacheKey("vg", 1),
   converter: jsonConverter,
 };

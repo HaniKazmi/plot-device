@@ -70,8 +70,19 @@ const GenreBridge = ({ rows }: { rows: GenreBridgeRow[] }) => {
 
 /** The genre column, wide enough for the names the two vocabularies actually hold. */
 const GENRE_WIDTH = 14;
-/** The hours column, at the width four digits and a label take, so the bars all end level. */
-const HOURS_WIDTH = 7;
+/**
+ * The hours column, wide enough that the figure always sits on one line.
+ *
+ * A fixed width is what makes the bars all end level, and it has to clear the widest figure the
+ * section can produce or it decides per row how many lines that row is: at seven the column is
+ * 56px and "8,833 hrs" needs 71, so every genre above two digits wrapped its unit onto a second
+ * line while the two smallest stayed on one — the same figure presented two ways down one column.
+ *
+ * Eleven is 88px, which clears the union's whole 20,192 hours and their unit at 79. A genre cannot
+ * outgrow the union, so nothing this section can be handed reaches it; `noWrap` on the figure keeps
+ * that a guarantee rather than a measurement that has to be revisited.
+ */
+const HOURS_WIDTH = 11;
 
 const BridgeRow = ({
   row,
@@ -118,6 +129,7 @@ const BridgeRow = ({
     </Stack>
     <Typography
       variant="caption"
+      noWrap
       sx={{
         width: (theme) => theme.spacing(HOURS_WIDTH),
         flexShrink: 0,

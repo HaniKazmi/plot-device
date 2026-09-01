@@ -1,8 +1,7 @@
 import { Year, YearMonthDay } from "../common/date";
 import { franchiseIndex as buildFranchiseIndex } from "../common/franchiseIndex";
 import type { StripSpan } from "../common/timelineStripData";
-import type { PanelSubtitlePart } from "../common/Card";
-import { gameplayToColour, mutedGenreToColour, type VideoGame } from "./types";
+import type { VideoGame } from "./types";
 import "../utils/arrayUtils";
 import "../utils/mapUtils";
 
@@ -109,17 +108,3 @@ const estimateUndatedSpans = (games: VideoGame[]) => {
  * every unaffiliated game a strip several hundred bands deep.
  */
 export const franchiseIndex = (games: VideoGame[]) => buildFranchiseIndex(games, (game) => game.franchise);
-
-/**
- * How a game is named wherever it is promoted: where it was played, then the two vocabularies the
- * sheet records it under, each wearing the swatch its own ledger row and charts wear.
- *
- * Shared rather than assembled at each site, so the hero and the hover card cannot come to name one
- * game two ways. The Omnibus deliberately does not use this — its Now card states two parts at full
- * chroma, for reasons its own comment gives.
- */
-export const gameSubtitle = (game: VideoGame): PanelSubtitlePart[] => [
-  { text: game.platform },
-  { text: game.gameplay, swatch: gameplayToColour(game) },
-  { text: game.genre, swatch: mutedGenreToColour(game.genre) },
-];

@@ -29,19 +29,25 @@ export const artworkPalette = (accent: Colour | undefined, theme: Theme) => {
   // colourless state is the one every card paints first. Filling the same shape from the theme
   // keeps it inside the recipe: a surface reads `palette.muted` and never asks whether there is a
   // palette to read, which is what would let the two halves drift apart.
-  const onGround = accent ? theme.palette.getContrastText(accent) : theme.palette.text.primary;
-  const line = accent ? alpha(onGround, SEAM_ALPHA) : theme.palette.divider;
+  //
+  // Every one of those theme values is read through `theme.vars`, never `theme.palette`. The theme
+  // is built with `cssVariables: true`, so `theme.palette.background.paper` is the light scheme's
+  // literal `#ffffff` whatever scheme is on screen, while `theme.vars.palette.background.paper` is
+  // the custom property that turns over with it. A colourless card taking the resolved value paints
+  // white paper in dark mode — the one state every card is in until its artwork has been sampled.
+  const onGround = accent ? theme.palette.getContrastText(accent) : theme.vars.palette.text.primary;
+  const line = accent ? alpha(onGround, SEAM_ALPHA) : theme.vars.palette.divider;
 
   return {
-    ground: accent ?? theme.palette.background.paper,
+    ground: accent ?? theme.vars.palette.background.paper,
     onGround,
-    muted: accent ? alpha(onGround, MUTED_ALPHA) : theme.palette.text.secondary,
+    muted: accent ? alpha(onGround, MUTED_ALPHA) : theme.vars.palette.text.secondary,
     /** Rules and hairlines drawn on the ground: a gridline, an empty track, a seam. */
     line,
     /** The edge where a surface meets the artwork it was sampled from. */
     seam: `${SEAM_WIDTH}px solid ${line}`,
     /** A tile lifted off the ground it sits on, in whichever direction reads against it. */
-    tile: accent ? alpha(onGround, TILE_ALPHA) : theme.palette.action.hover,
+    tile: accent ? alpha(onGround, TILE_ALPHA) : theme.vars.palette.action.hover,
   };
 };
 
