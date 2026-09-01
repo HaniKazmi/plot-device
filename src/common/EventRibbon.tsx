@@ -2,6 +2,7 @@ import { Box, Card, CardContent, Stack, Typography } from "@mui/material";
 import type { ReactNode } from "react";
 import { TimelineBandBox, type TimelineBand } from "./Card";
 import type { TimelineTick } from "./timelineLayout";
+import { MUTED_FIGURE_SX } from "./typography";
 
 export interface RibbonRow {
   key: string;
@@ -54,8 +55,7 @@ export const EventRibbon = ({
                   width: (theme) => theme.spacing(LABEL_WIDTH),
                   flexShrink: 0,
                   textAlign: "right",
-                  color: "text.secondary",
-                  fontVariantNumeric: "tabular-nums",
+                  ...MUTED_FIGURE_SX,
                   userSelect: "none",
                 }}
               >

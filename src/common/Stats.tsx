@@ -21,7 +21,7 @@ import {
   type CardMediaImageProps,
   type TypedCardMediaImage,
 } from "./Card";
-import { LABEL_SX } from "./typography";
+import { dimSx, LABEL_SX, MUTED_FIGURE_SX } from "./typography";
 import { SectionHeader } from "./SectionHeader";
 import { useState, type ReactNode } from "react";
 import { Radio } from "@mui/material";
@@ -587,8 +587,7 @@ export const TotalsBand = <T extends string, U>(props: {
             onMouseLeave={() => setHovered(null)}
             sx={{
               alignItems: "center",
-              opacity: hovered && hovered !== struct.name ? 0.3 : 1,
-              transition: "opacity 0.2s",
+              ...dimSx(hovered, struct.name),
             }}
           >
             <Swatch
@@ -598,7 +597,7 @@ export const TotalsBand = <T extends string, U>(props: {
             <Typography variant="body2">{groupToLabel(struct.name)}</Typography>
             <Typography
               variant="body2"
-              sx={{ color: "text.secondary", fontVariantNumeric: "tabular-nums" }}
+              sx={MUTED_FIGURE_SX}
             >
               {`${format(struct.count)} ${measureLabel}`}
             </Typography>

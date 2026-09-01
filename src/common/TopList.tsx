@@ -4,6 +4,7 @@ import { capitalize } from "@mui/material/utils";
 import { useState, type ReactNode } from "react";
 import { ProportionalBar, Swatch } from "./Card";
 import { SectionHeader } from "./SectionHeader";
+import { dimSx } from "./typography";
 import { useSelectBox } from "./SelectBoxHook";
 import { topNWithOther, type TopGroup } from "./statsData";
 import { format } from "../utils/mathUtils";
@@ -95,8 +96,7 @@ export const TopListCard = <O extends string, T>(props: TopListCardProps<O, T>) 
                 sx={{
                   width: "100%",
                   alignItems: "center",
-                  opacity: hovered && hovered !== item.name ? 0.3 : 1,
-                  transition: "opacity 0.2s",
+                  ...dimSx(hovered, item.name),
                   cursor: "default",
                 }}
               >
@@ -108,7 +108,8 @@ export const TopListCard = <O extends string, T>(props: TopListCardProps<O, T>) 
                 />
                 <Typography
                   variant="body2"
-                  sx={{ flexGrow: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                  noWrap
+                  sx={{ flexGrow: 1 }}
                 >
                   {item.name}
                 </Typography>

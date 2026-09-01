@@ -1,5 +1,6 @@
 import { CardHeader, Stack, Typography } from "@mui/material";
 import type { ReactNode } from "react";
+import { MUTED_FIGURE_SX } from "./typography";
 
 /**
  * The header every chart card wears: an icon and a title on the left, how much the section is
@@ -74,7 +75,7 @@ export const SectionHeader = ({
           {count && (
             <Typography
               variant="body2"
-              sx={{ color: "text.secondary", fontVariantNumeric: "tabular-nums" }}
+              sx={MUTED_FIGURE_SX}
             >
               {count}
             </Typography>

@@ -3,7 +3,7 @@ import { Card, CardContent, Stack, Typography } from "@mui/material";
 import { Category } from "@mui/icons-material";
 import { INLINE_SWATCH_SIZE, ProportionalBar, Swatch } from "../common/Card";
 import { SectionHeader } from "../common/SectionHeader";
-import { LABEL_SX } from "../common/typography";
+import { LABEL_SX, MUTED_FIGURE_SX } from "../common/typography";
 import { format } from "../utils/mathUtils";
 import type { GenreBridgeRow } from "./genreBridgeData";
 import { media, mediumToColour, mediumToLabel } from "./types";
@@ -141,8 +141,7 @@ const BridgeRow = ({
           width: (theme) => theme.spacing(HOURS_WIDTH),
           flexShrink: 0,
           textAlign: "right",
-          color: "text.secondary",
-          fontVariantNumeric: "tabular-nums",
+          ...MUTED_FIGURE_SX,
           ...LABEL_SX,
         }}
       >
