@@ -13,6 +13,8 @@ import { format } from "../utils/mathUtils";
 import { OmniHoverCard } from "./CardMediaImage";
 import type { Crossing } from "./crossingsData";
 import { mediumToColour, mediumToLabel } from "./types";
+import { useScheme } from "../common/useScheme";
+import type { Scheme } from "../utils/types";
 
 /**
  * How many franchises the section draws. The strips are ordered by size, so the cut falls where a
@@ -56,6 +58,8 @@ const SCALE_WIDTH = "300%";
  * one chart rather than as twelve charts that happen to agree.
  */
 const Crossings = ({ crossings, ticks }: { crossings: Crossing[]; ticks: TimelineTick[] }) => {
+  const scheme = useScheme();
+
   const [scrollRef, edges] = useScrollEdges<HTMLDivElement>();
   const theme = useTheme();
   useOpenAtLatest(scrollRef, crossings.length > 0);
@@ -97,7 +101,7 @@ const Crossings = ({ crossings, ticks }: { crossings: Crossing[]; ticks: Timelin
                 {crossings.slice(0, STRIPS_SHOWN).map((crossing) => (
                   <TimelineCard
                     key={crossing.franchise}
-                    bands={crossing.bands.map(toBand)}
+                    bands={crossing.bands.map((band) => toBand(band, scheme))}
                     laneCount={crossing.laneCount}
                     ticks={ticks}
                     inStack
@@ -121,43 +125,47 @@ const Crossings = ({ crossings, ticks }: { crossings: Crossing[]; ticks: Timelin
  * The strip's own legend, which is what makes an unlabelled lane readable: the media are named in
  * the fills their lanes are drawn in, in the order the lanes run down the strip.
  */
-const CrossingCaption = ({ crossing }: { crossing: Crossing }) => (
-  <Stack
-    direction="row"
-    spacing={1}
-    sx={{ alignItems: "center", flexWrap: "wrap" }}
-  >
-    <Typography
-      variant="caption"
-      noWrap
-      sx={{ fontWeight: 700 }}
-    >
-      {crossing.franchise}
-    </Typography>
-    {crossing.media.map((medium) => (
-      <Stack
-        key={medium}
-        direction="row"
-        spacing={0.5}
-        sx={{ alignItems: "center" }}
-      >
-        <Swatch
-          colour={mediumToColour(medium)}
-          size={INLINE_SWATCH_SIZE}
-        />
-        <Typography variant="caption">{mediumToLabel(medium)}</Typography>
-      </Stack>
-    ))}
-    <Typography variant="caption">{`${format(crossing.entries)} entries`}</Typography>
-  </Stack>
-);
+const CrossingCaption = ({ crossing }: { crossing: Crossing }) => {
+  const scheme = useScheme();
 
-const toBand = (band: Crossing["bands"][number]): TimelineBand => ({
+  return (
+    <Stack
+      direction="row"
+      spacing={1}
+      sx={{ alignItems: "center", flexWrap: "wrap" }}
+    >
+      <Typography
+        variant="caption"
+        noWrap
+        sx={{ fontWeight: 700 }}
+      >
+        {crossing.franchise}
+      </Typography>
+      {crossing.media.map((medium) => (
+        <Stack
+          key={medium}
+          direction="row"
+          spacing={0.5}
+          sx={{ alignItems: "center" }}
+        >
+          <Swatch
+            colour={mediumToColour(medium, scheme)}
+            size={INLINE_SWATCH_SIZE}
+          />
+          <Typography variant="caption">{mediumToLabel(medium)}</Typography>
+        </Stack>
+      ))}
+      <Typography variant="caption">{`${format(crossing.entries)} entries`}</Typography>
+    </Stack>
+  );
+};
+
+const toBand = (band: Crossing["bands"][number], scheme: Scheme): TimelineBand => ({
   key: band.key,
   startPercent: band.startPercent,
   widthPercent: band.widthPercent,
   lane: band.lane,
-  colour: mediumToColour(band.item.medium),
+  colour: mediumToColour(band.item.medium, scheme),
   imprecise: !band.precise,
   hoverCard: true,
   tooltip: <LazyTooltip render={() => <OmniHoverCard item={band.item} />} />,

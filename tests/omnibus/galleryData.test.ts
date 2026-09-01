@@ -65,14 +65,15 @@ describe("what a shelf is", () => {
   it("marks a shelf only where the app already paints that field", () => {
     // A swatch on a field with no colour vocabulary teaches a legend no chart honours, and there is
     // no cross-media franchise vocabulary — each tab colours its own.
-    expect(galleryColour("Sci-Fi", "genre")).toBe(genreToColour("Sci-Fi"));
+    expect(galleryColour("Sci-Fi", "genre", "light")).toBe(genreToColour("Sci-Fi", "light"));
     expect(
       galleryColour(
         galleryValue(toOmniItems(library({ games: [videoGame({ rating: "16+" })] }))[0], "rating"),
         "rating",
+        "light",
       ),
-    ).toBe(ageRatingToColour("15"));
-    expect(galleryColour("Severance", "franchise")).toBeUndefined();
+    ).toBe(ageRatingToColour("15", "light"));
+    expect(galleryColour("Severance", "franchise", "light")).toBeUndefined();
   });
 });
 

@@ -29,6 +29,7 @@ import { GroupedStatList } from "../common/GroupedStatList";
 import { Hero } from "../common/Hero";
 import ShowCardMediaImage from "./CardMediaImage";
 import { genreToColour, statusToColour } from "../utils/types";
+import { useScheme } from "../common/useScheme";
 import { Stack, Typography } from "@mui/material";
 import type { ReactNode } from "react";
 import { CURRENT_PLAINDATE, CURRENT_YEAR, formatDate, type YearNumber } from "../common/date";
@@ -163,6 +164,8 @@ const Now = ({ watching }: { watching: Season[] }) => {
  * holds.
  */
 const ShowHero = ({ season }: { season: Season }) => {
+  const scheme = useScheme();
+
   const franchise = useFranchiseShows(season.show);
 
   return (
@@ -171,10 +174,13 @@ const ShowHero = ({ season }: { season: Season }) => {
       MediaComponent={ShowCardMediaImage}
       kicker={`Last watched · ${formatDate(season.show.lastWatchedDate!)}`}
       // The same badge the strip's cards carry, so being promoted does not cost the show its place.
-      chip={{ label: `S${season.s}E${season.e}`, colour: statusToColour(season.show) }}
+      chip={{ label: `S${season.s}E${season.e}`, colour: statusToColour(season.show, scheme) }}
       title={season.show.name}
       // The genre wears the same swatch its ledger row and every genre wedge on the tab wear.
-      subtitle={[{ text: season.show.network }, { text: season.show.genre, swatch: genreToColour(season.show.genre) }]}
+      subtitle={[
+        { text: season.show.network },
+        { text: season.show.genre, swatch: genreToColour(season.show.genre, scheme) },
+      ]}
       stats={showHeroStats(season, franchise.length, CURRENT_PLAINDATE)}
     />
   );
@@ -182,6 +188,8 @@ const ShowHero = ({ season }: { season: Season }) => {
 
 /** The one band saying what the library is made of, dense enough to scan past. */
 const Vitals = ({ data, measure }: { data: Show[]; measure: Measure }) => {
+  const scheme = useScheme();
+
   const statusList: Status[] = ["Watching", "Up To Date", "Ended", "Cancelled", "Abandoned"];
   const typeList: Type[] = ["show", "anime"];
   const measureFunc = (shows: Show[]) => measureOf(shows, measure);
@@ -195,7 +203,7 @@ const Vitals = ({ data, measure }: { data: Show[]; measure: Measure }) => {
         measureFunc={measureFunc}
         group={statusList}
         groupOf={(show) => show.status}
-        groupToColour={(ele: Status) => statusToColour({ status: ele })}
+        groupToColour={(ele: Status) => statusToColour({ status: ele }, scheme)}
         measureLabel={measure}
       />
       <TotalsBand
@@ -205,7 +213,7 @@ const Vitals = ({ data, measure }: { data: Show[]; measure: Measure }) => {
         measureFunc={measureFunc}
         group={typeList}
         groupOf={(show) => show.type}
-        groupToColour={(ele: Type) => typeToColour({ type: ele })}
+        groupToColour={(ele: Type) => typeToColour({ type: ele }, scheme)}
         groupToLabel={typeToName}
         measureLabel={measure}
       />
@@ -229,21 +237,25 @@ const ShowAverage = ({ data }: { data: Show[] }) => {
   );
 };
 
-const TopCategories = ({ data, measure }: { data: Show[]; measure: Measure }) => (
-  <>
-    {(["genre", "network", "franchise"] as const).map((category) => (
-      <TopListCard
-        key={category}
-        options={showTopOptions}
-        defaultOption={category}
-        icons={optionIcons}
-        groups={(option) => groupShowsBy(data, option, measure)}
-        colourOf={(option, top: Show) => groupToColour(option, top)}
-        measureLabel={measure}
-      />
-    ))}
-  </>
-);
+const TopCategories = ({ data, measure }: { data: Show[]; measure: Measure }) => {
+  const scheme = useScheme();
+
+  return (
+    <>
+      {(["genre", "network", "franchise"] as const).map((category) => (
+        <TopListCard
+          key={category}
+          options={showTopOptions}
+          defaultOption={category}
+          icons={optionIcons}
+          groups={(option) => groupShowsBy(data, option, measure)}
+          colourOf={(option, top: Show) => groupToColour(option, top, scheme)}
+          measureLabel={measure}
+        />
+      ))}
+    </>
+  );
+};
 
 const optionIcons: Record<ShowTopOption, ReactNode> = {
   genre: <Category />,
@@ -255,13 +267,15 @@ const optionIcons: Record<ShowTopOption, ReactNode> = {
 };
 
 const RecentlyComplete = ({ data }: { data: Show[] }) => {
+  const scheme = useScheme();
+
   const recent = recentlyComplete(data);
   return (
     <ShowStatList
       icon={<Pause />}
       title="Recently Finished"
       content={recent}
-      chipComponent={({ show }) => ({ label: show.status, colour: statusToColour(show) })}
+      chipComponent={({ show }) => ({ label: show.status, colour: statusToColour(show, scheme) })}
       labelComponent={statsCardLabelRecentlyComplete}
     />
   );
@@ -314,6 +328,8 @@ const MostWatchedCategory = ({
   category: ShowTopOption;
   controls: ReactNode;
 }) => {
+  const scheme = useScheme();
+
   return (
     <GroupedStatList
       icon={<Whatshot />}
@@ -322,12 +338,12 @@ const MostWatchedCategory = ({
       option={category}
       groups={groupShowsBy(data, category, measure)}
       labelComponent={(group) => [[group.name, `${format(group.count)} ${measure}`]]}
-      colourOf={(top) => groupToColour(category, top)}
+      colourOf={(top) => groupToColour(category, top, scheme)}
       MediaComponent={ShowCardMediaImage}
       dialogSort={(shows) => shows.sortByKey("minutes")}
       nameOf={(show) => show.name}
       dialogLabelComponent={(show) => [[`${format(show.e)} Eps`, `${format(Math.floor(show.minutes / 60))} Hours`]]}
-      dialogChipComponent={(show) => ({ label: show.status, colour: statusToColour(show) })}
+      dialogChipComponent={(show) => ({ label: show.status, colour: statusToColour(show, scheme) })}
       aspectRatio="auto 2 / 3"
       width={[12, 12, 12]}
       pictureWidth={[6, 4, 2]}
@@ -336,17 +352,21 @@ const MostWatchedCategory = ({
   );
 };
 
-const CurrentlyWatching = ({ watching }: { watching: Season[] }) => (
-  <ShowStatList
-    icon={<PlayArrow />}
-    title="Currently Watching"
-    content={watching}
-    // One badge saying exactly where you are, in the colour every chart paints "still going" in.
-    chipComponent={(season) => ({ label: `S${season.s}E${season.e}`, colour: statusToColour(season.show) })}
-    wrap={false}
-    labelComponent={(season) => statsCardLabelWatching(season, CURRENT_PLAINDATE)}
-  />
-);
+const CurrentlyWatching = ({ watching }: { watching: Season[] }) => {
+  const scheme = useScheme();
+
+  return (
+    <ShowStatList
+      icon={<PlayArrow />}
+      title="Currently Watching"
+      content={watching}
+      // One badge saying exactly where you are, in the colour every chart paints "still going" in.
+      chipComponent={(season) => ({ label: `S${season.s}E${season.e}`, colour: statusToColour(season.show, scheme) })}
+      wrap={false}
+      labelComponent={(season) => statsCardLabelWatching(season, CURRENT_PLAINDATE)}
+    />
+  );
+};
 
 const ShowStatList = (
   props: Omit<
@@ -354,21 +374,23 @@ const ShowStatList = (
     "MediaComponent" | "nameComponent" | "width" | "pictureWidth" | "dialogPictureWidth"
   > &
     Partial<Pick<StatsListProps<Season>, "pictureWidth">>,
-) => (
-  <StatList
-    MediaComponent={ShowCardMediaImage}
-    nameComponent={(entry) => entry.show.name + entry.s}
-    // The wall's poster reservation, so lazily-loaded artwork holds its height — a dialog of
-    // cards with no reserved ratio all sits inside the viewport at once and fetches every image
-    // immediately. The leading `auto` keeps it a reservation rather than a crop: show artwork is
-    // portrait, and a fixed ratio would cover-crop every poster into a landscape sliver.
-    aspectRatio="auto 2 / 3"
-    width={[12, 12, 12]}
-    pictureWidth={[6, 4, 2]}
-    dialogPictureWidth={[6, 4, 2]}
-    {...props}
-  />
-);
+) => {
+  return (
+    <StatList
+      MediaComponent={ShowCardMediaImage}
+      nameComponent={(entry) => entry.show.name + entry.s}
+      // The wall's poster reservation, so lazily-loaded artwork holds its height — a dialog of
+      // cards with no reserved ratio all sits inside the viewport at once and fetches every image
+      // immediately. The leading `auto` keeps it a reservation rather than a crop: show artwork is
+      // portrait, and a fixed ratio would cover-crop every poster into a landscape sliver.
+      aspectRatio="auto 2 / 3"
+      width={[12, 12, 12]}
+      pictureWidth={[6, 4, 2]}
+      dialogPictureWidth={[6, 4, 2]}
+      {...props}
+    />
+  );
+};
 
 /** The Show-typed sibling of `ShowStatList`, for the lists whose rows are whole shows. */
 const ShowsStatList = (
@@ -376,17 +398,21 @@ const ShowsStatList = (
     StatsListProps<Show>,
     "MediaComponent" | "nameComponent" | "chipComponent" | "width" | "pictureWidth" | "dialogPictureWidth"
   >,
-) => (
-  <StatList
-    MediaComponent={ShowCardMediaImage}
-    nameComponent={(entry) => entry.name}
-    chipComponent={(show) => ({ label: show.status, colour: statusToColour(show) })}
-    aspectRatio="auto 2 / 3"
-    width={[12, 12, 12]}
-    pictureWidth={[6, 4, 2]}
-    dialogPictureWidth={[6, 4, 2]}
-    {...props}
-  />
-);
+) => {
+  const scheme = useScheme();
+
+  return (
+    <StatList
+      MediaComponent={ShowCardMediaImage}
+      nameComponent={(entry) => entry.name}
+      chipComponent={(show) => ({ label: show.status, colour: statusToColour(show, scheme) })}
+      aspectRatio="auto 2 / 3"
+      width={[12, 12, 12]}
+      pictureWidth={[6, 4, 2]}
+      dialogPictureWidth={[6, 4, 2]}
+      {...props}
+    />
+  );
+};
 
 export default Stats;

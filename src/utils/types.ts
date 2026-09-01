@@ -6,35 +6,69 @@ export type Distinct<T, DistinctName> = T & { __TYPE__: DistinctName };
 export type Colour = Distinct<string, "Colour">;
 
 /**
+ * Which of the two papers a fill is being drawn on. Every colour lookup in this app takes one,
+ * because a fill is a pair rather than a value — see `Fill`.
+ */
+export type Scheme = "light" | "dark";
+
+/**
+ * A chart colour, as the pair it has to be: the value for the #ffffff paper and the value for
+ * the #1d2126 one.
+ *
+ * A single hex has to clear its contrast floor on both papers at once, and that confines it to
+ * OKLCH L 0.526–0.668 — a span of 0.142. Chroma barely suffers inside that band, but lightness
+ * is the identity of the warm half of the wheel: a yellow at L 0.67 is `#af9300`, an olive, and
+ * the same hue at L 0.88 is `#fdd500`. Splitting the value in two lets each half sit where its
+ * hue reads as itself and clear the full 3:1 against the one paper it is actually drawn on.
+ */
+export type Fill = readonly [light: Colour, dark: Colour];
+
+/** The half of a fill that belongs on this paper. */
+export const pick = (fill: Fill, scheme: Scheme): Colour => fill[scheme === "dark" ? 1 : 0];
+
+/**
  * The status vocabulary this shared layer knows how to colour. Each domain declares its own
  * `Status` union, which stays assignable to this — the dependency deliberately does not run
  * the other way, so utils/ never imports from a domain folder.
  */
-export type ColourableStatus =
-  "Abandoned" | "Beat" | "Ended" | "Cancelled" | "Endless" | "Up To Date" | "Playing" | "Watching" | "Next" | "Backlog";
+export const COLOURABLE_STATUSES = [
+  "Playing",
+  "Watching",
+  "Up To Date",
+  "Endless",
+  "Beat",
+  "Ended",
+  "Cancelled",
+  "Abandoned",
+  "Next",
+  "Backlog",
+] as const;
+
+export type ColourableStatus = (typeof COLOURABLE_STATUSES)[number];
 
 /**
  * **The contract every chart fill in this app is held to**, stated here once and referred to from
  * each of the tables that has to meet it.
  *
- * A fill is drawn on both of the surfaces the app paints on — #ffffff paper in the light scheme,
- * #1d2126 paper in the dark one — and so clears 3:1 against both. A colour chosen against the
- * light card alone washes out on the dark one: `#ffeb3b` is 1.22:1 on white. Meeting the floor on
- * both ends means only lightness is free to move, which is what keeps every table in this app
- * inside one lightness band.
+ * A fill is a `Fill`: the light half is drawn only on the #ffffff paper and clears 3:1 against it,
+ * the dark half only on #1d2126 and clears 3:1 against that. Neither half ever has to survive the
+ * paper it is not on, which is what frees each to sit at the lightness its hue needs — a yellow
+ * high, a blue low — instead of at the one lightness both papers would allow.
  *
- * The relief, where a value's own identity *is* its brightness or its darkness, is to relax the
- * floor to 2.2:1 on the offending surface alone and keep the full 3:1 on the other. That is only
- * allowed where colour is not carrying the meaning by itself — a labelled wedge, a named legend
- * entry — and the table taking it says which entries do and why. `vg/types.ts`'s franchise brands
- * are the one set that does.
+ * Every value is placed in OKLCH from a stated hue and role and then solved until it clears the
+ * floor, rather than picked and checked. `tests/utils/fillContract.test.ts` asserts the whole set.
  *
  * `NEUTRAL_FILL` itself is the colour of absence: a state that has not started, a category with no
  * colour of its own, the "Other" bucket a top-N list collects the tail into. One value across all
  * three, so a reader who has learnt that this grey means "nothing to say here" reads it the same
  * on every chart. Black beside coloured fills reads as another hue rather than as absence.
  */
-export const NEUTRAL_FILL = "#7d828c" as Colour;
+/** A fill from its two hexes, so a table states values rather than casts. */
+export const fill = (light: string, dark: string): Fill => [light as Colour, dark as Colour];
+
+export const NEUTRAL_FILL = fill("#6e747e", "#868b94");
+
+export const neutralFill = (scheme: Scheme): Colour => pick(NEUTRAL_FILL, scheme);
 
 /**
  * Every certificate the sheets record, written the way its own board writes it.
@@ -47,7 +81,7 @@ export const NEUTRAL_FILL = "#7d828c" as Colour;
  * boards do not issue the same set — PEGI has no 15 and BBFC no 16 — so a cross product admits
  * `15+` and `16`, which is the shape the likeliest typo takes and would pass validation.
  */
-const AGE_RATINGS = ["3", "7", "12", "15", "18", "3+", "7+", "12+", "16+", "18+"] as const;
+export const AGE_RATINGS = ["3", "7", "12", "15", "18", "3+", "7+", "12+", "16+", "18+"] as const;
 export type AgeRating = (typeof AGE_RATINGS)[number];
 
 /**
@@ -82,66 +116,91 @@ export const ageRatingBand = (rating: AgeRating): string => {
 };
 
 /**
- * Traffic-light lightness: two greens for what a child can watch unaccompanied, two ambers for
- * the middle, red for adults only. The pairs separate by lightness within a hue, which is what
- * lets 3 and 7 read as one band while still being told apart side by side.
+ * The five ratings as stops on one continuous green-to-red sweep, anchored on the colours PEGI
+ * actually prints: its lime `#a5c400` for the two greens, its amber `#f5a200` for the two ambers,
+ * its red `#e2011a` for 18.
+ *
+ * PEGI gives 3 and 7 one colour and 12 and 16 another, so splitting each pair is a divergence, and
+ * a necessary one — a chart that draws 3 and 7 in one fill cannot be read. What makes the split
+ * visible is doing it on **hue as well as lightness**. This band is 0.142 of lightness wide, so a
+ * pair separated by lightness alone lands about dE 11 apart where telling two fills apart wants
+ * 15; separated on both axes they reach 19.0 and 15.0. The sweep stays monotone in hue and in
+ * lightness, so the traffic light still reads at a glance.
  *
  * Keyed by band, so the colour tracks the age and not the notation: a PEGI 12+ game and a BBFC 12
  * film carry the same swatch — the two scales are never drawn on one chart, and a reader moving
- * between tabs would otherwise have to learn the same ramp twice.
+ * between tabs would otherwise have to learn the same ramp twice. BBFC colours its own 15
+ * certificate pink, which breaks the ordering the ramp depends on, and this table merges BBFC 15
+ * with PEGI 16 into one band, so PEGI's ordering is the one that wins.
  */
-const bandColours: Record<string, Colour> = {
-  "3": "#88c32f" as Colour,
-  "7": "#6d9c26" as Colour,
-  "12": "#c27400" as Colour,
-  "15/16": "rgb(242,144,0)" as Colour,
-  "18": "#d60015" as Colour,
+const bandColours: Record<string, Fill> = {
+  "3": fill("#14ac00", "#22fb00"),
+  "7": fill("#707400", "#a9ae00"),
+  "12": fill("#be7e00", "#fdaa00"),
+  "15/16": fill("#aa4600", "#dd5e00"),
+  "18": fill("#a10017", "#de0024"),
 };
+
+/** Every band the ratings table colours, so the fill-contract test cannot fall behind it. */
+export const AGE_BANDS = Object.keys(bandColours);
 
 /** The colour of a band, for a surface that has already grouped and holds the band and not a row. */
-export const ageBandToColour = (band: string): Colour => {
+export const ageBandToColour = (band: string, scheme: Scheme): Colour => {
   const colour = bandColours[band];
+  // Throws rather than falling back, which is what catches a typo in the spreadsheet.
   if (!colour) throw new Error("Unknown rating band: " + band);
-  return colour;
+  return pick(colour, scheme);
 };
 
-export const ageRatingToColour = (rating: AgeRating): Colour => ageBandToColour(ageRatingBand(rating));
+export const ageRatingToColour = (rating: AgeRating, scheme: Scheme): Colour =>
+  ageBandToColour(ageRatingBand(rating), scheme);
 
 /**
- * Hue says how a thing ended; lightness says whether it is still moving.
+ * Hue says how a thing ended; luminance says whether it is still moving.
  *
- * Cyan is in progress, blue is open-ended, green finished well, amber was stopped by someone
- * else, rose was stopped by choice — and the five step down in lightness in that order, so a
- * chart squinted at answers "how much of this is still alive?" before a single hue is read.
- * Active states are the lightest and most vivid; the finished green sits a chroma step below the
- * other terminal states, because it is the majority of every status chart and a majority at full
- * saturation is a wall, while Cancelled and Abandoned are the exceptions worth noticing.
+ * Cyan is in progress, blue is caught up and waiting, the greens are done, amber was stopped by
+ * someone else, rose was stopped by choice — and they step down in relative luminance in that
+ * order, so a chart squinted at answers "how much of this is still alive?" before a single hue is
+ * read. The order is stated in luminance rather than in lightness because that is what a reader
+ * sees: a green at one OKLCH lightness carries roughly twice the luminance of a blue, so a ramp
+ * placed on lightness alone puts Beat above Endless and the reading inverts.
+ *
+ * `Endless` and `Up To Date` are separate states rather than one. Up To Date is a show you are
+ * current on that is still running — you are waiting on the source, which is as alive as a status
+ * gets short of watching it, and it keeps the blue. Endless is a game with no completion state at
+ * all; `vg/converter.ts` folds a Party game into it, and nothing about it was ever going to be
+ * beaten. It takes a yellow-green beside Beat/Ended, as the second way a thing can be done with —
+ * there was never an end to reach rather than one you got to — a step above Beat because a game
+ * with no end is still one you might open again.
+ *
+ * The finished green sits a chroma step below the other terminal states: it is the majority of
+ * every status chart, and a majority at full saturation is a wall.
  *
  * Next and Backlog have not started, so they take the same neutral grey the charts' "Other"
  * buckets wear: an inert state wants an inert colour, and black beside coloured fills reads as a
- * sixth hue rather than as absence.
+ * further hue rather than as absence.
  *
  * Every value meets the fill contract above.
  */
-export const statusToColour = ({ status }: { status: ColourableStatus }) => {
-  switch (status) {
-    case "Abandoned":
-      return "#d10074" as Colour;
-    case "Beat":
-    case "Ended":
-      return "#338c5f" as Colour;
-    case "Cancelled":
-      return "#9b6200" as Colour;
-    case "Endless":
-    case "Up To Date":
-      return "#2f75ff" as Colour;
-    case "Playing":
-    case "Watching":
-      return "#00a5a6" as Colour;
-    case "Next":
-    case "Backlog":
-      return NEUTRAL_FILL;
-  }
+const statusColours: Record<ColourableStatus, Fill> = {
+  Playing: fill("#00a2a3", "#00e5e8"),
+  Watching: fill("#00a2a3", "#00e5e8"),
+  "Up To Date": fill("#0081e8", "#76b7ff"),
+  Endless: fill("#557c00", "#78ac00"),
+  Beat: fill("#326e54", "#489976"),
+  Ended: fill("#326e54", "#489976"),
+  Cancelled: fill("#7f4d00", "#b06d00"),
+  Abandoned: fill("#9c0049", "#d80067"),
+  Next: NEUTRAL_FILL,
+  Backlog: NEUTRAL_FILL,
+};
+
+export const statusToColour = ({ status }: { status: ColourableStatus }, scheme: Scheme): Colour => {
+  const colour = statusColours[status];
+  // The guard is for a string the sheets hold that the union does not: it answers `undefined`
+  // rather than throwing, because a wedge with no fill is a smaller failure than a page that will
+  // not render. `colour` is a `Fill` in the types, so this still narrows to `Colour` for callers.
+  return colour && pick(colour, scheme);
 };
 
 /**
@@ -150,52 +209,71 @@ export const statusToColour = ({ status }: { status: ColourableStatus }) => {
  * column in this one vocabulary, and a swatch has to mean the same thing on every tab. That is
  * what lets the Omnibus bridge a game to a film under one genre name without a mapping in code.
  *
- * Each hue is chosen to *represent* its genre, and every value meets the fill contract above.
+ * Each hue is chosen to mean its genre — blood red for Horror, flame for Action, sepia for True
+ * Story, yellow for Comedy, the outdoors for Adventure, noir teal for Mystery, electric cyan for
+ * Sci-Fi, a grave blue for Drama, night indigo for Thriller, violet for Fantasy, rose for Romance.
+ * Eleven hues is more than hue alone separates at one lightness — 27° apart is roughly dE 7, and
+ * telling two fills apart wants 15 — so lightness alternates around the wheel and the legends
+ * carry the rest. Every value meets the fill contract above.
  *
- * Nine of these hexes also appear in `vg/types.ts`'s gameplay table under other names — Fantasy's
- * indigo is Role Playing's, Mystery's teal is Simulation's. That is palette recycling rather than
- * a correspondence, and the Games tab is the one place both vocabularies are drawn: a card there
- * states each in turn, so its `mutedGenreToColour` mutes this ramp to keep the two swatches from
- * landing on one colour. Action and Adventure are the deliberate exception, matching in both
- * tables because those two names mean the same thing in both vocabularies.
+ * Two of these hexes also appear in `vg/types.ts`'s gameplay table: Action and Adventure, which
+ * mean the same thing in both vocabularies and so are deliberately the same colour. Nothing else
+ * collides, which is why the Games tab draws this ramp at full chroma like every other tab.
  *
  * The lookup falls to `NEUTRAL_FILL` rather than throwing: the genre column is open-ended, and a
  * new genre appearing in the sheet should render as "no colour yet", not take the tab down. The
  * Games converter's `"Other"` default for an unrecorded genre relies on that — it is deliberately
  * absent from the table, since a colour of its own would dress the absence of a genre up as one.
  */
-const genreColours: Record<string, Colour> = {
-  Action: "#fe4c00" as Colour,
-  Adventure: "#13ac00" as Colour,
-  Comedy: "#ae9200" as Colour,
-  Drama: "#0072c5" as Colour,
-  Fantasy: "#7543ff" as Colour,
-  Horror: "#d5005e" as Colour,
-  Mystery: "#008268" as Colour,
-  Romance: "#ff1da7" as Colour,
-  "Sci-Fi": "#00a4b1" as Colour,
-  Thriller: "#667100" as Colour,
-  "True Story": "#a85500" as Colour,
+const genreColours: Record<string, Fill> = {
+  Action: fill("#d85900", "#ff762c"),
+  Adventure: fill("#008c36", "#00d556"),
+  Comedy: fill("#a48c00", "#fad700"),
+  Drama: fill("#004bd5", "#1d69ff"),
+  Fantasy: fill("#c712ff", "#ce4eff"),
+  Horror: fill("#aa002f", "#e40042"),
+  Mystery: fill("#006667", "#009d9e"),
+  Romance: fill("#c1007a", "#f00099"),
+  "Sci-Fi": fill("#008dbe", "#00bcfc"),
+  Thriller: fill("#701cff", "#7b4dff"),
+  "True Story": fill("#805200", "#bb7a00"),
 };
 
-export const genreToColour = (genre: string): Colour => genreColours[genre] ?? NEUTRAL_FILL;
+/** Every genre the shared ramp colours. The sheets may hold others, which take the neutral. */
+export const GENRE_NAMES = Object.keys(genreColours);
+
+export const genreToColour = (genre: string, scheme: Scheme): Colour =>
+  pick(genreColours[genre] ?? NEUTRAL_FILL, scheme);
 
 /**
- * Release decades as an ordered ramp: one bronze hue with only lightness stepping, oldest
- * lightest, because a decade is ordered data and a categorical hue set would deny that. Seven
- * steps is what the fill contract leaves room for between the two papers, so everything before
- * 1970 shares one bucket — the sheets hold a handful of films there and no games at all.
+ * Release decades as an ordered ramp: one warm hue family sweeping from a sepia gold for the
+ * oldest to a deep russet for the newest, with lightness falling across the same span.
+ *
+ * A decade is ordered data, so the ramp stays one continuous gradient rather than a categorical
+ * hue set. But lightness alone cannot carry eight steps inside this band: it puts neighbours about
+ * 2.3 dE apart and the 2010s beside the 2020s at 0.8, which is under the ~2 dE at which two fills
+ * are simply the same colour. Sweeping hue alongside it doubles the adjacent separation to 4.6 and
+ * takes the ramp's ends from 13.4 dE apart to 32.1.
+ *
+ * The 2030s is here so the table does not need touching when the sheets reach it; `releaseDecade`
+ * already answers `"2030s"` for a year in it. Everything before 1970 shares one bucket — the
+ * sheets hold a handful of films there and no games at all.
  */
-const decadeColours: Record<string, Colour> = {
-  "Pre-1970": "#c08938" as Colour,
-  "1970s": "#b68335" as Colour,
-  "1980s": "#ad7c32" as Colour,
-  "1990s": "#a3742f" as Colour,
-  "2000s": "#996d2c" as Colour,
-  "2010s": "#91672a" as Colour,
-  "2020s": "#8e6529" as Colour,
+const decadeColours: Record<string, Fill> = {
+  "Pre-1970": fill("#ac9000", "#ffdc4f"),
+  "1970s": fill("#a88000", "#f7bd00"),
+  "1980s": fill("#a17000", "#e9a300"),
+  "1990s": fill("#9a6000", "#dc8b00"),
+  "2000s": fill("#925000", "#d17600"),
+  "2010s": fill("#894100", "#c96200"),
+  "2020s": fill("#813000", "#c54d00"),
+  "2030s": fill("#791a00", "#c83301"),
 };
+
+/** Every decade the ramp colours, including the one no sheet has reached yet. */
+export const DECADE_NAMES = Object.keys(decadeColours);
 
 export const releaseDecade = (year: number): string => (year < 1970 ? "Pre-1970" : `${Math.floor(year / 10) * 10}s`);
 
-export const decadeToColour = (decade: string): Colour => decadeColours[decade] ?? NEUTRAL_FILL;
+export const decadeToColour = (decade: string, scheme: Scheme): Colour =>
+  pick(decadeColours[decade] ?? NEUTRAL_FILL, scheme);

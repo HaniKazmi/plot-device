@@ -7,6 +7,8 @@ import { LABEL_SX } from "../common/typography";
 import { format } from "../utils/mathUtils";
 import type { GenreBridgeRow } from "./genreBridgeData";
 import { media, mediumToColour, mediumToLabel } from "./types";
+import { useScheme } from "../common/useScheme";
+import { genreToColour } from "../utils/types";
 
 /**
  * The genres the reader meets in more than one medium, and how the hours in each are split.
@@ -19,6 +21,8 @@ import { media, mediumToColour, mediumToLabel } from "./types";
  * column.
  */
 const GenreBridge = ({ rows }: { rows: GenreBridgeRow[] }) => {
+  const scheme = useScheme();
+
   const [hovered, setHovered] = useState<string | null>(null);
 
   return (
@@ -43,7 +47,7 @@ const GenreBridge = ({ rows }: { rows: GenreBridgeRow[] }) => {
                 onMouseLeave={() => setHovered(null)}
               >
                 <Swatch
-                  colour={mediumToColour(medium)}
+                  colour={mediumToColour(medium, scheme)}
                   size={INLINE_SWATCH_SIZE}
                 />
                 <Typography variant="caption">{mediumToLabel(medium)}</Typography>
@@ -92,56 +96,60 @@ const BridgeRow = ({
   row: GenreBridgeRow;
   hovered: string | null;
   onHover: (name: string | null) => void;
-}) => (
-  <Stack
-    direction="row"
-    spacing={1}
-    sx={{ alignItems: "center" }}
-  >
+}) => {
+  const scheme = useScheme();
+
+  return (
     <Stack
       direction="row"
-      spacing={0.75}
-      sx={{ width: (theme) => theme.spacing(GENRE_WIDTH), flexShrink: 0, alignItems: "center" }}
+      spacing={1}
+      sx={{ alignItems: "center" }}
     >
-      {/* The genre's own colour from the ramp Shows and Movies share, so a row here and a wedge on
-          either tab name the genre the same way. */}
-      <Swatch
-        colour={row.colour}
-        size={INLINE_SWATCH_SIZE}
-      />
-      <Typography
-        variant="body2"
-        noWrap
+      <Stack
+        direction="row"
+        spacing={0.75}
+        sx={{ width: (theme) => theme.spacing(GENRE_WIDTH), flexShrink: 0, alignItems: "center" }}
       >
-        {row.genre}
+        {/* The genre's own colour from the ramp Shows and Movies share, so a row here and a wedge on
+          either tab name the genre the same way. */}
+        <Swatch
+          colour={genreToColour(row.genre, scheme)}
+          size={INLINE_SWATCH_SIZE}
+        />
+        <Typography
+          variant="body2"
+          noWrap
+        >
+          {row.genre}
+        </Typography>
+      </Stack>
+      <Stack sx={{ flexGrow: 1, minWidth: 0 }}>
+        <ProportionalBar
+          items={row.segments.map((segment) => ({
+            name: mediumToLabel(segment.medium),
+            percent: segment.percent,
+            colour: mediumToColour(segment.medium, scheme),
+          }))}
+          hovered={hovered}
+          onHover={onHover}
+        />
+      </Stack>
+      <Typography
+        variant="caption"
+        noWrap
+        sx={{
+          width: (theme) => theme.spacing(HOURS_WIDTH),
+          flexShrink: 0,
+          textAlign: "right",
+          color: "text.secondary",
+          fontVariantNumeric: "tabular-nums",
+          ...LABEL_SX,
+        }}
+      >
+        {`${format(row.hours)} hrs`}
       </Typography>
     </Stack>
-    <Stack sx={{ flexGrow: 1, minWidth: 0 }}>
-      <ProportionalBar
-        items={row.segments.map((segment) => ({
-          name: mediumToLabel(segment.medium),
-          percent: segment.percent,
-          colour: mediumToColour(segment.medium),
-        }))}
-        hovered={hovered}
-        onHover={onHover}
-      />
-    </Stack>
-    <Typography
-      variant="caption"
-      noWrap
-      sx={{
-        width: (theme) => theme.spacing(HOURS_WIDTH),
-        flexShrink: 0,
-        textAlign: "right",
-        color: "text.secondary",
-        fontVariantNumeric: "tabular-nums",
-        ...LABEL_SX,
-      }}
-    >
-      {`${format(row.hours)} hrs`}
-    </Typography>
-  </Stack>
-);
+  );
+};
 
 export default GenreBridge;

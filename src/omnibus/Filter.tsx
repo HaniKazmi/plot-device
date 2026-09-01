@@ -4,6 +4,7 @@ import { FilterCategory, FilterDrawer, FilterToggle } from "../common/FilterDraw
 import { genreToColour } from "../utils/types";
 import type { OmniItem } from "./adapter";
 import type { FilterDispatch, FilterState } from "./filterUtils";
+import { useScheme } from "../common/useScheme";
 
 /**
  * The medium switches are the toggles, because on this tab a medium is what a category is
@@ -13,57 +14,61 @@ import type { FilterDispatch, FilterState } from "./filterUtils";
  * union rather than from any one sheet — the point of the select is the entries that appear in
  * more than one of them.
  */
-const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: FilterDispatch; data: OmniItem[] }) => (
-  <FilterDrawer
-    measureIcon={state.measure === "Hours" ? <Timer /> : <Functions />}
-    onToggleMeasure={() => dispatch({ type: "toggleMeasure" })}
-    onReset={() => dispatch({ type: "resetFilters" })}
-    toggles={
-      <>
-        <FilterToggle
-          label="games"
-          icon={VideogameAsset}
-          checked={state.game}
-          onChange={(checked) => dispatch({ type: "updateFilter", filter: "game", value: checked })}
-        />
-        <FilterToggle
-          label="shows"
-          icon={Tv}
-          checked={state.show}
-          onChange={(checked) => dispatch({ type: "updateFilter", filter: "show", value: checked })}
-        />
-        <FilterToggle
-          label="movies"
-          icon={LocalMovies}
-          checked={state.movie}
-          onChange={(checked) => dispatch({ type: "updateFilter", filter: "movie", value: checked })}
-        />
-      </>
-    }
-    categories={
-      <>
-        <FilterCategory
-          label="genre"
-          options={categoryOptions(data, (item) => item.genre)}
-          selected={state.genre}
-          onChange={(value) => dispatch({ type: "updateFilter", filter: "genre", value })}
-          // The one ramp all three media's genres are drawn from, so a chip means the same thing
-          // whichever medium's rows it is narrowing.
-          colourFor={genreToColour}
-        />
-        <FilterCategory
-          label="franchise"
-          options={franchiseOptions(
-            data,
-            (item) => item.franchise,
-            (item) => item.name,
-          )}
-          selected={state.franchise}
-          onChange={(value) => dispatch({ type: "updateFilter", filter: "franchise", value })}
-        />
-      </>
-    }
-  />
-);
+const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: FilterDispatch; data: OmniItem[] }) => {
+  const scheme = useScheme();
+
+  return (
+    <FilterDrawer
+      measureIcon={state.measure === "Hours" ? <Timer /> : <Functions />}
+      onToggleMeasure={() => dispatch({ type: "toggleMeasure" })}
+      onReset={() => dispatch({ type: "resetFilters" })}
+      toggles={
+        <>
+          <FilterToggle
+            label="games"
+            icon={VideogameAsset}
+            checked={state.game}
+            onChange={(checked) => dispatch({ type: "updateFilter", filter: "game", value: checked })}
+          />
+          <FilterToggle
+            label="shows"
+            icon={Tv}
+            checked={state.show}
+            onChange={(checked) => dispatch({ type: "updateFilter", filter: "show", value: checked })}
+          />
+          <FilterToggle
+            label="movies"
+            icon={LocalMovies}
+            checked={state.movie}
+            onChange={(checked) => dispatch({ type: "updateFilter", filter: "movie", value: checked })}
+          />
+        </>
+      }
+      categories={
+        <>
+          <FilterCategory
+            label="genre"
+            options={categoryOptions(data, (item) => item.genre)}
+            selected={state.genre}
+            onChange={(value) => dispatch({ type: "updateFilter", filter: "genre", value })}
+            // The one ramp all three media's genres are drawn from, so a chip means the same thing
+            // whichever medium's rows it is narrowing.
+            colourFor={(value) => genreToColour(value, scheme)}
+          />
+          <FilterCategory
+            label="franchise"
+            options={franchiseOptions(
+              data,
+              (item) => item.franchise,
+              (item) => item.name,
+            )}
+            selected={state.franchise}
+            onChange={(value) => dispatch({ type: "updateFilter", filter: "franchise", value })}
+          />
+        </>
+      }
+    />
+  );
+};
 
 export default Filter;

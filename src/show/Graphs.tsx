@@ -19,6 +19,7 @@ import Filter from "./Filter";
 import { memo, useDeferredValue } from "react";
 import { format } from "../utils/mathUtils";
 import { finishedCount } from "../common/finishedData";
+import { useScheme } from "../common/useScheme";
 
 const SuspenseBlock = ({
   filteredData,
@@ -60,6 +61,8 @@ const Graphs = memo(
     filterState: FilterState;
     filterDispatch: FilterDispatch;
   }) => {
+    const scheme = useScheme();
+
     const deferredData = useDeferredValue(data, []);
     const tabs = useOtherTabs();
     // Answered once for the page: it decides both whether the "now" strip is rendered and whether
@@ -105,7 +108,7 @@ const Graphs = memo(
             count={`${format(finishedCount(data))} shows`}
             data={data}
             width={3}
-            colour={statusToColour}
+            colour={(item) => statusToColour(item, scheme)}
             MediaComponent={ShowCardMediaImage}
           />
         </Section>

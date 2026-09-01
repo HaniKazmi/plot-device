@@ -25,7 +25,7 @@ import type { YearType } from "../common/filterReducer";
 import { useSelectBox } from "../common/SelectBoxHook";
 import { useFranchiseMovies } from "./franchiseContext";
 import { format } from "../utils/mathUtils";
-import { genreToColour } from "../utils/types";
+import { genreToColour, type Scheme } from "../utils/types";
 import MovieCardMediaImage from "./CardMediaImage";
 import { MOVIE_SECTIONS } from "./sections";
 import type { FilterDispatch } from "./filterUtils";
@@ -55,6 +55,7 @@ import {
   type MovieTopOption,
 } from "./statsData";
 import "../utils/arrayUtils";
+import { useScheme } from "../common/useScheme";
 
 const Stats = ({
   data,
@@ -148,6 +149,8 @@ const Stats = ({
  * holds.
  */
 const MovieHero = ({ movie }: { movie: Movie }) => {
+  const scheme = useScheme();
+
   const franchise = useFranchiseMovies(movie);
 
   return (
@@ -156,10 +159,10 @@ const MovieHero = ({ movie }: { movie: Movie }) => {
       MediaComponent={MovieCardMediaImage}
       kicker={`Latest watch · ${formatDate(movie.startDate)} · ${cinemaLabel(movie)}`}
       // The same badge the strips' posters carry, so being promoted does not cost the film its score.
-      chip={movieScoreChip(movie)}
+      chip={movieScoreChip(movie, scheme)}
       title={movie.name}
       // The genre wears the same swatch its ledger row and every genre wedge on the tab wear.
-      subtitle={[{ text: movie.director }, { text: movie.genre, swatch: genreToColour(movie.genre) }]}
+      subtitle={[{ text: movie.director }, { text: movie.genre, swatch: genreToColour(movie.genre, scheme) }]}
       stats={movieHeroStats(movie, franchise.length)}
     />
   );
@@ -171,6 +174,8 @@ const MovieHero = ({ movie }: { movie: Movie }) => {
  * tall as the charts it introduces.
  */
 const Vitals = ({ data, measure }: { data: Movie[]; measure: Measure }) => {
+  const scheme = useScheme();
+
   const measureFunc = (movies: Movie[]) => measureOf(movies, measure);
 
   return (
@@ -182,7 +187,7 @@ const Vitals = ({ data, measure }: { data: Movie[]; measure: Measure }) => {
         measureFunc={measureFunc}
         group={[...scoreBands]}
         groupOf={(movie) => scoreBand(movie.score)}
-        groupToColour={scoreBandToColour}
+        groupToColour={(ele) => scoreBandToColour(ele, scheme)}
         measureLabel={measure}
       />
       <TotalsBand
@@ -192,7 +197,7 @@ const Vitals = ({ data, measure }: { data: Movie[]; measure: Measure }) => {
         measureFunc={measureFunc}
         group={["Cinema", "Home"]}
         groupOf={(movie: Movie) => (movie.cinema ? "Cinema" : "Home")}
-        groupToColour={cinemaToColour}
+        groupToColour={(ele) => cinemaToColour(ele, scheme)}
         measureLabel={measure}
       />
     </VitalsCard>
@@ -213,21 +218,25 @@ const FilmAverage = ({ data }: { data: Movie[] }) => {
   );
 };
 
-const TopCategories = ({ data, measure }: { data: Movie[]; measure: Measure }) => (
-  <>
-    {(["genre", "director", "franchise"] as const).map((category) => (
-      <TopListCard
-        key={category}
-        options={movieTopOptions}
-        defaultOption={category}
-        icons={optionIcons}
-        groups={(option) => groupMoviesBy(data, option, measure)}
-        colourOf={(option, top: Movie) => groupToColour(option, top)}
-        measureLabel={measure}
-      />
-    ))}
-  </>
-);
+const TopCategories = ({ data, measure }: { data: Movie[]; measure: Measure }) => {
+  const scheme = useScheme();
+
+  return (
+    <>
+      {(["genre", "director", "franchise"] as const).map((category) => (
+        <TopListCard
+          key={category}
+          options={movieTopOptions}
+          defaultOption={category}
+          icons={optionIcons}
+          groups={(option) => groupMoviesBy(data, option, measure)}
+          colourOf={(option, top: Movie) => groupToColour(option, top, scheme)}
+          measureLabel={measure}
+        />
+      ))}
+    </>
+  );
+};
 
 const optionIcons: Record<MovieTopOption, ReactNode> = {
   genre: <Category />,
@@ -275,6 +284,8 @@ const BestRated = ({ data }: { data: Movie[] }) => {
 };
 
 const MostWatched = ({ data, measure }: { data: Movie[]; measure: Measure }) => {
+  const scheme = useScheme();
+
   const [option, controls] = useSelectBox(movieTopOptions, "franchise");
   return (
     <GroupedStatList
@@ -286,21 +297,21 @@ const MostWatched = ({ data, measure }: { data: Movie[]; measure: Measure }) => 
       // The name and the figure stacked rather than side by side — under a poster there is no
       // width for both on one line.
       labelComponent={(group) => [[group.name], [`${format(group.count)} ${measure}`]]}
-      colourOf={(top) => groupToColour(option, top)}
+      colourOf={(top) => groupToColour(option, top, scheme)}
       MediaComponent={MovieCardMediaImage}
       dialogSort={(movies) => movies.sortByKey("minutes")}
       nameOf={(movie) => movie.name}
       dialogLabelComponent={statsCardLabelWatched}
-      dialogChipComponent={movieScoreChip}
+      dialogChipComponent={(movie) => movieScoreChip(movie, scheme)}
       {...movieStatListSharedProps}
     />
   );
 };
 
 /** The corner badge: the film's score, wearing its band's fill. Unscored films carry none. */
-const movieScoreChip = (movie: Movie) =>
+const movieScoreChip = (movie: Movie, scheme: Scheme) =>
   movie.score !== undefined
-    ? { label: String(movie.score), colour: scoreBandToColour(scoreBand(movie.score)) }
+    ? { label: String(movie.score), colour: scoreBandToColour(scoreBand(movie.score), scheme) }
     : undefined;
 
 const movieStatListSharedProps: Pick<
@@ -320,14 +331,18 @@ const MovieStatList = (
     StatsListProps<Movie>,
     "MediaComponent" | "chipComponent" | "nameComponent" | keyof typeof movieStatListSharedProps
   >,
-) => (
-  <StatList
-    chipComponent={movieScoreChip}
-    MediaComponent={MovieCardMediaImage}
-    nameComponent={(entry) => entry.name}
-    {...movieStatListSharedProps}
-    {...props}
-  />
-);
+) => {
+  const scheme = useScheme();
+
+  return (
+    <StatList
+      chipComponent={(movie) => movieScoreChip(movie, scheme)}
+      MediaComponent={MovieCardMediaImage}
+      nameComponent={(entry) => entry.name}
+      {...movieStatListSharedProps}
+      {...props}
+    />
+  );
+};
 
 export default Stats;

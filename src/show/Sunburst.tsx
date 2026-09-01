@@ -2,12 +2,15 @@ import { useState } from "react";
 import type { KeysMatching } from "../utils/types";
 import { groupToColour, typeToName, type Measure, type Show } from "./types";
 import Sunburst, { SunBurstControls } from "../common/Sunburst";
+import { useScheme } from "../common/useScheme";
 import { format } from "../utils/mathUtils";
 
 type OptionKeys = KeysMatching<Show, string | Show["startDate"]> | "show";
 
 const ShowSunburst = ({ data, measure }: { data: Show[]; measure: Measure }) => {
   const [controlStates, setControlStates] = useState<OptionKeys[]>(["status", "startDate", "show"]);
+
+  const scheme = useScheme();
 
   return (
     <Sunburst
@@ -31,7 +34,7 @@ const ShowSunburst = ({ data, measure }: { data: Show[]; measure: Measure }) => 
           }
         },
         getCount: ({ minutes, e }) => (measure === "Hours" ? minutes && Math.floor(minutes / 60) : e),
-        getColor: ({ show }, firstGroup) => groupToColour(firstGroup, show) || undefined,
+        getColor: ({ show }, firstGroup) => groupToColour(firstGroup, show, scheme) || undefined,
         getLeafName: ({ show, s }) => `${show.name} - S${s}`,
       }}
       controls={

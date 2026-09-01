@@ -1,5 +1,6 @@
 import Stats from "./Stats";
 import { VideoGame, companyToColor } from "./types";
+import { useScheme } from "../common/useScheme";
 import Sunburst from "./Sunburst";
 import Barchart from "./Barchart";
 import Finished from "../common/Finished";
@@ -59,6 +60,7 @@ const Graphs = memo(
     filterState: FilterState;
     filterDispatch: FilterDispatch;
   }) => {
+    const scheme = useScheme();
     const deferredData = useDeferredValue(data, []);
     const tabs = useOtherTabs();
     // Answered once for the page: it decides both whether the hero is rendered and whether the
@@ -106,7 +108,7 @@ const Graphs = memo(
             count={`${format(finishedCount(data))} games`}
             data={data}
             width={4}
-            colour={companyToColor}
+            colour={(item) => companyToColor(item, scheme)}
             landscape
           />
         </Section>

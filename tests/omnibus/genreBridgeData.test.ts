@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { YearMonthDay } from "../../src/common/date";
 import { toOmniItems, type Library } from "../../src/omnibus/adapter";
 import { genreBridge } from "../../src/omnibus/genreBridgeData";
-import { genreToColour } from "../../src/utils/types";
 import { movie } from "../fixtures/movies";
 import { season, show } from "../fixtures/shows";
 import { videoGame } from "../fixtures/vgRows";
@@ -16,7 +15,7 @@ const showWith = (genre: string, minutes: number) => {
 };
 
 describe("genreBridge", () => {
-  it("keeps only the genres more than one medium records", () => {
+  it("names each row by its genre, which is what the card looks its colour up by", () => {
     const rows = genreBridge(
       toOmniItems(
         library({
@@ -131,6 +130,6 @@ describe("genreBridge", () => {
       ),
     );
 
-    expect(rows[0].colour).toBe(genreToColour("Sci-Fi"));
+    expect(rows[0].genre).toBe("Sci-Fi");
   });
 });

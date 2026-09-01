@@ -10,6 +10,7 @@ import { format } from "../utils/mathUtils";
 import { groupToColour, type Movie } from "./types";
 import { watchRibbonYears } from "./watchTimelineData";
 import { MovieHoverCard } from "./CardMediaImage";
+import { useScheme } from "../common/useScheme";
 
 /**
  * Every row is the same 1 January – 31 December, so the months are walked once for all of them —
@@ -21,6 +22,8 @@ const RIBBON_TICKS = buildTicks(YearMonth.get(2001, 1), YearMonth.get(2001, 12),
 const colourOptions = ["genre", "rating", "cinema", "decade", "score"] as const;
 
 const WatchTimeline = ({ data }: { data: Movie[] }) => {
+  const scheme = useScheme();
+
   const [colourBy, controls] = useSelectBox(colourOptions, "genre");
 
   const rows = watchRibbonYears(data).map(({ year, bands, laneCount }) => ({
@@ -30,7 +33,7 @@ const WatchTimeline = ({ data }: { data: Movie[] }) => {
     bands: bands.map((band) => ({
       ...band,
       // Every colour option here has a total vocabulary, so a mark is never left uncoloured.
-      colour: groupToColour(colourBy, band.movie),
+      colour: groupToColour(colourBy, band.movie, scheme),
       hoverCard: true,
       tooltip: <LazyTooltip render={() => <MovieHoverCard item={band.movie} />} />,
     })),

@@ -7,7 +7,8 @@ import { SectionHeader } from "./SectionHeader";
 import { useSelectBox } from "./SelectBoxHook";
 import { topNWithOther, type TopGroup } from "./statsData";
 import { format } from "../utils/mathUtils";
-import { NEUTRAL_FILL, type Colour } from "../utils/types";
+import { neutralFill, type Colour } from "../utils/types";
+import { useScheme } from "./useScheme";
 import { highchartsColors } from "../highcharts";
 
 /**
@@ -33,6 +34,8 @@ export const TopListCard = <O extends string, T>(props: {
   measureLabel: string;
 }) => {
   const { options, icons, groups, colourOf, measureLabel } = props;
+  const scheme = useScheme();
+
   const [option, controls] = useSelectBox(options, props.defaultOption);
   const colorOffset = options.indexOf(option) * 3;
   const [hovered, setHovered] = useState<string | null>(null);
@@ -40,7 +43,7 @@ export const TopListCard = <O extends string, T>(props: {
   const most = topNWithOther(groups(option));
 
   const getColour = (struct: (typeof most)[0], index: number) => {
-    if (struct.name === "Other") return NEUTRAL_FILL;
+    if (struct.name === "Other") return neutralFill(scheme);
     const groupCol = struct.top ? colourOf(option, struct.top) : "";
     return groupCol || highchartsColors[(index + colorOffset) % highchartsColors.length];
   };

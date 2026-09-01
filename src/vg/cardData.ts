@@ -2,7 +2,8 @@ import { Year, YearMonthDay } from "../common/date";
 import { franchiseIndex as buildFranchiseIndex } from "../common/franchiseIndex";
 import type { StripSpan } from "../common/timelineStripData";
 import type { PanelSubtitlePart } from "../common/Card";
-import { gameplayToColour, mutedGenreToColour, type VideoGame } from "./types";
+import { genreToColour, type Scheme } from "../utils/types";
+import { gameplayToColour, type VideoGame } from "./types";
 import "../utils/arrayUtils";
 import "../utils/mapUtils";
 
@@ -115,11 +116,11 @@ export const franchiseIndex = (games: VideoGame[]) => buildFranchiseIndex(games,
  * sheet records it under, each wearing the swatch its own ledger row and charts wear.
  *
  * Shared rather than assembled at each site, so the hero and the hover card cannot come to name one
- * game two ways. The Omnibus deliberately does not use this — its Now card states two parts at full
- * chroma, for reasons its own comment gives.
+ * game two ways. The Omnibus states its own two parts instead, because a Now card there names the
+ * medium where this names the platform.
  */
-export const gameSubtitle = (game: VideoGame): PanelSubtitlePart[] => [
+export const gameSubtitle = (game: VideoGame, scheme: Scheme): PanelSubtitlePart[] => [
   { text: game.platform },
-  { text: game.gameplay, swatch: gameplayToColour(game) },
-  { text: game.genre, swatch: mutedGenreToColour(game.genre) },
+  { text: game.gameplay, swatch: gameplayToColour(game, scheme) },
+  { text: game.genre, swatch: genreToColour(game.genre, scheme) },
 ];

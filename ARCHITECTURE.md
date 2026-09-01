@@ -43,7 +43,7 @@ There is no backend, no database, and no build-time data. Three Google Sheets ar
                     └───────────────────┬───────────────────────┘
                                         │
                     ┌───────────────────▼───────────────────────┐
-  domain            │  vg/ · show/ · movie/ · holiday/ · omnibus/│
+  domain            │  vg/ · show/ · movie/ · omnibus/          │
                     │  model, converter, filters, adapters       │
                     └───────────────────┬───────────────────────┘
                                         │
@@ -60,7 +60,7 @@ There is no backend, no database, and no build-time data. Three Google Sheets ar
                     └───────────────────────────────────────────┘
 ```
 
-The load-bearing rule is the boundary between the bottom two layers and the domain layer above them: **`common/` and `utils/` never import from `vg/`, `show/`, `movie/` or `holiday/`.** Generic components receive behaviour as props and callbacks; domain folders supply the meaning. Everything reusable in this codebase lives on that seam.
+The load-bearing rule is the boundary between the bottom two layers and the domain layer above them: **`common/` and `utils/` never import from `vg/`, `show/`, `movie/` or `omnibus/`.** Generic components receive behaviour as props and callbacks; domain folders supply the meaning. Everything reusable in this codebase lives on that seam.
 
 The rule holds with no exceptions, and the direction matters. Where the shared layer needs a domain vocabulary, it declares its own and lets each domain's type stay assignable to it — `utils/types.ts` owns a `ColourableStatus` union that both `show/types.ts` and `vg/types.ts` satisfy, rather than importing their `Status` unions. Inverting that would create an import cycle, since both domains import `statusToColour` back out.
 
@@ -85,7 +85,7 @@ utils/arrayUtils           arrayToJson()
    │                       → Record<string, string>[]  (header-keyed rows)
    ▼
 <domain>/<Domain>.tsx      jsonConverter()
-   │                       → VideoGame[] | Show[] | Movie[] | Holiday[]
+   │                       → VideoGame[] | Show[] | Movie[]
    ▼
 common/useData             module-level Map + localStorage
    │                       → [data, dataLoaded]
@@ -564,50 +564,25 @@ at an anchor that is not on the page.
 
 `utils/colourUtils.ts` extracts a dominant colour from each banner image with `fast-average-color`, ignoring near-white and near-black. If the result's ITU-R BT.709 luma falls outside 30–230 it retries with the `simple` algorithm, avoiding unreadable extremes. Results are memoised by image src. Cards then set text colour via MUI's `getContrastText`, so a card's palette derives entirely from its artwork.
 
-Fixed colours are the other half of the system: `types.ts` in each domain maps platforms, genres, franchises and ratings to values, and `utils/types.ts` holds the cross-domain ones — `statusToColour`, and `ageRatingToColour` over the `AgeRating` union all three domains record a certificate into. Games are logged as PEGI and write the suffix (`16+`), Shows and Movies as BBFC and write the bare number (`15`); the colour keys off the age rather than the notation, so one swatch means one thing across the tabs, and `isAgeRating` lets each converter reject a bad cell while it still knows which row it came from. `ageRatingBand` is that same tier named rather than coloured, and is what the colour is looked up by, so a surface that groups across both boards and the swatch it draws cannot disagree about which certificates are one thing. Only a grouping reads it — the Omnibus gallery's Rating shelves, where the raw cell would stand a PEGI 16 game apart from the BBFC 15 film it sits at the same age as and split every other tier by its suffix. A card still states the certificate its own row carries, since that is the value the reader would find in the sheet. All of them return the branded `Colour` type. What a brand hex is used for depends on how much of the screen it covers, and `vg/types.ts` splits it in two:
+**Every chart colour is a pair, not a value.** `utils/types.ts` declares `Fill` as `[light, dark]`: the light half is drawn only on the `#ffffff` paper and clears 3:1 against it, the dark half only on `#1d2126` and clears 3:1 against that. Neither half ever has to survive the paper it is not on. A single hex held to both at once is confined to OKLCH L 0.526–0.668, a span of 0.142 — and while chroma barely suffers in that band, lightness _is_ the identity of the warm half of the wheel: a yellow at L 0.67 is `#af9300`, an olive, where the same hue at L 0.88 is `#fdd500`. Splitting the value is what lets a yellow be yellow.
 
-- **Fills** are what chart geometry takes — sunburst wedges, barchart series, timeline bars, stacked segments, card strips. They sit in one lightness band so each clears 3:1 against both surfaces the app paints on (`#ffffff` paper and `#1d2126` paper) while keeping its brand's hue. A brand hex is chosen to stand alone against white, and a set of them is not a scale: Nintendo's `#e60012` at full saturation beside four neighbours reads as one shouting value. PC and iOS stay neutral because neutrality is those brands' identity, clamped in lightness alone.
-- **Accents** are the brand hexes themselves, drawn only in a card's corner chip — a few dozen pixels carrying two or three letters, read as a badge rather than compared against a neighbour, with nothing adjacent to separate from.
+Every lookup therefore takes a `Scheme`. Components read it from `common/useScheme.ts`, which wraps MUI's `useColorScheme` — `theme.palette.mode` answers the light scheme's literal whatever is on screen, since the theme is built with `cssVariables: true`, the same trap `artworkPalette` documents for `palette.background.paper`. That hook also subscribes its caller to scheme changes, which is what re-renders a chart when the reader's system flips at dusk; the CSS variables turn over without React otherwise noticing. `tests/utils/fillContract.test.ts` asserts the floor over every table, against a WCAG implementation of its own so it cannot pass by agreeing with a bug in `src/`.
 
-Three vocabularies live in `utils/types.ts` because more than one tab speaks them. `genreToColour`
-is the ramp all three tracked sheets share — each records its Genre column in one vocabulary, and
-one hue has to mean one genre on every tab, which is what lets the Omnibus bridge a game to a film
-under a single name rather than through a mapping written in code. It falls to `NEUTRAL_FILL`
-off-table rather than throwing, because the genre column is open-ended — which is also what makes
-the Games converter's `"Other"` default for an unrecorded genre land on the neutral for free.
+Values are placed rather than picked: a hue and a role go in, and the lightness is solved until the value clears its floor. Where a real-world source exists it is the anchor. The age-rating ramp is built on the colours PEGI actually prints — its lime `#a5c400`, its amber `#f5a200`, its red `#e2011a`, sampled from the official rating icons. PEGI gives 3 and 7 one colour and 12 and 16 another, so splitting each pair is a deliberate divergence and a necessary one, since a chart drawing 3 and 7 alike cannot be read. The split is made on **hue as well as lightness**: separated by lightness alone the pairs land about dE 11 apart where telling two fills apart wants 15, and on both axes they reach 19.0 and 15.0. BBFC colours its own 15 pink, which breaks the ordering the ramp depends on, and this table merges BBFC 15 with PEGI 16 into one band — so PEGI's ordering wins.
 
-Games is the one tab that draws a second, overlapping vocabulary beside it: `gameplay` is how a
-game is played where `genre` is what it is about, and nine of `vg/types.ts`'s gameplay hexes are
-shared genre hexes under other names. A card states both in turn — the hero and hover subtitles set
-the two swatches side by side, and the ledger stacks the Gameplay row on the Genre row — so at full
-chroma 81 of 340 games would draw them in one colour, 78 of those Role Playing beside Fantasy.
-`gameGenreToColour` cuts the shared ramp's chroma on that tab alone, so saturated reads as "how you
-play" and muted as "what it is about". Only that tab dims: the other three draw no gameplay
-vocabulary and so have no collision, and genre is the primary vocabulary on all of them. The cost
-is that a Fantasy swatch on Games is quieter than a Fantasy wedge on Shows.
+The status ramp states its order in **relative luminance** rather than lightness, because that is what a reader squinting at a chart sees: a green at one OKLCH lightness carries roughly twice the luminance of a blue, so a ramp placed on lightness alone puts Beat above Endless and inverts the reading. `Endless` and `Up To Date` are separate states — a show you are current on that is still running is waiting on its source, where a game with no completion state was never going to be beaten — so the blue is the waiting state alone and Endless joins the greens beside Beat/Ended.
 
-It is the cards that need this, not the charts — every chart here draws one vocabulary at a time,
-for the reasons `mutedGenreToColour` gives. The neutral is the one value it passes through
-untouched: absence is not a vocabulary that needs telling apart, and it has to stay one grey across
-every tab.
+The decade ramp sweeps hue alongside lightness for the same reason the ratings do: eight buckets of lightness alone land neighbours 2.3 dE apart, and the 2010s beside the 2020s at 0.8, under the ~2 dE at which two fills are simply the same colour. Sweeping sepia gold to deep russet doubles that to 4.6 and takes the ramp's ends from 13.4 dE apart to 32.1.
 
-The mute is `desaturate` in `utils/colourUtils.ts`, which pulls each channel toward the colour's
-own luminance **in linear light**. Luminance is a linear combination of the linear channels, so
-that blend cannot move it, and since contrast depends on luminance alone every muted genre clears
-exactly what its source cleared — the fill contract carries over rather than needing to be
-re-argued. That exactness is load-bearing, not fastidiousness: four entries in the shared ramp sit
-within 0.1 of the 3:1 floor on the dark paper, and the same blend done in sRGB space darkens
-enough to take Horror from 3.08 to 2.50.
+Fixed colours are the other half of the system: `types.ts` in each domain maps platforms, genres, franchises and ratings to values, and `utils/types.ts` holds the cross-domain ones. Brand tables keep their brand's hue and chroma and move only lightness, as far as the contract demands of the half being drawn — a brand already inside the band on both papers carries one value twice, which Mario, Marvel and Zelda all do. Pokémon is the clearest gain from the pair: `#ffcb05` is its published yellow, and a yellow held to 3:1 on white is a brown-gold, so the light half pays that price and the dark half is the brand hex itself.
 
-The decade ramp under `decadeToColour` is
-one bronze hue stepping in lightness — a decade is ordered data, so a categorical hue set would
-deny the order — bucketing everything before 1970, which is as many steps as the fill contract
-leaves room for. Movies adds two vocabularies of its own in `movie/types.ts`: five score bands as
-a sequential green ramp with Unscored on the neutral, and the Cinema/Home pair. Shows colours its
-networks as brand-derived fills with `""` off-table — the column gains a new streamer whenever one
-launches, and a crash is the wrong response to that — and its two types exhaustively.
+`vg/types.ts` splits a company two ways. **Fills** are what chart geometry takes; **accents** are the brand hexes themselves, drawn only in a card's corner chip, where a few dozen pixels carrying two or three letters are read as a badge rather than compared against a neighbour. PC is Steam, drawn as Steam: its palette is one cool blue-grey family and the light blue is the half that survives the band. Steam sits on PlayStation's hue, and what separates them is that Steam's character is desaturated where PlayStation's is saturated — dE 17.9 without either giving up its brand. iOS is neutral because Apple's identity is neutral, and _warm_ rather than cool because the neutral grey and Steam's blue are both cool: a cool iOS is squeezed between two values it cannot clear, where Apple's warm finishes differ from each by hue direction at chroma that low. It still sits 9.3 dE from `NEUTRAL_FILL`, under the 15 two fills want, because three low-chroma values cannot all clear each other in this band — the wedge labels and legend names stay load-bearing for that pair, which meet only in the Top Platform list where every row is named.
 
-Franchise colours follow the same lightness rule rather than a ramp: hue and chroma are the brand's and are kept exactly, and only lightness moves, as far as clearing 3:1 against both papers demands and no further. Chroma gives way only where the new lightness leaves sRGB. The cost is separation between brands that already share a hue — six of them are reds inside 5° of each other — so wedge labels, legend names and the gaps between segments are load-bearing for that group. Genres are the one set free to be assigned a hue, because they carry no brand: that ramp separates by hue and holds luminance equal across all of them.
+The genre ramp is the one all three tracked sheets share, so a hue means one genre on every tab, and it falls to `NEUTRAL_FILL` off-table because the column is open-ended. Games draws a second vocabulary beside it — `gameplay` is how a game is played where `genre` is what it is about — and the two tables share exactly two hexes, Action and Adventure, which mean the same thing in both and are deliberately the same colour. Nothing else collides, so both are drawn at full chroma and no mute stands between them.
+
+Three vocabularies live in `utils/types.ts` because more than one tab speaks them: the genre ramp, `statusToColour`, and `ageRatingToColour` over the `AgeRating` union all three domains record a certificate into. Games are logged as PEGI and write the suffix (`16+`), Shows and Movies as BBFC and write the bare number (`15`); the colour keys off the age rather than the notation, so one swatch means one thing across the tabs, and `isAgeRating` lets each converter reject a bad cell while it still knows which row it came from. `ageRatingBand` is that same tier named rather than coloured, and is what the colour is looked up by.
+
+Movies adds two vocabularies of its own in `movie/types.ts`: five score bands as a valenced red-through-amber-to-green ramp with Unscored on the neutral, and the Cinema/Home pair. Shows colours its networks as brand-derived fills with `""` off-table — the column gains a new streamer whenever one launches, and a crash is the wrong response to that. A network is keyed on the string the **sheet** writes rather than the brand's current name: `HBO` is the sheet's value even though the brand is now HBO Max, and renaming the key would silently drop the colour with no error anywhere.
 
 `artworkPalette` in `common/artworkPalette.ts` is what every surface carrying a sampled colour reads: a thumbnail's footer strip, a timeline hover card's panel, the hero band's ground, and the expanded card's ground, tiles and strip. It sits in a module of its own rather than beside the card that publishes the accent, because a hook exported from a file of components is a hot-reload boundary the lint rules refuse. One recipe rather than several treatments that happen to rhyme.
 
@@ -653,7 +628,7 @@ Setup is the plugin's documented path: `@vitejs/plugin-react` exports `reactComp
 - **`this`** anywhere in the function. Highcharts binds the chart to `this` in its event callbacks, so those must live at module scope (see `dimLeafRing` in §6) or they take the whole component down with them.
 - **`??=`**, which the compiler cannot yet lower. Write `x = x ?? y` instead.
 
-A third construct bails the same way: a **destructured prop with a default value** (`({ landscape = false })`) is an assignment pattern `BuildHIR::lowerAssignment` cannot lower, and it takes the whole component out. Components here therefore read defaults off the props object (`const landscape = props.landscape ?? false`), or rename in the pattern and default below it where a rest spread must not pick the prop up. Every function currently compiles — the baseline is **179 compiled, 0 bailed** — so any bailout is a regression. A `MethodCall` bailout, the other kind seen here, does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
+A third construct bails the same way: a **destructured prop with a default value** (`({ landscape = false })`) is an assignment pattern `BuildHIR::lowerAssignment` cannot lower, and it takes the whole component out. Components here therefore read defaults off the props object (`const landscape = props.landscape ?? false`), or rename in the pattern and default below it where a rest spread must not pick the prop up. Every function currently compiles — the baseline is **180 compiled, 0 bailed** — so any bailout is a regression. A `MethodCall` bailout, the other kind seen here, does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
 
 The compiler costs about 4% of bundle size (~15KB gzipped) in injected cache slots. That is a deliberate trade, and `npm run analyze` exists to keep it honest.
 
@@ -706,7 +681,6 @@ Routing uses `HashRouter` because the app is served from GitHub Pages, which can
 
 Recorded so they are not mistaken for design:
 
-- **`holiday/` is a stub.** `HolidaysTab` is defined in `tabs.ts` but deliberately omitted from the exported `Tabs` array, so the route is unreachable. Its converter drops the dates its own `Holiday` type declares, and `Map.tsx` renders `data.toString()` as placeholder text. It also predates `useData` and hand-rolls its own module-level cache.
 - **No DOM or component tests.** `tests/` covers pure logic — converters, filters, the reducer, the chart data transforms and the cache round trip — and deliberately stops there; AGENTS.md explains the trade. Nothing verifies that a chart renders, and the show converter's date ordering is still only a `console.assert`, which does not alter control flow.
 - **`.eslintrc.cjs` is dead.** ESLint 9 uses the flat `eslint.config.js`; the legacy file remains in the tree and is not applied. The flat config is also the weaker of the two — it drops the type-checked and React-specific rule sets the old file enabled.
 - **`PlainDate.valueOf` returns a string**, so every date comparison goes through `toString()` and allocates. It is correct and the ordering is deliberate (§7), but the hot path — the timeline's greedy packing loop — does tens of thousands of comparisons per layout. A numeric sort key computed once per interned instance would preserve ordering exactly, including across mixed `Year`/`YearMonthDay`. Deliberately not done: it touches the most load-bearing class in the codebase for a win nobody has measured as necessary.

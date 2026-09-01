@@ -2,10 +2,14 @@ import { YearMonthDay } from "../common/date";
 import {
   KeysMatching,
   ageRatingToColour,
+  fill,
   genreToColour,
+  pick,
   statusToColour,
   type AgeRating,
   type Colour,
+  type Fill,
+  type Scheme,
 } from "../utils/types";
 
 export interface Show {
@@ -67,58 +71,69 @@ export const isShow = (arg: Show | Season): arg is Show => "name" in arg;
 /**
  * The broadcasters and streamers with a colour, as fills built the way `vg/types.ts` builds its
  * franchise brands: hue and chroma are the brand's, and only lightness moves, as far as the fill
- * contract on `NEUTRAL_FILL` demands. Every value here meets the full 3:1 on both papers.
+ * contract on `NEUTRAL_FILL` demands of each half.
  *
- * The table covers the networks a reader would recognise as brands. The long tail — the sheet
+ * The table covers the networks a reader would recognise as brands, verified against their current
+ * identities: HBO is a graphite because that is what its 2025 rebrand made it, and NBC is here
+ * because it is the second-largest network on this tab. The long tail — the sheet
  * holds seventy-odd distinct values, most of them anime studios with a handful of shows each —
  * deliberately has none: a vocabulary nobody can learn teaches nothing, and the charts' palette
  * fallback separates them fine.
  */
-const networkColours: Record<string, Colour> = {
-  Netflix: "#e21c26" as Colour,
-  "Apple TV": "#6e7791" as Colour,
-  HBO: "#925ddd" as Colour,
-  "Prime Video": "#008ccc" as Colour,
-  BBC: "#de207f" as Colour,
-  "Disney+": "#4568d8" as Colour,
-  AMC: "#a8811e" as Colour,
-  Fox: "#0d7aee" as Colour,
-  CBS: "#2a63e7" as Colour,
-  Hulu: "#0c914f" as Colour,
+const networkColours: Record<string, Fill> = {
+  Netflix: fill("#e50914", "#e50914"),
+  "Prime Video": fill("#009fd5", "#00a8e1"),
+  "Disney+": fill("#0e7c8c", "#127e8e"),
+  Hulu: fill("#00ab5e", "#1ce783"),
+  // Keyed on what the sheet writes. The brand is HBO Max and its 2025 rebrand made it
+  // monochrome, which is why this is a graphite rather than the purple the name suggests.
+  HBO: fill("#5a5a66", "#6f6f7b"),
+  "Apple TV": fill("#6a7183", "#777f91"),
+  BBC: fill("#f34291", "#ff4e9b"),
+  NBC: fill("#0089d0", "#0089d0"),
+  Fox: fill("#0c7bc1", "#0c7bc1"),
+  CBS: fill("#0057b8", "#216dd0"),
+  AMC: fill("#d5202f", "#d5202f"),
 };
+
+/** Every network the table colours; the long tail deliberately has none. */
+export const NETWORK_NAMES = Object.keys(networkColours);
 
 /**
  * `""` rather than a throw off the table — the deliberate opposite of `platformToColor`. A
  * platform is a closed set where an unknown value is a typo worth crashing on; the network column
  * gains a new streamer or studio whenever one launches, and a crash is the wrong response to that.
  */
-export const networkToColour = ({ network }: { network: string }): Colour => networkColours[network] ?? ("" as Colour);
+export const networkToColour = ({ network }: { network: string }, scheme: Scheme): Colour => {
+  const colour = networkColours[network];
+  return colour ? pick(colour, scheme) : ("" as Colour);
+};
 
 /**
  * Exhaustive over `Type`, so adding a type without deciding its colour is a compile error.
  * Both meet the fill contract; anime takes the rose its fandom paints in, shows a broadcast indigo.
  */
-const typeColours: Record<Type, Colour> = {
-  show: "#5d71d7" as Colour,
-  anime: "#e33b81" as Colour,
+const typeColours: Record<Type, Fill> = {
+  show: fill("#006bd1", "#1a82f2"),
+  anime: fill("#c42b91", "#de47a8"),
 };
 
-export const typeToColour = ({ type }: { type: Type }): Colour => typeColours[type];
+export const typeToColour = ({ type }: { type: Type }, scheme: Scheme): Colour => pick(typeColours[type], scheme);
 
-export const groupToColour = (group: keyof Show | "none" | "show", show: Show) => {
+export const groupToColour = (group: keyof Show | "none" | "show", show: Show, scheme: Scheme) => {
   switch (group) {
     case "status":
-      return statusToColour(show);
+      return statusToColour(show, scheme);
     case "rating":
       // The same map the games tab paints its PEGI with, so a swatch means one thing across the app.
-      return ageRatingToColour(show.rating);
+      return ageRatingToColour(show.rating, scheme);
     case "genre":
       // The vocabulary Movies shares, so one hue means one genre on both tabs.
-      return genreToColour(show.genre);
+      return genreToColour(show.genre, scheme);
     case "network":
-      return networkToColour(show);
+      return networkToColour(show, scheme);
     case "type":
-      return typeToColour(show);
+      return typeToColour(show, scheme);
     default:
       // Franchise has no colour vocabulary here — 229 of 308 shows carry their own name in the
       // column, so a table would be near-empty and a swatch on it would teach a legend no chart

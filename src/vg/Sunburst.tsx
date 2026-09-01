@@ -4,12 +4,15 @@ import { releaseDecade } from "../utils/types";
 import type { KeysMatching } from "../utils/types";
 import { PlainDate } from "../common/date";
 import Sunburst, { SunBurstControls } from "../common/Sunburst";
+import { useScheme } from "../common/useScheme";
 import { format } from "../utils/mathUtils";
 
 type OptionKeys = VideoGameStringKeys | KeysMatching<VideoGame, VideoGame["startDate"]> | "decade";
 const options: OptionKeys[] = [...videoGameOptions, "startDate", "decade"];
 
 const VgSunburst = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
+  const scheme = useScheme();
+
   const [controlStates, setControlStates] = useState<OptionKeys[]>(["company", "platform", "franchise"]);
 
   return (
@@ -26,7 +29,7 @@ const VgSunburst = ({ data, measure }: { data: VideoGame[]; measure: Measure }) 
           return val instanceof PlainDate ? val.yearString() : String(val);
         },
         getCount: ({ hours }) => (measure === "Hours" ? hours : 1),
-        getColor: (game, firstGroup) => groupToColour(firstGroup, game) || undefined,
+        getColor: (game, firstGroup) => groupToColour(firstGroup, game, scheme) || undefined,
         getLeafName: ({ name }) => name,
       }}
       controls={

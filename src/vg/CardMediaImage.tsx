@@ -14,13 +14,13 @@ import {
   VideoGame,
   companyToAccent,
   franchiseToColour,
-  mutedGenreToColour,
   gameplayToColour,
   platformToColor,
   ratingToColour,
 } from "./types";
 import Grid from "@mui/material/Grid";
-import { statusToColour } from "../utils/types";
+import { genreToColour, statusToColour, type Scheme } from "../utils/types";
+import { useScheme } from "../common/useScheme";
 import { CURRENT_PLAINDATE, Year, YearMonthDay, formatDate, formatDateRange } from "../common/date";
 import { hoverCardArtworkSx } from "../common/cardArrangement";
 import { buildStrip, stripYearTicks } from "../common/timelineStripData";
@@ -34,12 +34,12 @@ import { useFranchiseGames } from "./franchiseContext";
  * Zero is unrecorded rather than a measurement in both, which is why the test is truthiness: a
  * tile reading zero hours says the game was played for none, where saying nothing says the truth.
  */
-const gameStats = (game: VideoGame): CardStat[] => {
+const gameStats = (game: VideoGame, scheme: Scheme): CardStat[] => {
   const stats: CardStat[] = [];
 
   if (game.hours) stats.push({ label: "Hours", value: game.hours });
   if (game.numDays) stats.push({ label: "Days To Beat", value: game.numDays });
-  stats.push({ label: "Status", value: game.status, colour: statusToColour(game) });
+  stats.push({ label: "Status", value: game.status, colour: statusToColour(game, scheme) });
 
   return stats;
 };
@@ -60,7 +60,7 @@ const joinParts = (parts: (string | undefined)[]): string => parts.filter(Boolea
  * fill a ring or a bar on the tab behind it. The rest are text, because inventing a colour for a
  * publisher teaches the reader a legend no chart honours.
  */
-const gameRows = (game: VideoGame): LedgerRow[] => {
+const gameRows = (game: VideoGame, scheme: Scheme): LedgerRow[] => {
   const rows: LedgerRow[] = [
     { label: "Played", value: formatDateRange(game.startDate, game.endDate) },
     // The brand hex rather than the chart fill, on the same rule the corner chip follows: this is
@@ -76,13 +76,13 @@ const gameRows = (game: VideoGame): LedgerRow[] => {
   if (game.franchise) {
     // Unknown franchises fall through to an empty colour, which is no swatch rather than a black
     // square standing for nothing.
-    rows.push({ label: "Franchise", value: game.franchise, swatch: franchiseToColour(game) || undefined });
+    rows.push({ label: "Franchise", value: game.franchise, swatch: franchiseToColour(game, scheme) || undefined });
   }
 
   // Pushed together because the pair is the point: how it is played, then what it is about.
   rows.push(
-    { label: "Gameplay", value: game.gameplay, swatch: gameplayToColour(game) },
-    { label: "Genre", value: game.genre, swatch: mutedGenreToColour(game.genre) },
+    { label: "Gameplay", value: game.gameplay, swatch: gameplayToColour(game, scheme) },
+    { label: "Genre", value: game.genre, swatch: genreToColour(game.genre, scheme) },
   );
 
   // Themes get a line of their own rather than riding on either of the two above: they are the one
@@ -91,27 +91,38 @@ const gameRows = (game: VideoGame): LedgerRow[] => {
   const themes = joinParts(game.theme);
   if (themes) rows.push({ label: "Themes", value: themes });
 
-  rows.push({ label: "PEGI", value: game.rating, swatch: ratingToColour(game) });
+  rows.push({ label: "PEGI", value: game.rating, swatch: ratingToColour(game, scheme) });
 
   return rows;
+};
+
+/**
+ * A component rather than JSX inside the thunk, so the scheme is read where the body is built.
+ * Reading it in the card itself would put a context subscription on every card of an uncapped
+ * wall to serve the one that is open, which is the cost the thunk exists to avoid.
+ */
+const VgCardDetail = ({ item }: { item: VideoGame }) => {
+  const scheme = useScheme();
+
+  return (
+    <CardContent>
+      <Grid
+        container
+        spacing={1}
+      >
+        <VgTimelineCard item={item} />
+        <HeroStatRow stats={gameStats(item, scheme)} />
+        <MetadataLedger rows={gameRows(item, scheme)} />
+      </Grid>
+    </CardContent>
+  );
 };
 
 const VgCardMediaImage: TypedCardMediaImage<VideoGame> = ({ item, ...props }) => (
   <CardMediaImage
     alt={item.name}
     image={item.banner}
-    detailComponent={() => (
-      <CardContent>
-        <Grid
-          container
-          spacing={1}
-        >
-          <VgTimelineCard item={item} />
-          <HeroStatRow stats={gameStats(item)} />
-          <MetadataLedger rows={gameRows(item)} />
-        </Grid>
-      </CardContent>
-    )}
+    detailComponent={() => <VgCardDetail item={item} />}
     {...props}
   />
 );
@@ -124,6 +135,8 @@ const VG_TICKS = stripYearTicks(VG_EPOCH, CURRENT_PLAINDATE);
  * the thing the strip has to say, and the opened game is where in it you are.
  */
 const VgTimelineCard = ({ item: game }: { item: VideoGame }) => {
+  const scheme = useScheme();
+
   const franchise = useFranchiseGames(game);
 
   const { bands, laneCount } = buildStrip(gameSpans(franchise, CURRENT_PLAINDATE), VG_EPOCH, CURRENT_PLAINDATE);
@@ -135,7 +148,7 @@ const VgTimelineCard = ({ item: game }: { item: VideoGame }) => {
     <TimelineCard
       bands={bands.map((band) => ({
         ...band,
-        colour: platformToColor(band.game),
+        colour: platformToColor(band.game, scheme),
         muted: band.key !== subject,
         imprecise: !band.precise,
         tooltip: <GameTooltip game={band.game} />,
@@ -199,20 +212,24 @@ const gameHoverStats = ({ hours, numDays }: VideoGame): PanelStat[] => {
  * a game and a second assembly of it is a second thing to keep in step — one that can come to carry
  * different figures or a different arrangement from this one.
  */
-export const VgHoverCard = ({ item }: { item: VideoGame }) => (
-  <VgCardMediaImage
-    item={item}
-    extractColour
-    sx={hoverCardArtworkSx("landscape")}
-    footerComponent={
-      <CardPanel
-        title={item.name}
-        subtitle={gameSubtitle(item)}
-        dateRange={formatDateRange(item.startDate, item.endDate)}
-        stats={gameHoverStats(item)}
-      />
-    }
-  />
-);
+export const VgHoverCard = ({ item }: { item: VideoGame }) => {
+  const scheme = useScheme();
+
+  return (
+    <VgCardMediaImage
+      item={item}
+      extractColour
+      sx={hoverCardArtworkSx("landscape")}
+      footerComponent={
+        <CardPanel
+          title={item.name}
+          subtitle={gameSubtitle(item, scheme)}
+          dateRange={formatDateRange(item.startDate, item.endDate)}
+          stats={gameHoverStats(item)}
+        />
+      }
+    />
+  );
+};
 
 export default VgCardMediaImage;

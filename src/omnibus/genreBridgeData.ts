@@ -1,5 +1,4 @@
 import { assignPercents } from "../utils/mathUtils";
-import { genreToColour, type Colour } from "../utils/types";
 import type { OmniItem } from "./adapter";
 import { media, type Medium } from "./types";
 import "../utils/arrayUtils";
@@ -14,7 +13,6 @@ export interface GenreBridgeSegment {
 
 export interface GenreBridgeRow {
   genre: string;
-  colour: Colour;
   /** Hours across every medium in the row, floored once the way every total on this tab is. */
   hours: number;
   /** In the page's medium order, and only the media that actually logged hours here. */
@@ -54,7 +52,6 @@ export const genreBridge = (items: OmniItem[]): GenreBridgeRow[] => {
 
       return {
         genre,
-        colour: genreToColour(genre),
         hours: Math.floor(counts.sum("count")),
         segments: assignPercents(counts, counts.sum("count")).map(({ medium, count, percent }) => ({
           medium,

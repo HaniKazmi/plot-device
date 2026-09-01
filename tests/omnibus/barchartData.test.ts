@@ -30,13 +30,14 @@ describe("omniBarchartRows", () => {
       ),
       "Items",
       "medium",
+      "light",
     );
 
     expect(rows.map((row) => row.name)).toEqual(["Games", "Shows", "Movies"]);
     expect(rows.map((row) => row.colour)).toEqual([
-      mediumToColour("game"),
-      mediumToColour("show"),
-      mediumToColour("movie"),
+      mediumToColour("game", "light"),
+      mediumToColour("show", "light"),
+      mediumToColour("movie", "light"),
     ]);
   });
 
@@ -49,6 +50,7 @@ describe("omniBarchartRows", () => {
       ),
       "Items",
       "medium",
+      "light",
     );
 
     expect(rows[0].date).toBe(Year.get(2020));
@@ -57,7 +59,7 @@ describe("omniBarchartRows", () => {
   it("keeps a whole year in every view, since two of the three media hold no finer date", () => {
     const items = toOmniItems(library({ movies: [movie({ startDate: YearMonthDay.get(2021, 5, 9) })] }));
 
-    expect(omniBarchartRows(items, "Hours", "medium")[0].date).toBe(Year.get(2021));
+    expect(omniBarchartRows(items, "Hours", "medium", "light")[0].date).toBe(Year.get(2021));
   });
 
   it("counts one per item under Items, whatever the item cost in hours", () => {
@@ -65,6 +67,7 @@ describe("omniBarchartRows", () => {
       toOmniItems(library({ games: [videoGame({ hours: 120 })], movies: [movie({ minutes: 96 })] })),
       "Items",
       "medium",
+      "light",
     );
 
     expect(rows.map((row) => row.value)).toEqual([1, 1]);
@@ -73,7 +76,12 @@ describe("omniBarchartRows", () => {
   it("carries exact hours under Hours, so the share view divides values and not floors", () => {
     // 96 minutes is 1.6 hours. Flooring here would make the film's share of a year a third of
     // what it is, and would drop every film under an hour from the chart entirely.
-    const rows = omniBarchartRows(toOmniItems(library({ movies: [movie({ minutes: 96 })] })), "Hours", "medium");
+    const rows = omniBarchartRows(
+      toOmniItems(library({ movies: [movie({ minutes: 96 })] })),
+      "Hours",
+      "medium",
+      "light",
+    );
 
     expect(rows[0].value).toBeCloseTo(1.6);
   });
@@ -85,11 +93,12 @@ describe("omniBarchartRows", () => {
       toOmniItems(library({ games: [videoGame({ genre: "Action" })], movies: [movie({ genre: "Action" })] })),
       "Items",
       "genre",
+      "light",
     );
 
     expect(rows.map((row) => row.name)).toEqual(["Action", "Action"]);
     expect(new Set(rows.map((row) => row.colour)).size).toBe(1);
-    expect(rows[0].colour).toBe(genreToColour("Action"));
+    expect(rows[0].colour).toBe(genreToColour("Action", "light"));
   });
 
   it("splits by the age band, so one tier is not two series in two notations", () => {
@@ -99,10 +108,11 @@ describe("omniBarchartRows", () => {
       toOmniItems(library({ games: [videoGame({ rating: "16+" })], movies: [movie({ rating: "15" })] })),
       "Items",
       "rating",
+      "light",
     );
 
     expect(rows.map((row) => row.name)).toEqual(["15/16", "15/16"]);
-    expect(rows[0].colour).toBe(ageRatingToColour("15"));
+    expect(rows[0].colour).toBe(ageRatingToColour("15", "light"));
   });
 
   it("drops a row whose split column is empty rather than opening a nameless series", () => {
@@ -110,12 +120,12 @@ describe("omniBarchartRows", () => {
     // nothing saying what it is.
     const items = toOmniItems(library({ games: [videoGame({ genre: "" }), videoGame({ genre: "Action" })] }));
 
-    expect(omniBarchartRows(items, "Items", "genre").map((row) => row.name)).toEqual(["Action"]);
+    expect(omniBarchartRows(items, "Items", "genre", "light").map((row) => row.name)).toEqual(["Action"]);
   });
 
   it("leaves the medium split unable to be empty, since every item carries one", () => {
     const items = toOmniItems(library({ games: [videoGame({ genre: "" })] }));
 
-    expect(omniBarchartRows(items, "Items", "medium")).toHaveLength(1);
+    expect(omniBarchartRows(items, "Items", "medium", "light")).toHaveLength(1);
   });
 });

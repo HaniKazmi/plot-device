@@ -20,6 +20,7 @@ import type { FilterDispatch } from "./filterUtils";
 import { OMNIBUS_SECTIONS } from "./sections";
 import { media, mediumToColour, mediumToLabel, mediumToShape, type Measure, type Medium } from "./types";
 import { shapeRatioValues, shapeToArrangement, shapeToRatio } from "../common/cardArrangement";
+import { useScheme } from "../common/useScheme";
 
 const Stats = ({
   data,
@@ -43,6 +44,8 @@ const Stats = ({
   yearTo: YearNumber;
   filterDispatch: FilterDispatch;
 }) => {
+  const scheme = useScheme();
+
   const totals = unionTotals(data);
   const inYear = unionTotals(data.filter((item) => item.year === yearTo));
   // Whether more than one medium survived the filters, which is what the composition band below
@@ -112,7 +115,7 @@ const Stats = ({
                 measureFunc={(items) => measureOf(items, measure)}
                 group={[...media]}
                 groupOf={(item) => item.medium}
-                groupToColour={mediumToColour}
+                groupToColour={(ele) => mediumToColour(ele, scheme)}
                 groupToLabel={mediumToLabel}
                 measureLabel={measure}
               />
@@ -141,6 +144,8 @@ const Stats = ({
  * flight simply contributes no card, rather than a card saying nothing.
  */
 const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
+  const scheme = useScheme();
+
   const navigate = useNavigate();
 
   // The jump the medium chip makes. Built from the tab objects rather than from written-out paths,
@@ -174,9 +179,12 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
           onJump={jump(VideoGamesTab)}
           kicker={`Since ${formatDate(now.game.startDate)}`}
           title={now.game.name}
-          // The shared ramp at full chroma, like the two cards beside it: this page draws no
-          // gameplay vocabulary, so the collision the Games tab dims for does not arise here.
-          subtitle={[{ text: now.game.platform }, { text: now.game.genre, swatch: genreToColour(now.game.genre) }]}
+          // The genre alone, like the two cards beside it: this page draws no gameplay
+          // vocabulary, so a game's Now card names the one thing all three media record.
+          subtitle={[
+            { text: now.game.platform },
+            { text: now.game.genre, swatch: genreToColour(now.game.genre, scheme) },
+          ]}
           // The franchise tile is dropped by passing the game alone. The Crossings section is
           // where this page states what a franchise spans, and it is drawn from the filtered
           // union — while the hero is elected from the library and the filters do not narrow it,
@@ -194,7 +202,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
           title={`${now.show.show.name} S${now.show.s}`}
           subtitle={[
             { text: now.show.show.network },
-            { text: now.show.show.genre, swatch: genreToColour(now.show.show.genre) },
+            { text: now.show.show.genre, swatch: genreToColour(now.show.show.genre, scheme) },
           ]}
           // The rate tile stays on the Shows tab's own hero; beside a poster this card's text
           // column holds two figures comfortably and three crowd it.
@@ -209,7 +217,10 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
           onJump={jump(MoviesTab)}
           kicker={formatDate(now.movie.startDate)}
           title={now.movie.name}
-          subtitle={[{ text: now.movie.director }, { text: now.movie.genre, swatch: genreToColour(now.movie.genre) }]}
+          subtitle={[
+            { text: now.movie.director },
+            { text: now.movie.genre, swatch: genreToColour(now.movie.genre, scheme) },
+          ]}
           stats={movieHeroStats(now.movie, 1)}
         />
       )}
@@ -293,6 +304,8 @@ const NowCard = <T,>(props: {
   subtitle: PanelSubtitlePart[];
   stats: PanelStat[];
 }) => {
+  const scheme = useScheme();
+
   const shape = mediumToShape(props.medium);
   const beside = shapeToArrangement(shape) === "beside";
 
@@ -316,7 +329,11 @@ const NowCard = <T,>(props: {
         // The caller has sized the artwork itself, so the column is the picture's width rather than
         // a share of a card whose width was imposed on it.
         mediaLayout={beside ? "aside" : undefined}
-        chip={{ label: mediumToLabel(props.medium), colour: mediumToColour(props.medium), onClick: props.onJump }}
+        chip={{
+          label: mediumToLabel(props.medium),
+          colour: mediumToColour(props.medium, scheme),
+          onClick: props.onJump,
+        }}
         cardSx={{
           // A poster card is a row at every width; only a banner card stacks, and it stacks always.
           flexDirection: beside ? "row" : { xs: "column", md: "row" },

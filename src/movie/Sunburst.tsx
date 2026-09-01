@@ -3,6 +3,7 @@ import { groupToColour, type Measure, type Movie, type MovieGroup } from "./type
 import Sunburst, { SunBurstControls } from "../common/Sunburst";
 import { movieGroupValue } from "./statsData";
 import { format } from "../utils/mathUtils";
+import { useScheme } from "../common/useScheme";
 
 type OptionKeys = Exclude<MovieGroup, "none"> | "startDate" | "name";
 
@@ -12,6 +13,8 @@ type OptionKeys = Exclude<MovieGroup, "none"> | "startDate" | "name";
  * hundred names make an unreadable inner ring, and read fine one ring out from the leaves.
  */
 const MovieSunburst = ({ data, measure }: { data: Movie[]; measure: Measure }) => {
+  const scheme = useScheme();
+
   const [controlStates, setControlStates] = useState<OptionKeys[]>(["decade", "genre", "franchise"]);
 
   return (
@@ -37,7 +40,7 @@ const MovieSunburst = ({ data, measure }: { data: Movie[]; measure: Measure }) =
         // the shows tab counts the same way, and one convention beats two.
         getCount: ({ minutes }) => (measure === "Hours" ? minutes && Math.floor(minutes / 60) : 1),
         getColor: (movie, firstGroup) =>
-          firstGroup === "startDate" ? undefined : groupToColour(firstGroup, movie) || undefined,
+          firstGroup === "startDate" ? undefined : groupToColour(firstGroup, movie, scheme) || undefined,
         getLeafName: (movie) => movie.name,
       }}
       controls={

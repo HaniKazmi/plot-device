@@ -15,8 +15,6 @@ There is no backend and no database — a spreadsheet _is_ the storage layer, an
 - **Client-side rendering** — Google Identity Services plus `gapi`, authenticating and fetching straight from the browser.
 - **Cache-first loading** — the dashboard paints from `localStorage` before authentication completes, then refreshes.
 
-A fifth section, Holidays, exists in the source but is deliberately unrouted while it is unfinished.
-
 ## Tech stack
 
 | Concern     | Choice                                                                   |
@@ -91,7 +89,6 @@ src/
   utils/               prototype extensions, branded types, colour extraction
   vg/ show/ movie/     per-domain model, converter, filters, adapters
   omnibus/             composes vg/show/movie's own data; no sheet of its own
-  holiday/             unfinished, currently unrouted
 tests/                 mirrors src/, plus fixtures/ and an architecture guard
 extension/             standalone Chrome extension, outside the Vite build
 ```
