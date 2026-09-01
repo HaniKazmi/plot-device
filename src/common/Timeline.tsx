@@ -32,11 +32,11 @@ export type { TimelineData };
 // ============================================================================
 const AXIS_HEIGHT = 45;
 /**
- * Row pitch and padding are held to the height the chart has always been: the Shows timeline
- * runs to 22 rows, and anything taller pushes it past the viewport and starts scrolling a chart
- * that used to be readable in one glance. The padding is halved against the older figure because
- * the height it feeds now accounts for the last row properly, giving real clearance at both ends
- * rather than double at the top and none at the bottom.
+ * Row pitch and padding are what keep the chart inside one screen: the Shows timeline runs to 22
+ * rows, and a taller pitch pushes it past the viewport, so a chart that reads in one glance starts
+ * scrolling instead. The padding is half the pitch's own margin because the height it feeds counts
+ * the last row, which is what gives real clearance at both ends rather than double at the top and
+ * none at the bottom.
  */
 const ROW_HEIGHT = 25;
 const ROW_PADDING = 5;

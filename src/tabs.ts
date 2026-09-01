@@ -18,8 +18,8 @@ export interface Tab {
   /**
    * Deliberately wider than the columns in use. `arrayToJson` keys each row by its header name, so
    * a range only has to *cover* a column for the converter to find it — but a column added or
-   * moved past the end of a tight range simply stops arriving, with no error anywhere. That has
-   * silently dropped a field twice. Trailing empty columns cost one extra key and nothing else.
+   * moved past the end of a tight range simply stops arriving, with no error anywhere: the field
+   * is absent on every row rather than wrong on one. Trailing empty columns cost one extra key.
    */
   range?: string;
   component: FunctionComponent;

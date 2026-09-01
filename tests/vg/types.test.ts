@@ -92,8 +92,8 @@ describe("groupToColour", () => {
 
   it("keeps the gameplay and genre vocabularies apart, so a card can state both at full chroma", () => {
     // A card sets the two swatches side by side — the hero and hover subtitles, and the ledger's
-    // Gameplay row above its Genre row. The pair that used to collide hardest was Role Playing
-    // beside Fantasy, which is 78 of the 340 games.
+    // Gameplay row above its Genre row. Role Playing beside Fantasy is the pair under the most
+    // pressure, being 78 of the 340 games — the two a reader sees adjacent most often.
     const pair = videoGame({ gameplay: "Role Playing", genre: "Fantasy" });
 
     expect(groupToColour("gameplay", pair, "light")).not.toBe(groupToColour("genre", pair, "light"));

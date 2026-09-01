@@ -89,7 +89,7 @@ Ordered by how quietly they fail.
 - **Never read a browser global at module scope.** `const storage = localStorage` at the top of a module makes merely importing it throw wherever the global is absent. Node exposes `localStorage` and `sessionStorage` from v24 but not on v22, which CI runs, so this passes locally and fails there. Read the global inside the function that needs it. `tests/architecture.test.ts` enforces this.
 - **Never put a bare colour after a comma in the `background` shorthand.** `background: linear-gradient(a, a), ${colour}` looks like an overlay over a colour and is not: only the last layer may carry a background-colour, and it is space-separated. A colour written as its own comma-separated layer is not a valid `<bg-image>`, so that half is dropped and the computed value reads `linear-gradient(a, a), none` — an overlay sitting on nothing. Set `backgroundImage` and `backgroundColour` as two properties instead.
 - **Never add a field named `show` to a non-`show` domain.** `show/Show.tsx` passes a replacer that strips that key on cache write; it is scoped to that domain, but the name is the trigger.
-- **Cache keys are versioned — bump the version when the model's shape changes.** `dataCacheKey(domain, version)` in `common/useData.ts` builds the key (`vg-data-cache-v1`, `show-data-cache-v3`, `movie-data-cache-v3`), and `dropSupersededVersions` clears the previous key on first load. A field added without a bump is simply absent on a returning visitor's cached objects — the component reading it fails, or worse reads a silent default, and only on other people's browsers.
+- **Cache keys are versioned — bump the version when the model's shape changes.** `dataCacheKey(domain, version)` in `common/useData.ts` builds the key (`vg-data-cache-v2`, `show-data-cache-v3`, `movie-data-cache-v3`), and `dropSupersededVersions` clears the previous key on first load. A field added without a bump is simply absent on a returning visitor's cached objects — the component reading it fails, or worse reads a silent default, and only on other people's browsers.
 - **`PlainDate.from()` throws on partial dates.** It dispatches on string length: 10 chars → `YearMonthDay`, 4 → `Year`. `"2024-05"` throws. That is deliberate — it surfaces bad sheet data loudly.
 - **Colour lookups throw on unknown values** (`platformToShort`, `ratingToColour`). Also deliberate: it catches typos in the spreadsheet. Do not soften them to a fallback colour.
 - **Every colour lookup takes a `Scheme`.** A fill is a `Fill` — a light/dark pair — so `genreToColour(genre)` alone does not type-check; components read the current paper from `useScheme()` and pure builders take it as a parameter. Reading `theme.palette.mode` instead gives the light scheme's literal whatever is on screen, because the theme is built with `cssVariables: true`.
@@ -125,7 +125,7 @@ Authentication notes that will otherwise waste your time:
 **To test without touching real data**, seed the caches directly and reload — `useData` reads them synchronously on mount, and with no token it will not overwrite them:
 
 ```js
-localStorage.setItem("vg-data-cache-v1", JSON.stringify(games));
+localStorage.setItem("vg-data-cache-v2", JSON.stringify(games));
 localStorage.setItem("show-data-cache-v3", JSON.stringify(shows));
 localStorage.setItem("movie-data-cache-v3", JSON.stringify(movies));
 ```

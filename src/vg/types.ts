@@ -122,9 +122,10 @@ export type Measure = "Hours" | "Games";
  * separated only by lightness and chroma read as one blue however far apart they measure.
  *
  * Putting PC in the warm arc is what lets the other two entries be themselves. PlayStation keeps
- * its published #006FCD on both papers, and iOS returns to Apple's own space grey and silver — its
- * warm cast existed only to escape a blue PC, and with the cool region holding nothing but iOS and
- * the neutral, a lightness gap is enough to separate them. That gap is the table's weakest link at
+ * its published #006FCD on both papers, and iOS takes Apple's own space grey and silver — a warm
+ * cast on it would buy nothing except distance from a PC that is no longer blue, and with the cool
+ * region holding only iOS and the neutral, a lightness gap separates them. That gap is the weakest
+ * link in the table at
  * 11.8, which is under the 15 two fills want: the wedge labels and legend names stay load-bearing
  * for that pair, and they meet only in the Top Platform list where every row is named.
  *
