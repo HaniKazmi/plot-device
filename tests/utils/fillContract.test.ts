@@ -32,7 +32,7 @@ import {
 } from "../../src/movie/types";
 import { BOOK_FILL, media, mediumToColour } from "../../src/omnibus/types";
 import { pick } from "../../src/utils/types";
-import Tabs from "../../src/tabs";
+import Tabs, { BOOKS_PRIMARY } from "../../src/tabs";
 import { PAPERS, contrast, liveGenres } from "../fixtures/colour";
 import { videoGame } from "../fixtures/vgRows";
 import { show } from "../fixtures/shows";
@@ -192,6 +192,14 @@ describe("tab colours", () => {
       expect(contrast(tab.primaryColour!, PAPERS[scheme]), `${tab.name} (${tab.primaryColour})`).toBeGreaterThanOrEqual(
         FLOOR,
       );
+    });
+  });
+
+  describe.each(SCHEMES)("the Books primary, reserved and drawn nowhere yet", (scheme) => {
+    it(`clears 3:1 on the ${scheme} paper`, () => {
+      // Held to the floor while it waits, exactly as BOOK_FILL is: nothing renders it, so this is
+      // the only thing stopping the value drifting below the bar every tab beside it clears.
+      expect(contrast(BOOKS_PRIMARY, PAPERS[scheme]), `Books (${BOOKS_PRIMARY})`).toBeGreaterThanOrEqual(FLOOR);
     });
   });
 });

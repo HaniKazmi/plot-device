@@ -88,12 +88,12 @@ export const MoviesTab: SheetTab = {
  * derives one from the other, so moving a tab's primary means moving its medium fill in the same
  * edit.
  *
- * A secondary is **not** its primary's complement. The five primaries are spread around the wheel,
- * so 180° from any one of them lands on another: complements put the Movies accent 3.2 dE from the
- * Shows app bar and the Omnibus accent 3.4 from Books'. Each secondary instead takes the midpoint
- * of a gap *between* two primaries, so the ten interleave — no accent reads as another tab's bar,
- * and the closest of all ten pairs is 16.1 dE. Each still lands over 31 dE from its own primary,
- * which is what `NavBar`'s indicator needs: it is drawn on that primary.
+ * A secondary is **not** its primary's complement. The primaries are spread around the wheel, so
+ * 180° from any one of them lands on another: complements put the Movies accent 3.2 dE from the
+ * Shows app bar. Each secondary instead takes the midpoint of a gap *between* two primaries, so the
+ * eight interleave — no accent reads as another tab's bar, and the closest of all eight pairs is
+ * 16.2 dE. Each still lands over 31 dE from its own primary, which is what `NavBar`'s indicator
+ * needs: it is drawn on that primary.
  */
 export const OmnibusTab: Tab = {
   id: "omnibus",
@@ -108,6 +108,27 @@ export const OmnibusTab: Tab = {
  * `Tabs[0].component` for the index route, and `tabForPath` falls back to `tabs[0]` for any path
  * that matches no tab id, root included.
  */
+/**
+ * Reserved for the Books tab, so the wheel it comes from stays one decision.
+ *
+ * The primary is `#958112`, a gold at hue 98 — 3.87 on the white paper and 4.18 on the dark, and
+ * 16.2 dE from the nearest of the eight values in use, which is the floor the others hold. It is
+ * written here rather than as a `Tab` because a `Tab` reaches the router and the nav bar: the
+ * array below generates both, so an entry with no sheet and no component behind it is a route that
+ * renders nothing. `BOOK_FILL` in `omnibus/types.ts` is the matching medium fill, and the two are
+ * chosen together — a book is this gold whether it is a bar on the Omnibus or the bar over it.
+ *
+ * **The secondary is not derivable yet, and picking one by hand would break the rule above.** The
+ * four in use each sit on a gap midpoint, and they were placed across five primaries including this
+ * one, so the gap they leave is Omnibus→Games at 45° — the narrowest of the five, where the other
+ * four span 61° to 126°. Nothing in it reaches the floor: its midpoint at hue 308 gets 11.4 dE from
+ * the Games bar, and the best value anywhere in the gap is `#bc71ff`, still only 14.1. Adding Books
+ * therefore means re-solving all five secondaries together, which moves three colours already in
+ * use — that is the real cost of the tab, and it is cheaper to pay once when the sheet exists than
+ * to seat a ninth value at 14.1 now and inherit it.
+ */
+export const BOOKS_PRIMARY = "#958112";
+
 const Tabs: Tab[] = [OmnibusTab, VideoGamesTab, ShowsTab, MoviesTab];
 
 /**
