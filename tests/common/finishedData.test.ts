@@ -12,7 +12,17 @@ import {
 const item = (name: string, banner: string | undefined, year?: number) => ({
   name,
   banner,
+  franchise: "",
   startDate: year === undefined ? undefined : YearMonthDay.get(year, 1, 1),
+});
+
+/** A work in a series, for the franchise sort: its own title, its series, and when it came out. */
+const entry = (name: string, franchise: string, release?: number, start?: number) => ({
+  name,
+  franchise,
+  banner: "a.jpg",
+  releaseDate: release === undefined ? undefined : YearMonthDay.get(release, 1, 1),
+  startDate: start === undefined ? undefined : YearMonthDay.get(start, 1, 1),
 });
 
 describe("finishedItems", () => {
@@ -40,18 +50,39 @@ describe("finishedItems", () => {
     expect(finishedItems(data, "Date").map((i) => i.name)).toEqual(["undated", "dated"]);
   });
 
-  it("does not sort at all under Name, leaving the data in sheet order", () => {
-    // There is no branch for "Name". The option looks like it works only because the
-    // spreadsheets are maintained roughly alphabetically.
-    const data = [item("Zelda", "a.jpg", 2020), item("Animal Crossing", "b.jpg", 2021)];
+  it("gathers a series together and walks it in release order", () => {
+    const data = [entry("Echoes", "Metroid", 2004), entry("Breath", "Zelda", 2017), entry("Prime", "Metroid", 2002)];
 
-    expect(finishedItems(data, "Name").map((i) => i.name)).toEqual(["Zelda", "Animal Crossing"]);
+    expect(finishedItems(data, "Franchise").map((i) => i.name)).toEqual(["Prime", "Echoes", "Breath"]);
   });
 
-  it("still filters by artwork under Name", () => {
+  it("orders a series by release rather than by when the reader met it", () => {
+    // A series has an order of its own, and the order it was watched in is not it: a reader who
+    // came to a trilogy at its third film would otherwise see that film lead the shelf.
+    const data = [entry("First", "Saga", 1977, 2020), entry("Second", "Saga", 1980, 2001)];
+
+    expect(finishedItems(data, "Franchise").map((i) => i.name)).toEqual(["First", "Second"]);
+  });
+
+  it("falls through to the start date where nothing carries a release, which is a Shows wall", () => {
+    const data = [entry("S2", "Severance", undefined, 2025), entry("S1", "Severance", undefined, 2022)];
+
+    expect(finishedItems(data, "Franchise").map((i) => i.name)).toEqual(["S1", "S2"]);
+  });
+
+  it("sorts a work with no franchise under its own title, not under the empty string", () => {
+    // Every sheet leaves a standalone work naming itself, so a blank cell is the one case where
+    // the title is what the column would have held. Collecting blanks under "" instead would put
+    // every unaffiliated work in one block at the front of the wall.
+    const data = [entry("Braid", "", 2008), entry("Prime", "Metroid", 2002), entry("Alan Wake", "", 2010)];
+
+    expect(finishedItems(data, "Franchise").map((i) => i.name)).toEqual(["Alan Wake", "Braid", "Prime"]);
+  });
+
+  it("still filters by artwork under the franchise sort", () => {
     const data = [item("with", "a.jpg"), item("without", undefined)];
 
-    expect(finishedItems(data, "Name").map((i) => i.name)).toEqual(["with"]);
+    expect(finishedItems(data, "Franchise").map((i) => i.name)).toEqual(["with"]);
   });
 
   it("leaves the caller's array untouched", () => {
@@ -81,7 +112,7 @@ describe("finishedBucket", () => {
   });
 
   it("gives a year-only date the same year a full date gives", () => {
-    const yearOnly = { name: "Old", banner: "a.jpg", startDate: Year.get(2007) };
+    const yearOnly = { name: "Old", banner: "a.jpg", franchise: "", startDate: Year.get(2007) };
 
     expect(finishedBucket(yearOnly, "Date")).toBe("2007");
     expect(finishedBucket(item("New", "a.jpg", 2007), "Date")).toBe("2007");
@@ -91,28 +122,34 @@ describe("finishedBucket", () => {
     expect(finishedBucket(item("Undated", "a.jpg"), "Date")).toBeNull();
   });
 
-  it("reads a leading letter off the name under the name sort", () => {
-    expect(finishedBucket(item("Metroid", "a.jpg", 2023), "Name")).toBe("M");
+  it("reads a leading letter off the franchise under the franchise sort", () => {
+    // The franchise and not the title, or an entry would light a chip beside the run it sits in:
+    // "Breath of the Wild" sorts under Zelda and would otherwise label itself B.
+    expect(finishedBucket(entry("Breath of the Wild", "Zelda", 2017), "Franchise")).toBe("Z");
+  });
+
+  it("falls back to the title where no franchise is recorded, as the sort does", () => {
+    expect(finishedBucket(entry("Braid", "", 2008), "Franchise")).toBe("B");
   });
 
   it("uppercases a lowercase leading letter, so one section has one label", () => {
-    expect(finishedBucket(item("iO", "a.jpg"), "Name")).toBe("I");
+    expect(finishedBucket(entry("iO", "", 2013), "Franchise")).toBe("I");
   });
 
   it("keeps a leading digit or symbol as itself rather than dropping it", () => {
-    expect(finishedBucket(item("1080 Snowboarding", "a.jpg"), "Name")).toBe("1");
+    expect(finishedBucket(entry("1080 Snowboarding", "", 1998), "Franchise")).toBe("1");
   });
 
-  it("has no bucket for an empty name, which has no letter to show", () => {
-    expect(finishedBucket(item("", "a.jpg"), "Name")).toBeNull();
+  it("has no bucket where neither franchise nor title has a letter to show", () => {
+    expect(finishedBucket(item("", "a.jpg"), "Franchise")).toBeNull();
   });
 
   it("ignores the field the other sort would have read", () => {
     // The bucket follows the sort, so the same item answers differently under each.
-    const both = item("Metroid", "a.jpg", 2023);
+    const both = { ...item("Metroid Prime", "a.jpg", 2023), franchise: "Metroid" };
 
     expect(finishedBucket(both, "Date")).toBe("2023");
-    expect(finishedBucket(both, "Name")).toBe("M");
+    expect(finishedBucket(both, "Franchise")).toBe("M");
   });
 });
 
@@ -121,15 +158,15 @@ describe("orderedBuckets", () => {
     expect(orderedBuckets(["2024", "2024", "2023", "2021"])).toEqual(["2024", "2023", "2021"]);
   });
 
-  it("collapses a run of one bucket to a single entry, which is every year under the date sort", () => {
-    // A year's cards are contiguous and the year does not return, so the date sort's buckets come
-    // out strictly descending and a rail's highlight travels one way down them. The name sort has
-    // no such guarantee — see below.
+  it("collapses a run of one bucket to a single entry, which is what both sorts produce", () => {
+    // Each sort's key opens a bucket once — a year is unique, and franchise-ordered initials are
+    // non-decreasing — so a rail's highlight travels one way down the page under either.
     expect(orderedBuckets(["2024", "2023", "2023", "2022"])).toEqual(["2024", "2023", "2022"]);
   });
 
   it("holds a bucket at its first appearance when the wall returns to it later", () => {
-    // The name sort groups by franchise, so one letter can open the wall and reappear far down it.
+    // Neither sort produces this today. It is what keeps the rail's labels unique, and so what a
+    // key that did return to a value it had passed would still be held together by.
     expect(orderedBuckets(["Z", "A", "Z", "B"])).toEqual(["Z", "A", "B"]);
   });
 
@@ -153,6 +190,7 @@ describe("finishedKey", () => {
   const released = (name: string, year: number) => ({
     name,
     banner: "a.jpg",
+    franchise: "",
     startDate: YearMonthDay.get(2020, 1, 1),
     releaseDate: YearMonthDay.get(year, 1, 1),
   });
@@ -178,12 +216,12 @@ describe("finishedKey", () => {
 
   it("falls back to the bare name where a domain dates only the watching", () => {
     // Shows carry no release date, and no two shows on record share a title.
-    expect(finishedKey({ name: "Severance", banner: "a.jpg" })).toBe("Severance");
+    expect(finishedKey({ name: "Severance", banner: "a.jpg", franchise: "" })).toBe("Severance");
   });
 
   it("reads a year-only release date, which games record", () => {
-    expect(finishedKey({ name: "Ocarina of Time", banner: "a.jpg", releaseDate: Year.get(1998) })).toBe(
-      "Ocarina of Time (1998)",
-    );
+    expect(
+      finishedKey({ name: "Ocarina of Time", banner: "a.jpg", franchise: "Zelda", releaseDate: Year.get(1998) }),
+    ).toBe("Ocarina of Time (1998)");
   });
 });

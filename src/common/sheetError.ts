@@ -38,3 +38,16 @@ export const sheetError = (context: string, detail: string): never => {
  */
 export const readAgeRating = (value = "", where: string): AgeRating =>
   isAgeRating(value) ? value : sheetError(where, `"${value}" is not an age rating`);
+
+/**
+ * Reads a genre cell, rejecting one nobody filled in.
+ *
+ * The vocabulary is open-ended — the shared ramp answers `NEUTRAL_FILL` off its table — so the only
+ * thing checkable here is that a value is there at all. That is worth checking on its own: an empty
+ * cell reaches every genre surface as a group with no name, drawing the same neutral an unrecognised
+ * genre draws, so a row nobody finished is indistinguishable from a genre nobody has coloured yet.
+ *
+ * The default is what covers a row the sheet truncated: the API ends a row at its last filled cell,
+ * so a half-entered row carries no `Genre` key at all rather than an empty one.
+ */
+export const readGenre = (value = "", where: string): string => value || sheetError(where, "no genre recorded");

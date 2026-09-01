@@ -223,20 +223,40 @@ export const statusToColour = ({ status }: { status: ColourableStatus }, scheme:
  * Each hue is chosen to mean its genre — blood red for Horror, flame for Action, sepia for True
  * Story, yellow for Comedy, the outdoors for Adventure, noir teal for Mystery, electric cyan for
  * Sci-Fi, a grave blue for Drama, night indigo for Thriller, violet for Fantasy, rose for Romance.
- * Eleven hues is more than hue alone separates at one lightness — 27° apart is roughly dE 7, and
+ * Twelve hues is more than hue alone separates at one lightness — 27° apart is roughly dE 7, and
  * telling two fills apart wants 15 — so lightness alternates around the wheel and the legends
  * carry the rest. Every value meets the fill contract above.
  *
+ * **Abstract is the exception, and it is the reason the rule above is worth stating.** Every other
+ * genre borrows its colour from the thing it depicts. Abstract depicts nothing, so there is nothing
+ * to borrow from — it takes magenta, which is the one hue with no wavelength behind it. No light is
+ * magenta; the eye constructs it to close the gap between red and violet, where the red and blue
+ * cones fire together with nothing in between. The genre that represents nothing takes the colour
+ * that is not a representation of anything.
+ *
+ * It costs 10.1 dE against Fantasy on the white paper, which makes it the ramp's tightest pair,
+ * just inside the 11.8 the Horror/Romance pair already sits at. That is the price of a twelfth
+ * genre rather than of this one: with eleven genres, fourteen gameplay styles, nine tab colours and
+ * four medium fills already placed, every hue on the wheel lands about 10 from something. Lime is
+ * the better story for abstraction and scores 7.7, and re-solving Comedy and Adventure to open room
+ * for it takes the ramp's worst pair from 10.8 to 9.1 while costing Comedy its yellow. The dark
+ * half has no such problem and clears everything by 16.1.
+ *
  * Two of these hexes also appear in `vg/types.ts`'s gameplay table: Action and Adventure, which
- * mean the same thing in both vocabularies and so are deliberately the same colour. Nothing else
- * collides, which is why the Games tab draws this ramp at full chroma like every other tab.
+ * mean the same thing in both vocabularies and so are deliberately the same colour. The rest are
+ * pushed as far apart as one band holds, which is not always far — Role Playing lands 2.3 from
+ * Thriller on the dark paper. Both ramps are still drawn at full chroma, because the two are always
+ * labelled where they meet: the ledger stacks a Gameplay row on a Genre row, and the hero and hover
+ * subtitles name each swatch beside it.
  *
  * The lookup falls to `NEUTRAL_FILL` rather than throwing: the genre column is open-ended, and a
- * new genre appearing in the sheet should render as "no colour yet", not take the tab down. The
- * Games converter's `"Other"` default for an unrecorded genre relies on that — it is deliberately
- * absent from the table, since a colour of its own would dress the absence of a genre up as one.
+ * new genre appearing in the sheet should render as "no colour yet", not take the tab down. That
+ * neutral is what makes an empty cell a converter's problem rather than this table's — every
+ * converter reads the column through `readGenre`, because a blank reaching here is indistinguishable
+ * from a genre nobody has coloured yet.
  */
 const genreColours: Record<string, Fill> = {
+  Abstract: fill("#f100dd", "#ff8fee"),
   Action: fill("#d85900", "#ff762c"),
   Adventure: fill("#008c36", "#00d556"),
   Comedy: fill("#a48c00", "#fad700"),

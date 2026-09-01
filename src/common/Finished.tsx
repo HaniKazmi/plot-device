@@ -11,7 +11,7 @@ import { ExpandableCard } from "./Stats";
 import { finishedBucket, finishedItems, finishedKey, type FinishedItem, type FinishedSort } from "./finishedData";
 import { withAlpha } from "../utils/colourUtils";
 
-const sortOptions: FinishedSort[] = ["Date", "Name"];
+const sortOptions: FinishedSort[] = ["Date", "Franchise"];
 
 const Finished = <U extends FinishedItem>({
   title,
