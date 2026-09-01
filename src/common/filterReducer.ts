@@ -45,8 +45,8 @@ export const yearPredicates = <T extends { startDate: { year: YearNumber } }>(st
  * A multi-select's predicate, or none where nothing is selected.
  *
  * Every category control in every domain means the same thing — an empty selection is no
- * constraint rather than a constraint nothing satisfies — and each was stating that again beside
- * its own field. Written once, a change to what matching means is one edit rather than fifteen.
+ * constraint rather than a constraint nothing satisfies. Stated once, a change to what matching
+ * means is one edit; stated per category per domain, it is fifteen, and fifteen chances to differ.
  *
  * Returns a list so a caller spreads it, which is what lets an inactive control contribute
  * nothing at all instead of a predicate that is always true.

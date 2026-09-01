@@ -13,7 +13,7 @@ import { useScheme } from "./useScheme";
 import { highchartsColors } from "../highcharts";
 
 /** Named so the band below can offer every one of these but the category it is placing. */
-export interface TopListCardProps<O extends string, T> {
+interface TopListCardProps<O extends string, T> {
   /** The categories on offer, in select-box order — the order is load-bearing for the palette offset. */
   options: readonly O[];
   defaultOption: O;
@@ -36,7 +36,7 @@ export interface TopListCardProps<O extends string, T> {
  * varies: its option list (whose order feeds that offset), an icon per option, how to group, and
  * its colour vocabularies.
  */
-export const TopListCard = <O extends string, T>(props: TopListCardProps<O, T>) => {
+const TopListCard = <O extends string, T>(props: TopListCardProps<O, T>) => {
   const { options, icons, groups, colourOf, measureLabel } = props;
   const scheme = useScheme();
 

@@ -79,6 +79,13 @@ describe("finishedItems", () => {
     expect(finishedItems(data, "Franchise").map((i) => i.name)).toEqual(["Alan Wake", "Braid", "Prime"]);
   });
 
+  it("reads a whitespace-only franchise cell as blank, not as a series called space", () => {
+    // Untrimmed it sorts ahead of every letter and gives the jump rail a chip with nothing on it.
+    const data = [entry("Braid", " ", 2008), entry("Alan Wake", "", 2010)];
+
+    expect(finishedItems(data, "Franchise").map((i) => i.name)).toEqual(["Alan Wake", "Braid"]);
+  });
+
   it("still filters by artwork under the franchise sort", () => {
     const data = [item("with", "a.jpg"), item("without", undefined)];
 

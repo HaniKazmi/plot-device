@@ -366,10 +366,10 @@ const ShowStatList = (
     <StatList
       MediaComponent={ShowCardMediaImage}
       nameComponent={(entry) => entry.show.name + entry.s}
-      // The wall's poster reservation, so lazily-loaded artwork holds its height — a dialog of
-      // cards with no reserved ratio all sits inside the viewport at once and fetches every image
-      // immediately. The leading `auto` keeps it a reservation rather than a crop: show artwork is
-      // portrait, and a fixed ratio would cover-crop every poster into a landscape sliver.
+      // Reserved so lazily-loaded artwork holds its height: a dialog of cards reserving nothing
+      // all sits inside the viewport at once and fetches every image immediately. The strip holds
+      // the shape firmly rather than yielding to each file, which `common/Stats.tsx` explains at
+      // the site that decides it.
       shape="portrait"
       width={[12, 12, 12]}
       pictureWidth={[6, 4, 2]}

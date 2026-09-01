@@ -178,9 +178,9 @@ describe("genreToColour", () => {
     expect(genreToColour("Documentary", "light")).toBe(neutralFill("light"));
   });
 
-  it("gives Other the neutral, which is what makes the Games converter's default honest", () => {
-    // A blank Games genre becomes "Other". It is deliberately absent from the table: a colour of
-    // its own would dress the absence of a genre up as one.
+  it("leaves Other off the table, so the top-N bucket cannot be read as a genre", () => {
+    // `topNWithOther` names its overflow bucket "Other", and a legend row drawn in a genre's own
+    // colour would claim the tail is one. The neutral is what says it stands for several at once.
     expect(genreToColour("Other", "light")).toBe(neutralFill("light"));
   });
 });

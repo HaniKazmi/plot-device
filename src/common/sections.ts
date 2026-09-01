@@ -10,8 +10,16 @@
  * Deriving both from the same array is what removes that. The order of the array is the order of
  * the page, and the rail runs in it.
  */
-export const tabSections = <K extends string>(prefix: string, sections: readonly { key: K; label: string }[]) => {
-  const ids = Object.fromEntries(sections.map(({ key }) => [key, `${prefix}-${key}`])) as Record<K, string>;
+export const tabSections = <P extends string, K extends string>(
+  prefix: P,
+  sections: readonly { key: K; label: string }[],
+) => {
+  // Entries typed as tuples, not as `string[]`. `Object.fromEntries` has an overload returning
+  // `any` for the looser shape, and an assertion onto that checks nothing at all — which is what
+  // silently reduced every id from the literal its `as const` map carried to a bare `string`.
+  const ids = Object.fromEntries(sections.map(({ key }) => [key, `${prefix}-${key}`] as const)) as {
+    [Key in K]: `${P}-${Key}`;
+  };
 
   /**
    * The chips for the sections actually rendered.
