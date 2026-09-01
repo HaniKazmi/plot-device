@@ -1,6 +1,13 @@
 /**
  * The anchors the page's sticky rail scrolls to, in the order the page runs.
  *
+ * That order is the tracked tabs' own: by temperature, warmest first. What is in flight, then how
+ * much there is of it, then what has just closed — the three answers a reader arrives for — before
+ * the shape of the library over time, the wall to browse, and last the two cross-media readings a
+ * reader goes looking for rather than lands on. Crossings closes the page because it is the
+ * narrowest question on it and the tallest thing that answers one: a dozen franchises, each a
+ * stack of lanes, in a scroller three times the width of its own container.
+ *
  * They live apart from both the components that carry them and the one that builds the rail,
  * because those are the two halves that have to agree: `Stats` owns the bands above the charts,
  * `Graphs` everything below, and an id written out twice is an id that can be changed once.
@@ -11,11 +18,11 @@
 export const OMNIBUS_SECTIONS = {
   now: "omnibus-now",
   vitals: "omnibus-vitals",
-  charts: "omnibus-charts",
-  crossings: "omnibus-crossings",
-  gallery: "omnibus-gallery",
   finished: "omnibus-finished",
+  charts: "omnibus-charts",
+  gallery: "omnibus-gallery",
   genres: "omnibus-genres",
+  crossings: "omnibus-crossings",
 } as const;
 
 /**
@@ -42,9 +49,9 @@ export const omnibusSections = (has: {
 }) => [
   ...(has.now ? [{ id: OMNIBUS_SECTIONS.now, label: "Now" }] : []),
   { id: OMNIBUS_SECTIONS.vitals, label: "Vitals" },
-  ...(has.charts ? [{ id: OMNIBUS_SECTIONS.charts, label: "By Year" }] : []),
-  ...(has.crossings ? [{ id: OMNIBUS_SECTIONS.crossings, label: "Crossings" }] : []),
-  ...(has.gallery ? [{ id: OMNIBUS_SECTIONS.gallery, label: "Gallery" }] : []),
   ...(has.finished ? [{ id: OMNIBUS_SECTIONS.finished, label: "Finished" }] : []),
+  ...(has.charts ? [{ id: OMNIBUS_SECTIONS.charts, label: "By Year" }] : []),
+  ...(has.gallery ? [{ id: OMNIBUS_SECTIONS.gallery, label: "Gallery" }] : []),
   ...(has.genres ? [{ id: OMNIBUS_SECTIONS.genres, label: "Genres" }] : []),
+  ...(has.crossings ? [{ id: OMNIBUS_SECTIONS.crossings, label: "Crossings" }] : []),
 ];

@@ -127,19 +127,16 @@ const Graphs = memo(
           yearTo={filterState.yearTo}
           filterDispatch={filterDispatch}
         />
+        {finished.length > 0 && (
+          <Section id={OMNIBUS_SECTIONS.finished}>
+            <RecentlyFinished items={finished} />
+          </Section>
+        )}
         {deferredData.length > 0 && (
           <Section id={OMNIBUS_SECTIONS.charts}>
             <Barchart
               data={deferredData}
               measure={filterState.measure}
-            />
-          </Section>
-        )}
-        {crossed.found.length > 0 && (
-          <Section id={OMNIBUS_SECTIONS.crossings}>
-            <Crossings
-              crossings={crossed.found}
-              ticks={stripYearTicks(crossed.epoch, CURRENT_PLAINDATE)}
             />
           </Section>
         )}
@@ -151,14 +148,17 @@ const Graphs = memo(
             />
           </Section>
         )}
-        {finished.length > 0 && (
-          <Section id={OMNIBUS_SECTIONS.finished}>
-            <RecentlyFinished items={finished} />
-          </Section>
-        )}
         {bridge.length > 0 && (
           <Section id={OMNIBUS_SECTIONS.genres}>
             <GenreBridge rows={bridge} />
+          </Section>
+        )}
+        {crossed.found.length > 0 && (
+          <Section id={OMNIBUS_SECTIONS.crossings}>
+            <Crossings
+              crossings={crossed.found}
+              ticks={stripYearTicks(crossed.epoch, CURRENT_PLAINDATE)}
+            />
           </Section>
         )}
       </Stack>

@@ -1,5 +1,6 @@
 import { Box, useTheme, type Theme } from "@mui/material";
 import type { ReactNode } from "react";
+import { scrollbarSx } from "./scrollbarSx";
 import { ScrollFade } from "./ScrollFade";
 import { useScrollEdges } from "./useScrollEdges";
 
@@ -62,11 +63,7 @@ export const Filmstrip = ({ height, children }: { height: number; children: Reac
           // class is inserted after its parent's. Naming this class twice settles the tie by weight
           // rather than by render order.
           "&& > *": { flex: "0 0 auto", height },
-          scrollbarWidth: "thin",
-          scrollbarColor: `${theme.vars.palette.text.secondary} ${theme.vars.palette.divider}`,
-          "&::-webkit-scrollbar": { height: SCROLLBAR_HEIGHT },
-          "&::-webkit-scrollbar-track": { backgroundColor: theme.vars.palette.divider, borderRadius: 5 },
-          "&::-webkit-scrollbar-thumb": { backgroundColor: theme.vars.palette.text.secondary, borderRadius: 5 },
+          ...scrollbarSx(theme, SCROLLBAR_HEIGHT),
         })}
       >
         {children}

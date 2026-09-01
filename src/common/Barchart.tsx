@@ -1,4 +1,4 @@
-import { Card, CardContent, FormGroup, useTheme } from "@mui/material";
+import { Card, CardContent, FormGroup, Typography, useTheme } from "@mui/material";
 import { type ReactNode, useState } from "react";
 import { BarChart, Percent, PinOutlined, SsidChart } from "@mui/icons-material";
 import { SectionHeader } from "./SectionHeader";
@@ -80,24 +80,50 @@ const Barchart = ({
   const height =
     view === "Rank" ? `min(${CHART_HEIGHT}, max(${RANK_MIN_HEIGHT}px, ${groups.length * RANK_LANE}px))` : CHART_HEIGHT;
 
+  const header = (
+    <SectionHeader
+      icon={<BarChart />}
+      title={title}
+      count={count}
+      action={
+        <FormGroup>
+          {controls}
+          <IconToggleGroup
+            options={viewOrder}
+            value={view}
+            setValue={setView}
+            render={(option) => ({ label: option, icon: viewIcons[option] })}
+          />
+        </FormGroup>
+      }
+    />
+  );
+
+  // An empty pivot is not drawn as nothing: Highcharts invents an index axis and a series of its
+  // own from it, so a chart with no data reads as a chart of unnamed data. A caller's own section
+  // gate cannot answer this, because a grouping the caller offers can empty the pivot after the
+  // gate has decided there is something to say — which is why the guard is here, where the pivot
+  // is built. The header stays, and the controls with it: whatever emptied the chart is a choice
+  // in that row, so it has to remain reachable.
+  if (groups.length === 0) {
+    return (
+      <Card>
+        {header}
+        <CardContent>
+          <Typography
+            variant="body2"
+            sx={{ color: "text.secondary" }}
+          >
+            Nothing to plot for the current selection.
+          </Typography>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
-      <SectionHeader
-        icon={<BarChart />}
-        title={title}
-        count={count}
-        action={
-          <FormGroup>
-            {controls}
-            <IconToggleGroup
-              options={viewOrder}
-              value={view}
-              setValue={setView}
-              render={(option) => ({ label: option, icon: viewIcons[option] })}
-            />
-          </FormGroup>
-        }
-      />
+      {header}
       <CardContent>
         <Chart
           containerProps={{ style: { height } }}

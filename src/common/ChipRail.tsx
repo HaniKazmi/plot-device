@@ -51,15 +51,7 @@ export const RailChip = ({ label, active, onClick }: { label: string; active?: b
  * over the chips, since a scroller cannot paint above its own content. A rail that does not scroll
  * builds its own row from `RailChip`, which is what the library's jump rail does.
  */
-export const ChipRail = ({
-  items,
-  activeId,
-  onSelect,
-  leading,
-  label,
-  sx,
-  ref,
-}: {
+export const ChipRail = (props: {
   items: ChipRailItem[];
   activeId: string | undefined;
   onSelect: (id: string) => void;
@@ -72,12 +64,27 @@ export const ChipRail = ({
    * page's heading is already introduced by what it is next to.
    */
   label?: string;
+  /** Lands on the wrapper — what a caller pins, paints and rules off. */
   sx?: SxProps<Theme>;
+  /**
+   * Lands on the scrolling row. Anything laying the chips out belongs here rather than in `sx`:
+   * the row is the flex container, and a flex property set on the wrapper is a property set on a
+   * block box, which drops it without saying so.
+   */
+  rowSx?: SxProps<Theme>;
+  /**
+   * The colour the ends fade into, which is the surface the rail is drawn on — the page's ground
+   * for a rail pinned over it, a card's paper for one sitting inside a card. A fade into the wrong
+   * one is a band of a foreign colour at the end of the row rather than the row running out.
+   */
+  ground?: string;
 }) => {
+  const { items, activeId, onSelect, leading, label, sx, rowSx, ref } = props;
   // The hidden scrollbar leaves a rail wider than its row with nothing saying so, and on a phone
   // that is most of them — the chips simply stop mid-word at the edge.
   const [scrollRef, edges] = useScrollEdges<HTMLDivElement>();
   const theme = useTheme();
+  const ground = props.ground ?? theme.vars.palette.background.default;
 
   const chips = (
     <>
@@ -96,14 +103,12 @@ export const ChipRail = ({
   return (
     <ScrollFade
       edges={edges}
-      // The page's own ground, since the rail is pinned over the content rather than sitting in a
-      // card of its own.
-      ground={theme.vars.palette.background.default}
-      // The caller's own styling lands on this element rather than on the row: what a caller pins,
-      // paints and rules off is the rail, and the row inside it is only the part that moves. The
-      // fades have to sit outside the scroller to be painted over what it holds, which is what
-      // makes this the outer element — and the caller's ref comes here with it, since the section
-      // rail observes this node to know whether it is pinned.
+      ground={ground}
+      // `sx` lands on this element rather than on the row: what a caller pins, paints and rules off
+      // is the rail, and the row inside it is only the part that moves. The fades have to sit
+      // outside the scroller to be painted over what it holds, which is what makes this the outer
+      // element — and the caller's ref comes here with it, since the section rail observes this
+      // node to know whether it is pinned. Laying the chips out is `rowSx`, one element in.
       sx={sx}
       ref={ref}
     >
@@ -111,14 +116,17 @@ export const ChipRail = ({
         component={label ? "nav" : "div"}
         aria-label={label}
         ref={scrollRef}
-        sx={{
-          display: "flex",
-          gap: 1,
-          overflowX: "auto",
-          // A scrollbar drawn under a row this short costs as much height as the row itself.
-          scrollbarWidth: "none",
-          "::-webkit-scrollbar": { display: "none" },
-        }}
+        sx={[
+          {
+            display: "flex",
+            gap: 1,
+            overflowX: "auto",
+            // A scrollbar drawn under a row this short costs as much height as the row itself.
+            scrollbarWidth: "none",
+            "::-webkit-scrollbar": { display: "none" },
+          },
+          ...(Array.isArray(rowSx) ? rowSx : [rowSx]),
+        ]}
       >
         {chips}
       </Box>

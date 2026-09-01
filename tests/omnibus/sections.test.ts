@@ -9,11 +9,11 @@ describe("omnibusSections", () => {
     expect(omnibusSections(all).map((section) => section.id)).toEqual([
       OMNIBUS_SECTIONS.now,
       OMNIBUS_SECTIONS.vitals,
-      OMNIBUS_SECTIONS.charts,
-      OMNIBUS_SECTIONS.crossings,
-      OMNIBUS_SECTIONS.gallery,
       OMNIBUS_SECTIONS.finished,
+      OMNIBUS_SECTIONS.charts,
+      OMNIBUS_SECTIONS.gallery,
       OMNIBUS_SECTIONS.genres,
+      OMNIBUS_SECTIONS.crossings,
     ]);
   });
 

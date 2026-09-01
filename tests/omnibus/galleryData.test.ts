@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CURRENT_PLAINDATE, YearMonthDay } from "../../src/common/date";
+import { CURRENT_PLAINDATE, Year, YearMonthDay } from "../../src/common/date";
 import { toOmniItems, type Library } from "../../src/omnibus/adapter";
 import {
   GALLERY_CATEGORIES,
@@ -272,6 +272,52 @@ describe("ordering the shelves", () => {
     expect(byRecency.all.map((item) => item.name)).toEqual(["Halo 2", "Halo"]);
     expect(bySize.top.name).toBe("Halo");
     expect(byRecency.top.name).toBe("Halo 2");
+  });
+
+  it("ranks an unrecorded playtime last, since zero hours is the smallest shelf member", () => {
+    // `sortByKey` sends a falsy value to the front whichever direction it sorts, and an item the
+    // sheet has no hours for carries zero — so ordering through it would open the strip with the
+    // one entry that has nothing to show, and `top` is the first of that strip.
+    const [shelf] = galleryGroups(
+      toOmniItems(
+        library({
+          games: [
+            videoGame({ name: "Unlogged", genre: "Shooter", hours: undefined }),
+            videoGame({ name: "Epic", genre: "Shooter", hours: 90 }),
+          ],
+        }),
+      ),
+      "genre",
+      "Hours",
+      "size",
+      TODAY,
+    );
+
+    expect(shelf.all.map((item) => item.name)).toEqual(["Epic", "Unlogged"]);
+    expect(shelf.top.name).toBe("Epic");
+  });
+
+  it("weighs a bare year at its end, which is the last the item could have been met", () => {
+    // A `Year` orders as that year's 1 January against a full date, so read at face value a game
+    // logged as a bare year loses to every dated day inside it — and roughly half the games carry
+    // one, which is what makes the two ends of an imprecise date different answers.
+    const [shelf] = galleryGroups(
+      toOmniItems(
+        library({
+          games: [
+            videoGame({ name: "Dated", genre: "Shooter", hours: 10, endDate: YearMonthDay.get(2024, 3, 1) }),
+            videoGame({ name: "Year only", genre: "Shooter", hours: 10, endDate: Year.get(2024) }),
+          ],
+        }),
+      ),
+      "genre",
+      "Hours",
+      "recent",
+      TODAY,
+    );
+
+    expect(shelf.all.map((item) => item.name)).toEqual(["Year only", "Dated"]);
+    expect(shelf.metDate.toString()).toBe("2024");
   });
 
   it("leaves a show standing on each decade it was met in, whichever sort is on", () => {

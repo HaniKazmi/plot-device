@@ -1,6 +1,7 @@
 import { Card, CardContent, FormGroup, useTheme } from "@mui/material";
 import { DonutLarge } from "@mui/icons-material";
 import { useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
+import type {} from "@mui/material/themeCssVarsAugmentation";
 import { Chart, SunburstSeries } from "../highcharts";
 import { SectionHeader } from "./SectionHeader";
 import { SelectBox } from "./SelectionComponents";
@@ -74,7 +75,7 @@ const Sunburst = <T, K extends string>({
             chart: {
               backgroundColor: "transparent",
               style: {
-                color: theme.palette.text.primary,
+                color: theme.vars.palette.text.primary,
               },
               events: {
                 render: dimLeafRing(leafLevel),

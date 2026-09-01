@@ -28,8 +28,8 @@ import type { ReactNode } from "react";
  * Below `sm` the controls take a row of their own. `CardHeader` seats its action beside the title
  * at every width, so a title and three or four controls divide 375px between them and the title
  * wraps to a word a line — "Shelves / by / Genre" beside a select, two toggles and an expand. The
- * action's own margins are cleared with it, since they exist to hold it clear of a title it is no
- * longer beside.
+ * action's own negative margins are dropped there with it, since they exist to hold it clear of a
+ * title it is not beside at that width, and are kept everywhere else.
  */
 export const SectionHeader = ({
   icon,
@@ -48,8 +48,13 @@ export const SectionHeader = ({
       flexDirection: { xs: "column", sm: "row" },
       alignItems: { xs: "stretch", sm: "center" },
       "& .MuiCardHeader-action": {
-        marginTop: { xs: 1, sm: 0 },
-        marginRight: 0,
+        // `CardHeader` pulls its action up and out by 4px and 8px so the controls sit against the
+        // card's own edge rather than inside the header's padding. That is right wherever the
+        // action is beside the title, so it is restored at `sm` and up and only undone below it,
+        // where the action is a row of its own and has nothing to hold itself clear of. In pixels
+        // because `sx` reads a bare margin number as theme spacing, which would make `-4` −32px.
+        marginTop: { xs: 1, sm: "-4px" },
+        marginRight: { xs: 0, sm: "-8px" },
         alignSelf: { xs: "stretch", sm: "flex-start" },
       },
     }}

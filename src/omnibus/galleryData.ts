@@ -203,7 +203,7 @@ export const galleryGroups = (
     })
     // Re-sorted rather than left as `groupByCategory` ordered it, so the one rule that decides the
     // shelves' order is stated here whichever sort is on.
-    .sortByKey(sort === "recent" ? "metDate" : "count");
+    .toSorted(sort === "recent" ? byLatestMet : byMeasure);
 
 /** A shelf, and when anything standing on it was last met. */
 export interface Shelf extends DrilldownGroup<ShelfItem> {
@@ -212,7 +212,32 @@ export interface Shelf extends DrilldownGroup<ShelfItem> {
 
 /** A shelf's own order, which is the order its fronting card claims. */
 export const galleryStripOrder = (items: ShelfItem[], sort: GallerySort): ShelfItem[] =>
-  items.sortByKey(sort === "recent" ? "metDate" : "hours");
+  items.toSorted(sort === "recent" ? byLatestMet : (a, b) => b.hours - a.hours);
+
+/**
+ * Newest first, on the end of the range each date denotes.
+ *
+ * `PlainDate` orders by its ISO string, where a shorter string sorts before the longer ones it
+ * prefixes — so a bare `Year` reads as that year's 1 January and loses to every dated day inside
+ * it. Roughly half the games carry a bare year, which makes the two ends of one genuinely
+ * different answers, and the end is the one a question about what was met *last* asks for.
+ */
+const byLatestMet = <T extends { metDate: PlainDate }>(a: T, b: T) => {
+  const left = a.metDate.lastDay();
+  const right = b.metDate.lastDay();
+  return left < right ? 1 : left > right ? -1 : 0;
+};
+
+/**
+ * Biggest first, subtracted rather than compared through `sortByKey`.
+ *
+ * That helper sends a falsy value to the front whichever way it is sorting, and both figures here
+ * reach zero honestly: an unrecorded playtime is `0` hours, and a shelf measured in Hours whose
+ * members are all unrecorded counts `0`. Either would otherwise lead the order it is least
+ * entitled to lead — and `top` is the first of this array, so a shelf would front itself with the
+ * one item that has nothing to show.
+ */
+const byMeasure = (a: { count: number }, b: { count: number }) => b.count - a.count;
 
 /**
  * The biggest of a set, read in one pass rather than by sorting the whole of it to look at the
@@ -229,8 +254,10 @@ const galleryTop = <T extends OmniItem>(items: T[]): T =>
  * `metDate` among its works — reading a close date there would take each work's *representative's*
  * close, and a representative is the biggest entry rather than the last one.
  *
- * The comparison is `PlainDate`'s own: `valueOf` returns the zero-padded ISO form, so a bare `Year`
- * and a full day compare correctly against each other without either being widened first.
+ * Dates are weighed by `lastDay`, on the same rule `byLatestMet` follows and for the same reason:
+ * `PlainDate` orders by its ISO string, where a bare `Year` sorts as its 1 January, which is the
+ * wrong end of that year to ask a maximum for. The value kept is the date itself rather than its
+ * last day, so a shelf reports the precision its sheet actually holds.
  */
 const latestOf = <T>(items: T[], dateOf: (item: T) => PlainDate): PlainDate =>
-  items.reduce((latest, item) => (dateOf(item) > latest ? dateOf(item) : latest), dateOf(items[0]));
+  items.reduce((latest, item) => (dateOf(item).lastDay() > latest.lastDay() ? dateOf(item) : latest), dateOf(items[0]));

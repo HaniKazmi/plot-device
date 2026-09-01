@@ -239,6 +239,12 @@ poster stands 550px at 375px wide, and three of them put the band's last figure 
 its first. A banner keeps its words underneath at every width: beside a 16:9 picture at this height
 there are nineteen pixels of column left.
 
+**Recently Finished** (`omnibus/RecentlyFinished.tsx`) is the list each tab already keeps for
+itself, asked once across all three: `recentlyFinished` in `omnibus/adapter.ts` keeps only items
+with a `closeDate`, since an item still in progress is not finished and listing it says something
+false — the same filter also leaves every entry with a date to sort by. The library wall
+(`common/Finished`) is not reached from the union; see §10.
+
 **By year** (`omnibus/Barchart.tsx`, `omnibus/barchartData.ts`) is the union on a time axis, split
 by medium, genre or certificate. Medium is what the page opens on and the reason it exists — three
 libraries share an axis because a game, a season and a film are comparable as media and little
@@ -252,38 +258,6 @@ of columns with nothing crossing. A certificate splits on the age band (§6, Col
 takes the ramp the genres band and the gallery's swatches already use, so a hue means one thing
 across the page. A row whose split column is empty is dropped rather than opening a series with no
 name, and the header counts the rows drawn rather than the rows handed in.
-
-**Crossings** (`omnibus/crossingsData.ts`) finds the franchises the reader has met in more than one
-medium and draws each as a strip: one lane per medium present, packed with `common/timelineStripData`'s
-`buildStrip` exactly as a show's own season strip is, so the two charts cannot come to disagree
-about what counts as an overlap. Every strip is handed one tick array, built once by `Graphs`, so
-the section states its years once beneath the stack — `TimelineCard` takes `axis={false}` and
-`TimelineAxis` is exported for the purpose. A per-strip axis on a shared scale is not twelve axes
-but one row of labels drawn twelve times, a quarter of the section's height restating a scale that
-cannot vary.
-
-The whole stack is then drawn three times its container's width inside one scroller. A quarter of a
-century across one screen gives a year about fifty pixels, and Marvel puts fifty-one entries on it —
-a dozen inside two years, at a minimum mark width of six. The marks are closer together than they
-are wide, and the strip reads as a texture rather than as dates; at three times the width a year is
-a hundred and fifty pixels and the same run separates into the entries it is made of. Three rather
-than the full timeline's four, because that chart is one row of bars and this is a stack of twelve,
-so every viewport of scroll is paid for twelve times over. One scroller for the stack rather than
-one per strip is what keeps the shared scale true — separate scrollers would let a reader compare
-two rows showing different decades. It opens at the most recent end, as the full timeline does:
-the epoch is the earliest entry anywhere, and most franchises were met years after it, so the
-opening screenful would otherwise be a third of the scale with almost nothing on it. The franchise
-names are `position: sticky` inside the scroller, which needs `Card`'s own clipping opened — a
-sticky element travels with the nearest scrolling ancestor, and a caption left inside a card that
-does not scroll simply leaves with its track. A franchise groups on the raw franchise column, the same column
-`movieFranchise`/`showFranchise` group on, which is what lets a series' founding entry keep naming
-itself the way it already does on its own tab; `namesTheSameThing` instead drops a whole group where
-_every_ entry in it repeats the franchise name, since that group has no series structure left to
-draw a lane for. A film is a point (`start === end`), which the shared strip floors to its minimum
-band width the way the Movies ribbon already does. A bare-year game date draws its whole year rather
-than the share `vg/cardData.ts` would estimate for a single game's own strip — a franchise lane
-holds two or three entries, not a library to divide a year between — and is marked `precise: false`
-so the edges read as an estimate.
 
 **The gallery** (`omnibus/Gallery.tsx`, `omnibus/galleryData.ts`) shelves the union by genre,
 franchise, rating or decade, each shelf a `common/Filmstrip` (below) with a drill-down behind its
@@ -317,11 +291,37 @@ work's date is the last of the entries collapsed into it and not its representat
 representative is the biggest entry rather than the last; an item with no close is dated now,
 because an open item is the one being met.
 
-**Recently Finished** (`omnibus/RecentlyFinished.tsx`) is the list each tab already keeps for
-itself, asked once across all three: `recentlyFinished` in `omnibus/adapter.ts` keeps only items
-with a `closeDate`, since an item still in progress is not finished and listing it says something
-false — the same filter also leaves every entry with a date to sort by. The library wall
-(`common/Finished`) is not reached from the union; see §10.
+**Crossings** (`omnibus/crossingsData.ts`) finds the franchises the reader has met in more than one
+medium and draws each as a strip: one lane per medium present, packed with `common/timelineStripData`'s
+`buildStrip` exactly as a show's own season strip is, so the two charts cannot come to disagree
+about what counts as an overlap. Every strip is handed one tick array, built once by `Graphs`, so
+the section states its years once beneath the stack — `TimelineCard` takes `axis={false}` and
+`TimelineAxis` is exported for the purpose. A per-strip axis on a shared scale is not twelve axes
+but one row of labels drawn twelve times, a quarter of the section's height restating a scale that
+cannot vary.
+
+The whole stack is then drawn three times its container's width inside one scroller. A quarter of a
+century across one screen gives a year about fifty pixels, and Marvel puts fifty-one entries on it —
+a dozen inside two years, at a minimum mark width of six. The marks are closer together than they
+are wide, and the strip reads as a texture rather than as dates; at three times the width a year is
+a hundred and fifty pixels and the same run separates into the entries it is made of. Three rather
+than the full timeline's four, because that chart is one row of bars and this is a stack of twelve,
+so every viewport of scroll is paid for twelve times over. One scroller for the stack rather than
+one per strip is what keeps the shared scale true — separate scrollers would let a reader compare
+two rows showing different decades. It opens at the most recent end, as the full timeline does:
+the epoch is the earliest entry anywhere, and most franchises were met years after it, so the
+opening screenful would otherwise be a third of the scale with almost nothing on it. The franchise
+names are `position: sticky` inside the scroller, which needs `Card`'s own clipping opened — a
+sticky element travels with the nearest scrolling ancestor, and a caption left inside a card that
+does not scroll simply leaves with its track. A franchise groups on the raw franchise column, the same column
+`movieFranchise`/`showFranchise` group on, which is what lets a series' founding entry keep naming
+itself the way it already does on its own tab; `namesTheSameThing` instead drops a whole group where
+_every_ entry in it repeats the franchise name, since that group has no series structure left to
+draw a lane for. A film is a point (`start === end`), which the shared strip floors to its minimum
+band width the way the Movies ribbon already does. A bare-year game date draws its whole year rather
+than the share `vg/cardData.ts` would estimate for a single game's own strip — a franchise lane
+holds two or three entries, not a library to divide a year between — and is marked `precise: false`
+so the edges read as an estimate.
 
 `common/useScrollEdges.ts` is what tells a reader those rows scroll. Two of them hide their
 scrollbar — the section rail, where a bar under a row of chips costs as much height as the row, and
