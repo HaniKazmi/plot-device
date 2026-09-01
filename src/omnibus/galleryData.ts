@@ -4,6 +4,7 @@ import {
   ageBandToColour,
   ageRatingBand,
   decadeToColour,
+  franchiseToColour,
   genreToColour,
   releaseDecade,
   type Colour,
@@ -71,9 +72,9 @@ export const galleryValue = (item: OmniItem, category: GalleryCategory): string 
 };
 
 /**
- * The colour a shelf is named in, where the app already speaks that field's colour — a genre, a
- * certificate, a decade. Franchises have no cross-media vocabulary: each tab colours its own, and a
- * swatch invented for the union would teach a legend no chart on the page honours.
+ * The colour a shelf is named in, from the vocabulary the app already speaks for that field — a
+ * genre, a certificate, a decade, a franchise. All four are shared across the three sheets, so a
+ * shelf here wears exactly what the same value wears on its home tab.
  */
 export const galleryColour = (name: string, category: GalleryCategory, scheme: Scheme): Colour | undefined => {
   switch (category) {
@@ -84,7 +85,10 @@ export const galleryColour = (name: string, category: GalleryCategory, scheme: S
     case "decade":
       return decadeToColour(name, scheme);
     case "franchise":
-      return undefined;
+      // Empty off the table, which is most of them: a franchise column is mostly works naming
+      // themselves, and `undefined` leaves the shelf heading without a swatch rather than
+      // inventing one.
+      return franchiseToColour({ franchise: name }, scheme) || undefined;
   }
 };
 

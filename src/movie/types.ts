@@ -2,6 +2,7 @@ import type { YearMonthDay } from "../common/date";
 import {
   ageRatingToColour,
   decadeToColour,
+  franchiseToColour,
   genreToColour,
   fill,
   NEUTRAL_FILL,
@@ -112,10 +113,13 @@ export const groupToColour = (group: MovieGroup, movie: Movie, scheme: Scheme): 
       return decadeToColour(releaseDecade(movie.releaseDate.year), scheme);
     case "score":
       return scoreBandToColour(scoreBand(movie.score), scheme);
+    case "franchise":
+      // The table `utils/types.ts` shares with Games and Shows, so Marvel is one colour on all
+      // three. Most films name themselves in this column and take the empty answer.
+      return franchiseToColour(movie, scheme);
     default:
-      // Franchise and director have no colour vocabulary — most films name themselves in the
-      // franchise column, and directors are an open set of names with no brand to reproduce.
-      // "" hands the choice to Highcharts.
+      // A director is an open set of names with no brand to reproduce, so "" hands the choice to
+      // Highcharts.
       return "" as Colour;
   }
 };

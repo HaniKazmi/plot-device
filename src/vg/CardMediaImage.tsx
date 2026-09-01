@@ -13,13 +13,12 @@ import {
 import {
   VideoGame,
   companyToAccent,
-  franchiseToColour,
   gameplayToColour,
   platformToColor,
   ratingToColour,
 } from "./types";
 import Grid from "@mui/material/Grid";
-import { genreToColour, statusToColour, type Scheme } from "../utils/types";
+import { franchiseToColour, genreToColour, statusToColour, type Scheme } from "../utils/types";
 import { useScheme } from "../common/useScheme";
 import { CURRENT_PLAINDATE, Year, YearMonthDay, formatDate, formatDateRange } from "../common/date";
 import { hoverCardArtworkSx } from "../common/cardArrangement";

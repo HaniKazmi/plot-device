@@ -4,10 +4,12 @@ import {
   AGE_RATINGS,
   COLOURABLE_STATUSES,
   DECADE_NAMES,
+  FRANCHISE_NAMES,
   GENRE_NAMES,
   ageBandToColour,
   ageRatingToColour,
   decadeToColour,
+  franchiseToColour,
   genreToColour,
   neutralFill,
   releaseDecade,
@@ -16,17 +18,24 @@ import {
 } from "../../src/utils/types";
 import {
   COMPANIES,
-  FRANCHISE_NAMES,
   GAMEPLAY,
   companyToColor,
-  franchiseToColour,
   gameplayToColour,
+  groupToColour as vgGroupToColour,
 } from "../../src/vg/types";
-import { NETWORK_NAMES, networkToColour, typeToColour } from "../../src/show/types";
-import { cinemaToColour, scoreBands, scoreBandToColour } from "../../src/movie/types";
+import { NETWORK_NAMES, groupToColour as showGroupToColour, networkToColour, typeToColour } from "../../src/show/types";
+import {
+  cinemaToColour,
+  groupToColour as movieGroupToColour,
+  scoreBands,
+  scoreBandToColour,
+} from "../../src/movie/types";
 import { BOOK_FILL, media, mediumToColour } from "../../src/omnibus/types";
 import { pick } from "../../src/utils/types";
 import { PAPERS, contrast, liveGenres } from "../fixtures/colour";
+import { videoGame } from "../fixtures/vgRows";
+import { show } from "../fixtures/shows";
+import { movie } from "../fixtures/movies";
 
 /**
  * The fill contract, asserted over every table rather than argued for in each one's doc comment.
@@ -55,6 +64,8 @@ const LIGHT_RELIEF: Record<string, number> = {
   // The two whose brand *is* a bright yellow; 2.2 still reads as gold on both.
   Pokémon: 1.8,
   Warcraft: 1.8,
+  "Star Wars": 1.8,
+  "Star Trek": 1.8,
   // These four carry their brand hex exactly once the floor is 2.2.
   Witcher: 2.2,
   Uncharted: 2.2,
@@ -130,5 +141,25 @@ describe.each(SCHEMES)("every fill clears 3:1 on the %s paper", (scheme) => {
     // Reserved for the Books tab and drawn nowhere yet, so this is the only thing stopping it
     // drifting below the floor while it waits.
     check("medium book", pick(BOOK_FILL, scheme));
+  });
+});
+
+/**
+ * The property the shared franchise table exists for, pinned so it cannot quietly fork back into
+ * per-domain copies: a franchise met in more than one medium is one colour wherever it is drawn.
+ */
+describe("one franchise, one colour, every tab", () => {
+  const CROSS_MEDIA = ["Marvel", "Star Wars", "Harry Potter", "Mario", "DC", "Fate", "Witcher", "Star Trek"];
+
+  it.each(CROSS_MEDIA)("draws %s the same on Games, Shows and Movies", (franchise) => {
+    for (const scheme of SCHEMES) {
+      const fromGames = vgGroupToColour("franchise", videoGame({ franchise }), scheme);
+      const fromShows = showGroupToColour("franchise", show({ franchise }), scheme);
+      const fromMovies = movieGroupToColour("franchise", movie({ franchise }), scheme);
+
+      expect(fromGames, `${franchise} on ${scheme}`).not.toBe("");
+      expect(fromShows, `${franchise} on ${scheme}`).toBe(fromGames);
+      expect(fromMovies, `${franchise} on ${scheme}`).toBe(fromGames);
+    }
   });
 });

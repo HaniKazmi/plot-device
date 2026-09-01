@@ -3,6 +3,7 @@ import {
   KeysMatching,
   ageRatingToColour,
   fill,
+  franchiseToColour,
   genreToColour,
   pick,
   statusToColour,
@@ -134,10 +135,12 @@ export const groupToColour = (group: keyof Show | "none" | "show", show: Show, s
       return networkToColour(show, scheme);
     case "type":
       return typeToColour(show, scheme);
+    case "franchise":
+      // The table `utils/types.ts` shares with Games and Movies, so Star Trek is one colour whether
+      // it is drawn here or on the Omnibus. 229 of 308 shows carry their own name in this column
+      // and take the empty answer, which hands the choice to Highcharts.
+      return franchiseToColour(show, scheme);
     default:
-      // Franchise has no colour vocabulary here — 229 of 308 shows carry their own name in the
-      // column, so a table would be near-empty and a swatch on it would teach a legend no chart
-      // honours. "" hands the choice to Highcharts.
       return "" as Colour;
   }
 };

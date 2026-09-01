@@ -4,6 +4,7 @@ import {
   ageRatingToColour,
   decadeToColour,
   fill,
+  franchiseToColour,
   genreToColour,
   pick,
   releaseDecade,
@@ -257,62 +258,6 @@ const gameplayColours: Record<Gameplay, Fill> = {
 
 export const gameplayToColour = ({ gameplay }: { gameplay: Gameplay }, scheme: Scheme): Colour =>
   pick(gameplayColours[gameplay] ?? NEUTRAL_FILL, scheme);
-
-/**
- * A franchise's own brand hex, filling the sunburst's franchise ring and the Top Franchise bar.
- *
- * Hue and chroma are the brand's and are kept exactly; only lightness moves, and only as far as
- * the fill contract on `NEUTRAL_FILL` demands of the half being drawn. A brand already inside the
- * band on both papers therefore carries one value twice — Mario, Marvel and Zelda all do.
- *
- * Six entries relax the floor on the **white paper alone**, keeping the full 3:1 on the dark one.
- * The relief is what the fill contract allows where colour is not carrying the meaning by itself,
- * and this is that case: the sunburst labels its franchise ring, the Top Franchise list names every
- * row beside its swatch, and a card strip is captioned with the franchise it draws.
- *
- * Four of them — Witcher, Uncharted, Assassin's Creed and Tales — need only 2.2:1 and then carry
- * their brand hex exactly on both papers. Pokémon and Warcraft are the two whose identity *is*
- * their brightness, and they go to 1.8: a yellow held to 3:1 on white is not a yellow but a
- * brown-gold, which is 20.8 dE from what Pokémon actually looks like. At 1.8 that falls to 5.2 and
- * `#ffcb05` is recognisable again. Every other entry meets the full contract on both halves, and
- * every dark half here is the brand hex untouched.
- *
- * What the clamp costs is separation between brands that already share a hue. Mario, Marvel,
- * Xenoblade, Fate, Mass Effect and Yakuza are six reds inside 5° of each other, and holding them
- * to one band leaves them near-indistinguishable side by side. The wedge labels, the legend names
- * and the gaps between segments are load-bearing for that group.
- */
-const franchiseColours: Record<string, Fill> = {
-  Pokémon: fill("#ebbb00", "#ffcb05"),
-  "Final Fantasy": fill("#009eda", "#039fdb"),
-  "Ace Attorney": fill("#2b52c3", "#3c66d9"),
-  Mario: fill("#e60012", "#e60012"),
-  "Call of Duty": fill("#666f3b", "#6d7642"),
-  "Dragon Ball": fill("#f45712", "#f85b1a"),
-  "Assassin's Creed": fill("#a9adb3", "#a9adb3"),
-  "Legend of Zelda": fill("#1a8a34", "#1a8a34"),
-  Marvel: fill("#ed1d24", "#ed1d24"),
-  Tales: fill("#38bfb4", "#38bfb4"),
-  Uncharted: fill("#bdaa8b", "#bdaa8b"),
-  Yakuza: fill("#c0393d", "#c0393d"),
-  "Super Smash Bros.": fill("#ff4500", "#ff4500"),
-  Xenoblade: fill("#e60026", "#e60026"),
-  Fate: fill("#cb2c28", "#cb2c28"),
-  Warcraft: fill("#fcb249", "#ffb54c"),
-  "Mass Effect": fill("#d12026", "#d12026"),
-  Witcher: fill("#8f95a1", "#8f95a1"),
-  Civilization: fill("#1e6fad", "#2575b3"),
-  Persona: fill("#4557a2", "#566ab7"),
-};
-
-/** Every franchise the table colours; anything else reads as having no colour of its own. */
-export const FRANCHISE_NAMES = Object.keys(franchiseColours);
-
-/** The empty colour for a franchise outside the table, which every caller reads as no colour at all. */
-export const franchiseToColour = ({ franchise }: { franchise: string }, scheme: Scheme): Colour => {
-  const colour = franchiseColours[franchise];
-  return colour ? pick(colour, scheme) : ("" as Colour);
-};
 
 export const groupToColour = (group: keyof VideoGame | "none" | "decade", game: VideoGame, scheme: Scheme) => {
   switch (group) {
