@@ -22,6 +22,9 @@ const ShowTimeline = ({ data }: { data: Show[] }) => {
       );
 
   const showData: TimelineData[] = titleData.map(([title, s, colour]) => ({
+    // The season's own start as well as the title: under the per-show grouping every season of one
+    // show shares a title, and two shows can share a season number and a name besides.
+    key: `${title}-${s.startDate}`,
     name: title,
     tooltip: () => (
       <ShowHoverCard

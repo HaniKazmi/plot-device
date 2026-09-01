@@ -8,6 +8,7 @@ import { CURRENT_PLAINDATE, YearMonthDay } from "../common/date";
 import { VgHoverCard } from "./CardMediaImage";
 import { useScheme } from "../common/useScheme";
 import { format } from "../utils/mathUtils";
+import { spanKey } from "./cardData";
 
 const VgTimeline = ({ data }: { data: VideoGame[] }) => {
   const scheme = useScheme();
@@ -18,6 +19,9 @@ const VgTimeline = ({ data }: { data: VideoGame[] }) => {
     .filter(({ party }) => partyEnabled || !party)
     .filter(({ startDate }) => startDate instanceof YearMonthDay && startDate.year > 2014)
     .map((row) => ({
+      // The strip's own identity for a game, which already carries the platform and the start date
+      // because a replay and a cross-platform second copy both repeat the title exactly.
+      key: spanKey(row),
       name: row.name,
       tooltip: () => <VgHoverCard item={row} />,
       colour: platformToColor(row, scheme),

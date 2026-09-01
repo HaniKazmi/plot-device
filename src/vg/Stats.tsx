@@ -41,9 +41,8 @@ import {
 import { StatCard, StatList, type StatsListProps, TotalsBand, VitalsCard, YearVitalsPair } from "../common/Stats";
 import { TopCategoryBand } from "../common/TopList";
 import { GroupedStatList } from "../common/GroupedStatList";
-import { finishedKey } from "../common/finishedData";
 import VgCardMediaImage from "./CardMediaImage";
-import { gameSubtitle } from "./cardData";
+import { gameSubtitle, spanKey } from "./cardData";
 import { Stack } from "@mui/material";
 import type { FilterDispatch, YearType } from "./filterUtils";
 import { statusToColour } from "../utils/types";
@@ -300,7 +299,7 @@ const MostPlayedCategory = ({
       // before comparing — the group keeps its untimed members, and every one of them would head
       // the list.
       dialogSort={(games) => games.toSorted((a, b) => (b.hours ?? 0) - (a.hours ?? 0))}
-      nameOf={finishedKey}
+      nameOf={spanKey}
       dialogLabelComponent={statsCardLabelEndDateHours}
       dialogChipComponent={platformToShortChip}
       {...vgStatListSharedProps}
@@ -374,7 +373,7 @@ const VgStatList = (
   <StatList
     chipComponent={platformToShortChip}
     MediaComponent={VgCardMediaImage}
-    nameComponent={finishedKey}
+    nameComponent={spanKey}
     {...vgStatListSharedProps}
     {...props}
   />
