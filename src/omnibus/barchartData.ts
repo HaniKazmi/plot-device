@@ -45,12 +45,12 @@ const splitName = (item: OmniItem, split: BarchartSplit): string =>
  * with — one uncoloured series against eleven, rather than a crash on a genre it has not been
  * given yet.
  */
-const splitColour = (item: OmniItem, split: BarchartSplit): Colour =>
+const splitColour = (item: OmniItem, split: BarchartSplit, name: string): Colour =>
   split === "medium"
     ? mediumToColour(item.medium)
     : // Never undefined for these two: `galleryColour` answers that only for a franchise, which is
       // the one grouping this chart does not offer.
-      (galleryColour(splitName(item, split), split) as Colour);
+      (galleryColour(name, split) as Colour);
 
 /**
  * The union as the barchart pivot wants it: one row per item, keyed by the chosen series and by
@@ -67,14 +67,17 @@ export const omniBarchartRows = (
   split: BarchartSplit,
 ): { name: string; date: Year; colour: Colour; value: number }[] =>
   items
+    // Derived once and carried, rather than asked for again by the filter, the row and the colour
+    // lookup in turn — three answers to one question that cannot differ.
+    .map((item) => ({ item, name: splitName(item, split) }))
     // A row with no value in the split column would open a series named "", which the legend and
     // the tooltip both render as a blank. Only genre can be empty, and only for a sheet row part
     // way through being filled in.
-    .filter((item) => splitName(item, split))
-    .map((item) => ({
-      name: splitName(item, split),
+    .filter(({ name }) => name)
+    .map(({ item, name }) => ({
+      name,
       date: Year.get(item.year),
-      colour: splitColour(item, split),
+      colour: splitColour(item, split, name),
       // Exact hours, floored once per column by `postAggregate`: the share view takes its
       // percentages from these raw values, and the share of floored hours is not the share of the
       // hours behind them.

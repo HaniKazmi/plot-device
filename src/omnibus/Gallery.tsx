@@ -98,6 +98,22 @@ const Gallery = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
   const groups = galleryGroups(data, category, measure, sort, CURRENT_PLAINDATE);
   const title = categoryTitles[category];
 
+  // Built in the card's own render rather than inside `renderContent`, which `ExpandableCard` calls
+  // again on each of its own state changes — opening the dialog, closing it, and unmounting its
+  // body are three, and a shelf is twenty cards. Here the compiler caches the array on what it is
+  // derived from, so those three commits re-render no shelf at all; built in the callback, every
+  // element is new each time and nothing can bail. `setDrilldown` is passed rather than an arrow
+  // closing over each group, since one fresh handler per shelf would defeat the same cache.
+  const shelves = groups.map((group) => (
+    <Shelf
+      key={`${category}-${group.name}`}
+      group={group}
+      category={category}
+      measure={measure}
+      onOpen={setDrilldown}
+    />
+  ));
+
   return (
     <>
       <ExpandableCard
@@ -130,17 +146,7 @@ const Gallery = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
                 }
               />
               <CardContent>
-                <Stack spacing={2}>
-                  {groups.slice(0, limit).map((group) => (
-                    <Shelf
-                      key={`${category}-${group.name}`}
-                      group={group}
-                      category={category}
-                      measure={measure}
-                      onOpen={() => setDrilldown(group)}
-                    />
-                  ))}
-                </Stack>
+                <Stack spacing={2}>{shelves.slice(0, limit)}</Stack>
               </CardContent>
             </>
           );
@@ -179,7 +185,8 @@ const Shelf = ({
   group: ShelfGroup;
   category: GalleryCategory;
   measure: Measure;
-  onOpen: () => void;
+  /** Takes the shelf rather than closing over it, so the caller can pass its setter unwrapped. */
+  onOpen: (group: ShelfGroup) => void;
 }) => {
   const colour = galleryColour(group.name, category);
 
@@ -210,7 +217,7 @@ const Shelf = ({
         </Typography>
         <IconButton
           size="small"
-          onClick={onOpen}
+          onClick={() => onOpen(group)}
           aria-label={`Open ${group.name}`}
         >
           <ExpandCircleDown color="action" />
@@ -238,9 +245,9 @@ const Shelf = ({
 };
 
 /**
- * What a picture is: the band filled in that medium's own colour, the way the badge it replaces
- * was, with type derived from the fill rather than fixed — the same rule every chip and status
- * tile in the app follows, and the reason a gold band and a blue one are both legible.
+ * What a picture is: the band filled in that medium's own colour, with type derived from the fill
+ * rather than fixed — the same rule every chip and status tile in the app follows, and the reason
+ * a gold band and a blue one are both legible.
  */
 const MediumLabel = ({ item }: { item: OmniItem }) => {
   const colour = mediumToColour(item.medium);

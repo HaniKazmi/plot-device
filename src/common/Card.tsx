@@ -528,6 +528,10 @@ export const CardPanel = ({
   // The parts that actually say something. A caller lists its fields without testing which the
   // sheet filled in, and the count is what decides which part is last and so carries no separator.
   const said = Array.isArray(subtitle) ? subtitle.filter((part) => part.text) : [];
+  // Whether the kicker row is the one stating the subtitle, which is the only thing that decides
+  // whether it is also stated below the title. Every term matters: the row is rendered on `kicker`
+  // alone, and it draws `said`, which a plain-string subtitle leaves empty.
+  const saidInline = inlineKicker && !!kicker && said.length > 0;
 
   return (
     <CardContent
@@ -602,7 +606,7 @@ export const CardPanel = ({
             >
               {kicker}
             </Typography>
-            {inlineKicker && said.length > 0 && <SubtitleParts parts={said} />}
+            {saidInline && <SubtitleParts parts={said} />}
           </Box>
         )}
         <Typography
@@ -614,9 +618,14 @@ export const CardPanel = ({
           {title}
         </Typography>
         {/* Part of what the thing is called, but not the part the chart labels its bar with, so
-            it sits under the title in the same tone the dates take. */}
+            it sits under the title in the same tone the dates take.
+
+            Gated on whether the kicker row actually took it rather than on `inlineKicker` alone:
+            that row is only rendered where there is a kicker, and it can only carry parts, so a
+            card asking for an inline subtitle without one or with a plain string would otherwise
+            drop the subtitle entirely rather than fall back to stating it here. */}
         {subtitle &&
-          !inlineKicker &&
+          !saidInline &&
           (Array.isArray(subtitle) ? (
             <SubtitleParts parts={said} />
           ) : (
@@ -1120,6 +1129,15 @@ export type TimelineBand = Omit<StripBand<StripSpan>, "start" | "end"> & {
 const STRIP_HEIGHT = 3;
 
 /**
+ * The inset the card holds its strip at, in spacing steps.
+ *
+ * One number because two things are measured from it: the padding that puts the track there, and
+ * the offset a sticky caption rests at, which has to be the same edge or the name and the bands it
+ * labels disagree the moment the reader scrolls.
+ */
+const STRIP_PADDING = 1;
+
+/**
  * A proportional strip of tracked spans against a fixed scale — the seasons of a show, the games
  * in a franchise.
  *
@@ -1140,9 +1158,9 @@ export const TimelineCard = (props: {
    * markup only this component renders. The years are stated once beneath the stack, not per strip
    * — twelve identical label rows is the axis repeated, not twelve axes, which is what
    * `TimelineAxis` is exported for. The card stops clipping, because a caption cannot be sticky
-   * inside a box that hides its overflow. And the caption pins to the scroller's leading edge, so
-   * a name stays readable while its own track travels under it — above the fade there, since a
-   * name is not part of the track running out of the card.
+   * inside a box that hides its overflow. And the caption pins at the strip's own inset, so a name
+   * stays readable while its own track travels under it and stays in the column its bands are
+   * drawn in — above the fade there, since a name is not part of the track running out of the card.
    *
    * Read off `props` rather than defaulted in the pattern: a destructured default is an assignment
    * the React Compiler cannot lower, and it bails the whole component out of memoization.
@@ -1161,9 +1179,9 @@ export const TimelineCard = (props: {
       >
         <CardContent
           sx={{
-            ":last-child": { paddingBottom: 1 },
+            ":last-child": { paddingBottom: STRIP_PADDING },
             height: "100%",
-            padding: 1,
+            padding: STRIP_PADDING,
             paddingTop: 0,
           }}
         >
@@ -1179,7 +1197,12 @@ export const TimelineCard = (props: {
                 paddingBottom: 0.5,
                 ...(inStack && {
                   position: "sticky",
-                  left: 0,
+                  // The strip's own inset, not the scroller's edge: a sticky offset is measured
+                  // from the scrollport, so a zero here rests the name where it belongs and then
+                  // steps a padding's width left of every band it labels as soon as the reader
+                  // scrolls. Spelled through `spacing` because `left` takes a raw length, where the
+                  // padding above it is read as a spacing step.
+                  left: (theme: Theme) => theme.spacing(STRIP_PADDING),
                   width: "fit-content",
                   maxWidth: "100%",
                   zIndex: FADE_Z + 1,

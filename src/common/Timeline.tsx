@@ -321,25 +321,32 @@ const YearNav = ({
   markers: YearMarker[];
   activeYear: number | undefined;
   onSelect: (percent: number) => void;
-}) => (
-  <ChipRail
-    items={markers.map((marker) => ({
-      id: marker.year.toString(),
-      label: shortYear(marker.year),
-    }))}
-    activeId={activeYear?.toString()}
-    onSelect={(id) => onSelect(markers.find((marker) => marker.year.toString() === id)!.percent)}
-    sx={{
-      // Spread across the same width the chart occupies, so the row reads as a scale under it
-      // rather than as a cluster of buttons beside it. Once the chips no longer fit, the free
-      // space is negative and `space-between` falls back to packing them from the left, which is
-      // what makes scrolling the sane degradation.
-      justifyContent: "space-between",
-      gap: 0.5,
-      paddingTop: 1,
-    }}
-  />
-);
+}) => {
+  const theme = useTheme();
+
+  return (
+    <ChipRail
+      items={markers.map((marker) => ({
+        id: marker.year.toString(),
+        label: shortYear(marker.year),
+      }))}
+      activeId={activeYear?.toString()}
+      onSelect={(id) => onSelect(markers.find((marker) => marker.year.toString() === id)!.percent)}
+      // The chart stands in a card, so the ends fade into its paper. The page's own ground is a
+      // different colour in both schemes, and fading into it here paints a band of the wrong one.
+      ground={theme.vars.palette.background.paper}
+      sx={{ paddingTop: 1 }}
+      rowSx={{
+        // Spread across the same width the chart occupies, so the row reads as a scale under it
+        // rather than as a cluster of buttons beside it. Once the chips no longer fit, the free
+        // space is negative and `space-between` falls back to packing them from the left, which is
+        // what makes scrolling the sane degradation.
+        justifyContent: "space-between",
+        gap: 0.5,
+      }}
+    />
+  );
+};
 
 /**
  * Year shading and gridlines, so a bar can be read against a date without tracing down to the

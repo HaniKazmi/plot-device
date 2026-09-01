@@ -11,7 +11,7 @@ import type { Measure } from "./types";
  * Medium is what the page opens on and the reason it exists — a game, a season and a film are
  * comparable as media and little else. The other two are the vocabularies the gallery already
  * shelves by, and the select is what puts them on a time axis: what a genre is made of is a
- * question the page answers in three places, and *when* it happened was answerable in none.
+ * question the page answers in three places, and this is the one place answering *when*.
  *
  * It is also what makes the shell's four views worth having here. Share and Rank divide a column
  * between its series, and three series is a bar in two pieces and a bump chart of three flat
