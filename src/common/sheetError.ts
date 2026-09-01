@@ -1,4 +1,5 @@
 import { isAgeRating, type AgeRating } from "../utils/types";
+import { PlainDate, YearMonthDay } from "./date";
 
 /**
  * Bad spreadsheet data is meant to fail loudly rather than be papered over, but a bare
@@ -51,3 +52,21 @@ export const readAgeRating = (value = "", where: string): AgeRating =>
  * so a half-entered row carries no `Genre` key at all rather than an empty one.
  */
 export const readGenre = (value = "", where: string): string => value || sheetError(where, "no genre recorded");
+
+/**
+ * Reads a start/end pair, rejecting one recorded at two precisions.
+ *
+ * A span is logged as two full dates or as two bare years — one of each is a cell somebody
+ * half-filled, and it is the one shape nothing downstream can do anything with: `daysTo` answers
+ * `undefined` across mixed precision, so a duration silently disappears, while every chart that
+ * plots the pair as a band has to place a year somewhere inside itself and guess.
+ *
+ * Asked once here because all three sheets record spans and each was answering differently — one
+ * checking, one casting a `Year` to `YearMonthDay` and letting it reach a render, one not looking.
+ * An absent end is not a mismatch: that is an item still in progress, which every domain models.
+ */
+export const readDatePair = <T extends PlainDate>(start: T, end: T | undefined, where: string): void => {
+  if (end && start instanceof YearMonthDay !== end instanceof YearMonthDay) {
+    sheetError(where, "one date is a bare year and the other is not");
+  }
+};
