@@ -17,9 +17,10 @@ import { useScheme } from "../common/useScheme";
 import type { Scheme } from "../utils/types";
 
 /**
- * How many franchises the section draws. The strips are ordered by size, so the cut falls where a
- * crossing stops being a series met twice and becomes a title that happens to appear twice; the
- * header states the full count so the cut is visible rather than silent.
+ * How many franchises the section draws. The strips are ordered by size, so the cut falls wherever
+ * that order reaches twelve and not at any boundary in the data — currently part-way through a tie
+ * at thirteen entries; the header states the full count so what is left off is visible rather than
+ * silent.
  */
 const STRIPS_SHOWN = 12;
 
@@ -45,11 +46,13 @@ const STRIP_INSET = 1;
 const SCALE_WIDTH = "300%";
 
 /**
- * The franchises the reader met in more than one medium, each on one shared scale.
+ * The reader's biggest franchises, each on one shared scale.
  *
  * This is the section none of the three tabs can hold: a franchise strip on the Games tab knows
- * only about games. Here a lane per medium against one epoch–today scale says which came first and
- * how long the reader stayed with it, and the fill is the only thing carrying which is which.
+ * only about games, and the union is what lets one series be read whole. A lane per medium against
+ * one epoch–today scale says which came first and how long the reader stayed with it, and the fill
+ * is the only thing carrying which is which — so a franchise one medium holds is a single lane in
+ * that medium's colour, which is the same reading with one term in it.
  *
  * One scale means one axis. Every strip is handed the same tick array — the section is given a
  * single one, built once by `Graphs` — so a per-strip axis is not twelve axes but the same row of
@@ -68,7 +71,7 @@ const Crossings = ({ crossings, ticks }: { crossings: Crossing[]; ticks: Timelin
     <Card>
       <SectionHeader
         icon={<Hub />}
-        title="Franchises across media"
+        title="Franchises over time"
         count={
           crossings.length > STRIPS_SHOWN
             ? `${format(STRIPS_SHOWN)} of ${format(crossings.length)} franchises`

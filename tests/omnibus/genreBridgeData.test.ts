@@ -27,13 +27,13 @@ describe("genreBridge", () => {
       ),
     );
 
-    expect(rows.map((row) => row.genre)).toEqual(["Sci-Fi"]);
+    expect(rows.map((row) => row.genre)).toEqual(["Horror", "Sci-Fi"]);
   });
 
   it("bridges a game to a film under one genre, which is the whole claim a row makes", () => {
     // All three sheets record the same genre vocabulary, so a genre meets itself with no mapping
-    // in between. A games-only vocabulary would make every game genre a single-medium row and
-    // this chart would hold nothing but shows and films.
+    // in between. A games-only vocabulary would stand every game genre as a bar of its own beside
+    // the shows' and films', and no row on the chart would divide between media at all.
     const rows = genreBridge(
       toOmniItems(
         library({
@@ -47,16 +47,35 @@ describe("genreBridge", () => {
     expect(rows[0].segments.map((segment) => segment.medium)).toEqual(["game", "movie"]);
   });
 
-  it("drops a genre only one medium records, whatever it is called", () => {
-    // Nothing here is special about the name: a genre present in one medium is not a crossing, and
-    // the single-medium filter is what keeps it off a chart about where two media meet. "Other" is
-    // the case worth pinning because `topNWithOther` mints a bucket under that name downstream.
+  it("keeps a genre one medium records, as a bar that medium fills", () => {
+    // Requiring a second medium hides a genre at whatever weight its one medium has given it and
+    // then admits the whole of that weight on a single entry logged elsewhere. The solid bar is
+    // the same reading every other row gets, at the one composition a single medium can have.
     const rows = genreBridge(
       toOmniItems(
         library({
-          games: [videoGame({ genre: "Other", hours: 40 }), videoGame({ genre: "Other", hours: 20 })],
+          games: [videoGame({ genre: "Abstract", hours: 40 }), videoGame({ genre: "Abstract", hours: 20 })],
           movies: [movie({ genre: "Fantasy", minutes: 120 })],
           shows: [showWith("Fantasy", 405)],
+        }),
+      ),
+    );
+
+    const abstract = rows.find((row) => row.genre === "Abstract");
+
+    expect(abstract?.segments.map((segment) => segment.medium)).toEqual(["game"]);
+    expect(abstract?.segments[0].percent).toBe(100);
+    expect(abstract?.hours).toBe(60);
+  });
+
+  it("drops a genre whose every entry logged nothing, having no bar to draw", () => {
+    // The one thing still dropped, and it is not about media: `assignPercents` is handed an empty
+    // list and answers one, so the row would stand as a name and an empty track beside a zero.
+    const rows = genreBridge(
+      toOmniItems(
+        library({
+          games: [videoGame({ genre: "Abstract", hours: 0 })],
+          movies: [movie({ genre: "Fantasy", minutes: 120 })],
         }),
       ),
     );

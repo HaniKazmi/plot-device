@@ -21,9 +21,11 @@ describe("omnibusSections", () => {
     expect(omnibusSections({ ...all, now: false }).map((section) => section.id)).not.toContain(OMNIBUS_SECTIONS.now);
   });
 
-  it("drops the crossing and genre chips when nothing spans two media", () => {
-    // Both sections are empty under a single-medium view, and a chip scrolling to a section that
-    // is not on the page reads as broken rather than as empty.
+  it("drops the franchise and genre chips when those sections have nothing to draw", () => {
+    // A chip scrolling to a section that is not on the page reads as broken rather than as empty.
+    // Narrowing to one medium is not what empties either: a franchise one medium holds is a lane
+    // and a genre one medium holds is a full bar. What empties them is their own grouping finding
+    // nothing — a franchise that only ever names itself, a genre whose entries all logged zero.
     const ids = omnibusSections({ ...all, crossings: false, genres: false }).map((section) => section.id);
 
     expect(ids).not.toContain(OMNIBUS_SECTIONS.crossings);

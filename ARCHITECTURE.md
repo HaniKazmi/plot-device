@@ -293,20 +293,28 @@ work's date is the last of the entries collapsed into it and not its representat
 representative is the biggest entry rather than the last; an item with no close is dated now,
 because an open item is the one being met.
 
-**Genres across media** (`omnibus/GenreBridge.tsx`, `omnibus/genreBridgeData.ts`) is the crossings
+**Genres by medium** (`omnibus/GenreBridge.tsx`, `omnibus/genreBridgeData.ts`) is the composition
 question asked of genres instead of franchises: one proportional bar per genre, split by how its
-hours divide between the three media. A genre found in only one medium is dropped rather than drawn
-as a solid bar — the section is about the crossing, and a full-width bar says nothing the vitals
-band above has not. A medium contributing no hours to a genre gets no segment at all, because
+hours divide between the three media. A genre held by one medium is drawn as a solid bar rather
+than held back until a second arrives. Requiring the crossing puts a cliff in the section — a genre
+accrues its whole weight invisibly and one entry logged elsewhere then admits all of it at full
+size, Abstract being 136 hours of games that a single abstract film would introduce — and the bar
+states the confinement, which is the fact the cliff was hiding. What is still dropped is a genre
+whose every entry logged nothing, which has no bar to draw at all. A medium contributing no hours
+to a genre gets no segment either, because
 `assignPercents` floors every slice at half a percent to keep it visible, and a visible slice of
 nothing is a claim the data does not make. The hover dim is one piece of state for the whole card
 rather than one per row, which is what turns a stack of independent bars into a comparison read
 down the column.
 
-**Crossings** (`omnibus/crossingsData.ts`) finds the franchises the reader has met in more than one
-medium and draws each as a strip: one lane per medium present, packed with `common/timelineStripData`'s
+**Franchises over time** (`omnibus/crossingsData.ts`) draws each franchise the reader has met as a
+strip: one lane per medium present, packed with `common/timelineStripData`'s
 `buildStrip` exactly as a show's own season strip is, so the two charts cannot come to disagree
-about what counts as an overlap. Every strip is handed one tick array, built once by `Graphs`, so
+about what counts as an overlap. Reaching a second medium is not asked of a franchise — the same
+cliff the genres band avoids, and one that hid the largest series on the page, thirty seasons of
+Doctor Who standing behind the absence of a Doctor Who game. What the lanes say is which media hold
+a franchise, a reading of the strip rather than a condition on drawing it, and a franchise one
+medium holds is a single lane by the same arithmetic. Every strip is handed one tick array, built once by `Graphs`, so
 the section states its years once beneath the stack — `TimelineCard` takes `axis={false}` and
 `TimelineAxis` is exported for the purpose. A per-strip axis on a shared scale is not twelve axes
 but one row of labels drawn twelve times, a quarter of the section's height restating a scale that
@@ -329,10 +337,12 @@ does not scroll simply leaves with its track. A franchise groups on the raw fran
 `movieFranchise`/`showFranchise` group on, which is what lets a series' founding entry keep naming
 itself the way it already does on its own tab; `namesTheSameThing` instead drops a whole group where
 _every_ entry in it repeats the franchise name, since that group has no series structure left to
-draw a lane for. A film is a point (`start === end`), which the shared strip floors to its minimum
+draw a lane for. That is the one test a group has to pass, and it is what holds the section to
+series rather than to the franchise column: the three sheets' 588 franchise values are 169 series by
+it. A film is a point (`start === end`), which the shared strip floors to its minimum
 band width the way the Movies ribbon already does. A bare-year game date draws its whole year rather
 than the share `vg/cardData.ts` would estimate for a single game's own strip — a franchise lane
-holds two or three entries, not a library to divide a year between — and is marked `precise: false`
+holds a handful of entries, not a library to divide a year between — and is marked `precise: false`
 so the edges read as an estimate.
 
 `common/useScrollEdges.ts` is what tells a reader those rows scroll. Two of them hide their

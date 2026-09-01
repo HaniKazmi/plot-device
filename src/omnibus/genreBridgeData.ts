@@ -30,10 +30,16 @@ export interface GenreBridgeRow {
  * Only the primary genre counts. Shows and Movies carry secondary genres and Games carry themes
  * instead, so folding the secondaries in would give two of the three media a second vote each.
  *
+ * A genre confined to one medium is drawn as a full bar rather than held back until a second
+ * medium arrives. Requiring the crossing puts a cliff in the section: a genre accumulates at
+ * whatever weight its one medium gives it, invisible the whole time, and a single entry logged
+ * elsewhere then admits all of it at once — Abstract is 136 hours of games that one abstract film
+ * would introduce at full size. A solid bar states the confinement, which is the fact the cliff
+ * was hiding rather than a fact it was sparing the reader.
+ *
  * All three sheets record the same genre vocabulary, so a genre meets itself across media without
- * a mapping written here — which is what this chart needs to be true, since a row is exactly the
- * claim that one genre name spans more than one medium. A vocabulary of its own on any sheet would
- * make every one of its genres a single-medium row and drop them all at the filter below.
+ * a mapping written here. A vocabulary of its own on any sheet would stand its genres as bars of
+ * their own beside the shared ones rather than dividing one bar between media.
  */
 export const genreBridge = (items: OmniItem[]): GenreBridgeRow[] => {
   const byGenre = items.reduce((index, item) => {
@@ -41,25 +47,30 @@ export const genreBridge = (items: OmniItem[]): GenreBridgeRow[] => {
     return index;
   }, new Map<string, OmniItem[]>());
 
-  return [...byGenre.entries()]
-    .map(([genre, group]) => {
-      // A medium with no hours in the genre gets no segment: `assignPercents` floors every slice at
-      // half a percent so it stays visible, and a visible slice of nothing is a claim the data does
-      // not make.
-      const counts = media
-        .map((medium) => ({ medium, count: group.filter((item) => item.medium === medium).sum("hours") }))
-        .filter(({ count }) => count > 0);
+  return (
+    [...byGenre.entries()]
+      .map(([genre, group]) => {
+        // A medium with no hours in the genre gets no segment: `assignPercents` floors every slice at
+        // half a percent so it stays visible, and a visible slice of nothing is a claim the data does
+        // not make.
+        const counts = media
+          .map((medium) => ({ medium, count: group.filter((item) => item.medium === medium).sum("hours") }))
+          .filter(({ count }) => count > 0);
 
-      return {
-        genre,
-        hours: Math.floor(counts.sum("count")),
-        segments: assignPercents(counts, counts.sum("count")).map(({ medium, count, percent }) => ({
-          medium,
-          hours: Math.floor(count),
-          percent,
-        })),
-      };
-    })
-    .filter((row) => row.segments.length > 1)
-    .sortByKey("hours");
+        return {
+          genre,
+          hours: Math.floor(counts.sum("count")),
+          segments: assignPercents(counts, counts.sum("count")).map(({ medium, count, percent }) => ({
+            medium,
+            hours: Math.floor(count),
+            percent,
+          })),
+        };
+      })
+      // A genre every one of whose entries logged nothing has no bar to draw — `assignPercents` is
+      // handed an empty list and answers one, leaving a named row with an empty track beside a
+      // figure of zero. That is the only thing dropped here; how many media a genre reached is not.
+      .filter((row) => row.segments.length > 0)
+      .sortByKey("hours")
+  );
 };
