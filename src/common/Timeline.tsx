@@ -436,7 +436,11 @@ const TimelineGrid = ({
       />
       {data.map((event) => (
         <TimelineText
-          key={event.name}
+          // The start date as well as the name: a title is not unique — a replay is a second row
+          // for the same game, and a remake carries its original's exactly — and two rows under one
+          // key are reconciled as one, so a bar and its label go missing. The pair is unique
+          // because the rows in one lane cannot overlap.
+          key={`${event.name}-${event.start}`}
           event={event}
           startDate={startDate}
           endDate={endDate}

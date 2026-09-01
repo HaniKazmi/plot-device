@@ -18,6 +18,7 @@ import type { ReactNode } from "react";
 import { StatCard, StatList, StatsListProps, StatSummary, TotalsBand, VitalsCard, YearTotals } from "../common/Stats";
 import { TopListCard } from "../common/TopList";
 import { GroupedStatList } from "../common/GroupedStatList";
+import { finishedKey } from "../common/finishedData";
 import { Hero } from "../common/Hero";
 import { Section, StatBand } from "../common/SectionRail";
 import { CURRENT_YEAR, formatDate, type YearNumber } from "../common/date";
@@ -300,7 +301,7 @@ const MostWatched = ({ data, measure }: { data: Movie[]; measure: Measure }) => 
       colourOf={(top) => groupToColour(option, top, scheme)}
       MediaComponent={MovieCardMediaImage}
       dialogSort={(movies) => movies.toSorted((a, b) => b.minutes - a.minutes)}
-      nameOf={(movie) => movie.name}
+      nameOf={finishedKey}
       dialogLabelComponent={statsCardLabelWatched}
       dialogChipComponent={(movie) => movieScoreChip(movie, scheme)}
       {...movieStatListSharedProps}
@@ -338,7 +339,7 @@ const MovieStatList = (
     <StatList
       chipComponent={(movie) => movieScoreChip(movie, scheme)}
       MediaComponent={MovieCardMediaImage}
-      nameComponent={(entry) => entry.name}
+      nameComponent={finishedKey}
       {...movieStatListSharedProps}
       {...props}
     />

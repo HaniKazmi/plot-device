@@ -674,7 +674,10 @@ const SubtitleParts = ({ parts }: { parts: PanelSubtitlePart[] }) => {
     <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 0.75, color: palette.muted }}>
       {parts.map((part, index) => (
         <Box
-          key={part.text}
+          // The position, not the text: a caller's parts are a fixed sequence rebuilt whole on
+          // every render, and two of them can hold the same word — the gameplay and genre
+          // vocabularies both contain "Action" and "Adventure", and a game can be both.
+          key={index}
           // The floor is what lets a part longer than the whole column wrap inside itself rather than
           // push the row wider than the card.
           sx={{ display: "inline-flex", alignItems: "center", columnGap: 0.75, minWidth: 0 }}
