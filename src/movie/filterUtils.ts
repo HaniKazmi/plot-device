@@ -7,6 +7,7 @@ import {
   yearPredicates,
   type BaseFilterState,
   type FilterDispatchFor,
+  selectedPredicates,
 } from "../common/filterReducer";
 
 export interface FilterState extends BaseFilterState<Movie, Measure> {
@@ -38,10 +39,12 @@ export const filters = (state: Omit<FilterState, "filter">): Predicate<Movie> =>
   if (!state.unscored) predicates.push((movie) => movie.score !== undefined);
   if (!state.anime) predicates.push(guestFilter);
 
-  if (state.genre.length > 0) predicates.push((movie) => state.genre.includes(movie.genre));
-  if (state.director.length > 0) predicates.push((movie) => state.director.includes(movie.director));
-  if (state.franchise.length > 0) predicates.push((movie) => state.franchise.includes(movie.franchise));
-  if (state.rating.length > 0) predicates.push((movie) => state.rating.includes(movie.rating));
+  predicates.push(
+    ...selectedPredicates(state.genre, (movie: Movie) => movie.genre),
+    ...selectedPredicates(state.director, (movie: Movie) => movie.director),
+    ...selectedPredicates(state.franchise, (movie: Movie) => movie.franchise),
+    ...selectedPredicates(state.rating, (movie: Movie) => movie.rating),
+  );
 
   // The shared predicate reads `startDate.year`, which for a film is simply the year it was
   // watched — one row, one date, so unlike Shows nothing here needs to diverge from it.

@@ -6,6 +6,7 @@ import {
   type BaseFilterState,
   type FilterDispatchFor,
   type YearType,
+  selectedPredicates,
 } from "../common/filterReducer";
 
 export interface FilterState extends BaseFilterState<Show, Measure> {
@@ -50,10 +51,12 @@ export const filters = (state: Omit<FilterState, "filter">): Predicate<Show> => 
   // Matches the primary genre only, not `genres`: the charts group on `genre`, and a filter that
   // also matched the secondary list would keep shows the Top Genre bar attributes elsewhere —
   // the two halves of the page would disagree about what "Drama" holds.
-  if (state.genre.length > 0) predicates.push((show) => state.genre.includes(show.genre));
-  if (state.network.length > 0) predicates.push((show) => state.network.includes(show.network));
-  if (state.franchise.length > 0) predicates.push((show) => state.franchise.includes(show.franchise));
-  if (state.type.length > 0) predicates.push((show) => state.type.includes(show.type));
+  predicates.push(
+    ...selectedPredicates(state.genre, (show: Show) => show.genre),
+    ...selectedPredicates(state.network, (show: Show) => show.network),
+    ...selectedPredicates(state.franchise, (show: Show) => show.franchise),
+    ...selectedPredicates(state.type, (show: Show) => show.type),
+  );
 
   predicates.push(...showYearPredicates(state));
 

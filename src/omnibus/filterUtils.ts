@@ -4,6 +4,7 @@ import {
   type BaseFilterState,
   type FilterDispatchFor,
   type YearType,
+  selectedPredicates,
 } from "../common/filterReducer";
 import type { Predicate } from "../utils/types";
 import type { OmniItem } from "./adapter";
@@ -47,8 +48,10 @@ export const filters = (state: Omit<FilterState, "filter">): Predicate<OmniItem>
   const shown = media.filter((medium) => state[medium]);
   if (shown.length < media.length) predicates.push((item) => shown.includes(item.medium));
 
-  if (state.genre.length > 0) predicates.push((item) => state.genre.includes(item.genre));
-  if (state.franchise.length > 0) predicates.push((item) => state.franchise.includes(item.franchise));
+  predicates.push(
+    ...selectedPredicates(state.genre, (item: OmniItem) => item.genre),
+    ...selectedPredicates(state.franchise, (item: OmniItem) => item.franchise),
+  );
 
   predicates.push(...omniYearPredicates(state));
 

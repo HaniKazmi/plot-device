@@ -6,6 +6,11 @@ import { FilterCategory, FilterDrawer, FilterToggle } from "../common/FilterDraw
 import type { FilterDispatch, FilterState } from "./filterUtils";
 import { useScheme } from "../common/useScheme";
 
+const toggles = [
+  { toggle: "abandoned", Icon: Block },
+  { toggle: "anime", Icon: Animation },
+] as const;
+
 const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: FilterDispatch; data: Show[] }) => {
   const scheme = useScheme();
 
@@ -14,22 +19,15 @@ const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: Filte
       measureIcon={state.measure === "Episodes" ? <Functions /> : <Timer />}
       onToggleMeasure={() => dispatch({ type: "toggleMeasure" })}
       onReset={() => dispatch({ type: "resetFilters" })}
-      toggles={
-        <>
-          <FilterToggle
-            label="abandoned"
-            icon={Block}
-            checked={state.abandoned}
-            onChange={(checked) => dispatch({ type: "updateFilter", filter: "abandoned", value: checked })}
-          />
-          <FilterToggle
-            label="anime"
-            icon={Animation}
-            checked={state.anime}
-            onChange={(checked) => dispatch({ type: "updateFilter", filter: "anime", value: checked })}
-          />
-        </>
-      }
+      toggles={toggles.map(({ toggle, Icon }) => (
+        <FilterToggle
+          key={toggle}
+          label={toggle}
+          icon={Icon}
+          checked={state[toggle]}
+          onChange={(checked) => dispatch({ type: "updateFilter", filter: toggle, value: checked })}
+        />
+      ))}
       categories={
         <>
           <FilterCategory

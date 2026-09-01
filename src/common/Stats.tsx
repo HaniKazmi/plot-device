@@ -28,8 +28,8 @@ import { Radio } from "@mui/material";
 import type { Colour } from "../utils/types";
 import { YearSelect } from "./YearSelect";
 import type { YearType } from "./filterReducer";
-import type { YearNumber } from "./date";
-import { CloseFullscreen, Fullscreen } from "@mui/icons-material";
+import { CURRENT_YEAR, type YearNumber } from "./date";
+import { CloseFullscreen, Fullscreen, Timer, Update } from "@mui/icons-material";
 
 export const StatCard = ({
   icon,
@@ -127,6 +127,14 @@ export const StatSummary = ({
 );
 
 /**
+ * Typed as exactly the two actions these cards send, so every domain's dispatch — each a
+ * `FilterDispatchFor` over its own wider state — fits structurally without a generic.
+ */
+type YearDispatch = (
+  action: { type: "updateFilter"; filter: "yearTo"; value: YearNumber } | { type: "toggleYearType" },
+) => void;
+
+/**
  * The vitals card carrying the page-wide year controls: a year select as its title and the radio
  * that picks which of the two year cards the filter applies to, hence `activeYearType`. The
  * figures themselves arrive as a keyed record, already scoped by the caller to whatever the card
@@ -145,13 +153,7 @@ export const YearTotals = ({
 }: {
   yearType: YearType;
   yearTo: YearNumber;
-  /**
-   * Typed as exactly the two actions this card sends, so every domain's dispatch — each a
-   * `FilterDispatchFor` over its own wider state — fits structurally without a generic.
-   */
-  filterDispatch: (
-    action: { type: "updateFilter"; filter: "yearTo"; value: YearNumber } | { type: "toggleYearType" },
-  ) => void;
+  filterDispatch: YearDispatch;
   icon: ReactNode;
   activeYearType: YearType;
   minWidth?: number;
@@ -180,6 +182,62 @@ export const YearTotals = ({
     }
     content={Object.entries(stats).map(([key, value]) => [key[0].toUpperCase() + key.slice(1), value])}
   />
+);
+
+/**
+ * The pair of year cards every tab opens its vitals band with: the library up to a year, and the
+ * library inside it.
+ *
+ * They are one component rather than two placed side by side at each of the four call sites,
+ * because everything that makes them a pair is fixed — the two icons, which of them the radio
+ * marks active, the wording of each title, and the wider select the second needs for "In 2024".
+ * What a tab actually varies is the two sets of figures it counts, and a tab that stated the rest
+ * again could state it differently.
+ *
+ * A fragment rather than a container: they are two cards of the band they sit in, beside whatever
+ * else that tab puts there, not a group within it.
+ */
+export const YearVitalsPair = ({
+  yearTo,
+  yearType,
+  filterDispatch,
+  earliestYear,
+  allTime,
+  inYear,
+}: {
+  yearTo: YearNumber;
+  yearType: YearType;
+  filterDispatch: YearDispatch;
+  /** Passed through for a domain whose data starts before the app-wide floor. */
+  earliestYear?: YearNumber;
+  allTime: Record<string, number>;
+  inYear: Record<string, number>;
+}) => (
+  <>
+    <YearTotals
+      yearTo={yearTo}
+      yearType={yearType}
+      filterDispatch={filterDispatch}
+      icon={<Timer />}
+      activeYearType="upto"
+      earliestYear={earliestYear}
+      stats={allTime}
+      renderValue={(value) => (
+        <Typography variant="h6">{value == CURRENT_YEAR ? "All Time" : `Up To ${value}`}</Typography>
+      )}
+    />
+    <YearTotals
+      yearTo={yearTo}
+      yearType={yearType}
+      filterDispatch={filterDispatch}
+      icon={<Update />}
+      activeYearType="matching"
+      minWidth={120}
+      earliestYear={earliestYear}
+      stats={inYear}
+      renderValue={(value) => <Typography variant="h6">In {value}</Typography>}
+    />
+  </>
 );
 
 /**

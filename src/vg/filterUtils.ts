@@ -7,6 +7,7 @@ import {
   type BaseFilterState,
   type FilterDispatchFor,
   type YearType,
+  selectedPredicates,
 } from "../common/filterReducer";
 
 export type { YearType };
@@ -50,11 +51,13 @@ export const filters = (state: Omit<FilterState, "filter">): Predicate<VideoGame
       return true;
     });
 
-  if (state.franchise.length > 0) predicates.push((vg) => state.franchise.includes(vg.franchise));
-  if (state.platform.length > 0) predicates.push((vg) => state.platform.includes(vg.platform));
-  if (state.gameplay.length > 0) predicates.push((vg) => state.gameplay.includes(vg.gameplay));
-  if (state.genre.length > 0) predicates.push((vg) => state.genre.includes(vg.genre));
-  if (state.publisher.length > 0) predicates.push((vg) => state.publisher.includes(vg.publisher));
+  predicates.push(
+    ...selectedPredicates(state.franchise, (vg: VideoGame) => vg.franchise),
+    ...selectedPredicates(state.platform, (vg: VideoGame) => vg.platform),
+    ...selectedPredicates(state.gameplay, (vg: VideoGame) => vg.gameplay),
+    ...selectedPredicates(state.genre, (vg: VideoGame) => vg.genre),
+    ...selectedPredicates(state.publisher, (vg: VideoGame) => vg.publisher),
+  );
 
   predicates.push(...yearPredicates<VideoGame>(state));
 

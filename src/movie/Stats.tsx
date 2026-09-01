@@ -7,21 +7,27 @@ import {
   ShowChart,
   Stars,
   Theaters,
-  Timer,
-  Update,
   VerifiedUser,
   Weekend,
   Whatshot,
 } from "@mui/icons-material";
-import { Stack, Typography } from "@mui/material";
+import { Stack } from "@mui/material";
 import type { ReactNode } from "react";
-import { StatCard, StatList, StatsListProps, StatSummary, TotalsBand, VitalsCard, YearTotals } from "../common/Stats";
+import {
+  StatCard,
+  StatList,
+  StatsListProps,
+  StatSummary,
+  TotalsBand,
+  VitalsCard,
+  YearVitalsPair,
+} from "../common/Stats";
 import { TopListCard } from "../common/TopList";
 import { GroupedStatList } from "../common/GroupedStatList";
 import { finishedKey } from "../common/finishedData";
 import { Hero } from "../common/Hero";
 import { Section, StatBand } from "../common/SectionRail";
-import { CURRENT_YEAR, formatDate, type YearNumber } from "../common/date";
+import { formatDate, type YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
 import { useSelectBox } from "../common/SelectBoxHook";
 import { useFranchiseMovies } from "./franchiseContext";
@@ -87,28 +93,13 @@ const Stats = ({
         <StatBand>
           {/* The year controls in these cards filter the whole page, and a control's effects flow
               down the page, never up — so the cards come before the bands they redraw. */}
-          <YearTotals
+          <YearVitalsPair
             yearTo={yearTo}
             yearType={yearType}
             filterDispatch={filterDispatch}
-            icon={<Timer />}
-            activeYearType="upto"
             earliestYear={MOVIE_EPOCH.year}
-            stats={allTimeTotals(data)}
-            renderValue={(value) => (
-              <Typography variant="h6">{value == CURRENT_YEAR ? "All Time" : `Up To ${value}`}</Typography>
-            )}
-          />
-          <YearTotals
-            yearTo={yearTo}
-            yearType={yearType}
-            filterDispatch={filterDispatch}
-            icon={<Update />}
-            activeYearType="matching"
-            minWidth={120}
-            earliestYear={MOVIE_EPOCH.year}
-            stats={filmsInYear(data, yearTo)}
-            renderValue={(value) => <Typography variant="h6">In {value}</Typography>}
+            allTime={allTimeTotals(data)}
+            inYear={filmsInYear(data, yearTo)}
           />
           <StatSummary
             icon={<ShowChart />}

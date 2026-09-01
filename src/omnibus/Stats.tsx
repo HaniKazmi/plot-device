@@ -1,11 +1,11 @@
-import { Hub, Layers, Timer, Update } from "@mui/icons-material";
-import { Box, Stack, Typography } from "@mui/material";
+import { Hub, Layers } from "@mui/icons-material";
+import { Box, Stack } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { CardPanel, type PanelStat, type PanelSubtitlePart, type TypedCardMediaImage } from "../common/Card";
-import { CURRENT_PLAINDATE, CURRENT_YEAR, formatDate, type YearNumber } from "../common/date";
+import { CURRENT_PLAINDATE, formatDate, type YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
 import { Section, StatBand } from "../common/SectionRail";
-import { StatCard, TotalsBand, VitalsCard, YearTotals } from "../common/Stats";
+import { StatCard, TotalsBand, VitalsCard, YearVitalsPair } from "../common/Stats";
 import { genreToColour } from "../utils/types";
 import MovieCardMediaImage from "../movie/CardMediaImage";
 import { movieHeroStats } from "../movie/statsData";
@@ -66,29 +66,14 @@ const Stats = ({
         <StatBand>
           {/* The year controls in these cards filter the whole page, and a control's effects flow
               down the page, never up — so the cards come before the band they redraw. */}
-          <YearTotals
+          <YearVitalsPair
             yearTo={yearTo}
             yearType={yearType}
             filterDispatch={filterDispatch}
-            icon={<Timer />}
-            activeYearType="upto"
             earliestYear={earliestYear}
-            stats={totals}
-            renderValue={(value) => (
-              <Typography variant="h6">{value == CURRENT_YEAR ? "All Time" : `Up To ${value}`}</Typography>
-            )}
-          />
-          <YearTotals
-            yearTo={yearTo}
-            yearType={yearType}
-            filterDispatch={filterDispatch}
-            icon={<Update />}
-            activeYearType="matching"
-            minWidth={120}
-            earliestYear={earliestYear}
+            allTime={totals}
             // The years figure is dropped: inside one year it can only ever read 1.
-            stats={{ hours: inYear.hours, items: inYear.items }}
-            renderValue={(value) => <Typography variant="h6">In {value}</Typography>}
+            inYear={{ hours: inYear.hours, items: inYear.items }}
           />
           {/* The one figure on this page that could not be read off any of the three tabs: a
               franchise is only a crossing when more than one of them holds it.
