@@ -16,6 +16,7 @@ import {
 import type { Colour } from "../../src/utils/types";
 
 const item = (name: string, start: [number, number, number], end: [number, number, number]): TimelineData => ({
+  key: `${name}-${start.join("-")}`,
   name,
   tooltip: () => null,
   colour: "#ff0000" as Colour,

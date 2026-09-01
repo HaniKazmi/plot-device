@@ -3,6 +3,18 @@ import type { YearMonth, YearMonthDay } from "./date";
 import "../utils/arrayUtils";
 
 export interface TimelineData {
+  /**
+   * What tells this row from every other, which the name cannot.
+   *
+   * A title repeats: a replay is a second row for the same game, a remake carries its original's
+   * exactly, and the same game logged on two platforms is two rows word for word. Two rows under
+   * one React key are reconciled as one, so a bar and its label go missing — and adding the start
+   * date does not close it, because two rows sharing a name *and* a date are exactly the pair that
+   * overlaps, which is what puts them in different lanes rather than the same one.
+   *
+   * Required rather than optional: a row that forgot to answer would silently take the name back.
+   */
+  key: string;
   name: string;
   /**
    * Built lazily: the timeline positions every row it is given, and the hover card is only ever

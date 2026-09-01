@@ -115,6 +115,18 @@ export const movieHeroStats = (movie: Movie, franchiseCount: number) => {
   return stats;
 };
 
+/**
+ * What tells one film's card from another's in a list.
+ *
+ * The title alone collides on a remake — Rebecca, The Lion King and Peter Pan are each on record
+ * twice — and the title with its release year still collides on a rewatch, which the sheet records
+ * as a second row. The watch date is what separates those, and it is safe to key on here in a way
+ * it is not on the library wall: `finishedKey` leaves it out deliberately, because rewatching
+ * rewrites it and a card whose key changes remounts and loses the colour sampled from its artwork.
+ * A drill-down is opened, read and closed, so it has no such colour to keep.
+ */
+export const movieKey = (movie: Movie) => `${movie.name}-${movie.releaseDate}-${movie.startDate}`;
+
 // Dates are in the reader's voice and not the machine's, which is the same one the card behind
 // the thumbnail speaks. One cell per row: these sit under posters a third the width of the
 // banners the other tabs label, and two cells collide into one run of digits. The score is
