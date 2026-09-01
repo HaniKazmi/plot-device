@@ -47,10 +47,10 @@ describe("genreBridge", () => {
     expect(rows[0].segments.map((segment) => segment.medium)).toEqual(["game", "movie"]);
   });
 
-  it("drops Other, because an unrecorded genre is not a genre two media share", () => {
-    // The Games converter defaults a blank cell to "Other"; the Movies one drops the row and Shows
-    // always fills the column, so "Other" can only ever be games. The single-medium filter is what
-    // keeps it off the chart — a row there would claim the media meet somewhere none of them names.
+  it("drops a genre only one medium records, whatever it is called", () => {
+    // Nothing here is special about the name: a genre present in one medium is not a crossing, and
+    // the single-medium filter is what keeps it off a chart about where two media meet. "Other" is
+    // the case worth pinning because `topNWithOther` mints a bucket under that name downstream.
     const rows = genreBridge(
       toOmniItems(
         library({

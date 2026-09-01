@@ -1066,7 +1066,8 @@ export const Segment = ({
         width: `${percent}%`,
         height: (theme) => theme.spacing(spacing),
         backgroundColor: backgroundColour,
-        transition: "opacity 0.2s",
+        // No transition here: `dimSx` carries the pair, and a segment declaring the same property
+        // would leave which value wins to the order this spread happens to run in.
         ...sx,
       }}
       {...props}

@@ -141,7 +141,7 @@ type YearDispatch = (
  * figures themselves arrive as a keyed record, already scoped by the caller to whatever the card
  * claims to total.
  */
-export const YearTotals = ({
+const YearTotals = ({
   yearType,
   yearTo,
   filterDispatch,

@@ -7,20 +7,22 @@ import type { FilterDispatch, FilterState } from "./filterUtils";
 import { useScheme } from "../common/useScheme";
 
 /**
- * The medium switches are the toggles, because on this tab a medium is what a category is
+ * The medium switches, which are this tab's toggles because a medium here is what a category is
  * elsewhere: turning two off is how the reader asks the same charts a narrower question.
  *
- * Genre and franchise are the two vocabularies all three media share, and are derived from the
- * union rather than from any one sheet — the point of the select is the entries that appear in
- * more than one of them.
+ * Labelled in the plural where the state key is the singular medium each item carries.
  */
-/** Labelled in the plural where the state key is the singular medium each item carries. */
 const toggles = [
   { toggle: "game", label: "games", Icon: VideogameAsset },
   { toggle: "show", label: "shows", Icon: Tv },
   { toggle: "movie", label: "movies", Icon: LocalMovies },
 ] as const;
 
+/**
+ * Genre and franchise are the two vocabularies all three media share, and both selects are derived
+ * from the union rather than from any one sheet — the entries appearing in more than one of them
+ * are the point of offering the filter here at all.
+ */
 const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: FilterDispatch; data: OmniItem[] }) => {
   const scheme = useScheme();
 

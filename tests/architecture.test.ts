@@ -3,6 +3,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import ts from "typescript";
 
 const SRC = fileURLToPath(new URL("../src", import.meta.url));
 
@@ -117,47 +118,95 @@ describe("browser globals are not read at module load", () => {
   ];
 
   /**
-   * A module-scope read of `global`, in any of the forms that reach one.
+   * The globals a module reads while it is being imported, by parsing rather than by matching.
    *
-   * `export` may lead the declaration, and the read may be of a member rather than of the whole
-   * object — `const w = window.innerWidth` throws exactly as `const w = window` does. What is
-   * deliberately not matched is the sanctioned idiom, `const storage = () => localStorage`: the
-   * arrow between the `=` and the global is what makes the read lazy, and the pattern requires the
-   * global to follow the `=` directly.
+   * A pattern has to enumerate the shapes a read can take — a binding, an exported binding, a
+   * member access, a bare statement, a destructuring, a cast — and it silently passes every shape
+   * nobody thought of. Walking the top-level statements asks the question directly instead: any
+   * reference to one of these names outside a function body runs at import time.
+   *
+   * A function body is where the read becomes lazy, which is the whole of the sanctioned idiom
+   * (`const storage = () => localStorage`), so descending into one is skipped entirely.
    */
-  const moduleScopeRead = (global: string) =>
-    // Only top-level statements: an indented line is inside a function and evaluates lazily, which
-    // is why no leading whitespace is allowed in either alternative.
-    new RegExp(
-      // Bound to a name: `const x = window`, `export const x = window.innerWidth`.
-      `^(?:export\\s+)?(?:const|let|var)\\s+\\w+\\s*(?::[^=]+)?=\\s*${global}\\s*[.;,[]` +
-        // Or touched as a statement of its own: `window.foo = 1`, `(window as X).foo ||= window`.
-        `|^\\(?${global}\\b`,
-      "m",
-    );
+  const moduleScopeGlobals = (source: string): string[] => {
+    const parsed = ts.createSourceFile("module.tsx", source, ts.ScriptTarget.ESNext, true, ts.ScriptKind.TSX);
+    const found = new Set<string>();
 
-  it.each(BROWSER_GLOBALS)("no module-scope read of %s", (global) => {
+    /** Whether an expression asks a browser global whether it exists, e.g. `typeof window !== …`. */
+    const asksWhetherItExists = (node: ts.Node): boolean =>
+      ts.isTypeOfExpression(node)
+        ? ts.isIdentifier(node.expression) && BROWSER_GLOBALS.includes(node.expression.text)
+        : (ts.forEachChild(node, asksWhetherItExists) ?? false);
+
+    const walk = (node: ts.Node) => {
+      if (ts.isFunctionLike(node)) return;
+
+      // A read behind a check for the global's own existence is the other safe form: it is what a
+      // shim that has to run at import time does, and it cannot throw in the context that lacks it.
+      if (ts.isIfStatement(node) && asksWhetherItExists(node.expression)) {
+        if (node.elseStatement) walk(node.elseStatement);
+        return;
+      }
+
+      // The name half of `a.document` is a property, not a reference to the global.
+      const isPropertyName = ts.isPropertyAccessExpression(node.parent) && node.parent.name === node;
+      if (ts.isIdentifier(node) && !isPropertyName && BROWSER_GLOBALS.includes(node.text)) found.add(node.text);
+      ts.forEachChild(node, walk);
+    };
+
+    parsed.statements.forEach(walk);
+    return [...found];
+  };
+
+  /**
+   * The one module allowed to read a browser global while it loads.
+   *
+   * `main.tsx` mounts React onto an element, so a document is its precondition rather than an
+   * incidental dependency, and nothing imports it — there is no non-browser context that could
+   * reach it. Named here rather than missed by a pattern, so the exemption is a decision.
+   */
+  const DOM_ENTRY_POINT = join(SRC, "main.tsx");
+
+  it("finds a module-scope read wherever one is written", () => {
+    // The entry point is the proof the walk works, and the reason the list above has one entry.
+    expect(moduleScopeGlobals(readFileSync(DOM_ENTRY_POINT, "utf8"))).toEqual(["document"]);
+  });
+
+  it("has no module-scope read of a browser global outside the entry point", () => {
     const offenders = allFiles
-      .filter((file) => moduleScopeRead(global).test(readFileSync(file, "utf8")))
-      .map((file) => file.replace(SRC, "src"));
+      .filter((file) => file !== DOM_ENTRY_POINT)
+      .flatMap((file) =>
+        moduleScopeGlobals(readFileSync(file, "utf8")).map((global) => `${file.replace(SRC, "src")} reads ${global}`),
+      );
 
     expect(offenders).toEqual([]);
   });
 
-  it.each([
-    ["a bare alias", "const storage = localStorage;"],
-    ["an exported alias", "export const storage = localStorage;"],
-    ["a member read", "const height = localStorage.length;"],
-    ["a bare statement", "localStorage.setItem('k', 'v');"],
-    ["a statement behind a cast", "(localStorage as unknown as { x: string }).x ||= 'v';"],
-  ])("catches %s", (_, source) => {
-    expect(moduleScopeRead("localStorage").test(source)).toBe(true);
+  it("leaves the lazy accessor every module here uses alone", () => {
+    // The arrow is the whole point: the global is read when the function is called, not on import.
+    expect(moduleScopeGlobals("const storage = () => localStorage;")).toEqual([]);
+    expect(moduleScopeGlobals("function f() {\n  const s = localStorage;\n}")).toEqual([]);
+  });
+
+  it("leaves a read behind an existence check alone, which is what a shim needs", () => {
+    expect(moduleScopeGlobals('if (typeof window !== "undefined") {\n  window.x = window;\n}')).toEqual([]);
+    // Only the guarded branch: the else runs precisely where the global is absent.
+    expect(moduleScopeGlobals('if (typeof window !== "undefined") {\n} else {\n  window.x = 1;\n}')).toEqual([
+      "window",
+    ]);
   });
 
   it.each([
-    ["the lazy accessor every module here uses", "const storage = () => localStorage;"],
-    ["a read inside a function", "function f() {\n  const s = localStorage;\n}"],
-  ])("leaves %s alone", (_, source) => {
-    expect(moduleScopeRead("localStorage").test(source)).toBe(false);
+    ["a bare alias", "const storage = localStorage;", "localStorage"],
+    ["an exported alias", "export const storage = localStorage;", "localStorage"],
+    ["a member read", "const height = localStorage.length;", "localStorage"],
+    ["a bare statement", "localStorage.setItem('k', 'v');", "localStorage"],
+    ["a statement behind a cast", "(localStorage as unknown as { x: string }).x ||= 'v';", "localStorage"],
+    // The three a pattern missed, which is the whole reason this walks the tree instead.
+    ["a destructuring", "const { getItem } = localStorage;", "localStorage"],
+    ["a cast", "const s = localStorage as Storage;", "localStorage"],
+    ["a call argument", "createRoot(document.getElementById('root')!);", "document"],
+  ])("catches %s", (_, source, global) => {
+    expect(moduleScopeGlobals(source)).toEqual([global]);
   });
 });
