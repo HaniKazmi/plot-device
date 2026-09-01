@@ -24,7 +24,38 @@ const TILE_ALPHA = 0.1;
  * against a coloured surface reads as dead where the surface's own hue reads as chosen. Mixing the
  * two by hand lands in the same place and has to be told which way to mix.
  */
+/**
+ * Every palette built so far, by the two things one is derived from.
+ *
+ * The recipe is a pure function of the accent and the theme, and it is asked the same question far
+ * more often than there are answers: a card reads it at nine places — the image, the panel, each
+ * tile, each ledger row, the strip — and a drill-down mounts five hundred cards, where the accents
+ * repeat because artwork of one kind samples to a handful of grounds. Each miss costs a
+ * `getContrastText` and three `alpha` calls, every one of them parsing a colour string.
+ *
+ * Keyed on the theme first, and weakly: `Google.tsx` holds one theme per tab for the life of the
+ * page, so the outer entry is bounded by the number of tabs and goes when a theme does. A stable
+ * object per accent is the other half of the win — the surfaces reading it are components, and a
+ * fresh object each render is a prop that always looks changed.
+ */
+const PALETTES = new WeakMap<Theme, Map<string, ReturnType<typeof buildPalette>>>();
+
 export const artworkPalette = (accent: Colour | undefined, theme: Theme) => {
+  const byAccent = PALETTES.get(theme) ?? new Map<string, ReturnType<typeof buildPalette>>();
+  PALETTES.set(theme, byAccent);
+
+  // Not `setIfAbsent`, which takes the value rather than a way of making one: it would build the
+  // palette on every call and then throw it away on a hit, which is the whole cost being avoided.
+  const key = accent ?? "";
+  const built = byAccent.get(key);
+  if (built) return built;
+
+  const palette = buildPalette(accent, theme);
+  byAccent.set(key, palette);
+  return palette;
+};
+
+const buildPalette = (accent: Colour | undefined, theme: Theme) => {
   // Extraction arrives seconds after the page, and sometimes not until a reload, so the
   // colourless state is the one every card paints first. Filling the same shape from the theme
   // keeps it inside the recipe: a surface reads `palette.muted` and never asks whether there is a
