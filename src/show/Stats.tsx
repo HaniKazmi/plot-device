@@ -340,7 +340,7 @@ const MostWatchedCategory = ({
       labelComponent={(group) => [[group.name, `${format(group.count)} ${measure}`]]}
       colourOf={(top) => groupToColour(category, top, scheme)}
       MediaComponent={ShowCardMediaImage}
-      dialogSort={(shows) => shows.sortByKey("minutes")}
+      dialogSort={(shows) => shows.toSorted((a, b) => b.minutes - a.minutes)}
       nameOf={(show) => show.name}
       dialogLabelComponent={(show) => [[`${format(show.e)} Eps`, `${format(Math.floor(show.minutes / 60))} Hours`]]}
       dialogChipComponent={(show) => ({ label: show.status, colour: statusToColour(show, scheme) })}

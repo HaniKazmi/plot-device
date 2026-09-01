@@ -299,7 +299,7 @@ const MostWatched = ({ data, measure }: { data: Movie[]; measure: Measure }) => 
       labelComponent={(group) => [[group.name], [`${format(group.count)} ${measure}`]]}
       colourOf={(top) => groupToColour(option, top, scheme)}
       MediaComponent={MovieCardMediaImage}
-      dialogSort={(movies) => movies.sortByKey("minutes")}
+      dialogSort={(movies) => movies.toSorted((a, b) => b.minutes - a.minutes)}
       nameOf={(movie) => movie.name}
       dialogLabelComponent={statsCardLabelWatched}
       dialogChipComponent={(movie) => movieScoreChip(movie, scheme)}

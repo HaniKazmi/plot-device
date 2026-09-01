@@ -88,8 +88,28 @@ describe("numDays", () => {
     expect(convertOne({ "Start Date": "2016-12-31", "End Date": "2017-01-01" }).numDays).toBe(2);
   });
 
-  it("is undefined when either end is year-only, rather than inventing a precision", () => {
-    expect(convertOne({ "Start Date": "2007", "End Date": "2017-04-01" }).numDays).toBeUndefined();
+  it("is undefined when both ends are year-only, rather than inventing a precision", () => {
+    expect(convertOne({ "Start Date": "2007", "End Date": "2009" }).numDays).toBeUndefined();
+  });
+
+  it("rejects a pair with one bare year and one full date, in either order", () => {
+    // A played-on pair is recorded at one precision or the other; one of each is a half-filled
+    // cell. Left to `daysTo` it passes silently, because that answers `undefined` across mixed
+    // precision — except where the two share a year, which is the one case its string ordering
+    // catches, and it reports the pair as transposed rather than as mixed.
+    expect(() => convertOne({ Game: "Zelda", "Start Date": "2007", "End Date": "2017-04-01" })).toThrow(
+      'Row 2, "Zelda", played 2007 to 2017-04-01: one date is a bare year and the other is not',
+    );
+    expect(() => convertOne({ Game: "Zelda", "Start Date": "2020-01-15", "End Date": "2020" })).toThrow(
+      "one date is a bare year and the other is not",
+    );
+    expect(() => convertOne({ Game: "Zelda", "Start Date": "2020-01-15", "End Date": "2021" })).toThrow(
+      "one date is a bare year and the other is not",
+    );
+  });
+
+  it("leaves an in-progress game alone, where there is no end date to agree with", () => {
+    expect(convertOne({ "Start Date": "2007", "End Date": "" }).numDays).toBeUndefined();
   });
 
   it("throws when the end date precedes the start date", () => {

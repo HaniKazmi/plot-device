@@ -69,6 +69,19 @@ describe("gameSpans for undated years", () => {
     expect(span.end).toBe(YearMonthDay.get(2008, 12, 31));
   });
 
+  it("opens the whole year to a game whose release is a bare year too", () => {
+    // Half the collection carries a year and nothing more, and the release column is no different,
+    // so a game both released and played in 2007 records two bare years. How far into the year the
+    // release fell is unanswerable from that, which is exactly what the whole year says.
+    const [span] = gameSpans(
+      [videoGame({ name: "old", startDate: Year.get(2007), endDate: Year.get(2007), releaseDate: Year.get(2007) })],
+      TODAY,
+    );
+
+    expect(span.start).toBe(YearMonthDay.get(2007, 1, 1));
+    expect(span.end).toBe(YearMonthDay.get(2007, 12, 31));
+  });
+
   it("shares a year out between the games naming it, without overlapping", () => {
     const spans = gameSpans(
       [undated("a", 2008, [2001, 1, 1]), undated("b", 2008, [2002, 1, 1]), undated("c", 2008, [2003, 1, 1])],

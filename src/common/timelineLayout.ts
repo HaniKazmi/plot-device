@@ -223,6 +223,25 @@ export const packRows = (timelineData: TimelineData[]) => {
   return [positionedRows, lastInRow.length - 1] as const;
 };
 
+/**
+ * The last day any item runs to, which is where the grid has to end.
+ *
+ * Not the end of the last item in start order, though `packRows` hands its rows back in exactly
+ * that order: the two agree *within* a row, because a row only accepts an item starting after the
+ * previous one ended, and nowhere else. An item still in progress is given today as its end, so
+ * whenever anything shorter started after it the last row in start order ends first — and a grid
+ * measured to there is short by the difference, clipping the longer bar at its right edge and
+ * stopping the axis a month before the data.
+ *
+ * Reduced rather than `Math.max`ed: `PlainDate.valueOf` answers a string, so the numeric form
+ * would take the maximum of a list of `NaN`.
+ */
+export const latestEnd = (items: readonly { end: YearMonthDay }[]): YearMonthDay | undefined =>
+  items.reduce<YearMonthDay | undefined>(
+    (latest, item) => (!latest || item.end > latest ? item.end : latest),
+    undefined,
+  );
+
 export type Placement = "center" | "right" | "left" | "span";
 
 /**
