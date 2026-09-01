@@ -11,10 +11,12 @@ import { useScheme } from "../common/useScheme";
 import { genreToColour } from "../utils/types";
 
 /**
- * The genres the reader meets in more than one medium, and how the hours in each are split.
+ * Every genre the reader has spent time in, and how those hours divide between the three media.
  *
- * A genre with only one medium in it is left out entirely rather than drawn as a full bar: the
- * section is about the crossing, and a solid bar says nothing the Media band above has not.
+ * A genre held by one medium is a solid bar rather than an omission. Held back until a second
+ * medium arrives, it accrues its whole weight unseen and then appears at full size on one entry
+ * logged elsewhere — a step change in the card that says nothing about the genre. The full bar is
+ * the same reading as any other row, at the one composition a single medium can have.
  *
  * The dim is one piece of state for the whole card, so hovering a medium anywhere fades it in
  * every row at once — which is what turns a stack of independent bars into a comparison down the
@@ -29,7 +31,7 @@ const GenreBridge = ({ rows }: { rows: GenreBridgeRow[] }) => {
     <Card>
       <SectionHeader
         icon={<Category />}
-        title="Genres across media"
+        title="Genres by medium"
         count={`${format(rows.length)} genres`}
         action={
           <Stack

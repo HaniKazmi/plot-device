@@ -75,8 +75,8 @@ const Stats = ({
             // The years figure is dropped: inside one year it can only ever read 1.
             inYear={{ hours: inYear.hours, items: inYear.items }}
           />
-          {/* The one figure on this page that could not be read off any of the three tabs: a
-              franchise is only a crossing when more than one of them holds it.
+          {/* A figure no one tab can state: a series held by two media is one franchise here and
+              one on each of their tabs, so the union's count is not the three counts added up.
 
               It stands with the year cards rather than after the Media band because it is a
               quarter-width card and the band takes the whole row: anything placed after the band
@@ -84,7 +84,7 @@ const Stats = ({
           {crossings.length > 0 && (
             <StatCard
               icon={<Hub />}
-              title="Crossings"
+              title="Franchises"
               content={[
                 ["Franchises", crossings.length],
                 ["Entries", crossingEntries(crossings)],
@@ -170,8 +170,8 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
             { text: now.game.platform },
             { text: now.game.genre, swatch: genreToColour(now.game.genre, scheme) },
           ]}
-          // The franchise tile is dropped by passing the game alone. The Crossings section is
-          // where this page states what a franchise spans, and it is drawn from the filtered
+          // The franchise tile is dropped by passing the game alone. The Franchises section is
+          // where this page states what a franchise holds, and it is drawn from the filtered
           // union — while the hero is elected from the library and the filters do not narrow it,
           // so a tile here would quote a number that moves under a control the card ignores.
           stats={heroStats(now.game, [now.game], CURRENT_PLAINDATE)}

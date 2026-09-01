@@ -9,7 +9,7 @@ import { media, type Medium } from "./types";
 import "../utils/arrayUtils";
 import "../utils/mapUtils";
 
-/** One entry of a crossing franchise on the strip, with the item behind it for the hover card. */
+/** One entry of a franchise on the strip, with the item behind it for the hover card. */
 export interface CrossingSpan extends StripSpan {
   item: OmniItem;
   /** False where the sheet recorded a year and no month, so the band's edges are not dates. */
@@ -17,16 +17,17 @@ export interface CrossingSpan extends StripSpan {
 }
 
 /**
- * A franchise the reader met in more than one medium, and where each entry falls in time.
+ * A franchise the reader has met, and where each of its entries falls in time.
  *
  * `bands` carry absolute lanes across the whole strip — each medium is packed on its own and then
  * offset past the lanes already spent — so a caller renders one strip and never has to work out
  * where a medium's rows begin. The arithmetic lives here because it is the one thing a renderer
- * could get off by one, and here it can be tested.
+ * could get off by one, and here it can be tested. A franchise held by one medium is one lane by
+ * the same arithmetic, not a case of its own.
  */
 export interface Crossing {
   franchise: string;
-  /** In the page's medium order, so two crossings read their lanes top to bottom the same way. */
+  /** In the page's medium order, so two strips read their lanes top to bottom the same way. */
   media: Medium[];
   entries: number;
   bands: StripBand<CrossingSpan>[];
@@ -69,7 +70,14 @@ const crossingSpan = (item: OmniItem, key: string, today: YearMonthDay): Crossin
 };
 
 /**
- * The franchises spanning more than one medium, biggest first.
+ * The franchises the reader has met, biggest first, each on one shared scale.
+ *
+ * Reaching a second medium is not asked of a franchise. Asking it puts a cliff in the section — a
+ * series accrues entries unseen and a single entry in another medium then admits all of them at
+ * once — and it hides the largest thing on the page for a reason that says nothing about the
+ * series: Doctor Who is thirty seasons that no strip could show while no Doctor Who game had been
+ * played. What the lanes say is which media hold a franchise, which is a reading of the strip
+ * rather than a condition on drawing it.
  *
  * The raw franchise column is what groups, exactly as `movieFranchise` and `showFranchise` do:
  * those deliberately keep a series' founding entry naming itself — "Dune" sits in the Dune
@@ -79,9 +87,11 @@ const crossingSpan = (item: OmniItem, key: string, today: YearMonthDay): Crossin
  * afford.
  *
  * `namesTheSameThing` therefore drops a whole group rather than an entry: a franchise where *every*
- * entry repeats the franchise name has no series structure anywhere in it, and two media meeting
- * there met by sharing a title. What that costs is the single-film-plus-single-game adaptation,
- * which is indistinguishable from the coincidence by anything the sheets record.
+ * entry repeats the franchise name is a work naming itself rather than a series, and holds no
+ * structure for a lane to draw. It is the one test a group has to pass and it is what carries the
+ * section — the 588 franchise values the three sheets hold between them are 169 series by it. What
+ * it costs is the lone adaptation, a film and a game under one name, which nothing the sheets
+ * record tells apart from a title that happens to appear twice.
  *
  * The `epoch` is answered here rather than taken from the caller, and it is the earliest *start*
  * among the entries actually drawn. An item's attribution year is the year it ended, so a scale
@@ -97,17 +107,13 @@ export const crossings = (items: OmniItem[], today: YearMonthDay): { found: Cros
   }, new Map<string, OmniItem[]>());
 
   const groups = [...byFranchise.entries()]
-    .filter(
-      ([franchise, group]) =>
-        new Set(group.map((item) => item.medium)).size > 1 &&
-        group.some((item) => !namesTheSameThing(franchise, item.name)),
-    )
+    .filter(([franchise, group]) => group.some((item) => !namesTheSameThing(franchise, item.name)))
     .map(([franchise, group]) => ({ franchise, entries: group.length, lanes: crossingLanes(group, today) }));
 
   // Floored to the January of that year, because `stripYearTicks` measures its gridlines from the
   // first of the epoch's month and a scale opened mid-month puts every year line off by the
-  // difference. Nothing crossed leaves no strip to draw, so the year is only a value for the ticks
-  // the caller does not render.
+  // difference. No group surviving leaves no strip to draw, so the year is only a value for the
+  // ticks the caller does not render.
   const epoch = YearMonthDay.get(earliestStart(groups) ?? CURRENT_YEAR, 1, 1);
 
   return { found: groups.map((group) => buildCrossing(group, epoch, today)).sortByKey("entries"), epoch };

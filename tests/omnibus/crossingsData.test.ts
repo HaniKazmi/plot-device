@@ -18,7 +18,7 @@ const showWith = (name: string, franchise: string, start: number) => {
 
 const found = (items: OmniItem[]) => crossings(items, TODAY).found;
 
-describe("which franchises are crossings", () => {
+describe("which franchises get a strip", () => {
   it("keeps a franchise the reader met in more than one medium", () => {
     const result = found(
       toOmniItems(
@@ -33,7 +33,10 @@ describe("which franchises are crossings", () => {
     expect(result[0].media).toEqual(["game", "movie"]);
   });
 
-  it("drops a franchise held by one medium alone, however many entries it has", () => {
+  it("keeps a franchise held by one medium alone, on that medium's lane", () => {
+    // Requiring a second medium is a step change rather than a threshold: a series accrues its
+    // entries unseen and one entry logged elsewhere then admits all of them at full size. It also
+    // hid the largest series on the page, thirty seasons of a show with no game beside it.
     const result = found(
       toOmniItems(
         library({
@@ -45,7 +48,9 @@ describe("which franchises are crossings", () => {
       ),
     );
 
-    expect(result).toEqual([]);
+    expect(result.map((crossing) => crossing.franchise)).toEqual(["Zelda"]);
+    expect(result[0].media).toEqual(["game"]);
+    expect(result[0].entries).toBe(2);
   });
 
   it("keeps a series' founding entry, which names the franchise its siblings also sit in", () => {
@@ -66,8 +71,9 @@ describe("which franchises are crossings", () => {
   });
 
   it("drops a group in which every entry only repeats the franchise name", () => {
-    // Two media meeting on a bare title and nothing else: no entry anywhere in the group names a
-    // wider series, so the group is a shared title rather than a franchise.
+    // No entry anywhere in the group names a wider series, so the group is a title repeated rather
+    // than a franchise. This is the one test a group has to pass, and it is what holds the section
+    // to series: most franchise cells in the sheets are a work naming itself.
     const result = found(
       toOmniItems(
         library({
