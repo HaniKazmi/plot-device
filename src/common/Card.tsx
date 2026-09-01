@@ -58,10 +58,16 @@ export interface CardMediaImageProps {
   cardSx?: SxProps<Theme>;
   landscape?: boolean;
   /**
-   * `"aside"` for a card whose panel sits beside the image and has to be given the remaining
-   * width; left off, the artwork column is the width of the card.
+   * Where the panel sits, for a caller that has pinned its own artwork size and so owns the
+   * arrangement (§6, `common/cardArrangement.ts`).
+   *
+   * `"aside"` puts the panel beside the image and gives it the remaining width. `"stacked"` keeps
+   * the panel underneath whatever shape the artwork is, which a shelf of artwork at one fixed
+   * height needs: the shape rule would seat a poster's words beside it, and a row that mixes
+   * banners with posters would then hold two different card layouts at two different widths.
+   * Left off, the arrangement follows `shape`, and the artwork column is the width of the card.
    */
-  mediaLayout?: "aside";
+  mediaLayout?: "aside" | "stacked";
   /**
    * The shape of the artwork, for a surface holding more than one of them: the card then reserves
    * that shape before the image loads and arranges itself by it — a poster takes its words in a
@@ -148,10 +154,17 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
   /**
    * A card with no words is not arranged at all. The rule divides the card between a picture and a
    * column of text, so applying it to bare artwork hands half the card to a panel that is not there
-   * and draws the picture at half the size it was given room for — which is what a shelf of pictures
-   * at one height is.
+   * and draws the picture at half the size it was given room for.
+   *
+   * A caller that pinned the artwork's size can also say so outright, which is what `"stacked"` is
+   * for: the rule reasons about a card whose width is imposed on it, and a shelf at one fixed
+   * height has imposed nothing.
    */
-  const beside = shape !== undefined && shapeToArrangement(shape) === "beside" && footerComponent !== undefined;
+  const beside =
+    mediaLayout !== "stacked" &&
+    shape !== undefined &&
+    shapeToArrangement(shape) === "beside" &&
+    footerComponent !== undefined;
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   /** Lags `dialogOpen` on close so the detail tree survives the dialog's exit transition. */
   const [detailMounted, setDetailMounted] = useState<boolean>(false);
@@ -823,7 +836,10 @@ export const MetadataLedger = ({ rows }: { rows: LedgerRow[] }) => {
  *
  * Rows read bottom-up: the last one carries the figures and anything above it is the context they
  * belong to, which is why only the last is given the full tone. A label builder adding a row is
- * adding context, and belongs above the figures for the same reason.
+ * adding context, and belongs above the figures for the same reason. The two ranks are set as well
+ * as toned — a label over a line, which is the kicker-and-title the hero and the Now band already
+ * state a date and its subject in. At one size they differ only in tone, and two rows of the same
+ * type read as one line dimmed rather than as a hierarchy.
  *
  * Beside a poster the same rows are read down a column instead of across a strip. A strip's width is
  * the whole card and a column's is what the artwork left, so the row that fits on one line under a
@@ -878,8 +894,13 @@ export const FooterComponent = ({ labels, divider }: { labels: string[][]; divid
           {stacks.map((val) => (
             <Typography
               key={val}
-              variant="subtitle2"
-              sx={
+              // A context row is set as a label and the closing row as the card's own line: the
+              // hero and the Now band already state a date as a kicker over the thing it dates,
+              // and a stat card is the same card smaller. Left at one size the two rows differ
+              // only in tone, which reads as one line dimmed rather than as two ranks.
+              variant={index < labels.length - 1 ? "caption" : "subtitle2"}
+              sx={[
+                index < labels.length - 1 ? LABEL_SX : { fontWeight: 600 },
                 beside
                   ? {
                       lineHeight: 1.3,
@@ -890,8 +911,8 @@ export const FooterComponent = ({ labels, divider }: { labels: string[][]; divid
                       WebkitLineClamp: BESIDE_LABEL_LINES,
                       overflow: "hidden",
                     }
-                  : undefined
-              }
+                  : {},
+              ]}
             >
               {val}
             </Typography>
@@ -1004,17 +1025,23 @@ const STRIP_HEIGHT = 3;
  * caller cannot couple to it: everything here reads `startPercent` and `widthPercent` off
  * `buildStrip` and never asks how they were arrived at.
  */
-export const TimelineCard = ({
-  bands,
-  laneCount,
-  ticks,
-  caption,
-}: {
+export const TimelineCard = (props: {
   bands: TimelineBand[];
   laneCount: number;
   ticks: TimelineTick[];
   caption?: ReactNode;
+  /**
+   * Whether the card carries its own year labels. A single strip does; a stack of strips on one
+   * scale states them once beneath the stack instead, which is what `TimelineAxis` is exported
+   * for — twelve identical label rows is the axis repeated, not twelve axes.
+   *
+   * Read off `props` rather than defaulted in the pattern: a destructured default is an assignment
+   * the React Compiler cannot lower, and it bails the whole component out of memoization.
+   */
+  axis?: boolean;
 }) => {
+  const { bands, laneCount, ticks, caption } = props;
+  const axis = props.axis ?? true;
   const palette = useArtworkPalette();
 
   return (
@@ -1063,7 +1090,7 @@ export const TimelineCard = ({
               />
             ))}
           </Box>
-          <TimelineAxis ticks={ticks} />
+          {axis && <TimelineAxis ticks={ticks} />}
         </CardContent>
       </Card>
     </Grid>
@@ -1104,7 +1131,14 @@ const TimelineScale = ({ ticks }: { ticks: TimelineTick[] }) => {
 /** Sparse enough that the labels do not collide at card width, and land on round years. */
 const LABEL_EVERY_YEARS = 5;
 
-const TimelineAxis = ({ ticks }: { ticks: TimelineTick[] }) => (
+/**
+ * The year labels a strip is read against.
+ *
+ * Exported so a stack of strips sharing one scale can state them once beneath itself rather than
+ * once per strip. It positions its labels as percentages of its own width, so it lines up with the
+ * strips above wherever it is placed at their inset.
+ */
+export const TimelineAxis = ({ ticks }: { ticks: TimelineTick[] }) => (
   <Box sx={{ position: "relative", height: 14, marginTop: 0.25 }}>
     {ticks
       .filter((tick) => tick.year % LABEL_EVERY_YEARS === 0)

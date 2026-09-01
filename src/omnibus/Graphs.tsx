@@ -109,6 +109,7 @@ const Graphs = memo(
         <SectionRail
           sections={omnibusSections({
             now: hasNow(now),
+            charts: deferredData.length > 0,
             crossings: crossed.found.length > 0,
             gallery: shelved.length > 0,
             finished: finished.length > 0,
@@ -126,12 +127,14 @@ const Graphs = memo(
           yearTo={filterState.yearTo}
           filterDispatch={filterDispatch}
         />
-        <Section id={OMNIBUS_SECTIONS.charts}>
-          <Barchart
-            data={deferredData}
-            measure={filterState.measure}
-          />
-        </Section>
+        {deferredData.length > 0 && (
+          <Section id={OMNIBUS_SECTIONS.charts}>
+            <Barchart
+              data={deferredData}
+              measure={filterState.measure}
+            />
+          </Section>
+        )}
         {crossed.found.length > 0 && (
           <Section id={OMNIBUS_SECTIONS.crossings}>
             <Crossings

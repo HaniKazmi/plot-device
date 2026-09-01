@@ -24,6 +24,12 @@ import type { ReactNode } from "react";
  * centres itself against the whole header, and a header whose controls stack two or three selects
  * high leaves the icon floating below the title line it belongs to. The theme pins the content to
  * the top, so a row the icon is part of keeps the two together at any header height.
+ *
+ * Below `sm` the controls take a row of their own. `CardHeader` seats its action beside the title
+ * at every width, so a title and three or four controls divide 375px between them and the title
+ * wraps to a word a line — "Shelves / by / Genre" beside a select, two toggles and an expand. The
+ * action's own margins are cleared with it, since they exist to hold it clear of a title it is no
+ * longer beside.
  */
 export const SectionHeader = ({
   icon,
@@ -38,6 +44,15 @@ export const SectionHeader = ({
   action?: ReactNode;
 }) => (
   <CardHeader
+    sx={{
+      flexDirection: { xs: "column", sm: "row" },
+      alignItems: { xs: "stretch", sm: "center" },
+      "& .MuiCardHeader-action": {
+        marginTop: { xs: 1, sm: 0 },
+        marginRight: { xs: 0, sm: 0 },
+        alignSelf: { xs: "stretch", sm: "flex-start" },
+      },
+    }}
     title={
       <Stack
         direction="row"

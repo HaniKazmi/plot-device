@@ -38,6 +38,22 @@ const mediumLabels: Record<Medium, string> = {
 export const mediumToLabel = (medium: Medium): string => mediumLabels[medium];
 
 /**
+ * The same names in the singular, for a label naming one item rather than a group.
+ *
+ * A legend, a header and a filter toggle all stand for a set and read in the plural; the band under
+ * a single picture stands for that picture. Written out rather than trimmed from the plural, since
+ * a vocabulary that gains a medium whose plural is not its name plus an "s" would otherwise be
+ * wrong in one place and right in the other.
+ */
+const mediumNames: Record<Medium, string> = {
+  game: "Game",
+  show: "Show",
+  movie: "Movie",
+};
+
+export const mediumToName = (medium: Medium): string => mediumNames[medium];
+
+/**
  * The shape a medium's artwork comes in: the Games sheet holds banners, the Shows and Movies sheets
  * hold posters.
  *

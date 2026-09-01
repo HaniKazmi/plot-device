@@ -47,6 +47,11 @@ const Stats = ({
 }) => {
   const totals = unionTotals(data);
   const inYear = unionTotals(data.filter((item) => item.year === yearTo));
+  // What is left after the filters, which is what the two composition surfaces below have to say
+  // something about. A proportional bar over one group is a full bar saying what the reader just
+  // chose, and a crossings count with no crossings is a card of zeroes standing where the rail has
+  // already dropped the section it points at.
+  const mediaShown = new Set(data.map((item) => item.medium)).size;
 
   return (
     <Stack spacing={2}>
@@ -90,27 +95,31 @@ const Stats = ({
               It stands with the year cards rather than after the Media band because it is a
               quarter-width card and the band takes the whole row: anything placed after the band
               opens a row of its own and reads as a card that lost its neighbours. */}
-          <StatCard
-            icon={<Hub />}
-            title="Crossings"
-            content={[
-              ["Franchises", crossings.length],
-              ["Entries", crossingEntries(crossings)],
-            ]}
-          />
-          <VitalsCard>
-            <TotalsBand
-              title="Media"
-              icon={<Layers />}
-              data={data}
-              measureFunc={(items) => measureOf(items, measure)}
-              group={[...media]}
-              groupOf={(item) => item.medium}
-              groupToColour={mediumToColour}
-              groupToLabel={mediumToLabel}
-              measureLabel={measure}
+          {crossings.length > 0 && (
+            <StatCard
+              icon={<Hub />}
+              title="Crossings"
+              content={[
+                ["Franchises", crossings.length],
+                ["Entries", crossingEntries(crossings)],
+              ]}
             />
-          </VitalsCard>
+          )}
+          {mediaShown > 1 && (
+            <VitalsCard>
+              <TotalsBand
+                title="Media"
+                icon={<Layers />}
+                data={data}
+                measureFunc={(items) => measureOf(items, measure)}
+                group={[...media]}
+                groupOf={(item) => item.medium}
+                groupToColour={mediumToColour}
+                groupToLabel={mediumToLabel}
+                measureLabel={measure}
+              />
+            </VitalsCard>
+          )}
         </StatBand>
       </Section>
       {/* This file holds the bands above the charts and nothing else. The browse surfaces — the
@@ -232,6 +241,23 @@ const NOW_HEIGHT = 380;
 const NOW_TEXT_WIDTH = 176;
 
 /**
+ * The same band on a phone, where the three cards are a column rather than a row.
+ *
+ * A card that fills the width is a card as tall as its own artwork: at 375px a full-bleed poster
+ * stands 550px, and three of them put the band's last figure nearly two screens below the first —
+ * a page that opens on what is in flight instead opens on one picture. Seating the words beside the
+ * artwork at a height the caller picks is what the arrangement rule is for (§6); it is applied by
+ * shape at every other width and by shape *and* width here, because the constraint a phone adds is
+ * the one the rule cannot see.
+ *
+ * A banner keeps its words underneath at every width. Beside a 16:9 picture at this height there
+ * are nineteen pixels of column left, and the arrangement exists to give each shape the axis it has
+ * room on.
+ */
+const NOW_HEIGHT_XS = 200;
+const NOW_POSTER_ART_WIDTH_XS = Math.round(NOW_HEIGHT_XS * shapeRatioValues.portrait);
+
+/**
  * What the banner card's words come to: the panel's own lines plus the same lower inset every
  * panel in the row keeps.
  *
@@ -340,7 +366,7 @@ const NowCard = <T,>(props: {
         maxWidth: "100%",
         // A floor and not a fixed height, so a title that runs to another line grows the row rather
         // than being clipped by it; the cards stretch together, so they still share one height.
-        minHeight: { md: NOW_HEIGHT },
+        minHeight: { xs: beside ? NOW_HEIGHT_XS : undefined, md: NOW_HEIGHT },
         display: "flex",
       }}
     >
@@ -353,8 +379,13 @@ const NowCard = <T,>(props: {
         mediaLayout={beside ? "aside" : undefined}
         chip={{ label: mediumToLabel(props.medium), colour: mediumToColour(props.medium), onClick: props.onJump }}
         cardSx={{
-          flexDirection: { xs: "column", md: "row" },
+          // A poster card is a row at every width; only a banner card stacks, and it stacks always.
+          flexDirection: beside ? "row" : { xs: "column", md: "row" },
           width: "100%",
+          // The artwork column is its picture's width on a phone too. `ASIDE_ACTION_AREA_SX` hands
+          // it the whole card below `md` for the hero, which fills the page's width and has no
+          // second card under it to be pushed down by.
+          ...(beside ? { "& > .MuiCardActionArea-root": { width: { xs: "auto", md: "auto" } } } : {}),
           // The banner card is a column whose picture is the part that gives: the words are the
           // height of their own lines plus the row's shared lower inset, and everything else in
           // the card belongs to the picture above. So the last tile lands one inset above the
@@ -391,7 +422,10 @@ const NowCard = <T,>(props: {
           display: "block",
           ...(beside
             ? // Its column exactly, and the whole height of the row beside the words.
-              { width: { xs: "100%", md: NOW_POSTER_ART_WIDTH }, height: { xs: "auto", md: "100%" } }
+              {
+                width: { xs: NOW_POSTER_ART_WIDTH_XS, md: NOW_POSTER_ART_WIDTH },
+                height: { xs: "100%", md: "100%" },
+              }
             : // The slot the words left it, filled. At the height the row is built around that slot
               // is exactly the card's width at 16:9 and the banner fills it edge to edge; a row
               // driven taller by another card spends the difference here rather than on the words.

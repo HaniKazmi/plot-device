@@ -14,12 +14,15 @@ export const omniMediumChip = (item: OmniItem): CardMediaImageProps["chip"] => (
 });
 
 /**
- * The strip under a thumbnail: what it is, over when it was finished.
+ * The strip under a thumbnail: when it was finished, over what it was.
  *
- * Rows read bottom-up, so the date takes the lower line and the full tone — a mixed list is read by
- * when things happened, and the title above it is the context for that.
+ * Rows read bottom-up, so the closing row takes the full tone and the rows above it are the context
+ * that row belongs to. Every other caller puts a date there and its figures below; this one is a
+ * mixed list of works, so what belongs on the closing line is the name — a card whose title is the
+ * dimmer of its two lines reads as a date with a caption. The date above it is then the kicker the
+ * hero and the Now band already state a date as.
  */
 export const omniLabels = (item: OmniItem): string[][] => [
-  [omniTitle(item)],
   [item.closeDate ? formatDate(item.closeDate) : "In progress"],
+  [omniTitle(item)],
 ];

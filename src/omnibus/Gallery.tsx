@@ -1,5 +1,5 @@
 import { ExpandCircleDown, PhotoLibrary, Schedule, Sort } from "@mui/icons-material";
-import { CardContent, IconButton, Stack, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
+import { Box, CardContent, IconButton, Stack, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
 import { useState, type ReactNode } from "react";
 import { INLINE_SWATCH_SIZE, Swatch } from "../common/Card";
 import { CURRENT_PLAINDATE } from "../common/date";
@@ -21,7 +21,8 @@ import {
   type GallerySort,
   type Shelf as ShelfGroup,
 } from "./galleryData";
-import type { Measure } from "./types";
+import { mediumToColour, mediumToName, type Measure } from "./types";
+import { LABEL_SX } from "../common/typography";
 
 /**
  * How many shelves the section draws, and how many pictures stand on one before the rest are left
@@ -34,6 +35,19 @@ import type { Measure } from "./types";
  */
 const SHELVES_SHOWN = 6;
 const PICTURES_SHOWN = 20;
+
+/**
+ * The band under each picture naming its medium, and how tall it stands.
+ *
+ * A shelf mixes three media at one height, so which one a picture is has to be said somewhere — and
+ * a chip in the corner says it by covering the artwork it is labelling, on every card, on six
+ * shelves at once. Under the picture the band has room of its own and the artwork is left whole;
+ * it is filled in the medium's colour, the same fill the chart legends and the Media band use.
+ *
+ * The height is stated rather than left to the line, because the strip fixes its children's height
+ * and the artwork takes all of it that this band does not.
+ */
+const MEDIUM_LABEL_HEIGHT = 22;
 
 /**
  * How many shelves the fullscreen view draws.
@@ -212,21 +226,52 @@ const Shelf = ({
           <ExpandCircleDown color="action" />
         </IconButton>
       </Stack>
-      <Filmstrip height={FILMSTRIP_HEIGHT}>
+      <Filmstrip height={FILMSTRIP_HEIGHT + MEDIUM_LABEL_HEIGHT}>
         {group.all.slice(0, PICTURES_SHOWN).map((item) => (
           <OmniCardMediaImage
             key={omniKey(item)}
             item={item}
             lazy
-            chip={omniMediumChip(item)}
-            // Bare artwork, so the shelf fixes the height and each picture keeps its own width: a
-            // banner and a poster stand at one height in the shapes they were made in. Nothing here
-            // carries words, which is the one surface the arrangement rule has nothing to say about.
+            // Stacked whatever the artwork's shape, because the shelf pinned the height: left to
+            // the shape rule a poster would take its label in a column beside it and the row would
+            // hold two card layouts at two widths.
+            mediaLayout="stacked"
+            footerComponent={<MediumLabel item={item} />}
+            // The shelf fixes the height and each picture keeps its own width, so a banner and a
+            // poster stand at one height in the shapes they were made in.
             sx={{ height: FILMSTRIP_HEIGHT, width: "auto", display: "block" }}
           />
         ))}
       </Filmstrip>
     </Stack>
+  );
+};
+
+/**
+ * What a picture is: the band filled in that medium's own colour, the way the badge it replaces
+ * was, with type derived from the fill rather than fixed — the same rule every chip and status
+ * tile in the app follows, and the reason a gold band and a blue one are both legible.
+ */
+const MediumLabel = ({ item }: { item: OmniItem }) => {
+  const colour = mediumToColour(item.medium);
+
+  return (
+    <Box
+      sx={(theme) => ({
+        height: MEDIUM_LABEL_HEIGHT,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingX: 1,
+        fontSize: 11,
+        fontWeight: 600,
+        backgroundColor: colour,
+        color: theme.palette.getContrastText(colour),
+        ...LABEL_SX,
+      })}
+    >
+      {mediumToName(item.medium)}
+    </Box>
   );
 };
 

@@ -62,6 +62,9 @@ export const ScrollMarkerRail = ({ bucket, left, railHeight, buckets, jumpTo }: 
     activeId={bucket ?? undefined}
     onSelect={jumpTo}
     label="Jump to a position in the library"
+    // A column, and one that never scrolls: the rail is only mounted where the span fits every
+    // chip at full height, which is the same test that leaves the pill as the answer otherwise.
+    vertical
     sx={{
       position: "fixed",
       top: `${MARKER_TOP}px`,
