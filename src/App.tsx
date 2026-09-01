@@ -4,7 +4,12 @@ import Google from "./Google.tsx";
 import { preload } from "react-dom";
 import { g_script, gapi_script } from "./contexts/GoogleAuthContext.tsx";
 
-(window as unknown as { global: typeof window }).global ||= window;
+// A Node-style `global`, for a dependency that expects one. Behind a `typeof` check because this
+// is a module-scope statement: bare, merely importing this file throws wherever `window` is absent,
+// which is every non-browser context that might reach the entry point.
+if (typeof window !== "undefined") {
+  (window as unknown as { global: typeof window }).global ||= window;
+}
 
 function App() {
   preload(g_script, { as: "script" });
