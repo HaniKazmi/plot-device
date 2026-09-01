@@ -13,7 +13,6 @@ import { useOtherTabs } from "../tabs";
 import { MOVIE_SECTIONS, movieSections } from "./sections";
 import { FranchiseContext, movieFranchise } from "./franchiseContext";
 import { visibleFranchiseIndex } from "../common/franchiseIndex";
-import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
 import { guestFilter, type FilterDispatch, type FilterState } from "./filterUtils";
 import { format } from "../utils/mathUtils";
 import { finishedCount } from "../common/finishedData";
@@ -22,13 +21,11 @@ import { useScheme } from "../common/useScheme";
 const SuspenseBlock = ({
   filteredData,
   unfilteredData,
-  dataLoaded,
   filterState,
   filterDispatch,
 }: {
   filteredData: Movie[];
   unfilteredData: Movie[];
-  dataLoaded: boolean;
   filterState: FilterState;
   filterDispatch: FilterDispatch;
 }) => (
@@ -45,7 +42,6 @@ const SuspenseBlock = ({
       dispatch={filterDispatch}
       data={unfilteredData}
     />
-    <DataLoadedSnackbar open={dataLoaded} />
   </FranchiseContext.Provider>
 );
 

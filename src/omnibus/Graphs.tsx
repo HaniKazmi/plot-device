@@ -1,7 +1,6 @@
 import { memo, useDeferredValue } from "react";
 import { CURRENT_PLAINDATE, type YearNumber } from "../common/date";
 import { Stack } from "@mui/material";
-import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
 import { franchiseIndex } from "../common/franchiseIndex";
 import { Section, SectionRail } from "../common/SectionRail";
 import { stripYearTicks } from "../common/timelineStripData";
@@ -35,14 +34,12 @@ const SuspenseBlock = ({
   library,
   filteredData,
   unfilteredData,
-  dataLoaded,
   filterState,
   filterDispatch,
 }: {
   library: Library;
   filteredData: OmniItem[];
   unfilteredData: OmniItem[];
-  dataLoaded: boolean;
   filterState: FilterState;
   filterDispatch: FilterDispatch;
 }) => (
@@ -64,7 +61,6 @@ const SuspenseBlock = ({
           dispatch={filterDispatch}
           data={unfilteredData}
         />
-        <DataLoadedSnackbar open={dataLoaded} />
       </MovieFranchiseContext.Provider>
     </ShowFranchiseContext.Provider>
   </VgFranchiseContext.Provider>
