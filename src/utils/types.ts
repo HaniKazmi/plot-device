@@ -277,3 +277,91 @@ export const releaseDecade = (year: number): string => (year < 1970 ? "Pre-1970"
 
 export const decadeToColour = (decade: string, scheme: Scheme): Colour =>
   pick(decadeColours[decade] ?? NEUTRAL_FILL, scheme);
+
+/**
+ * A franchise's own brand hex, filling the sunburst's franchise ring, every tab's Top Franchise
+ * bar, and the Omnibus gallery's franchise shelves.
+ *
+ * Shared rather than owned by Games, for the reason the genre ramp is: all three sheets record a
+ * Franchise column, and eleven franchises are met in more than one medium — Marvel across all
+ * three, Star Wars and Harry Potter across games and film, Fate and Star Trek across games and
+ * television. A per-domain table would draw one of those a different colour on each tab, which is
+ * the one thing a shared vocabulary exists to prevent.
+ *
+ * Hue and chroma are the brand's and are kept exactly; only lightness moves, and only as far as
+ * the fill contract on `NEUTRAL_FILL` demands of the half being drawn. A brand already inside the
+ * band on both papers therefore carries one value twice — Mario, Marvel and Zelda all do.
+ *
+ * Eight entries relax the floor on the **white paper alone**, keeping the full 3:1 on the dark one.
+ * The relief is what the contract allows where colour is not carrying the meaning by itself, and
+ * this is that case: the sunburst labels its franchise ring, every Top Franchise row is named
+ * beside its swatch, and a gallery shelf carries its franchise as a heading. Witcher, Uncharted,
+ * Assassin's Creed and Tales need only 2.2:1 and then carry their brand hex exactly on both
+ * papers. Pokémon, Warcraft, Star Wars and Star Trek are the four whose identity *is* their
+ * brightness, and they go to 1.8 — a yellow held to 3:1 on white is not a yellow but a brown-gold,
+ * which is 20.8 dE from what Pokémon actually looks like and 26.0 from Star Wars.
+ *
+ * What the clamp costs is separation between brands that already share a hue, and this table is
+ * where that lands hardest. Mario, Marvel, Xenoblade, Fate, Mass Effect, Yakuza and Harry Potter
+ * are seven reds; Final Fantasy, Ace Attorney, Civilization, DC, Disney and Doctor Who six blues.
+ * The set is scoped so those never crowd one chart: a Top Franchise bar draws five groups from one
+ * sheet, and the reds and blues are spread across the three. Marvel beside Harry Potter on the
+ * Movies bar is the closest pair anywhere at 10.7 dE on the dark paper, and the row labels are
+ * load-bearing for it.
+ *
+ * The table covers what a tab's collapsed Top Franchise card and the gallery's shelves actually
+ * draw, plus every cross-media franchise among them. The long tail — 168 franchise values in the
+ * games sheet alone, most of them a work naming itself — deliberately has none, the same rule
+ * `networkToColour` follows: a vocabulary nobody can learn teaches nothing, and `""` hands the
+ * choice to Highcharts.
+ */
+const franchiseColours: Record<string, Fill> = {
+  // Games
+  Pokémon: fill("#ebbb00", "#ffcb05"),
+  "Final Fantasy": fill("#009eda", "#039fdb"),
+  "Ace Attorney": fill("#2b52c3", "#3c66d9"),
+  Mario: fill("#e60012", "#e60012"),
+  "Call of Duty": fill("#666f3b", "#6d7642"),
+  "Dragon Ball": fill("#f45712", "#f85b1a"),
+  "Assassin's Creed": fill("#a9adb3", "#a9adb3"),
+  "Legend of Zelda": fill("#1a8a34", "#1a8a34"),
+  Tales: fill("#38bfb4", "#38bfb4"),
+  Uncharted: fill("#bdaa8b", "#bdaa8b"),
+  Yakuza: fill("#c0393d", "#c0393d"),
+  "Super Smash Bros.": fill("#ff4500", "#ff4500"),
+  Xenoblade: fill("#e60026", "#e60026"),
+  Warcraft: fill("#fcb249", "#ffb54c"),
+  "Mass Effect": fill("#d12026", "#d12026"),
+  Civilization: fill("#1e6fad", "#2575b3"),
+  Persona: fill("#4557a2", "#566ab7"),
+  // Met in more than one medium
+  Marvel: fill("#ed1d24", "#ed1d24"),
+  Fate: fill("#cb2c28", "#cb2c28"),
+  Witcher: fill("#8f95a1", "#8f95a1"),
+  "Star Wars": fill("#d7c200", "#f8e102"),
+  "Harry Potter": fill("#7e0f0b", "#b5483c"),
+  DC: fill("#0576f3", "#0476f2"),
+  "Star Trek": fill("#e2be00", "#ffd700"),
+  // Shows
+  "Doctor Who": fill("#0b4573", "#3f74a6"),
+  "Breaking Bad": fill("#00892b", "#01892b"),
+  // Judgment rather than a published hex: neither has a brand colour of its own, and both lead
+  // their tab's Top Franchise card, where a palette hue beside five branded ones reads as a gap.
+  "Vampire Diaries": fill("#6b2d8b", "#8e50b0"),
+  // Films
+  Disney: fill("#113ccf", "#2a5ff2"),
+  Pixar: fill("#28a4a2", "#2ca6a4"),
+};
+
+/** Every franchise the table colours; anything else reads as having no colour of its own. */
+export const FRANCHISE_NAMES = Object.keys(franchiseColours);
+
+/**
+ * `""` off the table, which every caller reads as no colour at all — the same answer
+ * `networkToColour` gives, and for the same reason: the column is open-ended and most of what it
+ * holds is a work naming itself.
+ */
+export const franchiseToColour = ({ franchise }: { franchise: string }, scheme: Scheme): Colour => {
+  const colour = franchiseColours[franchise];
+  return colour ? pick(colour, scheme) : ("" as Colour);
+};

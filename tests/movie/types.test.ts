@@ -81,8 +81,11 @@ describe("groupToColour", () => {
     expect(groupToColour("score", film, "light")).toBe(scoreBandToColour("9–10", "light"));
   });
 
-  it("hands franchise, director and name to Highcharts, since none carries a colour of its own", () => {
-    expect(groupToColour("franchise", movie(), "light")).toBe("");
+  it("colours a franchise from the shared table, and hands the rest to Highcharts", () => {
+    // Most films name themselves in the franchise column and take the empty answer; a director is
+    // an open set of names with no brand to reproduce, and never gets one.
+    expect(groupToColour("franchise", movie({ franchise: "Marvel" }), "light")).not.toBe("");
+    expect(groupToColour("franchise", movie({ franchise: "Some One-Off Film" }), "light")).toBe("");
     expect(groupToColour("director", movie(), "light")).toBe("");
     expect(groupToColour("name", movie(), "light")).toBe("");
   });
