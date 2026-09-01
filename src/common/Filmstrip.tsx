@@ -1,5 +1,7 @@
-import { Box, type Theme } from "@mui/material";
+import { Box, useTheme, type Theme } from "@mui/material";
 import type { ReactNode } from "react";
+import { ScrollFade } from "./ScrollFade";
+import { useScrollEdges } from "./useScrollEdges";
 
 /**
  * How tall a strip's artwork stands. Exported because the caller sets it on the artwork as well as
@@ -29,33 +31,47 @@ const SCROLLBAR_HEIGHT = 10;
  * styling it at all opts macOS out of overlay scrollbars, which hide the moment scrolling stops,
  * and a thumb that stays says both that there is more and how much at no cost per frame.
  */
-export const Filmstrip = ({ height, children }: { height: number; children: ReactNode }) => (
-  <Box
-    sx={(theme: Theme) => ({
-      display: "flex",
-      alignItems: "flex-start",
-      gap: theme.spacing(1),
-      height: height + SCROLLBAR_HEIGHT,
-      overflowX: "auto",
-      overflowY: "hidden",
-      // The children are given the artwork's height rather than left to ask for the strip's. A card
-      // is `height: 100%`, and 100% of this box is the row plus the scrollbar's allowance — so the
-      // card stands ten pixels taller than the picture inside it and paints its own ground under
-      // every one of them. Stating the height here is what keeps the strip's one fixed dimension
-      // the artwork's and not the box's.
-      //
-      // `&&` rather than `&` because a card carries the same rule about itself: one class each, so
-      // the two selectors tie on specificity and the later-inserted one wins — and a child's class
-      // is inserted after its parent's. Naming this class twice settles the tie by weight rather
-      // than by render order.
-      "&& > *": { flex: "0 0 auto", height },
-      scrollbarWidth: "thin",
-      scrollbarColor: `${theme.vars.palette.text.secondary} ${theme.vars.palette.divider}`,
-      "&::-webkit-scrollbar": { height: SCROLLBAR_HEIGHT },
-      "&::-webkit-scrollbar-track": { backgroundColor: theme.vars.palette.divider, borderRadius: 5 },
-      "&::-webkit-scrollbar-thumb": { backgroundColor: theme.vars.palette.text.secondary, borderRadius: 5 },
-    })}
-  >
-    {children}
-  </Box>
-);
+export const Filmstrip = ({ height, children }: { height: number; children: ReactNode }) => {
+  // The scrollbar this strip reserves room for is drawn by some platforms and not others, so the
+  // fade rather than the bar is what tells a reader six of twenty pictures are on screen.
+  const [ref, edges, onScroll] = useScrollEdges<HTMLDivElement>();
+  const theme = useTheme();
+
+  return (
+    <ScrollFade
+      edges={edges}
+      ground={theme.vars.palette.background.paper}
+    >
+      <Box
+        ref={ref}
+        onScroll={onScroll}
+        sx={(theme: Theme) => ({
+          display: "flex",
+          alignItems: "flex-start",
+          gap: theme.spacing(1),
+          height: height + SCROLLBAR_HEIGHT,
+          overflowX: "auto",
+          overflowY: "hidden",
+          // The children are given the artwork's height rather than left to ask for the strip's. A
+          // card is `height: 100%`, and 100% of this box is the row plus the scrollbar's allowance
+          // — so the card stands ten pixels taller than the picture inside it and paints its own
+          // ground under every one of them. Stating the height here is what keeps the strip's one
+          // fixed dimension the artwork's and not the box's.
+          //
+          // `&&` rather than `&` because a card carries the same rule about itself: one class each,
+          // so the two selectors tie on specificity and the later-inserted one wins — and a child's
+          // class is inserted after its parent's. Naming this class twice settles the tie by weight
+          // rather than by render order.
+          "&& > *": { flex: "0 0 auto", height },
+          scrollbarWidth: "thin",
+          scrollbarColor: `${theme.vars.palette.text.secondary} ${theme.vars.palette.divider}`,
+          "&::-webkit-scrollbar": { height: SCROLLBAR_HEIGHT },
+          "&::-webkit-scrollbar-track": { backgroundColor: theme.vars.palette.divider, borderRadius: 5 },
+          "&::-webkit-scrollbar-thumb": { backgroundColor: theme.vars.palette.text.secondary, borderRadius: 5 },
+        })}
+      >
+        {children}
+      </Box>
+    </ScrollFade>
+  );
+};

@@ -64,6 +64,12 @@ The load-bearing rule is the boundary between the bottom two layers and the doma
 
 The rule holds with no exceptions, and the direction matters. Where the shared layer needs a domain vocabulary, it declares its own and lets each domain's type stay assignable to it — `utils/types.ts` owns a `ColourableStatus` union that both `show/types.ts` and `vg/types.ts` satisfy, rather than importing their `Status` unions. Inverting that would create an import cycle, since both domains import `statusToColour` back out.
 
+Every section on the tab but the vitals band is rendered only where it has something to say, and
+the rail's chips are built from the same tests. The band itself always stands, because a total of
+zero is a true answer to how much — where an empty pivot is not a picture of nothing but a picture
+of whatever the plotting library invents from it, and a proportional bar over one group states
+only what the reader just chose.
+
 `omnibus/` sits in the domain layer beside the other three, not above it: it imports `vg/`, `show/` and `movie/` and composes their output, which is exactly what a domain folder is for. It reads no sheet of its own — see §3 — so it is the one domain with no converter, and everything else about it (filters, adapters, a lazy `Graphs.tsx`) follows the same shape as the other three. The rule this layer exists to protect is unchanged: nothing in `common/` or `utils/` imports `omnibus/`, and `omnibus/` reaching upward into three domains at once is what the layer is built to allow, not an exception to it.
 
 ## 3. The data pipeline
@@ -148,6 +154,8 @@ The most involved shell. It accepts `data` as a _function of_ `cumulative` and r
 2. `convertToCumulative()`, `convertToShare()` and `convertToRanking()` are pure transforms over that matrix — cumulative area, per-column composition and bump-chart ranking are views of the same pivot, not separate queries. One `View` control (`Totals` · `Share` · `Cumulative` · `Rank`) owns all four, replacing what used to be a chart-type toggle beside a separate cumulative switch: the combinations those two controls allowed were never four independent choices, since a cumulative bar and a ranked total both plot the same pivot into the same shape twice. `Share` divides each cell by its own column's total — a zero column would divide by zero, so a column with nothing in it yields zero cells rather than `NaN` reaching a series — and is always taken over the raw measure, never through `postAggregate`: two callers pass a flooring minutes-to-hours conversion, and the share of floored values is not the share of the values behind them. `Rank` ranks the same per-column measure `Totals` plots, and keeps that measure as its tooltip figure, so the axis can plot position while the hover card still states the underlying number.
 3. Clicking a column isolates that series (and clicking again restores all), implemented through Highcharts' plot-options event rather than React state.
 
+The legend is reversed and the `Rank` view is not given the full height. `groupDate` sorts groups ascending so that Highcharts' `reversedStacks` — on by default — puts the biggest at the foot of the stack, where a stack is read from; the legend follows series order unless told otherwise, and unreversed it opens on the smallest, against the vitals band, the genre rows and the gallery's shelves, which all lead with the biggest. Reversing the legend alone leaves the stack itself untouched. Height is the resolution of a magnitude, so the three views that plot one keep the full `80vh`; a bump chart needs a lane per series and nothing else, and three media over eight tenths of a viewport puts two hundred pixels between adjacent ranks.
+
 Callers choose the measure (episodes vs hours, games vs hours) and pass `postAggregate`, a scalar `(value: number) => number` applied after aggregation — `show/` uses it to turn accumulated minutes into hours. It is deliberately scalar: the shell owns table traversal and the null-vs-zero rule, so callers cannot couple to the pivot's internal shape.
 
 ### Sunburst — `common/Sunburst.tsx`
@@ -206,10 +214,50 @@ none of the three has anything to say. Each card renders the domain's own `Typed
 its artwork still opens that domain's expanded card — the composing layer supplies only the corner
 chip that jumps to the home tab.
 
+On a phone the band is a column, and there a poster seats its words beside it rather than beneath.
+The arrangement rule (§6) decides by shape at every other width; here it decides by shape _and_
+width, because a card that fills the screen is a card as tall as its own artwork — a full-bleed
+poster stands 550px at 375px wide, and three of them put the band's last figure two screens below
+its first. A banner keeps its words underneath at every width: beside a 16:9 picture at this height
+there are nineteen pixels of column left.
+
+**By year** (`omnibus/Barchart.tsx`, `omnibus/barchartData.ts`) is the union on a time axis, split
+by medium, genre or certificate. Medium is what the page opens on and the reason it exists — three
+libraries share an axis because a game, a season and a film are comparable as media and little
+else — but it is not the only vocabulary the tab teaches, and until the gallery's other groupings
+reached the time axis the page could say what a genre was made of and never when it happened. The
+split is also what makes the shell's four views worth having: Share and Rank divide a column
+between its series, and three series is a bar in two pieces and a bump chart of three flat lines.
+Franchise is not offered, because it answers with 115 series and a legend longer than the chart;
+decade is not either, since a decade is derived from the year and each series would occupy one run
+of columns with nothing crossing. A certificate splits on the age band (§6, Colour), and a genre
+takes the ramp the genres band and the gallery's swatches already use, so a hue means one thing
+across the page. A row whose split column is empty is dropped rather than opening a series with no
+name, and the header counts the rows drawn rather than the rows handed in.
+
 **Crossings** (`omnibus/crossingsData.ts`) finds the franchises the reader has met in more than one
 medium and draws each as a strip: one lane per medium present, packed with `common/timelineStripData`'s
 `buildStrip` exactly as a show's own season strip is, so the two charts cannot come to disagree
-about what counts as an overlap. A franchise groups on the raw franchise column, the same column
+about what counts as an overlap. Every strip is handed one tick array, built once by `Graphs`, so
+the section states its years once beneath the stack — `TimelineCard` takes `axis={false}` and
+`TimelineAxis` is exported for the purpose. A per-strip axis on a shared scale is not twelve axes
+but one row of labels drawn twelve times, a quarter of the section's height restating a scale that
+cannot vary.
+
+The whole stack is then drawn three times its container's width inside one scroller. A quarter of a
+century across one screen gives a year about fifty pixels, and Marvel puts fifty-one entries on it —
+a dozen inside two years, at a minimum mark width of six. The marks are closer together than they
+are wide, and the strip reads as a texture rather than as dates; at three times the width a year is
+a hundred and fifty pixels and the same run separates into the entries it is made of. Three rather
+than the full timeline's four, because that chart is one row of bars and this is a stack of twelve,
+so every viewport of scroll is paid for twelve times over. One scroller for the stack rather than
+one per strip is what keeps the shared scale true — separate scrollers would let a reader compare
+two rows showing different decades. It opens at the most recent end, as the full timeline does:
+the epoch is the earliest entry anywhere, and most franchises were met years after it, so the
+opening screenful would otherwise be a third of the scale with almost nothing on it. The franchise
+names are `position: sticky` inside the scroller, which needs `Card`'s own clipping opened — a
+sticky element travels with the nearest scrolling ancestor, and a caption left inside a card that
+does not scroll simply leaves with its track. A franchise groups on the raw franchise column, the same column
 `movieFranchise`/`showFranchise` group on, which is what lets a series' founding entry keep naming
 itself the way it already does on its own tab; `namesTheSameThing` instead drops a whole group where
 _every_ entry in it repeats the franchise name, since that group has no series structure left to
@@ -221,7 +269,12 @@ so the edges read as an estimate.
 
 **The gallery** (`omnibus/Gallery.tsx`, `omnibus/galleryData.ts`) shelves the union by genre,
 franchise, rating or decade, each shelf a `common/Filmstrip` (below) with a drill-down behind its
-handle. Every category is a field all three media record — `groupByCategory` skips an empty value,
+handle. Each picture names its medium in a band beneath it rather than in a chip over it, in that
+medium's own fill: a chip says which of the three a card is by covering the artwork it is
+labelling, on every card, on six shelves at once. The band is what makes these cards the one
+surface that passes `mediaLayout="stacked"` — the shape rule would seat a poster's label in a
+column beside it, and a row that mixes banners with posters would then hold two card layouts at two
+widths, where the shelf has pinned one height for all of them. Every category is a field all three media record — `groupByCategory` skips an empty value,
 so a category one medium answered `""` to would drop that medium off the wall with no error to say
 so. "Decade" reads as the decade the reader _met_ the item, not the decade it was made: Shows carries
 no release date anywhere in its model, so a release-decade category would be answerable by only two
@@ -251,6 +304,33 @@ itself, asked once across all three: `recentlyFinished` in `omnibus/adapter.ts` 
 with a `closeDate`, since an item still in progress is not finished and listing it says something
 false — the same filter also leaves every entry with a date to sort by. The library wall
 (`common/Finished`) is not reached from the union; see §10.
+
+`common/useScrollEdges.ts` is what tells a reader those rows scroll. Two of them hide their
+scrollbar — the section rail, where a bar under a row of chips costs as much height as the row, and
+the gallery's shelves, where the strip reserves room for one the platform then declines to draw:
+macOS Chrome's overlay scrollbars appear only while scrolling, and neither `scrollbar-width` nor
+`::-webkit-scrollbar` opts out, leaving `offsetHeight - clientHeight` at zero. So a shelf of twenty
+pictures shows six and the only thing saying so is that the sixth is cut off. The hook measures
+which ends have content past them and `common/ScrollFade.tsx` paints them, as absolutely positioned
+overlays in a wrapper around the scroller.
+
+Nothing on the scroller itself can do it. A background and an inset shadow are both painted before
+its children, so a shadow at the edge tints the gaps between marks and leaves every mark crisp on
+top of it — visible on an empty row and invisible on the dense one the fade exists for. A mask has
+the opposite problem: it takes the element's own background with it, and the rail is pinned over the
+page, so the content beneath would show through the gap. A pseudo-element inside the row is a flex
+item that still takes the row's `gap`, enough to clip the first chip against the very edge the fade
+was added to explain. A sibling after the scroller is painted over it and touches none of that.
+
+The wrapper is therefore what a caller pins, paints and hands a ref to, and the row inside it is
+only the part that moves — for a row. `ChipRail`'s `vertical` skips the wrapper entirely and lays
+the chips out from the caller's own `sx`, because the jump rail down a library's gutter does not
+scroll at all: it is mounted only where every chip fits at full height, which is the same test that
+leaves the pill as the answer otherwise. Wrapping it anyway sends the caller's `flex-direction` and
+`justify-content` to a box that holds no chips, and the column comes out as a row. Each caller passes its own ground — the page's for the rail, the card's
+for the strips — and where a caller pins something inside the scroller, that thing is lifted above
+`FADE_Z`: the crossings' franchise names sit exactly where the leading fade does, and a name is not
+part of the track running out of the card.
 
 `common/Filmstrip.tsx` is the layout arrangement the gallery and Recently Finished both stand on: a
 row of artwork at one fixed height, each child keeping its own width, scrolled rather than wrapped
@@ -337,7 +417,7 @@ The bucket list re-derives at the marker's own cadence, so both answers always d
 
 ### Stats and cards
 
-`common/SectionHeader.tsx` is the header every chart card wears: icon and title left, a muted population count beside the title, controls pinned right. It is a thin arrangement over `CardHeader`, so the theme's `MuiCardHeader` spacing and the `h6` weight reach it without a second set of rules to keep in step. The count arrives as an already-worded string — a `common/` shell cannot know it is counting games — which is why the chart shells take `title` (and, where a population means something, `count`) as props and the timelines are handed a whole header by their domain.
+`common/SectionHeader.tsx` is the header every chart card wears: icon and title left, a muted population count beside the title, controls pinned right. It is a thin arrangement over `CardHeader`, so the theme's `MuiCardHeader` spacing and the `h6` weight reach it without a second set of rules to keep in step. The count arrives as an already-worded string — a `common/` shell cannot know it is counting games — which is why the chart shells take `title` (and, where a population means something, `count`) as props and the timelines are handed a whole header by their domain. Below `sm` the controls take a row of their own: `CardHeader` seats its action beside the title at every width, so a title and three or four controls divide 375px between them and the title wraps to a word a line — a gallery header carrying a select, two sort toggles and an expand reads "Shelves / by / Genre" beside them.
 
 `common/Stats.tsx` exports the composable pieces the domain `Stats.tsx` files are assembled from — `StatCard` (a row of labelled figures), `StatList` (a scrollable strip of media cards with a fullscreen dialog), `VitalsCard` (the band the page opens on) and `TotalsBand` (a proportional segmented bar with labels). It builds the bar from `Segment`, which lives in `common/Card.tsx` alongside the other proportional-bar primitives. Domain `Stats.tsx` files assemble these into a grid; they hold the arithmetic, the shells hold the layout.
 
@@ -349,6 +429,8 @@ The bucket list re-derives at the marker's own cadence, so both answers always d
 Each has a caller of its own beyond `StatList`: `Finished` is built on `ExpandableCard` but keeps its own item grid, because it renders bordered full-width cards rather than media cards; and `DrilldownDialog` reaches for `StatsListGrid` directly to fill the fullscreen list a grouped card drills into.
 
 The one piece of shared arithmetic is `assignPercents` in `utils/mathUtils.ts`: it floors each slice at 0.5% so tiny categories stay visible, then absorbs the resulting shortfall into the first entry so the bar always fills exactly. `TotalsBand` and `vg/`'s `TopList` both use it. `total` is a parameter rather than derived, because those two callers scope it differently — one over all data, one over just the rows on screen.
+
+A stat card's own words follow the same two ranks the hero and the Now band state: `FooterComponent` reads its rows bottom-up, so the closing row carries the figures at `subtitle2` and semibold while the rows above it are the context those figures belong to, set as labels — `caption` size under `LABEL_SX`, in the muted tone. Toning alone is not enough: at one size the two rows read as a single line dimmed rather than as a hierarchy. Every domain puts a date, a season or a group name in the context row and its figures below; the Omnibus is the one caller whose closing line is a name, which is why `omniLabels` states the date first — a card whose title is the dimmer of its two lines reads as a date with a caption.
 
 `common/Card.tsx` provides `CardMediaImage` plus the `TypedCardMediaImage<T>` contract that every domain implements (`show/`, `vg/`, `movie/`). This is the adapter type that lets generic components — `Finished`, `StatList`, timeline tooltips — render domain-specific artwork and detail panels without knowing the model. Two of its props are shaped by cost rather than convenience:
 
@@ -523,7 +605,7 @@ Setup is the plugin's documented path: `@vitejs/plugin-react` exports `reactComp
 - **`this`** anywhere in the function. Highcharts binds the chart to `this` in its event callbacks, so those must live at module scope (see `dimLeafRing` in §6) or they take the whole component down with them.
 - **`??=`**, which the compiler cannot yet lower. Write `x = x ?? y` instead.
 
-A third construct bails the same way: a **destructured prop with a default value** (`({ landscape = false })`) is an assignment pattern `BuildHIR::lowerAssignment` cannot lower, and it takes the whole component out. Components here therefore read defaults off the props object (`const landscape = props.landscape ?? false`), or rename in the pattern and default below it where a rest spread must not pick the prop up. Every function currently compiles — the baseline is **175 compiled, 0 bailed** — so any bailout is a regression. A `MethodCall` bailout, the other kind seen here, does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
+A third construct bails the same way: a **destructured prop with a default value** (`({ landscape = false })`) is an assignment pattern `BuildHIR::lowerAssignment` cannot lower, and it takes the whole component out. Components here therefore read defaults off the props object (`const landscape = props.landscape ?? false`), or rename in the pattern and default below it where a rest spread must not pick the prop up. Every function currently compiles — the baseline is **179 compiled, 0 bailed** — so any bailout is a regression. A `MethodCall` bailout, the other kind seen here, does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
 
 The compiler costs about 4% of bundle size (~15KB gzipped) in injected cache slots. That is a deliberate trade, and `npm run analyze` exists to keep it honest.
 

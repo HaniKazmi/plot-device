@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { OMNIBUS_SECTIONS, omnibusSections } from "../../src/omnibus/sections";
 
-const all = { now: true, crossings: true, gallery: true, finished: true, genres: true };
-const none = { now: false, crossings: false, gallery: false, finished: false, genres: false };
+const all = { now: true, charts: true, crossings: true, gallery: true, finished: true, genres: true };
+const none = { now: false, charts: false, crossings: false, gallery: false, finished: false, genres: false };
 
 describe("omnibusSections", () => {
   it("runs the rail in the order the page does", () => {
@@ -39,11 +39,16 @@ describe("omnibusSections", () => {
     expect(ids).not.toContain(OMNIBUS_SECTIONS.finished);
   });
 
-  it("keeps the chips the page always renders whatever the data holds", () => {
-    expect(omnibusSections(none).map((section) => section.id)).toEqual([
-      OMNIBUS_SECTIONS.vitals,
+  it("drops the By Year chip when the filters leave nothing to plot", () => {
+    // An empty pivot is not a picture of nothing — the plotting library falls back to an index
+    // axis and a series of its own, under a header still stating the count as zero.
+    expect(omnibusSections({ ...all, charts: false }).map((section) => section.id)).not.toContain(
       OMNIBUS_SECTIONS.charts,
-    ]);
+    );
+  });
+
+  it("keeps the vitals chip whatever the data holds, since a total of zero is an answer", () => {
+    expect(omnibusSections(none).map((section) => section.id)).toEqual([OMNIBUS_SECTIONS.vitals]);
   });
 
   it("offers only chips whose anchors the page actually renders", () => {
