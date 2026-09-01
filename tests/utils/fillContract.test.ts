@@ -171,9 +171,9 @@ describe("one franchise, one colour, every tab", () => {
  * `palette.primary.main`, so a bar can be drawn in it. `Google.tsx` writes the one hex into both
  * colour schemes, which means it has to clear both papers rather than the one a `Fill` half meets.
  *
- * Nothing else covers this. Every table above exports its own key list and is walked here; the tab
- * colours live in `tabs.ts` as fields on an object the router builds from, so before this they were
- * the one set of colours in the app with no floor under them.
+ * Nothing else covers this. Every table above exports its own key list and is walked here, while
+ * the tab colours live in `tabs.ts` as fields on an object the router builds from — reachable by
+ * no key list, so only a case naming them holds them to the floor every other colour meets.
  */
 describe("tab colours", () => {
   const named = Tabs.filter((tab) => tab.primaryColour !== undefined);

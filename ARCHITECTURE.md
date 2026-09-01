@@ -1,6 +1,6 @@
 # Architecture
 
-Plot Device is a client-only React SPA (~5,600 lines of TypeScript) that turns personal tracking spreadsheets into interactive dashboards. This document explains how the pieces fit together and why they are shaped the way they are. For working conventions and the verification loop, see [AGENTS.md](./AGENTS.md); for setup, see [README.md](./README.md).
+Plot Device is a client-only React SPA (~16,000 lines of TypeScript) that turns personal tracking spreadsheets into interactive dashboards. This document explains how the pieces fit together and why they are shaped the way they are. For working conventions and the verification loop, see [AGENTS.md](./AGENTS.md); for setup, see [README.md](./README.md).
 
 ## 1. System context
 
@@ -109,7 +109,7 @@ Both `show/` and `movie/` split a comma-separated `Genres` cell into the genres 
 
 All three read the primary genre through `readGenre` and reject an empty one the same way. The vocabulary is open-ended, so the only thing checkable is that a value is there — and that is worth checking precisely because the ramp answers `NEUTRAL_FILL` off its table: a blank reaching a chart is indistinguishable from a genre nobody has coloured yet. Testing the cell against `""` is not enough on its own, because the API ends a row at its last filled cell, so a half-entered row carries no `Genre` key at all. Shows asks only of a row that opens a show, since a season's genre is the show's.
 
-Omnibus runs no pipeline of its own. Each domain's `Data.tsx` entry point calls `useData` with a config object (`vgDataConfig`, `showDataConfig`, `movieDataConfig`) exported from the file that already owns the converter, version and — for Shows — the replacer/reviver pair; `omnibus/Omnibus.tsx` imports the same three configs and calls `useData` with each of them again. Both callers therefore go through one converter and one cache key per domain, so the version a returning visitor's cache was written under can never drift between a tab and Omnibus reading the same rows. `omnibus/adapter.ts` is the fourth stage the three domains' output feeds into: `toOmniItems` flattens `Show[]` at the season rather than the show — a season is the unit that was actually watched, and the parent show's name, genre, franchise and certificate travel onto each of its seasons' `OmniItem`s.
+Omnibus runs no pipeline of its own. Each domain's entry component — `vg/vg.tsx`, `show/Show.tsx`, `movie/Movie.tsx` — calls `useData` with a config object (`vgDataConfig`, `showDataConfig`, `movieDataConfig`) exported from the file that already owns the converter, version and — for Shows — the replacer/reviver pair; `omnibus/Omnibus.tsx` imports the same three configs and calls `useData` with each of them again. Both callers therefore go through one converter and one cache key per domain, so the version a returning visitor's cache was written under can never drift between a tab and Omnibus reading the same rows. `omnibus/adapter.ts` is the fourth stage the three domains' output feeds into: `toOmniItems` flattens `Show[]` at the season rather than the show — a season is the unit that was actually watched, and the parent show's name, genre, franchise and certificate travel onto each of its seasons' `OmniItem`s.
 
 ## 4. Caching and hydration
 
@@ -127,7 +127,7 @@ Two subtleties live in the serialisation boundary, and both are easy to break:
 1. **The cycle.** `Season.show` points back at its parent `Show`, so `JSON.stringify` would recurse forever. `useData` takes an optional `replacer` and an optional `reviver`, and `show/converter.ts` supplies both as a matched pair (`dropSeasonParents` / `reviveSeasonParents`): one drops the `show` key on write, the other re-attaches the back-reference on read. Neither rule lives in the hook — a domain concern would otherwise silently eat any future field named `show` in another domain. Both are module-scope constants so the fetch effect can depend on them without re-firing. Any future model with parent pointers needs the same pair.
 2. **Date revival.** The `JSON.parse` reviver converts **any key whose name contains `"Date"`** into a `PlainDate`. It is a deliberate convention, but it means a non-date field called e.g. `updateDate` would be silently corrupted on reload.
 
-Cache keys are versioned per domain — `dataCacheKey(domain, version)` yields `vg-data-cache-v1`, `show-data-cache-v3`, `movie-data-cache-v3` — and `dropSupersededVersions` clears a domain's earlier keys on first load. A model-shape change therefore means bumping the version in that domain's own entry file; forgetting the bump leaves returning visitors' cached objects missing the new field, silently, until their next authorised fetch.
+Cache keys are versioned per domain — `dataCacheKey(domain, version)` yields `vg-data-cache-v2`, `show-data-cache-v3`, `movie-data-cache-v3` — and `dropSupersededVersions` clears a domain's earlier keys on first load. A model-shape change therefore means bumping the version in that domain's own `converter.ts`, which is where the config holding it lives; forgetting the bump leaves returning visitors' cached objects missing the new field, silently, until their next authorised fetch.
 
 ## 5. Authentication
 
@@ -153,7 +153,7 @@ The requested scope is `spreadsheets.readonly`. The application has no write pat
 The most involved shell. It accepts `data` as a _function of_ `cumulative` and returns flat `{ name, date, colour, value }` records; the component owns everything after that:
 
 1. `groupDate()` (in `common/barchartData.ts`, alongside the transforms below) pivots the flat records into a dense `BarchartTable` (`group × date` matrix). Dates are densified by walking `PlainDate.iterateToDate`, so gaps become real columns instead of being skipped. Series are sorted by total, and leading cells before a series' first data point are set to `null` so lines start where the data does rather than at zero.
-2. `convertToCumulative()`, `convertToShare()` and `convertToRanking()` are pure transforms over that matrix — cumulative area, per-column composition and bump-chart ranking are views of the same pivot, not separate queries. One `View` control (`Totals` · `Share` · `Cumulative` · `Rank`) owns all four, replacing what used to be a chart-type toggle beside a separate cumulative switch: the combinations those two controls allowed were never four independent choices, since a cumulative bar and a ranked total both plot the same pivot into the same shape twice. `Share` divides each cell by its own column's total — a zero column would divide by zero, so a column with nothing in it yields zero cells rather than `NaN` reaching a series — and is always taken over the raw measure, never through `postAggregate`: two callers pass a flooring minutes-to-hours conversion, and the share of floored values is not the share of the values behind them. `Rank` ranks the same per-column measure `Totals` plots, and keeps that measure as its tooltip figure, so the axis can plot position while the hover card still states the underlying number.
+2. `convertToCumulative()`, `convertToShare()` and `convertToRanking()` are pure transforms over that matrix — cumulative area, per-column composition and bump-chart ranking are views of the same pivot, not separate queries. One `View` control (`Totals` · `Share` · `Cumulative` · `Rank`) owns all four. A chart-type toggle beside a separate cumulative switch would offer the same four as a pair of independent choices, which they are not: a cumulative bar and a ranked total both plot the same pivot into the same shape twice. `Share` divides each cell by its own column's total — a zero column would divide by zero, so a column with nothing in it yields zero cells rather than `NaN` reaching a series — and is always taken over the raw measure, never through `postAggregate`: two callers pass a flooring minutes-to-hours conversion, and the share of floored values is not the share of the values behind them. `Rank` ranks the same per-column measure `Totals` plots, and keeps that measure as its tooltip figure, so the axis can plot position while the hover card still states the underlying number.
 3. Clicking a column isolates that series (and clicking again restores all), implemented through Highcharts' plot-options event rather than React state.
 
 The legend is reversed and the `Rank` view is not given the full height. `groupDate` sorts groups ascending so that Highcharts' `reversedStacks` — on by default — puts the biggest at the foot of the stack, where a stack is read from; the legend follows series order unless told otherwise, and unreversed it opens on the smallest, against the vitals band, the genre rows and the gallery's shelves, which all lead with the biggest. Reversing the legend alone leaves the stack itself untouched. Height is the resolution of a magnitude, so the three views that plot one keep the full `80vh`; a bump chart needs a lane per series and nothing else, and three media over eight tenths of a viewport puts two hundred pixels between adjacent ranks.
@@ -219,11 +219,11 @@ chip that jumps to the home tab.
 Every card in the band is one width — a poster's artwork at the row's height plus its text column,
 434px — and each shape spends it differently: the poster's picture takes the full height and the
 words a column beside it, while the banner's picture spans the card, so the width fixes its height
-at 16:9 and the panel gets the 136 the row has left. Nothing is measured. The earlier arrangement
-derived the banner's width from however tall its words turned out, through a `ResizeObserver` and a
-settling loop; pinning the width instead removes that and states the panel's budget, at the cost of
-the panel no longer growing — its title clamps to one line, because a picture that gave way instead
-would be letterboxed inside a card the row had already sized.
+at 16:9 and the panel gets the 136 the row has left. Nothing is measured: deriving the banner's
+width from however tall its words turn out needs a `ResizeObserver` and a loop that settles, where
+pinning the width states the panel's budget outright. What that budget costs is a panel that cannot
+grow — the title clamps to one line, because the picture is what would have to give way instead,
+and it would be letterboxed inside a card the row has already sized.
 
 Fitting a kicker, a title, a subtitle and a figure into 136 is what `statSize="compact"` and the
 band's halved panel inset are for, and both are spent on all three cards rather than on the banner
@@ -292,6 +292,16 @@ in two decades would have both of its copies claim the later one and empty the e
 work's date is the last of the entries collapsed into it and not its representative's, since the
 representative is the biggest entry rather than the last; an item with no close is dated now,
 because an open item is the one being met.
+
+**Genres across media** (`omnibus/GenreBridge.tsx`, `omnibus/genreBridgeData.ts`) is the crossings
+question asked of genres instead of franchises: one proportional bar per genre, split by how its
+hours divide between the three media. A genre found in only one medium is dropped rather than drawn
+as a solid bar — the section is about the crossing, and a full-width bar says nothing the vitals
+band above has not. A medium contributing no hours to a genre gets no segment at all, because
+`assignPercents` floors every slice at half a percent to keep it visible, and a visible slice of
+nothing is a claim the data does not make. The hover dim is one piece of state for the whole card
+rather than one per row, which is what turns a stack of independent bars into a comparison read
+down the column.
 
 **Crossings** (`omnibus/crossingsData.ts`) finds the franchises the reader has met in more than one
 medium and draws each as a strip: one lane per medium present, packed with `common/timelineStripData`'s
@@ -476,10 +486,10 @@ the card treatment, because a line of text in a 500px box is mostly empty ground
 Each domain also exports the **hover card** its charts show — `VgHoverCard`, `ShowHoverCard`,
 `MovieHoverCard`, beside its `CardMediaImage`. A chart names the component rather than assembling a
 panel, and the Omnibus dispatches to the same three by medium, so a hovered bar shows the same card
-wherever it is hovered. Assembling a second one on the Omnibus is what let the two drift: its cards
-came to carry different figures — a film lost its score — and, because the Omnibus's cards also
-declare an artwork shape, a different arrangement, which stretched a show's card out of the
-proportions its own tab draws it at.
+wherever it is hovered. A second assembly on the Omnibus is two cards for one item with nothing
+holding them together: they would divide on which figures a card carries — whether a film shows its
+score — and, because the Omnibus's cards also declare an artwork shape, on the arrangement, which
+stretches a show's card out of the proportions its own tab draws it at.
 
 ### One arrangement rule, for the one tab that needs it — `common/cardArrangement.ts`
 
@@ -578,7 +588,7 @@ The decade ramp sweeps hue alongside lightness for the same reason the ratings d
 
 Fixed colours are the other half of the system: `types.ts` in each domain maps platforms, genres, franchises and ratings to values, and `utils/types.ts` holds the cross-domain ones. Brand tables keep their brand's hue and chroma and move only lightness, as far as the contract demands of the half being drawn — a brand already inside the band on both papers carries one value twice, which Mario, Marvel and Zelda all do. Pokémon is the clearest gain from the pair: `#ffcb05` is its published yellow, and a yellow held to 3:1 on white is a brown-gold, so the light half pays that price and the dark half is the brand hex itself.
 
-`vg/types.ts` splits a company two ways. **Fills** are what chart geometry takes; **accents** are the brand hexes themselves, drawn only in a card's corner chip, where a few dozen pixels carrying two or three letters are read as a badge rather than compared against a neighbour. PC is the one entry with no brand to reproduce — it is a category, not a company — so it takes the amber of the beige box. Steam is the obvious anchor and the wrong one: its palette is a cool blue-grey family sitting on PlayStation's own hue, and two blues separated only by lightness and chroma read as one blue however far apart they measure. Putting PC in the warm arc is what lets the other two be themselves — PlayStation keeps its published `#006FCD` on both papers, and iOS returns to Apple's own space grey and silver, its earlier warm cast having existed only to escape a blue PC. With the cool region holding nothing but iOS and the neutral, a lightness gap is enough to separate them; that gap is the table's weakest link at 11.8, under the 15 two fills want, so the wedge labels and legend names stay load-bearing for that pair, which meet only in the Top Platform list where every row is named.
+`vg/types.ts` splits a company two ways. **Fills** are what chart geometry takes; **accents** are the brand hexes themselves, drawn only in a card's corner chip, where a few dozen pixels carrying two or three letters are read as a badge rather than compared against a neighbour. PC is the one entry with no brand to reproduce — it is a category, not a company — so it takes the amber of the beige box. Steam is the obvious anchor and the wrong one: its palette is a cool blue-grey family sitting on PlayStation's own hue, and two blues separated only by lightness and chroma read as one blue however far apart they measure. Putting PC in the warm arc is what lets the other two be themselves — PlayStation keeps its published `#006FCD` on both papers, and iOS takes Apple's own space grey and silver — a warm cast on it would buy nothing except distance from a PC that is no longer blue. With the cool region holding only iOS and the neutral, a lightness gap is enough to separate them; that gap is the table's weakest link at 11.8, under the 15 two fills want, so the wedge labels and legend names stay load-bearing for that pair, which meet only in the Top Platform list where every row is named.
 
 The genre ramp is the one all three tracked sheets share, so a hue means one genre on every tab, and it falls to `NEUTRAL_FILL` off-table because the column is open-ended. **Franchise is shared for the same reason and answers `""` instead.** All three sheets record a Franchise column and eleven franchises are met in more than one medium — Marvel across all three, Star Wars and Harry Potter across games and film, Fate and Star Trek across games and television — so a per-domain table would draw one of those a different colour on each tab. The set is scoped to what a tab's collapsed Top Franchise card and the gallery's shelves actually draw, plus every cross-media franchise among them; the long tail is 168 values in the games sheet alone, most of them a work naming itself, and takes the empty answer the way an unknown network does. `tests/utils/fillContract.test.ts` pins the property directly: a cross-media franchise resolves to one value through all three domains' `groupToColour`. Games draws a second vocabulary beside it — `gameplay` is how a game is played where `genre` is what it is about — and the two tables share exactly two hexes, Action and Adventure, which mean the same thing in both and are deliberately the same colour. The rest are pushed as far apart as one lightness band holds, which is not always far: fourteen gameplay hues and eleven genre hues are twenty-five values each wanting 15 dE of room, so Role Playing lands 2.3 from Thriller on the dark paper. Both are still drawn at full chroma, because the two vocabularies are always labelled where they meet — the ledger stacks a Gameplay row on a Genre row, and the hero and hover subtitles name each swatch beside it. Desaturating one ramp does not recover this: it separates the two by kind without moving any pair, and muting the genres by 45% leaves the worst cross-table pair at 4.5 dE with more pairs under 15, not fewer.
 
@@ -643,7 +653,7 @@ It removes _repeated_ render work. It does not make eager work lazy, fix object 
 - **Object lifetimes.** `Timeline`'s `useTextPlacement` keys a ref map by row objects that are rebuilt whenever data changes; entries are deleted once all three refs detach, or dead rows would retain their tooltip trees — and through them the domain records.
 - **Module-scope hoisting.** `Google.tsx` caches themes per tab and reads MUI's default palette once; `Sunburst` hoists an `Intl.Collator` rather than calling `localeCompare` across thousands of comparisons. The compiler's per-component cache is a fixed slot array, so it would not survive A → B → A navigation the way the theme `Map` does.
 
-Bundle size is treated as a first-class concern — `analyze.html` / `analyze.json` are committed as a baseline.
+Bundle size is treated as a first-class concern, through `npm run analyze`.
 
 ### Filter state
 
@@ -665,7 +675,7 @@ Routing uses `HashRouter` because the app is served from GitHub Pages, which can
 
 ## 8. Extension points
 
-**Adding a data source.** Add a `Tab` to `src/tabs.ts` (sheet id, A1 range, route id, component, colours), then add it to the exported `Tabs` array — the router and nav bar are both generated from that array, and a tab's position in it also decides what the root route falls back to (§7, Theming and routing). Create `src/<domain>/` with `types.ts`, a `<Domain>.tsx` entry that calls `useData` with a `jsonConverter`, and a lazy `Graphs.tsx`. Implement `CardMediaImage` against `TypedCardMediaImage<T>` to get `Finished` and `StatList` for free.
+**Adding a data source.** Add a `Tab` to `src/tabs.ts` (sheet id, A1 range, route id, component, colours), then add it to the exported `Tabs` array — the router and nav bar are both generated from that array, and a tab's position in it also decides what the root route falls back to (§7, Theming and routing). Create `src/<domain>/` with `types.ts`, an entry component that calls `useData` with the `DataConfig` its `converter.ts` exports, and a lazy `Graphs.tsx`. Implement `CardMediaImage` against `TypedCardMediaImage<T>` to get `Finished` and `StatList` for free.
 
 **Composing existing data sources, without a sheet of its own.** `omnibus/` is the reference: its `Tab` carries no `spreadsheetId`/`range` (both are optional on `Tab` for exactly this case, and `SheetTab` restates them as required for anything that fetches), and its entry point calls `useData` with each of the composed domains' own exported config rather than a converter of its own. A pure adapter (`omnibus/adapter.ts`) then flattens and re-shapes their output into one vocabulary the shared shells can render. The one rule this still has to hold is the domain layer's own: the new folder may import the domains it composes, never the other way, and it stays outside `common/`/`utils/` for the same reason every other domain does.
 
@@ -677,7 +687,7 @@ Routing uses `HashRouter` because the app is served from GitHub Pages, which can
 
 - **`extension/`** — a standalone Chrome MV3 extension (plain JS, loaded unpacked) that adds "Upload Show/Movie Image" context-menu items on images and hands the URL to a macOS Shortcut via a `shortcuts://` URL. This is how banner artwork gets into Google Cloud Storage. It is entirely outside the Vite build and shares no code with the app.
 - **`.idx/`, `.vscode/`** — Google Project IDX and VS Code editor configuration.
-- **`analyze.html` / `analyze.json`** — committed bundle-analysis output.
+- **`analyze.html` / `analyze.json`** — the output of an old `npm run analyze`, committed. Both predate `omnibus/` and `movie/` and index a `src/holiday/` domain that no longer exists, so neither is a baseline the current bundle can be diffed against; `npm run analyze` writes nothing itself, so refreshing them means capturing its output by hand.
 
 ## 10. Known gaps
 

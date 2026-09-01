@@ -350,9 +350,9 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
                 sx={{
                   display: "flex",
                   // The same line every other surface draws where it meets the artwork it was
-                  // sampled from. A gradient fading the image into the ground did the joining
-                  // before, which reads as the artwork running out rather than as one card in two
-                  // parts — and spent the bottom tenth of every image to do it.
+                  // sampled from. A gradient fading the image into the ground joins them instead,
+                  // which reads as the artwork running out rather than as one card in two parts —
+                  // and spends the bottom tenth of every image to do it.
                   borderTop: palette.seam,
                 }}
               >
