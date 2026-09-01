@@ -11,6 +11,19 @@ import { neutralFill, type Colour } from "../utils/types";
 import { useScheme } from "./useScheme";
 import { highchartsColors } from "../highcharts";
 
+/** Named so the band below can offer every one of these but the category it is placing. */
+export interface TopListCardProps<O extends string, T> {
+  /** The categories on offer, in select-box order — the order is load-bearing for the palette offset. */
+  options: readonly O[];
+  defaultOption: O;
+  icons: Record<O, ReactNode>;
+  /** The groups for an option, already measured and ordered largest-first. */
+  groups: (option: O) => TopGroup<T>[];
+  /** The colour a group's fronting item wears under this option, or `""` where none exists. */
+  colourOf: (option: O, top: T) => Colour | "";
+  measureLabel: string;
+}
+
 /**
  * A "Top X" card: a category select, a proportional bar over the leading groups, and a ranked
  * legend beneath it.
@@ -22,17 +35,7 @@ import { highchartsColors } from "../highcharts";
  * varies: its option list (whose order feeds that offset), an icon per option, how to group, and
  * its colour vocabularies.
  */
-export const TopListCard = <O extends string, T>(props: {
-  /** The categories on offer, in select-box order — the order is load-bearing for the palette offset. */
-  options: readonly O[];
-  defaultOption: O;
-  icons: Record<O, ReactNode>;
-  /** The groups for an option, already measured and ordered largest-first. */
-  groups: (option: O) => TopGroup<T>[];
-  /** The colour a group's fronting item wears under this option, or `""` where none exists. */
-  colourOf: (option: O, top: T) => Colour | "";
-  measureLabel: string;
-}) => {
+export const TopListCard = <O extends string, T>(props: TopListCardProps<O, T>) => {
   const { options, icons, groups, colourOf, measureLabel } = props;
   const scheme = useScheme();
 
@@ -123,3 +126,27 @@ export const TopListCard = <O extends string, T>(props: {
     </Grid>
   );
 };
+
+/**
+ * The Top band: one card per category the tab opens on, each free to be re-pointed at any of the
+ * options from its own select.
+ *
+ * The band is a component rather than a fragment and a `.map` at each tab, because how many cards
+ * it holds and what identifies one is a decision about the band, not about a tab. What a tab
+ * supplies is which categories it opens on — and every other prop is the card's own, passed
+ * straight through, so a card gains a prop without this shell learning what it is for.
+ */
+export const TopCategoryBand = <O extends string, T>({
+  defaults,
+  ...card
+}: Omit<TopListCardProps<O, T>, "defaultOption"> & { defaults: readonly O[] }) => (
+  <>
+    {defaults.map((category) => (
+      <TopListCard
+        key={category}
+        defaultOption={category}
+        {...card}
+      />
+    ))}
+  </>
+);

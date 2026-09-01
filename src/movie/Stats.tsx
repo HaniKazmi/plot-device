@@ -22,7 +22,7 @@ import {
   VitalsCard,
   YearVitalsPair,
 } from "../common/Stats";
-import { TopListCard } from "../common/TopList";
+import { TopCategoryBand } from "../common/TopList";
 import { GroupedStatList } from "../common/GroupedStatList";
 import { finishedKey } from "../common/finishedData";
 import { Hero } from "../common/Hero";
@@ -214,19 +214,14 @@ const TopCategories = ({ data, measure }: { data: Movie[]; measure: Measure }) =
   const scheme = useScheme();
 
   return (
-    <>
-      {(["genre", "director", "franchise"] as const).map((category) => (
-        <TopListCard
-          key={category}
-          options={movieTopOptions}
-          defaultOption={category}
-          icons={optionIcons}
-          groups={(option) => groupMoviesBy(data, option, measure)}
-          colourOf={(option, top: Movie) => groupToColour(option, top, scheme)}
-          measureLabel={measure}
-        />
-      ))}
-    </>
+    <TopCategoryBand
+      defaults={["genre", "director", "franchise"]}
+      options={movieTopOptions}
+      icons={optionIcons}
+      groups={(option) => groupMoviesBy(data, option, measure)}
+      colourOf={(option, top: Movie) => groupToColour(option, top, scheme)}
+      measureLabel={measure}
+    />
   );
 };
 

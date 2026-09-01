@@ -39,7 +39,7 @@ import {
   type VideoGameStringKeys,
 } from "./types";
 import { StatCard, StatList, type StatsListProps, TotalsBand, VitalsCard, YearVitalsPair } from "../common/Stats";
-import { TopListCard } from "../common/TopList";
+import { TopCategoryBand } from "../common/TopList";
 import { GroupedStatList } from "../common/GroupedStatList";
 import { finishedKey } from "../common/finishedData";
 import VgCardMediaImage from "./CardMediaImage";
@@ -327,19 +327,14 @@ const TopCategories = ({ data, measure }: { data: VideoGame[]; measure: Measure 
   const scheme = useScheme();
 
   return (
-    <>
-      {(["gameplay", "publisher", "franchise"] as const).map((category) => (
-        <TopListCard
-          key={category}
-          options={topOptions}
-          defaultOption={category}
-          icons={optionIcons}
-          groups={(option) => groupGamesBy(data, option, measure)}
-          colourOf={(option, top: VideoGame) => groupToColour(option, top, scheme)}
-          measureLabel={measure}
-        />
-      ))}
-    </>
+    <TopCategoryBand
+      defaults={["gameplay", "publisher", "franchise"]}
+      options={topOptions}
+      icons={optionIcons}
+      groups={(option) => groupGamesBy(data, option, measure)}
+      colourOf={(option, top: VideoGame) => groupToColour(option, top, scheme)}
+      measureLabel={measure}
+    />
   );
 };
 
