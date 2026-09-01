@@ -1,13 +1,14 @@
 import { Box, Card, CardContent, Stack, useTheme, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { Hub } from "@mui/icons-material";
-import { useLayoutEffect, type RefObject } from "react";
 import { Swatch, TimelineAxis, TimelineCard, INLINE_SWATCH_SIZE, type TimelineBand } from "../common/Card";
 import { LazyTooltip } from "../common/LazyTooltip";
 import { SectionHeader } from "../common/SectionHeader";
 import type { TimelineTick } from "../common/timelineLayout";
-import { FADE_Z, ScrollFade } from "../common/ScrollFade";
+import { ScrollFade } from "../common/ScrollFade";
 import { useScrollEdges } from "../common/useScrollEdges";
+import { scrollbarSx } from "../common/scrollbarSx";
+import { useOpenAtLatest } from "../common/useOpenAtLatest";
 import { format } from "../utils/mathUtils";
 import { OmniHoverCard } from "./CardMediaImage";
 import type { Crossing } from "./crossingsData";
@@ -55,9 +56,9 @@ const SCALE_WIDTH = "300%";
  * one chart rather than as twelve charts that happen to agree.
  */
 const Crossings = ({ crossings, ticks }: { crossings: Crossing[]; ticks: TimelineTick[] }) => {
-  const [scrollRef, edges, onScroll] = useScrollEdges<HTMLDivElement>();
+  const [scrollRef, edges] = useScrollEdges<HTMLDivElement>();
   const theme = useTheme();
-  useOpenAtLatest(scrollRef, crossings.length);
+  useOpenAtLatest(scrollRef, crossings.length > 0);
 
   return (
     <Card>
@@ -77,14 +78,12 @@ const Crossings = ({ crossings, ticks }: { crossings: Crossing[]; ticks: Timelin
         >
           <Box
             ref={scrollRef}
-            onScroll={onScroll}
             sx={{
               overflowX: "auto",
               // The bar the platform may or may not draw. Where it does, this is the room for it;
               // where it does not, the fades are what say the stack runs on.
               paddingBottom: 1,
-              scrollbarWidth: "thin",
-              scrollbarColor: `${theme.vars.palette.text.secondary} ${theme.vars.palette.divider}`,
+              ...scrollbarSx(theme),
             }}
           >
             <Box sx={{ width: SCALE_WIDTH }}>
@@ -94,26 +93,6 @@ const Crossings = ({ crossings, ticks }: { crossings: Crossing[]; ticks: Timelin
                 // The whole stack is one scroller, so the strips cannot come out of step with each
                 // other or with the axis: a scroller per strip would let a reader compare two rows
                 // showing different decades, which is the one thing a shared scale exists to stop.
-                sx={{
-                  // A sticky element travels with the nearest scrolling ancestor, and `Card` clips
-                  // its own content — so a caption left to it sticks to a card that does not scroll
-                  // and simply leaves with the track. Opening the card lets the caption reach the
-                  // one scroller; the strip inside keeps its own clipping, which is what the rounded
-                  // track needs.
-                  "& .MuiPaper-root": { overflow: "visible" },
-                  // The name then stays where it can be read while its own track travels under it.
-                  // It is the card's own caption rather than a column beside the stack, so a name
-                  // and its strip cannot drift apart vertically.
-                  "& .MuiCardContent-root > .MuiTypography-caption": {
-                    position: "sticky",
-                    left: 0,
-                    width: "fit-content",
-                    maxWidth: "100%",
-                    // Above the leading fade, which sits exactly where the pinned names do. The fade
-                    // is for the track running out of the card, and a name is not part of the track.
-                    zIndex: FADE_Z + 1,
-                  },
-                }}
               >
                 {crossings.slice(0, STRIPS_SHOWN).map((crossing) => (
                   <TimelineCard
@@ -121,7 +100,7 @@ const Crossings = ({ crossings, ticks }: { crossings: Crossing[]; ticks: Timelin
                     bands={crossing.bands.map(toBand)}
                     laneCount={crossing.laneCount}
                     ticks={ticks}
-                    axis={false}
+                    inStack
                     caption={<CrossingCaption crossing={crossing} />}
                   />
                 ))}
@@ -136,22 +115,6 @@ const Crossings = ({ crossings, ticks }: { crossings: Crossing[]; ticks: Timelin
       </CardContent>
     </Card>
   );
-};
-
-/**
- * Opened at the most recent end, which is where the crossings are.
- *
- * The section's epoch is its earliest entry anywhere, and most franchises here were met years
- * after it — opened at the left, the first screenful is a third of the scale with almost nothing
- * on it. The full timeline opens the same way for the same reason, and the fades say what is
- * behind. Keyed on how many strips there are, so a filter that empties and refills the section
- * re-opens it, and a hover does not.
- */
-const useOpenAtLatest = (ref: RefObject<HTMLDivElement | null>, strips: number) => {
-  useLayoutEffect(() => {
-    const element = ref.current;
-    if (element) element.scrollLeft = element.scrollWidth;
-  }, [ref, strips]);
 };
 
 /**

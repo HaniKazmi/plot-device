@@ -188,7 +188,9 @@ export const galleryGroups = (
     galleryWorks(items, category, today),
     (item) => galleryValue(item, category),
     (group) => measureOf(group, measure),
-    galleryTop,
+    // No picker: the shelf reorders its own members below and fronts itself with the first of
+    // them, so one chosen here would be reduced over every group and then thrown away.
+    undefined,
     category === "franchise" ? realFranchisesOnly : undefined,
   )
     // Ordered once here rather than again at each surface: the shelf, its drill-down and the card

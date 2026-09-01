@@ -1,7 +1,8 @@
-import { Card, CardContent, FormGroup, ToggleButton, ToggleButtonGroup, useTheme } from "@mui/material";
+import { Card, CardContent, FormGroup, useTheme } from "@mui/material";
 import { type ReactNode, useState } from "react";
 import { BarChart, Percent, PinOutlined, SsidChart } from "@mui/icons-material";
 import { SectionHeader } from "./SectionHeader";
+import { IconToggleGroup } from "./SelectionComponents";
 import { Chart, Series, XAxis, YAxis, PlotOptions, Tooltip, Legend } from "../highcharts";
 import type { Year, YearMonth } from "./date";
 import type { Colour } from "../utils/types";
@@ -16,12 +17,14 @@ import { convertToCumulative, convertToRanking, convertToShare, groupDate } from
  */
 type View = "Totals" | "Share" | "Cumulative" | "Rank";
 
-const views: { view: View; icon: ReactNode }[] = [
-  { view: "Rank", icon: <PinOutlined /> },
-  { view: "Cumulative", icon: <SsidChart /> },
-  { view: "Share", icon: <Percent /> },
-  { view: "Totals", icon: <BarChart /> },
-];
+const viewOrder = ["Rank", "Cumulative", "Share", "Totals"] as const;
+
+const viewIcons: Record<View, ReactNode> = {
+  Rank: <PinOutlined />,
+  Cumulative: <SsidChart />,
+  Share: <Percent />,
+  Totals: <BarChart />,
+};
 
 /** What a chart is given when its height is its resolution, and what a rank lane needs. */
 const CHART_HEIGHT = "80vh";
@@ -86,23 +89,12 @@ const Barchart = ({
         action={
           <FormGroup>
             {controls}
-            <ToggleButtonGroup
-              color="primary"
+            <IconToggleGroup
+              options={viewOrder}
               value={view}
-              exclusive
-              onChange={(_, val: View | null) => val && setView(val)}
-            >
-              {views.map(({ view: value, icon }) => (
-                <ToggleButton
-                  key={value}
-                  value={value}
-                  aria-label={value}
-                  sx={{ border: 0 }}
-                >
-                  {icon}
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
+              setValue={setView}
+              render={(option) => ({ label: option, icon: viewIcons[option] })}
+            />
           </FormGroup>
         }
       />

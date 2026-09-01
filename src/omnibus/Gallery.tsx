@@ -1,5 +1,5 @@
 import { ExpandCircleDown, PhotoLibrary, Schedule, Sort } from "@mui/icons-material";
-import { Box, CardContent, IconButton, Stack, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
+import { Box, CardContent, IconButton, Stack, Typography } from "@mui/material";
 import { useState, type ReactNode } from "react";
 import { INLINE_SWATCH_SIZE, Swatch } from "../common/Card";
 import { CURRENT_PLAINDATE } from "../common/date";
@@ -7,6 +7,7 @@ import { DrilldownDialog } from "../common/DrilldownDialog";
 import { FILMSTRIP_HEIGHT, Filmstrip } from "../common/Filmstrip";
 import { SectionHeader } from "../common/SectionHeader";
 import { useSelectBox } from "../common/SelectBoxHook";
+import { IconToggleGroup } from "../common/SelectionComponents";
 import { EXPANDED_CARDS, ExpandableCard } from "../common/Stats";
 import { format } from "../utils/mathUtils";
 import { omniKey, type OmniItem } from "./adapter";
@@ -118,23 +119,12 @@ const Gallery = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
                     sx={{ alignItems: "center" }}
                   >
                     {controls}
-                    <ToggleButtonGroup
-                      color="primary"
+                    <IconToggleGroup
+                      options={GALLERY_SORTS}
                       value={sort}
-                      exclusive
-                      onChange={(_, value: GallerySort | null) => value && setSort(value)}
-                    >
-                      {GALLERY_SORTS.map((value) => (
-                        <ToggleButton
-                          key={value}
-                          value={value}
-                          aria-label={sortControls[value].label}
-                          sx={{ border: 0 }}
-                        >
-                          {sortControls[value].icon}
-                        </ToggleButton>
-                      ))}
-                    </ToggleButtonGroup>
+                      setValue={setSort}
+                      render={(option) => sortControls[option]}
+                    />
                     {toggle}
                   </Stack>
                 }

@@ -1,5 +1,5 @@
 import { Box } from "@mui/material";
-import { ChipRail, CHIP_HEIGHT } from "./ChipRail";
+import { CHIP_HEIGHT, RailChip } from "./ChipRail";
 import { bucketLabel } from "./finishedData";
 import { MARKER_TOP, type ScrollMarkerState } from "./ScrollMarkerHook";
 import { NUMERIC_LABEL_SX } from "./typography";
@@ -57,15 +57,16 @@ export const ScrollMarker = ({ bucket, visible, left, centred }: ScrollMarkerSta
  * height, which is what leaves the pill as the answer on a narrow or a short viewport.
  */
 export const ScrollMarkerRail = ({ bucket, left, railHeight, buckets, jumpTo }: ScrollMarkerState) => (
-  <ChipRail
-    items={buckets.map((entry) => ({ id: entry, label: bucketLabel(entry) }))}
-    activeId={bucket ?? undefined}
-    onSelect={jumpTo}
-    label="Jump to a position in the library"
-    // A column, and one that never scrolls: the rail is only mounted where the span fits every
-    // chip at full height, which is the same test that leaves the pill as the answer otherwise.
-    vertical
+  // Its own column of `RailChip`s rather than a `ChipRail`: that shell is a row that scrolls, and
+  // everything it does for one — the fades, the edge measuring, the wrapper the caller's `sx` lands
+  // on — is for content that runs past its container. This rail is mounted only where the span fits
+  // every chip at full height, which is the same test that leaves the pill as the answer otherwise,
+  // so there is never anything past its ends.
+  <Box
+    component="nav"
+    aria-label="Jump to a position in the library"
     sx={{
+      display: "flex",
       position: "fixed",
       top: `${MARKER_TOP}px`,
       left: `${left}px`,
@@ -78,5 +79,14 @@ export const ScrollMarkerRail = ({ bucket, left, railHeight, buckets, jumpTo }: 
       // Over the wall, under the rail it hangs from and the dialogs that cover the page.
       zIndex: (theme) => theme.zIndex.appBar - 2,
     }}
-  />
+  >
+    {buckets.map((entry) => (
+      <RailChip
+        key={entry}
+        label={bucketLabel(entry)}
+        active={entry === bucket}
+        onClick={() => jumpTo(entry)}
+      />
+    ))}
+  </Box>
 );

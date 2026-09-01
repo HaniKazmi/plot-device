@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * Which ends of a horizontal scroller have content past them.
@@ -37,24 +37,36 @@ export const useScrollEdges = <T extends HTMLElement>() => {
   const [start, setStart] = useState(false);
   const [end, setEnd] = useState(false);
 
-  const measure = useCallback(() => {
-    const node = ref.current;
-    if (!node) return;
+  const read = (node: HTMLElement) => {
     setStart(node.scrollLeft > EDGE_SLACK);
     setEnd(node.scrollLeft + node.clientWidth < node.scrollWidth - EDGE_SLACK);
-  }, []);
+  };
 
-  // A resize changes both answers without a scroll event: a strip wide enough for its content at
-  // one width overflows at another, and the filters rebuild a shelf's contents under it.
+  // No dependency array, so the answer is re-read after every render. A row's content is what
+  // decides it, and content changes by rendering: a filter that replaces a shelf's twenty pictures
+  // leaves the strip itself mounted, so an observer bound to the children it had at mount would be
+  // watching nodes no longer in the row and would never see the ones that are. Two layout reads
+  // after a commit are cheaper than keeping that set in step, and the pair of booleans means a read
+  // that finds nothing changed re-renders nothing.
+  useEffect(() => {
+    if (ref.current) read(ref.current);
+  });
+
+  // A resize changes both answers without a render — a strip wide enough for its content at one
+  // width overflows at another — and the scroll listener lives here too, so neither is a prop a
+  // caller has to thread through its own markup.
   useEffect(() => {
     const node = ref.current;
     if (!node) return;
-    measure();
+    const measure = () => read(node);
+    node.addEventListener("scroll", measure, { passive: true });
     const observer = new ResizeObserver(measure);
     observer.observe(node);
-    for (const child of node.children) observer.observe(child);
-    return () => observer.disconnect();
-  }, [measure]);
+    return () => {
+      node.removeEventListener("scroll", measure);
+      observer.disconnect();
+    };
+  }, []);
 
-  return [ref, { start, end }, measure] as const;
+  return [ref, { start, end }] as const;
 };

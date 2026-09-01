@@ -99,6 +99,34 @@ describe("numDays", () => {
   });
 });
 
+describe("genre and gameplay", () => {
+  it("keeps the two vocabularies in their own fields", () => {
+    // The sheet holds both, and the columns are adjacent: reading either into the other's field
+    // colours a value against a ramp that has no entry for it, silently, on every chart at once.
+    const game = convertOne({ Genre: "Fantasy", Gameplay: "Role Playing" });
+    expect(game.genre).toBe("Fantasy");
+    expect(game.gameplay).toBe("Role Playing");
+  });
+
+  it("rejects a blank gameplay rather than letting an empty cell reach the tab", () => {
+    // Cast unchecked it renders as a nameless filter chip and a ledger row with no value, which
+    // reads as a style with no colour yet rather than as a cell nobody filled in.
+    expect(() => convertOne({ Gameplay: "" })).toThrow('"" is not a gameplay style');
+  });
+
+  it("rejects a misspelt gameplay, naming the row so the sheet can be fixed", () => {
+    expect(() => convertOne({ Game: "Zelda", Gameplay: "Role-Playing" })).toThrow(
+      'Row 2, "Zelda", Gameplay: "Role-Playing" is not a gameplay style',
+    );
+  });
+
+  it("still defaults a blank genre, which is an exemption for rows not yet filled in", () => {
+    // Deliberately unlike gameplay above: 10 of 340 rows have no genre, so this one column
+    // tolerates a blank until the sheet catches up.
+    expect(convertOne({ Genre: "" }).genre).toBe("Other");
+  });
+});
+
 describe("bad rows", () => {
   it("throws on a blank start date instead of dropping the row", () => {
     // Unlike movie/, this converter filters nothing, so a trailing blank row reaches here.

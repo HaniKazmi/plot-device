@@ -49,7 +49,7 @@ export const SectionHeader = ({
       alignItems: { xs: "stretch", sm: "center" },
       "& .MuiCardHeader-action": {
         marginTop: { xs: 1, sm: 0 },
-        marginRight: { xs: 0, sm: 0 },
+        marginRight: 0,
         alignSelf: { xs: "stretch", sm: "flex-start" },
       },
     }}

@@ -32,6 +32,7 @@ import {
 } from "./cardArrangement";
 import { shortYear } from "./date";
 import { LABEL_SX } from "./typography";
+import { FADE_Z } from "./ScrollFade";
 import Grid from "@mui/material/Grid";
 import { format } from "../utils/mathUtils";
 import type { Colour } from "../utils/types";
@@ -474,8 +475,12 @@ export const CardPanel = ({
   subtitle,
   dateRange,
   stats,
+  statSize,
+  inlineKicker,
   layout,
   minHeight,
+  height,
+  inset,
 }: {
   /** The line above the title, saying why this item is the one being shown. */
   kicker?: string;
@@ -486,10 +491,34 @@ export const CardPanel = ({
   /** Absent where the card names its dates some other way, as the hero's kicker does. */
   dateRange?: string;
   stats: PanelStat[];
+  /** Only where the caller holds the panel to a height its content did not choose. */
+  statSize?: TileSize;
+  /**
+   * Draws the subtitle on the kicker's line rather than under the title.
+   *
+   * A panel as wide as a card rather than as a column beside one has room to say when and what on
+   * one line, and the line it saves is the whole of what a stated height has spare. Only a caller
+   * that knows its panel's width can ask for it: in a 176px column the same two would wrap to four
+   * lines and cost more than they saved.
+   */
+  inlineKicker?: boolean;
   /** Only where the caller's layout says something its card does not. */
   layout?: PanelLayout;
   /** Holds the panel to the artwork's height, so the card is the height of the picture in it. */
   minHeight?: number;
+  /**
+   * A stated height the panel's words have to fit, rather than one they set.
+   *
+   * The Omnibus's Now band is the caller: every card there is one width, so the banner card's
+   * picture takes the height its width implies at 16:9 and the panel gets exactly what is left.
+   * Given a budget the panel owns what follows from it — the words at the top and the figures at
+   * the bottom, and a title that cannot wrap, because a second line would push the tile out of the
+   * card rather than grow it. Stated here rather than reached in from the card's own `sx`, which
+   * would mean out-weighting the padding rule this component sets about itself.
+   */
+  height?: number;
+  /** The inset a panel keeps, where a caller's row is read across the figures panels end with. */
+  inset?: number;
 }) => {
   const palette = useArtworkPalette();
   const arrangement = useCardArrangement();
@@ -520,7 +549,23 @@ export const CardPanel = ({
         // that floor to the width of its longest word and the panel refuses to wrap or shrink.
         minWidth: 0,
         ...(minHeight && { minHeight: { md: minHeight } }),
-        ":last-child": { paddingBottom: 2 },
+        // A budgeted panel spends its height as structure — words at the top, figures at the
+        // bottom — and clips rather than overflowing, which is what makes the title's one line a
+        // guarantee instead of a hope.
+        ...(height && {
+          height,
+          justifyContent: "space-between",
+          gap: 0,
+          overflow: "hidden",
+          "& .MuiTypography-h6": {
+            display: "-webkit-box",
+            WebkitBoxOrient: "vertical",
+            WebkitLineClamp: 1,
+            overflow: "hidden",
+          },
+        }),
+        ...(inset !== undefined && { paddingY: inset }),
+        ":last-child": { paddingBottom: inset ?? 2 },
         backgroundColor: palette.ground,
         color: palette.onGround,
         // Where the artwork meets the panel, so the two read as one card rather than as one pasted
@@ -539,12 +584,26 @@ export const CardPanel = ({
         sx={{ alignItems: "flex-start" }}
       >
         {kicker && (
-          <Typography
-            variant="caption"
-            sx={{ color: palette.muted, ...LABEL_SX }}
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              columnGap: 0.75,
+              // The two ends of the line rather than a run of parts: the kicker says when and the
+              // subtitle says what, and pushing them apart is what separates them — no mark needed
+              // between two things the width already tells apart.
+              ...(inlineKicker && { width: "100%", justifyContent: "space-between" }),
+            }}
           >
-            {kicker}
-          </Typography>
+            <Typography
+              variant="caption"
+              sx={{ color: palette.muted, ...LABEL_SX }}
+            >
+              {kicker}
+            </Typography>
+            {inlineKicker && said.length > 0 && <SubtitleParts parts={said} />}
+          </Box>
         )}
         <Typography
           variant={titleVariant ?? "h6"}
@@ -557,39 +616,9 @@ export const CardPanel = ({
         {/* Part of what the thing is called, but not the part the chart labels its bar with, so
             it sits under the title in the same tone the dates take. */}
         {subtitle &&
+          !inlineKicker &&
           (Array.isArray(subtitle) ? (
-            // Each part is one box rather than three loose ones, because a line break falls between
-            // flex items: with the swatch, the separator and the text each an item of the wrapping
-            // row, a narrow column breaks a mark off the thing it marks. Grouped, the only place a
-            // break can fall is between parts, and the separator closes its own part rather than
-            // opening the next — a line that ends "Apple TV ·" says a part is still to come, where
-            // one that opens "· True Story" reads as joined to nothing.
-            <Box
-              sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 0.75, color: palette.muted }}
-            >
-              {said.map((part, index) => (
-                <Box
-                  key={part.text}
-                  // The floor is what lets a part longer than the whole column wrap inside
-                  // itself rather than push the row wider than the card.
-                  sx={{ display: "inline-flex", alignItems: "center", columnGap: 0.75, minWidth: 0 }}
-                >
-                  {part.swatch && (
-                    <Swatch
-                      colour={part.swatch}
-                      size={INLINE_SWATCH_SIZE}
-                    />
-                  )}
-                  <Typography
-                    variant="body2"
-                    sx={{ overflowWrap: "anywhere" }}
-                  >
-                    {part.text}
-                  </Typography>
-                  {index < said.length - 1 && <Typography variant="body2">·</Typography>}
-                </Box>
-              ))}
-            </Box>
+            <SubtitleParts parts={said} />
           ) : (
             <Typography
               variant="body2"
@@ -610,8 +639,53 @@ export const CardPanel = ({
         )}
       </Stack>
 
-      {stats.length > 0 && <StatTileGrid stats={stats} />}
+      {stats.length > 0 && (
+        <StatTileGrid
+          stats={stats}
+          size={statSize}
+        />
+      )}
     </CardContent>
+  );
+};
+
+/**
+ * The parts of a subtitle, wherever they are drawn — under the title, or on the kicker's own line.
+ *
+ * Each part is one box rather than three loose ones, because a line break falls between flex items:
+ * with the swatch, the separator and the text each an item of the wrapping row, a narrow column
+ * breaks a mark off the thing it marks. Grouped, the only place a break can fall is between parts,
+ * and the separator closes its own part rather than opening the next — a line that ends "Apple TV ·"
+ * says a part is still to come, where one that opens "· True Story" reads as joined to nothing.
+ */
+const SubtitleParts = ({ parts }: { parts: PanelSubtitlePart[] }) => {
+  const palette = useArtworkPalette();
+
+  return (
+    <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 0.75, color: palette.muted }}>
+      {parts.map((part, index) => (
+        <Box
+          key={part.text}
+          // The floor is what lets a part longer than the whole column wrap inside itself rather than
+          // push the row wider than the card.
+          sx={{ display: "inline-flex", alignItems: "center", columnGap: 0.75, minWidth: 0 }}
+        >
+          {part.swatch && (
+            <Swatch
+              colour={part.swatch}
+              size={INLINE_SWATCH_SIZE}
+            />
+          )}
+          <Typography
+            variant="body2"
+            sx={{ overflowWrap: "anywhere" }}
+          >
+            {part.text}
+          </Typography>
+          {index < parts.length - 1 && <Typography variant="body2">·</Typography>}
+        </Box>
+      ))}
+    </Box>
   );
 };
 
@@ -630,7 +704,7 @@ export interface CardStat extends PanelStat {
  * One rule wherever tiles appear — a panel's, an expanded card's — because two grids that wrapped
  * at different counts would put the same two figures on one line in one place and two in another.
  */
-const StatTileGrid = ({ stats, size }: { stats: CardStat[]; size?: "hero" }) => {
+const StatTileGrid = ({ stats, size }: { stats: CardStat[]; size?: TileSize }) => {
   const beside = useCardArrangement() === "beside";
 
   return (
@@ -667,16 +741,44 @@ const StatTileGrid = ({ stats, size }: { stats: CardStat[]; size?: "hero" }) => 
 const BESIDE_TILE_FLOOR = 72;
 
 /** A figure and what it counts, set apart from the prose so the numbers can be read at a glance. */
-export const StatTile = ({ value, label, colour, size }: CardStat & { size?: "hero" }) => {
+/**
+ * The three sizes a tile is drawn at, and what each is for.
+ *
+ * `hero` is the expanded card's, where a figure is the reason the card was opened. The default is
+ * every strip and panel's. `compact` is for a panel working to a stated height rather than to its
+ * own content — the Now band, whose three cards share one height and whose banner card has only
+ * what its picture leaves.
+ *
+ * The compact tile is the one with a height of its own, because it is the part of that budget that
+ * has to be known before the words are laid out: at 48 a kicker, a title, a subtitle and a tile
+ * come to exactly the 136 the band's banner card has. The other two are the height their content
+ * makes them, which is what a panel sized by its own content wants.
+ */
+const COMPACT_TILE_HEIGHT = 48;
+const TILE_PADDING: Record<TileSize, number> = { hero: 1, default: 1, compact: 0.25 };
+const TILE_FIGURE: Record<TileSize, string> = { hero: "1.5rem", default: "1.25rem", compact: "1.125rem" };
+
+export type TileSize = "hero" | "default" | "compact";
+
+export const StatTile = ({ value, label, colour, size }: CardStat & { size?: TileSize }) => {
   const palette = useArtworkPalette();
+  const tile = size ?? "default";
 
   return (
     <Box
       sx={{
         flex: 1,
-        padding: 1,
+        padding: TILE_PADDING[tile],
         borderRadius: 1,
         textAlign: "center",
+        // Stated only where the panel around it is: the figure and its label then centre in a tile
+        // whose height the card counted on rather than one they happened to add up to.
+        ...(tile === "compact" && {
+          height: COMPACT_TILE_HEIGHT,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+        }),
         // A tile carrying a colour of its own paints it, exactly as the chip in a card's corner
         // does. The rest take a wash of the ground's own contrast colour, so they lift off a pale
         // sample as readily as off a dark one.
@@ -690,7 +792,7 @@ export const StatTile = ({ value, label, colour, size }: CardStat & { size?: "he
         // widths of whichever numerals the data happened to produce.
         sx={{
           fontWeight: 700,
-          fontSize: size === "hero" ? "1.5rem" : "1.25rem",
+          fontSize: TILE_FIGURE[tile],
           lineHeight: 1.2,
           fontVariantNumeric: "tabular-nums",
         }}
@@ -1031,24 +1133,31 @@ export const TimelineCard = (props: {
   ticks: TimelineTick[];
   caption?: ReactNode;
   /**
-   * Whether the card carries its own year labels. A single strip does; a stack of strips on one
-   * scale states them once beneath the stack instead, which is what `TimelineAxis` is exported
-   * for — twelve identical label rows is the axis repeated, not twelve axes.
+   * One strip of a stack that scrolls sideways on a scale they share, rather than a card standing
+   * on its own.
+   *
+   * Three things follow from that and all three are the shell's to do, because all three are about
+   * markup only this component renders. The years are stated once beneath the stack, not per strip
+   * — twelve identical label rows is the axis repeated, not twelve axes, which is what
+   * `TimelineAxis` is exported for. The card stops clipping, because a caption cannot be sticky
+   * inside a box that hides its overflow. And the caption pins to the scroller's leading edge, so
+   * a name stays readable while its own track travels under it — above the fade there, since a
+   * name is not part of the track running out of the card.
    *
    * Read off `props` rather than defaulted in the pattern: a destructured default is an assignment
    * the React Compiler cannot lower, and it bails the whole component out of memoization.
    */
-  axis?: boolean;
+  inStack?: boolean;
 }) => {
   const { bands, laneCount, ticks, caption } = props;
-  const axis = props.axis ?? true;
+  const inStack = props.inStack ?? false;
   const palette = useArtworkPalette();
 
   return (
     <Grid size={12}>
       <Card
         variant="elevation"
-        sx={{ height: "100%", background: "unset", color: "unset" }}
+        sx={{ height: "100%", background: "unset", color: "unset", ...(inStack && { overflow: "visible" }) }}
       >
         <CardContent
           sx={{
@@ -1064,7 +1173,18 @@ export const TimelineCard = (props: {
               // One line, whatever the name in it turned out to be: a caption that wraps pushes
               // the strip down by its own height, and the strip is what the card is measuring.
               noWrap
-              sx={{ display: "block", opacity: 0.7, paddingBottom: 0.5 }}
+              sx={{
+                display: "block",
+                opacity: 0.7,
+                paddingBottom: 0.5,
+                ...(inStack && {
+                  position: "sticky",
+                  left: 0,
+                  width: "fit-content",
+                  maxWidth: "100%",
+                  zIndex: FADE_Z + 1,
+                }),
+              }}
             >
               {caption}
             </Typography>
@@ -1090,7 +1210,7 @@ export const TimelineCard = (props: {
               />
             ))}
           </Box>
-          {axis && <TimelineAxis ticks={ticks} />}
+          {!inStack && <TimelineAxis ticks={ticks} />}
         </CardContent>
       </Card>
     </Grid>

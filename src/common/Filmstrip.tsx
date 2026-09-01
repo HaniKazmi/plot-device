@@ -34,7 +34,7 @@ const SCROLLBAR_HEIGHT = 10;
 export const Filmstrip = ({ height, children }: { height: number; children: ReactNode }) => {
   // The scrollbar this strip reserves room for is drawn by some platforms and not others, so the
   // fade rather than the bar is what tells a reader six of twenty pictures are on screen.
-  const [ref, edges, onScroll] = useScrollEdges<HTMLDivElement>();
+  const [ref, edges] = useScrollEdges<HTMLDivElement>();
   const theme = useTheme();
 
   return (
@@ -44,7 +44,6 @@ export const Filmstrip = ({ height, children }: { height: number; children: Reac
     >
       <Box
         ref={ref}
-        onScroll={onScroll}
         sx={(theme: Theme) => ({
           display: "flex",
           alignItems: "flex-start",
