@@ -331,7 +331,7 @@ const MostWatchedCategory = ({
       nameOf={(show) => show.name}
       dialogLabelComponent={(show) => [[`${format(show.e)} Eps`, `${format(Math.floor(show.minutes / 60))} Hours`]]}
       dialogChipComponent={(show) => ({ label: show.status, colour: statusToColour(show, scheme) })}
-      aspectRatio="auto 2 / 3"
+      shape="portrait"
       width={[12, 12, 12]}
       pictureWidth={[6, 4, 2]}
       dialogPictureWidth={[6, 4, 2]}
@@ -370,7 +370,7 @@ const ShowStatList = (
       // cards with no reserved ratio all sits inside the viewport at once and fetches every image
       // immediately. The leading `auto` keeps it a reservation rather than a crop: show artwork is
       // portrait, and a fixed ratio would cover-crop every poster into a landscape sliver.
-      aspectRatio="auto 2 / 3"
+      shape="portrait"
       width={[12, 12, 12]}
       pictureWidth={[6, 4, 2]}
       dialogPictureWidth={[6, 4, 2]}
@@ -393,7 +393,7 @@ const ShowsStatList = (
       MediaComponent={ShowCardMediaImage}
       nameComponent={(entry) => entry.name}
       chipComponent={(show) => ({ label: show.status, colour: statusToColour(show, scheme) })}
-      aspectRatio="auto 2 / 3"
+      shape="portrait"
       width={[12, 12, 12]}
       pictureWidth={[6, 4, 2]}
       dialogPictureWidth={[6, 4, 2]}

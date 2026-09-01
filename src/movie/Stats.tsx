@@ -303,10 +303,10 @@ const movieScoreChip = (movie: Movie, scheme: Scheme) =>
 
 const movieStatListSharedProps: Pick<
   StatsListProps<Movie>,
-  "aspectRatio" | "divider" | "width" | "pictureWidth" | "dialogPictureWidth"
+  "shape" | "divider" | "width" | "pictureWidth" | "dialogPictureWidth"
 > = {
   // Posters, not banners — the cards keep the shape the library grid shows them at.
-  aspectRatio: "2/3",
+  shape: "portrait",
   divider: true,
   width: [12, 12, 4],
   pictureWidth: [6, 4, 4],

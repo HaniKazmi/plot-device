@@ -1,6 +1,7 @@
 import { ExpandCircleDown } from "@mui/icons-material";
 import { useState, type ReactNode } from "react";
 import type { CardMediaImageProps, TypedCardMediaImage } from "./Card";
+import type { ArtworkShape } from "./cardArrangement";
 import { DrilldownDialog } from "./DrilldownDialog";
 import { StatList, type StatsListProps } from "./Stats";
 import type { DrilldownGroup } from "./statsData";
@@ -36,10 +37,10 @@ export const GroupedStatList = <T,>(props: {
   width: StatsListProps<T>["width"];
   pictureWidth: StatsListProps<T>["pictureWidth"];
   dialogPictureWidth: StatsListProps<T>["dialogPictureWidth"];
-  aspectRatio?: string;
+  shape?: ArtworkShape;
   divider?: boolean;
 }) => {
-  const { option, colourOf, MediaComponent, dialogSort, nameOf, dialogPictureWidth, aspectRatio } = props;
+  const { option, colourOf, MediaComponent, dialogSort, nameOf, dialogPictureWidth, shape } = props;
   const [dialogContent, setDialogContent] = useState<DrilldownGroup<T> | null>(null);
 
   const dialog = dialogContent ? (
@@ -53,7 +54,7 @@ export const GroupedStatList = <T,>(props: {
       labelComponent={props.dialogLabelComponent}
       chipComponent={props.dialogChipComponent}
       pictureWidth={dialogPictureWidth}
-      aspectRatio={aspectRatio}
+      shape={shape}
       MediaComponent={MediaComponent}
     />
   ) : null;
@@ -81,7 +82,7 @@ export const GroupedStatList = <T,>(props: {
         width={props.width}
         pictureWidth={props.pictureWidth}
         dialogPictureWidth={dialogPictureWidth}
-        aspectRatio={aspectRatio}
+        shape={shape}
         divider={props.divider}
       />
       {dialog}
