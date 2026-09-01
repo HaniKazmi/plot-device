@@ -120,10 +120,10 @@ describe("genre and gameplay", () => {
     );
   });
 
-  it("still defaults a blank genre, which is an exemption for rows not yet filled in", () => {
-    // Deliberately unlike gameplay above: 10 of 340 rows have no genre, so this one column
-    // tolerates a blank until the sheet catches up.
-    expect(convertOne({ Genre: "" }).genre).toBe("Other");
+  it("rejects a blank genre the way it rejects a blank gameplay", () => {
+    // The ramp answers the neutral for a genre it has no entry for, so a blank reaching a chart is
+    // indistinguishable from a genre nobody has coloured yet. The row is only nameable here.
+    expect(() => convertOne({ Game: "Zelda", Genre: "" })).toThrow('Row 2, "Zelda", Genre: no genre recorded');
   });
 });
 

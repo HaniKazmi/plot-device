@@ -29,8 +29,8 @@ export interface VideoGame {
    * `Show.genre` and `Movie.genre`: the column is open-ended and the shared ramp answers
    * `NEUTRAL_FILL` off its table.
    *
-   * Always answerable: the converter defaults an empty cell to `"Other"`, which the shared ramp
-   * has no entry for and so draws as the neutral every "nothing to say here" bucket wears.
+   * Always answerable: the converter rejects an empty cell where it still knows the row, so no
+   * game reaches a chart carrying a genre nobody recorded.
    */
   genre: string;
   /** How it is *played*, which is a games-only distinction and so keeps a closed union. */

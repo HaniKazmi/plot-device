@@ -1,6 +1,6 @@
 import { PlainDate } from "../common/date.ts";
 import { dataCacheKey, type DataConfig } from "../common/useData.ts";
-import { describing, readAgeRating, sheetError, sheetRow } from "../common/sheetError.ts";
+import { describing, readAgeRating, readGenre, sheetError, sheetRow } from "../common/sheetError.ts";
 import { isGameplay, type Company, type Format, type Platform, type Status, type VideoGame } from "./types";
 
 export const jsonConverter = (json: Record<string, string>[]) => {
@@ -24,12 +24,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       platform: row.Platform as Platform,
       company: row.Platform.split(" ")[0] as Company,
       franchise: row.Franchise,
-      // An exemption, not the rule: 10 of 340 rows have no genre yet, and until they are filled in
-      // this defaults rather than throwing the way the cells beside it do. `"Other"` is off the
-      // shared ramp, so those games draw as the neutral rather than claiming a genre they lack.
-      // Delete this the day the column is complete — a blank genre should fail like a blank
-      // gameplay does.
-      genre: row.Genre || "Other",
+      genre: readGenre(row.Genre, `${where}, Genre`),
       // Checked rather than cast: a blank or misspelt cell is a sheet error, and the row is only
       // nameable here. Cast unchecked it reaches `gameplayToColour`, whose neutral fallback makes
       // it look like a style awaiting a colour rather than a cell awaiting a value.

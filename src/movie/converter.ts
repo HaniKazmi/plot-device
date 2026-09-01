@@ -1,44 +1,43 @@
 import { PlainDate } from "../common/date";
 import { dataCacheKey, type DataConfig } from "../common/useData";
-import { describing, readAgeRating, sheetRow } from "../common/sheetError";
+import { describing, readAgeRating, readGenre, sheetRow } from "../common/sheetError";
 import { splitCell } from "../utils/stringUtils";
 import type { Movie } from "./types";
 
 export const jsonConverter = (json: Record<string, string>[]) => {
-  return (
-    json
-      // An empty Genre marks a row as not filled in yet. It is a completeness check rather than
-      // anything to do with genre, and it does not cover the date columns below.
-      .map((row, index) => ({ row, index }))
-      .filter(({ row }) => row.Genre !== "")
-      .map(({ row, index }) => {
-        const where = `Row ${sheetRow(index)}, "${row.Name || "?"}"`;
-        const score = parseInt(row.Score);
-        const minutes = parseInt(row.Runtime);
+  return json.map((row, index) => {
+    const where = `Row ${sheetRow(index)}, "${row.Name || "?"}"`;
+    // Read before the columns below rather than in place among them: a row nobody has
+    // finished is missing every cell from here rightwards, and "no genre recorded" says that
+    // where the first date to be parsed would report an unparseable cell instead — true, but
+    // a narrower answer to a wider question. Key order in the literal below would otherwise
+    // decide which one surfaces.
+    const genre = readGenre(row.Genre, `${where}, Genre`);
+    const score = parseInt(row.Score);
+    const minutes = parseInt(row.Runtime);
 
-        return {
-          name: row.Name,
-          releaseDate: describing(`${where}, Release Date`, () => PlainDate.from(row["Release Date"])),
-          startDate: describing(`${where}, Watch Date`, () => PlainDate.from(row["Watch Date"])),
-          rating: readAgeRating(row.Rating, `${where}, Rating`),
-          // A film nobody scored is left out rather than counted as NaN, which would propagate
-          // into any average taken over the column and blank the figure far from here.
-          score: Number.isNaN(score) ? undefined : score,
-          // A blank Runtime becomes 0 rather than NaN — `sum` accumulates with `+`, so one NaN
-          // would blank every hours total and average taken over the column. Unlike `score`,
-          // `minutes` is not optional on the model, so 0 is the value that keeps sums honest.
-          minutes: Number.isNaN(minutes) ? 0 : minutes,
-          genre: row.Genre,
-          genres: splitCell(row.Genres),
-          franchise: row.Franchise,
-          director: row.Director,
-          banner: row.Banner,
-          // The sheet writes only the true case and leaves the cell blank otherwise.
-          cinema: row.Cinema === "TRUE",
-          anime: row.Anime === "TRUE",
-        } as Movie;
-      })
-  );
+    return {
+      name: row.Name,
+      releaseDate: describing(`${where}, Release Date`, () => PlainDate.from(row["Release Date"])),
+      startDate: describing(`${where}, Watch Date`, () => PlainDate.from(row["Watch Date"])),
+      rating: readAgeRating(row.Rating, `${where}, Rating`),
+      // A film nobody scored is left out rather than counted as NaN, which would propagate
+      // into any average taken over the column and blank the figure far from here.
+      score: Number.isNaN(score) ? undefined : score,
+      // A blank Runtime becomes 0 rather than NaN — `sum` accumulates with `+`, so one NaN
+      // would blank every hours total and average taken over the column. Unlike `score`,
+      // `minutes` is not optional on the model, so 0 is the value that keeps sums honest.
+      minutes: Number.isNaN(minutes) ? 0 : minutes,
+      genre,
+      genres: splitCell(row.Genres),
+      franchise: row.Franchise,
+      director: row.Director,
+      banner: row.Banner,
+      // The sheet writes only the true case and leaves the cell blank otherwise.
+      cinema: row.Cinema === "TRUE",
+      anime: row.Anime === "TRUE",
+    } as Movie;
+  });
 };
 
 /**

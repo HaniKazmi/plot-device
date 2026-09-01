@@ -1,6 +1,6 @@
 import { PlainDate, YearMonthDay } from "../common/date.ts";
 import { dataCacheKey, type DataConfig } from "../common/useData.ts";
-import { describing, readAgeRating, sheetError, sheetRow } from "../common/sheetError.ts";
+import { describing, readAgeRating, readGenre, sheetError, sheetRow } from "../common/sheetError.ts";
 import { splitCell } from "../utils/stringUtils";
 import type { Season, Show, Status, Type } from "./types";
 import "../utils/arrayUtils";
@@ -24,7 +24,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
         name: row.Show,
         status: row.Status as Status,
         type: row.Type as Type,
-        genre: row.Genre,
+        genre: readGenre(row.Genre, `Row ${sheetRow(index)}, "${row.Show}", Genre`),
         // Genres is the sheet's last column, and the API ends a row at its final filled cell, so
         // a show without it arrives with no key at all rather than an empty string.
         genres: splitCell(row.Genres),

@@ -48,6 +48,18 @@ describe("flattening the sheet into nested shows", () => {
     expect(show.banner).toBe("severance.jpg");
   });
 
+  it("rejects a show with no genre, naming the row and the show", () => {
+    expect(() => jsonConverter([showRow({ Genre: "" }), seasonRow()])).toThrow(
+      'Row 2, "Severance", Genre: no genre recorded',
+    );
+  });
+
+  it("asks the question only of a row that opens a show, since a season carries no genre", () => {
+    // Every season row leaves the column blank — the value belongs to the show above it — so a
+    // check applied to both would reject the whole sheet on its second row.
+    expect(() => jsonConverter([showRow(), seasonRow({ Genre: "" })])).not.toThrow();
+  });
+
   it("splits the secondary genres on the comma the sheet separates them with", () => {
     const genres = (value: string) => jsonConverter([showRow({ Genres: value }), seasonRow()])[0].genres;
 

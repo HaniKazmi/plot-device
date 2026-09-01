@@ -5,19 +5,24 @@ import { movieRow } from "../fixtures/movieRows";
 
 const convertOne = (overrides: Record<string, string> = {}) => jsonConverter([movieRow(overrides)])[0];
 
-describe("row filtering", () => {
-  it("drops rows with an empty Genre, which is how half-entered rows are excluded", () => {
-    // Genre stands in for "this row is complete"; it is not a statement about genre.
-    const movies = jsonConverter([movieRow({ Name: "Arrival" }), movieRow({ Name: "Draft", Genre: "" })]);
-
-    expect(movies.map((m) => m.name)).toEqual(["Arrival"]);
+describe("bad rows", () => {
+  it("rejects an empty genre naming the row, rather than dropping it", () => {
+    // No sheet leaves the column blank, so a blank is a row nobody finished. Dropping it silently
+    // is what leaves a film missing from every total with nothing on screen to say which one.
+    expect(() => jsonConverter([movieRow({ Name: "Draft", Genre: "" })])).toThrow(
+      'Row 2, "Draft", Genre: no genre recorded',
+    );
   });
 
-  it("returns nothing when every row is incomplete", () => {
-    expect(jsonConverter([movieRow({ Genre: "" })])).toEqual([]);
+  it("rejects a row the sheet truncated before the Genre column", () => {
+    // The API ends a row at its last filled cell, so a half-entered row carries no `Genre` key at
+    // all. Testing the cell against "" answers `true` for that row and lets it through.
+    expect(() => jsonConverter([{ Name: "Half", "Watch Date": "2024-01-01" }])).toThrow(
+      'Row 2, "Half", Genre: no genre recorded',
+    );
   });
 
-  it("does not protect the date parse, so a complete Genre with a blank date still throws", () => {
+  it("throws on a blank date rather than carrying an unparseable one", () => {
     expect(() => convertOne({ "Watch Date": "" })).toThrow("Unkown Date Format");
     expect(() => convertOne({ "Release Date": "" })).toThrow("Unkown Date Format");
   });
@@ -26,9 +31,8 @@ describe("row filtering", () => {
     expect(() => convertOne({ Name: "Arrival", "Watch Date": "" })).toThrow('Row 2, "Arrival", Watch Date');
   });
 
-  it("reports the row as numbered in the sheet, not after the incomplete rows were dropped", () => {
-    // The filter runs first, so a naive index would point at the wrong row.
-    const rows = [movieRow({ Genre: "" }), movieRow({ Name: "Broken", "Watch Date": "" })];
+  it("numbers a row as the sheet does, counting the header", () => {
+    const rows = [movieRow({ Name: "Fine" }), movieRow({ Name: "Broken", "Watch Date": "" })];
 
     expect(() => jsonConverter(rows)).toThrow('Row 3, "Broken"');
   });

@@ -6,10 +6,39 @@ export type FinishedItem = {
   startDate?: YearMonthDay | Year;
   /** Optional because only some domains date the work itself; see `finishedKey`. */
   releaseDate?: YearMonthDay | Year;
+  franchise: string;
   name: string;
 };
 
-export type FinishedSort = "Date" | "Name";
+export type FinishedSort = "Date" | "Franchise";
+
+// Hoisted rather than calling localeCompare per comparison — the wall runs to a thousand cards and
+// a sort touches each of them several times over.
+const collator = new Intl.Collator();
+
+/**
+ * The series a work belongs to, falling back to its own title.
+ *
+ * All three sheets record the franchise raw, leaving a standalone work naming itself — "Dune" sits
+ * in the Dune franchise. Where a cell is blank the title is what that column would have held, so
+ * the fallback puts an unaffiliated work exactly where the sorted wall already puts its neighbours
+ * rather than collecting every one of them under the empty string at the front.
+ */
+const franchiseKey = (item: FinishedItem) => item.franchise || item.name;
+
+/**
+ * Two dates in calendar order, with an undated item last.
+ *
+ * Compared rather than subtracted: `PlainDate.valueOf` answers the zero-padded ISO form, so `<`
+ * orders a bare `Year` against a full date correctly and `daysTo` — which is undefined across
+ * mixed precision and throws on an inverted pair — cannot be used to order anything.
+ */
+const byDate = (a?: PlainDate, b?: PlainDate) => {
+  if (a === b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+  return a < b ? -1 : a > b ? 1 : 0;
+};
 
 /**
  * A stable identity for one card on the wall.
@@ -29,15 +58,27 @@ export const finishedKey = (item: FinishedItem) =>
   item.releaseDate ? `${item.name} (${item.releaseDate.year})` : item.name;
 
 /**
- * The items a Finished grid shows: only those with artwork, newest first.
+ * The items a Finished grid shows: only those with artwork, in the order the reader asked for.
  *
- * "Name" applies no sort at all — there is no branch for it — so it returns the data in the
- * order the converter produced it, which is sheet order. That reads as name-ordered only
- * because the spreadsheets happen to be maintained that way.
+ * "Date" is when the reader met each work, newest first. "Franchise" is the library as a shelf
+ * instead: a series' entries together, in the order they were released, so a wall read top to
+ * bottom walks each series through in turn. Release date rather than the reader's own start date,
+ * because a series has an order of its own and the order it was watched in is not it — a reader
+ * who came to Star Wars at the fourth film would otherwise see it lead.
+ *
+ * The last step is the start date, which is what settles a Shows wall: that model dates only the
+ * watching, so every pair in it ties on release and falls through to here.
  */
 export const finishedItems = <U extends FinishedItem>(data: readonly U[], sort: FinishedSort): U[] => {
   const withBanners = data.filter(hasBanner);
-  return sort === "Date" ? withBanners.sortByKey("startDate", false) : withBanners;
+  if (sort === "Date") return withBanners.sortByKey("startDate", false);
+
+  return withBanners.toSorted(
+    (a, b) =>
+      collator.compare(franchiseKey(a), franchiseKey(b)) ||
+      byDate(a.releaseDate, b.releaseDate) ||
+      byDate(a.startDate, b.startDate),
+  );
 };
 
 /** What the grid shows: artwork is the whole card, so an item without it is not on the wall. */
@@ -54,18 +95,20 @@ export const finishedCount = (data: readonly FinishedItem[]): number => data.fil
 
 /**
  * Where an item falls in the current sort, as the short label a position marker can show: a year
- * under the date sort, a leading letter under the name sort.
+ * under the date sort, a leading letter under the franchise sort.
  *
- * The value read is the one `finishedItems` orders by, so the marker and the wall cannot come to
- * disagree about which field is in play. The year comes from `firstDay()` rather than a `year`
- * field, which only the concrete subclasses carry, so a bare `Year` and a full date answer alike.
+ * The value read is the one `finishedItems` orders by — the franchise sort's leading key, through
+ * the same `franchiseKey` the comparator uses, so the marker and the wall cannot come to disagree
+ * about which field is in play or about how a blank cell answers. The year comes from `firstDay()`
+ * rather than a `year` field, which only the concrete subclasses carry, so a bare `Year` and a full
+ * date answer alike.
  *
  * `null` is a real answer and not a fallback: a value kind with no short form has none, and an
  * item with no date is one the date sort places first, so the topmost card on screen can be one.
  * The marker then shows nothing rather than the year of some other row.
  */
 export const finishedBucket = (item: FinishedItem, sort: FinishedSort): string | null => {
-  const value: PlainDate | string | undefined = sort === "Date" ? item.startDate : item.name;
+  const value: PlainDate | string | undefined = sort === "Date" ? item.startDate : franchiseKey(item);
   if (value instanceof PlainDate) return String(value.firstDay().year);
   if (typeof value === "string") return value.charAt(0).toUpperCase() || null;
   return null;
@@ -73,15 +116,14 @@ export const finishedBucket = (item: FinishedItem, sort: FinishedSort): string |
 
 /**
  * The buckets a wall contains, each at its first appearance and in the order the wall presents
- * them — years descending under the date sort, letters in whatever order the franchise-grouped
- * sheet order reaches them under the name sort.
+ * them — years descending under the date sort, initials ascending under the franchise sort.
  *
- * What it guarantees is wall order, deduped to first appearance. What that buys depends on the
- * sort: the date sort's key is unique and ordered, so each year opens once and the highlight
- * travels down the rail as the reader scrolls down the page. The name sort's key is a letter, and
- * the franchise-grouped sheet order returns to a letter it has already passed, so the highlight
- * can jump back up to that letter's first run. Re-sorting the letters would not fix that and would
- * cost the rail its agreement with the wall.
+ * What it guarantees is wall order, deduped to first appearance, which is what keeps the rail
+ * agreeing with the page rather than with a second derivation of it. Both sorts happen to open
+ * each bucket once — a year is unique, and franchise-ordered initials are non-decreasing — so the
+ * highlight only ever travels downwards as the reader scrolls down. Neither property is assumed
+ * here: taking first appearances is correct for a key that returns to a value it has passed, and
+ * re-sorting the labels would buy nothing while costing the agreement.
  *
  * Cards with no bucket carry no label at all, so an undated item contributes nothing rather than
  * an empty entry.
