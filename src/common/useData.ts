@@ -77,8 +77,22 @@ export interface DataConfig<T> {
 const useData = <T>(
   { storageKey, converter, reviver, replacer }: DataConfig<T>,
   tab: SheetTab,
-): [T[] | undefined, boolean] => {
+): [T[] | undefined, boolean, string | undefined] => {
   const [dataLoaded, setDataLoaded] = useState(false);
+  /**
+   * What went wrong reading the sheet, for a caller to put on screen.
+   *
+   * The converters reject a bad row by throwing a message that names it — the row number, the
+   * item, the column — and that message is the whole point of `sheetError`. Logged and nothing
+   * else, it reaches a console nobody has open: the page keeps painting the previous visit's
+   * cached copy, or nothing at all for a first-time reader, and re-fails on every mount with no
+   * sign that the sheet is the reason.
+   *
+   * The stale copy is deliberately left standing rather than cleared. A wall of last week's data
+   * beside a message naming the row to fix is more use than an empty page, and the message is what
+   * keeps that staleness from being silent.
+   */
+  const [error, setError] = useState<string | undefined>(undefined);
 
   const [data, setData] = useState<T[] | undefined>(() => {
     if (CACHE.has(storageKey)) return CACHE.get(storageKey) as T[];
@@ -105,10 +119,13 @@ const useData = <T>(
         setDataLoaded(true);
         storage().setItem(storageKey, JSON.stringify(data, replacer));
       })
-      .catch(console.error);
+      .catch((cause: unknown) => {
+        console.error(cause);
+        setError(cause instanceof Error ? cause.message : String(cause));
+      });
   }, [apiReady, converter, storageKey, tab, fetchAndConvertSheet, replacer]);
 
-  return [data, dataLoaded];
+  return [data, dataLoaded, error];
 };
 
 export default useData;

@@ -11,7 +11,6 @@ import { FranchiseContext } from "./franchiseContext";
 import { visibleFranchiseIndex } from "../common/franchiseIndex";
 import { memo, useDeferredValue } from "react";
 import { Stack } from "@mui/material";
-import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
 import Filter from "./Filter";
 import { ChartPair, Section, SectionRail } from "../common/SectionRail";
 import { useOtherTabs } from "../tabs";
@@ -22,14 +21,12 @@ import { finishedCount } from "../common/finishedData";
 
 const SuspenseBlock = ({
   filteredData,
-  dataLoaded,
   unfilteredData,
   filterState,
   filterDispatch,
 }: {
   filteredData: VideoGame[];
   unfilteredData: VideoGame[];
-  dataLoaded: boolean;
   filterState: FilterState;
   filterDispatch: FilterDispatch;
 }) => (
@@ -46,7 +43,6 @@ const SuspenseBlock = ({
       dispatch={filterDispatch}
       data={unfilteredData}
     />
-    <DataLoadedSnackbar open={dataLoaded} />
   </FranchiseContext.Provider>
 );
 

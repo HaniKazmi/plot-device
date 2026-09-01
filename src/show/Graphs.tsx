@@ -14,7 +14,6 @@ import { statusToColour } from "../utils/types";
 import { guestFilter, type FilterDispatch, type FilterState } from "./filterUtils";
 import { FranchiseContext, showFranchise } from "./franchiseContext";
 import { visibleFranchiseIndex } from "../common/franchiseIndex";
-import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
 import Filter from "./Filter";
 import { memo, useDeferredValue } from "react";
 import { format } from "../utils/mathUtils";
@@ -24,13 +23,11 @@ import { useScheme } from "../common/useScheme";
 const SuspenseBlock = ({
   filteredData,
   unfilteredData,
-  dataLoaded,
   filterState,
   filterDispatch,
 }: {
   filteredData: Show[];
   unfilteredData: Show[];
-  dataLoaded: boolean;
   filterState: FilterState;
   filterDispatch: FilterDispatch;
 }) => (
@@ -47,7 +44,6 @@ const SuspenseBlock = ({
       dispatch={filterDispatch}
       data={unfilteredData}
     />
-    <DataLoadedSnackbar open={dataLoaded} />
   </FranchiseContext.Provider>
 );
 

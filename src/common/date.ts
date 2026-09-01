@@ -19,7 +19,13 @@ export abstract class PlainDate {
       return undefined;
     }
 
-    if (this > end) {
+    // Compared at the ends of the ranges the two values denote, not as themselves. `valueOf`
+    // answers the zero-padded ISO form, so a bare year is a prefix of every date inside it and
+    // sorts before all of them — which reads a January 1st as later than the year containing it
+    // and reports an inversion that is not there. Asking whether the start's earliest day falls
+    // after the end's latest is the same question at any precision, and it is only ever true when
+    // the pair is genuinely transposed.
+    if (this.firstDay() > end.lastDay()) {
       throw new Error("Invalid comparison");
     }
 

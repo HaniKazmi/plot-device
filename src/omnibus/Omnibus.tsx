@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import useData from "../common/useData";
+import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
 import { MoviesTab, ShowsTab, VideoGamesTab } from "../tabs";
 import { movieDataConfig } from "../movie/converter";
 import { showDataConfig } from "../show/converter";
@@ -21,14 +22,27 @@ const Graphs = lazy(() => import(/* webpackPrefetch: true */ "./Graphs"));
  * shares of a library two thirds present, and the reader has no way to tell.
  */
 const Omnibus = () => {
-  const [games, gamesLoaded] = useData(vgDataConfig, VideoGamesTab);
-  const [shows, showsLoaded] = useData(showDataConfig, ShowsTab);
-  const [movies, moviesLoaded] = useData(movieDataConfig, MoviesTab);
+  const [games, gamesLoaded, gamesError] = useData(vgDataConfig, VideoGamesTab);
+  const [shows, showsLoaded, showsError] = useData(showDataConfig, ShowsTab);
+  const [movies, moviesLoaded, moviesError] = useData(movieDataConfig, MoviesTab);
 
   const [filterState, filterDispatch] = useFilterReducer();
 
+  // The first sheet to complain, not all of them: each message names a row in a different
+  // spreadsheet, and three at once would say the page is broken three times over where the
+  // reader can only go and fix one of them at a time.
+  //
+  // Mounted before the guard below, which is where this tab needs it most — one bad row in any of
+  // the three empties the whole page, and the medium it came from is the first thing to know.
+  const notice = (
+    <DataLoadedSnackbar
+      open={gamesLoaded && showsLoaded && moviesLoaded}
+      error={gamesError ?? showsError ?? moviesError}
+    />
+  );
+
   if (!games || !shows || !movies) {
-    return null;
+    return notice;
   }
 
   // Guest mode is applied per library, by each domain's own rule, before anything is composed:
@@ -43,12 +57,10 @@ const Omnibus = () => {
         library={library}
         filteredData={data.filter(filterState.filter)}
         unfilteredData={data}
-        // The snackbar says the page in front of the reader is the fresh one, which it is only
-        // once every medium on it has refetched.
-        dataLoaded={gamesLoaded && showsLoaded && moviesLoaded}
         filterState={filterState}
         filterDispatch={filterDispatch}
       />
+      {notice}
     </Suspense>
   );
 };
