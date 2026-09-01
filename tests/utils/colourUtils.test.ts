@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { cacheKey, isUsableColour, luma, withAlpha } from "../../src/utils/colourUtils";
+import { cacheKey, desaturate, isUsableColour, luma, withAlpha } from "../../src/utils/colourUtils";
 import type { Colour } from "../../src/utils/types";
+import { relativeLuminance } from "../fixtures/colour";
 
 describe("luma", () => {
   it("weights green far above red and blue, per ITU-R BT.709", () => {
@@ -105,5 +106,48 @@ describe("withAlpha", () => {
   it("concatenates blindly, so a non-hex input yields something no browser will honour", () => {
     // Both call sites feed it a colour derived from artwork, which is always #rrggbb.
     expect(withAlpha("red", "90")).toBe("red90");
+  });
+});
+
+describe("desaturate", () => {
+  it("returns the colour untouched at 0 and a grey at 1", () => {
+    expect(desaturate("#fe4c00", 0)).toBe("#fe4c00");
+
+    const grey = desaturate("#fe4c00", 1);
+    expect(grey.slice(1, 3)).toBe(grey.slice(3, 5));
+    expect(grey.slice(3, 5)).toBe(grey.slice(5, 7));
+  });
+
+  it.each(["#fe4c00", "#13ac00", "#0072c5", "#d5005e", "#7543ff", "#00a4b1"])(
+    "holds %s's luminance, which is what carries its contrast over unchanged",
+    (hex) => {
+      // The whole reason this blends in linear light. Contrast is a function of luminance alone,
+      // so a mute that preserves it cannot drop a fill under the floor its source cleared — and
+      // four entries in the shared genre ramp sit within 0.1 of that floor.
+      //
+      // The bound is 8-bit rounding rather than the maths, which is exact: each channel lands on
+      // an integer, drifting luminance by at most 0.0012. Holding it under 0.002 keeps that well
+      // inside the ~0.005 that would actually cost the tightest entry its 3:1.
+      expect(Math.abs(relativeLuminance(desaturate(hex, 0.45)) - relativeLuminance(hex))).toBeLessThan(0.002);
+    },
+  );
+
+  it.each([0.1, 0.3, 0.5, 0.7, 0.9])("keeps luminance at amount %s, not just the one the app uses", (amount) => {
+    expect(Math.abs(relativeLuminance(desaturate("#d5005e", amount)) - relativeLuminance("#d5005e"))).toBeLessThan(
+      0.002,
+    );
+  });
+
+  it("moves the colour, so a muted fill is never its own source", () => {
+    expect(desaturate("#7543ff", 0.45)).not.toBe("#7543ff");
+  });
+
+  it("pads a dark channel to two digits, so the result is always six", () => {
+    expect(desaturate("#000000", 0.45)).toBe("#000000");
+    expect(desaturate("#0a0a0a", 0.45)).toBe("#0a0a0a");
+  });
+
+  it("reads a non-hex input as black, exactly as luma does", () => {
+    expect(desaturate("red", 0.45)).toBe("#000000");
   });
 });

@@ -1,8 +1,10 @@
 import type { Year, YearMonthDay } from "../common/date";
+import { desaturate } from "../utils/colourUtils";
 import {
   NEUTRAL_FILL,
   ageRatingToColour,
   decadeToColour,
+  genreToColour,
   releaseDecade,
   statusToColour,
   type AgeRating,
@@ -17,7 +19,18 @@ export interface VideoGame {
   developer: string;
   publisher: string;
   franchise: string;
-  genre: Genre;
+  /**
+   * What the game is *about*, in the vocabulary Shows and Movies record — which is what lets a
+   * game meet a film under one genre name on the Omnibus. Open rather than a union, matching
+   * `Show.genre` and `Movie.genre`: the column is open-ended and the shared ramp answers
+   * `NEUTRAL_FILL` off its table.
+   *
+   * Always answerable: the converter defaults an empty cell to `"Other"`, which the shared ramp
+   * has no entry for and so draws as the neutral every "nothing to say here" bucket wears.
+   */
+  genre: string;
+  /** How it is *played*, which is a games-only distinction and so keeps a closed union. */
+  gameplay: Gameplay;
   theme: string[];
   rating: AgeRating;
   releaseDate: YearMonthDay;
@@ -34,6 +47,7 @@ export interface VideoGame {
 export type VideoGameStringKeys = KeysMatching<VideoGame, string>;
 
 export const videoGameOptions: readonly VideoGameStringKeys[] = [
+  "gameplay",
   "genre",
   "company",
   "platform",
@@ -50,21 +64,37 @@ export type Format = "Physical" | "Digital" | "Pirated" | "Subscription";
 export type Status = "Playing" | "Endless" | "Abandoned" | "Beat" | "Backlog" | "Next";
 export type Company = "PlayStation" | "Nintendo" | "PC" | "iOS" | "Xbox";
 export type Platform = `${Company}${string}`;
-export type Genre =
-  | "Action"
-  | "Adventure"
-  | "Action Adventure"
-  | "Driving/Racing"
-  | "Fighting"
-  | "Party Games"
-  | "Platformer"
-  | "Puzzle"
-  | "Role Playing"
-  | "Shooter"
-  | "Simulation"
-  | "Strategy"
-  | "Visual Novel"
-  | "Music/Rhythm";
+/**
+ * Listed rather than written as a bare union so the converter can check a cell against it while it
+ * still knows which row it came from. `gameplayColours` is keyed on the union, so a value added
+ * here is a compile error until it has a fill.
+ */
+const GAMEPLAY = [
+  "Action",
+  "Adventure",
+  "Action Adventure",
+  "Driving/Racing",
+  "Fighting",
+  "Party Games",
+  "Platformer",
+  "Puzzle",
+  "Role Playing",
+  "Shooter",
+  "Simulation",
+  "Strategy",
+  "Visual Novel",
+  "Music/Rhythm",
+] as const;
+
+export type Gameplay = (typeof GAMEPLAY)[number];
+
+/**
+ * Whether a sheet cell holds a gameplay style, so the converter can reject a blank or misspelt one
+ * where it still knows the row. Without it the cell is cast unchecked and the first sign of trouble
+ * is a wedge quietly wearing the neutral, which reads as a style with no colour yet rather than as
+ * a cell nobody filled in.
+ */
+export const isGameplay = (value: string): value is Gameplay => (GAMEPLAY as readonly string[]).includes(value);
 
 export type Measure = "Hours" | "Games";
 
@@ -159,7 +189,7 @@ export const platformToShort: (vg: VideoGame) => [string, Colour] = (vg) => {
 export const ratingToColour = ({ rating }: VideoGame) => ageRatingToColour(rating);
 
 /**
- * A genre has no brand to reproduce, so each colour is chosen to *represent* the genre: flame for
+ * A gameplay style has no brand to reproduce, so each colour is chosen to *represent* it: flame for
  * Action, exploration green for Adventure, the leather-bronze between them for Action Adventure,
  * a dashboard amber for Driving/Racing, military olive for Shooter, crimson for Fighting, party
  * magenta, sakura pink for Visual Novel, sky blue for Platformer, steel blue for Strategy, indigo
@@ -175,15 +205,20 @@ export const ratingToColour = ({ rating }: VideoGame) => ageRatingToColour(ratin
  *
  * Strategy is the one deliberately deep member of the blues. A red-blind reader sees violet as
  * blue, so a light steel blue beside Puzzle's light violet is ΔE 1 to them however far apart the
- * hues are; only lightness separates that pair, and the two are adjacent on the Top Genre bar.
+ * hues are; only lightness separates that pair, and the two are adjacent on the Top Gameplay bar.
  * Platformer's sky blue is then the light half of the same hue, which is what those two names
  * mean anyway.
  *
+ * Nine of these hexes are also in the shared genre ramp under other names, and Action and Adventure
+ * are the deliberate exception — those two names mean the same thing in both vocabularies. That
+ * collision is what `mutedGenreToColour` below exists to break; the count and the reasoning are
+ * there.
+ *
  * Ratings and franchises deliberately do not draw on this: a rating ramp encodes an order, and a
  * franchise colour is somebody's brand, which keeps its hue and chroma and yields only lightness
- * to contrast. Neither is free to be reassigned a hue the way a genre is.
+ * to contrast. Neither is free to be reassigned a hue the way a gameplay style is.
  */
-const genreColours: Record<Genre, Colour> = {
+const gameplayColours: Record<Gameplay, Colour> = {
   Action: "#fe4c00" as Colour,
   Adventure: "#13ac00" as Colour,
   "Action Adventure": "#a85500" as Colour,
@@ -200,7 +235,56 @@ const genreColours: Record<Genre, Colour> = {
   "Music/Rhythm": "#00a4b1" as Colour,
 };
 
-export const genreToColour = ({ genre }: { genre: Genre }): Colour => genreColours[genre] ?? NEUTRAL_FILL;
+export const gameplayToColour = ({ gameplay }: { gameplay: Gameplay }): Colour =>
+  gameplayColours[gameplay] ?? NEUTRAL_FILL;
+
+/**
+ * How much chroma the genre ramp gives up on this tab. Calibrated against the gameplay table above:
+ * far enough that the two read as different kinds of thing, no further than the shared hexes need.
+ */
+const GENRE_MUTE = 0.45;
+
+/**
+ * Keyed on the ramp's own hex rather than the genre name, which bounds it at the twelve values the
+ * table can answer. The genre column is open-ended, so a name-keyed cache would grow with the sheet.
+ */
+const mutedGenres = new Map<Colour, Colour>();
+
+/**
+ * The shared genre ramp with its chroma cut, for the one tab that draws a genre beside a gameplay
+ * style.
+ *
+ * The two tables share nine hexes under different names, and a card states both vocabularies in
+ * sequence — the hero and hover subtitles put the swatches side by side, and the ledger stacks the
+ * Gameplay row on the Genre row. At full chroma 81 of 340 games would draw those two swatches in
+ * one colour, 78 of them Role Playing beside Fantasy. Taking the chroma out leaves the pair
+ * separable as *kinds* — saturated is how you play, muted is what it is about — which is what
+ * avoids needing 25 hues to be mutually distinguishable inside one lightness band.
+ *
+ * The charts need none of this and are not what this is for. Each draws one vocabulary at a time:
+ * a Top card and a barchart group by a single field, and a sunburst colours every ring from
+ * `groups[0]`, so nesting Genre inside Gameplay paints the whole tree in the gameplay colour.
+ *
+ * `desaturate` holds luminance exactly — see its own doc for why that is load-bearing — so the fill
+ * contract carries over untouched.
+ *
+ * The neutral is passed through rather than dimmed. It is the colour of absence, one value across
+ * every tab, and absence is not one of the two vocabularies that need telling apart — dimming it
+ * would give this tab a private grey, and give it to exactly the games the `"Other"` default lands
+ * on.
+ *
+ * Only this tab dims. Shows, Movies and the Omnibus draw no gameplay vocabulary and so have no
+ * collision, and genre is the primary vocabulary on all three — muting them to fix this tab would
+ * be backwards. The cost is that a Fantasy swatch here is quieter than a Fantasy wedge on Shows.
+ */
+export const mutedGenreToColour = (genre: string): Colour => {
+  const base = genreToColour(genre);
+  if (base === NEUTRAL_FILL) return base;
+
+  let muted = mutedGenres.get(base);
+  if (muted === undefined) mutedGenres.set(base, (muted = desaturate(base, GENRE_MUTE)));
+  return muted;
+};
 
 /**
  * A franchise's own brand hex, filling the sunburst's franchise ring and the Top Franchise bar.
@@ -266,8 +350,10 @@ export const groupToColour = (group: keyof VideoGame | "none" | "decade", game: 
       return statusToColour(game);
     case "rating":
       return ratingToColour(game);
+    case "gameplay":
+      return gameplayToColour(game);
     case "genre":
-      return genreToColour(game);
+      return mutedGenreToColour(game.genre);
     case "franchise":
       return franchiseToColour(game);
     default:

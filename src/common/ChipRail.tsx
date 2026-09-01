@@ -44,19 +44,12 @@ export const RailChip = ({ label, active, onClick }: { label: string; active?: b
 );
 
 /**
- * A row of chips, one of which is current — or a column of them, for a rail that runs down a
- * gutter rather than across the top of a page.
+ * A scrolling row of chips, one of which is current.
  *
- * The two are one component because they are one control: the same chips, the same current one,
- * the same jump. They differ in what a caller's `sx` has to reach, which is why `vertical` exists
- * rather than being read off a `flexDirection` the caller happened to pass.
- *
- * A row scrolls, so it is wrapped: the caller's element is the outer one and the chips scroll
- * inside it, which is what lets the ends be faded over them — a scroller cannot paint above its own
- * content. A column does not scroll at all, because a jump rail is only mounted where every chip
- * fits at full height, so it is one element and the caller's `sx` lays it out directly. Wrapping it
- * anyway would send the caller's own `flexDirection` and `justify-content` to a box that holds no
- * chips.
+ * One scroller, and the caller's own element wraps it. A caller pinning the rail to the top of the
+ * page pins the outer element and the row scrolls inside it — which is what lets the ends be faded
+ * over the chips, since a scroller cannot paint above its own content. A rail that does not scroll
+ * builds its own row from `RailChip`, which is what the library's jump rail does.
  */
 export const ChipRail = ({
   items,
@@ -66,7 +59,6 @@ export const ChipRail = ({
   label,
   sx,
   ref,
-  vertical,
 }: {
   items: ChipRailItem[];
   activeId: string | undefined;
@@ -80,13 +72,11 @@ export const ChipRail = ({
    * page's heading is already introduced by what it is next to.
    */
   label?: string;
-  /** A column down a gutter rather than a row across a page: laid out by the caller, never scrolled. */
-  vertical?: boolean;
   sx?: SxProps<Theme>;
 }) => {
   // The hidden scrollbar leaves a rail wider than its row with nothing saying so, and on a phone
   // that is most of them — the chips simply stop mid-word at the edge.
-  const [scrollRef, edges, onScroll] = useScrollEdges<HTMLDivElement>();
+  const [scrollRef, edges] = useScrollEdges<HTMLDivElement>();
   const theme = useTheme();
 
   const chips = (
@@ -102,19 +92,6 @@ export const ChipRail = ({
       ))}
     </>
   );
-
-  if (vertical) {
-    return (
-      <Box
-        component={label ? "nav" : "div"}
-        aria-label={label}
-        ref={ref}
-        sx={[{ display: "flex" }, ...(Array.isArray(sx) ? sx : [sx])]}
-      >
-        {chips}
-      </Box>
-    );
-  }
 
   return (
     <ScrollFade
@@ -134,7 +111,6 @@ export const ChipRail = ({
         component={label ? "nav" : "div"}
         aria-label={label}
         ref={scrollRef}
-        onScroll={onScroll}
         sx={{
           display: "flex",
           gap: 1,

@@ -9,6 +9,7 @@ import {
   type AgeRating,
   type ColourableStatus,
 } from "../../src/utils/types";
+import { liveGenres } from "../fixtures/colour";
 
 describe("statusToColour", () => {
   it.each([
@@ -161,21 +162,9 @@ describe("ageRatingBand", () => {
 });
 
 describe("genreToColour", () => {
-  // The distinct values both the Shows and Movies sheets' Genre columns carry.
-  const liveGenres = [
-    "Action",
-    "Adventure",
-    "Comedy",
-    "Drama",
-    "Fantasy",
-    "Horror",
-    "Mystery",
-    "Romance",
-    "Sci-Fi",
-    "Thriller",
-    "True Story",
-  ];
-
+  // All three Genre columns are written in this one vocabulary, which is what lets the Omnibus
+  // bridge a game to a film under one name. A value off the table renders as "no colour yet"
+  // rather than throwing, so a typo in a sheet is invisible unless something asserts the set.
   it.each(liveGenres)("gives %s a fill of its own rather than the neutral fallback", (genre) => {
     expect(genreToColour(genre)).not.toBe(NEUTRAL_FILL);
   });
@@ -184,8 +173,9 @@ describe("genreToColour", () => {
     expect(genreToColour("Documentary")).toBe(NEUTRAL_FILL);
   });
 
-  it("shares Action and Adventure's hue with the Games tab, so one hue means one genre across all three tabs", () => {
-    expect(genreToColour("Action")).toBe("#fe4c00");
-    expect(genreToColour("Adventure")).toBe("#13ac00");
+  it("gives Other the neutral, which is what makes the Games converter's default honest", () => {
+    // A blank Games genre becomes "Other". It is deliberately absent from the table: a colour of
+    // its own would dress the absence of a genre up as one.
+    expect(genreToColour("Other")).toBe(NEUTRAL_FILL);
   });
 });

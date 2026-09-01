@@ -1,6 +1,5 @@
 import { Hub, Layers, Timer, Update } from "@mui/icons-material";
 import { Box, Stack, Typography } from "@mui/material";
-import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { useNavigate } from "react-router-dom";
 import { CardPanel, type PanelStat, type PanelSubtitlePart, type TypedCardMediaImage } from "../common/Card";
 import { CURRENT_PLAINDATE, CURRENT_YEAR, formatDate, type YearNumber } from "../common/date";
@@ -14,7 +13,6 @@ import ShowCardMediaImage from "../show/CardMediaImage";
 import { showHeroStats } from "../show/statsData";
 import VgCardMediaImage from "../vg/CardMediaImage";
 import { heroStats } from "../vg/statsData";
-import { genreToColour as vgGenreToColour } from "../vg/types";
 import { MoviesTab, ShowsTab, VideoGamesTab, type Tab } from "../tabs";
 import { electNow, hasNow, measureOf, unionTotals, type OmniItem } from "./adapter";
 import { crossingEntries, type Crossing } from "./crossingsData";
@@ -47,11 +45,11 @@ const Stats = ({
 }) => {
   const totals = unionTotals(data);
   const inYear = unionTotals(data.filter((item) => item.year === yearTo));
-  // What is left after the filters, which is what the two composition surfaces below have to say
-  // something about. A proportional bar over one group is a full bar saying what the reader just
-  // chose, and a crossings count with no crossings is a card of zeroes standing where the rail has
-  // already dropped the section it points at.
-  const mediaShown = new Set(data.map((item) => item.medium)).size;
+  // Whether more than one medium survived the filters, which is what the composition band below
+  // has to have something to say about: a proportional bar over one group is a full bar stating
+  // what the reader just chose. Asked of the first item rather than of a set of all of them —
+  // there are three possible answers and 1,464 rows, and this is on the undeferred path.
+  const mixesMedia = data.some((item) => item.medium !== data[0]?.medium);
 
   return (
     <Stack spacing={2}>
@@ -105,7 +103,7 @@ const Stats = ({
               ]}
             />
           )}
-          {mediaShown > 1 && (
+          {mixesMedia && (
             <VitalsCard>
               <TotalsBand
                 title="Media"
@@ -176,7 +174,9 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
           onJump={jump(VideoGamesTab)}
           kicker={`Since ${formatDate(now.game.startDate)}`}
           title={now.game.name}
-          subtitle={[{ text: now.game.platform }, { text: now.game.genre, swatch: vgGenreToColour(now.game) }]}
+          // The shared ramp at full chroma, like the two cards beside it: this page draws no
+          // gameplay vocabulary, so the collision the Games tab dims for does not arise here.
+          subtitle={[{ text: now.game.platform }, { text: now.game.genre, swatch: genreToColour(now.game.genre) }]}
           // The franchise tile is dropped by passing the game alone. The Crossings section is
           // where this page states what a franchise spans, and it is drawn from the filtered
           // union — while the hero is elected from the library and the filters do not narrow it,
@@ -217,26 +217,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
   );
 };
 
-/**
- * The band's geometry: one height for the row, and a width per card that follows from it.
- *
- * The widths are stated rather than left to the artwork's own pixels for two reasons. A flex row
- * asks an item how wide it wants to be before any height is known, and a picture asked that answers
- * with its file's width — a 680px poster then claims 680px and drags the row past 1,000 tall. And a
- * file that is off its declared ratio would stand the two poster cards at different sizes for a
- * reason no reader can see.
- *
- * The numbers hold each other, and the height is what they are all measured against:
- *
- * - a poster card is a full-height poster — the height at the poster's own ratio — plus its text;
- * - the banner card is the height too, spent the other way round: its picture spans the card, so the
- *   card's width is what decides how much of the height the picture takes and how much is left for
- *   the words. Sizing the card from that leftover rather than picking a width is what makes the
- *   banner card come out exactly the row's height, so no card carries a strip of ground its
- *   neighbours do not;
- * - together they come to 1,231px, which is what lets all three stand on one row at a desktop width
- *   rather than wrapping.
- */
+/** The row's one height, and the column of words a poster card carries beside its picture. */
 const NOW_HEIGHT = 380;
 const NOW_TEXT_WIDTH = 176;
 
@@ -258,81 +239,42 @@ const NOW_HEIGHT_XS = 200;
 const NOW_POSTER_ART_WIDTH_XS = Math.round(NOW_HEIGHT_XS * shapeRatioValues.portrait);
 
 /**
- * What the banner card's words come to: the panel's own lines plus the same lower inset every
- * panel in the row keeps.
+ * The band's geometry: one width and one height for every card in the row.
  *
- * The row's shared baseline is the tiles', not the cards': the poster cards' tiles end one
- * padding above their card's edge, so the banner card's last tile has to end there too — flush
- * to the card instead puts it a full inset below its neighbours'.
- */
-const NOW_BANNER_TEXT_HEIGHT = 195;
-
-/**
- * What the words come to when the title fits on one line, which is the shortest the card plans for.
+ * The widths are stated rather than left to the artwork's own pixels for two reasons. A flex row
+ * asks an item how wide it wants to be before any height is known, and a picture asked that answers
+ * with its file's width — a 680px poster then claims 680px and drags the row past 1,000 tall. And a
+ * file that is off its declared ratio would stand the two poster cards at different sizes for a
+ * reason no reader can see.
  *
- * The pair of budgets is what bounds the card's width, and the band's: at the tall end the card is
- * its narrowest and at the short end its widest, and the row still holds three cards across a
- * desktop at either. A panel outside the pair is read as the nearer of the two rather than sizing
- * the card from it, so a title that runs to a third line cannot narrow the card into wrapping the
- * title further still.
+ * One width is the constraint everything else here follows from, and the two shapes meet it in
+ * opposite ways:
+ *
+ * - a poster card is a full-height poster — the height at the poster's own ratio — plus a text
+ *   column, and that sum is the width;
+ * - the banner card is the same width spent the other way round: its picture spans the card, so the
+ *   width fixes the picture's height at 16:9 and the panel gets whatever the row's height leaves.
+ *
+ * That leaves the banner's panel a stated budget rather than a measured one, which is why its card
+ * carries no subtitle and why its title cannot wrap: at this width the words have to fit 136px, and
+ * a picture that gave way instead would be letterboxed inside a card the row had already sized.
  */
-const NOW_BANNER_TEXT_MIN_HEIGHT = 185;
-
-/**
- * The banner card is as wide as its picture needs to be to take the rest of the height at 16:9.
- * Stated this way round, the card cannot come out taller than the row and leave a hairline of ground
- * under the posters beside it — and the picture fills the slot exactly rather than sitting in a
- * band of its own ground, which is what a width picked in advance leaves whenever the words come to
- * anything other than the height it was picked for.
- */
-const bannerCardWidth = (textHeight: number) =>
-  Math.round(
-    (NOW_HEIGHT - Math.min(Math.max(textHeight, NOW_BANNER_TEXT_MIN_HEIGHT), NOW_BANNER_TEXT_HEIGHT)) *
-      shapeRatioValues.landscape,
-  );
-
-/** What the card is drawn at until its words have been measured, so nothing jumps on first paint. */
-const NOW_BANNER_CARD_WIDTH = bannerCardWidth(NOW_BANNER_TEXT_HEIGHT);
 const NOW_POSTER_ART_WIDTH = Math.round(NOW_HEIGHT * shapeRatioValues.portrait);
+const NOW_CARD_WIDTH = NOW_POSTER_ART_WIDTH + NOW_TEXT_WIDTH;
+const NOW_BANNER_ART_HEIGHT = Math.round(NOW_CARD_WIDTH / shapeRatioValues.landscape);
+const NOW_BANNER_TEXT_HEIGHT = NOW_HEIGHT - NOW_BANNER_ART_HEIGHT;
 
 /**
- * The banner card's width, following the height its words actually came to.
+ * What every panel in the band gives up so that 136 holds a kicker, a title, a subtitle and a
+ * figure.
  *
- * The height cannot be known in CSS — it is however many lines the title took at whatever width the
- * card ended up — and it cannot be derived by letting the card shrink-wrap its picture either: a
- * flex row asks an image how wide it wants to be before any height is settled, and the answer is
- * the file's own 1,600 pixels. So it is measured, the way the timeline measures its labels before
- * placing them.
- *
- * The loop this closes settles rather than runs: a wider card can only take a title off a second
- * line, never onto one, so the height it measures is non-increasing in the width it sets and the
- * two budgets bound both ends. The one-pixel threshold is what keeps a sub-pixel remeasure from
- * being a render.
+ * The inset and the tile size are spent on all three cards rather than on the banner alone. The row
+ * is read across its figures — the tiles share a baseline and a size — so a tile shrunk on one card
+ * and not the other two would trade the band's own consistency for the banner's fit. At 8 above and
+ * below, with a 48px compact tile, the banner's kicker, title, subtitle and figure come to the
+ * budget exactly, and the poster cards carry the same tiles above the same edge.
  */
-const useBannerCardWidth = (cardRef: RefObject<HTMLDivElement | null>, measuring: boolean) => {
-  const [width, setWidth] = useState<number>(NOW_BANNER_CARD_WIDTH);
-
-  useLayoutEffect(() => {
-    if (!measuring) return;
-    // The panel is the card's own node rather than one this file rendered, so it is found in the
-    // DOM — the same way the scroll marker reads the wall it measures.
-    const panel = cardRef.current?.querySelector(".MuiCardContent-root");
-    if (!panel) return;
-
-    const read = () =>
-      setWidth((held) => {
-        const next = bannerCardWidth(panel.getBoundingClientRect().height);
-        return Math.abs(next - held) > 1 ? next : held;
-      });
-
-    read();
-    const observer = new ResizeObserver(read);
-    observer.observe(panel);
-    return () => observer.disconnect();
-  }, [cardRef, measuring]);
-
-  return width;
-};
+const NOW_PANEL_INSET = 1;
 
 /**
  * One medium's current item.
@@ -353,16 +295,13 @@ const NowCard = <T,>(props: {
 }) => {
   const shape = mediumToShape(props.medium);
   const beside = shapeToArrangement(shape) === "beside";
-  const cardRef = useRef<HTMLDivElement>(null);
-  const bannerWidth = useBannerCardWidth(cardRef, !beside);
 
   return (
     <Box
-      ref={cardRef}
       sx={{
         flex: "0 0 auto",
-        // Each card the width its own picture makes it, rather than every card a third of the band.
-        width: { xs: "100%", md: beside ? NOW_POSTER_ART_WIDTH + NOW_TEXT_WIDTH : bannerWidth },
+        // One width for every card in the band, which each shape then spends its own way.
+        width: { xs: "100%", md: NOW_CARD_WIDTH },
         maxWidth: "100%",
         // A floor and not a fixed height, so a title that runs to another line grows the row rather
         // than being clipped by it; the cards stretch together, so they still share one height.
@@ -385,7 +324,7 @@ const NowCard = <T,>(props: {
           // The artwork column is its picture's width on a phone too. `ASIDE_ACTION_AREA_SX` hands
           // it the whole card below `md` for the hero, which fills the page's width and has no
           // second card under it to be pushed down by.
-          ...(beside ? { "& > .MuiCardActionArea-root": { width: { xs: "auto", md: "auto" } } } : {}),
+          ...(beside && { "& > .MuiCardActionArea-root": { width: "auto" } }),
           // The banner card is a column whose picture is the part that gives: the words are the
           // height of their own lines plus the row's shared lower inset, and everything else in
           // the card belongs to the picture above. So the last tile lands one inset above the
@@ -403,13 +342,11 @@ const NowCard = <T,>(props: {
             : {
                 display: "flex",
                 flexDirection: "column",
-                // The picture takes what the words leave, down to nothing rather than pushing them
-                // out of the card; `contain` is what keeps that a height and never a crop.
-                "& > .MuiCardActionArea-root": { flex: "1 1 auto", minHeight: 0 },
+                // Both halves are stated, because the width fixes the picture's height and the row
+                // fixes the card's: the picture is 16:9 at this width and the panel is the rest.
+                // Neither gives way to the other, which is what keeps the picture uncropped.
+                "& > .MuiCardActionArea-root": { flex: "0 0 auto" },
                 "& > .MuiCardContent-root": { flex: "0 0 auto" },
-                // The default inset kept, not dropped: it is the poster panels' inset too, and
-                // the row's tiles align through it.
-                "& > .MuiCardContent-root:last-child": { paddingBottom: 2 },
               }),
         }}
         sx={{
@@ -426,13 +363,24 @@ const NowCard = <T,>(props: {
                 width: { xs: NOW_POSTER_ART_WIDTH_XS, md: NOW_POSTER_ART_WIDTH },
                 height: { xs: "100%", md: "100%" },
               }
-            : // The slot the words left it, filled. At the height the row is built around that slot
-              // is exactly the card's width at 16:9 and the banner fills it edge to edge; a row
-              // driven taller by another card spends the difference here rather than on the words.
-              { width: "100%", height: { xs: "auto", md: "100%" } }),
+            : // The card's own width at 16:9, so the banner fills it edge to edge with nothing
+              // letterboxed and nothing cropped — the height follows the width rather than being
+              // whatever the words left over.
+              { width: "100%", height: { xs: "auto", md: NOW_BANNER_ART_HEIGHT } }),
         }}
         footerComponent={
           <CardPanel
+            // Held to a height its content did not choose, on every card in the band.
+            statSize="compact"
+            // Only the banner card works to a budget — the height its picture leaves it. The inset
+            // is every card's, since the row is read across the figures the panels end with.
+            height={beside ? undefined : NOW_BANNER_TEXT_HEIGHT}
+            inset={NOW_PANEL_INSET}
+            // Only the banner card, whose panel is the card's full width: at 402px the date and the
+            // platform share a line comfortably, and the line that saves is most of what the stated
+            // height had spare. The poster panels are a 176px column, where the same two would wrap
+            // to four lines and cost more than they saved.
+            inlineKicker={!beside}
             kicker={props.kicker}
             title={props.title}
             titleVariant="h6"

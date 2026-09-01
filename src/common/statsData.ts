@@ -29,7 +29,8 @@ export const groupByCategory = <T>(
   data: readonly T[],
   valueOf: (item: T) => string,
   measureOf: (items: T[]) => number,
-  bestOf: (items: T[]) => T,
+  /** Which member fronts the group. Its first, where a caller reorders the members itself. */
+  bestOf: (items: T[]) => T = (items) => items[0],
   keepGroup: (items: T[]) => boolean = () => true,
 ) => {
   const buckets = new Map<string, T[]>();

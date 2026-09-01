@@ -3,7 +3,6 @@ import { Year, YearMonthDay } from "../../src/common/date";
 import { toOmniItems, type Library } from "../../src/omnibus/adapter";
 import { omniBarchartRows } from "../../src/omnibus/barchartData";
 import { mediumToColour } from "../../src/omnibus/types";
-import type { Genre } from "../../src/vg/types";
 import { ageRatingToColour, genreToColour } from "../../src/utils/types";
 import { movie } from "../fixtures/movies";
 import { season, show } from "../fixtures/shows";
@@ -109,15 +108,13 @@ describe("omniBarchartRows", () => {
   it("drops a row whose split column is empty rather than opening a nameless series", () => {
     // The legend and the tooltip both render "" as a blank, so an unnamed series is a colour with
     // nothing saying what it is.
-    // Cast because the sheet can hold a row part way through being filled in, which the domain
-    // type does not describe — the guard exists for exactly the value the type says cannot occur.
-    const items = toOmniItems(library({ games: [videoGame({ genre: "" as Genre }), videoGame({ genre: "Action" })] }));
+    const items = toOmniItems(library({ games: [videoGame({ genre: "" }), videoGame({ genre: "Action" })] }));
 
     expect(omniBarchartRows(items, "Items", "genre").map((row) => row.name)).toEqual(["Action"]);
   });
 
   it("leaves the medium split unable to be empty, since every item carries one", () => {
-    const items = toOmniItems(library({ games: [videoGame({ genre: "" as Genre })] }));
+    const items = toOmniItems(library({ games: [videoGame({ genre: "" })] }));
 
     expect(omniBarchartRows(items, "Items", "medium")).toHaveLength(1);
   });

@@ -1,6 +1,7 @@
 import { Year } from "../common/date";
-import { ageBandToColour, ageRatingBand, genreToColour, type Colour } from "../utils/types";
+import type { Colour } from "../utils/types";
 import type { OmniItem } from "./adapter";
+import { galleryColour, galleryValue } from "./galleryData";
 import { mediumToColour, mediumToLabel, type Measure } from "./types";
 
 /**
@@ -22,37 +23,34 @@ export const BARCHART_SPLITS = ["medium", "genre", "rating"] as const;
 
 export type BarchartSplit = (typeof BARCHART_SPLITS)[number];
 
-/** The series an item falls in. A certificate groups by age band, as every grouping here does. */
-const splitName = (item: OmniItem, split: BarchartSplit): string => {
-  switch (split) {
-    case "medium":
-      return mediumToLabel(item.medium);
-    case "genre":
-      return item.genre;
-    case "rating":
-      return ageRatingBand(item.rating);
-  }
-};
+/**
+ * The series an item falls in.
+ *
+ * Genre and certificate are asked of `galleryValue`, which is what the shelves group on: the chart
+ * and the gallery then cannot come to disagree about what a genre is or which certificates are one
+ * tier, and a change to the banding reaches both. Medium is this chart's alone — the gallery has no
+ * shelf for it, since every shelf there already mixes all three.
+ */
+const splitName = (item: OmniItem, split: BarchartSplit): string =>
+  split === "medium" ? mediumToLabel(item.medium) : galleryValue(item, split);
 
 /**
  * The fill that series is drawn in.
  *
  * Each is the vocabulary the rest of the page already paints that field with, so a genre keeps the
  * hue it has in the gallery's swatch and in the genres band, and a certificate the hue of its
- * badge. All three sheets record genres from one list, so the shared ramp covers every value they
- * hold but `Other`, which takes the neutral `genreToColour` answers off-table with — one uncoloured
- * series against eleven, rather than a crash on a genre the ramp has not been given yet.
+ * badge. Both come from the gallery's own lookups rather than from a second set here, so a hue
+ * means one thing on the chart and on the shelves. All three sheets record genres from one list, so
+ * the ramp covers every value they hold but `Other`, which takes the neutral it answers off-table
+ * with — one uncoloured series against eleven, rather than a crash on a genre it has not been
+ * given yet.
  */
-const splitColour = (item: OmniItem, split: BarchartSplit): Colour => {
-  switch (split) {
-    case "medium":
-      return mediumToColour(item.medium);
-    case "genre":
-      return genreToColour(item.genre);
-    case "rating":
-      return ageBandToColour(ageRatingBand(item.rating));
-  }
-};
+const splitColour = (item: OmniItem, split: BarchartSplit): Colour =>
+  split === "medium"
+    ? mediumToColour(item.medium)
+    : // Never undefined for these two: `galleryColour` answers that only for a franchise, which is
+      // the one grouping this chart does not offer.
+      (galleryColour(splitName(item, split), split) as Colour);
 
 /**
  * The union as the barchart pivot wants it: one row per item, keyed by the chosen series and by

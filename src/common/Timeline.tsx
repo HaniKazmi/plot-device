@@ -5,6 +5,8 @@ import type {} from "@mui/material/themeCssVarsAugmentation";
 import { ChipRail } from "./ChipRail";
 import { HoverCardTooltip } from "./HoverCardTooltip";
 import { LazyTooltip } from "./LazyTooltip";
+import { scrollbarSx } from "./scrollbarSx";
+import { useOpenAtLatest } from "./useOpenAtLatest";
 import {
   buildTicks,
   decidePlacement,
@@ -72,11 +74,7 @@ const scrollSx = (theme: Theme) => ({
   maxHeight: "90vh",
   overflowX: "auto",
   overflowY: "auto",
-  scrollbarWidth: "thin",
-  scrollbarColor: `${theme.vars.palette.text.secondary} ${theme.vars.palette.divider}`,
-  "&::-webkit-scrollbar": { width: 10, height: 10 },
-  "&::-webkit-scrollbar-track": { backgroundColor: theme.vars.palette.divider, borderRadius: 5 },
-  "&::-webkit-scrollbar-thumb": { backgroundColor: theme.vars.palette.text.secondary, borderRadius: 5 },
+  ...scrollbarSx(theme),
 });
 
 /**
@@ -198,27 +196,6 @@ const useTextPlacement = (data: PositionedTimelineData[]) => {
   }, [data]);
 
   return { layouts, setItemRef };
-};
-
-/**
- * Opens the chart at its most recent end.
- *
- * The chart is four viewports wide, so the newest data starts off-screen entirely; the year nav
- * below it is what makes the older end reachable in one click, which is what lets the default view
- * be the end people actually look at. The browser clamps an over-large `scrollLeft`, so asking for
- * the whole scroll width is the same as asking for the maximum without measuring it.
- *
- * `hasData` is the whole key, and it is a boolean for the reason it exists at all: the chart
- * renders nothing until it has data, so on a first visit with an empty cache there is no element
- * here to scroll and the opening has to wait for one. Anything finer — the row count, the data
- * array — re-runs on a filter interaction and drags the chart back to the right edge out from
- * under a reader who had scrolled somewhere else.
- */
-const useOpenAtLatest = (ref: React.RefObject<HTMLDivElement | null>, hasData: boolean) => {
-  useLayoutEffect(() => {
-    const element = ref.current;
-    if (element) element.scrollLeft = element.scrollWidth;
-  }, [ref, hasData]);
 };
 
 // ============================================================================
