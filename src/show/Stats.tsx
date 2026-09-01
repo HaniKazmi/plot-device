@@ -7,9 +7,7 @@ import {
   ShowChart,
   Stars,
   TaskAlt,
-  Timer,
   Tv,
-  Update,
   VerifiedUser,
   Whatshot,
 } from "@mui/icons-material";
@@ -23,16 +21,24 @@ import {
   type Status,
   type Type,
 } from "./types";
-import { StatCard, StatList, StatsListProps, StatSummary, TotalsBand, VitalsCard, YearTotals } from "../common/Stats";
+import {
+  StatCard,
+  StatList,
+  StatsListProps,
+  StatSummary,
+  TotalsBand,
+  VitalsCard,
+  YearVitalsPair,
+} from "../common/Stats";
 import { TopListCard } from "../common/TopList";
 import { GroupedStatList } from "../common/GroupedStatList";
 import { Hero } from "../common/Hero";
 import ShowCardMediaImage from "./CardMediaImage";
 import { genreToColour, statusToColour } from "../utils/types";
 import { useScheme } from "../common/useScheme";
-import { Stack, Typography } from "@mui/material";
+import { Stack } from "@mui/material";
 import type { ReactNode } from "react";
-import { CURRENT_PLAINDATE, CURRENT_YEAR, formatDate, type YearNumber } from "../common/date";
+import { CURRENT_PLAINDATE, formatDate, type YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
 import { Section, StatBand } from "../common/SectionRail";
 import { SHOW_SECTIONS } from "./sections";
@@ -86,26 +92,12 @@ const Stats = ({
         <StatBand>
           {/* The year controls in these cards filter the whole page, and a control's effects flow
               down the page, never up — so the cards come before the bands they redraw. */}
-          <YearTotals
+          <YearVitalsPair
             yearTo={yearTo}
             yearType={yearType}
             filterDispatch={filterDispatch}
-            icon={<Timer />}
-            activeYearType="upto"
-            stats={allTimeTotals(data)}
-            renderValue={(value) => (
-              <Typography variant="h6">{value == CURRENT_YEAR ? "All Time" : `Up To ${value}`}</Typography>
-            )}
-          />
-          <YearTotals
-            yearTo={yearTo}
-            yearType={yearType}
-            filterDispatch={filterDispatch}
-            icon={<Update />}
-            activeYearType="matching"
-            minWidth={120}
-            stats={seasonsInYear(data, yearTo)}
-            renderValue={(value) => <Typography variant="h6">In {value}</Typography>}
+            allTime={allTimeTotals(data)}
+            inYear={seasonsInYear(data, yearTo)}
           />
           <StatSummary
             icon={<ShowChart />}

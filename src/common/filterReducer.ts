@@ -42,6 +42,19 @@ export const yearPredicates = <T extends { startDate: { year: YearNumber } }>(st
 };
 
 /**
+ * A multi-select's predicate, or none where nothing is selected.
+ *
+ * Every category control in every domain means the same thing — an empty selection is no
+ * constraint rather than a constraint nothing satisfies — and each was stating that again beside
+ * its own field. Written once, a change to what matching means is one edit rather than fifteen.
+ *
+ * Returns a list so a caller spreads it, which is what lets an inactive control contribute
+ * nothing at all instead of a predicate that is always true.
+ */
+export const selectedPredicates = <T>(selected: readonly string[], valueOf: (item: T) => string): Predicate<T>[] =>
+  selected.length > 0 ? [(item) => selected.includes(valueOf(item))] : [];
+
+/**
  * Builds a domain's filter reducer. Each domain supplies only what is actually its own:
  * the initial values of its own fields, how to turn that state into a predicate, and how its
  * measure toggles. Everything else — the action shape, the guest-mode wiring, and rebuilding

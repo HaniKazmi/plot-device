@@ -14,6 +14,13 @@ import { useScheme } from "../common/useScheme";
  * union rather than from any one sheet — the point of the select is the entries that appear in
  * more than one of them.
  */
+/** Labelled in the plural where the state key is the singular medium each item carries. */
+const toggles = [
+  { toggle: "game", label: "games", Icon: VideogameAsset },
+  { toggle: "show", label: "shows", Icon: Tv },
+  { toggle: "movie", label: "movies", Icon: LocalMovies },
+] as const;
+
 const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: FilterDispatch; data: OmniItem[] }) => {
   const scheme = useScheme();
 
@@ -22,28 +29,15 @@ const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: Filte
       measureIcon={state.measure === "Hours" ? <Timer /> : <Functions />}
       onToggleMeasure={() => dispatch({ type: "toggleMeasure" })}
       onReset={() => dispatch({ type: "resetFilters" })}
-      toggles={
-        <>
-          <FilterToggle
-            label="games"
-            icon={VideogameAsset}
-            checked={state.game}
-            onChange={(checked) => dispatch({ type: "updateFilter", filter: "game", value: checked })}
-          />
-          <FilterToggle
-            label="shows"
-            icon={Tv}
-            checked={state.show}
-            onChange={(checked) => dispatch({ type: "updateFilter", filter: "show", value: checked })}
-          />
-          <FilterToggle
-            label="movies"
-            icon={LocalMovies}
-            checked={state.movie}
-            onChange={(checked) => dispatch({ type: "updateFilter", filter: "movie", value: checked })}
-          />
-        </>
-      }
+      toggles={toggles.map(({ toggle, label, Icon }) => (
+        <FilterToggle
+          key={toggle}
+          label={label}
+          icon={Icon}
+          checked={state[toggle]}
+          onChange={(checked) => dispatch({ type: "updateFilter", filter: toggle, value: checked })}
+        />
+      ))}
       categories={
         <>
           <FilterCategory

@@ -11,8 +11,6 @@ import {
   Stars,
   Storefront,
   TaskAlt,
-  Timer,
-  Update,
   VerifiedUser,
   VideogameAsset,
   Whatshot,
@@ -40,17 +38,17 @@ import {
   type VideoGame,
   type VideoGameStringKeys,
 } from "./types";
-import { StatCard, StatList, type StatsListProps, TotalsBand, VitalsCard, YearTotals } from "../common/Stats";
+import { StatCard, StatList, type StatsListProps, TotalsBand, VitalsCard, YearVitalsPair } from "../common/Stats";
 import { TopListCard } from "../common/TopList";
 import { GroupedStatList } from "../common/GroupedStatList";
 import { finishedKey } from "../common/finishedData";
 import VgCardMediaImage from "./CardMediaImage";
 import { gameSubtitle } from "./cardData";
-import { Stack, Typography } from "@mui/material";
+import { Stack } from "@mui/material";
 import type { FilterDispatch, YearType } from "./filterUtils";
 import { statusToColour } from "../utils/types";
 import { useScheme } from "../common/useScheme";
-import { CURRENT_PLAINDATE, CURRENT_YEAR, formatDate, YearNumber } from "../common/date";
+import { CURRENT_PLAINDATE, formatDate, YearNumber } from "../common/date";
 import { Hero } from "../common/Hero";
 import { Section, StatBand } from "../common/SectionRail";
 import { useFranchiseGames } from "./franchiseContext";
@@ -88,26 +86,12 @@ const Stats = ({
         <StatBand>
           {/* The year controls in these cards filter the whole page, and a control's effects flow
               down the page, never up — so the cards come before the bands they redraw. */}
-          <YearTotals
+          <YearVitalsPair
             yearTo={yearTo}
             yearType={yearType}
             filterDispatch={filterDispatch}
-            icon={<Timer />}
-            activeYearType="upto"
-            stats={gamesAndHours(data)}
-            renderValue={(value) => (
-              <Typography variant="h6">{value == CURRENT_YEAR ? "All Time" : `Up To ${value}`}</Typography>
-            )}
-          />
-          <YearTotals
-            yearTo={yearTo}
-            yearType={yearType}
-            filterDispatch={filterDispatch}
-            icon={<Update />}
-            activeYearType="matching"
-            minWidth={120}
-            stats={gamesAndHours(data.filter((game) => game.startDate.year === yearTo))}
-            renderValue={(value) => <Typography variant="h6">In {value}</Typography>}
+            allTime={gamesAndHours(data)}
+            inYear={gamesAndHours(data.filter((game) => game.startDate.year === yearTo))}
           />
           <Averages
             data={data}
