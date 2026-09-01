@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { YearMonthDay } from "../../src/common/date";
 import { toOmniItems, type Library } from "../../src/omnibus/adapter";
 import { genreBridge } from "../../src/omnibus/genreBridgeData";
+import { GENRE_NAMES, genreToColour, neutralFill } from "../../src/utils/types";
 import { movie } from "../fixtures/movies";
 import { season, show } from "../fixtures/shows";
 import { videoGame } from "../fixtures/vgRows";
@@ -120,16 +121,16 @@ describe("genreBridge", () => {
     expect(rows.map((row) => row.genre)).toEqual(["Sci-Fi", "Horror"]);
   });
 
-  it("colours a row from the ramp the tabs already speak that genre in", () => {
+  it("names a row in the vocabulary the shared ramp holds, so the card's lookup cannot miss", () => {
+    // The row carries no colour of its own: the card looks one up from `genre`. A row named
+    // anything the ramp has no entry for would draw on the neutral, which is the colour absence
+    // is drawn in — so a real genre would render as "no genre recorded".
     const rows = genreBridge(
-      toOmniItems(
-        library({
-          movies: [movie({ genre: "Sci-Fi" })],
-          shows: [showWith("Sci-Fi", 405)],
-        }),
-      ),
+      toOmniItems(library({ movies: [movie({ genre: "Sci-Fi" })], shows: [showWith("Sci-Fi", 405)] })),
     );
 
     expect(rows[0].genre).toBe("Sci-Fi");
+    expect(GENRE_NAMES).toContain(rows[0].genre);
+    expect(genreToColour(rows[0].genre, "light")).not.toBe(neutralFill("light"));
   });
 });

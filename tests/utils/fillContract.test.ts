@@ -32,6 +32,7 @@ import {
 } from "../../src/movie/types";
 import { BOOK_FILL, media, mediumToColour } from "../../src/omnibus/types";
 import { pick } from "../../src/utils/types";
+import Tabs from "../../src/tabs";
 import { PAPERS, contrast, liveGenres } from "../fixtures/colour";
 import { videoGame } from "../fixtures/vgRows";
 import { show } from "../fixtures/shows";
@@ -52,16 +53,17 @@ import { movie } from "../fixtures/movies";
  * `contrast` is a second implementation of the WCAG formula rather than an import, so this cannot
  * pass by agreeing with a bug in `src/`.
  *
- * The relief the contract allows is pinned here rather than left to each table's prose: six
- * franchise brands relax the floor on the white paper alone, because their identity is their
- * brightness and a yellow held to 3:1 there is a brown-gold. Listing them means adding a seventh
- * is a decision someone has to write down, not something that slips through.
+ * The relief the contract allows is pinned here rather than left to each table's prose: the
+ * franchise brands below relax the floor on the white paper alone, because their identity is their
+ * brightness and a yellow held to 3:1 there is a brown-gold. Listing them means adding another is a
+ * decision someone has to write down, not something that slips through. The set is the table, not a
+ * count stated here, so it cannot be the thing that goes stale.
  */
 const FLOOR = 3;
 
 /** Franchises whose light half takes the contract's relief, and the floor each is held to. */
 const LIGHT_RELIEF: Record<string, number> = {
-  // The two whose brand *is* a bright yellow; 2.2 still reads as gold on both.
+  // The four whose brand *is* a bright yellow or gold; 1.8 still reads as that on both papers.
   Pokémon: 1.8,
   Warcraft: 1.8,
   "Star Wars": 1.8,
@@ -112,7 +114,7 @@ describe.each(SCHEMES)("every fill clears 3:1 on the %s paper", (scheme) => {
     for (const gameplay of GAMEPLAY) check(`gameplay ${gameplay}`, gameplayToColour({ gameplay }, scheme));
   });
 
-  it("franchises, and the six whose light half takes the relief", () => {
+  it("franchises, and the ones whose light half takes the relief", () => {
     for (const franchise of FRANCHISE_NAMES) {
       const relief = scheme === "light" ? LIGHT_RELIEF[franchise] : undefined;
       const colour = franchiseToColour({ franchise }, scheme);
@@ -161,5 +163,35 @@ describe("one franchise, one colour, every tab", () => {
       expect(fromShows, `${franchise} on ${scheme}`).toBe(fromGames);
       expect(fromMovies, `${franchise} on ${scheme}`).toBe(fromGames);
     }
+  });
+});
+
+/**
+ * A tab's primary is chart geometry, not only chrome: `Barchart` paints a single-group series in
+ * `palette.primary.main`, so a bar can be drawn in it. `Google.tsx` writes the one hex into both
+ * colour schemes, which means it has to clear both papers rather than the one a `Fill` half meets.
+ *
+ * Nothing else covers this. Every table above exports its own key list and is walked here; the tab
+ * colours live in `tabs.ts` as fields on an object the router builds from, so before this they were
+ * the one set of colours in the app with no floor under them.
+ */
+describe("tab colours", () => {
+  const named = Tabs.filter((tab) => tab.primaryColour !== undefined);
+
+  it("covers every tab, so adding one to the array cannot skip the check", () => {
+    expect(named.length).toBe(Tabs.length);
+  });
+
+  describe.each(named)("$name", (tab) => {
+    it.each(SCHEMES)("clears 3:1 on the %s paper", (scheme) => {
+      // The primary only. A secondary is a surface rather than a mark almost everywhere it is
+      // drawn — the filter FAB puts contrasting text on it — so the floor it owes is to its own
+      // label, which MUI derives. The one place it is geometry is the alternating season bands on
+      // a Shows card, and those sit on the artwork's sampled ground, not on either paper.
+      expect(tab.primaryColour, tab.name).toMatch(/^#[0-9a-f]{6}$/);
+      expect(contrast(tab.primaryColour!, PAPERS[scheme]), `${tab.name} (${tab.primaryColour})`).toBeGreaterThanOrEqual(
+        FLOOR,
+      );
+    });
   });
 });

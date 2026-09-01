@@ -10,13 +10,7 @@ import {
   type CardStat,
   type LedgerRow,
 } from "../common/Card";
-import {
-  VideoGame,
-  companyToAccent,
-  gameplayToColour,
-  platformToColor,
-  ratingToColour,
-} from "./types";
+import { VideoGame, companyToAccent, gameplayToColour, platformToColor, ratingToColour } from "./types";
 import Grid from "@mui/material/Grid";
 import { franchiseToColour, genreToColour, statusToColour, type Scheme } from "../utils/types";
 import { useScheme } from "../common/useScheme";

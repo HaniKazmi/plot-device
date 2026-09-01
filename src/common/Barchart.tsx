@@ -230,7 +230,7 @@ const Barchart = ({
               }))}
               options={{
                 name: groups[groupindex].name,
-                color: groups.length === 1 ? theme.vars.palette.primary.main : groups[groupindex].colour,
+                color: groups.length === 1 ? theme.palette.primary.main : groups[groupindex].colour,
                 lineWidth: 4,
               }}
             />

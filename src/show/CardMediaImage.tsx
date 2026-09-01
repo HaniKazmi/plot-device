@@ -11,7 +11,7 @@ import {
 } from "../common/Card";
 import { Season, Show, isShow, networkToColour } from "./types";
 import Grid from "@mui/material/Grid";
-import { ageRatingToColour, genreToColour, statusToColour, type Scheme } from "../utils/types";
+import { ageRatingToColour, franchiseToColour, genreToColour, statusToColour, type Scheme } from "../utils/types";
 import { useScheme } from "../common/useScheme";
 import { namesTheSameThing } from "../utils/stringUtils";
 import { CURRENT_PLAINDATE, YearMonthDay, formatDateRange } from "../common/date";
@@ -56,7 +56,10 @@ const showRows = (show: Show, scheme: Scheme): LedgerRow[] => {
 
   // A show with no wider franchise carries its own name in the column, so the row appears only
   // where it names something the show belongs to rather than the show over again.
-  if (!namesTheSameThing(show.franchise, show.name)) rows.push({ label: "Franchise", value: show.franchise });
+  // Unknown franchises fall through to an empty colour, which is no swatch rather than a black
+  // one — the table names the couple of dozen the app draws, not every series on the sheet.
+  if (!namesTheSameThing(show.franchise, show.name))
+    rows.push({ label: "Franchise", value: show.franchise, swatch: franchiseToColour(show, scheme) || undefined });
 
   return rows;
 };

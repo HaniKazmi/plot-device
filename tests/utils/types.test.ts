@@ -48,17 +48,21 @@ describe("statusToColour", () => {
     expect(statusToColour({ status: "Endless" }, "light")).not.toBe(statusToColour({ status: "Up To Date" }, "light"));
   });
 
-  it("steps down in lightness from in-progress through open-ended to the terminal states", () => {
-    // Lightness is a second encoding on top of hue: squinting at any status chart answers "how
-    // much of this is still alive?" from brightness alone. This pins the ordering so a value
-    // swap cannot silently break that reading.
-    const of = (status: ColourableStatus) => relativeLuminance(statusToColour({ status }, "light")!);
+  it.each(["light", "dark"] as const)(
+    "steps down in lightness from in-progress through open-ended to the terminal states, on %s",
+    (scheme) => {
+      // Lightness is a second encoding on top of hue: squinting at any status chart answers "how
+      // much of this is still alive?" from brightness alone. Both halves have to carry it — they
+      // are separate sets of hexes, so an ordering pinned on one says nothing about the other, and
+      // the reader whose system is dark is the one who never sees the half that was checked.
+      const of = (status: ColourableStatus) => relativeLuminance(statusToColour({ status }, scheme)!);
 
-    expect(of("Playing")).toBeGreaterThan(of("Endless"));
-    expect(of("Endless")).toBeGreaterThan(of("Beat"));
-    expect(of("Endless")).toBeGreaterThan(of("Cancelled"));
-    expect(of("Endless")).toBeGreaterThan(of("Abandoned"));
-  });
+      expect(of("Playing")).toBeGreaterThan(of("Endless"));
+      expect(of("Endless")).toBeGreaterThan(of("Beat"));
+      expect(of("Endless")).toBeGreaterThan(of("Cancelled"));
+      expect(of("Endless")).toBeGreaterThan(of("Abandoned"));
+    },
+  );
 
   it("returns undefined for a status outside the union instead of throwing", () => {
     // The switch has no default. Domain code casts sheet cells straight to Status

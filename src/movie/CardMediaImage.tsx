@@ -11,7 +11,7 @@ import {
   type LedgerRow,
 } from "../common/Card";
 import { cinemaLabel, scoreBand, scoreBandToColour, type Movie } from "./types";
-import { ageRatingToColour, genreToColour, type Scheme } from "../utils/types";
+import { ageRatingToColour, franchiseToColour, genreToColour, type Scheme } from "../utils/types";
 import { namesTheSameThing } from "../utils/stringUtils";
 import { CURRENT_PLAINDATE, formatDate } from "../common/date";
 import { hoverCardArtworkSx } from "../common/cardArrangement";
@@ -56,7 +56,10 @@ const movieRows = (movie: Movie, scheme: Scheme): LedgerRow[] => {
 
   // A film with no wider franchise carries its own name in the column, so the row appears only
   // where it names something the film belongs to rather than the film over again.
-  if (!namesTheSameThing(movie.franchise, movie.name)) rows.push({ label: "Franchise", value: movie.franchise });
+  // Unknown franchises fall through to an empty colour, which is no swatch rather than a black
+  // one — the table names the couple of dozen the app draws, not every series on the sheet.
+  if (!namesTheSameThing(movie.franchise, movie.name))
+    rows.push({ label: "Franchise", value: movie.franchise, swatch: franchiseToColour(movie, scheme) || undefined });
 
   return rows;
 };
