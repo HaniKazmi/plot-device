@@ -23,7 +23,7 @@ import {
   type Shelf as ShelfGroup,
 } from "./galleryData";
 import { mediumToColour, mediumToName, type Measure } from "./types";
-import { LABEL_SX } from "../common/typography";
+import { LABEL_SX, MUTED_FIGURE_SX } from "../common/typography";
 import { useScheme } from "../common/useScheme";
 
 /**
@@ -216,7 +216,7 @@ const Shelf = ({
         </Typography>
         <Typography
           variant="body2"
-          sx={{ color: "text.secondary", flexGrow: 1, fontVariantNumeric: "tabular-nums" }}
+          sx={{ ...MUTED_FIGURE_SX, flexGrow: 1 }}
         >
           {`${format(group.count)} ${measure}`}
         </Typography>

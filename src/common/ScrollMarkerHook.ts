@@ -8,6 +8,17 @@ import { scrollBehaviourFor } from "./timelineLayout";
 export const MARKER_TOP = SCROLL_MARGIN + 8;
 
 /**
+ * Where the position marker sits in the page's stack: over the wall it indexes, under the rail it
+ * hangs from and the dialogs that cover the page.
+ *
+ * Named rather than written at each of the two presentations, which are alternatives and so are
+ * never seen together — the one place a difference between them could go unnoticed indefinitely.
+ * The full order, lowest first: a scroller's fade (`FADE_Z`), anything pinned inside that scroller
+ * (`FADE_Z + 1`), this, then the section rail.
+ */
+export const MARKER_Z = (theme: { zIndex: { appBar: number } }) => theme.zIndex.appBar - 2;
+
+/**
  * How far past a landed card's top edge the reading line falls.
  *
  * `jumpTo` brings a card's top to rest at `MARKER_TOP`, and `topmostBucket` names the first card

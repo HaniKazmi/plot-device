@@ -31,7 +31,7 @@ import {
   type ArtworkShape,
 } from "./cardArrangement";
 import { shortYear } from "./date";
-import { LABEL_SX } from "./typography";
+import { dimSx, LABEL_SX } from "./typography";
 import { FADE_Z } from "./ScrollFade";
 import Grid from "@mui/material/Grid";
 import { format } from "../utils/mathUtils";
@@ -1111,7 +1111,7 @@ export const ProportionalBar = ({
         onMouseLeave={() => onHover(null)}
         sx={{
           borderRadius: 0.5,
-          opacity: hovered && hovered !== item.name ? 0.3 : 1,
+          ...dimSx(hovered, item.name),
           // A segment answers a hover and nothing else. A pointer cursor here promises a drilldown
           // that does not exist, and the dim already says the segment is live.
           cursor: "default",

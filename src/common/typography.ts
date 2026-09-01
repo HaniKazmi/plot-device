@@ -17,3 +17,25 @@ export const LABEL_SX = { letterSpacing: "0.08em", textTransform: "uppercase" } 
  * differed between them would read as a different thing rather than the same one relocating.
  */
 export const NUMERIC_LABEL_SX = { fontSize: 12, fontVariantNumeric: "tabular-nums" } as const;
+
+/**
+ * A figure set beside the thing it counts rather than as the point of its own line: a section
+ * header's population, a shelf's card count, a bar's hours.
+ *
+ * Toned down because it is context and not the answer, and tabular because proportional digits
+ * change a figure's width with the numerals in it — a column of them shifts sideways as the data
+ * refreshes under a filter, and a header's count twitches as it counts.
+ */
+export const MUTED_FIGURE_SX = { color: "text.secondary", fontVariantNumeric: "tabular-nums" } as const;
+
+/**
+ * How far a mark fades when the pointer is on one of its peers, and how quickly.
+ *
+ * One value because the dim is one behaviour reaching across two elements: a proportional bar and
+ * the legend beside it fade in step, and a segment that dimmed to a different depth than its own
+ * legend row would read as two things responding to one hover rather than as one thing answering.
+ */
+export const dimSx = (hovered: string | null, name: string) => ({
+  opacity: hovered && hovered !== name ? 0.3 : 1,
+  transition: "opacity 0.2s",
+});

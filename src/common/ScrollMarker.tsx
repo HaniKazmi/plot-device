@@ -1,7 +1,7 @@
 import { Box } from "@mui/material";
 import { CHIP_HEIGHT, RailChip } from "./ChipRail";
 import { bucketLabel } from "./finishedData";
-import { MARKER_TOP, type ScrollMarkerState } from "./ScrollMarkerHook";
+import { MARKER_TOP, MARKER_Z, type ScrollMarkerState } from "./ScrollMarkerHook";
 import { NUMERIC_LABEL_SX } from "./typography";
 
 /**
@@ -19,8 +19,7 @@ export const ScrollMarker = ({ bucket, visible, left, centred }: ScrollMarkerSta
       top: `${MARKER_TOP}px`,
       left: `${left}px`,
       transform: centred ? "translateX(-50%)" : "none",
-      // Over the wall, under the rail it hangs from and the dialogs that cover the page.
-      zIndex: (theme) => theme.zIndex.appBar - 2,
+      zIndex: MARKER_Z,
       pointerEvents: "none",
       opacity: visible && bucket ? 1 : 0,
       transition: "opacity 150ms",
@@ -76,8 +75,7 @@ export const ScrollMarkerRail = ({ bucket, left, railHeight, buckets, jumpTo }: 
       justifyContent: "space-between",
       alignItems: "center",
       gap: 0.5,
-      // Over the wall, under the rail it hangs from and the dialogs that cover the page.
-      zIndex: (theme) => theme.zIndex.appBar - 2,
+      zIndex: MARKER_Z,
     }}
   >
     {buckets.map((entry) => (
