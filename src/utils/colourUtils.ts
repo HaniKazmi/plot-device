@@ -34,38 +34,6 @@ export const isUsableColour = (hex: string) => {
 /** Appends a hex alpha byte to a `#rrggbb` colour, e.g. `withAlpha(colour, "90")`. */
 export const withAlpha = (hex: string, alpha: string) => (hex + alpha) as Colour;
 
-const linearise = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
-const delinearise = (c: number) => (c <= 0.00304 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055);
-
-/**
- * A `#rrggbb` colour with `amount` of its chroma taken out — 0 returns it untouched, 1 flattens it
- * to grey — keeping its hue and, exactly, its luminance.
- *
- * The channels are pulled toward the colour's own luminance **in linear light**, which is what
- * makes the luminance preservation exact rather than approximate: luminance is a linear
- * combination of the linear channels, so a linear blend toward a grey already at that luminance
- * cannot move it. Contrast is a function of luminance alone, so a desaturated fill clears exactly
- * what its source cleared and the fill contract carries over for free — worth the two transfer
- * functions, because the shared genre ramp sits within 0.1 of the 3:1 floor on four of its
- * entries and anything approximate pushes them under.
- *
- * Blending in sRGB space instead darkens: the same operation on gamma-encoded values undershoots,
- * which costs Horror 3.08 → 2.50 against the dark paper. `luma` above is not the function to reach
- * for either — it weights gamma-encoded values, which answers "can text sit on this" rather than
- * "what does this contrast against".
- *
- * A colour that does not parse as hex reads as black, exactly as in `luma`.
- */
-export const desaturate = (hex: string, amount: number): Colour => {
-  const rgb = parseInt(hex.replace("#", ""), 16);
-  const channels = [16, 8, 0].map((shift) => linearise(((rgb >> shift) & 0xff) / 255));
-  const luminance = 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
-  const [r, g, b] = channels.map((c) => Math.round(255 * delinearise(c + (luminance - c) * amount)));
-
-  // The leading bit pads the result to six digits, which a dark channel would otherwise lose.
-  return `#${((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1)}` as Colour;
-};
-
 /**
  * The one key both sides of the cache agree on.
  *

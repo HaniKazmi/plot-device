@@ -47,8 +47,8 @@ const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: Filte
           options={categoryOptions(data, (item) => item.genre)}
           selected={state.genre}
           onChange={(value) => dispatch({ type: "updateFilter", filter: "genre", value })}
-          // The one ramp all three media's genres are drawn from, so a chip means the same thing
-          // whichever medium's rows it is narrowing.
+          // The ramp Shows and Movies share. A game genre is off that table and falls to the
+          // neutral, which is the honest answer until the two vocabularies are merged.
           colourFor={genreToColour}
         />
         <FilterCategory

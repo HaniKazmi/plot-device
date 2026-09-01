@@ -1,10 +1,11 @@
 import { groupByCategory, realFranchisesOnly, type DrilldownGroup } from "../common/statsData";
+import type { PlainDate } from "../common/date";
 import {
-  ageRatingToColour,
+  ageBandToColour,
+  ageRatingBand,
   decadeToColour,
   genreToColour,
   releaseDecade,
-  type AgeRating,
   type Colour,
 } from "../utils/types";
 import type { Movie } from "../movie/types";
@@ -26,12 +27,34 @@ export const GALLERY_CATEGORIES = ["genre", "franchise", "rating", "decade"] as 
 export type GalleryCategory = (typeof GALLERY_CATEGORIES)[number];
 
 /**
+ * The two questions the wall can be asked: what the library is mostly made of, and what it has been
+ * made of lately.
+ *
+ * One order for both the shelves and the pictures on them. A gallery whose shelves came newest
+ * first while every strip still led with a decade-old entry would be answering the two questions at
+ * once, and the shelf's fronting card follows the same order for the same reason.
+ *
+ * The shelves are cut after the sort, not before it: the six the card holds are the six biggest or
+ * the six most recent, and the header states the count either way. Selecting by size and only
+ * reordering what survived would make Recent the recent among the biggest, which is the question
+ * neither control asks.
+ */
+export const GALLERY_SORTS = ["size", "recent"] as const;
+
+export type GallerySort = (typeof GALLERY_SORTS)[number];
+
+/**
  * The shelf an item sits on.
  *
  * "Decade" is the decade the reader *met* it, not the decade it was made: shows carry no release
  * date anywhere in the model, so a release decade over the union would be a category two media
  * answer and the third vanishes from. The home tabs' own decade groupings mean the other thing,
  * which is why the label here says so.
+ *
+ * "Rating" is the age band and not the certificate as written: the two boards this library records
+ * name one tier differently, so grouping on the cell would shelve a PEGI 16 game apart from the
+ * BBFC 15 film it sits at the same age as, and split every other tier by its suffix. The cards
+ * themselves still state the certificate their own row carries.
  */
 export const galleryValue = (item: OmniItem, category: GalleryCategory): string => {
   switch (category) {
@@ -40,7 +63,7 @@ export const galleryValue = (item: OmniItem, category: GalleryCategory): string 
     case "franchise":
       return item.franchise;
     case "rating":
-      return item.rating;
+      return ageRatingBand(item.rating);
     case "decade":
       return releaseDecade(item.year);
   }
@@ -56,7 +79,7 @@ export const galleryColour = (name: string, category: GalleryCategory): Colour |
     case "genre":
       return genreToColour(name);
     case "rating":
-      return ageRatingToColour(name as AgeRating);
+      return ageBandToColour(name);
     case "decade":
       return decadeToColour(name);
     case "franchise":
@@ -97,6 +120,23 @@ const workOf = (item: OmniItem): unknown => {
 };
 
 /**
+ * A work as it stands on a shelf: the union's own item, plus when the reader was last in it.
+ *
+ * A date rather than the `year` the item already carries. Twelve genres over a library this size
+ * nearly all hold something from the current year, so a recency read in years leaves almost every
+ * shelf tied and the order is whatever the previous sort left — a control that visibly does
+ * nothing. A close date separates them by the day.
+ *
+ * It is carried beside `year` rather than written over it in any case: `galleryGroups` re-derives a
+ * shelf from the collapsed item and the decade category reads `year`, so a show whose seasons
+ * closed in two decades — which stands once on each shelf — would have both copies claim the later
+ * decade and leave the earlier shelf empty.
+ */
+export interface ShelfItem extends OmniItem {
+  metDate: PlainDate;
+}
+
+/**
  * One item per work per shelf, carrying the work's whole time on that shelf.
  *
  * Collapsing per shelf rather than over the union is what keeps a shelf's own meaning: a show whose
@@ -105,7 +145,7 @@ const workOf = (item: OmniItem): unknown => {
  * hours are the bucket's sum — which is what leaves both measures honest through `measureOf`, Items
  * counting works and Hours still counting every season.
  */
-export const galleryWorks = (items: OmniItem[], category: GalleryCategory): OmniItem[] => {
+export const galleryWorks = (items: OmniItem[], category: GalleryCategory, today: PlainDate): ShelfItem[] => {
   const shelves = new Map<string, Map<unknown, OmniItem[]>>();
   for (const item of items) {
     shelves
@@ -115,46 +155,80 @@ export const galleryWorks = (items: OmniItem[], category: GalleryCategory): Omni
   }
 
   return [...shelves.values()].flatMap((works) =>
-    [...works.values()].map((entries) =>
-      entries.length === 1 ? entries[0] : { ...galleryTop(entries), hours: entries.sum("hours") },
-    ),
+    [...works.values()].map((entries) => ({
+      ...galleryTop(entries),
+      hours: entries.sum("hours"),
+      // The whole work's last date, not the representative's. The representative is the biggest
+      // entry, so a show that was huge in its first season and closed quietly years later would
+      // otherwise date from the season it was big in rather than from the one that ended it.
+      metDate: latestOf(entries, (entry) => entry.closeDate ?? today),
+    })),
   );
 };
 
 /**
- * The shelves for a category, largest first, each keeping its members for the drill-down.
+ * The shelves for a category, ordered by the sort, each keeping its members for the drill-down.
  *
- * Ordered and measured by the page's own measure, so switching to Items reorders the shelves the
- * way it reorders every other ranking here. A franchise shelf holding one work is dropped on the
- * shared rule: the column repeats a standalone title, so a group of one is an item naming itself
- * rather than a series — counted in works, so a single show carrying its own name as a franchise is
- * one entry however many seasons it ran.
+ * Under `size` that is the page's own measure, so switching to Items reorders the shelves the way
+ * it reorders every other ranking here; under `recent` it is the last year anything on the shelf
+ * was met, which every record answers where a close date does not. A franchise shelf holding one
+ * work is dropped on the shared rule: the column repeats a standalone title, so a group of one is
+ * an item naming itself rather than a series — counted in works, so a single show carrying its own
+ * name as a franchise is one entry however many seasons it ran.
  */
 export const galleryGroups = (
   items: OmniItem[],
   category: GalleryCategory,
   measure: Measure,
-): DrilldownGroup<OmniItem>[] =>
+  sort: GallerySort,
+  /** Taken as the date of anything still open: an item with no close is the one being met now. */
+  today: PlainDate,
+): Shelf[] =>
   groupByCategory(
-    galleryWorks(items, category),
+    galleryWorks(items, category, today),
     (item) => galleryValue(item, category),
     (group) => measureOf(group, measure),
-    // The shelf's biggest entry fronts it, and is also the first picture on it — a shelf leads
-    // with the thing the reader spent most of it on.
     galleryTop,
     category === "franchise" ? realFranchisesOnly : undefined,
   )
     // Ordered once here rather than again at each surface: the shelf, its drill-down and the card
     // fronting it all read one array, so the strip cannot open with a different picture than the
-    // one the group claims.
-    .map((group) => ({ ...group, all: galleryStripOrder(group.all) }));
+    // one the group claims. `top` is taken from that array rather than from `groupByCategory`'s own
+    // pick, because the two agree only while the strip is ordered by size.
+    .map((group) => {
+      const all = galleryStripOrder(group.all, sort);
+      return { ...group, all, top: all[0], metDate: latestOf(all, (item) => item.metDate) };
+    })
+    // Re-sorted rather than left as `groupByCategory` ordered it, so the one rule that decides the
+    // shelves' order is stated here whichever sort is on.
+    .sortByKey(sort === "recent" ? "metDate" : "count");
 
-/** A shelf's own order: biggest first, which is the order its fronting card claims. */
-export const galleryStripOrder = (items: OmniItem[]): OmniItem[] => items.sortByKey("hours");
+/** A shelf, and when anything standing on it was last met. */
+export interface Shelf extends DrilldownGroup<ShelfItem> {
+  metDate: PlainDate;
+}
+
+/** A shelf's own order, which is the order its fronting card claims. */
+export const galleryStripOrder = (items: ShelfItem[], sort: GallerySort): ShelfItem[] =>
+  items.sortByKey(sort === "recent" ? "metDate" : "hours");
 
 /**
  * The biggest of a set, read in one pass rather than by sorting the whole of it to look at the
  * front. `>` keeps the first of equals, which is the order a stable sort would have left them in.
  */
-const galleryTop = (items: OmniItem[]): OmniItem =>
+const galleryTop = <T extends OmniItem>(items: T[]): T =>
   items.reduce((best, item) => (item.hours > best.hours ? item : best));
+
+/**
+ * The last of a set of dates, read in one pass rather than by sorting to look at the front.
+ *
+ * The date is reached through an accessor because the two callers ask different fields: a work's
+ * own is the latest close among the entries collapsed into it, while a shelf's is the latest
+ * `metDate` among its works — reading a close date there would take each work's *representative's*
+ * close, and a representative is the biggest entry rather than the last one.
+ *
+ * The comparison is `PlainDate`'s own: `valueOf` returns the zero-padded ISO form, so a bare `Year`
+ * and a full day compare correctly against each other without either being widened first.
+ */
+const latestOf = <T>(items: T[], dateOf: (item: T) => PlainDate): PlainDate =>
+  items.reduce((latest, item) => (dateOf(item) > latest ? dateOf(item) : latest), dateOf(items[0]));

@@ -20,7 +20,7 @@ describe("genreBridge", () => {
     const rows = genreBridge(
       toOmniItems(
         library({
-          games: [videoGame({ genre: "Horror" })],
+          games: [videoGame({ genre: "Action Adventure" })],
           movies: [movie({ genre: "Sci-Fi" }), movie({ genre: "Sci-Fi" })],
           shows: [showWith("Sci-Fi", 405)],
         }),
@@ -28,40 +28,6 @@ describe("genreBridge", () => {
     );
 
     expect(rows.map((row) => row.genre)).toEqual(["Sci-Fi"]);
-  });
-
-  it("bridges a game to a film under one genre, which is the whole claim a row makes", () => {
-    // All three sheets record the same genre vocabulary, so a genre meets itself with no mapping
-    // in between. A games-only vocabulary would make every game genre a single-medium row and
-    // this chart would hold nothing but shows and films.
-    const rows = genreBridge(
-      toOmniItems(
-        library({
-          games: [videoGame({ genre: "Fantasy", hours: 40 })],
-          movies: [movie({ genre: "Fantasy", minutes: 120 })],
-        }),
-      ),
-    );
-
-    expect(rows.map((row) => row.genre)).toEqual(["Fantasy"]);
-    expect(rows[0].segments.map((segment) => segment.medium)).toEqual(["game", "movie"]);
-  });
-
-  it("drops Other, because an unrecorded genre is not a genre two media share", () => {
-    // The Games converter defaults a blank cell to "Other"; the Movies one drops the row and Shows
-    // always fills the column, so "Other" can only ever be games. The single-medium filter is what
-    // keeps it off the chart — a row there would claim the media meet somewhere none of them names.
-    const rows = genreBridge(
-      toOmniItems(
-        library({
-          games: [videoGame({ genre: "Other", hours: 40 }), videoGame({ genre: "Other", hours: 20 })],
-          movies: [movie({ genre: "Fantasy", minutes: 120 })],
-          shows: [showWith("Fantasy", 405)],
-        }),
-      ),
-    );
-
-    expect(rows.map((row) => row.genre)).toEqual(["Fantasy"]);
   });
 
   it("names each medium's slice in the page's order, and only where it logged hours", () => {

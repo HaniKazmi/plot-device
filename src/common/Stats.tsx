@@ -182,7 +182,12 @@ export const YearTotals = ({
   />
 );
 
-/** How many cards a strip shows collapsed, and how many its fullscreen dialog shows. */
+/**
+ * How many cards a strip shows collapsed, and how many its fullscreen dialog shows.
+ *
+ * The collapsed figure is what a half-width card holds without growing past the charts beside it;
+ * a strip laid out differently passes its own through `StatList`'s `collapsed`.
+ */
 export const COLLAPSED_CARDS = 6;
 export const EXPANDED_CARDS = 500;
 
@@ -300,6 +305,14 @@ export interface StatsListProps<T> {
    * the strip is capped and a cut a header does not state is a cut the reader cannot see.
    */
   count?: (shown: number, total: number) => string;
+  /**
+   * How many cards the collapsed strip holds, where `COLLAPSED_CARDS` is the wrong number for how
+   * this one is laid out. The cap still applies inside the shell — a caller that sliced its own
+   * list would make the constant a no-op for it — so what is passed is the limit and never the
+   * list. A full-width strip at three columns fits four cards to a row, and the shared six leave
+   * the second row half empty.
+   */
+  collapsed?: number;
   width: [number, number, number];
   nameComponent: (t: T) => string;
   labelComponent: (t: T) => string[][];
@@ -322,14 +335,17 @@ export const StatList = <T,>({
   labelComponent,
   count,
   // Renamed and defaulted below the pattern: a default inside it bails the component out of the
-  // React Compiler, and the rename keeps `wrap` out of the rest object handed to `StatsListGrid`.
+  // React Compiler, and the rename keeps `wrap` and `collapsed` out of the rest object handed to
+  // `StatsListGrid`.
   wrap: wrapProp,
+  collapsed: collapsedProp,
   pictureWidth,
   dialogPictureWidth,
   controls,
   ...props
 }: StatsListProps<T>) => {
   const wrap = wrapProp ?? true;
+  const collapsed = collapsedProp ?? COLLAPSED_CARDS;
   return (
     <Grid
       size={{
@@ -340,12 +356,12 @@ export const StatList = <T,>({
     >
       <ExpandableCard
         sx={{ height: "100%" }}
-        expandable={content.length > COLLAPSED_CARDS}
+        expandable={content.length > collapsed}
         renderContent={(isDialog, toggle) => {
           // A non-wrapping strip scrolls sideways instead of clipping, so it can hold the expanded
           // count without the card growing. Answered once and shared, so the header states the cut
           // the grid actually applies.
-          const limit = isDialog || !wrap ? EXPANDED_CARDS : COLLAPSED_CARDS;
+          const limit = isDialog || !wrap ? EXPANDED_CARDS : collapsed;
 
           return (
             <>

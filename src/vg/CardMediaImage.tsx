@@ -10,21 +10,13 @@ import {
   type CardStat,
   type LedgerRow,
 } from "../common/Card";
-import {
-  VideoGame,
-  companyToAccent,
-  franchiseToColour,
-  mutedGenreToColour,
-  gameplayToColour,
-  platformToColor,
-  ratingToColour,
-} from "./types";
+import { VideoGame, companyToAccent, franchiseToColour, genreToColour, platformToColor, ratingToColour } from "./types";
 import Grid from "@mui/material/Grid";
 import { statusToColour } from "../utils/types";
 import { CURRENT_PLAINDATE, Year, YearMonthDay, formatDate, formatDateRange } from "../common/date";
 import { hoverCardArtworkSx } from "../common/cardArrangement";
 import { buildStrip, stripYearTicks } from "../common/timelineStripData";
-import { gameSpans, gameSubtitle, spanKey } from "./cardData";
+import { gameSpans, spanKey } from "./cardData";
 import { useFranchiseGames } from "./franchiseContext";
 
 /**
@@ -56,9 +48,9 @@ const joinParts = (parts: (string | undefined)[]): string => parts.filter(Boolea
  * release is a date and a format, and a game is made by a developer for a publisher.
  *
  * A swatch appears only where the colour is one the app already speaks — the platform's brand
- * accent is the badge in this card's own corner, and franchise, gameplay, genre and rating each
- * fill a ring or a bar on the tab behind it. The rest are text, because inventing a colour for a
- * publisher teaches the reader a legend no chart honours.
+ * accent is the badge in this card's own corner, and franchise, genre and rating each fill a ring
+ * or a bar on the tab behind it. The rest are text, because inventing a colour for a publisher
+ * teaches the reader a legend no chart honours.
  */
 const gameRows = (game: VideoGame): LedgerRow[] => {
   const rows: LedgerRow[] = [
@@ -79,18 +71,14 @@ const gameRows = (game: VideoGame): LedgerRow[] => {
     rows.push({ label: "Franchise", value: game.franchise, swatch: franchiseToColour(game) || undefined });
   }
 
-  // Pushed together because the pair is the point: how it is played, then what it is about.
-  rows.push(
-    { label: "Gameplay", value: game.gameplay, swatch: gameplayToColour(game) },
-    { label: "Genre", value: game.genre, swatch: mutedGenreToColour(game.genre) },
-  );
-
-  // Themes get a line of their own rather than riding on either of the two above: they are the one
-  // vocabulary here no chart on the tab colours, so a swatch would name a legend that does not
-  // exist — and half of them read as genres, which would make the Gameplay line say two things.
-  const themes = joinParts(game.theme);
-  if (themes) rows.push({ label: "Themes", value: themes });
-
+  if (game.genre) {
+    const themes = game.theme.filter(Boolean);
+    rows.push({
+      label: "Genre",
+      value: joinParts([game.genre, themes.join(" – ")]),
+      swatch: genreToColour(game),
+    });
+  }
   rows.push({ label: "PEGI", value: game.rating, swatch: ratingToColour(game) });
 
   return rows;
@@ -197,7 +185,8 @@ const gameHoverStats = ({ hours, numDays }: VideoGame): PanelStat[] => {
  *
  * A component rather than a shape each chart assembles, because the Omnibus shows the same card for
  * a game and a second assembly of it is a second thing to keep in step — one that can come to carry
- * different figures or a different arrangement from this one.
+ * different figures or a different arrangement from this one. The subtitle is the pair the tab's
+ * hero says, so a game is named the same way wherever it is promoted.
  */
 export const VgHoverCard = ({ item }: { item: VideoGame }) => (
   <VgCardMediaImage
@@ -207,7 +196,7 @@ export const VgHoverCard = ({ item }: { item: VideoGame }) => (
     footerComponent={
       <CardPanel
         title={item.name}
-        subtitle={gameSubtitle(item)}
+        subtitle={[{ text: item.platform }, { text: item.genre, swatch: genreToColour(item) }]}
         dateRange={formatDateRange(item.startDate, item.endDate)}
         stats={gameHoverStats(item)}
       />

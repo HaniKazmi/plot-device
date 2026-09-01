@@ -33,6 +33,10 @@ const RecentlyFinished = ({ items }: { items: OmniItem[] }) => (
       nameComponent={omniKey}
       labelComponent={omniLabels}
       chipComponent={omniMediumChip}
+      // Two full rows of the strip's own three-column layout, rather than the six a half-width
+      // card holds: this one runs the whole width, so four cards land on a row and six leave the
+      // second one half empty.
+      collapsed={8}
       // Wider than a single-medium list runs, because half of these cards spend their width twice:
       // a poster seats its name beside itself, so a two-column cell leaves the name 74 pixels and
       // clamps every title in the run. Three columns give the picture and the words a column each.

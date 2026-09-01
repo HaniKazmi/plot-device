@@ -20,7 +20,6 @@ export const topOptions = [
   "publisher",
   "rating",
   "status",
-  "gameplay",
   "genre",
 ] as const satisfies Exclude<VideoGameStringKeys, "name">[];
 

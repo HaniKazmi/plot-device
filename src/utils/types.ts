@@ -58,33 +58,54 @@ export type AgeRating = (typeof AGE_RATINGS)[number];
 export const isAgeRating = (value: string): value is AgeRating => (AGE_RATINGS as readonly string[]).includes(value);
 
 /**
+ * The tier a rating names, which is the unit anything grouping across the two boards has to use.
+ *
+ * PEGI marks the age with a suffix and calls the middle tier 16; BBFC writes the bare number and
+ * calls that same tier 15. So a grouping over the raw cell splits every tier in two by notation
+ * alone — a PEGI 12+ game and a BBFC 12 film on separate shelves saying the same thing, and the
+ * two halves of one tier drawn in the same colour beside each other. The band is keyed on the age
+ * rather than on the notation, and is what the colour is looked up by, so the two cannot disagree
+ * about which ratings are one thing.
+ *
+ * A band is named by its bare number, and by both numbers where the boards disagree on it: naming
+ * the 15/16 tier after one board alone would put a PEGI 16 game under a heading no sheet of this
+ * library writes for it. Only a grouping reads this — a card states the certificate its own row
+ * carries, which is the value the reader would find in the sheet.
+ */
+const ratingBands: Record<number, string> = { 3: "3", 7: "7", 12: "12", 15: "15/16", 16: "15/16", 18: "18" };
+
+export const ageRatingBand = (rating: AgeRating): string => {
+  const band = ratingBands[parseInt(rating, 10)];
+  // Throws rather than falling back, which is what catches a typo in the spreadsheet.
+  if (!band) throw new Error("Unknown rating: " + rating);
+  return band;
+};
+
+/**
  * Traffic-light lightness: two greens for what a child can watch unaccompanied, two ambers for
  * the middle, red for adults only. The pairs separate by lightness within a hue, which is what
  * lets 3 and 7 read as one band while still being told apart side by side.
  *
- * The colour tracks the age, not the notation, so a PEGI 12+ game and a BBFC 12 film carry the
- * same swatch — the two scales are never drawn on one chart, and a reader moving between tabs
- * would otherwise have to learn the same ramp twice. BBFC 15 and PEGI 16 are one tier under two
- * boards' names and share the band for the same reason.
+ * Keyed by band, so the colour tracks the age and not the notation: a PEGI 12+ game and a BBFC 12
+ * film carry the same swatch — the two scales are never drawn on one chart, and a reader moving
+ * between tabs would otherwise have to learn the same ramp twice.
  */
-export const ageRatingToColour = (rating: AgeRating) => {
-  switch (parseInt(rating, 10)) {
-    case 3:
-      return "#88c32f" as Colour;
-    case 7:
-      return "#6d9c26" as Colour;
-    case 12:
-      return "#c27400" as Colour;
-    case 15:
-    case 16:
-      return "rgb(242,144,0)" as Colour;
-    case 18:
-      return "#d60015" as Colour;
-    default:
-      // Throws rather than falling back, which is what catches a typo in the spreadsheet.
-      throw new Error("Unknown rating: " + rating);
-  }
+const bandColours: Record<string, Colour> = {
+  "3": "#88c32f" as Colour,
+  "7": "#6d9c26" as Colour,
+  "12": "#c27400" as Colour,
+  "15/16": "rgb(242,144,0)" as Colour,
+  "18": "#d60015" as Colour,
 };
+
+/** The colour of a band, for a surface that has already grouped and holds the band and not a row. */
+export const ageBandToColour = (band: string): Colour => {
+  const colour = bandColours[band];
+  if (!colour) throw new Error("Unknown rating band: " + band);
+  return colour;
+};
+
+export const ageRatingToColour = (rating: AgeRating): Colour => ageBandToColour(ageRatingBand(rating));
 
 /**
  * Hue says how a thing ended; lightness says whether it is still moving.
@@ -124,24 +145,19 @@ export const statusToColour = ({ status }: { status: ColourableStatus }) => {
 };
 
 /**
- * The genre vocabulary all three tracked sheets share. It lives here rather than in any one domain
- * for the same reason `ageRatingToColour` does: Games, Shows and Movies each record their Genre
- * column in this one vocabulary, and a swatch has to mean the same thing on every tab. That is
- * what lets the Omnibus bridge a game to a film under one genre name without a mapping in code.
+ * The genre vocabulary Shows and Movies share. It lives here rather than in either domain for the
+ * same reason `ageRatingToColour` does: the two record overlapping genre sets in one spreadsheet,
+ * and one swatch has to mean one thing across both tabs.
  *
- * Each hue is chosen to *represent* its genre, and every value meets the fill contract above.
- *
- * Nine of these hexes also appear in `vg/types.ts`'s gameplay table under other names — Fantasy's
- * indigo is Role Playing's, Mystery's teal is Simulation's. That is palette recycling rather than
- * a correspondence, and the Games tab is the one place both vocabularies are drawn: a card there
- * states each in turn, so its `mutedGenreToColour` mutes this ramp to keep the two swatches from
- * landing on one colour. Action and Adventure are the deliberate exception, matching in both
- * tables because those two names mean the same thing in both vocabularies.
+ * Each hue is chosen to *represent* its genre. Action and Adventure keep the hues
+ * `vg/types.ts` paints those same genre names with, so the two genres all three tabs record
+ * read as one thing everywhere; the other hexes also reappear in vg's table but under
+ * *different* genres — deliberate palette recycling, safe because no chart ever shows the two
+ * vocabularies side by side, and not a correspondence to preserve. Every value meets the fill
+ * contract above.
  *
  * The lookup falls to `NEUTRAL_FILL` rather than throwing: the genre column is open-ended, and a
- * new genre appearing in the sheet should render as "no colour yet", not take the tab down. The
- * Games converter's `"Other"` default for an unrecorded genre relies on that — it is deliberately
- * absent from the table, since a colour of its own would dress the absence of a genre up as one.
+ * new genre appearing in the sheet should render as "no colour yet", not take the tab down.
  */
 const genreColours: Record<string, Colour> = {
   Action: "#fe4c00" as Colour,

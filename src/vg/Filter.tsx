@@ -1,5 +1,5 @@
 import { AllInclusive, CatchingPokemonTwoTone, Functions, QuestionMark, Timer } from "@mui/icons-material";
-import { mutedGenreToColour, platformToColor, type Platform, type VideoGame } from "./types";
+import { platformToColor, type Platform, type VideoGame } from "./types";
 import { categoryOptions } from "../common/filterOptions";
 import { FilterCategory, FilterDrawer, FilterToggle } from "../common/FilterDrawer";
 import type { FilterDispatch, FilterState } from "./filterUtils";
@@ -33,33 +33,15 @@ const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: Filte
           onChange={(value) => dispatch({ type: "updateFilter", filter: "platform", value: value as Platform[] })}
           colourFor={(value) => platformToColor(value as Platform)}
         />
-        <FilterCategory
-          label="genre"
-          options={categoryOptions(data, (vg) => vg.genre)}
-          selected={state.genre}
-          onChange={(value) => dispatch({ type: "updateFilter", filter: "genre", value })}
-          // The ramp Shows and Movies share, muted — the same treatment this tab's genre charts
-          // take, so a chip and a wedge naming one genre are one colour.
-          colourFor={mutedGenreToColour}
-        />
-        <FilterCategory
-          label="gameplay"
-          options={categoryOptions(data, (vg) => vg.gameplay)}
-          selected={state.gameplay}
-          onChange={(value) => dispatch({ type: "updateFilter", filter: "gameplay", value })}
-        />
-        <FilterCategory
-          label="publisher"
-          options={categoryOptions(data, (vg) => vg.publisher)}
-          selected={state.publisher}
-          onChange={(value) => dispatch({ type: "updateFilter", filter: "publisher", value })}
-        />
-        <FilterCategory
-          label="franchise"
-          options={categoryOptions(data, (vg) => vg.franchise)}
-          selected={state.franchise}
-          onChange={(value) => dispatch({ type: "updateFilter", filter: "franchise", value })}
-        />
+        {(["genre", "publisher", "franchise"] as const).map((category) => (
+          <FilterCategory
+            key={category}
+            label={category}
+            options={categoryOptions(data, (vg) => vg[category])}
+            selected={state[category]}
+            onChange={(value) => dispatch({ type: "updateFilter", filter: category, value })}
+          />
+        ))}
       </>
     }
   />

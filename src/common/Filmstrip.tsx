@@ -38,7 +38,17 @@ export const Filmstrip = ({ height, children }: { height: number; children: Reac
       height: height + SCROLLBAR_HEIGHT,
       overflowX: "auto",
       overflowY: "hidden",
-      "& > *": { flex: "0 0 auto" },
+      // The children are given the artwork's height rather than left to ask for the strip's. A card
+      // is `height: 100%`, and 100% of this box is the row plus the scrollbar's allowance — so the
+      // card stands ten pixels taller than the picture inside it and paints its own ground under
+      // every one of them. Stating the height here is what keeps the strip's one fixed dimension
+      // the artwork's and not the box's.
+      //
+      // `&&` rather than `&` because a card carries the same rule about itself: one class each, so
+      // the two selectors tie on specificity and the later-inserted one wins — and a child's class
+      // is inserted after its parent's. Naming this class twice settles the tie by weight rather
+      // than by render order.
+      "&& > *": { flex: "0 0 auto", height },
       scrollbarWidth: "thin",
       scrollbarColor: `${theme.vars.palette.text.secondary} ${theme.vars.palette.divider}`,
       "&::-webkit-scrollbar": { height: SCROLLBAR_HEIGHT },

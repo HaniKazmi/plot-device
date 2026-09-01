@@ -14,6 +14,7 @@ import ShowCardMediaImage from "../show/CardMediaImage";
 import { showHeroStats } from "../show/statsData";
 import VgCardMediaImage from "../vg/CardMediaImage";
 import { heroStats } from "../vg/statsData";
+import { genreToColour as vgGenreToColour } from "../vg/types";
 import { MoviesTab, ShowsTab, VideoGamesTab, type Tab } from "../tabs";
 import { electNow, hasNow, measureOf, unionTotals, type OmniItem } from "./adapter";
 import { crossingEntries, type Crossing } from "./crossingsData";
@@ -83,6 +84,20 @@ const Stats = ({
             stats={{ hours: inYear.hours, items: inYear.items }}
             renderValue={(value) => <Typography variant="h6">In {value}</Typography>}
           />
+          {/* The one figure on this page that could not be read off any of the three tabs: a
+              franchise is only a crossing when more than one of them holds it.
+
+              It stands with the year cards rather than after the Media band because it is a
+              quarter-width card and the band takes the whole row: anything placed after the band
+              opens a row of its own and reads as a card that lost its neighbours. */}
+          <StatCard
+            icon={<Hub />}
+            title="Crossings"
+            content={[
+              ["Franchises", crossings.length],
+              ["Entries", crossingEntries(crossings)],
+            ]}
+          />
           <VitalsCard>
             <TotalsBand
               title="Media"
@@ -96,16 +111,6 @@ const Stats = ({
               measureLabel={measure}
             />
           </VitalsCard>
-          {/* The one figure on this page that could not be read off any of the three tabs: a
-              franchise is only a crossing when more than one of them holds it. */}
-          <StatCard
-            icon={<Hub />}
-            title="Crossings"
-            content={[
-              ["Franchises", crossings.length],
-              ["Entries", crossingEntries(crossings)],
-            ]}
-          />
         </StatBand>
       </Section>
       {/* This file holds the bands above the charts and nothing else. The browse surfaces — the
@@ -162,9 +167,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
           onJump={jump(VideoGamesTab)}
           kicker={`Since ${formatDate(now.game.startDate)}`}
           title={now.game.name}
-          // The shared ramp at full chroma, like the two cards beside it: this page draws no
-          // gameplay vocabulary, so the collision the Games tab dims for does not arise here.
-          subtitle={[{ text: now.game.platform }, { text: now.game.genre, swatch: genreToColour(now.game.genre) }]}
+          subtitle={[{ text: now.game.platform }, { text: now.game.genre, swatch: vgGenreToColour(now.game) }]}
           // The franchise tile is dropped by passing the game alone. The Crossings section is
           // where this page states what a franchise spans, and it is drawn from the filtered
           // union — while the hero is elected from the library and the filters do not narrow it,

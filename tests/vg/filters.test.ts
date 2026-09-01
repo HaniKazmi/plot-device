@@ -77,20 +77,10 @@ describe("the multi-select categories", () => {
   });
 
   it("combines categories conjunctively, narrowing rather than widening", () => {
-    const keep = filters(state({ franchise: ["Zelda"], gameplay: ["Puzzle"] }));
+    const keep = filters(state({ franchise: ["Zelda"], genre: ["Puzzle"] }));
 
-    expect(keep(videoGame({ franchise: "Zelda", gameplay: "Puzzle" }))).toBe(true);
-    expect(keep(videoGame({ franchise: "Zelda", gameplay: "Action Adventure" }))).toBe(false);
-  });
-
-  it("narrows on genre and gameplay independently, since one game carries both", () => {
-    // The two columns describe different things — what a game is about, and how it is played — so
-    // selecting one of each has to keep only the games answering both.
-    const keep = filters(state({ genre: ["Fantasy"], gameplay: ["Role Playing"] }));
-
-    expect(keep(videoGame({ genre: "Fantasy", gameplay: "Role Playing" }))).toBe(true);
-    expect(keep(videoGame({ genre: "Fantasy", gameplay: "Puzzle" }))).toBe(false);
-    expect(keep(videoGame({ genre: "Horror", gameplay: "Role Playing" }))).toBe(false);
+    expect(keep(videoGame({ franchise: "Zelda", genre: "Puzzle" }))).toBe(true);
+    expect(keep(videoGame({ franchise: "Zelda", genre: "Action Adventure" }))).toBe(false);
   });
 });
 
