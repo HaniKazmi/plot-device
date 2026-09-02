@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { YearMonthDay, type YearNumber } from "../../src/common/date";
+import { format } from "../../src/utils/mathUtils";
 import {
   allTimeTotals,
   heroSeason,
@@ -10,6 +11,7 @@ import {
   perShowAverages,
   recentlyComplete,
   seasonsInYear,
+  statsCardLabelEpsHours,
   statsCardLabelRecentlyComplete,
   statsCardLabelWatching,
   watchingProgress,
@@ -263,6 +265,24 @@ describe("statsCardLabel", () => {
 
   it("leaves the date blank rather than printing nothing-in-particular when a season is unfinished", () => {
     expect(statsCardLabelRecentlyComplete(season(show(), { endDate: undefined }))[0][1]).toBe("");
+  });
+
+  it("floors the hours instead of rounding them, the same way every other hours figure on the tab does", () => {
+    // 455 minutes is seven full hours and 35 minutes, not eight.
+    const parent = show();
+    expect(statsCardLabelRecentlyComplete(season(parent, { minutes: 455 }))[1][1]).toBe("7 Hours");
+  });
+});
+
+describe("statsCardLabelEpsHours", () => {
+  it("floors the hours from minutes, matching the recently-complete label's own floor", () => {
+    expect(statsCardLabelEpsHours(withSeasons({}, { minutes: 455 }))[0][1]).toBe("7 Hours");
+  });
+
+  it("formats the episode count through the same formatter every other figure on the tab uses", () => {
+    // Comparing against `format` itself rather than a literal keeps this independent of locale,
+    // which AGENTS.md rules out testing directly.
+    expect(statsCardLabelEpsHours(withSeasons({}, { e: 1234 }))[0][0]).toBe(`${format(1234)} Eps`);
   });
 });
 

@@ -4,11 +4,11 @@ import type { Movie } from "./types";
 import "../utils/arrayUtils";
 import "../utils/mapUtils";
 
-export interface WatchSpan extends StripSpan {
+interface WatchSpan extends StripSpan {
   movie: Movie;
 }
 
-export interface RibbonYear {
+interface RibbonYear {
   year: YearNumber;
   bands: StripBand<WatchSpan>[];
   laneCount: number;

@@ -31,6 +31,7 @@ import {
   type ArtworkShape,
 } from "./cardArrangement";
 import { shortYear } from "./date";
+import { useDialogMount } from "./useDialogMount";
 import { dimSx, LABEL_SX } from "./typography";
 import { FADE_Z } from "./ScrollFade";
 import Grid from "@mui/material/Grid";
@@ -57,6 +58,17 @@ export interface CardMediaImageProps {
    * out against each other — the hero — owns that axis, and only the card can carry it.
    */
   cardSx?: SxProps<Theme>;
+  /**
+   * `display: flex` on the card, and nothing else.
+   *
+   * It puts the artwork and the panel in one flex container, for a caller that has already sized
+   * both — the hero and the two hover cards. Which way that container runs is the caller's, since
+   * only `cardSx` carries a direction: the hero turns it to a column below `md`, where the panel
+   * has no width to take. It reserves no shape, sizes no artwork column and picks no
+   * arrangement: those are `shape` and `mediaLayout` below, and a caller wanting the panel to take
+   * the width the artwork did not says `mediaLayout="aside"` as well. With no `footerComponent`
+   * there is one flex item, so the flag then decides only how that item resolves its height.
+   */
   landscape?: boolean;
   /**
    * Where the panel sits, for a caller that has pinned its own artwork size and so owns the
@@ -90,19 +102,31 @@ export type TypedCardMediaImage<T> = FunctionComponent<
 >;
 
 /**
+ * A sampled colour together with the artwork it was sampled from.
+ *
+ * The pairing is what makes the answer follow the `image` prop. Extraction lands asynchronously
+ * into state, so a bare colour there outlives the picture it describes: a card whose `image`
+ * changes under it — the hero, promoting a different item — would keep painting itself from the
+ * artwork it no longer shows, with nothing to say the two had come apart.
+ */
+type ExtractedColour = { image: string | undefined; colour: Colour };
+
+/**
  * Everything an image is asked for once it has pixels. At module scope because the effect below
  * calls it too, and a component-scope function is a new value every render — either a dependency
- * that re-runs the effect on each one, or a suppressed rule.
+ * that re-runs the effect on each one, or a suppressed rule. The pairing closure is built here for
+ * the same reason.
  */
 const readImage = (
   img: HTMLImageElement | null,
+  image: string | undefined,
   extract: boolean,
   setRatio: (ratio: number) => void,
-  setExtracted: (colour: Colour) => void,
+  setExtracted: (extracted: ExtractedColour) => void,
 ) => {
   if (!img?.naturalWidth) return;
   setRatio(img.naturalWidth / img.naturalHeight);
-  if (extract) extractColourFrom(img, setExtracted);
+  if (extract) extractColourFrom(img, (colour) => setExtracted({ image, colour }));
 };
 
 /**
@@ -166,20 +190,22 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
     shape !== undefined &&
     shapeToArrangement(shape) === "beside" &&
     footerComponent !== undefined;
-  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
-  /** Lags `dialogOpen` on close so the detail tree survives the dialog's exit transition. */
-  const [detailMounted, setDetailMounted] = useState<boolean>(false);
+  const detail = useDialogMount();
   // Only cards that opted into extraction seed from the cache, so a grid that means to stay
   // uncoloured is not tinted by whatever another component happened to read first.
-  const [extracted, setExtracted] = useState<Colour | undefined>(() =>
-    extractColour ? cachedColour(image) : undefined,
-  );
-  // Derived rather than seeded into state, so a card whose `colour` prop changes under it — the
-  // same key showing a different item after a refetch — follows the prop instead of keeping the
-  // value it mounted with. `||` rather than `??`: colour lookups answer `""` for a value outside
-  // their vocabulary, and the empty string reaching `getContrastText` through the chip's fallback
-  // chain throws and takes the whole page down — "no colour" has to mean `undefined` from here on.
-  const colour = propColour || extracted;
+  const [extracted, setExtracted] = useState<ExtractedColour | undefined>(() => {
+    const cached = extractColour ? cachedColour(image) : undefined;
+    return cached ? { image, colour: cached } : undefined;
+  });
+  // Both halves are derived rather than seeded into state, so a card whose props change under it
+  // — the same key showing a different item after a refetch — follows them instead of keeping the
+  // value it mounted with. The prop half follows `colour`; the sampled half follows `image`, and
+  // a sample read for a different picture is absent rather than stale, leaving the card the
+  // theme's own ground for the frame it takes to read the new one. `||` rather than `??`: colour
+  // lookups answer `""` for a value outside their vocabulary, and the empty string reaching
+  // `getContrastText` through the chip's fallback chain throws and takes the whole page down —
+  // "no colour" has to mean `undefined` from here on.
+  const colour = propColour || (extracted && extracted.image === image ? extracted.colour : undefined);
   /**
    * The artwork's shape, which is what lets the dialog scale it up to the viewport rather than
    * only down. Held as the ratio rather than as the decision it feeds, so the decision can be left
@@ -192,7 +218,7 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
   const palette = artworkPalette(colour, theme);
 
   const readColour = (img: HTMLImageElement | null) => {
-    if (img && !colour) extractColourFrom(img, setExtracted);
+    if (img && !colour) extractColourFrom(img, (read) => setExtracted({ image, colour: read }));
   };
 
   // `load` does not bubble, so React delivers it through a root listener that only sees events
@@ -202,7 +228,7 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
   // means the image is there to be read whether or not the event arrived.
   useEffect(() => {
     const img = imgRef.current;
-    if (img?.complete) readImage(img, extractColour && !colour, setRatio, setExtracted);
+    if (img?.complete) readImage(img, image, extractColour && !colour, setRatio, setExtracted);
   }, [extractColour, colour, image]);
 
   return (
@@ -240,12 +266,11 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
                 // The detail dialog is themed from this colour, so it is worth reading even for a card
                 // that did not ask for one.
                 readColour(imgRef.current);
-                setDialogOpen(true);
-                setDetailMounted(true);
+                detail.show();
               }}
               loading={lazy ? "lazy" : undefined}
               ref={imgRef}
-              onLoad={(el) => readImage(el.currentTarget, extractColour && !colour, setRatio, setExtracted)}
+              onLoad={(el) => readImage(el.currentTarget, image, extractColour && !colour, setRatio, setExtracted)}
               // The shape's own rules first and the caller's after them, so a caller that pins a
               // height still wins and one that pins nothing gets the reservation and the column
               // sizing without asking. A card that named no shape is left exactly as its caller
@@ -276,23 +301,21 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
           </CardActionArea>
           {footerComponent}
         </CardArrangementProvider>
-        {/* Mounted only once the card has been opened, and kept until the exit transition ends —
-            the same window `detailMounted` already held the body open for. MUI's `Modal` returns
-            null for a closed dialog, but only after `Dialog` and `Modal` have rendered and its
-            hooks and effect have run, and this card is the one an uncapped wall renders per item:
-            a thousand of them is a thousand component instances re-evaluated on every render of
-            the wall, all of them closed. Mounting already-open still animates, because `Dialog`
-            passes `appear` to its transition. */}
-        {detailMounted && (
+        {/* The whole `Dialog` is what this card gates on `mounted`, not just the body inside it.
+            MUI's `Modal` returns null for a closed dialog, but only after `Dialog` and `Modal`
+            have rendered and their hooks and effect have run, and this card is the one an uncapped
+            wall renders per item: a thousand of them is a thousand component instances
+            re-evaluated on every render of the wall, all of them closed. */}
+        {detail.mounted && (
           <Dialog
-            open={dialogOpen}
-            onClose={() => setDialogOpen(false)}
+            open={detail.open}
+            onClose={detail.hide}
             maxWidth={false}
             scroll="body"
             slots={{ transition: Grow }}
             slotProps={{
               paper: { sx: { backgroundColor: "unset", boxShadow: "unset", backgroundImage: "unset" } },
-              transition: { onExited: () => setDetailMounted(false) },
+              transition: { onExited: detail.onExited },
             }}
           >
             <Card
@@ -303,7 +326,7 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
               }}
             >
               <Box
-                onClick={() => setDialogOpen(false)}
+                onClick={detail.hide}
                 sx={{
                   position: "relative",
                 }}
@@ -343,7 +366,7 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
                   src={image}
                   title={alt}
                   loading="lazy"
-                  onClick={() => setDialogOpen(false)}
+                  onClick={detail.hide}
                 />
               </Box>
               <Box
@@ -468,7 +491,7 @@ export interface PanelSubtitlePart {
  *   spends it — title at the top, tiles on the bottom edge — so the hero and the hover cards
  *   read as one treatment at two sizes.
  */
-export type PanelLayout = "beneath" | "beside" | "hero";
+type PanelLayout = "beneath" | "beside" | "hero";
 
 /**
  * The panel beside or beneath a card's artwork: what the item is, when, and how much of it.
@@ -779,9 +802,9 @@ const COMPACT_TILE_HEIGHT = 48;
 const TILE_PADDING: Record<TileSize, number> = { hero: 1, default: 1, compact: 0.25 };
 const TILE_FIGURE: Record<TileSize, string> = { hero: "1.5rem", default: "1.25rem", compact: "1.125rem" };
 
-export type TileSize = "hero" | "default" | "compact";
+type TileSize = "hero" | "default" | "compact";
 
-export const StatTile = ({ value, label, colour, size }: CardStat & { size?: TileSize }) => {
+const StatTile = ({ value, label, colour, size }: CardStat & { size?: TileSize }) => {
   const palette = useArtworkPalette();
   const tile = size ?? "default";
 
@@ -840,7 +863,7 @@ export const StatTile = ({ value, label, colour, size }: CardStat & { size?: Til
  * nothing says something false where saying nothing says the truth, so the omission is the
  * caller's to make and this shell lays out whatever it is handed.
  */
-export const HeroStatRow = ({ stats }: { stats: CardStat[] }) => {
+const HeroStatRow = ({ stats }: { stats: CardStat[] }) => {
   if (stats.length === 0) return null;
 
   return (
@@ -899,7 +922,7 @@ export interface LedgerRow {
  * hold each pair to the tallest row on it, and a value that wraps would open a gap beside it.
  * `break-inside` is what keeps a row from being split across the column boundary.
  */
-export const MetadataLedger = ({ rows }: { rows: LedgerRow[] }) => {
+const MetadataLedger = ({ rows }: { rows: LedgerRow[] }) => {
   const palette = useArtworkPalette();
 
   if (rows.length === 0) return null;
@@ -1046,7 +1069,7 @@ export const FooterComponent = ({ labels, divider }: { labels: string[][]; divid
   );
 };
 
-export const Segment = ({
+const Segment = ({
   percent,
   backgroundColour,
   spacing: spacingProp,
@@ -1361,6 +1384,51 @@ const BandTooltip = ({
     </Tooltip>
   );
 
+/**
+ * Everything about a band that is the same on every band.
+ *
+ * Its geometry and its colour go in `style` instead: those differ per band, and a distinct value
+ * set reaching `sx` mints an emotion class of its own — a strip is dozens of bands and the full
+ * timeline renders twice per data change, once at the default layout and once measured. What is
+ * left here is the handful of forms a band takes, so the sheet holds four rules however many bands
+ * are drawn.
+ *
+ * Hover leaves every box where it is: growing one reflows the row under the pointer, and a
+ * transition on it never advances, because the tooltip opening re-renders the strip and restarts
+ * the clock every frame. `opacity` stays in this half for the same rule — an inline `opacity`
+ * outranks any stylesheet, so a muted band written into `style` could not be lit on hover at all.
+ */
+const BAND_SX = {
+  position: "absolute",
+  borderRadius: 0.5,
+  "&:hover": { opacity: 1, filter: "brightness(1.25)" },
+} as const;
+
+/**
+ * An estimated span dissolves at both ends rather than stopping at one, because a hard edge is a
+ * date and this band does not have one. Square-cut too, so the rounded caps stay the mark of a
+ * span the sheet actually pinned down.
+ */
+const IMPRECISE_BAND_SX = {
+  maskImage: FADED_ENDS,
+  WebkitMaskImage: FADED_ENDS,
+  borderRadius: 0,
+} as const;
+
+/** Context rather than subject, on a strip where one band is the card's own. */
+const MUTED_BAND_SX = { opacity: 0.6 } as const;
+
+/**
+ * The card's own subject against its context. Opacity alone does not carry it once the bands are
+ * lane-height: each one is coloured by its own platform, so a dimmed band beside a
+ * differently-coloured one reads as a different platform rather than as context. `currentColor` is
+ * the ground's contrast text, so the ring lands legibly on an extracted artwork colour whichever
+ * way that fell. A caller with no subject to single out — the ribbon, where every mark is a peer —
+ * opts out with `frameless`: on a mark floored to a couple of pixels the ring would be most of the
+ * mark, burying the fill it exists to set apart.
+ */
+const RINGED_BAND_SX = { boxShadow: "inset 0 0 0 1px currentColor" } as const;
+
 export const TimelineBandBox = ({
   startPercent,
   widthPercent,
@@ -1387,35 +1455,19 @@ export const TimelineBandBox = ({
       hoverCard={hoverCard}
     >
       <Box
-        sx={{
-          position: "absolute",
+        // Later entries win, so the imprecise band's square cut lands over the rounded default.
+        sx={[
+          BAND_SX,
+          !!imprecise && IMPRECISE_BAND_SX,
+          !!muted && MUTED_BAND_SX,
+          !muted && !frameless && RINGED_BAND_SX,
+        ]}
+        style={{
           left: `${startPercent}%`,
           width: `${widthPercent}%`,
-          // Hover leaves every box where it is: growing one reflows the row under the pointer,
-          // and a transition on it never advances, because the tooltip opening re-renders the
-          // strip and restarts the clock every frame.
           top: `${lane * laneHeight + inset}%`,
           height: `${laneHeight - inset * 2}%`,
           backgroundColor: colour,
-          opacity: muted ? 0.6 : 1,
-          // An estimated span dissolves at both ends rather than stopping at one, because a hard
-          // edge is a date and this band does not have one. Square-cut too, so the rounded caps
-          // stay the mark of a span the sheet actually pinned down.
-          ...(imprecise && {
-            maskImage: FADED_ENDS,
-            WebkitMaskImage: FADED_ENDS,
-          }),
-          // The card's own game against its context. Opacity alone does not carry it once the
-          // bands are lane-height: each one is coloured by its own platform, so a dimmed band
-          // beside a differently-coloured one reads as a different platform rather than as
-          // context. `currentColor` is the ground's contrast text, so the ring lands legibly on
-          // an extracted artwork colour whichever way that fell. A caller with no subject to
-          // single out — the ribbon, where every mark is a peer — opts out with `frameless`:
-          // on a mark floored to a couple of pixels the ring would be most of the mark, burying
-          // the fill it exists to set apart.
-          boxShadow: muted || frameless ? undefined : "inset 0 0 0 1px currentColor",
-          borderRadius: imprecise ? 0 : 0.5,
-          "&:hover": { opacity: 1, filter: "brightness(1.25)" },
         }}
       />
     </BandTooltip>

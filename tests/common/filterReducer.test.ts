@@ -18,6 +18,19 @@ describe("yearPredicates", () => {
     expect(keep({ startDate: { year: CURRENT_YEAR } })).toBe(false);
   });
 
+  it("reads the year through a caller's own accessor, for a model that attributes differently", () => {
+    // The two rules are the same everywhere; which year an item answers with is not. An Omnibus
+    // item counts towards the year it closed in and carries no start date to read at all.
+    const closed = (year: YearNumber) => ({ closedIn: year });
+    const [keep] = yearPredicates(
+      { yearType: "matching", yearTo: CURRENT_YEAR },
+      (item: { closedIn: YearNumber }) => item.closedIn,
+    );
+
+    expect(keep(closed(CURRENT_YEAR))).toBe(true);
+    expect(keep(closed((CURRENT_YEAR - 1) as YearNumber))).toBe(false);
+  });
+
   it("returns an exact-match predicate for the matching type, even at the current year", () => {
     const [keep] = yearPredicates({ yearType: "matching", yearTo: CURRENT_YEAR });
 

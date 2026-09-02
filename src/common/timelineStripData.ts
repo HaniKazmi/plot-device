@@ -1,5 +1,5 @@
 import type { YearMonthDay } from "./date";
-import { assignRows, buildTicks, percentOfSpan, type TimelineTick } from "./timelineLayout";
+import { assignRows, buildTicks, percentAtDate, percentOfSpan, type TimelineTick } from "./timelineLayout";
 import "../utils/arrayUtils";
 
 /** One tracked span. Domains extend this with whatever the band's colour and tooltip need. */
@@ -73,12 +73,12 @@ export const buildStrip = <T extends StripSpan>(spans: T[], epoch: YearMonthDay,
 
   const bands = clamped.map(({ span, start, end }, index) => {
     const widthPercent = Math.max(percentOfSpan(start, end, totalDays), MIN_BAND_PERCENT);
-    // `daysTo` counts inclusively, which is what a width wants and an offset does not: the epoch
-    // is day one of itself, and without the -1 every band starts a day late.
+    // An offset is `percentAtDate` and a width is `percentOfSpan`, which is the distinction the two
+    // measure: the band covers its own days, and it opens where the days before them end.
     //
-    // Pulled back off the right edge too, so the floored width of a span ending today cannot
-    // overhang the strip it is measured against.
-    let startPercent = Math.min(percentOfSpan(epoch, start, totalDays, -1), 100 - widthPercent);
+    // Pulled back off the right edge, so the floored width of a span ending today cannot overhang
+    // the strip it is measured against.
+    let startPercent = Math.min(percentAtDate(epoch, start, totalDays), 100 - widthPercent);
 
     // Bands that abut are both drawn at the minimum width above, so laying them at their true
     // offsets puts them a fraction of a pixel apart and hides one behind the other — the very

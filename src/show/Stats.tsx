@@ -34,13 +34,15 @@ import { TopCategoryBand } from "../common/TopList";
 import { GroupedStatList } from "../common/GroupedStatList";
 import { Hero } from "../common/Hero";
 import ShowCardMediaImage from "./CardMediaImage";
-import { genreToColour, statusToColour } from "../utils/types";
+import { showSubtitle } from "./cardData";
+import { statusToColour, type Scheme } from "../utils/types";
 import { useScheme } from "../common/useScheme";
 import { Stack } from "@mui/material";
 import type { ReactNode } from "react";
 import { CURRENT_PLAINDATE, formatDate, type YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
 import { Section, StatBand } from "../common/SectionRail";
+import { EARLIEST_SHOW_YEAR } from "./converter";
 import { SHOW_SECTIONS } from "./sections";
 import { format } from "../utils/mathUtils";
 import type { FilterDispatch } from "./filterUtils";
@@ -55,6 +57,7 @@ import {
   recentlyComplete,
   seasonsInYear,
   showTopOptions,
+  statsCardLabelEpsHours,
   statsCardLabelRecentlyComplete,
   statsCardLabelWatching,
   yearlyAverages,
@@ -96,6 +99,7 @@ const Stats = ({
             yearTo={yearTo}
             yearType={yearType}
             filterDispatch={filterDispatch}
+            earliestYear={EARLIEST_SHOW_YEAR}
             allTime={allTimeTotals(data)}
             inYear={seasonsInYear(data, yearTo)}
           />
@@ -169,10 +173,7 @@ const ShowHero = ({ season }: { season: Season }) => {
       chip={{ label: `S${season.s}E${season.e}`, colour: statusToColour(season.show, scheme) }}
       title={season.show.name}
       // The genre wears the same swatch its ledger row and every genre wedge on the tab wear.
-      subtitle={[
-        { text: season.show.network },
-        { text: season.show.genre, swatch: genreToColour(season.show.genre, scheme) },
-      ]}
+      subtitle={showSubtitle(season.show, scheme)}
       stats={showHeroStats(season, franchise.length, CURRENT_PLAINDATE)}
     />
   );
@@ -262,7 +263,7 @@ const RecentlyComplete = ({ data }: { data: Show[] }) => {
       icon={<Pause />}
       title="Recently Finished"
       content={recent}
-      chipComponent={({ show }) => ({ label: show.status, colour: statusToColour(show, scheme) })}
+      chipComponent={({ show }) => showStatusChip(show, scheme)}
       labelComponent={statsCardLabelRecentlyComplete}
     />
   );
@@ -299,7 +300,7 @@ const MostWatchedShows = ({ data, controls }: { data: Show[]; controls: ReactNod
       icon={<Whatshot />}
       title="Most Watched"
       content={most}
-      labelComponent={(show) => [[`${format(show.e)} Eps`, `${format(Math.floor(show.minutes / 60))} Hours`]]}
+      labelComponent={statsCardLabelEpsHours}
     />
   );
 };
@@ -329,12 +330,9 @@ const MostWatchedCategory = ({
       MediaComponent={ShowCardMediaImage}
       dialogSort={(shows) => shows.toSorted((a, b) => b.minutes - a.minutes)}
       nameOf={(show) => show.name}
-      dialogLabelComponent={(show) => [[`${format(show.e)} Eps`, `${format(Math.floor(show.minutes / 60))} Hours`]]}
-      dialogChipComponent={(show) => ({ label: show.status, colour: statusToColour(show, scheme) })}
-      shape="portrait"
-      width={[12, 12, 12]}
-      pictureWidth={[6, 4, 2]}
-      dialogPictureWidth={[6, 4, 2]}
+      dialogLabelComponent={statsCardLabelEpsHours}
+      dialogChipComponent={(show) => showStatusChip(show, scheme)}
+      {...showStatListSharedProps}
     />
   );
 };
@@ -355,6 +353,20 @@ const CurrentlyWatching = ({ watching }: { watching: Season[] }) => {
   );
 };
 
+/** The corner badge naming a show's status, in the colour that vocabulary wears everywhere on the tab. */
+const showStatusChip = (show: Show, scheme: Scheme) => ({ label: show.status, colour: statusToColour(show, scheme) });
+
+// Reserved so lazily-loaded artwork holds its height: a dialog of cards reserving nothing all
+// sits inside the viewport at once and fetches every image immediately. The strip holds the
+// shape firmly rather than yielding to each file, which `common/Stats.tsx` explains at the site
+// that decides it.
+const showStatListSharedProps: Pick<StatsListProps<Show>, "shape" | "width" | "pictureWidth" | "dialogPictureWidth"> = {
+  shape: "portrait",
+  width: [12, 12, 12],
+  pictureWidth: [6, 4, 2],
+  dialogPictureWidth: [6, 4, 2],
+};
+
 const ShowStatList = (
   props: Omit<
     StatsListProps<Season>,
@@ -366,14 +378,7 @@ const ShowStatList = (
     <StatList
       MediaComponent={ShowCardMediaImage}
       nameComponent={(entry) => entry.show.name + entry.s}
-      // Reserved so lazily-loaded artwork holds its height: a dialog of cards reserving nothing
-      // all sits inside the viewport at once and fetches every image immediately. The strip holds
-      // the shape firmly rather than yielding to each file, which `common/Stats.tsx` explains at
-      // the site that decides it.
-      shape="portrait"
-      width={[12, 12, 12]}
-      pictureWidth={[6, 4, 2]}
-      dialogPictureWidth={[6, 4, 2]}
+      {...showStatListSharedProps}
       {...props}
     />
   );
@@ -392,11 +397,8 @@ const ShowsStatList = (
     <StatList
       MediaComponent={ShowCardMediaImage}
       nameComponent={(entry) => entry.name}
-      chipComponent={(show) => ({ label: show.status, colour: statusToColour(show, scheme) })}
-      shape="portrait"
-      width={[12, 12, 12]}
-      pictureWidth={[6, 4, 2]}
-      dialogPictureWidth={[6, 4, 2]}
+      chipComponent={(show) => showStatusChip(show, scheme)}
+      {...showStatListSharedProps}
       {...props}
     />
   );

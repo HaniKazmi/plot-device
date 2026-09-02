@@ -217,10 +217,14 @@ describe("stripYearTicks", () => {
     expect(first.percent).toBeGreaterThan(0);
   });
 
-  it("spaces the years across the scale", () => {
+  it("puts a year's line exactly where a band opening on that 1 January starts", () => {
     const [first] = stripYearTicks(EPOCH, TODAY);
+    const [band] = bandsOf([span("a", [2021, 1, 1], [2021, 6, 1])], EPOCH, TODAY);
 
-    // One of the scale's four years in.
+    // Both are the days elapsed before the same date, so a reader tracing a band back to the scale
+    // lands on its own year line rather than a few pixels to the right of it.
+    expect(band.startPercent).toBe(first.percent);
+    // One of the scale's four years in, which is where that line belongs.
     expect(first.percent).toBeCloseTo(25, 0);
   });
 });

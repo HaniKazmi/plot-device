@@ -140,6 +140,30 @@ describe("genreBridge", () => {
     expect(rows.map((row) => row.genre)).toEqual(["Sci-Fi", "Horror"]);
   });
 
+  it("sorts a sub-hour genre below a large one, ordering on hours actually spent", () => {
+    // The figure a row displays is floored, and 45 minutes floors to zero — which `sortByKey`
+    // treats as absent and sends to the front of a largest-first list. The order is the exact
+    // total, so the smallest thing on the wall cannot head it.
+    const rows = genreBridge(
+      toOmniItems(
+        library({
+          movies: [movie({ genre: "Horror", minutes: 45 })],
+          shows: [showWith("Sci-Fi", 6000)],
+        }),
+      ),
+    );
+
+    expect(rows.map((row) => row.genre)).toEqual(["Sci-Fi", "Horror"]);
+  });
+
+  it("still draws the sub-hour genre, which is time spent whatever it rounds to", () => {
+    const rows = genreBridge(toOmniItems(library({ movies: [movie({ genre: "Horror", minutes: 45 })] })));
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].hours).toBe(0);
+    expect(rows[0].segments.map((segment) => segment.percent)).toEqual([100]);
+  });
+
   it("names a row in the vocabulary the shared ramp holds, so the card's lookup cannot miss", () => {
     // The row carries no colour of its own: the card looks one up from `genre`. A row named
     // anything the ramp has no entry for would draw on the neutral, which is the colour absence

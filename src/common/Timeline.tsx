@@ -1,5 +1,5 @@
 import { Card, CardContent, Box, useTheme, type Theme } from "@mui/material";
-import { type ReactNode, useLayoutEffect, useRef, useState, type Ref } from "react";
+import { type ReactNode, useEffect, useLayoutEffect, useRef, useState, type Ref } from "react";
 import { shortYear, type YearMonthDay } from "./date";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 import { ChipRail } from "./ChipRail";
@@ -12,6 +12,7 @@ import {
   decidePlacement,
   latestEnd,
   packRows,
+  percentAtDate,
   percentAtScroll,
   percentOfSpan,
   scrollAtPercent,
@@ -106,6 +107,28 @@ const ROW_SX = {
   "&:hover rect": { transform: "scaleY(1.15)" },
 } as const;
 
+/**
+ * Everything about a label that is the same for every label.
+ *
+ * What varies with the item — its padding, its offset, its width, its colour and the gradient a
+ * span is painted with — is set as inline `style` instead: each distinct set of values reaching
+ * `sx` mints an emotion class of its own, and the chart renders every label at least twice per
+ * data change, once at the default layout and once measured.
+ */
+const LABEL_SX = {
+  position: "fixed",
+  pointerEvents: "auto",
+  textOverflow: "ellipsis",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  fontSize: LABEL_FONT_SIZE,
+  fontWeight: 500,
+  // The label sets `left` but never `top`, so it lands at the top of its row and is centred only
+  // by its own line box. Matching that box to the bar is what keeps the text on the bar's centre
+  // line at any bar height.
+  lineHeight: `${BAR_HEIGHT}px`,
+} as const;
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -131,6 +154,16 @@ type ItemRefs = {
   text: HTMLDivElement | null;
 };
 
+/**
+ * No measurement at all, which is what every label falls through to `defaultLayout` from: the
+ * layout a label is drawn at before it has been measured, and the one it returns to whenever the
+ * last measurement stops describing the screen.
+ *
+ * One shared instance, because this is the map identity a whole chart's labels are read out of —
+ * a fresh empty map per render is a new identity and re-renders every one of them.
+ */
+const EMPTY_LAYOUTS: Map<PositionedTimelineData, LayoutInfo> = new Map();
+
 // ============================================================================
 // Hooks
 // ============================================================================
@@ -140,7 +173,25 @@ type ItemRefs = {
  * It uses a `useLayoutEffect` to read actual DOM node dimensions after rendering.
  */
 const useTextPlacement = (data: PositionedTimelineData[]) => {
-  const [layouts, setLayouts] = useState<Map<PositionedTimelineData, LayoutInfo>>(new Map());
+  /**
+   * The viewport width the chart is currently drawn at.
+   *
+   * Every number a placement is decided from is pixels off a grid four viewports wide, so a resize
+   * moves all of them at once: labels stay centred on bars that no longer hold them, and a gap an
+   * earlier label claimed has closed. Width alone, because nothing here reads a vertical measure —
+   * which leaves a phone's address bar collapsing, a resize that changes no width, costing nothing.
+   */
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
+  /** The last measurement, and the width it describes. */
+  const [measured, setMeasured] = useState({ width: viewportWidth, layouts: EMPTY_LAYOUTS });
+  /**
+   * A measurement taken at another width is dropped rather than shown, which is also what makes
+   * the next one honest: `scrollWidth` includes the padding and the pinned width the label is
+   * already wearing, so a label measured while it still carries its own last answer reads far
+   * wider than its text and falls out of a bar that still holds it. Every label is measured from a
+   * commit at the defaults — on a resize exactly as on a data change.
+   */
+  const layouts = measured.width === viewportWidth ? measured.layouts : EMPTY_LAYOUTS;
   // Holds references to the DOM elements (bar rect, foreignObject container, and text element)
   const itemRefs = useRef(new Map<PositionedTimelineData, ItemRefs>());
 
@@ -155,6 +206,12 @@ const useTextPlacement = (data: PositionedTimelineData[]) => {
       if (!item.rect && !item.fo && !item.text) itemRefs.current.delete(event);
       else itemRefs.current.set(event, item);
     };
+
+  useEffect(() => {
+    const readWidth = () => setViewportWidth(window.innerWidth);
+    window.addEventListener("resize", readWidth);
+    return () => window.removeEventListener("resize", readWidth);
+  }, []);
 
   useLayoutEffect(() => {
     const map = new Map<PositionedTimelineData, LayoutInfo>();
@@ -193,8 +250,8 @@ const useTextPlacement = (data: PositionedTimelineData[]) => {
     });
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLayouts(map);
-  }, [data]);
+    setMeasured({ width: viewportWidth, layouts: map });
+  }, [data, viewportWidth]);
 
   return { layouts, setItemRef };
 };
@@ -470,8 +527,13 @@ const TimelineText = ({
   rectRef: Ref<SVGRectElement>;
   layoutInfo: LayoutInfo;
 }) => {
-  // Calculate relative X/Y positioning and width of the visual bar
-  const x = pct(percentOfSpan(startDate, event.start, totalDays, 0.75));
+  const theme = useTheme();
+
+  // Calculate relative X/Y positioning and width of the visual bar. The offset is `percentAtDate`
+  // and the width `percentOfSpan`, so a bar opens on the same gridline the axis draws for its start
+  // date; the three quarters of a day is what leaves a visible gap between a bar and the one handed
+  // over to it, which the width gives back.
+  const x = pct(percentAtDate(startDate, event.start, totalDays, 0.75));
   const width = pct(percentOfSpan(event.start, event.end, totalDays, -0.75));
   const y = event.rowNumber * ROW_HEIGHT + SVG_PADDING + "px";
 
@@ -497,6 +559,36 @@ const TimelineText = ({
       : layoutInfo.placement === "span"
         ? `${layoutInfo.barPx + layoutInfo.availableRightPx}px`
         : "fit-content";
+
+  const spanning = layoutInfo.placement === "span";
+  const centred = layoutInfo.placement === "center";
+  const onCard = theme.vars.palette.text.primary;
+  // Asked only by the two placements that put glyphs on the bar. Every other label is read against
+  // the card and never needs it, and the chart draws hundreds of them.
+  const onBar = spanning || centred ? theme.palette.getContrastText(event.colour) : undefined;
+
+  const labelStyle = {
+    paddingLeft: leftPadding,
+    paddingRight: rightPadding,
+    left: leftPosition,
+    width: labelWidth,
+    /**
+     * A span is the one label crossing from its bar onto the card, so no single colour has
+     * contrast for the whole run — and a halo only softens the mismatch rather than removing it,
+     * which shows up worst in the light scheme where the text is dark and the bar beneath it is
+     * not.
+     *
+     * Painting the glyphs with a gradient clipped to the text switches colour at the bar's edge to
+     * the pixel, so each half gets the contrast it would have had on its own. The stops are hard,
+     * and measured from the element's left edge, which is the bar's left edge.
+     */
+    color: spanning ? "transparent" : centred ? onBar : onCard,
+    backgroundImage: spanning
+      ? `linear-gradient(to right, ${onBar} 0 ${layoutInfo.barPx}px, ${onCard} ${layoutInfo.barPx}px)`
+      : undefined,
+    WebkitBackgroundClip: spanning ? "text" : undefined,
+    backgroundClip: spanning ? "text" : undefined,
+  };
 
   return (
     <Box
@@ -533,46 +625,8 @@ const TimelineText = ({
           title={<LazyTooltip render={event.tooltip} />}
         >
           <Box
-            sx={{
-              position: "fixed",
-              pointerEvents: "auto",
-              textOverflow: "ellipsis",
-              overflow: "hidden",
-              whiteSpace: "nowrap",
-              fontSize: LABEL_FONT_SIZE,
-              fontWeight: 500,
-              // The label sets `left` but never `top`, so it lands at the top of its row and is
-              // centred only by its own line box. Matching that box to the bar is what keeps the
-              // text on the bar's centre line at any bar height.
-              lineHeight: `${BAR_HEIGHT}px`,
-              paddingLeft: leftPadding,
-              paddingRight: rightPadding,
-              left: leftPosition,
-              width: labelWidth,
-              /**
-               * A span is the one label crossing from its bar onto the card, so no single colour
-               * has contrast for the whole run — and a halo only softens the mismatch rather than
-               * removing it, which shows up worst in the light scheme where the text is dark and
-               * the bar beneath it is not.
-               *
-               * Painting the glyphs with a gradient clipped to the text switches colour at the
-               * bar's edge to the pixel, so each half gets the contrast it would have had on its
-               * own. The stops are hard, and measured from the element's left edge, which is the
-               * bar's left edge.
-               */
-              color: (theme) =>
-                layoutInfo.placement === "span"
-                  ? "transparent"
-                  : layoutInfo.placement === "center"
-                    ? theme.palette.getContrastText(event.colour)
-                    : theme.vars.palette.text.primary,
-              backgroundImage: (theme) =>
-                layoutInfo.placement === "span"
-                  ? `linear-gradient(to right, ${theme.palette.getContrastText(event.colour)} 0 ${layoutInfo.barPx}px, ${theme.vars.palette.text.primary} ${layoutInfo.barPx}px)`
-                  : undefined,
-              WebkitBackgroundClip: layoutInfo.placement === "span" ? "text" : undefined,
-              backgroundClip: layoutInfo.placement === "span" ? "text" : undefined,
-            }}
+            sx={LABEL_SX}
+            style={labelStyle}
             ref={textRef}
           >
             {event.name}

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { expiryFor, isTokenValid, parseTokenWrapper, type Token, type TokenWrapper } from "../../src/contexts/token";
+import {
+  expiryFor,
+  isGrant,
+  isTokenValid,
+  parseTokenWrapper,
+  type Token,
+  type TokenWrapper,
+} from "../../src/contexts/token";
 
 const token = (expiresIn: string) => ({ access_token: "abc", expires_in: expiresIn }) as Token;
 const wrapper = (expiry: number): TokenWrapper => ({ expiry, token: token("3600") });
@@ -22,6 +29,24 @@ describe("parseTokenWrapper", () => {
     // The caller runs inside a useState initialiser, so a throw here would happen during
     // render and blank the page rather than just prompting to authorise again.
     expect(parseTokenWrapper("{ not json")).toBeNull();
+  });
+});
+
+describe("isGrant", () => {
+  it("accepts a response carrying an access token", () => {
+    expect(isGrant(token("3600"))).toBe(true);
+  });
+
+  it("rejects a refusal, which arrives on the same callback a grant does", () => {
+    // Stored, it wraps a NaN expiry around an object with no credential in it, so the app reports
+    // itself authorised and every sheet request then fails as though the sheet were unreachable.
+    const denied = { error: "access_denied", error_description: "The user denied the request" } as Token;
+
+    expect(isGrant(denied)).toBe(false);
+  });
+
+  it("rejects a response with no access token, whatever else it carries", () => {
+    expect(isGrant({ expires_in: "3600" } as Token)).toBe(false);
   });
 });
 

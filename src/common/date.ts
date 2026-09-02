@@ -308,4 +308,3 @@ const describeDate = (date: YearMonthDay | Year, withYear = true) =>
 export const CURRENT_PLAINDATE = YearMonthDay.currentDate();
 
 export const CURRENT_YEAR = CURRENT_PLAINDATE.year;
-export const EARLIEST_YEAR = 2002 as YearNumber;

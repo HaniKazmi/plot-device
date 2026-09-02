@@ -14,6 +14,7 @@ import { namesTheSameThing } from "../utils/stringUtils";
 import { CURRENT_PLAINDATE, formatDate } from "../common/date";
 import { hoverCardArtworkSx } from "../common/cardArrangement";
 import { buildStrip, stripYearTicks } from "../common/timelineStripData";
+import { movieSubtitle } from "./cardData";
 import { useFranchiseMovies } from "./franchiseContext";
 import { MOVIE_EPOCH } from "./statsData";
 import { useScheme } from "../common/useScheme";
@@ -157,7 +158,7 @@ export const MovieHoverCard = ({ item }: { item: Movie }) => {
         <CardPanel
           layout="beside"
           title={item.name}
-          subtitle={[{ text: item.director }, { text: item.genre, swatch: genreToColour(item.genre, scheme) }]}
+          subtitle={movieSubtitle(item, scheme)}
           dateRange={formatDate(item.startDate)}
           stats={[
             ...(item.score !== undefined ? [{ value: item.score, label: "Score" }] : []),

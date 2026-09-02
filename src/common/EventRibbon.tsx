@@ -4,7 +4,7 @@ import { TimelineBandBox, type TimelineBand } from "./Card";
 import type { TimelineTick } from "./timelineLayout";
 import { MUTED_FIGURE_SX } from "./typography";
 
-export interface RibbonRow {
+interface RibbonRow {
   key: string;
   /** The row's own name in the left gutter — a year, on the tabs that stack years. */
   label: string;

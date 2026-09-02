@@ -1,6 +1,6 @@
 import { PlainDate } from "../common/date";
 import { dataCacheKey, type DataConfig } from "../common/useData";
-import { describing, readAgeRating, readGenre, sheetRow } from "../common/sheetError";
+import { describing, readAgeRating, readFullDate, readGenre, sheetRow } from "../common/sheetError";
 import { splitCell } from "../utils/stringUtils";
 import type { Movie } from "./types";
 
@@ -19,7 +19,10 @@ export const jsonConverter = (json: Record<string, string>[]) => {
     return {
       name: row.Name,
       releaseDate: describing(`${where}, Release Date`, () => PlainDate.from(row["Release Date"])),
-      startDate: describing(`${where}, Watch Date`, () => PlainDate.from(row["Watch Date"])),
+      // The model types this as a full date and every surface reading it needs the day:
+      // `watchTimelineData` compares it as a string, so a bare year falls outside the range it is
+      // in and drops off the ribbon without a word, and `MovieTimelineCard` places it as NaN.
+      startDate: readFullDate(row["Watch Date"], `${where}, Watch Date`),
       rating: readAgeRating(row.Rating, `${where}, Rating`),
       // A film nobody scored is left out rather than counted as NaN, which would propagate
       // into any average taken over the column and blank the figure far from here.

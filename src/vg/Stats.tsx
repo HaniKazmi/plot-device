@@ -59,6 +59,7 @@ import "../utils/arrayUtils";
 const Stats = ({
   data,
   playing,
+  earliestYear,
   measure,
   yearType,
   yearTo,
@@ -68,6 +69,9 @@ const Stats = ({
   /** Every game in progress, most recently started first. Computed by `Graphs`, which also
       decides on it whether the rail offers a chip pointing at the hero below. */
   playing: VideoGame[];
+  /** The library's own first year, read from the unfiltered data so the select's floor does not
+      rise with the filters. */
+  earliestYear: YearNumber;
   measure: Measure;
   yearType: YearType;
   yearTo: YearNumber;
@@ -89,6 +93,7 @@ const Stats = ({
             yearTo={yearTo}
             yearType={yearType}
             filterDispatch={filterDispatch}
+            earliestYear={earliestYear}
             allTime={gamesAndHours(data)}
             inYear={gamesAndHours(data.filter((game) => game.startDate.year === yearTo))}
           />

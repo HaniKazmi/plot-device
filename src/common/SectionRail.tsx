@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ChipRail, RailChip, type ChipRailItem } from "./ChipRail";
 
 /** A chip in the rail. The `id` matches the `Section` it scrolls to. */
-export type RailSection = ChipRailItem;
+type RailSection = ChipRailItem;
 
 /**
  * How far below the top of the viewport an anchored section comes to rest, in pixels.

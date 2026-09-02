@@ -23,7 +23,7 @@ const MEDIA_HEIGHT = 300;
  */
 const MEDIA_MAX_WIDTH = 560;
 
-export type HeroStat = PanelStat;
+type HeroStat = PanelStat;
 
 /**
  * The one item a page is currently about, given the top of that page and the whole of its own

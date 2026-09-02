@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateSunburstData } from "../../src/common/sunburstData";
+import { generateSunburstData, sunburstRoot } from "../../src/common/sunburstData";
 import type { Colour } from "../../src/utils/types";
 
 type Game = { name: string; company: string; platform: string; hours?: number };
@@ -105,6 +105,44 @@ describe("ordering", () => {
 
     expect(ids).toEqual([...ids].sort(new Intl.Collator().compare));
     expect(ids.indexOf("-Nintendo")).toBeLessThan(ids.indexOf("-Nintendo-Switch"));
+  });
+});
+
+describe("the drawn root", () => {
+  const library = [
+    game({ name: "Zelda", company: "Nintendo", platform: "Switch" }),
+    game({ name: "Pikmin", company: "Nintendo", platform: "GameCube" }),
+    game({ name: "Bloodborne", company: "Sony", platform: "PS4" }),
+  ];
+
+  it("keeps a drilled id the data still holds", () => {
+    expect(sunburstRoot(build(library), "-Nintendo-Switch")).toEqual({ id: "-Nintendo-Switch", atTop: false });
+  });
+
+  it("falls back to the top when re-nesting rebuilds the ids the drilled one was among", () => {
+    // Grouping by platform first puts the Switch node at "-Switch", so "-Nintendo-Switch" names
+    // nothing — the id an unresettable root would hand the chart.
+    const renested = build(library, ["platform", "company"]);
+
+    expect(sunburstRoot(renested, "-Nintendo-Switch")).toEqual({ id: "", atTop: true });
+  });
+
+  it("falls back to the top when a filter empties the drilled subtree", () => {
+    const filtered = build(library.filter((item) => item.platform !== "Switch"));
+
+    expect(sunburstRoot(filtered, "-Nintendo-Switch")).toEqual({ id: "", atTop: true });
+  });
+
+  it("reports a first-ring root as at the top, where the leaf ring is collapsed", () => {
+    expect(sunburstRoot(build(library), "-Nintendo")).toEqual({ id: "-Nintendo", atTop: true });
+  });
+
+  it("reports the undrilled root as at the top, which no node in the data names", () => {
+    expect(sunburstRoot(build(library), "")).toEqual({ id: "", atTop: true });
+  });
+
+  it("falls back to the top for every id when the data is empty", () => {
+    expect(sunburstRoot(build([]), "-Nintendo")).toEqual({ id: "", atTop: true });
   });
 });
 

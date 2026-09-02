@@ -27,6 +27,15 @@ describe("bad rows", () => {
     expect(() => convertOne({ "Release Date": "" })).toThrow("Unkown Date Format");
   });
 
+  it("rejects a Watch Date recorded as a bare year, naming the row that carries it", () => {
+    // The model types the watch date as a full one and every time axis places it on a day. A
+    // four-character cell parses to a `Year` and passes the cast, then disappears from the ribbon
+    // or lands there as an offset of NaN — neither of which names the row to go and fix.
+    expect(() => convertOne({ Name: "Alien", "Watch Date": "1979" })).toThrow(
+      'Row 2, "Alien", Watch Date: "1979" is a bare year, not a full date',
+    );
+  });
+
   it("names the sheet row, the film and the column that failed", () => {
     expect(() => convertOne({ Name: "Arrival", "Watch Date": "" })).toThrow('Row 2, "Arrival", Watch Date');
   });

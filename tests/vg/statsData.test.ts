@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { Year, YearMonthDay } from "../../src/common/date";
+import { CURRENT_YEAR, Year, YearMonthDay } from "../../src/common/date";
 import {
   currentlyPlaying,
+  earliestYear,
   groupGamesBy,
   heroStats,
   perGameAverages,
@@ -12,6 +13,22 @@ import {
 } from "../../src/vg/statsData";
 import { topNWithOther } from "../../src/common/statsData";
 import { videoGame } from "../fixtures/vgRows";
+
+describe("earliestYear", () => {
+  it("is the oldest start year in the library, not the order the games are listed in", () => {
+    const data = [
+      videoGame({ startDate: YearMonthDay.get(2010, 6, 1) }),
+      videoGame({ startDate: Year.get(2005) }),
+      videoGame({ startDate: YearMonthDay.get(2015, 1, 1) }),
+    ];
+
+    expect(earliestYear(data)).toBe(2005);
+  });
+
+  it("falls back to the current year when the library is empty", () => {
+    expect(earliestYear([])).toBe(CURRENT_YEAR);
+  });
+});
 
 describe("groupGamesBy", () => {
   it("counts games per category, most-played first", () => {

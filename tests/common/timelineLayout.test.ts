@@ -6,7 +6,9 @@ import {
   decidePlacement,
   latestEnd,
   packRows,
+  percentAtDate,
   percentAtScroll,
+  percentOfSpan,
   scrollBehaviourFor,
   scrollAtPercent,
   yearAtPercent,
@@ -205,17 +207,38 @@ describe("decidePlacement", () => {
   });
 });
 
+describe("percentAtDate", () => {
+  const origin = YearMonthDay.get(2024, 1, 1);
+  const last = YearMonthDay.get(2024, 12, 31);
+  const totalDays = origin.daysTo(last)!;
+
+  it("has nothing elapsed before the origin, so it opens on the grid's left edge", () => {
+    expect(percentAtDate(origin, origin, totalDays)).toBe(0);
+  });
+
+  it("moves on by one day's width per day, which is the day it leaves behind", () => {
+    expect(percentAtDate(origin, YearMonthDay.get(2024, 1, 2), totalDays)).toBeCloseTo((1 / totalDays) * 100);
+  });
+
+  it("leaves the closing date its own day, so an offset and a width fill the scale exactly", () => {
+    // The two measures a timeline is drawn from, on the same date: where the last day starts, and
+    // how wide a span covering only that day is. A tick and a bar are placed by the first and sized
+    // by the second, which is why one has to end where the other begins.
+    expect(percentAtDate(origin, last, totalDays) + percentOfSpan(last, last, totalDays)).toBeCloseTo(100, 10);
+  });
+});
+
 describe("buildTicks", () => {
   const totalDays = YearMonthDay.get(2024, 1, 1).daysTo(YearMonthDay.get(2025, 1, 1))!;
   const ticks = buildTicks(YearMonth.get(2024, 1), YearMonth.get(2025, 1), totalDays);
 
-  it("measures from the first month, and reaches exactly the full width at the last", () => {
-    // `daysTo` counts the days a range spans rather than the difference between its ends, so a
-    // date measured against itself is 1 and the opening tick sits a single day in, not at zero.
-    // The axis and the gridlines share this one array, so both inherit that offset together and
-    // cannot drift apart — which is the property worth holding, rather than the offset itself.
-    expect(ticks[0].percent).toBeCloseTo((1 / totalDays) * 100);
-    expect(ticks.at(-1)!.percent).toBe(100);
+  it("opens on the grid's own left edge, and leaves the closing month its width", () => {
+    // A tick is the days elapsed before its month, which is the convention every band and bar is
+    // offset by: the first month has none before it, so the axis starts where the grid does. The
+    // last tick stops a day short of the full width because that day is the month it names, which
+    // still has to fit to the right of its own line.
+    expect(ticks[0].percent).toBe(0);
+    expect(ticks.at(-1)!.percent).toBeCloseTo(((totalDays - 1) / totalDays) * 100);
   });
 
   it("rises monotonically, so a later month never renders left of an earlier one", () => {

@@ -137,7 +137,7 @@ const workOf = (item: OmniItem): unknown => {
  * closed in two decades — which stands once on each shelf — would have both copies claim the later
  * decade and leave the earlier shelf empty.
  */
-export interface ShelfItem extends OmniItem {
+interface ShelfItem extends OmniItem {
   metDate: PlainDate;
 }
 
@@ -150,7 +150,7 @@ export interface ShelfItem extends OmniItem {
  * hours are the bucket's sum — which is what leaves both measures honest through `measureOf`, Items
  * counting works and Hours still counting every season.
  */
-export const galleryWorks = (items: OmniItem[], category: GalleryCategory, today: PlainDate): ShelfItem[] => {
+const galleryWorks = (items: OmniItem[], category: GalleryCategory, today: PlainDate): ShelfItem[] => {
   const shelves = new Map<string, Map<unknown, OmniItem[]>>();
   for (const item of items) {
     shelves

@@ -56,10 +56,39 @@ describe("longPress", () => {
     expect(gesture(["start", "start", "end"])).toEqual(["cancel", "schedule", "cancel", "schedule", "cancel", "click"]);
   });
 
+  it("a touch that moves before the threshold does not fire", () => {
+    // onTouchMove reports "cancel": a scroll starting on the element is not a press, so the
+    // pending timer is cleared and no click or long press follows.
+    expect(gesture(["start", "cancel"])).toEqual(["cancel", "schedule", "cancel"]);
+  });
+
+  it("a pointer that leaves the element clears the pending press", () => {
+    // onMouseLeave reports "cancel" the same way: a release that happens off the element never
+    // reaches onMouseUp, so nothing else would otherwise clear the timer.
+    expect(gesture(["start", "cancel"])).not.toContain("click");
+    expect(gesture(["start", "cancel"])).not.toContain("longPress");
+  });
+
+  it("cancelling after the long press has already fired still reports no click", () => {
+    expect(gesture(["start", "timeout", "cancel"])).toEqual(["cancel", "schedule", "longPress", "cancel"]);
+  });
+
+  it("arms the next gesture cleanly after a cancel, so a tap afterwards still clicks", () => {
+    expect(gesture(["start", "cancel", "start", "end"])).toEqual([
+      "cancel",
+      "schedule",
+      "cancel",
+      "cancel",
+      "schedule",
+      "cancel",
+      "click",
+    ]);
+  });
+
   it("always cancels before doing anything else", () => {
     // Whichever event arrives, the pending timer is dealt with first, so no effect runs
     // against a timer that is about to be replaced.
-    for (const event of ["start", "end"] as const) {
+    for (const event of ["start", "end", "cancel"] as const) {
       expect(longPress(initialLongPressState, event, true).effects[0]).toBe("cancel");
     }
   });

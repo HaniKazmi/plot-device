@@ -1,9 +1,11 @@
 import type { YearMonthDay } from "../common/date";
+import type { PanelSubtitlePart } from "../common/Card";
 import type { StripSpan } from "../common/timelineStripData";
+import { genreToColour, type Scheme } from "../utils/types";
 import type { Season, Show } from "./types";
 import "../utils/arrayUtils";
 
-export interface SeasonSpan extends StripSpan {
+interface SeasonSpan extends StripSpan {
   season: Season;
 }
 
@@ -26,3 +28,15 @@ export const seasonSpans = (shows: Show[], today: YearMonthDay): SeasonSpan[] =>
       end: season.endDate ?? today,
       season,
     }));
+
+/**
+ * How a show is named wherever it is promoted: the network it's on, then the genre, wearing the
+ * swatch its ledger row and every genre wedge on the tab wear.
+ *
+ * Shared rather than assembled at each site, so the hero, the hover card and the Omnibus's Now
+ * card cannot come to name one show two ways.
+ */
+export const showSubtitle = (show: Show, scheme: Scheme): PanelSubtitlePart[] => [
+  { text: show.network },
+  { text: show.genre, swatch: genreToColour(show.genre, scheme) },
+];

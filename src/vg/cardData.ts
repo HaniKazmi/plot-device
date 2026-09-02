@@ -1,5 +1,4 @@
 import { Year, YearMonthDay } from "../common/date";
-import { franchiseIndex as buildFranchiseIndex } from "../common/franchiseIndex";
 import type { StripSpan } from "../common/timelineStripData";
 import type { PanelSubtitlePart } from "../common/Card";
 import { genreToColour, type Scheme } from "../utils/types";
@@ -7,7 +6,7 @@ import { gameplayToColour, type VideoGame } from "./types";
 import "../utils/arrayUtils";
 import "../utils/mapUtils";
 
-export interface GameSpan extends StripSpan {
+interface GameSpan extends StripSpan {
   game: VideoGame;
   /** False when the sheet recorded a year and no month, and the span below is an estimate. */
   precise: boolean;
@@ -109,14 +108,6 @@ const estimateUndatedSpans = (games: VideoGame[]) => {
 
   return spans;
 };
-
-/**
- * Games grouped by franchise, so a card can show the rest of its series.
- *
- * The empty franchise is skipped: it is the sheet's "no series", and grouping on it would hand
- * every unaffiliated game a strip several hundred bands deep.
- */
-export const franchiseIndex = (games: VideoGame[]) => buildFranchiseIndex(games, (game) => game.franchise);
 
 /**
  * How a game is named wherever it is promoted: where it was played, then the two vocabularies the

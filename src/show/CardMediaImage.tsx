@@ -15,14 +15,15 @@ import { namesTheSameThing } from "../utils/stringUtils";
 import { CURRENT_PLAINDATE, YearMonthDay, formatDateRange } from "../common/date";
 import { hoverCardArtworkSx } from "../common/cardArrangement";
 import { buildStrip, stripYearTicks } from "../common/timelineStripData";
-import { seasonSpans } from "./cardData";
+import { seasonSpans, showSubtitle } from "./cardData";
 import { useFranchiseShows } from "./franchiseContext";
+import { seasonHours } from "./statsData";
 
 /** The figures the card leads with: how much of the show there is, and whether it is still going. */
 const showStats = (show: Show, scheme: Scheme): CardStat[] => [
   { label: "Seasons", value: show.s.length },
   { label: "Episodes", value: show.e },
-  { label: "Hours", value: Math.floor(show.minutes / 60) },
+  { label: "Hours", value: seasonHours(show.minutes) },
   { label: "Status", value: show.status, colour: statusToColour(show, scheme) },
 ];
 
@@ -141,16 +142,7 @@ const FranchiseStrip = ({ show, siblings }: { show: Show; siblings: Show[] }) =>
 };
 
 const SeasonStrip = ({ item }: { item: Show }) => {
-  const { bands, laneCount } = buildStrip(
-    item.s.map((season) => ({
-      key: `S${season.s}`,
-      start: season.startDate,
-      end: season.endDate ?? CURRENT_PLAINDATE,
-      season,
-    })),
-    SHOW_EPOCH,
-    CURRENT_PLAINDATE,
-  );
+  const { bands, laneCount } = buildStrip(seasonSpans([item], CURRENT_PLAINDATE), SHOW_EPOCH, CURRENT_PLAINDATE);
 
   if (bands.length === 0) return null;
 
@@ -181,7 +173,7 @@ const SeasonTooltip = ({ season, named }: { season: Season; named?: boolean }) =
     </Typography>
     <Typography>{formatDateRange(season.startDate, season.endDate)}</Typography>
     <Typography>{season.e} Episodes</Typography>
-    <Typography>{Math.floor(season.minutes / 60)} Hours</Typography>
+    <Typography>{seasonHours(season.minutes)} Hours</Typography>
   </>
 );
 
@@ -212,15 +204,11 @@ export const ShowHoverCard = <T extends Show | Season>({ item, title }: { item: 
         <CardPanel
           layout="beside"
           title={title ?? (isShow(item) ? item.name : `${show.name} S${item.s}`)}
-          subtitle={[
-            { text: isShow(item) ? "" : (item.subtitle ?? "") },
-            { text: show.network },
-            { text: show.genre, swatch: genreToColour(show.genre, scheme) },
-          ]}
+          subtitle={[{ text: isShow(item) ? "" : (item.subtitle ?? "") }, ...showSubtitle(show, scheme)]}
           dateRange={formatDateRange(item.startDate, item.endDate)}
           stats={[
             { value: item.e, label: "Eps" },
-            { value: Math.round(item.minutes / 60), label: "Hours" },
+            { value: seasonHours(item.minutes), label: "Hours" },
           ]}
         />
       }

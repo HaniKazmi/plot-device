@@ -1,10 +1,10 @@
-import { CURRENT_YEAR, type YearNumber } from "../common/date";
+import { CURRENT_YEAR } from "../common/date";
 import {
   createFilterReducer,
   type BaseFilterState,
   type FilterDispatchFor,
-  type YearType,
   selectedPredicates,
+  yearPredicates,
 } from "../common/filterReducer";
 import type { Predicate } from "../utils/types";
 import type { OmniItem } from "./adapter";
@@ -20,20 +20,6 @@ export interface FilterState extends BaseFilterState<OmniItem, Measure> {
 }
 
 export type FilterDispatch = FilterDispatchFor<FilterState>;
-
-/**
- * The year cutoff over the attribution year rather than the shared `yearPredicates`.
- *
- * The shared one reads `startDate.year`, and an `OmniItem` has no start date to read — a game
- * played across a new year counts to the year it was finished, and that answer is already on the
- * record. The semantics are otherwise exactly the shared ones: "up to" is a ceiling that
- * disappears once it reaches the current year, "matching" is an exact year.
- */
-const omniYearPredicates = (state: { yearTo: YearNumber; yearType: YearType }): Predicate<OmniItem>[] => {
-  if (state.yearType === "matching") return [(item) => item.year === state.yearTo];
-  if (state.yearTo !== CURRENT_YEAR) return [(item) => item.year <= state.yearTo];
-  return [];
-};
 
 /**
  * Guest mode pushes no predicate here. It is applied per library by each domain's own rule before
@@ -53,7 +39,9 @@ export const filters = (state: Omit<FilterState, "filter">): Predicate<OmniItem>
     ...selectedPredicates(state.franchise, (item: OmniItem) => item.franchise),
   );
 
-  predicates.push(...omniYearPredicates(state));
+  // The shared cutoff over the attribution year: an `OmniItem` holds no start date, and a game
+  // played across a new year counts to the year it was finished, which is already on the record.
+  predicates.push(...yearPredicates<OmniItem>(state, (item) => item.year));
 
   return (item: OmniItem) => predicates.every((p) => p(item));
 };

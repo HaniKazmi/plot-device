@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { SheetTab } from "../tabs.ts";
 import { arrayToJson } from "../utils/arrayUtils.ts";
-import { expiryFor, isTokenValid, parseTokenWrapper, type Token, type TokenWrapper } from "./token.ts";
+import { expiryFor, isGrant, isTokenValid, parseTokenWrapper, type Token, type TokenWrapper } from "./token.ts";
 
 export const gapi_script = "https://apis.google.com/js/api.js";
 export const g_script = "https://accounts.google.com/gsi/client";
@@ -83,6 +83,14 @@ export const GoogleAuthProvider = ({ children }: { children: ReactNode }) => {
       client_id: CLIENT_ID,
       scope: SCOPE,
       callback: (token) => {
+        // A refusal reaches this callback too, and nothing about it is worth keeping: leaving
+        // `tokenSet` false is what holds the NavBar on "Authorise", which is the one control that
+        // can get the reader out of it.
+        if (!isGrant(token)) {
+          console.error("Authorisation not granted:", token.error, token.error_description);
+          return;
+        }
+
         const expiry = expiryFor(token, Date.now());
         storage().setItem(storageKey, JSON.stringify({ token, expiry } satisfies TokenWrapper));
         setTokenSet(true);

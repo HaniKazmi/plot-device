@@ -22,7 +22,7 @@ export type ArtworkShape = "landscape" | "portrait";
  * banner is 533px against a card of well over a thousand — the width beside it is the only place the
  * panel can go without leaving two thirds of the card empty.
  */
-export type CardArrangement = "stacked" | "beside";
+type CardArrangement = "stacked" | "beside";
 
 const shapeArrangements: Record<ArtworkShape, CardArrangement> = {
   landscape: "stacked",

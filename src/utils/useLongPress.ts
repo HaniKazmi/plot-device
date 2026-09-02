@@ -39,8 +39,11 @@ const useLongPress = (onLongPress: () => void, onClick?: () => void, ms = 300) =
   return {
     onMouseDown: () => run("start"),
     onMouseUp: () => run("end"),
+    onMouseLeave: () => run("cancel"),
     onTouchStart: () => run("start"),
     onTouchEnd: () => run("end"),
+    onTouchMove: () => run("cancel"),
+    onTouchCancel: () => run("cancel"),
   };
 };
 

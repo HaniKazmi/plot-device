@@ -2,8 +2,9 @@ import { AllInclusive, CatchingPokemonTwoTone, Functions, QuestionMark, Timer } 
 import { platformToColor, type Platform, type VideoGame } from "./types";
 import { genreToColour } from "../utils/types";
 import { useScheme } from "../common/useScheme";
-import { categoryOptions } from "../common/filterOptions";
+import { categoryOptions, franchiseOptions } from "../common/filterOptions";
 import { FilterCategory, FilterDrawer, FilterToggle } from "../common/FilterDrawer";
+import { vgFranchise } from "./franchiseContext";
 import type { FilterDispatch, FilterState } from "./filterUtils";
 
 const toggles = [
@@ -61,7 +62,7 @@ const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: Filte
           />
           <FilterCategory
             label="franchise"
-            options={categoryOptions(data, (vg) => vg.franchise)}
+            options={franchiseOptions(data, vgFranchise, (vg) => vg.name)}
             selected={state.franchise}
             onChange={(value) => dispatch({ type: "updateFilter", filter: "franchise", value })}
           />

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { YearMonthDay, Year, type YearNumber } from "../../src/common/date";
+import { CURRENT_YEAR, YearMonthDay, Year, type YearNumber } from "../../src/common/date";
 import {
   earliestYear,
   electNow,
@@ -7,7 +7,6 @@ import {
   ofMedium,
   omniBanner,
   omniHours,
-  omniKey,
   omniTitle,
   recentlyFinished,
   toOmniItems,
@@ -213,8 +212,8 @@ describe("union totals", () => {
     expect(unionTotals(items).items).toBe(3);
   });
 
-  it("has no earliest year to offer when nothing survives the filters", () => {
-    expect(earliestYear([])).toBeUndefined();
+  it("falls back to the current year when nothing survives the filters", () => {
+    expect(earliestYear([])).toBe(CURRENT_YEAR);
   });
 
   it("opens the year select at the first year the union holds anything in", () => {
@@ -254,7 +253,28 @@ describe("what a browse surface reads off an item", () => {
     // renders one card of the pair in place of the other, or drops it.
     const items = toOmniItems(library({ shows: [showWith([{ start: 2021, end: 2022 }, { start: 2023 }])] }));
 
-    expect(new Set(items.map(omniKey)).size).toBe(items.length);
+    expect(new Set(items.map((item) => item.key)).size).toBe(items.length);
+  });
+
+  it("gives two copies of one game keys of their own, however coarse the dates it carries", () => {
+    // Half the games sheet records a bare year, and a game's medium, title and close are then all
+    // three of them shared by the same game on another platform finished in that same year. The
+    // platform is what tells the two apart, and the Games tab already keys a span by it.
+    const items = toOmniItems(
+      library({
+        games: [
+          videoGame({ name: "Portal", platform: "PC", startDate: Year.get(2010), endDate: Year.get(2010) }),
+          videoGame({
+            name: "Portal",
+            platform: "Xbox 360",
+            startDate: Year.get(2010),
+            endDate: Year.get(2010),
+          }),
+        ],
+      }),
+    );
+
+    expect(new Set(items.map((item) => item.key)).size).toBe(2);
   });
 
   it("gives two watches of one film keys of their own", () => {
@@ -267,7 +287,7 @@ describe("what a browse surface reads off an item", () => {
       }),
     );
 
-    expect(new Set(items.map(omniKey)).size).toBe(2);
+    expect(new Set(items.map((item) => item.key)).size).toBe(2);
   });
 });
 

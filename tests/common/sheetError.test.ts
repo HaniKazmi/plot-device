@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { describing, sheetError, sheetRow } from "../../src/common/sheetError";
+import { YearMonthDay } from "../../src/common/date";
+import { describing, readFullDate, sheetError, sheetRow } from "../../src/common/sheetError";
 
 describe("sheetRow", () => {
   it("turns a record index back into the row number the sheet shows", () => {
@@ -41,6 +42,26 @@ describe("describing", () => {
         throw "just a string";
       }),
     ).toThrow("Row 2: just a string");
+  });
+});
+
+describe("readFullDate", () => {
+  it("answers the full date a caller's model claims", () => {
+    expect(readFullDate("2024-05-01", "Row 2")).toBe(YearMonthDay.get(2024, 5, 1));
+  });
+
+  it("rejects a bare year, which parses cleanly and is the wrong kind", () => {
+    // `PlainDate.from` answers a `Year` for a four-character cell, so nothing downstream fails
+    // where the row is still known — the value reaches a day scale and is dropped or drawn at NaN.
+    expect(() => readFullDate("1979", 'Row 2, "Alien", Watch Date')).toThrow(
+      'Row 2, "Alien", Watch Date: "1979" is a bare year, not a full date',
+    );
+  });
+
+  it("names the row for an unparseable cell too, rather than only for the wrong kind", () => {
+    expect(() => readFullDate("", 'Row 2, "Alien", Watch Date')).toThrow(
+      'Row 2, "Alien", Watch Date: Unkown Date Format',
+    );
   });
 });
 

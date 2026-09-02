@@ -51,6 +51,64 @@ export const dateReviver = (key: string, value: unknown) => {
 };
 
 /**
+ * A cached copy read back, or nothing at all where it cannot be read.
+ *
+ * The parse is guarded because the caller runs inside a `useState` initialiser: `dateReviver` calls
+ * `PlainDate.from`, which throws on any `*Date*` value that is not a bare year or a full day, and a
+ * throw during render takes the whole page down — there is no error boundary above it. Discarding
+ * the copy costs one visit's offline paint; the fetch replaces it either way.
+ *
+ * The domain's own `reviver` runs inside the same guard, since it walks the parsed shape and a
+ * copy corrupt enough to break the dates can break it too.
+ */
+export const parseCachedItems = <T>(raw: string, reviver?: (items: T[]) => void): T[] | undefined => {
+  try {
+    const parsed = JSON.parse(raw, dateReviver) as T[] | null;
+    if (!parsed) return undefined;
+    reviver?.(parsed);
+    return parsed;
+  } catch {
+    return undefined;
+  }
+};
+
+/**
+ * What to put on screen for a failed fetch.
+ *
+ * A gapi rejection is not an `Error` but the response itself — `{ result: { error: { message,
+ * code } }, status, statusText, body }` — so handing it to `String` yields `[object Object]`,
+ * which tells a reader nothing about which sheet refused them or why. The Sheets API's own message
+ * is the most specific thing available and names the reason; the status line is the fallback for a
+ * refusal that carries no body at all.
+ */
+export const describeFailure = (cause: unknown): string => {
+  if (cause instanceof Error) return cause.message;
+
+  if (typeof cause === "object" && cause !== null) {
+    const response = cause as { result?: { error?: { message?: unknown } }; status?: unknown; statusText?: unknown };
+    const message = response.result?.error?.message;
+    if (typeof message === "string" && message) return message;
+
+    const status = typeof response.status === "number" ? String(response.status) : undefined;
+    const statusText = typeof response.statusText === "string" && response.statusText ? response.statusText : undefined;
+    const line = [status, statusText].filter(Boolean).join(" ");
+    if (line) return `Sheet request failed: ${line}`;
+  }
+
+  return String(cause);
+};
+
+/**
+ * The fetch each storage key currently has in flight, shared by every hook reading that key.
+ *
+ * The Omnibus tab and a home tab mount the same domain's config, so a route change mid-fetch would
+ * otherwise issue a second `values.get` and convert, stringify and store the same library twice.
+ * Cleared once the promise settles, so a failed fetch is retried by the next mount rather than
+ * replayed to it.
+ */
+const IN_FLIGHT = new Map<string, Promise<unknown>>();
+
+/**
  * Everything about a domain's cached shape, as one value the domain owns.
  *
  * The version, the converter and any replacer/reviver pair are a matched set — a cache written by
@@ -78,7 +136,18 @@ const useData = <T>(
   { storageKey, converter, reviver, replacer }: DataConfig<T>,
   tab: SheetTab,
 ): [T[] | undefined, boolean, string | undefined] => {
-  const [dataLoaded, setDataLoaded] = useState(false);
+  /**
+   * Whether this session has the sheet's own rows rather than a previous visit's copy.
+   *
+   * A hit on `CACHE` counts: that map is only ever written by a fetch in this session, so its
+   * contents are as fresh as anything a fetch of our own would produce. Reporting it as unloaded
+   * is what leaves a caller waiting on several domains — the Omnibus mounts three — unable to tell
+   * "still fetching" from "already fetched by the tab you came from", which never resolves.
+   *
+   * It says nothing about whether the arrival is worth announcing; `DataLoadedSnackbar` decides
+   * that from whether it saw the value turn over.
+   */
+  const [dataLoaded, setDataLoaded] = useState(() => CACHE.has(storageKey));
   /**
    * What went wrong reading the sheet, for a caller to put on screen.
    *
@@ -91,6 +160,10 @@ const useData = <T>(
    * The stale copy is deliberately left standing rather than cleared. A wall of last week's data
    * beside a message naming the row to fix is more use than an empty page, and the message is what
    * keeps that staleness from being silent.
+   *
+   * A fetch that succeeds clears it, because the row it names has been fixed: left standing, the
+   * alert both misreports the sheet and takes the place of the refresh notice, which is the one
+   * sign that the data on screen has just turned over.
    */
   const [error, setError] = useState<string | undefined>(undefined);
 
@@ -98,30 +171,50 @@ const useData = <T>(
     if (CACHE.has(storageKey)) return CACHE.get(storageKey) as T[];
     dropSupersededVersions(storageKey);
     const tempData = storage().getItem(storageKey);
-    if (tempData) {
-      const parsed = JSON.parse(tempData, dateReviver) as T[];
+    if (!tempData) return undefined;
 
-      reviver?.(parsed);
-      return parsed;
-    }
-
-    return undefined;
+    const parsed = parseCachedItems<T>(tempData, reviver);
+    // A copy that cannot be read is dropped rather than left to fail the same way on every mount.
+    if (!parsed) storage().removeItem(storageKey);
+    return parsed;
   });
 
   const { apiReady, fetchAndConvertSheet } = useGoogleAuth();
 
   useEffect(() => {
     if (!apiReady || CACHE.has(storageKey)) return;
-    fetchAndConvertSheet(tab, converter)
+
+    let pending = IN_FLIGHT.get(storageKey) as Promise<T[]> | undefined;
+    if (!pending) {
+      const started = fetchAndConvertSheet(tab, converter);
+      IN_FLIGHT.set(storageKey, started);
+      // Both outcomes clear the entry, and the identity check keeps a settling fetch from dropping
+      // a newer one started after it. Registered as two handlers rather than through `finally`, so
+      // a rejection is answered here as well as by the subscriber below — a subscriber that
+      // unmounted before the fetch settled leaves nobody else to answer it.
+      const forget = () => {
+        if (IN_FLIGHT.get(storageKey) === started) IN_FLIGHT.delete(storageKey);
+      };
+      started.then(forget, forget);
+      pending = started;
+    }
+
+    pending
       .then((data) => {
-        CACHE.set(storageKey, data);
         setData(data);
         setDataLoaded(true);
+        setError(undefined);
+
+        // Storing is per fetch rather than per subscriber: everything reading this key shares the
+        // promise above, and writing a whole library twice is a second full stringify for bytes
+        // already in storage.
+        if (CACHE.has(storageKey)) return;
+        CACHE.set(storageKey, data);
         storage().setItem(storageKey, JSON.stringify(data, replacer));
       })
       .catch((cause: unknown) => {
         console.error(cause);
-        setError(cause instanceof Error ? cause.message : String(cause));
+        setError(describeFailure(cause));
       });
   }, [apiReady, converter, storageKey, tab, fetchAndConvertSheet, replacer]);
 

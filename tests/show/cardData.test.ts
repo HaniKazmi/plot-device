@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { YearMonthDay } from "../../src/common/date";
-import { seasonSpans, spanKey } from "../../src/show/cardData";
+import { seasonSpans, showSubtitle, spanKey } from "../../src/show/cardData";
+import { genreToColour } from "../../src/utils/types";
 import { season, show } from "../fixtures/shows";
 
 describe("spanKey", () => {
@@ -38,5 +39,24 @@ describe("seasonSpans", () => {
     parent.s = [s];
 
     expect(seasonSpans([parent], YearMonthDay.get(2025, 1, 1))[0].season).toBe(s);
+  });
+});
+
+describe("showSubtitle", () => {
+  it("names the network then the genre, so the hero, the hover card and the Omnibus's Now card agree", () => {
+    const parent = show({ network: "Apple TV+", genre: "Sci-Fi" });
+
+    expect(showSubtitle(parent, "light")).toEqual([
+      { text: "Apple TV+" },
+      { text: "Sci-Fi", swatch: genreToColour("Sci-Fi", "light") },
+    ]);
+  });
+
+  it("wears the genre swatch the ledger row and every genre wedge on the tab wear", () => {
+    const parent = show({ genre: "Horror" });
+
+    // Reading the swatch back through the same lookup the ledger uses is what keeps the two from
+    // drifting apart, rather than pinning a literal hex that only one of them still matches.
+    expect(showSubtitle(parent, "dark")[1].swatch).toBe(genreToColour("Horror", "dark"));
   });
 });

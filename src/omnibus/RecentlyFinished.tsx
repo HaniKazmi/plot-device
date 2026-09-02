@@ -2,7 +2,7 @@ import { History } from "@mui/icons-material";
 import { StatBand } from "../common/SectionRail";
 import { StatList } from "../common/Stats";
 import { format } from "../utils/mathUtils";
-import { omniKey, type OmniItem } from "./adapter";
+import type { OmniItem } from "./adapter";
 import OmniCardMediaImage from "./CardMediaImage";
 import { omniLabels, omniMediumChip } from "./cardData";
 import { useScheme } from "../common/useScheme";
@@ -34,7 +34,7 @@ const RecentlyFinished = ({ items }: { items: OmniItem[] }) => {
         width={[12, 12, 12]}
         // The key a card is identified by, so a show's seasons and a film's rewatches stay distinct
         // — the name alone repeats across both.
-        nameComponent={omniKey}
+        nameComponent={(item) => item.key}
         labelComponent={omniLabels}
         chipComponent={(item) => omniMediumChip(item, scheme)}
         // Two full rows of the strip's own three-column layout, rather than the six a half-width

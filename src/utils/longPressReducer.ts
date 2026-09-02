@@ -1,6 +1,6 @@
-export type LongPressEvent = "start" | "end" | "timeout";
+export type LongPressEvent = "start" | "end" | "timeout" | "cancel";
 
-export type LongPressEffect = "schedule" | "cancel" | "longPress" | "click";
+type LongPressEffect = "schedule" | "cancel" | "longPress" | "click";
 
 export interface LongPressState {
   /** Whether the long press has already fired for the press currently in progress. */
@@ -18,6 +18,11 @@ export const initialLongPressState: LongPressState = { fired: false };
  *
  * A press that has already triggered the long press reports no click when it ends. Releasing
  * after a long press is the end of that gesture, not a tap on top of it.
+ *
+ * `cancel` is `end` without the click: a pointer leaving the element, a touch turning into a
+ * scroll, or the browser cancelling a touch all mean the gesture stopped being a press on this
+ * element, so neither a click nor a long press should fire for it, regardless of whether the
+ * long press had already fired.
  */
 export const longPress = (
   state: LongPressState,
@@ -34,5 +39,7 @@ export const longPress = (
         state: { fired: false },
         effects: hasClickHandler && !state.fired ? ["cancel", "click"] : ["cancel"],
       };
+    case "cancel":
+      return { state: { fired: false }, effects: ["cancel"] };
   }
 };

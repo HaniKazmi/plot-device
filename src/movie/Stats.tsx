@@ -31,7 +31,8 @@ import type { YearType } from "../common/filterReducer";
 import { useSelectBox } from "../common/SelectBoxHook";
 import { useFranchiseMovies } from "./franchiseContext";
 import { format } from "../utils/mathUtils";
-import { genreToColour, type Scheme } from "../utils/types";
+import type { Scheme } from "../utils/types";
+import { movieSubtitle } from "./cardData";
 import MovieCardMediaImage from "./CardMediaImage";
 import { MOVIE_SECTIONS } from "./sections";
 import type { FilterDispatch } from "./filterUtils";
@@ -154,7 +155,7 @@ const MovieHero = ({ movie }: { movie: Movie }) => {
       chip={movieScoreChip(movie, scheme)}
       title={movie.name}
       // The genre wears the same swatch its ledger row and every genre wedge on the tab wear.
-      subtitle={[{ text: movie.director }, { text: movie.genre, swatch: genreToColour(movie.genre, scheme) }]}
+      subtitle={movieSubtitle(movie, scheme)}
       stats={movieHeroStats(movie, franchise.length)}
     />
   );

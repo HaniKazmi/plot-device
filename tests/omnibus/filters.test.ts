@@ -95,8 +95,8 @@ describe("the year cutoff", () => {
   });
 
   it("reads the year a game was finished rather than the year it was started", () => {
-    // The one place the divergence from the shared `yearPredicates` shows: a game played across a
-    // new year answers the filter with the year its hours landed in.
+    // What the accessor handed to the shared `yearPredicates` buys: a game played across a new
+    // year answers the filter with the year its hours landed in, not the year it was started.
     const [crossing] = toOmniItems({
       games: [videoGame({ startDate: YearMonthDay.get(2019, 12, 20), endDate: YearMonthDay.get(2020, 1, 8) })],
       shows: [],

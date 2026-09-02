@@ -20,7 +20,7 @@ export interface BaseFilterState<T, M extends string> {
   filter: Predicate<T>;
 }
 
-export type FilterAction<S, K extends keyof S = keyof S> =
+type FilterAction<S, K extends keyof S = keyof S> =
   | { type: "resetFilters" }
   | { type: "updateFilter"; filter: K; value: S[K] }
   | { type: "toggleMeasure" }
@@ -28,16 +28,36 @@ export type FilterAction<S, K extends keyof S = keyof S> =
 
 export type FilterDispatchFor<S> = Dispatch<FilterAction<S, keyof S>>;
 
-/**
- * The year cutoff, shared because every domain models it the same way: "up to" a year is a
- * ceiling that disappears once it reaches the current year, and "matching" is an exact year.
- */
-export const yearPredicates = <T extends { startDate: { year: YearNumber } }>(state: {
+interface YearState {
   yearTo: YearNumber;
   yearType: YearType;
-}): Predicate<T>[] => {
-  if (state.yearType === "matching") return [(item) => item.startDate.year === state.yearTo];
-  if (state.yearTo !== CURRENT_YEAR) return [(item) => item.startDate.year <= state.yearTo];
+}
+
+/**
+ * Two ways to ask, so a caller only supplies the accessor when its model needs one: a domain whose
+ * record carries the date the year comes from names no second argument, and one that attributes an
+ * item to some other year has to.
+ */
+interface YearPredicates {
+  <T extends { startDate: { year: YearNumber } }>(state: YearState): Predicate<T>[];
+  <T>(state: YearState, yearOf: (item: T) => YearNumber): Predicate<T>[];
+}
+
+/**
+ * The year cutoff, shared because every domain means the same thing by it: "up to" a year is a
+ * ceiling that disappears once it reaches the current year, and "matching" is an exact year.
+ *
+ * Which year an item answers with is the one part that varies, so it arrives as an accessor rather
+ * than as a second copy of the two rules. An `OmniItem` counts towards the year it closed and holds
+ * no start date to read at all, and a copy written over that field is two statements of one
+ * semantic that nothing keeps in step.
+ */
+export const yearPredicates: YearPredicates = <T>(
+  state: YearState,
+  yearOf: (item: T) => YearNumber = (item) => (item as { startDate: { year: YearNumber } }).startDate.year,
+): Predicate<T>[] => {
+  if (state.yearType === "matching") return [(item) => yearOf(item) === state.yearTo];
+  if (state.yearTo !== CURRENT_YEAR) return [(item) => yearOf(item) <= state.yearTo];
   return [];
 };
 

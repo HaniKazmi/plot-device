@@ -5,7 +5,7 @@ import "../utils/arrayUtils";
 import "../utils/mapUtils";
 
 /** One medium's slice of a genre's hours. */
-export interface GenreBridgeSegment {
+interface GenreBridgeSegment {
   medium: Medium;
   hours: number;
   percent: number;
@@ -57,10 +57,18 @@ export const genreBridge = (items: OmniItem[]): GenreBridgeRow[] => {
           .map((medium) => ({ medium, count: group.filter((item) => item.medium === medium).sum("hours") }))
           .filter(({ count }) => count > 0);
 
+        // Exact hours, which is what the rows are ordered on below. `hours` is floored for display,
+        // so a genre under an hour floors to 0 — and `sortByKey` sends a falsy key to the front in
+        // both directions, which would head a largest-first list with the smallest thing on it. The
+        // row itself stays: forty-five minutes of a genre is time actually spent in it, and a bar
+        // stating that beside a figure of zero hours is the same rounding every total here makes.
+        const total = counts.sum("count");
+
         return {
           genre,
-          hours: Math.floor(counts.sum("count")),
-          segments: assignPercents(counts, counts.sum("count")).map(({ medium, count, percent }) => ({
+          total,
+          hours: Math.floor(total),
+          segments: assignPercents(counts, total).map(({ medium, count, percent }) => ({
             medium,
             hours: Math.floor(count),
             percent,
@@ -71,6 +79,9 @@ export const genreBridge = (items: OmniItem[]): GenreBridgeRow[] => {
       // handed an empty list and answers one, leaving a named row with an empty track beside a
       // figure of zero. That is the only thing dropped here; how many media a genre reached is not.
       .filter((row) => row.segments.length > 0)
-      .sortByKey("hours")
+      .sortByKey("total")
+      // Every surviving row has spent something, so the sort key is never falsy; it comes off the
+      // row here because nothing drawing one has a use for a second, unrounded hours figure.
+      .map(({ genre, hours, segments }) => ({ genre, hours, segments }))
   );
 };

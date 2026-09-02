@@ -6,7 +6,7 @@ import { Section, SectionRail } from "../common/SectionRail";
 import { stripYearTicks } from "../common/timelineStripData";
 import { FranchiseContext as MovieFranchiseContext, movieFranchise } from "../movie/franchiseContext";
 import { FranchiseContext as ShowFranchiseContext, showFranchise } from "../show/franchiseContext";
-import { FranchiseContext as VgFranchiseContext } from "../vg/franchiseContext";
+import { FranchiseContext as VgFranchiseContext, vgFranchise } from "../vg/franchiseContext";
 import { useOtherTabs } from "../tabs";
 import { earliestYear, electNow, hasNow, recentlyFinished, type Library, type OmniItem } from "./adapter";
 import Barchart from "./Barchart";
@@ -43,7 +43,7 @@ const SuspenseBlock = ({
   filterState: FilterState;
   filterDispatch: FilterDispatch;
 }) => (
-  <VgFranchiseContext.Provider value={franchiseIndex(library.games, (game) => game.franchise)}>
+  <VgFranchiseContext.Provider value={franchiseIndex(library.games, vgFranchise)}>
     <ShowFranchiseContext.Provider value={franchiseIndex(library.shows, showFranchise)}>
       <MovieFranchiseContext.Provider value={franchiseIndex(library.movies, movieFranchise)}>
         <Graphs
@@ -76,7 +76,7 @@ const Graphs = memo(
   }: {
     library: Library;
     data: OmniItem[];
-    earliestYear?: YearNumber;
+    earliestYear: YearNumber;
     filterState: FilterState;
     filterDispatch: FilterDispatch;
   }) => {

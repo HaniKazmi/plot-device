@@ -7,7 +7,7 @@ import Finished from "../common/Finished";
 import Timeline from "./Timeline";
 import CardMediaImage from "./CardMediaImage";
 import { FilterDispatch, FilterState, guestFilter } from "./filterUtils";
-import { FranchiseContext } from "./franchiseContext";
+import { FranchiseContext, vgFranchise } from "./franchiseContext";
 import { visibleFranchiseIndex } from "../common/franchiseIndex";
 import { memo, useDeferredValue } from "react";
 import { Stack } from "@mui/material";
@@ -15,9 +15,10 @@ import Filter from "./Filter";
 import { ChartPair, Section, SectionRail } from "../common/SectionRail";
 import { useOtherTabs } from "../tabs";
 import { VG_SECTIONS, vgSections } from "./sections";
-import { currentlyPlaying } from "./statsData";
+import { currentlyPlaying, earliestYear } from "./statsData";
 import { format } from "../utils/mathUtils";
 import { finishedCount } from "../common/finishedData";
+import type { YearNumber } from "../common/date";
 
 const SuspenseBlock = ({
   filteredData,
@@ -31,10 +32,13 @@ const SuspenseBlock = ({
   filterDispatch: FilterDispatch;
 }) => (
   <FranchiseContext.Provider
-    value={visibleFranchiseIndex(unfilteredData, (game) => game.franchise, filterState.guestMode, guestFilter)}
+    value={visibleFranchiseIndex(unfilteredData, vgFranchise, filterState.guestMode, guestFilter)}
   >
     <Graphs
       data={filteredData}
+      // Read from the whole library rather than what the filters left, so picking "In 2020"
+      // cannot strand the reader at 2020 by making that year the earliest one on offer.
+      earliestYear={earliestYear(unfilteredData)}
       filterState={filterState}
       filterDispatch={filterDispatch}
     />
@@ -49,10 +53,12 @@ const SuspenseBlock = ({
 const Graphs = memo(
   ({
     data,
+    earliestYear,
     filterState,
     filterDispatch,
   }: {
     data: VideoGame[];
+    earliestYear: YearNumber;
     filterState: FilterState;
     filterDispatch: FilterDispatch;
   }) => {
@@ -72,6 +78,7 @@ const Graphs = memo(
         <Stats
           data={data}
           playing={playing}
+          earliestYear={earliestYear}
           yearType={filterState.yearType}
           yearTo={filterState.yearTo}
           measure={filterState.measure}

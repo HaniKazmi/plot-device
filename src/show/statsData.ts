@@ -24,9 +24,12 @@ const showGroupValue = (show: Show, key: ShowTopOption): string => {
   return show[key];
 };
 
+/** Minutes as whole hours — the one floor every hours figure on this tab shares. */
+export const seasonHours = (minutes: number) => Math.floor(minutes / 60);
+
 /** How much a set of shows counts for under the active measure — the one home of the /60 floor. */
 export const measureOf = (shows: Show[], measure: Measure) => {
-  if (measure === "Hours") return Math.floor(shows.sum("minutes") / 60);
+  if (measure === "Hours") return seasonHours(shows.sum("minutes"));
   if (measure === "Episodes") return shows.sum("e");
   return shows.length;
 };
@@ -59,7 +62,7 @@ export const watchingProgress = (season: Season, today: YearMonthDay) => {
   const days = season.startDate.lte(today) ? season.startDate.daysTo(today) : undefined;
   return {
     episodes: season.e,
-    hours: season.minutes ? Math.floor(season.minutes / 60) : undefined,
+    hours: season.minutes ? seasonHours(season.minutes) : undefined,
     days,
     perWeek: days !== undefined && days >= 7 ? Math.round((season.e / (days / 7)) * 10) / 10 : undefined,
   };
@@ -68,7 +71,7 @@ export const watchingProgress = (season: Season, today: YearMonthDay) => {
 export const allTimeTotals = (data: Show[]) => ({
   shows: data.length,
   episodes: data.sum("e"),
-  hours: Math.floor(data.sum("minutes") / 60),
+  hours: seasonHours(data.sum("minutes")),
 });
 
 /**
@@ -152,7 +155,7 @@ export const heroSeason = (watching: Season[]) =>
     );
 
 /** Which of the optional figures a caller has room for. */
-export interface ShowHeroStatOptions {
+interface ShowHeroStatOptions {
   /** The episodes-per-week tile. */
   pace?: boolean;
 }
@@ -217,5 +220,10 @@ export const currentlyWatching = (data: Show[]) =>
 // the thumbnail speaks.
 export const statsCardLabelRecentlyComplete = (season: Season) => [
   [`S${season.s}`, season.endDate ? formatDate(season.endDate) : ""],
-  [`${season.e} Eps`, `${format(Math.round(season.minutes / 60))} Hours`],
+  [`${season.e} Eps`, `${format(seasonHours(season.minutes))} Hours`],
+];
+
+/** The Eps/Hours line the most-watched lists print for a whole show. */
+export const statsCardLabelEpsHours = (show: Show) => [
+  [`${format(show.e)} Eps`, `${format(seasonHours(show.minutes))} Hours`],
 ];

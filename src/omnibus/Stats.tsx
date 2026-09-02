@@ -8,8 +8,10 @@ import { Section, StatBand } from "../common/SectionRail";
 import { StatCard, TotalsBand, VitalsCard, YearVitalsPair } from "../common/Stats";
 import { genreToColour } from "../utils/types";
 import MovieCardMediaImage from "../movie/CardMediaImage";
+import { movieSubtitle } from "../movie/cardData";
 import { movieHeroStats } from "../movie/statsData";
 import ShowCardMediaImage from "../show/CardMediaImage";
+import { showSubtitle } from "../show/cardData";
 import { showHeroStats } from "../show/statsData";
 import VgCardMediaImage from "../vg/CardMediaImage";
 import { heroStats } from "../vg/statsData";
@@ -38,7 +40,7 @@ const Stats = ({
   /** The same list the Crossings section draws, so the count and the strips cannot disagree. */
   crossings: Crossing[];
   /** The union's own first year, so the select's floor does not rise with the filters. */
-  earliestYear?: YearNumber;
+  earliestYear: YearNumber;
   measure: Measure;
   yearType: YearType;
   yearTo: YearNumber;
@@ -185,10 +187,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
           onJump={jump(ShowsTab)}
           kicker={formatDate(now.show.show.lastWatchedDate!)}
           title={`${now.show.show.name} S${now.show.s}`}
-          subtitle={[
-            { text: now.show.show.network },
-            { text: now.show.show.genre, swatch: genreToColour(now.show.show.genre, scheme) },
-          ]}
+          subtitle={showSubtitle(now.show.show, scheme)}
           // The rate tile stays on the Shows tab's own hero; beside a poster this card's text
           // column holds two figures comfortably and three crowd it.
           stats={showHeroStats(now.show, 1, CURRENT_PLAINDATE, { pace: false })}
@@ -202,10 +201,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
           onJump={jump(MoviesTab)}
           kicker={formatDate(now.movie.startDate)}
           title={now.movie.name}
-          subtitle={[
-            { text: now.movie.director },
-            { text: now.movie.genre, swatch: genreToColour(now.movie.genre, scheme) },
-          ]}
+          subtitle={movieSubtitle(now.movie, scheme)}
           stats={movieHeroStats(now.movie, 1)}
         />
       )}

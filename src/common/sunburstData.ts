@@ -12,6 +12,22 @@ type SunburstEntry = {
   color: Colour | undefined;
 };
 
+/**
+ * Where the hierarchy is drawn from: the drilled id while the data still holds a node with it, and
+ * the top ("") otherwise. Re-nesting the groups rebuilds every id below the first ring, and a
+ * filter can empty the drilled subtree, so a drilled id routinely names no node in the next data —
+ * and `SunburstSeries.translate` reads that node's `parent` without checking it is there, which
+ * throws rather than falling back to the top the way the treemap it descends from does.
+ *
+ * `atTop` is the same question the leaf ring is collapsed by, answered off the data rather than
+ * held beside the id: a node on the first ring is one whose parent is the top, and a root that has
+ * been reset is the top itself.
+ */
+export const sunburstRoot = (data: SunburstEntry[], id: string): { id: string; atTop: boolean } => {
+  const node = data.find((entry) => entry.id === id);
+  return node ? { id, atTop: node.parent === "" } : { id: "", atTop: true };
+};
+
 export const generateSunburstData = <T, K extends string>(
   data: T[],
   groups: K[],

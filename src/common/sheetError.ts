@@ -54,6 +54,20 @@ export const readAgeRating = (value = "", where: string): AgeRating =>
 export const readGenre = (value = "", where: string): string => value || sheetError(where, "no genre recorded");
 
 /**
+ * Reads a date cell that has to carry a day, answering the `YearMonthDay` its model claims.
+ *
+ * The check is what earns the type rather than a cast asserting it: `PlainDate.from` answers a
+ * `Year` for a four-character cell, and asserting that to be a `YearMonthDay` is a claim the
+ * compiler then trusts everywhere downstream. What it reaches is a chart placing the value on a
+ * day scale — where a bare year either compares as a shorter string and drops the row without a
+ * word, or arrives as an offset of `NaN` naming no row at all. Rejected here, it names its own.
+ */
+export const readFullDate = (value: string, where: string): YearMonthDay => {
+  const parsed = describing(where, () => PlainDate.from(value));
+  return parsed instanceof YearMonthDay ? parsed : sheetError(where, `"${value}" is a bare year, not a full date`);
+};
+
+/**
  * Reads a start/end pair, rejecting one recorded at two precisions.
  *
  * A span is logged as two full dates or as two bare years — one of each is a cell somebody

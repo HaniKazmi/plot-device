@@ -39,14 +39,29 @@ export interface PositionedTimelineData extends TimelineData {
 }
 
 /**
- * The span from `start` to `end` as a percentage of the whole timeline grid, which is how every
- * element is positioned and sized. A negative `padding` shrinks the span, which is how a bar
- * leaves a gap before the next one.
+ * The span from `start` to `end` as a percentage of the whole timeline grid, which is the width
+ * every element is drawn at — where it is drawn is `percentAtDate` below. A negative `padding`
+ * shrinks the span, which is how a bar leaves a gap before the next one.
  */
 export const percentOfSpan = (start: YearMonthDay, end: YearMonthDay, totalDays: number, padding: number = 0) =>
   ((start.daysTo(end)! + padding) / totalDays) * 100;
 
-export type TickLevel = "year" | "quarter" | "month";
+/**
+ * Where a date sits on the grid: the days elapsed *before* it, as a percentage of the whole.
+ *
+ * This is the one convention every offset is measured in — an axis tick, a band on a strip, a bar
+ * on the full chart — which is what lets a gridline for a day and a bar opening on that day land on
+ * the same pixel. Measuring an offset with `percentOfSpan` instead puts it a day to the right of
+ * every offset measured this way, because `daysTo` counts inclusively: that count is the width a
+ * bar covering those days draws at, and one more than the distance to the first of them, the origin
+ * being day one of itself with nothing elapsed before it.
+ *
+ * `padding` is added on top, in days, for a caller insetting a bar from its own date.
+ */
+export const percentAtDate = (origin: YearMonthDay, date: YearMonthDay, totalDays: number, padding: number = 0) =>
+  percentOfSpan(origin, date, totalDays, padding - 1);
+
+type TickLevel = "year" | "quarter" | "month";
 
 export interface TimelineTick {
   /** Offset from the left edge of the grid, as a percentage of its full width. */
@@ -68,7 +83,7 @@ export const buildTicks = (start: YearMonth, end: YearMonth, totalDays: number):
   const origin = start.startOfMonth();
 
   return start.iterateToDate(end).map((month) => ({
-    percent: percentOfSpan(origin, month.startOfMonth(), totalDays),
+    percent: percentAtDate(origin, month.startOfMonth(), totalDays),
     level: month.month === 1 ? "year" : month.month % 3 === 1 ? "quarter" : "month",
     monthLabel: month.monthString(),
     yearLabel: month.year.toString(),

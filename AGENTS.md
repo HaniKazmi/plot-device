@@ -40,7 +40,7 @@ The suite is pure logic. It runs in the `node` environment with no DOM, and `vit
 
 There are no DOM or component tests, and adding them is a bigger decision than it looks: Highcharts needs stubbing, MUI needs a `matchMedia` polyfill, and `useTextPlacement` would assert nothing real because jsdom returns 0 for `getBoundingClientRect()` and `scrollWidth`, collapsing every branch to "center". `tests/architecture.test.ts` covers the failure a mount test would most likely catch — it reads the source files and enforces both the `common/`-never-imports-a-domain rule and the requirement that every caller of a prototype extension imports the module installing it.
 
-Several tests pin behaviour that is wrong but deliberate to leave alone for now, and they say so in a comment. Do not "fix" the test when the behaviour is the thing under discussion — the show converter's pre-2006 orphan crash and the unguarded division in `assignPercents` are both recorded that way.
+A test can pin behaviour that is wrong but deliberate to leave alone for now, and say so in a comment. Do not "fix" the test when the behaviour is the thing under discussion — `assignPercents` (`utils/mathUtils.ts`) divides by an unguarded `total`, and `tests/utils/mathUtils.test.ts` pins the resulting non-finite percent rather than guarding the division.
 
 ## Formatting
 
@@ -54,6 +54,7 @@ The compiler is enabled and auto-memoizes render-phase work (§7 of ARCHITECTURE
 - **Never write `this` inside a component or hook.** It opts that whole function out of compilation, silently. Third-party callbacks that bind `this` (Highcharts does this on chart events) must live at module scope — see `dimLeafRing` in `common/Sunburst.tsx` for the pattern.
 - **Never write `??=`.** The compiler cannot lower it yet and bails on the enclosing function. Write `x = x ?? y`.
 - **Never give a destructured prop a default value.** `({ landscape = false })` is an assignment pattern the compiler cannot lower, and it takes the whole component out. Destructure without the default and read it off the props object — `const landscape = props.landscape ?? false` — or rename in the pattern (`landscape: landscapeProp`) and default below it when a rest spread must not pick the prop up.
+- **Never write `import()` inside a component or hook.** The compiler cannot lower an import expression, and it bails on the enclosing function. Put the dynamic import in a module-scope function and call that — each entry component keeps its import in a module-scope `loadGraphs` that both its `lazy()` and its prefetch effect call, for exactly this reason.
 
 `eslint-plugin-react-hooks@7`'s recommended config _is_ the compiler rule set, so `npm run lint` catches most violations. It does **not** catch the `this`, `??=` or destructured-default bailouts — those compile fine and just quietly lose memoization.
 
@@ -77,7 +78,7 @@ babel({
 }),
 ```
 
-Then `npx vite build 2>&1 | grep -E '^OK|^BAIL'`. Baseline is **180 compiled, 0 bailed** — any `BAIL` line is something you introduced. The commonest way to introduce one is a destructured prop default (`landscape = false`), which surfaces as `BuildHIR::lowerAssignment … got: AssignmentPattern`; the fix idiom is above. Moving a computation out of a component is a reliable way to clear a `MethodCall` bailout, which is a different failure and does respond. **Revert the logger afterwards.**
+Then `npx vite build 2>&1 | grep -E '^OK|^BAIL'`. Baseline is **189 compiled, 0 bailed** — any `BAIL` line is something you introduced. The commonest way to introduce one is a destructured prop default (`landscape = false`), which surfaces as `BuildHIR::lowerAssignment … got: AssignmentPattern`; the fix idiom is above. Moving a computation out of a component is a reliable way to clear a `MethodCall` bailout, which is a different failure and does respond. **Revert the logger afterwards.**
 
 Do not grep the built bundle for `useMemoCache` or `compiler-runtime` to check this — those names do not survive minification, and their absence proves nothing.
 
@@ -85,7 +86,7 @@ Do not grep the built bundle for `useMemoCache` or `compiler-runtime` to check t
 
 Ordered by how quietly they fail.
 
-- **Never name a field `somethingDate` unless it is a `PlainDate`.** `useData`'s `JSON.parse` reviver converts _any_ key containing `"Date"`, so a `lastUpdateDate: string` comes back from cache as a broken date object. Only shows up after a reload.
+- **Never name a field `somethingDate` unless it is a `PlainDate`.** `useData`'s `JSON.parse` reviver converts _any_ key containing `"Date"`. A value that happens to be 4 or 10 characters comes back miscast as a `Year` or `YearMonthDay` with nothing to say so; any other length, or `null`, throws inside the reviver, which `parseCachedItems` catches and treats as an unreadable cache — the whole cached copy is dropped and refetched rather than crashing the render. Either way it only shows up after a reload.
 - **Never read a browser global at module scope.** `const storage = localStorage` at the top of a module makes merely importing it throw wherever the global is absent. Node exposes `localStorage` and `sessionStorage` from v24 but not on v22, which CI runs, so this passes locally and fails there. Read the global inside the function that needs it. `tests/architecture.test.ts` enforces this.
 - **Never put a bare colour after a comma in the `background` shorthand.** `background: linear-gradient(a, a), ${colour}` looks like an overlay over a colour and is not: only the last layer may carry a background-colour, and it is space-separated. A colour written as its own comma-separated layer is not a valid `<bg-image>`, so that half is dropped and the computed value reads `linear-gradient(a, a), none` — an overlay sitting on nothing. Set `backgroundImage` and `backgroundColour` as two properties instead.
 - **Never add a field named `show` to a non-`show` domain.** `show/Show.tsx` passes a replacer that strips that key on cache write; it is scoped to that domain, but the name is the trigger.
@@ -138,5 +139,5 @@ If you seed fake data, **clear those keys afterwards** so you do not leave test 
 
 - Prototype extensions are real here: `Array.prototype.sum` / `sortByKey` (`utils/arrayUtils.ts`) and `Map.prototype.setIfAbsent` (`utils/mapUtils.ts`). Prefer them over hand-rolled reduces and comparators — that is what the surrounding code does.
 - `Colour` is a branded string; literals need an `as Colour` cast.
-- Every `Graphs` module is `lazy()`-loaded with a `webpackPrefetch` comment. Keep that pattern when adding a domain — bundle size is actively tracked.
+- Every `Graphs` module is `lazy()`-loaded, and its entry component calls a `usePrefetchGraphs` effect (see `vg/vg.tsx`) that starts `import("./Graphs")` on mount rather than waiting for `Graphs` to first render. Keep that pattern when adding a domain — bundle size is actively tracked.
 - Use `PlainDate`, never JS `Date`, for anything tracked.

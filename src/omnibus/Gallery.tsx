@@ -10,7 +10,7 @@ import { useSelectBox } from "../common/SelectBoxHook";
 import { IconToggleGroup } from "../common/SelectionComponents";
 import { EXPANDED_CARDS, ExpandableCard } from "../common/Stats";
 import { format } from "../utils/mathUtils";
-import { omniKey, type OmniItem } from "./adapter";
+import type { OmniItem } from "./adapter";
 import OmniCardMediaImage from "./CardMediaImage";
 import { omniLabels, omniMediumChip } from "./cardData";
 import {
@@ -162,7 +162,7 @@ const Gallery = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
           title={`${title} · ${drilldown.name}`}
           onClose={() => setDrilldown(null)}
           content={drilldown.all}
-          cardKey={(item) => `${category}-${omniKey(item)}`}
+          cardKey={(item) => `${category}-${item.key}`}
           labelComponent={omniLabels}
           chipComponent={(item) => omniMediumChip(item, scheme)}
           pictureWidth={[6, 4, 2]}
@@ -231,7 +231,7 @@ const Shelf = ({
       <Filmstrip height={FILMSTRIP_HEIGHT + MEDIUM_LABEL_HEIGHT}>
         {group.all.slice(0, PICTURES_SHOWN).map((item) => (
           <OmniCardMediaImage
-            key={omniKey(item)}
+            key={item.key}
             item={item}
             lazy
             // Stacked whatever the artwork's shape, because the shelf pinned the height: left to

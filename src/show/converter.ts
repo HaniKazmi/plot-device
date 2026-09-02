@@ -1,6 +1,6 @@
-import { PlainDate, YearMonthDay } from "../common/date.ts";
+import { PlainDate, YearMonthDay, type YearNumber } from "../common/date.ts";
 import { dataCacheKey, type DataConfig } from "../common/useData.ts";
-import { describing, readAgeRating, readGenre, sheetError, sheetRow } from "../common/sheetError.ts";
+import { describing, readAgeRating, readFullDate, readGenre, sheetError, sheetRow } from "../common/sheetError.ts";
 import { splitCell } from "../utils/stringUtils";
 import type { Season, Show, Status, Type } from "./types";
 import "../utils/arrayUtils";
@@ -13,24 +13,11 @@ export const reviveSeasonParents = (shows: Show[]) => shows.forEach((show) => sh
 /** Seasons that started this early are dropped; the data before it is not trustworthy. */
 const EARLIEST_SEASON_YEAR = 2005;
 
+/** The first year a season can actually survive the converter, and so the floor the year select offers. */
+export const EARLIEST_SHOW_YEAR = (EARLIEST_SEASON_YEAR + 1) as YearNumber;
+
 const describeSeason = (row: Record<string, string>, show: Partial<Show>, index: number) =>
   `Row ${sheetRow(index)}, season ${row.Season || "?"} of "${show.name ?? "?"}"`;
-
-/**
- * A season's own date, which has to be a full one.
- *
- * The check is what earns the type rather than a cast asserting it: `PlainDate.from` answers a
- * `Year` for a four-character cell, and asserting that to be a `YearMonthDay` is a claim the
- * compiler then trusts everywhere downstream. It reached `buildStrip` and threw "Invalid
- * comparison" out of a render, naming no row — the failure this module exists to replace.
- *
- * A season needs the day on both ends because every chart drawing one packs it against its
- * neighbours, and a whole year is an overlap with all of them.
- */
-const readSeasonDate = (value: string, where: string): YearMonthDay => {
-  const parsed = describing(where, () => PlainDate.from(value));
-  return parsed instanceof YearMonthDay ? parsed : sheetError(where, `"${value}" is a bare year, not a full date`);
-};
 
 export const jsonConverter = (json: Record<string, string>[]) => {
   const showData: Show[] = [];
@@ -58,10 +45,10 @@ export const jsonConverter = (json: Record<string, string>[]) => {
         sheetError(where, "this is a season row, but no show has been declared above it");
       }
 
-      // No pair check beside these: `readSeasonDate` rejects a bare year on either end, so the two
+      // No pair check beside these: `readFullDate` rejects a bare year on either end, so the two
       // can only ever agree. Games needs one because both of its precisions are legal there.
-      const startDate = readSeasonDate(row.Start, `${where}, Start`);
-      const endDate = row.End ? readSeasonDate(row.End, `${where}, End`) : undefined;
+      const startDate = readFullDate(row.Start, `${where}, Start`);
+      const endDate = row.End ? readFullDate(row.End, `${where}, End`) : undefined;
 
       const episodes = parseInt(row.Episode);
       if (Number.isNaN(episodes)) {

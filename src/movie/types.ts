@@ -40,7 +40,7 @@ export interface Movie {
   anime: boolean;
 }
 
-export type MovieStringKeys = KeysMatching<Movie, string>;
+type MovieStringKeys = KeysMatching<Movie, string>;
 
 export type Measure = "Films" | "Hours";
 

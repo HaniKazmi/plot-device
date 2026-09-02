@@ -21,7 +21,7 @@ import { mediumToColour, mediumToLabel, type Measure } from "./types";
  */
 export const BARCHART_SPLITS = ["medium", "genre", "rating"] as const;
 
-export type BarchartSplit = (typeof BARCHART_SPLITS)[number];
+type BarchartSplit = (typeof BARCHART_SPLITS)[number];
 
 /**
  * The series an item falls in.

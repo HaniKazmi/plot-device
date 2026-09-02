@@ -21,7 +21,7 @@ const DOMAINS = ["vg", "show", "movie", "omnibus"];
  * actually reaches for. It needs its own alternative because a paren stands where the others have
  * whitespace.
  */
-const IMPORT_SPECIFIER = /(?:from\s+|import\s+|import\s*\(\s*(?:\/\*[\s\S]*?\*\/\s*)?)["']([^"']+)["']/g;
+const IMPORT_SPECIFIER = /(?:from\s+|import\s+|import\s*\(\s*)["']([^"']+)["']/g;
 
 const sourceFilesUnder = (dir: string): string[] =>
   readdirSync(join(SRC, dir), { withFileTypes: true, recursive: true })

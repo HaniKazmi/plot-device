@@ -1,3 +1,4 @@
+import { CURRENT_YEAR } from "../common/date";
 import type { Year, YearMonthDay, YearNumber } from "../common/date";
 import type { AgeRating } from "../utils/types";
 import type { Movie } from "../movie/types";
@@ -9,6 +10,7 @@ import { guestFilter as vgGuestFilter } from "../vg/filterUtils";
 import { latestWatched } from "../movie/statsData";
 import { currentlyWatching, heroSeason } from "../show/statsData";
 import { currentlyPlaying } from "../vg/statsData";
+import { spanKey as gameSpanKey } from "../vg/cardData";
 import { media, type Measure, type Medium } from "./types";
 import "../utils/arrayUtils";
 
@@ -37,6 +39,16 @@ export interface Library {
  */
 export interface OmniItem {
   medium: Medium;
+  /**
+   * What identifies this item among the union, for a React key and for a card's own name.
+   *
+   * Built from the tuple its own domain already treats as unique — a game's title, platform and
+   * start; a show's name and season number; a film's title and watch date — because no field the
+   * union shares is one. Every season of a show carries its show's name, a film watched twice is
+   * two rows with one title, and a game's close can be a bare year, so two copies of one title on
+   * two platforms finished in that year answer identically on medium, name and close together.
+   */
+  key: string;
   /** A season answers with its show's name; which season it is stays on `source`. */
   name: string;
   /**
@@ -95,6 +107,9 @@ export const visibleLibrary = (library: Library, guestMode: boolean): Library =>
 export const toOmniItems = ({ games, shows, movies }: Library): OmniItem[] => [
   ...games.map((game): OmniItem => ({
     medium: "game",
+    // The tuple the Games tab already keys a span by: a title on its own repeats across the
+    // platforms a game was played on and across a replay of it.
+    key: `game-${gameSpanKey(game)}`,
     name: game.name,
     closeDate: game.endDate,
     year: (game.endDate ?? game.startDate).year,
@@ -108,6 +123,9 @@ export const toOmniItems = ({ games, shows, movies }: Library): OmniItem[] => [
   ...shows.flatMap((show) =>
     show.s.map((season): OmniItem => ({
       medium: "show",
+      // The show's name and the season number, which is what the Shows tab keys a season by:
+      // every season of a show carries its show's name and only the number separates them.
+      key: `show-${show.name}-S${season.s}`,
       name: show.name,
       closeDate: season.endDate,
       year: (season.endDate ?? season.startDate).year,
@@ -121,6 +139,9 @@ export const toOmniItems = ({ games, shows, movies }: Library): OmniItem[] => [
   ),
   ...movies.map((movie): OmniItem => ({
     medium: "movie",
+    // A rewatch is a second row with the same title, and the day it was seen is what separates the
+    // two — the converter rejects a Watch Date that is not a full one, so it always can.
+    key: `movie-${movie.name}-${movie.startDate}`,
     name: movie.name,
     // A film's watch date is both when it happened and when it closed, so it is one date wearing
     // both names rather than a start with no end.
@@ -179,16 +200,6 @@ export const omniTitle = (item: OmniItem): string =>
   item.medium === "show" ? `${item.name} S${(item.source as Season).s}` : item.name;
 
 /**
- * A stable identity for one item across the union.
- *
- * The name alone is not one: every season of a show carries its show's name, and a film watched
- * twice is two rows with one title. Keyed on the name, React cannot tell those apart and drops or
- * swaps cards. The medium and the item's own close date separate the rest — a replay finished on
- * the same day as the first run is the only collision left, and no sheet holds one.
- */
-export const omniKey = (item: OmniItem): string => `${item.medium}-${omniTitle(item)}-${item.closeDate ?? "open"}`;
-
-/**
  * What was finished most recently, newest first.
  *
  * Only what has actually closed: an item with no close date is still being played or watched, and
@@ -223,10 +234,11 @@ export const hasNow = (now: ReturnType<typeof electNow>) => media.some((medium) 
 /**
  * The first year the union holds anything in, which is the floor the year select offers. Read
  * from the data rather than fixed, because the three sheets start in different years and the
- * union's floor is whichever of them starts first.
+ * union's floor is whichever of them starts first. Falls back to the current year when nothing
+ * has survived the filters, since the select then has nothing below it to offer anyway.
  */
-export const earliestYear = (items: OmniItem[]) =>
+export const earliestYear = (items: OmniItem[]): YearNumber =>
   items.reduce<YearNumber | undefined>(
     (earliest, item) => (!earliest || item.year < earliest ? item.year : earliest),
     undefined,
-  );
+  ) ?? CURRENT_YEAR;

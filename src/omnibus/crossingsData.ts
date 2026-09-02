@@ -10,7 +10,7 @@ import "../utils/arrayUtils";
 import "../utils/mapUtils";
 
 /** One entry of a franchise on the strip, with the item behind it for the hover card. */
-export interface CrossingSpan extends StripSpan {
+interface CrossingSpan extends StripSpan {
   item: OmniItem;
   /** False where the sheet recorded a year and no month, so the band's edges are not dates. */
   precise: boolean;

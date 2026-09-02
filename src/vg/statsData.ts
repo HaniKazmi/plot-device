@@ -1,4 +1,4 @@
-import { formatDate, type YearMonthDay, type YearNumber } from "../common/date";
+import { CURRENT_YEAR, formatDate, type YearMonthDay, type YearNumber } from "../common/date";
 import { format } from "../utils/mathUtils";
 import { groupByCategory } from "../common/statsData";
 import { platformToShort, type Measure, type VideoGame, type VideoGameStringKeys } from "./types";
@@ -37,6 +37,19 @@ export const groupGamesBy = (data: VideoGame[], key: VideoGameStringKeys, measur
     (games) => (measure === "Hours" ? games.sum("hours") : games.length),
     (games) => games.reduce((best, game) => (game.hours! > best.hours! ? game : best)),
   );
+
+/**
+ * The first year the library holds a game in, which is the floor the year select offers. There is
+ * no fixed epoch for Games the way Movies has a tracking start date — the sheet's own oldest
+ * release is whatever it is — so the floor is read from the data rather than a constant. Falls
+ * back to the current year when the library is empty, since the select then has nothing below it
+ * to offer anyway.
+ */
+export const earliestYear = (data: VideoGame[]): YearNumber =>
+  data.reduce<YearNumber | undefined>(
+    (earliest, game) => (!earliest || game.startDate.year < earliest ? game.startDate.year : earliest),
+    undefined,
+  ) ?? CURRENT_YEAR;
 
 /** Count and hours over the time-tracked games — what both year cards total, scoped by the caller. */
 export const gamesAndHours = (data: VideoGame[]) => {

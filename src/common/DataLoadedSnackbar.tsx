@@ -11,21 +11,41 @@ import { useState } from "react";
  * and cannot be waited out.
  */
 export const DataLoadedSnackbar = ({ open, error }: { open: boolean; error?: string }) => {
+  /**
+   * "Refresh Complete" is a report of an arrival, so it is said only for an arrival this component
+   * watched happen: `open` turning from false to true while mounted. A tab whose every sheet was
+   * already fetched by the tab the reader came from opens with `open` already true and says
+   * nothing, which is the truth — nothing arrived — where announcing it would put a refresh notice
+   * on every navigation between tabs.
+   *
+   * **The caller has to keep this component mounted across that turn**, at a stable position among
+   * its siblings. Rendering it alone while data is missing and again inside the loaded tree
+   * remounts it exactly when the value turns over, and the transition is then unobservable — the
+   * fresh mount sees only `true`.
+   */
+  const [openAtMount] = useState(open);
   const [snackbarClosed, setSnackbarClosed] = useState(false);
-  const [errorClosed, setErrorClosed] = useState(false);
+  /**
+   * The message a reader has waved away, rather than a flag saying they waved one away. A refetch
+   * after re-authorising, or the Omnibus's three sheets answering in turn, replaces one complaint
+   * with a different one; a flag would swallow every message after the first, and each of them
+   * names a different row somebody has to go and fix.
+   */
+  const [dismissedError, setDismissedError] = useState<string | undefined>(undefined);
 
-  // Dismissal is tracked per kind. Sharing one flag would let a reader who waved away a refresh
-  // notice suppress the error that arrives after it — the one message worth interrupting for.
+  // Dismissal is tracked per kind. Sharing one piece of state would let a reader who waved away a
+  // refresh notice suppress the error that arrives after it — the one message worth interrupting
+  // for.
   if (error) {
     return (
       <Snackbar
-        open={!errorClosed}
-        onClose={() => setErrorClosed(true)}
+        open={error !== dismissedError}
+        onClose={() => setDismissedError(error)}
       >
         <Alert
           severity="error"
           variant="filled"
-          onClose={() => setErrorClosed(true)}
+          onClose={() => setDismissedError(error)}
         >
           {/* The converter's own message, verbatim: it names the row, the item and the column,
               which is the whole reason `sheetError` wraps a failure in the identity of its row. */}
@@ -37,7 +57,7 @@ export const DataLoadedSnackbar = ({ open, error }: { open: boolean; error?: str
 
   return (
     <Snackbar
-      open={open && !snackbarClosed}
+      open={open && !openAtMount && !snackbarClosed}
       autoHideDuration={1000}
       onClose={() => setSnackbarClosed(true)}
       message="Refresh Complete"

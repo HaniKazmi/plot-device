@@ -1,7 +1,7 @@
 import { Box, Card, CardContent, FormGroup, Stack } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { GridView } from "@mui/icons-material";
-import { useDeferredValue, useRef, type ReactNode } from "react";
+import { useDeferredValue, useRef, type ReactNode, type RefObject } from "react";
 import type { TypedCardMediaImage } from "./Card";
 import { SectionHeader } from "./SectionHeader";
 import { useSelectBox } from "./SelectBoxHook";
@@ -13,6 +13,96 @@ import { withAlpha } from "../utils/colourUtils";
 import { shapeToAspect } from "./cardArrangement";
 
 const sortOptions: FinishedSort[] = ["Date", "Franchise"];
+
+/**
+ * The wall itself, as a component rather than as JSX inside `Finished`'s `renderContent`.
+ *
+ * The boundary is what keeps the wall off the scroll path. `renderContent` is called again on
+ * every render of the card, and the marker changes state on a bucket crossing and on every jump —
+ * so a wall built inside it is a thousand cards with fresh `sx` objects and fresh closures each
+ * time a reader scrolls past a year. Built here, the compiler caches the rows on what they are
+ * derived from, and a marker change re-renders nothing below this line. `omnibus/Gallery.tsx`
+ * builds its shelves in its own body for the same reason; the difference is that these rows read
+ * `isDialog`, so the cache has to belong to each of the two mountings rather than to one array
+ * shared between them.
+ */
+const FinishedGrid = <U extends FinishedItem>({
+  isDialog,
+  gridRef,
+  dimmed,
+  recent,
+  sort,
+  width,
+  colour,
+  landscape,
+  MediaComponent,
+}: {
+  isDialog: boolean;
+  gridRef?: RefObject<HTMLDivElement | null>;
+  /** The deferred value is lagging the filter, and the trade is worth making visible. */
+  dimmed: boolean;
+  recent: readonly U[];
+  sort: FinishedSort;
+  width: number;
+  colour?: (item: U) => string;
+  landscape: boolean;
+  MediaComponent: TypedCardMediaImage<U>;
+}) => (
+  <Grid
+    container
+    ref={gridRef}
+    spacing={1}
+    sx={{
+      alignItems: "center",
+      opacity: dimmed ? 0.5 : 1,
+    }}
+  >
+    {recent.map((item) => (
+      <Grid
+        key={`${finishedKey(item)}-${isDialog ? "dialog" : "card"}`}
+        // Written at render from the same item and sort the order came from, so the marker
+        // reads a position off the DOM instead of keeping a parallel list to index into.
+        data-bucket={finishedBucket(item, sort) ?? undefined}
+        size={isDialog ? 12 : width}
+        sx={{
+          alignSelf: "stretch",
+        }}
+      >
+        <Card
+          sx={{
+            height: "100%",
+            borderColor: colour && withAlpha(colour(item), "90"),
+            borderStyle: colour && "solid",
+            borderWidth: colour && 3,
+          }}
+        >
+          <MediaComponent
+            item={item}
+            landscape={landscape}
+            lazy
+            /**
+             * The height every card holds before its artwork arrives.
+             *
+             * A lazily loaded image reserves nothing, so a wall of them stands at a fifth of its
+             * real height — 7,000 pixels against 33,000 for 322 games — and every offset measured
+             * in it is short by the artwork that has not loaded yet. Scrolling into the wall is
+             * what makes that artwork load, so the page grows under the reader and a position
+             * measured a moment ago is already wrong; a jump far down the sort asks for an offset
+             * the document does not yet have and lands clamped at its bottom instead.
+             *
+             * `shapeToAspect` prefixes the ratio with `auto`, which is what keeps this a
+             * reservation rather than a crop: the artwork's own shape wins the moment it is
+             * known, and the declared figure stands in only while there is none. What is left to
+             * settle after one lands is a card's own rounding rather than a card's height,
+             * because every file is authored to the shape it declares.
+             */
+            sx={{ aspectRatio: shapeToAspect(landscape ? "landscape" : "portrait") }}
+          />
+        </Card>
+      </Grid>
+    ))}
+  </Grid>
+);
 
 const Finished = <U extends FinishedItem>({
   title,
@@ -66,61 +156,17 @@ const Finished = <U extends FinishedItem>({
         }
       />
       <CardContent>
-        <Grid
-          container
-          ref={isDialog ? undefined : gridRef}
-          spacing={1}
-          sx={{
-            alignItems: "center",
-            opacity: slowData !== data ? 0.5 : 1,
-          }}
-        >
-          {recent.map((item) => (
-            <Grid
-              key={`${finishedKey(item)}-${isDialog ? "dialog" : "card"}`}
-              // Written at render from the same item and sort the order came from, so the marker
-              // reads a position off the DOM instead of keeping a parallel list to index into.
-              data-bucket={finishedBucket(item, sort) ?? undefined}
-              size={isDialog ? 12 : width}
-              sx={{
-                alignSelf: "stretch",
-              }}
-            >
-              <Card
-                sx={{
-                  height: "100%",
-                  borderColor: colour && withAlpha(colour(item), "90"),
-                  borderStyle: colour && "solid",
-                  borderWidth: colour && 3,
-                }}
-              >
-                <MediaComponent
-                  item={item}
-                  landscape={landscape}
-                  lazy
-                  /**
-                   * The height every card holds before its artwork arrives.
-                   *
-                   * A lazily loaded image reserves nothing, so a wall of them stands at a fifth of
-                   * its real height — 7,000 pixels against 33,000 for 322 games — and every offset
-                   * measured in it is short by the artwork that has not loaded yet. Scrolling into
-                   * the wall is what makes that artwork load, so the page grows under the reader
-                   * and a position measured a moment ago is already wrong; a jump far down the
-                   * sort asks for an offset the document does not yet have and lands clamped at
-                   * its bottom instead.
-                   *
-                   * `shapeToAspect` prefixes the ratio with `auto`, which is what keeps this a
-                   * reservation rather than a crop: the artwork's own shape wins the moment it is
-                   * known, and the declared figure stands in only while there is none. What is
-                   * left to settle after one lands is a card's own rounding rather than a card's
-                   * height, because every file is authored to the shape it declares.
-                   */
-                  sx={{ aspectRatio: shapeToAspect(landscape ? "landscape" : "portrait") }}
-                />
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+        <FinishedGrid
+          isDialog={isDialog}
+          gridRef={isDialog ? undefined : gridRef}
+          dimmed={slowData !== data}
+          recent={recent}
+          sort={sort}
+          width={width}
+          colour={colour}
+          landscape={landscape}
+          MediaComponent={MediaComponent}
+        />
       </CardContent>
       {/* Two presentations of one derivation: the rail where the gutter and the viewport hold it,
           the pill everywhere else. Which one is the hook's answer, so they cannot both appear. */}

@@ -1,6 +1,6 @@
 import { FormControl, MenuItem, Select } from "@mui/material";
 import type { ReactNode } from "react";
-import { CURRENT_YEAR, EARLIEST_YEAR, type YearNumber } from "./date";
+import { CURRENT_YEAR, type YearNumber } from "./date";
 import prepareForSlot from "../utils/prepareForSlot";
 
 /**
@@ -15,8 +15,10 @@ export const YearSelect = (props: {
   onChange: (year: YearNumber) => void;
   renderValue: (value: number) => ReactNode;
   minWidth?: number;
-  /** The oldest year on offer — a domain whose data starts earlier than the default passes its own floor. */
-  earliestYear?: YearNumber;
+  /** The oldest year on offer. The three sheets start in different years and one of them
+      (Games) has no fixed epoch at all, so no floor here would be right for every caller —
+      each domain works out its own and passes it down. */
+  earliestYear: YearNumber;
 }) => (
   <FormControl
     variant="standard"
@@ -30,16 +32,14 @@ export const YearSelect = (props: {
       renderValue={(value) => props.renderValue(value as number)}
       slots={{ root: prepareForSlot("span") }}
     >
-      {Array.from({ length: CURRENT_YEAR - (props.earliestYear ?? EARLIEST_YEAR) + 1 }, (_, i) => CURRENT_YEAR - i).map(
-        (year) => (
-          <MenuItem
-            key={year}
-            value={year}
-          >
-            {year}
-          </MenuItem>
-        ),
-      )}
+      {Array.from({ length: CURRENT_YEAR - props.earliestYear + 1 }, (_, i) => CURRENT_YEAR - i).map((year) => (
+        <MenuItem
+          key={year}
+          value={year}
+        >
+          {year}
+        </MenuItem>
+      ))}
     </Select>
   </FormControl>
 );

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Year, YearMonthDay } from "../../src/common/date";
-import { franchiseIndex, gameSpans } from "../../src/vg/cardData";
+import { gameSpans } from "../../src/vg/cardData";
 import { videoGame } from "../fixtures/vgRows";
 
 // A fixed "today" rather than the real clock, so an open-ended game's span stays checkable.
@@ -147,24 +147,5 @@ describe("gameSpans for undated years", () => {
 
     expect(spans[0].start).toBe(YearMonthDay.get(2008, 1, 1));
     expect(spans[1].start).toBe(YearMonthDay.get(2010, 1, 1));
-  });
-});
-
-describe("franchiseIndex", () => {
-  it("groups games under their franchise", () => {
-    const botw = videoGame({ name: "Breath of the Wild", franchise: "Zelda" });
-    const totk = videoGame({ name: "Tears of the Kingdom", franchise: "Zelda" });
-    const mario = videoGame({ name: "Odyssey", franchise: "Mario" });
-
-    const index = franchiseIndex([botw, totk, mario]);
-
-    expect(index.get("Zelda")).toEqual([botw, totk]);
-    expect(index.get("Mario")).toEqual([mario]);
-  });
-
-  it("skips games with no franchise, which are not a series to be shown together", () => {
-    const index = franchiseIndex([videoGame({ franchise: "" }), videoGame({ franchise: "" })]);
-
-    expect(index.size).toBe(0);
   });
 });

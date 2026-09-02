@@ -31,6 +31,7 @@ import { YearSelect } from "./YearSelect";
 import type { YearType } from "./filterReducer";
 import { CURRENT_YEAR, type YearNumber } from "./date";
 import { CloseFullscreen, Fullscreen, Timer, Update } from "@mui/icons-material";
+import { useDialogMount } from "./useDialogMount";
 
 export const StatCard = ({
   icon,
@@ -158,8 +159,8 @@ const YearTotals = ({
   icon: ReactNode;
   activeYearType: YearType;
   minWidth?: number;
-  /** Passed through to the year select, for a domain whose data starts before the app-wide floor. */
-  earliestYear?: YearNumber;
+  /** Passed through to the year select, which takes no floor of its own. */
+  earliestYear: YearNumber;
   stats: Record<string, number>;
   renderValue: (value: number) => ReactNode;
 }) => (
@@ -209,8 +210,8 @@ export const YearVitalsPair = ({
   yearTo: YearNumber;
   yearType: YearType;
   filterDispatch: YearDispatch;
-  /** Passed through for a domain whose data starts before the app-wide floor. */
-  earliestYear?: YearNumber;
+  /** Passed through to both year cards' selects, which take no floor of their own. */
+  earliestYear: YearNumber;
   allTime: Record<string, number>;
   inYear: Record<string, number>;
 }) => (
@@ -247,16 +248,16 @@ export const YearVitalsPair = ({
  * The collapsed figure is what a half-width card holds without growing past the charts beside it;
  * a strip laid out differently passes its own through `StatList`'s `collapsed`.
  */
-export const COLLAPSED_CARDS = 6;
+const COLLAPSED_CARDS = 6;
 export const EXPANDED_CARDS = 500;
 
 /**
  * A card that can also present itself fullscreen.
  *
  * `renderContent` is called twice — once inline, once for the dialog — and is handed the
- * expand/collapse control to place wherever its header wants it. The dialog body is mounted
- * only while open, so a strip of media cards is not built a second time behind a closed
- * dialog, and `dialogMounted` lags `dialogOpen` so the body survives the exit transition.
+ * expand/collapse control to place wherever its header wants it. Only the body is gated on
+ * `useDialogMount`'s `mounted`, so a strip of media cards is not built a second time behind a
+ * closed dialog while the one `Dialog` this card holds stays where it is.
  */
 export const ExpandableCard = ({
   renderContent,
@@ -269,8 +270,7 @@ export const ExpandableCard = ({
 }) => {
   // Applied after the pattern: a default inside it bails the component out of the React Compiler.
   const expandable = expandableProp ?? true;
-  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
-  const [dialogMounted, setDialogMounted] = useState<boolean>(false);
+  const dialog = useDialogMount();
 
   // The dialog always keeps its control, whatever `expandable` says. It is fullscreen with no
   // `onClose`, so the button is the only way out, and a caller whose content shrinks while it is
@@ -278,12 +278,7 @@ export const ExpandableCard = ({
   // otherwise strand the reader with nothing to click.
   const toggle = (isDialog: boolean) =>
     expandable || isDialog ? (
-      <IconButton
-        onClick={() => {
-          setDialogOpen(!isDialog);
-          if (!isDialog) setDialogMounted(true);
-        }}
-      >
+      <IconButton onClick={() => (isDialog ? dialog.hide() : dialog.show())}>
         {isDialog ? <CloseFullscreen color="primary" /> : <Fullscreen />}
       </IconButton>
     ) : null;
@@ -292,11 +287,11 @@ export const ExpandableCard = ({
     <Card sx={sx}>
       {renderContent(false, toggle(false))}
       <Dialog
-        open={dialogOpen}
+        open={dialog.open}
         fullScreen
-        slotProps={{ transition: { onExited: () => setDialogMounted(false) } }}
+        slotProps={{ transition: { onExited: dialog.onExited } }}
       >
-        {dialogMounted && renderContent(true, toggle(true))}
+        {dialog.mounted && renderContent(true, toggle(true))}
       </Dialog>
     </Card>
   );
@@ -453,7 +448,7 @@ export const StatList = <T,>({
   );
 };
 
-export const StatsListCard = <T,>({
+const StatsListCard = <T,>({
   item,
   labels,
   chip,
