@@ -574,7 +574,7 @@ const StripMark = ({
       {label && (
         <Typography
           variant="caption"
-          sx={[NAME_SX, { lineHeight: `${LANE_PITCH}px` }]}
+          sx={[NAME_SX, HALO_SX, { lineHeight: `${LANE_PITCH}px` }]}
           style={
             nameOnRight
               ? { top: laneTop, left: `calc(${point ? centre : band.startPercent + band.widthPercent}% + 8px)` }
@@ -589,6 +589,18 @@ const StripMark = ({
 };
 
 const MARK_SX = { position: "absolute", cursor: "default" } as const;
+
+/**
+ * The paper behind a name that sits among bands: on a window a dozen years wide the subject's
+ * name is longer than the gap beside it, and type over a band is type over a fill it was never
+ * checked against.
+ */
+const HALO_SX = {
+  paddingX: 0.5,
+  borderRadius: 0.5,
+  backgroundColor: (theme: Theme) => theme.vars.palette.background.paper,
+  zIndex: 2,
+} as const;
 
 /**
  * An estimated span dissolves at both ends rather than stopping at one, because a hard edge is a
