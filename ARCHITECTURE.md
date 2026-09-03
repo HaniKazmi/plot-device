@@ -491,9 +491,13 @@ hold its lanes and no band shrinks to fit. A film is a point (`start === end`) a
 since a bar floored to a percentage of the width is a different number of pixels on every card.
 The reader's last choice of reading carries from card to card for the life of the page.
 
-Both readings stand on the theme's paper inside whatever ground the card has, most often a tint of
-the artwork's own colour, because every fill the app declares is solved against the two papers and
-against nothing else. Marks wear the medium's fill and nothing more: the platform, status or genre a
+Both readings stand in a well: a wash of the card's own ground, the tone its tiles are lifted with,
+edged in the card's hairline, so the strip reads as part of the card it is in. Every fill the app
+declares is solved against the two papers, but a paper plate inside a card the artwork has coloured
+is a white rectangle in a navy card, and the bare ground leaves the chain floating between the
+subtitle and the ledger. What the well gives up is the contract — a medium's fill on an artwork
+tint is no pair the tables checked — so every mark carries a hairline ring in the card's line tone
+and is legible by its shape whatever the fill lands on. Marks wear the medium's fill and nothing more: the platform, status or genre a
 strip could colour by is already stated in the ledger below it, and a second vocabulary on marks a
 few pixels wide is one nobody can read. The subject is set apart by a ring in the ink and a name,
 never by colour, and only where there is context to stand apart from — a standalone show's own
@@ -676,10 +680,14 @@ days in, the size of its franchise — and each tile is dropped rather than show
 sheet does not hold it. The library's totals stay in the cards below it, which are their single
 home. Only the artwork's height is fixed, so the hero is one height whatever it shows while every
 poster and banner keeps its own shape uncropped. The panel is held to that height, and a title, a
-subtitle and a row of tiles fill a third of it; the middle is the item's own story — its franchise
-strip in the order met (§6, Franchise strip), and the two ledger rows its domain leads with, chosen
-per domain from the same rows the expanded card states in full. On a phone the panel is only as
-tall as its own lines, so the strip is dropped there and the rows stay.
+subtitle and a row of tiles fill a third of it; the middle is the two ledger rows its domain leads
+with, chosen per domain from the same rows the expanded card states in full. The franchise strip
+(§6, Franchise strip), in the order met, is a band across the whole card beneath the artwork and
+the panel rather than a part of the panel: the panel is held to the artwork's height, and a strip
+inside it would make the panel the taller of the two and stand the artwork over a band of empty
+ground, letterboxed inside its own card. Under both, the strip also has the card's whole width,
+which a fifty-entry chain wants. The rows are dropped between `md` and `lg`, where the column
+beside a banner wraps the title and a wrapped title with two rows outgrows the picture beside it.
 
 It renders the domain's own
 `TypedCardMediaImage` rather than a bare image, which is what keeps it in step with every card

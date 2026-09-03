@@ -31,6 +31,14 @@ export const SegmentedControl = <T extends string>(props: {
   onChange: (value: T) => void;
   /** What the group of segments is choosing between — the words alone do not say. */
   ariaLabel: string;
+  /**
+   * The tones of the surface the control stands on, for one drawn inside a card the artwork has
+   * coloured. The theme's primary is solved against the theme's paper and nothing else, so on a
+   * sampled ground the lit segment can land a hue away from legible — a teal on a brown card —
+   * where the surface's own ink and wash are the pair every other word on that surface already
+   * reads in.
+   */
+  tone?: SegmentTone;
 }) => (
   <ToggleButtonGroup
     color="primary"
@@ -46,13 +54,28 @@ export const SegmentedControl = <T extends string>(props: {
       <ToggleButton
         key={option.value}
         value={option.value}
-        sx={SEGMENT_SX}
+        sx={props.tone ? [SEGMENT_SX, toneSx(props.tone)] : SEGMENT_SX}
       >
         {option.label}
       </ToggleButton>
     ))}
   </ToggleButtonGroup>
 );
+
+/** The four tones a segment reads in on a coloured surface. */
+export interface SegmentTone {
+  ink: string;
+  muted: string;
+  line: string;
+  wash: string;
+}
+
+const toneSx = (tone: SegmentTone) => ({
+  color: tone.muted,
+  borderColor: tone.line,
+  "&.Mui-selected, &.Mui-selected:hover": { color: tone.ink, backgroundColor: tone.wash },
+  "&:hover": { backgroundColor: tone.wash },
+});
 
 /**
  * A select over a small set of values.

@@ -1,6 +1,7 @@
-import { Box, Stack, Typography, type Theme } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import { useState, type ReactNode } from "react";
 import { MEDIA, mediumToColour, mediumUnit, pick, type Scheme } from "../utils/types";
+import { useArtworkPalette } from "./artworkPalette";
 import { INLINE_SWATCH_SIZE, Swatch } from "./Card";
 import { SegmentedControl, type SegmentOption } from "./SelectionComponents";
 import { shortYear, type YearMonthDay } from "./date";
@@ -38,17 +39,34 @@ const STRIP_MODES: readonly SegmentOption<StripMode>[] = [
   { value: "time", label: "Time" },
 ];
 
+/** The tones a strip is drawn in, resolved once from the card it stands in. */
+interface StripColours {
+  ground: string;
+  ink: string;
+  muted: string;
+  line: string;
+  wash: string;
+}
+
 /**
  * A franchise on an expanded card or the hero: every entry the reader has met across the four
  * media, with the card's own item singled out.
  *
- * Drawn on the theme's paper inside whatever ground the card has — a tint of the artwork's own
- * colour, most often — because every fill the app declares is solved against the two papers and
- * against nothing else. Bands wear the medium's fill and nothing more: the platform, status or
- * genre a strip could colour by is already stated in the ledger below it, and a second vocabulary
- * on marks a few pixels wide is one nobody can read. The subject is set apart by a ring and a name,
- * not by colour, and only where there is context to stand apart from — a standalone show's own
- * seasons are all the subject, and ringing every one of them says nothing.
+ * Marks wear the medium's fill and nothing more: the platform, status or genre a strip could
+ * colour by is already stated in the ledger below it, and a second vocabulary on marks a few
+ * pixels wide is one nobody can read. The subject is set apart by a ring and a name, not by
+ * colour, and only where there is context to stand apart from — a standalone show's own seasons
+ * are all the subject, and ringing every one of them says nothing.
+ *
+ * The strip stands in a well: a wash of the card's own ground, the tone its tiles are lifted
+ * with, edged in the card's hairline, so it reads as a part of the card it is in. The theme's
+ * paper is what every fill is solved against, but a paper plate inside a card the artwork has
+ * coloured is a white rectangle in a navy card, and the card's own ground with nothing drawn
+ * around the marks leaves the chain floating between the subtitle and the ledger. What the well
+ * gives up is the contract: a medium's fill on an artwork tint is not a pair the tables checked,
+ * so every mark carries a hairline ring in the card's line tone and is legible by its shape
+ * whatever the fill lands on, with the fill left to say which medium and the legend beside it
+ * saying so in words.
  */
 export const FranchiseStrip = (props: {
   entries: FranchiseEntry[];
@@ -63,8 +81,16 @@ export const FranchiseStrip = (props: {
 }) => {
   const { entries, subject, franchise, epoch, today } = props;
   const scheme = useScheme();
+  const palette = useArtworkPalette();
   const [chosen, setChosen] = useState<StripMode>(preferredMode);
   const mode = props.mode ?? chosen;
+  const colours: StripColours = {
+    ground: palette.ground,
+    ink: palette.onGround,
+    muted: palette.muted,
+    line: palette.line,
+    wash: palette.tile,
+  };
 
   const ordered = entries.sortByKey("start", true);
   const subjects = ordered.filter((entry) => entry.subject === subject);
@@ -78,24 +104,21 @@ export const FranchiseStrip = (props: {
 
   return (
     <Box
-      sx={(theme: Theme) => ({
-        backgroundColor: theme.vars.palette.background.paper,
-        color: theme.vars.palette.text.primary,
-        border: `1px solid ${theme.vars.palette.divider}`,
-        borderRadius: 1,
-        padding: 1,
-      })}
+      sx={{ borderRadius: 1, padding: 1 }}
+      style={{ color: colours.ink, backgroundColor: colours.wash, border: `1px solid ${colours.line}` }}
     >
       <Caption
         franchise={franchise}
         entries={ordered}
         range={range}
         scheme={scheme}
+        colours={colours}
         control={
           props.mode === undefined && (
             <SegmentedControl
               options={STRIP_MODES}
               value={mode}
+              tone={colours}
               onChange={(next) => {
                 preferredMode = next;
                 setChosen(next);
@@ -111,6 +134,7 @@ export const FranchiseStrip = (props: {
           subject={subject}
           contextual={contextual}
           scheme={scheme}
+          colours={colours}
         />
       ) : (
         <WindowedStrip
@@ -120,6 +144,7 @@ export const FranchiseStrip = (props: {
           epoch={epoch}
           today={today}
           scheme={scheme}
+          colours={colours}
         />
       )}
     </Box>
@@ -136,12 +161,14 @@ const Caption = ({
   entries,
   range,
   scheme,
+  colours,
   control,
 }: {
   franchise: string;
   entries: FranchiseEntry[];
   range: string;
   scheme: Scheme;
+  colours: StripColours;
   control: ReactNode;
 }) => (
   <Stack
@@ -177,7 +204,7 @@ const Caption = ({
     })}
     <Typography
       variant="caption"
-      sx={{ color: "text.secondary" }}
+      style={{ color: colours.muted }}
     >
       {range}
     </Typography>
@@ -215,11 +242,13 @@ const BeadChain = ({
   subject,
   contextual,
   scheme,
+  colours,
 }: {
   entries: FranchiseEntry[];
   subject: string;
   contextual: boolean;
   scheme: Scheme;
+  colours: StripColours;
 }) => {
   const [ref, width] = useElementWidth<HTMLDivElement>();
   const perRow = beadsPerRow(entries.length, width ?? UNMEASURED_WIDTH, MIN_PITCH);
@@ -251,6 +280,7 @@ const BeadChain = ({
                 year={yearShown ? shortYear(entry.start.year) : undefined}
                 widthPercent={100 / perRow}
                 scheme={scheme}
+                colours={colours}
               />
             );
           })}
@@ -260,7 +290,7 @@ const BeadChain = ({
   );
 };
 
-const LINE_SX = { position: "absolute", top: BEAD_CENTRE - 1, height: 2, backgroundColor: "divider" } as const;
+const LINE_SX = { position: "absolute", top: BEAD_CENTRE - 1, height: 2 } as const;
 
 const Bead = ({
   entry,
@@ -272,6 +302,7 @@ const Bead = ({
   year,
   widthPercent,
   scheme,
+  colours,
 }: {
   entry: FranchiseEntry;
   subject: boolean;
@@ -282,6 +313,7 @@ const Bead = ({
   year?: string;
   widthPercent: number;
   scheme: Scheme;
+  colours: StripColours;
 }) => {
   const colour = pick(entry.fill, scheme);
   const size = subject ? SUBJECT_BEAD : BEAD;
@@ -291,8 +323,18 @@ const Bead = ({
       sx={{ position: "relative", height: ROW_HEIGHT }}
       style={{ flex: `0 0 ${widthPercent}%` }}
     >
-      {lineLeft && <Box sx={{ ...LINE_SX, left: 0, width: "50%" }} />}
-      {lineRight && <Box sx={{ ...LINE_SX, right: 0, width: "50%" }} />}
+      {lineLeft && (
+        <Box
+          sx={{ ...LINE_SX, left: 0, width: "50%" }}
+          style={{ backgroundColor: colours.line }}
+        />
+      )}
+      {lineRight && (
+        <Box
+          sx={{ ...LINE_SX, right: 0, width: "50%" }}
+          style={{ backgroundColor: colours.line }}
+        />
+      )}
       <HoverCardTooltip
         colour={colour}
         title={<LazyTooltip render={entry.hoverCard} />}
@@ -308,9 +350,9 @@ const Bead = ({
               borderRadius: "50%",
               cursor: "default",
             },
-            subject ? RING_SX : SIBLING_SX,
+            !subject && SIBLING_SX,
           ]}
-          style={{ width: size, height: size, backgroundColor: colour }}
+          style={{ width: size, height: size, backgroundColor: colour, boxShadow: ring(subject, colours) }}
         />
       </HoverCardTooltip>
       {label && (
@@ -330,6 +372,7 @@ const Bead = ({
         <Typography
           variant="caption"
           sx={YEAR_SX}
+          style={{ color: colours.muted }}
         >
           {year}
         </Typography>
@@ -339,17 +382,16 @@ const Bead = ({
 };
 
 /** A sibling: present, and not the point. */
-const SIBLING_SX = { opacity: 0.7 } as const;
+const SIBLING_SX = { opacity: 0.75 } as const;
 
 /**
- * The subject's ring: a gap of the paper and then the ink, so it reads against the mark's own
- * fill and against the paper alike. In the ink rather than a colour because the ring means "this
- * one" and nothing else.
+ * The ring around a mark. Every mark gets a hairline in the strip's own line tone, so its shape is
+ * legible whatever its fill lands on; the subject's is a gap of the ground and then the ink, so it
+ * reads against the mark's own fill and against the ground alike — in the ink rather than a colour
+ * because the ring means "this one" and nothing else.
  */
-const RING_SX = {
-  boxShadow: (theme: Theme) =>
-    `0 0 0 2px ${theme.vars.palette.background.paper}, 0 0 0 3.5px ${theme.vars.palette.text.primary}`,
-} as const;
+const ring = (subject: boolean, colours: StripColours) =>
+  subject ? `0 0 0 2px ${colours.ground}, 0 0 0 3.5px ${colours.ink}` : `0 0 0 1px ${colours.line}`;
 
 const NAME_SX = {
   position: "absolute",
@@ -367,7 +409,6 @@ const YEAR_SX = {
   transform: "translateX(-50%)",
   fontSize: 9,
   lineHeight: `${YEAR_HEIGHT}px`,
-  color: "text.secondary",
   fontVariantNumeric: "tabular-nums",
 } as const;
 
@@ -397,6 +438,7 @@ const WindowedStrip = ({
   epoch,
   today,
   scheme,
+  colours,
 }: {
   entries: FranchiseEntry[];
   subject: string;
@@ -404,6 +446,7 @@ const WindowedStrip = ({
   epoch: YearMonthDay;
   today: YearMonthDay;
   scheme: Scheme;
+  colours: StripColours;
 }) => {
   const window = stripWindow(entries);
   const { bands, laneCount } = buildStrip(entries, window.from, window.to);
@@ -426,7 +469,7 @@ const WindowedStrip = ({
           <Box
             key={tick.year}
             sx={HAIRLINE_SX}
-            style={{ left: `${tick.percent}%` }}
+            style={{ left: `${tick.percent}%`, backgroundColor: colours.line }}
           />
         ))}
         {bands.map((band) => (
@@ -436,6 +479,7 @@ const WindowedStrip = ({
             subject={contextual && band.subject === subject}
             label={band === named ? band.label : undefined}
             scheme={scheme}
+            colours={colours}
           />
         ))}
       </Box>
@@ -443,6 +487,7 @@ const WindowedStrip = ({
         <Typography
           variant="caption"
           sx={[AXIS_SX, { left: 0, transform: "none" }]}
+          style={{ color: colours.muted }}
         >
           {window.from.year}
         </Typography>
@@ -453,23 +498,19 @@ const WindowedStrip = ({
               key={tick.year}
               variant="caption"
               sx={AXIS_SX}
-              style={{ left: `${tick.percent}%` }}
+              style={{ left: `${tick.percent}%`, color: colours.muted }}
             >
               {shortYear(tick.year)}
             </Typography>
           ))}
       </Box>
-      <Box sx={{ position: "relative", height: 4, marginTop: 1.25, borderRadius: 1, backgroundColor: "action.hover" }}>
+      <Box
+        sx={{ position: "relative", height: 4, marginTop: 1.25, borderRadius: 1 }}
+        style={{ backgroundColor: colours.wash }}
+      >
         <Box
-          sx={{
-            position: "absolute",
-            top: -2,
-            height: 8,
-            borderRadius: 1,
-            backgroundColor: "text.secondary",
-            opacity: 0.6,
-          }}
-          style={{ left: `${bracketLeft}%`, width: `${bracketWidth}%` }}
+          sx={{ position: "absolute", top: -2, height: 8, borderRadius: 1, opacity: 0.6 }}
+          style={{ left: `${bracketLeft}%`, width: `${bracketWidth}%`, backgroundColor: colours.muted }}
         />
       </Box>
       <Stack
@@ -479,12 +520,14 @@ const WindowedStrip = ({
         <Typography
           variant="caption"
           sx={SCALE_LABEL_SX}
+          style={{ color: colours.muted }}
         >
           {scaleFrom.year}
         </Typography>
         <Typography
           variant="caption"
           sx={SCALE_LABEL_SX}
+          style={{ color: colours.muted }}
         >
           today
         </Typography>
@@ -493,14 +536,13 @@ const WindowedStrip = ({
   );
 };
 
-const HAIRLINE_SX = { position: "absolute", top: 0, bottom: 0, width: "1px", backgroundColor: "divider" } as const;
+const HAIRLINE_SX = { position: "absolute", top: 0, bottom: 0, width: "1px" } as const;
 
 const AXIS_SX = {
   position: "absolute",
   transform: "translateX(-50%)",
   fontSize: 9,
   lineHeight: `${YEAR_HEIGHT}px`,
-  color: "text.secondary",
   fontVariantNumeric: "tabular-nums",
   userSelect: "none",
 } as const;
@@ -508,7 +550,6 @@ const AXIS_SX = {
 const SCALE_LABEL_SX = {
   fontSize: 8,
   lineHeight: "10px",
-  color: "text.secondary",
   letterSpacing: "0.06em",
   textTransform: "uppercase",
 } as const;
@@ -525,11 +566,13 @@ const StripMark = ({
   subject,
   label,
   scheme,
+  colours,
 }: {
   band: StripBand<FranchiseEntry>;
   subject: boolean;
   label?: string;
   scheme: Scheme;
+  colours: StripColours;
 }) => {
   const colour = pick(band.fill, scheme);
   const point = band.start === band.end;
@@ -537,6 +580,7 @@ const StripMark = ({
   const centre = band.startPercent + band.widthPercent / 2;
   // Named on the side with the room: past the flip the name would run off the right edge.
   const nameOnRight = band.startPercent < NAME_FLIPS_AT;
+  const boxShadow = ring(subject, colours);
 
   return (
     <>
@@ -550,16 +594,16 @@ const StripMark = ({
             sx={[
               MARK_SX,
               { width: POINT, height: POINT, borderRadius: "50%", transform: "translateX(-50%)" },
-              subject ? RING_SX : SIBLING_SX,
+              !subject && SIBLING_SX,
             ]}
-            style={{ left: `${centre}%`, top: laneTop + (LANE_PITCH - POINT) / 2, backgroundColor: colour }}
+            style={{ left: `${centre}%`, top: laneTop + (LANE_PITCH - POINT) / 2, backgroundColor: colour, boxShadow }}
           />
         ) : (
           <Box
             sx={[
               MARK_SX,
               { height: BAND_HEIGHT, borderRadius: 0.5 },
-              subject ? RING_SX : SIBLING_SX,
+              !subject && SIBLING_SX,
               !band.precise && IMPRECISE_SX,
             ]}
             style={{
@@ -567,6 +611,7 @@ const StripMark = ({
               width: `${band.widthPercent}%`,
               top: laneTop + (LANE_PITCH - BAND_HEIGHT) / 2,
               backgroundColor: colour,
+              boxShadow,
             }}
           />
         )}
@@ -575,11 +620,17 @@ const StripMark = ({
         <Typography
           variant="caption"
           sx={[NAME_SX, HALO_SX, { lineHeight: `${LANE_PITCH}px` }]}
-          style={
-            nameOnRight
-              ? { top: laneTop, left: `calc(${point ? centre : band.startPercent + band.widthPercent}% + 8px)` }
-              : { top: laneTop, right: `calc(${100 - (point ? centre : band.startPercent)}% + 8px)` }
-          }
+          style={{
+            top: laneTop,
+            // The well's own surface: the wash over the ground, so the halo does not read as a
+            // hole cut in the well. Two properties rather than one shorthand, because a colour
+            // written as its own comma-separated layer is not a background image and is dropped.
+            backgroundColor: colours.ground,
+            backgroundImage: `linear-gradient(${colours.wash}, ${colours.wash})`,
+            ...(nameOnRight
+              ? { left: `calc(${point ? centre : band.startPercent + band.widthPercent}% + 8px)` }
+              : { right: `calc(${100 - (point ? centre : band.startPercent)}% + 8px)` }),
+          }}
         >
           {label}
         </Typography>
@@ -591,16 +642,11 @@ const StripMark = ({
 const MARK_SX = { position: "absolute", cursor: "default" } as const;
 
 /**
- * The paper behind a name that sits among bands: on a window a dozen years wide the subject's
+ * The ground behind a name that sits among bands: on a window a dozen years wide the subject's
  * name is longer than the gap beside it, and type over a band is type over a fill it was never
  * checked against.
  */
-const HALO_SX = {
-  paddingX: 0.5,
-  borderRadius: 0.5,
-  backgroundColor: (theme: Theme) => theme.vars.palette.background.paper,
-  zIndex: 2,
-} as const;
+const HALO_SX = { paddingX: 0.5, borderRadius: 0.5, zIndex: 2 } as const;
 
 /**
  * An estimated span dissolves at both ends rather than stopping at one, because a hard edge is a

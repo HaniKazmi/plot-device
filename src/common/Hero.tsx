@@ -1,4 +1,4 @@
-import { Box, Stack } from "@mui/material";
+import { Box } from "@mui/material";
 import type { ReactNode } from "react";
 import {
   CardPanel,
@@ -39,10 +39,13 @@ type HeroStat = PanelStat;
  * `ArtworkAccent` the image publishes. Reading the accent any other way would mean the hero
  * sampling the same image a second time and painting from whichever answer arrived first.
  *
- * The panel is held to the artwork's height, and a title, a subtitle and a row of tiles fill a
- * third of it. The middle is the item's own story: its franchise strip, in the order the series
- * was met, and the two ledger rows its domain leads with. On a phone the panel is only as tall as
- * its own lines, so the strip is dropped there and the rows stay.
+ * The franchise strip is a band across the whole card beneath the artwork and the panel, not a
+ * part of the panel: the panel is held to the artwork's height, and anything that made it taller
+ * would stand the artwork over a band of empty ground. Under both, the strip also has the card's
+ * whole width, which a fifty-entry chain wants. The two ledger rows do sit in the panel, where the
+ * words above and the tiles below leave them room once there is a column wide enough for the title
+ * to take one line; narrower than that they are dropped, since a wrapped title and two rows would
+ * outgrow the picture beside them.
  */
 export const Hero = <T,>(props: {
   item: T;
@@ -56,7 +59,7 @@ export const Hero = <T,>(props: {
   chip?: CardMediaImageProps["chip"];
   /** The item's franchise strip, where it has a franchise to be placed in. */
   strip?: ReactNode;
-  /** The two or three facts the domain puts beside the strip. */
+  /** The two or three facts the domain leads with. */
   rows?: LedgerRow[];
 }) => (
   <props.MediaComponent
@@ -68,6 +71,9 @@ export const Hero = <T,>(props: {
     chip={props.chip}
     cardSx={{
       flexDirection: { xs: "column", md: "row" },
+      // The strip is a third child of the row, given the card's whole width, so it wraps under
+      // the artwork and the panel rather than beside them.
+      flexWrap: "wrap",
       alignItems: "flex-start",
       overflow: "hidden",
     }}
@@ -82,28 +88,33 @@ export const Hero = <T,>(props: {
       display: "block",
     }}
     footerComponent={
-      <CardPanel
-        layout="hero"
-        kicker={props.kicker}
-        title={props.title}
-        titleVariant="h4"
-        subtitle={props.subtitle}
-        stats={props.stats}
-        minHeight={MEDIA_HEIGHT}
-        middle={
-          (props.strip || (props.rows && props.rows.length > 0)) && (
-            <Stack spacing={1}>
-              {props.strip && <Box sx={{ display: { xs: "none", md: "block" } }}>{props.strip}</Box>}
-              {props.rows && props.rows.length > 0 && (
+      <>
+        <CardPanel
+          layout="hero"
+          kicker={props.kicker}
+          title={props.title}
+          titleVariant="h4"
+          subtitle={props.subtitle}
+          stats={props.stats}
+          minHeight={MEDIA_HEIGHT}
+          middle={
+            props.rows &&
+            props.rows.length > 0 && (
+              <Box sx={{ display: { xs: "block", md: "none", lg: "block" } }}>
                 <LedgerList
                   rows={props.rows}
                   columns={{ xs: 1, md: 1 }}
                 />
-              )}
-            </Stack>
-          )
-        }
-      />
+              </Box>
+            )
+          }
+        />
+        {props.strip && (
+          // Stretched to the card's width the way a band across a wrapping row is: with no width
+          // of its own to add to the artwork's and the panel's, and a minimum that spans the row.
+          <Box sx={{ width: 0, minWidth: "100%", paddingX: 2, paddingBottom: 2 }}>{props.strip}</Box>
+        )}
+      </>
     }
   />
 );
