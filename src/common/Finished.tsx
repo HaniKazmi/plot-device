@@ -1,4 +1,5 @@
-import { Box, Card, CardContent, FormGroup, Stack, ToggleButton, ToggleButtonGroup } from "@mui/material";
+import { Box, Card, CardContent, FormGroup, Stack } from "@mui/material";
+import { SegmentedControl, type SegmentOption } from "./SelectionComponents";
 import Grid from "@mui/material/Grid";
 import { GridView } from "@mui/icons-material";
 import { useDeferredValue, useRef, useState, type ReactNode, type RefObject } from "react";
@@ -24,42 +25,14 @@ const sortOptions: FinishedSort[] = ["Date", "Franchise"];
 const densityOptions: FinishedDensity[] = ["Compact", "Large"];
 
 /**
- * How big the wall draws its cards, as two words beside the sort select.
- *
- * Words rather than the icons `IconToggleGroup` renders: the two densities differ in size alone,
- * and a picture of a size is a picture of a grid either way — it needs a legend to say which of
- * the two it means, where "Compact" and "Large" say it outright. `small` because the control
- * shares a header row with a standard-size select and an icon button, and a full-size pair of
- * word buttons is taller than both.
+ * The two densities as the segmented control's options. Words rather than icons: the two differ in
+ * size alone, and a picture of a size is a picture of a grid either way, where "Compact" and
+ * "Large" say it outright.
  */
-const DensityToggle = ({
-  density,
-  setDensity,
-}: {
-  density: FinishedDensity;
-  setDensity: (density: FinishedDensity) => void;
-}) => (
-  <ToggleButtonGroup
-    color="primary"
-    value={density}
-    exclusive
-    size="small"
-    // Null arrives when the current option is pressed again, which would otherwise clear a control
-    // that has no cleared state to fall to.
-    onChange={(_, next: FinishedDensity | null) => next && setDensity(next)}
-    aria-label="Card size"
-  >
-    {densityOptions.map((option) => (
-      <ToggleButton
-        key={option}
-        value={option}
-        sx={{ border: 0 }}
-      >
-        {option}
-      </ToggleButton>
-    ))}
-  </ToggleButtonGroup>
-);
+const DENSITY_OPTIONS: readonly SegmentOption<FinishedDensity>[] = densityOptions.map((option) => ({
+  value: option,
+  label: option,
+}));
 
 /**
  * The wall itself, as a component rather than as JSX inside `Finished`'s `renderContent`.
@@ -211,9 +184,11 @@ const Finished = <U extends FinishedItem>({
               spacing={1}
             >
               {selectBox}
-              <DensityToggle
-                density={density}
-                setDensity={setDensity}
+              <SegmentedControl
+                options={DENSITY_OPTIONS}
+                value={density}
+                onChange={setDensity}
+                ariaLabel="Card size"
               />
               {toggle}
             </Stack>

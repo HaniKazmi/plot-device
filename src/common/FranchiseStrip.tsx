@@ -1,7 +1,8 @@
-import { Box, Stack, ToggleButton, ToggleButtonGroup, Typography, type Theme } from "@mui/material";
+import { Box, Stack, Typography, type Theme } from "@mui/material";
 import { useState, type ReactNode } from "react";
 import { MEDIA, mediumToColour, mediumUnit, pick, type Scheme } from "../utils/types";
 import { INLINE_SWATCH_SIZE, Swatch } from "./Card";
+import { SegmentedControl, type SegmentOption } from "./SelectionComponents";
 import { shortYear, type YearMonthDay } from "./date";
 import type { FranchiseEntry } from "./franchiseUnion";
 import { HoverCardTooltip } from "./HoverCardTooltip";
@@ -31,6 +32,11 @@ export type StripMode = "order" | "time";
  * of the page and starts over on a reload, where it starts on the order.
  */
 let preferredMode: StripMode = "order";
+
+const STRIP_MODES: readonly SegmentOption<StripMode>[] = [
+  { value: "order", label: "Order" },
+  { value: "time", label: "Time" },
+];
 
 /**
  * A franchise on an expanded card or the hero: every entry the reader has met across the four
@@ -87,30 +93,15 @@ export const FranchiseStrip = (props: {
         scheme={scheme}
         control={
           props.mode === undefined && (
-            <ToggleButtonGroup
-              size="small"
-              exclusive
+            <SegmentedControl
+              options={STRIP_MODES}
               value={mode}
-              onChange={(_event, next: StripMode | null) => {
-                if (!next) return;
+              onChange={(next) => {
                 preferredMode = next;
                 setChosen(next);
               }}
-              aria-label="How the franchise is drawn"
-            >
-              <ToggleButton
-                value="order"
-                sx={SEGMENT_SX}
-              >
-                Order
-              </ToggleButton>
-              <ToggleButton
-                value="time"
-                sx={SEGMENT_SX}
-              >
-                Time
-              </ToggleButton>
-            </ToggleButtonGroup>
+              ariaLabel="How the franchise is drawn"
+            />
           )
         }
       />
@@ -134,8 +125,6 @@ export const FranchiseStrip = (props: {
     </Box>
   );
 };
-
-const SEGMENT_SX = { fontSize: 11, paddingY: 0.25, paddingX: 1, textTransform: "none", lineHeight: 1.4 } as const;
 
 /**
  * The strip's own legend: the franchise, then every medium it holds counted in its own unit and
