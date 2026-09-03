@@ -2,6 +2,7 @@ import { Box, Card, CardContent, Stack, useTheme, Typography } from "@mui/materi
 import Grid from "@mui/material/Grid";
 import { Hub } from "@mui/icons-material";
 import { Swatch, TimelineAxis, TimelineCard, INLINE_SWATCH_SIZE, type TimelineBand } from "../common/Card";
+import { FranchiseName } from "../common/FranchiseStrip";
 import { LazyTooltip } from "../common/LazyTooltip";
 import { SectionHeader } from "../common/SectionHeader";
 import type { TimelineTick } from "../common/timelineLayout";
@@ -137,13 +138,10 @@ const CrossingCaption = ({ crossing }: { crossing: Crossing }) => {
       spacing={1}
       sx={{ alignItems: "center", flexWrap: "wrap" }}
     >
-      <Typography
-        variant="caption"
-        noWrap
-        sx={{ fontWeight: 700 }}
-      >
-        {crossing.franchise}
-      </Typography>
+      <FranchiseName
+        franchise={crossing.franchise}
+        scheme={scheme}
+      />
       {crossing.media.map((medium) => (
         <Stack
           key={medium}

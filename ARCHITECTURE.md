@@ -486,7 +486,8 @@ passes, and `common/franchiseContext`'s factory threads the index down to the ca
 The strip on an expanded card and in the hero's panel: every entry of the item's franchise the reader
 has met, across all four media, with the card's own item singled out. It has two readings and a
 switch between them. **Order** is the default — one bead per entry in the order met, evenly spaced
-whatever the dates between, the year stated beneath only where it changes, wrapping like a line of
+whatever the dates between, the year stated beneath only where it changes and no range in the
+caption, since the beads are the order and the years say when; the chain wraps like a line of
 text once the beads would fall closer than their minimum pitch. Time is dropped from the axis
 entirely, which is what keeps a bead the same size on a fifty-entry franchise as on a five-entry
 one; a chain that has to wrap stops each row's line at its first and last bead, so it reads as a
@@ -507,10 +508,14 @@ subtitle and the ledger. What the well gives up is the contract — a medium's f
 tint is no pair the tables checked — so every mark carries a hairline ring in the card's line tone
 and is legible by its shape whatever the fill lands on. Marks wear the medium's fill and nothing more: the platform, status or genre a
 strip could colour by is already stated in the ledger below it, and a second vocabulary on marks a
-few pixels wide is one nobody can read. The subject is set apart by a ring in the ink and a name,
-never by colour, and only where there is context to stand apart from — a standalone show's own
-seasons are all the subject, and ringing every one of them says nothing. A show's card treats every
-season of the show as the subject and names the latest of them.
+few pixels wide is one nobody can read. The subject is set apart by a ring in the ink, never by colour
+and never by a name: a name beside a mark covers its neighbours on a chain of fifty, and the hover
+card names any mark for the asking. A card about one entry rings that entry with a gap of the
+ground and then the ink; a show's card treats every season of the show as the subject, ringing each
+in a solid ring of the ink, and rings the season the card is about — the one it was opened from, or
+the latest — the harder way, so the two read as kin and one of them as the point. The caption names
+the franchise with the swatch its Top list and ledger rows wear, where the shared table holds one,
+and the Omnibus's crossings name theirs the same way.
 
 The entries come from one index built across the four libraries (`common/franchiseUnion.ts`,
 `omnibus/franchiseUnionData.ts`), which is what lets a Star Trek film's card on the Movies tab draw
@@ -688,14 +693,15 @@ days in, the size of its franchise — and each tile is dropped rather than show
 sheet does not hold it. The library's totals stay in the cards below it, which are their single
 home. Only the artwork's height is fixed, so the hero is one height whatever it shows while every
 poster and banner keeps its own shape uncropped. The panel is held to that height, and a title, a
-subtitle and a row of tiles fill a third of it; the middle is the two ledger rows its domain leads
-with, chosen per domain from the same rows the expanded card states in full. The franchise strip
-(§6, Franchise strip), in the order met, is a band across the whole card beneath the artwork and
-the panel rather than a part of the panel: the panel is held to the artwork's height, and a strip
-inside it would make the panel the taller of the two and stand the artwork over a band of empty
-ground, letterboxed inside its own card. Under both, the strip also has the card's whole width,
-which a fifty-entry chain wants. The rows are dropped between `md` and `lg`, where the column
-beside a banner wraps the title and a wrapped title with two rows outgrows the picture beside it.
+subtitle and a row of tiles fill a third of it; the middle is the item's franchise strip (§6,
+Franchise strip), in the order met. The strip is the one thing on the page that places the item
+among its series, where the two ledger facts it could hold instead — a release date, a developer —
+wait a click away in the expanded card, and holding both stands the panel taller than the artwork
+and letterboxes the picture inside its own card. The strip fits because the panel is what the
+artwork's height leaves: a caption line, one row of beads and a row of years is under a third of
+it, and a chain long enough to wrap is given the panel's full width first. `HeroMiddle` names the
+other two arrangements, so swapping to the ledger rows, or to rows in the panel and the strip as a
+band beneath, is one constant.
 
 It renders the domain's own
 `TypedCardMediaImage` rather than a bare image, which is what keeps it in step with every card

@@ -14,9 +14,10 @@ export type FinishedSort = "Date" | "Franchise";
 
 /**
  * How big a card the wall draws. `Compact` is the wall as a library — as many works on a screen as
- * stay legible — and `Large` is the wall as a showcase, a card at the size the hero draws one.
+ * stay legible — `Large` is the wall as a showcase, a card at the size the hero draws one, and
+ * `Full` is one card a row at every width: the wall read one item at a time.
  */
-export type FinishedDensity = "Compact" | "Large";
+export type FinishedDensity = "Compact" | "Large" | "Full";
 
 /** One card's share of the grid's twelve columns, at each width the wall changes its mind at. */
 type GridColumns = Partial<Record<"xs" | "sm" | "md" | "lg" | "xl", number>>;
@@ -42,6 +43,7 @@ type GridColumns = Partial<Record<"xs" | "sm" | "md" | "lg" | "xl", number>>;
 const bannerColumns: Record<FinishedDensity, GridColumns> = {
   Compact: { xs: 6, sm: 4, md: 3, lg: 12 / 5, xl: 2 },
   Large: { xs: 12, sm: 6, md: 4 },
+  Full: { xs: 12 },
 };
 
 /**
@@ -56,6 +58,7 @@ const bannerColumns: Record<FinishedDensity, GridColumns> = {
 const posterColumns: Record<FinishedDensity, GridColumns> = {
   Compact: { xs: 4, sm: 3, md: 2, xl: 12 / 8 },
   Large: { xs: 6, sm: 4, md: 3 },
+  Full: { xs: 12 },
 };
 
 /**

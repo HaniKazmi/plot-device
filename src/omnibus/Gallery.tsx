@@ -171,8 +171,8 @@ const Gallery = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
 /**
  * One shelf: what it is called and how much of the library is on it, then the pictures.
  *
- * The name carries a swatch only where the app paints that field elsewhere, so a genre and a
- * certificate are marked and a franchise is not.
+ * The name carries a swatch only where the app paints that field elsewhere: a genre, a
+ * certificate and a decade always, a franchise where the shared table holds it.
  */
 const Shelf = ({
   group,

@@ -1,6 +1,6 @@
 import { Box, Stack, Typography } from "@mui/material";
 import { useState, type ReactNode } from "react";
-import { MEDIA, mediumToColour, mediumUnit, pick, type Scheme } from "../utils/types";
+import { MEDIA, franchiseToColour, mediumToColour, mediumUnit, pick, type Scheme } from "../utils/types";
 import { useArtworkPalette } from "./artworkPalette";
 import { INLINE_SWATCH_SIZE, Swatch } from "./Card";
 import { SegmentedControl, type SegmentOption } from "./SelectionComponents";
@@ -54,9 +54,10 @@ interface StripColours {
  *
  * Marks wear the medium's fill and nothing more: the platform, status or genre a strip could
  * colour by is already stated in the ledger below it, and a second vocabulary on marks a few
- * pixels wide is one nobody can read. The subject is set apart by a ring and a name, not by
- * colour, and only where there is context to stand apart from — a standalone show's own seasons
- * are all the subject, and ringing every one of them says nothing.
+ * pixels wide is one nobody can read. The subject is set apart by a ring, not by colour or by a
+ * name: a name beside a mark covers its neighbours on a chain of fifty, and the hover card names
+ * the mark for anyone who asks. A card about one entry of a series rings that entry; a show's card
+ * rings every season of the show and, harder, the season the card is about.
  *
  * The strip stands in a well: a wash of the card's own ground, the tone its tiles are lifted
  * with, edged in the card's hairline, so it reads as a part of the card it is in. The theme's
@@ -72,6 +73,12 @@ export const FranchiseStrip = (props: {
   entries: FranchiseEntry[];
   /** The `subject` the card's own item answers; every entry answering it is the subject. */
   subject: string;
+  /**
+   * The one entry the card is about, by its key, where the subject is wider than it — a show's
+   * card is about its latest season, or the one it was opened from. Absent, the subject is the
+   * focus.
+   */
+  focus?: string;
   franchise: string;
   /** Where the context bar's fixed scale opens: the tab's own epoch. */
   epoch: YearMonthDay;
@@ -93,14 +100,16 @@ export const FranchiseStrip = (props: {
   };
 
   const ordered = entries.sortByKey("start", true);
-  const subjects = ordered.filter((entry) => entry.subject === subject);
-  // Whether the subject has anything to stand apart from.
-  const contextual = subjects.length < ordered.length;
+  const markOf = (entry: FranchiseEntry): Mark =>
+    entry.key === props.focus || (props.focus === undefined && entry.subject === subject)
+      ? "focus"
+      : entry.subject === subject
+        ? "subject"
+        : "none";
   const window = stripWindow(ordered);
+  // The order reading needs no range: the beads are the order, and the years beneath say when.
   const range =
-    mode === "order"
-      ? "in the order met"
-      : `${window.from.year} – ${window.to.year >= today.year ? "today" : window.to.year}`;
+    mode === "order" ? undefined : `${window.from.year} – ${window.to.year >= today.year ? "today" : window.to.year}`;
 
   return (
     <Box
@@ -131,16 +140,14 @@ export const FranchiseStrip = (props: {
       {mode === "order" ? (
         <BeadChain
           entries={ordered}
-          subject={subject}
-          contextual={contextual}
+          markOf={markOf}
           scheme={scheme}
           colours={colours}
         />
       ) : (
         <WindowedStrip
           entries={ordered}
-          subject={subject}
-          contextual={contextual}
+          markOf={markOf}
           epoch={epoch}
           today={today}
           scheme={scheme}
@@ -166,7 +173,7 @@ const Caption = ({
 }: {
   franchise: string;
   entries: FranchiseEntry[];
-  range: string;
+  range?: string;
   scheme: Scheme;
   colours: StripColours;
   control: ReactNode;
@@ -176,13 +183,11 @@ const Caption = ({
     spacing={1}
     sx={{ alignItems: "center", flexWrap: "wrap", marginBottom: 0.5 }}
   >
-    <Typography
-      variant="caption"
-      noWrap
-      sx={{ fontWeight: 700 }}
-    >
-      {franchise}
-    </Typography>
+    {/* The franchise wears the swatch its Top list and ledger rows wear, where the table has one. */}
+    <FranchiseName
+      franchise={franchise}
+      scheme={scheme}
+    />
     {MEDIA.map((medium) => {
       const count = entries.filter((entry) => entry.medium === medium).length;
       return (
@@ -202,28 +207,55 @@ const Caption = ({
         )
       );
     })}
-    <Typography
-      variant="caption"
-      style={{ color: colours.muted }}
-    >
-      {range}
-    </Typography>
+    {range && (
+      <Typography
+        variant="caption"
+        style={{ color: colours.muted }}
+      >
+        {range}
+      </Typography>
+    )}
     <Box sx={{ flex: 1 }} />
     {control}
   </Stack>
 );
+
+/** A franchise's name with the swatch the app paints it elsewhere, where the table holds one. */
+export const FranchiseName = ({ franchise, scheme }: { franchise: string; scheme: Scheme }) => {
+  const colour = franchiseToColour({ franchise }, scheme);
+  return (
+    <Stack
+      direction="row"
+      spacing={0.5}
+      sx={{ alignItems: "center", minWidth: 0 }}
+    >
+      {colour && (
+        <Swatch
+          colour={colour}
+          size={INLINE_SWATCH_SIZE}
+        />
+      )}
+      <Typography
+        variant="caption"
+        noWrap
+        sx={{ fontWeight: 700 }}
+      >
+        {franchise}
+      </Typography>
+    </Stack>
+  );
+};
 
 /** A bead, and the one the card is about. */
 const BEAD = 12;
 const SUBJECT_BEAD = 16;
 /** The least a bead and the gap after it take, which is what decides when the chain wraps. */
 const MIN_PITCH = 28;
-/** Rows of the chain: a name above, the bead and its line, a year beneath. */
-const LABEL_HEIGHT = 14;
-const BEAD_ROW = 18;
+/** Rows of the chain: the bead and its line, a year beneath. */
+const BEAD_ROW = 20;
 const YEAR_HEIGHT = 12;
-const ROW_HEIGHT = LABEL_HEIGHT + BEAD_ROW + YEAR_HEIGHT;
-const BEAD_CENTRE = LABEL_HEIGHT + BEAD_ROW / 2;
+const ROW_HEIGHT = BEAD_ROW + YEAR_HEIGHT;
+const BEAD_CENTRE = BEAD_ROW / 2;
 /** Drawn at before the row is measured, which is about a card's width. */
 const UNMEASURED_WIDTH = 1200;
 
@@ -239,14 +271,12 @@ const UNMEASURED_WIDTH = 1200;
  */
 const BeadChain = ({
   entries,
-  subject,
-  contextual,
+  markOf,
   scheme,
   colours,
 }: {
   entries: FranchiseEntry[];
-  subject: string;
-  contextual: boolean;
+  markOf: (entry: FranchiseEntry) => Mark;
   scheme: Scheme;
   colours: StripColours;
 }) => {
@@ -254,9 +284,6 @@ const BeadChain = ({
   const perRow = beadsPerRow(entries.length, width ?? UNMEASURED_WIDTH, MIN_PITCH);
   const rows: FranchiseEntry[][] = [];
   for (let start = 0; start < entries.length; start += perRow) rows.push(entries.slice(start, start + perRow));
-  // The name goes on the latest of the subject's entries: a show's seasons are all the subject,
-  // and one name on the last of them says which show without saying it five times.
-  const named = contextual ? entries.findLast((entry) => entry.subject === subject) : undefined;
 
   return (
     <Box ref={ref}>
@@ -272,9 +299,7 @@ const BeadChain = ({
               <Bead
                 key={entry.key}
                 entry={entry}
-                subject={contextual && entry.subject === subject}
-                label={entry === named ? entry.label : undefined}
-                labelSide={column < row.length / 2 ? "right" : "left"}
+                mark={markOf(entry)}
                 lineLeft={column > 0}
                 lineRight={column < row.length - 1}
                 year={yearShown ? shortYear(entry.start.year) : undefined}
@@ -294,9 +319,7 @@ const LINE_SX = { position: "absolute", top: BEAD_CENTRE - 1, height: 2 } as con
 
 const Bead = ({
   entry,
-  subject,
-  label,
-  labelSide,
+  mark,
   lineLeft,
   lineRight,
   year,
@@ -305,9 +328,7 @@ const Bead = ({
   colours,
 }: {
   entry: FranchiseEntry;
-  subject: boolean;
-  label?: string;
-  labelSide: "left" | "right";
+  mark: Mark;
   lineLeft: boolean;
   lineRight: boolean;
   year?: string;
@@ -316,7 +337,7 @@ const Bead = ({
   colours: StripColours;
 }) => {
   const colour = pick(entry.fill, scheme);
-  const size = subject ? SUBJECT_BEAD : BEAD;
+  const size = mark === "focus" ? SUBJECT_BEAD : BEAD;
 
   return (
     <Box
@@ -350,24 +371,11 @@ const Bead = ({
               borderRadius: "50%",
               cursor: "default",
             },
-            !subject && SIBLING_SX,
+            mark === "none" && SIBLING_SX,
           ]}
-          style={{ width: size, height: size, backgroundColor: colour, boxShadow: ring(subject, colours) }}
+          style={{ width: size, height: size, backgroundColor: colour, boxShadow: ring(mark, colours) }}
         />
       </HoverCardTooltip>
-      {label && (
-        <Typography
-          variant="caption"
-          sx={[
-            NAME_SX,
-            labelSide === "right"
-              ? { left: "50%", marginLeft: `${-size / 2}px` }
-              : { right: "50%", marginRight: `${-size / 2}px` },
-          ]}
-        >
-          {label}
-        </Typography>
-      )}
       {year && (
         <Typography
           variant="caption"
@@ -385,22 +393,23 @@ const Bead = ({
 const SIBLING_SX = { opacity: 0.75 } as const;
 
 /**
- * The ring around a mark. Every mark gets a hairline in the strip's own line tone, so its shape is
- * legible whatever its fill lands on; the subject's is a gap of the ground and then the ink, so it
- * reads against the mark's own fill and against the ground alike — in the ink rather than a colour
- * because the ring means "this one" and nothing else.
+ * What a mark is to the card: the entry it is about, an entry of the same subject — another
+ * season of the card's show — or context.
  */
-const ring = (subject: boolean, colours: StripColours) =>
-  subject ? `0 0 0 2px ${colours.ground}, 0 0 0 3.5px ${colours.ink}` : `0 0 0 1px ${colours.line}`;
+type Mark = "focus" | "subject" | "none";
 
-const NAME_SX = {
-  position: "absolute",
-  top: 0,
-  fontSize: 10,
-  fontWeight: 650,
-  lineHeight: `${LABEL_HEIGHT}px`,
-  whiteSpace: "nowrap",
-} as const;
+/**
+ * The ring around a mark. Every mark gets a hairline in the strip's own line tone, so its shape is
+ * legible whatever its fill lands on. The subject's is a solid ring of the ink, and the focus's a
+ * gap of the ground and then the ink, so the two read as kin and the focus as the one of them — in
+ * the ink rather than a colour because the ring means "this one" and nothing else.
+ */
+const ring = (mark: Mark, colours: StripColours) =>
+  mark === "focus"
+    ? `0 0 0 2px ${colours.ground}, 0 0 0 3.5px ${colours.ink}`
+    : mark === "subject"
+      ? `0 0 0 2px ${colours.ink}`
+      : `0 0 0 1px ${colours.line}`;
 
 const YEAR_SX = {
   position: "absolute",
@@ -416,8 +425,6 @@ const YEAR_SX = {
 const LANE_PITCH = 16;
 const BAND_HEIGHT = 12;
 const POINT = 8;
-/** How far along the window a subject's name is put on its right rather than its left. */
-const NAME_FLIPS_AT = 60;
 const FADED_ENDS = "linear-gradient(to right, transparent, #000 25%, #000 75%, transparent)";
 
 /**
@@ -433,16 +440,14 @@ const FADED_ENDS = "linear-gradient(to right, transparent, #000 25%, #000 75%, t
  */
 const WindowedStrip = ({
   entries,
-  subject,
-  contextual,
+  markOf,
   epoch,
   today,
   scheme,
   colours,
 }: {
   entries: FranchiseEntry[];
-  subject: string;
-  contextual: boolean;
+  markOf: (entry: FranchiseEntry) => Mark;
   epoch: YearMonthDay;
   today: YearMonthDay;
   scheme: Scheme;
@@ -452,7 +457,6 @@ const WindowedStrip = ({
   const { bands, laneCount } = buildStrip(entries, window.from, window.to);
   const ticks = stripYearTicks(window.from, window.to);
   const every = yearLabelEvery(window.to.year - window.from.year + 1);
-  const named = contextual ? bands.findLast((band) => band.subject === subject) : undefined;
 
   // The fixed scale the context bar draws: the tab's epoch to today, opened wider only where the
   // window itself reaches past either end.
@@ -476,8 +480,7 @@ const WindowedStrip = ({
           <StripMark
             key={band.key}
             band={band}
-            subject={contextual && band.subject === subject}
-            label={band === named ? band.label : undefined}
+            mark={markOf(band)}
             scheme={scheme}
             colours={colours}
           />
@@ -556,21 +559,19 @@ const SCALE_LABEL_SX = {
 
 /**
  * One entry on the windowed strip: a band over its days, or a dot where it has none, with the
- * subject ringed and named.
+ * subject ringed.
  *
  * Geometry and fill go in `style`, since they differ per mark and a distinct value reaching `sx`
  * mints an emotion class of its own; what is left in `sx` is the handful of forms a mark takes.
  */
 const StripMark = ({
   band,
-  subject,
-  label,
+  mark,
   scheme,
   colours,
 }: {
   band: StripBand<FranchiseEntry>;
-  subject: boolean;
-  label?: string;
+  mark: Mark;
   scheme: Scheme;
   colours: StripColours;
 }) => {
@@ -578,9 +579,7 @@ const StripMark = ({
   const point = band.start === band.end;
   const laneTop = band.lane * LANE_PITCH;
   const centre = band.startPercent + band.widthPercent / 2;
-  // Named on the side with the room: past the flip the name would run off the right edge.
-  const nameOnRight = band.startPercent < NAME_FLIPS_AT;
-  const boxShadow = ring(subject, colours);
+  const boxShadow = ring(mark, colours);
 
   return (
     <>
@@ -594,7 +593,7 @@ const StripMark = ({
             sx={[
               MARK_SX,
               { width: POINT, height: POINT, borderRadius: "50%", transform: "translateX(-50%)" },
-              !subject && SIBLING_SX,
+              mark === "none" && SIBLING_SX,
             ]}
             style={{ left: `${centre}%`, top: laneTop + (LANE_PITCH - POINT) / 2, backgroundColor: colour, boxShadow }}
           />
@@ -603,7 +602,7 @@ const StripMark = ({
             sx={[
               MARK_SX,
               { height: BAND_HEIGHT, borderRadius: 0.5 },
-              !subject && SIBLING_SX,
+              mark === "none" && SIBLING_SX,
               !band.precise && IMPRECISE_SX,
             ]}
             style={{
@@ -616,37 +615,11 @@ const StripMark = ({
           />
         )}
       </HoverCardTooltip>
-      {label && (
-        <Typography
-          variant="caption"
-          sx={[NAME_SX, HALO_SX, { lineHeight: `${LANE_PITCH}px` }]}
-          style={{
-            top: laneTop,
-            // The well's own surface: the wash over the ground, so the halo does not read as a
-            // hole cut in the well. Two properties rather than one shorthand, because a colour
-            // written as its own comma-separated layer is not a background image and is dropped.
-            backgroundColor: colours.ground,
-            backgroundImage: `linear-gradient(${colours.wash}, ${colours.wash})`,
-            ...(nameOnRight
-              ? { left: `calc(${point ? centre : band.startPercent + band.widthPercent}% + 8px)` }
-              : { right: `calc(${100 - (point ? centre : band.startPercent)}% + 8px)` }),
-          }}
-        >
-          {label}
-        </Typography>
-      )}
     </>
   );
 };
 
 const MARK_SX = { position: "absolute", cursor: "default" } as const;
-
-/**
- * The ground behind a name that sits among bands: on a window a dozen years wide the subject's
- * name is longer than the gap beside it, and type over a band is type over a fill it was never
- * checked against.
- */
-const HALO_SX = { paddingX: 0.5, borderRadius: 0.5, zIndex: 2 } as const;
 
 /**
  * An estimated span dissolves at both ends rather than stopping at one, because a hard edge is a

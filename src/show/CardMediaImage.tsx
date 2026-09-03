@@ -18,12 +18,17 @@ const showStats = (show: Show, scheme: Scheme): CardStat[] => [
   { label: "Status", value: show.status, colour: statusToColour(show, scheme) },
 ];
 
-const ShowCardDetail = ({ show }: { show: Show }) => {
+const ShowCardDetail = ({ show, season }: { show: Show; season?: Season }) => {
   const scheme = useScheme();
 
   return (
     <CardDetailBody
-      strip={<ShowFranchiseStrip show={show} />}
+      strip={
+        <ShowFranchiseStrip
+          show={show}
+          season={season}
+        />
+      }
       stats={showStats(show, scheme)}
       rows={showRows(show, scheme)}
     />
@@ -32,12 +37,20 @@ const ShowCardDetail = ({ show }: { show: Show }) => {
 
 const ShowCardMediaImage = <T extends Show | Season>({ item, ...props }: Parameters<TypedCardMediaImage<T>>[0]) => {
   const show = isShow(item) ? item : item.show;
+  // A season card is about that season; a show card is about the show, with its latest season
+  // as the one the strip picks out.
+  const season = isShow(item) ? undefined : (item as Season);
 
   return (
     <CardMediaImage
       alt={show.name}
       image={show.banner}
-      detailComponent={() => <ShowCardDetail show={show} />}
+      detailComponent={() => (
+        <ShowCardDetail
+          show={show}
+          season={season}
+        />
+      )}
       {...props}
     />
   );
@@ -73,7 +86,11 @@ const seasonEntries = (shows: Show[], today: YearMonthDay): FranchiseEntry[] =>
  * says nothing, and a single-season standalone draws nothing at all. The union answers once all
  * four libraries are here, and the tab's own index answers until then.
  */
-export const ShowFranchiseStrip = ({ show, mode }: { show: Show; mode?: StripMode }) => {
+/**
+ * Every season of the show is the subject, and the season the card is about — or the latest,
+ * for a card about the whole show — is the focus the strip rings harder.
+ */
+export const ShowFranchiseStrip = ({ show, season, mode }: { show: Show; season?: Season; mode?: StripMode }) => {
   const union = useFranchiseUnion(show.franchise);
   const own = useFranchiseShows(show);
   const entries = union ?? seasonEntries(own, CURRENT_PLAINDATE);
@@ -84,6 +101,7 @@ export const ShowFranchiseStrip = ({ show, mode }: { show: Show; mode?: StripMod
     <FranchiseStrip
       entries={entries}
       subject={showSubject(show)}
+      focus={seasonKey(season ?? show.s.at(-1)!)}
       franchise={show.franchise}
       epoch={SHOW_EPOCH}
       today={CURRENT_PLAINDATE}

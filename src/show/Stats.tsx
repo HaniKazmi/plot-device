@@ -180,6 +180,7 @@ const ShowHero = ({ season }: { season: Season }) => {
       strip={
         <ShowFranchiseStrip
           show={season.show}
+          season={season}
           mode="order"
         />
       }

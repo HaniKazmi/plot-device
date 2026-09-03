@@ -22,12 +22,12 @@ import { withAlpha } from "../utils/colourUtils";
 import { shapeToAspect } from "./cardArrangement";
 
 const sortOptions: FinishedSort[] = ["Date", "Franchise"];
-const densityOptions: FinishedDensity[] = ["Compact", "Large"];
+const densityOptions: FinishedDensity[] = ["Compact", "Large", "Full"];
 
 /**
- * The two densities as the segmented control's options. Words rather than icons: the two differ in
- * size alone, and a picture of a size is a picture of a grid either way, where "Compact" and
- * "Large" say it outright.
+ * The densities as the segmented control's options. Words rather than icons: the three differ in
+ * size alone, and a picture of a size is a picture of a grid either way, where "Compact", "Large"
+ * and "Full" say it outright.
  */
 const DENSITY_OPTIONS: readonly SegmentOption<FinishedDensity>[] = densityOptions.map((option) => ({
   value: option,
@@ -85,9 +85,7 @@ const FinishedGrid = <U extends FinishedItem>({
         // Written at render from the same item and sort the order came from, so the marker
         // reads a position off the DOM instead of keeping a parallel list to index into.
         data-bucket={finishedBucket(item, sort) ?? undefined}
-        // The dialog is one card a row at every width: it is the wall read one item at a time,
-        // where the page behind it is the wall read as a library.
-        size={isDialog ? 12 : finishedColumns(landscape, density)}
+        size={finishedColumns(landscape, density)}
         sx={{
           alignSelf: "stretch",
         }}
@@ -167,10 +165,14 @@ const Finished = <U extends FinishedItem>({
   // header it would without one.
   const countWithBorder = [count, borderKey && `border · ${borderKey}`].filter(Boolean).join(" · ") || undefined;
   const [sort, selectBox] = useSelectBox(sortOptions, "Date");
-  // Compact by default, and held for the reader's visit rather than written anywhere: the wall is
-  // the tallest thing on its page, so the size it opens at is what the page is, and a stored
-  // preference would have to be read before the first paint to avoid changing it underneath them.
-  const [density, setDensity] = useState<FinishedDensity>("Compact");
+  // Each view opens at its own size and holds the reader's choice for the visit rather than
+  // writing it anywhere: the wall is the tallest thing on its page, so the size it opens at is
+  // what the page is, and a stored preference would have to be read before the first paint to
+  // avoid changing it underneath them. The page opens on Large, a card at the size the hero draws
+  // one; the dialog opens on Full, the wall read one item at a time, which is what expanding it
+  // asks for.
+  const [density, setDensity] = useState<FinishedDensity>("Large");
+  const [dialogDensity, setDialogDensity] = useState<FinishedDensity>("Full");
 
   const slowData = useDeferredValue(data, []);
   const recent = finishedItems(slowData, sort);
@@ -198,8 +200,8 @@ const Finished = <U extends FinishedItem>({
               {selectBox}
               <SegmentedControl
                 options={DENSITY_OPTIONS}
-                value={density}
-                onChange={setDensity}
+                value={isDialog ? dialogDensity : density}
+                onChange={isDialog ? setDialogDensity : setDensity}
                 ariaLabel="Card size"
               />
               {toggle}
@@ -214,7 +216,7 @@ const Finished = <U extends FinishedItem>({
           dimmed={slowData !== data}
           recent={recent}
           sort={sort}
-          density={density}
+          density={isDialog ? dialogDensity : density}
           colour={colour}
           landscape={landscape}
           keyOf={keyOf}
