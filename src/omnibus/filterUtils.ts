@@ -15,6 +15,7 @@ export interface FilterState extends BaseFilterState<OmniItem, Measure> {
   game: boolean;
   show: boolean;
   movie: boolean;
+  book: boolean;
   genre: string[];
   franchise: string[];
 }
@@ -29,7 +30,7 @@ export type FilterDispatch = FilterDispatchFor<FilterState>;
 export const filters = (state: Omit<FilterState, "filter">): Predicate<OmniItem> => {
   const predicates: Predicate<OmniItem>[] = [];
 
-  // The exported list rather than one written out again, so a fourth medium is switchable here the
+  // The exported list rather than one written out again, so a medium is switchable here the
   // moment it exists rather than passing this predicate unchallenged.
   const shown = media.filter((medium) => state[medium]);
   if (shown.length < media.length) predicates.push((item) => shown.includes(item.medium));
@@ -51,6 +52,7 @@ export const { useFilterReducer, reducer, initialState } = createFilterReducer<O
     game: true,
     show: true,
     movie: true,
+    book: true,
     genre: [],
     franchise: [],
     // Hours is the unit the three media are actually comparable in. Items equates a hundred-hour

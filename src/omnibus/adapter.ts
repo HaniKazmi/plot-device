@@ -1,38 +1,41 @@
-import { CURRENT_YEAR } from "../common/date";
 import type { Year, YearMonthDay, YearNumber } from "../common/date";
 import type { AgeRating } from "../utils/types";
+import type { Book } from "../books/types";
 import type { Movie } from "../movie/types";
 import type { Season, Show } from "../show/types";
 import type { VideoGame } from "../vg/types";
 import { guestFilter as movieGuestFilter } from "../movie/filterUtils";
 import { guestFilter as showGuestFilter } from "../show/filterUtils";
 import { guestFilter as vgGuestFilter } from "../vg/filterUtils";
+import { currentlyReading, bookKey } from "../books/statsData";
 import { latestWatched } from "../movie/statsData";
 import { currentlyWatching, heroSeason } from "../show/statsData";
 import { currentlyPlaying } from "../vg/statsData";
 import { spanKey as gameSpanKey } from "../vg/cardData";
 import { media, type Measure, type Medium } from "./types";
+import { earliestYear as earliestYearOf } from "../common/statsData";
 import "../utils/arrayUtils";
 
 /**
- * The three libraries as the domains model them, before anything is flattened.
+ * The four libraries as the domains model them, before anything is flattened.
  *
- * One record rather than three positional arguments: every function here takes all three, and
- * three same-shaped arrays in a row is an ordering nothing but a type name can defend.
+ * One record rather than four positional arguments: every function here takes all of them, and
+ * four same-shaped arrays in a row is an ordering nothing but a type name can defend.
  */
 export interface Library {
   games: VideoGame[];
   shows: Show[];
   movies: Movie[];
+  books: Book[];
 }
 
 /**
- * One thing watched or played, in the vocabulary the three media share.
+ * One thing watched, played or read, in the vocabulary the four media share.
  *
  * `source` keeps the record it was built from, so a card adapter renders the domain's own artwork
  * and detail panel rather than a second, poorer copy of it. That a `Season` source carries a
  * `show` back-reference is safe here only because **Omnibus writes no cache of its own**: it reads
- * the three domains' caches through their own configs, and the `show` key is dropped and revived
+ * the four domains' caches through their own configs, and the `show` key is dropped and revived
  * by the pair that travels with the Shows config. An `OmniItem` may itself never carry a field
  * named `show`, and needs no replacer/reviver rules, for exactly that reason — the day this tab
  * caches anything, both facts stop holding.
@@ -72,11 +75,16 @@ export interface OmniItem {
    */
   hours: number;
   genre: string;
-  /** The genres beyond the primary one. Empty for a game: the sheet records themes, not genres. */
+  /** The genres beyond the primary one. Empty for a game or a book: those sheets record one. */
   genres: string[];
   franchise: string;
-  rating: AgeRating;
-  source: VideoGame | Season | Movie;
+  /**
+   * Absent for a book: nothing certifies one. Every surface grouping on the certificate drops an
+   * item with none rather than shelving it under a blank — the one category not every medium
+   * records, stated here rather than answered with a rating nobody issued.
+   */
+  rating?: AgeRating;
+  source: VideoGame | Season | Movie | Book;
 }
 
 /**
@@ -93,18 +101,20 @@ export const visibleLibrary = (library: Library, guestMode: boolean): Library =>
         games: library.games.filter(vgGuestFilter),
         shows: library.shows.filter(showGuestFilter),
         movies: library.movies.filter(movieGuestFilter),
+        // Nothing on the Books sheet marks a book for the mode to hide.
+        books: library.books,
       }
     : library;
 
 /**
- * The three libraries as one flat list.
+ * The four libraries as one flat list.
  *
  * Seasons are the unit a show contributes, not the show: a show runs for years and a season is
  * the thing that was actually watched in one of them, which is what makes it comparable to a game
- * beaten or a film seen. The season carries its show's name, genre, franchise and certificate,
- * since those are facts about the show rather than about the season.
+ * beaten, a film seen or a book read. The season carries its show's name, genre, franchise and
+ * certificate, since those are facts about the show rather than about the season.
  */
-export const toOmniItems = ({ games, shows, movies }: Library): OmniItem[] => [
+export const toOmniItems = ({ games, shows, movies, books }: Library): OmniItem[] => [
   ...games.map((game): OmniItem => ({
     medium: "game",
     // The tuple the Games tab already keys a span by: a title on its own repeats across the
@@ -154,6 +164,20 @@ export const toOmniItems = ({ games, shows, movies }: Library): OmniItem[] => [
     rating: movie.rating,
     source: movie,
   })),
+  ...books.map((book): OmniItem => ({
+    medium: "book",
+    // The tuple the Books tab keys a card by: a reread is a second row with the same title, and
+    // the day it was begun is what separates the two.
+    key: `book-${bookKey(book)}`,
+    name: book.name,
+    closeDate: book.endDate,
+    year: (book.endDate ?? book.startDate).year,
+    hours: book.hours,
+    genre: book.genre,
+    genres: [],
+    franchise: book.franchise,
+    source: book,
+  })),
 ];
 
 /**
@@ -187,17 +211,38 @@ export const unionTotals = (items: OmniItem[]) => ({
  * the sheets hold one banner per show and a season has no picture of its own.
  *
  * The browse surfaces are walls of pictures, so an item with none is not on them — the rule
- * `finishedItems` already applies to every domain's library grid.
+ * `finishedItems` already applies to every domain's library grid. A switch rather than a test for
+ * the one medium that differs, so a medium this does not know is a compile error and not a cast.
  */
-export const omniBanner = (item: OmniItem): string | undefined =>
-  item.medium === "show" ? (item.source as Season).show.banner : (item.source as VideoGame | Movie).banner;
+export const omniBanner = (item: OmniItem): string | undefined => {
+  switch (item.medium) {
+    case "show":
+      return (item.source as Season).show.banner;
+    case "game":
+      return (item.source as VideoGame).banner;
+    case "movie":
+      return (item.source as Movie).banner;
+    case "book":
+      // The column is new to the sheet, and a book the sheet has not reached yet has no picture
+      // to stand on a wall — the same absence a game without a banner already answers.
+      return (item.source as Book).banner || undefined;
+  }
+};
 
 /**
  * What the item is called on a card: a season says which season it is, because a strip of six
  * cards all reading the same show name says nothing about what was watched.
  */
-export const omniTitle = (item: OmniItem): string =>
-  item.medium === "show" ? `${item.name} S${(item.source as Season).s}` : item.name;
+export const omniTitle = (item: OmniItem): string => {
+  switch (item.medium) {
+    case "show":
+      return `${item.name} S${(item.source as Season).s}`;
+    case "game":
+    case "movie":
+    case "book":
+      return item.name;
+  }
+};
 
 /**
  * What was finished most recently, newest first.
@@ -215,9 +260,9 @@ export const ofMedium = (items: OmniItem[], medium: Medium) => items.filter((ite
 
 /**
  * What each medium is currently on, by the election its own tab already makes: the game in
- * progress, the show the sheet's Last Watched column marks as current, and the film watched most
- * recently. Nothing is invented here — a medium with no honest answer contributes none, and the
- * band renders the cards it was given.
+ * progress, the show the sheet's Last Watched column marks as current, the film watched most
+ * recently and the book in hand. Nothing is invented here — a medium with no honest answer
+ * contributes none, and the band renders the cards it was given.
  *
  * `visible` decides which media are asked at all, so a medium switched off in the filter drawer
  * cannot headline the page it has been removed from.
@@ -226,19 +271,14 @@ export const electNow = (library: Library, visible: Record<Medium, boolean>) => 
   game: visible.game ? currentlyPlaying(library.games)[0] : undefined,
   show: visible.show ? heroSeason(currentlyWatching(library.shows)) : undefined,
   movie: visible.movie ? latestWatched(library.movies) : undefined,
+  book: visible.book ? currentlyReading(library.books)[0] : undefined,
 });
 
 /** Whether the Now band has anything to say — the same test the rail's chip is built from. */
 export const hasNow = (now: ReturnType<typeof electNow>) => media.some((medium) => now[medium] !== undefined);
 
 /**
- * The first year the union holds anything in, which is the floor the year select offers. Read
- * from the data rather than fixed, because the three sheets start in different years and the
- * union's floor is whichever of them starts first. Falls back to the current year when nothing
- * has survived the filters, since the select then has nothing below it to offer anyway.
+ * The first year the union holds anything in, which is the floor the year select offers: the four
+ * sheets start in different years, and the union's floor is whichever of them starts first.
  */
-export const earliestYear = (items: OmniItem[]): YearNumber =>
-  items.reduce<YearNumber | undefined>(
-    (earliest, item) => (!earliest || item.year < earliest ? item.year : earliest),
-    undefined,
-  ) ?? CURRENT_YEAR;
+export const earliestYear = (items: OmniItem[]): YearNumber => earliestYearOf(items, (item) => item.year);

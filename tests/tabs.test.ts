@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import Tabs, { MoviesTab, OmnibusTab, ShowsTab, VideoGamesTab, otherTabs, tabForPath } from "../src/tabs";
+import Tabs, { BooksTab, MoviesTab, OmnibusTab, ShowsTab, VideoGamesTab, otherTabs, tabForPath } from "../src/tabs";
 
 describe("the tab registry", () => {
-  it("routes Omnibus, Games, Shows and Movies", () => {
-    expect(Tabs.map((tab) => tab.id)).toEqual(["omnibus", "vg", "show", "movies"]);
+  it("routes Omnibus, Games, Shows, Movies and Books", () => {
+    expect(Tabs.map((tab) => tab.id)).toEqual(["omnibus", "vg", "show", "movies", "books"]);
   });
 
   it("gives every tab a distinct id, since the theme cache is keyed on it", () => {
@@ -32,6 +32,7 @@ describe("tabForPath", () => {
     expect(tabForPath("/vg")).toBe(VideoGamesTab);
     expect(tabForPath("/show")).toBe(ShowsTab);
     expect(tabForPath("/movies")).toBe(MoviesTab);
+    expect(tabForPath("/books")).toBe(BooksTab);
     expect(tabForPath("/omnibus")).toBe(OmnibusTab);
   });
 
@@ -56,7 +57,7 @@ describe("tabForPath", () => {
   });
 
   it("falls back to the first tab for a well-formed path naming no tab", () => {
-    expect(tabForPath("/books")).toBe(OmnibusTab);
+    expect(tabForPath("/holidays")).toBe(OmnibusTab);
   });
 
   it("strips exactly one leading slash", () => {
@@ -78,6 +79,7 @@ describe("otherTabs", () => {
       { id: "omnibus", label: "Omnibus" },
       { id: "vg", label: "Games" },
       { id: "movies", label: "Movies" },
+      { id: "books", label: "Books" },
     ]);
   });
 });

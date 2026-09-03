@@ -72,8 +72,9 @@ export const omniBarchartRows = (
     // lookup in turn — three answers to one question that cannot differ.
     .map((item) => ({ item, name: splitName(item, split) }))
     // A row with no value in the split column would open a series named "", which the legend and
-    // the tooltip both render as a blank. Only genre can be empty, and only for a sheet row part
-    // way through being filled in.
+    // the tooltip both render as a blank. Every book answers the certificate split with one — no
+    // certificate exists for it — and is dropped from that split rather than drawn under a blank
+    // legend entry; the header counts the rows drawn, so it says so.
     .filter(({ name }) => name)
     .map(({ item, name }) => ({
       name,

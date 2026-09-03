@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { YearMonthDay } from "../../src/common/date";
-import { toOmniItems, type Library } from "../../src/omnibus/adapter";
+import { toOmniItems } from "../../src/omnibus/adapter";
 import { genreBridge } from "../../src/omnibus/genreBridgeData";
 import { GENRE_NAMES, genreToColour, neutralFill } from "../../src/utils/types";
+import { book } from "../fixtures/books";
+import { library } from "../fixtures/library";
 import { movie } from "../fixtures/movies";
 import { season, show } from "../fixtures/shows";
 import { videoGame } from "../fixtures/vgRows";
-
-const library = (overrides: Partial<Library> = {}): Library => ({ games: [], shows: [], movies: [], ...overrides });
 
 const showWith = (genre: string, minutes: number) => {
   const parent = show({ genre });
@@ -175,5 +175,16 @@ describe("genreBridge", () => {
     expect(rows[0].genre).toBe("Sci-Fi");
     expect(GENRE_NAMES).toContain(rows[0].genre);
     expect(genreToColour(rows[0].genre, "light")).not.toBe(neutralFill("light"));
+  });
+});
+
+describe("books on the bridge", () => {
+  it("gives a genre a book segment sized by its hours, beside the other media's", () => {
+    const rows = genreBridge(
+      toOmniItems(library({ movies: [movie({ genre: "Sci-Fi" })], books: [book({ genre: "Sci-Fi", hours: 12.4 })] })),
+    );
+
+    const media = rows[0].segments.map((segment) => segment.medium);
+    expect(media).toEqual(["movie", "book"]);
   });
 });

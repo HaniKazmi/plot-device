@@ -1,4 +1,4 @@
-import { Functions, LocalMovies, Timer, Tv, VideogameAsset } from "@mui/icons-material";
+import { AutoStories, Functions, LocalMovies, Timer, Tv, VideogameAsset } from "@mui/icons-material";
 import { categoryOptions, franchiseOptions } from "../common/filterOptions";
 import { FilterCategory, FilterDrawer, FilterToggle } from "../common/FilterDrawer";
 import { genreToColour } from "../utils/types";
@@ -16,10 +16,11 @@ const toggles = [
   { toggle: "game", label: "games", Icon: VideogameAsset },
   { toggle: "show", label: "shows", Icon: Tv },
   { toggle: "movie", label: "movies", Icon: LocalMovies },
+  { toggle: "book", label: "books", Icon: AutoStories },
 ] as const;
 
 /**
- * Genre and franchise are the two vocabularies all three media share, and both selects are derived
+ * Genre and franchise are the two vocabularies all four media share, and both selects are derived
  * from the union rather than from any one sheet — the entries appearing in more than one of them
  * are the point of offering the filter here at all.
  */

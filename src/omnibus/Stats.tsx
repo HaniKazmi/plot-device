@@ -7,6 +7,9 @@ import type { YearType } from "../common/filterReducer";
 import { Section, StatBand } from "../common/SectionRail";
 import { StatCard, TotalsBand, VitalsCard, YearVitalsPair } from "../common/Stats";
 import { genreToColour } from "../utils/types";
+import BookCardMediaImage from "../books/CardMediaImage";
+import { bookSubtitle } from "../books/cardData";
+import { bookHeroStats } from "../books/statsData";
 import MovieCardMediaImage from "../movie/CardMediaImage";
 import { movieSubtitle } from "../movie/cardData";
 import { movieHeroStats } from "../movie/statsData";
@@ -15,14 +18,26 @@ import { showSubtitle } from "../show/cardData";
 import { showHeroStats } from "../show/statsData";
 import VgCardMediaImage from "../vg/CardMediaImage";
 import { heroStats } from "../vg/statsData";
-import { MoviesTab, ShowsTab, VideoGamesTab, type Tab } from "../tabs";
+import { BooksTab, MoviesTab, ShowsTab, VideoGamesTab, type Tab } from "../tabs";
 import { electNow, hasNow, measureOf, unionTotals, type OmniItem } from "./adapter";
 import { crossingEntries, type Crossing } from "./crossingsData";
 import type { FilterDispatch } from "./filterUtils";
 import { OMNIBUS_SECTIONS } from "./sections";
 import { media, mediumToColour, mediumToLabel, mediumToShape, type Measure, type Medium } from "./types";
-import { shapeRatioValues, shapeToArrangement, shapeToRatio } from "../common/cardArrangement";
+import { shapeIsExact, shapeToArrangement, shapeToAspect, shapeToRatio } from "../common/cardArrangement";
 import { useScheme } from "../common/useScheme";
+import { useElementWidth } from "../common/useElementWidth";
+import {
+  denseNowGeometry,
+  NOW_BANNER_TEXT_HEIGHT,
+  NOW_CARD_WIDTH,
+  NOW_GAP,
+  NOW_GEOMETRY,
+  NOW_HEIGHT_XS,
+  NOW_PANEL_INSET,
+  NOW_POSTER_ART_WIDTH_XS,
+  type NowGeometry,
+} from "./nowGeometry";
 
 const Stats = ({
   data,
@@ -118,7 +133,7 @@ const Stats = ({
 };
 
 /**
- * What each medium is on right now, side by side — the one view none of the three tabs can show,
+ * What each medium is on right now, side by side — the one view none of the four tabs can show,
  * and the reason the page opens with it rather than with a total.
  *
  * A card's kicker here says only when, where the home tabs' heroes name the fact as well. The chip
@@ -142,131 +157,106 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
     window.scrollTo({ top: 0 });
   };
 
+  // Every medium in flight at once is the one case the row cannot hold at its usual size.
+  const dense = media.every((medium) => now[medium] !== undefined);
+  // Whether four fit on one row is a question of the width the page gives the band and not of
+  // any card, so the band measures it and solves the four-way share from it; where the share
+  // falls under its floor the cards keep their usual size, two and two.
+  const [rowRef, rowWidth] = useElementWidth<HTMLDivElement>();
+  const geometry = (dense && rowWidth !== undefined && denseNowGeometry(rowWidth)) || NOW_GEOMETRY;
+  const oneRow = geometry !== NOW_GEOMETRY;
+
   return (
-    <Box
-      sx={{
-        display: "flex",
-        // Stacked on a phone, where a card is the screen's width and there is no row to be part of.
-        flexDirection: { xs: "column", md: "row" },
-        // A row of one height with the widths following, which is how every strip on this page
-        // holds mixed artwork: an equal-thirds grid gives each card a width it did not ask for, and
-        // the two shapes then reach that width at different heights. Sharing the height and letting
-        // the widths differ is the same trade the other way round, and it is the one that leaves
-        // every picture whole — a poster card comes out near-square and a banner card wider.
-        flexWrap: { md: "wrap" },
-        alignItems: "stretch",
-        gap: 1,
-      }}
-    >
-      {now.game && (
-        <NowCard
-          item={now.game}
-          medium="game"
-          MediaComponent={VgCardMediaImage}
-          onJump={jump(VideoGamesTab)}
-          kicker={`Since ${formatDate(now.game.startDate)}`}
-          title={now.game.name}
-          // The genre alone, like the two cards beside it: this page draws no gameplay
-          // vocabulary, so a game's Now card names the one thing all three media record.
-          subtitle={[
-            { text: now.game.platform },
-            { text: now.game.genre, swatch: genreToColour(now.game.genre, scheme) },
-          ]}
-          // The franchise tile is dropped by passing the game alone. The Franchises section is
-          // where this page states what a franchise holds, and it is drawn from the filtered
-          // union — while the hero is elected from the library and the filters do not narrow it,
-          // so a tile here would quote a number that moves under a control the card ignores.
-          stats={heroStats(now.game, [now.game], CURRENT_PLAINDATE)}
-        />
-      )}
-      {now.show && (
-        <NowCard
-          item={now.show}
-          medium="show"
-          MediaComponent={ShowCardMediaImage}
-          onJump={jump(ShowsTab)}
-          kicker={formatDate(now.show.show.lastWatchedDate!)}
-          title={`${now.show.show.name} S${now.show.s}`}
-          subtitle={showSubtitle(now.show.show, scheme)}
-          // The rate tile stays on the Shows tab's own hero; beside a poster this card's text
-          // column holds two figures comfortably and three crowd it.
-          stats={showHeroStats(now.show, 1, CURRENT_PLAINDATE, { pace: false })}
-        />
-      )}
-      {now.movie && (
-        <NowCard
-          item={now.movie}
-          medium="movie"
-          MediaComponent={MovieCardMediaImage}
-          onJump={jump(MoviesTab)}
-          kicker={formatDate(now.movie.startDate)}
-          title={now.movie.name}
-          subtitle={movieSubtitle(now.movie, scheme)}
-          stats={movieHeroStats(now.movie, 1)}
-        />
-      )}
+    // Measured on a wrapper the cap below does not narrow: the row itself is held to two cards'
+    // width exactly when four do not fit, which is the answer being measured for.
+    <Box ref={rowRef}>
+      <Box
+        sx={{
+          display: "flex",
+          // Stacked on a phone, where a card is the screen's width and there is no row to be part of.
+          flexDirection: { xs: "column", md: "row" },
+          // A row of one height with the widths following, which is how every strip on this page
+          // holds mixed artwork: an equal-thirds grid gives each card a width it did not ask for, and
+          // the two shapes then reach that width at different heights. Sharing the height and letting
+          // the widths differ is the same trade the other way round, and it is the one that leaves
+          // every picture whole — a poster card comes out near-square and a banner card wider.
+          flexWrap: { md: "wrap" },
+          alignItems: "stretch",
+          gap: 1,
+          // Four cards that do not fit one row are two rows of two, never three and one: the row
+          // is held to the width two cards fill, so the third wraps.
+          maxWidth: { md: dense && !oneRow ? 2 * NOW_CARD_WIDTH + NOW_GAP : undefined },
+        }}
+      >
+        {now.game && (
+          <NowCard
+            item={now.game}
+            medium="game"
+            geometry={geometry}
+            MediaComponent={VgCardMediaImage}
+            onJump={jump(VideoGamesTab)}
+            kicker={`Since ${formatDate(now.game.startDate)}`}
+            title={now.game.name}
+            // The genre alone, like the two cards beside it: this page draws no gameplay
+            // vocabulary, so a game's Now card names the one thing all three media record.
+            subtitle={[
+              { text: now.game.platform },
+              { text: now.game.genre, swatch: genreToColour(now.game.genre, scheme) },
+            ]}
+            // The franchise tile is dropped by passing the game alone. The Franchises section is
+            // where this page states what a franchise holds, and it is drawn from the filtered
+            // union — while the hero is elected from the library and the filters do not narrow it,
+            // so a tile here would quote a number that moves under a control the card ignores.
+            stats={heroStats(now.game, [now.game], CURRENT_PLAINDATE)}
+          />
+        )}
+        {now.show && (
+          <NowCard
+            item={now.show}
+            medium="show"
+            geometry={geometry}
+            MediaComponent={ShowCardMediaImage}
+            onJump={jump(ShowsTab)}
+            kicker={formatDate(now.show.show.lastWatchedDate!)}
+            title={`${now.show.show.name} S${now.show.s}`}
+            subtitle={showSubtitle(now.show.show, scheme)}
+            // The rate tile stays on the Shows tab's own hero; beside a poster this card's text
+            // column holds two figures comfortably and three crowd it.
+            stats={showHeroStats(now.show, 1, CURRENT_PLAINDATE, { pace: false })}
+          />
+        )}
+        {now.movie && (
+          <NowCard
+            item={now.movie}
+            medium="movie"
+            geometry={geometry}
+            MediaComponent={MovieCardMediaImage}
+            onJump={jump(MoviesTab)}
+            kicker={formatDate(now.movie.startDate)}
+            title={now.movie.name}
+            subtitle={movieSubtitle(now.movie, scheme)}
+            stats={movieHeroStats(now.movie, 1)}
+          />
+        )}
+        {now.book && (
+          <NowCard
+            item={now.book}
+            medium="book"
+            geometry={geometry}
+            MediaComponent={BookCardMediaImage}
+            onJump={jump(BooksTab)}
+            kicker={`Since ${formatDate(now.book.startDate)}`}
+            title={now.book.name}
+            subtitle={bookSubtitle(now.book, scheme)}
+            // Two tiles, as the show card beside it carries: the column beside a cover holds two and
+            // wraps a third under them, and the rest stay on the Books tab's own hero.
+            stats={bookHeroStats(now.book, CURRENT_PLAINDATE, "card")}
+          />
+        )}
+      </Box>
     </Box>
   );
 };
-
-/** The row's one height, and the column of words a poster card carries beside its picture. */
-const NOW_HEIGHT = 380;
-const NOW_TEXT_WIDTH = 176;
-
-/**
- * The same band on a phone, where the three cards are a column rather than a row.
- *
- * A card that fills the width is a card as tall as its own artwork: at 375px a full-bleed poster
- * stands 550px, and three of them put the band's last figure nearly two screens below the first —
- * a page that opens on what is in flight instead opens on one picture. Seating the words beside the
- * artwork at a height the caller picks is what the arrangement rule is for (§6); it is applied by
- * shape at every other width and by shape *and* width here, because the constraint a phone adds is
- * the one the rule cannot see.
- *
- * A banner keeps its words underneath at every width. Beside a 16:9 picture at this height there
- * are nineteen pixels of column left, and the arrangement exists to give each shape the axis it has
- * room on.
- */
-const NOW_HEIGHT_XS = 200;
-const NOW_POSTER_ART_WIDTH_XS = Math.round(NOW_HEIGHT_XS * shapeRatioValues.portrait);
-
-/**
- * The band's geometry: one width and one height for every card in the row.
- *
- * The widths are stated rather than left to the artwork's own pixels for two reasons. A flex row
- * asks an item how wide it wants to be before any height is known, and a picture asked that answers
- * with its file's width — a 680px poster then claims 680px and drags the row past 1,000 tall. And a
- * file that is off its declared ratio would stand the two poster cards at different sizes for a
- * reason no reader can see.
- *
- * One width is the constraint everything else here follows from, and the two shapes meet it in
- * opposite ways:
- *
- * - a poster card is a full-height poster — the height at the poster's own ratio — plus a text
- *   column, and that sum is the width;
- * - the banner card is the same width spent the other way round: its picture spans the card, so the
- *   width fixes the picture's height at 16:9 and the panel gets whatever the row's height leaves.
- *
- * That leaves the banner's panel a stated budget rather than a measured one, which is why its card
- * carries no subtitle and why its title cannot wrap: at this width the words have to fit 136px, and
- * a picture that gave way instead would be letterboxed inside a card the row had already sized.
- */
-const NOW_POSTER_ART_WIDTH = Math.round(NOW_HEIGHT * shapeRatioValues.portrait);
-const NOW_CARD_WIDTH = NOW_POSTER_ART_WIDTH + NOW_TEXT_WIDTH;
-const NOW_BANNER_ART_HEIGHT = Math.round(NOW_CARD_WIDTH / shapeRatioValues.landscape);
-const NOW_BANNER_TEXT_HEIGHT = NOW_HEIGHT - NOW_BANNER_ART_HEIGHT;
-
-/**
- * What every panel in the band gives up so that 136 holds a kicker, a title, a subtitle and a
- * figure.
- *
- * The inset and the tile size are spent on all three cards rather than on the banner alone. The row
- * is read across its figures — the tiles share a baseline and a size — so a tile shrunk on one card
- * and not the other two would trade the band's own consistency for the banner's fit. At 8 above and
- * below, with a 48px compact tile, the banner's kicker, title, subtitle and figure come to the
- * budget exactly, and the poster cards carry the same tiles above the same edge.
- */
-const NOW_PANEL_INSET = 1;
 
 /**
  * One medium's current item.
@@ -284,22 +274,25 @@ const NowCard = <T,>(props: {
   title: string;
   subtitle: PanelSubtitlePart[];
   stats: PanelStat[];
+  /** The band's one size, from `md` up; below it a card is the screen's width. */
+  geometry: NowGeometry;
 }) => {
   const scheme = useScheme();
 
   const shape = mediumToShape(props.medium);
   const beside = shapeToArrangement(shape) === "beside";
+  const geometry = props.geometry;
 
   return (
     <Box
       sx={{
         flex: "0 0 auto",
         // One width for every card in the band, which each shape then spends its own way.
-        width: { xs: "100%", md: NOW_CARD_WIDTH },
+        width: { xs: "100%", md: geometry.cardWidth },
         maxWidth: "100%",
         // A floor and not a fixed height, so a title that runs to another line grows the row rather
         // than being clipped by it; the cards stretch together, so they still share one height.
-        minHeight: { xs: beside ? NOW_HEIGHT_XS : undefined, md: NOW_HEIGHT },
+        minHeight: { xs: beside ? NOW_HEIGHT_XS : undefined, md: geometry.height },
         display: "flex",
       }}
     >
@@ -347,25 +340,43 @@ const NowCard = <T,>(props: {
                 "& > .MuiCardContent-root": { flex: "0 0 auto" },
               }),
         }}
-        sx={{
-          // Sized from the shape every artwork of this kind is drawn at, never from the file's own
-          // pixels, so the two poster cards are identical and an off-size file cannot make one of
-          // them wider than the other. `contain` is what keeps such a file uncropped until it is
-          // redrawn; artwork that matches the ratio fills the box exactly and nothing is letterboxed.
-          aspectRatio: shapeToRatio(shape),
-          objectFit: "contain",
-          display: "block",
-          ...(beside
-            ? // Its column exactly, and the whole height of the row beside the words.
-              {
-                width: { xs: NOW_POSTER_ART_WIDTH_XS, md: NOW_POSTER_ART_WIDTH },
-                height: { xs: "100%", md: "100%" },
+        sx={
+          shapeIsExact(shape)
+            ? {
+                // Sized from the shape every artwork of this kind is drawn at, never from the
+                // file's own pixels, so the two poster cards are identical and an off-size file
+                // cannot make one of them wider than the other. `contain` is what keeps such a
+                // file uncropped until it is redrawn; artwork that matches the ratio fills the box
+                // exactly and nothing is letterboxed.
+                aspectRatio: shapeToRatio(shape),
+                objectFit: "contain",
+                display: "block",
+                ...(beside
+                  ? // Its column exactly, and the whole height of the row beside the words.
+                    {
+                      width: { xs: NOW_POSTER_ART_WIDTH_XS, md: geometry.posterArtWidth },
+                      height: { xs: "100%", md: "100%" },
+                    }
+                  : // The card's own width at 16:9, so the banner fills it edge to edge with
+                    // nothing letterboxed and nothing cropped — the height follows the width
+                    // rather than being whatever the words left over.
+                    {
+                      width: "100%",
+                      height: { xs: "auto", md: geometry.bannerArtHeight },
+                    }),
               }
-            : // The card's own width at 16:9, so the banner fills it edge to edge with nothing
-              // letterboxed and nothing cropped — the height follows the width rather than being
-              // whatever the words left over.
-              { width: "100%", height: { xs: "auto", md: NOW_BANNER_ART_HEIGHT } }),
-        }}
+            : {
+                // A cover's ratio is not one every cover holds, so it is pinned on the row's height
+                // and takes whatever width its file has: a cover a few percent off 2:3 stands a few
+                // pixels wider or narrower, uncropped and unletterboxed, and the text column beside
+                // it gives up or gains those pixels. The reservation stands in only until the
+                // picture has loaded, which keeps the card the right size to within that margin.
+                aspectRatio: shapeToAspect(shape),
+                display: "block",
+                width: "auto",
+                height: { xs: NOW_HEIGHT_XS, md: geometry.height },
+              }
+        }
         footerComponent={
           <CardPanel
             // Held to a height its content did not choose, on every card in the band.

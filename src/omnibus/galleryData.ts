@@ -10,6 +10,7 @@ import {
   type Colour,
   type Scheme,
 } from "../utils/types";
+import type { Book } from "../books/types";
 import type { Movie } from "../movie/types";
 import type { Season } from "../show/types";
 import { measureOf, omniBanner, type OmniItem } from "./adapter";
@@ -20,9 +21,11 @@ import "../utils/mapUtils";
 /**
  * The ways the gallery groups the union.
  *
- * Every one is a field all three media record, which is what a shelf shared between them has to be
- * — a category one medium answers `""` to would drop that medium out of the wall silently, since
- * `groupByCategory` skips empty values.
+ * Every one but rating is a field all four media record, which is what a shelf shared between them
+ * has to be — a category one medium answers `""` to drops that medium out of the wall, since
+ * `groupByCategory` skips empty values. Rating is the deliberate exception: nothing certifies a
+ * book, so books are absent from the rating shelves rather than shelved under a certificate nobody
+ * issued, and `galleryValue` answers `""` for them on purpose.
  */
 export const GALLERY_CATEGORIES = ["genre", "franchise", "rating", "decade"] as const;
 
@@ -65,7 +68,7 @@ export const galleryValue = (item: OmniItem, category: GalleryCategory): string 
     case "franchise":
       return item.franchise;
     case "rating":
-      return ageRatingBand(item.rating);
+      return item.rating ? ageRatingBand(item.rating) : "";
     case "decade":
       return releaseDecade(item.year);
   }
@@ -73,8 +76,8 @@ export const galleryValue = (item: OmniItem, category: GalleryCategory): string 
 
 /**
  * The colour a shelf is named in, from the vocabulary the app already speaks for that field — a
- * genre, a certificate, a decade, a franchise. All four are shared across the three sheets, so a
- * shelf here wears exactly what the same value wears on its home tab.
+ * genre, a certificate, a decade, a franchise. Each is the vocabulary its home tabs draw, so a
+ * shelf here wears exactly what the same value wears there.
  */
 export const galleryColour = (name: string, category: GalleryCategory, scheme: Scheme): Colour | undefined => {
   switch (category) {
@@ -109,7 +112,8 @@ export const galleryItems = (items: OmniItem[]): OmniItem[] => items.filter((ite
  * genre shelf as six copies of the same artwork and crowd every other show off the strip. Shows key
  * on the parent record itself, which is exact: every season of one show holds the same object. A
  * film keys on its title and release, so a rewatch joins the first viewing while a remake of the
- * same name stays a work of its own. A game is already one row per work and keys on that row.
+ * same name stays a work of its own. A game is already one row per work and keys on that row, and
+ * so is a book: a reread is a second row, and it joins the first the way a film's rewatch does.
  */
 const workOf = (item: OmniItem): unknown => {
   switch (item.medium) {
@@ -118,6 +122,10 @@ const workOf = (item: OmniItem): unknown => {
     case "movie": {
       const movie = item.source as Movie;
       return `${movie.name}-${movie.releaseDate}`;
+    }
+    case "book": {
+      const book = item.source as Book;
+      return `${book.name}-${book.releaseDate}`;
     }
     case "game":
       return item.source;

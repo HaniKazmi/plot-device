@@ -4,6 +4,12 @@ import { Stack } from "@mui/material";
 import { franchiseIndex } from "../common/franchiseIndex";
 import { Section, SectionRail } from "../common/SectionRail";
 import { stripYearTicks } from "../common/timelineStripData";
+import {
+  bookEpoch,
+  bookFranchise,
+  BookEpochProvider,
+  FranchiseContext as BookFranchiseContext,
+} from "../books/franchiseContext";
 import { FranchiseContext as MovieFranchiseContext, movieFranchise } from "../movie/franchiseContext";
 import { FranchiseContext as ShowFranchiseContext, showFranchise } from "../show/franchiseContext";
 import { FranchiseContext as VgFranchiseContext, vgFranchise } from "../vg/franchiseContext";
@@ -23,12 +29,14 @@ import { OMNIBUS_SECTIONS, omnibusSections } from "./sections";
 import type { FilterDispatch, FilterState } from "./filterUtils";
 
 /**
- * The three franchise indexes the domains' own cards read.
+ * The four franchise indexes the domains' own cards read, and the scale the Books strips draw on.
  *
  * A card opened from this tab is the domain's card, strip and all, and the strip asks its
  * domain's context for the rest of the series. Without the providers every strip here would hold
  * the one item it was opened from — a wrong answer rather than a missing one. The indexes are
- * built from the guest-filtered libraries, which is the one filter a strip must honour.
+ * built from the guest-filtered libraries, which is the one filter a strip must honour. The Books
+ * epoch travels the same way for the same reason: a book's strip on this tab has to open where it
+ * opens on its own.
  */
 const SuspenseBlock = ({
   library,
@@ -46,21 +54,25 @@ const SuspenseBlock = ({
   <VgFranchiseContext.Provider value={franchiseIndex(library.games, vgFranchise)}>
     <ShowFranchiseContext.Provider value={franchiseIndex(library.shows, showFranchise)}>
       <MovieFranchiseContext.Provider value={franchiseIndex(library.movies, movieFranchise)}>
-        <Graphs
-          library={library}
-          data={filteredData}
-          // The floor of the year select, read from the whole union rather than from what the
-          // filters left: derived from the filtered data, picking "In 2020" would leave 2020 the
-          // earliest year on offer and strand the reader in it.
-          earliestYear={earliestYear(unfilteredData)}
-          filterState={filterState}
-          filterDispatch={filterDispatch}
-        />
-        <Filter
-          state={filterState}
-          dispatch={filterDispatch}
-          data={unfilteredData}
-        />
+        <BookFranchiseContext.Provider value={franchiseIndex(library.books, bookFranchise)}>
+          <BookEpochProvider value={bookEpoch(library.books)}>
+            <Graphs
+              library={library}
+              data={filteredData}
+              // The floor of the year select, read from the whole union rather than from what the
+              // filters left: derived from the filtered data, picking "In 2020" would leave 2020
+              // the earliest year on offer and strand the reader in it.
+              earliestYear={earliestYear(unfilteredData)}
+              filterState={filterState}
+              filterDispatch={filterDispatch}
+            />
+            <Filter
+              state={filterState}
+              dispatch={filterDispatch}
+              data={unfilteredData}
+            />
+          </BookEpochProvider>
+        </BookFranchiseContext.Provider>
       </MovieFranchiseContext.Provider>
     </ShowFranchiseContext.Provider>
   </VgFranchiseContext.Provider>
@@ -81,7 +93,7 @@ const Graphs = memo(
     filterDispatch: FilterDispatch;
   }) => {
     // The charts and the browse surfaces re-render at lower priority, so a filter toggle answers
-    // at once on a page composing three libraries; the bands above them read the fresh array, the
+    // at once on a page composing four libraries; the bands above them read the fresh array, the
     // way every other tab splits the two.
     const deferredData = useDeferredValue(data, []);
     const tabs = useOtherTabs();

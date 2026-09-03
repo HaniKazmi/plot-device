@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CURRENT_PLAINDATE, Year, YearMonthDay } from "../../src/common/date";
-import { toOmniItems, type Library } from "../../src/omnibus/adapter";
+import { toOmniItems } from "../../src/omnibus/adapter";
 import {
   GALLERY_CATEGORIES,
   GALLERY_SORTS,
@@ -11,11 +11,11 @@ import {
   galleryValue,
 } from "../../src/omnibus/galleryData";
 import { ageRatingToColour, genreToColour } from "../../src/utils/types";
+import { book } from "../fixtures/books";
+import { library } from "../fixtures/library";
 import { movie } from "../fixtures/movies";
 import { season, show } from "../fixtures/shows";
 import { videoGame } from "../fixtures/vgRows";
-
-const library = (overrides: Partial<Library> = {}): Library => ({ games: [], shows: [], movies: [], ...overrides });
 
 // What an open item is dated at, which is what the app passes. Every fixture below closes, so
 // nothing here is compared against it — a shelf's order is read off the dates the rows carry.
@@ -329,5 +329,30 @@ describe("ordering the shelves", () => {
 
       expect(groups.map((group) => group.name).toSorted()).toEqual(["2010s", "2020s"]);
     }
+  });
+});
+
+describe("books on the wall", () => {
+  it("shelves a book by genre, franchise and decade, and leaves it off the rating shelves", () => {
+    // Nothing certifies a book, so the rating category answers "" and `groupByCategory` drops it —
+    // the one category not every medium records, stated rather than shelved under a blank.
+    const [item] = toOmniItems(library({ books: [book({ genre: "Sci-Fi", franchise: "Cosmere" })] }));
+
+    expect(galleryValue(item, "genre")).toBe("Sci-Fi");
+    expect(galleryValue(item, "franchise")).toBe("Cosmere");
+    expect(galleryValue(item, "decade")).toBe("2020s");
+    expect(galleryValue(item, "rating")).toBe("");
+  });
+
+  it("stands a reread book on a shelf once, where two reads are two rows of one work", () => {
+    const items = toOmniItems(
+      library({
+        books: [book({ startDate: YearMonthDay.get(2020, 1, 1), endDate: YearMonthDay.get(2020, 1, 9) }), book()],
+      }),
+    );
+
+    const [shelf] = galleryGroups(galleryItems(items), "genre", "Hours", "size", TODAY);
+
+    expect(shelf.all).toHaveLength(1);
   });
 });

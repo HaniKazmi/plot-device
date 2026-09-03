@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Shows from "./show/Show";
 import VideoGames from "./vg/vg";
 import Movies from "./movie/Movie";
+import Books from "./books/Books";
 import Omnibus from "./omnibus/Omnibus";
 
 export interface Tab {
@@ -41,7 +42,7 @@ export const VideoGamesTab: SheetTab = {
   range: "Games List!A:Z",
   component: VideoGames,
   primaryColour: "#d019ca",
-  secondaryColour: "#00bb7e",
+  secondaryColour: "#14bb7c",
 };
 
 export const ShowsTab: SheetTab = {
@@ -51,7 +52,7 @@ export const ShowsTab: SheetTab = {
   range: "Shows!A:Z",
   component: Shows,
   primaryColour: "#127d9c",
-  secondaryColour: "#ff77a0",
+  secondaryColour: "#fe799b",
 };
 
 export const MoviesTab: SheetTab = {
@@ -61,7 +62,27 @@ export const MoviesTab: SheetTab = {
   range: "Movies!A:Z",
   component: Movies,
   primaryColour: "#de4412",
-  secondaryColour: "#4099ff",
+  secondaryColour: "#499dfe",
+};
+
+/**
+ * The Books sheet: one row per book, full dates throughout, and a `Banner` column holding a cover
+ * URL the way the other sheets' do. The range runs to AZ because the sheet carries thirty-odd
+ * provenance columns the converter never reads, and the ones it does read sit among them.
+ *
+ * The primary is a gold at hue 98 — 3.87 on the white paper and 4.18 on the dark, and 16.7 from
+ * the nearest of the other nine values. `mediumColours.book` in `omnibus/types.ts` is the matching
+ * medium fill, and the two are chosen together: a book is this gold whether it is a bar on the
+ * Omnibus or the bar over it.
+ */
+export const BooksTab: SheetTab = {
+  id: "books",
+  name: "Books",
+  spreadsheetId: "1qVG5hvXnOynXR4vmiLr6BiOd1CF3jzoytDBwSmeCnwA",
+  range: "Books!A:AZ",
+  component: Books,
+  primaryColour: "#958112",
+  secondaryColour: "#ca82fe",
 };
 
 /**
@@ -84,23 +105,29 @@ export const MoviesTab: SheetTab = {
  * alongside every other table, which is the only floor under a colour that lives out here on a
  * `Tab` rather than in one of the tables.
  *
- * The medium trio in `omnibus/types.ts` is chosen from the same five hues, by hand — nothing
+ * The medium quartet in `omnibus/types.ts` is chosen from the same five hues, by hand — nothing
  * derives one from the other, so moving a tab's primary means moving its medium fill in the same
  * edit.
  *
  * A secondary is **not** its primary's complement. The primaries are spread around the wheel, so
  * 180° from any one of them lands on another: complements put the Movies accent 3.2 dE from the
- * Shows app bar. Each secondary instead takes the midpoint of a gap *between* two primaries, so the
- * eight interleave — no accent reads as another tab's bar, and the closest of all eight pairs is
- * 16.2 dE. Each still lands over 31 dE from its own primary, which is what `NavBar`'s indicator
- * needs: it is drawn on that primary.
+ * Shows app bar. Each secondary instead sits in a gap *between* two primaries, so the ten
+ * interleave — no accent reads as another tab's bar, and the closest of all ten pairs is 16.7 dE,
+ * in OKLab distance ×100. Each still lands over 31 dE from its own primary, which is what
+ * `NavBar`'s indicator needs: it is drawn on that primary.
+ *
+ * The five are solved together rather than one at a time. Books' gap, Omnibus→Games, is 45° wide
+ * where the other four span 61° to 126°, and a value seated in it with the other four accents held
+ * fixed reaches only 14.1 from the Omnibus bar. Every accent moving within its own gap is what
+ * clears the floor for all five: the values here are the joint solution, and re-solving any one of
+ * them alone gives up the floor for the pair it sits nearest.
  */
 export const OmnibusTab: Tab = {
   id: "omnibus",
   name: "Omnibus",
   component: Omnibus,
   primaryColour: "#7553ff",
-  secondaryColour: "#ee9300",
+  secondaryColour: "#ef9716",
 };
 
 /**
@@ -108,28 +135,7 @@ export const OmnibusTab: Tab = {
  * `Tabs[0].component` for the index route, and `tabForPath` falls back to `tabs[0]` for any path
  * that matches no tab id, root included.
  */
-/**
- * Reserved for the Books tab, so the wheel it comes from stays one decision.
- *
- * The primary is `#958112`, a gold at hue 98 — 3.87 on the white paper and 4.18 on the dark, and
- * 16.2 dE from the nearest of the eight values in use, which is the floor the others hold. It is
- * written here rather than as a `Tab` because a `Tab` reaches the router and the nav bar: the
- * array below generates both, so an entry with no sheet and no component behind it is a route that
- * renders nothing. `BOOK_FILL` in `omnibus/types.ts` is the matching medium fill, and the two are
- * chosen together — a book is this gold whether it is a bar on the Omnibus or the bar over it.
- *
- * **The secondary is not derivable yet, and picking one by hand would break the rule above.** The
- * four in use each sit on a gap midpoint, and they were placed across five primaries including this
- * one, so the gap they leave is Omnibus→Games at 45° — the narrowest of the five, where the other
- * four span 61° to 126°. Nothing in it reaches the floor: its midpoint at hue 308 gets 11.4 dE from
- * the Games bar, and the best value anywhere in the gap is `#bc71ff`, still only 14.1. Adding Books
- * therefore means re-solving all five secondaries together, which moves three colours already in
- * use — that is the real cost of the tab, and it is cheaper to pay once when the sheet exists than
- * to seat a ninth value at 14.1 now and inherit it.
- */
-export const BOOKS_PRIMARY = "#958112";
-
-const Tabs: Tab[] = [OmnibusTab, VideoGamesTab, ShowsTab, MoviesTab];
+const Tabs: Tab[] = [OmnibusTab, VideoGamesTab, ShowsTab, MoviesTab, BooksTab];
 
 /**
  * The tab a route belongs to, falling back to the first one.

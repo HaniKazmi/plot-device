@@ -1,6 +1,6 @@
 # Plot Device
 
-Plot Device is a personal data dashboard and media consumption tracker built with React, TypeScript, and Vite. It reads tracking data directly from Google Sheets and renders it as interactive Highcharts visualisations for Video Games, TV Shows and Movies, plus an Omnibus tab that composes all three into one cross-media view.
+Plot Device is a personal data dashboard and media consumption tracker built with React, TypeScript, and Vite. It reads tracking data directly from Google Sheets and renders it as interactive Highcharts visualisations for Video Games, TV Shows, Movies and Books, plus an Omnibus tab that composes all four into one cross-media view.
 
 There is no backend and no database — a spreadsheet _is_ the storage layer, and every fetch, parse, aggregation and render happens in the browser. The deployed site is a static bundle on GitHub Pages.
 
@@ -10,8 +10,8 @@ There is no backend and no database — a spreadsheet _is_ the storage layer, an
 
 - **Google Sheets as a backend** — reads via the Sheets API with a read-only scope; the app never writes.
 - **Data visualisation** — stat cards, a packed SVG timeline, sunburst hierarchies you can re-nest at runtime, and bar/line/bump charts, powered by [Highcharts](https://www.highcharts.com/).
-- **Media tracking** — Video Games, Shows and Movies, each with its own model, filters and theme colour.
-- **Omnibus** — a fourth tab, and the one the app opens on, composing the other three's own data into a cross-media Now band, totals, a recently-finished list, a by-year chart with a Totals/Share/Cumulative/Rank view switch, a browsable gallery, and a franchise timeline.
+- **Media tracking** — Video Games, Shows, Movies and Books, each with its own model, filters and theme colour.
+- **Omnibus** — a fifth tab, and the one the app opens on, composing the other four's own data into a cross-media Now band, totals, a recently-finished list, a by-year chart with a Totals/Share/Cumulative/Rank view switch, a browsable gallery, and a franchise timeline.
 - **Client-side rendering** — Google Identity Services plus `gapi`, authenticating and fetching straight from the browser.
 - **Cache-first loading** — the dashboard paints from `localStorage` before authentication completes, then refreshes.
 
@@ -88,7 +88,8 @@ src/
   common/              domain-blind chart shells, date model, data hook
   utils/               prototype extensions, branded types, colour extraction
   vg/ show/ movie/     per-domain model, converter, filters, adapters
-  omnibus/             composes vg/show/movie's own data; no sheet of its own
+  books/               the same shape over the Books sheet
+  omnibus/             composes the four domains' own data; no sheet of its own
 tests/                 mirrors src/, plus fixtures/ and an architecture guard
 extension/             standalone Chrome extension, outside the Vite build
 ```

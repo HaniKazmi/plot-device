@@ -12,15 +12,14 @@ import {
   toOmniItems,
   unionTotals,
   visibleLibrary,
-  type Library,
 } from "../../src/omnibus/adapter";
 import { measureOf as movieMeasureOf } from "../../src/movie/statsData";
 import { measureOf as showMeasureOf } from "../../src/show/statsData";
+import { book } from "../fixtures/books";
+import { library } from "../fixtures/library";
 import { movie } from "../fixtures/movies";
 import { season, show } from "../fixtures/shows";
 import { videoGame } from "../fixtures/vgRows";
-
-const library = (overrides: Partial<Library> = {}): Library => ({ games: [], shows: [], movies: [], ...overrides });
 
 /**
  * A show holding the seasons described, with the totals rolled up into the parent the way the
@@ -326,7 +325,7 @@ describe("electing what each medium is on now", () => {
   watching.s[0].lastWatchedDate = YearMonthDay.get(2026, 2, 1);
   watching.lastWatchedDate = watching.s[0].lastWatchedDate;
   const latest = movie({ startDate: YearMonthDay.get(2026, 2, 3) });
-  const all = { game: true, show: true, movie: true };
+  const all = { game: true, show: true, movie: true, book: true };
 
   it("asks each domain for its own answer rather than inventing one", () => {
     const now = electNow(library({ games: [videoGame(), playing], shows: [watching], movies: [movie(), latest] }), all);
@@ -347,5 +346,83 @@ describe("electing what each medium is on now", () => {
 
     expect(now.game).toBeUndefined();
     expect(now.movie).toBe(latest);
+  });
+});
+
+describe("a book in the union", () => {
+  it("counts to the year it was finished, closes on its end date, and keys on its start", () => {
+    const [item] = toOmniItems(
+      library({
+        books: [book({ startDate: YearMonthDay.get(2025, 12, 20), endDate: YearMonthDay.get(2026, 1, 8) })],
+      }),
+    );
+
+    expect(item.medium).toBe("book");
+    expect(item.year).toBe(2026);
+    expect(item.closeDate).toBe(YearMonthDay.get(2026, 1, 8));
+    expect(item.key).toBe("book-Chasm City-2025-12-20");
+  });
+
+  it("counts an open book to the year it was begun, with no close", () => {
+    const [item] = toOmniItems(
+      library({ books: [book({ status: "Reading", startDate: YearMonthDay.get(2026, 5, 1), endDate: undefined })] }),
+    );
+
+    expect(item.year).toBe(2026);
+    expect(item.closeDate).toBeUndefined();
+  });
+
+  it("carries exact hours, one genre, its franchise and no certificate", () => {
+    const [item] = toOmniItems(library({ books: [book({ hours: 1.5, genre: "Fantasy", franchise: "Cosmere" })] }));
+
+    expect(item.hours).toBe(1.5);
+    expect(item.genre).toBe("Fantasy");
+    expect(item.genres).toEqual([]);
+    expect(item.franchise).toBe("Cosmere");
+    // Nothing certifies a book; every certificate surface drops it rather than shelving a blank.
+    expect(item.rating).toBeUndefined();
+  });
+
+  it("tells a reread from the first read, which is a second row with one title", () => {
+    const [first, again] = toOmniItems(
+      library({
+        books: [book({ startDate: YearMonthDay.get(2020, 1, 1) }), book({ startDate: YearMonthDay.get(2024, 1, 1) })],
+      }),
+    );
+
+    expect(first.key).not.toBe(again.key);
+  });
+
+  it("is drawn as its own cover and named by its own title", () => {
+    const [item] = toOmniItems(library({ books: [book({ banner: "cover.jpeg" })] }));
+
+    expect(omniBanner(item)).toBe("cover.jpeg");
+    expect(omniTitle(item)).toBe("Chasm City");
+  });
+
+  it("has no picture while the sheet's Banner column has not reached it", () => {
+    const [item] = toOmniItems(library({ books: [book({ banner: "" })] }));
+
+    expect(omniBanner(item)).toBeUndefined();
+  });
+
+  it("passes through guest mode untouched, since nothing on the sheet marks a book to hide", () => {
+    const books = [book()];
+
+    expect(visibleLibrary(library({ books }), true).books).toBe(books);
+  });
+
+  it("is elected for the Now band by the same rule the Books tab's hero uses", () => {
+    const reading = book({
+      name: "Open",
+      status: "Reading",
+      startDate: YearMonthDay.get(2026, 5, 1),
+      endDate: undefined,
+    });
+    const all = { game: true, show: true, movie: true, book: true };
+
+    expect(electNow(library({ books: [book(), reading] }), all).book).toBe(reading);
+    expect(electNow(library({ books: [book()] }), all).book).toBeUndefined();
+    expect(electNow(library({ books: [reading] }), { ...all, book: false }).book).toBeUndefined();
   });
 });

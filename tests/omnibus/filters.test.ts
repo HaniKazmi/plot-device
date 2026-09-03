@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { CURRENT_YEAR, YearMonthDay, type YearNumber } from "../../src/common/date";
 import { toOmniItems, type OmniItem } from "../../src/omnibus/adapter";
 import { filters, initialState, type FilterState } from "../../src/omnibus/filterUtils";
+import { book } from "../fixtures/books";
 import { movie } from "../fixtures/movies";
 import { videoGame } from "../fixtures/vgRows";
 
@@ -11,10 +12,10 @@ const state = (overrides: Partial<FilterState> = {}): Omit<FilterState, "filter"
 });
 
 /** One item per medium, built through the adapter so the tests filter what the page filters. */
-const [game, film] = toOmniItems({ games: [videoGame()], shows: [], movies: [movie()] });
+const [game, film] = toOmniItems({ games: [videoGame()], shows: [], movies: [movie()], books: [] });
 
 const inYear = (year: number, overrides: Partial<OmniItem> = {}): OmniItem => ({
-  ...toOmniItems({ games: [], shows: [], movies: [movie({ startDate: YearMonthDay.get(year, 6, 1) })] })[0],
+  ...toOmniItems({ games: [], shows: [], movies: [movie({ startDate: YearMonthDay.get(year, 6, 1) })], books: [] })[0],
   ...overrides,
 });
 
@@ -101,9 +102,20 @@ describe("the year cutoff", () => {
       games: [videoGame({ startDate: YearMonthDay.get(2019, 12, 20), endDate: YearMonthDay.get(2020, 1, 8) })],
       shows: [],
       movies: [],
+      books: [],
     });
     const keep = filters(state({ yearType: "matching", yearTo: 2020 as YearNumber }));
 
     expect(keep(crossing)).toBe(true);
+  });
+});
+
+describe("the books switch", () => {
+  it("removes books from the page the way the other three switches remove their media", () => {
+    const [read] = toOmniItems({ games: [], shows: [], movies: [], books: [book()] });
+
+    expect(filters(state({ book: false }))(read)).toBe(false);
+    expect(filters(state({ book: false }))(film)).toBe(true);
+    expect(filters(state())(read)).toBe(true);
   });
 });

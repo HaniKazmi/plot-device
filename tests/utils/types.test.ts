@@ -16,10 +16,12 @@ describe("statusToColour", () => {
   it.each([
     ["Playing", "#00a2a3"],
     ["Watching", "#00a2a3"],
+    ["Reading", "#00a2a3"],
     ["Up To Date", "#0081e8"],
     ["Endless", "#557c00"],
     ["Beat", "#326e54"],
     ["Ended", "#326e54"],
+    ["Finished", "#326e54"],
     ["Cancelled", "#7f4d00"],
     ["Abandoned", "#9c0049"],
     ["Next", "#6e747e"],
@@ -35,10 +37,12 @@ describe("statusToColour", () => {
   });
 
   it("shares one colour between each domain's equivalent statuses", () => {
-    // Beat/Ended and Playing/Watching are the same state in games and shows, so a stacked
-    // chart mixing both domains reads as one band.
+    // Beat/Ended/Finished and Playing/Watching/Reading are one state each in games, shows and
+    // books, so a stacked chart mixing the domains reads as one band.
     expect(statusToColour({ status: "Beat" }, "light")).toBe(statusToColour({ status: "Ended" }, "light"));
+    expect(statusToColour({ status: "Beat" }, "light")).toBe(statusToColour({ status: "Finished" }, "light"));
     expect(statusToColour({ status: "Playing" }, "light")).toBe(statusToColour({ status: "Watching" }, "light"));
+    expect(statusToColour({ status: "Playing" }, "light")).toBe(statusToColour({ status: "Reading" }, "light"));
   });
 
   it("keeps Endless and Up To Date apart, because they are not one state", () => {

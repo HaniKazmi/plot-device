@@ -30,13 +30,14 @@ import {
   scoreBands,
   scoreBandToColour,
 } from "../../src/movie/types";
-import { BOOK_FILL, media, mediumToColour } from "../../src/omnibus/types";
-import { pick } from "../../src/utils/types";
-import Tabs, { BOOKS_PRIMARY } from "../../src/tabs";
+import { media, mediumToColour } from "../../src/omnibus/types";
+import { FORMATS, formatToColour, groupToColour as bookGroupToColour } from "../../src/books/types";
+import Tabs from "../../src/tabs";
 import { PAPERS, contrast, liveGenres } from "../fixtures/colour";
 import { videoGame } from "../fixtures/vgRows";
 import { show } from "../fixtures/shows";
 import { movie } from "../fixtures/movies";
+import { book } from "../fixtures/books";
 
 /**
  * The fill contract, asserted over every table rather than argued for in each one's doc comment.
@@ -138,11 +139,12 @@ describe.each(SCHEMES)("every fill clears 3:1 on the %s paper", (scheme) => {
     for (const label of ["Cinema", "Home"]) check(`seen in ${label}`, cinemaToColour(label, scheme));
   });
 
+  it("how a book was read", () => {
+    for (const format of FORMATS) check(`format ${format}`, formatToColour(format, scheme));
+  });
+
   it("media, the one vocabulary the Omnibus teaches", () => {
     for (const medium of media) check(`medium ${medium}`, mediumToColour(medium, scheme));
-    // Reserved for the Books tab and drawn nowhere yet, so this is the only thing stopping it
-    // drifting below the floor while it waits.
-    check("medium book", pick(BOOK_FILL, scheme));
   });
 });
 
@@ -153,15 +155,17 @@ describe.each(SCHEMES)("every fill clears 3:1 on the %s paper", (scheme) => {
 describe("one franchise, one colour, every tab", () => {
   const CROSS_MEDIA = ["Marvel", "Star Wars", "Harry Potter", "Mario", "DC", "Fate", "Witcher", "Star Trek"];
 
-  it.each(CROSS_MEDIA)("draws %s the same on Games, Shows and Movies", (franchise) => {
+  it.each(CROSS_MEDIA)("draws %s the same on Games, Shows, Movies and Books", (franchise) => {
     for (const scheme of SCHEMES) {
       const fromGames = vgGroupToColour("franchise", videoGame({ franchise }), scheme);
       const fromShows = showGroupToColour("franchise", show({ franchise }), scheme);
       const fromMovies = movieGroupToColour("franchise", movie({ franchise }), scheme);
+      const fromBooks = bookGroupToColour("franchise", book({ franchise }), scheme);
 
       expect(fromGames, `${franchise} on ${scheme}`).not.toBe("");
       expect(fromShows, `${franchise} on ${scheme}`).toBe(fromGames);
       expect(fromMovies, `${franchise} on ${scheme}`).toBe(fromGames);
+      expect(fromBooks, `${franchise} on ${scheme}`).toBe(fromGames);
     }
   });
 });
@@ -192,14 +196,6 @@ describe("tab colours", () => {
       expect(contrast(tab.primaryColour!, PAPERS[scheme]), `${tab.name} (${tab.primaryColour})`).toBeGreaterThanOrEqual(
         FLOOR,
       );
-    });
-  });
-
-  describe.each(SCHEMES)("the Books primary, reserved and drawn nowhere yet", (scheme) => {
-    it(`clears 3:1 on the ${scheme} paper`, () => {
-      // Held to the floor while it waits, exactly as BOOK_FILL is: nothing renders it, so this is
-      // the only thing stopping the value drifting below the bar every tab beside it clears.
-      expect(contrast(BOOKS_PRIMARY, PAPERS[scheme]), `Books (${BOOKS_PRIMARY})`).toBeGreaterThanOrEqual(FLOOR);
     });
   });
 });

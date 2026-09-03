@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { Year, YearMonthDay } from "../../src/common/date";
-import { toOmniItems, type Library, type OmniItem } from "../../src/omnibus/adapter";
+import { toOmniItems, type OmniItem } from "../../src/omnibus/adapter";
 import { crossingEntries, crossings } from "../../src/omnibus/crossingsData";
+import { book } from "../fixtures/books";
+import { library } from "../fixtures/library";
 import { movie } from "../fixtures/movies";
 import { season, show } from "../fixtures/shows";
 import { videoGame } from "../fixtures/vgRows";
 
 const TODAY = YearMonthDay.get(2025, 12, 31);
-
-const library = (overrides: Partial<Library> = {}): Library => ({ games: [], shows: [], movies: [], ...overrides });
 
 const showWith = (name: string, franchise: string, start: number) => {
   const parent = show({ name, franchise, startDate: YearMonthDay.get(start, 3, 1) });
@@ -280,5 +280,38 @@ describe("how a crossing is laid out", () => {
     const [zelda, bond] = result;
 
     expect(zelda.bands[0].startPercent).toBeCloseTo(bond.bands[0].startPercent);
+  });
+});
+
+describe("a book on a strip", () => {
+  it("is a precise span from its start to its end, running to today while it is open", () => {
+    const [crossing] = found(
+      toOmniItems(
+        library({
+          movies: [
+            movie({
+              name: "Ready Player One",
+              franchise: "Ready Player One",
+              startDate: YearMonthDay.get(2018, 4, 28),
+            }),
+          ],
+          books: [
+            book({
+              name: "Ready Player Two",
+              franchise: "Ready Player One",
+              startDate: YearMonthDay.get(2021, 3, 1),
+              endDate: undefined,
+              status: "Reading",
+            }),
+          ],
+        }),
+      ),
+    );
+
+    expect(crossing.media).toEqual(["movie", "book"]);
+    const span = crossing.bands.find((band) => band.item.medium === "book")!;
+    expect(span.precise).toBe(true);
+    expect(span.start).toBe(YearMonthDay.get(2021, 3, 1));
+    expect(span.end).toBe(TODAY);
   });
 });

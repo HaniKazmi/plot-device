@@ -23,7 +23,7 @@ Plot Device is a client-only React SPA (~16,000 lines of TypeScript) that turns 
 └──────────────────────┘
 ```
 
-There is no backend, no database, and no build-time data. Three Google Sheets are the system of record; the browser authenticates directly, fetches whole ranges, and does every parse, join, aggregation and render locally. Deployment is a static bundle pushed to GitHub Pages by `npm run deploy`.
+There is no backend, no database, and no build-time data. Four Google Sheets are the system of record; the browser authenticates directly, fetches whole ranges, and does every parse, join, aggregation and render locally. Deployment is a static bundle pushed to GitHub Pages by `npm run deploy`.
 
 **Why this shape.** The dataset is one person's media history — thousands of rows, not millions. Editing is already comfortable in Sheets, so building a write path and a server would add operational cost for no gain. The consequences are accepted deliberately: every visitor must authenticate, each session refetches whole sheets, and all computation is on the main thread. The caching layer (§4) exists to make that trade tolerable.
 
@@ -43,7 +43,7 @@ There is no backend, no database, and no build-time data. Three Google Sheets ar
                     └───────────────────┬───────────────────────┘
                                         │
                     ┌───────────────────▼───────────────────────┐
-  domain            │  vg/ · show/ · movie/ · omnibus/          │
+  domain            │  vg/ · show/ · movie/ · books/ · omnibus/ │
                     │  model, converter, filters, adapters       │
                     └───────────────────┬───────────────────────┘
                                         │
@@ -60,7 +60,7 @@ There is no backend, no database, and no build-time data. Three Google Sheets ar
                     └───────────────────────────────────────────┘
 ```
 
-The load-bearing rule is the boundary between the bottom two layers and the domain layer above them: **`common/` and `utils/` never import from `vg/`, `show/`, `movie/` or `omnibus/`.** Generic components receive behaviour as props and callbacks; domain folders supply the meaning. Everything reusable in this codebase lives on that seam.
+The load-bearing rule is the boundary between the bottom two layers and the domain layer above them: **`common/` and `utils/` never import from `vg/`, `show/`, `movie/`, `books/` or `omnibus/`.** Generic components receive behaviour as props and callbacks; domain folders supply the meaning. Everything reusable in this codebase lives on that seam.
 
 The rule holds with no exceptions, and the direction matters. Where the shared layer needs a domain vocabulary, it declares its own and lets each domain's type stay assignable to it — `utils/types.ts` owns a `ColourableStatus` union that both `show/types.ts` and `vg/types.ts` satisfy, rather than importing their `Status` unions. Inverting that would create an import cycle, since both domains import `statusToColour` back out.
 
@@ -70,7 +70,7 @@ zero is a true answer to how much — where an empty pivot is not a picture of n
 of whatever the plotting library invents from it, and a proportional bar over one group states
 only what the reader just chose.
 
-`omnibus/` sits in the domain layer beside the other three, not above it: it imports `vg/`, `show/` and `movie/` and composes their output, which is exactly what a domain folder is for. It reads no sheet of its own — see §3 — so it is the one domain with no converter, and everything else about it (filters, adapters, a lazy `Graphs.tsx`) follows the same shape as the other three. The rule this layer exists to protect is unchanged: nothing in `common/` or `utils/` imports `omnibus/`, and `omnibus/` reaching upward into three domains at once is what the layer is built to allow, not an exception to it.
+`omnibus/` sits in the domain layer beside the other four, not above it: it imports `vg/`, `show/`, `movie/` and `books/` and composes their output, which is exactly what a domain folder is for. It reads no sheet of its own — see §3 — so it is the one domain with no converter, and everything else about it (filters, adapters, a lazy `Graphs.tsx`) follows the same shape as the other four. The rule this layer exists to protect is unchanged: nothing in `common/` or `utils/` imports `omnibus/`, and `omnibus/` reaching upward into four domains at once is what the layer is built to allow, not an exception to it.
 
 ## 3. The data pipeline
 
@@ -85,7 +85,7 @@ utils/arrayUtils           arrayToJson()
    │                       → Record<string, string>[]  (header-keyed rows)
    ▼
 <domain>/<Domain>.tsx      jsonConverter()
-   │                       → VideoGame[] | Show[] | Movie[]
+   │                       → VideoGame[] | Show[] | Movie[] | Book[]
    ▼
 common/useData             module-level Map + localStorage
    │                       → [data, dataLoaded]
@@ -105,11 +105,13 @@ Converters do real modelling work, not just field renaming:
 - **`show/`** reduces a _flat_ sheet into a _nested_ one. Rows with a non-empty `Show` column open a new show; subsequent rows are seasons belonging to it. Afterwards it rolls season totals up into the parent (`startDate`, `endDate`, episode and minute sums) and logs a date-ordering mismatch with `console.error`, which does not alter control flow. Seasons keep a `show` back-reference, which makes the object graph cyclic — see §4.
 - **`movie/`** parses a blank Runtime to `0` and a blank Score to `undefined` — `sum` accumulates with `+`, so a `NaN` in the minutes column would blank every hours total taken over it, while a score is honestly absent rather than zero.
 
+- **`books/`** holds every date to a full one through `readFullDate`, since the sheet records reads to the day, and rejects a `Status` or a `Format` outside its two small vocabularies the way the other converters reject a certificate — `statusToColour` answers `undefined` off its union and the status band would drop the segment without a word. Pages and hours are rejected when not numeric rather than defaulted, because both are measures: a `NaN` blanks every total and a `0` is a lie in a sum. A blank `Score` is `undefined` as on the Movies sheet; a blank `Franchise` becomes the book's own name, the convention the Games and Movies sheets write for a standalone work, so every franchise shell treats a standalone book exactly as it treats a standalone film; `Days Reading` is derived from the date pair, counting both ends as Games does, rather than read.
+
 Both `show/` and `movie/` split a comma-separated `Genres` cell into the genres beyond the primary one, and reject an age rating outside `AgeRating` through `sheetError` — a bad certificate names its row here rather than throwing later from inside a chart's colour lookup.
 
-All three read the primary genre through `readGenre` and reject an empty one the same way. The vocabulary is open-ended, so the only thing checkable is that a value is there — and that is worth checking precisely because the ramp answers `NEUTRAL_FILL` off its table: a blank reaching a chart is indistinguishable from a genre nobody has coloured yet. Testing the cell against `""` is not enough on its own, because the API ends a row at its last filled cell, so a half-entered row carries no `Genre` key at all. Shows asks only of a row that opens a show, since a season's genre is the show's.
+All four read the primary genre through `readGenre` and reject an empty one the same way. The vocabulary is open-ended, so the only thing checkable is that a value is there — and that is worth checking precisely because the ramp answers `NEUTRAL_FILL` off its table: a blank reaching a chart is indistinguishable from a genre nobody has coloured yet. Testing the cell against `""` is not enough on its own, because the API ends a row at its last filled cell, so a half-entered row carries no `Genre` key at all. Shows asks only of a row that opens a show, since a season's genre is the show's.
 
-Omnibus runs no pipeline of its own. Each domain's entry component — `vg/vg.tsx`, `show/Show.tsx`, `movie/Movie.tsx` — calls `useData` with a config object (`vgDataConfig`, `showDataConfig`, `movieDataConfig`) exported from the file that already owns the converter, version and — for Shows — the replacer/reviver pair; `omnibus/Omnibus.tsx` imports the same three configs and calls `useData` with each of them again. Both callers therefore go through one converter and one cache key per domain, so the version a returning visitor's cache was written under can never drift between a tab and Omnibus reading the same rows. `omnibus/adapter.ts` is the fourth stage the three domains' output feeds into: `toOmniItems` flattens `Show[]` at the season rather than the show — a season is the unit that was actually watched, and the parent show's name, genre, franchise and certificate travel onto each of its seasons' `OmniItem`s.
+Omnibus runs no pipeline of its own. Each domain's entry component — `vg/vg.tsx`, `show/Show.tsx`, `movie/Movie.tsx`, `books/Books.tsx` — calls `useData` with a config object (`vgDataConfig`, `showDataConfig`, `movieDataConfig`, `bookDataConfig`) exported from the file that already owns the converter, version and — for Shows — the replacer/reviver pair; `omnibus/Omnibus.tsx` imports the same four configs and calls `useData` with each of them again. Both callers therefore go through one converter and one cache key per domain, so the version a returning visitor's cache was written under can never drift between a tab and Omnibus reading the same rows. `omnibus/adapter.ts` is the fifth stage the four domains' output feeds into: `toOmniItems` flattens `Show[]` at the season rather than the show — a season is the unit that was actually watched, and the parent show's name, genre, franchise and certificate travel onto each of its seasons' `OmniItem`s. A book carries no certificate, so `OmniItem.rating` is optional and every surface grouping on it drops books rather than shelving them under a blank.
 
 ## 4. Caching and hydration
 
@@ -127,7 +129,7 @@ Two subtleties live in the serialisation boundary, and both are easy to break:
 1. **The cycle.** `Season.show` points back at its parent `Show`, so `JSON.stringify` would recurse forever. `useData` takes an optional `replacer` and an optional `reviver`, and `show/converter.ts` supplies both as a matched pair (`dropSeasonParents` / `reviveSeasonParents`): one drops the `show` key on write, the other re-attaches the back-reference on read. Neither rule lives in the hook — a domain concern would otherwise silently eat any future field named `show` in another domain. Both are module-scope constants so the fetch effect can depend on them without re-firing. Any future model with parent pointers needs the same pair.
 2. **Date revival.** The `JSON.parse` reviver converts **any key whose name contains `"Date"`** into a `PlainDate`. It is a deliberate convention: a non-date field called e.g. `updateDate` whose value happens to be a 4- or 10-character string is still silently miscast into a `Year` or `YearMonthDay`. Any other length, or `null`, makes `PlainDate.from` throw instead — `parseCachedItems` catches that inside the `useState` initialiser and returns `undefined`, so the whole cached copy for that domain is dropped and refetched rather than throwing mid-render.
 
-Cache keys are versioned per domain — `dataCacheKey(domain, version)` yields `vg-data-cache-v2`, `show-data-cache-v3`, `movie-data-cache-v3` — and `dropSupersededVersions` clears a domain's earlier keys on first load. A model-shape change therefore means bumping the version in that domain's own `converter.ts`, which is where the config holding it lives; forgetting the bump leaves returning visitors' cached objects missing the new field, silently, until their next authorised fetch.
+Cache keys are versioned per domain — `dataCacheKey(domain, version)` yields `vg-data-cache-v2`, `show-data-cache-v3`, `movie-data-cache-v3`, `book-data-cache-v1` — and `dropSupersededVersions` clears a domain's earlier keys on first load. A model-shape change therefore means bumping the version in that domain's own `converter.ts`, which is where the config holding it lives; forgetting the bump leaves returning visitors' cached objects missing the new field, silently, until their next authorised fetch.
 
 ## 5. Authentication
 
@@ -205,30 +207,42 @@ hovered.
 
 ### Omnibus — `omnibus/`
 
-The fourth domain draws no chart of its own kind; every surface is a `common/` shell fed the union
-(`OmniItem[]`) instead of one medium's rows, so the page reuses the same visual vocabulary the
-three tabs already speak rather than inventing a mixed-media one.
+The composing domain draws no chart of its own kind; every surface is a `common/` shell fed the
+union (`OmniItem[]`) instead of one medium's rows, so the page reuses the same visual vocabulary the
+four tabs already speak rather than inventing a mixed-media one.
 
-**The Now band** (`omnibus/Stats.tsx`) is what none of the three tabs can show on its own: what
+**The Now band** (`omnibus/Stats.tsx`) is what none of the four tabs can show on its own: what
 each medium is currently on, side by side. `electNow` in `omnibus/adapter.ts` reuses each domain's
-own election — `currentlyPlaying`, `heroSeason(currentlyWatching(...))`, `latestWatched` — so a
-card here can never disagree with the hero its home tab would show for the same item. A medium with
-nothing in flight contributes no card rather than an empty one, and the band itself is absent when
-none of the three has anything to say. Each card renders the domain's own `TypedCardMediaImage`, so
+own election — `currentlyPlaying`, `heroSeason(currentlyWatching(...))`, `latestWatched`,
+`currentlyReading` — so a card here can never disagree with the hero its home tab would show for
+the same item. A medium with nothing in flight contributes no card rather than an empty one, and
+the band itself is absent when none of the four has anything to say. Each card renders the domain's own `TypedCardMediaImage`, so
 its artwork still opens that domain's expanded card — the composing layer supplies only the corner
 chip that jumps to the home tab.
 
 Every card in the band is one width — a poster's artwork at the row's height plus its text column,
 434px — and each shape spends it differently: the poster's picture takes the full height and the
 words a column beside it, while the banner's picture spans the card, so the width fixes its height
-at 16:9 and the panel gets the 136 the row has left. Nothing is measured: deriving the banner's
-width from however tall its words turn out needs a `ResizeObserver` and a loop that settles, where
-pinning the width states the panel's budget outright. What that budget costs is a panel that cannot
+at 16:9 and the panel gets the 136 the row has left. Whether four cards fit on one row is a
+question of the width the page gives the band, so that is measured (`common/useElementWidth.ts`)
+and the four-way share solved from it (`omnibus/nowGeometry.ts`) rather than copied from the
+theme's container numbers; the share has a floor, which only the widest container reaches, and
+under it the four seat two and two. The words' height is not measured: deriving the banner's width
+from however tall its words turn out needs a loop that settles, where pinning the width states the
+panel's budget outright. What that budget costs is a panel that cannot
 grow — the title clamps to one line, because the picture is what would have to give way instead,
 and it would be letterboxed inside a card the row has already sized.
 
+A cover card is a poster card whose picture is pinned on the row's height alone. No two book covers
+share a ratio — they arrive from publishers at roughly 2:3 and vary by a few percent each — so a
+card that held one to the poster's exact ratio would letterbox nearly every one of them. The cover
+shape (`common/cardArrangement.ts`, `shapeIsExact`) declares 2:3 as a reservation and never a size:
+the picture stands at its file's own width against the row's height, and the text column beside it
+gives up or gains the few pixels one cover differs from another. That is the whole of what varies;
+nothing is cropped or letterboxed, and every card in the row is still one width.
+
 Fitting a kicker, a title, a subtitle and a figure into 136 is what `statSize="compact"` and the
-band's halved panel inset are for, and both are spent on all three cards rather than on the banner
+band's halved panel inset are for, and both are spent on every card rather than on the banner
 alone: the row is read across its figures, so a tile shrunk on one card and not the others would
 trade the band's consistency for one card's fit. `inlineKicker` is the banner's alone — at 402px its
 date and platform take the two ends of one line, where the poster panels' 176px column would wrap
@@ -243,8 +257,33 @@ poster stands 550px at 375px wide, and three of them put the band's last figure 
 its first. A banner keeps its words underneath at every width: beside a 16:9 picture at this height
 there are nineteen pixels of column left.
 
+**Mixed rows are one card size, the Now band's rule at strip scale.** A list lays its cards out
+one of two ways (`CardLayout` in `common/Stats.tsx`): as a grid at stated column spans, or as a
+sized row. Recently Finished and the gallery's drill-downs take the second, handing the shell a
+`rowSizing` (`MIXED_CARD_SIZING` in `omnibus/cardData.ts`) in place of spans — the two are a union
+rather than a pair of optional props, so a sized row is never handed spans it cannot read — and
+every card in a row then stands at one size with the picture sized by its shape and the words
+taking what it leaves: a poster or a cover fills the height and takes its own width beside a column
+of whatever is left, a banner fills the width at 16:9 over a footer of stated height. The caller
+states only what it knows — the minimum width, solved from a poster beside a column wide enough for
+a date and a two-line title, and the picture's height at a width, the banner's — and the shell adds
+what is its own: the band it draws over the picture, the one-line footer it draws under a banner
+(`ROW_FOOTER_HEIGHT`, which travels to the card on its `rowSize` rather than being read there, so a
+list drawing a taller footer states a taller one), and the border. The row is then measured
+(`common/useElementWidth.ts`) and shared between as many of those as fit (`common/rowSizing.ts`),
+so a whole number of cards fill it rather than leaving a strip of ground that grows to nearly a
+card before one more fits, and neither shape is letterboxed. Measured rather than stated at
+breakpoints because the dialog spans the viewport and no constant says how wide its row is. A grid gives every card one width and a row is then as tall as
+its tallest card — a banner's footer under a picture the cell's width, a poster's words beside a
+picture half that — so the shorter cards carry a strip of their own ground, and a poster card
+seated beside a lazily loaded picture has no height at all until the file arrives. The medium is named in the same band the shelves draw, along the top of the whole card
+(`CardMediaImageProps.mediaBand`), rather than in a chip over the artwork; on a card laid out as a
+row the band takes a line of its own above the picture and its words, with no width of its own to
+add to theirs. The home tabs' own strips
+pass no row height and keep the grid, since a single medium's cards are all one shape.
+
 **Recently Finished** (`omnibus/RecentlyFinished.tsx`) is the list each tab already keeps for
-itself, asked once across all three: `recentlyFinished` in `omnibus/adapter.ts` keeps only items
+itself, asked once across all four: `recentlyFinished` in `omnibus/adapter.ts` keeps only items
 with a `closeDate`, since an item still in progress is not finished and listing it says something
 false — the same filter also leaves every entry with a date to sort by. The library wall
 (`common/Finished`) is not reached from the union; see §10.
@@ -265,16 +304,18 @@ name, and the header counts the rows drawn rather than the rows handed in.
 
 **The gallery** (`omnibus/Gallery.tsx`, `omnibus/galleryData.ts`) shelves the union by genre,
 franchise, rating or decade, each shelf a `common/Filmstrip` (below) with a drill-down behind its
-handle. Each picture names its medium in a band beneath it rather than in a chip over it, in that
-medium's own fill: a chip says which of the three a card is by covering the artwork it is
-labelling, on every card, on six shelves at once. The band is what makes these cards the one
-surface that passes `mediaLayout="stacked"` — the shape rule would seat a poster's label in a
-column beside it, and a row that mixes banners with posters would then hold two card layouts at two
-widths, where the shelf has pinned one height for all of them. Every category is a field all three media record — `groupByCategory` skips an empty value,
-so a category one medium answered `""` to would drop that medium off the wall with no error to say
-so. "Decade" reads as the decade the reader _met_ the item, not the decade it was made: Shows carries
-no release date anywhere in its model, so a release-decade category would be answerable by only two
-of the three media. The section is an `ExpandableCard`, so the six shelves the card holds are not
+handle. Each picture names its medium in a band along its top rather than in a chip over it, in
+that medium's own fill: a chip says which of the four a card is by covering the artwork it is
+labelling, on every card, on six shelves at once. The band is the card's `mediaBand`
+(`omnibus/MediumLabel.tsx`), the same one the drill-downs and Recently Finished draw, and a shelf
+card carries no words beside or beneath its picture, so the shape rule arranges nothing and the
+picture keeps the whole of the height the shelf gives it below the band. Every category but rating is a field all four media record — `groupByCategory` skips an empty value,
+so a category one medium answered `""` to drops that medium off the wall with no error to say
+so. Rating is the deliberate exception: nothing certifies a book, so books are absent from the
+rating shelves and from the by-year chart's certificate split rather than shelved under a
+certificate nobody issued, and both answer `""` for them on purpose. "Decade" reads as the decade
+the reader _met_ the item, not the decade it was made: Shows carries no release date anywhere in
+its model, so a release-decade category would be answerable by only three of the four media. The section is an `ExpandableCard`, so the six shelves the card holds are not
 the whole answer: expanded, it draws as many shelves as keep its pictures inside the same budget a
 drill-down dialog spends, which is twenty-five. Deriving that from the picture count rather than
 picking a shelf count is what keeps the four categories comparable — grouping by franchise yields
@@ -297,7 +338,7 @@ because an open item is the one being met.
 
 **Genres by medium** (`omnibus/GenreBridge.tsx`, `omnibus/genreBridgeData.ts`) is the composition
 question asked of genres instead of franchises: one proportional bar per genre, split by how its
-hours divide between the three media. A genre held by one medium is drawn as a solid bar rather
+hours divide between the four media. A genre held by one medium is drawn as a solid bar rather
 than held back until a second arrives. Requiring the crossing puts a cliff in the section — a genre
 accrues its whole weight invisibly and one entry logged elsewhere then admits all of it at full
 size, Abstract being 136 hours of games that a single abstract film would introduce — and the bar
@@ -431,9 +472,9 @@ Below the strip, an opened card says its facts in two tiers rather than as one u
 
 `MetadataLedger` is everything else, as label/value lines in two CSS columns at `md` and one below it. Columns rather than a grid because the rows are independent: a grid holds each pair to the tallest row on it, so a value that wraps opens a gap beside it. Related facts share a line — a release is a date and a format, a game is made by a developer for a publisher — which is what keeps the ledger to a third of the height the tiles took.
 
-A row carries a colour swatch exactly where the app already speaks that field's colour somewhere else: platform, franchise, genre, rating, status. Developer, publisher, format and dates get none, because a swatch on a field with no colour vocabulary teaches a legend no chart honours. Both shells take plain `{label, value, …}` arrays, so `common/` never learns what a PEGI rating is; the three domain `CardMediaImage.tsx` files (`vg/`, `show/`, `movie/`) build the arrays and choose the omissions, and hand them to `CardDetailBody` — the renderer in `common/Card.tsx` that composes both shells — since a tile reading zero because the sheet recorded nothing says something false where saying nothing says the truth.
+A row carries a colour swatch exactly where the app already speaks that field's colour somewhere else: platform, franchise, genre, rating, status. Developer, publisher, format and dates get none, because a swatch on a field with no colour vocabulary teaches a legend no chart honours. Both shells take plain `{label, value, …}` arrays, so `common/` never learns what a PEGI rating is; the four domain `CardMediaImage.tsx` files (`vg/`, `show/`, `movie/`, `books/`) build the arrays and choose the omissions, and hand them to `CardDetailBody` — the renderer in `common/Card.tsx` that composes both shells — since a tile reading zero because the sheet recorded nothing says something false where saying nothing says the truth.
 
-All three domains use the two-tier treatment; `DetailCard`, the uniform tile, remains exported for the next domain that starts with too few facts for the split to buy anything.
+All four domains use the two-tier treatment; `DetailCard`, the uniform tile, remains exported for the next domain that starts with too few facts for the split to buy anything.
 
 ### Scroll marker — `common/ScrollMarkerHook.ts`
 
@@ -470,7 +511,7 @@ The bucket list re-derives at the marker's own cadence, so both answers always d
 `StatList` is itself assembled from two smaller shells that the same file exports, because a domain needed each of them on its own:
 
 - **`ExpandableCard`** owns "a card that can also present itself fullscreen". It calls its `renderContent` twice — inline and for the dialog — and hands it the expand control to place in whatever header it builds. The dialog body is mounted only while open, so a strip of cards is not built a second time behind a closed dialog: `useDialogMount` (`common/useDialogMount.ts`) pairs an `open` flag with a `mounted` flag that lags it until `onExited` fires, so the body survives the exit transition. `ExpandableCard` gates only its dialog body with `mounted`; `CardMediaImage` gates the whole `Dialog` element the same way, because an uncapped wall mounts one per item and a closed `Dialog` still renders itself, its `Modal` and their hooks before returning null.
-- **`StatsListGrid`** owns the capped strip of media cards. The caps are `COLLAPSED_CARDS` and `EXPANDED_CARDS` (6, and 500 — effectively "everything", so a drill-down dialog shows the whole group), applied _here_ rather than by callers — a caller that pre-sliced its own list would make changing either constant a no-op for that list. Six is what a half-width card holds without growing past the charts beside it; a strip laid out differently passes its own figure through `StatList`'s `collapsed`, which is a limit and still never a list. The Omnibus's Recently Finished passes eight — it runs the full width at three columns, so four cards land on a row and six leave the second one half empty. Card artwork loads lazily, which is what makes the uncapped dialog affordable. Only `EXPANDED_CARDS` is exported: `omnibus/Gallery.tsx` derives its shelf count from it and `common/DrilldownDialog.tsx` reuses it as the fullscreen list's own limit, while `COLLAPSED_CARDS` has no caller outside this module.
+- **`StatsListGrid`** owns the capped strip of media cards. The caps are `COLLAPSED_CARDS` and `EXPANDED_CARDS` (6, and 500 — effectively "everything", so a drill-down dialog shows the whole group), applied _here_ rather than by callers — a caller that pre-sliced its own list would make changing either constant a no-op for that list. Six is what a half-width card holds without growing past the charts beside it; a strip laid out differently passes its own figure through `StatList`'s `collapsed`, which is a limit and still never a list. The Omnibus's Recently Finished states its cap in rows instead, through `collapsedRows` — two — since how many cards its sized row holds follows from the measured width, and any count of cards would leave the second row part-filled at most widths. Card artwork loads lazily, which is what makes the uncapped dialog affordable. Only `EXPANDED_CARDS` is exported: `omnibus/Gallery.tsx` derives its shelf count from it and `common/DrilldownDialog.tsx` reuses it as the fullscreen list's own limit, while `COLLAPSED_CARDS` has no caller outside this module.
 
 Each has a caller of its own beyond `StatList`: `Finished` is built on `ExpandableCard` but keeps its own item grid, because it renders bordered full-width cards rather than media cards; and `DrilldownDialog` reaches for `StatsListGrid` directly to fill the fullscreen list a grouped card drills into.
 
@@ -516,10 +557,18 @@ Arranging by shape gives each of them the axis it has room on, and a row then va
 at one height instead of holding half its cards to a shape their artwork does not have.
 
 **Only `omnibus/` passes a shape.** Each home tab's artwork is all one shape — Games banners, Shows
-and Movies posters — so its pages are laid out for that shape already and the question never arises;
-a card that names no shape keeps exactly the arrangement its caller gives it, which is what leaves
-the three tabs untouched by any of this. The Omnibus names one per item, because that is the tab
-whose every row holds all three.
+and Movies posters, Books covers — so its pages are laid out for that shape already and the question
+never arises; a card that names no shape keeps exactly the arrangement its caller gives it, which is
+what leaves the four tabs untouched by any of this. The Omnibus names one per item, because that is
+the tab whose every row holds all four.
+
+A cover is a third shape rather than a second kind of poster, and the difference is exactness. A
+poster is authored to 680×1000 and a banner to 16:9, so a layout can hold either to its declared
+ratio and letterbox nothing; a cover is whatever its publisher drew, near 2:3 and a few percent off
+it in either direction, and no two alike. `shapeIsExact` is what a surface that pins a ratio asks:
+where it would hold a poster to 680×1000 it gives a cover the `auto` reservation the walls use, so
+the declared ratio sizes the card until the file loads and the file's own ratio then wins. The Now
+band and the hover cards are the two such surfaces.
 
 What travels is the shape, not the arrangement. `CardMediaImage` decides everything that follows —
 the card's axis, the artwork column, the reservation, the edge that carries the seam — and publishes
@@ -542,12 +591,13 @@ half the width to a panel that is not present and draws the picture at half the 
 
 ### Page architecture — hero, rail, sections
 
-Both tracked domains lay their page out by temperature: what is being played or watched now, then
-what the library is made of, then what can be explored, then the deep dives. Three shells carry it.
+Every tracked domain lays its page out by temperature: what is being played, watched or read now,
+then what the library is made of, then what can be explored, then the deep dives. Three shells carry
+it.
 
-All three tabs lead with a single item, each by a tie-break its data genuinely holds. Games
-promotes the game in progress. Movies promotes the film watched most recently, which every film's
-watch date defines. Shows is the one that needs the sheet's help: several shows are always in
+All four tabs lead with a single item, each by a tie-break its data genuinely holds. Games
+promotes the game in progress, and Books the book in hand, most recently begun first. Movies
+promotes the film watched most recently, which every film's watch date defines. Shows is the one that needs the sheet's help: several shows are always in
 flight at once, so the current one is whatever the Status cell on an in-progress season row marks
 with a last-watched date — and until the sheet marks anything, the page falls back to the
 currently-watching strip alone rather than promoting a show by a tie-break the data does not
@@ -602,11 +652,11 @@ Fixed colours are the other half of the system: `types.ts` in each domain maps p
 
 `vg/types.ts` splits a company two ways. **Fills** are what chart geometry takes; **accents** are the brand hexes themselves, drawn only in a card's corner chip, where a few dozen pixels carrying two or three letters are read as a badge rather than compared against a neighbour. PC is the one entry with no brand to reproduce — it is a category, not a company — so it takes the amber of the beige box. Steam is the obvious anchor and the wrong one: its palette is a cool blue-grey family sitting on PlayStation's own hue, and two blues separated only by lightness and chroma read as one blue however far apart they measure. Putting PC in the warm arc is what lets the other two be themselves — PlayStation keeps its published `#006FCD` on both papers, and iOS takes Apple's own space grey and silver — a warm cast on it would buy nothing, PC having left the cool region to it. With that region holding only iOS and the neutral, a lightness gap is enough to separate them; that gap is the table's weakest link at 11.8, under the 15 two fills want, so the wedge labels and legend names stay load-bearing for that pair, which meet only in the Top Platform list where every row is named.
 
-The genre ramp is the one all three tracked sheets share, so a hue means one genre on every tab, and it falls to `NEUTRAL_FILL` off-table because the column is open-ended. **Franchise is shared for the same reason and answers `""` instead.** All three sheets record a Franchise column and eleven franchises are met in more than one medium — Marvel across all three, Star Wars and Harry Potter across games and film, Fate and Star Trek across games and television — so a per-domain table would draw one of those a different colour on each tab. The set is scoped to what a tab's collapsed Top Franchise card and the gallery's shelves actually draw, plus every cross-media franchise among them; the long tail is 168 values in the games sheet alone, most of them a work naming itself, and takes the empty answer the way an unknown network does. `tests/utils/fillContract.test.ts` pins the property directly: a cross-media franchise resolves to one value through all three domains' `groupToColour`. Games draws a second vocabulary beside it — `gameplay` is how a game is played where `genre` is what it is about — and the two tables share exactly two hexes, Action and Adventure, which mean the same thing in both and are deliberately the same colour. The rest are pushed as far apart as one lightness band holds, which is not always far: fourteen gameplay hues and eleven genre hues are twenty-five values each wanting 15 dE of room, so Role Playing lands 2.3 from Thriller on the dark paper. Both are still drawn at full chroma, because the two vocabularies are always labelled where they meet — the ledger stacks a Gameplay row on a Genre row, and the hero and hover subtitles name each swatch beside it. Desaturating one ramp does not recover this: it separates the two by kind without moving any pair, and muting the genres by 45% leaves the worst cross-table pair at 4.5 dE with more pairs under 15, not fewer.
+The genre ramp is the one all four tracked sheets share, so a hue means one genre on every tab, and it falls to `NEUTRAL_FILL` off-table because the column is open-ended. **Franchise is shared for the same reason and answers `""` instead.** All four sheets record a Franchise column and eleven franchises are met in more than one medium — Marvel across all three, Star Wars and Harry Potter across games and film, Fate and Star Trek across games and television — so a per-domain table would draw one of those a different colour on each tab. The set is scoped to what a tab's collapsed Top Franchise card and the gallery's shelves actually draw, plus every cross-media franchise among them; the long tail is 168 values in the games sheet alone, most of them a work naming itself, and takes the empty answer the way an unknown network does. `tests/utils/fillContract.test.ts` pins the property directly: a cross-media franchise resolves to one value through all four domains' `groupToColour`. Games draws a second vocabulary beside it — `gameplay` is how a game is played where `genre` is what it is about — and the two tables share exactly two hexes, Action and Adventure, which mean the same thing in both and are deliberately the same colour. The rest are pushed as far apart as one lightness band holds, which is not always far: fourteen gameplay hues and eleven genre hues are twenty-five values each wanting 15 dE of room, so Role Playing lands 2.3 from Thriller on the dark paper. Both are still drawn at full chroma, because the two vocabularies are always labelled where they meet — the ledger stacks a Gameplay row on a Genre row, and the hero and hover subtitles name each swatch beside it. Desaturating one ramp does not recover this: it separates the two by kind without moving any pair, and muting the genres by 45% leaves the worst cross-table pair at 4.5 dE with more pairs under 15, not fewer.
 
-Five vocabularies live in `utils/types.ts` because more than one tab speaks them: the genre ramp, `statusToColour`, `franchiseToColour`, `decadeToColour`, and `ageRatingToColour` over the `AgeRating` union all three domains record a certificate into. Games are logged as PEGI and write the suffix (`16+`), Shows and Movies as BBFC and write the bare number (`15`); the colour keys off the age rather than the notation, so one swatch means one thing across the tabs, and `isAgeRating` lets each converter reject a bad cell while it still knows which row it came from. `ageRatingBand` is that same tier named rather than coloured, and is what the colour is looked up by.
+Six vocabularies live in `utils/types.ts` because more than one tab speaks them: the genre ramp, `statusToColour`, `franchiseToColour`, `decadeToColour`, the score bands (`scoreBandToColour`, which Movies and Books both rate on), and `ageRatingToColour` over the `AgeRating` union three of the four domains record a certificate into. The status table treats Playing, Watching and Reading as one state and Beat, Ended and Finished as another — each word takes its state's fill exactly, so a chart over the union draws one colour per state rather than one per sheet's vocabulary. Books adds one vocabulary of its own in `books/types.ts`: the three formats, one hue each at chroma 0.14, drawn only in a labelled band and the filter's chips. Games are logged as PEGI and write the suffix (`16+`), Shows and Movies as BBFC and write the bare number (`15`); the colour keys off the age rather than the notation, so one swatch means one thing across the tabs, and `isAgeRating` lets each converter reject a bad cell while it still knows which row it came from. `ageRatingBand` is that same tier named rather than coloured, and is what the colour is looked up by.
 
-Movies adds two vocabularies of its own in `movie/types.ts`: five score bands as a valenced red-through-amber-to-green ramp with Unscored on the neutral, and the Cinema/Home pair. Shows colours its networks as brand-derived fills with `""` off-table — the column gains a new streamer whenever one launches, and a crash is the wrong response to that. A network is keyed on the string the **sheet** writes rather than the brand's current name: `HBO` is the sheet's value even though the brand is now HBO Max, and renaming the key would silently drop the colour with no error anywhere.
+Movies adds one vocabulary of its own in `movie/types.ts`, the Cinema/Home pair, and re-exports the shared score bands — a valenced red-through-amber-to-green ramp with Unscored on the neutral — under its own name. Shows colours its networks as brand-derived fills with `""` off-table — the column gains a new streamer whenever one launches, and a crash is the wrong response to that. A network is keyed on the string the **sheet** writes rather than the brand's current name: `HBO` is the sheet's value even though the brand is now HBO Max, and renaming the key would silently drop the colour with no error anywhere.
 
 `artworkPalette` in `common/artworkPalette.ts` is what every surface carrying a sampled colour reads: a thumbnail's footer strip, a timeline hover card's panel, the hero band's ground, and the expanded card's ground, tiles and strip. It sits in a module of its own rather than beside the card that publishes the accent, because a hook exported from a file of components is a hot-reload boundary the lint rules refuse. One recipe rather than several treatments that happen to rhyme.
 
@@ -652,7 +702,7 @@ Setup is the plugin's documented path: `@vitejs/plugin-react` exports `reactComp
 - **`this`** anywhere in the function. Highcharts binds the chart to `this` in its event callbacks, so those must live at module scope (see `dimLeafRing` in §6) or they take the whole component down with them.
 - **`??=`**, which the compiler cannot yet lower. Write `x = x ?? y` instead.
 
-A third construct bails the same way: a **destructured prop with a default value** (`({ landscape = false })`) is an assignment pattern `BuildHIR::lowerAssignment` cannot lower, and it takes the whole component out. Components here therefore read defaults off the props object (`const landscape = props.landscape ?? false`), or rename in the pattern and default below it where a rest spread must not pick the prop up. A fourth is an **import expression**: `import()` cannot be lowered either, so a dynamic import written inside a component or hook takes that function out, which is why each entry component keeps its `import("./Graphs")` in a module-scope `loadGraphs` that both `lazy()` and the prefetch effect call. Every function currently compiles — the baseline is **189 compiled, 0 bailed** — so any bailout is a regression. A `MethodCall` bailout — the other kind the compiler produces — does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
+A third construct bails the same way: a **destructured prop with a default value** (`({ landscape = false })`) is an assignment pattern `BuildHIR::lowerAssignment` cannot lower, and it takes the whole component out. Components here therefore read defaults off the props object (`const landscape = props.landscape ?? false`), or rename in the pattern and default below it where a rest spread must not pick the prop up. A fourth is an **import expression**: `import()` cannot be lowered either, so a dynamic import written inside a component or hook takes that function out, which is why each entry component keeps its `import("./Graphs")` in a module-scope `loadGraphs` that both `lazy()` and the prefetch effect call. Every function currently compiles — the baseline is **214 compiled, 0 bailed** — so any bailout is a regression. A `MethodCall` bailout — the other kind the compiler produces — does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
 
 The compiler costs about 4% of bundle size (~15KB gzipped) in injected cache slots. That is a deliberate trade, and `npm run analyze` exists to keep it honest.
 

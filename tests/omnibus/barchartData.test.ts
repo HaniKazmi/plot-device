@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { Year, YearMonthDay } from "../../src/common/date";
-import { toOmniItems, type Library } from "../../src/omnibus/adapter";
+import { toOmniItems } from "../../src/omnibus/adapter";
 import { omniBarchartRows } from "../../src/omnibus/barchartData";
 import { mediumToColour } from "../../src/omnibus/types";
 import { ageRatingToColour, genreToColour } from "../../src/utils/types";
+import { book } from "../fixtures/books";
+import { library } from "../fixtures/library";
 import { movie } from "../fixtures/movies";
 import { season, show } from "../fixtures/shows";
 import { videoGame } from "../fixtures/vgRows";
-
-const library = (overrides: Partial<Library> = {}): Library => ({ games: [], shows: [], movies: [], ...overrides });
 
 const showWith = (start: number, end: number, minutes: number) => {
   const parent = show({ startDate: YearMonthDay.get(start, 3, 1) });
@@ -127,5 +127,20 @@ describe("omniBarchartRows", () => {
     const items = toOmniItems(library({ games: [videoGame({ genre: "" })] }));
 
     expect(omniBarchartRows(items, "Items", "medium", "light")).toHaveLength(1);
+  });
+});
+
+describe("books in the pivot", () => {
+  it("counts a book under its medium and its genre, and drops it from the certificate split", () => {
+    const items = toOmniItems(library({ books: [book({ genre: "Fantasy", hours: 6.5 })] }));
+
+    const byMedium = omniBarchartRows(items, "Hours", "medium", "light");
+    expect(byMedium).toEqual([
+      { name: "Books", date: Year.get(2026), colour: mediumToColour("book", "light"), value: 6.5 },
+    ]);
+
+    expect(omniBarchartRows(items, "Items", "genre", "light")[0].name).toBe("Fantasy");
+    // No certificate to split on, so no series is opened for it: the header counts drawn rows.
+    expect(omniBarchartRows(items, "Items", "rating", "light")).toEqual([]);
   });
 });

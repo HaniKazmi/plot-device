@@ -1,6 +1,7 @@
 import { CURRENT_YEAR, Year, YearMonthDay } from "../common/date";
 import { buildStrip, type StripBand, type StripSpan } from "../common/timelineStripData";
 import { namesTheSameThing } from "../utils/stringUtils";
+import type { Book } from "../books/types";
 import type { Movie } from "../movie/types";
 import type { Season } from "../show/types";
 import type { VideoGame } from "../vg/types";
@@ -35,11 +36,12 @@ export interface Crossing {
 }
 
 /**
- * The span an item occupies. `medium` is the discriminant, because `source` is a union of three
+ * The span an item occupies. `medium` is the discriminant, because `source` is a union of four
  * records TypeScript cannot narrow on shape and the item already says which one it holds.
  *
  * A film is a point: `start === end`, which `buildStrip` floors to its minimum band width, and
- * films seen days apart tile clear of one another inside a lane rather than stacking.
+ * films seen days apart tile clear of one another inside a lane rather than stacking. A book is
+ * a span the converter holds to full dates at both ends, so it is always precise.
  */
 const crossingSpan = (item: OmniItem, key: string, today: YearMonthDay): CrossingSpan => {
   switch (item.medium) {
@@ -66,6 +68,10 @@ const crossingSpan = (item: OmniItem, key: string, today: YearMonthDay): Crossin
       const movie = item.source as Movie;
       return { key, start: movie.startDate, end: movie.startDate, item, precise: true };
     }
+    case "book": {
+      const book = item.source as Book;
+      return { key, start: book.startDate, end: book.endDate ?? today, item, precise: true };
+    }
   }
 };
 
@@ -89,7 +95,7 @@ const crossingSpan = (item: OmniItem, key: string, today: YearMonthDay): Crossin
  * `namesTheSameThing` therefore drops a whole group rather than an entry: a franchise where *every*
  * entry repeats the franchise name is a work naming itself rather than a series, and holds no
  * structure for a lane to draw. It is the one test a group has to pass and it is what carries the
- * section — the 588 franchise values the three sheets hold between them are 169 series by it. What
+ * section — the 588 franchise values the first three sheets hold between them are 169 series by it. What
  * it costs is the lone adaptation, a film and a game under one name, which nothing the sheets
  * record tells apart from a title that happens to appear twice.
  *

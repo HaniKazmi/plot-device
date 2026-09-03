@@ -63,6 +63,8 @@ const NavBar = ({ setGuestMode }: { setGuestMode: (value: boolean) => void }) =>
           noWrap
           sx={{
             mr: { xs: 1, md: 2 },
+            // The tab strip beside it scrolls; the wordmark does not give way to it.
+            flexShrink: 0,
             fontSize: "0.875rem",
             fontWeight: 600,
             letterSpacing: "0.07em",
@@ -73,8 +75,15 @@ const NavBar = ({ setGuestMode }: { setGuestMode: (value: boolean) => void }) =>
         >
           Plot Device
         </Typography>
-        <Box sx={{ flexGrow: 1, display: "flex" }}>
+        {/* `minWidth: 0` is what lets the strip scroll rather than widen the page: a flex item's floor
+            is its content's width, and five tabs at their own minimum run past a phone's. The
+            scroll buttons appear only where the strip overflows on a device with a pointer: a
+            swipe reaches the last tab on a phone, but a mouse in a narrow desktop window has no
+            other way there, since the strip hides its scrollbar. */}
+        <Box sx={{ flexGrow: 1, display: "flex", minWidth: 0 }}>
           <MuiTabs
+            variant="scrollable"
+            scrollButtons="auto"
             textColor="inherit"
             indicatorColor="secondary"
             value={currTab.id}

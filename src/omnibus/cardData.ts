@@ -1,18 +1,34 @@
-import type { CardMediaImageProps } from "../common/Card";
 import { formatDate } from "../common/date";
 import { omniTitle, type OmniItem } from "./adapter";
-import { mediumToColour, mediumToLabel } from "./types";
-import type { Scheme } from "../utils/types";
+import { shapeRatioValues } from "../common/cardArrangement";
+import type { CardRowSizing } from "../common/Stats";
 
 /**
- * The corner badge every mixed-media card wears: the medium, in the fill it is drawn in everywhere
- * else on the page. It is the one thing artwork alone cannot say, and the only vocabulary this tab
- * teaches, so it goes on the picture rather than in a legend beside it.
+ * How a card is sized in this tab's mixed-media lists — Recently Finished and the gallery's
+ * drill-downs — which is the Now band's rule at strip scale: every card in a row one size, the
+ * picture sized by its shape, and the words taking what it leaves.
+ *
+ * A grid gives every card one width and a row is then as tall as its tallest card: a banner's
+ * footer stands under a picture the width of the cell, a poster's words sit beside a picture half
+ * that wide, and the two come out a dozen pixels apart, the shorter carrying that much of its own
+ * ground. Sizing every card the same and letting the words give way is what leaves every picture
+ * whole and every row flush.
+ *
+ * The narrowest a card may be is a poster tall enough to read as one — 206px, a third of the
+ * height a hero draws it at — beside a column wide enough for a date and a two-line title. The row
+ * then shares its width between as many of those as fit (`rowCardSize`), and the picture is the
+ * banner's at that width, 16:9 across it, which cannot give; the list adds the medium band over
+ * it, the footer under it and the border round it, all of them its own. A poster inside that
+ * height stands a little taller than the one the minimum was solved from, and its column takes
+ * the rest — that column is exactly what the words absorb, whichever way the row's width falls.
  */
-export const omniMediumChip = (item: OmniItem, scheme: Scheme): CardMediaImageProps["chip"] => ({
-  label: mediumToLabel(item.medium),
-  colour: mediumToColour(item.medium, scheme),
-});
+const POSTER_PICTURE_HEIGHT = 206;
+const POSTER_TEXT_WIDTH = 140;
+
+export const MIXED_CARD_SIZING: CardRowSizing = {
+  minWidth: Math.round(POSTER_PICTURE_HEIGHT * shapeRatioValues.portrait) + POSTER_TEXT_WIDTH,
+  pictureHeightFor: (width) => Math.round(width / shapeRatioValues.landscape),
+};
 
 /**
  * The strip under a thumbnail: when it was finished, over what it was.
