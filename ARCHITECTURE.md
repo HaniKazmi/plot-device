@@ -543,7 +543,8 @@ which franchises a section draws at all, and a card has already chosen. Each dom
 union key (`gameKey`, `seasonKey`, `movieItemKey`, `bookItemKey`) and the adapter keys its rows on
 the same functions, so the strip and the Omnibus cannot disagree about which entry is the card's
 own. The hover card behind each bead is the Omnibus's own dispatcher, loaded lazily with the chunk
-that draws it, so the provider adds nothing to the first bundle beyond the adapter.
+that draws it, so the provider adds nothing to the first bundle beyond the adapter; the provider
+starts that download on mount, so a bead hovered on a home tab does not open on nothing.
 
 ### Card strip data — `common/timelineStripData.ts`
 
@@ -622,10 +623,13 @@ A stat card's own words follow the same two ranks the hero and the Now band stat
 Every chart mounts that card through one shell, `common/HoverCardTooltip.tsx`: the shared width, a
 mat of the hovered bar's own colour with the arrow to match, and the flip that keeps a tall card on
 screen in a chart that scrolls sideways. The artwork inside one is reserved at its declared ratio
-firmly, not with the `auto` reservation a wall uses: a tooltip is positioned once, at the moment it
-opens, so a card whose picture has not loaded opens short, grows by a few hundred pixels, and never
-reflows — which is what put a card seen for the first time off the screen and a card seen again in
-the right place. A tooltip's own ceiling is 300px, so a chart left to mount
+firmly, not with the `auto` reservation a wall uses, because a popper positions its card once, at
+the moment it opens. What the reservation cannot cover — a hover card whose chunk is still arriving,
+a strip's card opening before its content has laid out — the shell covers by observing the card's
+size for the life of the tooltip and asking the popper to place it again on every change, so the
+flip and overflow rules are applied to the card as it is rather than as it opened; without that a
+card seen for the first time grows from an anchor placed for something smaller, over the mark it
+belongs to and off the top of the screen. A tooltip's own ceiling is 300px, so a chart left to mount
 its own opens a card two thirds the size of its neighbour's — which is what the Omnibus did. A band
 whose tooltip only names its span keeps the plain tooltip; `hoverCard` on the band is what asks for
 the card treatment, because a line of text in a 500px box is mostly empty ground.
