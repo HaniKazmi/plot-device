@@ -27,7 +27,7 @@ export const NOW_POSTER_ART_WIDTH_XS = Math.round(NOW_HEIGHT_XS * shapeRatioValu
  * The widths are stated rather than left to the artwork's own pixels for two reasons. A flex row
  * asks an item how wide it wants to be before any height is known, and a picture asked that answers
  * with its file's width — a 680px poster then claims 680px and drags the row past 1,000 tall. And a
- * file that is off its declared ratio would stand the two poster cards at different sizes for a
+ * file that is off its declared ratio would stand two cards of one shape at different sizes for a
  * reason no reader can see.
  *
  * One width is the constraint everything else here follows from, and the two shapes meet it in

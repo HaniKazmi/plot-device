@@ -102,7 +102,7 @@ export const MovieHoverCard = ({ item }: { item: Movie }) => {
       item={item}
       landscape
       extractColour
-      sx={hoverCardArtworkSx("portrait")}
+      sx={hoverCardArtworkSx("landscape")}
       footerComponent={
         <CardPanel
           layout="beside"

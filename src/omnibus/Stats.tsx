@@ -350,7 +350,7 @@ const NowCard = <T,>(props: {
           shapeIsExact(shape)
             ? {
                 // Sized from the shape every artwork of this kind is drawn at, never from the
-                // file's own pixels, so the two poster cards are identical and an off-size file
+                // file's own pixels, so two cards of one shape are identical and an off-size file
                 // cannot make one of them wider than the other. `contain` is what keeps such a
                 // file uncropped until it is redrawn; artwork that matches the ratio fills the box
                 // exactly and nothing is letterboxed.

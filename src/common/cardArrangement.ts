@@ -44,7 +44,7 @@ export const shapeToArrangement = (shape: ArtworkShape): CardArrangement => shap
  *
  * The ratio a layout measures is this one and never the file's own. Artwork is authored to it, but
  * an individual image can be off by a few pixels, and a band that took each picture's measured ratio
- * would stand its two poster cards at different widths for a reason no reader can see — a mistake in
+ * would stand two cards of one shape at different widths for a reason no reader can see — a mistake in
  * one file becoming a visible difference in the page. Sizing from the declared ratio makes every
  * poster card identical and leaves an off-size file to be letterboxed rather than to move the layout.
  *

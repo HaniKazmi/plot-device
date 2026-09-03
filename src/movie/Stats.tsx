@@ -332,9 +332,7 @@ const MostWatchedCategory = ({
       title="Most Watched"
       option={category}
       groups={groupMoviesBy(data, category, measure)}
-      // The name and the figure stacked rather than side by side — under a poster there is no
-      // width for both on one line.
-      labelComponent={(group) => [[group.name], [`${format(group.count)} ${measure}`]]}
+      labelComponent={(group) => [[group.name, `${format(group.count)} ${measure}`]]}
       colourOf={(top) => groupToColour(category, top, scheme)}
       MediaComponent={MovieCardMediaImage}
       dialogSort={(movies) => movies.toSorted((a, b) => b.minutes - a.minutes)}
@@ -353,12 +351,13 @@ const movieScoreChip = (movie: Movie, scheme: Scheme) =>
     : undefined;
 
 const movieStatListSharedProps: Pick<StatListBaseProps<Movie>, "shape" | "divider" | "width"> & GridListLayout = {
-  // Posters, not banners — the cards keep the shape the library grid shows them at.
-  shape: "portrait",
+  // Banners, the shape the sheet's artwork is drawn at and the library grid shows it at — the
+  // same layout the Games tab gives its own.
+  shape: "landscape",
   divider: true,
-  width: [12, 12, 4],
-  pictureWidth: [6, 4, 4],
-  dialogPictureWidth: [6, 3, 2],
+  width: [12, 12, 6],
+  pictureWidth: [12, 4, 6],
+  dialogPictureWidth: [12, 6, 4],
 };
 
 const MovieStatList = (

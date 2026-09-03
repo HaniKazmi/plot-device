@@ -123,6 +123,7 @@ const Graphs = memo(
             // time and total, so it cannot throw across a wall of hundreds of cards.
             colour={(item) => ratingToColour(item, scheme)}
             MediaComponent={MovieCardMediaImage}
+            landscape
           />
         </Section>
       </Stack>

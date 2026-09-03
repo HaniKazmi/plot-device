@@ -12,10 +12,10 @@ export { mediumToColour, mediumToLabel, mediumToName, type Medium } from "../uti
 export const media: readonly Medium[] = MEDIA;
 
 /**
- * The shape a medium's artwork comes in: the Games sheet holds banners, the Shows and Movies sheets
- * hold posters, and the Books sheet holds covers — portrait like a poster, but at roughly 2:3 and
- * varying by a few percent from book to book, which is what makes it a shape of its own rather
- * than the poster's (see `cardArrangement`).
+ * The shape a medium's artwork comes in: the Games and Movies sheets hold 16:9 banners, the Shows
+ * sheet holds posters, and the Books sheet holds covers — portrait like a poster, but at roughly
+ * 2:3 and varying by a few percent from book to book, which is what makes it a shape of its own
+ * rather than the poster's (see `cardArrangement`).
  *
  * Only this tab asks. A home tab's artwork is all one shape, so its layout is drawn for that shape
  * and the question never comes up; here a single row holds all four, which is why every card on
@@ -24,7 +24,7 @@ export const media: readonly Medium[] = MEDIA;
 const mediumShapes: Record<Medium, ArtworkShape> = {
   game: "landscape",
   show: "portrait",
-  movie: "portrait",
+  movie: "landscape",
   book: "cover",
 };
 

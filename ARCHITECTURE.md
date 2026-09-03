@@ -650,8 +650,8 @@ tall, so the strip beneath it is a hundred pixels across and clamps every title 
 Arranging by shape gives each of them the axis it has room on, and a row then varies gently in width
 at one height instead of holding half its cards to a shape their artwork does not have.
 
-**Only `omnibus/` passes a shape.** Each home tab's artwork is all one shape — Games banners, Shows
-and Movies posters, Books covers — so its pages are laid out for that shape already and the question
+**Only `omnibus/` passes a shape.** Each home tab's artwork is all one shape — Games and Movies
+banners, Shows posters, Books covers — so its pages are laid out for that shape already and the question
 never arises; a card that names no shape keeps exactly the arrangement its caller gives it, which is
 what leaves the four tabs untouched by any of this. The Omnibus names one per item, because that is
 the tab whose every row holds all four.
@@ -675,7 +675,7 @@ narrower than the word under the figure and would be pushed past the card's edge
 
 The ratio a layout measures is the declared one and never a file's own pixels. Artwork is authored
 to 16:9 and 680×1000, but an individual file can be off by a few pixels, and the Now band would then stand
-its two poster cards at different widths for a reason no reader can see — one bad export becoming a
+two cards of one shape at different widths for a reason no reader can see — one bad export becoming a
 visible difference in the page. Sizing from the declared ratio makes every card of a kind identical
 and leaves an off-size file to be letterboxed until it is redrawn.
 

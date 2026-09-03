@@ -136,9 +136,9 @@ export const movieHeroStats = (movie: Movie, franchiseCount: number) => {
 export const movieKey = (movie: Movie) => `${movie.name}-${movie.releaseDate}-${movie.startDate}`;
 
 // Dates are in the reader's voice and not the machine's, which is the same one the card behind
-// the thumbnail speaks. One cell per row: these sit under posters a third the width of the
-// banners the other tabs label, and two cells collide into one run of digits. The score is
-// already the card's corner chip, so neither label repeats it.
-export const statsCardLabelWatched = (movie: Movie) => [[formatDate(movie.startDate)], [cinemaLabel(movie)]];
+// the thumbnail speaks. Two cells to a row, as the Games tab labels its banners: under a 16:9
+// picture the date and the second fact share a line with room to spare. The score is already the
+// card's corner chip, so neither label repeats it.
+export const statsCardLabelWatched = (movie: Movie) => [[formatDate(movie.startDate), cinemaLabel(movie)]];
 
-export const statsCardLabelScore = (movie: Movie) => [[formatDate(movie.startDate)], [`${format(movie.minutes)} min`]];
+export const statsCardLabelScore = (movie: Movie) => [[formatDate(movie.startDate), `${format(movie.minutes)} min`]];

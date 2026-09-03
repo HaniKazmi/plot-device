@@ -79,9 +79,9 @@ const categoryTitles: Record<GalleryCategory, string> = {
 /**
  * The library as pictures: a shelf per group, each a row of artwork at one height.
  *
- * The three walls this is assembled from do not agree on a shape — banners on the Games tab,
- * posters on the other two — so the mixing is the whole point of the surface, and nothing is
- * cropped to hide it. A picture opens its own tab's expanded card; the shelf's own handle opens the
+ * The walls this is assembled from do not agree on a shape — banners on the Games and Movies
+ * tabs, posters on Shows, covers on Books — so the mixing is the whole point of the surface, and
+ * nothing is cropped to hide it. A picture opens its own tab's expanded card; the shelf's own handle opens the
  * whole shelf, and the section's opens the shelves the collapsed card had no room for.
  */
 const Gallery = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
