@@ -6,6 +6,26 @@ import Movies from "./movie/Movie";
 import Books from "./books/Books";
 import Omnibus from "./omnibus/Omnibus";
 
+/**
+ * A tab's app-bar identity in the dark colour scheme, where `enableColorOnDark` stays off
+ * (`Google.tsx`) and MUI would otherwise paint the bar as plain paper — leaving the 2px secondary
+ * indicator as the only thing that says which of five tabs is open.
+ *
+ * `tint` is a 22% mix of `primaryColour` over that paper, `#1d2126`
+ * (`round(0.22 * primary + 0.78 * paper)` per channel): the primary at full strength on dark
+ * paper is the light bar's own treatment redrawn on the wrong ground, where a fifth of it is
+ * what still carries the hue without losing the scheme. `rule` and `ink` are lighter siblings of
+ * the primary at the same hue, solved against `tint` rather than against the paper — `ink` clears
+ * 4.5:1 and `rule` clears 3:1. `rule` draws a 3px line along the bar's own bottom edge, which is
+ * what still separates five tinted bars at a glance; `ink` carries the wordmark and the active
+ * tab's own label.
+ */
+export interface DarkBar {
+  tint: string;
+  rule: string;
+  ink: string;
+}
+
 export interface Tab {
   id: string;
   name: string;
@@ -26,6 +46,12 @@ export interface Tab {
   component: FunctionComponent;
   primaryColour?: string;
   secondaryColour?: string;
+  /**
+   * Present on every tab that carries a `primaryColour` — there is currently no tab that has one
+   * without the other, and `Google.tsx` falls back to the plain paper bar for a tab that has
+   * neither.
+   */
+  darkBar?: DarkBar;
 }
 
 /**
@@ -43,6 +69,7 @@ export const VideoGamesTab: SheetTab = {
   component: VideoGames,
   primaryColour: "#d019ca",
   secondaryColour: "#14bb7c",
+  darkBar: { tint: "#441f4a", rule: "#ea4be4", ink: "#f07aeb" },
 };
 
 export const ShowsTab: SheetTab = {
@@ -53,6 +80,7 @@ export const ShowsTab: SheetTab = {
   component: Shows,
   primaryColour: "#127d9c",
   secondaryColour: "#fe799b",
+  darkBar: { tint: "#1b3540", rule: "#3fb3d3", ink: "#6cc7e0" },
 };
 
 export const MoviesTab: SheetTab = {
@@ -63,6 +91,7 @@ export const MoviesTab: SheetTab = {
   component: Movies,
   primaryColour: "#de4412",
   secondaryColour: "#499dfe",
+  darkBar: { tint: "#472922", rule: "#ff7043", ink: "#ff8f6b" },
 };
 
 /**
@@ -83,6 +112,7 @@ export const BooksTab: SheetTab = {
   component: Books,
   primaryColour: "#958112",
   secondaryColour: "#ca82fe",
+  darkBar: { tint: "#373622", rule: "#c7b143", ink: "#d6c45a" },
 };
 
 /**
@@ -128,6 +158,7 @@ export const OmnibusTab: Tab = {
   component: Omnibus,
   primaryColour: "#7553ff",
   secondaryColour: "#ef9716",
+  darkBar: { tint: "#302c56", rule: "#9d86ff", ink: "#b3a2ff" },
 };
 
 /**

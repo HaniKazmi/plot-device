@@ -27,6 +27,9 @@ const GoogleAuth = () => {
 const Graphs = () => {
   const currTab = useCurrentTab();
   const theme = getTheme(currTab);
+  // A tab with no `darkBar` (none currently exist) falls back to `DARK_PAPER`, matching the plain
+  // bar `getTheme` leaves `AppBar.darkBg` defaulting to in that case.
+  const darkThemeColour = currTab.darkBar?.tint ?? DARK_PAPER;
 
   return (
     <ThemeProvider
@@ -38,6 +41,11 @@ const Graphs = () => {
         content={theme.palette.primary.main}
         media="(prefers-color-scheme: light)"
       />
+      <meta
+        name="theme-color"
+        content={darkThemeColour}
+        media="(prefers-color-scheme: dark)"
+      />
       <CssBaseline />
       <GoogleAuth />
     </ThemeProvider>
@@ -46,6 +54,12 @@ const Graphs = () => {
 
 // MUI's stock palette, read once for the two fallback colours rather than rebuilt per call.
 const { palette: defaultPalette } = createTheme();
+
+// The dark scheme's own text and paper, named once so `getTheme`'s palette, its `AppBar` fallback
+// and `Graphs`' dark `theme-color` meta all read the same two literals rather than three copies
+// that could drift.
+const DARK_TEXT = "#e8eaed";
+const DARK_PAPER = "#1d2126";
 
 // Themes are cached per tab: building one walks both colour schemes, typography, shadows and
 // the whole CSS-variable map, and a stable identity also stops the MUI tree re-evaluating `sx`
@@ -81,9 +95,14 @@ const getTheme = (tab: Tab) => {
         palette: {
           primary: { main: primaryColour },
           secondary: { main: secondaryColour },
-          background: { default: "#14171a", paper: "#1d2126" },
-          text: { primary: "#e8eaed", secondary: "#9aa4af" },
+          background: { default: "#14171a", paper: DARK_PAPER },
+          text: { primary: DARK_TEXT, secondary: "#9aa4af" },
           divider: "#2c3238",
+          // Left unset, `AppBar.darkBg`/`darkColor` default to `background.paper`/`text.primary` —
+          // the plain-paper bar `MuiAppBar` below is otherwise built for. Naming the tab's own tint
+          // here (`darkBar`, `tabs.ts`) is what the dark scheme reads instead, through the
+          // `enableColorOnDark`-off path MUI's `AppBar` already has for exactly this override.
+          ...(tab.darkBar && { AppBar: { darkBg: tab.darkBar.tint, darkColor: DARK_TEXT } }),
         },
       },
     },
@@ -118,10 +137,11 @@ const getTheme = (tab: Tab) => {
           }),
         },
       },
-      // Flattened, and otherwise left to MUI's own dark-mode behaviour: the accent fills the bar in
-      // light mode and `background.paper` takes over in dark. `enableColorOnDark` would hold the
-      // accent across both, at the cost of a saturated bar against a dark page — and the tab
-      // indicator already says which tab is current without it.
+      // Flattened, and `enableColorOnDark` stays off: the accent fills the bar at full strength in
+      // the light scheme, and holding it at that strength against the dark page too would be the
+      // light bar's own treatment redrawn on the wrong ground. The dark scheme instead takes each
+      // tab's own 22% tint through the `AppBar.darkBg` override above, distinguishable from its
+      // neighbours without paying that saturation cost.
       MuiAppBar: {
         defaultProps: {
           elevation: 0,
