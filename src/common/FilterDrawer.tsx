@@ -124,11 +124,7 @@ export const FilterToggle = ({
         />
       }
       label={
-        <Typography
-          sx={{
-            textTransform: "capitalize",
-          }}
-        >
+        <Typography sx={{}}>
           <Icon sx={{ verticalAlign: "middle" }} /> {label}
         </Typography>
       }
