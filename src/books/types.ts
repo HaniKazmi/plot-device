@@ -81,7 +81,7 @@ type BookStringKeys = Exclude<KeysMatching<Book, string>, "banner">;
  * the one figure every row carries natively — hours are an estimate for a third of the library,
  * where the sheet's own Reading Rate tab is built on pages.
  */
-export type Measure = "Books" | "Hours" | "Pages";
+export type Measure = "Books" | "Pages" | "Hours";
 
 /**
  * What the charts can group by: the string fields plus two derivations — the release decade and

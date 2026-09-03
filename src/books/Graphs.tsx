@@ -30,8 +30,8 @@ import { useScheme } from "../common/useScheme";
  */
 const MEASURES: SegmentOption<Measure>[] = [
   { value: "Books", label: "Books" },
-  { value: "Hours", label: "Hours" },
   { value: "Pages", label: "Pages" },
+  { value: "Hours", label: "Hours" },
 ];
 
 /**
