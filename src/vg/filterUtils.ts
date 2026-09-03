@@ -68,7 +68,11 @@ export const filters = (state: Omit<FilterState, "filter">): Predicate<VideoGame
   return (vg: VideoGame) => predicates.every((p) => p(vg));
 };
 
-export const { useFilterReducer, reducer, initialState } = createFilterReducer<VideoGame, Measure, FilterState>(
+export const { useFilterReducer, reducer, initialState, activeCount } = createFilterReducer<
+  VideoGame,
+  Measure,
+  FilterState
+>(
   {
     endless: true,
     pokemon: true,
@@ -84,5 +88,4 @@ export const { useFilterReducer, reducer, initialState } = createFilterReducer<V
     guestMode: false,
   },
   filters,
-  (measure) => (measure === "Games" ? "Hours" : "Games"),
 );

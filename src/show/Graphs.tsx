@@ -4,11 +4,12 @@ import Barchart from "./Barchart";
 import Sunburst from "./Sunburst";
 import Stats from "./Stats";
 import { ChartPair, Section, SectionRail } from "../common/SectionRail";
+import { SegmentedControl, type SegmentOption } from "../common/SelectionComponents";
 import { useOtherTabs } from "../tabs";
 import { SHOW_SECTIONS, showSections } from "./sections";
 import { currentlyWatching } from "./statsData";
 import Timeline from "./Timeline";
-import { Show } from "./types";
+import { Show, type Measure } from "./types";
 import ShowCardMediaImage from "./CardMediaImage";
 import { statusToColour } from "../utils/types";
 import { guestFilter, type FilterDispatch, type FilterState } from "./filterUtils";
@@ -19,6 +20,17 @@ import { memo, useDeferredValue } from "react";
 import { format } from "../utils/mathUtils";
 import { finishedCount } from "../common/finishedData";
 import { useScheme } from "../common/useScheme";
+
+/**
+ * The unit every figure on the tab is counted in, stated as words in the rail rather than as an
+ * unlabelled icon on a floating button. It rides the rail because it governs the whole page rather
+ * than any one card, and the rail is the only control surface still on screen wherever the reader
+ * has scrolled to.
+ */
+const MEASURES: SegmentOption<Measure>[] = [
+  { value: "Episodes", label: "Episodes" },
+  { value: "Hours", label: "Hours" },
+];
 
 const SuspenseBlock = ({
   filteredData,
@@ -70,6 +82,14 @@ const Graphs = memo(
         <SectionRail
           sections={showSections(watching.length > 0)}
           tabs={tabs}
+          actions={
+            <SegmentedControl
+              options={MEASURES}
+              value={filterState.measure}
+              onChange={(measure) => filterDispatch({ type: "measure", measure })}
+              ariaLabel="Measure"
+            />
+          }
         />
         <Stats
           data={data}

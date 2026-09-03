@@ -57,7 +57,11 @@ export const filters = (state: Omit<FilterState, "filter">): Predicate<Movie> =>
   return (movie: Movie) => predicates.every((p) => p(movie));
 };
 
-export const { useFilterReducer, reducer, initialState } = createFilterReducer<Movie, Measure, FilterState>(
+export const { useFilterReducer, reducer, initialState, activeCount } = createFilterReducer<
+  Movie,
+  Measure,
+  FilterState
+>(
   {
     home: true,
     unscored: true,
@@ -72,5 +76,4 @@ export const { useFilterReducer, reducer, initialState } = createFilterReducer<M
     guestMode: false,
   },
   filters,
-  (measure) => (measure === "Films" ? "Hours" : "Films"),
 );

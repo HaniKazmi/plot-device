@@ -80,8 +80,18 @@ export const ChartPair = ({ left, right }: { left: ReactNode; right: ReactNode }
  * than offer the two jumps it cannot. Unstuck, the app bar is in view saying the same thing, and
  * the chips would say it twice — so they are not rendered at all. Each chip carries its own
  * `jump`, so what a tab id means stays with the registry that owns it.
+ *
+ * `actions` is a page-wide control that has to stay reachable from anywhere on the page — the
+ * measure every figure below is counted in. It sits outside the scrolling row, at the end of the
+ * pinned bar, because a control inside the row scrolls away with the chips and the whole point of
+ * putting it here is that it does not. The row therefore gives up width to it rather than pushing
+ * it off: `minWidth: 0` is what lets the chips overflow into their own scroll instead.
  */
-export const SectionRail = (props: { sections: RailSection[]; tabs?: (RailSection & { jump: () => void })[] }) => {
+export const SectionRail = (props: {
+  sections: RailSection[];
+  tabs?: (RailSection & { jump: () => void })[];
+  actions?: ReactNode;
+}) => {
   const active = useActiveSection(props.sections);
   const [railRef, stuck] = useStuck();
 
@@ -103,12 +113,8 @@ export const SectionRail = (props: { sections: RailSection[]; tabs?: (RailSectio
   );
 
   return (
-    <ChipRail
+    <Box
       ref={railRef}
-      items={props.sections}
-      activeId={active}
-      leading={tabChips || undefined}
-      onSelect={(id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })}
       sx={{
         position: "sticky",
         // A pixel above the top rather than at it, so being stuck is observable: fully visible
@@ -118,13 +124,26 @@ export const SectionRail = (props: { sections: RailSection[]; tabs?: (RailSectio
         // Under dialogs and the app bar, over the page it scrolls across.
         zIndex: (theme) => theme.zIndex.appBar - 1,
         // The page's own ground and not a card's: the rail sits on the page rather than in one,
-        // and anything translucent would let the content scroll through it.
+        // and anything translucent would let the content scroll through it. It is also what the
+        // chip row's own end fades resolve to, since they default to this same token.
         backgroundColor: "background.default",
         borderBottom: 1,
         borderColor: "divider",
         paddingY: 1,
+        display: "flex",
+        alignItems: "center",
+        gap: 1,
       }}
-    />
+    >
+      <ChipRail
+        items={props.sections}
+        activeId={active}
+        leading={tabChips || undefined}
+        onSelect={(id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })}
+        sx={{ flexGrow: 1, minWidth: 0 }}
+      />
+      {props.actions && <Box sx={{ flexShrink: 0 }}>{props.actions}</Box>}
+    </Box>
   );
 };
 

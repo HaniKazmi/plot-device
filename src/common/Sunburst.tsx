@@ -1,12 +1,14 @@
-import { Card, CardContent, FormGroup, useTheme } from "@mui/material";
+import { Card, CardContent, Stack, Typography, useTheme } from "@mui/material";
 import { DonutLarge } from "@mui/icons-material";
-import { useLayoutEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
+import { Fragment, useLayoutEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 import { Chart, SunburstSeries } from "../highcharts";
 import { SectionHeader } from "./SectionHeader";
 import { SelectBox } from "./SelectionComponents";
 import type { Colour } from "../utils/types";
-import { generateSunburstData, sunburstRoot } from "./sunburstData";
+import { keyLabel } from "../utils/stringUtils";
+import { LABEL_SX } from "./typography";
+import { generateSunburstData, ringOptions, sunburstRoot } from "./sunburstData";
 
 /**
  * Fades the outermost ring so leaf items read as detail rather than structure.
@@ -160,26 +162,73 @@ const Sunburst = <T, K extends string>({
   );
 };
 
+/**
+ * The rings, as one labelled row: what the hierarchy nests by, outermost ring last.
+ *
+ * A stack of bare selects says nothing about what it does or which order it reads in — three
+ * dropdowns holding model keys are three unrelated settings until something names them. The word
+ * says what the row is for; the chevrons say the row is a path and which way it runs, which is the
+ * one thing about a nesting order that cannot be recovered from the values.
+ *
+ * `labels` is where a domain overrides a key whose own name means the wrong thing on screen — a
+ * `show` ring is grouping by the show's *name*, and the key alone reads as the medium.
+ */
 export const SunBurstControls = <T extends string>({
   controlStates,
   setControlStates,
   options,
+  labels,
 }: {
   controlStates: T[];
   setControlStates: Dispatch<SetStateAction<T[]>>;
   options: readonly T[];
+  labels?: Partial<Record<T, string>>;
 }) => {
+  const menus = ringOptions(options, controlStates);
+
   return (
-    <FormGroup>
+    <Stack
+      direction="row"
+      spacing={1}
+      sx={{
+        alignItems: "center",
+        flexWrap: "wrap",
+        // Two rings to a line at the one width where three do not fit. `CardHeader` sizes its
+        // action to whatever the controls ask for and gives the title what is left, so a row
+        // asking for all three — 317px — leaves the heading beside it 96px in the 418px card
+        // `ChartPair` makes of a 900px page, and four lines to say "Where the books went" in. A
+        // break in the controls is one the reader absorbs; a heading read down a column is not.
+        // Uncapped either side of that: below `md` the card is the full page, and from `lg` half
+        // of one is 580px, where the title and all three rings sit on one line together.
+        maxWidth: { xs: "none", md: 220, lg: "none" },
+      }}
+    >
+      <Typography
+        variant="caption"
+        sx={{ ...LABEL_SX, color: "text.secondary" }}
+      >
+        Nest by
+      </Typography>
       {controlStates.map((val, index) => (
-        <SelectBox
-          options={options}
-          key={"sunburst-control-" + index}
-          value={val}
-          setValue={(key) => setControlStates(controlStates.with(index, key))}
-        />
+        <Fragment key={"sunburst-control-" + index}>
+          {index > 0 && (
+            <Typography
+              aria-hidden
+              variant="caption"
+              sx={{ color: "text.secondary" }}
+            >
+              ›
+            </Typography>
+          )}
+          <SelectBox
+            options={menus[index]}
+            value={val}
+            setValue={(key) => setControlStates(controlStates.with(index, key))}
+            labelFor={(key) => labels?.[key] ?? keyLabel(key)}
+          />
+        </Fragment>
       ))}
-    </FormGroup>
+    </Stack>
   );
 };
 

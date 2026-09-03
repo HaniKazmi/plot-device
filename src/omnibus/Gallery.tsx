@@ -1,13 +1,13 @@
-import { ExpandCircleDown, PhotoLibrary, Schedule, Sort } from "@mui/icons-material";
+import { ExpandCircleDown, PhotoLibrary } from "@mui/icons-material";
 import { CardContent, IconButton, Stack, Typography } from "@mui/material";
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { INLINE_SWATCH_SIZE, Swatch } from "../common/Card";
 import { CURRENT_PLAINDATE } from "../common/date";
 import { DrilldownDialog } from "../common/DrilldownDialog";
 import { FILMSTRIP_HEIGHT, Filmstrip } from "../common/Filmstrip";
 import { SectionHeader } from "../common/SectionHeader";
 import { useSelectBox } from "../common/SelectBoxHook";
-import { IconToggleGroup } from "../common/SelectionComponents";
+import { SegmentedControl, type SegmentOption } from "../common/SelectionComponents";
 import { EXPANDED_CARDS, ExpandableCard } from "../common/Stats";
 import { format } from "../utils/mathUtils";
 import type { OmniItem } from "./adapter";
@@ -51,16 +51,20 @@ const PICTURES_SHOWN = 20;
 const SHELVES_EXPANDED = Math.floor(EXPANDED_CARDS / PICTURES_SHOWN);
 
 /**
- * How a sort reads, and what it is drawn as.
- *
- * Icons rather than a second select: the barchart directly above this card switches its own four
- * views the same way, and two dropdowns side by side in one header read as one compound setting
- * rather than two independent ones.
+ * How a sort reads. Segments rather than a second select: the barchart directly above this card
+ * switches its own four views the same way, and two dropdowns side by side in one header read as
+ * one compound setting rather than two independent ones. The words are what the keys are not —
+ * `size` and `recent` name the field, where the reader is choosing between biggest and newest.
  */
-const sortControls: Record<GallerySort, { label: string; icon: ReactNode }> = {
-  size: { label: "Largest", icon: <Sort /> },
-  recent: { label: "Recent", icon: <Schedule /> },
+const sortLabels: Record<GallerySort, string> = {
+  size: "Largest",
+  recent: "Recent",
 };
+
+const sortOptions: SegmentOption<GallerySort>[] = GALLERY_SORTS.map((sort) => ({
+  value: sort,
+  label: sortLabels[sort],
+}));
 
 /** How a category reads in the header, where the field name alone would mean the other thing. */
 const categoryTitles: Record<GalleryCategory, string> = {
@@ -128,11 +132,11 @@ const Gallery = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
                     sx={{ alignItems: "center" }}
                   >
                     {controls}
-                    <IconToggleGroup
-                      options={GALLERY_SORTS}
+                    <SegmentedControl
+                      options={sortOptions}
                       value={sort}
-                      setValue={setSort}
-                      render={(option) => sortControls[option]}
+                      onChange={setSort}
+                      ariaLabel="Shelf order"
                     />
                     {toggle}
                   </Stack>

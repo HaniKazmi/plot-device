@@ -1,9 +1,9 @@
-import { Animation, Functions, StarBorder, Timer, Weekend } from "@mui/icons-material";
+import { Animation, StarBorder, Weekend } from "@mui/icons-material";
 import { ageRatingToColour, genreToColour, type AgeRating } from "../utils/types";
 import type { Movie } from "./types";
 import { categoryOptions, franchiseOptions } from "../common/filterOptions";
 import { FilterCategory, FilterDrawer, FilterToggle } from "../common/FilterDrawer";
-import type { FilterDispatch, FilterState } from "./filterUtils";
+import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
 import { useScheme } from "../common/useScheme";
 
 const toggles = [
@@ -17,8 +17,7 @@ const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: Filte
 
   return (
     <FilterDrawer
-      measureIcon={state.measure === "Films" ? <Functions /> : <Timer />}
-      onToggleMeasure={() => dispatch({ type: "toggleMeasure" })}
+      activeCount={activeCount(state)}
       onReset={() => dispatch({ type: "resetFilters" })}
       toggles={toggles.map(({ toggle, Icon }) => (
         <FilterToggle

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateSunburstData, sunburstRoot } from "../../src/common/sunburstData";
+import { generateSunburstData, ringOptions, sunburstRoot } from "../../src/common/sunburstData";
 import type { Colour } from "../../src/utils/types";
 
 type Game = { name: string; company: string; platform: string; hours?: number };
@@ -156,5 +156,40 @@ describe("colour", () => {
     });
 
     expect(entries.every((e) => e.color === "Nintendo-colour")).toBe(true);
+  });
+});
+
+describe("ringOptions", () => {
+  const keys = ["company", "platform", "franchise", "genre"] as const;
+
+  it("takes each ring's key out of the other rings' menus", () => {
+    // A key held twice divides every wedge into one child of the same name — a ring identical to
+    // the ring inside it. Removing it is what makes that unreachable.
+    const [first, second, third] = ringOptions(keys, ["company", "platform", "franchise"]);
+
+    expect(first).toEqual(["company", "genre"]);
+    expect(second).toEqual(["platform", "genre"]);
+    expect(third).toEqual(["franchise", "genre"]);
+  });
+
+  it("keeps every ring's own key on offer, so the select still shows what it is set to", () => {
+    ringOptions(keys, ["company", "platform", "franchise"]).forEach((menu, ring) => {
+      expect(menu).toContain(["company", "platform", "franchise"][ring]);
+    });
+  });
+
+  it("leaves a menu whole where the dedupe would leave it with nothing to change to", () => {
+    // A domain offering exactly as many keys as it has rings has every key taken by definition,
+    // and a menu holding only the value already shown is a control that cannot be used.
+    const three = ["company", "platform", "franchise"] as const;
+
+    expect(ringOptions(three, ["company", "platform", "franchise"])).toEqual([[...three], [...three], [...three]]);
+  });
+
+  it("keeps the given order, so the menus read the way the option list is written", () => {
+    expect(ringOptions(keys, ["genre", "company"])).toEqual([
+      ["platform", "franchise", "genre"],
+      ["company", "platform", "franchise"],
+    ]);
   });
 });

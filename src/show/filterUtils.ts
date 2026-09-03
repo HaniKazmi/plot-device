@@ -67,7 +67,7 @@ export const filters = (state: Omit<FilterState, "filter">): Predicate<Show> => 
   return (show: Show) => predicates.every((p) => p(show));
 };
 
-export const { useFilterReducer, reducer, initialState } = createFilterReducer<Show, Measure, FilterState>(
+export const { useFilterReducer, reducer, initialState, activeCount } = createFilterReducer<Show, Measure, FilterState>(
   {
     abandoned: true,
     anime: true,
@@ -81,5 +81,4 @@ export const { useFilterReducer, reducer, initialState } = createFilterReducer<S
     guestMode: false,
   },
   filters,
-  (measure) => (measure === "Episodes" ? "Hours" : "Episodes"),
 );

@@ -42,6 +42,9 @@ const ShowSunburst = ({ data, measure }: { data: Show[]; measure: Measure }) => 
           options={options}
           controlStates={controlStates}
           setControlStates={setControlStates}
+          // The key names the parent record; what the ring actually groups on is its name, and
+          // "Show" beside "Name" in one row reads as two rings offering the same thing.
+          labels={{ show: "Show name" }}
         />
       }
     />

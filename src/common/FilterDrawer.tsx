@@ -1,5 +1,6 @@
 import { Clear, FilterAlt, type SvgIconComponent } from "@mui/icons-material";
 import {
+  Badge,
   Box,
   Button,
   Chip,
@@ -21,25 +22,30 @@ import type { Colour } from "../utils/types";
 import { toValueArray } from "./filterOptions";
 
 /**
- * The pair of floating buttons and the bottom drawer every tab's filter is built from.
+ * The floating button and the bottom drawer every tab's filter is built from.
  *
- * Fully controlled: the drawer knows nothing about filter state — a domain hands it the measure
- * icon, the reset action, and its own toggles and category selects as children. Only the drawer's
- * open state lives here, because the Close button needs it and nothing outside does.
+ * Fully controlled: the drawer knows nothing about filter state — a domain hands it how many
+ * choices are in play, the reset action, and its own toggles and category selects as children.
+ * Only the drawer's open state lives here, because the Close button needs it and nothing outside
+ * does.
+ *
+ * The badge is the closed drawer's only account of itself. Every chart on the page is drawn
+ * through these controls, so a library narrowed to one franchise otherwise looks exactly like the
+ * whole library — the count says something is being hidden and roughly how much. `Badge` draws
+ * nothing for a zero of its own accord, which is the right answer: an unfiltered page has no
+ * business carrying a mark saying so.
  *
  * `toggles` and `categories` are two slots rather than one `children`: the Clear/Close row sits
  * between them in DOM order, and its `order: { xs: 1, md: 0 }` sends it to the end of the small
  * layout only. One combined slot would push the row to the end at `md` too.
  */
 export const FilterDrawer = ({
-  measureIcon,
-  onToggleMeasure,
+  activeCount,
   onReset,
   toggles,
   categories,
 }: {
-  measureIcon: ReactNode;
-  onToggleMeasure: () => void;
+  activeCount: number;
   onReset: () => void;
   toggles?: ReactNode;
   categories: ReactNode;
@@ -47,23 +53,19 @@ export const FilterDrawer = ({
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
-    <Stack
-      direction="column"
-      spacing={2}
-      sx={{ position: "fixed", right: (theme) => theme.spacing(2), bottom: (theme) => theme.spacing(2) }}
-    >
-      <Fab
+    <Box sx={{ position: "fixed", right: (theme) => theme.spacing(2), bottom: (theme) => theme.spacing(2) }}>
+      <Badge
+        badgeContent={activeCount}
         color="secondary"
-        onClick={onToggleMeasure}
       >
-        {measureIcon}
-      </Fab>
-      <Fab
-        color="primary"
-        onClick={() => setDrawerOpen(!drawerOpen)}
-      >
-        <FilterAlt />
-      </Fab>
+        <Fab
+          color="primary"
+          aria-label={activeCount > 0 ? `Filters, ${activeCount} active` : "Filters"}
+          onClick={() => setDrawerOpen(!drawerOpen)}
+        >
+          <FilterAlt />
+        </Fab>
+      </Badge>
       <Drawer
         anchor="bottom"
         open={drawerOpen}
@@ -93,7 +95,7 @@ export const FilterDrawer = ({
           {categories}
         </Grid>
       </Drawer>
-    </Stack>
+    </Box>
   );
 };
 
