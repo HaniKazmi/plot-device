@@ -97,7 +97,13 @@ export const StatCard = ({
       size={{
         xs: 12,
         sm: 6,
-        md: 3,
+        // A quarter is only right for a row of four. A domain's vitals band varies its card
+        // count with what the sheet holds and which year mode is active — Games drops to three
+        // cards under "In {year}", and the Omnibus opens with as few as two — so a fixed quarter
+        // leaves whatever the row is short of four as a gap. `"grow"` divides the row instead
+        // of naming a fraction of it, which is what keeps three cards at a third and two at a
+        // half without a card count to branch on.
+        md: "grow",
       }}
     >
       <Card sx={{ height: "100%" }}>

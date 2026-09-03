@@ -129,6 +129,7 @@ const Graphs = memo(
             MediaComponent={CardMediaImage}
             title="All Games"
             count={`${format(finishedCount(data))} games`}
+            borderKey="company"
             data={data}
             colour={(item) => companyToColor(item, scheme)}
             landscape

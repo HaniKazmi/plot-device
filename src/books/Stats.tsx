@@ -127,6 +127,7 @@ const Stats = ({
           <BestRated data={data} />
           <LongestReads data={data} />
           <MostRead
+            data={data}
             groupsBy={groupsBy}
             measure={measure}
           />
@@ -269,7 +270,7 @@ const optionIcons: Record<BookTopOption, ReactNode> = {
  */
 const RecentlyFinished = ({ data }: { data: Book[] }) => (
   <BookStatList
-    icon={<TaskAlt />}
+    icon={<History />}
     title="Recently Finished"
     content={data.filter((book) => book.endDate).sortByKey("endDate")}
     labelComponent={statsCardLabelFinished}
@@ -310,21 +311,66 @@ const LongestReads = ({ data }: { data: Book[] }) => (
   />
 );
 
-const MostRead = ({ groupsBy, measure }: { groupsBy: GroupsBy; measure: Measure }) => {
+const bookMostReadOptions = ["name", ...bookTopOptions] as const;
+
+const MostRead = ({ data, groupsBy, measure }: { data: Book[]; groupsBy: GroupsBy; measure: Measure }) => {
+  const [option, controls] = useSelectBox(bookMostReadOptions, "author");
+
+  if (option === "name") {
+    return (
+      <MostReadBooks
+        data={data}
+        controls={controls}
+      />
+    );
+  }
+  return (
+    <MostReadCategory
+      groupsBy={groupsBy}
+      measure={measure}
+      controls={controls}
+      category={option}
+    />
+  );
+};
+
+const MostReadBooks = ({ data, controls }: { data: Book[]; controls: ReactNode }) => {
+  const most = data.filter((book) => book.hours).sortByKey("hours");
+  return (
+    <BookStatList
+      controls={controls}
+      icon={<Whatshot />}
+      title="Most Read"
+      content={most}
+      labelComponent={statsCardLabelPages}
+    />
+  );
+};
+
+const MostReadCategory = ({
+  groupsBy,
+  measure,
+  category,
+  controls,
+}: {
+  groupsBy: GroupsBy;
+  measure: Measure;
+  category: BookTopOption;
+  controls: ReactNode;
+}) => {
   const scheme = useScheme();
 
-  const [option, controls] = useSelectBox(bookTopOptions, "author");
   return (
     <GroupedStatList
       icon={<Whatshot />}
       controls={controls}
       title="Most Read"
-      option={option}
-      groups={groupsBy(option)}
+      option={category}
+      groups={groupsBy(category)}
       // The name and the figure stacked rather than side by side — under a cover there is no
       // width for both on one line.
       labelComponent={(group) => [[group.name], [`${format(group.count)} ${measure}`]]}
-      colourOf={(top) => groupToColour(option, top, scheme)}
+      colourOf={(top) => groupToColour(category, top, scheme)}
       MediaComponent={BookCardMediaImage}
       // Series order where the sheet numbers one, reading order where it does not: a drill-down
       // into a series is read the way the series is.

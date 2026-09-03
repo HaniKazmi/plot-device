@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { YearMonthDay, type YearNumber } from "../../src/common/date";
+import { CURRENT_YEAR, YearMonthDay, type YearNumber } from "../../src/common/date";
 import { format } from "../../src/utils/mathUtils";
 import {
   allTimeTotals,
+  earliestYear,
   heroSeason,
   showHeroStats,
   currentlyWatching,
@@ -497,5 +498,12 @@ describe("showHeroStats", () => {
   it("adds a franchise tile only where there is a series to count", () => {
     expect(heroOf(3).at(-1)).toEqual({ label: "Star Trek Shows", value: 3 });
     expect(heroOf(1).map((stat) => stat.label)).not.toContain("Star Trek Shows");
+  });
+});
+
+describe("earliestYear", () => {
+  it("reads the earliest start from the data, and falls back to the current year when empty", () => {
+    expect(earliestYear([show({ startDate: YearMonthDay.get(2009, 6, 1) }), show()])).toBe(2009);
+    expect(earliestYear([])).toBe(CURRENT_YEAR);
   });
 });

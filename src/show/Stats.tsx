@@ -2,7 +2,7 @@ import {
   Animation,
   AutoGraph,
   Category,
-  Pause,
+  History,
   PlayArrow,
   ShowChart,
   Stars,
@@ -43,7 +43,6 @@ import type { ReactNode } from "react";
 import { CURRENT_PLAINDATE, formatDate, type YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
 import { Section, StatBand } from "../common/SectionRail";
-import { EARLIEST_SHOW_YEAR } from "./converter";
 import { SHOW_SECTIONS } from "./sections";
 import { format } from "../utils/mathUtils";
 import type { FilterDispatch } from "./filterUtils";
@@ -71,6 +70,7 @@ import "../utils/arrayUtils";
 const Stats = ({
   data,
   watching,
+  earliestYear,
   measure,
   yearType,
   yearTo,
@@ -78,6 +78,9 @@ const Stats = ({
 }: {
   data: Show[];
   watching: Season[];
+  /** The library's own first year, read from the unfiltered data so the select's floor does not
+      rise with the filters. */
+  earliestYear: YearNumber;
   measure: Measure;
   yearType: YearType;
   yearTo: YearNumber;
@@ -100,7 +103,7 @@ const Stats = ({
             yearTo={yearTo}
             yearType={yearType}
             filterDispatch={filterDispatch}
-            earliestYear={EARLIEST_SHOW_YEAR}
+            earliestYear={earliestYear}
             allTime={allTimeTotals(data)}
             inYear={seasonsInYear(data, yearTo)}
           />
@@ -268,8 +271,8 @@ const RecentlyComplete = ({ data }: { data: Show[] }) => {
   const recent = recentlyComplete(data);
   return (
     <ShowStatList
-      icon={<Pause />}
-      title="Recently Finished"
+      icon={<History />}
+      title="Recently Watched"
       content={recent}
       chipComponent={({ show }) => showStatusChip(show, scheme)}
       labelComponent={statsCardLabelRecentlyComplete}

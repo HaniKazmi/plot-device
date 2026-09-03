@@ -7,8 +7,8 @@ import { activeCount, type FilterDispatch, type FilterState } from "./filterUtil
 import { useScheme } from "../common/useScheme";
 
 const toggles = [
-  { toggle: "abandoned", Icon: Block },
-  { toggle: "anime", Icon: Animation },
+  { toggle: "abandoned", label: "Abandoned shows", Icon: Block },
+  { toggle: "anime", label: "Anime", Icon: Animation },
 ] as const;
 
 const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: FilterDispatch; data: Show[] }) => {
@@ -18,10 +18,10 @@ const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: Filte
     <FilterDrawer
       activeCount={activeCount(state)}
       onReset={() => dispatch({ type: "resetFilters" })}
-      toggles={toggles.map(({ toggle, Icon }) => (
+      toggles={toggles.map(({ toggle, label, Icon }) => (
         <FilterToggle
           key={toggle}
-          label={toggle}
+          label={label}
           icon={Icon}
           checked={state[toggle]}
           onChange={(checked) => dispatch({ type: "updateFilter", filter: toggle, value: checked })}

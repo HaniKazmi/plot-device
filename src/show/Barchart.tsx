@@ -3,6 +3,7 @@ import { groupToColour, typeToName, type Measure, type Season, type Show, type S
 import Barchart from "../common/Barchart";
 import { format } from "../utils/mathUtils";
 import { useScheme } from "../common/useScheme";
+import type { YearType } from "../common/filterReducer";
 
 type Option = ShowStringKeys | "none";
 
@@ -19,7 +20,7 @@ const optionToName = (season: Season, option: Option) => {
   }
 };
 
-const ShowBarchart = ({ data, measure }: { data: Show[]; measure: Measure }) => {
+const ShowBarchart = ({ data, measure, yearType }: { data: Show[]; measure: Measure; yearType: YearType }) => {
   const scheme = useScheme();
 
   // Grouped by status from the start, so the columns are born carrying the one distinction the
@@ -30,7 +31,12 @@ const ShowBarchart = ({ data, measure }: { data: Show[]; measure: Measure }) => 
     data
       .flatMap((show) => show.s)
       .map((season) => ({
-        date: cumulative ? season.startDate.toYearMonth() : season.startDate.toYear(),
+        // "In {year}" keeps a *show* here if any one season started that year — the predicate
+        // above states the count in shows, not seasons — so every season the show ever ran still
+        // reaches this flatMap, not only the one that matched. Months under `matching` therefore
+        // draw a long-running show's whole history at month width rather than narrowing to the
+        // named year, the same population the year view already drew, only wider.
+        date: cumulative || yearType === "matching" ? season.startDate.toYearMonth() : season.startDate.toYear(),
         colour: groupToColour(group, season.show, scheme),
         name: optionToName(season, group),
         value: measure === "Episodes" ? season.e : season.minutes,

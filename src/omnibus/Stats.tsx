@@ -95,9 +95,9 @@ const Stats = ({
           {/* A figure no one tab can state: a series held by two media is one franchise here and
               one on each of their tabs, so the union's count is not the three counts added up.
 
-              It stands with the year cards rather than after the Media band because it is a
-              quarter-width card and the band takes the whole row: anything placed after the band
-              opens a row of its own and reads as a card that lost its neighbours. */}
+              It stands with the year cards rather than after the Media band because the band is
+              full-width and opens a row of its own: a card placed after it would be the only
+              thing on that row and read as one that lost its neighbours. */}
           {crossings.length > 0 && (
             <StatCard
               icon={<Hub />}

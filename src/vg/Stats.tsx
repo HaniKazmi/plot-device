@@ -4,7 +4,7 @@ import {
   Business,
   Category,
   Code,
-  Pause,
+  History,
   PlayArrow,
   ShowChart,
   SportsEsports,
@@ -249,7 +249,7 @@ const RecentlyComplete = ({ data }: { data: VideoGame[] }) => {
     .sortByKey("endDate");
   return (
     <VgStatList
-      icon={<Pause />}
+      icon={<History />}
       title="Recently Finished"
       content={recent}
       labelComponent={statsCardLabelEndDateHours}

@@ -4,6 +4,7 @@ import Barchart from "../common/Barchart";
 import { movieGroupValue } from "./statsData";
 import { format } from "../utils/mathUtils";
 import { useScheme } from "../common/useScheme";
+import type { YearType } from "../common/filterReducer";
 
 type Option = Exclude<MovieGroup, "name"> | "none";
 
@@ -16,7 +17,7 @@ const options: Option[] = ["none", "genre", "rating", "cinema", "decade", "score
  */
 const axisOptions = ["Watched", "Released"] as const;
 
-const MovieBarchart = ({ data, measure }: { data: Movie[]; measure: Measure }) => {
+const MovieBarchart = ({ data, measure, yearType }: { data: Movie[]; measure: Measure; yearType: YearType }) => {
   const scheme = useScheme();
 
   // Grouped by genre from the start — the one distinction this tab is about, as company is on
@@ -28,7 +29,9 @@ const MovieBarchart = ({ data, measure }: { data: Movie[]; measure: Measure }) =
     data.map((movie) => {
       const date = axis === "Watched" ? movie.startDate : movie.releaseDate;
       return {
-        date: cumulative ? date.toYearMonth() : date.toYear(),
+        // Months only where the reader is inside one year or watching a total climb, and only on
+        // the Watched axis; a Released axis is decades wide and a month there is noise.
+        date: (cumulative || yearType === "matching") && axis === "Watched" ? date.toYearMonth() : date.toYear(),
         colour: groupToColour(group, movie, scheme),
         name: group === "none" ? "" : movieGroupValue(movie, group) || movie.name,
         value: measure === "Films" ? 1 : movie.minutes,

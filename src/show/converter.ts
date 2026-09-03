@@ -1,4 +1,4 @@
-import { PlainDate, YearMonthDay, type YearNumber } from "../common/date.ts";
+import { PlainDate, YearMonthDay } from "../common/date.ts";
 import { dataCacheKey, type DataConfig } from "../common/useData.ts";
 import { describing, readAgeRating, readFullDate, readGenre, sheetError, sheetRow } from "../common/sheetError.ts";
 import { splitCell } from "../utils/stringUtils";
@@ -12,9 +12,6 @@ export const reviveSeasonParents = (shows: Show[]) => shows.forEach((show) => sh
 
 /** Seasons that started this early are dropped; the data before it is not trustworthy. */
 const EARLIEST_SEASON_YEAR = 2005;
-
-/** The first year a season can actually survive the converter, and so the floor the year select offers. */
-export const EARLIEST_SHOW_YEAR = (EARLIEST_SEASON_YEAR + 1) as YearNumber;
 
 const describeSeason = (row: Record<string, string>, show: Partial<Show>, index: number) =>
   `Row ${sheetRow(index)}, season ${row.Season || "?"} of "${show.name ?? "?"}"`;
