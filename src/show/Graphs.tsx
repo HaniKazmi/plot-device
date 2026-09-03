@@ -29,6 +29,7 @@ import { useScheme } from "../common/useScheme";
  * has scrolled to.
  */
 const MEASURES: SegmentOption<Measure>[] = [
+  { value: "Seasons", label: "Seasons" },
   { value: "Episodes", label: "Episodes" },
   { value: "Hours", label: "Hours" },
 ];

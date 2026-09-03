@@ -40,6 +40,9 @@ export const seasonHours = (minutes: number) => Math.floor(minutes / 60);
 export const measureOf = (shows: Show[], measure: Measure) => {
   if (measure === "Hours") return seasonHours(shows.sum("minutes"));
   if (measure === "Episodes") return shows.sum("e");
+  // The seasons on record, not the numbering: the converter drops pre-2006 seasons, so a show
+  // whose watched seasons are S5–S8 counts four.
+  if (measure === "Seasons") return shows.flatMap((show) => show.s).length;
   return shows.length;
 };
 

@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import {
   CardPanel,
   LedgerList,
-  type CardMediaImageProps,
   type LedgerRow,
   type PanelStat,
   type PanelSubtitlePart,
@@ -55,8 +54,6 @@ export const Hero = <T,>(props: {
   title: string;
   subtitle?: string | PanelSubtitlePart[];
   stats: HeroStat[];
-  /** The same corner badge the item's thumbnail carries, so the promoted one is not the bare one. */
-  chip?: CardMediaImageProps["chip"];
   /** The item's franchise strip, where it has a franchise to be placed in. */
   strip?: ReactNode;
   /** The two or three facts the domain leads with. */
@@ -68,7 +65,6 @@ export const Hero = <T,>(props: {
     landscape
     // The panel sits beside the artwork and needs the width the artwork did not take.
     mediaLayout="aside"
-    chip={props.chip}
     cardSx={{
       flexDirection: { xs: "column", md: "row" },
       // The strip is a third child of the row, given the card's whole width, so it wraps under

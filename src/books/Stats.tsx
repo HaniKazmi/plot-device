@@ -149,7 +149,6 @@ const BookHero = ({ book }: { book: Book }) => {
       item={book}
       MediaComponent={BookCardMediaImage}
       kicker={`Reading since ${formatDate(book.startDate)}`}
-      chip={bookScoreChip(book, scheme)}
       title={book.name}
       subtitle={bookSubtitle(book, scheme)}
       stats={bookHeroStats(book, CURRENT_PLAINDATE, "hero")}

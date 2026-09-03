@@ -34,9 +34,11 @@ export const SegmentedControl = <T extends string>(props: {
   /**
    * The tones of the surface the control stands on, for one drawn inside a card the artwork has
    * coloured. The theme's primary is solved against the theme's paper and nothing else, so on a
-   * sampled ground the lit segment can land a hue away from legible — a teal on a brown card —
-   * where the surface's own ink and wash are the pair every other word on that surface already
-   * reads in.
+   * sampled ground the lit segment can land a hue away from legible — a teal on a brown card. The
+   * lit segment is then filled with the surface's ink and its word set in the ground, which is the
+   * strongest pair the surface has, and the unlit words stand in the ink at full strength: the
+   * muted tone is a transparent ink, and on a mid-toned artwork ground the two differ by too little
+   * for a 12px word to carry.
    */
   tone?: SegmentTone;
 }) => (
@@ -62,21 +64,19 @@ export const SegmentedControl = <T extends string>(props: {
   </ToggleButtonGroup>
 );
 
-/** The four tones a segment reads in on a coloured surface. */
+/** The tones a segment reads in on a coloured surface. */
 export interface SegmentTone {
+  ground: string;
   ink: string;
-  muted: string;
   line: string;
   wash: string;
 }
 
-// Hover lifts the word alone: a hovered segment painted in the wash would be indistinguishable from
-// the lit one but for ink against muted at 12px.
 const toneSx = (tone: SegmentTone) => ({
-  color: tone.muted,
+  color: tone.ink,
   borderColor: tone.line,
-  "&.Mui-selected, &.Mui-selected:hover": { color: tone.ink, backgroundColor: tone.wash },
-  "&:hover": { color: tone.ink, backgroundColor: "transparent" },
+  "&:hover": { backgroundColor: tone.wash },
+  "&.Mui-selected, &.Mui-selected:hover": { color: tone.ground, backgroundColor: tone.ink },
 });
 
 /**

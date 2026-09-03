@@ -151,8 +151,6 @@ const MovieHero = ({ movie }: { movie: Movie }) => {
       item={movie}
       MediaComponent={MovieCardMediaImage}
       kicker={`Latest watch · ${formatDate(movie.startDate)} · ${cinemaLabel(movie)}`}
-      // The same badge the strips' posters carry, so being promoted does not cost the film its score.
-      chip={movieScoreChip(movie, scheme)}
       title={movie.name}
       // The genre wears the same swatch its ledger row and every genre wedge on the tab wear.
       subtitle={movieSubtitle(movie, scheme)}

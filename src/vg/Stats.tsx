@@ -154,9 +154,6 @@ const VgHero = ({ game }: { game: VideoGame }) => {
       item={game}
       MediaComponent={VgCardMediaImage}
       kicker={`Currently playing · since ${formatDate(game.startDate)}`}
-      // The same badge every other playing game carries in the strip below, so being the one
-      // promoted to the top of the page does not cost this game its platform.
-      chip={platformToShortChip(game)}
       title={game.name}
       subtitle={gameSubtitle(game, scheme)}
       stats={heroStats(game, franchise, CURRENT_PLAINDATE)}

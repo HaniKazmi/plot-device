@@ -33,7 +33,8 @@ const ShowSunburst = ({ data, measure }: { data: Show[]; measure: Measure }) => 
               return String(season.show[key as keyof Show]);
           }
         },
-        getCount: ({ minutes, e }) => (measure === "Hours" ? minutes && Math.floor(minutes / 60) : e),
+        getCount: ({ minutes, e }) =>
+          measure === "Hours" ? minutes && Math.floor(minutes / 60) : measure === "Seasons" ? 1 : e,
         getColor: ({ show }, firstGroup) => groupToColour(firstGroup, show, scheme) || undefined,
         getLeafName: ({ show, s }) => `${show.name} - S${s}`,
       }}

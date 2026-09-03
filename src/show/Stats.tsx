@@ -173,8 +173,6 @@ const ShowHero = ({ season }: { season: Season }) => {
       item={season}
       MediaComponent={ShowCardMediaImage}
       kicker={`Last watched · ${formatDate(season.show.lastWatchedDate!)}`}
-      // The same badge the strip's cards carry, so being promoted does not cost the show its place.
-      chip={{ label: `S${season.s}E${season.e}`, colour: statusToColour(season.show, scheme) }}
       title={season.show.name}
       // The genre wears the same swatch its ledger row and every genre wedge on the tab wear.
       subtitle={showSubtitle(season.show, scheme)}

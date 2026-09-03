@@ -2,7 +2,7 @@ import { Year, YearMonthDay, formatDate, formatDateRange } from "../common/date"
 import type { StripSpan } from "../common/timelineStripData";
 import type { LedgerRow, PanelSubtitlePart } from "../common/Card";
 import { franchiseToColour, genreToColour, type Scheme } from "../utils/types";
-import { companyToAccent, gameplayToColour, ratingToColour, type VideoGame } from "./types";
+import { companyToAccent, gameplayToColour, platformToColor, ratingToColour, type VideoGame } from "./types";
 import "../utils/arrayUtils";
 import "../utils/mapUtils";
 
@@ -125,7 +125,10 @@ const estimateUndatedSpans = (games: VideoGame[]) => {
  * medium where this names the platform.
  */
 export const gameSubtitle = (game: VideoGame, scheme: Scheme): PanelSubtitlePart[] => [
-  { text: game.platform },
+  // The platform wears the fill its wedge and its bar wear. A thumbnail says the platform in a
+  // corner chip because it has no room for the word; a panel has the word, and the swatch is what
+  // ties it to the charts.
+  { text: game.platform, swatch: platformToColor(game, scheme) },
   { text: game.gameplay, swatch: gameplayToColour(game, scheme) },
   { text: game.genre, swatch: genreToColour(game.genre, scheme) },
 ];

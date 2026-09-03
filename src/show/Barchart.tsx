@@ -39,12 +39,12 @@ const ShowBarchart = ({ data, measure, yearType }: { data: Show[]; measure: Meas
         date: cumulative || yearType === "matching" ? season.startDate.toYearMonth() : season.startDate.toYear(),
         colour: groupToColour(group, season.show, scheme),
         name: optionToName(season, group),
-        value: measure === "Episodes" ? season.e : season.minutes,
+        value: measure === "Seasons" ? 1 : measure === "Episodes" ? season.e : season.minutes,
       }));
 
   return (
     <Barchart
-      title={`${measure === "Episodes" ? "Episodes" : "Hours"} by year`}
+      title={`${measure} by year`}
       // The shows behind the columns rather than the seasons the chart is fed, which is the unit
       // the tab's other sections count in and the one its Sunburst neighbour states.
       count={`${format(data.length)} shows`}

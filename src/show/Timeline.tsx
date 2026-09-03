@@ -1,7 +1,7 @@
-import { FormGroup, FormControlLabel, Switch } from "@mui/material";
 import { Timeline as TimelineIcon } from "@mui/icons-material";
 import { useState } from "react";
 import { SectionHeader } from "../common/SectionHeader";
+import { SegmentedControl, type SegmentOption } from "../common/SelectionComponents";
 import { format } from "../utils/mathUtils";
 import { Season, Show } from "./types";
 import Timeline, { TimelineData } from "../common/Timeline";
@@ -10,10 +10,19 @@ import { CURRENT_PLAINDATE } from "../common/date";
 import { ShowHoverCard } from "./CardMediaImage";
 import { useScheme } from "../common/useScheme";
 
+/** What one bar stands for: a season, or a show with its seasons combined. */
+type Bar = "season" | "show";
+
+const BARS: readonly SegmentOption<Bar>[] = [
+  { value: "season", label: "Seasons" },
+  { value: "show", label: "Shows" },
+];
+
 const ShowTimeline = ({ data }: { data: Show[] }) => {
   const scheme = useScheme();
 
-  const [groupData, setGroupData] = useState(false);
+  const [bar, setBar] = useState<Bar>("season");
+  const groupData = bar === "show";
 
   const titleData: [string, Show | Season, Colour][] = groupData
     ? data.map((show) => [show.name, show, statusToColour(show, scheme)])
@@ -42,21 +51,20 @@ const ShowTimeline = ({ data }: { data: Show[] }) => {
       <SectionHeader
         icon={<TimelineIcon />}
         title={groupData ? "Every show" : "Every season"}
-        // The bars actually drawn, which the switch beside it changes from one per season to one
+        // The bars actually drawn, which the control beside it changes from one per season to one
         // per show — so the title and the count turn over with the bars rather than outliving them.
         count={`${format(titleData.length)} ${groupData ? "shows" : "seasons"}`}
+        // The same control the charts' views and the wall's density are chosen with: "one bar per
+        // season or per show" is the same kind of choice, a small closed set where the current one
+        // has to be readable at a glance, and a switch labelled "Combine Seasons" states only the
+        // one it is not on.
         action={
-          <FormGroup row>
-            <FormControlLabel
-              label="Combine Seasons"
-              control={
-                <Switch
-                  checked={groupData}
-                  onChange={(_, checked) => setGroupData(checked)}
-                />
-              }
-            />
-          </FormGroup>
+          <SegmentedControl
+            options={BARS}
+            value={bar}
+            onChange={setBar}
+            ariaLabel="One bar per"
+          />
         }
       />
     </Timeline>

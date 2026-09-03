@@ -8,6 +8,7 @@ import {
   showHeroStats,
   currentlyWatching,
   groupShowsBy,
+  measureOf,
   minutesPerEpisode,
   perShowAverages,
   recentlyComplete,
@@ -505,5 +506,23 @@ describe("earliestYear", () => {
   it("reads the earliest start from the data, and falls back to the current year when empty", () => {
     expect(earliestYear([show({ startDate: YearMonthDay.get(2009, 6, 1) }), show()])).toBe(2009);
     expect(earliestYear([])).toBe(CURRENT_YEAR);
+  });
+});
+
+describe("measureOf", () => {
+  const two = show({ e: 20, minutes: 600 });
+  two.s = [season(two, { s: 5, e: 10, minutes: 300 }), season(two, { s: 6, e: 10, minutes: 300 })];
+  const one = show({ e: 8, minutes: 90 });
+  one.s = [season(one, { s: 1, e: 8, minutes: 90 })];
+  const shows = [two, one];
+
+  it("counts shows, episodes and floored hours under those measures", () => {
+    expect(measureOf(shows, "Shows")).toBe(2);
+    expect(measureOf(shows, "Episodes")).toBe(28);
+    expect(measureOf(shows, "Hours")).toBe(11);
+  });
+
+  it("counts the seasons on record under Seasons, not the season numbering", () => {
+    expect(measureOf(shows, "Seasons")).toBe(3);
   });
 });

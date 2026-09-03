@@ -66,7 +66,7 @@ export const typeToName = (type: Type) => (type === "anime" ? "Anime" : "Show");
 
 export type ShowStringKeys = KeysMatching<Show, string>;
 
-export type Measure = "Shows" | "Episodes" | "Hours";
+export type Measure = "Shows" | "Seasons" | "Episodes" | "Hours";
 
 export const isShow = (arg: Show | Season): arg is Show => "name" in arg;
 
