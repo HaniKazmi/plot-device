@@ -1,4 +1,5 @@
 import { Stack } from "@mui/material";
+import type { YearNumber } from "../common/date";
 import Finished from "../common/Finished";
 import Barchart from "./Barchart";
 import Sunburst from "./Sunburst";
@@ -6,7 +7,7 @@ import Stats from "./Stats";
 import { ChartPair, Section, SectionRail } from "../common/SectionRail";
 import { useOtherTabs } from "../tabs";
 import { SHOW_SECTIONS, showSections } from "./sections";
-import { currentlyWatching } from "./statsData";
+import { currentlyWatching, earliestYear } from "./statsData";
 import Timeline from "./Timeline";
 import { Show } from "./types";
 import ShowCardMediaImage from "./CardMediaImage";
@@ -36,6 +37,10 @@ const SuspenseBlock = ({
   >
     <Graphs
       data={filteredData}
+      // The floor of the year select, read from the whole library rather than from what the
+      // filters left: derived from the filtered data, picking "In 2020" would leave 2020 the
+      // earliest year on offer and strand the reader in it.
+      earliestYear={earliestYear(unfilteredData)}
       filterState={filterState}
       filterDispatch={filterDispatch}
     />
@@ -50,10 +55,12 @@ const SuspenseBlock = ({
 const Graphs = memo(
   ({
     data,
+    earliestYear,
     filterState,
     filterDispatch,
   }: {
     data: Show[];
+    earliestYear: YearNumber;
     filterState: FilterState;
     filterDispatch: FilterDispatch;
   }) => {
@@ -74,6 +81,7 @@ const Graphs = memo(
         <Stats
           data={data}
           watching={watching}
+          earliestYear={earliestYear}
           measure={filterState.measure}
           yearType={filterState.yearType}
           yearTo={filterState.yearTo}
@@ -94,6 +102,7 @@ const Graphs = memo(
               <Barchart
                 data={deferredData}
                 measure={filterState.measure}
+                yearType={filterState.yearType}
               />
             }
           />
@@ -102,6 +111,7 @@ const Graphs = memo(
           <Finished
             title="All Shows"
             count={`${format(finishedCount(data))} shows`}
+            borderKey="status"
             data={data}
             colour={(item) => statusToColour(item, scheme)}
             MediaComponent={ShowCardMediaImage}

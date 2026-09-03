@@ -158,6 +158,7 @@ const FinishedGrid = <U extends FinishedItem>({
 const Finished = <U extends FinishedItem>({
   title,
   count,
+  borderKey,
   data,
   colour,
   landscape: landscapeProp,
@@ -167,6 +168,13 @@ const Finished = <U extends FinishedItem>({
   title: string;
   /** What the grid is over, in the caller's own words. Optional: a domain may have no noun yet. */
   count?: string;
+  /**
+   * What field the card border is coloured by, in the caller's own words — "platform", "status",
+   * "genre". The wall draws a border on every card whichever domain it is, and with nothing
+   * naming the field a reader has no way to tell a colour means something from a colour that is
+   * just decoration.
+   */
+  borderKey?: string;
   data: readonly U[];
   colour?: (item: U) => string;
   landscape?: boolean;
@@ -181,6 +189,10 @@ const Finished = <U extends FinishedItem>({
   // Applied after the pattern: a default inside it bails the component out of the React Compiler.
   const landscape = landscapeProp ?? false;
   const keyOf = keyOfProp ?? finishedKey;
+  // Joined onto the same muted caption `SectionHeader` already renders beside the title, rather
+  // than a second piece of header markup: a wall not asked for a border key gets exactly the
+  // header it would without one.
+  const countWithBorder = [count, borderKey && `border · ${borderKey}`].filter(Boolean).join(" · ") || undefined;
   const [sort, selectBox] = useSelectBox(sortOptions, "Date");
   // Compact by default, and held for the reader's visit rather than written anywhere: the wall is
   // the tallest thing on its page, so the size it opens at is what the page is, and a stored
@@ -203,7 +215,7 @@ const Finished = <U extends FinishedItem>({
       <SectionHeader
         icon={<GridView />}
         title={title}
-        count={count}
+        count={countWithBorder}
         action={
           <FormGroup>
             <Stack

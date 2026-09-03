@@ -8,7 +8,6 @@ import {
   Stars,
   Theaters,
   VerifiedUser,
-  Weekend,
   Whatshot,
 } from "@mui/icons-material";
 import { Stack } from "@mui/material";
@@ -85,7 +84,7 @@ const Stats = ({
     <Stack spacing={2}>
       {/* The page's "now": every film has a watch date, so the most recent one is well defined
           and there is no tie-break to invent. Rendered only when anything survives the filters,
-          which is the same test the rail's "Latest" chip is built from. */}
+          which is the same test the rail's "Now" chip is built from. */}
       {latest && (
         <Section id={MOVIE_SECTIONS.latest}>
           <MovieHero movie={latest} />
@@ -250,7 +249,7 @@ const optionIcons: Record<MovieTopOption, ReactNode> = {
  */
 const RecentlyWatched = ({ data }: { data: Movie[] }) => (
   <MovieStatList
-    icon={<Weekend />}
+    icon={<History />}
     title="Recently Watched"
     content={data.sortByKey("startDate")}
     labelComponent={statsCardLabelWatched}
@@ -279,21 +278,66 @@ const BestRated = ({ data }: { data: Movie[] }) => {
   );
 };
 
+const movieMostWatchedOptions = ["name", ...movieTopOptions] as const;
+
 const MostWatched = ({ data, measure }: { data: Movie[]; measure: Measure }) => {
+  const [option, controls] = useSelectBox(movieMostWatchedOptions, "franchise");
+
+  if (option === "name") {
+    return (
+      <MostWatchedFilms
+        data={data}
+        controls={controls}
+      />
+    );
+  }
+  return (
+    <MostWatchedCategory
+      data={data}
+      measure={measure}
+      controls={controls}
+      category={option}
+    />
+  );
+};
+
+const MostWatchedFilms = ({ data, controls }: { data: Movie[]; controls: ReactNode }) => {
+  const most = data.filter((movie) => movie.minutes).sortByKey("minutes");
+  return (
+    <MovieStatList
+      controls={controls}
+      icon={<Whatshot />}
+      title="Most Watched"
+      content={most}
+      labelComponent={statsCardLabelScore}
+    />
+  );
+};
+
+const MostWatchedCategory = ({
+  data,
+  measure,
+  category,
+  controls,
+}: {
+  data: Movie[];
+  measure: Measure;
+  category: MovieTopOption;
+  controls: ReactNode;
+}) => {
   const scheme = useScheme();
 
-  const [option, controls] = useSelectBox(movieTopOptions, "franchise");
   return (
     <GroupedStatList
       icon={<Whatshot />}
       controls={controls}
       title="Most Watched"
-      option={option}
-      groups={groupMoviesBy(data, option, measure)}
+      option={category}
+      groups={groupMoviesBy(data, category, measure)}
       // The name and the figure stacked rather than side by side — under a poster there is no
       // width for both on one line.
       labelComponent={(group) => [[group.name], [`${format(group.count)} ${measure}`]]}
-      colourOf={(top) => groupToColour(option, top, scheme)}
+      colourOf={(top) => groupToColour(category, top, scheme)}
       MediaComponent={MovieCardMediaImage}
       dialogSort={(movies) => movies.toSorted((a, b) => b.minutes - a.minutes)}
       nameOf={movieKey}

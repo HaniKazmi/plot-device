@@ -7,9 +7,9 @@ import type { FilterDispatch, FilterState } from "./filterUtils";
 import { useScheme } from "../common/useScheme";
 
 const toggles = [
-  { toggle: "home", Icon: Weekend },
-  { toggle: "unscored", Icon: StarBorder },
-  { toggle: "anime", Icon: Animation },
+  { toggle: "home", label: "Watched at home", Icon: Weekend },
+  { toggle: "unscored", label: "Unscored films", Icon: StarBorder },
+  { toggle: "anime", label: "Anime", Icon: Animation },
 ] as const;
 
 const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: FilterDispatch; data: Movie[] }) => {
@@ -20,10 +20,10 @@ const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: Filte
       measureIcon={state.measure === "Films" ? <Functions /> : <Timer />}
       onToggleMeasure={() => dispatch({ type: "toggleMeasure" })}
       onReset={() => dispatch({ type: "resetFilters" })}
-      toggles={toggles.map(({ toggle, Icon }) => (
+      toggles={toggles.map(({ toggle, label, Icon }) => (
         <FilterToggle
           key={toggle}
-          label={toggle}
+          label={label}
           icon={Icon}
           checked={state[toggle]}
           onChange={(checked) => dispatch({ type: "updateFilter", filter: toggle, value: checked })}

@@ -8,9 +8,9 @@ import { vgFranchise } from "./franchiseContext";
 import type { FilterDispatch, FilterState } from "./filterUtils";
 
 const toggles = [
-  { toggle: "endless", Icon: AllInclusive },
-  { toggle: "unconfirmed", Icon: QuestionMark },
-  { toggle: "pokemon", Icon: CatchingPokemonTwoTone },
+  { toggle: "endless", label: "Endless games", Icon: AllInclusive },
+  { toggle: "unconfirmed", label: "Unconfirmed dates", Icon: QuestionMark },
+  { toggle: "pokemon", label: "Pokémon", Icon: CatchingPokemonTwoTone },
 ] as const;
 
 const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: FilterDispatch; data: VideoGame[] }) => {
@@ -21,10 +21,10 @@ const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: Filte
       measureIcon={state.measure === "Games" ? <Functions /> : <Timer />}
       onToggleMeasure={() => dispatch({ type: "toggleMeasure" })}
       onReset={() => dispatch({ type: "resetFilters" })}
-      toggles={toggles.map(({ toggle, Icon }) => (
+      toggles={toggles.map(({ toggle, label, Icon }) => (
         <FilterToggle
           key={toggle}
-          label={toggle}
+          label={label}
           icon={Icon}
           checked={state[toggle]}
           onChange={(checked) => dispatch({ type: "updateFilter", filter: toggle, value: checked })}

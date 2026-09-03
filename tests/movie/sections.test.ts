@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { MOVIE_SECTIONS, movieSections } from "../../src/movie/sections";
 
 describe("movieSections", () => {
-  it("runs the rail in the order the page does: Latest, Vitals, Top, Explore, Timeline, Charts, Library", () => {
+  it("runs the rail in the order the page does: Now, Vitals, Top, Explore, Timeline, Charts, Library", () => {
     expect(movieSections(true).map((section) => section.id)).toEqual([
       MOVIE_SECTIONS.latest,
       MOVIE_SECTIONS.vitals,
@@ -14,11 +14,11 @@ describe("movieSections", () => {
     ]);
   });
 
-  it("drops the Latest chip when nothing survives the filters, so it never points at a missing anchor", () => {
+  it("drops the Now chip when nothing survives the filters, so it never points at a missing anchor", () => {
     expect(movieSections(false).map((section) => section.id)).not.toContain(MOVIE_SECTIONS.latest);
   });
 
-  it("carries no Now chip, since a film is watched rather than in progress", () => {
+  it("keeps the anchor keyed movie-latest rather than movie-now, even though its chip now reads Now", () => {
     expect(movieSections(true).map((section) => section.id)).not.toContain("movie-now");
   });
 

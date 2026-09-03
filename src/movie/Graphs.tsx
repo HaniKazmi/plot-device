@@ -88,14 +88,16 @@ const Graphs = memo(
               <Barchart
                 data={deferredData}
                 measure={filterState.measure}
+                yearType={filterState.yearType}
               />
             }
           />
         </Section>
         <Section id={MOVIE_SECTIONS.library}>
           <Finished
-            title="All Movies"
+            title="All Films"
             count={`${format(finishedCount(data))} films`}
+            borderKey="rating"
             data={data}
             // Rating rather than genre for the border: `ageRatingToColour` is validated at convert
             // time and total, so it cannot throw across a wall of hundreds of cards.

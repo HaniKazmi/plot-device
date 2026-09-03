@@ -24,7 +24,7 @@ const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: Filte
       onReset={() => dispatch({ type: "resetFilters" })}
       toggles={
         <FilterToggle
-          label="unscored"
+          label="Unscored books"
           icon={StarBorder}
           checked={state.unscored}
           onChange={(checked) => dispatch({ type: "updateFilter", filter: "unscored", value: checked })}
