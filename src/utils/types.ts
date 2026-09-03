@@ -94,12 +94,19 @@ export const MEDIA: readonly Medium[] = ["game", "show", "movie", "book"];
  * finds the colour it was already wearing, and they cannot be chosen independently of `tabs.ts`
  * without the two drifting. The closest pair is 16.8 dE, which is above what two fills need to be
  * told apart; the legend beside every bar and the medium name on every strip carry the rest.
+ *
+ * The light Books half is solved to the brightest gold that clears 3:1 on white, not the tab's own
+ * darker `#958112`, because lightness is what a deutan reader has left: a Books gold at the Movies
+ * red's lightness collapses onto it under simulation (1.3 dE at `#857200`, against a working floor
+ * of 8), and the genre bridge's segments and the crossings' lanes carry no label of their own to
+ * fall back on. Brighter by one step the pair sits 10 dE apart under deutan and 19 under protan,
+ * with the hue unchanged; a greener hue at the same lightness gains nothing over it.
  */
 export const mediumFills: Record<Medium, Fill> = {
   game: fill("#bc00b6", "#ea00e3"),
   show: fill("#007f9f", "#00afdb"),
   movie: fill("#c93700", "#f34400"),
-  book: fill("#857200", "#c6ac00"),
+  book: fill("#ab9219", "#c6ac00"),
 };
 
 export const mediumToColour = (medium: Medium, scheme: Scheme): Colour => pick(mediumFills[medium], scheme);
