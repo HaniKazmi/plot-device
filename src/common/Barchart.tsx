@@ -2,7 +2,8 @@ import { Card, CardContent, FormGroup, Typography, useTheme } from "@mui/materia
 import { type ReactNode, useState } from "react";
 import { BarChart } from "@mui/icons-material";
 import { SectionHeader } from "./SectionHeader";
-import { SegmentedControl, type SegmentOption } from "./SelectionComponents";
+import { SegmentedControl } from "./SelectionComponents";
+import { segments } from "./segments";
 import { Chart, Series, XAxis, YAxis, PlotOptions, Tooltip, Legend } from "../highcharts";
 import type { Year, YearMonth } from "./date";
 import type { Colour } from "../utils/types";
@@ -18,12 +19,7 @@ import { convertToCumulative, convertToRanking, convertToShare, groupDate } from
 type View = "Totals" | "Share" | "Cumulative" | "Rank";
 
 /** The default leads, so the segment lit on arrival is the one the reader's eye starts at. */
-const viewOptions: SegmentOption<View>[] = [
-  { value: "Totals", label: "Totals" },
-  { value: "Share", label: "Share" },
-  { value: "Cumulative", label: "Cumulative" },
-  { value: "Rank", label: "Rank" },
-];
+const viewOptions = segments<View>(["Totals", "Share", "Cumulative", "Rank"]);
 
 /** What a chart is given when its height is its resolution, and what a rank lane needs. */
 const CHART_HEIGHT = "80vh";

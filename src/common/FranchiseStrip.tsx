@@ -1,8 +1,10 @@
 import { Box, Stack, Typography } from "@mui/material";
 import { useState, type ReactNode } from "react";
-import { MEDIA, franchiseToColour, mediumToColour, mediumUnit, pick, type Scheme } from "../utils/types";
-import { useArtworkPalette } from "./artworkPalette";
-import { INLINE_SWATCH_SIZE, Swatch } from "./Card";
+import { MEDIA, franchiseToColour, mediumToColour, mediumUnit, pick, type Medium } from "../utils/types";
+import { useArtworkPalette, type artworkPalette } from "./artworkPalette";
+
+type Palette = ReturnType<typeof artworkPalette>;
+import { INLINE_SWATCH_SIZE, Swatch, TimelineScale } from "./Card";
 import { SegmentedControl, type SegmentOption } from "./SelectionComponents";
 import { shortYear, type YearMonthDay } from "./date";
 import type { FranchiseEntry } from "./franchiseUnion";
@@ -25,7 +27,7 @@ import "../utils/arrayUtils";
  * The two ways a franchise is drawn: in the order its entries were met, one bead each, evenly
  * spaced; or against time, on a window of the franchise's own years.
  */
-export type StripMode = "order" | "time";
+type StripMode = "order" | "time";
 
 /**
  * Where a strip stands. A card's strip offers both readings and wraps its chain; the hero's is
@@ -49,15 +51,6 @@ const STRIP_MODES: readonly SegmentOption<StripMode>[] = [
   { value: "order", label: "Order" },
   { value: "time", label: "Time" },
 ];
-
-/** The tones a strip is drawn in, resolved once from the card it stands in. */
-interface StripColours {
-  ground: string;
-  ink: string;
-  muted: string;
-  line: string;
-  wash: string;
-}
 
 /**
  * A franchise on an expanded card or the hero: every entry the reader has met across the four
@@ -98,30 +91,19 @@ export const FranchiseStrip = (props: {
 }) => {
   const { entries, subject, franchise, epoch, today } = props;
   const hero = props.variant === "hero";
-  const scheme = useScheme();
   const palette = useArtworkPalette();
   const [chosen, setChosen] = useState<StripMode>(preferredMode);
   const mode = hero ? "order" : chosen;
-  const colours: StripColours = {
-    ground: palette.ground,
-    ink: palette.onGround,
-    muted: palette.muted,
-    line: palette.line,
-    wash: palette.tile,
-  };
 
   const ordered = entries.sortByKey("start", true);
   // Whether the subject has anything to stand apart from: a show that is the whole of its
   // franchise has no sibling on the strip, and ringing every one of its seasons says nothing.
   const contextual = ordered.some((entry) => entry.subject !== subject);
-  const markOf = (entry: FranchiseEntry): Mark =>
-    entry.key === props.focus || (props.focus === undefined && entry.subject === subject)
-      ? "focus"
-      : entry.subject === subject
-        ? contextual
-          ? "subject"
-          : "plain"
-        : "none";
+  const markOf = (entry: FranchiseEntry): Mark => {
+    if (entry.key === props.focus || (props.focus === undefined && entry.subject === subject)) return "focus";
+    if (entry.subject !== subject) return "none";
+    return contextual ? "subject" : "plain";
+  };
   const window = stripWindow(ordered);
   // The order reading needs no range: the beads are the order, and the years beneath say when.
   const range =
@@ -130,20 +112,18 @@ export const FranchiseStrip = (props: {
   return (
     <Box
       sx={hero ? HERO_STRIP_SX : CARD_STRIP_SX}
-      style={{ color: colours.ink, backgroundColor: colours.wash, border: `1px solid ${colours.line}` }}
+      style={{ color: palette.onGround, backgroundColor: palette.tile, border: `1px solid ${palette.line}` }}
     >
       <Caption
         franchise={franchise}
         entries={ordered}
         range={range}
-        scheme={scheme}
-        colours={colours}
         control={
           !hero && (
             <SegmentedControl
               options={STRIP_MODES}
               value={mode}
-              tone={colours}
+              tone={palette}
               onChange={(next) => {
                 preferredMode = next;
                 setChosen(next);
@@ -158,8 +138,6 @@ export const FranchiseStrip = (props: {
           entries={ordered}
           markOf={markOf}
           fit={hero ? "shrink" : "wrap"}
-          scheme={scheme}
-          colours={colours}
         />
       ) : (
         <WindowedStrip
@@ -167,8 +145,6 @@ export const FranchiseStrip = (props: {
           markOf={markOf}
           epoch={epoch}
           today={today}
-          scheme={scheme}
-          colours={colours}
         />
       )}
     </Box>
@@ -184,62 +160,63 @@ const Caption = ({
   franchise,
   entries,
   range,
-  scheme,
-  colours,
   control,
 }: {
   franchise: string;
   entries: FranchiseEntry[];
   range?: string;
-  scheme: Scheme;
-  colours: StripColours;
   control: ReactNode;
-}) => (
-  <Stack
-    direction="row"
-    spacing={1}
-    sx={{ alignItems: "center", flexWrap: "wrap", marginBottom: 0.5 }}
-  >
-    {/* The franchise wears the swatch its Top list and ledger rows wear, where the table has one. */}
-    <FranchiseName
-      franchise={franchise}
-      scheme={scheme}
-    />
-    {MEDIA.map((medium) => {
-      const count = entries.filter((entry) => entry.medium === medium).length;
-      return (
-        count > 0 && (
-          <Stack
-            key={medium}
-            direction="row"
-            spacing={0.5}
-            sx={{ alignItems: "center" }}
-          >
-            <Swatch
-              colour={mediumToColour(medium, scheme)}
-              size={INLINE_SWATCH_SIZE}
-            />
-            <Typography variant="caption">{mediumUnit(medium, count)}</Typography>
-          </Stack>
-        )
-      );
-    })}
-    {range && (
-      <Typography
-        variant="caption"
-        style={{ color: colours.muted }}
-      >
-        {range}
-      </Typography>
-    )}
-    <Box sx={{ flex: 1 }} />
-    {control}
-  </Stack>
-);
+}) => {
+  const scheme = useScheme();
+  const palette = useArtworkPalette();
+  // One pass over the entries rather than a filter per medium.
+  const counts = new Map<Medium, number>();
+  for (const entry of entries) counts.set(entry.medium, (counts.get(entry.medium) ?? 0) + 1);
+
+  return (
+    <Stack
+      direction="row"
+      spacing={1}
+      sx={{ alignItems: "center", flexWrap: "wrap", marginBottom: 0.5 }}
+    >
+      {/* The franchise wears the swatch its Top list and ledger rows wear, where the table has one. */}
+      <FranchiseName franchise={franchise} />
+      {MEDIA.map((medium) => {
+        const count = counts.get(medium) ?? 0;
+        return (
+          count > 0 && (
+            <Stack
+              key={medium}
+              direction="row"
+              spacing={0.5}
+              sx={{ alignItems: "center" }}
+            >
+              <Swatch
+                colour={mediumToColour(medium, scheme)}
+                size={INLINE_SWATCH_SIZE}
+              />
+              <Typography variant="caption">{mediumUnit(medium, count)}</Typography>
+            </Stack>
+          )
+        );
+      })}
+      {range && (
+        <Typography
+          variant="caption"
+          style={{ color: palette.muted }}
+        >
+          {range}
+        </Typography>
+      )}
+      <Box sx={{ flex: 1 }} />
+      {control}
+    </Stack>
+  );
+};
 
 /** A franchise's name with the swatch the app paints it elsewhere, where the table holds one. */
-export const FranchiseName = ({ franchise, scheme }: { franchise: string; scheme: Scheme }) => {
-  const colour = franchiseToColour({ franchise }, scheme);
+export const FranchiseName = ({ franchise }: { franchise: string }) => {
+  const colour = franchiseToColour({ franchise }, useScheme());
   return (
     <Stack
       direction="row"
@@ -291,8 +268,6 @@ const BeadChain = ({
   entries,
   markOf,
   fit,
-  scheme,
-  colours,
 }: {
   entries: FranchiseEntry[];
   markOf: (entry: FranchiseEntry) => Mark;
@@ -302,8 +277,6 @@ const BeadChain = ({
    * only at the ends once there is no room to state them where they change.
    */
   fit: "wrap" | "shrink";
-  scheme: Scheme;
-  colours: StripColours;
 }) => {
   const [ref, width] = useElementWidth<HTMLDivElement>();
   const measured = width ?? UNMEASURED_WIDTH;
@@ -328,18 +301,17 @@ const BeadChain = ({
             const yearShown = cramped
               ? index === 0 || index === entries.length - 1
               : index === 0 || entries[index - 1].start.year !== entry.start.year;
+            const mark = markOf(entry);
             return (
               <Bead
                 key={entry.key}
                 entry={entry}
-                mark={markOf(entry)}
-                size={markOf(entry) === "focus" ? focusBead : bead}
+                mark={mark}
+                size={mark === "focus" ? focusBead : bead}
                 lineLeft={column > 0}
                 lineRight={column < row.length - 1}
                 year={yearShown ? shortYear(entry.start.year) : undefined}
                 widthPercent={100 / perRow}
-                scheme={scheme}
-                colours={colours}
               />
             );
           })}
@@ -359,8 +331,6 @@ const Bead = ({
   lineRight,
   year,
   widthPercent,
-  scheme,
-  colours,
 }: {
   entry: FranchiseEntry;
   mark: Mark;
@@ -369,9 +339,9 @@ const Bead = ({
   lineRight: boolean;
   year?: string;
   widthPercent: number;
-  scheme: Scheme;
-  colours: StripColours;
 }) => {
+  const scheme = useScheme();
+  const palette = useArtworkPalette();
   const colour = pick(entry.fill, scheme);
 
   return (
@@ -382,13 +352,13 @@ const Bead = ({
       {lineLeft && (
         <Box
           sx={{ ...LINE_SX, left: 0, width: "50%" }}
-          style={{ backgroundColor: colours.line }}
+          style={{ backgroundColor: palette.line }}
         />
       )}
       {lineRight && (
         <Box
           sx={{ ...LINE_SX, right: 0, width: "50%" }}
-          style={{ backgroundColor: colours.line }}
+          style={{ backgroundColor: palette.line }}
         />
       )}
       <HoverCardTooltip
@@ -408,14 +378,14 @@ const Bead = ({
             },
             mark === "none" && SIBLING_SX,
           ]}
-          style={{ width: size, height: size, backgroundColor: colour, boxShadow: ring(mark, colours) }}
+          style={{ width: size, height: size, backgroundColor: colour, boxShadow: ring(mark, palette) }}
         />
       </HoverCardTooltip>
       {year && (
         <Typography
           variant="caption"
           sx={YEAR_SX}
-          style={{ color: colours.muted }}
+          style={{ color: palette.muted }}
         >
           {year}
         </Typography>
@@ -442,12 +412,12 @@ type Mark = "focus" | "subject" | "plain" | "none";
  * no context is rung only at the focus: a ring on every season of a show that is alone on its
  * strip is a ring on everything, which marks nothing.
  */
-const ring = (mark: Mark, colours: StripColours) =>
+const ring = (mark: Mark, palette: Palette) =>
   mark === "focus"
-    ? `0 0 0 2px ${colours.ground}, 0 0 0 3.5px ${colours.ink}`
+    ? `0 0 0 2px ${palette.ground}, 0 0 0 3.5px ${palette.onGround}`
     : mark === "subject"
-      ? `0 0 0 2px ${colours.ink}`
-      : `0 0 0 1px ${colours.line}`;
+      ? `0 0 0 2px ${palette.onGround}`
+      : `0 0 0 1px ${palette.line}`;
 
 const YEAR_SX = {
   position: "absolute",
@@ -481,16 +451,13 @@ const WindowedStrip = ({
   markOf,
   epoch,
   today,
-  scheme,
-  colours,
 }: {
   entries: FranchiseEntry[];
   markOf: (entry: FranchiseEntry) => Mark;
   epoch: YearMonthDay;
   today: YearMonthDay;
-  scheme: Scheme;
-  colours: StripColours;
 }) => {
+  const palette = useArtworkPalette();
   const window = stripWindow(entries);
   const { bands, laneCount } = buildStrip(entries, window.from, window.to);
   const ticks = stripYearTicks(window.from, window.to);
@@ -507,20 +474,12 @@ const WindowedStrip = ({
   return (
     <Box>
       <Box sx={{ position: "relative", height: laneCount * LANE_PITCH }}>
-        {ticks.map((tick) => (
-          <Box
-            key={tick.year}
-            sx={HAIRLINE_SX}
-            style={{ left: `${tick.percent}%`, backgroundColor: colours.line }}
-          />
-        ))}
+        <TimelineScale ticks={ticks} />
         {bands.map((band) => (
           <StripMark
             key={band.key}
             band={band}
             mark={markOf(band)}
-            scheme={scheme}
-            colours={colours}
           />
         ))}
       </Box>
@@ -528,7 +487,7 @@ const WindowedStrip = ({
         <Typography
           variant="caption"
           sx={[AXIS_SX, { left: 0, transform: "none" }]}
-          style={{ color: colours.muted }}
+          style={{ color: palette.muted }}
         >
           {window.from.year}
         </Typography>
@@ -539,7 +498,7 @@ const WindowedStrip = ({
               key={tick.year}
               variant="caption"
               sx={AXIS_SX}
-              style={{ left: `${tick.percent}%`, color: colours.muted }}
+              style={{ left: `${tick.percent}%`, color: palette.muted }}
             >
               {shortYear(tick.year)}
             </Typography>
@@ -547,11 +506,11 @@ const WindowedStrip = ({
       </Box>
       <Box
         sx={{ position: "relative", height: 4, marginTop: 1.25, borderRadius: 1 }}
-        style={{ backgroundColor: colours.wash }}
+        style={{ backgroundColor: palette.tile }}
       >
         <Box
           sx={{ position: "absolute", top: -2, height: 8, borderRadius: 1, opacity: 0.6 }}
-          style={{ left: `${bracketLeft}%`, width: `${bracketWidth}%`, backgroundColor: colours.muted }}
+          style={{ left: `${bracketLeft}%`, width: `${bracketWidth}%`, backgroundColor: palette.muted }}
         />
       </Box>
       <Stack
@@ -561,14 +520,14 @@ const WindowedStrip = ({
         <Typography
           variant="caption"
           sx={SCALE_LABEL_SX}
-          style={{ color: colours.muted }}
+          style={{ color: palette.muted }}
         >
           {scaleFrom.year}
         </Typography>
         <Typography
           variant="caption"
           sx={SCALE_LABEL_SX}
-          style={{ color: colours.muted }}
+          style={{ color: palette.muted }}
         >
           today
         </Typography>
@@ -576,8 +535,6 @@ const WindowedStrip = ({
     </Box>
   );
 };
-
-const HAIRLINE_SX = { position: "absolute", top: 0, bottom: 0, width: "1px" } as const;
 
 const AXIS_SX = {
   position: "absolute",
@@ -602,22 +559,14 @@ const SCALE_LABEL_SX = {
  * Geometry and fill go in `style`, since they differ per mark and a distinct value reaching `sx`
  * mints an emotion class of its own; what is left in `sx` is the handful of forms a mark takes.
  */
-const StripMark = ({
-  band,
-  mark,
-  scheme,
-  colours,
-}: {
-  band: StripBand<FranchiseEntry>;
-  mark: Mark;
-  scheme: Scheme;
-  colours: StripColours;
-}) => {
+const StripMark = ({ band, mark }: { band: StripBand<FranchiseEntry>; mark: Mark }) => {
+  const scheme = useScheme();
+  const palette = useArtworkPalette();
   const colour = pick(band.fill, scheme);
   const point = band.start === band.end;
   const laneTop = band.lane * LANE_PITCH;
   const centre = band.startPercent + band.widthPercent / 2;
-  const boxShadow = ring(mark, colours);
+  const boxShadow = ring(mark, palette);
 
   return (
     <>

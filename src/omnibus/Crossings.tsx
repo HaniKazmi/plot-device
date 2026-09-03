@@ -138,10 +138,7 @@ const CrossingCaption = ({ crossing }: { crossing: Crossing }) => {
       spacing={1}
       sx={{ alignItems: "center", flexWrap: "wrap" }}
     >
-      <FranchiseName
-        franchise={crossing.franchise}
-        scheme={scheme}
-      />
+      <FranchiseName franchise={crossing.franchise} />
       {crossing.media.map((medium) => (
         <Stack
           key={medium}

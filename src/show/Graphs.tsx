@@ -5,7 +5,7 @@ import Barchart from "./Barchart";
 import Sunburst from "./Sunburst";
 import Stats from "./Stats";
 import { ChartPair, Section, SectionRail } from "../common/SectionRail";
-import { SegmentedControl, type SegmentOption } from "../common/SelectionComponents";
+import { MeasureControl } from "../common/SelectionComponents";
 import { useOtherTabs } from "../tabs";
 import { SHOW_SECTIONS, showSections } from "./sections";
 import { currentlyWatching, earliestYear } from "./statsData";
@@ -22,17 +22,8 @@ import { format } from "../utils/mathUtils";
 import { finishedCount } from "../common/finishedData";
 import { useScheme } from "../common/useScheme";
 
-/**
- * The unit every figure on the tab is counted in, stated as words in the rail rather than as an
- * unlabelled icon on a floating button. It rides the rail because it governs the whole page rather
- * than any one card, and the rail is the only control surface still on screen wherever the reader
- * has scrolled to.
- */
-const MEASURES: SegmentOption<Measure>[] = [
-  { value: "Seasons", label: "Seasons" },
-  { value: "Episodes", label: "Episodes" },
-  { value: "Hours", label: "Hours" },
-];
+/** The measures this tab counts in, in the order the rail states them. */
+const MEASURES: readonly Measure[] = ["Seasons", "Episodes", "Hours"];
 
 const SuspenseBlock = ({
   filteredData,
@@ -91,11 +82,10 @@ const Graphs = memo(
           sections={showSections(watching.length > 0)}
           tabs={tabs}
           actions={
-            <SegmentedControl
-              options={MEASURES}
+            <MeasureControl
+              measures={MEASURES}
               value={filterState.measure}
-              onChange={(measure) => filterDispatch({ type: "measure", measure })}
-              ariaLabel="Measure"
+              dispatch={filterDispatch}
             />
           }
         />

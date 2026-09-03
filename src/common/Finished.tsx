@@ -1,5 +1,6 @@
 import { Box, Card, CardContent, FormGroup, Stack } from "@mui/material";
-import { SegmentedControl, type SegmentOption } from "./SelectionComponents";
+import { SegmentedControl } from "./SelectionComponents";
+import { segments } from "./segments";
 import Grid from "@mui/material/Grid";
 import { GridView } from "@mui/icons-material";
 import { useDeferredValue, useRef, useState, type ReactNode, type RefObject } from "react";
@@ -10,7 +11,7 @@ import { ScrollMarker, ScrollMarkerRail } from "./ScrollMarker";
 import { useScrollMarker } from "./ScrollMarkerHook";
 import { ExpandableCard } from "./Stats";
 import {
-  finishedBucket,
+  bucketFor,
   finishedColumns,
   finishedItems,
   finishedKey,
@@ -18,25 +19,19 @@ import {
   type FinishedDensity,
   type FinishedExtraSort,
   type FinishedItem,
-  type FinishedSort,
 } from "./finishedData";
 import { withAlpha } from "../utils/colourUtils";
 import { shapeToAspect } from "./cardArrangement";
 
-const SORT_OPTIONS: readonly FinishedSort[] = FINISHED_SORTS;
 /** One empty list, so a wall with no extra sorts does not mint a fresh array every render. */
 const NO_SORTS: readonly never[] = [];
-const densityOptions: FinishedDensity[] = ["Compact", "Large", "Full"];
 
 /**
  * The densities as the segmented control's options. Words rather than icons: the three differ in
  * size alone, and a picture of a size is a picture of a grid either way, where "Compact", "Large"
  * and "Full" say it outright.
  */
-const DENSITY_OPTIONS: readonly SegmentOption<FinishedDensity>[] = densityOptions.map((option) => ({
-  value: option,
-  label: option,
-}));
+const DENSITY_OPTIONS = segments<FinishedDensity>(["Compact", "Large", "Full"]);
 
 /**
  * The wall itself, as a component rather than as JSX inside `Finished`'s `renderContent`.
@@ -75,62 +70,66 @@ const FinishedGrid = <U extends FinishedItem>({
   landscape: boolean;
   keyOf: (item: U) => string;
   MediaComponent: TypedCardMediaImage<U>;
-}) => (
-  <Grid
-    container
-    ref={gridRef}
-    spacing={1}
-    sx={{
-      alignItems: "center",
-      opacity: dimmed ? 0.5 : 1,
-    }}
-  >
-    {recent.map((item) => (
-      <Grid
-        key={`${keyOf(item)}-${isDialog ? "dialog" : "card"}`}
-        // Written at render from the same item and sort the order came from, so the marker
-        // reads a position off the DOM instead of keeping a parallel list to index into.
-        data-bucket={finishedBucket(item, sort, sorts) ?? undefined}
-        size={finishedColumns(landscape, density)}
-        sx={{
-          alignSelf: "stretch",
-        }}
-      >
-        <Card
+}) => {
+  // Resolved once for the wall rather than once per card: the sort is the same for all of them.
+  const bucket = bucketFor<U>(sort, sorts);
+  return (
+    <Grid
+      container
+      ref={gridRef}
+      spacing={1}
+      sx={{
+        alignItems: "center",
+        opacity: dimmed ? 0.5 : 1,
+      }}
+    >
+      {recent.map((item) => (
+        <Grid
+          key={`${keyOf(item)}-${isDialog ? "dialog" : "card"}`}
+          // Written at render from the same item and sort the order came from, so the marker
+          // reads a position off the DOM instead of keeping a parallel list to index into.
+          data-bucket={bucket(item) ?? undefined}
+          size={finishedColumns(landscape, density)}
           sx={{
-            height: "100%",
-            borderColor: colour && withAlpha(colour(item), "90"),
-            borderStyle: colour && "solid",
-            borderWidth: colour && 3,
+            alignSelf: "stretch",
           }}
         >
-          <MediaComponent
-            item={item}
-            landscape={landscape}
-            lazy
-            /**
-             * The height every card holds before its artwork arrives.
-             *
-             * A lazily loaded image reserves nothing, so a wall of them stands at a fifth of its
-             * real height — 7,000 pixels against 33,000 for 322 games — and every offset measured
-             * in it is short by the artwork that has not loaded yet. Scrolling into the wall is
-             * what makes that artwork load, so the page grows under the reader and a position
-             * measured a moment ago is already wrong; a jump far down the sort asks for an offset
-             * the document does not yet have and lands clamped at its bottom instead.
-             *
-             * `shapeToAspect` prefixes the ratio with `auto`, which is what keeps this a
-             * reservation rather than a crop: the artwork's own shape wins the moment it is
-             * known, and the declared figure stands in only while there is none. What is left to
-             * settle after one lands is a card's own rounding rather than a card's height,
-             * because every file is authored to the shape it declares.
-             */
-            sx={{ aspectRatio: shapeToAspect(landscape ? "landscape" : "portrait") }}
-          />
-        </Card>
-      </Grid>
-    ))}
-  </Grid>
-);
+          <Card
+            sx={{
+              height: "100%",
+              borderColor: colour && withAlpha(colour(item), "90"),
+              borderStyle: colour && "solid",
+              borderWidth: colour && 3,
+            }}
+          >
+            <MediaComponent
+              item={item}
+              landscape={landscape}
+              lazy
+              /**
+               * The height every card holds before its artwork arrives.
+               *
+               * A lazily loaded image reserves nothing, so a wall of them stands at a fifth of its
+               * real height — 7,000 pixels against 33,000 for 322 games — and every offset measured
+               * in it is short by the artwork that has not loaded yet. Scrolling into the wall is
+               * what makes that artwork load, so the page grows under the reader and a position
+               * measured a moment ago is already wrong; a jump far down the sort asks for an offset
+               * the document does not yet have and lands clamped at its bottom instead.
+               *
+               * `shapeToAspect` prefixes the ratio with `auto`, which is what keeps this a
+               * reservation rather than a crop: the artwork's own shape wins the moment it is
+               * known, and the declared figure stands in only while there is none. What is left to
+               * settle after one lands is a card's own rounding rather than a card's height,
+               * because every file is authored to the shape it declares.
+               */
+              sx={{ aspectRatio: shapeToAspect(landscape ? "landscape" : "portrait") }}
+            />
+          </Card>
+        </Grid>
+      ))}
+    </Grid>
+  );
+};
 
 const Finished = <U extends FinishedItem>({
   title,
@@ -172,9 +171,9 @@ const Finished = <U extends FinishedItem>({
   const sorts: readonly FinishedExtraSort<U>[] = sortsProp ?? NO_SORTS;
   // A programming error, thrown rather than resolved: the built-in would answer for the wall and
   // the extra for the marker, or the reverse, with nothing on screen to say so.
-  const shadowed = sorts.find((extra) => (SORT_OPTIONS as readonly string[]).includes(extra.label));
+  const shadowed = sorts.find((extra) => (FINISHED_SORTS as readonly string[]).includes(extra.label));
   if (shadowed) throw new Error(`A wall sort cannot be named "${shadowed.label}": that order is built in`);
-  const sortOptions: readonly string[] = [...SORT_OPTIONS, ...sorts.map((extra) => extra.label)];
+  const sortOptions: readonly string[] = [...FINISHED_SORTS, ...sorts.map((extra) => extra.label)];
   // Joined onto the same muted caption `SectionHeader` already renders beside the title, rather
   // than a second piece of header markup: a wall not asked for a border key gets exactly the
   // header it would without one.

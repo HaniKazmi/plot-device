@@ -4,7 +4,7 @@ import NavBar from "./NavBar";
 import { Outlet } from "react-router-dom";
 import { GoogleAuthProvider } from "./contexts/GoogleAuthContext.tsx";
 import { FranchiseUnionProvider } from "./omnibus/franchiseUnion.tsx";
-import { useCurrentTab } from "./tabs.ts";
+import { barColour, useCurrentTab } from "./tabs.ts";
 import type { Tab } from "./tabs.ts";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 
@@ -29,7 +29,7 @@ const Graphs = () => {
   const theme = getTheme(currTab);
   // A tab with no `darkBar` (none currently exist) falls back to `DARK_PAPER`, matching the plain
   // bar `getTheme` leaves `AppBar.darkBg` defaulting to in that case.
-  const darkThemeColour = currTab.darkBar?.tint ?? DARK_PAPER;
+  const darkThemeColour = barColour(currTab, "dark") ?? DARK_PAPER;
 
   return (
     <ThemeProvider

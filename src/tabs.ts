@@ -1,4 +1,5 @@
 import type { FunctionComponent } from "react";
+import type { Colour, Scheme } from "./utils/types";
 import { useLocation, useNavigate } from "react-router-dom";
 import Shows from "./show/Show";
 import VideoGames from "./vg/vg";
@@ -25,6 +26,15 @@ export interface DarkBar {
   rule: string;
   ink: string;
 }
+
+/**
+ * The colour a tab's app bar wears in a scheme: the primary on the light paper, the tint on the
+ * dark. Undefined for a tab with neither, which `Google.tsx` paints as plain paper. The one place
+ * that answers, so a surface painted to match the bar — the Omnibus's Now cards — cannot drift
+ * from it.
+ */
+export const barColour = (tab: Tab, scheme: Scheme): Colour | undefined =>
+  (scheme === "dark" ? tab.darkBar?.tint : tab.primaryColour) as Colour | undefined;
 
 export interface Tab {
   id: string;

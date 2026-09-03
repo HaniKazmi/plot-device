@@ -1,4 +1,6 @@
 import { MenuItem, Select, ToggleButton, ToggleButtonGroup } from "@mui/material";
+import type { artworkPalette } from "./artworkPalette";
+import { segments } from "./segments";
 
 /** One segment: the value it selects and the word on it. */
 export interface SegmentOption<T extends string> {
@@ -64,20 +66,39 @@ export const SegmentedControl = <T extends string>(props: {
   </ToggleButtonGroup>
 );
 
-/** The tones a segment reads in on a coloured surface. */
-export interface SegmentTone {
-  ground: string;
-  ink: string;
-  line: string;
-  wash: string;
-}
+/** The tones a segment reads in on a coloured surface: the surface's own palette, or the part of it used. */
+export type SegmentTone = Pick<ReturnType<typeof artworkPalette>, "ground" | "onGround" | "line" | "tile">;
 
 const toneSx = (tone: SegmentTone) => ({
-  color: tone.ink,
+  color: tone.onGround,
   borderColor: tone.line,
-  "&:hover": { backgroundColor: tone.wash },
-  "&.Mui-selected, &.Mui-selected:hover": { color: tone.ground, backgroundColor: tone.ink },
+  "&:hover": { backgroundColor: tone.tile },
+  "&.Mui-selected, &.Mui-selected:hover": { color: tone.ground, backgroundColor: tone.onGround },
 });
+
+/**
+ * The page's measure, in the section rail. The unit every figure on the tab is counted in, stated
+ * as words rather than as an unlabelled icon on a floating button; it rides the rail because it
+ * governs the whole page rather than any one card, and the rail is the only control surface still
+ * on screen wherever the reader has scrolled to. `dispatch` is the domain's own filter dispatch,
+ * typed to the one action this control sends.
+ */
+export const MeasureControl = <M extends string>({
+  measures,
+  value,
+  dispatch,
+}: {
+  measures: readonly M[];
+  value: M;
+  dispatch: (action: { type: "measure"; measure: M }) => void;
+}) => (
+  <SegmentedControl
+    options={segments(measures)}
+    value={value}
+    onChange={(measure) => dispatch({ type: "measure", measure })}
+    ariaLabel="Measure"
+  />
+);
 
 /**
  * A select over a small set of values.

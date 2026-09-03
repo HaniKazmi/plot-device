@@ -13,7 +13,7 @@ import { memo, useDeferredValue } from "react";
 import { Stack } from "@mui/material";
 import Filter from "./Filter";
 import { ChartPair, Section, SectionRail } from "../common/SectionRail";
-import { SegmentedControl, type SegmentOption } from "../common/SelectionComponents";
+import { MeasureControl } from "../common/SelectionComponents";
 import { useOtherTabs } from "../tabs";
 import { VG_SECTIONS, vgSections } from "./sections";
 import { currentlyPlaying, earliestYear } from "./statsData";
@@ -21,16 +21,8 @@ import { format } from "../utils/mathUtils";
 import { finishedCount } from "../common/finishedData";
 import type { YearNumber } from "../common/date";
 
-/**
- * The unit every figure on the tab is counted in, stated as words in the rail rather than as an
- * unlabelled icon on a floating button. It rides the rail because it governs the whole page rather
- * than any one card, and the rail is the only control surface still on screen wherever the reader
- * has scrolled to.
- */
-const MEASURES: SegmentOption<Measure>[] = [
-  { value: "Games", label: "Games" },
-  { value: "Hours", label: "Hours" },
-];
+/** The measures this tab counts in, in the order the rail states them. */
+const MEASURES: readonly Measure[] = ["Games", "Hours"];
 
 const SuspenseBlock = ({
   filteredData,
@@ -87,11 +79,10 @@ const Graphs = memo(
           sections={vgSections(playing.length > 0)}
           tabs={tabs}
           actions={
-            <SegmentedControl
-              options={MEASURES}
+            <MeasureControl
+              measures={MEASURES}
               value={filterState.measure}
-              onChange={(measure) => filterDispatch({ type: "measure", measure })}
-              ariaLabel="Measure"
+              dispatch={filterDispatch}
             />
           }
         />

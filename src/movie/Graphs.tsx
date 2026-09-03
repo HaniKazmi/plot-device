@@ -9,7 +9,7 @@ import Barchart from "./Barchart";
 import WatchTimeline from "./WatchTimeline";
 import Filter from "./Filter";
 import { ChartPair, Section, SectionRail } from "../common/SectionRail";
-import { SegmentedControl, type SegmentOption } from "../common/SelectionComponents";
+import { MeasureControl } from "../common/SelectionComponents";
 import { useOtherTabs } from "../tabs";
 import { MOVIE_SECTIONS, movieSections } from "./sections";
 import { FranchiseContext, movieFranchise } from "./franchiseContext";
@@ -19,16 +19,8 @@ import { format } from "../utils/mathUtils";
 import { finishedCount, type FinishedExtraSort } from "../common/finishedData";
 import { useScheme } from "../common/useScheme";
 
-/**
- * The unit every figure on the tab is counted in, stated as words in the rail rather than as an
- * unlabelled icon on a floating button. It rides the rail because it governs the whole page rather
- * than any one card, and the rail is the only control surface still on screen wherever the reader
- * has scrolled to.
- */
-const MEASURES: SegmentOption<Measure>[] = [
-  { value: "Films", label: "Films" },
-  { value: "Hours", label: "Hours" },
-];
+/** The measures this tab counts in, in the order the rail states them. */
+const MEASURES: readonly Measure[] = ["Films", "Hours"];
 
 const MOVIE_SORTS: readonly FinishedExtraSort<Movie>[] = [{ label: "Score", value: (movie) => movie.score }];
 
@@ -80,11 +72,10 @@ const Graphs = memo(
           sections={movieSections(data.length > 0)}
           tabs={tabs}
           actions={
-            <SegmentedControl
-              options={MEASURES}
+            <MeasureControl
+              measures={MEASURES}
               value={filterState.measure}
-              onChange={(measure) => filterDispatch({ type: "measure", measure })}
-              ariaLabel="Measure"
+              dispatch={filterDispatch}
             />
           }
         />

@@ -18,6 +18,13 @@ export const FINISHED_SORTS: readonly FinishedSort[] = ["Date", "Franchise"];
 const isBuiltIn = (sort: string): sort is FinishedSort => (FINISHED_SORTS as readonly string[]).includes(sort);
 
 /**
+ * The caller's sort a name means, if any. The built-ins answer first here for the order and the
+ * marker alike, so the wall and its marker cannot part company over a name.
+ */
+const resolveExtra = <U>(sort: string, extras: readonly FinishedExtraSort<U>[]): FinishedExtraSort<U> | undefined =>
+  isBuiltIn(sort) ? undefined : extras.find((candidate) => candidate.label === sort);
+
+/**
  * An order a caller adds to its wall, over a figure only its domain holds — a film's score, a
  * book's pages. Highest first, and an item with no figure last rather than first: a wall sorted
  * by score opens on the best, and a film never scored is not the best of anything. `bucket`
@@ -168,9 +175,7 @@ export const finishedItems = <U extends FinishedItem>(
   const withBanners = data.filter(hasBanner);
   if (sort === "Date") return withBanners.sortByKey("startDate", false);
 
-  // The built-ins answer first here and in `finishedBucket` alike, so the wall and its marker
-  // cannot part company over a name.
-  const extra = isBuiltIn(sort) ? undefined : extras.find((candidate) => candidate.label === sort);
+  const extra = resolveExtra(sort, extras);
   if (extra) {
     // A numeric sort rather than `sortByKey`, which puts falsy values first in both directions —
     // a film honestly scored 0 would head a wall sorted by score. The date breaks a tie: many
@@ -216,21 +221,31 @@ export const finishedCount = (data: readonly FinishedItem[]): number => data.fil
  * item with no date is one the date sort places first, so the topmost card on screen can be one.
  * The marker then shows nothing rather than the year of some other row.
  */
+export const bucketFor = <U extends FinishedItem>(
+  sort: string,
+  extras: readonly FinishedExtraSort<U>[] = [],
+): ((item: U) => string | null) => {
+  const extra = resolveExtra(sort, extras);
+  if (extra) {
+    return (item) => {
+      const figure = extra.value(item);
+      return figure === undefined ? null : extra.bucket ? extra.bucket(figure) : String(figure);
+    };
+  }
+  return (item) => {
+    const value: PlainDate | string | undefined = sort === "Date" ? item.startDate : franchiseKey(item);
+    if (value instanceof PlainDate) return String(value.firstDay().year);
+    if (typeof value === "string") return value.charAt(0).toUpperCase() || null;
+    return null;
+  };
+};
+
+/** One item's bucket; a wall resolves the sort once through `bucketFor` and reads every card from that. */
 export const finishedBucket = <U extends FinishedItem>(
   item: U,
   sort: string,
   extras: readonly FinishedExtraSort<U>[] = [],
-): string | null => {
-  const extra = isBuiltIn(sort) ? undefined : extras.find((candidate) => candidate.label === sort);
-  if (extra) {
-    const figure = extra.value(item);
-    return figure === undefined ? null : extra.bucket ? extra.bucket(figure) : String(figure);
-  }
-  const value: PlainDate | string | undefined = sort === "Date" ? item.startDate : franchiseKey(item);
-  if (value instanceof PlainDate) return String(value.firstDay().year);
-  if (typeof value === "string") return value.charAt(0).toUpperCase() || null;
-  return null;
-};
+): string | null => bucketFor(sort, extras)(item);
 
 /**
  * The buckets a wall contains, each at its first appearance and in the order the wall presents

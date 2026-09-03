@@ -3,7 +3,7 @@ import { CURRENT_PLAINDATE, type YearNumber } from "../common/date";
 import { Stack } from "@mui/material";
 import { franchiseIndex } from "../common/franchiseIndex";
 import { Section, SectionRail } from "../common/SectionRail";
-import { SegmentedControl, type SegmentOption } from "../common/SelectionComponents";
+import { MeasureControl } from "../common/SelectionComponents";
 import { stripYearTicks } from "../common/timelineStripData";
 import {
   bookEpoch,
@@ -30,16 +30,8 @@ import { OMNIBUS_SECTIONS, omnibusSections } from "./sections";
 import type { FilterDispatch, FilterState } from "./filterUtils";
 import type { Measure } from "./types";
 
-/**
- * The unit every figure on the tab is counted in, stated as words in the rail rather than as an
- * unlabelled icon on a floating button. It rides the rail because it governs the whole page rather
- * than any one card, and the rail is the only control surface still on screen wherever the reader
- * has scrolled to.
- */
-const MEASURES: SegmentOption<Measure>[] = [
-  { value: "Hours", label: "Hours" },
-  { value: "Items", label: "Items" },
-];
+/** The measures this tab counts in, in the order the rail states them. */
+const MEASURES: readonly Measure[] = ["Hours", "Items"];
 
 /**
  * The four franchise indexes the domains' own cards read, and the scale the Books strips draw on.
@@ -138,11 +130,10 @@ const Graphs = memo(
           })}
           tabs={tabs}
           actions={
-            <SegmentedControl
-              options={MEASURES}
+            <MeasureControl
+              measures={MEASURES}
               value={filterState.measure}
-              onChange={(measure) => filterDispatch({ type: "measure", measure })}
-              ariaLabel="Measure"
+              dispatch={filterDispatch}
             />
           }
         />

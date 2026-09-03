@@ -43,7 +43,15 @@ import type { StripBand, StripSpan } from "./timelineStripData";
 export interface CardMediaImageProps {
   image?: string;
   alt: string;
+  /** The card's theme colour, where the caller has one; otherwise the sample, where it asked for one. */
   colour?: Colour;
+  /**
+   * A colour for the collapsed card alone — its ground, panel and chip — leaving `colour` to
+   * the expanded card. The Now band paints four cards from four tabs in their tabs' bar colours
+   * to tell them apart on one row, and opened, each card's picture is the whole first screen and
+   * its own colour is the one that belongs beside it.
+   */
+  chromeColour?: Colour;
   chip?: Pick<ChipProps, "label" | "icon" | "onClick" | "variant"> & { colour?: Colour };
   lazy?: boolean;
   footerComponent?: ReactNode;
@@ -118,10 +126,7 @@ export interface CardMediaImageProps {
    * the one other thing in the picture's way.
    */
   mediaBand?: { node: ReactNode; height: number };
-  /**
-   * Derive the card's theme colour from the image once it loads. Costs a canvas read per image.
-   * Given alongside `colour`, the card wears `colour` and its expanded dialog wears the sample.
-   */
+  /** Derive the card's theme colour from the image once it loads. Costs a canvas read per image. */
   extractColour?: boolean;
 }
 
@@ -230,6 +235,55 @@ const rowFooterSx = (height: number) =>
     "& .MuiTypography-root": { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" },
   }) as const;
 
+/**
+ * The box that stands where a picture would have: filled in the card's tile tone and named for
+ * the picture it lacks. The thumbnail's carries the image's own `sx`, so it holds the reservation
+ * a wall measures its offsets against; its own rules go first so a caller's width and height still
+ * win — all but the display, which is last because it is the tile's alone: the artwork column sets
+ * `block` to close the line box under an image, and a tile inherits that as a title in the top
+ * corner of a box it was meant to be centred in.
+ */
+const ArtworkStandIn = ({
+  alt,
+  palette,
+  size,
+  component,
+  onClick,
+  sx,
+}: {
+  alt: string;
+  palette: ReturnType<typeof artworkPalette>;
+  size?: "thumbnail" | "dialog";
+  component?: "span";
+  onClick?: () => void;
+  /** The picture's own rules, carried so the tile holds the picture's reservation. */
+  sx?: SxProps<Theme>;
+}) => (
+  <Box
+    component={component ?? "div"}
+    onClick={onClick}
+    sx={[
+      {
+        width: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+        backgroundColor: palette.tile,
+        ...(size === "dialog" ? { minHeight: 240, padding: 4 } : { padding: 1 }),
+      },
+      ...(sx === undefined ? [] : Array.isArray(sx) ? sx : [sx]),
+      { display: "flex" },
+    ]}
+  >
+    <Typography
+      variant={size === "dialog" ? "h6" : "caption"}
+      sx={{ color: palette.muted, textAlign: "center" }}
+    >
+      {alt}
+    </Typography>
+  </Box>
+);
+
 export const CardMediaImage = (props: CardMediaImageProps) => {
   const { image, alt, chip, colour: propColour, footerComponent, detailComponent, mediaLayout, sx, cardSx } = props;
   const rowSize = props.rowSize;
@@ -274,12 +328,8 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
   // "no colour" has to mean `undefined` from here on.
   const sampled = extracted && extracted.image === image ? extracted.colour : undefined;
   const colour = propColour || sampled;
-  // The expanded card keeps the artwork's own colour whatever the thumbnail was painted: a card
-  // given a `colour` and asked to extract is one told apart from its neighbours by a colour that
-  // is not its picture's — the Now band's, painted in its tab's bar — and opened, the picture is
-  // the whole first screen and its own colour is the one that belongs beside it. A card that was
-  // given a colour and never sampled keeps that colour in its dialog too.
-  const dialogColour = sampled ?? colour;
+  // What the collapsed card wears: its chrome colour where the caller gave one, its own otherwise.
+  const chrome = props.chromeColour || colour;
   /**
    * The artwork's shape, which is what lets the dialog scale it up to the viewport rather than
    * only down. Held as the ratio rather than as the decision it feeds, so the decision can be left
@@ -308,15 +358,13 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
   const missing = !image || failedImage === image;
 
   const theme = useTheme();
-  const palette = artworkPalette(colour, theme);
-  const dialogPalette = artworkPalette(dialogColour, theme);
+  const palette = artworkPalette(chrome, theme);
+  const dialogPalette = artworkPalette(colour, theme);
 
   // Read on a click as well as on load, for a card that never asked for a colour: its dialog is
-  // themed from the sample, and a gallery shelf's cards ask for nothing until one is opened. A card
-  // given a colour is read only when it also opted in, since its dialog otherwise keeps that colour.
+  // themed from the sample, and a gallery shelf's cards ask for nothing until one is opened.
   const readColour = (img: HTMLImageElement | null) => {
-    if (img && !sampled && (extractColour || !propColour))
-      extractColourFrom(img, (read) => setExtracted({ image, colour: read }));
+    if (img && !colour) extractColourFrom(img, (read) => setExtracted({ image, colour: read }));
   };
 
   // `load` does not bubble, so React delivers it through a root listener that only sees events
@@ -326,8 +374,8 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
   // means the image is there to be read whether or not the event arrived.
   useEffect(() => {
     const img = imgRef.current;
-    if (img?.complete) readImage(img, image, extractColour && !sampled, setRatio, setExtracted);
-  }, [extractColour, sampled, image]);
+    if (img?.complete) readImage(img, image, extractColour && !colour, setRatio, setExtracted);
+  }, [extractColour, colour, image]);
 
   /**
    * The box the artwork occupies, whether or not there is artwork to put in it. The shape's own
@@ -356,7 +404,7 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
   ];
 
   return (
-    <ArtworkAccent.Provider value={colour}>
+    <ArtworkAccent.Provider value={chrome}>
       <Card
         variant="elevation"
         // The array form rather than a spread: `SxProps` is also legally a function or an array,
@@ -404,35 +452,16 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
                  does, so it stands where the picture would have and holds the same reservation —
                  `auto <ratio>` resolves to the ratio on an element with no natural size of its
                  own, which is what keeps a wall of these the height the offsets are measured
-                 against. Its own rules go first so a caller's width and height still win — all but
-                 the display, which is last because it is the tile's alone: the artwork column sets
-                 `block` to close the line box under an image, and a tile inherits that as a title
-                 in the top corner of a box it was meant to be centred in. */
-              <Box
-                // A span, because the card's action area is a button and only phrasing content is
-                // legal inside one — which the image it stands in for is and a div is not.
+                 against. A span, because the card's action area is a button and only phrasing
+                 content is legal inside one — which the image it stands in for is and a div is
+                 not. */
+              <ArtworkStandIn
+                alt={alt}
+                palette={palette}
                 component="span"
                 onClick={detail.show}
-                sx={[
-                  {
-                    width: "100%",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: 1,
-                    overflow: "hidden",
-                    backgroundColor: palette.tile,
-                  },
-                  ...mediaSx,
-                  { display: "flex" },
-                ]}
-              >
-                <Typography
-                  variant="caption"
-                  sx={{ color: palette.muted, textAlign: "center" }}
-                >
-                  {alt}
-                </Typography>
-              </Box>
+                sx={mediaSx}
+              />
             ) : (
               <CardMedia
                 height={"100%"}
@@ -448,7 +477,7 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
                 }}
                 loading={lazy ? "lazy" : undefined}
                 ref={imgRef}
-                onLoad={(el) => readImage(el.currentTarget, image, extractColour && !sampled, setRatio, setExtracted)}
+                onLoad={(el) => readImage(el.currentTarget, image, extractColour && !colour, setRatio, setExtracted)}
                 onError={() => setFailedImage(image)}
                 sx={mediaSx}
               />
@@ -491,7 +520,7 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
               transition: { onExited: detail.onExited },
             }}
           >
-            <ArtworkAccent.Provider value={dialogColour}>
+            <ArtworkAccent.Provider value={colour}>
               <Card
                 variant="elevation"
                 sx={{
@@ -506,26 +535,13 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
                   }}
                 >
                   {missing ? (
-                    /* The same stand-in the thumbnail draws, at the dialog's scale: a box named
-                       for the picture it lacks, rather than the browser's broken-image glyph with
-                       no words at all. */
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        minHeight: 240,
-                        padding: 4,
-                        backgroundColor: dialogPalette.tile,
-                      }}
-                    >
-                      <Typography
-                        variant="h6"
-                        sx={{ color: dialogPalette.muted, textAlign: "center" }}
-                      >
-                        {alt}
-                      </Typography>
-                    </Box>
+                    /* The same stand-in the thumbnail draws, at the dialog's scale, rather than
+                       the browser's broken-image glyph with no words at all. */
+                    <ArtworkStandIn
+                      alt={alt}
+                      palette={dialogPalette}
+                      size="dialog"
+                    />
                   ) : (
                     <CardMedia
                       component="img"
@@ -1508,7 +1524,7 @@ export const TimelineCard = (props: {
  * compete with the bands they exist to measure — most of all on a card whose ground is an
  * extracted artwork colour, where they pick that colour up.
  */
-const TimelineScale = ({ ticks }: { ticks: TimelineTick[] }) => {
+export const TimelineScale = ({ ticks }: { ticks: TimelineTick[] }) => {
   const palette = useArtworkPalette();
 
   return (

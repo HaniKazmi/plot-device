@@ -225,7 +225,8 @@ where the bar colours are what the tabs are already told apart by — so the car
 chip to name its medium, and the nav bar is the way to the home tab. The card still samples its
 artwork, because the expanded card it opens wears the artwork's own colour as it does from every
 other surface: opened, the picture is the whole first screen, and its own colour is the one that
-belongs beside it (`CardMediaImage` keeps a dialog colour apart from the card's for exactly this).
+belongs beside it. `CardMediaImage` takes the bar colour as `chromeColour`, which paints the
+collapsed card alone and leaves `colour` — given, or sampled — to the expanded one.
 
 Every card in the band is one width — a poster's artwork at the row's height plus its text column,
 434px — and each shape spends it differently: the poster's picture takes the full height and the
@@ -448,7 +449,10 @@ and ledger rather than a fourth, poorer copy of them.
 
 `common/SelectionComponents.tsx` exports one control for a small closed set of named states, and
 three surfaces state their choice through it: the barchart's four views, the gallery's shelf order,
-and each tab's measure in the section rail. Words rather than icons, because an icon states a
+and each tab's measure in the section rail — the last through `MeasureControl`, which owns the
+wiring to the filter reducer once for the five tabs. Values that are already their own words —
+a measure, a view, a density — become segments through `common/segments.ts` rather than a
+written-out pair each. Words rather than icons, because an icon states a
 choice in a picture the reader has to already know — a Σ for "count the items", a pin for "rank" —
 where a word states it outright and the set of segments says what else is on offer. One shape used
 for all three is what makes the second one recognisable as the same kind of choice.
@@ -821,7 +825,7 @@ Setup is the plugin's documented path: `@vitejs/plugin-react` exports `reactComp
 - **`this`** anywhere in the function. Highcharts binds the chart to `this` in its event callbacks, so those must live at module scope (see `dimLeafRing` in §6) or they take the whole component down with them.
 - **`??=`**, which the compiler cannot yet lower. Write `x = x ?? y` instead.
 
-A third construct bails the same way: a **destructured prop with a default value** (`({ landscape = false })`) is an assignment pattern `BuildHIR::lowerAssignment` cannot lower, and it takes the whole component out. Components here therefore read defaults off the props object (`const landscape = props.landscape ?? false`), or rename in the pattern and default below it where a rest spread must not pick the prop up. A fourth is an **import expression**: `import()` cannot be lowered either, so a dynamic import written inside a component or hook takes that function out, which is why each entry component keeps its `import("./Graphs")` in a module-scope `loadGraphs` that both `lazy()` and the prefetch effect call. Every function currently compiles — the baseline is **220 compiled, 0 bailed** — so any bailout is a regression. A `MethodCall` bailout — the other kind the compiler produces — does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
+A third construct bails the same way: a **destructured prop with a default value** (`({ landscape = false })`) is an assignment pattern `BuildHIR::lowerAssignment` cannot lower, and it takes the whole component out. Components here therefore read defaults off the props object (`const landscape = props.landscape ?? false`), or rename in the pattern and default below it where a rest spread must not pick the prop up. A fourth is an **import expression**: `import()` cannot be lowered either, so a dynamic import written inside a component or hook takes that function out, which is why each entry component keeps its `import("./Graphs")` in a module-scope `loadGraphs` that both `lazy()` and the prefetch effect call. Every function currently compiles — the baseline is **222 compiled, 0 bailed** — so any bailout is a regression. A `MethodCall` bailout — the other kind the compiler produces — does respond to moving the offending computation into a plain module. To re-check after a change, temporarily pass a `logger` to `reactCompilerPreset` — see [AGENTS.md](./AGENTS.md) for the snippet.
 
 The compiler costs about 4% of bundle size (~15KB gzipped) in injected cache slots. That is a deliberate trade, and `npm run analyze` exists to keep it honest.
 

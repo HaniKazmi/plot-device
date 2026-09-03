@@ -5,7 +5,7 @@ import { CURRENT_PLAINDATE, formatDate, type YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
 import { Section, StatBand } from "../common/SectionRail";
 import { StatCard, TotalsBand, VitalsCard, YearVitalsPair } from "../common/Stats";
-import { genreToColour, type Colour, type Scheme } from "../utils/types";
+import { genreToColour } from "../utils/types";
 import BookCardMediaImage from "../books/CardMediaImage";
 import { bookSubtitle } from "../books/cardData";
 import { bookHeroStats } from "../books/statsData";
@@ -17,7 +17,7 @@ import { showSubtitle } from "../show/cardData";
 import { showHeroStats } from "../show/statsData";
 import VgCardMediaImage from "../vg/CardMediaImage";
 import { heroStats } from "../vg/statsData";
-import { BooksTab, MoviesTab, ShowsTab, VideoGamesTab, type Tab } from "../tabs";
+import { barColour, BooksTab, MoviesTab, ShowsTab, VideoGamesTab, type Tab } from "../tabs";
 import { electNow, hasNow, measureOf, unionTotals, type OmniItem } from "./adapter";
 import { crossingEntries, type Crossing } from "./crossingsData";
 import type { FilterDispatch } from "./filterUtils";
@@ -257,20 +257,13 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
  * wants from it, and a card cannot do both from one surface.
  */
 /**
- * What a Now card is painted: the colour its home tab's app bar wears in the same scheme — the
- * primary on the light paper, the 22% tint on the dark (`DarkBar`, `tabs.ts`).
- *
- * Four cards from four tabs on one page are told apart by what the tabs are already told apart
- * by, so a card here matches the bar the reader arrives under on that tab and needs no chip to
- * name its medium. A card painted from its own artwork instead is tied to its picture, which is
- * what every other card in the app does and what this one gives up: here the four are read
- * against each other, and four sampled colours say nothing about which is which.
+ * A Now card is painted the colour its home tab's app bar wears in the same scheme (`barColour`,
+ * `tabs.ts`). Four cards from four tabs on one page are told apart by what the tabs are already
+ * told apart by, so a card here matches the bar the reader arrives under on that tab and needs
+ * no chip to name its medium. A card painted from its own artwork instead is tied to its picture,
+ * which is what every other card in the app does and what this one gives up: here the four are
+ * read against each other, and four sampled colours say nothing about which is which.
  */
-const barColour = (tab: Tab, scheme: Scheme): Colour | undefined => {
-  const colour = scheme === "dark" ? tab.darkBar?.tint : tab.primaryColour;
-  return colour as Colour | undefined;
-};
-
 const NowCard = <T,>(props: {
   item: T;
   medium: Medium;
@@ -309,7 +302,7 @@ const NowCard = <T,>(props: {
         // Sampled as well as painted: the card wears the bar's colour, and the expanded card it
         // opens wears the artwork's own, as it does from every other surface.
         extractColour
-        colour={ground}
+        chromeColour={ground}
         shape={shape}
         // The caller has sized the artwork itself, so the column is the picture's width rather than
         // a share of a card whose width was imposed on it.
