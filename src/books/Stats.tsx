@@ -370,10 +370,10 @@ const bookStatListSharedProps: Pick<StatListBaseProps<Book>, "shape" | "divider"
   // Covers, not banners — the cards keep the shape the library grid shows them at.
   shape: "cover",
   divider: true,
-  // Four cards to the band rather than three, so each is a quarter of the row at `md`, and two
-  // covers to a row inside it — a quarter of the page holds two posters where it held one banner.
-  width: [12, 6, 3],
-  pictureWidth: [6, 4, 6],
+  // Two cards to the band, each half the row at `md`, and four covers to a row inside it — half
+  // the page holds four covers at the width a quarter of it held two.
+  width: [12, 12, 6],
+  pictureWidth: [6, 4, 3],
   dialogPictureWidth: [6, 3, 2],
 };
 
