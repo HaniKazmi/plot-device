@@ -277,8 +277,9 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
   // The expanded card keeps the artwork's own colour whatever the thumbnail was painted: a card
   // given a `colour` and asked to extract is one told apart from its neighbours by a colour that
   // is not its picture's — the Now band's, painted in its tab's bar — and opened, the picture is
-  // the whole first screen and its own colour is the one that belongs beside it.
-  const dialogColour = extractColour ? sampled : colour;
+  // the whole first screen and its own colour is the one that belongs beside it. A card that was
+  // given a colour and never sampled keeps that colour in its dialog too.
+  const dialogColour = sampled ?? colour;
   /**
    * The artwork's shape, which is what lets the dialog scale it up to the viewport rather than
    * only down. Held as the ratio rather than as the decision it feeds, so the decision can be left
@@ -310,8 +311,12 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
   const palette = artworkPalette(colour, theme);
   const dialogPalette = artworkPalette(dialogColour, theme);
 
+  // Read on a click as well as on load, for a card that never asked for a colour: its dialog is
+  // themed from the sample, and a gallery shelf's cards ask for nothing until one is opened. A card
+  // given a colour is read only when it also opted in, since its dialog otherwise keeps that colour.
   const readColour = (img: HTMLImageElement | null) => {
-    if (img && extractColour && !sampled) extractColourFrom(img, (read) => setExtracted({ image, colour: read }));
+    if (img && !sampled && (extractColour || !propColour))
+      extractColourFrom(img, (read) => setExtracted({ image, colour: read }));
   };
 
   // `load` does not bubble, so React delivers it through a root listener that only sees events
