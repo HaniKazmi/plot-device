@@ -1,4 +1,4 @@
-import { formatDate, type YearMonthDay, type YearNumber } from "../common/date";
+import { daysSince, formatDate, type YearMonthDay, type YearNumber } from "../common/date";
 import { sheetError } from "../common/sheetError";
 import { format } from "../utils/mathUtils";
 import { typeToName, type Measure, type Season, type Show } from "./types";
@@ -59,7 +59,7 @@ export const groupShowsBy = (data: Show[], key: ShowTopOption, measure: Measure)
  * less than a week is a projection rather than a rate.
  */
 export const watchingProgress = (season: Season, today: YearMonthDay) => {
-  const days = season.startDate.lte(today) ? season.startDate.daysTo(today) : undefined;
+  const days = daysSince(season.startDate, today);
   return {
     episodes: season.e,
     hours: season.minutes ? seasonHours(season.minutes) : undefined,

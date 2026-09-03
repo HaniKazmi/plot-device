@@ -3,7 +3,7 @@ import { useState, type ReactNode } from "react";
 import type { CardMediaImageProps, TypedCardMediaImage } from "./Card";
 import type { ArtworkShape } from "./cardArrangement";
 import { DrilldownDialog } from "./DrilldownDialog";
-import { StatList, type StatsListProps } from "./Stats";
+import { StatList, type GridListLayout, type StatListBaseProps } from "./Stats";
 import type { DrilldownGroup } from "./statsData";
 
 /**
@@ -34,9 +34,10 @@ export const GroupedStatList = <T,>(props: {
   nameOf: (item: T) => string;
   dialogLabelComponent: (item: T) => string[][];
   dialogChipComponent?: (item: T) => CardMediaImageProps["chip"];
-  width: StatsListProps<T>["width"];
-  pictureWidth: StatsListProps<T>["pictureWidth"];
-  dialogPictureWidth: StatsListProps<T>["dialogPictureWidth"];
+  width: StatListBaseProps<T>["width"];
+  /** Grouped cards are one shape and the strip a grid; the drill-down takes the second spans. */
+  pictureWidth: GridListLayout["pictureWidth"];
+  dialogPictureWidth: GridListLayout["dialogPictureWidth"];
   shape?: ArtworkShape;
   divider?: boolean;
 }) => {

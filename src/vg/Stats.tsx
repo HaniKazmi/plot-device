@@ -38,7 +38,15 @@ import {
   type VideoGame,
   type VideoGameStringKeys,
 } from "./types";
-import { StatCard, StatList, type StatsListProps, TotalsBand, VitalsCard, YearVitalsPair } from "../common/Stats";
+import {
+  StatCard,
+  StatList,
+  TotalsBand,
+  VitalsCard,
+  YearVitalsPair,
+  type GridListLayout,
+  type StatListBaseProps,
+} from "../common/Stats";
 import { TopCategoryBand } from "../common/TopList";
 import { GroupedStatList } from "../common/GroupedStatList";
 import VgCardMediaImage from "./CardMediaImage";
@@ -355,10 +363,7 @@ const optionIcons: Record<TopOption, ReactNode> = {
   genre: <Category />,
 };
 
-const vgStatListSharedProps: Pick<
-  StatsListProps<VideoGame>,
-  "shape" | "divider" | "width" | "pictureWidth" | "dialogPictureWidth"
-> = {
+const vgStatListSharedProps: Pick<StatListBaseProps<VideoGame>, "shape" | "divider" | "width"> & GridListLayout = {
   shape: "landscape",
   divider: true,
   width: [12, 12, 6],
@@ -370,10 +375,10 @@ const vgStatListSharedProps: Pick<
 // optional so a caller can override the shared default without being able to unset it.
 const VgStatList = (
   props: Omit<
-    StatsListProps<VideoGame>,
+    StatListBaseProps<VideoGame>,
     "MediaComponent" | "chipComponent" | "nameComponent" | keyof typeof vgStatListSharedProps
   > &
-    Partial<Pick<StatsListProps<VideoGame>, "width" | "pictureWidth">>,
+    Partial<Pick<StatListBaseProps<VideoGame>, "width"> & Pick<GridListLayout, "pictureWidth">>,
 ) => (
   <StatList
     chipComponent={platformToShortChip}

@@ -34,10 +34,12 @@ export const pick = (fill: Fill, scheme: Scheme): Colour => fill[scheme === "dar
 export const COLOURABLE_STATUSES = [
   "Playing",
   "Watching",
+  "Reading",
   "Up To Date",
   "Endless",
   "Beat",
   "Ended",
+  "Finished",
   "Cancelled",
   "Abandoned",
   "Next",
@@ -187,6 +189,10 @@ export const ageRatingToColour = (rating: AgeRating, scheme: Scheme): Colour =>
  * The finished green sits a chroma step below the other terminal states: it is the majority of
  * every status chart, and a majority at full saturation is a wall.
  *
+ * Playing, Watching and Reading are one state — in progress — in three media's words, and so are
+ * Beat, Ended and Finished: each takes its state's fill exactly, so a stacked chart over the union
+ * draws one colour per state rather than one per sheet's vocabulary.
+ *
  * Next and Backlog have not started, so they take the same neutral grey the charts' "Other"
  * buckets wear: an inert state wants an inert colour, and black beside coloured fills reads as a
  * further hue rather than as absence.
@@ -196,10 +202,12 @@ export const ageRatingToColour = (rating: AgeRating, scheme: Scheme): Colour =>
 const statusColours: Record<ColourableStatus, Fill> = {
   Playing: fill("#00a2a3", "#00e5e8"),
   Watching: fill("#00a2a3", "#00e5e8"),
+  Reading: fill("#00a2a3", "#00e5e8"),
   "Up To Date": fill("#0081e8", "#76b7ff"),
   Endless: fill("#557c00", "#78ac00"),
   Beat: fill("#326e54", "#489976"),
   Ended: fill("#326e54", "#489976"),
+  Finished: fill("#326e54", "#489976"),
   Cancelled: fill("#7f4d00", "#b06d00"),
   Abandoned: fill("#9c0049", "#d80067"),
   Next: NEUTRAL_FILL,
@@ -396,3 +404,42 @@ export const franchiseToColour = ({ franchise }: { franchise: string }, scheme: 
   const colour = franchiseColours[franchise];
   return colour ? pick(colour, scheme) : ("" as Colour);
 };
+
+export const scoreBands = ["9–10", "7–8", "5–6", "3–4", "1–2", "Unscored"] as const;
+
+export type ScoreBand = (typeof scoreBands)[number];
+
+/** Five bands so a totals bar's legend fits one line; unscored is its own state, not a low one. */
+export const scoreBand = (score: number | undefined): ScoreBand => {
+  if (score === undefined) return "Unscored";
+  if (score >= 9) return "9–10";
+  if (score >= 7) return "7–8";
+  if (score >= 5) return "5–6";
+  if (score >= 3) return "3–4";
+  return "1–2";
+};
+
+/**
+ * Red through amber to green, because a score is valenced and not merely ordered — a 2 is a
+ * different judgement from an 8, and hue is what can say so. Hue has to carry the scale anyway:
+ * the fill contract confines every value to one narrow lightness band, so a single-hue ramp only
+ * has five near-identical steps to give, and its palest step lands a hair from the neutral that
+ * means Unscored. Lightness arches — dark at both poles, lightest at the amber middle — so
+ * neighbouring bands separate by brightness as well as hue. The amber is held a step lighter and
+ * yellower than the golds a tab draws in its own bands beside this one, so two ramps meeting on
+ * one card are not read as sharing a hue. Every value meets the fill contract.
+ *
+ * Shared here rather than kept on the Movies tab because Books scores on the same ten-point
+ * scale: one ramp means a 9 wears one green on both tabs, and a tracked domain may not import
+ * another's vocabulary.
+ */
+const scoreBandColours: Record<ScoreBand, Fill> = {
+  "9–10": fill("#007338", "#04ab57"),
+  "7–8": fill("#298d00", "#63c94a"),
+  "5–6": fill("#ac8b00", "#f8cc20"),
+  "3–4": fill("#b65800", "#ea7300"),
+  "1–2": fill("#af0025", "#de1e39"),
+  Unscored: NEUTRAL_FILL,
+};
+
+export const scoreBandToColour = (band: ScoreBand, scheme: Scheme): Colour => pick(scoreBandColours[band], scheme);

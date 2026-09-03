@@ -35,6 +35,7 @@ const FinishedGrid = <U extends FinishedItem>({
   width,
   colour,
   landscape,
+  keyOf,
   MediaComponent,
 }: {
   isDialog: boolean;
@@ -46,6 +47,7 @@ const FinishedGrid = <U extends FinishedItem>({
   width: number;
   colour?: (item: U) => string;
   landscape: boolean;
+  keyOf: (item: U) => string;
   MediaComponent: TypedCardMediaImage<U>;
 }) => (
   <Grid
@@ -59,7 +61,7 @@ const FinishedGrid = <U extends FinishedItem>({
   >
     {recent.map((item) => (
       <Grid
-        key={`${finishedKey(item)}-${isDialog ? "dialog" : "card"}`}
+        key={`${keyOf(item)}-${isDialog ? "dialog" : "card"}`}
         // Written at render from the same item and sort the order came from, so the marker
         // reads a position off the DOM instead of keeping a parallel list to index into.
         data-bucket={finishedBucket(item, sort) ?? undefined}
@@ -111,6 +113,7 @@ const Finished = <U extends FinishedItem>({
   width,
   colour,
   landscape: landscapeProp,
+  keyOf: keyOfProp,
   MediaComponent,
 }: {
   title: string;
@@ -120,10 +123,17 @@ const Finished = <U extends FinishedItem>({
   width: number;
   colour?: (item: U) => string;
   landscape?: boolean;
+  /**
+   * What tells one card from another, where the title and release year do not: a book read twice
+   * is two rows with both the same, and two cards under one key are dropped or swapped by React
+   * with nothing on screen to say so. Left off, a card is keyed the way the wall sorts it.
+   */
+  keyOf?: (item: U) => string;
   MediaComponent: TypedCardMediaImage<U>;
 }) => {
   // Applied after the pattern: a default inside it bails the component out of the React Compiler.
   const landscape = landscapeProp ?? false;
+  const keyOf = keyOfProp ?? finishedKey;
   const [sort, selectBox] = useSelectBox(sortOptions, "Date");
 
   const slowData = useDeferredValue(data, []);
@@ -165,6 +175,7 @@ const Finished = <U extends FinishedItem>({
           width={width}
           colour={colour}
           landscape={landscape}
+          keyOf={keyOf}
           MediaComponent={MediaComponent}
         />
       </CardContent>

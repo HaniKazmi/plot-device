@@ -1,4 +1,5 @@
 import {
+  Box,
   Card,
   CardContent,
   CardHeader,
@@ -17,13 +18,17 @@ import {
   FooterComponent,
   INLINE_SWATCH_SIZE,
   ProportionalBar,
+  ROW_FOOTER_HEIGHT,
   Swatch,
   type CardMediaImageProps,
+  type MediaBand,
   type TypedCardMediaImage,
 } from "./Card";
 import { dimSx, LABEL_SX, MUTED_FIGURE_SX } from "./typography";
 import { SectionHeader } from "./SectionHeader";
-import { shapeToRatio, type ArtworkShape } from "./cardArrangement";
+import { shapeIsExact, shapeToAspect, shapeToRatio, type ArtworkShape } from "./cardArrangement";
+import { rowCardSize } from "./rowSizing";
+import { useElementWidth } from "./useElementWidth";
 import { useState, type ReactNode } from "react";
 import { Radio } from "@mui/material";
 import type { Colour } from "../utils/types";
@@ -305,50 +310,139 @@ export const ExpandableCard = ({
  * rather than before the call is what keeps those constants meaningful — a caller that trimmed
  * its own list first would silently ignore any change to them.
  */
-export const StatsListGrid = <T,>({
-  content,
-  limit,
-  flexWrap,
-  cardKey,
-  labelComponent,
-  chipComponent,
-  ...props
-}: {
-  content: T[];
-  limit: number;
-  flexWrap?: { xs: "nowrap"; md: "wrap" | "nowrap" };
-  cardKey: (t: T) => string;
-  labelComponent: (t: T) => string[][];
-  chipComponent?: (t: T) => CardMediaImageProps["chip"];
-  pictureWidth: [number, number, number];
-  shape?: ArtworkShape;
-  divider?: boolean;
-  MediaComponent: TypedCardMediaImage<T>;
-}) => (
-  <CardContent>
-    <Grid
-      container
-      spacing={1}
-      sx={{
-        alignItems: "center",
-        overflow: "auto",
-        flexWrap,
-      }}
-    >
-      {content.slice(0, limit).map((entry) => (
-        <StatsListCard
-          key={cardKey(entry)}
-          item={entry}
-          labels={labelComponent(entry)}
-          chip={chipComponent?.(entry)}
-          {...props}
-        />
-      ))}
-    </Grid>
-  </CardContent>
-);
+export const StatsListGrid = <T,>(
+  props: {
+    content: T[];
+    flexWrap?: { xs: "nowrap"; md: "wrap" | "nowrap" };
+    cardKey: (t: T) => string;
+    labelComponent: (t: T) => string[][];
+    chipComponent?: (t: T) => CardMediaImageProps["chip"];
+    shape?: ArtworkShape;
+    /** A band along the top of each card, and its height — see `CardMediaImageProps.mediaBand`. */
+    band?: MediaBand<T>;
+    divider?: boolean;
+    MediaComponent: TypedCardMediaImage<T>;
+    /**
+     * The header over the cards, handed how many are drawn. Built here rather than above the
+     * grid because only the grid knows: a sized row's cap is stated in rows, and how many cards
+     * those hold follows from the width it measures.
+     */
+    header?: (shown: number) => ReactNode;
+  } & GridLimit,
+) => {
+  const { content, flexWrap, cardKey, labelComponent, chipComponent, shape, band, divider, MediaComponent } = props;
+  // The row's own width, which only a sized row reads: a grid needs none, and the observer is
+  // only attached to the element a sized row renders.
+  const [rowRef, rowWidth] = useElementWidth<HTMLDivElement>();
+  const cell = cellOf(props, rowWidth, band?.height ?? 0);
+  // A cap in rows is the solved row's count times over. A grid's limit is a count by type, so
+  // its row of one is never asked.
+  const perRow = "rowSize" in cell ? cell.rowSize.count : 1;
+  const limit = typeof props.limit === "number" ? props.limit : props.limit.rows * perRow;
 
-export interface StatsListProps<T> {
+  // A sized row is not filled until it has been measured: the layout effect reads the width
+  // before paint, so the empty row is never seen, where rendering the cards at a fallback size
+  // first would build every one of them twice — a drill-down is up to five hundred.
+  const drawn = props.rowSizing && rowWidth === undefined ? [] : content.slice(0, limit);
+  const cards = drawn.map((entry) => (
+    <StatsListCard
+      key={cardKey(entry)}
+      item={entry}
+      labels={labelComponent(entry)}
+      chip={chipComponent?.(entry)}
+      cell={cell}
+      shape={shape}
+      band={band}
+      divider={divider}
+      MediaComponent={MediaComponent}
+    />
+  ));
+
+  return (
+    <>
+      {props.header?.(drawn.length)}
+      <CardContent>
+        {"rowSize" in cell ? (
+          <Box
+            ref={rowRef}
+            sx={{
+              display: "flex",
+              flexWrap: flexWrap ?? "wrap",
+              gap: `${ROW_GAP}px`,
+              overflow: "auto",
+            }}
+          >
+            {cards}
+          </Box>
+        ) : (
+          <Grid
+            container
+            spacing={1}
+            sx={{
+              alignItems: "center",
+              overflow: "auto",
+              flexWrap,
+            }}
+          >
+            {cards}
+          </Grid>
+        )}
+      </CardContent>
+    </>
+  );
+};
+
+/** Column spans per breakpoint for a list laid out as a grid: the strip's and the dialog's. */
+export interface GridListLayout {
+  pictureWidth: [number, number, number];
+  dialogPictureWidth: [number, number, number];
+}
+
+/**
+ * How a row of one-size cards is sized, in the terms its caller knows: the narrowest a card may
+ * be, and how tall the picture stands at a width. The band, the footer and the border are the
+ * list's own — it draws the first two and adds the third — so the list adds those to what the
+ * caller states, and a caller says nothing about a footer it never sees. Both figures are the
+ * card inside its border.
+ */
+export interface CardRowSizing {
+  minWidth: number;
+  pictureHeightFor: (width: number) => number;
+}
+
+/**
+ * How a list lays its cards out, one way or the other.
+ *
+ * A grid seats every card in a cell at stated column spans. A sized row gives every card one
+ * size, for a list whose cards declare a shape per item: the picture is sized by its shape and
+ * the words take what it leaves, so a row mixing banners with posters is one height with no card
+ * carrying ground under a shorter picture (`CardMediaImageProps.rowSize`). That size is solved
+ * against the row's measured width (`rowCardSize`), so a whole number of cards fill it, and a
+ * column span then means nothing to it. A union rather than two optional props, so a caller
+ * cannot hand a sized row spans it will never read, and which mode a list is in can be read off
+ * its props.
+ */
+export type GridLayout = { pictureWidth: [number, number, number]; rowSizing?: never };
+export type RowLayout = { rowSizing: CardRowSizing; pictureWidth?: never };
+export type CardLayout = GridLayout | RowLayout;
+
+/**
+ * The layout with how many cards it draws. A grid is capped in cards. A sized row may be capped in
+ * rows instead, since how many cards a row holds follows from its measured width and any count of
+ * cards would leave the last row part-filled at most widths.
+ */
+type GridLimit = (GridLayout & { limit: number }) | (RowLayout & { limit: number | { rows: number } });
+
+/**
+ * `CardLayout` for a list that also opens a dialog: a grid states a second set of spans, and a
+ * sized row may state its collapsed cap in rows (`collapsedRows`), which then stands in for
+ * `collapsed`.
+ */
+export type StatListLayout =
+  | (GridListLayout & { rowSizing?: never; collapsedRows?: never })
+  | { rowSizing: CardRowSizing; collapsedRows?: number; pictureWidth?: never; dialogPictureWidth?: never };
+
+export interface StatListBaseProps<T> {
   icon: ReactNode;
   title: string;
   controls?: ReactNode;
@@ -363,8 +457,8 @@ export interface StatsListProps<T> {
    * How many cards the collapsed strip holds, where `COLLAPSED_CARDS` is the wrong number for how
    * this one is laid out. The cap still applies inside the shell — a caller that sliced its own
    * list would make the constant a no-op for it — so what is passed is the limit and never the
-   * list. A full-width strip at three columns fits four cards to a row, and the shared six leave
-   * the second row half empty.
+   * list. A sized row states its cap in rows instead (`StatListLayout`), since how many cards it
+   * fits is not known until it is measured.
    */
   collapsed?: number;
   width: [number, number, number];
@@ -372,34 +466,38 @@ export interface StatsListProps<T> {
   labelComponent: (t: T) => string[][];
   MediaComponent: TypedCardMediaImage<T>;
   chipComponent?: (t: T) => CardMediaImageProps["chip"];
-  pictureWidth: [number, number, number];
-  dialogPictureWidth: [number, number, number];
   shape?: ArtworkShape;
+  /** See `StatsListGrid`: a band along the top of each card. */
+  band?: MediaBand<T>;
   divider?: boolean;
   wrap?: boolean;
 }
 
-export const StatList = <T,>({
-  icon,
-  title,
-  content,
-  width,
-  nameComponent,
-  chipComponent,
-  labelComponent,
-  count,
-  // Renamed and defaulted below the pattern: a default inside it bails the component out of the
-  // React Compiler, and the rename keeps `wrap` and `collapsed` out of the rest object handed to
-  // `StatsListGrid`.
-  wrap: wrapProp,
-  collapsed: collapsedProp,
-  pictureWidth,
-  dialogPictureWidth,
-  controls,
-  ...props
-}: StatsListProps<T>) => {
-  const wrap = wrapProp ?? true;
-  const collapsed = collapsedProp ?? COLLAPSED_CARDS;
+export type StatsListProps<T> = StatListBaseProps<T> & StatListLayout;
+
+export const StatList = <T,>(props: StatsListProps<T>) => {
+  const { icon, title, content, width, nameComponent, chipComponent, labelComponent, count, controls } = props;
+  // Read off the props rather than defaulted in the pattern, which bails the component out of the
+  // React Compiler.
+  const wrap = props.wrap ?? true;
+  const collapsed = props.collapsed ?? COLLAPSED_CARDS;
+  // The layout and the cap the grid applies. The dialog lifts the cap to its own, and so does a
+  // non-wrapping strip, which scrolls sideways instead of clipping and so holds the expanded count
+  // without the card growing; a grid then takes the dialog's spans where it states a second set.
+  const grid = (isDialog: boolean): GridLimit => {
+    const everything = isDialog || !wrap;
+    if (props.rowSizing) {
+      const rows = props.collapsedRows;
+      return {
+        rowSizing: props.rowSizing,
+        limit: everything ? EXPANDED_CARDS : rows !== undefined ? { rows } : collapsed,
+      };
+    }
+    return {
+      pictureWidth: isDialog ? props.dialogPictureWidth : props.pictureWidth,
+      limit: everything ? EXPANDED_CARDS : collapsed,
+    };
+  };
   return (
     <Grid
       size={{
@@ -410,61 +508,141 @@ export const StatList = <T,>({
     >
       <ExpandableCard
         sx={{ height: "100%" }}
-        expandable={content.length > collapsed}
-        renderContent={(isDialog, toggle) => {
-          // A non-wrapping strip scrolls sideways instead of clipping, so it can hold the expanded
-          // count without the card growing. Answered once and shared, so the header states the cut
-          // the grid actually applies.
-          const limit = isDialog || !wrap ? EXPANDED_CARDS : collapsed;
-
-          return (
-            <>
+        // A floor, since a cap in rows holds at least a card a row; the header below drops the
+        // toggle once it knows everything is already drawn.
+        expandable={content.length > (props.collapsedRows ?? collapsed)}
+        renderContent={(isDialog, toggle) => (
+          <StatsListGrid
+            content={content}
+            header={(shown) => (
               <SectionHeader
                 title={title}
                 icon={icon}
-                count={count?.(Math.min(content.length, limit), content.length)}
+                count={count?.(shown, content.length)}
                 action={
                   <Stack direction="row-reverse">
-                    {toggle}
+                    {(isDialog || !wrap || shown < content.length) && toggle}
                     {controls}
                   </Stack>
                 }
               />
-              <StatsListGrid
-                content={content}
-                limit={limit}
-                flexWrap={isDialog ? undefined : { xs: "nowrap", md: wrap ? "wrap" : "nowrap" }}
-                cardKey={(entry) => `${title}-statslistcard-${nameComponent(entry)}`}
-                labelComponent={labelComponent}
-                chipComponent={chipComponent}
-                pictureWidth={isDialog ? dialogPictureWidth : pictureWidth}
-                {...props}
-              />
-            </>
-          );
-        }}
+            )}
+            flexWrap={isDialog ? undefined : { xs: "nowrap", md: wrap ? "wrap" : "nowrap" }}
+            cardKey={(entry) => `${title}-statslistcard-${nameComponent(entry)}`}
+            labelComponent={labelComponent}
+            chipComponent={chipComponent}
+            shape={props.shape}
+            band={props.band}
+            divider={props.divider}
+            MediaComponent={props.MediaComponent}
+            {...grid(isDialog)}
+          />
+        )}
       />
     </Grid>
   );
+};
+
+/** The outlined card's border, which a sized card's inner size is short by on each side. */
+const CARD_BORDER = 1;
+
+/** The gap between sized cards, in pixels: one spacing unit, stated so the sizing can count it. */
+const ROW_GAP = 8;
+
+/** What one card is seated by: its outer size in a sized row, its column spans in a grid. */
+type CardCell =
+  { rowSize: { width: number; height: number; count: number } } | { pictureWidth: [number, number, number] };
+
+/**
+ * A grid's cell is its spans as stated. A sized row's is solved from what the caller stated —
+ * the card inside its border, the picture's height at a width — with what this shell adds on top:
+ * the band it draws over the picture, the one-line footer it draws under a banner, and the
+ * outlined border on each side. The row is solved on that outer size, which is what the card's
+ * box takes; the card hands its media the inner one back.
+ */
+const cellOf = (layout: CardLayout, rowWidth: number | undefined, bandHeight: number): CardCell => {
+  if (!layout.rowSizing) return { pictureWidth: layout.pictureWidth };
+  const { minWidth, pictureHeightFor } = layout.rowSizing;
+  return {
+    rowSize: rowCardSize(
+      {
+        minWidth: minWidth + 2 * CARD_BORDER,
+        heightFor: (width) =>
+          bandHeight + pictureHeightFor(width - 2 * CARD_BORDER) + ROW_FOOTER_HEIGHT + 2 * CARD_BORDER,
+      },
+      rowWidth,
+      ROW_GAP,
+    ),
+  };
 };
 
 const StatsListCard = <T,>({
   item,
   labels,
   chip,
-  pictureWidth,
+  cell,
   shape,
+  band,
   divider,
   MediaComponent,
 }: {
   item: T;
   labels: string[][];
   chip?: CardMediaImageProps["chip"];
-  pictureWidth: [number, number, number];
+  cell: CardCell;
   shape?: ArtworkShape;
+  band?: MediaBand<T>;
   divider?: boolean;
   MediaComponent: TypedCardMediaImage<T>;
 }) => {
+  const rowSize = "rowSize" in cell ? cell.rowSize : undefined;
+  const card = (
+    <Card
+      variant="outlined"
+      sx={{ height: "100%" }}
+    >
+      <MediaComponent
+        item={item}
+        // The card inside the border, which is what the row's size is spent on, and the footer
+        // this list draws under a banner, which is what the picture's height is short by.
+        rowSize={
+          rowSize && {
+            width: rowSize.width - 2 * CARD_BORDER,
+            height: rowSize.height - 2 * CARD_BORDER,
+            footerHeight: ROW_FOOTER_HEIGHT,
+          }
+        }
+        mediaBand={band && { node: band.render(item), height: band.height }}
+        // Applied here rather than handed on as `shape`, which `CardMediaImage` also takes and
+        // means something else by: there it selects the arrangement, and this card supplies a
+        // footer, so forwarding it would seat every poster's words in a column beside it —
+        // the layout the Omnibus's mixed rows are alone in wanting.
+        //
+        // Held firmly, without the leading `auto` a wall's reservation uses: a strip lays its
+        // cards out side by side and an artwork a few pixels off its shape would stand at a
+        // different width from its neighbours, for a reason no reader can see. A cover is the
+        // exception the shape declares — no two share a ratio, so held firmly it would be
+        // cropped — and takes the reservation instead, standing at its file's own height.
+        sx={{ aspectRatio: shape && (shapeIsExact(shape) ? shapeToRatio(shape) : shapeToAspect(shape)), flexShrink: 0 }}
+        chip={chip}
+        // A dialog list can run to hundreds of cards; off-screen artwork loads as it scrolls
+        // into view rather than all at once on open.
+        lazy
+        extractColour
+        footerComponent={
+          <FooterComponent
+            labels={labels}
+            divider={divider}
+          />
+        }
+      />
+    </Card>
+  );
+
+  // At one card size, a card is a flex item of that size; otherwise a grid cell.
+  if (rowSize) return <Box sx={{ flex: "0 0 auto", width: rowSize.width, height: rowSize.height }}>{card}</Box>;
+
+  const { pictureWidth } = cell as Extract<CardCell, { pictureWidth: unknown }>;
   return (
     <Grid
       size={{
@@ -477,34 +655,7 @@ const StatsListCard = <T,>({
         alignSelf: "stretch",
       }}
     >
-      <Card
-        variant="outlined"
-        sx={{ height: "100%" }}
-      >
-        <MediaComponent
-          item={item}
-          // Applied here rather than handed on as `shape`, which `CardMediaImage` also takes and
-          // means something else by: there it selects the arrangement, and this card supplies a
-          // footer, so forwarding it would seat every poster's words in a column beside it —
-          // the layout the Omnibus's mixed rows are alone in wanting.
-          //
-          // Held firmly, without the leading `auto` a wall's reservation uses: a strip lays its
-          // cards out side by side and an artwork a few pixels off its shape would stand at a
-          // different width from its neighbours, for a reason no reader can see.
-          sx={{ aspectRatio: shape && shapeToRatio(shape), flexShrink: 0 }}
-          chip={chip}
-          // A dialog list can run to hundreds of cards; off-screen artwork loads as it scrolls
-          // into view rather than all at once on open.
-          lazy
-          extractColour
-          footerComponent={
-            <FooterComponent
-              labels={labels}
-              divider={divider}
-            />
-          }
-        />
-      </Card>
+      {card}
     </Grid>
   );
 };

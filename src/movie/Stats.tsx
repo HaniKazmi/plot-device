@@ -16,7 +16,8 @@ import type { ReactNode } from "react";
 import {
   StatCard,
   StatList,
-  StatsListProps,
+  type GridListLayout,
+  type StatListBaseProps,
   StatSummary,
   TotalsBand,
   VitalsCard,
@@ -302,10 +303,7 @@ const movieScoreChip = (movie: Movie, scheme: Scheme) =>
     ? { label: String(movie.score), colour: scoreBandToColour(scoreBand(movie.score), scheme) }
     : undefined;
 
-const movieStatListSharedProps: Pick<
-  StatsListProps<Movie>,
-  "shape" | "divider" | "width" | "pictureWidth" | "dialogPictureWidth"
-> = {
+const movieStatListSharedProps: Pick<StatListBaseProps<Movie>, "shape" | "divider" | "width"> & GridListLayout = {
   // Posters, not banners — the cards keep the shape the library grid shows them at.
   shape: "portrait",
   divider: true,
@@ -316,7 +314,7 @@ const movieStatListSharedProps: Pick<
 
 const MovieStatList = (
   props: Omit<
-    StatsListProps<Movie>,
+    StatListBaseProps<Movie>,
     "MediaComponent" | "chipComponent" | "nameComponent" | keyof typeof movieStatListSharedProps
   >,
 ) => {

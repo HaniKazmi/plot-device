@@ -308,3 +308,15 @@ const describeDate = (date: YearMonthDay | Year, withYear = true) =>
 export const CURRENT_PLAINDATE = YearMonthDay.currentDate();
 
 export const CURRENT_YEAR = CURRENT_PLAINDATE.year;
+
+/**
+ * The days from `start` up to and including `today`, or nothing where `start` is after it or is
+ * a bare year.
+ *
+ * `daysTo` throws rather than answering backwards, and a start typed ahead of today is a sheet
+ * cell rather than a crash: the honest figure is no day count at all, which is also what `daysTo`
+ * answers across a year-only start. One home for that rule, since every domain with something in
+ * progress counts the days it has been so far.
+ */
+export const daysSince = (start: PlainDate, today: YearMonthDay): number | undefined =>
+  start.lte(today) ? start.daysTo(today) : undefined;

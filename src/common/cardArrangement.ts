@@ -3,8 +3,13 @@ import { createContext, useContext } from "react";
 /**
  * The shape a card's artwork comes in. Each domain names its own once; a surface mixing media reads
  * it off the item.
+ *
+ * A cover is portrait too, and is arranged like one. It is a shape of its own because its ratio is
+ * only approximately known: posters are authored to one pixel size, where book covers come from
+ * their publishers at roughly 2:3 and vary by a few percent each. A layout that pins a poster's
+ * declared ratio firmly therefore lets a cover take its own — see `shapeIsExact`.
  */
-export type ArtworkShape = "landscape" | "portrait";
+export type ArtworkShape = "landscape" | "portrait" | "cover";
 
 /**
  * Where a card's words sit against its artwork: underneath it, or in a column beside it.
@@ -27,31 +32,53 @@ type CardArrangement = "stacked" | "beside";
 const shapeArrangements: Record<ArtworkShape, CardArrangement> = {
   landscape: "stacked",
   portrait: "beside",
+  cover: "beside",
 };
 
 export const shapeToArrangement = (shape: ArtworkShape): CardArrangement => shapeArrangements[shape];
 
 /**
  * The shape every artwork of a kind is drawn at: banners 16:9, posters 680×1000 — the exact pixel
- * size the poster buckets hold, so a canonical file fills its box with nothing left over.
+ * size the poster buckets hold, so a canonical file fills its box with nothing left over — and
+ * covers 2:3, which is what a publisher's cover is nearest to.
  *
  * The ratio a layout measures is this one and never the file's own. Artwork is authored to it, but
  * an individual image can be off by a few pixels, and a band that took each picture's measured ratio
  * would stand its two poster cards at different widths for a reason no reader can see — a mistake in
  * one file becoming a visible difference in the page. Sizing from the declared ratio makes every
  * poster card identical and leaves an off-size file to be letterboxed rather than to move the layout.
+ *
+ * A cover is the exception, and `shapeIsExact` is what says so: no two covers share a ratio, so a
+ * layout that held every cover to 2:3 would letterbox every one of them by a few percent. A surface
+ * that pins the declared ratio for posters lets a cover take the ratio its file holds instead —
+ * standing at its real width against a fixed height — and absorbs the difference in whatever sits
+ * beside it. Nothing is authored to a cover's ratio, so there is no canonical file to hold it to.
  */
 export const shapeRatioValues: Record<ArtworkShape, number> = {
   landscape: 16 / 9,
   portrait: 680 / 1000,
+  cover: 2 / 3,
 };
 
 const shapeRatios: Record<ArtworkShape, string> = {
   landscape: "16 / 9",
   portrait: "680 / 1000",
+  cover: "2 / 3",
 };
 
 export const shapeToRatio = (shape: ArtworkShape): string => shapeRatios[shape];
+
+/**
+ * Whether every artwork of this shape is authored to `shapeRatioValues` exactly, and so can be held
+ * to it. False only for covers, whose ratio is a reservation and never a size.
+ */
+const shapeExact: Record<ArtworkShape, boolean> = {
+  landscape: true,
+  portrait: true,
+  cover: false,
+};
+
+export const shapeIsExact = (shape: ArtworkShape): boolean => shapeExact[shape];
 
 /**
  * The height a card holds for artwork it has not loaded yet.
@@ -65,6 +92,7 @@ export const shapeToRatio = (shape: ArtworkShape): string => shapeRatios[shape];
 const shapeAspects: Record<ArtworkShape, string> = {
   landscape: `auto ${shapeRatios.landscape}`,
   portrait: `auto ${shapeRatios.portrait}`,
+  cover: `auto ${shapeRatios.cover}`,
 };
 
 export const shapeToAspect = (shape: ArtworkShape): string => shapeAspects[shape];
@@ -108,12 +136,15 @@ const HOVER_CARD_ASIDE_ARTWORK_HEIGHT = 348;
  * is the same size before and after.
  *
  * A poster stands beside the words and so is pinned on its height; a banner spans the card above
- * them and takes its width.
+ * them and takes its width. A cover stands like a poster but holds its ratio only until its file
+ * has loaded: the reservation keeps the card the right size to within a few percent, and the
+ * picture's real width then wins, so the card grows or shrinks by the few pixels a cover is off
+ * 2:3 rather than letterboxing them.
  */
 export const hoverCardArtworkSx = (shape: ArtworkShape) =>
-  shape === "portrait"
+  shapeToArrangement(shape) === "beside"
     ? {
-        aspectRatio: shapeToRatio("portrait"),
+        aspectRatio: shapeIsExact(shape) ? shapeToRatio(shape) : shapeToAspect(shape),
         height: HOVER_CARD_ASIDE_ARTWORK_HEIGHT,
         width: "auto",
         flexShrink: 0,

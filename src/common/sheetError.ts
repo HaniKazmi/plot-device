@@ -32,8 +32,8 @@ export const sheetError = (context: string, detail: string): never => {
 /**
  * Reads a certificate cell, rejecting one the colour map could not paint.
  *
- * All three sheets record an age rating and all three feed it to `ageRatingToColour`, which throws
- * on a value it does not know. Left to reach that, the failure surfaces from inside a render and
+ * The Games, Shows and Movies sheets record an age rating and feed it to `ageRatingToColour`, which
+ * throws on a value it does not know. Left to reach that, the failure surfaces from inside a render and
  * names the value but not the row carrying it — so every converter reads the column through here
  * instead, while it still knows which row it is on.
  */

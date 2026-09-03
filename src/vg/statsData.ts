@@ -1,6 +1,6 @@
-import { CURRENT_YEAR, formatDate, type YearMonthDay, type YearNumber } from "../common/date";
+import { daysSince, formatDate, type YearMonthDay, type YearNumber } from "../common/date";
 import { format } from "../utils/mathUtils";
-import { groupByCategory } from "../common/statsData";
+import { earliestYear as earliestYearOf, groupByCategory } from "../common/statsData";
 import { platformToShort, type Measure, type VideoGame, type VideoGameStringKeys } from "./types";
 import "../utils/arrayUtils";
 
@@ -41,15 +41,9 @@ export const groupGamesBy = (data: VideoGame[], key: VideoGameStringKeys, measur
 /**
  * The first year the library holds a game in, which is the floor the year select offers. There is
  * no fixed epoch for Games the way Movies has a tracking start date — the sheet's own oldest
- * release is whatever it is — so the floor is read from the data rather than a constant. Falls
- * back to the current year when the library is empty, since the select then has nothing below it
- * to offer anyway.
+ * release is whatever it is — so the floor is read from the data rather than a constant.
  */
-export const earliestYear = (data: VideoGame[]): YearNumber =>
-  data.reduce<YearNumber | undefined>(
-    (earliest, game) => (!earliest || game.startDate.year < earliest ? game.startDate.year : earliest),
-    undefined,
-  ) ?? CURRENT_YEAR;
+export const earliestYear = (data: VideoGame[]): YearNumber => earliestYearOf(data, (game) => game.startDate.year);
 
 /** Count and hours over the time-tracked games — what both year cards total, scoped by the caller. */
 export const gamesAndHours = (data: VideoGame[]) => {
@@ -107,9 +101,9 @@ export const heroStats = (game: VideoGame, franchise: VideoGame[], today: YearMo
 
   if (game.hours) stats.push({ label: "Hours", value: game.hours });
 
-  // `daysTo` throws rather than answering backwards, and returns nothing across a year-only
-  // date. Both are the same answer here: there is no day count to show.
-  const days = game.startDate.lte(today) ? game.startDate.daysTo(today) : undefined;
+  // Nothing across a year-only date, which is the same answer as for a start typed ahead of
+  // today: there is no day count to show.
+  const days = daysSince(game.startDate, today);
   if (days !== undefined) stats.push({ label: "Days In", value: days });
 
   if (game.franchise && franchise.length > 1) {

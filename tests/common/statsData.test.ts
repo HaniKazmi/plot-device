@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { groupByCategory, groupTotals, topNWithOther, type TopGroup } from "../../src/common/statsData";
+import { CURRENT_YEAR, type YearNumber } from "../../src/common/date";
+import { groupByCategory, groupTotals, topNWithOther, type TopGroup, earliestYear } from "../../src/common/statsData";
 import type { Colour } from "../../src/utils/types";
 
 type Row = { status: string; hours: number };
@@ -128,5 +129,17 @@ describe("topNWithOther", () => {
     const result = topNWithOther(groups(6, 3, 1, 1, 1, 1), 4);
 
     expect(result.reduce((a, b) => a + b.percent, 0)).toBeCloseTo(100, 10);
+  });
+});
+
+describe("earliestYear", () => {
+  it("answers the first year any item falls in, through the accessor the caller states", () => {
+    const items = [{ year: 2019 }, { year: 2015 }, { year: 2022 }];
+
+    expect(earliestYear(items, (item) => item.year as YearNumber)).toBe(2015);
+  });
+
+  it("falls back to the current year for an empty library, where a select has nothing below it", () => {
+    expect(earliestYear([], () => 2000 as YearNumber)).toBe(CURRENT_YEAR);
   });
 });

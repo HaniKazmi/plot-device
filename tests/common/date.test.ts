@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { shortYear, Year, YearMonth, YearMonthDay } from "../../src/common/date";
+import { daysSince, shortYear, Year, YearMonth, YearMonthDay } from "../../src/common/date";
 
 describe("firstDay and lastDay", () => {
   // A date's precision is carried by its class, but until these a caller could only get at one end
@@ -71,5 +71,16 @@ describe("daysTo", () => {
 
   it("answers undefined for no end at all, which is how an open span degrades", () => {
     expect(day(2020, 1, 1).daysTo(undefined)).toBeUndefined();
+  });
+});
+
+describe("daysSince", () => {
+  it("counts from the start up to and including today", () => {
+    expect(daysSince(YearMonthDay.get(2026, 5, 1), YearMonthDay.get(2026, 5, 1))).toBe(1);
+    expect(daysSince(YearMonthDay.get(2026, 5, 1), YearMonthDay.get(2026, 9, 2))).toBe(125);
+  });
+
+  it("answers nothing for a start after today, where daysTo would throw", () => {
+    expect(daysSince(YearMonthDay.get(2027, 1, 1), YearMonthDay.get(2026, 9, 2))).toBeUndefined();
   });
 });

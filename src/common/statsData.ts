@@ -1,4 +1,5 @@
 import { assignPercents } from "../utils/mathUtils";
+import { CURRENT_YEAR, type YearNumber } from "./date";
 import type { Colour } from "../utils/types";
 import "../utils/arrayUtils";
 import "../utils/mapUtils";
@@ -15,6 +16,25 @@ export interface DrilldownGroup<T> extends TopGroup<T> {
   top: T;
   all: T[];
 }
+
+/**
+ * A grouping answered once per option, for a page that asks the same one of the same data more
+ * than once — the vitals band orders its genre segments by the grouping the Top card also draws,
+ * and the Most Read card opens on the author grouping beside it. Each is a pass over the whole
+ * library, so the second asking reads the first's answer. Built once per render's data and
+ * measure, so a filter change starts it over.
+ */
+export const groupsOnce = <O, T>(group: (option: O) => DrilldownGroup<T>[]) => {
+  const held = new Map<O, DrilldownGroup<T>[]>();
+  return (option: O) => {
+    let groups = held.get(option);
+    if (groups === undefined) {
+      groups = group(option);
+      held.set(option, groups);
+    }
+    return groups;
+  };
+};
 
 /**
  * Groups items by whatever `valueOf` answers, ordered by the measure, largest first.
@@ -108,3 +128,15 @@ export const groupTotals = <T extends string, U>(
 
   return assignPercents(segments, segments.sum("count"));
 };
+
+/**
+ * The first year a library holds anything in, which is the floor a year select offers and where a
+ * shared scale opens. Read from the data rather than fixed, because the sheets start in different
+ * years and a sheet is a record still being entered. Falls back to the current year when the
+ * library is empty, since a select then has nothing below it to offer anyway.
+ */
+export const earliestYear = <T>(items: readonly T[], yearOf: (item: T) => YearNumber): YearNumber =>
+  items.reduce<YearNumber | undefined>(
+    (earliest, item) => (!earliest || yearOf(item) < earliest ? yearOf(item) : earliest),
+    undefined,
+  ) ?? CURRENT_YEAR;

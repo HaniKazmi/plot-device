@@ -75,9 +75,9 @@ export interface CardMediaImageProps {
    * arrangement (§6, `common/cardArrangement.ts`).
    *
    * `"aside"` puts the panel beside the image and gives it the remaining width. `"stacked"` keeps
-   * the panel underneath whatever shape the artwork is, which a shelf of artwork at one fixed
-   * height needs: the shape rule would seat a poster's words beside it, and a row that mixes
-   * banners with posters would then hold two different card layouts at two different widths.
+   * the panel underneath whatever shape the artwork is, for a surface that has pinned a height
+   * and wants a poster's words under it rather than beside: the shape rule would seat them in a
+   * column, and a row mixing banners with posters would then hold two card layouts at two widths.
    * Left off, the arrangement follows `shape`, and the artwork column is the width of the card.
    */
   mediaLayout?: "aside" | "stacked";
@@ -93,8 +93,51 @@ export interface CardMediaImageProps {
    * has no such row and says nothing here, keeping the arrangement its own layout gives it.
    */
   shape?: ArtworkShape;
+  /**
+   * The one size every card in a row stands at, for a row mixing artwork shapes.
+   *
+   * A grid gives every card one width and lets the heights fall where the shapes put them, so a
+   * row mixing banners with posters is as tall as its tallest card and the rest carry a strip of
+   * their own ground. Given both dimensions, the card spends them the way the Now band does at its
+   * own scale: a poster or a cover fills the height and takes its own width, and the column of
+   * words beside it is whatever the width leaves; a banner fills the width at its ratio and keeps
+   * a footer underneath. Every card is then one size, every picture whole, and the words are what
+   * gives way. Needs `shape`, which is what says which of the two it is.
+   *
+   * The footer's height travels with the size because the caller is what draws the footer: this
+   * card subtracts it from the picture under a banner and holds the footer to it, and knows
+   * nothing else about what is in it.
+   */
+  rowSize?: { width: number; height: number; footerHeight: number };
+  /**
+   * A band naming the picture along the top of the whole card, and how tall it is.
+   *
+   * For a surface that has to say something about the picture the artwork alone cannot — which
+   * medium it is, on a row mixing four — without covering it the way the corner chip does. The
+   * height travels with it because a sized card spends its height on the picture, and the band is
+   * the one other thing in the picture's way.
+   */
+  mediaBand?: { node: ReactNode; height: number };
   /** Derive the card's theme colour from the image once it loads. Costs a canvas read per image. */
   extractColour?: boolean;
+}
+
+/**
+ * The stacked `FooterComponent` at one line a row — its 10px insets, a caption line, a `subtitle2`
+ * line and the seam. A list that sizes its cards and draws that footer states this as the
+ * `footerHeight` of every `rowSize` it hands out, so the picture under a banner is the card's
+ * height less exactly that. Nothing here reads it: a caller drawing a taller footer states a
+ * taller height.
+ */
+export const ROW_FOOTER_HEIGHT = 65;
+
+/**
+ * How a list states the band its cards wear: what to draw for an item, and how tall it is. The
+ * list turns it into each card's `mediaBand`.
+ */
+export interface MediaBand<T> {
+  render: (item: T) => ReactNode;
+  height: number;
 }
 
 export type TypedCardMediaImage<T> = FunctionComponent<
@@ -149,25 +192,46 @@ const ASIDE_ACTION_AREA_SX = {
  * The same column, for a card arranged by its artwork's shape rather than by a caller that pinned
  * the artwork's size.
  *
- * The ceiling is what the difference is for. This card's width is imposed on it — a grid cell, a
+ * The width is what the difference is for. This card's width is imposed on it — a grid cell, a
  * band — and the artwork's own pixels are several times that, so shrink-to-fit alone hands the
- * whole card to the picture and leaves the words nothing. Half is the most a poster can claim, so
- * there is always a column to set a name in. Stretching rather than ending at the artwork, because
- * a card in a band is as tall as the tallest card beside it and a picture that stops short of that
- * leaves a panel of bare ground under itself.
+ * whole card to the picture and leaves the words nothing. Half is what a poster claims, so there is
+ * always a column to set a name in. It is stated rather than left as a ceiling because the shape's
+ * reservation resolves against it: a lazily loaded picture has no width of its own until its file
+ * arrives, and a column sized to that picture is nothing tall until then — a row of such cards
+ * opens as strips of text and jumps to its height as the pictures stream in. Stretching rather
+ * than ending at the artwork, because a card in a band is as tall as the tallest card beside it
+ * and a picture that stops short of that leaves a panel of bare ground under itself.
  */
 const SHAPE_ASIDE_ACTION_AREA_SX = {
   flex: "0 0 auto",
-  width: "auto",
-  maxWidth: "50%",
+  width: "50%",
   alignSelf: "stretch",
 } as const;
 
-/** Artwork filling a column it did not choose the width of, at its own ratio and uncropped. */
-const SHAPE_ASIDE_MEDIA_SX = { maxWidth: "100%", height: "auto", display: "block" } as const;
+/**
+ * Artwork filling the column above, at its own ratio and uncropped: the width is the column's, so
+ * the reservation has a height before the file arrives, and the file's own ratio then sets the
+ * height it stands at.
+ */
+const SHAPE_ASIDE_MEDIA_SX = { width: "100%", height: "auto", display: "block" } as const;
+
+/**
+ * The footer under a banner in a row of one card size: the height the row stated for it, every
+ * line held to one, so a long title is clipped to its line rather than wrapping the card past the
+ * row.
+ */
+const rowFooterSx = (height: number) =>
+  ({
+    height,
+    overflow: "hidden",
+    "& .MuiTypography-root": { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" },
+  }) as const;
 
 export const CardMediaImage = (props: CardMediaImageProps) => {
   const { image, alt, chip, colour: propColour, footerComponent, detailComponent, mediaLayout, sx, cardSx } = props;
+  const rowSize = props.rowSize;
+  const mediaBand = props.mediaBand;
+  const bandHeight = mediaBand?.height ?? 0;
   // Defaults are read off `props` rather than written in the destructuring pattern: a default
   // there is an assignment the React Compiler cannot lower, and it bails the whole component out
   // of memoization — silently, since the code still runs. `extractColour` must resolve before the
@@ -245,6 +309,20 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
             display: landscape || beside ? "flex" : undefined,
             color: palette.onGround,
           },
+          // The band spans the whole card, picture and words alike: it is the card's first child,
+          // and on a card laid out as a row it takes a line of its own, with the row of picture and
+          // words wrapping under it at the height the picture was given.
+          ...(mediaBand && beside ? [{ flexWrap: "wrap", alignContent: "flex-start" }] : []),
+          // At one card size the words take what the picture leaves: beside a poster, the column
+          // is the width the picture did not need; under a banner, the footer is a stated height
+          // and the picture is sized to what that leaves, so the two cannot disagree.
+          ...(rowSize && shape
+            ? [
+                beside
+                  ? { "& > .MuiCardActionArea-root": { width: "auto" } }
+                  : { "& > .MuiCardContent-root": rowFooterSx(rowSize.footerHeight) },
+              ]
+            : []),
           ...(Array.isArray(cardSx) ? cardSx : [cardSx]),
         ]}
       >
@@ -253,6 +331,11 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
             it was opened from — a detail tree laid out beside a poster that is not there. The
             dialog draws its own full-width artwork and takes the default. */}
         <CardArrangementProvider value={beside ? "beside" : "stacked"}>
+          {/* The whole card's width: a line of its own where the card is a row, the top of the
+              block where it is not. Given no width of its own and stretched to the card's, for
+              the reason the row footer is: a wrapping row sizes itself as if it were one line, so
+              a band with a width would add that width to the picture's and the words'. */}
+          {mediaBand && <Box sx={{ width: 0, minWidth: "100%" }}>{mediaBand.node}</Box>}
           <CardActionArea
             sx={mediaLayout === "aside" ? ASIDE_ACTION_AREA_SX : beside ? SHAPE_ASIDE_ACTION_AREA_SX : undefined}
           >
@@ -277,6 +360,18 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
               // dressed it.
               sx={[
                 ...(shape ? [{ aspectRatio: shapeToAspect(shape), ...(beside && SHAPE_ASIDE_MEDIA_SX) }] : []),
+                // The picture at one card size. Beside the words it takes the height and its own
+                // width — from the reservation until the file arrives, from the file's ratio after.
+                // Under them it takes the width and the height the band and footer leave, which is
+                // its own ratio's height exactly when the caller sized the row from it; a banner is
+                // an exact shape, so both being stated crops nothing.
+                ...(rowSize && shape
+                  ? [
+                      beside
+                        ? { height: rowSize.height - bandHeight, width: "auto" }
+                        : { width: "100%", height: rowSize.height - bandHeight - rowSize.footerHeight },
+                    ]
+                  : []),
                 ...(Array.isArray(sx) ? sx : [sx]),
               ]}
             />

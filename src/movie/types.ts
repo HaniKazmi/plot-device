@@ -8,6 +8,8 @@ import {
   NEUTRAL_FILL,
   pick,
   releaseDecade,
+  scoreBand,
+  scoreBandToColour,
   type AgeRating,
   type Colour,
   type Fill,
@@ -64,39 +66,12 @@ const cinemaColours: Record<"Cinema" | "Home", Fill> = {
 export const cinemaToColour = (label: string, scheme: Scheme): Colour =>
   pick(cinemaColours[label as "Cinema" | "Home"] ?? NEUTRAL_FILL, scheme);
 
-export const scoreBands = ["9–10", "7–8", "5–6", "3–4", "1–2", "Unscored"] as const;
-
-export type ScoreBand = (typeof scoreBands)[number];
-
-/** Five bands so a totals bar's legend fits one line; unscored is its own state, not a low one. */
-export const scoreBand = (score: number | undefined): ScoreBand => {
-  if (score === undefined) return "Unscored";
-  if (score >= 9) return "9–10";
-  if (score >= 7) return "7–8";
-  if (score >= 5) return "5–6";
-  if (score >= 3) return "3–4";
-  return "1–2";
-};
-
 /**
- * Red through amber to green, because a score is valenced and not merely ordered — a 2 is a
- * different judgement from an 8, and hue is what can say so. Hue has to carry the scale anyway:
- * the fill contract confines every value to one narrow lightness band, so a single-hue ramp only
- * has five near-identical steps to give, and its palest step lands a hair from the neutral that
- * means Unscored. Lightness arches — dark at both poles, lightest at the amber middle — so
- * neighbouring bands separate by brightness as well as hue. The middle amber sits a step lighter
- * and yellower than the Cinema gold in the band below it. Every value meets the fill contract.
+ * The score vocabulary lives in the shared layer, because Books scores on the same scale and a
+ * tracked domain may not import another's; it is re-exported here so this tab's callers name it
+ * as their own.
  */
-const scoreBandColours: Record<ScoreBand, Fill> = {
-  "9–10": fill("#007338", "#04ab57"),
-  "7–8": fill("#298d00", "#63c94a"),
-  "5–6": fill("#ac8b00", "#f8cc20"),
-  "3–4": fill("#b65800", "#ea7300"),
-  "1–2": fill("#af0025", "#de1e39"),
-  Unscored: NEUTRAL_FILL,
-};
-
-export const scoreBandToColour = (band: ScoreBand, scheme: Scheme): Colour => pick(scoreBandColours[band], scheme);
+export { scoreBands, scoreBand, scoreBandToColour, type ScoreBand } from "../utils/types";
 
 export const ratingToColour = ({ rating }: Movie, scheme: Scheme) => ageRatingToColour(rating, scheme);
 

@@ -24,7 +24,8 @@ import {
 import {
   StatCard,
   StatList,
-  StatsListProps,
+  type GridListLayout,
+  type StatListBaseProps,
   StatSummary,
   TotalsBand,
   VitalsCard,
@@ -360,7 +361,7 @@ const showStatusChip = (show: Show, scheme: Scheme) => ({ label: show.status, co
 // sits inside the viewport at once and fetches every image immediately. The strip holds the
 // shape firmly rather than yielding to each file, which `common/Stats.tsx` explains at the site
 // that decides it.
-const showStatListSharedProps: Pick<StatsListProps<Show>, "shape" | "width" | "pictureWidth" | "dialogPictureWidth"> = {
+const showStatListSharedProps: Pick<StatListBaseProps<Show>, "shape" | "width"> & GridListLayout = {
   shape: "portrait",
   width: [12, 12, 12],
   pictureWidth: [6, 4, 2],
@@ -368,11 +369,8 @@ const showStatListSharedProps: Pick<StatsListProps<Show>, "shape" | "width" | "p
 };
 
 const ShowStatList = (
-  props: Omit<
-    StatsListProps<Season>,
-    "MediaComponent" | "nameComponent" | "width" | "pictureWidth" | "dialogPictureWidth"
-  > &
-    Partial<Pick<StatsListProps<Season>, "pictureWidth">>,
+  props: Omit<StatListBaseProps<Season>, "MediaComponent" | "nameComponent" | "width"> &
+    Partial<Pick<GridListLayout, "pictureWidth">>,
 ) => {
   return (
     <StatList
@@ -386,10 +384,7 @@ const ShowStatList = (
 
 /** The Show-typed sibling of `ShowStatList`, for the lists whose rows are whole shows. */
 const ShowsStatList = (
-  props: Omit<
-    StatsListProps<Show>,
-    "MediaComponent" | "nameComponent" | "chipComponent" | "width" | "pictureWidth" | "dialogPictureWidth"
-  >,
+  props: Omit<StatListBaseProps<Show>, "MediaComponent" | "nameComponent" | "chipComponent" | "width">,
 ) => {
   const scheme = useScheme();
 
