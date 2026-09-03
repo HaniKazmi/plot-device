@@ -171,6 +171,13 @@ export const bookHeroStats = (book: Book, today: YearMonthDay, variant: "hero" |
 export const bookKey = (book: Book) => `${book.name}-${book.startDate}`;
 
 /**
+ * The same pair under the medium's name, which is what identifies a book among the union of the
+ * four libraries: the key the Omnibus keys the book's row on, and the one a franchise strip finds
+ * the card's own book by, so the two cannot come to disagree.
+ */
+export const bookItemKey = (book: Book) => `book-${bookKey(book)}`;
+
+/**
  * The first year a book was begun in: the floor the year select offers and the January every card
  * strip opens on. The sheet is a sample of a library still being entered, which is why it is read
  * rather than fixed.

@@ -1,60 +1,15 @@
 import type { ArtworkShape } from "../common/cardArrangement";
-import { fill, pick, type Colour, type Fill, type Scheme } from "../utils/types";
+import { MEDIA, type Medium } from "../utils/types";
 
 /**
- * The four things this tab counts. Singular and lower case because it is a discriminant on a
- * record rather than a label — `mediumToLabel` is what a chart legend reads.
+ * The medium vocabulary is the shared layer's — every tab's card strip draws all four — and this
+ * tab reads it from there. Re-exported under the names this folder speaks so its consumers name
+ * one module for everything the union is made of.
  */
-export type Medium = "game" | "show" | "movie" | "book";
+export { mediumToColour, mediumToLabel, mediumToName, type Medium } from "../utils/types";
 
 /** In the order the page says them, which is the order the tabs themselves run in. */
-export const media: readonly Medium[] = ["game", "show", "movie", "book"];
-
-/**
- * The one vocabulary this tab teaches, and the only colour on the page carrying meaning.
- *
- * Each value meets the fill contract on `NEUTRAL_FILL`, half by half, and no medium reads as
- * louder than the others. The hues are the home tabs' own — arcade magenta for Games, screen-glow
- * teal for Shows, cinema red for Movies, page gold for Books — so a reader arriving from a tab
- * finds the colour it was already wearing, and they cannot be chosen independently of `tabs.ts`
- * without the two drifting. The closest pair is 16.8 dE, which is above what two fills need to be
- * told apart; the legend beside every bar and the medium name on every strip carry the rest.
- */
-const mediumColours: Record<Medium, Fill> = {
-  game: fill("#bc00b6", "#ea00e3"),
-  show: fill("#007f9f", "#00afdb"),
-  movie: fill("#c93700", "#f34400"),
-  book: fill("#857200", "#c6ac00"),
-};
-
-export const mediumToColour = (medium: Medium, scheme: Scheme): Colour => pick(mediumColours[medium], scheme);
-
-/** How a medium reads in a legend, a header or a chip — the home tab's own name for itself. */
-const mediumLabels: Record<Medium, string> = {
-  game: "Games",
-  show: "Shows",
-  movie: "Movies",
-  book: "Books",
-};
-
-export const mediumToLabel = (medium: Medium): string => mediumLabels[medium];
-
-/**
- * The same names in the singular, for a label naming one item rather than a group.
- *
- * A legend, a header and a filter toggle all stand for a set and read in the plural; the band under
- * a single picture stands for that picture. Written out rather than trimmed from the plural, since
- * a vocabulary that gains a medium whose plural is not its name plus an "s" would otherwise be
- * wrong in one place and right in the other.
- */
-const mediumNames: Record<Medium, string> = {
-  game: "Game",
-  show: "Show",
-  movie: "Movie",
-  book: "Book",
-};
-
-export const mediumToName = (medium: Medium): string => mediumNames[medium];
+export const media: readonly Medium[] = MEDIA;
 
 /**
  * The shape a medium's artwork comes in: the Games sheet holds banners, the Shows and Movies sheets

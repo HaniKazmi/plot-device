@@ -1,8 +1,8 @@
-import { Year, YearMonthDay } from "../common/date";
+import { Year, YearMonthDay, formatDate, formatDateRange } from "../common/date";
 import type { StripSpan } from "../common/timelineStripData";
-import type { PanelSubtitlePart } from "../common/Card";
-import { genreToColour, type Scheme } from "../utils/types";
-import { gameplayToColour, type VideoGame } from "./types";
+import type { LedgerRow, PanelSubtitlePart } from "../common/Card";
+import { franchiseToColour, genreToColour, type Scheme } from "../utils/types";
+import { companyToAccent, gameplayToColour, ratingToColour, type VideoGame } from "./types";
 import "../utils/arrayUtils";
 import "../utils/mapUtils";
 
@@ -18,6 +18,13 @@ interface GameSpan extends StripSpan {
  * without running the estimate below to get it.
  */
 export const spanKey = (game: VideoGame) => `${game.name}-${game.platform}-${game.startDate}`;
+
+/**
+ * The same tuple under the medium's name, which is what identifies a game among the union of the
+ * four libraries: the key a franchise strip finds the card's own game by, and the one the Omnibus
+ * keys the game's row on, so the two cannot come to disagree.
+ */
+export const gameKey = (game: VideoGame) => `game-${spanKey(game)}`;
 
 /**
  * The span each game occupies on a card's strip.
@@ -122,3 +129,61 @@ export const gameSubtitle = (game: VideoGame, scheme: Scheme): PanelSubtitlePart
   { text: game.gameplay, swatch: gameplayToColour(game, scheme) },
   { text: game.genre, swatch: genreToColour(game.genre, scheme) },
 ];
+
+/**
+ * The facts a ledger line carries, joined only where the sheet holds them. A blank part joined
+ * unconditionally leaves the separator behind it — "12 May 2019 · " — which reads as a value that
+ * failed to load rather than as one the sheet never had.
+ */
+const joinParts = (parts: (string | undefined)[]): string => parts.filter(Boolean).join(" · ");
+
+/**
+ * Everything else the sheet records, one fact per line, with related facts on the same line: a
+ * release is a date and a format, and a game is made by a developer for a publisher.
+ *
+ * A swatch appears only where the colour is one the app already speaks — the platform's brand
+ * accent is the badge in this card's own corner, and franchise, gameplay, genre and rating each
+ * fill a ring or a bar on the tab behind it. The rest are text, because inventing a colour for a
+ * publisher teaches the reader a legend no chart honours.
+ */
+export const gameRows = (game: VideoGame, scheme: Scheme): LedgerRow[] => {
+  const rows: LedgerRow[] = [
+    { label: "Played", value: formatDateRange(game.startDate, game.endDate) },
+    // The brand hex rather than the chart fill, on the same rule the corner chip follows: this is
+    // a badge at a badge's size, not a value being compared against its neighbours.
+    { label: "Platform", value: game.platform, swatch: companyToAccent(game) },
+    { label: "Released", value: joinParts([formatDate(game.releaseDate), game.format]) },
+  ];
+
+  // One name where the studio published itself, rather than the same word twice.
+  const by = joinParts([...new Set([game.developer, game.publisher])]);
+  if (by) rows.push({ label: "By", value: by });
+
+  if (game.franchise) {
+    // Unknown franchises fall through to an empty colour, which is no swatch rather than a black
+    // square standing for nothing.
+    rows.push({ label: "Franchise", value: game.franchise, swatch: franchiseToColour(game, scheme) || undefined });
+  }
+
+  // Pushed together because the pair is the point: how it is played, then what it is about.
+  rows.push(
+    { label: "Gameplay", value: game.gameplay, swatch: gameplayToColour(game, scheme) },
+    { label: "Genre", value: game.genre, swatch: genreToColour(game.genre, scheme) },
+  );
+
+  // Themes get a line of their own rather than riding on either of the two above: they are the one
+  // vocabulary here no chart on the tab colours, so a swatch would name a legend that does not
+  // exist — and half of them read as genres, which would make the Gameplay line say two things.
+  const themes = joinParts(game.theme);
+  if (themes) rows.push({ label: "Themes", value: themes });
+
+  rows.push({ label: "PEGI", value: game.rating, swatch: ratingToColour(game, scheme) });
+
+  return rows;
+};
+
+/** The two facts the hero leads with beside its strip: the rest of the ledger waits in the card. */
+const HERO_ROW_LABELS = ["Released", "By"];
+
+export const gameHeroRows = (game: VideoGame, scheme: Scheme): LedgerRow[] =>
+  gameRows(game, scheme).filter((row) => HERO_ROW_LABELS.includes(row.label));

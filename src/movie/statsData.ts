@@ -42,6 +42,14 @@ export const movieGroupValue = (movie: Movie, key: Exclude<MovieGroup, "none">):
  */
 export const MOVIE_EPOCH = YearMonthDay.get(2001, 1, 1);
 
+/**
+ * What identifies a film among the union of the four libraries: its title and the day it was seen,
+ * under the medium's name. A rewatch is a second row with the same title, and the day is what
+ * separates the two — the converter rejects a Watch Date that is not a full one, so it always can.
+ * The Omnibus keys the film's row on this and a franchise strip finds the card's own film by it.
+ */
+export const movieItemKey = (movie: Movie) => `movie-${movie.name}-${movie.startDate}`;
+
 /** How much a set of films counts for under the active measure — the one home of the /60 floor. */
 export const measureOf = (movies: Movie[], measure: Measure) =>
   measure === "Hours" ? Math.floor(movies.sum("minutes") / 60) : movies.length;

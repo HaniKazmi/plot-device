@@ -3,6 +3,7 @@ import { useState } from "react";
 import NavBar from "./NavBar";
 import { Outlet } from "react-router-dom";
 import { GoogleAuthProvider } from "./contexts/GoogleAuthContext.tsx";
+import { FranchiseUnionProvider } from "./omnibus/franchiseUnion.tsx";
 import { useCurrentTab } from "./tabs.ts";
 import type { Tab } from "./tabs.ts";
 import type {} from "@mui/material/themeCssVarsAugmentation";
@@ -14,7 +15,10 @@ const GoogleAuth = () => {
     <GoogleAuthProvider>
       <NavBar setGuestMode={setGuestMode} />
       <Container maxWidth={"xl"}>
-        <Outlet context={{ guestMode }} />
+        {/* Above every tab, because a card on any of them draws the franchise across all four. */}
+        <FranchiseUnionProvider guestMode={guestMode}>
+          <Outlet context={{ guestMode }} />
+        </FranchiseUnionProvider>
       </Container>
     </GoogleAuthProvider>
   );

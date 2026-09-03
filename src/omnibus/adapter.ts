@@ -7,11 +7,12 @@ import type { VideoGame } from "../vg/types";
 import { guestFilter as movieGuestFilter } from "../movie/filterUtils";
 import { guestFilter as showGuestFilter } from "../show/filterUtils";
 import { guestFilter as vgGuestFilter } from "../vg/filterUtils";
-import { currentlyReading, bookKey } from "../books/statsData";
-import { latestWatched } from "../movie/statsData";
+import { currentlyReading, bookItemKey } from "../books/statsData";
+import { latestWatched, movieItemKey } from "../movie/statsData";
 import { currentlyWatching, heroSeason } from "../show/statsData";
+import { seasonKey } from "../show/cardData";
 import { currentlyPlaying } from "../vg/statsData";
-import { spanKey as gameSpanKey } from "../vg/cardData";
+import { gameKey } from "../vg/cardData";
 import { media, type Measure, type Medium } from "./types";
 import { earliestYear as earliestYearOf } from "../common/statsData";
 import "../utils/arrayUtils";
@@ -119,7 +120,7 @@ export const toOmniItems = ({ games, shows, movies, books }: Library): OmniItem[
     medium: "game",
     // The tuple the Games tab already keys a span by: a title on its own repeats across the
     // platforms a game was played on and across a replay of it.
-    key: `game-${gameSpanKey(game)}`,
+    key: gameKey(game),
     name: game.name,
     closeDate: game.endDate,
     year: (game.endDate ?? game.startDate).year,
@@ -135,7 +136,7 @@ export const toOmniItems = ({ games, shows, movies, books }: Library): OmniItem[
       medium: "show",
       // The show's name and the season number, which is what the Shows tab keys a season by:
       // every season of a show carries its show's name and only the number separates them.
-      key: `show-${show.name}-S${season.s}`,
+      key: seasonKey(season),
       name: show.name,
       closeDate: season.endDate,
       year: (season.endDate ?? season.startDate).year,
@@ -150,8 +151,8 @@ export const toOmniItems = ({ games, shows, movies, books }: Library): OmniItem[
   ...movies.map((movie): OmniItem => ({
     medium: "movie",
     // A rewatch is a second row with the same title, and the day it was seen is what separates the
-    // two — the converter rejects a Watch Date that is not a full one, so it always can.
-    key: `movie-${movie.name}-${movie.startDate}`,
+    // two.
+    key: movieItemKey(movie),
     name: movie.name,
     // A film's watch date is both when it happened and when it closed, so it is one date wearing
     // both names rather than a start with no end.
@@ -168,7 +169,7 @@ export const toOmniItems = ({ games, shows, movies, books }: Library): OmniItem[
     medium: "book",
     // The tuple the Books tab keys a card by: a reread is a second row with the same title, and
     // the day it was begun is what separates the two.
-    key: `book-${bookKey(book)}`,
+    key: bookItemKey(book),
     name: book.name,
     closeDate: book.endDate,
     year: (book.endDate ?? book.startDate).year,
