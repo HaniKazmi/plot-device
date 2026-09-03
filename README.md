@@ -11,6 +11,7 @@ There is no backend and no database — a spreadsheet _is_ the storage layer, an
 - **Google Sheets as a backend** — reads via the Sheets API with a read-only scope; the app never writes.
 - **Data visualisation** — stat cards, a packed SVG timeline, sunburst hierarchies you can re-nest at runtime, and bar/line/bump charts, powered by [Highcharts](https://www.highcharts.com/).
 - **Media tracking** — Video Games, Shows, Movies and Books, each with its own model, filters and theme colour.
+- **Franchises across media** — every expanded card and every hero places its item among the whole franchise, games beside seasons beside films beside books, as a chain in the order met or against a window of the franchise's own years.
 - **Omnibus** — a fifth tab, and the one the app opens on, composing the other four's own data into a cross-media Now band, totals, a recently-finished list, a by-year chart with a Totals/Share/Cumulative/Rank view switch, a browsable gallery, and a franchise timeline.
 - **Client-side rendering** — Google Identity Services plus `gapi`, authenticating and fetching straight from the browser.
 - **Cache-first loading** — the dashboard paints from `localStorage` before authentication completes, then refreshes.

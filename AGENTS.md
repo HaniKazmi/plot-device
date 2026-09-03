@@ -134,6 +134,10 @@ localStorage.setItem("book-data-cache-v1", JSON.stringify(books));
 
 Dates go in as ISO strings (`"2024-05-01"`); the reviver turns them into `PlainDate`s. Omit `Season.show` — the reviver re-attaches it. Values must be ones the colour maps recognise (see the trap above) or rendering throws. The version suffixes are whatever each domain's entry file currently passes to `dataCacheKey` — seeding the bare unversioned key seeds nothing, because `dropSupersededVersions` deletes it on load.
 
+Seed all four whatever tab you are looking at: the shell mounts `FranchiseUnionProvider` (`omnibus/franchiseUnion.tsx`) above every tab, and a card's franchise strip draws the other media only once all four libraries are present — with three of them missing, every strip quietly falls back to its own tab's index and looks like the cross-media half has not been built.
+
+The fastest way to get real data in front of a build without authorising is the service-account route: sign a JWT with the key in `~/.config/plot-device/sa.json`, read the four ranges named in `src/tabs.ts`, run each grid through its domain's `converter` under Vitest (the converters import the auth module, which reads `import.meta.env` at import time, so a bare TypeScript runner cannot load them), and write `JSON.stringify(items, config.replacer)` under `config.storageKey` — that is exactly what `useData` writes, so a page seeded with it paints as a returning visitor's would.
+
 If you seed fake data, **clear those keys afterwards** so you do not leave test data in the user's browser.
 
 ## Conventions
