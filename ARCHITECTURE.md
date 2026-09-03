@@ -217,8 +217,12 @@ own election — `currentlyPlaying`, `heroSeason(currentlyWatching(...))`, `late
 `currentlyReading` — so a card here can never disagree with the hero its home tab would show for
 the same item. A medium with nothing in flight contributes no card rather than an empty one, and
 the band itself is absent when none of the four has anything to say. Each card renders the domain's own `TypedCardMediaImage`, so
-its artwork still opens that domain's expanded card — the composing layer supplies only the corner
-chip that jumps to the home tab.
+its artwork still opens that domain's expanded card. The composing layer supplies only the ground:
+a card is painted the colour its home tab's app bar wears in the same scheme, the primary on the
+light paper and the 22% tint on the dark, rather than a sample of its own artwork. Four cards from
+four tabs are read against each other, and four sampled colours say nothing about which is which,
+where the bar colours are what the tabs are already told apart by — so the card needs no corner
+chip to name its medium, and the nav bar is the way to the home tab.
 
 Every card in the band is one width — a poster's artwork at the row's height plus its text column,
 434px — and each shape spends it differently: the poster's picture takes the full height and the

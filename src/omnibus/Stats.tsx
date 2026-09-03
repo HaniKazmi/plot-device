@@ -1,12 +1,11 @@
 import { Hub, Layers } from "@mui/icons-material";
 import { Box, Stack } from "@mui/material";
-import { useNavigate } from "react-router-dom";
 import { CardPanel, type PanelStat, type PanelSubtitlePart, type TypedCardMediaImage } from "../common/Card";
 import { CURRENT_PLAINDATE, formatDate, type YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
 import { Section, StatBand } from "../common/SectionRail";
 import { StatCard, TotalsBand, VitalsCard, YearVitalsPair } from "../common/Stats";
-import { genreToColour } from "../utils/types";
+import { genreToColour, type Colour, type Scheme } from "../utils/types";
 import BookCardMediaImage from "../books/CardMediaImage";
 import { bookSubtitle } from "../books/cardData";
 import { bookHeroStats } from "../books/statsData";
@@ -136,26 +135,18 @@ const Stats = ({
  * What each medium is on right now, side by side — the one view none of the four tabs can show,
  * and the reason the page opens with it rather than with a total.
  *
- * A card's kicker here says only when, where the home tabs' heroes name the fact as well. The chip
- * in the corner already says which medium the card is, and the card says the rest — so "last
- * watched" over a show and "latest watch" over a film were labelling the one thing a date beside a
- * medium cannot be mistaken for. The home heroes keep theirs: nothing beside them says it.
+ * A card's kicker here says only when, where the home tabs' heroes name the fact as well. The
+ * card's ground already says which medium it is, and the card says the rest — so "last watched"
+ * over a show and "latest watch" over a film were labelling the one thing a date on a medium's
+ * own colour cannot be mistaken for. The home heroes keep theirs: nothing beside them says it.
  *
- * Each card is the domain's own: its artwork, its badge, and the figures its own hero carries, so
- * a game reads in hours and days and a season in episodes and pace. A medium with nothing in
- * flight simply contributes no card, rather than a card saying nothing.
+ * Each card is the domain's own: its artwork and the figures its own hero carries, so a game reads
+ * in hours and days and a season in episodes and pace, painted on the ground its home tab's app
+ * bar is painted. A medium with nothing in flight simply contributes no card, rather than a card
+ * saying nothing.
  */
 const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
   const scheme = useScheme();
-
-  const navigate = useNavigate();
-
-  // The jump the medium chip makes. Built from the tab objects rather than from written-out paths,
-  // since the id *is* the route and only the registry should know that.
-  const jump = (tab: Tab) => () => {
-    navigate(`/${tab.id}`);
-    window.scrollTo({ top: 0 });
-  };
 
   // Every medium in flight at once is the one case the row cannot hold at its usual size.
   const dense = media.every((medium) => now[medium] !== undefined);
@@ -194,7 +185,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
             medium="game"
             geometry={geometry}
             MediaComponent={VgCardMediaImage}
-            onJump={jump(VideoGamesTab)}
+            tab={VideoGamesTab}
             kicker={`Since ${formatDate(now.game.startDate)}`}
             title={now.game.name}
             // The genre alone, like the two cards beside it: this page draws no gameplay
@@ -216,7 +207,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
             medium="show"
             geometry={geometry}
             MediaComponent={ShowCardMediaImage}
-            onJump={jump(ShowsTab)}
+            tab={ShowsTab}
             kicker={formatDate(now.show.show.lastWatchedDate!)}
             title={`${now.show.show.name} S${now.show.s}`}
             subtitle={showSubtitle(now.show.show, scheme)}
@@ -231,7 +222,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
             medium="movie"
             geometry={geometry}
             MediaComponent={MovieCardMediaImage}
-            onJump={jump(MoviesTab)}
+            tab={MoviesTab}
             kicker={formatDate(now.movie.startDate)}
             title={now.movie.name}
             subtitle={movieSubtitle(now.movie, scheme)}
@@ -244,7 +235,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
             medium="book"
             geometry={geometry}
             MediaComponent={BookCardMediaImage}
-            onJump={jump(BooksTab)}
+            tab={BooksTab}
             kicker={`Since ${formatDate(now.book.startDate)}`}
             title={now.book.name}
             subtitle={bookSubtitle(now.book, scheme)}
@@ -265,11 +256,27 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
  * the artwork itself already opens the domain's expanded card, which is the other thing a reader
  * wants from it, and a card cannot do both from one surface.
  */
+/**
+ * What a Now card is painted: the colour its home tab's app bar wears in the same scheme — the
+ * primary on the light paper, the 22% tint on the dark (`DarkBar`, `tabs.ts`).
+ *
+ * Four cards from four tabs on one page are told apart by what the tabs are already told apart
+ * by, so a card here matches the bar the reader arrives under on that tab and needs no chip to
+ * name its medium. A card painted from its own artwork instead is tied to its picture, which is
+ * what every other card in the app does and what this one gives up: here the four are read
+ * against each other, and four sampled colours say nothing about which is which.
+ */
+const barColour = (tab: Tab, scheme: Scheme): Colour | undefined => {
+  const colour = scheme === "dark" ? tab.darkBar?.tint : tab.primaryColour;
+  return colour as Colour | undefined;
+};
+
 const NowCard = <T,>(props: {
   item: T;
   medium: Medium;
   MediaComponent: TypedCardMediaImage<T>;
-  onJump: () => void;
+  /** The home tab, whose app bar's colour the card is painted in. */
+  tab: Tab;
   kicker: string;
   title: string;
   subtitle: PanelSubtitlePart[];
@@ -282,6 +289,7 @@ const NowCard = <T,>(props: {
   const shape = mediumToShape(props.medium);
   const beside = shapeToArrangement(shape) === "beside";
   const geometry = props.geometry;
+  const ground = barColour(props.tab, scheme);
 
   return (
     <Box
@@ -298,16 +306,13 @@ const NowCard = <T,>(props: {
     >
       <props.MediaComponent
         item={props.item}
-        extractColour
+        // The artwork's own colour only where the tab has no bar colour to lend — no tab today.
+        extractColour={ground === undefined}
+        colour={ground}
         shape={shape}
         // The caller has sized the artwork itself, so the column is the picture's width rather than
         // a share of a card whose width was imposed on it.
         mediaLayout={beside ? "aside" : undefined}
-        chip={{
-          label: mediumToLabel(props.medium),
-          colour: mediumToColour(props.medium, scheme),
-          onClick: props.onJump,
-        }}
         cardSx={{
           // A poster card is a row at every width; only a banner card stacks, and it stacks always.
           flexDirection: beside ? "row" : { xs: "column", md: "row" },
