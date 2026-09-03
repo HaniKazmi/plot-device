@@ -277,6 +277,25 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
    */
   const [ratio, setRatio] = useState<number | undefined>(undefined);
   const imgRef = useRef<HTMLImageElement>(null);
+  /**
+   * The artwork that did not arrive, paired with the src it was asked for.
+   *
+   * Paired for the reason the sampled colour is: a card whose `image` changes under it — the hero
+   * promoting a different item, a wall refetched — would otherwise keep standing in for a picture
+   * it is no longer showing, and nothing would ever ask the new one to load.
+   */
+  const [failedImage, setFailedImage] = useState<string | undefined>(undefined);
+  /**
+   * A card with no picture to draw: either the sheet records no artwork — `""` on the three sheets
+   * that type the column, absent altogether on a row the API cut short at its last filled cell —
+   * or the URL it records answers with nothing.
+   *
+   * Both are drawn as a tile rather than left to the browser, which renders a broken image as its
+   * own icon beside the alt text in a bordered box, at whatever height that text happens to take.
+   * On the wall that height is the failure that matters: every offset below the card is measured
+   * against a reservation the card no longer honours.
+   */
+  const missing = !image || failedImage === image;
 
   const theme = useTheme();
   const palette = artworkPalette(colour, theme);
@@ -294,6 +313,32 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
     const img = imgRef.current;
     if (img?.complete) readImage(img, image, extractColour && !colour, setRatio, setExtracted);
   }, [extractColour, colour, image]);
+
+  /**
+   * The box the artwork occupies, whether or not there is artwork to put in it. The shape's own
+   * rules first and the caller's after them, so a caller that pins a height still wins and one
+   * that pins nothing gets the reservation and the column sizing without asking. A card that named
+   * no shape is left exactly as its caller dressed it.
+   *
+   * One array for the picture and for the tile standing in for a missing one, because a stand-in
+   * of some other size is a card that reserves one height and stands at another.
+   */
+  const mediaSx = [
+    ...(shape ? [{ aspectRatio: shapeToAspect(shape), ...(beside && SHAPE_ASIDE_MEDIA_SX) }] : []),
+    // The picture at one card size. Beside the words it takes the height and its own width — from
+    // the reservation until the file arrives, from the file's ratio after. Under them it takes the
+    // width and the height the band and footer leave, which is its own ratio's height exactly when
+    // the caller sized the row from it; a banner is an exact shape, so both being stated crops
+    // nothing.
+    ...(rowSize && shape
+      ? [
+          beside
+            ? { height: rowSize.height - bandHeight, width: "auto" }
+            : { width: "100%", height: rowSize.height - bandHeight - rowSize.footerHeight },
+        ]
+      : []),
+    ...(Array.isArray(sx) ? sx : [sx]),
+  ];
 
   return (
     <ArtworkAccent.Provider value={colour}>
@@ -339,42 +384,60 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
           <CardActionArea
             sx={mediaLayout === "aside" ? ASIDE_ACTION_AREA_SX : beside ? SHAPE_ASIDE_ACTION_AREA_SX : undefined}
           >
-            <CardMedia
-              height={"100%"}
-              component="img"
-              crossOrigin="anonymous"
-              src={image}
-              alt={alt}
-              onClick={() => {
-                // The detail dialog is themed from this colour, so it is worth reading even for a card
-                // that did not ask for one.
-                readColour(imgRef.current);
-                detail.show();
-              }}
-              loading={lazy ? "lazy" : undefined}
-              ref={imgRef}
-              onLoad={(el) => readImage(el.currentTarget, image, extractColour && !colour, setRatio, setExtracted)}
-              // The shape's own rules first and the caller's after them, so a caller that pins a
-              // height still wins and one that pins nothing gets the reservation and the column
-              // sizing without asking. A card that named no shape is left exactly as its caller
-              // dressed it.
-              sx={[
-                ...(shape ? [{ aspectRatio: shapeToAspect(shape), ...(beside && SHAPE_ASIDE_MEDIA_SX) }] : []),
-                // The picture at one card size. Beside the words it takes the height and its own
-                // width — from the reservation until the file arrives, from the file's ratio after.
-                // Under them it takes the width and the height the band and footer leave, which is
-                // its own ratio's height exactly when the caller sized the row from it; a banner is
-                // an exact shape, so both being stated crops nothing.
-                ...(rowSize && shape
-                  ? [
-                      beside
-                        ? { height: rowSize.height - bandHeight, width: "auto" }
-                        : { width: "100%", height: rowSize.height - bandHeight - rowSize.footerHeight },
-                    ]
-                  : []),
-                ...(Array.isArray(sx) ? sx : [sx]),
-              ]}
-            />
+            {missing ? (
+              /* The picture's own box, filled and named. It carries `mediaSx` exactly as the image
+                 does, so it stands where the picture would have and holds the same reservation —
+                 `auto <ratio>` resolves to the ratio on an element with no natural size of its
+                 own, which is what keeps a wall of these the height the offsets are measured
+                 against. Its own rules go first so a caller's width and height still win — all but
+                 the display, which is last because it is the tile's alone: the artwork column sets
+                 `block` to close the line box under an image, and a tile inherits that as a title
+                 in the top corner of a box it was meant to be centred in. */
+              <Box
+                // A span, because the card's action area is a button and only phrasing content is
+                // legal inside one — which the image it stands in for is and a div is not.
+                component="span"
+                onClick={detail.show}
+                sx={[
+                  {
+                    width: "100%",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: 1,
+                    overflow: "hidden",
+                    backgroundColor: palette.tile,
+                  },
+                  ...mediaSx,
+                  { display: "flex" },
+                ]}
+              >
+                <Typography
+                  variant="caption"
+                  sx={{ color: palette.muted, textAlign: "center" }}
+                >
+                  {alt}
+                </Typography>
+              </Box>
+            ) : (
+              <CardMedia
+                height={"100%"}
+                component="img"
+                crossOrigin="anonymous"
+                src={image}
+                alt={alt}
+                onClick={() => {
+                  // The detail dialog is themed from this colour, so it is worth reading even for a card
+                  // that did not ask for one.
+                  readColour(imgRef.current);
+                  detail.show();
+                }}
+                loading={lazy ? "lazy" : undefined}
+                ref={imgRef}
+                onLoad={(el) => readImage(el.currentTarget, image, extractColour && !colour, setRatio, setExtracted)}
+                onError={() => setFailedImage(image)}
+                sx={mediaSx}
+              />
+            )}
             {chip && (
               <Chip
                 sx={{

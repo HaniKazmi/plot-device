@@ -97,7 +97,6 @@ const Graphs = memo(
             title="All Movies"
             count={`${format(finishedCount(data))} films`}
             data={data}
-            width={3}
             // Rating rather than genre for the border: `ageRatingToColour` is validated at convert
             // time and total, so it cannot throw across a wall of hundreds of cards.
             colour={(item) => ratingToColour(item, scheme)}

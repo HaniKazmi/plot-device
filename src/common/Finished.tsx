@@ -1,18 +1,65 @@
-import { Box, Card, CardContent, FormGroup, Stack } from "@mui/material";
+import { Box, Card, CardContent, FormGroup, Stack, ToggleButton, ToggleButtonGroup } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { GridView } from "@mui/icons-material";
-import { useDeferredValue, useRef, type ReactNode, type RefObject } from "react";
+import { useDeferredValue, useRef, useState, type ReactNode, type RefObject } from "react";
 import type { TypedCardMediaImage } from "./Card";
 import { SectionHeader } from "./SectionHeader";
 import { useSelectBox } from "./SelectBoxHook";
 import { ScrollMarker, ScrollMarkerRail } from "./ScrollMarker";
 import { useScrollMarker } from "./ScrollMarkerHook";
 import { ExpandableCard } from "./Stats";
-import { finishedBucket, finishedItems, finishedKey, type FinishedItem, type FinishedSort } from "./finishedData";
+import {
+  finishedBucket,
+  finishedColumns,
+  finishedItems,
+  finishedKey,
+  type FinishedDensity,
+  type FinishedItem,
+  type FinishedSort,
+} from "./finishedData";
 import { withAlpha } from "../utils/colourUtils";
 import { shapeToAspect } from "./cardArrangement";
 
 const sortOptions: FinishedSort[] = ["Date", "Franchise"];
+const densityOptions: FinishedDensity[] = ["Compact", "Large"];
+
+/**
+ * How big the wall draws its cards, as two words beside the sort select.
+ *
+ * Words rather than the icons `IconToggleGroup` renders: the two densities differ in size alone,
+ * and a picture of a size is a picture of a grid either way — it needs a legend to say which of
+ * the two it means, where "Compact" and "Large" say it outright. `small` because the control
+ * shares a header row with a standard-size select and an icon button, and a full-size pair of
+ * word buttons is taller than both.
+ */
+const DensityToggle = ({
+  density,
+  setDensity,
+}: {
+  density: FinishedDensity;
+  setDensity: (density: FinishedDensity) => void;
+}) => (
+  <ToggleButtonGroup
+    color="primary"
+    value={density}
+    exclusive
+    size="small"
+    // Null arrives when the current option is pressed again, which would otherwise clear a control
+    // that has no cleared state to fall to.
+    onChange={(_, next: FinishedDensity | null) => next && setDensity(next)}
+    aria-label="Card size"
+  >
+    {densityOptions.map((option) => (
+      <ToggleButton
+        key={option}
+        value={option}
+        sx={{ border: 0 }}
+      >
+        {option}
+      </ToggleButton>
+    ))}
+  </ToggleButtonGroup>
+);
 
 /**
  * The wall itself, as a component rather than as JSX inside `Finished`'s `renderContent`.
@@ -32,7 +79,7 @@ const FinishedGrid = <U extends FinishedItem>({
   dimmed,
   recent,
   sort,
-  width,
+  density,
   colour,
   landscape,
   keyOf,
@@ -44,7 +91,7 @@ const FinishedGrid = <U extends FinishedItem>({
   dimmed: boolean;
   recent: readonly U[];
   sort: FinishedSort;
-  width: number;
+  density: FinishedDensity;
   colour?: (item: U) => string;
   landscape: boolean;
   keyOf: (item: U) => string;
@@ -65,7 +112,9 @@ const FinishedGrid = <U extends FinishedItem>({
         // Written at render from the same item and sort the order came from, so the marker
         // reads a position off the DOM instead of keeping a parallel list to index into.
         data-bucket={finishedBucket(item, sort) ?? undefined}
-        size={isDialog ? 12 : width}
+        // The dialog is one card a row at every width: it is the wall read one item at a time,
+        // where the page behind it is the wall read as a library.
+        size={isDialog ? 12 : finishedColumns(landscape, density)}
         sx={{
           alignSelf: "stretch",
         }}
@@ -110,7 +159,6 @@ const Finished = <U extends FinishedItem>({
   title,
   count,
   data,
-  width,
   colour,
   landscape: landscapeProp,
   keyOf: keyOfProp,
@@ -120,7 +168,6 @@ const Finished = <U extends FinishedItem>({
   /** What the grid is over, in the caller's own words. Optional: a domain may have no noun yet. */
   count?: string;
   data: readonly U[];
-  width: number;
   colour?: (item: U) => string;
   landscape?: boolean;
   /**
@@ -135,6 +182,10 @@ const Finished = <U extends FinishedItem>({
   const landscape = landscapeProp ?? false;
   const keyOf = keyOfProp ?? finishedKey;
   const [sort, selectBox] = useSelectBox(sortOptions, "Date");
+  // Compact by default, and held for the reader's visit rather than written anywhere: the wall is
+  // the tallest thing on its page, so the size it opens at is what the page is, and a stored
+  // preference would have to be read before the first paint to avoid changing it underneath them.
+  const [density, setDensity] = useState<FinishedDensity>("Compact");
 
   const slowData = useDeferredValue(data, []);
   const recent = finishedItems(slowData, sort);
@@ -160,6 +211,10 @@ const Finished = <U extends FinishedItem>({
               spacing={1}
             >
               {selectBox}
+              <DensityToggle
+                density={density}
+                setDensity={setDensity}
+              />
               {toggle}
             </Stack>
           </FormGroup>
@@ -172,7 +227,7 @@ const Finished = <U extends FinishedItem>({
           dimmed={slowData !== data}
           recent={recent}
           sort={sort}
-          width={width}
+          density={density}
           colour={colour}
           landscape={landscape}
           keyOf={keyOf}

@@ -103,7 +103,6 @@ const Graphs = memo(
             title="All Shows"
             count={`${format(finishedCount(data))} shows`}
             data={data}
-            width={3}
             colour={(item) => statusToColour(item, scheme)}
             MediaComponent={ShowCardMediaImage}
           />

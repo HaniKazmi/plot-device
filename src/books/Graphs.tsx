@@ -117,7 +117,6 @@ const Graphs = memo(
             title="All Books"
             count={`${format(finishedCount(data))} books`}
             data={data}
-            width={3}
             // Genre for the border: the ramp answers the neutral off its table and never throws, so
             // it cannot take a wall of hundreds of cards down on one unfamiliar value.
             colour={(item) => genreToColour(item.genre, scheme)}

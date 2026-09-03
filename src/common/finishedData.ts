@@ -12,6 +12,65 @@ export type FinishedItem = {
 
 export type FinishedSort = "Date" | "Franchise";
 
+/**
+ * How big a card the wall draws. `Compact` is the wall as a library — as many works on a screen as
+ * stay legible — and `Large` is the wall as a showcase, a card at the size the hero draws one.
+ */
+export type FinishedDensity = "Compact" | "Large";
+
+/** One card's share of the grid's twelve columns, at each width the wall changes its mind at. */
+type GridColumns = Partial<Record<"xs" | "sm" | "md" | "lg" | "xl", number>>;
+
+/**
+ * A banner card's columns. Landscape artwork is the widest thing on the wall — 16:9 means a card's
+ * height is a ninth of its width times sixteen, so the column count alone decides how tall the
+ * whole wall stands.
+ *
+ * `Compact` at `xl` is a fifth of the grid, about 220px of artwork, which is the width at which a
+ * banner still reads as the picture it is while a screen holds fifteen of them: a wall the reader
+ * travels rather than a slideshow they page through. Four to a row at `md` and up — `Large` — puts
+ * a banner near 400px, a size that says one card at a time.
+ *
+ * Two to a row is the floor, and it is a phone's: at 390px each card is about 190px, where three to
+ * a row is 95px and a banner's own title, which is part of the artwork rather than type the card
+ * sets, is no longer readable at all. `Large` gives a phone one card the full width, which is the
+ * showcase reading of the same wall.
+ *
+ * A fifth of twelve is 2.4 and a whole number is not needed: Grid resolves a size as
+ * `calc(100% * size / columns)`, so any divisor of the row lands exactly.
+ */
+const bannerColumns: Record<FinishedDensity, GridColumns> = {
+  Compact: { xs: 6, sm: 4, md: 3, lg: 12 / 5, xl: 2 },
+  Large: { xs: 12, sm: 6, md: 4 },
+};
+
+/**
+ * A poster or a cover's columns, one step denser than a banner's at every width.
+ *
+ * Portrait artwork is two thirds as wide as it is tall against a banner's sixteen ninths, so a
+ * card of the same width stands two and a half times as tall — a wall of them at a banner's column
+ * count is a wall two and a half times as long. One more card to the row is what holds the two
+ * walls to comparable heights, and a poster is still legible there: its title is set large on the
+ * artwork precisely because a poster is read at a distance.
+ */
+const posterColumns: Record<FinishedDensity, GridColumns> = {
+  Compact: { xs: 4, sm: 3, md: 2, xl: 12 / 8 },
+  Large: { xs: 6, sm: 4, md: 3 },
+};
+
+/**
+ * What one card takes of the grid, from the shape of its artwork and how big the reader asked for
+ * it — the whole of the wall's responsive layout, and the shell's own rather than a column count
+ * each of the four tabs passes in.
+ *
+ * The shape is already known here, since it is what the wall reserves its height at, and a tab
+ * that stated a number could only restate the same two answers. Every table is a floor-to-ceiling
+ * pair on one shape: `Compact` is never wider than `Large` at any width, so the toggle only ever
+ * adds size.
+ */
+export const finishedColumns = (landscape: boolean, density: FinishedDensity): GridColumns =>
+  (landscape ? bannerColumns : posterColumns)[density];
+
 // Hoisted rather than calling localeCompare per comparison — the wall runs to a thousand cards and
 // a sort touches each of them several times over.
 const collator = new Intl.Collator();
