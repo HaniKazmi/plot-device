@@ -1,21 +1,12 @@
-import { Typography } from "@mui/material";
-import {
-  CardPanel,
-  CardMediaImage,
-  CardDetailBody,
-  TimelineCard,
-  TypedCardMediaImage,
-  type CardStat,
-  type LedgerRow,
-} from "../common/Card";
-import { Season, Show, isShow, networkToColour } from "./types";
-import { ageRatingToColour, franchiseToColour, genreToColour, statusToColour, type Scheme } from "../utils/types";
+import { CardPanel, CardMediaImage, CardDetailBody, TypedCardMediaImage, type CardStat } from "../common/Card";
+import { Season, Show, isShow } from "./types";
+import { mediumFills, statusToColour, type Scheme } from "../utils/types";
 import { useScheme } from "../common/useScheme";
-import { namesTheSameThing } from "../utils/stringUtils";
 import { CURRENT_PLAINDATE, YearMonthDay, formatDateRange } from "../common/date";
 import { hoverCardArtworkSx } from "../common/cardArrangement";
-import { buildStrip, stripYearTicks } from "../common/timelineStripData";
-import { seasonSpans, showSubtitle } from "./cardData";
+import { FranchiseStrip, type StripMode } from "../common/FranchiseStrip";
+import { useFranchiseUnion, type FranchiseEntry } from "../common/franchiseUnion";
+import { seasonKey, showRows, showSubject, showSubtitle } from "./cardData";
 import { useFranchiseShows } from "./franchiseContext";
 import { seasonHours } from "./statsData";
 
@@ -27,48 +18,12 @@ const showStats = (show: Show, scheme: Scheme): CardStat[] => [
   { label: "Status", value: show.status, colour: statusToColour(show, scheme) },
 ];
 
-/**
- * The facts that are not figures.
- *
- * A row carries a swatch exactly where the app speaks that field's colour somewhere else — the
- * rating shares the games tab's map, the genre the vocabulary Movies shares, the network its own
- * table where it has an entry. Status has a colour too and is already a filled tile above, so
- * repeating it here would say it twice.
- */
-const showRows = (show: Show, scheme: Scheme): LedgerRow[] => {
-  const rows: LedgerRow[] = [
-    { label: "Watched", value: formatDateRange(show.startDate, show.endDate) },
-    // The latest season's own number, not the array length — the converter drops pre-2006
-    // seasons, so a show with early seasons dropped holds fewer entries than its numbering.
-    { label: "Last Watched", value: `S${show.s.at(-1)!.s}E${show.s.at(-1)!.e}` },
-    // The primary genre leads and the rest follow it, which is the order the sheet holds them in
-    // and the order the charts group by.
-    { label: "Genre", value: [show.genre, ...show.genres].join(" · "), swatch: genreToColour(show.genre, scheme) },
-    { label: "Network", value: show.network, swatch: networkToColour(show, scheme) || undefined },
-    { label: "Rating", value: show.rating, swatch: ageRatingToColour(show.rating, scheme) },
-  ];
-
-  // The runtime of the most recent season's episodes — where the seasons disagree, the latest is
-  // the one a reader deciding whether to start tonight is asking about.
-  const episodeLength = show.s.at(-1)!.episodeLength;
-  if (episodeLength) rows.push({ label: "Episode", value: `${episodeLength} min` });
-
-  // A show with no wider franchise carries its own name in the column, so the row appears only
-  // where it names something the show belongs to rather than the show over again.
-  // Unknown franchises fall through to an empty colour, which is no swatch rather than a black
-  // one — the table names the couple of dozen the app draws, not every series on the sheet.
-  if (!namesTheSameThing(show.franchise, show.name))
-    rows.push({ label: "Franchise", value: show.franchise, swatch: franchiseToColour(show, scheme) || undefined });
-
-  return rows;
-};
-
 const ShowCardDetail = ({ show }: { show: Show }) => {
   const scheme = useScheme();
 
   return (
     <CardDetailBody
-      strip={<ShowTimelineCard item={show} />}
+      strip={<ShowFranchiseStrip show={show} />}
       stats={showStats(show, scheme)}
       rows={showRows(show, scheme)}
     />
@@ -89,93 +44,53 @@ const ShowCardMediaImage = <T extends Show | Season>({ item, ...props }: Paramet
 };
 
 const SHOW_EPOCH = YearMonthDay.get(2008, 1, 1);
-const SHOW_TICKS = stripYearTicks(SHOW_EPOCH, CURRENT_PLAINDATE);
 
 /**
- * A show in a franchise gets the whole series' seasons on one strip; a standalone show keeps its
- * own. The hook answers `[show]` for a standalone, so which mode a card takes is the same test
- * everywhere the index is read.
+ * Every sibling's seasons in the strip's vocabulary, for the moment before the other three
+ * libraries have landed. Each season answers its show as its subject, so the card's own show is
+ * every one of its seasons and a sibling show's are context.
  */
-const ShowTimelineCard = ({ item }: { item: Show }) => {
-  const siblings = useFranchiseShows(item);
-  return siblings.length > 1 ? (
+const seasonEntries = (shows: Show[], today: YearMonthDay): FranchiseEntry[] =>
+  shows.flatMap((show) =>
+    show.s.map((season) => ({
+      key: seasonKey(season),
+      subject: showSubject(show),
+      franchise: show.franchise,
+      medium: "show",
+      fill: mediumFills.show,
+      label: `${show.name} S${season.s}`,
+      start: season.startDate,
+      end: season.endDate ?? today,
+      precise: true,
+      hoverCard: () => <ShowHoverCard item={season} />,
+    })),
+  );
+
+/**
+ * The show's franchise across every medium it was met in, with every season of this show as the
+ * subject. A show outside any franchise names itself in the column, so its group is its own
+ * seasons alone: those are drawn as a chain with no subject singled out, since ringing every bead
+ * says nothing, and a single-season standalone draws nothing at all. The union answers once all
+ * four libraries are here, and the tab's own index answers until then.
+ */
+export const ShowFranchiseStrip = ({ show, mode }: { show: Show; mode?: StripMode }) => {
+  const union = useFranchiseUnion(show.franchise);
+  const own = useFranchiseShows(show);
+  const entries = union ?? seasonEntries(own, CURRENT_PLAINDATE);
+
+  if (entries.length < 2) return null;
+
+  return (
     <FranchiseStrip
-      show={item}
-      siblings={siblings}
-    />
-  ) : (
-    <SeasonStrip item={item} />
-  );
-};
-
-/**
- * Every sibling's seasons, each band coloured by its own show's status — a vocabulary this tab
- * already speaks in the vitals band, the barchart's default grouping and the library's borders —
- * with every show but the card's own muted, the rule the games strip follows.
- */
-const FranchiseStrip = ({ show, siblings }: { show: Show; siblings: Show[] }) => {
-  const scheme = useScheme();
-
-  const { bands, laneCount } = buildStrip(seasonSpans(siblings, CURRENT_PLAINDATE), SHOW_EPOCH, CURRENT_PLAINDATE);
-
-  if (bands.length === 0) return null;
-
-  const seasonCount = bands.length;
-  return (
-    <TimelineCard
-      bands={bands.map((band) => ({
-        ...band,
-        colour: statusToColour(band.season.show, scheme),
-        muted: band.season.show.name !== show.name,
-        tooltip: (
-          <SeasonTooltip
-            season={band.season}
-            named
-          />
-        ),
-      }))}
-      laneCount={laneCount}
-      ticks={SHOW_TICKS}
-      caption={`${show.franchise} · ${siblings.length} shows · ${seasonCount} seasons · ${SHOW_EPOCH.year} – today`}
+      entries={entries}
+      subject={showSubject(show)}
+      franchise={show.franchise}
+      epoch={SHOW_EPOCH}
+      today={CURRENT_PLAINDATE}
+      mode={mode}
     />
   );
 };
-
-const SeasonStrip = ({ item }: { item: Show }) => {
-  const { bands, laneCount } = buildStrip(seasonSpans([item], CURRENT_PLAINDATE), SHOW_EPOCH, CURRENT_PLAINDATE);
-
-  if (bands.length === 0) return null;
-
-  return (
-    <TimelineCard
-      bands={bands.map((band, index) => ({
-        ...band,
-        // One hue in two strengths. Alternating across two palette colours makes adjacent seasons
-        // distinguishable but reads as two different things being plotted.
-        colour: index % 2 === 0 ? "secondary.light" : "secondary.main",
-        tooltip: <SeasonTooltip season={band.season} />,
-      }))}
-      laneCount={laneCount}
-      ticks={SHOW_TICKS}
-      caption={`${item.name} · ${item.s.length} ${item.s.length === 1 ? "season" : "seasons"} · ${SHOW_EPOCH.year} – today`}
-    />
-  );
-};
-
-const SeasonTooltip = ({ season, named }: { season: Season; named?: boolean }) => (
-  <>
-    <Typography
-      variant="h6"
-      align="center"
-    >
-      {/* On a franchise strip every show has an S1, so the season alone does not say which. */}
-      {named ? `${season.show.name} · S${season.s}` : `S${season.s}`}
-    </Typography>
-    <Typography>{formatDateRange(season.startDate, season.endDate)}</Typography>
-    <Typography>{season.e} Episodes</Typography>
-    <Typography>{seasonHours(season.minutes)} Hours</Typography>
-  </>
-);
 
 /**
  * The card a hovered bar shows: the artwork, what was watched, when, and how much of it.

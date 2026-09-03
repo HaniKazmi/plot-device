@@ -1,22 +1,13 @@
-import { Typography } from "@mui/material";
-import {
-  CardPanel,
-  CardMediaImage,
-  CardDetailBody,
-  TimelineCard,
-  TypedCardMediaImage,
-  type CardStat,
-  type LedgerRow,
-} from "../common/Card";
+import { CardPanel, CardMediaImage, CardDetailBody, TypedCardMediaImage, type CardStat } from "../common/Card";
 import { cinemaLabel, scoreBand, scoreBandToColour, type Movie } from "./types";
-import { ageRatingToColour, franchiseToColour, genreToColour, type Scheme } from "../utils/types";
-import { namesTheSameThing } from "../utils/stringUtils";
+import { mediumFills, type Scheme } from "../utils/types";
 import { CURRENT_PLAINDATE, formatDate } from "../common/date";
 import { hoverCardArtworkSx } from "../common/cardArrangement";
-import { buildStrip, stripYearTicks } from "../common/timelineStripData";
-import { movieSubtitle } from "./cardData";
+import { FranchiseStrip, type StripMode } from "../common/FranchiseStrip";
+import { useFranchiseUnion, type FranchiseEntry } from "../common/franchiseUnion";
+import { movieRows, movieSubtitle } from "./cardData";
 import { useFranchiseMovies } from "./franchiseContext";
-import { MOVIE_EPOCH } from "./statsData";
+import { MOVIE_EPOCH, movieItemKey } from "./statsData";
 import { useScheme } from "../common/useScheme";
 
 /**
@@ -33,42 +24,12 @@ const movieStats = (movie: Movie, scheme: Scheme): CardStat[] => [
   { label: "Seen in", value: cinemaLabel(movie) },
 ];
 
-/**
- * The facts that are not figures.
- *
- * A row carries a swatch exactly where the app speaks that field's colour somewhere else — the
- * genre shares the shows tab's vocabulary, the rating the games tab's map.
- */
-const movieRows = (movie: Movie, scheme: Scheme): LedgerRow[] => {
-  const rows: LedgerRow[] = [
-    { label: "Watched", value: formatDate(movie.startDate) },
-    { label: "Released", value: formatDate(movie.releaseDate) },
-  ];
-
-  rows.push(
-    { label: "By", value: movie.director },
-    // The primary genre leads and the rest follow it, which is the order the sheet holds them in
-    // and the order the charts group by.
-    { label: "Genre", value: [movie.genre, ...movie.genres].join(" · "), swatch: genreToColour(movie.genre, scheme) },
-    { label: "Rating", value: movie.rating, swatch: ageRatingToColour(movie.rating, scheme) },
-  );
-
-  // A film with no wider franchise carries its own name in the column, so the row appears only
-  // where it names something the film belongs to rather than the film over again.
-  // Unknown franchises fall through to an empty colour, which is no swatch rather than a black
-  // one — the table names the couple of dozen the app draws, not every series on the sheet.
-  if (!namesTheSameThing(movie.franchise, movie.name))
-    rows.push({ label: "Franchise", value: movie.franchise, swatch: franchiseToColour(movie, scheme) || undefined });
-
-  return rows;
-};
-
 const MovieCardDetail = ({ item }: { item: Movie }) => {
   const scheme = useScheme();
 
   return (
     <CardDetailBody
-      strip={<MovieTimelineCard item={item} />}
+      strip={<MovieFranchiseStrip movie={item} />}
       stats={movieStats(item, scheme)}
       rows={movieRows(item, scheme)}
     />
@@ -84,59 +45,47 @@ const MovieCardMediaImage: TypedCardMediaImage<Movie> = ({ item, ...props }) => 
   />
 );
 
-const MOVIE_TICKS = stripYearTicks(MOVIE_EPOCH, CURRENT_PLAINDATE);
+/**
+ * The tab's own franchise in the strip's vocabulary, for the moment before the other three
+ * libraries have landed. A film is a point — `start === end` — which the strip draws as a dot.
+ */
+const movieEntries = (movies: Movie[]): FranchiseEntry[] =>
+  movies.map((movie) => ({
+    key: movieItemKey(movie),
+    subject: movieItemKey(movie),
+    franchise: movie.franchise,
+    medium: "movie",
+    fill: mediumFills.movie,
+    label: movie.name,
+    start: movie.startDate,
+    end: movie.startDate,
+    precise: true,
+    hoverCard: () => <MovieHoverCard item={movie} />,
+  }));
 
 /**
- * The franchise's watches on one strip — each film a mark at its watch date, the same point-event
- * handling the ribbon uses, so a series binge-watched in a week tiles into a visible block rather
- * than stacking. Standalone films get no strip at all: one mark on three decades says nothing.
+ * The film's franchise across every medium it was met in, with this film as the subject; nothing
+ * for a standalone. The union answers once all four libraries are here, and the tab's own index
+ * answers until then.
  */
-const MovieTimelineCard = ({ item }: { item: Movie }) => {
-  const scheme = useScheme();
+export const MovieFranchiseStrip = ({ movie, mode }: { movie: Movie; mode?: StripMode }) => {
+  const union = useFranchiseUnion(movie.franchise);
+  const own = useFranchiseMovies(movie);
+  const entries = union ?? movieEntries(own);
 
-  const siblings = useFranchiseMovies(item);
-
-  const { bands, laneCount } = buildStrip(
-    siblings.map((movie) => ({
-      key: `${movie.name}-${movie.startDate}`,
-      start: movie.startDate,
-      end: movie.startDate,
-      movie,
-    })),
-    MOVIE_EPOCH,
-    CURRENT_PLAINDATE,
-  );
-
-  if (siblings.length < 2 || bands.length === 0) return null;
+  if (entries.length < 2) return null;
 
   return (
-    <TimelineCard
-      bands={bands.map((band) => ({
-        ...band,
-        colour: genreToColour(band.movie.genre, scheme),
-        muted: band.movie.name !== item.name,
-        tooltip: <WatchTooltip movie={band.movie} />,
-      }))}
-      laneCount={laneCount}
-      ticks={MOVIE_TICKS}
-      caption={`${item.franchise} · ${siblings.length} films · ${MOVIE_EPOCH.year} – today`}
+    <FranchiseStrip
+      entries={entries}
+      subject={movieItemKey(movie)}
+      franchise={movie.franchise}
+      epoch={MOVIE_EPOCH}
+      today={CURRENT_PLAINDATE}
+      mode={mode}
     />
   );
 };
-
-const WatchTooltip = ({ movie }: { movie: Movie }) => (
-  <>
-    <Typography
-      variant="h6"
-      align="center"
-    >
-      {movie.name}
-    </Typography>
-    <Typography>Watched {formatDate(movie.startDate)}</Typography>
-    {movie.score !== undefined && <Typography>Scored {movie.score}/10</Typography>}
-    <Typography>{movie.minutes} Minutes</Typography>
-  </>
-);
 
 /**
  * The card a hovered mark shows: the artwork, what the film is, when it was seen, and its figures.

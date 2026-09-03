@@ -49,8 +49,8 @@ import {
 } from "../common/Stats";
 import { TopCategoryBand } from "../common/TopList";
 import { GroupedStatList } from "../common/GroupedStatList";
-import VgCardMediaImage from "./CardMediaImage";
-import { gameSubtitle, spanKey } from "./cardData";
+import VgCardMediaImage, { GameFranchiseStrip } from "./CardMediaImage";
+import { gameHeroRows, gameSubtitle, spanKey } from "./cardData";
 import { Stack } from "@mui/material";
 import type { FilterDispatch, YearType } from "./filterUtils";
 import { statusToColour } from "../utils/types";
@@ -160,6 +160,13 @@ const VgHero = ({ game }: { game: VideoGame }) => {
       title={game.name}
       subtitle={gameSubtitle(game, scheme)}
       stats={heroStats(game, franchise, CURRENT_PLAINDATE)}
+      strip={
+        <GameFranchiseStrip
+          game={game}
+          mode="order"
+        />
+      }
+      rows={gameHeroRows(game, scheme)}
     />
   );
 };

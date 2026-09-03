@@ -34,8 +34,8 @@ import {
 import { TopCategoryBand } from "../common/TopList";
 import { GroupedStatList } from "../common/GroupedStatList";
 import { Hero } from "../common/Hero";
-import ShowCardMediaImage from "./CardMediaImage";
-import { showSubtitle } from "./cardData";
+import ShowCardMediaImage, { ShowFranchiseStrip } from "./CardMediaImage";
+import { showHeroRows, showSubtitle } from "./cardData";
 import { statusToColour, type Scheme } from "../utils/types";
 import { useScheme } from "../common/useScheme";
 import { Stack } from "@mui/material";
@@ -176,6 +176,13 @@ const ShowHero = ({ season }: { season: Season }) => {
       // The genre wears the same swatch its ledger row and every genre wedge on the tab wear.
       subtitle={showSubtitle(season.show, scheme)}
       stats={showHeroStats(season, franchise.length, CURRENT_PLAINDATE)}
+      strip={
+        <ShowFranchiseStrip
+          show={season.show}
+          mode="order"
+        />
+      }
+      rows={showHeroRows(season.show, scheme)}
     />
   );
 };

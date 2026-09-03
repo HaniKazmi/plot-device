@@ -1,5 +1,7 @@
-import type { PanelSubtitlePart } from "../common/Card";
-import { genreToColour, type Scheme } from "../utils/types";
+import type { LedgerRow, PanelSubtitlePart } from "../common/Card";
+import { formatDate } from "../common/date";
+import { ageRatingToColour, franchiseToColour, genreToColour, type Scheme } from "../utils/types";
+import { namesTheSameThing } from "../utils/stringUtils";
 import type { Movie } from "./types";
 
 /**
@@ -13,3 +15,39 @@ export const movieSubtitle = (movie: Movie, scheme: Scheme): PanelSubtitlePart[]
   { text: movie.director },
   { text: movie.genre, swatch: genreToColour(movie.genre, scheme) },
 ];
+
+/**
+ * The facts that are not figures.
+ *
+ * A row carries a swatch exactly where the app speaks that field's colour somewhere else — the
+ * genre shares the shows tab's vocabulary, the rating the games tab's map.
+ */
+export const movieRows = (movie: Movie, scheme: Scheme): LedgerRow[] => {
+  const rows: LedgerRow[] = [
+    { label: "Watched", value: formatDate(movie.startDate) },
+    { label: "Released", value: formatDate(movie.releaseDate) },
+  ];
+
+  rows.push(
+    { label: "By", value: movie.director },
+    // The primary genre leads and the rest follow it, which is the order the sheet holds them in
+    // and the order the charts group by.
+    { label: "Genre", value: [movie.genre, ...movie.genres].join(" · "), swatch: genreToColour(movie.genre, scheme) },
+    { label: "Rating", value: movie.rating, swatch: ageRatingToColour(movie.rating, scheme) },
+  );
+
+  // A film with no wider franchise carries its own name in the column, so the row appears only
+  // where it names something the film belongs to rather than the film over again.
+  // Unknown franchises fall through to an empty colour, which is no swatch rather than a black
+  // one — the table names the couple of dozen the app draws, not every series on the sheet.
+  if (!namesTheSameThing(movie.franchise, movie.name))
+    rows.push({ label: "Franchise", value: movie.franchise, swatch: franchiseToColour(movie, scheme) || undefined });
+
+  return rows;
+};
+
+/** The two facts the hero leads with beside its strip: the rest of the ledger waits in the card. */
+const HERO_ROW_LABELS = ["Released", "Rating"];
+
+export const movieHeroRows = (movie: Movie, scheme: Scheme): LedgerRow[] =>
+  movieRows(movie, scheme).filter((row) => HERO_ROW_LABELS.includes(row.label));

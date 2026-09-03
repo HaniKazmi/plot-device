@@ -608,6 +608,7 @@ export const CardPanel = ({
   minHeight,
   height,
   inset,
+  middle,
 }: {
   /** The line above the title, saying why this item is the one being shown. */
   kicker?: string;
@@ -646,6 +647,13 @@ export const CardPanel = ({
   height?: number;
   /** The inset a panel keeps, where a caller's row is read across the figures panels end with. */
   inset?: number;
+  /**
+   * What the panel says between its words and its figures — the hero's franchise strip and the
+   * two ledger rows it leads with. Between rather than after, so a panel holding the artwork's
+   * height spends the middle of it on the item's own story instead of leaving that height as
+   * ground between the subtitle and the tiles.
+   */
+  middle?: ReactNode;
 }) => {
   const palette = useArtworkPalette();
   const arrangement = useCardArrangement();
@@ -774,6 +782,8 @@ export const CardPanel = ({
           </Stack>
         )}
       </Stack>
+
+      {middle}
 
       {stats.length > 0 && (
         <StatTileGrid
@@ -1018,56 +1028,69 @@ export interface LedgerRow {
  * `break-inside` is what keeps a row from being split across the column boundary.
  */
 const MetadataLedger = ({ rows }: { rows: LedgerRow[] }) => {
-  const palette = useArtworkPalette();
-
   if (rows.length === 0) return null;
 
   return (
     <Grid size={12}>
-      <Box sx={{ columnCount: { xs: 1, md: 2 }, columnGap: 3 }}>
-        {rows.map((row) => (
-          <Box
-            key={row.label}
-            sx={{
-              breakInside: "avoid",
-              display: "flex",
-              alignItems: "baseline",
-              justifyContent: "space-between",
-              gap: 2,
-              paddingY: 0.75,
-              borderBottom: `1px solid ${palette.line}`,
-            }}
-          >
-            <Typography
-              variant="caption"
-              sx={{ color: palette.muted, flexShrink: 0, ...LABEL_SX }}
-            >
-              {row.label}
-            </Typography>
-            <Stack
-              direction="row"
-              spacing={0.75}
-              // Centred against the line rather than sat on its baseline: a square has no
-              // baseline of its own and would hang below the text it belongs to.
-              sx={{ alignItems: "center", minWidth: 0 }}
-            >
-              {row.swatch && (
-                <Swatch
-                  colour={row.swatch}
-                  size={INLINE_SWATCH_SIZE}
-                />
-              )}
-              <Typography
-                variant="body2"
-                sx={{ textAlign: "right" }}
-              >
-                {row.value}
-              </Typography>
-            </Stack>
-          </Box>
-        ))}
-      </Box>
+      <LedgerList
+        rows={rows}
+        columns={{ xs: 1, md: 2 }}
+      />
     </Grid>
+  );
+};
+
+/**
+ * The ledger's rows without the grid cell the expanded card seats them in, for a surface that lays
+ * them out itself — the hero's panel, which gives its two rows a single column whatever its width.
+ */
+export const LedgerList = ({ rows, columns }: { rows: LedgerRow[]; columns: { xs: number; md: number } }) => {
+  const palette = useArtworkPalette();
+
+  return (
+    <Box sx={{ columnCount: columns, columnGap: 3 }}>
+      {rows.map((row) => (
+        <Box
+          key={row.label}
+          sx={{
+            breakInside: "avoid",
+            display: "flex",
+            alignItems: "baseline",
+            justifyContent: "space-between",
+            gap: 2,
+            paddingY: 0.75,
+            borderBottom: `1px solid ${palette.line}`,
+          }}
+        >
+          <Typography
+            variant="caption"
+            sx={{ color: palette.muted, flexShrink: 0, ...LABEL_SX }}
+          >
+            {row.label}
+          </Typography>
+          <Stack
+            direction="row"
+            spacing={0.75}
+            // Centred against the line rather than sat on its baseline: a square has no
+            // baseline of its own and would hang below the text it belongs to.
+            sx={{ alignItems: "center", minWidth: 0 }}
+          >
+            {row.swatch && (
+              <Swatch
+                colour={row.swatch}
+                size={INLINE_SWATCH_SIZE}
+              />
+            )}
+            <Typography
+              variant="body2"
+              sx={{ textAlign: "right" }}
+            >
+              {row.value}
+            </Typography>
+          </Stack>
+        </Box>
+      ))}
+    </Box>
   );
 };
 
@@ -1586,7 +1609,7 @@ export const CardDetailBody = ({
   stats,
   rows,
 }: {
-  /** The item's own proportional strip, which only its domain can build. */
+  /** The item's franchise strip, which only its domain can build; nothing for a standalone. */
   strip: ReactNode;
   stats: CardStat[];
   rows: LedgerRow[];
@@ -1596,7 +1619,7 @@ export const CardDetailBody = ({
       container
       spacing={1}
     >
-      {strip}
+      {strip && <Grid size={12}>{strip}</Grid>}
       <HeroStatRow stats={stats} />
       <MetadataLedger rows={rows} />
     </Grid>

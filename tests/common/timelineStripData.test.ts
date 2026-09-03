@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { YearMonthDay } from "../../src/common/date";
-import { buildStrip, stripYearTicks, type StripSpan } from "../../src/common/timelineStripData";
+import {
+  beadsPerRow,
+  buildStrip,
+  stripWindow,
+  stripYearTicks,
+  yearLabelEvery,
+  type StripSpan,
+} from "../../src/common/timelineStripData";
 
 // Fixed endpoints rather than the real clock, so the arithmetic below is checkable by hand and
 // stays true on New Year's Day.
@@ -226,5 +233,54 @@ describe("stripYearTicks", () => {
     expect(band.startPercent).toBe(first.percent);
     // One of the scale's four years in, which is where that line belongs.
     expect(first.percent).toBeCloseTo(25, 0);
+  });
+});
+
+describe("stripWindow", () => {
+  it("opens on the January of the first start and closes on the December of the last end", () => {
+    const window = stripWindow([span("a", [2018, 11, 30], [2019, 3, 1]), span("b", [2022, 8, 1], [2022, 10, 1])]);
+
+    expect(window.from).toBe(YearMonthDay.get(2018, 1, 1));
+    expect(window.to).toBe(YearMonthDay.get(2022, 12, 31));
+  });
+
+  it("holds a short franchise open to three years so a fortnight is not the whole card", () => {
+    const window = stripWindow([span("a", [2020, 5, 1], [2020, 5, 14])]);
+
+    expect(window.from).toBe(YearMonthDay.get(2020, 1, 1));
+    expect(window.to).toBe(YearMonthDay.get(2022, 12, 31));
+  });
+
+  it("is a scale buildStrip can place bands on, with a tick at every January inside it", () => {
+    const spans = [span("a", [2018, 11, 30], [2019, 3, 1]), span("b", [2022, 8, 1], [2022, 10, 1])];
+    const window = stripWindow(spans);
+    const { bands } = buildStrip(spans, window.from, window.to);
+
+    expect(bands).toHaveLength(2);
+    expect(bands[0].startPercent).toBeGreaterThan(0);
+    expect(bands[1].startPercent + bands[1].widthPercent).toBeLessThanOrEqual(100);
+    expect(stripYearTicks(window.from, window.to).map((tick) => tick.year)).toEqual([2019, 2020, 2021, 2022]);
+  });
+});
+
+describe("yearLabelEvery", () => {
+  it("labels every year up to a dozen, alternate years up to two dozen, and the round ones beyond", () => {
+    expect(yearLabelEvery(3)).toBe(1);
+    expect(yearLabelEvery(12)).toBe(1);
+    expect(yearLabelEvery(13)).toBe(2);
+    expect(yearLabelEvery(24)).toBe(2);
+    expect(yearLabelEvery(25)).toBe(5);
+  });
+});
+
+describe("beadsPerRow", () => {
+  it("fits as many beads as the width holds at the minimum pitch, never more than there are", () => {
+    expect(beadsPerRow(16, 1200, 28)).toBe(16);
+    expect(beadsPerRow(51, 1200, 28)).toBe(42);
+    expect(beadsPerRow(5, 100, 28)).toBe(3);
+  });
+
+  it("never answers zero, so a chain narrower than one pitch still draws a bead a row", () => {
+    expect(beadsPerRow(5, 10, 28)).toBe(1);
   });
 });

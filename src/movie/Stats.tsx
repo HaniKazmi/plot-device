@@ -33,8 +33,8 @@ import { useSelectBox } from "../common/SelectBoxHook";
 import { useFranchiseMovies } from "./franchiseContext";
 import { format } from "../utils/mathUtils";
 import type { Scheme } from "../utils/types";
-import { movieSubtitle } from "./cardData";
-import MovieCardMediaImage from "./CardMediaImage";
+import { movieHeroRows, movieSubtitle } from "./cardData";
+import MovieCardMediaImage, { MovieFranchiseStrip } from "./CardMediaImage";
 import { MOVIE_SECTIONS } from "./sections";
 import type { FilterDispatch } from "./filterUtils";
 import {
@@ -158,6 +158,13 @@ const MovieHero = ({ movie }: { movie: Movie }) => {
       // The genre wears the same swatch its ledger row and every genre wedge on the tab wear.
       subtitle={movieSubtitle(movie, scheme)}
       stats={movieHeroStats(movie, franchise.length)}
+      strip={
+        <MovieFranchiseStrip
+          movie={movie}
+          mode="order"
+        />
+      }
+      rows={movieHeroRows(movie, scheme)}
     />
   );
 };

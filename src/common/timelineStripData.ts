@@ -1,4 +1,4 @@
-import type { YearMonthDay } from "./date";
+import { YearMonthDay } from "./date";
 import { assignRows, buildTicks, percentAtDate, percentOfSpan, type TimelineTick } from "./timelineLayout";
 import "../utils/arrayUtils";
 
@@ -106,6 +106,50 @@ export const buildStrip = <T extends StripSpan>(spans: T[], epoch: YearMonthDay,
   // never divides by zero.
   return { bands, laneCount: laneDrawnTo.length || 1 };
 };
+
+/**
+ * The fewest years a window spans. A series met inside one season would otherwise be drawn across
+ * the whole card, a fortnight per hundred pixels, which is the same blob at the other end of the
+ * scale.
+ */
+const MIN_WINDOW_YEARS = 3;
+
+export interface StripWindow {
+  from: YearMonthDay;
+  to: YearMonthDay;
+}
+
+/**
+ * The years a card's strip is drawn across: the franchise's own, from the January of its first
+ * start to the December of its last end, held open to at least three years.
+ *
+ * A window rather than the fixed epoch–today scale, because on that scale a year is fifty pixels
+ * at card width and a two-week playthrough is a two-pixel band; the fixed scale survives as the
+ * context bar beneath the strip, which brackets this window on it. Whole years at both ends so
+ * every gridline inside the window is a January and the axis can be labelled with years alone.
+ * The December end can fall after today; an open span still ends on today, since that is the end
+ * its own record carries.
+ */
+export const stripWindow = (spans: readonly StripSpan[]): StripWindow => {
+  const firstYear = Math.min(...spans.map((span) => span.start.year));
+  const lastYear = Math.max(...spans.map((span) => span.end.year));
+  const toYear = Math.max(lastYear, firstYear + MIN_WINDOW_YEARS - 1);
+  return { from: YearMonthDay.get(firstYear, 1, 1), to: YearMonthDay.get(toYear, 12, 31) };
+};
+
+/**
+ * How many years apart the axis labels stand, so they never collide at card width: every year
+ * up to a dozen, then alternate years, then the round ones.
+ */
+export const yearLabelEvery = (years: number) => (years <= 12 ? 1 : years <= 24 ? 2 : 5);
+
+/**
+ * How many beads a row of the chain holds: as many as fit at the minimum pitch, never more than
+ * there are. A chain wraps like a line of text rather than shrinking its beads, so a bead is the
+ * same size on a fifty-entry franchise as on a five-entry one.
+ */
+export const beadsPerRow = (count: number, width: number, minPitch: number) =>
+  Math.max(1, Math.min(count, Math.floor(width / minPitch)));
 
 /**
  * Every year boundary inside the scale, for the gridlines behind the bands and the labels beneath

@@ -33,8 +33,8 @@ import { useSelectBox } from "../common/SelectBoxHook";
 import { format } from "../utils/mathUtils";
 import { groupsOnce, type DrilldownGroup } from "../common/statsData";
 import { genreToColour, scoreBand, scoreBandToColour, scoreBands, type Scheme } from "../utils/types";
-import { bookSubtitle } from "./cardData";
-import BookCardMediaImage from "./CardMediaImage";
+import { bookHeroRows, bookSubtitle } from "./cardData";
+import BookCardMediaImage, { BookFranchiseStrip } from "./CardMediaImage";
 import { BOOK_SECTIONS } from "./sections";
 import type { FilterDispatch } from "./filterUtils";
 import { FORMATS, formatToColour, groupToColour, type Book, type Measure } from "./types";
@@ -152,6 +152,13 @@ const BookHero = ({ book }: { book: Book }) => {
       title={book.name}
       subtitle={bookSubtitle(book, scheme)}
       stats={bookHeroStats(book, CURRENT_PLAINDATE, "hero")}
+      strip={
+        <BookFranchiseStrip
+          book={book}
+          mode="order"
+        />
+      }
+      rows={bookHeroRows(book, scheme)}
     />
   );
 };

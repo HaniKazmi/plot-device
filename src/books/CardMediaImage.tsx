@@ -1,29 +1,13 @@
-import { Typography } from "@mui/material";
-import {
-  CardDetailBody,
-  CardMediaImage,
-  CardPanel,
-  TimelineCard,
-  TypedCardMediaImage,
-  type CardStat,
-  type LedgerRow,
-} from "../common/Card";
-import { formatToColour, type Book } from "./types";
-import {
-  franchiseToColour,
-  genreToColour,
-  scoreBand,
-  scoreBandToColour,
-  statusToColour,
-  type Scheme,
-} from "../utils/types";
-import { namesTheSameThing } from "../utils/stringUtils";
-import { CURRENT_PLAINDATE, formatDate } from "../common/date";
+import { CardDetailBody, CardMediaImage, CardPanel, TypedCardMediaImage, type CardStat } from "../common/Card";
+import type { Book } from "./types";
+import { mediumFills, scoreBand, scoreBandToColour, type Scheme } from "../utils/types";
+import { CURRENT_PLAINDATE, type YearMonthDay } from "../common/date";
 import { hoverCardArtworkSx } from "../common/cardArrangement";
-import { buildStrip, stripYearTicks } from "../common/timelineStripData";
-import { bookSubtitle, readRange, seriesLabel } from "./cardData";
+import { FranchiseStrip, type StripMode } from "../common/FranchiseStrip";
+import { useFranchiseUnion, type FranchiseEntry } from "../common/franchiseUnion";
+import { bookRows, bookSubtitle, readRange } from "./cardData";
 import { useBookEpoch, useFranchiseBooks } from "./franchiseContext";
-import { bookKey, daysReading } from "./statsData";
+import { bookItemKey, daysReading } from "./statsData";
 import { useScheme } from "../common/useScheme";
 
 /**
@@ -44,39 +28,12 @@ const bookStats = (book: Book, scheme: Scheme): CardStat[] => {
   ];
 };
 
-/**
- * The facts that are not figures.
- *
- * A row carries a swatch exactly where the app speaks that field's colour somewhere else — the
- * genre and the status share the other tabs' vocabularies, the format has this tab's own.
- */
-const bookRows = (book: Book, scheme: Scheme): LedgerRow[] => {
-  const rows: LedgerRow[] = [
-    { label: "Read", value: readRange(book) },
-    { label: "Released", value: formatDate(book.releaseDate) },
-    { label: "By", value: book.author },
-    { label: "Genre", value: book.genre, swatch: genreToColour(book.genre, scheme) },
-    { label: "Format", value: book.format, swatch: formatToColour(book.format, scheme) },
-    { label: "Status", value: book.status, swatch: statusToColour(book, scheme) },
-  ];
-
-  if (book.series) rows.push({ label: "Series", value: seriesLabel(book) });
-
-  // A standalone book carries its own name in the column, so the row appears only where it names
-  // something the book belongs to rather than the book over again. Unknown franchises fall
-  // through to an empty colour, which is no swatch rather than a black one.
-  if (!namesTheSameThing(book.franchise, book.name))
-    rows.push({ label: "Franchise", value: book.franchise, swatch: franchiseToColour(book, scheme) || undefined });
-
-  return rows;
-};
-
 const BookCardDetail = ({ item }: { item: Book }) => {
   const scheme = useScheme();
 
   return (
     <CardDetailBody
-      strip={<BookTimelineCard item={item} />}
+      strip={<BookFranchiseStrip book={item} />}
       stats={bookStats(item, scheme)}
       rows={bookRows(item, scheme)}
     />
@@ -93,64 +50,48 @@ const BookCardMediaImage: TypedCardMediaImage<Book> = ({ item, ...props }) => (
 );
 
 /**
- * The franchise's reads on one strip — each book a band from its start to its end, the book in
- * hand running to today — so a series read across a decade shows its gaps. Standalone books get
- * no strip at all: one band on a decade says nothing.
- *
- * `buildStrip` places bands by date, so the strip runs in reading order whatever `# in Series`
- * says; the number is the drill-down's order, not the strip's.
+ * The tab's own franchise in the strip's vocabulary, for the moment before the other three
+ * libraries have landed. The book in hand runs to today.
  */
-const BookTimelineCard = ({ item }: { item: Book }) => {
-  const scheme = useScheme();
+const bookEntries = (books: Book[], today: YearMonthDay): FranchiseEntry[] =>
+  books.map((book) => ({
+    key: bookItemKey(book),
+    subject: bookItemKey(book),
+    franchise: book.franchise,
+    medium: "book",
+    fill: mediumFills.book,
+    label: book.name,
+    start: book.startDate,
+    end: book.endDate ?? today,
+    precise: true,
+    hoverCard: () => <BookHoverCard item={book} />,
+  }));
 
-  const siblings = useFranchiseBooks(item);
+/**
+ * The book's franchise across every medium it was met in, with this book as the subject; nothing
+ * for a standalone. The union answers once all four libraries are here, and the tab's own index
+ * answers until then. The strip places its beads by date, so a series read out of order is drawn
+ * in the order it was read; `# in Series` is the drill-down's order, not the strip's.
+ */
+export const BookFranchiseStrip = ({ book, mode }: { book: Book; mode?: StripMode }) => {
+  const union = useFranchiseUnion(book.franchise);
+  const own = useFranchiseBooks(book);
   const epoch = useBookEpoch();
+  const entries = union ?? bookEntries(own, CURRENT_PLAINDATE);
 
-  // Before the strip is built, not after: most books are standalones, and a strip laid out to be
-  // thrown away is the cost of every one of their expanded cards.
-  if (siblings.length < 2) return null;
-
-  const { bands, laneCount } = buildStrip(
-    siblings.map((book) => ({
-      key: bookKey(book),
-      start: book.startDate,
-      end: book.endDate ?? CURRENT_PLAINDATE,
-      book,
-    })),
-    epoch,
-    CURRENT_PLAINDATE,
-  );
-
-  if (bands.length === 0) return null;
+  if (entries.length < 2) return null;
 
   return (
-    <TimelineCard
-      bands={bands.map((band) => ({
-        ...band,
-        colour: genreToColour(band.book.genre, scheme),
-        muted: band.book !== item,
-        tooltip: <ReadTooltip book={band.book} />,
-      }))}
-      laneCount={laneCount}
-      ticks={stripYearTicks(epoch, CURRENT_PLAINDATE)}
-      caption={`${item.franchise} · ${siblings.length} books · ${epoch.year} – today`}
+    <FranchiseStrip
+      entries={entries}
+      subject={bookItemKey(book)}
+      franchise={book.franchise}
+      epoch={epoch}
+      today={CURRENT_PLAINDATE}
+      mode={mode}
     />
   );
 };
-
-const ReadTooltip = ({ book }: { book: Book }) => (
-  <>
-    <Typography
-      variant="h6"
-      align="center"
-    >
-      {book.name}
-    </Typography>
-    <Typography>{book.endDate ? `Read ${readRange(book)}` : `Reading since ${formatDate(book.startDate)}`}</Typography>
-    {book.score !== undefined && <Typography>Scored {book.score}/10</Typography>}
-    <Typography>{book.pages} Pages</Typography>
-  </>
-);
 
 /**
  * The card a hovered bar shows: the artwork, what the book is, when it was read, and its figures.

@@ -1,21 +1,19 @@
-import { Typography } from "@mui/material";
 import {
   CardPanel,
   type PanelStat,
   CardMediaImage,
   CardDetailBody,
-  TimelineCard,
   TypedCardMediaImage,
   type CardStat,
-  type LedgerRow,
 } from "../common/Card";
-import { VideoGame, companyToAccent, gameplayToColour, platformToColor, ratingToColour } from "./types";
-import { franchiseToColour, genreToColour, statusToColour, type Scheme } from "../utils/types";
+import { VideoGame } from "./types";
+import { mediumFills, statusToColour, type Scheme } from "../utils/types";
 import { useScheme } from "../common/useScheme";
-import { CURRENT_PLAINDATE, Year, YearMonthDay, formatDate, formatDateRange } from "../common/date";
+import { CURRENT_PLAINDATE, Year, YearMonthDay, formatDateRange } from "../common/date";
 import { hoverCardArtworkSx } from "../common/cardArrangement";
-import { buildStrip, stripYearTicks } from "../common/timelineStripData";
-import { gameSpans, gameSubtitle, spanKey } from "./cardData";
+import { FranchiseStrip, type StripMode } from "../common/FranchiseStrip";
+import { useFranchiseUnion, type FranchiseEntry } from "../common/franchiseUnion";
+import { gameKey, gameRows, gameSubtitle } from "./cardData";
 import { useFranchiseGames } from "./franchiseContext";
 
 /**
@@ -35,64 +33,12 @@ const gameStats = (game: VideoGame, scheme: Scheme): CardStat[] => {
   return stats;
 };
 
-/**
- * The facts a ledger line carries, joined only where the sheet holds them. A blank part joined
- * unconditionally leaves the separator behind it — "12 May 2019 · " — which reads as a value that
- * failed to load rather than as one the sheet never had.
- */
-const joinParts = (parts: (string | undefined)[]): string => parts.filter(Boolean).join(" · ");
-
-/**
- * Everything else the sheet records, one fact per line, with related facts on the same line: a
- * release is a date and a format, and a game is made by a developer for a publisher.
- *
- * A swatch appears only where the colour is one the app already speaks — the platform's brand
- * accent is the badge in this card's own corner, and franchise, gameplay, genre and rating each
- * fill a ring or a bar on the tab behind it. The rest are text, because inventing a colour for a
- * publisher teaches the reader a legend no chart honours.
- */
-const gameRows = (game: VideoGame, scheme: Scheme): LedgerRow[] => {
-  const rows: LedgerRow[] = [
-    { label: "Played", value: formatDateRange(game.startDate, game.endDate) },
-    // The brand hex rather than the chart fill, on the same rule the corner chip follows: this is
-    // a badge at a badge's size, not a value being compared against its neighbours.
-    { label: "Platform", value: game.platform, swatch: companyToAccent(game) },
-    { label: "Released", value: joinParts([formatDate(game.releaseDate), game.format]) },
-  ];
-
-  // One name where the studio published itself, rather than the same word twice.
-  const by = joinParts([...new Set([game.developer, game.publisher])]);
-  if (by) rows.push({ label: "By", value: by });
-
-  if (game.franchise) {
-    // Unknown franchises fall through to an empty colour, which is no swatch rather than a black
-    // square standing for nothing.
-    rows.push({ label: "Franchise", value: game.franchise, swatch: franchiseToColour(game, scheme) || undefined });
-  }
-
-  // Pushed together because the pair is the point: how it is played, then what it is about.
-  rows.push(
-    { label: "Gameplay", value: game.gameplay, swatch: gameplayToColour(game, scheme) },
-    { label: "Genre", value: game.genre, swatch: genreToColour(game.genre, scheme) },
-  );
-
-  // Themes get a line of their own rather than riding on either of the two above: they are the one
-  // vocabulary here no chart on the tab colours, so a swatch would name a legend that does not
-  // exist — and half of them read as genres, which would make the Gameplay line say two things.
-  const themes = joinParts(game.theme);
-  if (themes) rows.push({ label: "Themes", value: themes });
-
-  rows.push({ label: "PEGI", value: game.rating, swatch: ratingToColour(game, scheme) });
-
-  return rows;
-};
-
 const VgCardDetail = ({ item }: { item: VideoGame }) => {
   const scheme = useScheme();
 
   return (
     <CardDetailBody
-      strip={<VgTimelineCard item={item} />}
+      strip={<GameFranchiseStrip game={item} />}
       stats={gameStats(item, scheme)}
       rows={gameRows(item, scheme)}
     />
@@ -109,67 +55,49 @@ const VgCardMediaImage: TypedCardMediaImage<VideoGame> = ({ item, ...props }) =>
 );
 
 const VG_EPOCH = YearMonthDay.get(2004, 1, 1);
-const VG_TICKS = stripYearTicks(VG_EPOCH, CURRENT_PLAINDATE);
 
 /**
- * The whole franchise, not just the game the card is about: a series played across a decade is
- * the thing the strip has to say, and the opened game is where in it you are.
+ * The tab's own franchise in the strip's vocabulary, for the moment before the other three
+ * libraries have landed. A year-only start spans its whole year with imprecise edges, as the union
+ * draws it, so the strip does not change shape when the union arrives.
  */
-const VgTimelineCard = ({ item: game }: { item: VideoGame }) => {
-  const scheme = useScheme();
+const gameEntries = (games: VideoGame[], today: YearMonthDay): FranchiseEntry[] =>
+  games.map((game) => ({
+    key: gameKey(game),
+    subject: gameKey(game),
+    franchise: game.franchise,
+    medium: "game",
+    fill: mediumFills.game,
+    label: game.name,
+    start: game.startDate.firstDay(),
+    end: game.endDate ? game.endDate.lastDay() : today,
+    precise: !(game.startDate instanceof Year) && !(game.endDate instanceof Year),
+    hoverCard: () => <VgHoverCard item={game} />,
+  }));
 
-  const franchise = useFranchiseGames(game);
+/**
+ * The game's franchise across every medium it was met in, with this game as the subject; nothing
+ * for a standalone. The union answers once all four libraries are here, and the tab's own index
+ * answers until then, so a card opened in the first second of a visit still has its series.
+ */
+export const GameFranchiseStrip = ({ game, mode }: { game: VideoGame; mode?: StripMode }) => {
+  const union = useFranchiseUnion(game.franchise);
+  const own = useFranchiseGames(game);
+  const entries = union ?? gameEntries(own, CURRENT_PLAINDATE);
 
-  const { bands, laneCount } = buildStrip(gameSpans(franchise, CURRENT_PLAINDATE), VG_EPOCH, CURRENT_PLAINDATE);
-  const subject = spanKey(game);
-
-  if (bands.length === 0) return null;
+  if (entries.length < 2) return null;
 
   return (
-    <TimelineCard
-      bands={bands.map((band) => ({
-        ...band,
-        colour: platformToColor(band.game, scheme),
-        muted: band.key !== subject,
-        imprecise: !band.precise,
-        tooltip: <GameTooltip game={band.game} />,
-      }))}
-      laneCount={laneCount}
-      ticks={VG_TICKS}
-      caption={
-        franchise.length > 1 ? `${game.franchise} · ${franchise.length} games · ${VG_EPOCH.year} – today` : undefined
-      }
+    <FranchiseStrip
+      entries={entries}
+      subject={gameKey(game)}
+      franchise={game.franchise}
+      epoch={VG_EPOCH}
+      today={CURRENT_PLAINDATE}
+      mode={mode}
     />
   );
 };
-
-const GameTooltip = ({ game }: { game: VideoGame }) => (
-  <>
-    <Typography
-      variant="h6"
-      align="center"
-    >
-      {game.name}
-    </Typography>
-    {game.startDate instanceof Year ? (
-      // The year is all the sheet holds, so it is all this says. Where the band sits inside that
-      // year is an estimate, and the caption is what stops it being read as a date.
-      <>
-        <Typography>Played in {formatDate(game.startDate)}</Typography>
-        <Typography
-          variant="caption"
-          sx={{ opacity: 0.7 }}
-        >
-          No month recorded — placed by release date
-        </Typography>
-      </>
-    ) : (
-      <Typography>{formatDateRange(game.startDate, game.endDate)}</Typography>
-    )}
-    {game.numDays ? <Typography>{game.numDays} Days</Typography> : null}
-    {game.hours ? <Typography>{game.hours} Hours</Typography> : null}
-  </>
-);
 
 /**
  * The figures a hover card carries, each only where the sheet holds it. Zero is unrecorded rather
