@@ -519,8 +519,10 @@ few pixels wide is one nobody can read. The subject is set apart by a ring in th
 and never by a name: a name beside a mark covers its neighbours on a chain of fifty, and the hover
 card names any mark for the asking. A card about one entry rings that entry with a gap of the
 ground and then the ink; a show's card treats every season of the show as the subject, ringing each
-in a solid ring of the ink, and rings the season the card is about — the one it was opened from, or
-the latest — the harder way, so the two read as kin and one of them as the point. The caption names
+in a solid ring of the ink where the strip holds another franchise entry to stand apart from, and
+rings the season the card is about — the one it was opened from, or the latest — the harder way,
+so the two read as kin and one of them as the point. A show that is the whole of its franchise
+gets only the focus ring: a ring on every season of a strip that holds nothing else marks nothing. The caption names
 the franchise with the swatch its Top list and ledger rows wear, where the shared table holds one,
 and the Omnibus's crossings name theirs the same way.
 

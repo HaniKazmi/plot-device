@@ -100,11 +100,16 @@ export const FranchiseStrip = (props: {
   };
 
   const ordered = entries.sortByKey("start", true);
+  // Whether the subject has anything to stand apart from: a show that is the whole of its
+  // franchise has no sibling on the strip, and ringing every one of its seasons says nothing.
+  const contextual = ordered.some((entry) => entry.subject !== subject);
   const markOf = (entry: FranchiseEntry): Mark =>
     entry.key === props.focus || (props.focus === undefined && entry.subject === subject)
       ? "focus"
       : entry.subject === subject
-        ? "subject"
+        ? contextual
+          ? "subject"
+          : "plain"
         : "none";
   const window = stripWindow(ordered);
   // The order reading needs no range: the beads are the order, and the years beneath say when.
@@ -393,16 +398,19 @@ const Bead = ({
 const SIBLING_SX = { opacity: 0.75 } as const;
 
 /**
- * What a mark is to the card: the entry it is about, an entry of the same subject — another
- * season of the card's show — or context.
+ * What a mark is to the card: the entry it is about; an entry of the same subject — another season
+ * of the card's show — where there is context to stand apart from; the same where there is none,
+ * and it is drawn plain; or context, drawn plain and stepped back.
  */
-type Mark = "focus" | "subject" | "none";
+type Mark = "focus" | "subject" | "plain" | "none";
 
 /**
  * The ring around a mark. Every mark gets a hairline in the strip's own line tone, so its shape is
  * legible whatever its fill lands on. The subject's is a solid ring of the ink, and the focus's a
  * gap of the ground and then the ink, so the two read as kin and the focus as the one of them — in
- * the ink rather than a colour because the ring means "this one" and nothing else.
+ * the ink rather than a colour because the ring means "this one" and nothing else. A subject with
+ * no context is rung only at the focus: a ring on every season of a show that is alone on its
+ * strip is a ring on everything, which marks nothing.
  */
 const ring = (mark: Mark, colours: StripColours) =>
   mark === "focus"
