@@ -447,7 +447,11 @@ where a word states it outright and the set of segments says what else is on off
 for all three is what makes the second one recognisable as the same kind of choice.
 
 It is always `size="small"`: a control whose height varied between the card header it sits in and
-the 22px chip rail it sits in would read as two controls rather than one relocating. `SelectBox`
+the 22px chip rail it sits in would read as two controls rather than one relocating. The franchise
+strip's Order · Time switch is the fourth caller and the one that passes a `tone`: the theme's
+primary is solved against the theme's paper, and on a card the artwork has coloured the lit segment
+can land a hue from legible — a teal on a brown card — where the surface's own ink and wash are the
+pair every other word on it already reads in. `SelectBox`
 takes an optional `labelFor` for a caller whose options are model keys rather than words. It carries
 `textTransform: none` with it, on the select and on every menu item: the theme capitalises both so
 that a bare key like `genre` reads as a word, and that same rule turns a worded label into Title

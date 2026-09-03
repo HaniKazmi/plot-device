@@ -70,11 +70,13 @@ export interface SegmentTone {
   wash: string;
 }
 
+// Hover lifts the word alone: a hovered segment painted in the wash would be indistinguishable from
+// the lit one but for ink against muted at 12px.
 const toneSx = (tone: SegmentTone) => ({
   color: tone.muted,
   borderColor: tone.line,
   "&.Mui-selected, &.Mui-selected:hover": { color: tone.ink, backgroundColor: tone.wash },
-  "&:hover": { backgroundColor: tone.wash },
+  "&:hover": { color: tone.ink, backgroundColor: "transparent" },
 });
 
 /**
