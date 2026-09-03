@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CURRENT_YEAR, YearMonthDay, type YearNumber } from "../../src/common/date";
-import { yearPredicates } from "../../src/common/filterReducer";
-import { initialState, reducer, type FilterState } from "../../src/vg/filterUtils";
+import { countActiveFilters, yearPredicates } from "../../src/common/filterReducer";
+import { activeCount, initialState, reducer, type FilterState } from "../../src/vg/filterUtils";
 import { videoGame } from "../fixtures/vgRows";
 
 describe("yearPredicates", () => {
@@ -53,19 +53,27 @@ describe("the reducer rebuilds the composed predicate", () => {
     expect(next.filter(videoGame({ status: "Endless" }))).toBe(false);
   });
 
-  it("keeps the same predicate across a measure toggle", () => {
+  it("keeps the same predicate across a measure change", () => {
     // Consumers memoise the filtered list on `filter` identity, and no domain's filters() reads
     // the measure. Rebuilding here would re-filter the whole dataset on every unit switch.
-    const next = reducer(initialState, { type: "toggleMeasure" });
+    const next = reducer(initialState, { type: "measure", measure: "Hours" });
 
     expect(next.measure).toBe("Hours");
     expect(next.filter).toBe(initialState.filter);
   });
 
-  it("cycles the measure back on a second toggle", () => {
-    const twice = reducer(reducer(initialState, { type: "toggleMeasure" }), { type: "toggleMeasure" });
+  it("sets the measure named rather than advancing to the next one", () => {
+    // A segment per measure means a press names its own state, so setting the measure already
+    // held has to be a no-op rather than a move.
+    const hours = reducer(initialState, { type: "measure", measure: "Hours" });
 
-    expect(twice.measure).toBe("Games");
+    expect(reducer(hours, { type: "measure", measure: "Games" }).measure).toBe("Games");
+  });
+
+  it("answers the same state object for a measure already held, so a press costs no render", () => {
+    const hours = reducer(initialState, { type: "measure", measure: "Hours" });
+
+    expect(reducer(hours, { type: "measure", measure: "Hours" })).toBe(hours);
   });
 
   it("flips the year type and rebuilds, since the predicate depends on it", () => {
@@ -102,9 +110,9 @@ describe("resetFilters", () => {
   });
 
   it("also resets the measure, because it restores from the initial values wholesale", () => {
-    const toggled = reducer(initialState, { type: "toggleMeasure" });
+    const changed = reducer(initialState, { type: "measure", measure: "Hours" });
 
-    expect(reducer(toggled, { type: "resetFilters" }).measure).toBe("Games");
+    expect(reducer(changed, { type: "resetFilters" }).measure).toBe("Games");
   });
 
   it("leaves the previous state object untouched", () => {
@@ -113,5 +121,66 @@ describe("resetFilters", () => {
 
     expect(before.endless).toBe(false);
     expect(before.franchise).toEqual(["Zelda"]);
+  });
+});
+
+describe("countActiveFilters", () => {
+  it("counts nothing in the state the page opens on", () => {
+    expect(activeCount(initialState)).toBe(0);
+  });
+
+  it("counts a toggle switched off", () => {
+    expect(activeCount(reducer(initialState, { type: "updateFilter", filter: "endless", value: false }))).toBe(1);
+  });
+
+  it("counts a category once however many values it holds", () => {
+    // The badge says how many controls the reader has touched, not how many predicates that made:
+    // three genres picked in one select is one choice, undone in one place.
+    const three = reducer(initialState, {
+      type: "updateFilter",
+      filter: "genre",
+      value: ["Action", "Puzzle", "Racing"],
+    });
+
+    expect(activeCount(three)).toBe(1);
+  });
+
+  it("counts a cleared category as nothing, though the array is a fresh one", () => {
+    // Clearing a select hands back a new empty array, so identity alone would report a choice the
+    // reader has just undone.
+    const cleared = [
+      { type: "updateFilter", filter: "genre", value: ["Action"] },
+      { type: "updateFilter", filter: "genre", value: [] },
+    ].reduce<FilterState>((state, action) => reducer(state, action as never), initialState);
+
+    expect(activeCount(cleared)).toBe(0);
+  });
+
+  it("counts a changed year", () => {
+    expect(
+      activeCount(
+        reducer(initialState, { type: "updateFilter", filter: "yearTo", value: (CURRENT_YEAR - 1) as never }),
+      ),
+    ).toBe(1);
+  });
+
+  it("ignores the measure, the composed predicate and guest mode", () => {
+    // None of the three is something the drawer can clear: two are not filters at all, and guest
+    // mode is set by a long press on the app bar and survives Clear on purpose.
+    const state = [
+      { type: "measure", measure: "Hours" },
+      { type: "updateFilter", filter: "guestMode", value: true },
+    ].reduce<FilterState>((next, action) => reducer(next, action as never), initialState);
+
+    expect(state.filter).not.toBe(initialState.filter);
+    expect(activeCount(state)).toBe(0);
+  });
+
+  it("counts each changed field, over any state shape", () => {
+    // The rule is stated over plain objects because it is the same rule in five domains that
+    // share no field beyond the base ones.
+    expect(countActiveFilters({ a: 1, b: "x" }, { a: 1, b: "y" })).toBe(1);
+    expect(countActiveFilters({ a: 2, b: "y" }, { a: 1, b: "y" })).toBe(1);
+    expect(countActiveFilters({ a: 2, b: "x" }, { a: 1, b: "y" })).toBe(2);
   });
 });

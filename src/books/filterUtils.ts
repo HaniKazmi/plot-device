@@ -45,11 +45,7 @@ export const filters = (state: Omit<FilterState, "filter">): Predicate<Book> => 
   return (book: Book) => predicates.every((p) => p(book));
 };
 
-/** Books → Hours → Pages → Books, the one three-way cycle in the app. */
-export const nextMeasure = (measure: Measure): Measure =>
-  measure === "Books" ? "Hours" : measure === "Hours" ? "Pages" : "Books";
-
-export const { useFilterReducer, reducer, initialState } = createFilterReducer<Book, Measure, FilterState>(
+export const { useFilterReducer, reducer, initialState, activeCount } = createFilterReducer<Book, Measure, FilterState>(
   {
     unscored: true,
     genre: [],
@@ -63,5 +59,4 @@ export const { useFilterReducer, reducer, initialState } = createFilterReducer<B
     guestMode: false,
   },
   filters,
-  nextMeasure,
 );

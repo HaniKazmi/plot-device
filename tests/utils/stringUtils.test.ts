@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { namesTheSameThing, splitCell } from "../../src/utils/stringUtils";
+import { keyLabel, namesTheSameThing, splitCell } from "../../src/utils/stringUtils";
 
 describe("namesTheSameThing", () => {
   it("matches a title against itself", () => {
@@ -54,5 +54,28 @@ describe("splitCell", () => {
   it("treats a cell the row ended before as empty", () => {
     // The API ends a row at its last filled cell, so a trailing column can be absent entirely.
     expect(splitCell(undefined)).toEqual([]);
+  });
+});
+
+describe("keyLabel", () => {
+  it("breaks a camelCase key into words and sets it in sentence case", () => {
+    // Sentence case rather than the theme's `capitalize`, which puts a capital on every word and
+    // none inside a camelCase run: `startDate` reads "startDate" there and "Start Date" once
+    // split, where a label wants one capital.
+    expect(keyLabel("startDate")).toBe("Start date");
+    expect(keyLabel("releaseDate")).toBe("Release date");
+  });
+
+  it("capitalises a single-word key and changes nothing else about it", () => {
+    expect(keyLabel("name")).toBe("Name");
+    expect(keyLabel("franchise")).toBe("Franchise");
+  });
+
+  it("leaves an already-capitalised word alone", () => {
+    expect(keyLabel("Name")).toBe("Name");
+  });
+
+  it("answers an empty key with an empty label rather than throwing", () => {
+    expect(keyLabel("")).toBe("");
   });
 });

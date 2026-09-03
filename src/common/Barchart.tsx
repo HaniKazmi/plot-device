@@ -1,8 +1,8 @@
 import { Card, CardContent, FormGroup, Typography, useTheme } from "@mui/material";
 import { type ReactNode, useState } from "react";
-import { BarChart, Percent, PinOutlined, SsidChart } from "@mui/icons-material";
+import { BarChart } from "@mui/icons-material";
 import { SectionHeader } from "./SectionHeader";
-import { IconToggleGroup } from "./SelectionComponents";
+import { SegmentedControl, type SegmentOption } from "./SelectionComponents";
 import { Chart, Series, XAxis, YAxis, PlotOptions, Tooltip, Legend } from "../highcharts";
 import type { Year, YearMonth } from "./date";
 import type { Colour } from "../utils/types";
@@ -17,14 +17,13 @@ import { convertToCumulative, convertToRanking, convertToShare, groupDate } from
  */
 type View = "Totals" | "Share" | "Cumulative" | "Rank";
 
-const viewOrder = ["Rank", "Cumulative", "Share", "Totals"] as const;
-
-const viewIcons: Record<View, ReactNode> = {
-  Rank: <PinOutlined />,
-  Cumulative: <SsidChart />,
-  Share: <Percent />,
-  Totals: <BarChart />,
-};
+/** The default leads, so the segment lit on arrival is the one the reader's eye starts at. */
+const viewOptions: SegmentOption<View>[] = [
+  { value: "Totals", label: "Totals" },
+  { value: "Share", label: "Share" },
+  { value: "Cumulative", label: "Cumulative" },
+  { value: "Rank", label: "Rank" },
+];
 
 /** What a chart is given when its height is its resolution, and what a rank lane needs. */
 const CHART_HEIGHT = "80vh";
@@ -88,11 +87,11 @@ const Barchart = ({
       action={
         <FormGroup>
           {controls}
-          <IconToggleGroup
-            options={viewOrder}
+          <SegmentedControl
+            options={viewOptions}
             value={view}
-            setValue={setView}
-            render={(option) => ({ label: option, icon: viewIcons[option] })}
+            onChange={setView}
+            ariaLabel="View"
           />
         </FormGroup>
       }

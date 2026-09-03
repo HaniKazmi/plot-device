@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CURRENT_YEAR, YearMonthDay, type YearNumber } from "../../src/common/date";
-import { filters, initialState, nextMeasure, reducer, type FilterState } from "../../src/books/filterUtils";
+import { filters, initialState, reducer, type FilterState } from "../../src/books/filterUtils";
 import { book } from "../fixtures/books";
 
 const state = (overrides: Partial<Omit<FilterState, "filter">> = {}) => ({ ...initialState, ...overrides });
@@ -62,17 +62,12 @@ describe("toggles and categories", () => {
 });
 
 describe("the measure", () => {
-  it("cycles Books, Hours, Pages and back", () => {
-    expect(nextMeasure("Books")).toBe("Hours");
-    expect(nextMeasure("Hours")).toBe("Pages");
-    expect(nextMeasure("Pages")).toBe("Books");
-  });
+  it("reaches all three of this domain's measures, which no other domain has", () => {
+    // Pages is the third measure in the app, and the control that sets it is a segment per
+    // measure rather than a cycle — every one is reachable in one press from any other.
+    const pages = reducer(initialState, { type: "measure", measure: "Pages" });
+    const hours = reducer(pages, { type: "measure", measure: "Hours" });
 
-  it("reaches every measure through the reducer's own toggle", () => {
-    const hours = reducer(initialState, { type: "toggleMeasure" });
-    const pages = reducer(hours, { type: "toggleMeasure" });
-    const books = reducer(pages, { type: "toggleMeasure" });
-
-    expect([hours.measure, pages.measure, books.measure]).toEqual(["Hours", "Pages", "Books"]);
+    expect([initialState.measure, pages.measure, hours.measure]).toEqual(["Books", "Pages", "Hours"]);
   });
 });

@@ -28,6 +28,28 @@ export const sunburstRoot = (data: SunburstEntry[], id: string): { id: string; a
   return node ? { id, atTop: node.parent === "" } : { id: "", atTop: true };
 };
 
+/**
+ * What each ring's select may offer, given what the other rings already hold.
+ *
+ * A key held twice nests a hierarchy inside itself: the second ring divides every wedge into one
+ * child of the same name, a ring of arcs identical to the ring inside it. Removing a taken key
+ * from the other menus is what makes that unreachable, rather than drawing it and leaving the
+ * reader to recognise the picture as a mistake.
+ *
+ * A menu left holding only the value it already shows is a control that cannot be changed, so a
+ * ring with nothing else to offer keeps the whole list instead — which is the case for a domain
+ * offering exactly as many keys as it has rings, where every key is taken by definition. Choosing
+ * a duplicate is then possible again, and drawn as the duplicate it is.
+ */
+export const ringOptions = <K extends string>(options: readonly K[], chosen: readonly K[]): K[][] =>
+  chosen.map((current, ring) => {
+    // Every other ring's key, taken by position rather than by value, so a ring keeps the key it
+    // is showing even where a second ring is showing the same one.
+    const taken = new Set(chosen.filter((_, index) => index !== ring));
+    const available = options.filter((option) => option === current || !taken.has(option));
+    return available.length > 1 ? available : [...options];
+  });
+
 export const generateSunburstData = <T, K extends string>(
   data: T[],
   groups: K[],

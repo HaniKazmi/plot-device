@@ -1,9 +1,9 @@
-import { AutoStories, Functions, LocalMovies, Timer, Tv, VideogameAsset } from "@mui/icons-material";
+import { AutoStories, LocalMovies, Tv, VideogameAsset } from "@mui/icons-material";
 import { categoryOptions, franchiseOptions } from "../common/filterOptions";
 import { FilterCategory, FilterDrawer, FilterToggle } from "../common/FilterDrawer";
 import { genreToColour } from "../utils/types";
 import type { OmniItem } from "./adapter";
-import type { FilterDispatch, FilterState } from "./filterUtils";
+import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
 import { useScheme } from "../common/useScheme";
 
 /**
@@ -29,8 +29,7 @@ const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: Filte
 
   return (
     <FilterDrawer
-      measureIcon={state.measure === "Hours" ? <Timer /> : <Functions />}
-      onToggleMeasure={() => dispatch({ type: "toggleMeasure" })}
+      activeCount={activeCount(state)}
       onReset={() => dispatch({ type: "resetFilters" })}
       toggles={toggles.map(({ toggle, label, Icon }) => (
         <FilterToggle

@@ -36,3 +36,19 @@ export const splitCell = (value: string | undefined) =>
     .split(",")
     .map((part) => part.trim())
     .filter(Boolean);
+
+/**
+ * A model key as a phrase, in sentence case: `startDate` reads "Start date", `name` reads "Name".
+ *
+ * The sunburst's ring selects offer the fields themselves — the grouping is the model's own keys —
+ * so a menu left to the raw values reads `startDate` beside `franchise`, in the theme's
+ * `capitalize`, which puts a capital on each word and none on a camelCase run. Sentence case is
+ * what a label is: one capital, at the front.
+ *
+ * The split is on the camelCase boundary alone, so a key that is an acronym comes back as a word —
+ * every key this is asked of is a field name typed as one.
+ */
+export const keyLabel = (key: string): string => {
+  const words = key.replace(/([a-z0-9])([A-Z])/g, "$1 $2").toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};

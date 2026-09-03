@@ -1,7 +1,7 @@
 import { memo, useDeferredValue } from "react";
 import { Stack } from "@mui/material";
 import type { YearNumber } from "../common/date";
-import type { Book } from "./types";
+import type { Book, Measure } from "./types";
 import Finished from "../common/Finished";
 import BookCardMediaImage from "./CardMediaImage";
 import Stats from "./Stats";
@@ -10,6 +10,7 @@ import Barchart from "./Barchart";
 import Timeline from "./Timeline";
 import Filter from "./Filter";
 import { ChartPair, Section, SectionRail } from "../common/SectionRail";
+import { SegmentedControl, type SegmentOption } from "../common/SelectionComponents";
 import { useOtherTabs } from "../tabs";
 import { BOOK_SECTIONS, bookSections } from "./sections";
 import { bookEpoch, bookFranchise, BookEpochProvider, FranchiseContext } from "./franchiseContext";
@@ -20,6 +21,18 @@ import { format } from "../utils/mathUtils";
 import { finishedCount } from "../common/finishedData";
 import { genreToColour } from "../utils/types";
 import { useScheme } from "../common/useScheme";
+
+/**
+ * The unit every figure on the tab is counted in, stated as words in the rail rather than as an
+ * unlabelled icon on a floating button. It rides the rail because it governs the whole page rather
+ * than any one card, and the rail is the only control surface still on screen wherever the reader
+ * has scrolled to.
+ */
+const MEASURES: SegmentOption<Measure>[] = [
+  { value: "Books", label: "Books" },
+  { value: "Hours", label: "Hours" },
+  { value: "Pages", label: "Pages" },
+];
 
 /**
  * The index and the scale every card strip on the tab reads, both built from the unfiltered data:
@@ -82,6 +95,14 @@ const Graphs = memo(
         <SectionRail
           sections={bookSections(reading.length > 0)}
           tabs={tabs}
+          actions={
+            <SegmentedControl
+              options={MEASURES}
+              value={filterState.measure}
+              onChange={(measure) => filterDispatch({ type: "measure", measure })}
+              ariaLabel="Measure"
+            />
+          }
         />
         <Stats
           data={data}

@@ -1,9 +1,9 @@
-import { Animation, Block, Functions, Timer } from "@mui/icons-material";
+import { Animation, Block } from "@mui/icons-material";
 import { genreToColour } from "../utils/types";
 import { networkToColour, typeToColour, type Show, type Type } from "./types";
 import { categoryOptions, franchiseOptions } from "../common/filterOptions";
 import { FilterCategory, FilterDrawer, FilterToggle } from "../common/FilterDrawer";
-import type { FilterDispatch, FilterState } from "./filterUtils";
+import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
 import { useScheme } from "../common/useScheme";
 
 const toggles = [
@@ -16,8 +16,7 @@ const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: Filte
 
   return (
     <FilterDrawer
-      measureIcon={state.measure === "Episodes" ? <Functions /> : <Timer />}
-      onToggleMeasure={() => dispatch({ type: "toggleMeasure" })}
+      activeCount={activeCount(state)}
       onReset={() => dispatch({ type: "resetFilters" })}
       toggles={toggles.map(({ toggle, Icon }) => (
         <FilterToggle

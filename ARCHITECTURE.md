@@ -155,7 +155,7 @@ The requested scope is `spreadsheets.readonly`. The application has no write pat
 The most involved shell. It accepts `data` as a _function of_ `cumulative` and returns flat `{ name, date, colour, value }` records; the component owns everything after that:
 
 1. `groupDate()` (in `common/barchartData.ts`, alongside the transforms below) pivots the flat records into a dense `BarchartTable` (`group × date` matrix). Dates are densified by walking `PlainDate.iterateToDate`, so gaps become real columns instead of being skipped. Series are sorted by total, and leading cells before a series' first data point are set to `null` so lines start where the data does rather than at zero.
-2. `convertToCumulative()`, `convertToShare()` and `convertToRanking()` are pure transforms over that matrix — cumulative area, per-column composition and bump-chart ranking are views of the same pivot, not separate queries. One `View` control (`Totals` · `Share` · `Cumulative` · `Rank`) owns all four. A chart-type toggle beside a separate cumulative switch would offer the same four as a pair of independent choices, which they are not: a cumulative bar and a ranked total both plot the same pivot into the same shape twice. `Share` divides each cell by its own column's total — a zero column would divide by zero, so a column with nothing in it yields zero cells rather than `NaN` reaching a series — and is always taken over the raw measure, never through `postAggregate`: two callers pass a flooring minutes-to-hours conversion, and the share of floored values is not the share of the values behind them. `Rank` ranks the same per-column measure `Totals` plots, and keeps that measure as its tooltip figure, so the axis can plot position while the hover card still states the underlying number.
+2. `convertToCumulative()`, `convertToShare()` and `convertToRanking()` are pure transforms over that matrix — cumulative area, per-column composition and bump-chart ranking are views of the same pivot, not separate queries. One `View` control (`Totals` · `Share` · `Cumulative` · `Rank`) owns all four, as words through `SegmentedControl` and with the default leading, so the lit segment on arrival is the one the eye starts at. A chart-type toggle beside a separate cumulative switch would offer the same four as a pair of independent choices, which they are not: a cumulative bar and a ranked total both plot the same pivot into the same shape twice. `Share` divides each cell by its own column's total — a zero column would divide by zero, so a column with nothing in it yields zero cells rather than `NaN` reaching a series — and is always taken over the raw measure, never through `postAggregate`: two callers pass a flooring minutes-to-hours conversion, and the share of floored values is not the share of the values behind them. `Rank` ranks the same per-column measure `Totals` plots, and keeps that measure as its tooltip figure, so the axis can plot position while the hover card still states the underlying number.
 3. Clicking a column isolates that series (and clicking again restores all), implemented through Highcharts' plot-options event rather than React state.
 
 The legend is reversed and the `Rank` view is not given the full height. `groupDate` sorts groups ascending so that Highcharts' `reversedStacks` — on by default — puts the biggest at the foot of the stack, where a stack is read from; the legend follows series order unless told otherwise, and unreversed it opens on the smallest, against the vitals band, the genre rows and the gallery's shelves, which all lead with the biggest. Reversing the legend alone leaves the stack itself untouched. Height is the resolution of a magnitude, so the three views that plot one keep the full `80vh`; a bump chart needs a lane per series and nothing else, and three media over eight tenths of a viewport puts two hundred pixels between adjacent ranks.
@@ -164,7 +164,7 @@ Callers choose the measure (episodes vs hours, games vs hours) and pass `postAgg
 
 ### Sunburst — `common/Sunburst.tsx`
 
-Renders an arbitrary-depth hierarchy from a flat list. `generateSunburstData` (in `common/sunburstData.ts`) builds path-style ids (`"-Nintendo-Switch-Zelda"`) and accumulates values into a `Map`, which makes grouping order fully dynamic: the caller passes `groups: K[]`, and `SunBurstControls` renders one select box per level so users re-nest the hierarchy at runtime. Domain meaning enters through four callbacks — `keyToVal`, `getCount`, `getColor`, `getLeafName`.
+Renders an arbitrary-depth hierarchy from a flat list. `generateSunburstData` (in `common/sunburstData.ts`) builds path-style ids (`"-Nintendo-Switch-Zelda"`) and accumulates values into a `Map`, which makes grouping order fully dynamic: the caller passes `groups: K[]`, and `SunBurstControls` renders one select box per level so users re-nest the hierarchy at runtime. The selects are one labelled row — "Nest by", then the rings joined by `›` — because three bare dropdowns holding model keys read as three unrelated settings rather than as a path, and which way the path runs is the one thing about a nesting order the values cannot say. Each menu is humanised through `keyLabel` (`utils/stringUtils.ts`), which sets a camelCase field name in sentence case, with a per-select `labels` override where the key itself means the wrong thing on screen — a `show` ring groups by the show's _name_. `ringOptions` (`common/sunburstData.ts`) then takes each ring's key out of the other rings' menus: a key held twice divides every wedge into one child of the same name, a ring identical to the ring inside it. A menu that would be left holding only the value it already shows keeps the whole list instead, since a control that cannot be changed is worse than a reachable duplicate — which is the case for a domain offering exactly as many keys as it has rings. Domain meaning enters through four callbacks — `keyToVal`, `getCount`, `getColor`, `getLeafName`.
 
 The chart is keyed on the grouping and on a rebuild counter, so a re-nest replaces the chart rather than updating it in place: Highcharts matches incoming nodes to existing points by position, and rewriting every id below the first ring reassigns the previous tree's angles, drawing a partial fan with gaps. The series also states its `rootId` from the data each render (`sunburstRoot` in `common/sunburstData.ts`), and a layout effect clears a drilled id the new data no longer holds and bumps the counter, so a drill into a subtree that a re-nest or filter removes falls back to the top instead of translating from a node that is not there. Depth follows the data: the leaf ring is `groups.length + 1`, so adding or removing a select box in a domain file changes the rings without touching `common/`. The Highcharts `render` callback that dims that ring lives at module scope (`dimLeafRing`) because Highcharts binds the chart to `this`, and the React Compiler cannot compile a function containing `this` — inlining it would silently opt the whole component out of memoization (§7).
 
@@ -437,13 +437,32 @@ renders through: it dispatches `item.source` to the domain's own component by `i
 picture in the gallery or the crossings' hover cards opens that domain's real expanded card, strip
 and ledger rather than a fourth, poorer copy of them.
 
+### One control idiom for "how is this drawn" — `SegmentedControl`
+
+`common/SelectionComponents.tsx` exports one control for a small closed set of named states, and
+three surfaces state their choice through it: the barchart's four views, the gallery's shelf order,
+and each tab's measure in the section rail. Words rather than icons, because an icon states a
+choice in a picture the reader has to already know — a Σ for "count the items", a pin for "rank" —
+where a word states it outright and the set of segments says what else is on offer. One shape used
+for all three is what makes the second one recognisable as the same kind of choice.
+
+It is always `size="small"`: a control whose height varied between the card header it sits in and
+the 22px chip rail it sits in would read as two controls rather than one relocating. `SelectBox`
+takes an optional `labelFor` for a caller whose options are model keys rather than words. It carries
+`textTransform: none` with it, on the select and on every menu item: the theme capitalises both so
+that a bare key like `genre` reads as a word, and that same rule turns a worded label into Title
+Case — "Start Date" for a label that says "Start date".
+
 ### Filter drawer, Top lists and drill-down — shared shells
 
 Three pieces here are domain-blind shells every tab assembles from.
-`common/FilterDrawer` owns the two floating buttons, the bottom drawer and the Clear/Close row,
+`common/FilterDrawer` owns the floating button, the bottom drawer and the Clear/Close row,
 taking the domain's toggles and category multi-selects as fully controlled children —
 `FilterToggle` and `FilterCategory` alongside it, with `common/filterOptions` deriving each
-select's values from the data. `common/TopList`'s `TopListCard` is the "Top X" card — proportional
+select's values from the data. The button carries a badge counting the fields the reader has
+changed (`countActiveFilters`, §7), because a closed drawer otherwise gives no account of itself:
+every chart on the page is drawn through it, so a library narrowed to one franchise looks exactly
+like the whole library. `common/TopList`'s `TopListCard` is the "Top X" card — proportional
 bar, ranked swatch legend, shared hover dim — over items that arrive already coloured and already
 reduced to percentages by `common/statsData`'s `topNWithOther`; how a domain groups and colours is
 exactly what varies, so none of it lives in the shell. `common/GroupedStatList` is the strip of
@@ -553,7 +572,7 @@ The bucket list re-derives at the marker's own cadence, so both answers always d
 
 ### Stats and cards
 
-`common/SectionHeader.tsx` is the header every chart card wears: icon and title left, a muted population count beside the title, controls pinned right. It is a thin arrangement over `CardHeader`, so the theme's `MuiCardHeader` spacing and the `h6` weight reach it without a second set of rules to keep in step. The count arrives as an already-worded string — a `common/` shell cannot know it is counting games — which is why the chart shells take `title` (and, where a population means something, `count`) as props and the timelines are handed a whole header by their domain. Below `sm` the controls take a row of their own: `CardHeader` seats its action beside the title at every width, so a title and three or four controls divide 375px between them and the title wraps to a word a line — a gallery header carrying a select, two sort toggles and an expand reads "Shelves / by / Genre" beside them.
+`common/SectionHeader.tsx` is the header every chart card wears: icon and title left, a muted population count beside the title, controls pinned right. It is a thin arrangement over `CardHeader`, so the theme's `MuiCardHeader` spacing and the `h6` weight reach it without a second set of rules to keep in step. The count arrives as an already-worded string — a `common/` shell cannot know it is counting games — which is why the chart shells take `title` (and, where a population means something, `count`) as props and the timelines are handed a whole header by their domain. Below `sm` the controls take a row of their own: `CardHeader` seats its action beside the title at every width, so a title and three or four controls divide 375px between them and the title wraps to a word a line — a gallery header carrying a select, a sort control and an expand reads "Shelves / by / Genre" beside them.
 
 `common/Stats.tsx` exports the composable pieces the domain `Stats.tsx` files are assembled from — `StatCard` (a row of labelled figures), `StatList` (a scrollable strip of media cards with a fullscreen dialog), `VitalsCard` (the band the page opens on) and `TotalsBand` (a proportional segmented bar with labels). It builds the bar from `Segment`, which lives in `common/Card.tsx` alongside the other proportional-bar primitives. Domain `Stats.tsx` files assemble these into a grid; they hold the arithmetic, the shells hold the layout.
 
@@ -687,6 +706,15 @@ Each domain's `sections.ts` owns the id map and builds the chip list. The ids ha
 the same test `Stats` makes about whether there is anything to lead with, so a chip never points
 at an anchor that is not on the page.
 
+The rail also carries the page's measure, in an `actions` slot at its right end. The measure is the
+unit every figure on the tab is counted in — the vitals band, both charts and the wall all read it
+— so it belongs where it stays reachable from anywhere in the page, which the rail is the only
+thing on screen to be. It sits outside the scrolling chip row rather than in it, or it would scroll
+away with the chips and undo exactly that; the row gives up width to it and overflows into its own
+scroll instead. `SegmentedControl` states the measures as words: a Σ or a timer on a floating
+button is a legend nothing on the page teaches, where `Games · Hours` says outright both what is
+being counted now and what else could be.
+
 ### Colour
 
 `utils/colourUtils.ts` extracts a dominant colour from each banner image with `fast-average-color`, ignoring near-white and near-black. If the result's ITU-R BT.709 luma falls outside 30–230 it retries with the `simple` algorithm, avoiding unreadable extremes. Results are memoised by image src. Cards then set text colour via MUI's `getContrastText`, so a card's palette derives entirely from its artwork.
@@ -774,9 +802,13 @@ Bundle size is treated as a first-class concern, through `npm run analyze`.
 
 The distinctive part is that filter state carries a composed `filter` predicate as a _field_, rebuilt inside the reducer whenever an input changes. Components then call `data.filter(state.filter)` without knowing which criteria are active, and adding a criterion means adding one predicate to the `filters()` builder.
 
-The generic half lives in `common/filterReducer.ts`. `createFilterReducer(initialValues, filters, nextMeasure)` returns a domain's `useFilterReducer`, and owns everything that is the same everywhere: the action union, the `useOutletContext` guest-mode wiring, rebuilding `filter` after each change, and the shared `yearPredicates` (an "up to" ceiling that disappears once it reaches the current year, or an exact-year match). Each domain supplies only what is genuinely its own — the initial values of its own fields, how to turn that state into a predicate, and how its measure toggles.
+The generic half lives in `common/filterReducer.ts`. `createFilterReducer(initialValues, filters)` returns a domain's `useFilterReducer`, and owns everything that is the same everywhere: the action union, the `useOutletContext` guest-mode wiring, rebuilding `filter` after each change, the shared `yearPredicates` (an "up to" ceiling that disappears once it reaches the current year, or an exact-year match), and `activeCount`, the badge's figure bound to the initial values it already holds. Each domain supplies only what is genuinely its own — the initial values of its own fields, and how to turn that state into a predicate.
 
-`vg/filterUtils.ts` demonstrates the full pattern — boolean toggles, multi-select categories derived from the data itself through `common/filterOptions`, a year cutoff, and a Games/Hours measure — and `show/` and `movie/` carry the same shape with their own toggles and categories. The drawer itself is one shell, `common/FilterDrawer`, taking the measure icon, the reset action, and the domain's toggles and selects as fully controlled children. The shared `yearPredicates` takes a `yearOf` accessor, defaulting to `startDate.year`, so a caller states which field answers "what year is this" rather than the function assuming one: the Omnibus passes `(item) => item.year`, since an `OmniItem` counts towards the year it closed and holds no `startDate` to read. The one divergence `yearPredicates` cannot absorb is Shows, which keeps its own predicate because it asks a different question — "has a season started in (or by) the year", not "which year does this belong to" — keeping the filter and the seasons-in-year vitals card answering the same question.
+The measure action _sets_ rather than advances, because the control that dispatches it is a segment per measure: a press names its own state, so setting the measure already held answers the same state object and costs no render. It is also the one action that does not rebuild `filter` — no domain's `filters()` reads the measure, and consumers re-filter the whole dataset on that predicate's identity.
+
+`countActiveFilters(state, initialValues)` counts fields rather than predicates: a reader picking three genres in one select made one choice and undoes it in one place, which is what a badge of 1 says and a badge of 3 does not. Arrays are compared element-wise, since a multi-select builds a fresh array for every change including a clear. `measure`, `filter` and `guestMode` are uncounted — the first two are not filters, and guest mode is set by a long press on the app bar and survives Clear on purpose, so counting it would leave a badge nobody can clear.
+
+`vg/filterUtils.ts` demonstrates the full pattern — boolean toggles, multi-select categories derived from the data itself through `common/filterOptions`, a year cutoff, and a Games/Hours measure — and `show/` and `movie/` carry the same shape with their own toggles and categories. The drawer itself is one shell, `common/FilterDrawer`, taking the count of active fields, the reset action, and the domain's toggles and selects as fully controlled children. The measure is not in it: it is the unit every figure on the page is counted in rather than a narrowing of what is counted, and it rides the section rail (§6) where the drawer would hide it behind a press. The shared `yearPredicates` takes a `yearOf` accessor, defaulting to `startDate.year`, so a caller states which field answers "what year is this" rather than the function assuming one: the Omnibus passes `(item) => item.year`, since an `OmniItem` counts towards the year it closed and holds no `startDate` to read. The one divergence `yearPredicates` cannot absorb is Shows, which keeps its own predicate because it asks a different question — "has a season started in (or by) the year", not "which year does this belong to" — keeping the filter and the seasons-in-year vitals card answering the same question.
 
 ### Guest mode
 

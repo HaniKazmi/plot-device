@@ -1,11 +1,11 @@
-import { AllInclusive, CatchingPokemonTwoTone, Functions, QuestionMark, Timer } from "@mui/icons-material";
+import { AllInclusive, CatchingPokemonTwoTone, QuestionMark } from "@mui/icons-material";
 import { platformToColor, type Platform, type VideoGame } from "./types";
 import { genreToColour } from "../utils/types";
 import { useScheme } from "../common/useScheme";
 import { categoryOptions, franchiseOptions } from "../common/filterOptions";
 import { FilterCategory, FilterDrawer, FilterToggle } from "../common/FilterDrawer";
 import { vgFranchise } from "./franchiseContext";
-import type { FilterDispatch, FilterState } from "./filterUtils";
+import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
 
 const toggles = [
   { toggle: "endless", Icon: AllInclusive },
@@ -18,8 +18,7 @@ const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: Filte
 
   return (
     <FilterDrawer
-      measureIcon={state.measure === "Games" ? <Functions /> : <Timer />}
-      onToggleMeasure={() => dispatch({ type: "toggleMeasure" })}
+      activeCount={activeCount(state)}
       onReset={() => dispatch({ type: "resetFilters" })}
       toggles={toggles.map(({ toggle, Icon }) => (
         <FilterToggle

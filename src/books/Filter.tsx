@@ -1,26 +1,17 @@
-import { Functions, MenuBook, StarBorder, Timer } from "@mui/icons-material";
+import { StarBorder } from "@mui/icons-material";
 import { genreToColour } from "../utils/types";
-import { formatToColour, type Book, type Measure } from "./types";
+import { formatToColour, type Book } from "./types";
 import { categoryOptions, franchiseOptions } from "../common/filterOptions";
 import { FilterCategory, FilterDrawer, FilterToggle } from "../common/FilterDrawer";
-import type { FilterDispatch, FilterState } from "./filterUtils";
+import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
 import { useScheme } from "../common/useScheme";
-import type { ReactNode } from "react";
-
-/** The icon on the measure button says what the next press cycles to, as the other tabs' do. */
-const measureIcons: Record<Measure, ReactNode> = {
-  Books: <Functions />,
-  Hours: <Timer />,
-  Pages: <MenuBook />,
-};
 
 const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: FilterDispatch; data: Book[] }) => {
   const scheme = useScheme();
 
   return (
     <FilterDrawer
-      measureIcon={measureIcons[state.measure]}
-      onToggleMeasure={() => dispatch({ type: "toggleMeasure" })}
+      activeCount={activeCount(state)}
       onReset={() => dispatch({ type: "resetFilters" })}
       toggles={
         <FilterToggle
