@@ -110,7 +110,6 @@ const Graphs = memo(
             title="All Games"
             count={`${format(finishedCount(data))} games`}
             data={data}
-            width={4}
             colour={(item) => companyToColor(item, scheme)}
             landscape
           />

@@ -3,6 +3,7 @@ import { Year, YearMonthDay } from "../../src/common/date";
 import {
   bucketLabel,
   finishedBucket,
+  finishedColumns,
   finishedCount,
   finishedItems,
   finishedKey,
@@ -230,5 +231,68 @@ describe("finishedKey", () => {
     expect(
       finishedKey({ name: "Ocarina of Time", banner: "a.jpg", franchise: "Zelda", releaseDate: Year.get(1998) }),
     ).toBe("Ocarina of Time (1998)");
+  });
+});
+
+describe("finishedColumns", () => {
+  const BREAKPOINTS = ["xs", "sm", "md", "lg", "xl"] as const;
+
+  /**
+   * What Grid actually applies at each width. A size object states a value only where the count
+   * changes and MUI carries the last one upward, so a table naming no `xl` is still answering
+   * there — and a comparison that read the objects key by key would compare a number against
+   * nothing.
+   */
+  const resolved = (columns: ReturnType<typeof finishedColumns>): number[] => {
+    let carried = 12;
+    return BREAKPOINTS.map((breakpoint) => {
+      carried = columns[breakpoint] ?? carried;
+      return carried;
+    });
+  };
+
+  it("gives a banner two to a row on a phone and five at the widest, compact", () => {
+    // Two is the floor: at 390px each card is about 190px, where three is 95px and the title
+    // drawn into the artwork stops being readable.
+    expect(resolved(finishedColumns(true, "Compact"))).toEqual([6, 4, 3, 12 / 5, 2]);
+  });
+
+  it("gives a banner the whole width on a phone and four to a row above, large", () => {
+    expect(resolved(finishedColumns(true, "Large"))).toEqual([12, 6, 4, 4, 4]);
+  });
+
+  it("steps a poster one card denser than a banner at every width", () => {
+    // Portrait artwork is two thirds as wide as it is tall against a banner's sixteen ninths, so
+    // one more to the row is what holds the two walls to comparable heights.
+    for (const density of ["Compact", "Large"] as const) {
+      const banners = resolved(finishedColumns(true, density));
+      const posters = resolved(finishedColumns(false, density));
+
+      posters.forEach((poster, index) => expect(poster).toBeLessThan(banners[index]));
+    }
+  });
+
+  it("never draws a compact card wider than a large one, at any width or either shape", () => {
+    // The two densities are a floor and a ceiling on one wall rather than two independent
+    // layouts: the toggle only ever adds size, whichever width the reader is at.
+    for (const landscape of [true, false]) {
+      const compact = resolved(finishedColumns(landscape, "Compact"));
+      const large = resolved(finishedColumns(landscape, "Large"));
+
+      compact.forEach((columns, index) => expect(columns).toBeLessThanOrEqual(large[index]));
+    }
+  });
+
+  it("fills every row with a whole number of cards, so no row ends in a part card", () => {
+    // A fractional size is fine — Grid resolves one as `calc(100% * size / columns)` — but a
+    // count that does not divide twelve leaves a gap the width of the remainder on every row.
+    // Compared with a tolerance because a twelfth of five is not exact in binary.
+    for (const landscape of [true, false]) {
+      for (const density of ["Compact", "Large"] as const) {
+        for (const columns of resolved(finishedColumns(landscape, density))) {
+          expect(12 / columns).toBeCloseTo(Math.round(12 / columns), 10);
+        }
+      }
+    }
   });
 });
