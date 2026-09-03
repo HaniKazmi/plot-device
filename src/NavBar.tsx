@@ -10,6 +10,9 @@ const NavBar = ({ setGuestMode }: { setGuestMode: (value: boolean) => void }) =>
   const currTab = useCurrentTab();
   const events = useLongPress(() => setGuestMode(true));
   const { authorise, revoke } = useGoogleAuth();
+  // A tab with no `darkBar` (none currently exist) keeps the plain dark bar `Google.tsx` falls
+  // back to, so nothing here draws a rule or an ink colour with nothing to derive them from.
+  const darkBar = currTab.darkBar;
 
   const toolbar = (
     <>
@@ -47,7 +50,15 @@ const NavBar = ({ setGuestMode }: { setGuestMode: (value: boolean) => void }) =>
   return (
     <AppBar
       position="static"
-      sx={{ marginBottom: (theme) => theme.spacing(2) }}
+      sx={(theme) => ({
+        marginBottom: theme.spacing(2),
+        // The dark scheme paints the bar as a tint rather than the full-strength primary
+        // (`Google.tsx`), so a 3px rule in the primary's own hue is what still tells five tabs
+        // apart at a glance. `applyStyles` rather than `theme.palette.mode`, which reads the
+        // light scheme's literal under `cssVariables: true` regardless of which paper is on
+        // screen (AGENTS.md).
+        ...(darkBar && theme.applyStyles("dark", { borderBottom: `3px solid ${darkBar.rule}` })),
+      })}
       {...events}
     >
       <Toolbar>
@@ -61,7 +72,7 @@ const NavBar = ({ setGuestMode }: { setGuestMode: (value: boolean) => void }) =>
             it replaces cost enough to be worth hiding on a phone. */}
         <Typography
           noWrap
-          sx={{
+          sx={(theme) => ({
             mr: { xs: 1, md: 2 },
             // The tab strip beside it scrolls; the wordmark does not give way to it.
             flexShrink: 0,
@@ -71,7 +82,11 @@ const NavBar = ({ setGuestMode }: { setGuestMode: (value: boolean) => void }) =>
             textTransform: "uppercase",
             color: "inherit",
             textDecoration: "none",
-          }}
+            // `color: inherit` reads the bar's own dark text otherwise (`Google.tsx`'s
+            // `AppBar.darkColor`); the wordmark takes the tab's own ink instead, the same
+            // treatment the active tab label gets below.
+            ...(darkBar && theme.applyStyles("dark", { color: darkBar.ink })),
+          })}
         >
           Plot Device
         </Typography>
@@ -91,13 +106,25 @@ const NavBar = ({ setGuestMode }: { setGuestMode: (value: boolean) => void }) =>
               navigate(value);
             }}
           >
-            {Tabs.map((tab) => (
-              <MuiTab
-                key={`muitab-${tab.id}`}
-                label={tab.name}
-                value={tab.id}
-              />
-            ))}
+            {Tabs.map((tab) => {
+              const isCurrent = tab.id === currTab.id;
+              const tabDarkBar = tab.darkBar;
+              return (
+                <MuiTab
+                  key={`muitab-${tab.id}`}
+                  label={tab.name}
+                  value={tab.id}
+                  // Only the selected label needs its own ink: `textColor="inherit"` already
+                  // renders the rest at reduced opacity, which is dimming enough to tell them
+                  // from the one that is current.
+                  sx={
+                    isCurrent && tabDarkBar
+                      ? (theme) => theme.applyStyles("dark", { color: tabDarkBar.ink })
+                      : undefined
+                  }
+                />
+              );
+            })}
           </MuiTabs>
         </Box>
         <Box sx={{ display: { xs: "none", md: "initial" } }}>{toolbar}</Box>
