@@ -454,15 +454,64 @@ else. The franchise
 machinery is shared the same way: `common/franchiseIndex` groups by whatever accessor a domain
 passes, and `common/franchiseContext`'s factory threads the index down to the card strips.
 
-### Card strip — `common/timelineStripData.ts`
+### Franchise strip — `common/FranchiseStrip.tsx`
 
-The proportional bar on an expanded card: every season of a show, every game in a franchise, against a fixed epoch–today scale. `buildStrip` returns each span as a percentage offset and width alongside the caller's own fields, so a domain never has to key its records back out of the result.
+The strip on an expanded card and in the hero's panel: every entry of the item's franchise the reader
+has met, across all four media, with the card's own item singled out. It has two readings and a
+switch between them. **Order** is the default — one bead per entry in the order met, evenly spaced
+whatever the dates between, the year stated beneath only where it changes, wrapping like a line of
+text once the beads would fall closer than their minimum pitch. Time is dropped from the axis
+entirely, which is what keeps a bead the same size on a fifty-entry franchise as on a five-entry
+one; a chain that has to wrap stops each row's line at its first and last bead, so it reads as a
+chain that turned rather than one that broke. **Time** draws the same entries against a window of
+the franchise's own years (`stripWindow`: the January of the first start to the December of the last
+end, held open to three years), with the fixed epoch–today scale bracketed on a thin bar beneath so
+cards stay comparable. Lanes open only where entries genuinely overlap, never per medium — which
+medium a mark belongs to is its fill — and each lane is a fixed 16px pitch, so the strip grows to
+hold its lanes and no band shrinks to fit. A film is a point (`start === end`) and is drawn as a dot,
+since a bar floored to a percentage of the width is a different number of pixels on every card.
+The reader's last choice of reading carries from card to card for the life of the page.
+
+Both readings stand on the theme's paper inside whatever ground the card has, most often a tint of
+the artwork's own colour, because every fill the app declares is solved against the two papers and
+against nothing else. Marks wear the medium's fill and nothing more: the platform, status or genre a
+strip could colour by is already stated in the ledger below it, and a second vocabulary on marks a
+few pixels wide is one nobody can read. The subject is set apart by a ring in the ink and a name,
+never by colour, and only where there is context to stand apart from — a standalone show's own
+seasons are all the subject, and ringing every one of them says nothing. A show's card treats every
+season of the show as the subject and names the latest of them.
+
+The entries come from one index built across the four libraries (`common/franchiseUnion.ts`,
+`omnibus/franchiseUnionData.ts`), which is what lets a Star Trek film's card on the Movies tab draw
+the seasons from the Shows sheet. A tracked domain may not import another and `common/` may import
+none, so the union is built beside the Omnibus adapter — the one place that already imports all four
+— and provided from the shell (`Google.tsx` mounts `FranchiseUnionProvider` above the outlet), through
+a context declared in `common/` whose entry shape each domain's own records are assignable to. Each
+domain's card reads the union and falls back to the strip its own index draws until all four
+libraries have landed. The provider calls `useData` with the four domain configs the way the Omnibus
+does; the module-level cache means a session that opened on the Omnibus reaches a home tab with
+nothing left to fetch, and only a deep link straight to a home tab pays three extra sheet reads. The
+union groups on the raw franchise column exactly as the per-domain indexes do — a founding entry
+keeps naming itself, a standalone is a group of one that every consumer tests for — and does not
+apply the crossings' rule that drops a group whose every entry repeats the name: that rule chooses
+which franchises a section draws at all, and a card has already chosen. Each domain names its own
+union key (`gameKey`, `seasonKey`, `movieItemKey`, `bookItemKey`) and the adapter keys its rows on
+the same functions, so the strip and the Omnibus cannot disagree about which entry is the card's
+own. The hover card behind each bead is the Omnibus's own dispatcher, loaded lazily with the chunk
+that draws it, so the provider adds nothing to the first bundle beyond the adapter.
+
+### Card strip data — `common/timelineStripData.ts`
+
+The proportional-scale arithmetic the Time reading, the crossings and the Movies ribbon share.
+`buildStrip` places each span against a `from`–`to` scale and returns it as a percentage offset and
+width alongside the caller's own fields, so a domain never has to key its records back out of the
+result.
 
 Bands are positioned rather than chained. Walking gaps and bars in sequence turns an overlap into a negative gap, which drifts every later bar along the strip, and lets a minimum width push the total past 100% so flex shrink quietly distorts all of them — and a franchise produces overlaps routinely.
 
 Spans that do overlap take separate lanes, because a band drawn over another hides it completely and takes the pointer with it, leaving no way to reach the buried one. Only a genuine overlap opens a lane: a span abutting the one before it — a season handed over to the next, a game to its sequel — stays in the lane and is tiled clear of it instead, because a lane costs every band in the strip a share of its height. Both rules are date-based and shared with the full timeline through `assignRows` in `common/timelineLayout.ts`, so the two charts cannot come to disagree about what counts as an overlap. The year gridlines come from that module's `buildTicks` for the same reason. `buildTicks`, `buildStrip` and the full timeline's own bars (`common/Timeline.tsx`) all place their offset through one function, `percentAtDate` — "the days elapsed before this date" — so a tick and a band opening on the same day land on the same percent; `percentOfSpan` is the width measure the same three read from.
 
-The renderer is `TimelineCard` in `common/Card.tsx`, which takes bands and ticks rather than nodes: the shell owns the whole coordinate space, so a caller reads `startPercent` and `widthPercent` and never asks how they were arrived at. Orientation lives entirely there — the data is percentages and knows nothing about which axis it will be drawn on.
+`TimelineCard` in `common/Card.tsx` is the renderer the crossings stack still uses, taking bands and ticks rather than nodes: the shell owns the whole coordinate space, so a caller reads `startPercent` and `widthPercent` and never asks how they were arrived at. Orientation lives entirely there — the data is percentages and knows nothing about which axis it will be drawn on. The card's own strip draws its Time reading through the same arithmetic but its own marks, because it wants a fixed lane pitch, a dot for a point and a ring for the subject, none of which a stack of twelve strips on a shared scroller has room for.
 
 ### The expanded card — `HeroStatRow` and `MetadataLedger`
 
@@ -607,7 +656,11 @@ hold. The rest of the in-flight shows stay in a compact "Also Watching" strip un
 days in, the size of its franchise — and each tile is dropped rather than shown as a zero when the
 sheet does not hold it. The library's totals stay in the cards below it, which are their single
 home. Only the artwork's height is fixed, so the hero is one height whatever it shows while every
-poster and banner keeps its own shape uncropped.
+poster and banner keeps its own shape uncropped. The panel is held to that height, and a title, a
+subtitle and a row of tiles fill a third of it; the middle is the item's own story — its franchise
+strip in the order met (§6, Franchise strip), and the two ledger rows its domain leads with, chosen
+per domain from the same rows the expanded card states in full. On a phone the panel is only as
+tall as its own lines, so the strip is dropped there and the rows stay.
 
 It renders the domain's own
 `TypedCardMediaImage` rather than a bare image, which is what keeps it in step with every card
@@ -654,7 +707,7 @@ Fixed colours are the other half of the system: `types.ts` in each domain maps p
 
 The genre ramp is the one all four tracked sheets share, so a hue means one genre on every tab, and it falls to `NEUTRAL_FILL` off-table because the column is open-ended. **Franchise is shared for the same reason and answers `""` instead.** All four sheets record a Franchise column and eleven franchises are met in more than one medium — Marvel across all three, Star Wars and Harry Potter across games and film, Fate and Star Trek across games and television — so a per-domain table would draw one of those a different colour on each tab. The set is scoped to what a tab's collapsed Top Franchise card and the gallery's shelves actually draw, plus every cross-media franchise among them; the long tail is 168 values in the games sheet alone, most of them a work naming itself, and takes the empty answer the way an unknown network does. `tests/utils/fillContract.test.ts` pins the property directly: a cross-media franchise resolves to one value through all four domains' `groupToColour`. Games draws a second vocabulary beside it — `gameplay` is how a game is played where `genre` is what it is about — and the two tables share exactly two hexes, Action and Adventure, which mean the same thing in both and are deliberately the same colour. The rest are pushed as far apart as one lightness band holds, which is not always far: fourteen gameplay hues and eleven genre hues are twenty-five values each wanting 15 dE of room, so Role Playing lands 2.3 from Thriller on the dark paper. Both are still drawn at full chroma, because the two vocabularies are always labelled where they meet — the ledger stacks a Gameplay row on a Genre row, and the hero and hover subtitles name each swatch beside it. Desaturating one ramp does not recover this: it separates the two by kind without moving any pair, and muting the genres by 45% leaves the worst cross-table pair at 4.5 dE with more pairs under 15, not fewer.
 
-Six vocabularies live in `utils/types.ts` because more than one tab speaks them: the genre ramp, `statusToColour`, `franchiseToColour`, `decadeToColour`, the score bands (`scoreBandToColour`, which Movies and Books both rate on), and `ageRatingToColour` over the `AgeRating` union three of the four domains record a certificate into. The status table treats Playing, Watching and Reading as one state and Beat, Ended and Finished as another — each word takes its state's fill exactly, so a chart over the union draws one colour per state rather than one per sheet's vocabulary. Books adds one vocabulary of its own in `books/types.ts`: the three formats, one hue each at chroma 0.14, drawn only in a labelled band and the filter's chips. Games are logged as PEGI and write the suffix (`16+`), Shows and Movies as BBFC and write the bare number (`15`); the colour keys off the age rather than the notation, so one swatch means one thing across the tabs, and `isAgeRating` lets each converter reject a bad cell while it still knows which row it came from. `ageRatingBand` is that same tier named rather than coloured, and is what the colour is looked up by.
+Seven vocabularies live in `utils/types.ts` because more than one tab speaks them: the genre ramp, `statusToColour`, `franchiseToColour`, `decadeToColour`, the score bands (`scoreBandToColour`, which Movies and Books both rate on), `ageRatingToColour` over the `AgeRating` union three of the four domains record a certificate into, and the medium fills (`mediumFills`, with `mediumToLabel`, `mediumToName` and `mediumUnit` beside them), which every card's franchise strip colours its beads by and which `omnibus/types.ts` re-exports under the names that tab speaks. The status table treats Playing, Watching and Reading as one state and Beat, Ended and Finished as another — each word takes its state's fill exactly, so a chart over the union draws one colour per state rather than one per sheet's vocabulary. Books adds one vocabulary of its own in `books/types.ts`: the three formats, one hue each at chroma 0.14, drawn only in a labelled band and the filter's chips. Games are logged as PEGI and write the suffix (`16+`), Shows and Movies as BBFC and write the bare number (`15`); the colour keys off the age rather than the notation, so one swatch means one thing across the tabs, and `isAgeRating` lets each converter reject a bad cell while it still knows which row it came from. `ageRatingBand` is that same tier named rather than coloured, and is what the colour is looked up by.
 
 Movies adds one vocabulary of its own in `movie/types.ts`, the Cinema/Home pair, and re-exports the shared score bands — a valenced red-through-amber-to-green ramp with Unscored on the neutral — under its own name. Shows colours its networks as brand-derived fills with `""` off-table — the column gains a new streamer whenever one launches, and a crash is the wrong response to that. A network is keyed on the string the **sheet** writes rather than the brand's current name: `HBO` is the sheet's value even though the brand is now HBO Max, and renaming the key would silently drop the colour with no error anywhere.
 
