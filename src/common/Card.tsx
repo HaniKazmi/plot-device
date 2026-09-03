@@ -505,43 +505,67 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
                     position: "relative",
                   }}
                 >
-                  <CardMedia
-                    component="img"
-                    crossOrigin="anonymous"
-                    sx={(theme) => {
-                      // `svh` and not `vh`, because a phone reports `vh` with its toolbar retracted, so
-                      // an image sized to it overflows the screen it is meant to fit. `dvh` would track
-                      // the toolbar instead, and resize the artwork under the reader at the moment they
-                      // scroll past it to the details.
-                      const room = {
-                        width: `calc(100vw - ${theme.spacing(4)})`,
-                        height: `calc(100svh - ${theme.spacing(4)})`,
-                      };
+                  {missing ? (
+                    /* The same stand-in the thumbnail draws, at the dialog's scale: a box named
+                       for the picture it lacks, rather than the browser's broken-image glyph with
+                       no words at all. */
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minHeight: 240,
+                        padding: 4,
+                        backgroundColor: dialogPalette.tile,
+                      }}
+                    >
+                      <Typography
+                        variant="h6"
+                        sx={{ color: dialogPalette.muted, textAlign: "center" }}
+                      >
+                        {alt}
+                      </Typography>
+                    </Box>
+                  ) : (
+                    <CardMedia
+                      component="img"
+                      crossOrigin="anonymous"
+                      sx={(theme) => {
+                        // `svh` and not `vh`, because a phone reports `vh` with its toolbar retracted, so
+                        // an image sized to it overflows the screen it is meant to fit. `dvh` would track
+                        // the toolbar instead, and resize the artwork under the reader at the moment they
+                        // scroll past it to the details.
+                        const room = {
+                          width: `calc(100vw - ${theme.spacing(4)})`,
+                          height: `calc(100svh - ${theme.spacing(4)})`,
+                        };
 
-                      return {
-                        objectFit: "contain",
-                        display: "block",
-                        // On their own these only ever take away: an element with an automatic width is
-                        // already its intrinsic width, so artwork smaller than the screen stays small.
-                        // They are still the whole rule until the shape is known.
-                        maxWidth: room.width,
-                        maxHeight: room.height,
-                        ...(ratio && {
-                          // Filling the width and deriving the height scales the artwork up as well as
-                          // down. Which of the two is the binding one is left to `min`, so it is decided
-                          // against the room actually available and decided again on a rotation — where
-                          // a stored answer would be the one from whichever way round the screen was
-                          // when the image loaded.
-                          width: `min(${room.width}, calc(${room.height} * ${ratio}))`,
-                          height: "auto",
-                        }),
-                      };
-                    }}
-                    src={image}
-                    title={alt}
-                    loading="lazy"
-                    onClick={detail.hide}
-                  />
+                        return {
+                          objectFit: "contain",
+                          display: "block",
+                          // On their own these only ever take away: an element with an automatic width is
+                          // already its intrinsic width, so artwork smaller than the screen stays small.
+                          // They are still the whole rule until the shape is known.
+                          maxWidth: room.width,
+                          maxHeight: room.height,
+                          ...(ratio && {
+                            // Filling the width and deriving the height scales the artwork up as well as
+                            // down. Which of the two is the binding one is left to `min`, so it is decided
+                            // against the room actually available and decided again on a rotation — where
+                            // a stored answer would be the one from whichever way round the screen was
+                            // when the image loaded.
+                            width: `min(${room.width}, calc(${room.height} * ${ratio}))`,
+                            height: "auto",
+                          }),
+                        };
+                      }}
+                      src={image}
+                      alt={alt}
+                      loading="lazy"
+                      onClick={detail.hide}
+                      onError={() => setFailedImage(image)}
+                    />
+                  )}
                 </Box>
                 <Box
                   sx={{
@@ -549,8 +573,10 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
                     // The same line every other surface draws where it meets the artwork it was
                     // sampled from. A gradient fading the image into the ground joins them instead,
                     // which reads as the artwork running out rather than as one card in two parts —
-                    // and spends the bottom tenth of every image to do it.
-                    borderTop: palette.seam,
+                    // and spends the bottom tenth of every image to do it. The dialog's own
+                    // palette, as every other surface in it: a seam in the thumbnail's contrast
+                    // tone on the artwork's ground can be white on light or black on dark.
+                    borderTop: dialogPalette.seam,
                   }}
                 >
                   <Box
@@ -1695,11 +1721,13 @@ export const CardDetailBody = ({
   rows: LedgerRow[];
 }) => (
   <CardContent>
+    {/* Bare, not in a grid row: a domain's strip renders nothing for a standalone item, and a row
+        around nothing would still take the grid's spacing. The strip carries its own margin. */}
+    {strip}
     <Grid
       container
       spacing={1}
     >
-      {strip && <Grid size={12}>{strip}</Grid>}
       <HeroStatRow stats={stats} />
       <MetadataLedger rows={rows} />
     </Grid>

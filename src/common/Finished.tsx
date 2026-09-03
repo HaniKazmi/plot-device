@@ -14,6 +14,7 @@ import {
   finishedColumns,
   finishedItems,
   finishedKey,
+  FINISHED_SORTS,
   type FinishedDensity,
   type FinishedExtraSort,
   type FinishedItem,
@@ -22,7 +23,7 @@ import {
 import { withAlpha } from "../utils/colourUtils";
 import { shapeToAspect } from "./cardArrangement";
 
-const SORT_OPTIONS: readonly FinishedSort[] = ["Date", "Franchise"];
+const SORT_OPTIONS: readonly FinishedSort[] = FINISHED_SORTS;
 /** One empty list, so a wall with no extra sorts does not mint a fresh array every render. */
 const NO_SORTS: readonly never[] = [];
 const densityOptions: FinishedDensity[] = ["Compact", "Large", "Full"];
@@ -169,6 +170,10 @@ const Finished = <U extends FinishedItem>({
   const landscape = landscapeProp ?? false;
   const keyOf = keyOfProp ?? finishedKey;
   const sorts: readonly FinishedExtraSort<U>[] = sortsProp ?? NO_SORTS;
+  // A programming error, thrown rather than resolved: the built-in would answer for the wall and
+  // the extra for the marker, or the reverse, with nothing on screen to say so.
+  const shadowed = sorts.find((extra) => (SORT_OPTIONS as readonly string[]).includes(extra.label));
+  if (shadowed) throw new Error(`A wall sort cannot be named "${shadowed.label}": that order is built in`);
   const sortOptions: readonly string[] = [...SORT_OPTIONS, ...sorts.map((extra) => extra.label)];
   // Joined onto the same muted caption `SectionHeader` already renders beside the title, rather
   // than a second piece of header markup: a wall not asked for a border key gets exactly the

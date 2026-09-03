@@ -1,6 +1,9 @@
 import type { LedgerRow, PanelSubtitlePart } from "../common/Card";
-import { formatDate, formatDateRange } from "../common/date";
-import { franchiseToColour, genreToColour, statusToColour, type Scheme } from "../utils/types";
+import type { FranchiseEntry } from "../common/franchiseUnion";
+import type { ReactNode } from "react";
+import { formatDate, formatDateRange, type YearMonthDay } from "../common/date";
+import { franchiseToColour, genreToColour, mediumFills, statusToColour, type Scheme } from "../utils/types";
+import { bookItemKey } from "./statsData";
 import { namesTheSameThing } from "../utils/stringUtils";
 import { formatToColour, type Book } from "./types";
 
@@ -54,8 +57,18 @@ export const bookRows = (book: Book, scheme: Scheme): LedgerRow[] => {
 };
 
 /**
- * The two facts the hero leads with beside its strip: where the book sits in its series, or its
- * format where it has none, and when it came out.
+ * A book in a franchise strip's vocabulary; the book in hand runs to today. One mapper for the
+ * tab's own index and the Omnibus union.
  */
-export const bookHeroRows = (book: Book, scheme: Scheme): LedgerRow[] =>
-  bookRows(book, scheme).filter((row) => row.label === "Released" || row.label === (book.series ? "Series" : "Format"));
+export const bookEntry = (book: Book, today: YearMonthDay, hoverCard: () => ReactNode): FranchiseEntry => ({
+  key: bookItemKey(book),
+  subject: bookItemKey(book),
+  franchise: book.franchise,
+  medium: "book",
+  fill: mediumFills.book,
+  label: book.name,
+  start: book.startDate,
+  end: book.endDate ?? today,
+  precise: true,
+  hoverCard,
+});

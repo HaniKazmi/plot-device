@@ -13,10 +13,10 @@ import { useScheme } from "../common/useScheme";
  * Labelled in the plural where the state key is the singular medium each item carries.
  */
 const toggles = [
-  { toggle: "game", label: "games", Icon: VideogameAsset },
-  { toggle: "show", label: "shows", Icon: Tv },
-  { toggle: "movie", label: "movies", Icon: LocalMovies },
-  { toggle: "book", label: "books", Icon: AutoStories },
+  { toggle: "game", label: "Games", Icon: VideogameAsset },
+  { toggle: "show", label: "Shows", Icon: Tv },
+  { toggle: "movie", label: "Movies", Icon: LocalMovies },
+  { toggle: "book", label: "Books", Icon: AutoStories },
 ] as const;
 
 /**

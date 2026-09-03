@@ -7,13 +7,13 @@ import {
   type CardStat,
 } from "../common/Card";
 import { VideoGame } from "./types";
-import { mediumFills, statusToColour, type Scheme } from "../utils/types";
+import { statusToColour, type Scheme } from "../utils/types";
 import { useScheme } from "../common/useScheme";
-import { CURRENT_PLAINDATE, Year, YearMonthDay, formatDateRange } from "../common/date";
+import { CURRENT_PLAINDATE, YearMonthDay, formatDateRange } from "../common/date";
 import { hoverCardArtworkSx } from "../common/cardArrangement";
-import { FranchiseStrip, type StripMode } from "../common/FranchiseStrip";
+import { FranchiseStrip, type StripVariant } from "../common/FranchiseStrip";
 import { useFranchiseUnion, type FranchiseEntry } from "../common/franchiseUnion";
-import { gameKey, gameRows, gameSubtitle } from "./cardData";
+import { gameEntry, gameKey, gameRows, gameSubtitle } from "./cardData";
 import { useFranchiseGames } from "./franchiseContext";
 
 /**
@@ -58,29 +58,18 @@ const VG_EPOCH = YearMonthDay.get(2004, 1, 1);
 
 /**
  * The tab's own franchise in the strip's vocabulary, for the moment before the other three
- * libraries have landed. A year-only start spans its whole year with imprecise edges, as the union
- * draws it, so the strip does not change shape when the union arrives.
+ * libraries have landed, through the mapper the union draws with so the strip does not change
+ * shape when the union arrives.
  */
 const gameEntries = (games: VideoGame[], today: YearMonthDay): FranchiseEntry[] =>
-  games.map((game) => ({
-    key: gameKey(game),
-    subject: gameKey(game),
-    franchise: game.franchise,
-    medium: "game",
-    fill: mediumFills.game,
-    label: game.name,
-    start: game.startDate.firstDay(),
-    end: game.endDate ? game.endDate.lastDay() : today,
-    precise: !(game.startDate instanceof Year) && !(game.endDate instanceof Year),
-    hoverCard: () => <VgHoverCard item={game} />,
-  }));
+  games.map((game) => gameEntry(game, today, () => <VgHoverCard item={game} />));
 
 /**
  * The game's franchise across every medium it was met in, with this game as the subject; nothing
  * for a standalone. The union answers once all four libraries are here, and the tab's own index
  * answers until then, so a card opened in the first second of a visit still has its series.
  */
-export const GameFranchiseStrip = ({ game, mode }: { game: VideoGame; mode?: StripMode }) => {
+export const GameFranchiseStrip = ({ game, variant }: { game: VideoGame; variant?: StripVariant }) => {
   const union = useFranchiseUnion(game.franchise);
   const own = useFranchiseGames(game);
   const entries = union ?? gameEntries(own, CURRENT_PLAINDATE);
@@ -94,7 +83,7 @@ export const GameFranchiseStrip = ({ game, mode }: { game: VideoGame; mode?: Str
       franchise={game.franchise}
       epoch={VG_EPOCH}
       today={CURRENT_PLAINDATE}
-      mode={mode}
+      variant={variant}
     />
   );
 };

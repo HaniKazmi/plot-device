@@ -28,6 +28,17 @@ import "../utils/arrayUtils";
 export type StripMode = "order" | "time";
 
 /**
+ * Where a strip stands. A card's strip offers both readings and wraps its chain; the hero's is
+ * held to the order reading with no switch, keeps its chain to one row (a panel held to the
+ * artwork's height cannot grow for a second), and is dropped between `md` and `lg`, where the
+ * column beside a banner wraps the title and a wrapped title with a strip outgrows the picture.
+ */
+export type StripVariant = "card" | "hero";
+
+const CARD_STRIP_SX = { borderRadius: 1, padding: 1, marginBottom: 1 } as const;
+const HERO_STRIP_SX = { borderRadius: 1, padding: 1, display: { xs: "block", md: "none", lg: "block" } } as const;
+
+/**
  * The mode a strip opens in: the one the reader last chose. A preference is about how the reader
  * likes to read a series rather than about one card, so it carries from card to card for the life
  * of the page and starts over on a reload, where it starts on the order.
@@ -83,14 +94,14 @@ export const FranchiseStrip = (props: {
   /** Where the context bar's fixed scale opens: the tab's own epoch. */
   epoch: YearMonthDay;
   today: YearMonthDay;
-  /** Fixes the mode and hides the switch, for a surface with no room for a control — the hero. */
-  mode?: StripMode;
+  variant?: StripVariant;
 }) => {
   const { entries, subject, franchise, epoch, today } = props;
+  const hero = props.variant === "hero";
   const scheme = useScheme();
   const palette = useArtworkPalette();
   const [chosen, setChosen] = useState<StripMode>(preferredMode);
-  const mode = props.mode ?? chosen;
+  const mode = hero ? "order" : chosen;
   const colours: StripColours = {
     ground: palette.ground,
     ink: palette.onGround,
@@ -118,7 +129,7 @@ export const FranchiseStrip = (props: {
 
   return (
     <Box
-      sx={{ borderRadius: 1, padding: 1 }}
+      sx={hero ? HERO_STRIP_SX : CARD_STRIP_SX}
       style={{ color: colours.ink, backgroundColor: colours.wash, border: `1px solid ${colours.line}` }}
     >
       <Caption
@@ -128,7 +139,7 @@ export const FranchiseStrip = (props: {
         scheme={scheme}
         colours={colours}
         control={
-          props.mode === undefined && (
+          !hero && (
             <SegmentedControl
               options={STRIP_MODES}
               value={mode}
@@ -146,6 +157,7 @@ export const FranchiseStrip = (props: {
         <BeadChain
           entries={ordered}
           markOf={markOf}
+          fit={hero ? "shrink" : "wrap"}
           scheme={scheme}
           colours={colours}
         />
@@ -251,9 +263,10 @@ export const FranchiseName = ({ franchise, scheme }: { franchise: string; scheme
   );
 };
 
-/** A bead, and the one the card is about. */
+/** A bead, the one the card is about, and the least a bead closed up on a hero's row may be. */
 const BEAD = 12;
 const SUBJECT_BEAD = 16;
+const MIN_BEAD = 6;
 /** The least a bead and the gap after it take, which is what decides when the chain wraps. */
 const MIN_PITCH = 28;
 /** Rows of the chain: the bead and its line, a year beneath. */
@@ -277,16 +290,29 @@ const UNMEASURED_WIDTH = 1200;
 const BeadChain = ({
   entries,
   markOf,
+  fit,
   scheme,
   colours,
 }: {
   entries: FranchiseEntry[];
   markOf: (entry: FranchiseEntry) => Mark;
+  /**
+   * What gives when the beads would fall closer than their pitch: `wrap` turns the chain onto
+   * another row, `shrink` keeps one row and closes the beads up, smaller, with the years stated
+   * only at the ends once there is no room to state them where they change.
+   */
+  fit: "wrap" | "shrink";
   scheme: Scheme;
   colours: StripColours;
 }) => {
   const [ref, width] = useElementWidth<HTMLDivElement>();
-  const perRow = beadsPerRow(entries.length, width ?? UNMEASURED_WIDTH, MIN_PITCH);
+  const measured = width ?? UNMEASURED_WIDTH;
+  const perRow = fit === "wrap" ? beadsPerRow(entries.length, measured, MIN_PITCH) : entries.length;
+  const pitch = measured / perRow;
+  const cramped = pitch < MIN_PITCH;
+  // A bead never wider than the space it has, and never so small it stops being a mark.
+  const bead = cramped ? Math.max(MIN_BEAD, Math.floor(pitch) - 4) : BEAD;
+  const focusBead = cramped ? bead + 4 : SUBJECT_BEAD;
   const rows: FranchiseEntry[][] = [];
   for (let start = 0; start < entries.length; start += perRow) rows.push(entries.slice(start, start + perRow));
 
@@ -299,12 +325,15 @@ const BeadChain = ({
         >
           {row.map((entry, column) => {
             const index = rowIndex * perRow + column;
-            const yearShown = index === 0 || entries[index - 1].start.year !== entry.start.year;
+            const yearShown = cramped
+              ? index === 0 || index === entries.length - 1
+              : index === 0 || entries[index - 1].start.year !== entry.start.year;
             return (
               <Bead
                 key={entry.key}
                 entry={entry}
                 mark={markOf(entry)}
+                size={markOf(entry) === "focus" ? focusBead : bead}
                 lineLeft={column > 0}
                 lineRight={column < row.length - 1}
                 year={yearShown ? shortYear(entry.start.year) : undefined}
@@ -325,6 +354,7 @@ const LINE_SX = { position: "absolute", top: BEAD_CENTRE - 1, height: 2 } as con
 const Bead = ({
   entry,
   mark,
+  size,
   lineLeft,
   lineRight,
   year,
@@ -334,6 +364,7 @@ const Bead = ({
 }: {
   entry: FranchiseEntry;
   mark: Mark;
+  size: number;
   lineLeft: boolean;
   lineRight: boolean;
   year?: string;
@@ -342,7 +373,6 @@ const Bead = ({
   colours: StripColours;
 }) => {
   const colour = pick(entry.fill, scheme);
-  const size = mark === "focus" ? SUBJECT_BEAD : BEAD;
 
   return (
     <Box

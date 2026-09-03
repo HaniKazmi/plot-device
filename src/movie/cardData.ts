@@ -1,6 +1,9 @@
 import type { LedgerRow, PanelSubtitlePart } from "../common/Card";
+import type { FranchiseEntry } from "../common/franchiseUnion";
+import type { ReactNode } from "react";
 import { formatDate } from "../common/date";
-import { ageRatingToColour, franchiseToColour, genreToColour, type Scheme } from "../utils/types";
+import { ageRatingToColour, franchiseToColour, genreToColour, mediumFills, type Scheme } from "../utils/types";
+import { movieItemKey } from "./statsData";
 import { namesTheSameThing } from "../utils/stringUtils";
 import type { Movie } from "./types";
 
@@ -46,8 +49,19 @@ export const movieRows = (movie: Movie, scheme: Scheme): LedgerRow[] => {
   return rows;
 };
 
-/** The two facts the hero leads with beside its strip: the rest of the ledger waits in the card. */
-const HERO_ROW_LABELS = ["Released", "Rating"];
-
-export const movieHeroRows = (movie: Movie, scheme: Scheme): LedgerRow[] =>
-  movieRows(movie, scheme).filter((row) => HERO_ROW_LABELS.includes(row.label));
+/**
+ * A film in a franchise strip's vocabulary: a point — `start === end` — which the strip draws as
+ * a dot. One mapper for the tab's own index and the Omnibus union.
+ */
+export const movieEntry = (movie: Movie, hoverCard: () => ReactNode): FranchiseEntry => ({
+  key: movieItemKey(movie),
+  subject: movieItemKey(movie),
+  franchise: movie.franchise,
+  medium: "movie",
+  fill: mediumFills.movie,
+  label: movie.name,
+  start: movie.startDate,
+  end: movie.startDate,
+  precise: true,
+  hoverCard,
+});

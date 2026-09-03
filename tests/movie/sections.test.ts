@@ -18,7 +18,7 @@ describe("movieSections", () => {
     expect(movieSections(false).map((section) => section.id)).not.toContain(MOVIE_SECTIONS.latest);
   });
 
-  it("keeps the anchor keyed movie-latest rather than movie-now, even though its chip now reads Now", () => {
+  it("keys the latest-watch anchor movie-latest whatever its chip reads", () => {
     expect(movieSections(true).map((section) => section.id)).not.toContain("movie-now");
   });
 

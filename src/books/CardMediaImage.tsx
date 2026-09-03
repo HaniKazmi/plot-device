@@ -1,11 +1,11 @@
 import { CardDetailBody, CardMediaImage, CardPanel, TypedCardMediaImage, type CardStat } from "../common/Card";
 import type { Book } from "./types";
-import { mediumFills, scoreBand, scoreBandToColour, type Scheme } from "../utils/types";
+import { scoreBand, scoreBandToColour, type Scheme } from "../utils/types";
 import { CURRENT_PLAINDATE, type YearMonthDay } from "../common/date";
 import { hoverCardArtworkSx } from "../common/cardArrangement";
-import { FranchiseStrip, type StripMode } from "../common/FranchiseStrip";
+import { FranchiseStrip, type StripVariant } from "../common/FranchiseStrip";
 import { useFranchiseUnion, type FranchiseEntry } from "../common/franchiseUnion";
-import { bookRows, bookSubtitle, readRange } from "./cardData";
+import { bookEntry, bookRows, bookSubtitle, readRange } from "./cardData";
 import { useBookEpoch, useFranchiseBooks } from "./franchiseContext";
 import { bookItemKey, daysReading } from "./statsData";
 import { useScheme } from "../common/useScheme";
@@ -51,21 +51,10 @@ const BookCardMediaImage: TypedCardMediaImage<Book> = ({ item, ...props }) => (
 
 /**
  * The tab's own franchise in the strip's vocabulary, for the moment before the other three
- * libraries have landed. The book in hand runs to today.
+ * libraries have landed, through the mapper the union draws with.
  */
 const bookEntries = (books: Book[], today: YearMonthDay): FranchiseEntry[] =>
-  books.map((book) => ({
-    key: bookItemKey(book),
-    subject: bookItemKey(book),
-    franchise: book.franchise,
-    medium: "book",
-    fill: mediumFills.book,
-    label: book.name,
-    start: book.startDate,
-    end: book.endDate ?? today,
-    precise: true,
-    hoverCard: () => <BookHoverCard item={book} />,
-  }));
+  books.map((book) => bookEntry(book, today, () => <BookHoverCard item={book} />));
 
 /**
  * The book's franchise across every medium it was met in, with this book as the subject; nothing
@@ -73,7 +62,7 @@ const bookEntries = (books: Book[], today: YearMonthDay): FranchiseEntry[] =>
  * answers until then. The strip places its beads by date, so a series read out of order is drawn
  * in the order it was read; `# in Series` is the drill-down's order, not the strip's.
  */
-export const BookFranchiseStrip = ({ book, mode }: { book: Book; mode?: StripMode }) => {
+export const BookFranchiseStrip = ({ book, variant }: { book: Book; variant?: StripVariant }) => {
   const union = useFranchiseUnion(book.franchise);
   const own = useFranchiseBooks(book);
   const epoch = useBookEpoch();
@@ -88,7 +77,7 @@ export const BookFranchiseStrip = ({ book, mode }: { book: Book; mode?: StripMod
       franchise={book.franchise}
       epoch={epoch}
       today={CURRENT_PLAINDATE}
-      mode={mode}
+      variant={variant}
     />
   );
 };

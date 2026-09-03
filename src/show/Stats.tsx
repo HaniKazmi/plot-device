@@ -35,7 +35,7 @@ import { TopCategoryBand } from "../common/TopList";
 import { GroupedStatList } from "../common/GroupedStatList";
 import { Hero } from "../common/Hero";
 import ShowCardMediaImage, { ShowFranchiseStrip } from "./CardMediaImage";
-import { showHeroRows, showSubtitle } from "./cardData";
+import { showSubtitle } from "./cardData";
 import { statusToColour, type Scheme } from "../utils/types";
 import { useScheme } from "../common/useScheme";
 import { Stack } from "@mui/material";
@@ -172,7 +172,9 @@ const ShowHero = ({ season }: { season: Season }) => {
     <Hero
       item={season}
       MediaComponent={ShowCardMediaImage}
-      kicker={`Last watched · ${formatDate(season.show.lastWatchedDate!)}`}
+      // The episode in hand as well as the date: the title is the show's name, and nothing else
+      // on the hero says which season it is on.
+      kicker={`Last watched · S${season.s}E${season.e} · ${formatDate(season.show.lastWatchedDate!)}`}
       title={season.show.name}
       // The genre wears the same swatch its ledger row and every genre wedge on the tab wear.
       subtitle={showSubtitle(season.show, scheme)}
@@ -181,10 +183,9 @@ const ShowHero = ({ season }: { season: Season }) => {
         <ShowFranchiseStrip
           show={season.show}
           season={season}
-          mode="order"
+          variant="hero"
         />
       }
-      rows={showHeroRows(season.show, scheme)}
     />
   );
 };

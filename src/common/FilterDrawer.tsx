@@ -124,7 +124,7 @@ export const FilterToggle = ({
         />
       }
       label={
-        <Typography sx={{}}>
+        <Typography>
           <Icon sx={{ verticalAlign: "middle" }} /> {label}
         </Typography>
       }

@@ -1,12 +1,12 @@
 import { CardPanel, CardMediaImage, CardDetailBody, TypedCardMediaImage, type CardStat } from "../common/Card";
 import { Season, Show, isShow } from "./types";
-import { mediumFills, statusToColour, type Scheme } from "../utils/types";
+import { statusToColour, type Scheme } from "../utils/types";
 import { useScheme } from "../common/useScheme";
 import { CURRENT_PLAINDATE, YearMonthDay, formatDateRange } from "../common/date";
 import { hoverCardArtworkSx } from "../common/cardArrangement";
-import { FranchiseStrip, type StripMode } from "../common/FranchiseStrip";
+import { FranchiseStrip, type StripVariant } from "../common/FranchiseStrip";
 import { useFranchiseUnion, type FranchiseEntry } from "../common/franchiseUnion";
-import { seasonKey, showRows, showSubject, showSubtitle } from "./cardData";
+import { seasonEntry, seasonKey, showRows, showSubject, showSubtitle } from "./cardData";
 import { useFranchiseShows } from "./franchiseContext";
 import { seasonHours } from "./statsData";
 
@@ -60,24 +60,10 @@ const SHOW_EPOCH = YearMonthDay.get(2008, 1, 1);
 
 /**
  * Every sibling's seasons in the strip's vocabulary, for the moment before the other three
- * libraries have landed. Each season answers its show as its subject, so the card's own show is
- * every one of its seasons and a sibling show's are context.
+ * libraries have landed, through the mapper the union draws with.
  */
 const seasonEntries = (shows: Show[], today: YearMonthDay): FranchiseEntry[] =>
-  shows.flatMap((show) =>
-    show.s.map((season) => ({
-      key: seasonKey(season),
-      subject: showSubject(show),
-      franchise: show.franchise,
-      medium: "show",
-      fill: mediumFills.show,
-      label: `${show.name} S${season.s}`,
-      start: season.startDate,
-      end: season.endDate ?? today,
-      precise: true,
-      hoverCard: () => <ShowHoverCard item={season} />,
-    })),
-  );
+  shows.flatMap((show) => show.s.map((season) => seasonEntry(season, today, () => <ShowHoverCard item={season} />)));
 
 /**
  * The show's franchise across every medium it was met in, with every season of this show as the
@@ -90,7 +76,15 @@ const seasonEntries = (shows: Show[], today: YearMonthDay): FranchiseEntry[] =>
  * Every season of the show is the subject, and the season the card is about — or the latest,
  * for a card about the whole show — is the focus the strip rings harder.
  */
-export const ShowFranchiseStrip = ({ show, season, mode }: { show: Show; season?: Season; mode?: StripMode }) => {
+export const ShowFranchiseStrip = ({
+  show,
+  season,
+  variant,
+}: {
+  show: Show;
+  season?: Season;
+  variant?: StripVariant;
+}) => {
   const union = useFranchiseUnion(show.franchise);
   const own = useFranchiseShows(show);
   const entries = union ?? seasonEntries(own, CURRENT_PLAINDATE);
@@ -105,7 +99,7 @@ export const ShowFranchiseStrip = ({ show, season, mode }: { show: Show; season?
       franchise={show.franchise}
       epoch={SHOW_EPOCH}
       today={CURRENT_PLAINDATE}
-      mode={mode}
+      variant={variant}
     />
   );
 };

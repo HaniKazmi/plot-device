@@ -1,7 +1,9 @@
 import { formatDateRange, type YearMonthDay } from "../common/date";
 import type { LedgerRow, PanelSubtitlePart } from "../common/Card";
 import type { StripSpan } from "../common/timelineStripData";
-import { ageRatingToColour, franchiseToColour, genreToColour, type Scheme } from "../utils/types";
+import type { FranchiseEntry } from "../common/franchiseUnion";
+import type { ReactNode } from "react";
+import { ageRatingToColour, franchiseToColour, genreToColour, mediumFills, type Scheme } from "../utils/types";
 import { namesTheSameThing } from "../utils/stringUtils";
 import { networkToColour, type Season, type Show } from "./types";
 import "../utils/arrayUtils";
@@ -91,8 +93,20 @@ export const showRows = (show: Show, scheme: Scheme): LedgerRow[] => {
   return rows;
 };
 
-/** The two facts the hero leads with beside its strip: the rest of the ledger waits in the card. */
-const HERO_ROW_LABELS = ["Last Watched", "Rating"];
-
-export const showHeroRows = (show: Show, scheme: Scheme): LedgerRow[] =>
-  showRows(show, scheme).filter((row) => HERO_ROW_LABELS.includes(row.label));
+/**
+ * A season in a franchise strip's vocabulary. Every season answers its show as its subject, so a
+ * card's own show is every one of its seasons and a sibling show's are context. One mapper for the
+ * tab's own index and the Omnibus union, so the two cannot draw the same season two ways.
+ */
+export const seasonEntry = (season: Season, today: YearMonthDay, hoverCard: () => ReactNode): FranchiseEntry => ({
+  key: seasonKey(season),
+  subject: showSubject(season.show),
+  franchise: season.show.franchise,
+  medium: "show",
+  fill: mediumFills.show,
+  label: `${season.show.name} S${season.s}`,
+  start: season.startDate,
+  end: season.endDate ?? today,
+  precise: true,
+  hoverCard,
+});

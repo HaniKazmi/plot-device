@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import useData from "../common/useData";
 import { CURRENT_PLAINDATE } from "../common/date";
 import { FranchiseUnionContext } from "../common/franchiseUnion";
@@ -15,9 +15,13 @@ import { buildFranchiseUnion } from "./franchiseUnionData";
  *
  * This provider mounts above every tab, so what it imports at module scope is in the first bundle
  * a visitor downloads. The four domains' cards and everything they draw with are in the tabs'
- * lazy chunks, and a thunk that only resolves them when a pointer reaches a bead keeps them there.
+ * lazy chunks, and a thunk keeps them there. The provider starts the download on mount all the
+ * same: a tooltip is positioned once, when it opens, and a card that resolved into an open tooltip
+ * would grow from an anchor placed for nothing, over the bead it belongs to. Module scope rather
+ * than inside the component, because the React Compiler cannot lower an import expression.
  */
-const OmniHoverCard = lazy(() => import("./CardMediaImage").then((module) => ({ default: module.OmniHoverCard })));
+const loadHoverCard = () => import("./CardMediaImage");
+const OmniHoverCard = lazy(() => loadHoverCard().then((module) => ({ default: module.OmniHoverCard })));
 
 const hoverCard = (item: OmniItem) => () => (
   <Suspense fallback={null}>
@@ -40,6 +44,10 @@ const hoverCard = (item: OmniItem) => () => (
  * a hidden game cannot come back on screen as a bead in a film's franchise.
  */
 export const FranchiseUnionProvider = ({ guestMode, children }: { guestMode: boolean; children: ReactNode }) => {
+  useEffect(() => {
+    void loadHoverCard();
+  }, []);
+
   const [games] = useData(vgDataConfig, VideoGamesTab);
   const [shows] = useData(showDataConfig, ShowsTab);
   const [movies] = useData(movieDataConfig, MoviesTab);

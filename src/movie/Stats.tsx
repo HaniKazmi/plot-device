@@ -32,7 +32,7 @@ import { useSelectBox } from "../common/SelectBoxHook";
 import { useFranchiseMovies } from "./franchiseContext";
 import { format } from "../utils/mathUtils";
 import type { Scheme } from "../utils/types";
-import { movieHeroRows, movieSubtitle } from "./cardData";
+import { movieSubtitle } from "./cardData";
 import MovieCardMediaImage, { MovieFranchiseStrip } from "./CardMediaImage";
 import { MOVIE_SECTIONS } from "./sections";
 import type { FilterDispatch } from "./filterUtils";
@@ -157,10 +157,9 @@ const MovieHero = ({ movie }: { movie: Movie }) => {
       strip={
         <MovieFranchiseStrip
           movie={movie}
-          mode="order"
+          variant="hero"
         />
       }
-      rows={movieHeroRows(movie, scheme)}
     />
   );
 };

@@ -13,12 +13,18 @@ export type FinishedItem = {
 /** The two orders every wall offers; a caller adds its own through `FinishedExtraSort`. */
 export type FinishedSort = "Date" | "Franchise";
 
+export const FINISHED_SORTS: readonly FinishedSort[] = ["Date", "Franchise"];
+
+const isBuiltIn = (sort: string): sort is FinishedSort => (FINISHED_SORTS as readonly string[]).includes(sort);
+
 /**
  * An order a caller adds to its wall, over a figure only its domain holds — a film's score, a
  * book's pages. Highest first, and an item with no figure last rather than first: a wall sorted
  * by score opens on the best, and a film never scored is not the best of anything. `bucket`
  * names the marker's chip for a figure; left off, the figure names itself, which suits a score
- * and not a page count, where every book would be a chip of its own.
+ * and not a page count, where every book would be a chip of its own. The two
+ * built-in labels are reserved: an extra named for one of them is refused by the wall rather than
+ * shadowing it in one consumer and not the other.
  */
 export interface FinishedExtraSort<U> {
   label: string;
@@ -162,7 +168,9 @@ export const finishedItems = <U extends FinishedItem>(
   const withBanners = data.filter(hasBanner);
   if (sort === "Date") return withBanners.sortByKey("startDate", false);
 
-  const extra = extras.find((candidate) => candidate.label === sort);
+  // The built-ins answer first here and in `finishedBucket` alike, so the wall and its marker
+  // cannot part company over a name.
+  const extra = isBuiltIn(sort) ? undefined : extras.find((candidate) => candidate.label === sort);
   if (extra) {
     // A numeric sort rather than `sortByKey`, which puts falsy values first in both directions —
     // a film honestly scored 0 would head a wall sorted by score. The date breaks a tie: many
@@ -213,7 +221,7 @@ export const finishedBucket = <U extends FinishedItem>(
   sort: string,
   extras: readonly FinishedExtraSort<U>[] = [],
 ): string | null => {
-  const extra = extras.find((candidate) => candidate.label === sort);
+  const extra = isBuiltIn(sort) ? undefined : extras.find((candidate) => candidate.label === sort);
   if (extra) {
     const figure = extra.value(item);
     return figure === undefined ? null : extra.bucket ? extra.bucket(figure) : String(figure);

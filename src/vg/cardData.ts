@@ -1,7 +1,9 @@
 import { Year, YearMonthDay, formatDate, formatDateRange } from "../common/date";
 import type { StripSpan } from "../common/timelineStripData";
+import type { FranchiseEntry } from "../common/franchiseUnion";
+import type { ReactNode } from "react";
 import type { LedgerRow, PanelSubtitlePart } from "../common/Card";
-import { franchiseToColour, genreToColour, type Scheme } from "../utils/types";
+import { franchiseToColour, genreToColour, mediumFills, type Scheme } from "../utils/types";
 import { companyToAccent, gameplayToColour, platformToColor, ratingToColour, type VideoGame } from "./types";
 import "../utils/arrayUtils";
 import "../utils/mapUtils";
@@ -185,8 +187,22 @@ export const gameRows = (game: VideoGame, scheme: Scheme): LedgerRow[] => {
   return rows;
 };
 
-/** The two facts the hero leads with beside its strip: the rest of the ledger waits in the card. */
-const HERO_ROW_LABELS = ["Released", "By"];
-
-export const gameHeroRows = (game: VideoGame, scheme: Scheme): LedgerRow[] =>
-  gameRows(game, scheme).filter((row) => HERO_ROW_LABELS.includes(row.label));
+/**
+ * A game in a franchise strip's vocabulary. A year-only start spans its whole year with imprecise
+ * edges: the estimate the tab's own strip shares a year out with needs the whole library to divide
+ * it between, and a franchise holds two or three entries of it. One mapper for the tab's own index
+ * and the Omnibus union, so the two cannot draw the same game two ways.
+ */
+export const gameEntry = (game: VideoGame, today: YearMonthDay, hoverCard: () => ReactNode): FranchiseEntry => ({
+  key: gameKey(game),
+  subject: gameKey(game),
+  franchise: game.franchise,
+  medium: "game",
+  fill: mediumFills.game,
+  label: game.name,
+  start: game.startDate.firstDay(),
+  // Still being played, whatever precision the start carries.
+  end: game.endDate ? game.endDate.lastDay() : today,
+  precise: !(game.startDate instanceof Year) && !(game.endDate instanceof Year),
+  hoverCard,
+});

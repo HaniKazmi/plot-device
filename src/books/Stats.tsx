@@ -33,7 +33,7 @@ import { useSelectBox } from "../common/SelectBoxHook";
 import { format } from "../utils/mathUtils";
 import { groupsOnce, type DrilldownGroup } from "../common/statsData";
 import { genreToColour, scoreBand, scoreBandToColour, scoreBands, type Scheme } from "../utils/types";
-import { bookHeroRows, bookSubtitle } from "./cardData";
+import { bookSubtitle } from "./cardData";
 import BookCardMediaImage, { BookFranchiseStrip } from "./CardMediaImage";
 import { BOOK_SECTIONS } from "./sections";
 import type { FilterDispatch } from "./filterUtils";
@@ -153,10 +153,9 @@ const BookHero = ({ book }: { book: Book }) => {
       strip={
         <BookFranchiseStrip
           book={book}
-          mode="order"
+          variant="hero"
         />
       }
-      rows={bookHeroRows(book, scheme)}
     />
   );
 };

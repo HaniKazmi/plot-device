@@ -1,11 +1,11 @@
 import { CardPanel, CardMediaImage, CardDetailBody, TypedCardMediaImage, type CardStat } from "../common/Card";
 import { cinemaLabel, scoreBand, scoreBandToColour, type Movie } from "./types";
-import { mediumFills, type Scheme } from "../utils/types";
+import type { Scheme } from "../utils/types";
 import { CURRENT_PLAINDATE, formatDate } from "../common/date";
 import { hoverCardArtworkSx } from "../common/cardArrangement";
-import { FranchiseStrip, type StripMode } from "../common/FranchiseStrip";
+import { FranchiseStrip, type StripVariant } from "../common/FranchiseStrip";
 import { useFranchiseUnion, type FranchiseEntry } from "../common/franchiseUnion";
-import { movieRows, movieSubtitle } from "./cardData";
+import { movieEntry, movieRows, movieSubtitle } from "./cardData";
 import { useFranchiseMovies } from "./franchiseContext";
 import { MOVIE_EPOCH, movieItemKey } from "./statsData";
 import { useScheme } from "../common/useScheme";
@@ -47,28 +47,17 @@ const MovieCardMediaImage: TypedCardMediaImage<Movie> = ({ item, ...props }) => 
 
 /**
  * The tab's own franchise in the strip's vocabulary, for the moment before the other three
- * libraries have landed. A film is a point — `start === end` — which the strip draws as a dot.
+ * libraries have landed, through the mapper the union draws with.
  */
 const movieEntries = (movies: Movie[]): FranchiseEntry[] =>
-  movies.map((movie) => ({
-    key: movieItemKey(movie),
-    subject: movieItemKey(movie),
-    franchise: movie.franchise,
-    medium: "movie",
-    fill: mediumFills.movie,
-    label: movie.name,
-    start: movie.startDate,
-    end: movie.startDate,
-    precise: true,
-    hoverCard: () => <MovieHoverCard item={movie} />,
-  }));
+  movies.map((movie) => movieEntry(movie, () => <MovieHoverCard item={movie} />));
 
 /**
  * The film's franchise across every medium it was met in, with this film as the subject; nothing
  * for a standalone. The union answers once all four libraries are here, and the tab's own index
  * answers until then.
  */
-export const MovieFranchiseStrip = ({ movie, mode }: { movie: Movie; mode?: StripMode }) => {
+export const MovieFranchiseStrip = ({ movie, variant }: { movie: Movie; variant?: StripVariant }) => {
   const union = useFranchiseUnion(movie.franchise);
   const own = useFranchiseMovies(movie);
   const entries = union ?? movieEntries(own);
@@ -82,7 +71,7 @@ export const MovieFranchiseStrip = ({ movie, mode }: { movie: Movie; mode?: Stri
       franchise={movie.franchise}
       epoch={MOVIE_EPOCH}
       today={CURRENT_PLAINDATE}
-      mode={mode}
+      variant={variant}
     />
   );
 };

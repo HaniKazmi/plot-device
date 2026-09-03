@@ -50,7 +50,7 @@ import {
 import { TopCategoryBand } from "../common/TopList";
 import { GroupedStatList } from "../common/GroupedStatList";
 import VgCardMediaImage, { GameFranchiseStrip } from "./CardMediaImage";
-import { gameHeroRows, gameSubtitle, spanKey } from "./cardData";
+import { gameSubtitle, spanKey } from "./cardData";
 import { Stack } from "@mui/material";
 import type { FilterDispatch, YearType } from "./filterUtils";
 import { statusToColour } from "../utils/types";
@@ -160,10 +160,9 @@ const VgHero = ({ game }: { game: VideoGame }) => {
       strip={
         <GameFranchiseStrip
           game={game}
-          mode="order"
+          variant="hero"
         />
       }
-      rows={gameHeroRows(game, scheme)}
     />
   );
 };

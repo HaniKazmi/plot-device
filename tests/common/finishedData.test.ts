@@ -338,3 +338,14 @@ describe("a caller's own sort", () => {
     expect(finishedItems(items, "Date", byScore).map((entry) => entry.name)).toEqual(["b", "a"]);
   });
 });
+
+describe("the built-in sort names", () => {
+  const scored = (name: string, score: number | undefined, year: number) => ({ ...item(name, "a.jpg", year), score });
+  const shadowing = [{ label: "Date", value: (entry: { score?: number }) => entry.score }];
+
+  it("answer for the wall and the marker alike, whatever a caller's sort is named", () => {
+    const items = [scored("old ten", 10, 2010), scored("new one", 1, 2024)];
+    expect(finishedItems(items, "Date", shadowing).map((entry) => entry.name)).toEqual(["new one", "old ten"]);
+    expect(finishedBucket(scored("old ten", 10, 2010), "Date", shadowing)).toBe("2010");
+  });
+});
