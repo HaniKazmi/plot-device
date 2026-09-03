@@ -16,7 +16,7 @@ import { FranchiseContext, movieFranchise } from "./franchiseContext";
 import { visibleFranchiseIndex } from "../common/franchiseIndex";
 import { guestFilter, type FilterDispatch, type FilterState } from "./filterUtils";
 import { format } from "../utils/mathUtils";
-import { finishedCount } from "../common/finishedData";
+import { finishedCount, type FinishedExtraSort } from "../common/finishedData";
 import { useScheme } from "../common/useScheme";
 
 /**
@@ -29,6 +29,8 @@ const MEASURES: SegmentOption<Measure>[] = [
   { value: "Films", label: "Films" },
   { value: "Hours", label: "Hours" },
 ];
+
+const MOVIE_SORTS: readonly FinishedExtraSort<Movie>[] = [{ label: "Score", value: (movie) => movie.score }];
 
 const SuspenseBlock = ({
   filteredData,
@@ -124,6 +126,9 @@ const Graphs = memo(
             colour={(item) => ratingToColour(item, scheme)}
             MediaComponent={MovieCardMediaImage}
             landscape
+            // Score is a wall order rather than a strip of its own: "what was best" is the same
+            // library read in another order, and the wall is where a whole order can be read.
+            sorts={MOVIE_SORTS}
           />
         </Section>
       </Stack>

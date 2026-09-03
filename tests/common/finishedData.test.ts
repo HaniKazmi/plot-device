@@ -296,3 +296,45 @@ describe("finishedColumns", () => {
     }
   });
 });
+
+describe("a caller's own sort", () => {
+  const scored = (name: string, score: number | undefined, year: number) => ({ ...item(name, "a.jpg", year), score });
+  const byScore = [{ label: "Score", value: (entry: { score?: number }) => entry.score }];
+
+  it("orders highest first, breaking a tie by the newer date", () => {
+    const items = [scored("old nine", 9, 2010), scored("seven", 7, 2020), scored("new nine", 9, 2024)];
+    expect(finishedItems(items, "Score", byScore).map((entry) => entry.name)).toEqual([
+      "new nine",
+      "old nine",
+      "seven",
+    ]);
+  });
+
+  it("puts an item with no figure last rather than first, and keeps a figure of zero in its place", () => {
+    const items = [scored("unscored", undefined, 2024), scored("zero", 0, 2020), scored("five", 5, 2018)];
+    expect(finishedItems(items, "Score", byScore).map((entry) => entry.name)).toEqual(["five", "zero", "unscored"]);
+  });
+
+  it("still filters by artwork", () => {
+    const items = [scored("shown", 8, 2020), { ...scored("hidden", 9, 2021), banner: undefined }];
+    expect(finishedItems(items, "Score", byScore).map((entry) => entry.name)).toEqual(["shown"]);
+  });
+
+  it("buckets on the figure itself unless the sort names a coarser bucket", () => {
+    expect(finishedBucket(scored("nine", 9, 2020), "Score", byScore)).toBe("9");
+    expect(finishedBucket(scored("unscored", undefined, 2020), "Score", byScore)).toBeNull();
+    const byPages = [
+      {
+        label: "Pages",
+        value: (entry: { score?: number }) => entry.score,
+        bucket: (v: number) => `${Math.floor(v / 100) * 100}+`,
+      },
+    ];
+    expect(finishedBucket(scored("long", 772, 2020), "Pages", byPages)).toBe("700+");
+  });
+
+  it("falls through to the built-in orders when the sort is not one of the caller's", () => {
+    const items = [scored("a", 1, 2010), scored("b", 2, 2020)];
+    expect(finishedItems(items, "Date", byScore).map((entry) => entry.name)).toEqual(["b", "a"]);
+  });
+});

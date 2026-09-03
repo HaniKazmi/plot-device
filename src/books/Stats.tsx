@@ -124,8 +124,6 @@ const Stats = ({
       <Section id={BOOK_SECTIONS.explore}>
         <StatBand>
           <RecentlyFinished data={data} />
-          <BestRated data={data} />
-          <LongestReads data={data} />
           <MostRead
             data={data}
             groupsBy={groupsBy}
@@ -273,40 +271,6 @@ const RecentlyFinished = ({ data }: { data: Book[] }) => (
     title="Recently Finished"
     content={data.filter((book) => book.endDate).sortByKey("endDate")}
     labelComponent={statsCardLabelFinished}
-  />
-);
-
-/**
- * A fixed card rather than a mode of Most Read: "what was best" and "where the time went" are
- * different questions, and a card whose title changes with a select box reads as a bug. Empty
- * until the Score column has values, and kept so the section's shape does not change the day it
- * does.
- */
-const BestRated = ({ data }: { data: Book[] }) => {
-  const rated = data
-    .filter((book) => book.score !== undefined)
-    // The finish breaks the tie: many books share a nine, and the recent ones say more.
-    .sortByKey("endDate")
-    // A numeric sort rather than `sortByKey`, which puts falsy values first in both directions —
-    // a book honestly scored 0 would head a list titled "Best Rated".
-    .toSorted((a, b) => b.score! - a.score!);
-  return (
-    <BookStatList
-      icon={<Grade />}
-      title="Best Rated"
-      content={rated}
-      labelComponent={statsCardLabelFinished}
-    />
-  );
-};
-
-/** The library by heft. A numeric sort: `sortByKey` would put a book of no pages first. */
-const LongestReads = ({ data }: { data: Book[] }) => (
-  <BookStatList
-    icon={<MenuBook />}
-    title="Longest Reads"
-    content={data.toSorted((a, b) => b.pages - a.pages)}
-    labelComponent={statsCardLabelPages}
   />
 );
 

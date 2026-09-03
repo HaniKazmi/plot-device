@@ -125,7 +125,6 @@ const Stats = ({
       <Section id={MOVIE_SECTIONS.explore}>
         <StatBand>
           <RecentlyWatched data={data} />
-          <BestRated data={data} />
           <MostWatched
             data={data}
             measure={measure}
@@ -253,28 +252,6 @@ const RecentlyWatched = ({ data }: { data: Movie[] }) => (
     labelComponent={statsCardLabelWatched}
   />
 );
-
-/**
- * A fixed card rather than a mode of Most Watched: "what was best" and "where the time went" are
- * different questions, and a card whose title changes with a select box reads as a bug.
- */
-const BestRated = ({ data }: { data: Movie[] }) => {
-  const rated = data
-    .filter((movie) => movie.score !== undefined)
-    // Watch date breaks the tie: many films share a nine, and the recent ones say more.
-    .sortByKey("startDate")
-    // A numeric sort rather than `sortByKey`, which puts falsy values first in both directions —
-    // a film honestly scored 0 would head a list titled "Best Rated".
-    .toSorted((a, b) => b.score! - a.score!);
-  return (
-    <MovieStatList
-      icon={<Grade />}
-      title="Best Rated"
-      content={rated}
-      labelComponent={statsCardLabelScore}
-    />
-  );
-};
 
 const movieMostWatchedOptions = ["name", ...movieTopOptions] as const;
 

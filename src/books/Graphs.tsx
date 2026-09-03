@@ -18,7 +18,7 @@ import { franchiseIndex } from "../common/franchiseIndex";
 import type { FilterDispatch, FilterState } from "./filterUtils";
 import { bookKey, currentlyReading, earliestYear } from "./statsData";
 import { format } from "../utils/mathUtils";
-import { finishedCount } from "../common/finishedData";
+import { finishedCount, type FinishedExtraSort } from "../common/finishedData";
 import { genreToColour } from "../utils/types";
 import { useScheme } from "../common/useScheme";
 
@@ -39,6 +39,13 @@ const MEASURES: SegmentOption<Measure>[] = [
  * a strip answers for the whole series whatever the filters left, and a scale that opened where
  * the filtered data began would redraw every card's strip on a filter change.
  */
+const BOOK_SORTS: readonly FinishedExtraSort<Book>[] = [
+  { label: "Score", value: (book) => book.score },
+  // Bucketed by the hundred, and never as a bare four digits, which the rail would read as a
+  // year: "700+" is a chip, where every page count would be a chip of its own.
+  { label: "Pages", value: (book) => book.pages, bucket: (pages) => `${Math.floor(pages / 100) * 100}+` },
+];
+
 const SuspenseBlock = ({
   filteredData,
   unfilteredData,
@@ -142,6 +149,10 @@ const Graphs = memo(
             // Genre for the border: the ramp answers the neutral off its table and never throws, so
             // it cannot take a wall of hundreds of cards down on one unfamiliar value.
             colour={(item) => genreToColour(item.genre, scheme)}
+            // Score and pages are wall orders rather than strips of their own: "what was best"
+            // and "what was longest" are the same library read in another order, and the wall is
+            // where a whole order can be read.
+            sorts={BOOK_SORTS}
             // A reread is a second row with the title and release year of the first, so the wall's
             // own key — the two together — would name both cards alike.
             keyOf={bookKey}

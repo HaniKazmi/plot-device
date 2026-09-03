@@ -10,7 +10,21 @@ export type FinishedItem = {
   name: string;
 };
 
+/** The two orders every wall offers; a caller adds its own through `FinishedExtraSort`. */
 export type FinishedSort = "Date" | "Franchise";
+
+/**
+ * An order a caller adds to its wall, over a figure only its domain holds — a film's score, a
+ * book's pages. Highest first, and an item with no figure last rather than first: a wall sorted
+ * by score opens on the best, and a film never scored is not the best of anything. `bucket`
+ * names the marker's chip for a figure; left off, the figure names itself, which suits a score
+ * and not a page count, where every book would be a chip of its own.
+ */
+export interface FinishedExtraSort<U> {
+  label: string;
+  value: (item: U) => number | undefined;
+  bucket?: (value: number) => string;
+}
 
 /**
  * How big a card the wall draws. `Compact` is the wall as a library — as many works on a screen as
@@ -140,9 +154,25 @@ export const finishedKey = (item: FinishedItem) =>
  * The last step is the start date, which is what settles a Shows wall: that model dates only the
  * watching, so every pair in it ties on release and falls through to here.
  */
-export const finishedItems = <U extends FinishedItem>(data: readonly U[], sort: FinishedSort): U[] => {
+export const finishedItems = <U extends FinishedItem>(
+  data: readonly U[],
+  sort: string,
+  extras: readonly FinishedExtraSort<U>[] = [],
+): U[] => {
   const withBanners = data.filter(hasBanner);
   if (sort === "Date") return withBanners.sortByKey("startDate", false);
+
+  const extra = extras.find((candidate) => candidate.label === sort);
+  if (extra) {
+    // A numeric sort rather than `sortByKey`, which puts falsy values first in both directions —
+    // a film honestly scored 0 would head a wall sorted by score. The date breaks a tie: many
+    // films share a nine, and the recent ones say more.
+    return withBanners.toSorted((a, b) => {
+      const [x, y] = [extra.value(a), extra.value(b)];
+      if (x === undefined || y === undefined) return (x === undefined ? 1 : 0) - (y === undefined ? 1 : 0);
+      return y - x || byDate(b.startDate, a.startDate);
+    });
+  }
 
   return withBanners.toSorted(
     (a, b) =>
@@ -178,7 +208,16 @@ export const finishedCount = (data: readonly FinishedItem[]): number => data.fil
  * item with no date is one the date sort places first, so the topmost card on screen can be one.
  * The marker then shows nothing rather than the year of some other row.
  */
-export const finishedBucket = (item: FinishedItem, sort: FinishedSort): string | null => {
+export const finishedBucket = <U extends FinishedItem>(
+  item: U,
+  sort: string,
+  extras: readonly FinishedExtraSort<U>[] = [],
+): string | null => {
+  const extra = extras.find((candidate) => candidate.label === sort);
+  if (extra) {
+    const figure = extra.value(item);
+    return figure === undefined ? null : extra.bucket ? extra.bucket(figure) : String(figure);
+  }
   const value: PlainDate | string | undefined = sort === "Date" ? item.startDate : franchiseKey(item);
   if (value instanceof PlainDate) return String(value.firstDay().year);
   if (typeof value === "string") return value.charAt(0).toUpperCase() || null;

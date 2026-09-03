@@ -15,13 +15,16 @@ import {
   finishedItems,
   finishedKey,
   type FinishedDensity,
+  type FinishedExtraSort,
   type FinishedItem,
   type FinishedSort,
 } from "./finishedData";
 import { withAlpha } from "../utils/colourUtils";
 import { shapeToAspect } from "./cardArrangement";
 
-const sortOptions: FinishedSort[] = ["Date", "Franchise"];
+const SORT_OPTIONS: readonly FinishedSort[] = ["Date", "Franchise"];
+/** One empty list, so a wall with no extra sorts does not mint a fresh array every render. */
+const NO_SORTS: readonly never[] = [];
 const densityOptions: FinishedDensity[] = ["Compact", "Large", "Full"];
 
 /**
@@ -52,6 +55,7 @@ const FinishedGrid = <U extends FinishedItem>({
   dimmed,
   recent,
   sort,
+  sorts,
   density,
   colour,
   landscape,
@@ -63,7 +67,8 @@ const FinishedGrid = <U extends FinishedItem>({
   /** The deferred value is lagging the filter, and the trade is worth making visible. */
   dimmed: boolean;
   recent: readonly U[];
-  sort: FinishedSort;
+  sort: string;
+  sorts: readonly FinishedExtraSort<U>[];
   density: FinishedDensity;
   colour?: (item: U) => string;
   landscape: boolean;
@@ -84,7 +89,7 @@ const FinishedGrid = <U extends FinishedItem>({
         key={`${keyOf(item)}-${isDialog ? "dialog" : "card"}`}
         // Written at render from the same item and sort the order came from, so the marker
         // reads a position off the DOM instead of keeping a parallel list to index into.
-        data-bucket={finishedBucket(item, sort) ?? undefined}
+        data-bucket={finishedBucket(item, sort, sorts) ?? undefined}
         size={finishedColumns(landscape, density)}
         sx={{
           alignSelf: "stretch",
@@ -134,6 +139,7 @@ const Finished = <U extends FinishedItem>({
   colour,
   landscape: landscapeProp,
   keyOf: keyOfProp,
+  sorts: sortsProp,
   MediaComponent,
 }: {
   title: string;
@@ -155,16 +161,20 @@ const Finished = <U extends FinishedItem>({
    * with nothing on screen to say so. Left off, a card is keyed the way the wall sorts it.
    */
   keyOf?: (item: U) => string;
+  /** Orders over the domain's own figures, offered after the two every wall has. */
+  sorts?: readonly FinishedExtraSort<U>[];
   MediaComponent: TypedCardMediaImage<U>;
 }) => {
   // Applied after the pattern: a default inside it bails the component out of the React Compiler.
   const landscape = landscapeProp ?? false;
   const keyOf = keyOfProp ?? finishedKey;
+  const sorts: readonly FinishedExtraSort<U>[] = sortsProp ?? NO_SORTS;
+  const sortOptions: readonly string[] = [...SORT_OPTIONS, ...sorts.map((extra) => extra.label)];
   // Joined onto the same muted caption `SectionHeader` already renders beside the title, rather
   // than a second piece of header markup: a wall not asked for a border key gets exactly the
   // header it would without one.
   const countWithBorder = [count, borderKey && `border · ${borderKey}`].filter(Boolean).join(" · ") || undefined;
-  const [sort, selectBox] = useSelectBox(sortOptions, "Date");
+  const [sort, selectBox] = useSelectBox<string>(sortOptions, "Date");
   // Each view opens at its own size and holds the reader's choice for the visit rather than
   // writing it anywhere: the wall is the tallest thing on its page, so the size it opens at is
   // what the page is, and a stored preference would have to be read before the first paint to
@@ -175,7 +185,7 @@ const Finished = <U extends FinishedItem>({
   const [dialogDensity, setDialogDensity] = useState<FinishedDensity>("Full");
 
   const slowData = useDeferredValue(data, []);
-  const recent = finishedItems(slowData, sort);
+  const recent = finishedItems(slowData, sort, sorts);
 
   // The marker measures and queries the page itself, so it holds the two elements it reads rather
   // than a copy of what they contain. Both are the inline grid's: the dialog renders the same
@@ -216,6 +226,7 @@ const Finished = <U extends FinishedItem>({
           dimmed={slowData !== data}
           recent={recent}
           sort={sort}
+          sorts={sorts}
           density={isDialog ? dialogDensity : density}
           colour={colour}
           landscape={landscape}
