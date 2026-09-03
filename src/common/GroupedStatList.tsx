@@ -40,6 +40,8 @@ export const GroupedStatList = <T,>(props: {
   dialogPictureWidth: GridListLayout["dialogPictureWidth"];
   shape?: ArtworkShape;
   divider?: boolean;
+  /** How many groups the collapsed strip holds, where the shell's default is the wrong number. */
+  collapsed?: number;
 }) => {
   const { option, colourOf, MediaComponent, dialogSort, nameOf, dialogPictureWidth, shape } = props;
   const [dialogContent, setDialogContent] = useState<DrilldownGroup<T> | null>(null);
@@ -67,6 +69,7 @@ export const GroupedStatList = <T,>(props: {
         controls={props.controls}
         title={props.title}
         content={props.groups}
+        collapsed={props.collapsed}
         chipComponent={(entry) => ({
           icon: <ExpandCircleDown color="action" />,
           onClick: () => setDialogContent(entry),

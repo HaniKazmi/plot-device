@@ -366,7 +366,8 @@ const bookScoreChip = (book: Book, scheme: Scheme) =>
     ? { label: String(book.score), colour: scoreBandToColour(scoreBand(book.score), scheme) }
     : undefined;
 
-const bookStatListSharedProps: Pick<StatListBaseProps<Book>, "shape" | "divider" | "width"> & GridListLayout = {
+const bookStatListSharedProps: Pick<StatListBaseProps<Book>, "shape" | "divider" | "width" | "collapsed"> &
+  GridListLayout = {
   // Covers, not banners — the cards keep the shape the library grid shows them at.
   shape: "cover",
   divider: true,
@@ -375,6 +376,8 @@ const bookStatListSharedProps: Pick<StatListBaseProps<Book>, "shape" | "divider"
   width: [12, 12, 6],
   pictureWidth: [6, 4, 3],
   dialogPictureWidth: [6, 3, 2],
+  // Two full rows of four: the shell's six is a row and a half here.
+  collapsed: 8,
 };
 
 const BookStatList = (
