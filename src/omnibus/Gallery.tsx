@@ -88,8 +88,11 @@ const Gallery = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
   const scheme = useScheme();
   const band = mediumBand(scheme);
 
-  const [category, controls] = useSelectBox(GALLERY_CATEGORIES, "genre");
-  const [sort, setSort] = useState<GallerySort>("size");
+  // Opens on franchises, newest first: the series met lately, which is the question this wall
+  // answers that the genre band above it does not, and the one order the tab's own Recently
+  // Finished list does not already give.
+  const [category, controls] = useSelectBox(GALLERY_CATEGORIES, "franchise");
+  const [sort, setSort] = useState<GallerySort>("recent");
   const [drilldown, setDrilldown] = useState<ShelfGroup | null>(null);
 
   const groups = galleryGroups(data, category, measure, sort, CURRENT_PLAINDATE);

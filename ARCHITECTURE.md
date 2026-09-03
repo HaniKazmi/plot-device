@@ -310,7 +310,7 @@ across the page. A row whose split column is empty is dropped rather than openin
 name, and the header counts the rows drawn rather than the rows handed in.
 
 **The gallery** (`omnibus/Gallery.tsx`, `omnibus/galleryData.ts`) shelves the union by genre,
-franchise, rating or decade, each shelf a `common/Filmstrip` (below) with a drill-down behind its
+franchise, rating or decade — opening on franchises, newest first, the series met lately — each shelf a `common/Filmstrip` (below) with a drill-down behind its
 handle. Each picture names its medium in a band along its top rather than in a chip over it, in
 that medium's own fill: a chip says which of the four a card is by covering the artwork it is
 labelling, on every card, on six shelves at once. The band is the card's `mediaBand`
