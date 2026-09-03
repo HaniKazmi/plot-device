@@ -54,10 +54,12 @@ const NavBar = ({ setGuestMode }: { setGuestMode: (value: boolean) => void }) =>
         marginBottom: theme.spacing(2),
         // The dark scheme paints the bar as a tint rather than the full-strength primary
         // (`Google.tsx`), so a 3px rule in the primary's own hue is what still tells five tabs
-        // apart at a glance. `applyStyles` rather than `theme.palette.mode`, which reads the
-        // light scheme's literal under `cssVariables: true` regardless of which paper is on
-        // screen (AGENTS.md).
-        ...(darkBar && theme.applyStyles("dark", { borderBottom: `3px solid ${darkBar.rule}` })),
+        // apart at a glance. An inset shadow rather than a border keeps the bar the same height
+        // in both schemes — a border would shift every reader's scroll position by 3px on the
+        // system's own light/dark switch, which this app repaints live (`useScheme.ts`).
+        // `applyStyles` rather than `theme.palette.mode`, which reads the light scheme's literal
+        // under `cssVariables: true` regardless of which paper is on screen (AGENTS.md).
+        ...(darkBar && theme.applyStyles("dark", { boxShadow: `inset 0 -3px 0 0 ${darkBar.rule}` })),
       })}
       {...events}
     >
