@@ -118,7 +118,10 @@ export interface CardMediaImageProps {
    * the one other thing in the picture's way.
    */
   mediaBand?: { node: ReactNode; height: number };
-  /** Derive the card's theme colour from the image once it loads. Costs a canvas read per image. */
+  /**
+   * Derive the card's theme colour from the image once it loads. Costs a canvas read per image.
+   * Given alongside `colour`, the card wears `colour` and its expanded dialog wears the sample.
+   */
   extractColour?: boolean;
 }
 
@@ -269,7 +272,13 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
   // lookups answer `""` for a value outside their vocabulary, and the empty string reaching
   // `getContrastText` through the chip's fallback chain throws and takes the whole page down —
   // "no colour" has to mean `undefined` from here on.
-  const colour = propColour || (extracted && extracted.image === image ? extracted.colour : undefined);
+  const sampled = extracted && extracted.image === image ? extracted.colour : undefined;
+  const colour = propColour || sampled;
+  // The expanded card keeps the artwork's own colour whatever the thumbnail was painted: a card
+  // given a `colour` and asked to extract is one told apart from its neighbours by a colour that
+  // is not its picture's — the Now band's, painted in its tab's bar — and opened, the picture is
+  // the whole first screen and its own colour is the one that belongs beside it.
+  const dialogColour = extractColour ? sampled : colour;
   /**
    * The artwork's shape, which is what lets the dialog scale it up to the viewport rather than
    * only down. Held as the ratio rather than as the decision it feeds, so the decision can be left
@@ -299,9 +308,10 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
 
   const theme = useTheme();
   const palette = artworkPalette(colour, theme);
+  const dialogPalette = artworkPalette(dialogColour, theme);
 
   const readColour = (img: HTMLImageElement | null) => {
-    if (img && !colour) extractColourFrom(img, (read) => setExtracted({ image, colour: read }));
+    if (img && extractColour && !sampled) extractColourFrom(img, (read) => setExtracted({ image, colour: read }));
   };
 
   // `load` does not bubble, so React delivers it through a root listener that only sees events
@@ -311,8 +321,8 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
   // means the image is there to be read whether or not the event arrived.
   useEffect(() => {
     const img = imgRef.current;
-    if (img?.complete) readImage(img, image, extractColour && !colour, setRatio, setExtracted);
-  }, [extractColour, colour, image]);
+    if (img?.complete) readImage(img, image, extractColour && !sampled, setRatio, setExtracted);
+  }, [extractColour, sampled, image]);
 
   /**
    * The box the artwork occupies, whether or not there is artwork to put in it. The shape's own
@@ -433,7 +443,7 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
                 }}
                 loading={lazy ? "lazy" : undefined}
                 ref={imgRef}
-                onLoad={(el) => readImage(el.currentTarget, image, extractColour && !colour, setRatio, setExtracted)}
+                onLoad={(el) => readImage(el.currentTarget, image, extractColour && !sampled, setRatio, setExtracted)}
                 onError={() => setFailedImage(image)}
                 sx={mediaSx}
               />
@@ -476,77 +486,79 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
               transition: { onExited: detail.onExited },
             }}
           >
-            <Card
-              variant="elevation"
-              sx={{
-                backgroundColor: palette.ground,
-                color: palette.onGround,
-              }}
-            >
-              <Box
-                onClick={detail.hide}
+            <ArtworkAccent.Provider value={dialogColour}>
+              <Card
+                variant="elevation"
                 sx={{
-                  position: "relative",
-                }}
-              >
-                <CardMedia
-                  component="img"
-                  crossOrigin="anonymous"
-                  sx={(theme) => {
-                    // `svh` and not `vh`, because a phone reports `vh` with its toolbar retracted, so
-                    // an image sized to it overflows the screen it is meant to fit. `dvh` would track
-                    // the toolbar instead, and resize the artwork under the reader at the moment they
-                    // scroll past it to the details.
-                    const room = {
-                      width: `calc(100vw - ${theme.spacing(4)})`,
-                      height: `calc(100svh - ${theme.spacing(4)})`,
-                    };
-
-                    return {
-                      objectFit: "contain",
-                      display: "block",
-                      // On their own these only ever take away: an element with an automatic width is
-                      // already its intrinsic width, so artwork smaller than the screen stays small.
-                      // They are still the whole rule until the shape is known.
-                      maxWidth: room.width,
-                      maxHeight: room.height,
-                      ...(ratio && {
-                        // Filling the width and deriving the height scales the artwork up as well as
-                        // down. Which of the two is the binding one is left to `min`, so it is decided
-                        // against the room actually available and decided again on a rotation — where
-                        // a stored answer would be the one from whichever way round the screen was
-                        // when the image loaded.
-                        width: `min(${room.width}, calc(${room.height} * ${ratio}))`,
-                        height: "auto",
-                      }),
-                    };
-                  }}
-                  src={image}
-                  title={alt}
-                  loading="lazy"
-                  onClick={detail.hide}
-                />
-              </Box>
-              <Box
-                sx={{
-                  display: "flex",
-                  // The same line every other surface draws where it meets the artwork it was
-                  // sampled from. A gradient fading the image into the ground joins them instead,
-                  // which reads as the artwork running out rather than as one card in two parts —
-                  // and spends the bottom tenth of every image to do it.
-                  borderTop: palette.seam,
+                  backgroundColor: dialogPalette.ground,
+                  color: dialogPalette.onGround,
                 }}
               >
                 <Box
+                  onClick={detail.hide}
                   sx={{
-                    flexGrow: "1",
-                    width: "0px",
+                    position: "relative",
                   }}
                 >
-                  {detailComponent?.()}
+                  <CardMedia
+                    component="img"
+                    crossOrigin="anonymous"
+                    sx={(theme) => {
+                      // `svh` and not `vh`, because a phone reports `vh` with its toolbar retracted, so
+                      // an image sized to it overflows the screen it is meant to fit. `dvh` would track
+                      // the toolbar instead, and resize the artwork under the reader at the moment they
+                      // scroll past it to the details.
+                      const room = {
+                        width: `calc(100vw - ${theme.spacing(4)})`,
+                        height: `calc(100svh - ${theme.spacing(4)})`,
+                      };
+
+                      return {
+                        objectFit: "contain",
+                        display: "block",
+                        // On their own these only ever take away: an element with an automatic width is
+                        // already its intrinsic width, so artwork smaller than the screen stays small.
+                        // They are still the whole rule until the shape is known.
+                        maxWidth: room.width,
+                        maxHeight: room.height,
+                        ...(ratio && {
+                          // Filling the width and deriving the height scales the artwork up as well as
+                          // down. Which of the two is the binding one is left to `min`, so it is decided
+                          // against the room actually available and decided again on a rotation — where
+                          // a stored answer would be the one from whichever way round the screen was
+                          // when the image loaded.
+                          width: `min(${room.width}, calc(${room.height} * ${ratio}))`,
+                          height: "auto",
+                        }),
+                      };
+                    }}
+                    src={image}
+                    title={alt}
+                    loading="lazy"
+                    onClick={detail.hide}
+                  />
                 </Box>
-              </Box>
-            </Card>
+                <Box
+                  sx={{
+                    display: "flex",
+                    // The same line every other surface draws where it meets the artwork it was
+                    // sampled from. A gradient fading the image into the ground joins them instead,
+                    // which reads as the artwork running out rather than as one card in two parts —
+                    // and spends the bottom tenth of every image to do it.
+                    borderTop: palette.seam,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      flexGrow: "1",
+                      width: "0px",
+                    }}
+                  >
+                    {detailComponent?.()}
+                  </Box>
+                </Box>
+              </Card>
+            </ArtworkAccent.Provider>
           </Dialog>
         )}
       </Card>

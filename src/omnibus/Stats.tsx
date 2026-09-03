@@ -306,8 +306,9 @@ const NowCard = <T,>(props: {
     >
       <props.MediaComponent
         item={props.item}
-        // The artwork's own colour only where the tab has no bar colour to lend — no tab today.
-        extractColour={ground === undefined}
+        // Sampled as well as painted: the card wears the bar's colour, and the expanded card it
+        // opens wears the artwork's own, as it does from every other surface.
+        extractColour
         colour={ground}
         shape={shape}
         // The caller has sized the artwork itself, so the column is the picture's width rather than
