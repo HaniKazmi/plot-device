@@ -10,21 +10,35 @@ import { useSyncExternalStore } from "react";
  *
  * Stores are kept per query at module scope because `subscribe` has to be the same function across
  * renders: a fresh one each time makes React tear the listener down and put it back on every
- * render. The `window` is read inside the callbacks rather than beside them, so importing this
- * module does not require one.
+ * render. Each store holds **one** `MediaQueryList` with **one** native listener fanned out to a
+ * set of callers, because a component asks per instance and a chart is hundreds of them: a list
+ * minted inside `subscribe` is a native listener each, and `window.matchMedia` inside the snapshot
+ * is an object allocated on every render React takes. The `window` is reached from inside the
+ * store rather than at module scope, so importing this module does not require one.
  */
-const stores = new Map<string, { subscribe: (onChange: () => void) => () => void; matches: () => boolean }>();
+interface MediaStore {
+  subscribe: (onChange: () => void) => () => void;
+  matches: () => boolean;
+}
 
-const storeFor = (query: string) => {
+const stores = new Map<string, MediaStore>();
+
+const storeFor = (query: string): MediaStore => {
   const existing = stores.get(query);
   if (existing) return existing;
+
+  const list = window.matchMedia(query);
+  const listeners = new Set<() => void>();
+  list.addEventListener("change", () => listeners.forEach((listener) => listener()));
+
   const store = {
     subscribe: (onChange: () => void) => {
-      const list = window.matchMedia(query);
-      list.addEventListener("change", onChange);
-      return () => list.removeEventListener("change", onChange);
+      listeners.add(onChange);
+      return () => {
+        listeners.delete(onChange);
+      };
     },
-    matches: () => window.matchMedia(query).matches,
+    matches: () => list.matches,
   };
   stores.set(query, store);
   return store;
