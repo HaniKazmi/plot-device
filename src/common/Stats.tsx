@@ -10,8 +10,6 @@ import {
   type SxProps,
   type Theme,
   Typography,
-  useMediaQuery,
-  useTheme,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { format } from "../utils/mathUtils";
@@ -33,6 +31,7 @@ import { shapeIsExact, shapeToArrangement, shapeToAspect, shapeToRatio, type Art
 import { rowCardSize } from "./rowSizing";
 import { Filmstrip } from "./Filmstrip";
 import { useElementWidth } from "./useElementWidth";
+import { useStackedCharts } from "./breakpoints";
 import { useState, type ReactNode } from "react";
 import { Radio } from "@mui/material";
 import type { Colour } from "../utils/types";
@@ -415,11 +414,11 @@ export const StatsListGrid = <T,>(
   // The row's own width, which only a sized row reads: a grid needs none, and the observer is
   // only attached to the element a sized row renders.
   const [rowRef, rowWidth] = useElementWidth<HTMLDivElement>();
-  const theme = useTheme();
-  // `noSsr` because the answer decides which layout the cards mount under: defaulted to false for
-  // a first render, every card would mount in a grid and remount in a strip a frame later, asking
-  // for each picture twice and sampling each of them twice with it.
-  const narrow = useMediaQuery(theme.breakpoints.down("md"), { noSsr: true });
+  // The same width a chart stops sharing its row at, and read as a value for the same reason: it
+  // decides which layout the cards mount under, and a first render taking the desktop answer would
+  // mount every card in a grid and remount it in a strip a frame later, asking for each picture
+  // twice and sampling each of them twice with it.
+  const narrow = useStackedCharts();
   const cell = cellOf(props, rowWidth, band?.height ?? 0, (props.strip ?? false) && narrow);
   const limit = limitOf(props.limit, cell);
 
@@ -612,6 +611,9 @@ export const StatList = <T,>(props: StatsListProps<T>) => {
                 title={title}
                 icon={icon}
                 count={count?.(shown, content.length)}
+                // With nothing but the toggle in it, the slot is one icon button and stays beside
+                // the title: a row of its own for it is a blank line with an icon at the end.
+                compactActions={!controls}
                 action={
                   <Stack direction="row-reverse">
                     {(isDialog || !wrap || shown < content.length) && toggle}
