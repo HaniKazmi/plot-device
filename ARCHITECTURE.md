@@ -1190,13 +1190,20 @@ keeping the filter and the seasons-in-year vitals card in agreement.
 
 ### Guest mode
 
-Long-pressing the AppBar (`utils/useLongPress.ts`, 300 ms, over the pure `longPressReducer`) sets
+Long-pressing the wordmark (`utils/useLongPress.ts`, 300 ms, over the pure `longPressReducer`) sets
 `guestMode`, which flows through the router's outlet context into each domain's reducer and appends a
 predicate: a game whose `theme` includes `"Adult"`, a show whose `type` is anime, a film carrying the
 sheet's `anime` flag; nothing marks a book. Each domain exports its `guestFilter` by name, since the
 mode is applied a second time to the franchise index and to the union through `visibleLibrary` — an
 index that skipped it would put hidden items back on screen through a card strip. It is presentation,
-not a security boundary: the data is loaded already, and the mode is one-way until reload.
+not a security boundary: the data is loaded already.
+
+The gesture is the pointer's alone — the hook answers with mouse handlers and nothing else, a long
+press on touch colliding with the browser's own press-and-hold — so the app bar's overflow menu
+carries the mode as an item instead, in both directions, and is drawn wherever a finger is the
+pointer. The wordmark carries the press rather than the whole bar: a bar holding a tab strip and a
+menu button is three hundred pixels where a press landing on none of them changes what the page
+shows.
 
 ### Theming and routing
 
