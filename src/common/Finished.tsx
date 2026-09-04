@@ -262,80 +262,78 @@ const Finished = <U extends FinishedItem>({
   const gridRef = useRef<HTMLDivElement | null>(null);
   const marker = useScrollMarker(sectionRef, gridRef, sort, slowData);
 
-  const renderContent = (isDialog: boolean, toggle: ReactNode) => (
-    <Box ref={isDialog ? undefined : sectionRef}>
-      <SectionHeader
-        icon={<GridView />}
-        title={title}
-        count={countWithBorder}
-        action={
-          <FormGroup>
-            <Stack
-              direction={"row"}
-              spacing={1}
-            >
-              {selectBox}
-              <SegmentedControl
-                options={DENSITY_OPTIONS}
-                value={isDialog ? dialogDensity : shownDensity}
-                onChange={isDialog ? setDialogDensity : setDensity}
-                ariaLabel="Card size"
-              />
-              {toggle}
-            </Stack>
-          </FormGroup>
-        }
+  const renderContent = (isDialog: boolean, toggle: ReactNode) => {
+    // The wall, whether it is drawn whole or a bucket at a time: everything but which cards and
+    // which element the marker measures is the same either way, and stating it twice is two lists
+    // of ten props that can come apart.
+    const grid = (items: readonly U[], ref?: RefObject<HTMLDivElement | null>) => (
+      <FinishedGrid
+        isDialog={isDialog}
+        gridRef={ref}
+        dimmed={slowData !== data}
+        recent={items}
+        sort={sort}
+        sorts={sorts}
+        density={isDialog ? dialogDensity : shownDensity}
+        colour={colour}
+        landscape={landscape}
+        keyOf={keyOf}
+        MediaComponent={MediaComponent}
       />
-      <CardContent>
-        {phone ? (
-          <Stack spacing={1}>
-            {/* The position as well as the label: a sort that returns to a bucket it has passed
+    );
+
+    return (
+      <Box ref={isDialog ? undefined : sectionRef}>
+        <SectionHeader
+          icon={<GridView />}
+          title={title}
+          count={countWithBorder}
+          action={
+            <FormGroup>
+              <Stack
+                direction={"row"}
+                spacing={1}
+              >
+                {selectBox}
+                <SegmentedControl
+                  options={DENSITY_OPTIONS}
+                  value={isDialog ? dialogDensity : shownDensity}
+                  onChange={isDialog ? setDialogDensity : setDensity}
+                  ariaLabel="Card size"
+                />
+                {toggle}
+              </Stack>
+            </FormGroup>
+          }
+        />
+        <CardContent>
+          {phone ? (
+            <Stack spacing={1}>
+              {/* The position as well as the label: a sort that returns to a bucket it has passed
                 opens a second run under the same heading, and two of them keyed alike would have
                 React render one in place of the other. */}
-            {bucketGroups(recent, sort, sorts).map((group, index) => (
-              <Box key={`${group.label}-${index}`}>
-                <BucketHeading
-                  label={group.label}
-                  count={group.items.length}
-                  isDialog={isDialog}
-                />
-                <FinishedGrid
-                  isDialog={isDialog}
-                  dimmed={slowData !== data}
-                  recent={group.items}
-                  sort={sort}
-                  sorts={sorts}
-                  density={isDialog ? dialogDensity : shownDensity}
-                  colour={colour}
-                  landscape={landscape}
-                  keyOf={keyOf}
-                  MediaComponent={MediaComponent}
-                />
-              </Box>
-            ))}
-          </Stack>
-        ) : (
-          <FinishedGrid
-            isDialog={isDialog}
-            gridRef={isDialog ? undefined : gridRef}
-            dimmed={slowData !== data}
-            recent={recent}
-            sort={sort}
-            sorts={sorts}
-            density={isDialog ? dialogDensity : shownDensity}
-            colour={colour}
-            landscape={landscape}
-            keyOf={keyOf}
-            MediaComponent={MediaComponent}
-          />
-        )}
-      </CardContent>
-      {/* Two presentations of one derivation: the rail where the gutter and the viewport hold it,
+              {bucketGroups(recent, sort, sorts).map((group, index) => (
+                <Box key={`${group.label}-${index}`}>
+                  <BucketHeading
+                    label={group.label}
+                    count={group.items.length}
+                    isDialog={isDialog}
+                  />
+                  {grid(group.items)}
+                </Box>
+              ))}
+            </Stack>
+          ) : (
+            grid(recent, isDialog ? undefined : gridRef)
+          )}
+        </CardContent>
+        {/* Two presentations of one derivation: the rail where the gutter and the viewport hold it,
           the pill everywhere else. Which one is the hook's answer, so they cannot both appear.
           Neither is mounted on a phone, where the wall carries its own headings instead. */}
-      {!isDialog && !phone && (marker.rail ? <ScrollMarkerRail {...marker} /> : <ScrollMarker {...marker} />)}
-    </Box>
-  );
+        {!isDialog && !phone && (marker.rail ? <ScrollMarkerRail {...marker} /> : <ScrollMarker {...marker} />)}
+      </Box>
+    );
+  };
 
   return (
     // A sticky heading is positioned against the nearest scrolling ancestor, and MUI clips a card's
