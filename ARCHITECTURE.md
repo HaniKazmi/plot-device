@@ -385,10 +385,15 @@ kicker, a title, a subtitle and a figure into 136, spent on every card because t
 across its figures. `inlineKicker` is the two banner cards' alone: at 402px the date and platform
 take the two ends of one line, where the 176px column wraps them to four.
 
-On a phone the band is a column, and a poster or a cover seats its words beside it at a 200px height
-— the arrangement rule (§6) deciding by shape _and_ width, since a full-bleed poster stands 550px at
-375px wide. A banner keeps its words underneath: beside a 16:9 picture at that height nineteen
-pixels of column are left.
+On a phone the band is four rows rather than four cards (`NOW_ROW_HEIGHT`, 80): a card that fills
+the width is as tall as its own artwork, and four full-bleed pictures put the last figure two and a
+half screens below the first. A row states its height and each shape takes its own width from it —
+a banner 142px, a poster 54, a cover 53, none of them cropped — and what pays for it is the title,
+which the row does not write: the artwork names the work, the row keeps that name as the picture's
+alt text and its own label, and the kicker carries what the title carried, the verb and the episode
+or venue in hand. Between `sm` and `md` the cards return two to a row, the share solved from the
+measured width as the four-way one is (`pairNowGeometry`), since the stated 434px card is wider than
+half a tablet's page.
 
 **Mixed rows are one card size, the Now band's rule at strip scale.** A list lays its cards out one
 of two ways (`CardLayout` in `common/Stats.tsx`): a grid at stated column spans, or a sized row.
@@ -577,7 +582,8 @@ index down to the card strips.
 Every entry of an item's franchise the reader has met, across all four media, with the card's own
 item singled out. A `StripVariant` says where it stands: an expanded card's strip offers two
 readings and a switch between them, while the hero's is held to the first with no switch and is
-hidden between `md` and `lg`, where the column beside a banner wraps the title and a wrapped title
+hidden at two widths: on a phone, where a chain of beads is what a 200px panel has least room for,
+and between `md` and `lg`, where the column beside a banner wraps the title and a wrapped title
 over a strip outgrows the picture.
 
 **Order** is the default: one bead per entry in the order met, evenly spaced whatever the dates
@@ -903,19 +909,26 @@ the hero.
 `Hero` (`common/Hero.tsx`) presents one item large through the domain's own `TypedCardMediaImage`:
 the artwork opens the same expanded dialog a thumbnail does, and the panel rides in as that card's
 `footerComponent`, inside the `ArtworkAccent` the image publishes, rather than sampling the image
-twice and painting from whichever answer arrives first. Only the artwork's height is fixed, at 300px,
-so the hero is one height whatever it shows while every poster and banner keeps its shape — a banner
-around 533px wide, a poster around 200 — and past a 560px ceiling `objectFit: contain` letterboxes a
-panorama onto the card's own ground.
+twice and painting from whichever answer arrives first. Only the artwork's height is fixed — 300px
+from `md`, 260 at `sm` and 200 at `xs` — so the hero is one height whatever it shows while every
+poster and banner keeps its shape (a banner around 533px wide, a poster around 200), and past a
+560px ceiling `objectFit: contain` letterboxes a panorama onto the card's own ground.
+
+Where the words sit is the shape rule, and the shape is all the hero is told: the domain names its
+own artwork once at the call site, and a banner stacks its words underneath until `md` while a
+poster or a cover seats them beside at every width. A portrait picture given the page's whole width
+is the whole of the first screen — a poster stands 525px at 390 and a cover 585 — so the phone's
+hero would open on one picture and start its figures below the fold.
 
 Its figures are the item's own — hours logged, days in, franchise size — a tile dropped rather than
 zeroed where the sheet is silent, library totals staying in the cards below. The kicker says why the
 item is shown, naming on Shows the episode in hand, which the title, the show's own name, does not.
 The panel's middle is the franchise strip in its hero variant: the order reading with no switch, its
 chain held to one row and closed up on a series too long for the pitch, a panel held to the
-artwork's height having no room for a second, and dropped between `md` and `lg` where a wrapped title
-beside a banner leaves none. No corner chip, no ledger row: everything a chip abbreviates is already
-in the panel.
+artwork's height having no room for a second. It is dropped at two widths: on a phone, where the
+panel beside the artwork is a little over 200px and the expanded card one tap away draws the same
+strip with its switch; and between `md` and `lg`, where a wrapped title beside a banner leaves no
+room. No corner chip, no ledger row: everything a chip abbreviates is already in the panel.
 
 `SectionRail` and `Section` (`common/SectionRail.tsx`) are the page's table of contents, pinned under
 the app bar — `position: static` and scrolling away, so the rail is the only thing an anchor has to

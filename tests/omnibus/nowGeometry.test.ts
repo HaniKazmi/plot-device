@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { denseNowGeometry, NOW_GEOMETRY } from "../../src/omnibus/nowGeometry";
+import { denseNowGeometry, NOW_GEOMETRY, NOW_ROW_HEIGHT, pairNowGeometry } from "../../src/omnibus/nowGeometry";
+import { shapeRatioValues } from "../../src/common/cardArrangement";
 
 describe("the Now band's geometry", () => {
   it("states one card width from a full-height poster beside its column of words", () => {
@@ -21,5 +22,22 @@ describe("the Now band's geometry", () => {
 
   it("grows with a wider row rather than stopping at the floor", () => {
     expect(denseNowGeometry(1688)?.cardWidth).toBe(416);
+  });
+
+  it("seats two to a row where a tablet's width holds no more", () => {
+    // 768 less 24px of padding a side, halved with one gap between — 356 each, a 16:9 banner 200
+    // tall over its 136px panel, and a poster at 0.68 of that height.
+    expect(pairNowGeometry(720)).toEqual({ cardWidth: 356, height: 336, posterArtWidth: 228, bannerArtHeight: 200 });
+  });
+
+  it("gives the pair a card wider than the four-way share of the same row", () => {
+    expect(pairNowGeometry(1488).cardWidth).toBeGreaterThan(denseNowGeometry(1488)!.cardWidth);
+  });
+
+  it("holds every shape at the phone row's height, so no picture is cropped to fit", () => {
+    // The widths a row of one height gives each shape: a banner, a poster and a cover, none of
+    // them a size the row imposed.
+    const widths = Object.values(shapeRatioValues).map((ratio) => Math.round(NOW_ROW_HEIGHT * ratio));
+    expect(widths).toEqual([142, 54, 53]);
   });
 });

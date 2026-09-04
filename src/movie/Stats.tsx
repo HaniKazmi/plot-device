@@ -149,6 +149,7 @@ const MovieHero = ({ movie }: { movie: Movie }) => {
     <Hero
       item={movie}
       MediaComponent={MovieCardMediaImage}
+      shape="landscape"
       kicker={`Latest watch · ${formatDate(movie.startDate)} · ${cinemaLabel(movie)}`}
       title={movie.name}
       // The genre wears the same swatch its ledger row and every genre wedge on the tab wear.

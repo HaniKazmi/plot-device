@@ -5,21 +5,19 @@ export const NOW_HEIGHT = 380;
 const NOW_TEXT_WIDTH = 176;
 
 /**
- * The same band on a phone, where the three cards are a column rather than a row.
+ * The same band on a phone, where each medium is a row rather than a card.
  *
- * A card that fills the width is a card as tall as its own artwork: at 375px a full-bleed poster
- * stands 550px, and three of them put the band's last figure nearly two screens below the first —
- * a page that opens on what is in flight instead opens on one picture. Seating the words beside the
- * artwork at a height the caller picks is what the arrangement rule is for (§6); it is applied by
- * shape at every other width and by shape *and* width here, because the constraint a phone adds is
- * the one the rule cannot see.
+ * A card that fills the width is a card as tall as its own artwork: at 390px a full-bleed poster
+ * stands 525px, and four of them put the band's last figure two and a half screens below the
+ * first — a page that opens on what is in flight instead opens on one picture. A row states its
+ * height and every shape takes its own width from it, uncropped: a banner 142px, a poster 54 and a
+ * cover 53, the difference between them a second cue to the medium after the colour.
  *
- * A banner keeps its words underneath at every width. Beside a 16:9 picture at this height there
- * are nineteen pixels of column left, and the arrangement exists to give each shape the axis it has
- * room on.
+ * 80 is what two figures stacked at the row's end come to, and four of those rows is still one
+ * screen. What pays for it is the title, which the row does not write: the artwork carries the
+ * name, and the row keeps it as the picture's alt text and its own label.
  */
-export const NOW_HEIGHT_XS = 200;
-export const NOW_POSTER_ART_WIDTH_XS = Math.round(NOW_HEIGHT_XS * shapeRatioValues.portrait);
+export const NOW_ROW_HEIGHT = 80;
 
 /**
  * The band's geometry: one width and one height for every card in the row.
@@ -70,6 +68,36 @@ export const NOW_GEOMETRY: NowGeometry = {
 export const NOW_GAP = 8;
 
 /**
+ * The band solved from the row it is given rather than from the card width above, for the widths
+ * where the stated card does not fit the row a whole number of times.
+ *
+ * The share is the card width, and the rest follows it the way it follows the stated one: the
+ * banner's panel keeps its 136px budget exactly, because that budget is what its words were fitted
+ * to; its picture at 16:9 across the narrower card is what gives the row its height, and the poster
+ * and cover columns take that height and are narrower for it. Solved from the measured row rather
+ * than from the container's own numbers, so a change to the theme's container moves the band with
+ * it rather than past it.
+ */
+const shareGeometry = (rowWidth: number, perRow: number): NowGeometry => {
+  const cardWidth = Math.floor((rowWidth - (perRow - 1) * NOW_GAP) / perRow);
+  const bannerArtHeight = Math.round(cardWidth / shapeRatioValues.landscape);
+  const height = bannerArtHeight + NOW_BANNER_TEXT_HEIGHT;
+  return { cardWidth, height, posterArtWidth: Math.round(height * shapeRatioValues.portrait), bannerArtHeight };
+};
+
+/**
+ * The band two cards to a row, which is what a tablet in portrait draws.
+ *
+ * At 768 the page gives the row 720 and the stated card is 434, so two of them overflow and one
+ * leaves half the band empty. Sharing the row in two is the same answer the four-way share gives a
+ * wide desktop, and it has no floor to fail: two cards of a 600px row are 296 each, where the
+ * column beside a poster is still wider than the four-way share's own floor allows.
+ *
+ * @see denseNowGeometry
+ */
+export const pairNowGeometry = (rowWidth: number): NowGeometry => shareGeometry(rowWidth, 2);
+
+/**
  * The same band with all four media in flight, on one row.
  *
  * Four cards at the width above need 1,760px and the page's widest container gives the row 1,488,
@@ -90,11 +118,8 @@ export const NOW_GAP = 8;
 const NOW_DENSE_MIN_CARD_WIDTH = 366;
 
 export const denseNowGeometry = (rowWidth: number): NowGeometry | undefined => {
-  const cardWidth = Math.floor((rowWidth - 3 * NOW_GAP) / 4);
-  if (cardWidth < NOW_DENSE_MIN_CARD_WIDTH) return undefined;
-  const bannerArtHeight = Math.round(cardWidth / shapeRatioValues.landscape);
-  const height = bannerArtHeight + NOW_BANNER_TEXT_HEIGHT;
-  return { cardWidth, height, posterArtWidth: Math.round(height * shapeRatioValues.portrait), bannerArtHeight };
+  const geometry = shareGeometry(rowWidth, 4);
+  return geometry.cardWidth < NOW_DENSE_MIN_CARD_WIDTH ? undefined : geometry;
 };
 
 /**
