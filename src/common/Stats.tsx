@@ -500,7 +500,7 @@ export const StatsListGrid = <T,>(
 
 /** Column spans per breakpoint for a list laid out as a grid: the strip's and the dialog's. */
 export interface GridListLayout {
-  pictureWidth: [number, number, number];
+  pictureWidth: PictureSpans;
   dialogPictureWidth: [number, number, number];
 }
 
@@ -528,7 +528,14 @@ export interface CardRowSizing {
  * cannot hand a sized row spans it will never read, and which mode a list is in can be read off
  * its props.
  */
-export type GridLayout = { pictureWidth: [number, number, number]; rowSizing?: never };
+/**
+ * A grid card's column spans at `xs`, `sm` and `md`, and optionally `lg`: a poster list packs six
+ * to a row on a wide desktop, where at 900px six are 133px each and a card's two-cell footer row
+ * breaks inside its own words.
+ */
+export type PictureSpans = [number, number, number, number?];
+
+export type GridLayout = { pictureWidth: PictureSpans; rowSizing?: never };
 export type RowLayout = { rowSizing: CardRowSizing; pictureWidth?: never };
 export type CardLayout = GridLayout | RowLayout;
 
@@ -705,7 +712,7 @@ const stripPictureHeight = (rowWidth: number, shape: ArtworkShape): number => {
  * height of the strip it stands in, where its width is its own artwork's. */
 type CardCell =
   | { rowSize: { width: number; height: number; count: number } }
-  | { pictureWidth: [number, number, number] }
+  | { pictureWidth: PictureSpans }
   | { strip: { pictureHeight: number; height: number } };
 
 /**
@@ -833,7 +840,9 @@ const StatsListCard = <T,>({
   const card = (
     <Card
       variant="outlined"
-      sx={{ height: "100%" }}
+      // A container, so the footer's rows can size their type to the card they are in rather
+      // than to a breakpoint that says nothing about how many cards share the row.
+      sx={{ height: "100%", containerType: "inline-size" }}
     >
       <MediaComponent
         item={item}
@@ -883,6 +892,7 @@ const StatsListCard = <T,>({
         xs: pictureWidth[0],
         sm: pictureWidth[1],
         md: pictureWidth[2],
+        lg: pictureWidth[3],
       }}
       sx={{
         flexShrink: 0,

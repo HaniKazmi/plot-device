@@ -1004,7 +1004,12 @@ so a caller states what its slices are a share of.
 `FooterComponent` reads its rows bottom-up, the two ranks the hero and the Now band state: the
 closing row carries the figures at `subtitle2` semibold, the rows above the context they belong to,
 `caption`-size labels under `LABEL_SX` in the muted tone — sized as well as toned, two rows of one
-size reading as a line dimmed. The Omnibus's closing line is a name, which is why `omniLabels` states
+size reading as a line dimmed. Under the artwork a row's cells keep their words together and the
+row breaks between them, never inside a date, and the grid card is a size container so a caption
+row on a card under 210px — six posters across a 1,200px page — steps to 10px with half the
+tracking, where a date and a "days in" at the caption's own size are a line and a half. Shows'
+poster lists pack four to a row at `md` and six from `lg` (`pictureWidth` takes an optional fourth
+span) for the same reason: six at 900px are 133px each. The Omnibus's closing line is a name, which is why `omniLabels` states
 the date first.
 
 `common/Card.tsx` provides `CardMediaImage` and the `TypedCardMediaImage<T>` contract each domain

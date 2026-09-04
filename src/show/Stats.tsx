@@ -375,7 +375,9 @@ const showStatusChip = (show: Show, scheme: Scheme) => ({ label: show.status, co
 const showStatListSharedProps: Pick<StatListBaseProps<Show>, "shape" | "width"> & GridListLayout = {
   shape: "portrait",
   width: [12, 12, 12],
-  pictureWidth: [6, 4, 2],
+  // Four to a row at `md`, six from `lg`: six posters at 900px are 133px each, where a card's date
+  // and "days in" cannot share a footer line.
+  pictureWidth: [6, 4, 3, 2],
   dialogPictureWidth: [6, 4, 2],
 };
 

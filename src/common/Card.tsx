@@ -1598,8 +1598,10 @@ export const FooterComponent = ({
           sx={{
             // Beside, a row opens a line of prose; under the artwork it is spread across the card.
             justifyContent: beside ? "flex-start" : stacks.length === 1 ? "center" : "space-between",
-            columnGap: beside ? 0.75 : 0,
-            flexWrap: beside ? "wrap" : "nowrap",
+            columnGap: beside ? 0.75 : 1,
+            // Under the artwork a row that does not fit breaks between its cells, never inside a
+            // date: each cell keeps its words together and the second takes a line of its own.
+            flexWrap: "wrap",
             color: index < labels.length - 1 ? palette.muted : undefined,
           }}
         >
@@ -1623,7 +1625,15 @@ export const FooterComponent = ({
                       WebkitLineClamp: BESIDE_LABEL_LINES,
                       overflow: "hidden",
                     }
-                  : {},
+                  : {
+                      whiteSpace: "nowrap",
+                      // On a card under 210px — six posters across a 1,200px page — a date and a
+                      // "days in" at the caption's size and tracking are a line and a half; one
+                      // size down with half the tracking they are one line.
+                      ...(index < labels.length - 1 && {
+                        "@container (max-width: 210px)": { fontSize: 10, letterSpacing: "0.04em" },
+                      }),
+                    },
               ]}
             >
               {val}
