@@ -662,7 +662,7 @@ item singled out. A `StripVariant` says where it stands: an expanded card's stri
 readings and a switch between them, while the hero's is held to the first with no switch and is
 drawn only where its hero has room for it, a rule the hero states by shape so that a page narrowing
 never shows the strip, drops it and shows it again: beside a poster or a cover from `sm` up, the
-phone's 200px panel spending its height on the title; beside a banner from `lg` up, the panel being
+phone's 174px panel beside a 270px poster spending its height on the title; beside a banner from `lg` up, the panel being
 258px at `sm` and, between `md` and `lg`, a column the title wraps in, where a wrapped title over a
 strip outgrows the picture.
 
@@ -1097,7 +1097,8 @@ the hero.
 the artwork opens the same expanded dialog a thumbnail does, and the panel rides in as that card's
 `footerComponent`, inside the `ArtworkAccent` the image publishes, rather than sampling the image
 twice and painting from whichever answer arrives first. Only the artwork's height is fixed — 300px
-from `md`, 280 at `sm` and 200 at `xs` — so the hero is one height whatever it shows while every
+from `md`, 280 at `sm` and, beside a poster, 270 at `xs` — near the 380 a banner hero stands at
+there, so the four heroes read as one size — so the hero is one height whatever it shows while every
 poster and banner keeps its shape (a banner around 533px wide, a poster around 200), and past a
 560px ceiling `objectFit: contain` letterboxes a panorama onto the card's own ground.
 
@@ -1107,9 +1108,10 @@ own artwork once at the call site, and a banner stacks its words underneath on a
 width. A portrait picture given the page's whole width
 is the whole of the first screen — a poster stands 525px at 390 and a cover 585 — so the phone's
 hero would open on one picture and start its figures below the fold. Below `md` the words beside
-a poster are held to its height — a title clamped to three lines over the subtitle, and the figures
-as two-to-a-row lines (`StatLines`) rather than tiles, "3.6 hours" in the panel's ink with its label
-beside it in the muted tone — so the poster fills its column with no ground beneath it.
+a poster are held to its height — a title one size down and clamped to three lines over the subtitle,
+and the figures as lines (`StatLines`) rather than tiles, one a line in the phone's 174px column
+and two from the tablet's, "3.6 hours" in the panel's ink with its label beside it in the muted
+tone — so the poster fills its column with no ground beneath it.
 
 Its figures are the item's own — hours logged, days in, franchise size — a tile dropped rather than
 zeroed where the sheet is silent, library totals staying in the cards below. The kicker says why the

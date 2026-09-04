@@ -15,12 +15,14 @@ import { shapeToArrangement, shapeToAspect, type ArtworkShape } from "./cardArra
  * page opens on one picture; the arrangement rule (§6) is what answers that, and it answers it by
  * shape *and* width here, since the constraint a phone adds is the one shape alone cannot see.
  *
+ * The phone's 270 is a poster 184px wide beside a 174px panel — near the height a banner hero
+ * stands at there (a 201px picture over its panel), so the four tabs' heroes read as one size.
  * Below `md` the words beside the poster are held to its height, so the poster fills its column
  * with no ground beneath it: a kicker, a title of three lines at most, a subtitle and the figures
- * as two lines (`StatLines`) stand under 200; at 280 the tablet's panel also holds the franchise
- * strip.
+ * as lines (`StatLines`, one a line in the phone's narrow column) stand under 270; at 280 the
+ * tablet's panel also holds the franchise strip.
  */
-const MEDIA_HEIGHT = { xs: 200, sm: 280, md: 300 };
+const MEDIA_HEIGHT = { xs: 270, sm: 280, md: 300 };
 
 /**
  * A banner beside its panel on a tablet. At 260 it is 462px wide and leaves a 768px page's panel

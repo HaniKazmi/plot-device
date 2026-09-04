@@ -1035,7 +1035,7 @@ export const CardPanel = ({
             // than a page: at the hero's own size a two-word title takes three lines of a 200px
             // panel and leaves the figures under it nowhere to stand. The step is stated against
             // the variant the caller asked for, so a hero that changes its title size moves both.
-            ...(hero && { typography: { xs: "h5", md: titleVariant ?? "h6" } }),
+            ...(hero && { typography: { xs: heroAside ? "h6" : "h5", md: titleVariant ?? "h6" } }),
             // Beside the picture the panel's height is the picture's: an unclamped title would
             // stand the words taller than it and open ground under the artwork. Three lines is
             // what a 200px row holds over a subtitle, and a 260px one over a row of tiles.
@@ -1124,7 +1124,9 @@ const StatLines = ({ stats }: { stats: CardStat[] }) => {
     <Box
       sx={{
         display: "grid",
-        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+        // One a line in the phone's column beside a poster, about 150px, where two would cut a
+        // franchise's name; two a line from the tablet's 500.
+        gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
         columnGap: 1.5,
         rowGap: 0.25,
         width: "100%",
