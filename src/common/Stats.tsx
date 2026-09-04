@@ -27,7 +27,14 @@ import {
 } from "./Card";
 import { dimSx, LABEL_SX, MUTED_FIGURE_SX } from "./typography";
 import { SectionHeader } from "./SectionHeader";
-import { shapeIsExact, shapeToArrangement, shapeToAspect, shapeToRatio, type ArtworkShape } from "./cardArrangement";
+import {
+  shapeIsExact,
+  shapeRatioValues,
+  shapeToArrangement,
+  shapeToAspect,
+  shapeToRatio,
+  type ArtworkShape,
+} from "./cardArrangement";
 import { rowCardSize } from "./rowSizing";
 import { Filmstrip } from "./Filmstrip";
 import { useElementWidth } from "./useElementWidth";
@@ -423,7 +430,7 @@ export const StatsListGrid = <T,>(
   // mount every card in a grid and remount it in a strip a frame later, asking for each picture
   // twice and sampling each of them twice with it.
   const narrow = useStackedCharts();
-  const cell = cellOf(props, rowWidth, band?.height ?? 0, (props.strip ?? false) && narrow);
+  const cell = cellOf(props, rowWidth, band?.height ?? 0, (props.strip ?? false) && narrow, shape);
   const limit = limitOf(props.limit, cell);
 
   // A sized row is not filled until it has been measured: the layout effect reads the width
@@ -452,7 +459,11 @@ export const StatsListGrid = <T,>(
       {props.header?.(drawn.length)}
       <CardContent>
         {"strip" in cell ? (
-          <Filmstrip height={cell.strip.height}>{cards}</Filmstrip>
+          // Measured for the same reason the sized row is: the strip's card count is solved from
+          // the width it has, and a first frame at the stated height is not seen.
+          <Box ref={rowRef}>
+            <Filmstrip height={cell.strip.height}>{cards}</Filmstrip>
+          </Box>
         ) : "rowSize" in cell ? (
           <Box
             ref={rowRef}
@@ -654,14 +665,41 @@ const CARD_BORDER = 1;
 const ROW_GAP = 8;
 
 /**
- * How tall a strip card's picture stands.
- *
- * A phone is 358px of content, so a card wide enough to be read one at a time is a card the reader
- * has to scroll past six of. At 120px a banner is 213px across and a poster 82, which puts four and
- * a half banners or most of a shelf of posters on one screen — the strip states how much there is
- * as well as showing the first of it, which a column of full-width cards cannot.
+ * How tall a strip card's picture stands where the strip cannot solve it: before the row is
+ * measured, and on a row mixing shapes, where no one width fills it a whole number of times. At
+ * 120px a banner is 213px across and a poster 82.
  */
 const STRIP_PICTURE_HEIGHT = 120;
+
+/** The space between a strip's cards — `Filmstrip`'s own gap, one spacing unit. */
+const STRIP_GAP = 8;
+
+/**
+ * The card width a strip aims for, by the shape its cards share, and the fewest it shows.
+ *
+ * A strip fills its row with a whole number of cards, so the row's edge never cuts a picture, and
+ * the count follows the width: a phone's 358px row holds three posters of 113 (a screen of 82px
+ * posters at a stated height shows four and a half, the fifth cut, and the same five at a tablet's
+ * 718 leave the right third of the row bare). The target is the width the card reads well at —
+ * a poster at 120 stands 176 tall — and the floor is what a phone must show of a shelf to read it
+ * as one: three posters, two banners.
+ */
+const STRIP_TARGET = { beside: { width: 120, fewest: 3 }, stacked: { width: 220, fewest: 2 } } as const;
+
+/**
+ * The picture height that seats a whole number of one shape's cards across a measured row.
+ *
+ * As many as the target width allows, never fewer than the floor; the width left to each card
+ * less its two borders is the picture's, and the height follows from the shape's ratio — the
+ * declared one, so a cover's few percent of drift moves the card's width by a pixel or two rather
+ * than the row's count.
+ */
+const stripPictureHeight = (rowWidth: number, shape: ArtworkShape): number => {
+  const target = STRIP_TARGET[shapeToArrangement(shape)];
+  const perView = Math.max(target.fewest, Math.floor((rowWidth + STRIP_GAP) / (target.width + STRIP_GAP)));
+  const pictureWidth = Math.floor((rowWidth - (perView - 1) * STRIP_GAP) / perView) - 2 * CARD_BORDER;
+  return Math.round(pictureWidth / shapeRatioValues[shape]);
+};
 
 /** What one card is seated by: its outer size in a sized row, its column spans in a grid, or the
  * height of the strip it stands in, where its width is its own artwork's. */
@@ -682,14 +720,23 @@ type CardCell =
  * width. What it states is the whole card: the band, the picture, the caption and the border, which
  * is what `Filmstrip` puts on every child so a banner and a poster stand at one height.
  */
-const cellOf = (layout: CardLayout, rowWidth: number | undefined, bandHeight: number, strip: boolean): CardCell => {
-  if (strip)
+const cellOf = (
+  layout: CardLayout,
+  rowWidth: number | undefined,
+  bandHeight: number,
+  strip: boolean,
+  shape: ArtworkShape | undefined,
+): CardCell => {
+  if (strip) {
+    const pictureHeight =
+      shape !== undefined && rowWidth !== undefined ? stripPictureHeight(rowWidth, shape) : STRIP_PICTURE_HEIGHT;
     return {
       strip: {
-        pictureHeight: STRIP_PICTURE_HEIGHT,
-        height: bandHeight + STRIP_PICTURE_HEIGHT + STRIP_CAPTION_HEIGHT + 2 * CARD_BORDER,
+        pictureHeight,
+        height: bandHeight + pictureHeight + STRIP_CAPTION_HEIGHT + 2 * CARD_BORDER,
       },
     };
+  }
   if (!layout.rowSizing) return { pictureWidth: layout.pictureWidth };
   const { minWidth, pictureHeightFor } = layout.rowSizing;
   return {

@@ -976,10 +976,14 @@ happens to end.
 
   A caller opting in (`strip`) gets a third arrangement below `md` (`useStackedCharts`, read as a
   value for the same reason a folded chart is: showing a grid and a strip together would fetch and
-  sample every picture twice): a fixed-height `Filmstrip` of 120px pictures, since a phone's column
-  has room for neither a grid's width nor a sized row's height. `cellOf` answers a `strip` cell
-  before either of the others, its height the picture plus a caption (`STRIP_CAPTION_HEIGHT`) and
-  the band and border every cell counts; `limitOf` falls back to `COLLAPSED_CARDS` for a cap stated
+  sample every picture twice): a fixed-height `Filmstrip`, since a phone's column has room for
+  neither a grid's width nor a sized row's height. The height is solved from the measured row
+  (`stripPictureHeight`) so a whole number of the list's shape fills it — as many cards as a
+  target width allows (120px for a poster, 220 for a banner), never fewer than three posters or two
+  banners, so a phone's 324px row holds three posters of 102 and a tablet's 686 holds five — and
+  falls to 120px pictures only before the row is measured or where the cards mix shapes. `cellOf`
+  answers a `strip` cell before either of the others, its height the picture plus a caption
+  (`STRIP_CAPTION_HEIGHT`) and the band and border every cell counts; `limitOf` falls back to `COLLAPSED_CARDS` for a cap stated
   in rows, since a strip has none to multiply a solved count by. Each card is built from its picture
   out — `mediaLayout` fixed to `"stacked"` regardless of shape, since the arrangement rule would seat
   a poster's words beside a card 82px wide — and its corner chip drops unless the shape is landscape,
