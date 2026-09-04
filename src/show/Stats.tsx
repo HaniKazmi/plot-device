@@ -172,6 +172,7 @@ const ShowHero = ({ season }: { season: Season }) => {
     <Hero
       item={season}
       MediaComponent={ShowCardMediaImage}
+      shape="portrait"
       // The episode in hand as well as the date: the title is the show's name, and nothing else
       // on the hero says which season it is on.
       kicker={`Last watched · S${season.s}E${season.e} · ${formatDate(season.show.lastWatchedDate!)}`}

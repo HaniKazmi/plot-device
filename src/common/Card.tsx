@@ -707,8 +707,12 @@ export interface PanelSubtitlePart {
  *   seam rotating to the edge the two actually share. The height is spent the way `beside`
  *   spends it — title at the top, tiles on the bottom edge — so the hero and the hover cards
  *   read as one treatment at two sizes.
+ * - `hero-aside` — the same panel where the hero's artwork is a poster or a cover, which stands
+ *   beside its words at every width: the seam is the vertical edge throughout, and the phone's
+ *   share of a 358px card is tight enough that the panel gives back some of its inset and steps
+ *   its title down a size.
  */
-type PanelLayout = "beneath" | "beside" | "hero";
+type PanelLayout = "beneath" | "beside" | "hero" | "hero-aside";
 
 /**
  * The panel beside or beneath a card's artwork: what the item is, when, and how much of it.
@@ -780,7 +784,8 @@ export const CardPanel = ({
   const arrangement = useCardArrangement();
   const resolved = layout ?? (arrangement === "beside" ? "beside" : "beneath");
   const beside = resolved === "beside";
-  const hero = resolved === "hero";
+  const heroAside = resolved === "hero-aside";
+  const hero = resolved === "hero" || heroAside;
   // The parts that actually say something. A caller lists its fields without testing which the
   // sheet filled in, and the count is what decides which part is last and so carries no separator.
   const said = Array.isArray(subtitle) ? subtitle.filter((part) => part.text) : [];
@@ -825,18 +830,24 @@ export const CardPanel = ({
           },
         }),
         ...(inset !== undefined && { paddingY: inset }),
-        ":last-child": { paddingBottom: inset ?? 2 },
+        // Beside a 136px poster on a 358px card the panel is 222px, and the standard inset is 32
+        // of them. The four pixels a side given back are the difference between a two-line title
+        // and a three-line one.
+        ...(heroAside && { padding: { xs: 1.5, md: 2 }, gap: { xs: 1, md: 2 } }),
+        ":last-child": { paddingBottom: heroAside ? { xs: 1.5, md: inset ?? 2 } : (inset ?? 2) },
         backgroundColor: palette.ground,
         color: palette.onGround,
         // Where the artwork meets the panel, so the two read as one card rather than as one pasted
         // onto the other. One edge, never both, and the hero's rotates with its own layout.
         // Written out rather than as one computed key, which the React Compiler cannot lower and
         // bails on — taking every card in the app out of memoization with it.
-        ...(hero
-          ? { borderTop: { xs: palette.seam, md: "none" }, borderLeft: { xs: "none", md: palette.seam } }
-          : beside
-            ? { borderLeft: palette.seam }
-            : { borderTop: palette.seam }),
+        ...(heroAside
+          ? { borderLeft: palette.seam }
+          : hero
+            ? { borderTop: { xs: palette.seam, md: "none" }, borderLeft: { xs: "none", md: palette.seam } }
+            : beside
+              ? { borderLeft: palette.seam }
+              : { borderTop: palette.seam }),
       }}
     >
       <Stack
@@ -869,7 +880,17 @@ export const CardPanel = ({
           variant={titleVariant ?? "h6"}
           // A title long enough to have no break opportunity would otherwise set the panel's
           // intrinsic width and push itself out past the card's edge.
-          sx={{ fontWeight: 700, lineHeight: 1.2, overflowWrap: "break-word", width: "100%" }}
+          sx={{
+            // The hero's title steps down a size on a phone, where the panel is a column rather
+            // than a page: at the hero's own size a two-word title takes three lines of a 200px
+            // panel and leaves the figures under it nowhere to stand. The step is stated against
+            // the variant the caller asked for, so a hero that changes its title size moves both.
+            ...(hero && { typography: { xs: "h5", sm: titleVariant ?? "h6" } }),
+            fontWeight: 700,
+            lineHeight: 1.2,
+            overflowWrap: "break-word",
+            width: "100%",
+          }}
         >
           {title}
         </Typography>

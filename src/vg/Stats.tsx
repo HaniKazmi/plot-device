@@ -153,6 +153,7 @@ const VgHero = ({ game }: { game: VideoGame }) => {
     <Hero
       item={game}
       MediaComponent={VgCardMediaImage}
+      shape="landscape"
       kicker={`Currently playing · since ${formatDate(game.startDate)}`}
       title={game.name}
       subtitle={gameSubtitle(game, scheme)}

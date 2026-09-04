@@ -146,6 +146,7 @@ const BookHero = ({ book }: { book: Book }) => {
     <Hero
       item={book}
       MediaComponent={BookCardMediaImage}
+      shape="cover"
       kicker={`Reading since ${formatDate(book.startDate)}`}
       title={book.name}
       subtitle={bookSubtitle(book, scheme)}
