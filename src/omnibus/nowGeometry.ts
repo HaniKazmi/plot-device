@@ -76,10 +76,9 @@ export const NOW_GAP = 8;
  * twice over. At 296, the two-way share of a 600px row, the column is 90px and the title has three
  * characters a line.
  *
- * One figure for both shares, because the reading it protects is the same one: a card narrower
- * than this is a card whose words cannot be read, however many of it the row was trying to seat.
- * A share under it answers nothing and the band falls back (`Now`) — to two cards a row where four
- * were being solved for, and to the stated card, one a row, where two were.
+ * The four-way share's floor, where a card under it answers nothing and the band falls back to two
+ * cards a row (`Now`). The pair keeps the row at a narrower card and spends the poster instead
+ * (`NOW_PAIR_MIN_CARD_WIDTH`), a tablet's row having nowhere else to fall back to.
  */
 const NOW_MIN_CARD_WIDTH = 366;
 
@@ -93,10 +92,13 @@ const NOW_MIN_CARD_WIDTH = 366;
  * and cover columns take that height and are narrower for it. Solved from the measured row rather
  * than from the container's own numbers, so a change to the theme's container moves the band with
  * it rather than past it.
+ *
+ * One solver for both shares, since a row shared two ways and a row shared four ways differ only in
+ * how many cards and how many gaps come out of it, and each states its own floor.
  */
-const shareGeometry = (rowWidth: number, perRow: number): NowGeometry | undefined => {
+const shareGeometry = (rowWidth: number, perRow: number, minCardWidth: number): NowGeometry | undefined => {
   const cardWidth = Math.floor((rowWidth - (perRow - 1) * NOW_GAP) / perRow);
-  if (cardWidth < NOW_MIN_CARD_WIDTH) return undefined;
+  if (cardWidth < minCardWidth) return undefined;
 
   const bannerArtHeight = Math.round(cardWidth / shapeRatioValues.landscape);
   const height = bannerArtHeight + NOW_BANNER_TEXT_HEIGHT;
@@ -141,13 +143,10 @@ const NOW_POSTER_COLUMN = 133;
  * @see denseNowGeometry
  */
 export const pairNowGeometry = (rowWidth: number): NowGeometry | undefined => {
-  const cardWidth = Math.floor((rowWidth - NOW_GAP) / 2);
-  if (cardWidth < NOW_PAIR_MIN_CARD_WIDTH) return undefined;
+  const share = shareGeometry(rowWidth, 2, NOW_PAIR_MIN_CARD_WIDTH);
+  if (!share) return undefined;
 
-  const bannerArtHeight = Math.round(cardWidth / shapeRatioValues.landscape);
-  const height = bannerArtHeight + NOW_BANNER_TEXT_HEIGHT;
-  const posterArtWidth = Math.min(Math.round(height * shapeRatioValues.portrait), cardWidth - NOW_POSTER_COLUMN);
-  return { cardWidth, height, posterArtWidth, bannerArtHeight };
+  return { ...share, posterArtWidth: Math.min(share.posterArtWidth, share.cardWidth - NOW_POSTER_COLUMN) };
 };
 
 /**
@@ -167,7 +166,8 @@ export const pairNowGeometry = (rowWidth: number): NowGeometry | undefined => {
  * container's own numbers, so a change to the theme's container moves the band with it rather than
  * past it.
  */
-export const denseNowGeometry = (rowWidth: number): NowGeometry | undefined => shareGeometry(rowWidth, 4);
+export const denseNowGeometry = (rowWidth: number): NowGeometry | undefined =>
+  shareGeometry(rowWidth, 4, NOW_MIN_CARD_WIDTH);
 
 /**
  * What every panel in the band gives up so that 136 holds a kicker, a title, a subtitle and a
