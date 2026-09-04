@@ -440,6 +440,9 @@ export const StatsListGrid = <T,>(
               flexWrap: flexWrap ?? "wrap",
               gap: `${ROW_GAP}px`,
               overflow: "auto",
+              // Below `md` the row does not wrap, so a flick that runs out of cards would carry
+              // on into the browser's own back gesture and take the reader off the page.
+              overscrollBehaviorX: "contain",
             }}
           >
             {cards}
@@ -451,6 +454,9 @@ export const StatsListGrid = <T,>(
             sx={{
               alignItems: "center",
               overflow: "auto",
+              // Below `md` the strip does not wrap, so a flick that runs out of cards would carry
+              // on into the browser's own back gesture and take the reader off the page.
+              overscrollBehaviorX: "contain",
               flexWrap,
             }}
           >

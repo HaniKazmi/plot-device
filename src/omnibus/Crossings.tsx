@@ -88,6 +88,9 @@ const Crossings = ({ crossings, ticks }: { crossings: Crossing[]; ticks: Timelin
             ref={scrollRef}
             sx={{
               overflowX: "auto",
+              // A flick that reaches either end of three viewports otherwise carries on into the
+              // browser's own back gesture, so the reader leaves the page while reading a strip.
+              overscrollBehaviorX: "contain",
               // The bar the platform may or may not draw. Where it does, this is the room for it;
               // where it does not, the fades are what say the stack runs on.
               paddingBottom: 1,

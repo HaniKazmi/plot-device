@@ -149,6 +149,9 @@ export const ChipRail = (props: {
             display: "flex",
             gap: 1,
             overflowX: "auto",
+            // A flick that runs out of chips otherwise carries on into the browser's own back
+            // gesture, so the reader leaves the page while reaching for a section.
+            overscrollBehaviorX: "contain",
             // A scrollbar drawn under a row this short costs as much height as the row itself.
             scrollbarWidth: "none",
             "::-webkit-scrollbar": { display: "none" },

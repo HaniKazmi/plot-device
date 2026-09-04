@@ -129,6 +129,15 @@ const getTheme = (tab: Tab) => {
       h6: { fontWeight: 650, letterSpacing: "-0.01em" },
     },
     components: {
+      MuiCssBaseline: {
+        styleOverrides: {
+          // The grey flash a mobile browser paints on every tap target is drawn at the target's
+          // own box, so on a chart it lights a whole row group behind a bar a few pixels wide.
+          // The app answers a tap with the card it opens, which is a stronger acknowledgement
+          // than a flash. Inherited, so the body is the only place it has to be said.
+          body: { WebkitTapHighlightColor: "transparent" },
+        },
+      },
       // A hairline instead of a raised edge, which is how the other two sites separate a card from
       // the page. Floating surfaces — menus, dialogs, popovers — keep their elevation: a shadow is
       // what says they sit above the content rather than in it, and a border cannot say that.
@@ -140,11 +149,17 @@ const getTheme = (tab: Tab) => {
           // Hover has to follow the variant, because the two have nothing in common to change: an
           // outlined card owns a border and no shadow, an elevation card the reverse. Setting the
           // border colour on a card that has no border is a rule that silently does nothing.
+          //
+          // Behind `hover: hover` because a touch screen has no leave event: the last card tapped
+          // keeps its lit border until the next tap lands elsewhere, and a wall of cards ends up
+          // with one apparently selected that the reader only scrolled past.
           root: ({ theme, ownerState }) => ({
-            "&:hover":
-              ownerState.variant === "outlined"
-                ? { borderColor: theme.vars.palette.primary.main }
-                : { boxShadow: theme.shadows[4] },
+            "@media (hover: hover)": {
+              "&:hover":
+                ownerState.variant === "outlined"
+                  ? { borderColor: theme.vars.palette.primary.main }
+                  : { boxShadow: theme.shadows[4] },
+            },
           }),
         },
       },

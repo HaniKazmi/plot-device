@@ -5,8 +5,10 @@ import type {} from "@mui/material/themeCssVarsAugmentation";
 import { ChipRail } from "./ChipRail";
 import { HoverCardTooltip } from "./HoverCardTooltip";
 import { LazyTooltip } from "./LazyTooltip";
+import { ScrollFade } from "./ScrollFade";
 import { scrollbarSx } from "./scrollbarSx";
 import { useOpenAtLatest } from "./useOpenAtLatest";
+import { useScrollEdges } from "./useScrollEdges";
 import {
   buildTicks,
   decidePlacement,
@@ -76,6 +78,9 @@ const scrollSx = (theme: Theme) => ({
   maxHeight: "90vh",
   overflowX: "auto",
   overflowY: "auto",
+  // A drag that reaches either end of four viewports otherwise carries on into the browser's own
+  // back gesture, so the reader leaves the page while reading a chart.
+  overscrollBehaviorX: "contain",
   ...scrollbarSx(theme),
 });
 
@@ -88,6 +93,7 @@ const scrollSx = (theme: Theme) => ({
 const BAR_SX = {
   transformBox: "fill-box",
   transformOrigin: "center",
+  "@media (pointer: coarse)": { cursor: "pointer" },
 } as const;
 
 /**
@@ -104,7 +110,10 @@ const BAR_SX = {
  * `transform` and `filter`; adding one back reintroduces a hover that silently does nothing.
  */
 const ROW_SX = {
-  "&:hover rect": { transform: "scaleY(1.15)" },
+  // Behind `hover: hover` because a tap on a touch screen leaves the last bar touched stuck at
+  // its hovered size until the next tap lands somewhere else, which reads as a selection the
+  // chart never made.
+  "@media (hover: hover)": { "&:hover rect": { transform: "scaleY(1.15)" } },
 } as const;
 
 /**
@@ -123,6 +132,9 @@ const LABEL_SX = {
   whiteSpace: "nowrap",
   fontSize: LABEL_FONT_SIZE,
   fontWeight: 500,
+  // A press on a label is how a card is opened on a phone, and the press that opens it would
+  // otherwise put the label's own text into a selection with the handles that come with it.
+  userSelect: "none",
   // The label sets `left` but never `top`, so it lands at the top of its row and is centred only
   // by its own line box. Matching that box to the bar is what keeps the text on the bar's centre
   // line at any bar height.
@@ -260,7 +272,10 @@ const useTextPlacement = (data: PositionedTimelineData[]) => {
 // Components
 // ============================================================================
 const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }) => {
-  const scrollRef = useRef<HTMLDivElement>(null);
+  // The scroller's own ref does both jobs: the chart drives it from the year chips, and the fades
+  // read the same node to know which ends have chart past them.
+  const [scrollRef, edges] = useScrollEdges<HTMLDivElement>();
+  const theme = useTheme();
   const [scrolledYear, setScrolledYear] = useState<number | undefined>(undefined);
   useOpenAtLatest(scrollRef, timelineData.length > 0);
   const [positionedTimelineData, maxRow] = packRows(timelineData);
@@ -305,51 +320,64 @@ const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }) => {
 
   return (
     <>
-      <Box
-        ref={scrollRef}
-        sx={scrollSx}
-        /**
-         * The scroll position reaches React as the year it lands in and nothing else, so the
-         * hundreds of events a single drag produces settle to one state change per year crossed —
-         * setting a state to the value it already holds costs no render. Holding the raw offset
-         * instead would re-render the whole chart on every frame of every scroll.
-         *
-         * A JSX handler rather than a listener in an effect because `markers` is rebuilt each
-         * render: an effect would need it as a dependency and reattach just as often, and reading
-         * it through a ref to avoid that is machinery for a listener React already manages.
-         *
-         * The offset is read against the range `scrollLeft` can actually reach rather than against
-         * the grid's own width — see `percentAtScroll`, which owns both directions of that mapping.
-         */
-        onScroll={(event) =>
-          setScrolledYear(
-            yearAtPercent(
-              markers,
-              percentAtScroll(markers, event.currentTarget.scrollLeft, maxScrollOf(event.currentTarget)),
-            ),
-          )
-        }
+      {/* The styled scrollbar is what says the chart runs on, and iOS draws no scrollbar at all;
+          the fades say it in a way every platform paints. */}
+      <ScrollFade
+        edges={edges}
+        ground={theme.vars.palette.background.paper}
       >
-        <div
-          style={{ width: "400vw", maxHeight: "90vh", position: "relative", display: "flex", flexDirection: "column" }}
+        <Box
+          ref={scrollRef}
+          sx={scrollSx}
+          /**
+           * The scroll position reaches React as the year it lands in and nothing else, so the
+           * hundreds of events a single drag produces settle to one state change per year crossed —
+           * setting a state to the value it already holds costs no render. Holding the raw offset
+           * instead would re-render the whole chart on every frame of every scroll.
+           *
+           * A JSX handler rather than a listener in an effect because `markers` is rebuilt each
+           * render: an effect would need it as a dependency and reattach just as often, and reading
+           * it through a ref to avoid that is machinery for a listener React already manages.
+           *
+           * The offset is read against the range `scrollLeft` can actually reach rather than against
+           * the grid's own width — see `percentAtScroll`, which owns both directions of that mapping.
+           */
+          onScroll={(event) =>
+            setScrolledYear(
+              yearAtPercent(
+                markers,
+                percentAtScroll(markers, event.currentTarget.scrollLeft, maxScrollOf(event.currentTarget)),
+              ),
+            )
+          }
         >
-          {/* `minHeight: 0` because a column flex item defaults to `min-height: auto` and would
+          <div
+            style={{
+              width: "400vw",
+              maxHeight: "90vh",
+              position: "relative",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            {/* `minHeight: 0` because a column flex item defaults to `min-height: auto` and would
               refuse to shrink below the grid's height — the scroll would fall through to the
               container above and take the axis off-screen with it. */}
-          <div style={{ overflowY: "auto", minHeight: 0 }}>
-            <TimelineGrid
-              data={positionedTimelineData}
-              startDate={earliestStart}
-              endDate={gridEnd}
-              totalHeight={totalHeight}
-              totalDays={totalDays}
-              ticks={ticks}
-              markers={markers}
-            />
+            <div style={{ overflowY: "auto", minHeight: 0 }}>
+              <TimelineGrid
+                data={positionedTimelineData}
+                startDate={earliestStart}
+                endDate={gridEnd}
+                totalHeight={totalHeight}
+                totalDays={totalDays}
+                ticks={ticks}
+                markers={markers}
+              />
+            </div>
+            <TimeAxis ticks={ticks} />
           </div>
-          <TimeAxis ticks={ticks} />
-        </div>
-      </Box>
+        </Box>
+      </ScrollFade>
       <YearNav
         markers={markers}
         activeYear={activeYear}
@@ -598,16 +626,26 @@ const TimelineText = ({
       style={{ transform: `translate(${x}, ${y})` }}
       sx={ROW_SX}
     >
-      <Box
-        component="rect"
-        width={width}
-        height={BAR_HEIGHT}
-        fill={event.colour}
-        rx={BAR_RADIUS}
-        style={{ width: `max(${width}, ${MIN_BAR_WIDTH}px)` }}
-        sx={BAR_SX}
-        ref={rectRef}
-      />
+      {/* The bar carries the card as well as the label does. The label is the only thing hittable
+          on a row where it sits in the gap beside its bar, which is most of them — and a finger
+          aimed at an item aims at the bar, not at the words next to it. Two triggers rather than
+          one on the row group: the group's box spans the whole gap the label is allowed to use, so
+          a card anchored on it would open a chart's width away from the item it describes. */}
+      <HoverCardTooltip
+        colour={event.colour}
+        title={<LazyTooltip render={event.tooltip} />}
+      >
+        <Box
+          component="rect"
+          width={width}
+          height={BAR_HEIGHT}
+          fill={event.colour}
+          rx={BAR_RADIUS}
+          style={{ width: `max(${width}, ${MIN_BAR_WIDTH}px)` }}
+          sx={BAR_SX}
+          ref={rectRef}
+        />
+      </HoverCardTooltip>
       {/* The label spans the whole gap around its bar, so left to itself it would swallow the
           pointer across most of the chart — including over the bar it sits on. The label re-enables
           events for itself, which is what the tooltip hangs off. */}

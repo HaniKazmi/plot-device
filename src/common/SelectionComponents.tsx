@@ -13,7 +13,15 @@ export interface SegmentOption<T extends string> {
  * section rail beside 22px chips, and the button's own size would stand taller than either;
  * `textTransform: none` because the labels arrive worded — "Start date", not "Start Date".
  */
-const SEGMENT_SX = { fontSize: 12, textTransform: "none", paddingY: 0.5, paddingX: 1.25 } as const;
+const SEGMENT_SX = {
+  fontSize: 12,
+  textTransform: "none",
+  paddingY: 0.5,
+  paddingX: 1.25,
+  // The words stay at 12px on a phone — a control that reads as two sizes between the header and
+  // the rail is what the one size exists to avoid — so the target grows under the segment instead.
+  "@media (pointer: coarse)": { minHeight: 32 },
+} as const;
 
 /**
  * One of a few named states, as words rather than pictures.
@@ -72,7 +80,9 @@ export type SegmentTone = Pick<ReturnType<typeof artworkPalette>, "ground" | "on
 const toneSx = (tone: SegmentTone) => ({
   color: tone.onGround,
   borderColor: tone.line,
-  "&:hover": { backgroundColor: tone.tile },
+  // An unlit segment tapped on a touch screen keeps the hovered wash until the next tap lands
+  // somewhere else, which reads as two segments lit at once.
+  "@media (hover: hover)": { "&:hover": { backgroundColor: tone.tile } },
   "&.Mui-selected, &.Mui-selected:hover": { color: tone.ground, backgroundColor: tone.onGround },
 });
 

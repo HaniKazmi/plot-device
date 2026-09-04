@@ -52,6 +52,9 @@ export const Filmstrip = ({ height, children }: { height: number; children: Reac
           height: height + SCROLLBAR_HEIGHT,
           overflowX: "auto",
           overflowY: "hidden",
+          // A flick that reaches the end of the row otherwise carries on into the browser's own
+          // back gesture, so the reader leaves the page while reaching for the next picture.
+          overscrollBehaviorX: "contain",
           // The children are given the artwork's height rather than left to ask for the strip's. A
           // card is `height: 100%`, and 100% of this box is the row plus the scrollbar's allowance
           // — so the card stands ten pixels taller than the picture inside it and paints its own

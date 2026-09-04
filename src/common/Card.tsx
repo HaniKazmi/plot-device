@@ -19,11 +19,20 @@ import {
   type ChipProps,
   type TypographyProps,
 } from "@mui/material";
-import { type FunctionComponent, type ReactElement, type ReactNode, useEffect, useRef, useState } from "react";
+import {
+  type FunctionComponent,
+  type MouseEventHandler,
+  type ReactElement,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { CalendarMonthOutlined, Close } from "@mui/icons-material";
 import { cachedColour, extractColourFrom } from "../utils/colourUtils";
 import { ArtworkAccent, artworkPalette, useArtworkPalette } from "./artworkPalette";
 import { HoverCardTooltip } from "./HoverCardTooltip";
+import { TOUCH_TARGET_SX } from "./touchTarget";
 import {
   CardArrangementProvider,
   shapeToArrangement,
@@ -1749,7 +1758,8 @@ const BandTooltip = ({
   colour: string;
   title?: ReactNode;
   hoverCard?: boolean;
-  children: ReactElement;
+  /** Cloned with a tap handler under a coarse pointer, where the hover card is a sheet. */
+  children: ReactElement<{ onClick?: MouseEventHandler<HTMLElement> }>;
 }) =>
   hoverCard ? (
     <HoverCardTooltip
@@ -1787,7 +1797,11 @@ const BandTooltip = ({
 const BAND_SX = {
   position: "absolute",
   borderRadius: 0.5,
-  "&:hover": { opacity: 1, filter: "brightness(1.25)" },
+  // A tap leaves the band it landed on lit until the next tap lands elsewhere, which reads as a
+  // selection the strip never made.
+  "@media (hover: hover)": { "&:hover": { opacity: 1, filter: "brightness(1.25)" } },
+  ...TOUCH_TARGET_SX,
+  userSelect: "none",
 } as const;
 
 /**

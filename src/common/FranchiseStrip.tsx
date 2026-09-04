@@ -9,6 +9,7 @@ import { SegmentedControl, type SegmentOption } from "./SelectionComponents";
 import { shortYear, type YearMonthDay } from "./date";
 import type { FranchiseEntry } from "./franchiseUnion";
 import { HoverCardTooltip } from "./HoverCardTooltip";
+import { TOUCH_TARGET_SX } from "./touchTarget";
 import { LazyTooltip } from "./LazyTooltip";
 import { percentAtDate, percentOfSpan } from "./timelineLayout";
 import {
@@ -388,7 +389,9 @@ const Bead = ({
               transform: "translate(-50%, -50%)",
               borderRadius: "50%",
               cursor: "default",
+              userSelect: "none",
             },
+            TOUCH_TARGET_SX,
             mark === "none" && SIBLING_SX,
           ]}
           style={{ width: size, height: size, backgroundColor: colour, boxShadow: ring(mark, palette) }}
@@ -619,7 +622,7 @@ const StripMark = ({ band, mark }: { band: StripBand<FranchiseEntry>; mark: Mark
   );
 };
 
-const MARK_SX = { position: "absolute", cursor: "default" } as const;
+const MARK_SX = { position: "absolute", cursor: "default", userSelect: "none", ...TOUCH_TARGET_SX } as const;
 
 /**
  * An estimated span dissolves at both ends rather than stopping at one, because a hard edge is a
