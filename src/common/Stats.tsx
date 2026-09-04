@@ -35,8 +35,9 @@ import type { Colour } from "../utils/types";
 import { YearSelect } from "./YearSelect";
 import type { YearType } from "./filterReducer";
 import { CURRENT_YEAR, type YearNumber } from "./date";
-import { CloseFullscreen, Fullscreen, Timer, Update } from "@mui/icons-material";
+import { Close, CloseFullscreen, Fullscreen, Timer, Update } from "@mui/icons-material";
 import { useDialogMount } from "./useDialogMount";
+import { stickySheetHeader } from "./fullscreenSheet";
 
 export const StatCard = ({
   icon,
@@ -283,13 +284,18 @@ export const ExpandableCard = ({
   const expandable = expandableProp ?? true;
   const dialog = useDialogMount();
 
-  // The dialog always keeps its control, whatever `expandable` says. It is fullscreen with no
-  // `onClose`, so the button is the only way out, and a caller whose content shrinks while it is
-  // open — a select box in the header switching to a category with fewer groups — would
-  // otherwise strand the reader with nothing to click.
+  // The dialog always keeps a control, whatever `expandable` says: a caller whose content shrinks
+  // while it is open — a select box in the header switching to a category with fewer groups —
+  // would otherwise strand the reader with nothing to press. Below `sm` that control is the bar's
+  // ✕ instead, where the header's controls wrap to a row of their own and the way out lands
+  // halfway down the first screen.
   const toggle = (isDialog: boolean) =>
     expandable || isDialog ? (
-      <IconButton onClick={() => (isDialog ? dialog.hide() : dialog.show())}>
+      <IconButton
+        aria-label={isDialog ? "Close" : "Expand"}
+        onClick={() => (isDialog ? dialog.hide() : dialog.show())}
+        sx={isDialog ? DIALOG_TOGGLE_SX : undefined}
+      >
         {isDialog ? <CloseFullscreen color="primary" /> : <Fullscreen />}
       </IconButton>
     ) : null;
@@ -300,13 +306,46 @@ export const ExpandableCard = ({
       <Dialog
         open={dialog.open}
         fullScreen
+        // Escape and a press outside leave the sheet, as every other dialog in the app answers to.
+        onClose={dialog.hide}
         slotProps={{ transition: { onExited: dialog.onExited } }}
       >
-        {dialog.mounted && renderContent(true, toggle(true))}
+        {dialog.mounted && (
+          <>
+            {/* The way out, pinned. The bar carries no title: the content's own `SectionHeader`
+                states it directly below, and only the caller knows what it is. */}
+            <Box sx={SHEET_CLOSE_BAR_SX}>
+              <IconButton
+                aria-label="Close"
+                onClick={dialog.hide}
+              >
+                <Close color="primary" />
+              </IconButton>
+            </Box>
+            {renderContent(true, toggle(true))}
+          </>
+        )}
       </Dialog>
     </Card>
   );
 };
+
+/** The dialog's own expand control, which the sheet bar's ✕ stands in for below `sm`. */
+const DIALOG_TOGGLE_SX = { display: { xs: "none", sm: "inline-flex" } } as const;
+
+/**
+ * The bar carrying that ✕. Built here rather than in the component: a width is a key computed from
+ * the theme, and an object literal with a computed key is a shape the React Compiler cannot lower,
+ * so written inline it would take `ExpandableCard` out of memoization with nothing to say so.
+ */
+const SHEET_CLOSE_BAR_SX = (theme: Theme) => ({
+  display: "none",
+  [theme.breakpoints.down("sm")]: {
+    display: "flex",
+    justifyContent: "flex-end",
+    ...stickySheetHeader(theme),
+  },
+});
 
 /**
  * A strip of media cards, capped so a long list does not render in full.
