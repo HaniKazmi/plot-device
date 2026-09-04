@@ -1414,7 +1414,15 @@ const STRIP_CAPTION_INSET = 5;
  * either clip under the card's `overflow` or leave a band of ground below the words. The line and
  * the insets below are what make the figure true, and the seam is a border and so part of the box.
  */
-export const STRIP_CAPTION_HEIGHT = SEAM_WIDTH + 2 * STRIP_CAPTION_INSET + STRIP_CAPTION_LINE;
+/**
+ * Two lines rather than one: a poster or cover at the strip's height is about 80px wide, and a
+ * season with its date, or an episode count with its hours, is an ellipsis on one line there. A
+ * banner's caption fits a line and stands centred in the two, since the strip fixes one height for
+ * every card in it.
+ */
+const STRIP_CAPTION_LINES = 2;
+
+export const STRIP_CAPTION_HEIGHT = SEAM_WIDTH + 2 * STRIP_CAPTION_INSET + STRIP_CAPTION_LINES * STRIP_CAPTION_LINE;
 
 export const FooterComponent = ({
   labels,
@@ -1452,6 +1460,8 @@ export const FooterComponent = ({
           padding: `${STRIP_CAPTION_INSET}px 6px`,
           ":last-child": { paddingBottom: `${STRIP_CAPTION_INSET}px` },
           overflow: "hidden",
+          display: "flex",
+          alignItems: "center",
           backgroundColor: palette.ground,
           color: palette.onGround,
           borderTop: palette.seam,
@@ -1460,19 +1470,18 @@ export const FooterComponent = ({
         <Typography
           variant="caption"
           sx={{
-            display: "block",
+            display: "-webkit-box",
+            WebkitLineClamp: STRIP_CAPTION_LINES,
+            WebkitBoxOrient: "vertical",
             fontWeight: 600,
             // Stated, so the height above is the height this actually takes rather than whatever
             // the variant's ratio works out to.
             lineHeight: `${STRIP_CAPTION_LINE}px`,
-            // A poster or cover at the strip's height is about 80px wide, where a date at 12px is
-            // an ellipsis; one size down it is a date. Every strip card takes the size, since the
-            // strip is read across its captions and a card is laid out stacked whatever its shape.
+            // One size down from the variant, so a date fits a cover's line; every strip card
+            // takes it, the strip being read across its captions.
             fontSize: 11,
             fontVariantNumeric: "tabular-nums",
-            whiteSpace: "nowrap",
             overflow: "hidden",
-            textOverflow: "ellipsis",
           }}
         >
           {captionText ?? stripCaption(labels)}
