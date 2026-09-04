@@ -446,9 +446,12 @@ share a screen leave a poster 54px wide. The rows pair by shape — the two bann
 and the cover under them — so a row shares a height, which is why `Now` reads `usePhone` as a value:
 the pairing is a DOM order, which no `sx` can state. A banner spans its cell at 16:9 with the date on
 a line beneath; a poster or a cover stands beside a 36px spine (`NOW_SPINE_WIDTH`, `nowGeometry.ts`)
-with the date set down it as a book's spine is, and takes the width the spine leaves, so its height
-follows the cell's and a wider phone gets a taller picture rather than ground beside one — 204px at
-390, 234 at 430. A column that narrow holds a date and not a word, and the date is the one fact of
+with the date set down it as a book's spine is. That row is one height, the poster's at the width
+the spine leaves it, solved from the measured row (`nowPortraitHeight` — 204px at 390, 234 at 430),
+so a wider phone gets a taller picture rather than ground beside one; the cover, whose ratio no file
+holds exactly, is held to the same height and takes its own width inside it, its spine absorbing
+the few pixels a cover off 2:3 does not fill, so nothing is cropped and the two cells stay level.
+A column that narrow holds a date and not a word, and the date is the one fact of
 the four a picture cannot carry; the platform, the genre and the figures are one tap away on the
 expanded card, which the whole cell opens (`openFromCell`), a finger on the spine doing what a finger
 on the picture does. A banner alone in flight takes the whole row, half of it beside a gap being a

@@ -37,6 +37,7 @@ import {
   NOW_GEOMETRY,
   NOW_PANEL_INSET,
   NOW_SPINE_WIDTH,
+  nowPortraitHeight,
   pairNowGeometry,
   type NowGeometry,
 } from "./nowGeometry";
@@ -187,6 +188,9 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
 
   // A lone banner takes the phone's whole row, rather than half of it beside a gap.
   const banners = (now.game ? 1 : 0) + (now.movie ? 1 : 0);
+  // The portrait row's one height, once the row has been measured; until then each picture
+  // stands at its own ratio for the frame before.
+  const portraitHeight = phone && rowWidth !== undefined ? nowPortraitHeight(rowWidth) : undefined;
   const game = now.game && (
     <NowItem
       item={now.game}
@@ -214,6 +218,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
       item={now.show}
       medium="show"
       phone={phone}
+      portraitHeight={portraitHeight}
       geometry={geometry}
       pair={pair}
       MediaComponent={ShowCardMediaImage}
@@ -249,6 +254,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
       item={now.book}
       medium="book"
       phone={phone}
+      portraitHeight={portraitHeight}
       geometry={geometry}
       pair={pair}
       MediaComponent={BookCardMediaImage}
@@ -331,6 +337,8 @@ const NowItem = <T,>(props: {
    * row: a banner at half the row is 98px tall, and the half beside it would hold nothing.
    */
   alone?: boolean;
+  /** The phone's portrait row's height, which a poster or a cover is held to once the row is measured. */
+  portraitHeight?: number;
   /** The band's one size, from `md` up. */
   geometry: NowGeometry;
   /** The same, shared two to a row, until the row has been measured. */
@@ -367,10 +375,17 @@ const NowItem = <T,>(props: {
           cardSx={{
             flexDirection: beside ? "row" : "column",
             width: "100%",
-            // The picture takes what the spine leaves: its column gives way and the spine
-            // does not, so a cover a few percent off 2:3 changes the cell's height and never
-            // the spine's width.
-            ...(beside && { "& > .MuiCardActionArea-root": { flex: "1 1 auto", minWidth: 0, width: "auto" } }),
+            // Until the row is measured the picture takes what the spine leaves; once it is, the
+            // picture is its own width at the row's height and the spine takes what the picture
+            // leaves — so a cover a few percent off 2:3 changes the spine's width and never the
+            // row's height.
+            ...(beside && {
+              "& > .MuiCardActionArea-root": {
+                flex: props.portraitHeight === undefined ? "1 1 auto" : "0 0 auto",
+                minWidth: 0,
+                width: "auto",
+              },
+            }),
           }}
           sx={{
             // Every picture is as wide as its column and as tall as its shape makes it at that
@@ -378,8 +393,12 @@ const NowItem = <T,>(props: {
             // phone gets a taller picture rather than ground around one. A poster and a banner
             // are authored to their ratios exactly, so holding them to it crops nothing; a cover
             // holds its own, no two of them sharing a ratio to be held to.
-            width: "100%",
-            height: "auto",
+            // A portrait picture is held to the row's height instead once it is known, and takes
+            // its own width from it — the poster the spine's complement exactly, a cover a few
+            // pixels either side of it — so the two cells of the row are one height.
+            ...(beside && props.portraitHeight !== undefined
+              ? { width: "auto", height: props.portraitHeight }
+              : { width: "100%", height: "auto" }),
             aspectRatio: shapeIsExact(shape) ? shapeToRatio(shape) : shapeToAspect(shape),
             objectFit: "contain",
             display: "block",
