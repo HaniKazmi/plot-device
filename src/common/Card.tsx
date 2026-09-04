@@ -981,7 +981,7 @@ export const CardPanel = ({
         // and a three-line one.
         // Beside the picture below `md` the panel is a column of about 260px, where the desktop's
         // 16px of inset and gap are a quarter of it; the words take the difference.
-        ...(hero && { padding: { xs: 1.5, md: 2 }, gap: { xs: 1, md: 2 } }),
+        ...(hero && { padding: { xs: 1.5, md: 2 }, gap: { xs: heroAside ? 0.5 : 1, md: 2 } }),
         ":last-child": { paddingBottom: hero ? { xs: 1.5, md: inset ?? 2 } : (inset ?? 2) },
         backgroundColor: palette.ground,
         color: palette.onGround,
@@ -1017,7 +1017,9 @@ export const CardPanel = ({
           >
             <Typography
               variant="caption"
-              sx={{ color: palette.muted, ...LABEL_SX }}
+              // Beside a poster on a phone the kicker wraps to two lines, and the caption's own
+              // leading spends a fifth of the 200px panel on them.
+              sx={{ color: palette.muted, ...LABEL_SX, ...(heroAside && { lineHeight: { xs: 1.3, md: 1.66 } }) }}
             >
               {kicker}
             </Typography>
@@ -1084,42 +1086,72 @@ export const CardPanel = ({
 
       {middle}
 
-      {stats.length > 0 && (
-        // Beside a poster on a phone or a tablet the tiles leave the panel for `HeroStatBand`, a
-        // row of the card's own width beneath the picture: kept in the column they would make it
-        // taller than the poster, and the poster would grow to match.
-        <Box sx={heroAside ? { display: { xs: "none", md: "contents" } } : { display: "contents" }}>
+      {stats.length > 0 &&
+        (heroAside ? (
+          // Beside a poster below `md` the panel is held to the picture's height, and a row of
+          // tiles would stand the words taller than it; the same figures as lines take a third of
+          // the height. From `md` the panel is wide enough for the tiles.
+          <>
+            <Box sx={{ display: { xs: "contents", md: "none" } }}>
+              <StatLines stats={stats} />
+            </Box>
+            <Box sx={{ display: { xs: "none", md: "contents" } }}>
+              <StatTileGrid
+                stats={stats}
+                size={statSize}
+              />
+            </Box>
+          </>
+        ) : (
           <StatTileGrid
             stats={stats}
             size={statSize}
           />
-        </Box>
-      )}
+        ))}
     </CardContent>
   );
 };
 
 /**
- * The hero's tiles as a band under the picture and the words, where the panel beside a poster is
- * too narrow and too short to hold them: the card's own width, in the artwork's ground, seamed off
- * the row above. Drawn below `md` alone; from `md` the panel carries the tiles itself.
+ * A panel's figures as lines rather than tiles, two to a row: the figure in the panel's ink with
+ * its label beside it in the muted tone, the pair reading as one phrase — "3.6 hours" — where a
+ * tile makes each a block. The compact form for a column a poster leaves beside it.
  */
-export const HeroStatBand = ({ stats }: { stats: CardStat[] }) => {
+const StatLines = ({ stats }: { stats: CardStat[] }) => {
   const palette = useArtworkPalette();
-  if (stats.length === 0) return null;
 
   return (
     <Box
       sx={{
-        display: { xs: "block", md: "none" },
-        flexBasis: "100%",
-        padding: 1.5,
-        backgroundColor: palette.ground,
-        color: palette.onGround,
-        borderTop: palette.seam,
+        display: "grid",
+        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+        columnGap: 1.5,
+        rowGap: 0.25,
+        width: "100%",
       }}
     >
-      <StatTileGrid stats={stats} />
+      {stats.map((stat) => (
+        <Box
+          key={stat.label}
+          sx={{ display: "flex", alignItems: "baseline", gap: 0.5, minWidth: 0 }}
+        >
+          <Typography
+            variant="subtitle2"
+            sx={{ fontWeight: 700, fontVariantNumeric: "tabular-nums", flexShrink: 0, lineHeight: 1.3 }}
+          >
+            {stat.value}
+          </Typography>
+          <Typography
+            variant="caption"
+            noWrap
+            // Mixed case rather than the tiles' tracked capitals: a franchise name is the longest
+            // label a hero states, and capitals spaced out are a third wider than the words.
+            sx={{ color: palette.muted }}
+          >
+            {stat.label}
+          </Typography>
+        </Box>
+      ))}
     </Box>
   );
 };

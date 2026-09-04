@@ -1103,9 +1103,9 @@ own artwork once at the call site, and a banner stacks its words underneath on a
 width. A portrait picture given the page's whole width
 is the whole of the first screen — a poster stands 525px at 390 and a cover 585 — so the phone's
 hero would open on one picture and start its figures below the fold. Below `md` the words beside
-a poster are held to its height — a title clamped to three lines over the subtitle — and the tiles
-go under both as `HeroStatBand`, a row of the card's own width, so the poster fills its column with
-no ground beneath it.
+a poster are held to its height — a title clamped to three lines over the subtitle, and the figures
+as two-to-a-row lines (`StatLines`) rather than tiles, "3.6 hours" in the panel's ink with its label
+beside it in the muted tone — so the poster fills its column with no ground beneath it.
 
 Its figures are the item's own — hours logged, days in, franchise size — a tile dropped rather than
 zeroed where the sheet is silent, library totals staying in the cards below. The kicker says why the

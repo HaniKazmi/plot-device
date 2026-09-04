@@ -1,6 +1,6 @@
 import { Box } from "@mui/material";
 import type { ReactNode } from "react";
-import { CardPanel, HeroStatBand, type PanelStat, type PanelSubtitlePart, type TypedCardMediaImage } from "./Card";
+import { CardPanel, type PanelStat, type PanelSubtitlePart, type TypedCardMediaImage } from "./Card";
 import { shapeToArrangement, shapeToAspect, type ArtworkShape } from "./cardArrangement";
 
 /**
@@ -15,10 +15,10 @@ import { shapeToArrangement, shapeToAspect, type ArtworkShape } from "./cardArra
  * page opens on one picture; the arrangement rule (§6) is what answers that, and it answers it by
  * shape *and* width here, since the constraint a phone adds is the one shape alone cannot see.
  *
- * Below `md` the words beside the poster are held to its height and the tiles go under both
- * (`HeroStatBand`), so the poster fills its column with no ground beneath it: a kicker, a title of
- * three lines at most and a subtitle stand under 200; at 280 the tablet's panel also holds the
- * franchise strip.
+ * Below `md` the words beside the poster are held to its height, so the poster fills its column
+ * with no ground beneath it: a kicker, a title of three lines at most, a subtitle and the figures
+ * as two lines (`StatLines`) stand under 200; at 280 the tablet's panel also holds the franchise
+ * strip.
  */
 const MEDIA_HEIGHT = { xs: 200, sm: 280, md: 300 };
 
@@ -87,8 +87,6 @@ export const Hero = <T,>(props: {
       mediaLayout="aside"
       cardSx={{
         flexDirection: aside ? "row" : { xs: "column", sm: "row" },
-        // Below `md` the tiles wrap onto a band of their own under the picture and the words.
-        flexWrap: aside ? { xs: "wrap", md: "nowrap" } : "nowrap",
         // The panel takes the row's height where the artwork sets it, so its figures can sit on
         // the picture's own lower edge; a card whose words are underneath has no such row.
         alignItems: { xs: "stretch", md: "flex-start" },
@@ -113,30 +111,27 @@ export const Hero = <T,>(props: {
         display: "block",
       }}
       footerComponent={
-        <>
-          <CardPanel
-            layout={aside ? "hero-aside" : "hero"}
-            kicker={props.kicker}
-            title={props.title}
-            titleVariant="h4"
-            subtitle={props.subtitle}
-            stats={props.stats}
-            minHeight={MEDIA_HEIGHT.md}
-            // Where the strip stands, by shape, and once decided never undone as the page narrows.
-            // Beside a poster the panel is wide from `sm` up, so the strip is drawn from there; on
-            // a phone the 200px panel spends its height on the title and the tiles take a band of
-            // their own. Beside a banner the panel is 258px at `sm` and, between `md` and `lg`,
-            // a column the title wraps in, and a wrapped title over a strip outgrows the picture,
-            // so a banner's strip waits for `lg`. Below either width the expanded card is one tap
-            // away and draws the same strip with its Order · Time switch.
-            middle={
-              <Box sx={{ display: aside ? { xs: "none", sm: "contents" } : { xs: "none", lg: "contents" } }}>
-                {props.strip}
-              </Box>
-            }
-          />
-          {aside && <HeroStatBand stats={props.stats} />}
-        </>
+        <CardPanel
+          layout={aside ? "hero-aside" : "hero"}
+          kicker={props.kicker}
+          title={props.title}
+          titleVariant="h4"
+          subtitle={props.subtitle}
+          stats={props.stats}
+          minHeight={MEDIA_HEIGHT.md}
+          // Where the strip stands, by shape, and once decided never undone as the page narrows.
+          // Beside a poster the panel is wide from `sm` up, so the strip is drawn from there; on
+          // a phone the 200px panel spends its height on the title and the figures as lines.
+          // Beside a banner the panel is 258px at `sm` and, between `md` and `lg`,
+          // a column the title wraps in, and a wrapped title over a strip outgrows the picture,
+          // so a banner's strip waits for `lg`. Below either width the expanded card is one tap
+          // away and draws the same strip with its Order · Time switch.
+          middle={
+            <Box sx={{ display: aside ? { xs: "none", sm: "contents" } : { xs: "none", lg: "contents" } }}>
+              {props.strip}
+            </Box>
+          }
+        />
       }
     />
   );
