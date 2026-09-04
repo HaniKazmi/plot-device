@@ -1,6 +1,6 @@
 # Plot Device
 
-Plot Device is a personal data dashboard and media consumption tracker built with React, TypeScript, and Vite. It reads tracking data directly from Google Sheets and renders it as interactive Highcharts visualisations for Video Games, TV Shows, Movies and Books, plus an Omnibus tab that composes all four into one cross-media view.
+Plot Device is a personal data dashboard and media consumption tracker built with React, TypeScript and Vite. It reads tracking data directly from Google Sheets and renders it as interactive Highcharts visualisations for Video Games, TV Shows, Movies and Books, plus an Omnibus tab that composes all four into one cross-media view.
 
 There is no backend and no database — a spreadsheet _is_ the storage layer, and every fetch, parse, aggregation and render happens in the browser. The deployed site is a static bundle on GitHub Pages.
 
@@ -11,7 +11,7 @@ There is no backend and no database — a spreadsheet _is_ the storage layer, an
 - **Google Sheets as a backend** — reads via the Sheets API with a read-only scope; the app never writes.
 - **Data visualisation** — stat cards, a packed SVG timeline, sunburst hierarchies you can re-nest at runtime, and bar/line/bump charts, powered by [Highcharts](https://www.highcharts.com/).
 - **Media tracking** — Video Games, Shows, Movies and Books, each with its own model, filters and theme colour.
-- **Franchises across media** — every expanded card and every hero places its item among the whole franchise, games beside seasons beside films beside books, as a chain in the order met or against a window of the franchise's own years.
+- **Franchises across media** — every expanded card and hero places its item among the whole franchise, games beside seasons beside films beside books, as a chain in the order met or against a window of the franchise's own years.
 - **Omnibus** — a fifth tab, and the one the app opens on, composing the other four's own data into a cross-media Now band, totals, a recently-finished list, a by-year chart with a Totals/Share/Cumulative/Rank view switch, a browsable gallery, and a franchise timeline.
 - **Client-side rendering** — Google Identity Services plus `gapi`, authenticating and fetching straight from the browser.
 - **Cache-first loading** — the dashboard paints from `localStorage` before authentication completes, then refreshes.
@@ -26,12 +26,13 @@ There is no backend and no database — a spreadsheet _is_ the storage layer, an
 | Charting    | Highcharts + `@highcharts/react`, plus a hand-rolled SVG timeline        |
 | Routing     | React Router (`HashRouter`, for GitHub Pages)                            |
 | Auth & data | Google Identity Services + `gapi`                                        |
+| Lint & test | ESLint 10 (flat config) + Vitest                                         |
 
 ## Getting started
 
 ### Prerequisites
 
-- Node.js `^20.19.0 || >=22.12.0` (Vite 8's requirement)
+- Node.js `^20.19.0 || >=22.12.0` (Vite 8's requirement; CI runs 24)
 - A Google Cloud project with the Google Sheets API enabled
 - An OAuth 2.0 Client ID and an API key
 
@@ -52,7 +53,7 @@ VITE_GOOGLE_CLIENT_ID=your_google_client_id_here.apps.googleusercontent.com
 VITE_GOOGLE_API_KEY=your_google_api_key_here
 ```
 
-Without these the app still builds and loads, but authorisation fails and no data appears.
+Both are inlined at build time. The build succeeds without them, but the page comes up blank: `GoogleAuthProvider` hands `initTokenClient` an undefined client id as soon as the sign-in script loads, that throws, and the app mounts no error boundary to catch it.
 
 The spreadsheet IDs and cell ranges themselves live in [`src/tabs.ts`](./src/tabs.ts), which is the single source of truth for a data source.
 
@@ -66,18 +67,19 @@ The app is served at `http://localhost:5173`. Click **Authorise** in the app bar
 
 ## Scripts
 
-| Command           | What it does                                                   |
-| ----------------- | -------------------------------------------------------------- |
-| `npm run dev`     | Vite dev server with HMR                                       |
-| `npm run build`   | `tsc` then `vite build`                                        |
-| `npm test`        | Vitest over `tests/`                                           |
-| `npm run preview` | Serve the production build locally                             |
-| `npm run lint`    | ESLint (flat config), including the React Compiler rules       |
-| `npm run format`  | Prettier over the repo                                         |
-| `npm run analyze` | Bundle breakdown via `source-map-explorer` (run after `build`) |
-| `npm run deploy`  | Build and publish to GitHub Pages at `plot.hani.fyi`           |
+| Command              | What it does                                                   |
+| -------------------- | -------------------------------------------------------------- |
+| `npm run dev`        | Vite dev server with HMR                                       |
+| `npm run build`      | `tsc` then `vite build`                                        |
+| `npm test`           | Vitest over `tests/`, with `TZ=UTC` pinned                     |
+| `npm run test:watch` | The same suite in watch mode                                   |
+| `npm run preview`    | Serve the production build locally                             |
+| `npm run lint`       | ESLint (flat config), including the React Compiler rules       |
+| `npm run format`     | Prettier over the repo                                         |
+| `npm run analyze`    | Bundle breakdown via `source-map-explorer` (run after `build`) |
+| `npm run deploy`     | Build and publish to GitHub Pages at `plot.hani.fyi`           |
 
-Verification is `npm test`, `npx tsc --noEmit` and `npm run lint`; the last two are expected to produce no output. CI runs all three on every push and pull request.
+Verification is `npm test`, `npx tsc --noEmit` and `npm run lint`; the last two are expected to produce no output. CI runs those three plus `npm run build` on every push and pull request, and deploys from `master` once they pass.
 
 Tests cover pure logic only — converters, filters, the reducer, the chart data transforms and the cache round trip — and there are deliberately no DOM or component tests. See [AGENTS.md](./AGENTS.md) for why, and for the rules that keep the suite from flaking.
 
@@ -86,6 +88,7 @@ Tests cover pure logic only — converters, filters, the reducer, the chart data
 ```
 src/
   tabs.ts              data-source registry: sheet id, range, route, colours
+  contexts/            Google auth provider and OAuth token helpers
   common/              domain-blind chart shells, date model, data hook
   utils/               prototype extensions, branded types, colour extraction
   vg/ show/ movie/     per-domain model, converter, filters, adapters

@@ -770,10 +770,9 @@ export const CardPanel = ({
   /** The inset a panel keeps, where a caller's row is read across the figures panels end with. */
   inset?: number;
   /**
-   * What the panel says between its words and its figures — the hero's franchise strip and the
-   * two ledger rows it leads with. Between rather than after, so a panel holding the artwork's
-   * height spends the middle of it on the item's own story instead of leaving that height as
-   * ground between the subtitle and the tiles.
+   * What the panel says between its words and its figures — the hero's franchise strip. Between
+   * rather than after, so a panel holding the artwork's height spends the middle of it on the
+   * item's own story instead of leaving that height as ground between the subtitle and the tiles.
    */
   middle?: ReactNode;
 }) => {
@@ -1164,7 +1163,7 @@ const MetadataLedger = ({ rows }: { rows: LedgerRow[] }) => {
 
 /**
  * The ledger's rows without the grid cell the expanded card seats them in, for a surface that lays
- * them out itself — the hero's panel, which gives its two rows a single column whatever its width.
+ * them out itself.
  */
 export const LedgerList = ({ rows, columns }: { rows: LedgerRow[]; columns: { xs: number; md: number } }) => {
   const palette = useArtworkPalette();
