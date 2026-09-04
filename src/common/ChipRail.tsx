@@ -1,5 +1,5 @@
 import { Box, Chip, useTheme, type SxProps, type Theme } from "@mui/material";
-import type { ReactNode, Ref } from "react";
+import type { ReactElement, ReactNode, Ref } from "react";
 import { NUMERIC_LABEL_SX } from "./typography";
 import { ScrollFade } from "./ScrollFade";
 import { useScrollEdges } from "./useScrollEdges";
@@ -16,6 +16,13 @@ export interface ChipRailItem {
 export const CHIP_HEIGHT = 22;
 
 /**
+ * The same chip under a finger. 22px is a mark on a scale a mouse lands on exactly; a thumb needs
+ * a target it can hit at speed, and the rail is the one bar a phone reader reaches for from
+ * anywhere on the page. `SCROLL_MARGIN` (`SectionRail.tsx`) still clears a rail built from these.
+ */
+const COARSE_CHIP_HEIGHT = 30;
+
+/**
  * What every rail's chips are, beyond being chips.
  *
  * A fixed height rather than the size's own, because a rail spread down a gutter or across a chart
@@ -28,13 +35,34 @@ export const CHIP_HEIGHT = 22;
 const CHIP_SX = {
   flexShrink: 0,
   height: CHIP_HEIGHT,
+  "@media (pointer: coarse)": { height: COARSE_CHIP_HEIGHT },
   ...NUMERIC_LABEL_SX,
 } as const;
 
-/** One rail chip, exported so a caller can put chips of its own in the `leading` slot. */
-export const RailChip = ({ label, active, onClick }: { label: string; active?: boolean; onClick: () => void }) => (
+/**
+ * One rail chip, exported so a caller can put chips of its own in the `leading` slot or beside the
+ * rail's actions.
+ *
+ * `icon` with no `label` is a chip that is only its mark — the theme drops the empty label's
+ * padding for exactly that — which is how a control with no room for a word joins the row.
+ */
+export const RailChip = ({
+  label,
+  active,
+  icon,
+  ariaLabel,
+  onClick,
+}: {
+  label: string;
+  active?: boolean;
+  icon?: ReactElement;
+  ariaLabel?: string;
+  onClick: () => void;
+}) => (
   <Chip
     label={label}
+    aria-label={ariaLabel}
+    icon={icon}
     size="small"
     color={active ? "primary" : "default"}
     variant={active ? "filled" : "outlined"}
