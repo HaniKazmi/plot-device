@@ -9,7 +9,7 @@ import { SegmentedControl, type SegmentOption } from "./SelectionComponents";
 import { shortYear, type YearMonthDay } from "./date";
 import type { FranchiseEntry } from "./franchiseUnion";
 import { HoverCardTooltip } from "./HoverCardTooltip";
-import { TOUCH_TARGET_SX } from "./touchTarget";
+import { TOUCH_TARGET_SX, touchTargetSx } from "./touchTarget";
 import { LazyTooltip } from "./LazyTooltip";
 import { percentAtDate, percentOfSpan } from "./timelineLayout";
 import {
@@ -622,7 +622,18 @@ const StripMark = ({ band, mark }: { band: StripBand<FranchiseEntry>; mark: Mark
   );
 };
 
-const MARK_SX = { position: "absolute", cursor: "default", userSelect: "none", ...TOUCH_TARGET_SX } as const;
+/**
+ * A mark in the Time reading, whose finger reach is the lane pitch rather than the full 24: the
+ * lanes are 16px apart, so a box any taller reaches into the lane below and the later mark answers
+ * for both. A dot is 8px and a band 12 inside that pitch, and both are centred in it, so the box
+ * lands on the lane exactly either way.
+ */
+const MARK_SX = {
+  position: "absolute",
+  cursor: "default",
+  userSelect: "none",
+  ...touchTargetSx(`${LANE_PITCH}px`),
+} as const;
 
 /**
  * An estimated span dissolves at both ends rather than stopping at one, because a hard edge is a
