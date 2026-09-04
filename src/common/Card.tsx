@@ -1466,8 +1466,9 @@ export const FooterComponent = ({
             // the variant's ratio works out to.
             lineHeight: `${STRIP_CAPTION_LINE}px`,
             // A poster or cover at the strip's height is about 80px wide, where a date at 12px is
-            // an ellipsis; one size down it is a date.
-            fontSize: beside ? 11 : undefined,
+            // an ellipsis; one size down it is a date. Every strip card takes the size, since the
+            // strip is read across its captions and a card is laid out stacked whatever its shape.
+            fontSize: 11,
             fontVariantNumeric: "tabular-nums",
             whiteSpace: "nowrap",
             overflow: "hidden",
