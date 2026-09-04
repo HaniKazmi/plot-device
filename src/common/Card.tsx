@@ -9,6 +9,7 @@ import {
   Dialog,
   Divider,
   Grow,
+  IconButton,
   Stack,
   SxProps,
   Theme,
@@ -19,7 +20,7 @@ import {
   type TypographyProps,
 } from "@mui/material";
 import { type FunctionComponent, type ReactElement, type ReactNode, useEffect, useRef, useState } from "react";
-import { CalendarMonthOutlined } from "@mui/icons-material";
+import { CalendarMonthOutlined, Close } from "@mui/icons-material";
 import { cachedColour, extractColourFrom } from "../utils/colourUtils";
 import { ArtworkAccent, artworkPalette, useArtworkPalette } from "./artworkPalette";
 import { HoverCardTooltip } from "./HoverCardTooltip";
@@ -284,6 +285,157 @@ const ArtworkStandIn = ({
   </Box>
 );
 
+/**
+ * The bar an expanded card wears where it fills the screen, and the room it takes from the picture
+ * below it: the two together are the first screen, so the reader meets the artwork with a way out
+ * of it already on show.
+ */
+const SHEET_BAR_HEIGHT = 48;
+
+/**
+ * The four rules a sheet is made of, each built here rather than in the component that wears it.
+ *
+ * A width is a key computed from the theme, and an object literal with a computed key is one of
+ * the shapes the React Compiler cannot lower: written inline it would bail the whole component,
+ * silently, and this one is rendered once per card on a wall of a thousand. Taking the values that
+ * vary — the palette, the artwork's ratio — as arguments keeps the literal itself at module scope.
+ */
+const sheetBarSx = (palette: ReturnType<typeof artworkPalette>) => (theme: Theme) => ({
+  display: "none",
+  [theme.breakpoints.down("sm")]: { display: "flex" },
+  position: "sticky",
+  top: 0,
+  // Above the fades and pinned rows a detail body draws, which would otherwise paint over the
+  // bar as they scroll under it.
+  zIndex: theme.zIndex.appBar,
+  alignItems: "center",
+  gap: 1,
+  minHeight: SHEET_BAR_HEIGHT,
+  // The notch is paid for on top of the bar's own height, which is what the picture below is
+  // sized against.
+  paddingTop: "env(safe-area-inset-top)",
+  paddingInline: 1,
+  backgroundColor: palette.ground,
+  color: palette.onGround,
+});
+
+/**
+ * The dialog's paper. A sheet on a phone: the picture is the whole first screen, and a 32px inset
+ * around it is a frame at the width where every pixel is the picture's. Written as a `down` block
+ * rather than a pair of breakpoint values, so from `sm` up not one of these properties is emitted
+ * and the paper is whatever the dialog's own rules make it.
+ */
+const DIALOG_PAPER_SX = (theme: Theme) => ({
+  backgroundColor: "unset",
+  boxShadow: "unset",
+  backgroundImage: "unset",
+  [theme.breakpoints.down("sm")]: {
+    margin: 0,
+    width: "100%",
+    maxWidth: "100%",
+    // `scroll="body"` scrolls the container, and a paper that scrolled as well would be the
+    // scrollport the sheet bar sticks inside — a box the height of the whole card, which never
+    // scrolls.
+    overflowY: "visible",
+    // The paper is centred in the scroller by an inline-block trick; a sheet is read from its top
+    // edge down, and its bar belongs at the top of the screen.
+    verticalAlign: "top",
+  },
+});
+
+/** The expanded card itself, on the ground its artwork was sampled to. */
+const dialogCardSx = (palette: ReturnType<typeof artworkPalette>) => (theme: Theme) => ({
+  backgroundColor: palette.ground,
+  color: palette.onGround,
+  [theme.breakpoints.down("sm")]: {
+    overflow: "visible",
+    borderRadius: 0,
+    // A sheet fills the screen even where its card is shorter than one: a strip of the page
+    // showing under a card's last row reads as the sheet having failed to open rather than as an
+    // item with little to say.
+    minHeight: "100svh",
+  },
+});
+
+/**
+ * The artwork at the dialog's scale, from the shape it turned out to be.
+ *
+ * The room is held in custom properties so the two rules below read one answer, whichever width
+ * states it: the width and the height are the two halves of one `min`, and a breakpoint that moved
+ * one without the other would scale the artwork against a box that is not the room it has.
+ */
+const dialogImageSx = (ratio: number | undefined) => (theme: Theme) => ({
+  // `svh` and not `vh`, because a phone reports `vh` with its toolbar retracted, so an image sized
+  // to it overflows the screen it is meant to fit. `dvh` would track the toolbar instead, and
+  // resize the artwork under the reader at the moment they scroll past it to the details.
+  "--sheet-room-width": `calc(100vw - ${theme.spacing(4)})`,
+  "--sheet-room-height": `calc(100svh - ${theme.spacing(4)})`,
+  // Edge to edge on a phone, sharing the screen with the bar above it rather than pushing it off
+  // the top.
+  [theme.breakpoints.down("sm")]: {
+    "--sheet-room-width": "100vw",
+    "--sheet-room-height": `calc(100svh - ${SHEET_BAR_HEIGHT}px - env(safe-area-inset-top))`,
+  },
+  objectFit: "contain",
+  display: "block",
+  // On their own these only ever take away: an element with an automatic width is already its
+  // intrinsic width, so artwork smaller than the screen stays small. They are still the whole rule
+  // until the shape is known.
+  maxWidth: "var(--sheet-room-width)",
+  maxHeight: "var(--sheet-room-height)",
+  ...(ratio && {
+    // Filling the width and deriving the height scales the artwork up as well as down. Which of
+    // the two is the binding one is left to `min`, so it is decided against the room actually
+    // available and decided again on a rotation — where a stored answer would be the one from
+    // whichever way round the screen was when the image loaded.
+    width: `min(var(--sheet-room-width), calc(var(--sheet-room-height) * ${ratio}))`,
+    height: "auto",
+  }),
+});
+
+/**
+ * A grabber, the item's name and a way out, in the card's own ground so the bar reads as the top
+ * of the card rather than as chrome laid over it.
+ *
+ * It is the dialog's first child and sticky, so the name and the ✕ stay on screen as the picture
+ * scrolls past. Both the paper and the card open their clipping at this width for it: an ancestor
+ * whose `overflow` is anything but `visible` becomes the scrollport a sticky element is measured
+ * against, and neither of those boxes ever scrolls, so the bar would sit at the top of a card
+ * several screens tall and never come back.
+ *
+ * The name is stated at every scroll position rather than faded in past the picture: the title is
+ * the one fact a full-bleed picture does not carry, and a bar whose middle fills in as you scroll
+ * moves the ✕ nowhere but reads as something loading.
+ */
+const SheetBar = ({
+  title,
+  palette,
+  onClose,
+}: {
+  title: string;
+  palette: ReturnType<typeof artworkPalette>;
+  onClose: () => void;
+}) => (
+  <Box sx={sheetBarSx(palette)}>
+    <Box sx={{ flex: "0 0 auto", width: 28, height: 3, borderRadius: 1.5, backgroundColor: palette.muted }} />
+    <Typography
+      variant="subtitle2"
+      noWrap
+      sx={{ flexGrow: 1, minWidth: 0 }}
+    >
+      {title}
+    </Typography>
+    <IconButton
+      aria-label="Close"
+      size="small"
+      onClick={onClose}
+      sx={{ color: "inherit" }}
+    >
+      <Close />
+    </IconButton>
+  </Box>
+);
+
 export const CardMediaImage = (props: CardMediaImageProps) => {
   const { image, alt, chip, colour: propColour, footerComponent, detailComponent, mediaLayout, sx, cardSx } = props;
   const rowSize = props.rowSize;
@@ -516,18 +668,20 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
             scroll="body"
             slots={{ transition: Grow }}
             slotProps={{
-              paper: { sx: { backgroundColor: "unset", boxShadow: "unset", backgroundImage: "unset" } },
+              paper: { sx: DIALOG_PAPER_SX },
               transition: { onExited: detail.onExited },
             }}
           >
             <ArtworkAccent.Provider value={colour}>
               <Card
                 variant="elevation"
-                sx={{
-                  backgroundColor: dialogPalette.ground,
-                  color: dialogPalette.onGround,
-                }}
+                sx={dialogCardSx(dialogPalette)}
               >
+                <SheetBar
+                  title={alt}
+                  palette={dialogPalette}
+                  onClose={detail.hide}
+                />
                 <Box
                   onClick={detail.hide}
                   sx={{
@@ -546,35 +700,7 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
                     <CardMedia
                       component="img"
                       crossOrigin="anonymous"
-                      sx={(theme) => {
-                        // `svh` and not `vh`, because a phone reports `vh` with its toolbar retracted, so
-                        // an image sized to it overflows the screen it is meant to fit. `dvh` would track
-                        // the toolbar instead, and resize the artwork under the reader at the moment they
-                        // scroll past it to the details.
-                        const room = {
-                          width: `calc(100vw - ${theme.spacing(4)})`,
-                          height: `calc(100svh - ${theme.spacing(4)})`,
-                        };
-
-                        return {
-                          objectFit: "contain",
-                          display: "block",
-                          // On their own these only ever take away: an element with an automatic width is
-                          // already its intrinsic width, so artwork smaller than the screen stays small.
-                          // They are still the whole rule until the shape is known.
-                          maxWidth: room.width,
-                          maxHeight: room.height,
-                          ...(ratio && {
-                            // Filling the width and deriving the height scales the artwork up as well as
-                            // down. Which of the two is the binding one is left to `min`, so it is decided
-                            // against the room actually available and decided again on a rotation — where
-                            // a stored answer would be the one from whichever way round the screen was
-                            // when the image loaded.
-                            width: `min(${room.width}, calc(${room.height} * ${ratio}))`,
-                            height: "auto",
-                          }),
-                        };
-                      }}
+                      sx={dialogImageSx(ratio)}
                       src={image}
                       alt={alt}
                       loading="lazy"
