@@ -11,7 +11,7 @@ import { FranchiseContext, vgFranchise } from "./franchiseContext";
 import { visibleFranchiseIndex } from "../common/franchiseIndex";
 import { memo, useDeferredValue } from "react";
 import { Stack } from "@mui/material";
-import { usePhone } from "../common/usePhone";
+import { usePhone } from "../common/breakpoints";
 import Filter from "./Filter";
 import { ChartPair, Section, SectionRail } from "../common/SectionRail";
 import { MeasureControl } from "../common/SelectionComponents";

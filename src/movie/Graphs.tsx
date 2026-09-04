@@ -18,7 +18,7 @@ import { guestFilter, type FilterDispatch, type FilterState } from "./filterUtil
 import { format } from "../utils/mathUtils";
 import { finishedCount, type FinishedExtraSort } from "../common/finishedData";
 import { useScheme } from "../common/useScheme";
-import { usePhone } from "../common/usePhone";
+import { usePhone } from "../common/breakpoints";
 
 /** The measures this tab counts in, in the order the rail states them. */
 const MEASURES: readonly Measure[] = ["Films", "Hours"];

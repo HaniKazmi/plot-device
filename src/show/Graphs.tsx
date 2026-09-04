@@ -1,5 +1,5 @@
 import { Stack } from "@mui/material";
-import { usePhone } from "../common/usePhone";
+import { usePhone } from "../common/breakpoints";
 import type { YearNumber } from "../common/date";
 import Finished from "../common/Finished";
 import Barchart from "./Barchart";

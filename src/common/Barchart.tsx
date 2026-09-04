@@ -5,7 +5,7 @@ import { SectionHeader } from "./SectionHeader";
 import { SegmentedControl } from "./SelectionComponents";
 import { segments } from "./segments";
 import { FoldedChart, Sparkline } from "./FoldedChart";
-import { useStackedCharts } from "./usePhone";
+import { useStackedCharts } from "./breakpoints";
 import { Chart, Series, XAxis, YAxis, PlotOptions, Tooltip, Legend } from "../highcharts";
 import type { Year, YearMonth } from "./date";
 import type { Colour } from "../utils/types";

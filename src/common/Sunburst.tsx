@@ -8,7 +8,7 @@ import { FoldedChart } from "./FoldedChart";
 import { SectionHeader } from "./SectionHeader";
 import { SelectBox } from "./SelectionComponents";
 import { useScheme } from "./useScheme";
-import { useStackedCharts } from "./usePhone";
+import { useStackedCharts } from "./breakpoints";
 import { neutralFill, type Colour } from "../utils/types";
 import { keyLabel } from "../utils/stringUtils";
 import { format } from "../utils/mathUtils";
@@ -195,9 +195,11 @@ const ringSummary = (ring: SunburstEntry[]) =>
 /**
  * The first ring as a proportional bar: the wheel's own reading, flattened.
  *
- * The colour policy is the Top lists' — "Other" wears the neutral, a wedge its own vocabulary's
- * colour, and one whose grouping has no vocabulary a series colour by position — so a preview and
- * the chart behind it cannot name one wedge two colours.
+ * The colour policy is the Top lists' — "Other" wears the neutral, and a wedge its own
+ * vocabulary's colour, which is the colour the chart draws it in. A grouping with no vocabulary
+ * falls to a series colour by rank here and to Highcharts' own `colorByPoint` in the wheel, which
+ * runs in id order: the bar and the wedge then differ, and the names beneath the bar are what say
+ * which is which.
  */
 const RingBar = ({ ring }: { ring: SunburstEntry[] }) => {
   const scheme = useScheme();

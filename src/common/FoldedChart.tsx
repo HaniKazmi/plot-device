@@ -1,6 +1,6 @@
 import { Box, Button, Card, CardContent, Stack, Typography } from "@mui/material";
 import { useState, type ReactNode } from "react";
-import { usePhone } from "./usePhone";
+import { usePhone } from "./breakpoints";
 
 /**
  * A segment's own type, so the disclosure reads as one more of the controls the page already has

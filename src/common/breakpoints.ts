@@ -1,6 +1,11 @@
 import { useMediaQuery } from "@mui/material";
 
 /**
+ * The two widths the app reads as values rather than writing as `sx` breakpoint keys, and nothing
+ * else: everywhere a breakpoint only picks a style, the style carries it.
+ */
+
+/**
  * Whether the page is being read on a phone — below `sm`, the one width where a chart is not what
  * the reader came for.
  *

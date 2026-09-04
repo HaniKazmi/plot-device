@@ -63,12 +63,6 @@ const SCALE_WIDTH = "300%";
  * one chart rather than as twelve charts that happen to agree.
  */
 const Crossings = ({ crossings, ticks }: { crossings: Crossing[]; ticks: TimelineTick[] }) => {
-  const scheme = useScheme();
-
-  const [scrollRef, edges] = useScrollEdges<HTMLDivElement>();
-  const theme = useTheme();
-  useOpenAtLatest(scrollRef, crossings.length > 0);
-
   const biggest = crossings[0];
 
   return (
@@ -92,49 +86,71 @@ const Crossings = ({ crossings, ticks }: { crossings: Crossing[]; ticks: Timelin
           : ""
       }
     >
-      <CardContent>
-        <ScrollFade
-          edges={edges}
-          ground={theme.vars.palette.background.paper}
+      <CrossingsStack
+        crossings={crossings}
+        ticks={ticks}
+      />
+    </FoldedChart>
+  );
+};
+
+/**
+ * The stack itself, apart from the card that holds it, because both its hooks measure the scroller.
+ *
+ * A folded card does not render this at all until the reader opens it, and `useOpenAtLatest` fires
+ * once for a library that has data: mounted with the card, it would find no element on that one
+ * run and the stack would open at the epoch, the oldest end of a scale whose point is the newest.
+ */
+const CrossingsStack = ({ crossings, ticks }: { crossings: Crossing[]; ticks: TimelineTick[] }) => {
+  const scheme = useScheme();
+
+  const [scrollRef, edges] = useScrollEdges<HTMLDivElement>();
+  const theme = useTheme();
+  useOpenAtLatest(scrollRef, crossings.length > 0);
+
+  return (
+    <CardContent>
+      <ScrollFade
+        edges={edges}
+        ground={theme.vars.palette.background.paper}
+      >
+        <Box
+          ref={scrollRef}
+          sx={{
+            overflowX: "auto",
+            // The bar the platform may or may not draw. Where it does, this is the room for it;
+            // where it does not, the fades are what say the stack runs on.
+            paddingBottom: 1,
+            ...scrollbarSx(theme),
+          }}
         >
-          <Box
-            ref={scrollRef}
-            sx={{
-              overflowX: "auto",
-              // The bar the platform may or may not draw. Where it does, this is the room for it;
-              // where it does not, the fades are what say the stack runs on.
-              paddingBottom: 1,
-              ...scrollbarSx(theme),
-            }}
-          >
-            <Box sx={{ width: SCALE_WIDTH }}>
-              <Grid
-                container
-                spacing={1}
-                // The whole stack is one scroller, so the strips cannot come out of step with each
-                // other or with the axis: a scroller per strip would let a reader compare two rows
-                // showing different decades, which is the one thing a shared scale exists to stop.
-              >
-                {crossings.slice(0, STRIPS_SHOWN).map((crossing) => (
-                  <TimelineCard
-                    key={crossing.franchise}
-                    bands={crossing.bands.map((band) => toBand(band, scheme))}
-                    laneCount={crossing.laneCount}
-                    ticks={ticks}
-                    inStack
-                    caption={<CrossingCaption crossing={crossing} />}
-                  />
-                ))}
-              </Grid>
-              {/* At the strips' own inset, so a year label stands under the gridline it names. */}
-              <Box sx={{ paddingX: STRIP_INSET }}>
-                <TimelineAxis ticks={ticks} />
-              </Box>
+          <Box sx={{ width: SCALE_WIDTH }}>
+            <Grid
+              container
+              spacing={1}
+              // The whole stack is one scroller, so the strips cannot come out of step with each
+              // other or with the axis: a scroller per strip would let a reader compare two rows
+              // showing different decades, which is the one thing a shared scale exists to stop.
+            >
+              {crossings.slice(0, STRIPS_SHOWN).map((crossing) => (
+                <TimelineCard
+                  key={crossing.franchise}
+                  bands={crossing.bands.map((band) => toBand(band, scheme))}
+                  laneCount={crossing.laneCount}
+                  ticks={ticks}
+                  inStack
+                  caption={<CrossingCaption crossing={crossing} />}
+                />
+              ))}
+            </Grid>
+            {/* At the strips' own inset, so a year label stands under the gridline it names. */}
+            <Box sx={{ paddingX: STRIP_INSET }}>
+              <TimelineAxis ticks={ticks} />
             </Box>
           </Box>
-        </ScrollFade>
-      </CardContent>
-    </FoldedChart>
+        </Box>
+      </ScrollFade>
+    </CardContent>
   );
 };
 
