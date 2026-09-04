@@ -98,8 +98,8 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
 
             Shown at every width: at this size it costs the tabs about six characters, where the h6
             it replaces cost enough to be worth hiding on a phone. It also carries the long press
-            that opens guest mode, which sat on the whole bar — a bar holding a tab strip and a
-            menu button is three hundred pixels of surface where a press that misses its target
+            that opens guest mode, rather than the whole bar: a bar holding a tab strip and a menu
+            button is three hundred pixels of surface where a press landing on none of them
             changes what the page shows. */}
         <Typography
           noWrap
@@ -226,7 +226,8 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
             </MenuItem>
           )}
           {/* Both directions, because the menu is the only handle a touch reader has on the mode:
-              the long press that turns it on is a pointer gesture, and leaving it was a reload. */}
+              the long press that turns it on is a pointer gesture, and without an item saying so
+              leaving the mode is a reload. */}
           <MenuItem
             onClick={() => {
               closeMenu();
