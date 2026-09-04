@@ -2,6 +2,7 @@ import { Timeline as TimelineIcon } from "@mui/icons-material";
 import Grid from "@mui/material/Grid";
 import { SectionHeader } from "../common/SectionHeader";
 import { EventRibbon } from "../common/EventRibbon";
+import { FoldedChart } from "../common/FoldedChart";
 import { LazyTooltip } from "../common/LazyTooltip";
 import { buildTicks } from "../common/timelineLayout";
 import { YearMonth, shortYear } from "../common/date";
@@ -41,19 +42,34 @@ const WatchTimeline = ({ data }: { data: Movie[] }) => {
 
   return (
     <Grid size={12}>
-      <EventRibbon
-        rows={rows}
-        ticks={RIBBON_TICKS}
+      <FoldedChart
+        header={
+          <SectionHeader
+            icon={<TimelineIcon />}
+            title="When films were watched"
+            count={`${format(data.length)} films`}
+            action={controls}
+          />
+        }
+        // The stack's own shape in words: how many years it draws and which of them is fullest.
+        // A ribbon has no single figure to preview, every row being the same twelve months.
+        summary={summarise(rows)}
       >
-        <SectionHeader
-          icon={<TimelineIcon />}
-          title="When films were watched"
-          count={`${format(data.length)} films`}
-          action={controls}
+        <EventRibbon
+          rows={rows}
+          ticks={RIBBON_TICKS}
         />
-      </EventRibbon>
+      </FoldedChart>
     </Grid>
   );
+};
+
+/** The busiest row and how many rows there are — the two things the stack is read for. */
+const summarise = (rows: { label: string; bands: unknown[] }[]) => {
+  if (rows.length === 0) return "";
+
+  const busiest = rows.reduce((most, row) => (row.bands.length > most.bands.length ? row : most));
+  return `${format(rows.length)} years · busiest ${busiest.label}, ${format(busiest.bands.length)} films`;
 };
 
 export default WatchTimeline;

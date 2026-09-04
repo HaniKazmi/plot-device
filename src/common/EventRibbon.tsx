@@ -1,5 +1,4 @@
-import { Box, Card, CardContent, Stack, Typography } from "@mui/material";
-import type { ReactNode } from "react";
+import { Box, CardContent, Stack, Typography } from "@mui/material";
 import { TimelineBandBox, type TimelineBand } from "./Card";
 import type { TimelineTick } from "./timelineLayout";
 import { MUTED_FIGURE_SX } from "./typography";
@@ -27,68 +26,61 @@ const LABEL_WIDTH = 5;
  * and the label under it cannot drift apart — the same one-array rule the full timeline follows.
  * Tooltips should arrive through `LazyTooltip`: the ribbon positions hundreds of marks and only
  * ever shows a handful of cards.
+ *
+ * The card and its header belong to the caller, which stands this stack inside a `FoldedChart`: on
+ * a phone the ribbon is a card's second state and a line of words its first, and only something
+ * owning the card can hold both.
  */
-export const EventRibbon = ({
-  rows,
-  ticks,
-  children,
-}: {
-  rows: RibbonRow[];
-  ticks: TimelineTick[];
-  children: ReactNode;
-}) => {
+export const EventRibbon = ({ rows, ticks }: { rows: RibbonRow[]; ticks: TimelineTick[] }) => {
   return (
-    <Card>
-      {children}
-      <CardContent sx={{ ":last-child": { paddingBottom: 2 } }}>
-        <Stack spacing={0.75}>
-          {rows.map((row) => (
-            <Stack
-              key={row.key}
-              direction="row"
-              spacing={1}
-              sx={{ alignItems: "center" }}
+    <CardContent sx={{ ":last-child": { paddingBottom: 2 } }}>
+      <Stack spacing={0.75}>
+        {rows.map((row) => (
+          <Stack
+            key={row.key}
+            direction="row"
+            spacing={1}
+            sx={{ alignItems: "center" }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                width: (theme) => theme.spacing(LABEL_WIDTH),
+                flexShrink: 0,
+                textAlign: "right",
+                ...MUTED_FIGURE_SX,
+                userSelect: "none",
+              }}
             >
-              <Typography
-                variant="caption"
-                sx={{
-                  width: (theme) => theme.spacing(LABEL_WIDTH),
-                  flexShrink: 0,
-                  textAlign: "right",
-                  ...MUTED_FIGURE_SX,
-                  userSelect: "none",
-                }}
-              >
-                {row.label}
-              </Typography>
-              <Box
-                sx={{
-                  position: "relative",
-                  flexGrow: 1,
-                  height: (theme) => theme.spacing(TRACK_HEIGHT),
-                  borderRadius: 1,
-                  overflow: "hidden",
-                  backgroundColor: "action.hover",
-                }}
-              >
-                <RibbonScale ticks={ticks} />
-                {row.bands.map((band) => (
-                  <TimelineBandBox
-                    {...band}
-                    laneCount={row.laneCount}
-                    // Every mark here is a peer — there is no "this one, among these" for the
-                    // subject ring to say, and at point-event widths it would drown the fill.
-                    frameless
-                    key={band.key}
-                  />
-                ))}
-              </Box>
-            </Stack>
-          ))}
-          <RibbonAxis ticks={ticks} />
-        </Stack>
-      </CardContent>
-    </Card>
+              {row.label}
+            </Typography>
+            <Box
+              sx={{
+                position: "relative",
+                flexGrow: 1,
+                height: (theme) => theme.spacing(TRACK_HEIGHT),
+                borderRadius: 1,
+                overflow: "hidden",
+                backgroundColor: "action.hover",
+              }}
+            >
+              <RibbonScale ticks={ticks} />
+              {row.bands.map((band) => (
+                <TimelineBandBox
+                  {...band}
+                  laneCount={row.laneCount}
+                  // Every mark here is a peer — there is no "this one, among these" for the
+                  // subject ring to say, and at point-event widths it would drown the fill.
+                  frameless
+                  key={band.key}
+                />
+              ))}
+            </Box>
+          </Stack>
+        ))}
+        <RibbonAxis ticks={ticks} />
+      </Stack>
+    </CardContent>
   );
 };
 

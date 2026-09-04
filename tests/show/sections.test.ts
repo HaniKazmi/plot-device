@@ -3,21 +3,21 @@ import { SHOW_SECTIONS, showSections } from "../../src/show/sections";
 
 describe("showSections", () => {
   it("offers the Now chip only when the page has a strip for it to point at", () => {
-    expect(showSections(true).map((section) => section.id)).toContain(SHOW_SECTIONS.now);
-    expect(showSections(false).map((section) => section.id)).not.toContain(SHOW_SECTIONS.now);
+    expect(showSections(true, false).map((section) => section.id)).toContain(SHOW_SECTIONS.now);
+    expect(showSections(false, false).map((section) => section.id)).not.toContain(SHOW_SECTIONS.now);
   });
 
   it("puts Now first, because the rail runs in the order the page does", () => {
-    expect(showSections(true)[0].id).toBe(SHOW_SECTIONS.now);
+    expect(showSections(true, false)[0].id).toBe(SHOW_SECTIONS.now);
   });
 
   it("names every other anchor whether or not anything is being watched", () => {
     const withoutNow = Object.values(SHOW_SECTIONS).filter((id) => id !== SHOW_SECTIONS.now);
-    expect(showSections(false).map((section) => section.id)).toEqual(withoutNow);
+    expect(showSections(false, false).map((section) => section.id)).toEqual(withoutNow);
   });
 
   it("places the Top chip between Vitals and Explore", () => {
-    const ids = showSections(false).map((section) => section.id);
+    const ids = showSections(false, false).map((section) => section.id);
 
     expect(ids.indexOf(SHOW_SECTIONS.top)).toBe(ids.indexOf(SHOW_SECTIONS.vitals) + 1);
     expect(ids.indexOf(SHOW_SECTIONS.explore)).toBe(ids.indexOf(SHOW_SECTIONS.top) + 1);

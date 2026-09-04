@@ -4,11 +4,22 @@ import { BarChart } from "@mui/icons-material";
 import { SectionHeader } from "./SectionHeader";
 import { SegmentedControl } from "./SelectionComponents";
 import { segments } from "./segments";
+import { FoldedChart, Sparkline } from "./FoldedChart";
+import { useStackedCharts } from "./breakpoints";
 import { Chart, Series, XAxis, YAxis, PlotOptions, Tooltip, Legend } from "../highcharts";
 import type { Year, YearMonth } from "./date";
 import type { Colour } from "../utils/types";
+import { format } from "../utils/mathUtils";
 import type {} from "@mui/material/themeCssVarsAugmentation";
-import { convertToCumulative, convertToRanking, convertToShare, groupDate } from "./barchartData";
+import {
+  barchartSummary,
+  columnTotals,
+  convertToCumulative,
+  convertToRanking,
+  convertToShare,
+  groupDate,
+  type BarchartSummary,
+} from "./barchartData";
 
 /**
  * The four questions the same pivot answers: how much, of what it was made, how it accumulated,
@@ -21,8 +32,15 @@ type View = "Totals" | "Share" | "Cumulative" | "Rank";
 /** The default leads, so the segment lit on arrival is the one the reader's eye starts at. */
 const viewOptions = segments<View>(["Totals", "Share", "Cumulative", "Rank"]);
 
-/** What a chart is given when its height is its resolution, and what a rank lane needs. */
-const CHART_HEIGHT = "80vh";
+/**
+ * What a chart is given when its height is its resolution, and what a rank lane needs.
+ *
+ * Four fifths of a desktop viewport is a chart to read a magnitude off. On a phone that same
+ * fraction is a chart the reader has to scroll through to see the top of, on a page where the
+ * chart was opened deliberately and something else is meant to follow it, so it takes three
+ * fifths instead — still the tallest thing in the card, and one thumb-flick tall rather than two.
+ */
+const CHART_HEIGHT = { stacked: "60vh", beside: "80vh" } as const;
 const RANK_LANE = 44;
 const RANK_MIN_HEIGHT = 320;
 
@@ -38,6 +56,7 @@ const Barchart = ({
   count,
   data,
   postAggregate,
+  unit,
   controls,
 }: {
   title: string;
@@ -46,10 +65,13 @@ const Barchart = ({
   data: (cumulative: boolean) => { name: string; date: YearMonth | Year; colour: Colour; value: number }[];
   /** Converts each aggregated value, e.g. minutes to hours. Empty cells stay empty. */
   postAggregate?: (value: number) => number;
+  /** What one unit of the measure is called, for the line a folded chart states instead of itself. */
+  unit: string;
   controls: ReactNode;
 }) => {
   const [view, setView] = useState<View>("Totals");
   const theme = useTheme();
+  const full = useStackedCharts() ? CHART_HEIGHT.stacked : CHART_HEIGHT.beside;
 
   const cumulative = view === "Cumulative";
   const { results: raw, dates, groups } = groupDate(data(cumulative));
@@ -66,14 +88,19 @@ const Barchart = ({
       ? accumulated.map((row) => row.map((value) => (value == null ? value : postAggregate(value))))
       : accumulated;
   const results = view === "Rank" ? convertToRanking(tooltipResults) : tooltipResults;
+  // The Totals reading of the pivot, which is what the folded card's line and sparkline describe:
+  // the chart's own default, and the only view whose cells are the measure itself rather than a
+  // percentage of a column or a place in one.
+  const plotted = postAggregate
+    ? raw.map((row) => row.map((value) => (value == null ? value : postAggregate(value))))
+    : raw;
 
   const seriesType = seriesTypes[view];
   // A bump chart needs a lane per series and nothing else: three media over eight tenths of the
   // viewport puts two hundred pixels between adjacent ranks and reports, at that size, that games
   // led most years. The other three views plot a magnitude, whose resolution is the height they
   // are given, so they keep it.
-  const height =
-    view === "Rank" ? `min(${CHART_HEIGHT}, max(${RANK_MIN_HEIGHT}px, ${groups.length * RANK_LANE}px))` : CHART_HEIGHT;
+  const height = view === "Rank" ? `min(${full}, max(${RANK_MIN_HEIGHT}px, ${groups.length * RANK_LANE}px))` : full;
 
   const header = (
     <SectionHeader
@@ -117,8 +144,11 @@ const Barchart = ({
   }
 
   return (
-    <Card>
-      {header}
+    <FoldedChart
+      header={header}
+      summary={summaryLine(barchartSummary(plotted, dates, groups), unit)}
+      preview={<Sparkline values={columnTotals(plotted)} />}
+    >
       <CardContent>
         <Chart
           containerProps={{ style: { height } }}
@@ -232,8 +262,24 @@ const Barchart = ({
           ))}
         </Chart>
       </CardContent>
-    </Card>
+    </FoldedChart>
   );
+};
+
+/**
+ * The pivot as one line of words.
+ *
+ * Worded here rather than in `barchartData` because `format` is an `Intl.NumberFormat` on the
+ * reader's own locale, and a locale is the one thing a pure test cannot pin.
+ */
+const summaryLine = (summary: BarchartSummary | undefined, unit: string) => {
+  if (!summary) return "";
+
+  const peak = `Peak ${summary.peak.label} · ${format(summary.peak.value)} ${unit.toLowerCase()}`;
+  if (!summary.leader) return peak;
+
+  const { name, columns } = summary.leader;
+  return `${peak} · ${name} leads ${format(columns)} of ${format(summary.columns)} ${summary.grain}`;
 };
 
 export default Barchart;

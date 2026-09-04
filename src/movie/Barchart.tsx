@@ -45,6 +45,7 @@ const MovieBarchart = ({ data, measure, yearType }: { data: Movie[]; measure: Me
       count={`${format(data.length)} films`}
       data={barchartData}
       postAggregate={measure === "Hours" ? (minutes) => Math.floor(minutes / 60) : undefined}
+      unit={measure}
       controls={
         <>
           {axisControls}

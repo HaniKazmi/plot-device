@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { convertToCumulative, convertToRanking, convertToShare, groupDate } from "../../src/common/barchartData";
-import { YearMonth } from "../../src/common/date";
+import {
+  barchartSummary,
+  columnTotals,
+  convertToCumulative,
+  convertToRanking,
+  convertToShare,
+  groupDate,
+} from "../../src/common/barchartData";
+import { Year, YearMonth } from "../../src/common/date";
 import type { Colour } from "../../src/utils/types";
 
 const RED = "#ff0000" as Colour;
@@ -220,5 +227,95 @@ describe("convertToRanking", () => {
 
   it("returns one empty row per group when there are no columns", () => {
     expect(convertToRanking([[], []])).toEqual([[], []]);
+  });
+});
+
+describe("columnTotals", () => {
+  it("adds each column across its groups, which is the height a stacked column stands at", () => {
+    expect(
+      columnTotals([
+        [1, 2],
+        [10, 20],
+      ]),
+    ).toEqual([11, 22]);
+  });
+
+  it("counts a null before a group's first data point as nothing, the way the chart draws it", () => {
+    expect(
+      columnTotals([
+        [null, 5],
+        [3, 4],
+      ]),
+    ).toEqual([3, 9]);
+  });
+
+  it("answers nothing for an empty pivot rather than throwing on a row that is not there", () => {
+    expect(columnTotals([])).toEqual([]);
+  });
+});
+
+const year = (name: string, value: number, y: number) => ({ name, date: Year.get(y), colour: RED, value });
+
+describe("barchartSummary", () => {
+  const summarise = (points: ReturnType<typeof year>[]) => {
+    const { results, dates, groups } = groupDate(points);
+    return barchartSummary(results, dates, groups);
+  };
+
+  it("names the fullest column and what it totals across every group", () => {
+    const summary = summarise([year("a", 2, 2020), year("b", 3, 2020), year("a", 9, 2021)]);
+
+    expect(summary?.peak).toEqual({ label: "2021", value: 9 });
+  });
+
+  it("gives a tie to the earlier column: a peak is where the library first reached its height", () => {
+    const summary = summarise([year("a", 5, 2020), year("b", 1, 2020), year("a", 6, 2021)]);
+
+    expect(summary?.peak.label).toBe("2020");
+  });
+
+  it("names the group at the top of the most columns", () => {
+    const summary = summarise([
+      year("a", 10, 2020),
+      year("b", 1, 2020),
+      year("a", 10, 2021),
+      year("b", 1, 2021),
+      year("b", 10, 2022),
+      year("a", 1, 2022),
+    ]);
+
+    expect(summary?.leader).toEqual({ name: "a", columns: 2 });
+  });
+
+  it("skips a densified column nothing was recorded in, which has no leader to name", () => {
+    // 2021 exists only because the axis has to be dense; counting it would credit whichever group
+    // the ranking's own tiebreak happens to put first.
+    const summary = summarise([year("a", 3, 2020), year("b", 1, 2020), year("a", 4, 2022)]);
+
+    expect(summary?.leader).toEqual({ name: "a", columns: 2 });
+    expect(summary?.columns).toBe(3);
+  });
+
+  it("names no leader where one group is drawn, having nothing to lead against", () => {
+    expect(summarise([year("a", 1, 2020), year("a", 2, 2021)])?.leader).toBeUndefined();
+  });
+
+  it("counts every column the pivot holds, gaps included, since the chart draws them", () => {
+    expect(summarise([year("a", 1, 2020), year("a", 1, 2023)])?.columns).toBe(4);
+  });
+
+  it("says what one column is, so the line reads in the grain the axis is drawn at", () => {
+    expect(summarise([year("a", 1, 2020)])?.grain).toBe("years");
+  });
+
+  it("labels a month column with its month and year, where a year column is the bare year", () => {
+    const { results, dates, groups } = groupDate([point("a", 2024, 3, 1)]);
+
+    expect(barchartSummary(results, dates, groups)?.peak.label).toBe("Mar 2024");
+    expect(barchartSummary(results, dates, groups)?.grain).toBe("months");
+  });
+
+  it("answers nothing for an empty pivot, which has no peak and no leader", () => {
+    expect(summarise([])).toBeUndefined();
   });
 });

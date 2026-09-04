@@ -62,6 +62,18 @@ const YEAR_FONT_SIZE = 15;
 const pct = (percent: number) => `${percent}%`;
 
 /**
+ * How much of the viewport the grid may take before it scrolls inside itself.
+ *
+ * On a desktop a chart taller than the viewport is a chart whose top the reader cannot see while
+ * reading its foot, so it caps and scrolls vertically within the card. A phone has no height to
+ * spare for that: the cap makes a second scroller inside a page that already scrolls, one that
+ * takes the drag meant for the page and hides most of the rows behind it. Uncapped, the grid
+ * stands at exactly the height its packed rows need — `packRows` decides that, and the page
+ * scrolls past it.
+ */
+const CHART_MAX_HEIGHT = { xs: "none", md: "90vh" } as const;
+
+/**
  * The chart is four viewports wide, and a bar runs to the container's edge at every scroll
  * position, so nothing in the picture says it continues. The scrollbar is the one thing that can
  * say so at no cost per frame: styling it at all opts macOS out of overlay scrollbars, which hide
@@ -75,7 +87,7 @@ const pct = (percent: number) => `${percent}%`;
  */
 const scrollSx = (theme: Theme) => ({
   width: "100%",
-  maxHeight: "90vh",
+  maxHeight: CHART_MAX_HEIGHT,
   overflowX: "auto",
   overflowY: "auto",
   // A drag that reaches either end of four viewports otherwise carries on into the browser's own
@@ -351,10 +363,10 @@ const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }) => {
             )
           }
         >
-          <div
-            style={{
+          <Box
+            sx={{
               width: "400vw",
-              maxHeight: "90vh",
+              maxHeight: CHART_MAX_HEIGHT,
               position: "relative",
               display: "flex",
               flexDirection: "column",
@@ -375,7 +387,7 @@ const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }) => {
               />
             </div>
             <TimeAxis ticks={ticks} />
-          </div>
+          </Box>
         </Box>
       </ScrollFade>
       <YearNav

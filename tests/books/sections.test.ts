@@ -15,8 +15,8 @@ describe("the Books sections", () => {
   });
 
   it("offer the Now chip only while a book is being read", () => {
-    expect(bookSections(true).map((chip) => chip.id)).toContain("books-now");
-    expect(bookSections(false).map((chip) => chip.id)).not.toContain("books-now");
-    expect(bookSections(false)).toHaveLength(6);
+    expect(bookSections(true, false).map((chip) => chip.id)).toContain("books-now");
+    expect(bookSections(false, false).map((chip) => chip.id)).not.toContain("books-now");
+    expect(bookSections(false, false)).toHaveLength(6);
   });
 });

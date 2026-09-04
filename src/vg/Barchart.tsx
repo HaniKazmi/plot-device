@@ -39,6 +39,7 @@ const VgBarchart = ({ data, measure, yearType }: { data: VideoGame[]; measure: M
       // with hours under the Hours measure — a population that changed with the toggle would read
       // as the library itself having shrunk.
       count={`${format(data.length)} games`}
+      unit={measure}
       controls={controls}
     />
   );

@@ -19,6 +19,7 @@ import { activeCount, guestFilter, type FilterDispatch, type FilterState } from 
 import { format } from "../utils/mathUtils";
 import { finishedCount, type FinishedExtraSort } from "../common/finishedData";
 import { useScheme } from "../common/useScheme";
+import { usePhone } from "../common/breakpoints";
 
 /** The measures this tab counts in, in the order the rail states them. */
 const MEASURES: readonly Measure[] = ["Films", "Hours"];
@@ -66,11 +67,60 @@ const Graphs = memo(
 
     const deferredData = useDeferredValue(data, []);
     const tabs = useOtherTabs();
+    // The phone reads the library before the charts, and the sections are ordered in the DOM
+    // rather than with CSS: the rail derives the current section from its own list's order, so a
+    // page laid out in one order and listed in another lights the wrong chip on every scroll.
+    const chartsLast = usePhone();
+
+    const charts = (
+      <Section
+        key={MOVIE_SECTIONS.charts}
+        id={MOVIE_SECTIONS.charts}
+      >
+        <ChartPair
+          left={
+            <Sunburst
+              data={deferredData}
+              measure={filterState.measure}
+            />
+          }
+          right={
+            <Barchart
+              data={deferredData}
+              measure={filterState.measure}
+              yearType={filterState.yearType}
+            />
+          }
+        />
+      </Section>
+    );
+
+    const library = (
+      <Section
+        key={MOVIE_SECTIONS.library}
+        id={MOVIE_SECTIONS.library}
+      >
+        <Finished
+          title="All Films"
+          count={`${format(finishedCount(data))} films`}
+          borderKey="rating"
+          data={data}
+          // Rating rather than genre for the border: `ageRatingToColour` is validated at convert
+          // time and total, so it cannot throw across a wall of hundreds of cards.
+          colour={(item) => ratingToColour(item, scheme)}
+          MediaComponent={MovieCardMediaImage}
+          landscape
+          // Score is a wall order rather than a strip of its own: "what was best" is the same
+          // library read in another order, and the wall is where a whole order can be read.
+          sorts={MOVIE_SORTS}
+        />
+      </Section>
+    );
 
     return (
       <Stack spacing={2}>
         <SectionRail
-          sections={movieSections(data.length > 0)}
+          sections={movieSections(data.length > 0, chartsLast)}
           tabs={tabs}
           actions={
             <MeasureControl
@@ -91,39 +141,7 @@ const Graphs = memo(
         <Section id={MOVIE_SECTIONS.timeline}>
           <WatchTimeline data={deferredData} />
         </Section>
-        <Section id={MOVIE_SECTIONS.charts}>
-          <ChartPair
-            left={
-              <Sunburst
-                data={deferredData}
-                measure={filterState.measure}
-              />
-            }
-            right={
-              <Barchart
-                data={deferredData}
-                measure={filterState.measure}
-                yearType={filterState.yearType}
-              />
-            }
-          />
-        </Section>
-        <Section id={MOVIE_SECTIONS.library}>
-          <Finished
-            title="All Films"
-            count={`${format(finishedCount(data))} films`}
-            borderKey="rating"
-            data={data}
-            // Rating rather than genre for the border: `ageRatingToColour` is validated at convert
-            // time and total, so it cannot throw across a wall of hundreds of cards.
-            colour={(item) => ratingToColour(item, scheme)}
-            MediaComponent={MovieCardMediaImage}
-            landscape
-            // Score is a wall order rather than a strip of its own: "what was best" is the same
-            // library read in another order, and the wall is where a whole order can be read.
-            sorts={MOVIE_SORTS}
-          />
-        </Section>
+        {chartsLast ? [library, charts] : [charts, library]}
       </Stack>
     );
   },
