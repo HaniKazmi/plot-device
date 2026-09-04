@@ -165,9 +165,20 @@ export const useScrollMarker = (
       if (!root || !cards) return;
 
       const rect = root.getBoundingClientRect();
-      // In the reading position: its top has passed under the rail, and enough of it is still
-      // below that the reader is inside the wall rather than at the far end of it.
-      const reading = rect.top < READING_LINE && rect.bottom > window.innerHeight / 2;
+      // In the reading position: its top has passed under the rail, enough of it is still below
+      // that the reader is inside the wall rather than at the far end of it, and the cards
+      // themselves have reached the line the marker stands on.
+      //
+      // That last test is what keeps the pill off the section's own header. The pill is fixed at
+      // `MARKER_TOP` and the header sits between the section's top edge and the first row of cards,
+      // so anywhere the gutter is too narrow to centre the pill in — every width below about
+      // 1,630px — it would otherwise be painted over the title for the hundred pixels of scroll
+      // between the section arriving and the wall arriving. Measuring the wall instead means the
+      // marker appears exactly when there is a row for it to name.
+      const reading =
+        rect.top < READING_LINE &&
+        rect.bottom > window.innerHeight / 2 &&
+        cards.getBoundingClientRect().top < MARKER_TOP;
       setVisible(reading);
       if (!reading) return;
 
