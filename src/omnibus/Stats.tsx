@@ -549,9 +549,13 @@ const NowRowPanel = ({
       }}
     >
       <Box sx={{ flex: "1 1 auto", minWidth: 0 }}>
+        {/* Set as a sentence and not as a label, which is what the same line is on a card. It has
+            to carry the verb, the episode in hand and the venue where the card carries a title,
+            and at the label treatment's tracking and caps "Latest watch · 27 Aug 2026 · Home"
+            takes three of the row's five lines. */}
         <Typography
           variant="caption"
-          sx={{ display: "block", color: palette.muted, lineHeight: 1.35, ...LABEL_SX }}
+          sx={{ display: "block", color: palette.muted, lineHeight: 1.35 }}
         >
           {kicker}
         </Typography>

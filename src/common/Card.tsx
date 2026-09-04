@@ -833,8 +833,8 @@ export const CardPanel = ({
         // Beside a 136px poster on a 358px card the panel is 222px, and the standard inset is 32
         // of them. The four pixels a side given back are the difference between a two-line title
         // and a three-line one.
-        ...(heroAside && { padding: { xs: 1.5, md: 2 }, gap: { xs: 1, md: 2 } }),
-        ":last-child": { paddingBottom: heroAside ? { xs: 1.5, md: inset ?? 2 } : (inset ?? 2) },
+        ...(heroAside && { padding: { xs: 1.5, sm: 2 }, gap: { xs: 1, sm: 2 } }),
+        ":last-child": { paddingBottom: heroAside ? { xs: 1.5, sm: inset ?? 2 } : (inset ?? 2) },
         backgroundColor: palette.ground,
         color: palette.onGround,
         // Where the artwork meets the panel, so the two read as one card rather than as one pasted
