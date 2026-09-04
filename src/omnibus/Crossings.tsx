@@ -80,11 +80,11 @@ const Crossings = ({ crossings, ticks }: { crossings: Crossing[]; ticks: Timelin
       }
       // The strips are ordered by size, so the first one is the largest series the reader has met
       // — the fact the stack is opened for, and the one a phone can state without drawing it.
-      summary={
-        biggest
+      fold={() => ({
+        summary: biggest
           ? `${biggest.franchise} is the largest, ${format(biggest.entries)} entries across ${format(biggest.media.length)} media`
-          : ""
-      }
+          : "",
+      })}
     >
       <CrossingsStack
         crossings={crossings}

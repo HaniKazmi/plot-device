@@ -1572,7 +1572,9 @@ const Segment = ({
  * a meaning the difference does not carry.
  *
  * The dim is controlled rather than held here: a legend outside this shell has to fade in step
- * with it, so both halves read one `hovered` name.
+ * with it, so both halves read one `hovered` name. Both halves of it are optional, for a bar
+ * standing where there is nothing to hover — a folded card's preview, which is a picture of the
+ * chart and not the chart.
  */
 const BAR_HEIGHT = 1.5;
 
@@ -1582,8 +1584,8 @@ export const ProportionalBar = ({
   onHover,
 }: {
   items: { name: string; percent: number; colour: string }[];
-  hovered: string | null;
-  onHover: (name: string | null) => void;
+  hovered?: string | null;
+  onHover?: (name: string | null) => void;
 }) => (
   <Stack
     direction="row"
@@ -1596,11 +1598,11 @@ export const ProportionalBar = ({
         percent={item.percent}
         backgroundColour={item.colour}
         spacing={BAR_HEIGHT}
-        onMouseEnter={() => onHover(item.name)}
-        onMouseLeave={() => onHover(null)}
+        onMouseEnter={() => onHover?.(item.name)}
+        onMouseLeave={() => onHover?.(null)}
         sx={{
           borderRadius: 0.5,
-          ...dimSx(hovered, item.name),
+          ...dimSx(hovered ?? null, item.name),
           // A segment answers a hover and nothing else. A pointer cursor here promises a drilldown
           // that does not exist, and the dim already says the segment is live.
           cursor: "default",

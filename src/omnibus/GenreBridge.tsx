@@ -65,20 +65,12 @@ const GenreBridge = ({ rows }: { rows: GenreBridgeRow[] }) => {
       }
       // The rows are ordered by hours, so the first is the genre the library is most made of, and
       // how its hours divide is the whole question the section asks.
-      summary={
-        biggest
+      fold={() => ({
+        summary: biggest
           ? `${biggest.genre} leads with ${format(biggest.hours)} hours across ${format(biggest.segments.length)} media`
-          : ""
-      }
-      preview={
-        biggest && (
-          <BridgeRow
-            row={biggest}
-            hovered={null}
-            onHover={() => {}}
-          />
-        )
-      }
+          : "",
+        preview: biggest && <BridgeRow row={biggest} />,
+      })}
     >
       <CardContent>
         <Stack spacing={1.5}>
@@ -112,14 +104,19 @@ const GENRE_WIDTH = 14;
  */
 const HOURS_WIDTH = 11;
 
+/**
+ * One genre's hours, split by medium. The hover pair is optional for the same reason the bar's is:
+ * the folded card's preview draws this row as a picture of the section, with nothing to dim it
+ * against.
+ */
 const BridgeRow = ({
   row,
   hovered,
   onHover,
 }: {
   row: GenreBridgeRow;
-  hovered: string | null;
-  onHover: (name: string | null) => void;
+  hovered?: string | null;
+  onHover?: (name: string | null) => void;
 }) => {
   const scheme = useScheme();
 

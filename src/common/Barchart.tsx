@@ -88,12 +88,6 @@ const Barchart = ({
       ? accumulated.map((row) => row.map((value) => (value == null ? value : postAggregate(value))))
       : accumulated;
   const results = view === "Rank" ? convertToRanking(tooltipResults) : tooltipResults;
-  // The Totals reading of the pivot, which is what the folded card's line and sparkline describe:
-  // the chart's own default, and the only view whose cells are the measure itself rather than a
-  // percentage of a column or a place in one.
-  const plotted = postAggregate
-    ? raw.map((row) => row.map((value) => (value == null ? value : postAggregate(value))))
-    : raw;
 
   const seriesType = seriesTypes[view];
   // A bump chart needs a lane per series and nothing else: three media over eight tenths of the
@@ -146,8 +140,25 @@ const Barchart = ({
   return (
     <FoldedChart
       header={header}
-      summary={summaryLine(barchartSummary(plotted, dates, groups), unit)}
-      preview={<Sparkline values={columnTotals(plotted)} />}
+      fold={() => {
+        // The Totals reading, which is what a folded card's line and sparkline describe whatever
+        // the View: the only view whose cells are the measure itself rather than a percentage of a
+        // column or a place in one. `raw` is that reading in three views out of four, and under
+        // Cumulative it is not — the domains bucket a climbing total by month, so the pivot above
+        // is a couple of hundred month columns, which the line would name a peak in ("41 of 251
+        // months") and the sparkline draw at a fraction of a pixel each. The rows are asked for
+        // again at the grain `data(false)` gives, and the summary states that grain: on a tracked
+        // tab under "In {year}" it is months, which is what the Totals view itself draws there.
+        const totals = cumulative ? groupDate(data(false)) : { results: raw, dates, groups };
+        const plotted = postAggregate
+          ? totals.results.map((row) => row.map((value) => (value == null ? value : postAggregate(value))))
+          : totals.results;
+
+        return {
+          summary: summaryLine(barchartSummary(plotted, totals.dates, totals.groups), unit),
+          preview: <Sparkline values={columnTotals(plotted)} />,
+        };
+      }}
     >
       <CardContent>
         <Chart

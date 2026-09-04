@@ -116,8 +116,6 @@ const Sunburst = <T, K extends string>({
     setRebuilds((count) => count + 1);
   }, [root.id, drilledId, groupsKey]);
 
-  const ring = firstRing(generatedData);
-
   return (
     <FoldedChart
       header={
@@ -128,8 +126,12 @@ const Sunburst = <T, K extends string>({
           action={controls}
         />
       }
-      summary={ringSummary(ring)}
-      preview={<RingBar ring={ring} />}
+      // The innermost ring is what both halves of the fold read, so it is flattened out of the
+      // hierarchy once here rather than by each of them.
+      fold={() => {
+        const ring = firstRing(generatedData);
+        return { summary: ringSummary(ring), preview: <RingBar ring={ring} /> };
+      }}
     >
       <CardContent>
         <Chart
@@ -221,8 +223,6 @@ const RingBar = ({ ring }: { ring: SunburstEntry[] }) => {
             ? neutralFill(scheme)
             : (colours.get(wedge.name) ?? highchartsColors[index % highchartsColors.length]),
       }))}
-      hovered={null}
-      onHover={() => {}}
     />
   );
 };
