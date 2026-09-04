@@ -16,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 import Tabs, { useCurrentTab } from "./tabs";
 import useLongPress from "./utils/useLongPress";
 import { useGoogleAuth } from "./contexts/GoogleAuthContext";
+import { safeAreaGutters } from "./common/chrome";
 
 /**
  * The menu's own items are worded rather than keyed, and the theme capitalises every `MenuItem`
@@ -23,6 +24,29 @@ import { useGoogleAuth } from "./contexts/GoogleAuthContext";
  * select boxes state the same override for the same reason.
  */
 const MENU_ITEM_SX = { textTransform: "none" } as const;
+
+/**
+ * A disabled button on the bar takes the theme's own disabled grey, a colour the bar — the tab's
+ * primary on the light paper, its tint on the dark — does not have anywhere else. The bar's ink,
+ * stepped back, says the same thing in the bar's own terms.
+ */
+const DISABLED_BUTTON_SX = { "&.Mui-disabled": { color: "inherit", opacity: 0.6 } } as const;
+
+/**
+ * What the bar can do, built once and drawn twice: as buttons from `md` up, and as the items of the
+ * overflow menu. Both are on screen at once wherever a finger is the pointer, so two lists would be
+ * two chances for the bar and the menu to disagree — over whether "Authorising" is a live control,
+ * or over an action one of them gained and the other did not. Guest mode is the one item outside
+ * this list: the buttons have no room for a mode switch, and the menu is its only handle.
+ */
+type BarAction = { label: string; href?: string; onClick?: () => void; disabled?: boolean };
+
+/**
+ * An action with a destination is a link and opens in its own tab; one without is a button. Given
+ * as a spread rather than as separate props, since `target` types only against a `href` that is
+ * certainly there.
+ */
+const linkProps = (action: BarAction) => (action.href ? { href: action.href, target: "_blank" } : {});
 
 const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode: (value: boolean) => void }) => {
   const navigate = useNavigate();
@@ -41,38 +65,16 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
   const sheetHref = `https://docs.google.com/spreadsheets/d/${currTab.spreadsheetId}`;
   const closeMenu = () => setMenuAnchor(null);
 
-  const buttons = (
-    <>
-      {/* Only where the tab has a sheet of its own. A tab composing several has no single one to
-          open, and the button would otherwise link to `/d/undefined`. */}
-      {currTab.spreadsheetId && (
-        <Button
-          color="inherit"
-          target="_blank"
-          href={sheetHref}
-        >
-          Sheet
-        </Button>
-      )}
-      {!authorise && !revoke && <Button color="inherit">Authorising</Button>}
-      {authorise && (
-        <Button
-          color="inherit"
-          onClick={authorise}
-        >
-          Authorise
-        </Button>
-      )}
-      {revoke && (
-        <Button
-          color="inherit"
-          onClick={revoke}
-        >
-          Revoke
-        </Button>
-      )}
-    </>
-  );
+  const actions: BarAction[] = [
+    // Only where the tab has a sheet of its own. A tab composing several has no single one to
+    // open, and the action would otherwise link to `/d/undefined`.
+    ...(currTab.spreadsheetId ? [{ label: "Sheet", href: sheetHref }] : []),
+    // The three auth states are told apart by which of the two callbacks the context exposes, so
+    // neither present is the state where it is still loading.
+    ...(!authorise && !revoke ? [{ label: "Authorising", disabled: true }] : []),
+    ...(authorise ? [{ label: "Authorise", onClick: authorise }] : []),
+    ...(revoke ? [{ label: "Revoke", onClick: revoke }] : []),
+  ];
 
   return (
     <AppBar
@@ -89,7 +91,8 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
         ...(darkBar && theme.applyStyles("dark", { boxShadow: `inset 0 -3px 0 0 ${darkBar.rule}` })),
       })}
     >
-      <Toolbar>
+      {/* The bar reaches the edges of the screen, so its own gutters carry the device's insets. */}
+      <Toolbar sx={safeAreaGutters}>
         <Score sx={{ display: "flex", mr: 1 }} />
         {/* `cursive` is a generic family, so the wordmark resolves to Snell Roundhand on macOS and
             to something else on every other platform — the one piece of the page whose shape is
@@ -169,13 +172,36 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
         {/* The buttons stand in the bar only from `md`. At 768 the wordmark, five tabs and two
             buttons want about 800px of a 720px content width, so below that they are the overflow
             menu's items and the bar keeps one row at every size. */}
-        <Box sx={{ display: { xs: "none", md: "flex" }, flexShrink: 0 }}>{buttons}</Box>
+        <Box sx={{ display: { xs: "none", md: "flex" }, flexShrink: 0 }}>
+          {actions.map((action) => (
+            <Button
+              key={action.label}
+              color="inherit"
+              {...linkProps(action)}
+              onClick={action.onClick}
+              disabled={action.disabled}
+              sx={DISABLED_BUTTON_SX}
+            >
+              {action.label}
+            </Button>
+          ))}
+        </Box>
         <IconButton
           color="inherit"
           edge="end"
           aria-label="More"
           onClick={(event) => setMenuAnchor(event.currentTarget)}
-          sx={{ display: { xs: "flex", md: "none" }, flexShrink: 0 }}
+          sx={{
+            display: { xs: "flex", md: "none" },
+            // A finger has no long press to reach guest mode with — that gesture is the pointer's
+            // alone, and on touch it collides with the browser's own press-and-hold — so the menu
+            // is the only handle on the mode and is drawn at every width where a finger is the
+            // pointer. A tablet held sideways is `md`, and this rule states its `display` after
+            // the width rule above so it wins there. It costs a menu repeating the two buttons
+            // beside it, which is what a ⋮ is for.
+            "@media (pointer: coarse)": { display: "flex" },
+            flexShrink: 0,
+          }}
         >
           <MoreVert />
         </IconButton>
@@ -184,47 +210,21 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
           open={menuAnchor !== null}
           onClose={closeMenu}
         >
-          {currTab.spreadsheetId && (
+          {actions.map((action) => (
             <MenuItem
-              component="a"
-              target="_blank"
-              href={sheetHref}
-              onClick={closeMenu}
-              sx={MENU_ITEM_SX}
-            >
-              Sheet
-            </MenuItem>
-          )}
-          {!authorise && !revoke && (
-            <MenuItem
-              disabled
-              sx={MENU_ITEM_SX}
-            >
-              Authorising
-            </MenuItem>
-          )}
-          {authorise && (
-            <MenuItem
+              key={action.label}
+              component={action.href ? "a" : "li"}
+              {...linkProps(action)}
+              disabled={action.disabled}
               onClick={() => {
                 closeMenu();
-                authorise();
+                action.onClick?.();
               }}
               sx={MENU_ITEM_SX}
             >
-              Authorise
+              {action.label}
             </MenuItem>
-          )}
-          {revoke && (
-            <MenuItem
-              onClick={() => {
-                closeMenu();
-                revoke();
-              }}
-              sx={MENU_ITEM_SX}
-            >
-              Revoke
-            </MenuItem>
-          )}
+          ))}
           {/* Both directions, because the menu is the only handle a touch reader has on the mode:
               the long press that turns it on is a pointer gesture, and without an item saying so
               leaving the mode is a reload. */}

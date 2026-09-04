@@ -1,4 +1,5 @@
-import { Box, Card, CardContent, FormGroup, Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
+import { Box, Card, CardContent, FormGroup, Stack, Typography } from "@mui/material";
+import { usePhone } from "./breakpoints";
 import { SegmentedControl } from "./SelectionComponents";
 import { segments } from "./segments";
 import Grid from "@mui/material/Grid";
@@ -229,11 +230,10 @@ const Finished = <U extends FinishedItem>({
   // header it would without one.
   const countWithBorder = [count, borderKey && `border · ${borderKey}`].filter(Boolean).join(" · ") || undefined;
   const [sort, selectBox] = useSelectBox<string>(sortOptions, "Date");
-  const theme = useTheme();
-  // `noSsr` because the wall is what the page's height is: defaulted to false for a first render,
-  // every card would mount at one density and remount at another a frame later, asking for each
-  // picture twice over.
-  const phone = useMediaQuery(theme.breakpoints.down("sm"), { noSsr: true });
+  // The wall is what the page's height is, so this has to be the true answer on the first render:
+  // read wrong, every card would mount at one density and remount at another, asking for each
+  // picture twice over. `usePhone` is that answer, stated once for the app.
+  const phone = usePhone();
   // Each view opens at its own size and holds the reader's choice for the visit rather than
   // writing it anywhere: the wall is the tallest thing on its page, so the size it opens at is
   // what the page is, and a stored preference would have to be read before the first paint to

@@ -32,6 +32,8 @@ import { CalendarMonthOutlined, Close } from "@mui/icons-material";
 import { cachedColour, extractColourFrom } from "../utils/colourUtils";
 import { ArtworkAccent, artworkPalette, SEAM_WIDTH, useArtworkPalette } from "./artworkPalette";
 import { HoverCardTooltip } from "./HoverCardTooltip";
+import { SheetGrabber } from "./SheetGrabber";
+import { stickySheetHeader } from "./fullscreenSheet";
 import { TOUCH_TARGET_SX } from "./touchTarget";
 import {
   CardArrangementProvider,
@@ -312,21 +314,21 @@ const SHEET_BAR_HEIGHT = 48;
  */
 const sheetBarSx = (palette: ReturnType<typeof artworkPalette>) => (theme: Theme) => ({
   display: "none",
-  [theme.breakpoints.down("sm")]: { display: "flex" },
-  position: "sticky",
-  top: 0,
-  // Above the fades and pinned rows a detail body draws, which would otherwise paint over the
-  // bar as they scroll under it.
-  zIndex: theme.zIndex.appBar,
-  alignItems: "center",
-  gap: 1,
-  minHeight: SHEET_BAR_HEIGHT,
-  // The notch is paid for on top of the bar's own height, which is what the picture below is
-  // sized against.
-  paddingTop: "env(safe-area-inset-top)",
-  paddingInline: 1,
-  backgroundColor: palette.ground,
-  color: palette.onGround,
+  [theme.breakpoints.down("sm")]: {
+    display: "flex",
+    // What pins any sheet's header: sticky at the top, above the body, with the notch paid for on
+    // top of the bar's own height — which is what the picture below is sized against.
+    ...stickySheetHeader(theme),
+    // The bar is the top of the card rather than chrome laid over it, so it takes the artwork's
+    // own ground and ink, and the picture meets it with no rule between them.
+    backgroundColor: palette.ground,
+    color: palette.onGround,
+    borderBottom: "none",
+    alignItems: "center",
+    gap: 1,
+    minHeight: SHEET_BAR_HEIGHT,
+    paddingInline: 1,
+  },
 });
 
 /**
@@ -427,7 +429,7 @@ const SheetBar = ({
   onClose: () => void;
 }) => (
   <Box sx={sheetBarSx(palette)}>
-    <Box sx={{ flex: "0 0 auto", width: 28, height: 3, borderRadius: 1.5, backgroundColor: palette.muted }} />
+    <SheetGrabber colour={palette.muted} />
     <Typography
       variant="subtitle2"
       noWrap

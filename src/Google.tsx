@@ -2,7 +2,7 @@ import { Container, createTheme, CssBaseline, ThemeProvider } from "@mui/materia
 import { useState } from "react";
 import NavBar from "./NavBar";
 import { BottomTabs } from "./BottomTabs";
-import { BOTTOM_TABS_CLEARANCE } from "./common/chrome";
+import { BOTTOM_TABS_CLEARANCE, safeAreaGutters } from "./common/chrome";
 import { Outlet } from "react-router-dom";
 import { GoogleAuthProvider } from "./contexts/GoogleAuthContext.tsx";
 import { FranchiseUnionProvider } from "./omnibus/franchiseUnion.tsx";
@@ -22,8 +22,9 @@ const GoogleAuth = () => {
       <Container
         maxWidth={"xl"}
         // The bottom navigation is fixed, so it paints over whatever the page ends with unless the
-        // page stops short of it. Only below `sm`, where the bar is drawn at all.
-        sx={{ paddingBottom: { xs: BOTTOM_TABS_CLEARANCE, sm: 0 } }}
+        // page stops short of it. Only below `sm`, where the bar is drawn at all. The side gutters
+        // restate the container's own with the device's insets added (`safeAreaGutters`).
+        sx={(theme) => ({ paddingBottom: { xs: BOTTOM_TABS_CLEARANCE, sm: 0 }, ...safeAreaGutters(theme) })}
       >
         {/* Above every tab, because a card on any of them draws the franchise across all four. */}
         <FranchiseUnionProvider guestMode={guestMode}>

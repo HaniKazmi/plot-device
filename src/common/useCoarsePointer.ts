@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useMatchMedia } from "./useMatchMedia";
 
 /**
  * The primary pointer, which is what decides whether hovering is a thing the reader can do.
@@ -7,14 +7,6 @@ import { useSyncExternalStore } from "react";
  * reader can aim, which is the question a hit target and a tap-to-open surface are asking.
  */
 const COARSE = "(pointer: coarse)";
-
-const subscribe = (onChange: () => void) => {
-  const query = window.matchMedia(COARSE);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-};
-
-const coarse = () => window.matchMedia(COARSE).matches;
 
 /**
  * Whether the reader is pointing with a finger.
@@ -25,9 +17,7 @@ const coarse = () => window.matchMedia(COARSE).matches;
  * cursor — belongs in `sx` as `@media (pointer: coarse)` instead, where it costs no subscription
  * and no render.
  *
- * `useSyncExternalStore` for the reason `useScheme` uses it: a tablet with a mouse plugged in
- * changes the answer while the page is open, and nothing else would re-render the charts. The
- * global is read inside the callbacks rather than beside them, so importing this module does not
- * require a `window`.
+ * Through `useMatchMedia` for the subscription: a tablet with a mouse plugged in changes the answer
+ * while the page is open, and nothing else would re-render the charts.
  */
-export const useCoarsePointer = () => useSyncExternalStore(subscribe, coarse);
+export const useCoarsePointer = () => useMatchMedia(COARSE);

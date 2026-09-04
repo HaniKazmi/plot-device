@@ -1,5 +1,6 @@
 import { Hub, Layers } from "@mui/icons-material";
-import { Box, Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
+import { usePhone } from "../common/breakpoints";
 import {
   CardPanel,
   INLINE_SWATCH_SIZE,
@@ -166,7 +167,6 @@ const Stats = ({
  */
 const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
   const scheme = useScheme();
-  const theme = useTheme();
   /**
    * Whether the band is drawn as rows rather than as cards.
    *
@@ -175,7 +175,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
    * every picture is fetched twice and every artwork sampled twice, for a card the reader is
    * never shown.
    */
-  const row = useMediaQuery(theme.breakpoints.down("sm"));
+  const row = usePhone();
 
   // Every medium in flight at once is the one case the row cannot hold at its usual size.
   const dense = media.every((medium) => now[medium] !== undefined);
