@@ -273,3 +273,50 @@ export const orderedBuckets = (labels: readonly (string | null | undefined)[]): 
  * that would set that column's width by itself.
  */
 export const bucketLabel = (bucket: string): string => (/^\d{4}$/.test(bucket) ? shortYear(Number(bucket)) : bucket);
+
+/** One run of the wall under a heading of its own: the bucket's label and the cards in it. */
+export interface FinishedBucketGroup<U> {
+  label: string;
+  items: U[];
+}
+
+/**
+ * The heading items with no bucket stand under, named after whatever the wall is ordered by.
+ *
+ * `bucketFor` answers `null` for a value kind with no short form, and which kind that is follows
+ * the sort: an undated item under Date, a film nobody scored under Score, a book with no page count
+ * under Pages. A fixed wording would name the wrong field on two walls out of three, and those
+ * items are not a stray few — the date sort puts every undated item first and an extra sort puts
+ * every figureless one last, so the group is a real part of the order and reads as one.
+ */
+const unbucketedLabel = <U extends FinishedItem>(sort: string, extras: readonly FinishedExtraSort<U>[]): string =>
+  `No ${(resolveExtra(sort, extras)?.label ?? sort).toLowerCase()}`;
+
+/**
+ * The wall cut into the runs a heading can stand over, in the order it already holds.
+ *
+ * A phone has no gutter for the jump rail and no room for a pill that does not cover the cards it
+ * names, so the derivation the marker draws beside the wall is drawn inside it instead: the same
+ * `bucketFor` the marker reads, grouped where its answer changes.
+ *
+ * Runs rather than a keyed grouping, because a run is what a heading can honestly stand over. Both
+ * built-in sorts happen to open each bucket once, but a sort that returned to a value it had passed
+ * would have a keyed grouping lift those cards out of the order the wall is in and file them under
+ * a heading hundreds of cards above.
+ */
+export const bucketGroups = <U extends FinishedItem>(
+  items: readonly U[],
+  sort: string,
+  extras: readonly FinishedExtraSort<U>[] = [],
+): FinishedBucketGroup<U>[] => {
+  const bucket = bucketFor<U>(sort, extras);
+  const unbucketed = unbucketedLabel(sort, extras);
+  const groups: FinishedBucketGroup<U>[] = [];
+  for (const item of items) {
+    const label = bucket(item) ?? unbucketed;
+    const open = groups.at(-1);
+    if (open?.label === label) open.items.push(item);
+    else groups.push({ label, items: [item] });
+  }
+  return groups;
+};

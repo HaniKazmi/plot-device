@@ -1,4 +1,4 @@
-import { Box, Card, CardContent, FormGroup, Stack } from "@mui/material";
+import { Box, Card, CardContent, FormGroup, Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { SegmentedControl } from "./SelectionComponents";
 import { segments } from "./segments";
 import Grid from "@mui/material/Grid";
@@ -12,6 +12,7 @@ import { useScrollMarker } from "./ScrollMarkerHook";
 import { ExpandableCard } from "./Stats";
 import {
   bucketFor,
+  bucketGroups,
   finishedColumns,
   finishedItems,
   finishedKey,
@@ -22,6 +23,9 @@ import {
 } from "./finishedData";
 import { withAlpha } from "../utils/colourUtils";
 import { shapeToAspect } from "./cardArrangement";
+import { SCROLL_MARGIN } from "./SectionRail";
+import { MUTED_FIGURE_SX, NUMERIC_LABEL_SX } from "./typography";
+import { format } from "../utils/mathUtils";
 
 /** One empty list, so a wall with no extra sorts does not mint a fresh array every render. */
 const NO_SORTS: readonly never[] = [];
@@ -91,7 +95,13 @@ const FinishedGrid = <U extends FinishedItem>({
           data-bucket={bucket(item) ?? undefined}
           size={finishedColumns(landscape, density)}
           sx={{
-            alignSelf: "stretch",
+            // The card ends where its picture does rather than at the row's height. Only a cover
+            // is ever short of it — its ratio is a reservation and every publisher's file is a few
+            // percent off 2:3 — and stretched, that difference is a band of the card's own ground
+            // inside the border, which reads as a card drawn wrong rather than as a picture that
+            // came out shorter. The tops stay level either way, which is what the scroll marker
+            // reads a row by.
+            alignSelf: "flex-start",
           }}
         >
           <Card
@@ -130,6 +140,46 @@ const FinishedGrid = <U extends FinishedItem>({
     </Grid>
   );
 };
+
+/**
+ * A bucket's own heading, pinned under whatever is above it while its cards are on screen.
+ *
+ * It is the jump rail's derivation drawn in the flow rather than beside it: on a phone the page has
+ * no gutter to hang a rail in and no room for a pill that is not over the cards it names, and a
+ * sticky heading is what every list on the platform indexes itself with. It clears the section rail
+ * on the page and nothing in the dialog, which is pinned to nothing and scrolls its own paper.
+ *
+ * The ground and the stacking order are both load-bearing: artwork arrives while the reader is
+ * inside the wall, and a transparent heading has a card sliding under it and a picture landing over
+ * it.
+ */
+const BucketHeading = ({ label, count, isDialog }: { label: string; count: number; isDialog: boolean }) => (
+  <Box
+    sx={{
+      position: "sticky",
+      top: isDialog ? 0 : `${SCROLL_MARGIN}px`,
+      zIndex: 1,
+      display: "flex",
+      alignItems: "baseline",
+      gap: 1,
+      paddingY: 0.5,
+      backgroundColor: "background.paper",
+    }}
+  >
+    <Typography
+      variant="subtitle2"
+      sx={NUMERIC_LABEL_SX}
+    >
+      {label}
+    </Typography>
+    <Typography
+      variant="caption"
+      sx={MUTED_FIGURE_SX}
+    >
+      {format(count)}
+    </Typography>
+  </Box>
+);
 
 const Finished = <U extends FinishedItem>({
   title,
@@ -179,14 +229,25 @@ const Finished = <U extends FinishedItem>({
   // header it would without one.
   const countWithBorder = [count, borderKey && `border · ${borderKey}`].filter(Boolean).join(" · ") || undefined;
   const [sort, selectBox] = useSelectBox<string>(sortOptions, "Date");
+  const theme = useTheme();
+  // `noSsr` because the wall is what the page's height is: defaulted to false for a first render,
+  // every card would mount at one density and remount at another a frame later, asking for each
+  // picture twice over.
+  const phone = useMediaQuery(theme.breakpoints.down("sm"), { noSsr: true });
   // Each view opens at its own size and holds the reader's choice for the visit rather than
   // writing it anywhere: the wall is the tallest thing on its page, so the size it opens at is
   // what the page is, and a stored preference would have to be read before the first paint to
   // avoid changing it underneath them. The page opens on Large, a card at the size the hero draws
   // one; the dialog opens on Full, the wall read one item at a time, which is what expanding it
   // asks for.
-  const [density, setDensity] = useState<FinishedDensity>("Large");
+  //
+  // A phone opens on Compact instead: Large there is one banner a row, and 322 games at 220px each
+  // is seventy thousand pixels of page with nothing but a picture on each screen. Held as "not yet
+  // chosen" rather than seeded from the width, so the default follows a rotation until the reader
+  // has an opinion, after which it is theirs.
+  const [density, setDensity] = useState<FinishedDensity | undefined>(undefined);
   const [dialogDensity, setDialogDensity] = useState<FinishedDensity>("Full");
+  const shownDensity = density ?? (phone ? "Compact" : "Large");
 
   const slowData = useDeferredValue(data, []);
   const recent = finishedItems(slowData, sort, sorts);
@@ -214,7 +275,7 @@ const Finished = <U extends FinishedItem>({
               {selectBox}
               <SegmentedControl
                 options={DENSITY_OPTIONS}
-                value={isDialog ? dialogDensity : density}
+                value={isDialog ? dialogDensity : shownDensity}
                 onChange={isDialog ? setDialogDensity : setDensity}
                 ariaLabel="Card size"
               />
@@ -224,27 +285,66 @@ const Finished = <U extends FinishedItem>({
         }
       />
       <CardContent>
-        <FinishedGrid
-          isDialog={isDialog}
-          gridRef={isDialog ? undefined : gridRef}
-          dimmed={slowData !== data}
-          recent={recent}
-          sort={sort}
-          sorts={sorts}
-          density={isDialog ? dialogDensity : density}
-          colour={colour}
-          landscape={landscape}
-          keyOf={keyOf}
-          MediaComponent={MediaComponent}
-        />
+        {phone ? (
+          <Stack spacing={1}>
+            {/* The position as well as the label: a sort that returns to a bucket it has passed
+                opens a second run under the same heading, and two of them keyed alike would have
+                React render one in place of the other. */}
+            {bucketGroups(recent, sort, sorts).map((group, index) => (
+              <Box key={`${group.label}-${index}`}>
+                <BucketHeading
+                  label={group.label}
+                  count={group.items.length}
+                  isDialog={isDialog}
+                />
+                <FinishedGrid
+                  isDialog={isDialog}
+                  dimmed={slowData !== data}
+                  recent={group.items}
+                  sort={sort}
+                  sorts={sorts}
+                  density={isDialog ? dialogDensity : shownDensity}
+                  colour={colour}
+                  landscape={landscape}
+                  keyOf={keyOf}
+                  MediaComponent={MediaComponent}
+                />
+              </Box>
+            ))}
+          </Stack>
+        ) : (
+          <FinishedGrid
+            isDialog={isDialog}
+            gridRef={isDialog ? undefined : gridRef}
+            dimmed={slowData !== data}
+            recent={recent}
+            sort={sort}
+            sorts={sorts}
+            density={isDialog ? dialogDensity : shownDensity}
+            colour={colour}
+            landscape={landscape}
+            keyOf={keyOf}
+            MediaComponent={MediaComponent}
+          />
+        )}
       </CardContent>
       {/* Two presentations of one derivation: the rail where the gutter and the viewport hold it,
-          the pill everywhere else. Which one is the hook's answer, so they cannot both appear. */}
-      {!isDialog && (marker.rail ? <ScrollMarkerRail {...marker} /> : <ScrollMarker {...marker} />)}
+          the pill everywhere else. Which one is the hook's answer, so they cannot both appear.
+          Neither is mounted on a phone, where the wall carries its own headings instead. */}
+      {!isDialog && !phone && (marker.rail ? <ScrollMarkerRail {...marker} /> : <ScrollMarker {...marker} />)}
     </Box>
   );
 
-  return <ExpandableCard renderContent={renderContent} />;
+  return (
+    // A sticky heading is positioned against the nearest scrolling ancestor, and MUI clips a card's
+    // corners with `overflow: hidden`, which makes the card itself that ancestor: the headings
+    // would then stand still inside a box that never scrolls. Opened only where they are drawn —
+    // the wall's own content stops well inside the card's corners, so there is nothing to clip.
+    <ExpandableCard
+      sx={{ overflow: { xs: "visible", sm: "hidden" } }}
+      renderContent={renderContent}
+    />
+  );
 };
 
 export default Finished;

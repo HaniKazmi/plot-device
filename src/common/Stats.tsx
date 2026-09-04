@@ -10,6 +10,8 @@ import {
   type SxProps,
   type Theme,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { format } from "../utils/mathUtils";
@@ -19,6 +21,7 @@ import {
   INLINE_SWATCH_SIZE,
   ProportionalBar,
   ROW_FOOTER_HEIGHT,
+  STRIP_CAPTION_HEIGHT,
   Swatch,
   type CardMediaImageProps,
   type MediaBand,
@@ -26,8 +29,9 @@ import {
 } from "./Card";
 import { dimSx, LABEL_SX, MUTED_FIGURE_SX } from "./typography";
 import { SectionHeader } from "./SectionHeader";
-import { shapeIsExact, shapeToAspect, shapeToRatio, type ArtworkShape } from "./cardArrangement";
+import { shapeIsExact, shapeToArrangement, shapeToAspect, shapeToRatio, type ArtworkShape } from "./cardArrangement";
 import { rowCardSize } from "./rowSizing";
+import { Filmstrip } from "./Filmstrip";
 import { useElementWidth } from "./useElementWidth";
 import { useState, type ReactNode } from "react";
 import { Radio } from "@mui/material";
@@ -384,6 +388,13 @@ export const StatsListGrid = <T,>(
   props: {
     content: T[];
     flexWrap?: { xs: "nowrap"; md: "wrap" | "nowrap" };
+    /**
+     * Whether this list may lay itself out as a filmstrip where the width calls for one — which is
+     * every width below `md`, decided here rather than by the caller because it is the same answer
+     * for all of them. A fullscreen list says no: a strip is a row read sideways, and what a reader
+     * expanded a card to get is the whole list at once.
+     */
+    strip?: boolean;
     cardKey: (t: T) => string;
     labelComponent: (t: T) => string[][];
     chipComponent?: (t: T) => CardMediaImageProps["chip"];
@@ -404,16 +415,20 @@ export const StatsListGrid = <T,>(
   // The row's own width, which only a sized row reads: a grid needs none, and the observer is
   // only attached to the element a sized row renders.
   const [rowRef, rowWidth] = useElementWidth<HTMLDivElement>();
-  const cell = cellOf(props, rowWidth, band?.height ?? 0);
-  // A cap in rows is the solved row's count times over. A grid's limit is a count by type, so
-  // its row of one is never asked.
-  const perRow = "rowSize" in cell ? cell.rowSize.count : 1;
-  const limit = typeof props.limit === "number" ? props.limit : props.limit.rows * perRow;
+  const theme = useTheme();
+  // `noSsr` because the answer decides which layout the cards mount under: defaulted to false for
+  // a first render, every card would mount in a grid and remount in a strip a frame later, asking
+  // for each picture twice and sampling each of them twice with it.
+  const narrow = useMediaQuery(theme.breakpoints.down("md"), { noSsr: true });
+  const cell = cellOf(props, rowWidth, band?.height ?? 0, (props.strip ?? false) && narrow);
+  const limit = limitOf(props.limit, cell);
 
   // A sized row is not filled until it has been measured: the layout effect reads the width
   // before paint, so the empty row is never seen, where rendering the cards at a fallback size
-  // first would build every one of them twice — a drill-down is up to five hundred.
-  const drawn = props.rowSizing && rowWidth === undefined ? [] : content.slice(0, limit);
+  // first would build every one of them twice — a drill-down is up to five hundred. Read off the
+  // cell and not the props, since a list laid out as a strip measures nothing and would otherwise
+  // wait forever for a width nothing is reading.
+  const drawn = "rowSize" in cell && rowWidth === undefined ? [] : content.slice(0, limit);
   const cards = drawn.map((entry) => (
     <StatsListCard
       key={cardKey(entry)}
@@ -432,7 +447,9 @@ export const StatsListGrid = <T,>(
     <>
       {props.header?.(drawn.length)}
       <CardContent>
-        {"rowSize" in cell ? (
+        {"strip" in cell ? (
+          <Filmstrip height={cell.strip.height}>{cards}</Filmstrip>
+        ) : "rowSize" in cell ? (
           <Box
             ref={rowRef}
             sx={{
@@ -603,6 +620,9 @@ export const StatList = <T,>(props: StatsListProps<T>) => {
                 }
               />
             )}
+            // Below `md` the cards stand in a filmstrip instead, which the fullscreen list does not
+            // take: what a reader expanded a card to get is the whole list at once.
+            strip={!isDialog}
             flexWrap={isDialog ? undefined : { xs: "nowrap", md: wrap ? "wrap" : "nowrap" }}
             cardKey={(entry) => `${title}-statslistcard-${nameComponent(entry)}`}
             labelComponent={labelComponent}
@@ -625,9 +645,22 @@ const CARD_BORDER = 1;
 /** The gap between sized cards, in pixels: one spacing unit, stated so the sizing can count it. */
 const ROW_GAP = 8;
 
-/** What one card is seated by: its outer size in a sized row, its column spans in a grid. */
+/**
+ * How tall a strip card's picture stands.
+ *
+ * A phone is 358px of content, so a card wide enough to be read one at a time is a card the reader
+ * has to scroll past six of. At 120px a banner is 213px across and a poster 82, which puts four and
+ * a half banners or most of a shelf of posters on one screen — the strip states how much there is
+ * as well as showing the first of it, which a column of full-width cards cannot.
+ */
+const STRIP_PICTURE_HEIGHT = 120;
+
+/** What one card is seated by: its outer size in a sized row, its column spans in a grid, or the
+ * height of the strip it stands in, where its width is its own artwork's. */
 type CardCell =
-  { rowSize: { width: number; height: number; count: number } } | { pictureWidth: [number, number, number] };
+  | { rowSize: { width: number; height: number; count: number } }
+  | { pictureWidth: [number, number, number] }
+  | { strip: { pictureHeight: number; height: number } };
 
 /**
  * A grid's cell is its spans as stated. A sized row's is solved from what the caller stated —
@@ -635,8 +668,20 @@ type CardCell =
  * the band it draws over the picture, the one-line footer it draws under a banner, and the
  * outlined border on each side. The row is solved on that outer size, which is what the card's
  * box takes; the card hands its media the inner one back.
+ *
+ * A strip answers before either of them and for both of them alike, since neither a column span nor
+ * a solved row width means anything to a row that fixes a height and lets each shape take its own
+ * width. What it states is the whole card: the band, the picture, the caption and the border, which
+ * is what `Filmstrip` puts on every child so a banner and a poster stand at one height.
  */
-const cellOf = (layout: CardLayout, rowWidth: number | undefined, bandHeight: number): CardCell => {
+const cellOf = (layout: CardLayout, rowWidth: number | undefined, bandHeight: number, strip: boolean): CardCell => {
+  if (strip)
+    return {
+      strip: {
+        pictureHeight: STRIP_PICTURE_HEIGHT,
+        height: bandHeight + STRIP_PICTURE_HEIGHT + STRIP_CAPTION_HEIGHT + 2 * CARD_BORDER,
+      },
+    };
   if (!layout.rowSizing) return { pictureWidth: layout.pictureWidth };
   const { minWidth, pictureHeightFor } = layout.rowSizing;
   return {
@@ -650,6 +695,20 @@ const cellOf = (layout: CardLayout, rowWidth: number | undefined, bandHeight: nu
       ROW_GAP,
     ),
   };
+};
+
+/**
+ * How many cards a list draws, from the cap its caller stated and the layout that cap lands in.
+ *
+ * A cap in rows is the solved row's count times over, since only the measured row knows how many
+ * cards fill it. A strip has no rows to multiply — it is one row however long — so a cap stated in
+ * them falls back to the count every other strip in the app shows, which is what keeps a phone's
+ * Recently Finished the same six cards as its neighbours rather than the two its measured row held.
+ */
+const limitOf = (limit: number | { rows: number }, cell: CardCell): number => {
+  if (typeof limit === "number") return limit;
+  if ("rowSize" in cell) return limit.rows * cell.rowSize.count;
+  return COLLAPSED_CARDS;
 };
 
 const StatsListCard = <T,>({
@@ -672,6 +731,47 @@ const StatsListCard = <T,>({
   MediaComponent: TypedCardMediaImage<T>;
 }) => {
   const rowSize = "rowSize" in cell ? cell.rowSize : undefined;
+
+  // A strip fixes the height and each shape keeps its own width, so the card is built from the
+  // picture out rather than seated in a cell: `Filmstrip` states the height on it, the picture
+  // takes what the band and the caption leave, and the width follows from the artwork's ratio.
+  if ("strip" in cell)
+    return (
+      <Card variant="outlined">
+        <MediaComponent
+          item={item}
+          mediaBand={band && { node: band.render(item), height: band.height }}
+          // The words go under the picture whatever shape it is. The arrangement rule seats a
+          // poster's beside it, which on a card 82px wide is a column of two characters — and a
+          // strip has imposed no width for that rule to reason about in the first place.
+          mediaLayout="stacked"
+          // Reserved as the grid's cards are, so a picture that has not loaded still holds the
+          // width its shape gives it at this height and the strip does not close up and reopen as
+          // the files land. A cover takes the `auto` form, its ratio being a reservation only.
+          sx={{
+            height: cell.strip.pictureHeight,
+            width: "auto",
+            display: "block",
+            aspectRatio: shape && (shapeIsExact(shape) ? shapeToRatio(shape) : shapeToAspect(shape)),
+          }}
+          // The corner badge is a fixed few dozen pixels of type, which reads as a badge over a
+          // banner 213px wide at this height and as a covered picture over a poster 82px wide —
+          // wider than the card can hold, so the badge is clipped as well as covering what it is
+          // a badge for. Landscape artwork keeps it; the rest state the same fact in the card the
+          // picture opens.
+          chip={shape === undefined || shapeToArrangement(shape) === "stacked" ? chip : undefined}
+          lazy
+          extractColour
+          footerComponent={
+            <FooterComponent
+              labels={labels}
+              caption
+            />
+          }
+        />
+      </Card>
+    );
+
   const card = (
     <Card
       variant="outlined"

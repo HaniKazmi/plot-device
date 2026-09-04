@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { Year, YearMonthDay } from "../../src/common/date";
+import { CURRENT_YEAR, Year, YearMonthDay } from "../../src/common/date";
 import {
+  bucketGroups,
   bucketLabel,
   finishedBucket,
   finishedColumns,
@@ -8,6 +9,7 @@ import {
   finishedItems,
   finishedKey,
   orderedBuckets,
+  type FinishedExtraSort,
 } from "../../src/common/finishedData";
 
 const item = (name: string, banner: string | undefined, year?: number) => ({
@@ -347,5 +349,35 @@ describe("the built-in sort names", () => {
     const items = [scored("old ten", 10, 2010), scored("new one", 1, 2024)];
     expect(finishedItems(items, "Date", shadowing).map((entry) => entry.name)).toEqual(["new one", "old ten"]);
     expect(finishedBucket(scored("old ten", 10, 2010), "Date", shadowing)).toBe("2010");
+  });
+});
+
+describe("bucketGroups", () => {
+  it("cuts the wall where the bucket changes, keeping the order it was handed", () => {
+    const wall = [item("a", "a.jpg", CURRENT_YEAR), item("b", "b.jpg", CURRENT_YEAR), item("c", "c.jpg", 2019)];
+
+    expect(bucketGroups(wall, "Date").map((group) => [group.label, group.items.length])).toEqual([
+      [String(CURRENT_YEAR), 2],
+      ["2019", 1],
+    ]);
+  });
+
+  it("opens a second group where a sort returns to a bucket it has passed, rather than filing the cards hundreds above", () => {
+    const wall = [item("a", "a.jpg", 2020), item("b", "b.jpg", 2019), item("c", "c.jpg", 2020)];
+
+    expect(bucketGroups(wall, "Date").map((group) => group.label)).toEqual(["2020", "2019", "2020"]);
+  });
+
+  it("names the unbucketed group after the field the wall is ordered by", () => {
+    const wall = [item("a", "a.jpg")];
+
+    expect(bucketGroups(wall, "Date")[0].label).toBe("No date");
+  });
+
+  it("names it after a caller's own order when that is what is in play", () => {
+    const scored: readonly FinishedExtraSort<ReturnType<typeof item>>[] = [{ label: "Score", value: () => undefined }];
+    const wall = [item("a", "a.jpg", CURRENT_YEAR)];
+
+    expect(bucketGroups(wall, "Score", scored)[0].label).toBe("No score");
   });
 });

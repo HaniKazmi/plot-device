@@ -30,7 +30,7 @@ import {
 } from "react";
 import { CalendarMonthOutlined, Close } from "@mui/icons-material";
 import { cachedColour, extractColourFrom } from "../utils/colourUtils";
-import { ArtworkAccent, artworkPalette, useArtworkPalette } from "./artworkPalette";
+import { ArtworkAccent, artworkPalette, SEAM_WIDTH, useArtworkPalette } from "./artworkPalette";
 import { HoverCardTooltip } from "./HoverCardTooltip";
 import { TOUCH_TARGET_SX } from "./touchTarget";
 import {
@@ -46,6 +46,7 @@ import { dimSx, LABEL_SX } from "./typography";
 import { FADE_Z } from "./ScrollFade";
 import Grid from "@mui/material/Grid";
 import { format } from "../utils/mathUtils";
+import { stripCaption } from "./statsData";
 import type { Colour } from "../utils/types";
 import type { TimelineTick } from "./timelineLayout";
 import type { StripBand, StripSpan } from "./timelineStripData";
@@ -1389,9 +1390,78 @@ export const LedgerList = ({ rows, columns }: { rows: LedgerRow[]; columns: { xs
  */
 const BESIDE_LABEL_LINES = 3;
 
-export const FooterComponent = ({ labels, divider }: { labels: string[][]; divider?: boolean }) => {
+/** The line a strip caption is set on: a 12px `caption` with room to sit off the seam above it. */
+const STRIP_CAPTION_LINE = 17;
+
+/** The space between the caption's line and the two edges it stands between. */
+const STRIP_CAPTION_INSET = 5;
+
+/**
+ * How tall a strip card's caption stands, seam included.
+ *
+ * Stated rather than measured because the strip it sits in fixes the card's height: the picture's
+ * height plus this is what a caller hands `Filmstrip`, so a caption free to be its own height would
+ * either clip under the card's `overflow` or leave a band of ground below the words. The line and
+ * the insets below are what make the figure true, and the seam is a border and so part of the box.
+ */
+export const STRIP_CAPTION_HEIGHT = SEAM_WIDTH + 2 * STRIP_CAPTION_INSET + STRIP_CAPTION_LINE;
+
+export const FooterComponent = ({
+  labels,
+  divider,
+  caption,
+}: {
+  labels: string[][];
+  divider?: boolean;
+  /**
+   * One line instead of the stack, for a card in a strip: the picture stands at a fixed height and
+   * what is left is a single line of words. `stripCaption` decides which of the rows it is — never
+   * the name, which the artwork carries and the image's `alt` keeps.
+   */
+  caption?: boolean;
+}) => {
   const palette = useArtworkPalette();
   const beside = useCardArrangement() === "beside";
+
+  if (caption)
+    return (
+      <CardContent
+        sx={{
+          // A strip card is shrink-to-fit around its picture, so a caption free to ask for its own
+          // width would set the card's — a poster 82px wide standing under a line of text twice
+          // that, and the ellipsis below never reached. Zero basis with a full-width floor makes
+          // the line exactly the picture's width, which is the rule the media band above it follows.
+          width: 0,
+          minWidth: "100%",
+          height: STRIP_CAPTION_HEIGHT,
+          // Tighter across than down: a poster at this height is 82px wide, so every pixel of inset
+          // is a character of the line the caption is held to.
+          padding: `${STRIP_CAPTION_INSET}px 6px`,
+          ":last-child": { paddingBottom: `${STRIP_CAPTION_INSET}px` },
+          overflow: "hidden",
+          backgroundColor: palette.ground,
+          color: palette.onGround,
+          borderTop: palette.seam,
+        }}
+      >
+        <Typography
+          variant="caption"
+          sx={{
+            display: "block",
+            fontWeight: 600,
+            // Stated, so the height above is the height this actually takes rather than whatever
+            // the variant's ratio works out to.
+            lineHeight: `${STRIP_CAPTION_LINE}px`,
+            fontVariantNumeric: "tabular-nums",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {stripCaption(labels)}
+        </Typography>
+      </CardContent>
+    );
 
   return (
     <CardContent
