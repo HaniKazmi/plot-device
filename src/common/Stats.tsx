@@ -27,14 +27,7 @@ import {
 } from "./Card";
 import { dimSx, LABEL_SX, MUTED_FIGURE_SX } from "./typography";
 import { SectionHeader } from "./SectionHeader";
-import {
-  shapeIsExact,
-  shapeRatioValues,
-  shapeToArrangement,
-  shapeToAspect,
-  shapeToRatio,
-  type ArtworkShape,
-} from "./cardArrangement";
+import { shapeRatioValues, shapeToArrangement, shapeToPinnedAspect, type ArtworkShape } from "./cardArrangement";
 import { rowCardSize } from "./rowSizing";
 import { Filmstrip } from "./Filmstrip";
 import { useElementWidth } from "./useElementWidth";
@@ -816,7 +809,7 @@ const StatsListCard = <T,>({
             height: cell.strip.pictureHeight,
             width: "auto",
             display: "block",
-            aspectRatio: shape && (shapeIsExact(shape) ? shapeToRatio(shape) : shapeToAspect(shape)),
+            aspectRatio: shape && shapeToPinnedAspect(shape),
           }}
           // The corner badge is a fixed few dozen pixels of type, which reads as a badge over a
           // banner 213px wide at this height and as a covered picture over a poster 82px wide —
@@ -866,7 +859,7 @@ const StatsListCard = <T,>({
         // different width from its neighbours, for a reason no reader can see. A cover is the
         // exception the shape declares — no two share a ratio, so held firmly it would be
         // cropped — and takes the reservation instead, standing at its file's own height.
-        sx={{ aspectRatio: shape && (shapeIsExact(shape) ? shapeToRatio(shape) : shapeToAspect(shape)), flexShrink: 0 }}
+        sx={{ aspectRatio: shape && shapeToPinnedAspect(shape), flexShrink: 0 }}
         chip={chip}
         // A dialog list can run to hundreds of cards; off-screen artwork loads as it scrolls
         // into view rather than all at once on open.

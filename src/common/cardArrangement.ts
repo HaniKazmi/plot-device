@@ -81,6 +81,15 @@ const shapeExact: Record<ArtworkShape, boolean> = {
 export const shapeIsExact = (shape: ArtworkShape): boolean => shapeExact[shape];
 
 /**
+ * The `aspect-ratio` a surface pinning one dimension states for a shape: the ratio itself where
+ * every file holds it, so two cards of one shape are identical, and the `auto` reservation for a
+ * cover, so the file's own ratio wins once it lands. One answer for every such surface, so a
+ * shape added to the tables cannot be held exactly on one card and reserved on another.
+ */
+export const shapeToPinnedAspect = (shape: ArtworkShape): string =>
+  shapeIsExact(shape) ? shapeToRatio(shape) : shapeToAspect(shape);
+
+/**
  * The height a card holds for artwork it has not loaded yet.
  *
  * A lazily loaded image contributes nothing of its own, so a wall or a strip of them stands at a
@@ -144,7 +153,7 @@ const HOVER_CARD_ASIDE_ARTWORK_HEIGHT = 348;
 export const hoverCardArtworkSx = (shape: ArtworkShape) =>
   shapeToArrangement(shape) === "beside"
     ? {
-        aspectRatio: shapeIsExact(shape) ? shapeToRatio(shape) : shapeToAspect(shape),
+        aspectRatio: shapeToPinnedAspect(shape),
         height: HOVER_CARD_ASIDE_ARTWORK_HEIGHT,
         width: "auto",
         flexShrink: 0,

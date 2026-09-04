@@ -26,7 +26,14 @@ import { crossingEntries, type Crossing } from "./crossingsData";
 import type { FilterDispatch } from "./filterUtils";
 import { OMNIBUS_SECTIONS } from "./sections";
 import { media, mediumToColour, mediumToLabel, mediumToShape, type Measure, type Medium } from "./types";
-import { shapeIsExact, shapeToArrangement, shapeToAspect, shapeToRatio } from "../common/cardArrangement";
+import {
+  shapeIsExact,
+  shapeToArrangement,
+  shapeToAspect,
+  shapeToPinnedAspect,
+  shapeToRatio,
+  useCardArrangement,
+} from "../common/cardArrangement";
 import { useScheme } from "../common/useScheme";
 import { useElementWidth } from "../common/useElementWidth";
 import {
@@ -186,13 +193,16 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
   // the band is a column of full-size cards rather than a row of two whose words cannot be read.
   const pair = rowWidth === undefined ? undefined : (pairNowGeometry(rowWidth) ?? NOW_GEOMETRY);
 
-  // A lone banner takes the phone's whole row, rather than half of it beside a gap.
+  // A lone banner takes the phone's whole row rather than half of it beside a gap; a lone poster or
+  // cover keeps its half, since a poster across the whole row stands 525px and the gap beside it is
+  // the cheaper of the two.
   const banners = (now.game ? 1 : 0) + (now.movie ? 1 : 0);
   // The portrait row's one height, once the row has been measured; until then each picture
   // stands at its own ratio for the frame before.
   const portraitHeight = phone && rowWidth !== undefined ? nowPortraitHeight(rowWidth) : undefined;
   const game = now.game && (
     <NowItem
+      key="game"
       item={now.game}
       medium="game"
       phone={phone}
@@ -202,6 +212,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
       MediaComponent={VgCardMediaImage}
       tab={VideoGamesTab}
       kicker={`Since ${formatDate(now.game.startDate)}`}
+      date={formatDate(now.game.startDate)}
       title={now.game.name}
       // The genre alone, like the two cards beside it: this page draws no gameplay
       // vocabulary, so a game's Now card names the one thing all three media record.
@@ -215,6 +226,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
   );
   const show = now.show && (
     <NowItem
+      key="show"
       item={now.show}
       medium="show"
       phone={phone}
@@ -224,6 +236,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
       MediaComponent={ShowCardMediaImage}
       tab={ShowsTab}
       kicker={formatDate(now.show.show.lastWatchedDate!)}
+      date={formatDate(now.show.show.lastWatchedDate!)}
       // The episode in hand, which the row has no title to carry: the poster names the show
       // and cannot say which season, let alone how far into it.
       title={`${now.show.show.name} S${now.show.s}`}
@@ -235,6 +248,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
   );
   const movie = now.movie && (
     <NowItem
+      key="movie"
       item={now.movie}
       medium="movie"
       phone={phone}
@@ -244,6 +258,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
       MediaComponent={MovieCardMediaImage}
       tab={MoviesTab}
       kicker={formatDate(now.movie.startDate)}
+      date={formatDate(now.movie.startDate)}
       title={now.movie.name}
       subtitle={movieSubtitle(now.movie, scheme)}
       stats={movieHeroStats(now.movie, 1)}
@@ -251,6 +266,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
   );
   const book = now.book && (
     <NowItem
+      key="book"
       item={now.book}
       medium="book"
       phone={phone}
@@ -260,6 +276,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
       MediaComponent={BookCardMediaImage}
       tab={BooksTab}
       kicker={`Since ${formatDate(now.book.startDate)}`}
+      date={formatDate(now.book.startDate)}
       title={now.book.name}
       subtitle={bookSubtitle(now.book, scheme)}
       // Two tiles, as the show card beside it carries: the column beside a cover holds two and
@@ -296,7 +313,9 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
         {game}
         {/* The phone pairs the two banners on the first row and the poster and the cover on the
             second, so each row shares a shape and a height; elsewhere the four stand in the
-            tabs' own order. */}
+            tabs' own order. Each item is keyed on its medium, so a flip between the two orders
+            moves the two that change slot rather than rebuilding them, which would close a card
+            a reader had open through a rotation. */}
         {phone ? movie : show}
         {phone ? show : movie}
         {book}
@@ -325,8 +344,13 @@ const NowItem = <T,>(props: {
   MediaComponent: TypedCardMediaImage<T>;
   /** The home tab, whose app bar's colour the card is painted in. */
   tab: Tab;
-  /** When: the one line the phone's cell keeps, and the first line of the card's panel. */
   kicker: string;
+  /**
+   * The bare date, which is all the phone's cell says: the kicker's "Since" is the words a
+   * 36px spine on a 280px screen has no room for, and the ground already says which medium's date
+   * it is.
+   */
+  date: string;
   title: string;
   subtitle: PanelSubtitlePart[];
   stats: PanelStat[];
@@ -334,7 +358,8 @@ const NowItem = <T,>(props: {
   phone: boolean;
   /**
    * Whether a banner is the only one in flight on the phone, where it takes the grid's whole
-   * row: a banner at half the row is 98px tall, and the half beside it would hold nothing.
+   * row: a banner at half the row is 98px tall, and the half beside it would hold nothing. The
+   * two portraits never take it, a poster across the row standing 525px.
    */
   alone?: boolean;
   /** The phone's portrait row's height, which a poster or a cover is held to once the row is measured. */
@@ -353,6 +378,7 @@ const NowItem = <T,>(props: {
   const ground = barColour(props.tab, scheme);
 
   if (props.phone) {
+    const measured = props.portraitHeight !== undefined;
     return (
       // The name the cell does not write. `role` because a bare box carries no label to a screen
       // reader without one; the picture inside states the same name as its alt text. The whole
@@ -361,15 +387,18 @@ const NowItem = <T,>(props: {
         role="group"
         aria-label={props.title}
         onClick={openFromCell}
-        sx={{ minWidth: 0, gridColumn: props.alone ? "1 / -1" : undefined }}
+        sx={{ minWidth: 0, cursor: "pointer", gridColumn: props.alone ? "1 / -1" : undefined }}
       >
         <props.MediaComponent
           item={props.item}
           extractColour
           chromeColour={ground}
-          // The cell has sized its own picture, so the card is one flex container running the
-          // way the shape says, and the artwork's own width: the shared aside column hands the
-          // whole card to the picture below `md` for the hero, which has no spine beside it.
+          // The shape, so the card publishes the arrangement the cell lays it out in and the date
+          // beside a poster reads it as every footer does; and the cell has sized its own picture,
+          // so the card is one flex container running the way the shape says, with the artwork's
+          // own width: the shared aside column hands the whole card to the picture below `md` for
+          // the hero, which has no spine beside it.
+          shape={shape}
           landscape
           mediaLayout={beside ? "aside" : undefined}
           cardSx={{
@@ -377,11 +406,12 @@ const NowItem = <T,>(props: {
             width: "100%",
             // Until the row is measured the picture takes what the spine leaves; once it is, the
             // picture is its own width at the row's height and the spine takes what the picture
-            // leaves — so a cover a few percent off 2:3 changes the spine's width and never the
-            // row's height.
+            // leaves, so a cover narrower than 2:3 widens the spine and never changes the row's
+            // height. The column can give but not grow: a cover wider than the poster's ratio
+            // would otherwise push the spine past the cell, where the card clips it.
             ...(beside && {
               "& > .MuiCardActionArea-root": {
-                flex: props.portraitHeight === undefined ? "1 1 auto" : "0 0 auto",
+                flex: measured ? "0 1 auto" : "1 1 auto",
                 minWidth: 0,
                 width: "auto",
               },
@@ -393,22 +423,21 @@ const NowItem = <T,>(props: {
             // phone gets a taller picture rather than ground around one. A poster and a banner
             // are authored to their ratios exactly, so holding them to it crops nothing; a cover
             // holds its own, no two of them sharing a ratio to be held to.
+            //
             // A portrait picture is held to the row's height instead once it is known, and takes
             // its own width from it — the poster the spine's complement exactly, a cover a few
-            // pixels either side of it — so the two cells of the row are one height.
-            ...(beside && props.portraitHeight !== undefined
-              ? { width: "auto", height: props.portraitHeight }
+            // pixels either side — so the two cells of the row are one height. `maxWidth` is the
+            // one place a picture here is not edge to edge: a cover wider than the poster's ratio
+            // cannot fill both the row's height and the width the spine leaves, and stands
+            // contained in its column with the ground above and below rather than clipped.
+            ...(beside && measured
+              ? { width: "auto", height: props.portraitHeight, maxWidth: "100%" }
               : { width: "100%", height: "auto" }),
-            aspectRatio: shapeIsExact(shape) ? shapeToRatio(shape) : shapeToAspect(shape),
+            aspectRatio: shapeToPinnedAspect(shape),
             objectFit: "contain",
             display: "block",
           }}
-          footerComponent={
-            <NowDate
-              date={props.kicker}
-              spine={beside}
-            />
-          }
+          footerComponent={<NowDate date={props.date} />}
         />
       </Box>
     );
@@ -536,35 +565,44 @@ const NowItem = <T,>(props: {
 };
 
 /**
- * Forwards a tap anywhere in a phone cell to its picture, which is what opens the card.
+ * Opens a phone cell's card from anywhere in the cell, which is what makes the date a target.
  *
- * At module scope, so the cell's handler is one function rather than one per render. A click
- * that came from the picture is left alone, since it is the one being forwarded to; so is one
- * from the expanded dialog, which portals out of the cell's DOM but bubbles to it through React —
- * forwarded, its close button would reopen the card it had just closed.
+ * At module scope, so the cell's handler is one function rather than one per render. The card
+ * opens from its picture's own handler, so a click that came from inside the action area is
+ * left alone; a click whose target is the action area itself is the keyboard's — Enter on the
+ * focused button lands there and not on the picture — and is forwarded like a tap on the date. A
+ * click from the expanded dialog, which portals out of the cell's DOM but bubbles to it through
+ * React, is left alone too: forwarded, its close button would reopen the card it had just closed.
  */
 const openFromCell: MouseEventHandler<HTMLElement> = (event) => {
   const target = event.target;
   if (!(target instanceof Element) || !event.currentTarget.contains(target)) return;
-  if (target.closest(".MuiCardActionArea-root")) return;
-  event.currentTarget.querySelector<HTMLElement>(".MuiCardActionArea-root > :first-child")?.click();
+  const area = target.closest(".MuiCardActionArea-root");
+  if (area && area !== target) return;
+  const opener = area
+    ? area.firstElementChild
+    : event.currentTarget.querySelector(".MuiCardActionArea-root > :first-child");
+  if (opener instanceof HTMLElement) opener.click();
 };
 
 /**
  * The date of a phone cell: a line under a banner, a spine beside a poster.
  *
- * The spine sets its date down the column as a book's spine does, because the column is 36px
- * (`NOW_SPINE_WIDTH`) and a date across it is four lines of two characters. It is a column at all,
- * rather than a line beneath the poster, because a line beneath costs the picture its height on a
- * cell whose width already fixes it, where the banner's line beneath costs a banner nothing it had.
+ * Which of the two it is comes from the card's own arrangement, as every footer's does, so the
+ * date and the picture cannot disagree about which way round the cell is. The spine sets its date
+ * down the column as a book's spine does, because the column is 36px (`NOW_SPINE_WIDTH`) and a
+ * date across it is four lines of two characters. It is a column at all, rather than a line
+ * beneath the poster, because a line beneath costs the picture its height on a cell whose width
+ * already fixes it, where the banner's line beneath costs a banner nothing it had.
  */
-const NowDate = ({ date, spine }: { date: string; spine: boolean }) => {
+const NowDate = ({ date }: { date: string }) => {
   const palette = useArtworkPalette();
+  const spine = useCardArrangement() === "beside";
 
   return (
     <Box
       sx={{
-        flex: spine ? "1 1 auto" : "0 0 auto",
+        flex: spine ? "1 0 auto" : "0 0 auto",
         minWidth: spine ? NOW_SPINE_WIDTH : 0,
         display: "flex",
         alignItems: "center",
@@ -576,12 +614,18 @@ const NowDate = ({ date, spine }: { date: string; spine: boolean }) => {
         ...(spine ? { borderLeft: palette.seam } : { borderTop: palette.seam }),
       }}
     >
+      {/* One line, cut with an ellipsis where a screen narrower than the date leaves it no room —
+          the 280px cover screens, where the cell is 120 — rather than through a glyph. */}
       <Typography
         variant="subtitle2"
         sx={{
           fontWeight: 600,
           lineHeight: 1,
           whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          maxWidth: "100%",
+          maxHeight: "100%",
           fontVariantNumeric: "tabular-nums",
           ...(spine && { writingMode: "vertical-rl" }),
         }}
