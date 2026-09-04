@@ -4,7 +4,7 @@ import type { CardMediaImageProps, TypedCardMediaImage } from "./Card";
 import type { ArtworkShape } from "./cardArrangement";
 import { DrilldownDialog } from "./DrilldownDialog";
 import { StatList, type GridListLayout, type StatListBaseProps } from "./Stats";
-import type { DrilldownGroup } from "./statsData";
+import { groupCaption, type DrilldownGroup } from "./statsData";
 
 /**
  * A strip of grouped cards that drills into a group: each card fronts its group with the group's
@@ -75,6 +75,7 @@ export const GroupedStatList = <T,>(props: {
           onClick: () => setDialogContent(entry),
         })}
         labelComponent={props.labelComponent}
+        captionOf={(entry) => groupCaption(props.labelComponent(entry), entry.name)}
         MediaComponent={(cardProps) => (
           <MediaComponent
             {...cardProps}

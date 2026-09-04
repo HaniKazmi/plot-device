@@ -397,6 +397,8 @@ export const StatsListGrid = <T,>(
     strip?: boolean;
     cardKey: (t: T) => string;
     labelComponent: (t: T) => string[][];
+    /** A strip card's caption where the labels' first row is not it — a grouped list's figure. */
+    captionOf?: (t: T) => string;
     chipComponent?: (t: T) => CardMediaImageProps["chip"];
     shape?: ArtworkShape;
     /** A band along the top of each card, and its height — see `CardMediaImageProps.mediaBand`. */
@@ -411,7 +413,8 @@ export const StatsListGrid = <T,>(
     header?: (shown: number) => ReactNode;
   } & GridLimit,
 ) => {
-  const { content, flexWrap, cardKey, labelComponent, chipComponent, shape, band, divider, MediaComponent } = props;
+  const { content, flexWrap, cardKey, labelComponent, captionOf, chipComponent, shape, band, divider, MediaComponent } =
+    props;
   // The row's own width, which only a sized row reads: a grid needs none, and the observer is
   // only attached to the element a sized row renders.
   const [rowRef, rowWidth] = useElementWidth<HTMLDivElement>();
@@ -434,6 +437,7 @@ export const StatsListGrid = <T,>(
       key={cardKey(entry)}
       item={entry}
       labels={labelComponent(entry)}
+      captionText={captionOf?.(entry)}
       chip={chipComponent?.(entry)}
       cell={cell}
       shape={shape}
@@ -555,6 +559,8 @@ export interface StatListBaseProps<T> {
   width: [number, number, number];
   nameComponent: (t: T) => string;
   labelComponent: (t: T) => string[][];
+  /** See `StatsListGrid`. */
+  captionOf?: (t: T) => string;
   MediaComponent: TypedCardMediaImage<T>;
   chipComponent?: (t: T) => CardMediaImageProps["chip"];
   shape?: ArtworkShape;
@@ -627,6 +633,7 @@ export const StatList = <T,>(props: StatsListProps<T>) => {
             flexWrap={isDialog ? undefined : { xs: "nowrap", md: wrap ? "wrap" : "nowrap" }}
             cardKey={(entry) => `${title}-statslistcard-${nameComponent(entry)}`}
             labelComponent={labelComponent}
+            captionOf={props.captionOf}
             chipComponent={chipComponent}
             shape={props.shape}
             band={props.band}
@@ -715,6 +722,7 @@ const limitOf = (limit: number | { rows: number }, cell: CardCell): number => {
 const StatsListCard = <T,>({
   item,
   labels,
+  captionText,
   chip,
   cell,
   shape,
@@ -724,6 +732,7 @@ const StatsListCard = <T,>({
 }: {
   item: T;
   labels: string[][];
+  captionText?: string;
   chip?: CardMediaImageProps["chip"];
   cell: CardCell;
   shape?: ArtworkShape;
@@ -767,6 +776,7 @@ const StatsListCard = <T,>({
             <FooterComponent
               labels={labels}
               caption
+              captionText={captionText}
             />
           }
         />

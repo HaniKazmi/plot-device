@@ -155,3 +155,15 @@ export const earliestYear = <T>(items: readonly T[], yearOf: (item: T) => YearNu
  * sheet is silent about and a caption opening on a separator reads as a missing word.
  */
 export const stripCaption = (labels: string[][]): string => (labels[0] ?? []).filter(Boolean).join(" · ");
+
+/**
+ * A grouped strip's caption: the group's labels less the group's own name, which the fronting
+ * artwork stands for — an author's name is printed on the cover, a franchise's on the banner. At
+ * a cover's 80px a name beside its figure is an ellipsis before the figure, and the figure is what
+ * the shelf is ordered by.
+ */
+export const groupCaption = (labels: string[][], name: string): string =>
+  labels
+    .flat()
+    .filter((cell) => cell && cell !== name)
+    .join(" · ");

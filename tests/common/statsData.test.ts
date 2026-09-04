@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CURRENT_YEAR, type YearNumber } from "../../src/common/date";
 import {
+  groupCaption,
   groupByCategory,
   groupTotals,
   stripCaption,
@@ -166,5 +167,24 @@ describe("stripCaption", () => {
 
   it("answers the empty string for a card with no labels at all", () => {
     expect(stripCaption([])).toBe("");
+  });
+});
+
+describe("groupCaption", () => {
+  it("keeps a grouped strip's figure and drops the group's own name, which the artwork carries", () => {
+    expect(groupCaption([["Pokémon", "31 Games"]], "Pokémon")).toBe("31 Games");
+    expect(groupCaption([["Brandon Sanderson"], ["10 Books"]], "Brandon Sanderson")).toBe("10 Books");
+  });
+
+  it("drops empty cells and keeps every other row", () => {
+    expect(
+      groupCaption(
+        [
+          ["Marvel", ""],
+          ["12 Films", "40 Hours"],
+        ],
+        "Marvel",
+      ),
+    ).toBe("12 Films · 40 Hours");
   });
 });

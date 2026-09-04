@@ -228,11 +228,10 @@ titles, accessibility off — and the declarative components re-exported, so a c
 JSX (`<Chart><XAxis/><Series/></Chart>`) rather than configured as one options blob. The eight
 series colours belong here rather than on the theme, since `setOptions` runs once for both schemes:
 every entry sits at one luminance, inside the band that clears 3:1 on either paper, so hue alone
-separates two series. `tooltip.followTouchMove` is off for the same reason it defaults on for
-everything else Highcharts draws: left on, a finger dragged across an `80vh` chart moves the
-tooltip from point to point and never scrolls the page, holding the reader on the chart until they
-find a gap to start the drag in. A tap still opens a point's tooltip, and column tap-to-isolate and
-the sunburst's tap-to-drill are untouched.
+separates two series. `tooltip.followTouchMove` is off, against Highcharts' own default: left on, a
+finger dragged across an `80vh` chart drags the tooltip point to point instead of scrolling the page.
+A tap still opens a point's tooltip; column tap-to-isolate and the sunburst's tap-to-drill are
+untouched.
 
 ### Barchart — `common/Barchart.tsx`
 
@@ -263,16 +262,15 @@ to come below it, reads at one thumb-flick rather than two. Callers choose the m
 `postAggregate`, a scalar applied after aggregation — `show/` turns accumulated minutes into hours
 with it — scalar so that a caller cannot couple to the pivot's shape, which the shell traverses.
 
-Folded on a phone (`FoldedChart`, below), the card states its Totals reading in one line and a
-sparkline: `barchartSummary` names the fullest column and, past two groups, who led the most of
-them, and `columnTotals` is what the sparkline plots and what `Share`'s own division reads off. Both
-run over `raw` in three views out of four — under Cumulative, whose pivot buckets a climbing total
-by month, the fold re-pivots `data(false)` so the summary names a peak by month rather than by a
-running total that is highest on its last column by construction. `postAggregate` is applied to that
-second pivot as well, so a folded Shows card states hours and not accumulated minutes. The words
-themselves are built in `Barchart.tsx` and not `barchartData.ts`, since `format` is an
-`Intl.NumberFormat` on the reader's own locale and a pure data module has to stay one a locale
-cannot change.
+Folded on a phone (`FoldedChart`, below), the card states its Totals reading as one line and a
+sparkline: `barchartSummary` names the fullest column and, past two groups, who led most of them;
+`columnTotals` is what the sparkline plots and `Share` divides by. Both run over `raw` in three
+views out of four — under Cumulative, whose pivot buckets a climbing total by month, the fold
+re-pivots `data(false)` so the summary names a peak by month rather than the running total that is
+highest on its last column by construction, with `postAggregate` applied again so a folded Shows
+card states hours and not accumulated minutes. The words are built in `Barchart.tsx` rather than
+`barchartData.ts`, since `format` is an `Intl.NumberFormat` on the reader's locale and a pure data
+module has to stay one a locale cannot change.
 
 ### Sunburst — `common/Sunburst.tsx`
 
@@ -305,15 +303,14 @@ stacked below it instead (`useStackedCharts`) the width _is_ the column, so the 
 viewport down to a floor of `min(100vw - 64px, 480px)` rather than wrapping a 340px wheel in 400px
 of blank paper.
 
-Folded on a phone, the card states `firstRing` — the innermost ring, largest first, read off the
-same `parent === ""` test that collapses the leaf ring — as a line of names and figures and as a
-`ProportionalBar` (`RingBar`) built through the Top lists' own `topNWithOther`, so the wedges beyond
-the fifth become one "Other" segment the way a Top card's own bar would. A grouping with a colour
-vocabulary keeps the wheel's own hex; one without falls back to a series colour by rank, which can
-disagree with Highcharts' own `colorByPoint` order — the names under the bar are what say which
-segment is which regardless. `SunBurstControls`' "Nest by" label is dropped below `sm`: at 390px the
-card is 324px and the row of a word plus three chevron selects wants 379, so the label is the one
-of the two that a reader can infer back from the values it precedes.
+Folded on a phone, the card states `firstRing` — the innermost ring, largest first, off the same
+`parent === ""` test that collapses the leaf ring — as a line of names and figures and a
+`ProportionalBar` (`RingBar`) built through the Top lists' own `topNWithOther`, so wedges beyond the
+fifth become one "Other" segment. A grouping with a colour vocabulary keeps the wheel's own hex; one
+without falls back to a series colour by rank, which can disagree with Highcharts' own `colorByPoint`
+order — the names under the bar say which segment is which regardless. `SunBurstControls`' "Nest by"
+label drops below `sm`: at 390px the card is 324px and a word plus three chevron selects wants 379,
+so the label is the one a reader can infer back from the values it precedes.
 
 ### Timeline — `common/Timeline.tsx`
 
@@ -355,29 +352,29 @@ the value already held costs no render, where the raw offset re-renders the char
 reason an edge fade computed per frame is the expensive way to say "there is more". Static CSS says
 most of it instead: the container styles its own scrollbar (`scrollbarSx`), opting macOS out of
 overlay scrollbars that hide the moment scrolling stops, so a thumb a quarter of the track long
-states both that there is more and how much. iOS draws no scrollbar at all, styled or not, which is
-what the chart also carries a `ScrollFade` for (`useScrollEdges` on the same ref the year chips
-drive) — the one surface here running both, since only this chart is read on a platform where
-neither answer is guaranteed to be the one that is drawn. `CONTAIN_SIDEWAYS_SCROLL` keeps the
-chart's own flick from carrying on into the browser's back gesture once it reaches either end.
+states both that there is more and how much. iOS draws no scrollbar at all, styled or not, so the
+chart also carries a `ScrollFade` (`useScrollEdges` on the same ref the year chips drive) — the one
+surface here running both, since neither answer is guaranteed to be the one drawn.
+`CONTAIN_SIDEWAYS_SCROLL` keeps the chart's own flick from carrying into the browser's back gesture
+at either end.
 
 The chart caps its height and scrolls vertically within the card from `md` up
-(`CHART_MAX_HEIGHT`), a packed timeline running to dozens of rows; below it the cap is lifted and
-the grid stands at whatever height `packRows` gives it, since a second scroller inside a page that
-already scrolls takes the drag meant for the page and hides most of the rows behind it. Alone among
-the app's charts it is never folded — `show/Timeline.tsx`, `vg/Timeline.tsx` and `books/Timeline.tsx`
-draw it through a plain `SectionHeader` and `Card` — since what a folded card would show in place of
-it is a picture of a Gantt chart's shape, which is no cheaper a reading than the chart itself.
+(`CHART_MAX_HEIGHT`), a packed timeline running to dozens of rows; below it the cap lifts and the
+grid stands at whatever height `packRows` gives it, since a second scroller inside a page that
+already scrolls takes the drag meant for the page. Alone among the app's charts it never folds —
+`show/Timeline.tsx`, `vg/Timeline.tsx` and `books/Timeline.tsx` draw it through a plain
+`SectionHeader` and `Card` — since a folded card would show only a picture of a Gantt chart's shape,
+no cheaper a reading than the chart itself.
 
 The hover card that names a bar reaches it two ways: through the label, which already re-enables
-its own pointer events, and through the bar's own `rect`, so a reader whose finger is aimed at the
-item and not at a label sitting in the gap beside it still lands on something. `useCoarsePointer` is
-read once per chart in `TimelineGrid` and passed down as `coarse` — a few hundred marks each mounting
-two triggers would otherwise be a few hundred subscriptions answering one question that cannot
-differ between them (§ Phone and tablet). The row's own `&:hover` scale sits behind `(hover: hover)`
-for the same reason every bare hover rule here now does: a tap has no leave event, so the last bar
-touched would otherwise stay scaled up until another tap lands elsewhere, which reads as a selection
-the chart never made.
+its own pointer events, and through the bar's own `rect`, so a finger aimed at the item and not at a
+label sitting in the gap beside it still lands on something. `useCoarsePointer` is read once per
+chart in `TimelineGrid` and passed down as `coarse`, rather than mounted per mark — a few hundred
+marks would otherwise be a few hundred subscriptions answering one question that cannot differ
+between them (§ Phone and tablet). The row's own `&:hover` scale sits behind `(hover: hover)`, as
+every bare hover rule here now does: a tap has no leave event, so the last bar touched would
+otherwise stay scaled up until another tap lands elsewhere, reading as a selection the chart never
+made.
 
 Two details are load-bearing. The label `Box` sets `lineHeight` to `BAR_HEIGHT`, being `position:
 fixed` with no `top` and so centred by its own line box alone: a bar height changed without it puts
@@ -839,37 +836,32 @@ covers go one step denser at every width, two thirds as wide as tall against a b
 ninths, so one width stands two and a half times as tall. The page opens on Large, the dialog on
 Full, the choice held for the visit and never written: the wall is the tallest thing on its page, so
 a stored preference would have to be read before first paint to avoid changing it underneath the
-reader. A phone opens on Compact instead — Large there is one banner a row, and 322 games at 220px
-each is seventy thousand pixels of page with nothing but a picture on each screen — held as "not yet
-chosen" rather than seeded from the width, so the default follows a rotation until the reader has an
-opinion, after which theirs is what stays; reading `usePhone` any other way would mount every card at
-one density on the first render and remount it at another a frame later, asking for each picture and
-sampling each artwork twice over.
+reader. A phone opens on Compact instead — Large there gives one banner a row, and 322 games at
+220px each would run seventy thousand pixels of page. The choice starts as "not yet chosen" rather
+than seeded from the width and follows a rotation until the reader picks one, after which theirs
+stays; seeding it from `usePhone` directly would mount every card at one density and remount it at
+another a frame later, sampling each artwork twice.
 
-Below `sm` neither the pill nor the rail is mounted, and the wall carries its own derivation of the
-same rule inline instead: `bucketGroups` (`common/finishedData.ts`) cuts the sorted items into runs
-wherever `bucketFor`'s answer changes — the same reader `orderedBuckets` folds to a rail, but kept
-as runs rather than collapsed to one entry per bucket, since a sort that returned to a bucket it had
-passed would have a keyed grouping lift those cards out of the order the wall is in. Each run stands
-under a sticky `BucketHeading`, which is the jump rail's own derivation drawn in the flow: a phone
-has no gutter for a rail and no room for a pill that does not sit over the cards it names, and a
-sticky heading is what a phone reader already indexes a long list with. It pins under whatever else
-is pinned above it in the same scrollport — the section rail's own `SCROLL_MARGIN` on the page, the
-sheet's `SHEET_HEADER_BOTTOM` in the dialog — and `ExpandableCard`'s clipping is opened to `visible`
-at `xs` for it, a sticky element being measured against the nearest ancestor whose overflow is
-anything else, which for a bordered card is the card itself.
+Below `sm` neither the pill nor the rail mounts, and the wall derives the same rule inline:
+`bucketGroups` (`common/finishedData.ts`) cuts the sorted items into runs wherever `bucketFor`'s
+answer changes, kept as runs rather than collapsed to one entry per bucket as `orderedBuckets` folds
+for a rail — a keyed grouping would lift cards returning to a passed bucket out of the wall's own
+order. Each run stands under a sticky `BucketHeading`, the jump rail's own logic drawn in the flow,
+since a phone has no gutter for a rail or room for a pill that does not sit over the cards it names.
+It pins under whatever else is pinned above it in the same scrollport — the section rail's own
+`SCROLL_MARGIN` on the page, the sheet's `SHEET_HEADER_BOTTOM` in the dialog — with `ExpandableCard`'s
+clipping opened to `visible` at `xs`, a sticky element measuring against the nearest ancestor whose
+overflow is anything else, a bordered card itself.
 
-The reading test that shows the pill or rail carries a third clause, for the same reason the density
-default does: `rect.top < READING_LINE && rect.bottom > innerHeight / 2` alone would light the pill
-over a section's own header for the gap between the section arriving and the wall's first row
-reaching the marker offset — on any width whose gutter falls under `MIN_GUTTER` (72px) and so draws
-the pill rather than the rail, which on a phone's own width is every width. Requiring the grid's own
-top to have reached `MARKER_TOP` (with the settle loop's own slack) answers the marker's own question
-instead: not "is the section visible" but "is there a row here to name". Compact's grid also gives up
-the row's stretch alignment: a card ends where its own picture
-does (`alignSelf: "flex-start"`) rather than at the row's height, since only a cover is ever short of
-it and a stretched cover reads as a card drawn wrong where a shorter one reads as a picture that
-came out that way — the row's _tops_ stay level either way, which is what both the marker and a
+The reading test that shows the pill or rail carries a third clause: `rect.top < READING_LINE &&
+rect.bottom > innerHeight / 2` alone would light the pill over a section's own header during the gap
+between the section arriving and the wall's first row reaching the marker offset — true of any width
+whose gutter falls under `MIN_GUTTER` (72px), which is every width on a phone. Requiring the grid's
+own top to have reached `MARKER_TOP` (with the settle loop's own slack) asks the marker's real
+question instead: not "is the section visible" but "is there a row here to name". Compact's grid also
+drops the row's stretch alignment: a card ends where its own picture does (`alignSelf: "flex-start"`)
+rather than at the row's height, since only a cover is ever short of it and a stretched cover reads as
+a card drawn wrong — the row's _tops_ stay level either way, which is what both the marker and a
 reader's eye read a row by.
 
 Each card wrapper carries its label as a `data-bucket` attribute, and the scroll handler
@@ -1175,14 +1167,12 @@ are the only breakpoints the app reads as booleans rather than writes as `sx` ke
 callers need the answer before they can decide what to render at all — a folded chart mounts nothing
 until opened, a sheet and a persistent drawer are different trees, and the tracked tabs put their
 charts after their library in DOM order (above), which no `display: none` or flex `order` can do.
-Both are `useMediaQuery` with `noSsr: true`, stating the query's real answer as the server snapshot
-too: `main.tsx` mounts with `createRoot` and never hydrates, so that snapshot is never actually read
-and the first render already matches the screen either way — but the option is what keeps that true
-of a root that did hydrate, one hook giving one answer rather than two depending which root mounted
-it. `useCoarsePointer` answers a different question — how precisely the reader can aim, not how wide
-the screen is — for the same reason: a hover card is a popper on a mouse and a bottom sheet on a
-finger, different trees again, where a hit target or a hover treatment that is only a rule belongs in
-`sx` as `@media (pointer: coarse)` and costs no subscription. All three, plus `useScheme`, share one
+Both are `useMediaQuery` with `noSsr: true`: `main.tsx` mounts with `createRoot` and never hydrates,
+so the option is inert today, but it keeps one hook giving one answer rather than two depending which
+root eventually mounts it. `useCoarsePointer` answers a different question — how precisely the reader
+can aim, not how wide the screen is: a hover card is a popper on a mouse and a bottom sheet on a
+finger, different trees again. A hit target or a hover treatment that is only a rule stays in `sx` as
+`@media (pointer: coarse)` and costs no subscription. All three, plus `useScheme`, share one
 mechanism, `common/useMatchMedia.ts`: one `MediaQueryList` and one native listener per distinct query
 string, held at module scope and fanned out through `useSyncExternalStore`, because a caller asks per
 component instance and a chart is hundreds of them — a fresh `matchMedia()` and a fresh listener per
@@ -1194,11 +1184,10 @@ list drawn twice — as buttons and as menu items — so the bar and the menu ca
 which actions exist or whether "Authorising" is live: both are on screen at once wherever a finger is
 the pointer. At 768px the wordmark, five tabs and two buttons want about 800px of a 720px content
 width, which is the arithmetic behind the `md` cutoff; a tablet held sideways clears the width test
-but still fails the pointer one, so the menu stays. The same menu is guest mode's only handle
-wherever it is drawn: the long press that reaches it elsewhere (`utils/useLongPress.ts`) answers with
-mouse handlers alone, a touch long press colliding with the browser's own press-and-hold, so the menu
-carries a "Guest mode"/"Leave guest mode" item in both directions rather than leaving a finger with no
-way in — or, once in, no way out but a reload.
+but still fails the pointer one, so the menu stays. The same menu is guest mode's only handle under a
+touch pointer, carrying a "Guest mode"/"Leave guest mode" item — the long press that reaches it
+elsewhere is a mouse gesture alone (§7, Guest mode), and without the item a finger would have no way
+in, or once in, no way out but a reload.
 
 Below `sm` the tab strip itself is replaced by `BottomTabs`, fixed to the screen's bottom edge and
 reachable from any scroll position and a thumb, which no arrangement of the `position: static` app
@@ -1216,22 +1205,15 @@ colour a phone's status bar wears before any tab-specific theme has painted. `Go
 box, which on a chart is a whole row group behind a bar a few pixels wide, and every tap here already
 answers with the card it opens.
 
-**Touch surfaces.** `common/touchTarget.ts` is the one hit-box recipe a mark on a scale gets under a
-coarse pointer: 24px is what a finger can reliably land on, but a strip bead or a crossings mark is
-drawn far smaller and far denser than that, so the box is invisible and centred on the mark rather
-than resized to it, and stated as a height alone — widening a mark itself to 24px reaches over its
-neighbours on a chain of fifty and hands every overlap to whichever sibling is drawn later. Specific
-uses are described where the marks are (Franchise strip, Card strip data, above). `FoldedChart`
-(`common/FoldedChart.tsx`) is the general mechanism behind every folded chart: a card that renders
-only its header, a one-line summary and a shape-of-the-data preview until the reader asks for the
-chart itself, past `usePhone` alone — from `sm` up it is the plain card it always was. Five callers
-share it (Barchart, Sunburst, the Movies event ribbon, the omnibus Crossings stack and Genre bridge);
-the packed timeline is the one chart that never folds, since what a reader who has not opened it
-would be shown is the very thing a fold exists to defer. `CONTAIN_SIDEWAYS_SCROLL`
-(`common/scrollbarSx.ts`) is the one-line fix every horizontal scroller in the app wears — the
-charts, the strips, the chip rails, the sized card rows — for the same drag: reaching either end
-without it carries on into the browser's own back gesture, taking the reader off the page they meant
-to keep scrolling.
+**Touch surfaces.** `common/touchTarget.ts` is the shared hit-box recipe behind the franchise strip's
+beads and `TimelineBandBox`'s marks (above): a box sized for a coarse pointer alone, invisible and
+stated as a height so it cannot reach over a dense neighbour. `FoldedChart` (`common/FoldedChart.tsx`)
+is the general mechanism behind every folded chart above — five callers — a card that renders only
+its header, a one-line summary and a shape-of-the-data preview until the reader asks for the chart
+itself, past `usePhone` alone; from `sm` up it is the plain card it always was. The packed timeline
+alone never folds (above). `CONTAIN_SIDEWAYS_SCROLL` (`common/scrollbarSx.ts`) is the same fix
+against the browser's back gesture (above, Timeline), worn by every other horizontal scroller in the
+app — the strips, the chip rails, the sized card rows.
 
 ### Colour
 

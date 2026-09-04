@@ -1420,6 +1420,7 @@ export const FooterComponent = ({
   labels,
   divider,
   caption,
+  captionText,
 }: {
   labels: string[][];
   divider?: boolean;
@@ -1429,6 +1430,8 @@ export const FooterComponent = ({
    * the name, which the artwork carries and the image's `alt` keeps.
    */
   caption?: boolean;
+  /** The caption's words, where a caller states them; `stripCaption` over the labels otherwise. */
+  captionText?: string;
 }) => {
   const palette = useArtworkPalette();
   const beside = useCardArrangement() === "beside";
@@ -1462,13 +1465,16 @@ export const FooterComponent = ({
             // Stated, so the height above is the height this actually takes rather than whatever
             // the variant's ratio works out to.
             lineHeight: `${STRIP_CAPTION_LINE}px`,
+            // A poster or cover at the strip's height is about 80px wide, where a date at 12px is
+            // an ellipsis; one size down it is a date.
+            fontSize: beside ? 11 : undefined,
             fontVariantNumeric: "tabular-nums",
             whiteSpace: "nowrap",
             overflow: "hidden",
             textOverflow: "ellipsis",
           }}
         >
-          {stripCaption(labels)}
+          {captionText ?? stripCaption(labels)}
         </Typography>
       </CardContent>
     );
