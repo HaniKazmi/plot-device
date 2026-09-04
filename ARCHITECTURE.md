@@ -789,7 +789,9 @@ and comparing the joined labels keeps that free.
 so `MuiCardHeader` spacing and the `h6` weight reach it; the icon sits in the title row, not the
 avatar slot, which centres against the whole header. The count arrives worded — a `common/` shell
 cannot know it counts games. Below `sm` the controls take their own row, negative margins and all: a
-title and four controls otherwise divide 375px and the title wraps to a word a line.
+title and four controls otherwise divide 375px and the title wraps to a word a line. A slot holding
+no more than one icon button stays on the title row, the caller saying so through `compactActions`
+— a row of its own for an expand toggle is a blank line with an icon at the end.
 
 `common/Stats.tsx` exports what the domain `Stats.tsx` files assemble into a grid: `StatCard` and
 `StatSummary`; `YearVitalsPair`, all-time and in-year cards differing only in figures; `StatList`;

@@ -64,7 +64,7 @@ export const movedAfter = <K extends string>(keys: readonly K[], key: string, af
  * The four tabs name those two sections the same way and reorder them on the same test, so the
  * pair of keys is stated here rather than four times over — and the page renders its two nodes
  * through `ChartsAndLibrary` (`common/SectionRail.tsx`), which is the same fact about the DOM. A
- * page holding neither key is left as it is, so this is safe to apply to any tab's list.
+ * page not holding both keys is left as it is, so this is safe to apply to any tab's list.
  */
 export const chartsLastOrder = <K extends string>(keys: readonly K[], chartsLast: boolean): K[] =>
   chartsLast ? movedAfter(keys, "charts", "library") : [...keys];
