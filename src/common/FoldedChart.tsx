@@ -1,13 +1,14 @@
 import { Box, Button, Card, CardContent, Stack, Typography } from "@mui/material";
 import { useState, type ReactNode } from "react";
 import { usePhone } from "./breakpoints";
+import { SEGMENT_TYPE_SX } from "./SelectionComponents";
 
 /**
  * A segment's own type, so the disclosure reads as one more of the controls the page already has
- * rather than as a call to action. The same 12px, unshouted casing and compact padding
- * `SegmentedControl` sets, which is what the reader has been pressing everywhere else.
+ * rather than as a call to action — the same 12px, unshouted casing and compact padding
+ * `SegmentedControl` sets, taken from it so the two cannot drift.
  */
-const TOGGLE_SX = { fontSize: 12, textTransform: "none", paddingY: 0.5, paddingX: 1.25, flexShrink: 0 } as const;
+const TOGGLE_SX = { ...SEGMENT_TYPE_SX, flexShrink: 0 } as const;
 
 /** How tall a preview stands: enough for a shape, short enough that it is not the chart. */
 const SPARK_HEIGHT = 44;
