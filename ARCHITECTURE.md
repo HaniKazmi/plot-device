@@ -662,7 +662,7 @@ item singled out. A `StripVariant` says where it stands: an expanded card's stri
 readings and a switch between them, while the hero's is held to the first with no switch and is
 drawn only where its hero has room for it, a rule the hero states by shape so that a page narrowing
 never shows the strip, drops it and shows it again: beside a poster or a cover from `sm` up, the
-phone's 174px panel beside a 270px poster spending its height on the title; beside a banner from `lg` up, the panel being
+phone's 154px panel beside a 300px poster spending its height on the title; beside a banner from `lg` up, the panel being
 258px at `sm` and, between `md` and `lg`, a column the title wraps in, where a wrapped title over a
 strip outgrows the picture.
 
@@ -988,9 +988,11 @@ happens to end.
   out — `mediaLayout` fixed to `"stacked"` regardless of shape, since the arrangement rule would seat
   a poster's words beside a card 82px wide — and its corner chip drops unless the shape is landscape,
   where it would cover or overflow a narrow picture. `FooterComponent`'s `caption` prop replaces the
-  label stack: `stripCaption` (`common/statsData.ts`) joins the first label row's cells into the one
-  line a fixed-height card has room for, since the closing row — the item's own name — is already
-  the artwork's `alt` and a strip must not print it twice.
+  label stack: `stripCaption` (`common/statsData.ts`) takes the first label row's cells as the two
+  lines a fixed-height card has room for, a date over a figure with each whole (`captionLines`
+  joins a third cell onto the second), since the closing row — the item's own name — is already
+  the artwork's `alt` and a strip must not print it twice; a grouped list's `groupCaption` drops
+  the group's name the same way, the fronting cover or banner carrying it.
 
 `Finished` is built on `ExpandableCard` but keeps its own item grid, rendering the domain's
 `MediaComponent` in a bordered `Card` at the spans its density asks; `DrilldownDialog` fills the list
@@ -1102,8 +1104,8 @@ the hero.
 the artwork opens the same expanded dialog a thumbnail does, and the panel rides in as that card's
 `footerComponent`, inside the `ArtworkAccent` the image publishes, rather than sampling the image
 twice and painting from whichever answer arrives first. Only the artwork's height is fixed — 300px
-from `md`, 280 at `sm` and, beside a poster, 270 at `xs` — near the 380 a banner hero stands at
-there, so the four heroes read as one size — so the hero is one height whatever it shows while every
+from `md`, 280 at `sm` and, beside a poster, 300 at `xs` — the desktop's own height, near the 380
+a banner hero stands at there, so the four heroes read as one size — so the hero is one height whatever it shows while every
 poster and banner keeps its shape (a banner around 533px wide, a poster around 200), and past a
 560px ceiling `objectFit: contain` letterboxes a panorama onto the card's own ground.
 
@@ -1114,7 +1116,7 @@ width. A portrait picture given the page's whole width
 is the whole of the first screen — a poster stands 525px at 390 and a cover 585 — so the phone's
 hero would open on one picture and start its figures below the fold. Below `md` the words beside
 a poster are held to its height — a title one size down and clamped to three lines over the subtitle,
-and the figures as lines (`StatLines`) rather than tiles, one a line in the phone's 174px column
+and the figures as lines (`StatLines`) rather than tiles, one a line in the phone's 154px column
 and two from the tablet's, "3.6 hours" in the panel's ink with its label beside it in the muted
 tone — so the poster fills its column with no ground beneath it.
 

@@ -1490,10 +1490,9 @@ const STRIP_CAPTION_INSET = 5;
  * the insets below are what make the figure true, and the seam is a border and so part of the box.
  */
 /**
- * Two lines rather than one: a poster or cover at the strip's height is about 80px wide, and a
- * season with its date, or an episode count with its hours, is an ellipsis on one line there. A
- * banner's caption fits a line and stands centred in the two, since the strip fixes one height for
- * every card in it.
+ * Two lines, one a cell: a date on the first and the figure under it, each whole, where one phrase
+ * of both breaks wherever the card's width falls — after "8" on a phone's poster. A single cell
+ * stands centred in the two, since the strip fixes one height for every card in it.
  */
 const STRIP_CAPTION_LINES = 2;
 
@@ -1513,8 +1512,8 @@ export const FooterComponent = ({
    * the name, which the artwork carries and the image's `alt` keeps.
    */
   caption?: boolean;
-  /** The caption's words, where a caller states them; `stripCaption` over the labels otherwise. */
-  captionText?: string;
+  /** The caption's lines, where a caller states them; `stripCaption` over the labels otherwise. */
+  captionText?: string[];
 }) => {
   const palette = useArtworkPalette();
   const beside = useCardArrangement() === "beside";
@@ -1542,25 +1541,28 @@ export const FooterComponent = ({
           borderTop: palette.seam,
         }}
       >
-        <Typography
-          variant="caption"
-          sx={{
-            display: "-webkit-box",
-            WebkitLineClamp: STRIP_CAPTION_LINES,
-            WebkitBoxOrient: "vertical",
-            fontWeight: 600,
-            // Stated, so the height above is the height this actually takes rather than whatever
-            // the variant's ratio works out to.
-            lineHeight: `${STRIP_CAPTION_LINE}px`,
-            // One size down from the variant, so a date fits a cover's line; every strip card
-            // takes it, the strip being read across its captions.
-            fontSize: 11,
-            fontVariantNumeric: "tabular-nums",
-            overflow: "hidden",
-          }}
-        >
-          {captionText ?? stripCaption(labels)}
-        </Typography>
+        <Box sx={{ minWidth: 0, width: "100%" }}>
+          {(captionText ?? stripCaption(labels)).slice(0, STRIP_CAPTION_LINES).map((line) => (
+            <Typography
+              key={line}
+              variant="caption"
+              noWrap
+              sx={{
+                display: "block",
+                fontWeight: 600,
+                // Stated, so the height above is the height this actually takes rather than
+                // whatever the variant's ratio works out to.
+                lineHeight: `${STRIP_CAPTION_LINE}px`,
+                // One size down from the variant, so a date fits a cover's line; every strip card
+                // takes it, the strip being read across its captions.
+                fontSize: 11,
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              {line}
+            </Typography>
+          ))}
+        </Box>
       </CardContent>
     );
 

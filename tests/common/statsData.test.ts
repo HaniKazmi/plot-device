@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CURRENT_YEAR, type YearNumber } from "../../src/common/date";
 import {
+  captionLines,
   groupCaption,
   groupByCategory,
   groupTotals,
@@ -154,29 +155,29 @@ describe("earliestYear", () => {
 
 describe("stripCaption", () => {
   it("joins the first label row, which is where every builder puts its date", () => {
-    expect(stripCaption([["1 Sep 2026", "295 Hours"]])).toBe("1 Sep 2026 · 295 Hours");
+    expect(stripCaption([["1 Sep 2026", "295 Hours"]])).toEqual(["1 Sep 2026", "295 Hours"]);
   });
 
   it("takes the first row and not the last, so a mixed list captions a date and never a name", () => {
-    expect(stripCaption([["1 Sep 2026"], ["The Last of Us"]])).toBe("1 Sep 2026");
+    expect(stripCaption([["1 Sep 2026"], ["The Last of Us"]])).toEqual(["1 Sep 2026"]);
   });
 
   it("drops the cell a builder left empty rather than opening on a separator", () => {
-    expect(stripCaption([["", "295 Hours"]])).toBe("295 Hours");
+    expect(stripCaption([["", "295 Hours"]])).toEqual(["295 Hours"]);
   });
 
   it("answers the empty string for a card with no labels at all", () => {
-    expect(stripCaption([])).toBe("");
+    expect(stripCaption([])).toEqual([]);
   });
 });
 
 describe("groupCaption", () => {
   it("keeps a grouped strip's figure and drops the group's own name, which the artwork carries", () => {
-    expect(groupCaption([["Pokémon", "31 Games"]], "Pokémon")).toBe("31 Games");
-    expect(groupCaption([["Brandon Sanderson"], ["10 Books"]], "Brandon Sanderson")).toBe("10 Books");
+    expect(groupCaption([["Pokémon", "31 Games"]], "Pokémon")).toEqual(["31 Games"]);
+    expect(groupCaption([["Brandon Sanderson"], ["10 Books"]], "Brandon Sanderson")).toEqual(["10 Books"]);
   });
 
-  it("drops empty cells and keeps every other row", () => {
+  it("drops empty cells and keeps every other row, one a line", () => {
     expect(
       groupCaption(
         [
@@ -185,6 +186,10 @@ describe("groupCaption", () => {
         ],
         "Marvel",
       ),
-    ).toBe("12 Films · 40 Hours");
+    ).toEqual(["12 Films", "40 Hours"]);
+  });
+
+  it("joins a third cell onto the second line, the strip holding two", () => {
+    expect(captionLines(["1 Sep 2026", "5 eps", "1.4/wk"])).toEqual(["1 Sep 2026", "5 eps · 1.4/wk"]);
   });
 });

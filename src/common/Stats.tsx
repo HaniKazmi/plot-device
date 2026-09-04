@@ -405,7 +405,7 @@ export const StatsListGrid = <T,>(
     cardKey: (t: T) => string;
     labelComponent: (t: T) => string[][];
     /** A strip card's caption where the labels' first row is not it — a grouped list's figure. */
-    captionOf?: (t: T) => string;
+    captionOf?: (t: T) => string[];
     chipComponent?: (t: T) => CardMediaImageProps["chip"];
     shape?: ArtworkShape;
     /** A band along the top of each card, and its height — see `CardMediaImageProps.mediaBand`. */
@@ -578,7 +578,7 @@ export interface StatListBaseProps<T> {
   nameComponent: (t: T) => string;
   labelComponent: (t: T) => string[][];
   /** See `StatsListGrid`. */
-  captionOf?: (t: T) => string;
+  captionOf?: (t: T) => string[];
   MediaComponent: TypedCardMediaImage<T>;
   chipComponent?: (t: T) => CardMediaImageProps["chip"];
   shape?: ArtworkShape;
@@ -786,7 +786,7 @@ const StatsListCard = <T,>({
 }: {
   item: T;
   labels: string[][];
-  captionText?: string;
+  captionText?: string[];
   chip?: CardMediaImageProps["chip"];
   cell: CardCell;
   shape?: ArtworkShape;

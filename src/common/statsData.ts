@@ -154,7 +154,14 @@ export const earliestYear = <T>(items: readonly T[], yearOf: (item: T) => YearNu
  * Empty cells are dropped rather than joined through, since a builder writes `""` for a fact the
  * sheet is silent about and a caption opening on a separator reads as a missing word.
  */
-export const stripCaption = (labels: string[][]): string => (labels[0] ?? []).filter(Boolean).join(" · ");
+export const stripCaption = (labels: string[][]): string[] => captionLines((labels[0] ?? []).filter(Boolean));
+
+/**
+ * A strip caption's two lines: a date on one and the figure under it, each whole, rather than one
+ * phrase that breaks wherever the card's width falls. A third cell joins the second line.
+ */
+export const captionLines = (cells: string[]): string[] =>
+  cells.length > 2 ? [cells[0], cells.slice(1).join(" · ")] : cells;
 
 /**
  * A grouped strip's caption: the group's labels less the group's own name, which the fronting
@@ -162,8 +169,5 @@ export const stripCaption = (labels: string[][]): string => (labels[0] ?? []).fi
  * a cover's 80px a name beside its figure is an ellipsis before the figure, and the figure is what
  * the shelf is ordered by.
  */
-export const groupCaption = (labels: string[][], name: string): string =>
-  labels
-    .flat()
-    .filter((cell) => cell && cell !== name)
-    .join(" · ");
+export const groupCaption = (labels: string[][], name: string): string[] =>
+  captionLines(labels.flat().filter((cell) => cell && cell !== name));
