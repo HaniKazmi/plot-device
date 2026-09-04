@@ -331,7 +331,10 @@ const sheetBarSx = (palette: ReturnType<typeof artworkPalette>) => (theme: Theme
     color: palette.onGround,
     alignItems: "center",
     gap: 1,
-    minHeight: SHEET_BAR_HEIGHT,
+    // The notch padding sits inside this box, so the floor is the bar plus the inset: the room the
+    // picture is given subtracts both, and a floor of the bar alone would leave the two agreeing
+    // only where the inset is at least the difference between 48 and the bar's own content.
+    minHeight: `calc(${SHEET_BAR_HEIGHT}px + env(safe-area-inset-top))`,
     paddingInline: 1,
   },
 });
