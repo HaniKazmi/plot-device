@@ -1,17 +1,9 @@
 import { Hub, Layers } from "@mui/icons-material";
 import { Box, Stack, Typography } from "@mui/material";
+import type { MouseEventHandler } from "react";
 import { usePhone } from "../common/breakpoints";
-import {
-  CardPanel,
-  INLINE_SWATCH_SIZE,
-  Swatch,
-  type PanelStat,
-  type PanelSubtitlePart,
-  type TypedCardMediaImage,
-} from "../common/Card";
+import { CardPanel, type PanelStat, type PanelSubtitlePart, type TypedCardMediaImage } from "../common/Card";
 import { useArtworkPalette } from "../common/artworkPalette";
-import { LABEL_SX } from "../common/typography";
-import { format } from "../utils/mathUtils";
 import { CURRENT_PLAINDATE, formatDate, type YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
 import { Section, StatBand } from "../common/SectionRail";
@@ -23,7 +15,6 @@ import { bookHeroStats } from "../books/statsData";
 import MovieCardMediaImage from "../movie/CardMediaImage";
 import { movieSubtitle } from "../movie/cardData";
 import { movieHeroStats } from "../movie/statsData";
-import { cinemaLabel } from "../movie/types";
 import ShowCardMediaImage from "../show/CardMediaImage";
 import { showSubtitle } from "../show/cardData";
 import { showHeroStats } from "../show/statsData";
@@ -45,7 +36,7 @@ import {
   NOW_GAP,
   NOW_GEOMETRY,
   NOW_PANEL_INSET,
-  NOW_ROW_HEIGHT,
+  NOW_SPINE_WIDTH,
   pairNowGeometry,
   type NowGeometry,
 } from "./nowGeometry";
@@ -156,9 +147,10 @@ const Stats = ({
  * over a show and "latest watch" over a film label the one thing a date on a medium's own colour
  * cannot be mistaken for. The home heroes keep theirs: nothing beside them says it.
  *
- * The phone's rows are the exception, and for the same reason read the other way: a row has no
- * title, so its kicker carries what the title carried — the verb, the season and episode in hand,
- * the venue a film was seen at — since the artwork can name the work and cannot name any of those.
+ * On a phone the band is four pictures and four dates and nothing else: the artwork names the
+ * work, the ground names the medium, and the date is the one fact of the four a picture cannot
+ * carry. What a card says beyond that — the platform, the genre, the figures — is one tap away on
+ * the expanded card, where a phone's column has no room for it beside a picture worth looking at.
  *
  * Each card is the domain's own: its artwork and the figures its own hero carries, so a game reads
  * in hours and days and a season in episodes and pace, painted on the ground its home tab's app
@@ -168,14 +160,14 @@ const Stats = ({
 const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
   const scheme = useScheme();
   /**
-   * Whether the band is drawn as rows rather than as cards.
+   * Whether the band is the phone's grid of pictures rather than a row of cards.
    *
    * A media query rather than the `sx` keys the rest of this file states its widths in, because
    * the two are different trees and not one tree at two sizes: drawn both ways with one hidden,
    * every picture is fetched twice and every artwork sampled twice, for a card the reader is
-   * never shown.
+   * never shown. It also decides the DOM order, which no `sx` can: the grid pairs by shape.
    */
-  const row = usePhone();
+  const phone = usePhone();
 
   // Every medium in flight at once is the one case the row cannot hold at its usual size.
   const dense = media.every((medium) => now[medium] !== undefined);
@@ -193,15 +185,95 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
   // the band is a column of full-size cards rather than a row of two whose words cannot be read.
   const pair = rowWidth === undefined ? undefined : (pairNowGeometry(rowWidth) ?? NOW_GEOMETRY);
 
+  // A lone banner takes the phone's whole row, rather than half of it beside a gap.
+  const banners = (now.game ? 1 : 0) + (now.movie ? 1 : 0);
+  const game = now.game && (
+    <NowItem
+      item={now.game}
+      medium="game"
+      phone={phone}
+      alone={phone && banners === 1}
+      geometry={geometry}
+      pair={pair}
+      MediaComponent={VgCardMediaImage}
+      tab={VideoGamesTab}
+      kicker={`Since ${formatDate(now.game.startDate)}`}
+      title={now.game.name}
+      // The genre alone, like the two cards beside it: this page draws no gameplay
+      // vocabulary, so a game's Now card names the one thing all three media record.
+      subtitle={[{ text: now.game.platform }, { text: now.game.genre, swatch: genreToColour(now.game.genre, scheme) }]}
+      // The franchise tile is dropped by passing the game alone. The Franchises section is
+      // where this page states what a franchise holds, and it is drawn from the filtered
+      // union — while the hero is elected from the library and the filters do not narrow it,
+      // so a tile here would quote a number that moves under a control the card ignores.
+      stats={heroStats(now.game, [now.game], CURRENT_PLAINDATE)}
+    />
+  );
+  const show = now.show && (
+    <NowItem
+      item={now.show}
+      medium="show"
+      phone={phone}
+      geometry={geometry}
+      pair={pair}
+      MediaComponent={ShowCardMediaImage}
+      tab={ShowsTab}
+      kicker={formatDate(now.show.show.lastWatchedDate!)}
+      // The episode in hand, which the row has no title to carry: the poster names the show
+      // and cannot say which season, let alone how far into it.
+      title={`${now.show.show.name} S${now.show.s}`}
+      subtitle={showSubtitle(now.show.show, scheme)}
+      // The rate tile stays on the Shows tab's own hero; beside a poster this card's text
+      // column holds two figures comfortably and three crowd it.
+      stats={showHeroStats(now.show, 1, CURRENT_PLAINDATE, { pace: false })}
+    />
+  );
+  const movie = now.movie && (
+    <NowItem
+      item={now.movie}
+      medium="movie"
+      phone={phone}
+      alone={phone && banners === 1}
+      geometry={geometry}
+      pair={pair}
+      MediaComponent={MovieCardMediaImage}
+      tab={MoviesTab}
+      kicker={formatDate(now.movie.startDate)}
+      title={now.movie.name}
+      subtitle={movieSubtitle(now.movie, scheme)}
+      stats={movieHeroStats(now.movie, 1)}
+    />
+  );
+  const book = now.book && (
+    <NowItem
+      item={now.book}
+      medium="book"
+      phone={phone}
+      geometry={geometry}
+      pair={pair}
+      MediaComponent={BookCardMediaImage}
+      tab={BooksTab}
+      kicker={`Since ${formatDate(now.book.startDate)}`}
+      title={now.book.name}
+      subtitle={bookSubtitle(now.book, scheme)}
+      // Two tiles, as the show card beside it carries: the column beside a cover holds two and
+      // wraps a third under them, and the rest stay on the Books tab's own hero.
+      stats={bookHeroStats(now.book, CURRENT_PLAINDATE, "card")}
+    />
+  );
+
   return (
     // Measured on a wrapper the cap below does not narrow: the row itself is held to two cards'
     // width exactly when four do not fit, which is the answer being measured for.
     <Box ref={rowRef}>
       <Box
         sx={{
-          display: "flex",
-          // Rows on a phone, where each medium is a line of a list rather than a card; a wrapping
-          // row of two from `sm`, where the page is wide enough for two cards and not for four.
+          // Two cells to a row on a phone, the banners on the first row and the portraits on the
+          // second, so a row shares a shape and a height; a wrapping row of two from `sm`, where
+          // the page is wide enough for two cards and not for four.
+          display: { xs: "grid", sm: "flex" },
+          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+          alignItems: { xs: "start", sm: "stretch" },
           flexDirection: { xs: "column", sm: "row" },
           // A row of one height with the widths following, which is how every strip on this page
           // holds mixed artwork: an equal-thirds grid gives each card a width it did not ask for, and
@@ -209,99 +281,26 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
           // the widths differ is the same trade the other way round, and it is the one that leaves
           // every picture whole — a poster card comes out near-square and a banner card wider.
           flexWrap: { sm: "wrap" },
-          alignItems: "stretch",
           gap: 1,
           // Four cards that do not fit one row are two rows of two, never three and one: the row
           // is held to the width two cards fill, so the third wraps.
           maxWidth: { md: dense && !oneRow ? 2 * NOW_CARD_WIDTH + NOW_GAP : undefined },
         }}
       >
-        {now.game && (
-          <NowItem
-            item={now.game}
-            medium="game"
-            row={row}
-            geometry={geometry}
-            pair={pair}
-            MediaComponent={VgCardMediaImage}
-            tab={VideoGamesTab}
-            kicker={`Since ${formatDate(now.game.startDate)}`}
-            rowKicker={`Playing · since ${formatDate(now.game.startDate)}`}
-            title={now.game.name}
-            // The genre alone, like the two cards beside it: this page draws no gameplay
-            // vocabulary, so a game's Now card names the one thing all three media record.
-            subtitle={[
-              { text: now.game.platform },
-              { text: now.game.genre, swatch: genreToColour(now.game.genre, scheme) },
-            ]}
-            // The franchise tile is dropped by passing the game alone. The Franchises section is
-            // where this page states what a franchise holds, and it is drawn from the filtered
-            // union — while the hero is elected from the library and the filters do not narrow it,
-            // so a tile here would quote a number that moves under a control the card ignores.
-            stats={heroStats(now.game, [now.game], CURRENT_PLAINDATE)}
-          />
-        )}
-        {now.show && (
-          <NowItem
-            item={now.show}
-            medium="show"
-            row={row}
-            geometry={geometry}
-            pair={pair}
-            MediaComponent={ShowCardMediaImage}
-            tab={ShowsTab}
-            kicker={formatDate(now.show.show.lastWatchedDate!)}
-            // The episode in hand, which the row has no title to carry: the poster names the show
-            // and cannot say which season, let alone how far into it.
-            rowKicker={`Watching · S${now.show.s}E${now.show.e} · ${formatDate(now.show.show.lastWatchedDate!)}`}
-            title={`${now.show.show.name} S${now.show.s}`}
-            subtitle={showSubtitle(now.show.show, scheme)}
-            // The rate tile stays on the Shows tab's own hero; beside a poster this card's text
-            // column holds two figures comfortably and three crowd it.
-            stats={showHeroStats(now.show, 1, CURRENT_PLAINDATE, { pace: false })}
-          />
-        )}
-        {now.movie && (
-          <NowItem
-            item={now.movie}
-            medium="movie"
-            row={row}
-            geometry={geometry}
-            pair={pair}
-            MediaComponent={MovieCardMediaImage}
-            tab={MoviesTab}
-            kicker={formatDate(now.movie.startDate)}
-            rowKicker={`Latest watch · ${formatDate(now.movie.startDate)} · ${cinemaLabel(now.movie)}`}
-            title={now.movie.name}
-            subtitle={movieSubtitle(now.movie, scheme)}
-            stats={movieHeroStats(now.movie, 1)}
-          />
-        )}
-        {now.book && (
-          <NowItem
-            item={now.book}
-            medium="book"
-            row={row}
-            geometry={geometry}
-            pair={pair}
-            MediaComponent={BookCardMediaImage}
-            tab={BooksTab}
-            kicker={`Since ${formatDate(now.book.startDate)}`}
-            rowKicker={`Reading · since ${formatDate(now.book.startDate)}`}
-            title={now.book.name}
-            subtitle={bookSubtitle(now.book, scheme)}
-            // Two tiles, as the show card beside it carries: the column beside a cover holds two and
-            // wraps a third under them, and the rest stay on the Books tab's own hero.
-            stats={bookHeroStats(now.book, CURRENT_PLAINDATE, "card")}
-          />
-        )}
+        {game}
+        {/* The phone pairs the two banners on the first row and the poster and the cover on the
+            second, so each row shares a shape and a height; elsewhere the four stand in the
+            tabs' own order. */}
+        {phone ? movie : show}
+        {phone ? show : movie}
+        {book}
       </Box>
     </Box>
   );
 };
 
 /**
- * One medium's current item, as a card or as a row.
+ * One medium's current item, as a card or as one cell of the phone's grid.
  *
  * A Now card is painted the colour its home tab's app bar wears in the same scheme (`barColour`,
  * `tabs.ts`). Four cards from four tabs on one page are told apart by what the tabs are already
@@ -320,14 +319,18 @@ const NowItem = <T,>(props: {
   MediaComponent: TypedCardMediaImage<T>;
   /** The home tab, whose app bar's colour the card is painted in. */
   tab: Tab;
+  /** When: the one line the phone's cell keeps, and the first line of the card's panel. */
   kicker: string;
-  /** The kicker a row carries, which says what a row has no title to say. */
-  rowKicker: string;
   title: string;
   subtitle: PanelSubtitlePart[];
   stats: PanelStat[];
-  /** Whether the band is drawn as rows, which is the phone's arrangement. */
-  row: boolean;
+  /** Whether the band is the phone's grid, where a cell is a picture and a date. */
+  phone: boolean;
+  /**
+   * Whether a banner is the only one in flight on the phone, where it takes the grid's whole
+   * row: a banner at half the row is 98px tall, and the half beside it would hold nothing.
+   */
+  alone?: boolean;
   /** The band's one size, from `md` up. */
   geometry: NowGeometry;
   /** The same, shared two to a row, until the row has been measured. */
@@ -341,45 +344,50 @@ const NowItem = <T,>(props: {
   const pair = props.pair;
   const ground = barColour(props.tab, scheme);
 
-  if (props.row) {
+  if (props.phone) {
     return (
-      // The name the row does not write. `role` because a bare box carries no label to a screen
-      // reader without one; the picture inside states the same name as its alt text.
+      // The name the cell does not write. `role` because a bare box carries no label to a screen
+      // reader without one; the picture inside states the same name as its alt text. The whole
+      // cell opens the card, so a finger on the date does what a finger on the picture does.
       <Box
         role="group"
         aria-label={props.title}
+        onClick={openFromCell}
+        sx={{ minWidth: 0, gridColumn: props.alone ? "1 / -1" : undefined }}
       >
         <props.MediaComponent
           item={props.item}
           extractColour
           chromeColour={ground}
+          // The cell has sized its own picture, so the card is one flex container running the
+          // way the shape says, and the artwork's own width: the shared aside column hands the
+          // whole card to the picture below `md` for the hero, which has no spine beside it.
           landscape
-          mediaLayout="aside"
+          mediaLayout={beside ? "aside" : undefined}
           cardSx={{
-            flexDirection: "row",
-            // Stated, so a row whose words run long clips them rather than growing past the four
-            // rows the band is here to fit on one screen.
-            height: NOW_ROW_HEIGHT,
-            // The artwork column is its picture's width. The shared aside column hands it the
-            // whole card below `md`, which is the hero's arrangement and not a row's.
-            "& > .MuiCardActionArea-root": { width: "auto" },
+            flexDirection: beside ? "row" : "column",
+            width: "100%",
+            // The picture takes what the spine leaves: its column gives way and the spine
+            // does not, so a cover a few percent off 2:3 changes the cell's height and never
+            // the spine's width.
+            ...(beside && { "& > .MuiCardActionArea-root": { flex: "1 1 auto", minWidth: 0, width: "auto" } }),
           }}
           sx={{
-            height: NOW_ROW_HEIGHT,
-            width: "auto",
-            // One height and each shape's own width from it — 142, 54 and 53 — reserved before the
-            // file lands so the words beside it do not start in the picture's place. A poster and
-            // a banner are authored to their ratios exactly, so holding them to it crops nothing;
-            // a cover holds its own, no two of them sharing a ratio to be held to.
+            // Every picture is as wide as its column and as tall as its shape makes it at that
+            // width — a banner across the cell at 16:9, a poster beside the spine — so a wider
+            // phone gets a taller picture rather than ground around one. A poster and a banner
+            // are authored to their ratios exactly, so holding them to it crops nothing; a cover
+            // holds its own, no two of them sharing a ratio to be held to.
+            width: "100%",
+            height: "auto",
             aspectRatio: shapeIsExact(shape) ? shapeToRatio(shape) : shapeToAspect(shape),
             objectFit: "contain",
             display: "block",
           }}
           footerComponent={
-            <NowRowPanel
-              kicker={props.rowKicker}
-              subtitle={props.subtitle}
-              stats={props.stats}
+            <NowDate
+              date={props.kicker}
+              spine={beside}
             />
           }
         />
@@ -509,104 +517,58 @@ const NowItem = <T,>(props: {
 };
 
 /**
- * The words of a Now row: what is happening, to what, and how far in.
+ * Forwards a tap anywhere in a phone cell to its picture, which is what opens the card.
  *
- * A panel of its own rather than `CardPanel` at another size, because the row's shape is the one
- * thing the panel does not hold — there is no title. The artwork carries the name, and dropping it
- * is what leaves the 80px row a line for the verb and the date, two for the maker and the genre,
- * and the figures standing clear of all four at the end.
- *
- * Those figures stack rather than sit side by side, so two cost the row no more width than one and
- * the words keep everything the picture did not take. The whole panel clips: it is inside a card
- * whose height the band stated, and a row that grew to hold a long author is a row that no longer
- * shares the band's line.
+ * At module scope, so the cell's handler is one function rather than one per render. A click
+ * that came from the picture is left alone, since it is the one being forwarded to; so is one
+ * from the expanded dialog, which portals out of the cell's DOM but bubbles to it through React —
+ * forwarded, its close button would reopen the card it had just closed.
  */
-const NowRowPanel = ({
-  kicker,
-  subtitle,
-  stats,
-}: {
-  kicker: string;
-  subtitle: PanelSubtitlePart[];
-  stats: PanelStat[];
-}) => {
+const openFromCell: MouseEventHandler<HTMLElement> = (event) => {
+  const target = event.target;
+  if (!(target instanceof Element) || !event.currentTarget.contains(target)) return;
+  if (target.closest(".MuiCardActionArea-root")) return;
+  event.currentTarget.querySelector<HTMLElement>(".MuiCardActionArea-root > :first-child")?.click();
+};
+
+/**
+ * The date of a phone cell: a line under a banner, a spine beside a poster.
+ *
+ * The spine sets its date down the column as a book's spine does, because the column is 36px
+ * (`NOW_SPINE_WIDTH`) and a date across it is four lines of two characters. It is a column at all,
+ * rather than a line beneath the poster, because a line beneath costs the picture its height on a
+ * cell whose width already fixes it, where the banner's line beneath costs a banner nothing it had.
+ */
+const NowDate = ({ date, spine }: { date: string; spine: boolean }) => {
   const palette = useArtworkPalette();
-  // A caller lists its fields without testing which the sheet filled in.
-  const said = subtitle.filter((part) => part.text);
 
   return (
     <Box
       sx={{
+        flex: spine ? "1 1 auto" : "0 0 auto",
+        minWidth: spine ? NOW_SPINE_WIDTH : 0,
         display: "flex",
-        flex: "1 1 0",
-        minWidth: 0,
         alignItems: "center",
-        gap: 1,
-        paddingX: 1,
-        overflow: "hidden",
+        justifyContent: "center",
+        padding: 1,
         backgroundColor: palette.ground,
         color: palette.onGround,
         // Where the artwork meets the words, as every other card in the app draws that edge.
-        borderLeft: palette.seam,
+        ...(spine ? { borderLeft: palette.seam } : { borderTop: palette.seam }),
       }}
     >
-      <Box sx={{ flex: "1 1 auto", minWidth: 0 }}>
-        {/* Set as a sentence and not as a label, which is what the same line is on a card. It has
-            to carry the verb, the episode in hand and the venue where the card carries a title,
-            and at the label treatment's tracking and caps "Latest watch · 27 Aug 2026 · Home"
-            takes three of the row's five lines. */}
-        <Typography
-          variant="caption"
-          sx={{ display: "block", color: palette.muted, lineHeight: 1.35 }}
-        >
-          {kicker}
-        </Typography>
-        {/* One line each at one size and one weight: the maker and the genre are two facts of the
-            same rank, and a row that set one above the other would be claiming an order the band
-            does not have. */}
-        {said.map((part, index) => (
-          <Box
-            // The position, not the text: the parts are a fixed sequence and two of them can hold
-            // the same word.
-            key={index}
-            sx={{ display: "flex", alignItems: "center", columnGap: 0.5, minWidth: 0 }}
-          >
-            {part.swatch && (
-              <Swatch
-                colour={part.swatch}
-                size={INLINE_SWATCH_SIZE}
-              />
-            )}
-            <Typography
-              variant="caption"
-              sx={{ fontWeight: 500, lineHeight: 1.35, minWidth: 0, overflowWrap: "anywhere" }}
-            >
-              {part.text}
-            </Typography>
-          </Box>
-        ))}
-      </Box>
-      <Box sx={{ flex: "0 0 auto", display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-        {stats.map((stat) => (
-          <Box
-            key={stat.label}
-            sx={{ textAlign: "right" }}
-          >
-            <Typography
-              variant="subtitle2"
-              sx={{ fontWeight: 600, lineHeight: 1.3, fontVariantNumeric: "tabular-nums" }}
-            >
-              {typeof stat.value === "number" ? format(stat.value) : stat.value}
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{ display: "block", color: palette.muted, lineHeight: 1.3, ...LABEL_SX }}
-            >
-              {stat.label}
-            </Typography>
-          </Box>
-        ))}
-      </Box>
+      <Typography
+        variant="subtitle2"
+        sx={{
+          fontWeight: 600,
+          lineHeight: 1,
+          whiteSpace: "nowrap",
+          fontVariantNumeric: "tabular-nums",
+          ...(spine && { writingMode: "vertical-rl" }),
+        }}
+      >
+        {date}
+      </Typography>
     </Box>
   );
 };

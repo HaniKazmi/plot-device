@@ -439,14 +439,22 @@ kicker, a title, a subtitle and a figure into 136, spent on every card because t
 across its figures. `inlineKicker` is the two banner cards' alone: at 402px the date and platform
 take the two ends of one line, where the 176px column wraps them to four.
 
-On a phone the band is four rows rather than four cards (`NOW_ROW_HEIGHT`, 80): a card that fills
-the width is as tall as its own artwork, and four full-bleed pictures would put the last figure two
-and a half screens down. A row states its height and each shape takes its own width from it — a
-banner 142px, a poster 54, a cover 53, none cropped — and what pays for it is the title: the artwork
-names the work, the row keeps that name as the picture's alt text and its own label, and the kicker
-carries what the title carried, the verb and the episode or venue in hand. Between `sm` and `md` the
-cards return two to a row, the share solved from the measured width as the four-way one is
-(`pairNowGeometry`), since the stated 434px card is wider than half a tablet's page.
+On a phone the band is a grid of two by two rather than four cards, and each cell is a picture and a
+date and nothing else: a card that fills the width is as tall as its own artwork, and four full-bleed
+pictures would put the last of them two and a half screens down, where four rows short enough to
+share a screen leave a poster 54px wide. The rows pair by shape — the two banners first, the poster
+and the cover under them — so a row shares a height, which is why `Now` reads `usePhone` as a value:
+the pairing is a DOM order, which no `sx` can state. A banner spans its cell at 16:9 with the date on
+a line beneath; a poster or a cover stands beside a 36px spine (`NOW_SPINE_WIDTH`, `nowGeometry.ts`)
+with the date set down it as a book's spine is, and takes the width the spine leaves, so its height
+follows the cell's and a wider phone gets a taller picture rather than ground beside one — 204px at
+390, 234 at 430. A column that narrow holds a date and not a word, and the date is the one fact of
+the four a picture cannot carry; the platform, the genre and the figures are one tap away on the
+expanded card, which the whole cell opens (`openFromCell`), a finger on the spine doing what a finger
+on the picture does. A banner alone in flight takes the whole row, half of it beside a gap being a
+98px picture. Between `sm` and `md` the cards return two to a row, the share solved from the measured
+width as the four-way one is (`pairNowGeometry`), since the stated 434px card is wider than half a
+tablet's page.
 
 **Mixed rows are one card size, the Now band's rule at strip scale.** A list lays its cards out one
 of two ways (`CardLayout` in `common/Stats.tsx`): a grid at stated column spans, or a sized row.
@@ -1415,7 +1423,7 @@ key in ObjectExpression`; pulled out to a plain function taking the varying piec
   `sheetBarSx`, `dialogCardSx`, among others — the literal itself sits at module scope and the
   component stays compiled.
 
-The baseline is **241 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **242 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.

@@ -77,7 +77,7 @@ babel({
 }),
 ```
 
-Then `npx vite build 2>&1 | grep -E '^OK|^BAIL'`. Baseline is **241 compiled, 0 bailed** — any `BAIL` line is yours. The commonest cause is a destructured prop default, surfacing as `BuildHIR::lowerAssignment … got: AssignmentPattern`; a computed object key (`{ [theme.breakpoints.down("sm")]: {...} }`) surfaces as `BuildHIR::lowerExpression … CallExpression key in ObjectExpression` — pull the literal out to a plain function taking the varying pieces as arguments; a `MethodCall` bailout is a different failure, cleared by moving the computation out of the component. **Revert the logger afterwards.** Grepping the bundle for `useMemoCache` proves nothing instead — minification eats the name.
+Then `npx vite build 2>&1 | grep -E '^OK|^BAIL'`. Baseline is **242 compiled, 0 bailed** — any `BAIL` line is yours. The commonest cause is a destructured prop default, surfacing as `BuildHIR::lowerAssignment … got: AssignmentPattern`; a computed object key (`{ [theme.breakpoints.down("sm")]: {...} }`) surfaces as `BuildHIR::lowerExpression … CallExpression key in ObjectExpression` — pull the literal out to a plain function taking the varying pieces as arguments; a `MethodCall` bailout is a different failure, cleared by moving the computation out of the component. **Revert the logger afterwards.** Grepping the bundle for `useMemoCache` proves nothing instead — minification eats the name.
 
 ## Traps
 

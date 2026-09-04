@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { denseNowGeometry, NOW_GEOMETRY, NOW_ROW_HEIGHT, pairNowGeometry } from "../../src/omnibus/nowGeometry";
+import { denseNowGeometry, NOW_GEOMETRY, NOW_SPINE_WIDTH, pairNowGeometry } from "../../src/omnibus/nowGeometry";
 import { shapeRatioValues } from "../../src/common/cardArrangement";
 
 describe("the Now band's geometry", () => {
@@ -59,10 +59,12 @@ describe("the Now band's geometry", () => {
     expect(column(pairNowGeometry(648)!)).toBe(133);
   });
 
-  it("holds every shape at the phone row's height, so no picture is cropped to fit", () => {
-    // The widths a row of one height gives each shape: a banner, a poster and a cover, none of
-    // them a size the row imposed.
-    const widths = Object.values(shapeRatioValues).map((ratio) => Math.round(NOW_ROW_HEIGHT * ratio));
-    expect(widths).toEqual([142, 54, 53]);
+  it("leaves a poster beside the phone's spine at the cell's own width, and so taller on a wider phone", () => {
+    // A 390px phone's row is 358, its cell 175; a 430px phone's 398 and 195. The poster takes what
+    // the spine leaves and stands at its ratio from that, never a stated height.
+    const posterHeight = (rowWidth: number) =>
+      Math.round((Math.floor((rowWidth - 8) / 2) - NOW_SPINE_WIDTH) / shapeRatioValues.portrait);
+    expect(posterHeight(358)).toBe(204);
+    expect(posterHeight(398)).toBe(234);
   });
 });

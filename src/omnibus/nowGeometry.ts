@@ -5,19 +5,18 @@ export const NOW_HEIGHT = 380;
 const NOW_TEXT_WIDTH = 176;
 
 /**
- * The same band on a phone, where each medium is a row rather than a card.
+ * The column a portrait cell keeps beside its picture on a phone, the date set down it as a
+ * book's spine is.
  *
- * A card that fills the width is a card as tall as its own artwork: at 390px a full-bleed poster
- * stands 525px, and four of them put the band's last figure two and a half screens below the
- * first — a page that opens on what is in flight instead opens on one picture. A row states its
- * height and every shape takes its own width from it, uncropped: a banner 142px, a poster 54 and a
- * cover 53, the difference between them a second cue to the medium after the colour.
- *
- * 80 is what two figures stacked at the row's end come to, and four of those rows is still one
- * screen. What pays for it is the title, which the row does not write: the artwork carries the
- * name, and the row keeps it as the picture's alt text and its own label.
+ * The phone's band is two cells to a row, each half the row less the gap. A banner spans its cell
+ * at 16:9 with the date on a line beneath; a poster or a cover stands beside this column at the
+ * width the cell leaves it, so the picture's height follows the cell's width and a wider phone
+ * gets a taller poster rather than ground beside one. A card that filled the row instead would be
+ * as tall as its own artwork — a full-bleed poster at 390px stands 525 — and a cell that held the
+ * words beside a poster would leave them under 60px, no width for a word; a date is what stands
+ * in a column that narrow, and the artwork carries the name.
  */
-export const NOW_ROW_HEIGHT = 80;
+export const NOW_SPINE_WIDTH = 36;
 
 /**
  * The band's geometry: one width and one height for every card in the row.
