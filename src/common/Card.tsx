@@ -33,7 +33,7 @@ import { cachedColour, extractColourFrom } from "../utils/colourUtils";
 import { ArtworkAccent, artworkPalette, SEAM_WIDTH, useArtworkPalette } from "./artworkPalette";
 import { HoverCardTooltip } from "./HoverCardTooltip";
 import { SheetGrabber } from "./SheetGrabber";
-import { stickySheetHeader } from "./fullscreenSheet";
+import { pinnedSheetTop } from "./fullscreenSheet";
 import { TOUCH_TARGET_SX, touchTargetSx } from "./touchTarget";
 import {
   CardArrangementProvider,
@@ -301,6 +301,11 @@ const ArtworkStandIn = ({
  * The bar an expanded card wears where it fills the screen, and the room it takes from the picture
  * below it: the two together are the first screen, so the reader meets the artwork with a way out
  * of it already on show.
+ *
+ * A height rather than the floor the paper-ground headers stand on (`SHEET_HEADER_BOTTOM`), and a
+ * taller one: this bar seats a grabber, a title and a ✕ on one line with no `CardHeader` padding
+ * to grow it, and `--sheet-room-height` below subtracts exactly this figure, so what it states has
+ * to be what the bar takes rather than the least it may take.
  */
 const SHEET_BAR_HEIGHT = 48;
 
@@ -316,14 +321,14 @@ const sheetBarSx = (palette: ReturnType<typeof artworkPalette>) => (theme: Theme
   display: "none",
   [theme.breakpoints.down("sm")]: {
     display: "flex",
-    // What pins any sheet's header: sticky at the top, above the body, with the notch paid for on
-    // top of the bar's own height — which is what the picture below is sized against.
-    ...stickySheetHeader(theme),
+    // What pins any sheet's bar: sticky at the top, above the body, with the notch paid for on top
+    // of the bar's own height — which is what the picture below is sized against.
+    ...pinnedSheetTop(theme),
     // The bar is the top of the card rather than chrome laid over it, so it takes the artwork's
-    // own ground and ink, and the picture meets it with no rule between them.
+    // own ground and ink, and the picture meets it with no rule between them — which is why it
+    // pins itself rather than wearing `stickySheetHeader`, whose ground is the paper's.
     backgroundColor: palette.ground,
     color: palette.onGround,
-    borderBottom: "none",
     alignItems: "center",
     gap: 1,
     minHeight: SHEET_BAR_HEIGHT,
