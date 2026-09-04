@@ -68,6 +68,29 @@ export const ChartPair = ({ left, right }: { left: ReactNode; right: ReactNode }
 );
 
 /**
+ * A page's charts and its library in the order it renders them: the library first on a phone,
+ * where the charts are not what the reader came for.
+ *
+ * **In the DOM, never in CSS.** `order` on a flex container moves the boxes and leaves the
+ * document alone, and the rail lights the first of *its* list still in the band — a page painted
+ * in one order and listed in another lights the wrong chip from the first scroll. The list side of
+ * the same fact is `chartsLastOrder` (`common/sections.ts`), which the tab's `sections.ts` calls
+ * with the flag passed here.
+ *
+ * A fragment, so the two sections stay their caller's own flex children and keep its spacing; each
+ * carries the `key` its `Section` already states.
+ */
+export const ChartsAndLibrary = ({
+  charts,
+  library,
+  chartsLast,
+}: {
+  charts: ReactNode;
+  library: ReactNode;
+  chartsLast: boolean;
+}) => <>{chartsLast ? [library, charts] : [charts, library]}</>;
+
+/**
  * The page's own table of contents, pinned under the app bar.
  *
  * Section chips scroll rather than link: the app is served under a `HashRouter`, so an

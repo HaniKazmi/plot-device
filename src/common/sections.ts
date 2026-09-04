@@ -49,10 +49,22 @@ export const tabSections = <P extends string, K extends string>(
  * library. A key naming nothing in the list, or asked to follow itself, leaves the order as it is,
  * so a page whose section is conditional cannot be reordered into a list it is not in.
  */
-export const movedAfter = <K extends string>(keys: readonly K[], key: K, after: K): K[] => {
-  if (key === after || !keys.includes(key) || !keys.includes(after)) return [...keys];
-
+export const movedAfter = <K extends string>(keys: readonly K[], key: string, after: string): K[] => {
+  const moved = keys.find((each) => each === key);
   const rest = keys.filter((each) => each !== key);
-  const at = rest.indexOf(after);
-  return [...rest.slice(0, at + 1), key, ...rest.slice(at + 1)];
+  const at = rest.findIndex((each) => each === after);
+  if (key === after || moved === undefined || at < 0) return [...keys];
+
+  return [...rest.slice(0, at + 1), moved, ...rest.slice(at + 1)];
 };
+
+/**
+ * The phone's reading order for a tracked tab: its charts after its library.
+ *
+ * The four tabs name those two sections the same way and reorder them on the same test, so the
+ * pair of keys is stated here rather than four times over — and the page renders its two nodes
+ * through `ChartsAndLibrary` (`common/SectionRail.tsx`), which is the same fact about the DOM. A
+ * page holding neither key is left as it is, so this is safe to apply to any tab's list.
+ */
+export const chartsLastOrder = <K extends string>(keys: readonly K[], chartsLast: boolean): K[] =>
+  chartsLast ? movedAfter(keys, "charts", "library") : [...keys];
