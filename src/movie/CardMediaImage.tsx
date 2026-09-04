@@ -80,8 +80,11 @@ export const MovieFranchiseStrip = ({ movie, variant }: { movie: Movie; variant?
  * The card a hovered mark shows: the artwork, what the film is, when it was seen, and its figures.
  *
  * A component rather than a shape each chart assembles, because the Omnibus shows the same card for
- * a film and a second assembly of it is a second thing to keep in step. The subtitle is the pair the
- * tab's hero says, and the score is dropped where the film was never scored rather than reading zero.
+ * a film and a second assembly of it is a second thing to keep in step. A film's artwork is a 16:9
+ * banner, so the card is the games card's arrangement — the panel under the picture — and not the
+ * poster's, which seats the words beside it in a column a banner has no width to spare for. The
+ * subtitle is the pair the tab's hero says, and the score is dropped where the film was never
+ * scored rather than reading zero.
  */
 export const MovieHoverCard = ({ item }: { item: Movie }) => {
   const scheme = useScheme();
@@ -89,12 +92,10 @@ export const MovieHoverCard = ({ item }: { item: Movie }) => {
   return (
     <MovieCardMediaImage
       item={item}
-      landscape
       extractColour
       sx={hoverCardArtworkSx("landscape")}
       footerComponent={
         <CardPanel
-          layout="beside"
           title={item.name}
           subtitle={movieSubtitle(item, scheme)}
           dateRange={formatDate(item.startDate)}
