@@ -17,6 +17,13 @@ Highcharts.setOptions({
   accessibility: {
     enabled: false,
   },
+  tooltip: {
+    // Left on, a finger dragged across a chart moves the tooltip from point to point and the
+    // page does not scroll at all — an 80vh chart then holds the reader on it until they find a
+    // gap to start the drag in. Off, a tap still shows the point, and column tap-to-isolate and
+    // the sunburst's tap-to-drill are untouched.
+    followTouchMove: false,
+  },
 });
 
 export { Chart, Series, XAxis, YAxis, PlotOptions, Tooltip, Legend, SunburstSeries };
