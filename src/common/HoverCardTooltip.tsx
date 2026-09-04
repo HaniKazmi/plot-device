@@ -44,6 +44,15 @@ interface HoverCardProps {
   colour: string;
   title: ReactNode;
   placement?: TooltipProps["placement"];
+  /**
+   * Whether the reader is pointing with a finger, where a chart has already asked.
+   *
+   * The answer is one media query for a whole chart, and a chart is hundreds of marks — the full
+   * timeline mounts two of these per bar. Left off, each one subscribes for itself, so a caller
+   * drawing many hoists `useCoarsePointer` once and passes it down; a caller mounting one card
+   * omits it and is served by the hook.
+   */
+  coarse?: boolean;
   children: ReactElement<{ onClick?: MouseEventHandler<HTMLElement> }>;
 }
 
@@ -58,6 +67,16 @@ interface HoverCardProps {
  * drawn on.
  */
 export const HoverCardTooltip = (props: HoverCardProps) =>
+  props.coarse === undefined ? (
+    <DetectedHoverCard {...props} />
+  ) : props.coarse ? (
+    <HoverCardSheet {...props} />
+  ) : (
+    <HoverCardPopper {...props} />
+  );
+
+/** The same choice for a caller with nobody above it to have made it, which is most of them. */
+const DetectedHoverCard = (props: HoverCardProps) =>
   useCoarsePointer() ? <HoverCardSheet {...props} /> : <HoverCardPopper {...props} />;
 
 /**
