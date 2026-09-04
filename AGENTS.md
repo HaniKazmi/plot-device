@@ -24,7 +24,7 @@ All of these pass cleanly on `master`, so any output is yours. TypeScript is str
 
 ## Tests
 
-`tests/` mirrors `src/` one for one across 61 files, each importing its subject at the mirrored `src/` path. `tests/fixtures/` holds raw sheet rows as `arrayToJson` hands them over, domain-object builders, and the independent WCAG implementation the fill contract is checked through.
+`tests/` mirrors `src/` one for one across 62 files, each importing its subject at the mirrored `src/` path. `tests/fixtures/` holds raw sheet rows as `arrayToJson` hands them over, domain-object builders, and the independent WCAG implementation the fill contract is checked through.
 
 The suite is pure logic in a `node` environment; `vitest.config.ts` stays separate from `vite.config.ts`, keeping the React Compiler's babel plugin out of the test transform. Vitest globals are off — import `describe`/`it`/`expect` explicitly, since a `types` array in `tsconfig.json` would drop the `@types` packages `src/` picks up implicitly.
 
@@ -53,6 +53,7 @@ The compiler is enabled and auto-memoizes render-phase work (§7 of ARCHITECTURE
 - **Never write `??=`.** It cannot be lowered, and bails on the enclosing function. Write `x = x ?? y`.
 - **Never give a destructured prop a default value.** `({ landscape = false })` is an assignment pattern that cannot be lowered, and it takes the whole component out. Read the default off the props object (`props.landscape ?? false`), or rename in the pattern and default below it.
 - **Never write `import()` inside a component or hook.** An import expression cannot be lowered either; put it in a module-scope function, as each `loadGraphs` does.
+- **Never give an object literal a computed key inside a component or hook.** `{ [theme.breakpoints.down("sm")]: {...} }` is the shape a width-dependent style takes wherever the _value_ has to change and not only be hidden, and it cannot be lowered either. Pull the literal out to a plain function taking the varying pieces (a palette, a ratio) as arguments — `sheetBarSx`, `dialogCardSx` (`common/Card.tsx`) — so the literal itself sits at module scope and the component stays compiled.
 
 `npm run lint` runs the compiler rule set (`eslint-plugin-react-hooks@7`), but it catches none of the `this`, `??=` or destructured-default bailouts: those compile fine and lose memoization quietly.
 
@@ -76,7 +77,7 @@ babel({
 }),
 ```
 
-Then `npx vite build 2>&1 | grep -E '^OK|^BAIL'`. Baseline is **222 compiled, 0 bailed** — any `BAIL` line is yours. The commonest cause is a destructured prop default, surfacing as `BuildHIR::lowerAssignment … got: AssignmentPattern`; a `MethodCall` bailout is a different failure, cleared by moving the computation out of the component. **Revert the logger afterwards.** Grepping the bundle for `useMemoCache` proves nothing instead — minification eats the name.
+Then `npx vite build 2>&1 | grep -E '^OK|^BAIL'`. Baseline is **241 compiled, 0 bailed** — any `BAIL` line is yours. The commonest cause is a destructured prop default, surfacing as `BuildHIR::lowerAssignment … got: AssignmentPattern`; a computed object key (`{ [theme.breakpoints.down("sm")]: {...} }`) surfaces as `BuildHIR::lowerExpression … CallExpression key in ObjectExpression` — pull the literal out to a plain function taking the varying pieces as arguments; a `MethodCall` bailout is a different failure, cleared by moving the computation out of the component. **Revert the logger afterwards.** Grepping the bundle for `useMemoCache` proves nothing instead — minification eats the name.
 
 ## Traps
 
@@ -85,6 +86,7 @@ Ordered by how quietly they fail.
 - **Never name a field `somethingDate` unless it is a `PlainDate`.** `useData`'s reviver converts _any_ key containing `"Date"`: a 4- or 10-character value is miscast as a `Year` or `YearMonthDay`, anything else throws and drops the whole cached copy, and either way only after a reload.
 - **Never read a browser global at module scope.** `const storage = localStorage` at the top of a module makes importing it throw where the global is absent, the Vitest `node` environment included; read it inside the function that needs it, or behind a `typeof` check. The guard covers `localStorage`, `sessionStorage`, `document`, `window` and `navigator`.
 - **Never put a bare colour after a comma in the `background` shorthand.** Only the last layer carries a background-colour, space-separated, so `linear-gradient(a, a), ${colour}` computes to `linear-gradient(a, a), none`. Set the two properties separately.
+- **Never write a bare `&:hover` on anything a finger can tap.** A touch screen has no leave event, so the last thing tapped keeps its hovered style — a lit border, a scaled-up bar — until another tap lands elsewhere, which reads as a selection nothing asked for. Wrap it in `@media (hover: hover)`, as `Google.tsx`'s card hover and `Timeline`'s `ROW_SX` do.
 - **Never add a field named `show` to a non-`show` domain.** `showDataConfig`'s replacer `dropSeasonParents` (`show/converter.ts`) strips that key on cache write.
 - **Cache keys are versioned — bump the version when the model's shape changes.** Each `converter.ts` passes its version to `dataCacheKey` (`common/useData.ts`): `vg-data-cache-v2`, `show-data-cache-v3`, `movie-data-cache-v3`, `book-data-cache-v1`. Without a bump the new field is silently absent from a returning visitor's cache, on their browser alone.
 - **`PlainDate.from()` throws on partial dates.** It dispatches on length: 10 chars → `YearMonthDay`, 4 → `Year`, and `"2024-05"` throws — deliberately, to surface bad sheet data loudly.
@@ -104,6 +106,8 @@ The one rule that matters: **`common/` and `utils/` never import from `vg/`, `sh
 
 A shell that branches on something domain-specific has the wrong prop. Where the shared layer needs a domain vocabulary, declare it there and let domain types stay assignable to it. `omnibus/` is a domain folder itself, and the one that imports the other four: composition between domains, not the shared layer reaching upward. The four tracked domains compose nothing.
 
+The same instinct applies to a breakpoint: reach for `usePhone`/`useStackedCharts` (`common/breakpoints.ts`) only where the answer decides _which tree_ renders — a sheet versus a persistent drawer, a fold that mounts nothing until opened — never where it only decides how something already rendered looks. A style carries its own breakpoint in `sx`; a component reads one as a value only when CSS cannot make the choice for it.
+
 ## Exercising the UI
 
 ```bash
@@ -116,6 +120,8 @@ Authentication notes that otherwise waste your time:
 - A failed `values.get` clears the token, so an empty page plus an "Authorise" button usually means auth rather than rendering. A converter throw is deliberately not guarded that way; it reports itself through the snackbar.
 - Data is cached in `localStorage`, so the app paints before auth completes: a stale render can outlive a broken change.
 - **Extracted artwork colours arrive seconds after the page does**, sometimes only on a reload. Until then a card wears the theme's own colours, which reads as broken styling.
+
+**Checking a phone or tablet width** means checking a pointer as well as a width: `usePhone`, `useStackedCharts` and `useCoarsePointer` are live media queries, so a browser DevTools device toolbar flips all three without a reload as you resize or switch device, and its emulated device sets both `pointer: coarse` and `hasTouch` — which is what puts the guest-mode toggle behind the app bar's `⋮` menu rather than the wordmark's long press (`NavBar.tsx`), since the long press is deliberately a mouse gesture and collides with a touch device's own press-and-hold. Check `xs`, `sm` and `md` widths, and separately check a coarse pointer at `md` and above — a tablet held sideways clears every width breakpoint but still wants the overflow menu and the bottom-sheet hover cards a phone gets.
 
 **To test without real data**, seed the caches and reload — `useData` reads them on mount, and with no token it never overwrites them:
 

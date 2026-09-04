@@ -15,6 +15,7 @@ There is no backend and no database — a spreadsheet _is_ the storage layer, an
 - **Omnibus** — a fifth tab, and the one the app opens on, composing the other four's own data into a cross-media Now band, totals, a recently-finished list, a by-year chart with a Totals/Share/Cumulative/Rank view switch, a browsable gallery, and a franchise timeline.
 - **Client-side rendering** — Google Identity Services plus `gapi`, authenticating and fetching straight from the browser.
 - **Cache-first loading** — the dashboard paints from `localStorage` before authentication completes, then refreshes.
+- **Phone and tablet layouts** — a bottom tab bar, most charts folded to a one-line summary until opened, filters and hover cards as bottom sheets on a coarse pointer, and layouts that adapt by pointer as well as by width.
 
 ## Tech stack
 
@@ -63,7 +64,7 @@ The spreadsheet IDs and cell ranges themselves live in [`src/tabs.ts`](./src/tab
 npm run dev
 ```
 
-The app is served at `http://localhost:5173`. Click **Authorise** in the app bar to grant access; the token is held in `sessionStorage` for that tab only.
+The app is served at `http://localhost:5173`. Click **Authorise** in the app bar to grant access — below `md`, and on any touch device regardless of width, it is in the app bar's **⋮** menu instead. The token is held in `sessionStorage` for that tab only.
 
 ## Scripts
 

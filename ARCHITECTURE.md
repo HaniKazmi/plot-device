@@ -1,6 +1,6 @@
 # Architecture
 
-Plot Device is a client-only React SPA (~20,000 lines of TypeScript) that turns personal tracking
+Plot Device is a client-only React SPA (~23,000 lines of TypeScript) that turns personal tracking
 spreadsheets into interactive dashboards. This document explains how the pieces fit together and
 why they are shaped the way they are. For conventions see [AGENTS.md](./AGENTS.md); for setup,
 [README.md](./README.md).
@@ -171,7 +171,8 @@ The third return value is what went wrong. A gapi rejection is the response obje
 row, item and column. `DataLoadedSnackbar` holds it until dismissed and leaves the stale copy
 standing: last week's data beside the row to fix beats an empty page. Its "Refresh Complete" fires
 only for a `false → true` turn it watches after mount, so a caller keeps it mounted at a stable
-position across that turn.
+position across that turn. Below `sm` it stands above the bottom tab bar (`BOTTOM_TABS_CLEARANCE`,
+§ Phone and tablet) rather than under it, MUI's own default anchoring to an edge the tabs now cover.
 
 Two subtleties live in the serialisation boundary, and both are easy to break:
 
@@ -227,7 +228,11 @@ titles, accessibility off — and the declarative components re-exported, so a c
 JSX (`<Chart><XAxis/><Series/></Chart>`) rather than configured as one options blob. The eight
 series colours belong here rather than on the theme, since `setOptions` runs once for both schemes:
 every entry sits at one luminance, inside the band that clears 3:1 on either paper, so hue alone
-separates two series.
+separates two series. `tooltip.followTouchMove` is off for the same reason it defaults on for
+everything else Highcharts draws: left on, a finger dragged across an `80vh` chart moves the
+tooltip from point to point and never scrolls the page, holding the reader on the chart until they
+find a gap to start the drag in. A tap still opens a point's tooltip, and column tap-to-isolate and
+the sunburst's tap-to-drill are untouched.
 
 ### Barchart — `common/Barchart.tsx`
 
@@ -251,11 +256,23 @@ series of its own from nothing.
 
 `groupDate` sorts groups ascending so `reversedStacks` — on by default — puts the biggest at the
 foot of the stack, where a stack is read from, and the legend is reversed to match. Height is the
-resolution of a magnitude, so the three views that plot one take the full `80vh`; `Rank` needs only
-a lane per series and takes `min(80vh, max(320px, groups × 44px))`, three media over eight tenths of
-a viewport putting two hundred pixels between adjacent ranks. Callers choose the measure and pass
+resolution of a magnitude, so the three views that plot one take the full height; `Rank` needs only
+a lane per series and takes `min(height, max(320px, groups × 44px))`. That height is `60vh` on a
+phone and `80vh` above it (`useStackedCharts`): a chart opened deliberately, with the library still
+to come below it, reads at one thumb-flick rather than two. Callers choose the measure and pass
 `postAggregate`, a scalar applied after aggregation — `show/` turns accumulated minutes into hours
 with it — scalar so that a caller cannot couple to the pivot's shape, which the shell traverses.
+
+Folded on a phone (`FoldedChart`, below), the card states its Totals reading in one line and a
+sparkline: `barchartSummary` names the fullest column and, past two groups, who led the most of
+them, and `columnTotals` is what the sparkline plots and what `Share`'s own division reads off. Both
+run over `raw` in three views out of four — under Cumulative, whose pivot buckets a climbing total
+by month, the fold re-pivots `data(false)` so the summary names a peak by month rather than by a
+running total that is highest on its last column by construction. `postAggregate` is applied to that
+second pivot as well, so a folded Shows card states hours and not accumulated minutes. The words
+themselves are built in `Barchart.tsx` and not `barchartData.ts`, since `format` is an
+`Intl.NumberFormat` on the reader's own locale and a pure data module has to stay one a locale
+cannot change.
 
 ### Sunburst — `common/Sunburst.tsx`
 
@@ -282,8 +299,21 @@ Depth follows the data — the leaf ring is `groups.length + 1`, so a select box
 file changes the rings without touching `common/`. At the top that ring is collapsed (`levelSize`
 zero, labels off) and drawn only once the reader drills in, where `dimLeafRing` fades it so leaves
 read as detail rather than structure. That callback is at module scope because Highcharts binds the
-chart to `this`, which opts a component out of the React Compiler silently (§7). The card stands at
-`min(80vh, 700px)`, a circle's diameter being capped by its half-width column.
+chart to `this`, which opts a component out of the React Compiler silently (§7). Beside the barchart
+the card stands at `min(80vh, 700px)`, a circle's diameter being capped by its half-width column;
+stacked below it instead (`useStackedCharts`) the width _is_ the column, so the cap follows the
+viewport down to a floor of `min(100vw - 64px, 480px)` rather than wrapping a 340px wheel in 400px
+of blank paper.
+
+Folded on a phone, the card states `firstRing` — the innermost ring, largest first, read off the
+same `parent === ""` test that collapses the leaf ring — as a line of names and figures and as a
+`ProportionalBar` (`RingBar`) built through the Top lists' own `topNWithOther`, so the wedges beyond
+the fifth become one "Other" segment the way a Top card's own bar would. A grouping with a colour
+vocabulary keeps the wheel's own hex; one without falls back to a series colour by rank, which can
+disagree with Highcharts' own `colorByPoint` order — the names under the bar are what say which
+segment is which regardless. `SunBurstControls`' "Nest by" label is dropped below `sm`: at 390px the
+card is 324px and the row of a word plus three chevron selects wants 379, so the label is the one
+of the two that a reader can infer back from the values it precedes.
 
 ### Timeline — `common/Timeline.tsx`
 
@@ -323,9 +353,31 @@ whether there is data at all.
 lands in, so hundreds of events per drag settle to one state change per year crossed and a set to
 the value already held costs no render, where the raw offset re-renders the chart every frame — the
 reason an edge fade computed per frame is the expensive way to say "there is more". Static CSS says
-it instead: the container styles its own scrollbar (`scrollbarSx`), opting macOS out of overlay
-scrollbars that hide the moment scrolling stops, so a thumb a quarter of the track long states both
-that there is more and how much.
+most of it instead: the container styles its own scrollbar (`scrollbarSx`), opting macOS out of
+overlay scrollbars that hide the moment scrolling stops, so a thumb a quarter of the track long
+states both that there is more and how much. iOS draws no scrollbar at all, styled or not, which is
+what the chart also carries a `ScrollFade` for (`useScrollEdges` on the same ref the year chips
+drive) — the one surface here running both, since only this chart is read on a platform where
+neither answer is guaranteed to be the one that is drawn. `CONTAIN_SIDEWAYS_SCROLL` keeps the
+chart's own flick from carrying on into the browser's back gesture once it reaches either end.
+
+The chart caps its height and scrolls vertically within the card from `md` up
+(`CHART_MAX_HEIGHT`), a packed timeline running to dozens of rows; below it the cap is lifted and
+the grid stands at whatever height `packRows` gives it, since a second scroller inside a page that
+already scrolls takes the drag meant for the page and hides most of the rows behind it. Alone among
+the app's charts it is never folded — `show/Timeline.tsx`, `vg/Timeline.tsx` and `books/Timeline.tsx`
+draw it through a plain `SectionHeader` and `Card` — since what a folded card would show in place of
+it is a picture of a Gantt chart's shape, which is no cheaper a reading than the chart itself.
+
+The hover card that names a bar reaches it two ways: through the label, which already re-enables
+its own pointer events, and through the bar's own `rect`, so a reader whose finger is aimed at the
+item and not at a label sitting in the gap beside it still lands on something. `useCoarsePointer` is
+read once per chart in `TimelineGrid` and passed down as `coarse` — a few hundred marks each mounting
+two triggers would otherwise be a few hundred subscriptions answering one question that cannot
+differ between them (§ Phone and tablet). The row's own `&:hover` scale sits behind `(hover: hover)`
+for the same reason every bare hover rule here now does: a tap has no leave event, so the last bar
+touched would otherwise stay scaled up until another tap lands elsewhere, which reads as a selection
+the chart never made.
 
 Two details are load-bearing. The label `Box` sets `lineHeight` to `BAR_HEIGHT`, being `position:
 fixed` with no `top` and so centred by its own line box alone: a bar height changed without it puts
@@ -344,7 +396,11 @@ read at a glance. Its ticks are built once over a non-leap 2001, every row being
 that array feeds every row's gridlines and the single axis beneath the stack. The marks are
 `buildStrip`'s point handling — a single day floors to the minimum band width, and films watched
 days apart tile clear of one another inside the lane — with hover cards through
-`common/LazyTooltip`, so hundreds of marks build only the handful actually hovered.
+`common/LazyTooltip`, so hundreds of marks build only the handful actually hovered. The ribbon owns
+no `Card` of its own: `WatchTimeline` stands it inside a `FoldedChart`, whose folded state is a
+line naming the busiest row and how many years the stack draws — the one figure a dozen identical
+twelve-month rows have to summarise with, where the barchart's sparkline or the sunburst's first
+ring have a shape to draw instead.
 
 ### Omnibus — `omnibus/`
 
@@ -469,7 +525,10 @@ Abstract being 136 hours of games that a single abstract film would admit at ful
 states the confinement the cliff was hiding. A genre whose every entry logged nothing is dropped; a
 medium contributing no hours gets no segment, because `assignPercents` floors every slice at half a
 percent and a visible slice of nothing is a claim the data does not make. The hover dim is one piece
-of state for the whole card, turning a stack of bars into a comparison read down the column.
+of state for the whole card, turning a stack of bars into a comparison read down the column, and is
+optional on both `ProportionalBar` and a genre's own row for the same reason: folded on a phone, the
+card states its biggest genre by name, hours and media count and draws that one row as the fold's
+preview, a bar with nothing to dim it against.
 
 **Franchises over time** (`omnibus/crossingsData.ts`, `omnibus/Crossings.tsx`) draws each franchise
 met as a strip, one lane per medium present, packed by `common/timelineStripData`'s `buildStrip` as
@@ -488,6 +547,13 @@ library for a single game's strip. The `epoch` is the earliest _start_ drawn, fl
 1 January: an attribution year is the year an item ended, so a scale opened on it clamps every
 earlier start against the left edge, and a mid-month epoch puts every year line off by the
 difference.
+
+Folded on a phone, the section states its largest franchise — the strips are ordered by size, so
+`crossings[0]` is it — by name, entry count and how many media it spans; a stack this wide has no
+single shape a preview picture could stand in for. The stack itself is split into its own
+`CrossingsStack`, mounted only once the card is opened, because `useOpenAtLatest` fires once for a
+library that has data: mounted with the folded card it would find no scroller on that one run and
+open at the epoch, the oldest end of a scale whose whole point is the newest.
 
 Every strip is handed one tick array, built once by `Graphs`, so the section states its years once
 beneath the stack — `TimelineCard` takes `inStack` and `TimelineAxis` is exported for it. A
@@ -553,13 +619,29 @@ select and again on every item, which the portalled menu cannot inherit.
 
 ### Filter drawer, Top lists and drill-down — shared shells
 
-`common/FilterDrawer` owns the floating button, the bottom drawer and the Clear/Close row, taking a
-domain's toggles and category selects as two controlled slots, since that row sits between them in
-DOM order and is sent to the end of the small layout alone. `FilterToggle` and `FilterCategory` sit
-alongside it, `common/filterOptions` deriving each select's values from the data. The button carries
-a badge counting the fields the reader has changed (`activeCount`, from `createFilterReducer`):
-every chart is drawn through the drawer, so a library narrowed to one franchise otherwise looks
-exactly like the whole library.
+`common/FilterDrawer` is two different trees on `usePhone`, not one tree at two sizes: from `sm` up a
+floating button opens a `Drawer` that stays out of the page's way, `variant="persistent"` so it
+never covers the chart it is narrowing; below it the button is a chip in the section rail's
+`trailing` slot (`FilterChip`) and the drawer is a modal `SwipeableDrawer` sheet, opened by that
+chip alone (`disableSwipeToOpen`, `disableDiscovery` — the bottom edge of a phone is the home
+gesture's). Both read `common/filterSheet.ts`, a store outside React rather than a context: the chip
+lives in the rail, which a domain's `Graphs` renders, and the drawer is a sibling of the whole chart
+tree, so lifting the open flag to their nearest common ancestor would sit it above every chart and
+re-render all of them on an open the flag never reaches. `FilterToggle` reads which tree it is in
+through a `SheetContext` set by the drawer itself, since the slot it is handed as a child cannot
+otherwise tell — a switch under a wrapped label three to a row below the grid it stands in, a
+filled or outlined chip in the sheet, a third of the height and read the same way the sheet's own
+grabber and Clear/Done bar are. `FilterCategory` is unchanged either way. The button carries a badge
+counting the fields the reader has changed (`activeCount`, from `createFilterReducer`): every chart
+is drawn through the drawer, so a library narrowed to one franchise otherwise looks exactly like the
+whole library.
+
+`common/DrilldownDialog` and `ExpandableCard`'s own dialog (below) both take an `onClose`, so Escape
+and a backdrop press leave them as every other dialog does; the header button stays regardless,
+since a fullscreen dialog covers the handle that opened it. Below `sm` `DrilldownDialog`'s header
+sticks to the top of the screen (`stickySheetHeader`) rather than scrolling with a grid five hundred
+cards deep, and swaps its arrows-in icon for a ✕ — the sheet's own word for leaving, where the
+arrows read as "back to the card this came out of".
 
 `common/TopList` exports `TopCategoryBand`, the row of "Top X" cards a tab opens on. The card owns
 what is the same everywhere: the category select, `topNWithOther`'s top-five-plus-Other reduction
@@ -623,6 +705,13 @@ carries `FranchiseName`, the franchise with the swatch its Top list and ledger r
 so the crossings name theirs the same way, then each medium present counted through `mediumUnit` in
 its own fill.
 
+A bead or a mark is a fraction of the finger that has to land on it — an 8px bead, a 5×7px mark —
+so each carries an invisible hit box under a coarse pointer alone (`touchTargetSx`,
+`common/touchTarget.ts`), stated as a height because widening one to the platform's own 24px would
+reach over its neighbours on a chain of fifty and hand every overlap to the later sibling. A bead's
+box is the full 24; a Time-reading mark's is the 16px lane pitch it stands in, since a taller one
+would reach into the lane below and answer for both marks at once.
+
 The entries come from one index across the four libraries. `common/franchiseUnion.ts` declares the
 `FranchiseEntry` shape — key, subject, franchise, medium, fill, label, span, `precise` and a
 hover-card thunk — and the context; `omnibus/franchiseUnionData.ts` builds it, mapping each
@@ -669,6 +758,12 @@ know nothing about which axis they will be drawn on. The card's own strip uses t
 with its own marks: a fixed lane pitch, a dot for a point and a ring for the subject, none of which
 a stack of twelve strips on one scroller has room for.
 
+Every band `TimelineCard` and `EventRibbon` draw is a `TimelineBandBox`, which carries the same
+lane-aware hit box the franchise strip's own marks do: the full 24px reach on a single-lane track, a
+percentage of the band's own box on a multi-lane one, computed against the lane's padding so it
+follows a strip of any height without the box knowing what that height is — emotion mints a class
+per distinct value set, and a crossings stack draws hundreds of bands to share one between.
+
 ### The expanded card — `HeroStatRow` and `MetadataLedger`
 
 `CardDetailBody` (`common/Card.tsx`) composes an opened card's body. The franchise strip comes
@@ -693,6 +788,31 @@ is: the four domain `CardMediaImage.tsx` files build them and choose the omissio
 zero because the sheet recorded nothing saying something false. `LedgerList` is exported for a
 surface that seats those rows itself, and `DetailCard`, the uniform tile, for a domain with too few
 facts for the split to buy anything.
+
+Below `sm` the dialog is a sheet: the card stands at a minimum `100svh` and carries a `SheetBar` —
+a grabber, the item's own name and a ✕, 48px tall (`SHEET_BAR_HEIGHT`) — as its first child, sticky
+above the artwork on the artwork's own ground rather than the paper's, so the name and the way out
+survive the scroll a full-bleed picture invites. The name is stated at every scroll position rather
+than faded in past the picture, since the title is the one fact a full-bleed picture does not carry
+and a bar that fills in as you scroll reads as something loading rather than as chrome that was
+there from the start. `pinnedSheetTop` (`common/fullscreenSheet.ts`) is the sticky recipe every
+sheet bar in the app shares — this one, the filter sheet's, a hover card's — pinning at the top with
+the notch paid for above the bar's own content; the dialog's `Paper` and `Card` both open their
+`overflow` to `visible` at this width for it, since either being anything else becomes the scrollport
+a sticky element measures itself against, and neither box ever scrolls. The artwork below reads its
+own room off two custom properties, `--sheet-room-width` and `--sheet-room-height` — `100vw` and
+`100svh` less the bar and the top inset below `sm`, the dialog's existing 32px frame above it — so
+the width and the height a `min()` picks between are always the two halves of one room rather than
+two breakpoints that could move independently and scale the artwork against a box that is not
+there.
+
+`CardPanel`'s `hero-aside` layout is what `common/Hero.tsx` asks for wherever its own shape already
+stands beside its words — a poster (Shows) or a cover (Books) — rather than `hero`'s beneath-below-
+`md`, above-`md`-beside split: those two shapes never stack under their artwork in the first place,
+so the seam is the vertical edge at every width instead of switching with the arrangement. Below `sm`
+its panel also gives back part of the standard inset and steps its title down a size — beside a
+136px poster on a 358px card the panel is 222px and the standard inset spends 32 of them, so the
+four pixels a side given back are the difference between a two-line title and a three-line one.
 
 ### Scroll marker — `common/ScrollMarkerHook.ts`
 
@@ -719,7 +839,38 @@ covers go one step denser at every width, two thirds as wide as tall against a b
 ninths, so one width stands two and a half times as tall. The page opens on Large, the dialog on
 Full, the choice held for the visit and never written: the wall is the tallest thing on its page, so
 a stored preference would have to be read before first paint to avoid changing it underneath the
-reader.
+reader. A phone opens on Compact instead — Large there is one banner a row, and 322 games at 220px
+each is seventy thousand pixels of page with nothing but a picture on each screen — held as "not yet
+chosen" rather than seeded from the width, so the default follows a rotation until the reader has an
+opinion, after which theirs is what stays; reading `usePhone` any other way would mount every card at
+one density on the first render and remount it at another a frame later, asking for each picture and
+sampling each artwork twice over.
+
+Below `sm` neither the pill nor the rail is mounted, and the wall carries its own derivation of the
+same rule inline instead: `bucketGroups` (`common/finishedData.ts`) cuts the sorted items into runs
+wherever `bucketFor`'s answer changes — the same reader `orderedBuckets` folds to a rail, but kept
+as runs rather than collapsed to one entry per bucket, since a sort that returned to a bucket it had
+passed would have a keyed grouping lift those cards out of the order the wall is in. Each run stands
+under a sticky `BucketHeading`, which is the jump rail's own derivation drawn in the flow: a phone
+has no gutter for a rail and no room for a pill that does not sit over the cards it names, and a
+sticky heading is what a phone reader already indexes a long list with. It pins under whatever else
+is pinned above it in the same scrollport — the section rail's own `SCROLL_MARGIN` on the page, the
+sheet's `SHEET_HEADER_BOTTOM` in the dialog — and `ExpandableCard`'s clipping is opened to `visible`
+at `xs` for it, a sticky element being measured against the nearest ancestor whose overflow is
+anything else, which for a bordered card is the card itself.
+
+The reading test that shows the pill or rail carries a third clause, for the same reason the density
+default does: `rect.top < READING_LINE && rect.bottom > innerHeight / 2` alone would light the pill
+over a section's own header for the gap between the section arriving and the wall's first row
+reaching the marker offset — on any width whose gutter falls under `MIN_GUTTER` (72px) and so draws
+the pill rather than the rail, which on a phone's own width is every width. Requiring the grid's own
+top to have reached `MARKER_TOP` (with the settle loop's own slack) answers the marker's own question
+instead: not "is the section visible" but "is there a row here to name". Compact's grid also gives up
+the row's stretch alignment: a card ends where its own picture
+does (`alignSelf: "flex-start"`) rather than at the row's height, since only a cover is ever short of
+it and a stretched cover reads as a card drawn wrong where a shorter one reads as a picture that
+came out that way — the row's _tops_ stay level either way, which is what both the marker and a
+reader's eye read a row by.
 
 Each card wrapper carries its label as a `data-bucket` attribute, and the scroll handler
 binary-searches the wrappers for the first whose rect clears the reading line: the wall runs to a
@@ -799,6 +950,16 @@ no more than one icon button stays on the title row, the caller saying so throug
 wrapping legend over `common/statsData`'s `groupTotals`. Domains hold the arithmetic, shells the
 layout.
 
+`StatCard` stands two to a row on a phone rather than one (`xs: 6`), a `span` prop overriding it
+where a band's own count would otherwise leave a card beside a gap — the Now band's Franchises card
+takes the full row alone, closing a band of three. Its own figures stack rather than sit abreast
+below `sm`: two or three of them across half a phone's width puts each one under a word wider than
+itself, where a column keeps every figure and its label on the baseline they share and lets a wide
+word wrap under its own number instead of shrinking it. `TotalsBand`'s legend wraps the same way
+above `sm` and stands in two fixed CSS-grid columns below it, since a name there is wide enough
+against the screen that a wrapping row leaves one entry a line and its count wherever the name
+happens to end.
+
 `StatList` is two smaller shells the same file exports, each with a caller of its own:
 
 - **`ExpandableCard`** owns a card that can also present itself fullscreen: `renderContent` draws it
@@ -806,7 +967,12 @@ layout.
   pairs `open` with a `mounted` flag lagging it until `onExited`, so the body survives the exit
   transition and is never built behind a closed dialog. `CardMediaImage` gates the whole `Dialog`,
   not just the body: an uncapped wall mounts one per item, and a closed `Dialog` still renders
-  itself, its `Modal` and their hooks before returning null.
+  itself, its `Modal` and their hooks before returning null. The dialog takes an `onClose`, so
+  Escape and a backdrop press leave it like every other dialog here; the header keeps its own
+  control regardless, since content that shrinks while the dialog is open — a select switching to a
+  category with fewer groups — would otherwise strand the reader with nothing to press. Below `sm`
+  that control is a pinned bar's own ✕ (`stickySheetHeader`) rather than the header's icon, which
+  wraps to a row of its own down there and would put the way out halfway down the first screen.
 - **`StatsListGrid`** owns the capped strip of media cards. `COLLAPSED_CARDS` and `EXPANDED_CARDS`
   (6, and 500 — effectively everything, so a drill-down shows a whole group) apply _here_: a caller
   pre-slicing its list would make either a no-op. A strip laid out differently passes its own figure
@@ -816,6 +982,22 @@ layout.
   row-capped list. Lazy artwork makes the uncapped dialog affordable. Only `EXPANDED_CARDS` is
   exported: `omnibus/Gallery.tsx` derives its shelf count from it, `common/DrilldownDialog.tsx`
   reuses it.
+
+  A caller opting in (`strip`) gets a third arrangement below `md` (`useStackedCharts`, read as a
+  value for the same reason a folded chart is: mounting a grid and a strip together and hiding one
+  would fetch and sample every picture twice): a fixed-height `Filmstrip` of 120px pictures rather
+  than a grid or a sized row, a width and a height both being more than a phone's column has to
+  give. `cellOf` answers a `strip` cell before either of the others, its height the picture plus a
+  caption (`STRIP_CAPTION_HEIGHT`) and the band and border every other cell counts; `limitOf` falls
+  back to `COLLAPSED_CARDS` for a cap stated in rows, since a strip has no rows to multiply a solved
+  count by. Each card is built from its picture out rather than seated in the cell — `mediaLayout`
+  fixed to `"stacked"` regardless of shape, since the arrangement rule would seat a poster's words
+  beside a card 82px wide — and its corner chip is dropped unless the shape is landscape, where the
+  chip would cover or overflow a picture that narrow. `FooterComponent`'s `caption` prop is what
+  replaces the usual label stack: `stripCaption` (`common/statsData.ts`) joins the first label row's
+  cells into the one line a fixed-height card has room for, since the closing row on this tab's mixed
+  list is the item's own name, which the artwork already carries as its `alt` and a strip must not
+  print twice.
 
 `Finished` is built on `ExpandableCard` but keeps its own item grid, rendering the domain's
 `MediaComponent` in a bordered `Card` at the spans its density asks; `DrilldownDialog` fills the list
@@ -850,13 +1032,24 @@ Without artwork, `ArtworkStandIn` takes the picture's place: a box in the palett
 what is missing, carrying the image's `sx` so it holds the reservation a wall measures its offsets
 against.
 
-Every chart mounts a card through one shell, `common/HoverCardTooltip.tsx`: a 4px mat of the hovered
-bar's own colour, arrow to match and shadow outside it; the flip keeping a tall card on screen, with
-`altAxis` doing the same at the edges of a sideways-scrolling chart; and a stated 500px width against
-a tooltip's own 300px ceiling. A popper positions once, so the content is observed and the popper
-asked to place it again on every size change: a card whose chunk or picture lands late otherwise
-grows from an anchor placed for something smaller, off the screen top. `hoverCard` asks for the card
-treatment; a band whose tooltip only names its span keeps the plain one.
+Every chart mounts a card through one shell, `common/HoverCardTooltip.tsx`, and there is no hovering
+on a phone — so the shell is two different surfaces sharing one API, chosen by `useCoarsePointer`
+unless a caller reading hundreds of marks has already asked once and passes the answer down as
+`coarse` (Timeline, §6 above). A pointer gets the popper: a 4px mat of the hovered bar's own colour,
+arrow to match and shadow outside it; the flip keeping a tall card on screen, with `altAxis` doing
+the same at the edges of a sideways-scrolling chart; and a 500px width that is a ceiling rather than
+a size below it (`min(500px, 100vw - 16px)`), against a tooltip's own 300px default. A popper
+positions once, so the content is observed and the popper asked to place it again on every size
+change: a card whose chunk or picture lands late otherwise grows from an anchor placed for something
+smaller, off the screen top. A finger gets a bottom sheet instead, opened by a tap rather than
+MUI's own 700ms press, sized to the screen and interactive — the card inside can open the expanded
+card, which a `disableInteractive` tooltip cannot be asked to do — and mounted only while it is open:
+`SwipeableDrawer` keeps touch listeners on the document for the life of every instance, and a
+franchise strip is hundreds of marks for the one the reader taps. It sits at the modal layer so a
+card opened from a bead inside an expanded card is not painted behind the dialog it came from, and
+above it in turn once the reader taps through, since two surfaces at one layer stack by the order
+they opened in. `hoverCard` asks for the card treatment on either surface; a band whose tooltip only
+names its span keeps the plain one.
 
 Each domain exports the **hover card** its charts show — `VgHoverCard`, `ShowHoverCard`,
 `MovieHoverCard`, `BookHoverCard` — beside its `CardMediaImage`, and the Omnibus dispatches to the
@@ -947,10 +1140,98 @@ below — and which comes from the same test `Stats` makes about whether there i
 with, so a chip never points at an anchor that is not on the page.
 
 The rail also carries the page's measure, in an `actions` slot at its right end: the unit every
-figure on the tab is counted in belongs on the one control surface reachable from anywhere. It sits
-outside the scrolling chip row, which would carry it away; the row gives up width and overflows into
-its own scroll. `SegmentedControl` states the measures as words, a Σ on a floating
-button being a legend nothing on the page teaches.
+figure on the tab is counted in belongs on the one control surface reachable from anywhere. A second
+slot, `trailing`, carries the filter control on a phone (`FilterChip`, below) — both sit outside the
+scrolling chip row, which would carry either away; the row gives up width and overflows into its own
+scroll. `SegmentedControl` states the measures as words, a Σ on a floating button being a legend
+nothing on the page teaches.
+
+The tab chips that lead the stuck rail are dropped entirely below `sm`, where the bottom navigation
+already holds all five tabs at every scroll position and a rail spending 300 of its 358px saying so
+again buys nothing; a rail's own chips still fill the rest. Under a coarse pointer every chip in the
+rail — a tab's, a section's — stands 30px tall rather than 22 (`ChipRail`'s `COARSE_CHIP_HEIGHT`,
+behind `@media (pointer: coarse)` so a tablet with a mouse plugged in gets the desktop's own
+height), which `SCROLL_MARGIN`'s 72px still clears with room for the rail's padding.
+
+A page's charts and its library swap on a phone, library first — `ChartsAndLibrary` renders the two
+nodes in that order and `chartsLastOrder` (`common/sections.ts`) reorders the chip naming them, both
+driven off the one `usePhone` a `Graphs` module reads once. Both halves have to agree in the DOM and
+not only in CSS: `useActiveSection` lights the first of the rail's own list still inside the reading
+band, so a page painted in one order and a rail listing another lights the wrong chip from the first
+scroll, and a chart folded shut under `FoldedChart` mounting nothing at all rules out a `flex-order`
+swap that would still fetch and lay out the chart it hides. Only the `charts`/`library` pair moves —
+a tracked tab's packed timeline, drawn through its own `Section`, keeps its place in the list either
+way.
+
+### Phone and tablet
+
+Most of what a narrow screen or a coarse pointer changes is stated inline against the subsystem it
+touches — the Now band, the franchise strip, the hero, a folded chart, the scroll marker. What
+follows is the scaffolding underneath: the primitives every one of those reads, and the chrome
+around the page itself.
+
+**Two questions, answered as values.** `usePhone` and `useStackedCharts` (`common/breakpoints.ts`)
+are the only breakpoints the app reads as booleans rather than writes as `sx` keys, because their
+callers need the answer before they can decide what to render at all — a folded chart mounts nothing
+until opened, a sheet and a persistent drawer are different trees, and the tracked tabs put their
+charts after their library in DOM order (above), which no `display: none` or flex `order` can do.
+Both are `useMediaQuery` with `noSsr: true`, stating the query's real answer as the server snapshot
+too: `main.tsx` mounts with `createRoot` and never hydrates, so that snapshot is never actually read
+and the first render already matches the screen either way — but the option is what keeps that true
+of a root that did hydrate, one hook giving one answer rather than two depending which root mounted
+it. `useCoarsePointer` answers a different question — how precisely the reader can aim, not how wide
+the screen is — for the same reason: a hover card is a popper on a mouse and a bottom sheet on a
+finger, different trees again, where a hit target or a hover treatment that is only a rule belongs in
+`sx` as `@media (pointer: coarse)` and costs no subscription. All three, plus `useScheme`, share one
+mechanism, `common/useMatchMedia.ts`: one `MediaQueryList` and one native listener per distinct query
+string, held at module scope and fanned out through `useSyncExternalStore`, because a caller asks per
+component instance and a chart is hundreds of them — a fresh `matchMedia()` and a fresh listener per
+instance would be that many of both minted on every render.
+
+**Chrome.** Below `md`, or on any coarse pointer regardless of width, `NavBar`'s Sheet/Authorise-or-
+Revoke buttons collapse from the app bar into an overflow menu (`⋮`), built from a single `BarAction`
+list drawn twice — as buttons and as menu items — so the bar and the menu can never disagree about
+which actions exist or whether "Authorising" is live: both are on screen at once wherever a finger is
+the pointer. At 768px the wordmark, five tabs and two buttons want about 800px of a 720px content
+width, which is the arithmetic behind the `md` cutoff; a tablet held sideways clears the width test
+but still fails the pointer one, so the menu stays. The same menu is guest mode's only handle
+wherever it is drawn: the long press that reaches it elsewhere (`utils/useLongPress.ts`) answers with
+mouse handlers alone, a touch long press colliding with the browser's own press-and-hold, so the menu
+carries a "Guest mode"/"Leave guest mode" item in both directions rather than leaving a finger with no
+way in — or, once in, no way out but a reload.
+
+Below `sm` the tab strip itself is replaced by `BottomTabs`, fixed to the screen's bottom edge and
+reachable from any scroll position and a thumb, which no arrangement of the `position: static` app
+bar achieves; it wears the tab's own `barColour` as the app bar does, so the top and bottom of a
+phone name the same tab, and a tab change resets scroll (`window.scrollTo({ top: 0 })`) the way the
+rail's own chips do. `common/chrome.ts` states what the app's own furniture costs the page:
+`BOTTOM_TABS_HEIGHT` (56) and its `env(safe-area-inset-bottom)`-padded `BOTTOM_TABS_CLEARANCE`, which
+the page container and the data snackbar both stop short of, and `safeAreaGutters`, MUI's own
+`Container`/`Toolbar` gutters restated with the device's side insets added — a notched phone held
+sideways puts a sensor housing or a rounded corner exactly where an unpadded 16px margin sits. None
+of it does anything without `viewport-fit=cover` in `index.html`, which is what makes `env()`
+anything but zero, and the manifest's `theme_color` is the Omnibus tab's own primary (`#7553ff`), the
+colour a phone's status bar wears before any tab-specific theme has painted. `Google.tsx`'s
+`MuiCssBaseline` override turns off the grey tap flash on `body`: it is drawn at a tap target's own
+box, which on a chart is a whole row group behind a bar a few pixels wide, and every tap here already
+answers with the card it opens.
+
+**Touch surfaces.** `common/touchTarget.ts` is the one hit-box recipe a mark on a scale gets under a
+coarse pointer: 24px is what a finger can reliably land on, but a strip bead or a crossings mark is
+drawn far smaller and far denser than that, so the box is invisible and centred on the mark rather
+than resized to it, and stated as a height alone — widening a mark itself to 24px reaches over its
+neighbours on a chain of fifty and hands every overlap to whichever sibling is drawn later. Specific
+uses are described where the marks are (Franchise strip, Card strip data, above). `FoldedChart`
+(`common/FoldedChart.tsx`) is the general mechanism behind every folded chart: a card that renders
+only its header, a one-line summary and a shape-of-the-data preview until the reader asks for the
+chart itself, past `usePhone` alone — from `sm` up it is the plain card it always was. Five callers
+share it (Barchart, Sunburst, the Movies event ribbon, the omnibus Crossings stack and Genre bridge);
+the packed timeline is the one chart that never folds, since what a reader who has not opened it
+would be shown is the very thing a fold exists to defer. `CONTAIN_SIDEWAYS_SCROLL`
+(`common/scrollbarSx.ts`) is the one-line fix every horizontal scroller in the app wears — the
+charts, the strips, the chip rails, the sized card rows — for the same drag: reaching either end
+without it carries on into the browser's own back gesture, taking the reader off the page they meant
+to keep scrolling.
 
 ### Colour
 
@@ -966,12 +1247,16 @@ the light half is drawn only on the `#ffffff` paper and the dark only on `#1d212
 `#af9300`, an olive, against `#fdd500` at L 0.88.
 
 Every lookup takes a `Scheme`, read by `common/useScheme.ts` from
-`window.matchMedia("(prefers-color-scheme: dark)")` through `useSyncExternalStore` rather than MUI's
-`useColorScheme`: `Google.tsx` builds the theme with `cssVariables: true` and no
-`colorSchemeSelector`, so MUI emits the dark palette inside that same media query, but its `mode` is
-separate state restored from a `mui-mode` key in `localStorage`, and anything writing one parts the
-two, every fill taking the half meant for the other paper. Subscribing there re-renders a chart when
-the system flips at dusk. `tests/utils/fillContract.test.ts` asserts the floor over every table
+`window.matchMedia("(prefers-color-scheme: dark)")` rather than MUI's `useColorScheme`:
+`Google.tsx` builds the theme with `cssVariables: true` and no `colorSchemeSelector`, so MUI emits
+the dark palette inside that same media query, but its `mode` is separate state restored from a
+`mui-mode` key in `localStorage`, and anything writing one parts the two, every fill taking the half
+meant for the other paper. The subscription goes through `common/useMatchMedia.ts`, which is what
+re-renders a chart when the system flips at dusk: one `MediaQueryList` per distinct query string,
+held at module scope with its native listener fanned out through `useSyncExternalStore` to every
+caller of that query, because a chart is hundreds of components each asking `useScheme()` for
+itself, and a fresh `matchMedia()` call or a fresh listener per instance is that many of both allocated
+on every render React takes. `tests/utils/fillContract.test.ts` asserts the floor over every table
 against its own WCAG implementation, so it cannot pass by agreeing with a bug in `src/`.
 
 Values are placed rather than picked: hue and role go in, lightness is solved until the value clears
@@ -1118,7 +1403,7 @@ grouping and filter keys to fields of the right value type, which is what makes 
 hand-placed memo is redundant and rots as dependencies are added. `eslint-plugin-react-hooks@7`'s
 `recommended` config _is_ the compiler rule set, so `npm run lint` catches most of what follows.
 
-**The compiler silently skips functions it cannot prove safe.** Four constructs opt one out, none
+**The compiler silently skips functions it cannot prove safe.** Five constructs opt one out, none
 with an error to say so:
 
 - **`this`.** Highcharts binds the chart to `this` in event callbacks, so those live at module scope
@@ -1128,8 +1413,14 @@ with an error to say so:
   `BuildHIR::lowerAssignment` cannot lower. Read defaults off the props object instead.
 - **An import expression**, which is why each entry component keeps its `import("./Graphs")` in a
   module-scope `loadGraphs` that `lazy()` and the prefetch effect both call.
+- **An object literal with a computed key** — `{ [theme.breakpoints.down("sm")]: {...} }`, the shape
+  a phone-only style rule takes wherever the value itself has to change and not only be hidden.
+  Written inline it bails with `BuildHIR::lowerExpression … Expected Identifier, got CallExpression
+key in ObjectExpression`; pulled out to a plain function taking the varying pieces as arguments —
+  `sheetBarSx`, `dialogCardSx`, `DrilldownDialog`'s `HEADER_SX`, `ExpandableCard`'s
+  `SHEET_CLOSE_BAR_SX` — the literal itself sits at module scope and the component stays compiled.
 
-The baseline is **222 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **241 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.
@@ -1146,7 +1437,13 @@ anything out of a module-scope function:
   alongside OAuth and the sheet fetch. It stays out of module scope because `tabs.ts` imports all five
   entry components eagerly: hoisted, it would fetch every tab's charts on any visit.
 - **Lazy construction.** `Card`'s `detailComponent` thunk and `TimelineData`'s `tooltip` thunk (§6),
-  plus `ExpandableCard` mounting its dialog body only while open.
+  plus `ExpandableCard` mounting its dialog body only while open. `FoldedChart`'s `fold` thunk is the
+  same idea for a chart's own data — a second pivot, a hierarchy's first ring — called only past the
+  phone check, and its `children` are the chart itself, passed as JSX rather than built behind a
+  condition: React does not render a child it is handed but does not place, so the tree is built by
+  the caller and mounted or not by `FoldedChart` alone. The crossings stack goes one step further and
+  splits into its own component, mounted only once its folded card is opened, because `useOpenAtLatest`
+  fires once on mount and would otherwise find no scroller to open on the run before the reader asks.
 - **Object lifetimes.** `useTextPlacement` keys a ref map by row objects rebuilt whenever data
   changes, deleting an entry once all three refs detach; otherwise dead rows retain their tooltip
   trees, and through them the domain records.
@@ -1284,11 +1581,11 @@ Recorded so they are not mistaken for design:
   router so any tab has the cross-media union; a deep link to `/vg` therefore pays three extra sheet
   reads and paints from cache until they land, where the Omnibus has usually fetched them already. A
   deliberate trade, argued in that provider's own comment (`omnibus/franchiseUnion.tsx`).
-- **Fullscreen dialogs have no `onClose`.** `ExpandableCard`'s `Dialog` and `DrilldownDialog` are both
-  `fullScreen` with no close handler, so Escape and a backdrop press do nothing and the header button,
-  unconditional in both, is the only way out.
-- **The filter drawer is `variant="persistent"`.** MUI never calls the `onClose` passed for that
-  variant, so only the Close button and the floating button dismiss it.
+- **The filter drawer's desktop shape ignores `onClose`.** From `sm` up `FilterDrawer` renders a
+  `Drawer` with `variant="persistent"`, and MUI never calls the `onClose` passed for that variant, so
+  only the Clear/Close row and the floating button dismiss it. Below `sm` the same drawer is a
+  `SwipeableDrawer` sheet instead, which does answer to `onClose` — Escape, a backdrop press and a
+  downward swipe all close it — so the gap is the wide layout's alone now, not every width's.
 - **No DOM or component tests.** `tests/` covers pure logic — converters, filters, the reducer, the
   chart data transforms, the cache round trip — and stops there; AGENTS.md explains the trade. Nothing
   verifies that a chart renders.
