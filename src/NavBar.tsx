@@ -51,10 +51,8 @@ const linkProps = (action: BarAction) => (action.href ? { href: action.href, tar
 const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode: (value: boolean) => void }) => {
   const navigate = useNavigate();
   const currTab = useCurrentTab();
-  // Only the pointer handlers: a long press is a mouse gesture here. On touch it collides with the
-  // browser's own press-and-hold — selection, the callout menu — and the overflow menu offers guest
-  // mode outright, so nothing is lost. Compatibility mouse events from a tap arrive as a down and
-  // an up together at release, which schedules the timer and cancels it in the same tick.
+  // The hook answers with the pointer's handlers alone, which is why the overflow menu offers guest
+  // mode outright: a finger has no long press to reach it with.
   const { onMouseDown, onMouseUp, onMouseLeave } = useLongPress(() => setGuestMode(true));
   const { authorise, revoke } = useGoogleAuth();
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
