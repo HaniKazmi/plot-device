@@ -116,8 +116,6 @@ const Sunburst = <T, K extends string>({
     setRebuilds((count) => count + 1);
   }, [root.id, drilledId, groupsKey]);
 
-  const ring = firstRing(generatedData);
-
   return (
     <FoldedChart
       header={
@@ -128,8 +126,12 @@ const Sunburst = <T, K extends string>({
           action={controls}
         />
       }
-      summary={ringSummary(ring)}
-      preview={<RingBar ring={ring} />}
+      // The innermost ring is what both halves of the fold read, so it is flattened out of the
+      // hierarchy once here rather than by each of them.
+      fold={() => {
+        const ring = firstRing(generatedData);
+        return { summary: ringSummary(ring), preview: <RingBar ring={ring} /> };
+      }}
     >
       <CardContent>
         <Chart
@@ -221,8 +223,6 @@ const RingBar = ({ ring }: { ring: SunburstEntry[] }) => {
             ? neutralFill(scheme)
             : (colours.get(wedge.name) ?? highchartsColors[index % highchartsColors.length]),
       }))}
-      hovered={null}
-      onHover={() => {}}
     />
   );
 };
@@ -254,7 +254,11 @@ export const SunBurstControls = <T extends string>({
   return (
     <Stack
       direction="row"
-      spacing={1}
+      // Tighter around the chevrons where the row has to hold three rings in a phone's card width.
+      spacing={{ xs: 0.5, sm: 1 }}
+      // A gap rather than margins, so the label dropped below `sm` takes its own spacing with it —
+      // a `display: none` sibling still earns the next child its margin.
+      useFlexGap
       sx={{
         alignItems: "center",
         flexWrap: "wrap",
@@ -268,9 +272,15 @@ export const SunBurstControls = <T extends string>({
         maxWidth: { xs: "none", md: 220, lg: "none" },
       }}
     >
+      {/* Dropped on a phone, where the three rings and the word do not share a line: at 390 the
+          card is 324px and the row asks for 379, so the last ring wraps under the label and the
+          control stands two rows tall on a page the fold is there to shorten. The word is what
+          says the row is a nesting order to a reader meeting it — the chevrons say the rest, and
+          on the one width where only one of the two fits, they are the half that cannot be
+          inferred from the values. */}
       <Typography
         variant="caption"
-        sx={{ ...LABEL_SX, color: "text.secondary" }}
+        sx={{ ...LABEL_SX, color: "text.secondary", display: { xs: "none", sm: "inline" } }}
       >
         Nest by
       </Typography>

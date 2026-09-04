@@ -4,6 +4,7 @@ import { shortYear, type YearMonthDay } from "./date";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 import { ChipRail } from "./ChipRail";
 import { HoverCardTooltip } from "./HoverCardTooltip";
+import { useCoarsePointer } from "./useCoarsePointer";
 import { LazyTooltip } from "./LazyTooltip";
 import { ScrollFade } from "./ScrollFade";
 import { scrollbarSx } from "./scrollbarSx";
@@ -520,6 +521,10 @@ const TimelineGrid = ({
   markers: YearMarker[];
 }) => {
   const { layouts, setItemRef } = useTextPlacement(data);
+  // Asked once for the whole chart. Every bar mounts two hover cards, so a chart of a few hundred
+  // items would otherwise hold a thousand media-query subscriptions to answer one question that
+  // cannot differ between them.
+  const coarse = useCoarsePointer();
 
   return (
     <svg
@@ -535,6 +540,7 @@ const TimelineGrid = ({
         <TimelineText
           key={event.key}
           event={event}
+          coarse={coarse}
           startDate={startDate}
           endDate={endDate}
           totalDays={totalDays}
@@ -550,6 +556,7 @@ const TimelineGrid = ({
 
 const TimelineText = ({
   event,
+  coarse,
   startDate,
   endDate,
   totalDays,
@@ -559,6 +566,8 @@ const TimelineText = ({
   layoutInfo,
 }: {
   event: PositionedTimelineData;
+  /** Read once for the chart, since a bar's two triggers cannot disagree about it. */
+  coarse: boolean;
   startDate: YearMonthDay;
   endDate: YearMonthDay;
   totalDays: number;
@@ -646,6 +655,7 @@ const TimelineText = ({
       <HoverCardTooltip
         colour={event.colour}
         title={<LazyTooltip render={event.tooltip} />}
+        coarse={coarse}
       >
         <Box
           component="rect"
@@ -673,6 +683,7 @@ const TimelineText = ({
         <HoverCardTooltip
           colour={event.colour}
           title={<LazyTooltip render={event.tooltip} />}
+          coarse={coarse}
         >
           <Box
             sx={LABEL_SX}

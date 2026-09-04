@@ -68,6 +68,22 @@ export const NOW_GEOMETRY: NowGeometry = {
 export const NOW_GAP = 8;
 
 /**
+ * The narrowest card a share may produce.
+ *
+ * The column beside a poster is what the floor is really about: at 366 it is 133px, which is as
+ * narrow as a date, a two-line title and two tiles read well in, and the column is the card's width
+ * less the poster the row's height gives it — so every pixel off the card comes off the words
+ * twice over. At 296, the two-way share of a 600px row, the column is 90px and the title has three
+ * characters a line.
+ *
+ * One figure for both shares, because the reading it protects is the same one: a card narrower
+ * than this is a card whose words cannot be read, however many of it the row was trying to seat.
+ * A share under it answers nothing and the band falls back (`Now`) — to two cards a row where four
+ * were being solved for, and to the stated card, one a row, where two were.
+ */
+const NOW_MIN_CARD_WIDTH = 366;
+
+/**
  * The band solved from the row it is given rather than from the card width above, for the widths
  * where the stated card does not fit the row a whole number of times.
  *
@@ -78,24 +94,32 @@ export const NOW_GAP = 8;
  * than from the container's own numbers, so a change to the theme's container moves the band with
  * it rather than past it.
  */
-const shareGeometry = (rowWidth: number, perRow: number): NowGeometry => {
+const shareGeometry = (rowWidth: number, perRow: number): NowGeometry | undefined => {
   const cardWidth = Math.floor((rowWidth - (perRow - 1) * NOW_GAP) / perRow);
+  if (cardWidth < NOW_MIN_CARD_WIDTH) return undefined;
+
   const bannerArtHeight = Math.round(cardWidth / shapeRatioValues.landscape);
   const height = bannerArtHeight + NOW_BANNER_TEXT_HEIGHT;
   return { cardWidth, height, posterArtWidth: Math.round(height * shapeRatioValues.portrait), bannerArtHeight };
 };
 
 /**
- * The band two cards to a row, which is what a tablet in portrait draws.
+ * The band two cards to a row, which is what a wide tablet draws.
  *
- * At 768 the page gives the row 720 and the stated card is 434, so two of them overflow and one
- * leaves half the band empty. Sharing the row in two is the same answer the four-way share gives a
- * wide desktop, and it has no floor to fail: two cards of a 600px row are 296 each, where the
- * column beside a poster is still wider than the four-way share's own floor allows.
+ * The stated card is 434, so two of them fit no page between the phone and `md` and one leaves
+ * half the band empty. Sharing the row in two is the same answer the four-way share gives a wide
+ * desktop, and it is bounded the same way: two of a 740px row are 366 each, exactly the floor, and
+ * a narrower row gives back nothing. At 800 the page gives the row 752 and the pair is 372.
+ *
+ * Under 740 the band stands the cards at their stated width instead, and they wrap one to a row,
+ * two of those not fitting either. That is what a 768 tablet gets — its row is 720, where the pair
+ * would be 356 and the words beside a poster 128px — and what the reader gets everywhere between
+ * the phone's rows and the width the pair opens at: a column of full-size cards, each the size the
+ * band was drawn at, rather than a row of two whose words are narrower than they read in.
  *
  * @see denseNowGeometry
  */
-export const pairNowGeometry = (rowWidth: number): NowGeometry => shareGeometry(rowWidth, 2);
+export const pairNowGeometry = (rowWidth: number): NowGeometry | undefined => shareGeometry(rowWidth, 2);
 
 /**
  * The same band with all four media in flight, on one row.
@@ -107,20 +131,14 @@ export const pairNowGeometry = (rowWidth: number): NowGeometry => shareGeometry(
  * picture at 16:9 across the narrower card is what gives the row its height, and the poster and
  * cover columns take that height and are narrower for it.
  *
- * The share has a floor, 366. The column beside a poster is 133px there, which is as narrow as a
- * date, a two-line title and two tiles read well in, and a row that cannot give each card that
- * much seats them two and two instead (`Now`). The widest container gives exactly that, so the
- * one-row band is that container's band and no narrower one's. Three cards keep the geometry
- * above — a row of three at this size would leave a quarter of the band empty for no reason a
- * reader could see. Solved from the measured row rather than from the container's own numbers,
- * so a change to the theme's container moves the band with it rather than past it.
+ * 1,488 is the floor exactly, so the one-row band is the widest container's band and no narrower
+ * one's, and a row that cannot give each card that much seats them two and two instead (`Now`).
+ * Three cards keep the stated geometry — a row of three at this size would leave a quarter of the
+ * band empty for no reason a reader could see. Solved from the measured row rather than from the
+ * container's own numbers, so a change to the theme's container moves the band with it rather than
+ * past it.
  */
-const NOW_DENSE_MIN_CARD_WIDTH = 366;
-
-export const denseNowGeometry = (rowWidth: number): NowGeometry | undefined => {
-  const geometry = shareGeometry(rowWidth, 4);
-  return geometry.cardWidth < NOW_DENSE_MIN_CARD_WIDTH ? undefined : geometry;
-};
+export const denseNowGeometry = (rowWidth: number): NowGeometry | undefined => shareGeometry(rowWidth, 4);
 
 /**
  * What every panel in the band gives up so that 136 holds a kicker, a title, a subtitle and a

@@ -34,7 +34,7 @@ import { ArtworkAccent, artworkPalette, SEAM_WIDTH, useArtworkPalette } from "./
 import { HoverCardTooltip } from "./HoverCardTooltip";
 import { SheetGrabber } from "./SheetGrabber";
 import { stickySheetHeader } from "./fullscreenSheet";
-import { TOUCH_TARGET_SX } from "./touchTarget";
+import { TOUCH_TARGET_SX, touchTargetSx } from "./touchTarget";
 import {
   CardArrangementProvider,
   shapeToArrangement,
@@ -1574,7 +1574,9 @@ const Segment = ({
  * a meaning the difference does not carry.
  *
  * The dim is controlled rather than held here: a legend outside this shell has to fade in step
- * with it, so both halves read one `hovered` name.
+ * with it, so both halves read one `hovered` name. Both halves of it are optional, for a bar
+ * standing where there is nothing to hover — a folded card's preview, which is a picture of the
+ * chart and not the chart.
  */
 const BAR_HEIGHT = 1.5;
 
@@ -1584,8 +1586,8 @@ export const ProportionalBar = ({
   onHover,
 }: {
   items: { name: string; percent: number; colour: string }[];
-  hovered: string | null;
-  onHover: (name: string | null) => void;
+  hovered?: string | null;
+  onHover?: (name: string | null) => void;
 }) => (
   <Stack
     direction="row"
@@ -1598,11 +1600,11 @@ export const ProportionalBar = ({
         percent={item.percent}
         backgroundColour={item.colour}
         spacing={BAR_HEIGHT}
-        onMouseEnter={() => onHover(item.name)}
-        onMouseLeave={() => onHover(null)}
+        onMouseEnter={() => onHover?.(item.name)}
+        onMouseLeave={() => onHover?.(null)}
         sx={{
           borderRadius: 0.5,
-          ...dimSx(hovered, item.name),
+          ...dimSx(hovered ?? null, item.name),
           // A segment answers a hover and nothing else. A pointer cursor here promises a drilldown
           // that does not exist, and the dim already says the segment is live.
           cursor: "default",
@@ -1872,9 +1874,21 @@ const BAND_SX = {
   // A tap leaves the band it landed on lit until the next tap lands elsewhere, which reads as a
   // selection the strip never made.
   "@media (hover: hover)": { "&:hover": { opacity: 1, filter: "brightness(1.25)" } },
-  ...TOUCH_TARGET_SX,
   userSelect: "none",
 } as const;
+
+/**
+ * The finger's reach on a band, which is the lane's own height once a strip has more than one.
+ *
+ * A lane of a 24px strip is 12px or less, so the full box would reach into its neighbours and the
+ * later band would answer for both. Stated as a percentage of the band's own box, which is the
+ * lane less its padding on each side — the band and its box are laid out in the same percentages,
+ * so the reach follows a strip of any height without either knowing what that height is.
+ *
+ * Two constants rather than a figure per band: emotion mints a class per distinct value set, and a
+ * crossings stack draws hundreds of bands between them.
+ */
+const LANE_TOUCH_SX = touchTargetSx(`${100 / (1 - 2 * LANE_PADDING)}%`);
 
 /**
  * An estimated span dissolves at both ends rather than stopping at one, because a hard edge is a
@@ -1930,6 +1944,7 @@ export const TimelineBandBox = ({
         // Later entries win, so the imprecise band's square cut lands over the rounded default.
         sx={[
           BAND_SX,
+          laneCount > 1 ? LANE_TOUCH_SX : TOUCH_TARGET_SX,
           !!imprecise && IMPRECISE_BAND_SX,
           !!muted && MUTED_BAND_SX,
           !muted && !frameless && RINGED_BAND_SX,

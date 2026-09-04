@@ -24,14 +24,32 @@ describe("the Now band's geometry", () => {
     expect(denseNowGeometry(1688)?.cardWidth).toBe(416);
   });
 
-  it("seats two to a row where a tablet's width holds no more", () => {
-    // 768 less 24px of padding a side, halved with one gap between — 356 each, a 16:9 banner 200
-    // tall over its 136px panel, and a poster at 0.68 of that height.
-    expect(pairNowGeometry(720)).toEqual({ cardWidth: 356, height: 336, posterArtWidth: 228, bannerArtHeight: 200 });
+  it("seats two to a row from the width that gives each of them the floor", () => {
+    // 740 halved with one gap between — 366 each, a 16:9 banner 206 tall over its 136px panel,
+    // and a poster at 0.68 of that height.
+    expect(pairNowGeometry(740)).toEqual({ cardWidth: 366, height: 342, posterArtWidth: 233, bannerArtHeight: 206 });
+  });
+
+  it("gives no pair under the floor, so the band stands its cards at their stated width instead", () => {
+    // A 768px tablet's row is 720 and a 600px one's is 552: two cards there are 356 and 272, whose
+    // word columns are 128px and 75 against the 133 the floor is set at.
+    expect(pairNowGeometry(739)).toBeUndefined();
+    expect(pairNowGeometry(720)).toBeUndefined();
+    expect(pairNowGeometry(552)).toBeUndefined();
   });
 
   it("gives the pair a card wider than the four-way share of the same row", () => {
-    expect(pairNowGeometry(1488).cardWidth).toBeGreaterThan(denseNowGeometry(1488)!.cardWidth);
+    expect(pairNowGeometry(1488)!.cardWidth).toBeGreaterThan(denseNowGeometry(1488)!.cardWidth);
+  });
+
+  // The floor is a floor on the words, not on the card: the column is the card less the poster the
+  // row's height gives it, so it is what the figure was chosen for and what both shares protect.
+  it("leaves a poster's column of words at 133px at either share's floor", () => {
+    const column = (geometry: { cardWidth: number; posterArtWidth: number }) =>
+      geometry.cardWidth - geometry.posterArtWidth;
+
+    expect(column(denseNowGeometry(1488)!)).toBe(133);
+    expect(column(pairNowGeometry(740)!)).toBe(133);
   });
 
   it("holds every shape at the phone row's height, so no picture is cropped to fit", () => {

@@ -188,8 +188,10 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
   // The band two to a row, which is the arrangement between a phone and the desktop: the stated
   // card is wider than half a tablet's page, so this width is solved from the row as the four-way
   // share is. Only one of the two ever applies, the other being written under a breakpoint the
-  // reader is not at.
-  const pair = rowWidth === undefined ? undefined : pairNowGeometry(rowWidth);
+  // reader is not at. Under the share's own floor the stated card stands in, as it does for the
+  // four-way share: two of those do not fit the row either, so the cards wrap to one apiece and
+  // the band is a column of full-size cards rather than a row of two whose words cannot be read.
+  const pair = rowWidth === undefined ? undefined : (pairNowGeometry(rowWidth) ?? NOW_GEOMETRY);
 
   return (
     // Measured on a wrapper the cap below does not narrow: the row itself is held to two cards'

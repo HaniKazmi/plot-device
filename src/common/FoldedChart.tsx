@@ -14,6 +14,14 @@ const SPARK_HEIGHT = 44;
 /** A column with nothing in it still says the year happened. */
 const SPARK_FLOOR = 2;
 
+/** What a folded card states in place of its chart, built only where one is folded. */
+export interface Fold {
+  /** What the chart says, in one line, for a reader who does not open it. */
+  summary: string;
+  /** The chart's shape at a glance: a sparkline, a proportional bar. */
+  preview?: ReactNode;
+}
+
 /**
  * A chart card that opens on request.
  *
@@ -31,16 +39,20 @@ const SPARK_FLOOR = 2;
  */
 export const FoldedChart = ({
   header,
-  summary,
-  preview,
+  fold,
   children,
 }: {
   /** The card's own `SectionHeader`, controls and all — it heads both states. */
   header: ReactNode;
-  /** What the chart says, in one line, for a reader who does not open it. */
-  summary: string;
-  /** The chart's shape at a glance: a sparkline, a proportional bar. */
-  preview?: ReactNode;
+  /**
+   * The line and the picture the fold stands on, as a thunk.
+   *
+   * A thunk because both are derived from the chart's own data — a second pivot of the barchart,
+   * the sunburst's first ring — and from `sm` up nothing reads them. Called past the width check
+   * and once for the pair, so a card that needs the same pivot for both does not build it twice.
+   * `Card`'s `detailComponent` defers a subtree the same way.
+   */
+  fold: () => Fold;
   children: ReactNode;
 }) => {
   const phone = usePhone();
@@ -53,6 +65,8 @@ export const FoldedChart = ({
         {children}
       </Card>
     );
+
+  const { summary, preview } = fold();
 
   return (
     <Card>

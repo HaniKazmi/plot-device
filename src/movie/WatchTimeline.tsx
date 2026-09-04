@@ -53,7 +53,7 @@ const WatchTimeline = ({ data }: { data: Movie[] }) => {
         }
         // The stack's own shape in words: how many years it draws and which of them is fullest.
         // A ribbon has no single figure to preview, every row being the same twelve months.
-        summary={summarise(rows)}
+        fold={() => ({ summary: summarise(rows) })}
       >
         <EventRibbon
           rows={rows}

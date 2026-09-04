@@ -318,4 +318,26 @@ describe("barchartSummary", () => {
   it("answers nothing for an empty pivot, which has no peak and no leader", () => {
     expect(summarise([])).toBeUndefined();
   });
+
+  // What a folded barchart's line and sparkline are read for is the Totals view, and the grain of
+  // that reading is the pivot's alone: the same library bucketed by month names a month as its
+  // peak and counts every month between its ends, where by year it names a year and counts four.
+  // A summary built from the pivot a *different* view asked for therefore describes that view's
+  // grain and not the one the words claim, which is why the shell pivots the Totals rows again
+  // rather than reusing the one the chart is drawing.
+  it("takes its grain, its peak and its column count from the pivot it is handed, not the library", () => {
+    const months = groupDate([point("a", 2020, 1, 1), point("a", 2020, 6, 9), point("a", 2023, 4, 2)]);
+    const years = groupDate([year("a", 1, 2020), year("a", 9, 2020), year("a", 2, 2023)]);
+
+    expect(barchartSummary(months.results, months.dates, months.groups)).toMatchObject({
+      peak: { label: "Jun 2020", value: 9 },
+      columns: 40,
+      grain: "months",
+    });
+    expect(barchartSummary(years.results, years.dates, years.groups)).toMatchObject({
+      peak: { label: "2020", value: 10 },
+      columns: 4,
+      grain: "years",
+    });
+  });
 });
