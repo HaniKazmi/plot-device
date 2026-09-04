@@ -43,11 +43,20 @@ export const StatCard = ({
   title,
   action,
   content,
+  span,
 }: {
   icon: ReactNode;
   title: ReactNode;
   action?: ReactNode;
   content: [string, number][];
+  /**
+   * The cell this card takes, where the band's default pairing would leave it standing alone.
+   *
+   * A band of four pairs cleanly at every width; one of three leaves its last card beside a gap,
+   * which reads as a card that lost its neighbour rather than as one the row has no more of.
+   * Stated per card because only the caller knows how many it is placing.
+   */
+  span?: { xs?: number; sm?: number; md?: number | "grow" };
 }) => {
   const formattedContent = (
     <Stack
@@ -55,35 +64,48 @@ export const StatCard = ({
         <Divider
           orientation="vertical"
           flexItem
+          // The rule between two figures side by side. Stacked they are under each other, where a
+          // vertical rule would stand across them.
+          sx={{ display: { xs: "none", sm: "block" } }}
         />
       }
-      direction={"row"}
+      // A phone gives a card half the screen, so its figures read down as a small ledger — the
+      // figure and the word it counts on one line, the lines under each other. Three of them
+      // across 143px instead puts each figure under a word wider than itself, and the digits
+      // that answer the card are what shrinks to make room.
+      direction={{ xs: "column", sm: "row" }}
       sx={{
-        justifyContent: "space-evenly",
+        justifyContent: { xs: "flex-start", sm: "space-evenly" },
       }}
     >
       {content.map(([key, val]) => (
         <Stack
           key={key}
-          direction={"column"}
+          direction={{ xs: "row", sm: "column" }}
           sx={{
-            flex: "1 1 0",
+            // Its own height stacked, an equal share of the row abreast: a share of the height
+            // would spread two lines apart down a card sized by the tallest one beside it.
+            flex: { xs: "0 0 auto", sm: "1 1 0" },
+            // The word sits on the figure's own baseline rather than under it, and wraps beneath
+            // it where the two are wider than the card.
+            alignItems: { xs: "baseline", sm: "stretch" },
+            flexWrap: "wrap",
+            columnGap: { xs: 0.75, sm: 0 },
           }}
         >
           <Typography
-            align="center"
             variant="h5"
             // A row of figures that refresh under the filters, so proportional digits would move
             // each one sideways as its own width changed while its neighbours stood still.
-            sx={{ fontVariantNumeric: "tabular-nums" }}
+            sx={{ fontVariantNumeric: "tabular-nums", textAlign: { xs: "left", sm: "center" } }}
           >
             {format(val)}
           </Typography>
           <Typography
-            align="center"
             variant="subtitle2"
             sx={{
               color: "text.secondary",
+              textAlign: { xs: "left", sm: "center" },
             }}
           >
             {key}
@@ -95,7 +117,9 @@ export const StatCard = ({
   return (
     <Grid
       size={{
-        xs: 12,
+        // Two to a row on a phone. A vitals band is four cards and a full-width band or two, so at
+        // one card a row the figures a tab opens with run two screens deep before the first chart.
+        xs: 6,
         sm: 6,
         // A quarter is only right for a row of four. A domain's vitals band varies its card
         // count with what the sheet holds and which year mode is active — Games drops to three
@@ -104,6 +128,7 @@ export const StatCard = ({
         // of naming a fraction of it, which is what keeps three cards at a third and two at a
         // half without a card count to branch on.
         md: "grow",
+        ...span,
       }}
     >
       <Card sx={{ height: "100%" }}>
@@ -734,10 +759,17 @@ export const TotalsBand = <T extends string, U>(props: {
         onHover={setHovered}
       />
       {/* Wrapping rather than a column each: the legend is as wide as the words in it, so however
-        many groups there are they fill the lines they need and stop. */}
-      <Stack
-        direction="row"
-        sx={{ flexWrap: "wrap", columnGap: 2, rowGap: 0.5 }}
+        many groups there are they fill the lines they need and stop. On a phone the words are
+        wide enough against the screen that a wrapping row leaves one entry a line and the counts
+        land wherever each name ends; two fixed columns line them up instead. */}
+      <Box
+        sx={{
+          display: { xs: "grid", sm: "flex" },
+          gridTemplateColumns: { xs: "repeat(2, minmax(0, 1fr))" },
+          flexWrap: "wrap",
+          columnGap: 2,
+          rowGap: 0.5,
+        }}
       >
         {totals.map((struct) => (
           <Stack
@@ -748,6 +780,9 @@ export const TotalsBand = <T extends string, U>(props: {
             onMouseLeave={() => setHovered(null)}
             sx={{
               alignItems: "center",
+              // A grid track is a width the entry did not choose, so a long name needs a floor of
+              // its own or it pushes its column past the half it was given.
+              minWidth: 0,
               ...dimSx(hovered, struct.name),
             }}
           >
@@ -764,7 +799,7 @@ export const TotalsBand = <T extends string, U>(props: {
             </Typography>
           </Stack>
         ))}
-      </Stack>
+      </Box>
     </Stack>
   );
 };

@@ -101,6 +101,10 @@ const Stats = ({
             <StatCard
               icon={<Hub />}
               title="Franchises"
+              // The third card of three, where the band pairs its cards: half a row leaves it
+              // beside a gap, which reads as a card that lost its neighbour. Full width it is the
+              // band's own closing line, above the media band that follows it.
+              span={{ xs: 12, sm: 12 }}
               content={[
                 ["Franchises", crossings.length],
                 ["Entries", crossingEntries(crossings)],
