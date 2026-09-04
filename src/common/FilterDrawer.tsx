@@ -16,9 +16,9 @@ import {
   Switch,
   ToggleButton,
   Typography,
-  useMediaQuery,
-  useTheme,
 } from "@mui/material";
+import { usePhone } from "./breakpoints";
+import { SheetGrabber } from "./SheetGrabber";
 import Grid from "@mui/material/Grid";
 import { createContext, useContext, useEffect, type ReactNode } from "react";
 import type { Colour } from "../utils/types";
@@ -94,8 +94,9 @@ export const FilterDrawer = ({
   toggles?: ReactNode;
   categories: ReactNode;
 }) => {
-  const theme = useTheme();
-  const sheet = useMediaQuery(theme.breakpoints.down("sm"));
+  // The one width question this shell asks, through the app's single answer to it: a sheet and a
+  // persistent drawer are different trees, not one tree at two sizes.
+  const sheet = usePhone();
   const drawerOpen = useFilterSheetOpen();
   const close = () => setFilterSheetOpen(false);
   const open = () => setFilterSheetOpen(true);
@@ -128,21 +129,13 @@ export const FilterDrawer = ({
                 maxHeight: "90vh",
                 display: "flex",
                 flexDirection: "column",
+                // The room above the grabber, which draws only itself.
+                paddingTop: 1,
               },
             },
           }}
         >
-          <Box
-            sx={{
-              flexShrink: 0,
-              width: 32,
-              height: 4,
-              borderRadius: 2,
-              backgroundColor: "divider",
-              marginX: "auto",
-              marginTop: 1,
-            }}
-          />
+          <SheetGrabber />
           <Stack
             direction="row"
             sx={{ flexShrink: 0, alignItems: "baseline", justifyContent: "space-between", paddingX: 2, paddingY: 1 }}
@@ -191,7 +184,16 @@ export const FilterDrawer = ({
   }
 
   return (
-    <Box sx={{ position: "fixed", right: (theme) => theme.spacing(2), bottom: (theme) => theme.spacing(2) }}>
+    // Pinned to the screen rather than to the page, so it pays the device's own insets as the bars
+    // do (`safeAreaGutters`): a tablet or a phone held sideways puts a rounded corner exactly where
+    // a button 16px off both edges sits.
+    <Box
+      sx={(theme) => ({
+        position: "fixed",
+        right: `calc(${theme.spacing(2)} + env(safe-area-inset-right))`,
+        bottom: `calc(${theme.spacing(2)} + env(safe-area-inset-bottom))`,
+      })}
+    >
       <Badge
         badgeContent={activeCount}
         color="secondary"

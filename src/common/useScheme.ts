@@ -1,16 +1,8 @@
-import { useSyncExternalStore } from "react";
 import type { Scheme } from "../utils/types";
+import { useMatchMedia } from "./useMatchMedia";
 
 /** The query the app is actually painted through, so a fill and its paper cannot disagree. */
 const PREFERS_DARK = "(prefers-color-scheme: dark)";
-
-const subscribe = (onChange: () => void) => {
-  const query = window.matchMedia(PREFERS_DARK);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-};
-
-const darkPaper = () => window.matchMedia(PREFERS_DARK).matches;
 
 /**
  * Which paper the app is currently painting on, for the colour lookups that need to know.
@@ -23,9 +15,8 @@ const darkPaper = () => window.matchMedia(PREFERS_DARK).matches;
  * — every fill on the page would then take the half meant for the other paper, on every render,
  * with nothing on screen to correct it.
  *
- * `useSyncExternalStore` is what re-renders a chart when the reader's system flips at dusk. Without
- * it nothing would: the CSS variables turn over inside the browser, where React cannot see them.
- * The global is read inside the callbacks rather than beside them, so importing this module does
- * not require a `window`.
+ * Through `useMatchMedia`, which is what re-renders a chart when the reader's system flips at dusk.
+ * Without the subscription nothing would: the CSS variables turn over inside the browser, where
+ * React cannot see them.
  */
-export const useScheme = (): Scheme => (useSyncExternalStore(subscribe, darkPaper) ? "dark" : "light");
+export const useScheme = (): Scheme => (useMatchMedia(PREFERS_DARK) ? "dark" : "light");

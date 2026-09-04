@@ -48,6 +48,11 @@ export const BottomTabs = () => {
         // than taken out of the actions' own.
         height: BOTTOM_TABS_CLEARANCE,
         paddingBottom: "env(safe-area-inset-bottom)",
+        // Held sideways the screen's corners cover the ends of a full-width bar, so the row of
+        // five stops short of them. No gutter of its own to add to: the actions divide whatever is
+        // left (`safeAreaGutters` states the rule for the surfaces that do have one).
+        paddingLeft: "env(safe-area-inset-left)",
+        paddingRight: "env(safe-area-inset-right)",
         ...(rule && dark && { boxShadow: `inset 0 3px 0 0 ${rule}` }),
       }}
     >

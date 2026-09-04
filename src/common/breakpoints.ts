@@ -9,14 +9,16 @@ import { useMediaQuery } from "@mui/material";
  * Whether the page is being read on a phone — below `sm`, the one width where a chart is not what
  * the reader came for.
  *
- * A media query rather than an `sx` breakpoint because both callers need the answer as a value:
- * a folded chart mounts nothing at all until it is opened, and the tracked tabs put their charts
- * after their library **in DOM order**, which `useActiveSection` reads the page's order from. CSS
- * can hide a chart and it can reorder a flex container, and neither of those is either of these.
+ * A media query rather than an `sx` breakpoint because the callers need the answer as a value: a
+ * folded chart mounts nothing at all until it is opened, a sheet and a drawer are different trees
+ * rather than one tree at two sizes, and the tracked tabs put their charts after their library **in
+ * DOM order**, which `useActiveSection` reads the page's order from. CSS can hide a chart and it can
+ * reorder a flex container, and neither of those is any of these.
  *
- * `noSsr` is what makes the first render the true answer. Left off, the first paint takes the
- * default — no match — so a phone would mount every chart and then fold it away, and the rail's
- * order would be written for the desktop and rewritten a frame later.
+ * `noSsr` states the query's real answer as the server snapshot too. `main.tsx` mounts with
+ * `createRoot` and never hydrates, so that snapshot is not read and the first render already
+ * matches the screen; the option is what keeps that true of a root that did hydrate, one hook
+ * giving one answer rather than two under different roots.
  */
 export const usePhone = () => useMediaQuery((theme) => theme.breakpoints.down("sm"), { noSsr: true });
 

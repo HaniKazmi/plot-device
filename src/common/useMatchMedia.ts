@@ -1,0 +1,37 @@
+import { useSyncExternalStore } from "react";
+
+/**
+ * A media query the app reads as a value, subscribed to so its answer stays live.
+ *
+ * Two things the page paints from can change under a reader without anything else re-rendering:
+ * the system's light/dark setting at dusk, and the primary pointer when a mouse is plugged into a
+ * tablet. `useSyncExternalStore` is what turns either into a render — the browser turns CSS
+ * variables over where React cannot see them, and no event of React's own fires at all.
+ *
+ * Stores are kept per query at module scope because `subscribe` has to be the same function across
+ * renders: a fresh one each time makes React tear the listener down and put it back on every
+ * render. The `window` is read inside the callbacks rather than beside them, so importing this
+ * module does not require one.
+ */
+const stores = new Map<string, { subscribe: (onChange: () => void) => () => void; matches: () => boolean }>();
+
+const storeFor = (query: string) => {
+  const existing = stores.get(query);
+  if (existing) return existing;
+  const store = {
+    subscribe: (onChange: () => void) => {
+      const list = window.matchMedia(query);
+      list.addEventListener("change", onChange);
+      return () => list.removeEventListener("change", onChange);
+    },
+    matches: () => window.matchMedia(query).matches,
+  };
+  stores.set(query, store);
+  return store;
+};
+
+/** Whether the query matches right now, re-rendering the caller whenever that answer turns over. */
+export const useMatchMedia = (query: string) => {
+  const store = storeFor(query);
+  return useSyncExternalStore(store.subscribe, store.matches);
+};

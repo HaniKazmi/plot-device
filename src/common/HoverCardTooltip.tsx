@@ -2,6 +2,7 @@ import { Box, SwipeableDrawer, Tooltip, type TooltipProps } from "@mui/material"
 import type { Instance as PopperInstance } from "@popperjs/core";
 import { cloneElement, useRef, useState, type MouseEventHandler, type ReactElement, type ReactNode } from "react";
 import { useCoarsePointer } from "./useCoarsePointer";
+import { SheetGrabber } from "./SheetGrabber";
 
 /**
  * The gap of the bar's own colour drawn around a hover card.
@@ -106,6 +107,8 @@ const HoverCardSheet = ({ colour, title, children }: HoverCardProps) => {
                 borderTopWidth: `${MAT}px`,
                 maxHeight: SHEET_MAX_HEIGHT,
                 overflowY: "auto",
+                // The room above the grabber, which draws only itself.
+                paddingTop: 1,
                 // The home indicator sits over the last few points of the screen, and the card's
                 // own figures run to the bottom of the sheet.
                 paddingBottom: "env(safe-area-inset-bottom)",
@@ -114,21 +117,10 @@ const HoverCardSheet = ({ colour, title, children }: HoverCardProps) => {
             },
           }}
         >
-          {/* A grabber says the sheet is draggable, which is the one thing about a bottom sheet
-              that nothing else on it can state. */}
-          <Box
-            sx={{
-              width: 32,
-              height: 4,
-              borderRadius: 2,
-              margin: "8px auto",
-              backgroundColor: "text.secondary",
-              opacity: 0.4,
-            }}
-          />
+          <SheetGrabber />
           {/* A phone gives the card the screen; a tablet held sideways would give it the whole
               width, where the card was drawn to be read at one. */}
-          <Box sx={{ maxWidth: WIDTH, marginInline: "auto", padding: 1, paddingTop: 0 }}>{title}</Box>
+          <Box sx={{ maxWidth: WIDTH, marginInline: "auto", padding: 1 }}>{title}</Box>
         </SwipeableDrawer>
       )}
     </>
