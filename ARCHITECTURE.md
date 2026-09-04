@@ -1091,7 +1091,7 @@ the hero.
 the artwork opens the same expanded dialog a thumbnail does, and the panel rides in as that card's
 `footerComponent`, inside the `ArtworkAccent` the image publishes, rather than sampling the image
 twice and painting from whichever answer arrives first. Only the artwork's height is fixed — 300px
-from `md`, 260 at `sm` and 200 at `xs` — so the hero is one height whatever it shows while every
+from `md`, 280 at `sm` and 200 at `xs` — so the hero is one height whatever it shows while every
 poster and banner keeps its shape (a banner around 533px wide, a poster around 200), and past a
 560px ceiling `objectFit: contain` letterboxes a panorama onto the card's own ground.
 
@@ -1099,7 +1099,10 @@ Where the words sit is the shape rule, and the shape is all the hero is told: th
 own artwork once at the call site, and a banner stacks its words underneath until `md` while a
 poster or a cover seats them beside at every width. A portrait picture given the page's whole width
 is the whole of the first screen — a poster stands 525px at 390 and a cover 585 — so the phone's
-hero would open on one picture and start its figures below the fold.
+hero would open on one picture and start its figures below the fold. Below `md` the words beside
+a poster are held to its height — a title clamped to three lines over the subtitle — and the tiles
+go under both as `HeroStatBand`, a row of the card's own width, so the poster fills its column with
+no ground beneath it.
 
 Its figures are the item's own — hours logged, days in, franchise size — a tile dropped rather than
 zeroed where the sheet is silent, library totals staying in the cards below. The kicker says why the

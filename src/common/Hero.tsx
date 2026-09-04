@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { CardPanel, type PanelStat, type PanelSubtitlePart, type TypedCardMediaImage } from "./Card";
+import { CardPanel, HeroStatBand, type PanelStat, type PanelSubtitlePart, type TypedCardMediaImage } from "./Card";
 import { shapeToArrangement, shapeToAspect, type ArtworkShape } from "./cardArrangement";
 
 /**
@@ -13,8 +13,13 @@ import { shapeToArrangement, shapeToAspect, type ArtworkShape } from "./cardArra
  * stands about 525px and a cover about 585px, so the panel under it starts below the fold and the
  * page opens on one picture; the arrangement rule (§6) is what answers that, and it answers it by
  * shape *and* width here, since the constraint a phone adds is the one shape alone cannot see.
+ *
+ * Below `md` the words beside the poster are held to its height and the tiles go under both
+ * (`HeroStatBand`), so the poster fills its column with no ground beneath it: a kicker, a title of
+ * three lines at most and a subtitle stand under 200; at 280 the tablet's panel also holds the
+ * franchise strip.
  */
-const MEDIA_HEIGHT = { xs: 200, sm: 260, md: 300 };
+const MEDIA_HEIGHT = { xs: 200, sm: 280, md: 300 };
 
 /**
  * A panorama at 300px tall runs wide enough to leave the panel nothing, and the panel can shrink
@@ -74,6 +79,8 @@ export const Hero = <T,>(props: {
       mediaLayout="aside"
       cardSx={{
         flexDirection: aside ? "row" : { xs: "column", md: "row" },
+        // Below `md` the tiles wrap onto a band of their own under the picture and the words.
+        flexWrap: aside ? { xs: "wrap", md: "nowrap" } : "nowrap",
         // The panel takes the row's height where the artwork sets it, so its figures can sit on
         // the picture's own lower edge; a card whose words are underneath has no such row.
         alignItems: aside ? { xs: "stretch", md: "flex-start" } : "flex-start",
@@ -98,16 +105,19 @@ export const Hero = <T,>(props: {
         display: "block",
       }}
       footerComponent={
-        <CardPanel
-          layout={aside ? "hero-aside" : "hero"}
-          kicker={props.kicker}
-          title={props.title}
-          titleVariant="h4"
-          subtitle={props.subtitle}
-          stats={props.stats}
-          minHeight={MEDIA_HEIGHT.md}
-          middle={props.strip}
-        />
+        <>
+          <CardPanel
+            layout={aside ? "hero-aside" : "hero"}
+            kicker={props.kicker}
+            title={props.title}
+            titleVariant="h4"
+            subtitle={props.subtitle}
+            stats={props.stats}
+            minHeight={MEDIA_HEIGHT.md}
+            middle={props.strip}
+          />
+          {aside && <HeroStatBand stats={props.stats} />}
+        </>
       }
     />
   );

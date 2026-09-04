@@ -1032,6 +1032,15 @@ export const CardPanel = ({
             // panel and leaves the figures under it nowhere to stand. The step is stated against
             // the variant the caller asked for, so a hero that changes its title size moves both.
             ...(hero && { typography: { xs: "h5", sm: titleVariant ?? "h6" } }),
+            // Beside a poster the panel's height is the picture's, and the picture grows to hold
+            // the words: an unclamped title would grow the poster with it, taking width from the
+            // words it is set beside. Three lines is what a 200px row holds over a subtitle.
+            ...(heroAside && {
+              display: { xs: "-webkit-box", md: "block" },
+              WebkitBoxOrient: "vertical",
+              WebkitLineClamp: 3,
+              overflow: "hidden",
+            }),
             fontWeight: 700,
             lineHeight: 1.2,
             overflowWrap: "break-word",
@@ -1074,12 +1083,42 @@ export const CardPanel = ({
       {middle}
 
       {stats.length > 0 && (
-        <StatTileGrid
-          stats={stats}
-          size={statSize}
-        />
+        // Beside a poster on a phone or a tablet the tiles leave the panel for `HeroStatBand`, a
+        // row of the card's own width beneath the picture: kept in the column they would make it
+        // taller than the poster, and the poster would grow to match.
+        <Box sx={heroAside ? { display: { xs: "none", md: "contents" } } : { display: "contents" }}>
+          <StatTileGrid
+            stats={stats}
+            size={statSize}
+          />
+        </Box>
       )}
     </CardContent>
+  );
+};
+
+/**
+ * The hero's tiles as a band under the picture and the words, where the panel beside a poster is
+ * too narrow and too short to hold them: the card's own width, in the artwork's ground, seamed off
+ * the row above. Drawn below `md` alone; from `md` the panel carries the tiles itself.
+ */
+export const HeroStatBand = ({ stats }: { stats: CardStat[] }) => {
+  const palette = useArtworkPalette();
+  if (stats.length === 0) return null;
+
+  return (
+    <Box
+      sx={{
+        display: { xs: "block", md: "none" },
+        flexBasis: "100%",
+        padding: 1.5,
+        backgroundColor: palette.ground,
+        color: palette.onGround,
+        borderTop: palette.seam,
+      }}
+    >
+      <StatTileGrid stats={stats} />
+    </Box>
   );
 };
 
