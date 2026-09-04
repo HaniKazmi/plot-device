@@ -25,9 +25,12 @@
       rel="manifest"
       href="/manifest.webmanifest"
     />
+    <!-- `viewport-fit=cover` is what makes `env(safe-area-inset-*)` anything but zero: without it
+         the page is laid out inside the safe area already and the bottom navigation stops short of
+         the screen's own edge, leaving a band of paper under it on a phone with a home indicator. -->
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
     <title>Plot Device</title>
   </head>
