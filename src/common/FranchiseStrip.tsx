@@ -33,26 +33,17 @@ type StripMode = "order" | "time";
 /**
  * Where a strip stands. A card's strip offers both readings and wraps its chain; the hero's is
  * held to the order reading with no switch, keeps its chain to one row (a panel held to the
- * artwork's height cannot grow for a second), and is dropped at two widths.
+ * artwork's height cannot grow for a second), and is drawn only where its hero has room for it.
  */
 export type StripVariant = "card" | "hero";
 
 const CARD_STRIP_SX = { borderRadius: 1, padding: 1, marginBottom: 1 } as const;
 
 /**
- * The hero's strip stands at two of the four widths.
- *
- * On a phone the panel beside the artwork is a little over 200px, and a chain of beads is the
- * thing it has least room for — the expanded card is one tap away and draws the same strip with
- * its Order · Time switch, so the phone's hero spends that height on the item's own figures.
- * Between `md` and `lg` the column beside a banner wraps the title, and a wrapped title with a
- * strip under it outgrows the picture.
+ * The hero's strip. Which widths it stands at is the hero's to say (`common/Hero.tsx`), since the
+ * answer depends on the artwork's shape and the strip knows only its own variant.
  */
-const HERO_STRIP_SX = {
-  borderRadius: 1,
-  padding: 1,
-  display: { xs: "none", sm: "block", md: "none", lg: "block" },
-} as const;
+const HERO_STRIP_SX = { borderRadius: 1, padding: 1 } as const;
 
 /**
  * The mode a strip opens in: the one the reader last chose. A preference is about how the reader

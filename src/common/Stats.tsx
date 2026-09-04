@@ -915,13 +915,14 @@ export const TotalsBand = <T extends string, U>(props: {
         onHover={setHovered}
       />
       {/* Wrapping rather than a column each: the legend is as wide as the words in it, so however
-        many groups there are they fill the lines they need and stop. On a phone the words are
-        wide enough against the screen that a wrapping row leaves one entry a line and the counts
-        land wherever each name ends; two fixed columns line them up instead. */}
+        many groups there are they fill the lines they need and stop. On a phone the entries are
+        a list instead, one a line with its count at the right edge: two columns of 170px break
+        "141 Games" across two lines under a name as long as "PlayStation", and a wrapping row
+        lands each count wherever its name ends. */}
       <Box
         sx={{
-          display: { xs: "grid", sm: "flex" },
-          gridTemplateColumns: { xs: "repeat(2, minmax(0, 1fr))" },
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
           flexWrap: "wrap",
           columnGap: 2,
           rowGap: 0.5,
@@ -946,10 +947,15 @@ export const TotalsBand = <T extends string, U>(props: {
               colour={struct.colour}
               size={INLINE_SWATCH_SIZE}
             />
-            <Typography variant="body2">{groupToLabel(struct.name)}</Typography>
             <Typography
               variant="body2"
-              sx={MUTED_FIGURE_SX}
+              sx={{ flexGrow: { xs: 1, sm: 0 } }}
+            >
+              {groupToLabel(struct.name)}
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{ ...MUTED_FIGURE_SX, whiteSpace: "nowrap" }}
             >
               {`${format(struct.count)} ${measureLabel}`}
             </Typography>

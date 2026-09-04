@@ -122,9 +122,18 @@ export const Hero = <T,>(props: {
             subtitle={props.subtitle}
             stats={props.stats}
             minHeight={MEDIA_HEIGHT.md}
-            // Beside a banner on a tablet the panel is 258px wide and the tiles take its foot,
-            // which leaves no row for a chain of beads; the expanded card draws the strip.
-            middle={aside ? props.strip : <Box sx={{ display: { xs: "none", md: "contents" } }}>{props.strip}</Box>}
+            // Where the strip stands, by shape, and once decided never undone as the page narrows.
+            // Beside a poster the panel is wide from `sm` up, so the strip is drawn from there; on
+            // a phone the 200px panel spends its height on the title and the tiles take a band of
+            // their own. Beside a banner the panel is 258px at `sm` and, between `md` and `lg`,
+            // a column the title wraps in, and a wrapped title over a strip outgrows the picture,
+            // so a banner's strip waits for `lg`. Below either width the expanded card is one tap
+            // away and draws the same strip with its Order · Time switch.
+            middle={
+              <Box sx={{ display: aside ? { xs: "none", sm: "contents" } : { xs: "none", lg: "contents" } }}>
+                {props.strip}
+              </Box>
+            }
           />
           {aside && <HeroStatBand stats={props.stats} />}
         </>

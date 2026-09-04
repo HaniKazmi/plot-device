@@ -660,9 +660,11 @@ index down to the card strips.
 Every entry of an item's franchise the reader has met, across all four media, with the card's own
 item singled out. A `StripVariant` says where it stands: an expanded card's strip offers two
 readings and a switch between them, while the hero's is held to the first with no switch and is
-hidden at two widths: on a phone, where a chain of beads is what a 200px panel has least room for,
-and between `md` and `lg`, where the column beside a banner wraps the title and a wrapped title
-over a strip outgrows the picture.
+drawn only where its hero has room for it, a rule the hero states by shape so that a page narrowing
+never shows the strip, drops it and shows it again: beside a poster or a cover from `sm` up, the
+phone's 200px panel spending its height on the title; beside a banner from `lg` up, the panel being
+258px at `sm` and, between `md` and `lg`, a column the title wraps in, where a wrapped title over a
+strip outgrows the picture.
 
 **Order** is the default: one bead per entry in the order met, evenly spaced whatever the dates
 between, the year beneath only where it changes and no range in the caption, since the beads are the
