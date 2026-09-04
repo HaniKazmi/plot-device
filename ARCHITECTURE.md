@@ -535,19 +535,26 @@ one. Works are collapsed per shelf with the biggest entry as representative, dat
 collapsed in; an item with no close is dated today.
 
 **Genres by medium** (`omnibus/GenreBridge.tsx`, `omnibus/genreBridgeData.ts`) asks the composition
-question of genres: one proportional bar per genre, split by how its hours divide between the four
-media. Hours rather than the page's measure: under Items a two-hour film weighs the same as a
-hundred-hour game, so the bar would call a genre mostly films whenever the films are short. Only the
-primary genre counts, since two media carry secondaries. A genre held by one medium is a solid bar
-rather than held back until a second arrives — requiring the crossing puts a cliff in the section,
-Abstract being 136 hours of games that a single abstract film would admit at full size — and the bar
-states the confinement the cliff was hiding. A genre whose every entry logged nothing is dropped; a
-medium contributing no hours gets no segment, because `assignPercents` floors every slice at half a
-percent and a visible slice of nothing is a claim the data does not make. The hover dim is one piece
-of state for the whole card, turning a stack of bars into a comparison read down the column, and is
-optional on both `ProportionalBar` and a genre's own row for the same reason: folded on a phone, the
-card states its biggest genre by name, hours and media count, drawing that one row as the fold's
-preview, with nothing to dim it against.
+question of the union: one proportional bar per row, split by how it divides between the four
+media, counted in the rail's measure — under Hours a genre reads as mostly games wherever the games
+are long, under Items every entry weighs the same, and the rail is where the reader asks which. A
+select picks what a row is (`BRIDGE_KEYS`): genre, which the section opens on, or the year, decade
+or certificate tier, the vocabularies the gallery already shelves by, each row wearing the swatch
+that vocabulary has elsewhere on the page and a year its decade's. Franchise is not offered, for the
+By year chart's reason. Genres run biggest first; years and decades newest first; certificates
+youngest first through the shared `AGE_BANDS`, the order the boards print them in, so the bridge
+cannot order the tiers differently from the colour ramp. A book carries no certificate and drops
+out of that view, as it does off the rating shelves. Only the primary genre counts, since two media
+carry secondaries. A row held by one medium is a solid bar rather than held back until a second
+arrives — requiring the crossing puts a cliff in the section, Abstract being 136 hours of games
+that a single abstract film would admit at full size — and the bar states the confinement the cliff
+was hiding. A row whose every entry logged nothing is dropped; a medium contributing nothing gets no
+segment, because `assignPercents` floors every slice at half a percent and a visible slice of
+nothing is a claim the data does not make. The hover dim is one piece of state for the whole card,
+turning a stack of bars into a comparison read down the column, and is optional on both
+`ProportionalBar` and a row for the same reason: folded on a phone, the card states its leading row
+by name, figure and media count, drawing that one row as the fold's preview, with nothing to dim it
+against.
 
 **Franchises over time** (`omnibus/crossingsData.ts`, `omnibus/Crossings.tsx`) draws each franchise
 met as a strip, one lane per medium present, packed by `common/timelineStripData`'s `buildStrip` as
@@ -566,6 +573,16 @@ library for a single game's strip. The `epoch` is the earliest _start_ drawn, fl
 1 January: an attribution year is the year an item ended, so a scale opened on it clamps every
 earlier start against the left edge, and a mid-month epoch puts every year line off by the
 difference.
+
+The header's Franchises · All switch trades the strips for the packed timeline the Games, Shows
+and Books tabs draw one medium at a time, over the whole union: `omnibus/timelineData.ts` maps
+each item to a row through the crossings' own `crossingSpan`, so the two readings cannot disagree
+about when an entry ran, coloured by medium and hovering to the same dispatcher. A game logged
+with a bare year is left out rather than drawn as a year-long solid bar — the strips dissolve such
+a span under a mask that says so, where a packed row has no way to mark one as an estimate — and
+the header counts the rows drawn. The rows are built only while that reading is chosen, and the
+choice lasts the visit. `TimeLineChart` is exported from `common/Timeline.tsx` for it, the chart
+without the card the section already stands in.
 
 Folded on a phone, the section states its largest franchise — `crossings[0]`, the strips being
 ordered by size — by name, entry count and media spanned; a stack this wide has no single shape a

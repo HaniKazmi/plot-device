@@ -6,13 +6,41 @@ import { SectionHeader } from "../common/SectionHeader";
 import { FoldedChart } from "../common/FoldedChart";
 import { LABEL_SX, MUTED_FIGURE_SX } from "../common/typography";
 import { format } from "../utils/mathUtils";
-import type { GenreBridgeRow } from "./genreBridgeData";
-import { media, mediumToColour, mediumToLabel } from "./types";
+import { useSelectBox } from "../common/SelectBoxHook";
+import { BRIDGE_KEYS, genreBridge, type BridgeKey, type GenreBridgeRow } from "./genreBridgeData";
+import type { OmniItem } from "./adapter";
+import { media, mediumToColour, mediumToLabel, type Measure } from "./types";
 import { useScheme } from "../common/useScheme";
-import { genreToColour } from "../utils/types";
+import { decadeToColour, genreToColour, ageBandToColour, releaseDecade, type Scheme } from "../utils/types";
+import type { Colour } from "../utils/types";
+
+/** The figure's unit, short enough to sit beside a five-digit number in the figure column. */
+const UNIT: Record<Measure, string> = { Hours: "hrs", Items: "items" };
+
+/** The plural a key's rows are counted in, and the title's first word. */
+const KEY_NOUN: Record<BridgeKey, string> = { genre: "Genres", year: "Years", decade: "Decades", rating: "Ratings" };
 
 /**
- * Every genre the reader has spent time in, and how those hours divide between the three media.
+ * The swatch a row wears: the vocabulary the app already speaks for that field, as the gallery's
+ * shelves wear it, so a row here and a shelf there name a genre or a certificate the same way. A
+ * year wears its decade's, the one time vocabulary the page colours.
+ */
+const rowColour = (name: string, key: BridgeKey, scheme: Scheme): Colour | undefined => {
+  switch (key) {
+    case "genre":
+      return genreToColour(name, scheme);
+    case "rating":
+      return ageBandToColour(name, scheme);
+    case "decade":
+      return decadeToColour(name, scheme);
+    case "year":
+      return decadeToColour(releaseDecade(Number(name)), scheme);
+  }
+};
+
+/**
+ * Every genre the reader has spent time in, and how it divides between the four media in the
+ * page's measure.
  *
  * A genre held by one medium is a solid bar rather than an omission. Held back until a second
  * medium arrives, it accrues its whole weight unseen and then appears at full size on one entry
@@ -23,10 +51,14 @@ import { genreToColour } from "../utils/types";
  * every row at once — which is what turns a stack of independent bars into a comparison down the
  * column.
  */
-const GenreBridge = ({ rows }: { rows: GenreBridgeRow[] }) => {
+const GenreBridge = ({ items, measure }: { items: OmniItem[]; measure: Measure }) => {
   const scheme = useScheme();
 
   const [hovered, setHovered] = useState<string | null>(null);
+  // Genre is what the section opens on, the composition the union most plainly has; the rest are
+  // the same question asked of when an item was met and what it was certified.
+  const [key, keySelect] = useSelectBox(BRIDGE_KEYS, "genre");
+  const rows = genreBridge(items, key, measure);
 
   const biggest = rows[0];
 
@@ -35,14 +67,15 @@ const GenreBridge = ({ rows }: { rows: GenreBridgeRow[] }) => {
       header={
         <SectionHeader
           icon={<Category />}
-          title="Genres by medium"
-          count={`${format(rows.length)} genres`}
+          title={`${KEY_NOUN[key]} by medium`}
+          count={`${format(rows.length)} ${KEY_NOUN[key].toLowerCase()}`}
           action={
             <Stack
               direction="row"
               spacing={1.5}
               sx={{ alignItems: "center", flexWrap: "wrap" }}
             >
+              {keySelect}
               {media.map((medium) => (
                 <Stack
                   key={medium}
@@ -63,21 +96,29 @@ const GenreBridge = ({ rows }: { rows: GenreBridgeRow[] }) => {
           }
         />
       }
-      // The rows are ordered by hours, so the first is the genre the library is most made of, and
-      // how its hours divide is the whole question the section asks.
+      // The rows open on genre, biggest first, so the first is the genre the library is most made
+      // of, and how it divides is the whole question the section asks.
       fold={() => ({
         summary: biggest
-          ? `${biggest.genre} leads with ${format(biggest.hours)} hours across ${format(biggest.segments.length)} media`
+          ? `${biggest.name} leads with ${format(biggest.amount)} ${measure.toLowerCase()} across ${format(biggest.segments.length)} media`
           : "",
-        preview: biggest && <BridgeRow row={biggest} />,
+        preview: biggest && (
+          <BridgeRow
+            row={biggest}
+            colour={rowColour(biggest.name, key, scheme)}
+            unit={UNIT[measure]}
+          />
+        ),
       })}
     >
       <CardContent>
         <Stack spacing={1.5}>
           {rows.map((row) => (
             <BridgeRow
-              key={row.genre}
+              key={row.name}
               row={row}
+              colour={rowColour(row.name, key, scheme)}
+              unit={UNIT[measure]}
               hovered={hovered}
               onHover={setHovered}
             />
@@ -105,16 +146,21 @@ const GENRE_WIDTH = 14;
 const HOURS_WIDTH = 11;
 
 /**
- * One genre's hours, split by medium. The hover pair is optional for the same reason the bar's is:
+ * One row, split by medium. The hover pair is optional for the same reason the bar's is:
  * the folded card's preview draws this row as a picture of the section, with nothing to dim it
  * against.
  */
 const BridgeRow = ({
   row,
+  colour,
+  unit,
   hovered,
   onHover,
 }: {
   row: GenreBridgeRow;
+  /** The row's swatch, in the vocabulary of the key it was built on. */
+  colour: Colour | undefined;
+  unit: string;
   hovered?: string | null;
   onHover?: (name: string | null) => void;
 }) => {
@@ -131,17 +177,17 @@ const BridgeRow = ({
         spacing={0.75}
         sx={{ width: (theme) => theme.spacing(GENRE_WIDTH), flexShrink: 0, alignItems: "center" }}
       >
-        {/* The genre's own colour from the ramp Shows and Movies share, so a row here and a wedge on
-          either tab name the genre the same way. */}
-        <Swatch
-          colour={genreToColour(row.genre, scheme)}
-          size={INLINE_SWATCH_SIZE}
-        />
+        {colour && (
+          <Swatch
+            colour={colour}
+            size={INLINE_SWATCH_SIZE}
+          />
+        )}
         <Typography
           variant="body2"
           noWrap
         >
-          {row.genre}
+          {row.name}
         </Typography>
       </Stack>
       <Stack sx={{ flexGrow: 1, minWidth: 0 }}>
@@ -166,7 +212,7 @@ const BridgeRow = ({
           ...LABEL_SX,
         }}
       >
-        {`${format(row.hours)} hrs`}
+        {`${format(row.amount)} ${unit}`}
       </Typography>
     </Stack>
   );

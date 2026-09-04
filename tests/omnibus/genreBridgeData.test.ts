@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { YearMonthDay } from "../../src/common/date";
 import { toOmniItems } from "../../src/omnibus/adapter";
 import { genreBridge } from "../../src/omnibus/genreBridgeData";
-import { GENRE_NAMES, genreToColour, neutralFill } from "../../src/utils/types";
+import { ageRatingBand, GENRE_NAMES, genreToColour, neutralFill, releaseDecade } from "../../src/utils/types";
 import { book } from "../fixtures/books";
 import { library } from "../fixtures/library";
 import { movie } from "../fixtures/movies";
@@ -27,7 +27,7 @@ describe("genreBridge", () => {
       ),
     );
 
-    expect(rows.map((row) => row.genre)).toEqual(["Horror", "Sci-Fi"]);
+    expect(rows.map((row) => row.name)).toEqual(["Horror", "Sci-Fi"]);
   });
 
   it("bridges a game to a film under one genre, which is the whole claim a row makes", () => {
@@ -43,7 +43,7 @@ describe("genreBridge", () => {
       ),
     );
 
-    expect(rows.map((row) => row.genre)).toEqual(["Fantasy"]);
+    expect(rows.map((row) => row.name)).toEqual(["Fantasy"]);
     expect(rows[0].segments.map((segment) => segment.medium)).toEqual(["game", "movie"]);
   });
 
@@ -61,11 +61,11 @@ describe("genreBridge", () => {
       ),
     );
 
-    const abstract = rows.find((row) => row.genre === "Abstract");
+    const abstract = rows.find((row) => row.name === "Abstract");
 
     expect(abstract?.segments.map((segment) => segment.medium)).toEqual(["game"]);
     expect(abstract?.segments[0].percent).toBe(100);
-    expect(abstract?.hours).toBe(60);
+    expect(abstract?.amount).toBe(60);
   });
 
   it("drops a genre whose every entry logged nothing, having no bar to draw", () => {
@@ -80,7 +80,7 @@ describe("genreBridge", () => {
       ),
     );
 
-    expect(rows.map((row) => row.genre)).toEqual(["Fantasy"]);
+    expect(rows.map((row) => row.name)).toEqual(["Fantasy"]);
   });
 
   it("names each medium's slice in the page's order, and only where it logged hours", () => {
@@ -124,7 +124,7 @@ describe("genreBridge", () => {
       ),
     );
 
-    expect(rows[0].hours).toBe(3);
+    expect(rows[0].amount).toBe(3);
   });
 
   it("leads with the genre the most hours went into", () => {
@@ -137,7 +137,7 @@ describe("genreBridge", () => {
       ),
     );
 
-    expect(rows.map((row) => row.genre)).toEqual(["Sci-Fi", "Horror"]);
+    expect(rows.map((row) => row.name)).toEqual(["Sci-Fi", "Horror"]);
   });
 
   it("sorts a sub-hour genre below a large one, ordering on hours actually spent", () => {
@@ -153,28 +153,28 @@ describe("genreBridge", () => {
       ),
     );
 
-    expect(rows.map((row) => row.genre)).toEqual(["Sci-Fi", "Horror"]);
+    expect(rows.map((row) => row.name)).toEqual(["Sci-Fi", "Horror"]);
   });
 
   it("still draws the sub-hour genre, which is time spent whatever it rounds to", () => {
     const rows = genreBridge(toOmniItems(library({ movies: [movie({ genre: "Horror", minutes: 45 })] })));
 
     expect(rows).toHaveLength(1);
-    expect(rows[0].hours).toBe(0);
+    expect(rows[0].amount).toBe(0);
     expect(rows[0].segments.map((segment) => segment.percent)).toEqual([100]);
   });
 
   it("names a row in the vocabulary the shared ramp holds, so the card's lookup cannot miss", () => {
-    // The row carries no colour of its own: the card looks one up from `genre`. A row named
+    // The row carries no colour of its own: the card looks one up from its name. A row named
     // anything the ramp has no entry for would draw on the neutral, which is the colour absence
     // is drawn in — so a real genre would render as "no genre recorded".
     const rows = genreBridge(
       toOmniItems(library({ movies: [movie({ genre: "Sci-Fi" })], shows: [showWith("Sci-Fi", 405)] })),
     );
 
-    expect(rows[0].genre).toBe("Sci-Fi");
-    expect(GENRE_NAMES).toContain(rows[0].genre);
-    expect(genreToColour(rows[0].genre, "light")).not.toBe(neutralFill("light"));
+    expect(rows[0].name).toBe("Sci-Fi");
+    expect(GENRE_NAMES).toContain(rows[0].name);
+    expect(genreToColour(rows[0].name, "light")).not.toBe(neutralFill("light"));
   });
 });
 
@@ -186,5 +186,46 @@ describe("books on the bridge", () => {
 
     const media = rows[0].segments.map((segment) => segment.medium);
     expect(media).toEqual(["movie", "book"]);
+  });
+
+  it("keys rows on the year, decade or certificate tier as asked, newest first along time", () => {
+    const items = toOmniItems(
+      library({
+        movies: [
+          movie({ genre: "Sci-Fi", startDate: YearMonthDay.get(2022, 3, 1), rating: "15" }),
+          movie({ genre: "Horror", startDate: YearMonthDay.get(2019, 3, 1), rating: "18" }),
+        ],
+        shows: [showWith("Sci-Fi", 405)],
+      }),
+    );
+    expect(genreBridge(items, "year").map((row) => row.name)).toEqual(
+      [...new Set(items.map((item) => String(item.year)))].sort().reverse(),
+    );
+    expect(genreBridge(items, "decade").map((row) => row.name)).toEqual(
+      [...new Set(items.map((item) => releaseDecade(item.year)))].sort().reverse(),
+    );
+    // A season certifies through its show; nothing certifies a book, and a row keyed on nothing
+    // is not drawn.
+    const ratings = genreBridge(
+      toOmniItems(library({ books: [book({})], movies: [movie({ rating: "18" }), movie({ rating: "12" })] })),
+      "rating",
+    );
+    // Youngest first, the boards' own order, whatever the hours in each.
+    expect(ratings.map((row) => row.name)).toEqual([ageRatingBand("12"), ageRatingBand("18")]);
+  });
+
+  it("counts in the page's measure, so under Items a short film weighs what a long game does", () => {
+    const items = toOmniItems(
+      library({
+        games: [videoGame({ genre: "Sci-Fi", hours: 100 })],
+        movies: [movie({ genre: "Sci-Fi", minutes: 120 })],
+      }),
+    );
+    const byItems = genreBridge(items, "genre", "Items")[0];
+    expect(byItems.amount).toBe(2);
+    expect(byItems.segments.map((segment) => segment.percent)).toEqual([50, 50]);
+    const byHours = genreBridge(items, "genre", "Hours")[0];
+    expect(byHours.amount).toBe(102);
+    expect(byHours.segments[0].percent).toBeGreaterThan(90);
   });
 });

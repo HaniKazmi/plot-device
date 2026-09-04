@@ -172,7 +172,10 @@ const Graphs = memo(
         )}
         {bridge.length > 0 && (
           <Section id={OMNIBUS_SECTIONS.genres}>
-            <GenreBridge rows={bridge} />
+            <GenreBridge
+              items={deferredData}
+              measure={filterState.measure}
+            />
           </Section>
         )}
         {crossed.found.length > 0 && (
@@ -180,6 +183,7 @@ const Graphs = memo(
             <Crossings
               crossings={crossed.found}
               ticks={stripYearTicks(crossed.epoch, CURRENT_PLAINDATE)}
+              items={deferredData}
             />
           </Section>
         )}
