@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { movedAfter, tabSections } from "../../src/common/sections";
+import { chartsLastOrder, movedAfter, tabSections } from "../../src/common/sections";
 
 const build = () =>
   tabSections("tab", [
@@ -97,5 +97,22 @@ describe("movedAfter", () => {
     movedAfter(keys, "charts", "library");
 
     expect([...keys]).toEqual(original);
+  });
+});
+
+describe("chartsLastOrder", () => {
+  const keys = ["now", "vitals", "timeline", "charts", "library"] as const;
+
+  it("puts the charts after the library, which is the phone's reading order", () => {
+    expect(chartsLastOrder(keys, true)).toEqual(["now", "vitals", "timeline", "library", "charts"]);
+  });
+
+  it("leaves the page's own order alone wherever the charts come first", () => {
+    expect(chartsLastOrder(keys, false)).toEqual([...keys]);
+  });
+
+  it("leaves a list holding only one of the two as it is, so any tab may be ordered through it", () => {
+    expect(chartsLastOrder(["now", "charts"], true)).toEqual(["now", "charts"]);
+    expect(chartsLastOrder(["now", "library"], true)).toEqual(["now", "library"]);
   });
 });

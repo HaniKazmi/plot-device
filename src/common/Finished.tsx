@@ -24,6 +24,7 @@ import {
 import { withAlpha } from "../utils/colourUtils";
 import { shapeToAspect } from "./cardArrangement";
 import { SCROLL_MARGIN } from "./SectionRail";
+import { SHEET_HEADER_BOTTOM } from "./fullscreenSheet";
 import { MUTED_FIGURE_SX, NUMERIC_LABEL_SX } from "./typography";
 import { format } from "../utils/mathUtils";
 
@@ -147,7 +148,8 @@ const FinishedGrid = <U extends FinishedItem>({
  * It is the jump rail's derivation drawn in the flow rather than beside it: on a phone the page has
  * no gutter to hang a rail in and no room for a pill that is not over the cards it names, and a
  * sticky heading is what every list on the platform indexes itself with. It clears the section rail
- * on the page and nothing in the dialog, which is pinned to nothing and scrolls its own paper.
+ * on the page and, in the dialog, the sheet's own close bar: both are pinned in the scrollport this
+ * heading sticks in, and a heading pinned at 0 parks behind whichever of them is above it.
  *
  * The ground and the stacking order are both load-bearing: artwork arrives while the reader is
  * inside the wall, and a transparent heading has a card sliding under it and a picture landing over
@@ -157,7 +159,7 @@ const BucketHeading = ({ label, count, isDialog }: { label: string; count: numbe
   <Box
     sx={{
       position: "sticky",
-      top: isDialog ? 0 : `${SCROLL_MARGIN}px`,
+      top: isDialog ? SHEET_HEADER_BOTTOM : `${SCROLL_MARGIN}px`,
       zIndex: 1,
       display: "flex",
       alignItems: "baseline",

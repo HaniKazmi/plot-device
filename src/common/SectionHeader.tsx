@@ -31,32 +31,41 @@ import { MUTED_FIGURE_SX } from "./typography";
  * wraps to a word a line — "Shelves / by / Genre" beside a select, two toggles and an expand. The
  * action's own negative margins are dropped there with it, since they exist to hold it clear of a
  * title it is not beside at that width, and are kept everywhere else.
+ *
+ * `compactActions` is the exception, and the caller states it because only the caller knows what it
+ * put in the slot: a single icon button costs a title nothing to sit beside, and a row of its own
+ * for it is 40px of blank line with an icon at the far end. A card whose only action is its expand
+ * toggle passes it — the caller's own test, rather than a measurement, since what the slot holds is
+ * known before it is drawn.
  */
 export const SectionHeader = ({
   icon,
   title,
   count,
   action,
+  compactActions,
 }: {
   icon?: ReactNode;
   title: string;
   /** What the section is over, already worded by its domain — "338 games", "612 seasons". */
   count?: string;
   action?: ReactNode;
+  /** Whether the action slot holds no more than one icon button, which stays on the title row. */
+  compactActions?: boolean;
 }) => (
   <CardHeader
     sx={{
-      flexDirection: { xs: "column", sm: "row" },
-      alignItems: { xs: "stretch", sm: "center" },
+      flexDirection: compactActions ? "row" : { xs: "column", sm: "row" },
+      alignItems: compactActions ? "center" : { xs: "stretch", sm: "center" },
       "& .MuiCardHeader-action": {
         // `CardHeader` pulls its action up and out by 4px and 8px so the controls sit against the
         // card's own edge rather than inside the header's padding. That is right wherever the
         // action is beside the title, so it is restored at `sm` and up and only undone below it,
         // where the action is a row of its own and has nothing to hold itself clear of. In pixels
         // because `sx` reads a bare margin number as theme spacing, which would make `-4` −32px.
-        marginTop: { xs: 1, sm: "-4px" },
-        marginRight: { xs: 0, sm: "-8px" },
-        alignSelf: { xs: "stretch", sm: "flex-start" },
+        marginTop: compactActions ? "-4px" : { xs: 1, sm: "-4px" },
+        marginRight: compactActions ? "-8px" : { xs: 0, sm: "-8px" },
+        alignSelf: compactActions ? "flex-start" : { xs: "stretch", sm: "flex-start" },
       },
     }}
     title={

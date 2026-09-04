@@ -8,7 +8,7 @@ import Sunburst from "./Sunburst";
 import Barchart from "./Barchart";
 import WatchTimeline from "./WatchTimeline";
 import Filter from "./Filter";
-import { ChartPair, Section, SectionRail } from "../common/SectionRail";
+import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
 import { FilterChip } from "../common/FilterDrawer";
 import { MeasureControl } from "../common/SelectionComponents";
 import { useOtherTabs } from "../tabs";
@@ -67,9 +67,9 @@ const Graphs = memo(
 
     const deferredData = useDeferredValue(data, []);
     const tabs = useOtherTabs();
-    // The phone reads the library before the charts, and the sections are ordered in the DOM
-    // rather than with CSS: the rail derives the current section from its own list's order, so a
-    // page laid out in one order and listed in another lights the wrong chip on every scroll.
+    // The phone reads the library before the charts. One answer for the page and the rail alike:
+    // `ChartsAndLibrary` orders the two sections and `chartsLastOrder`, inside the sections list,
+    // orders the chips naming them.
     const chartsLast = usePhone();
 
     const charts = (
@@ -141,7 +141,11 @@ const Graphs = memo(
         <Section id={MOVIE_SECTIONS.timeline}>
           <WatchTimeline data={deferredData} />
         </Section>
-        {chartsLast ? [library, charts] : [charts, library]}
+        <ChartsAndLibrary
+          charts={charts}
+          library={library}
+          chartsLast={chartsLast}
+        />
       </Stack>
     );
   },
