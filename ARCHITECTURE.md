@@ -1191,7 +1191,8 @@ top-level `palette` rather than adding to it, so a value named on one side only 
 MUI's stock blue. `enableColorOnDark` stays off and each tab carries a `darkBar` (`tabs.ts`) — a 22%
 `tint` of its primary over the dark paper plus `rule` and `ink` siblings — read through
 `barColour(tab, scheme)`, the single answer for what the bar wears, so a surface painted to match it
-cannot drift. Two `theme-color` metas are emitted, one per scheme. Themes are cached in a `Map` keyed by tab id:
+cannot drift. Two `theme-color` metas are emitted, one per scheme. Themes are cached in a `Map`
+keyed by tab id:
 building one walks both schemes, typography, shadows and the whole CSS-variable map, and a stable
 identity stops the MUI tree re-evaluating `sx` on navigation. `Google.tsx` also mounts
 `FranchiseUnionProvider` around the `<Outlet>`, a card on any tab drawing its franchise across all
