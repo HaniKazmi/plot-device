@@ -1,4 +1,4 @@
-import { Box, CardContent, Stack, Typography, useTheme } from "@mui/material";
+import { CardContent, Stack, Typography, useTheme } from "@mui/material";
 import { DonutLarge } from "@mui/icons-material";
 import { Fragment, useLayoutEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import type {} from "@mui/material/themeCssVarsAugmentation";
@@ -8,6 +8,7 @@ import { FoldedChart } from "./FoldedChart";
 import { SectionHeader } from "./SectionHeader";
 import { SelectBox } from "./SelectionComponents";
 import { useScheme } from "./useScheme";
+import { useStackedCharts } from "./usePhone";
 import { neutralFill, type Colour } from "../utils/types";
 import { keyLabel } from "../utils/stringUtils";
 import { format } from "../utils/mathUtils";
@@ -24,7 +25,7 @@ import { firstRing, generateSunburstData, ringOptions, sunburstRoot, type Sunbur
  * page, so the width is the whole of it and the box is square: `80vh` there wraps a 340px wheel in
  * 400px of blank paper.
  */
-const CHART_HEIGHT = { xs: "min(calc(100vw - 64px), 480px)", md: "min(80vh, 700px)" } as const;
+const CHART_HEIGHT = { stacked: "min(calc(100vw - 64px), 480px)", beside: "min(80vh, 700px)" } as const;
 
 /** How many wedges the folded preview names before the rest become one bucket. */
 const PREVIEW_WEDGES = 5;
@@ -67,6 +68,7 @@ const Sunburst = <T, K extends string>({
   };
 }) => {
   const theme = useTheme();
+  const stacked = useStackedCharts();
   const groupsKey = groups.join();
   /**
    * The reader's drill, held with the grouping it was made under. A drill names a path through one
@@ -130,55 +132,51 @@ const Sunburst = <T, K extends string>({
       preview={<RingBar ring={ring} />}
     >
       <CardContent>
-        {/* The height is a breakpoint object, which an inline `style` cannot be, so the box owns
-            it and the chart fills the box. */}
-        <Box sx={{ height: CHART_HEIGHT }}>
-          <Chart
-            key={chartKey}
-            containerProps={{ style: { height: "100%" } }}
+        <Chart
+          key={chartKey}
+          containerProps={{ style: { height: stacked ? CHART_HEIGHT.stacked : CHART_HEIGHT.beside } }}
+          options={{
+            chart: {
+              backgroundColor: "transparent",
+              style: {
+                color: theme.vars.palette.text.primary,
+              },
+              events: {
+                render: dimLeafRing(leafLevel),
+              },
+            },
+          }}
+        >
+          <SunburstSeries
+            data={generatedData}
             options={{
-              chart: {
-                backgroundColor: "transparent",
-                style: {
-                  color: theme.vars.palette.text.primary,
-                },
-                events: {
-                  render: dimLeafRing(leafLevel),
+              allowTraversingTree: true,
+              rootId: root.id,
+              name: "All",
+              events: {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                setRootNode: (event: any) => {
+                  setDrill({ groups: groupsKey, id: event.newRootId });
                 },
               },
-            }}
-          >
-            <SunburstSeries
-              data={generatedData}
-              options={{
-                allowTraversingTree: true,
-                rootId: root.id,
-                name: "All",
-                events: {
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  setRootNode: (event: any) => {
-                    setDrill({ groups: groupsKey, id: event.newRootId });
+              levels: [
+                {
+                  level: 1,
+                  colorByPoint: true,
+                },
+                {
+                  level: leafLevel,
+                  dataLabels: {
+                    enabled: !hide,
+                  },
+                  levelSize: {
+                    value: hide ? 0 : 1,
                   },
                 },
-                levels: [
-                  {
-                    level: 1,
-                    colorByPoint: true,
-                  },
-                  {
-                    level: leafLevel,
-                    dataLabels: {
-                      enabled: !hide,
-                    },
-                    levelSize: {
-                      value: hide ? 0 : 1,
-                    },
-                  },
-                ],
-              }}
-            />
-          </Chart>
-        </Box>
+              ],
+            }}
+          />
+        </Chart>
       </CardContent>
     </FoldedChart>
   );

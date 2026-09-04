@@ -1,10 +1,11 @@
-import { Box, Card, CardContent, FormGroup, Typography, useTheme } from "@mui/material";
+import { Card, CardContent, FormGroup, Typography, useTheme } from "@mui/material";
 import { type ReactNode, useState } from "react";
 import { BarChart } from "@mui/icons-material";
 import { SectionHeader } from "./SectionHeader";
 import { SegmentedControl } from "./SelectionComponents";
 import { segments } from "./segments";
 import { FoldedChart, Sparkline } from "./FoldedChart";
+import { useStackedCharts } from "./usePhone";
 import { Chart, Series, XAxis, YAxis, PlotOptions, Tooltip, Legend } from "../highcharts";
 import type { Year, YearMonth } from "./date";
 import type { Colour } from "../utils/types";
@@ -39,7 +40,7 @@ const viewOptions = segments<View>(["Totals", "Share", "Cumulative", "Rank"]);
  * chart was opened deliberately and something else is meant to follow it, so it takes three
  * fifths instead — still the tallest thing in the card, and one thumb-flick tall rather than two.
  */
-const CHART_HEIGHT = { xs: "60vh", md: "80vh" } as const;
+const CHART_HEIGHT = { stacked: "60vh", beside: "80vh" } as const;
 const RANK_LANE = 44;
 const RANK_MIN_HEIGHT = 320;
 
@@ -70,6 +71,7 @@ const Barchart = ({
 }) => {
   const [view, setView] = useState<View>("Totals");
   const theme = useTheme();
+  const full = useStackedCharts() ? CHART_HEIGHT.stacked : CHART_HEIGHT.beside;
 
   const cumulative = view === "Cumulative";
   const { results: raw, dates, groups } = groupDate(data(cumulative));
@@ -98,11 +100,7 @@ const Barchart = ({
   // viewport puts two hundred pixels between adjacent ranks and reports, at that size, that games
   // led most years. The other three views plot a magnitude, whose resolution is the height they
   // are given, so they keep it.
-  const lanes = `max(${RANK_MIN_HEIGHT}px, ${groups.length * RANK_LANE}px)`;
-  const height =
-    view === "Rank"
-      ? { xs: `min(${CHART_HEIGHT.xs}, ${lanes})`, md: `min(${CHART_HEIGHT.md}, ${lanes})` }
-      : CHART_HEIGHT;
+  const height = view === "Rank" ? `min(${full}, max(${RANK_MIN_HEIGHT}px, ${groups.length * RANK_LANE}px))` : full;
 
   const header = (
     <SectionHeader
@@ -152,121 +150,117 @@ const Barchart = ({
       preview={<Sparkline values={columnTotals(plotted)} />}
     >
       <CardContent>
-        {/* The height is a breakpoint object, which an inline `style` cannot be, so the box owns
-            it and the chart fills the box. */}
-        <Box sx={{ height }}>
-          <Chart
-            containerProps={{ style: { height: "100%" } }}
-            options={{
-              chart: {
-                backgroundColor: "transparent",
-                style: {
-                  color: theme.vars.palette.text.primary,
+        <Chart
+          containerProps={{ style: { height } }}
+          options={{
+            chart: {
+              backgroundColor: "transparent",
+              style: {
+                color: theme.vars.palette.text.primary,
+              },
+            },
+          }}
+        >
+          <XAxis
+            type="category"
+            categories={dates.map((date) => date.toString())}
+            labels={{
+              style: {
+                color: theme.vars.palette.text.primary,
+              } as Record<string, string>,
+            }}
+          />
+          <YAxis
+            title={{
+              text: undefined,
+            }}
+            reversed={view === "Rank"}
+            floor={view === "Rank" ? 1 : undefined}
+            max={share ? 100 : undefined}
+            minTickInterval={1}
+            labels={{
+              style: {
+                color: theme.vars.palette.text.primary,
+              } as Record<string, string>,
+            }}
+            endOnTick={false}
+          />
+          <PlotOptions
+            {...({
+              column: {
+                stacking: "normal",
+                dataLabels: {
+                  enabled: false,
+                },
+                groupPadding: 0,
+                events: {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  click: (event: any) => {
+                    const {
+                      series: clickedSeries,
+                      series: { chart },
+                    } = event.point;
+                    const hasOtherVisibleSeries = chart.series.some(
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      (series: any) => series !== clickedSeries && series.visible,
+                    );
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    chart.series.forEach((series: any) =>
+                      series.setVisible(hasOtherVisibleSeries ? series === clickedSeries : true),
+                    );
+                  },
                 },
               },
-            }}
-          >
-            <XAxis
-              type="category"
-              categories={dates.map((date) => date.toString())}
-              labels={{
-                style: {
-                  color: theme.vars.palette.text.primary,
-                } as Record<string, string>,
-              }}
-            />
-            <YAxis
-              title={{
-                text: undefined,
-              }}
-              reversed={view === "Rank"}
-              floor={view === "Rank" ? 1 : undefined}
-              max={share ? 100 : undefined}
-              minTickInterval={1}
-              labels={{
-                style: {
-                  color: theme.vars.palette.text.primary,
-                } as Record<string, string>,
-              }}
-              endOnTick={false}
-            />
-            <PlotOptions
-              {...({
-                column: {
-                  stacking: "normal",
-                  dataLabels: {
-                    enabled: false,
-                  },
-                  groupPadding: 0,
-                  events: {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    click: (event: any) => {
-                      const {
-                        series: clickedSeries,
-                        series: { chart },
-                      } = event.point;
-                      const hasOtherVisibleSeries = chart.series.some(
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        (series: any) => series !== clickedSeries && series.visible,
-                      );
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      chart.series.forEach((series: any) =>
-                        series.setVisible(hasOtherVisibleSeries ? series === clickedSeries : true),
-                      );
-                    },
-                  },
+              area: {
+                stacking: "normal",
+              },
+              spline: {
+                tooltip: {
+                  pointFormat:
+                    '<span style="color:{series.color}">\u25CF</span> {series.name}: <b>{point.tooltip}</b><br/>',
                 },
-                area: {
-                  stacking: "normal",
-                },
-                spline: {
-                  tooltip: {
-                    pointFormat:
-                      '<span style="color:{series.color}">\u25CF</span> {series.name}: <b>{point.tooltip}</b><br/>',
-                  },
-                },
-              } as Record<string, unknown>)}
-            />
-            {/* One series, not the whole column. A shared tooltip lists every band of the stack and
+              },
+            } as Record<string, unknown>)}
+          />
+          {/* One series, not the whole column. A shared tooltip lists every band of the stack and
               activates all of them, which is a fuller answer and a busier one: it costs the hover
               its dim, and the dim is what isolates a series across the whole chart rather than
               inside the one column under the pointer. */}
-            <Tooltip
-              valueSuffix={share ? "%" : undefined}
-              valueDecimals={share ? 1 : undefined}
-            />
-            {/* Largest first, which series order is not: `groupDate` sorts ascending so that
+          <Tooltip
+            valueSuffix={share ? "%" : undefined}
+            valueDecimals={share ? 1 : undefined}
+          />
+          {/* Largest first, which series order is not: `groupDate` sorts ascending so that
               Highcharts' `reversedStacks` — on by default — puts the biggest group at the foot of
               the stack, where a stack is read from. The legend follows series order unless told
               otherwise, and unreversed it opens on the smallest, against every other ranked list
               on a page: the vitals band, the genre rows and the gallery's shelves all lead with
               the biggest. Reversing the legend alone leaves the stack itself untouched. */}
-            <Legend
-              reversed
-              enabled={groups.length > 1}
-              verticalAlign="top"
-              align="left"
-              itemStyle={{
-                color: theme.vars.palette.text.primary,
+          <Legend
+            reversed
+            enabled={groups.length > 1}
+            verticalAlign="top"
+            align="left"
+            itemStyle={{
+              color: theme.vars.palette.text.primary,
+            }}
+          />
+          {results.map((values, groupindex) => (
+            <Series
+              key={groups[groupindex].name}
+              type={seriesType}
+              data={values.map((val, valIndex) => ({
+                y: val,
+                tooltip: tooltipResults[groupindex][valIndex] ?? 0,
+              }))}
+              options={{
+                name: groups[groupindex].name,
+                color: groups.length === 1 ? theme.palette.primary.main : groups[groupindex].colour,
+                lineWidth: 4,
               }}
             />
-            {results.map((values, groupindex) => (
-              <Series
-                key={groups[groupindex].name}
-                type={seriesType}
-                data={values.map((val, valIndex) => ({
-                  y: val,
-                  tooltip: tooltipResults[groupindex][valIndex] ?? 0,
-                }))}
-                options={{
-                  name: groups[groupindex].name,
-                  color: groups.length === 1 ? theme.palette.primary.main : groups[groupindex].colour,
-                  lineWidth: 4,
-                }}
-              />
-            ))}
-          </Chart>
-        </Box>
+          ))}
+        </Chart>
       </CardContent>
     </FoldedChart>
   );

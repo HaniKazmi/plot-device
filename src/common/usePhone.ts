@@ -14,3 +14,14 @@ import { useMediaQuery } from "@mui/material";
  * order would be written for the desktop and rewritten a frame later.
  */
 export const usePhone = () => useMediaQuery((theme) => theme.breakpoints.down("sm"), { noSsr: true });
+
+/**
+ * Whether a chart has the page to itself — below `md`, where `ChartPair` stacks rather than
+ * standing its two charts side by side.
+ *
+ * The height a chart is drawn at follows from that, and it is read as a value rather than written
+ * as an `sx` breakpoint because Highcharts sizes itself off its container's own height at the
+ * moment it initialises: a percentage height on that container measures as the library's own 400px
+ * default, and the chart is then drawn past the box holding it.
+ */
+export const useStackedCharts = () => useMediaQuery((theme) => theme.breakpoints.down("md"), { noSsr: true });
