@@ -3,7 +3,11 @@ import { useTheme, type Theme } from "@mui/material";
 import { createContext, useContext } from "react";
 import type { Colour } from "../utils/types";
 
-const SEAM_WIDTH = 3;
+/**
+ * The seam's own width, exported because a surface that states its height in pixels has to count
+ * it: the seam is a border, so it is part of the box a card measured its layout from.
+ */
+export const SEAM_WIDTH = 3;
 /** Of the ground's own contrast colour: the secondary tone, the seam, and a tile's lift. */
 const MUTED_ALPHA = 0.72;
 const SEAM_ALPHA = 0.22;

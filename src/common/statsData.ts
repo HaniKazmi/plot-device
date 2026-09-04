@@ -140,3 +140,18 @@ export const earliestYear = <T>(items: readonly T[], yearOf: (item: T) => YearNu
     (earliest, item) => (!earliest || yearOf(item) < earliest ? yearOf(item) : earliest),
     undefined,
   ) ?? CURRENT_YEAR;
+
+/**
+ * The one line a strip card's words are held to: its first label row, cells joined.
+ *
+ * A card in a strip is 120px of artwork and a caption, so the two or three rows a card under a
+ * banner prints have to become one. The first row is the one taken because it is where every label
+ * builder in the app puts the date or, where the list has no date to state, its only row — a
+ * finished game's hours, a show's episodes and hours, a group card's name and figure. The rows
+ * below it hold the rest, and on this tab's mixed list the closing row is the item's *name*, which
+ * a strip must not print: the artwork is what names a card here, and the name stays in its `alt`.
+ *
+ * Empty cells are dropped rather than joined through, since a builder writes `""` for a fact the
+ * sheet is silent about and a caption opening on a separator reads as a missing word.
+ */
+export const stripCaption = (labels: string[][]): string => (labels[0] ?? []).filter(Boolean).join(" · ");
