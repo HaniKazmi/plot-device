@@ -73,8 +73,7 @@ export const NOW_GAP = 8;
  * The column beside a poster is what the floor is really about: at 366 it is 133px, which is as
  * narrow as a date, a two-line title and two tiles read well in, and the column is the card's width
  * less the poster the row's height gives it — so every pixel off the card comes off the words
- * twice over. At 296, the two-way share of a 600px row, the column is 90px and the title has three
- * characters a line.
+ * twice over. At 296 the column is 90px and the title has three characters a line.
  *
  * The four-way share's floor, where a card under it answers nothing and the band falls back to two
  * cards a row (`Now`). The pair keeps the row at a narrower card and spends the poster instead

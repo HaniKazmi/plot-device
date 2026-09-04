@@ -39,8 +39,7 @@ const useLongPress = (onLongPress: () => void, onClick?: () => void, ms = 300) =
   // The pointer's gesture and no other. On touch a long press collides with the browser's own
   // press-and-hold — selection, the callout menu — and a tap arrives as compatibility mouse events
   // with the down and the up together at release, which schedules the timer and cancels it in the
-  // same tick, so a finger can never hold one down. What the gesture reaches is offered outright
-  // wherever a finger is the pointer, which is what leaves nothing for touch handlers to serve.
+  // same tick, so a finger can never hold one down.
   return {
     onMouseDown: () => run("start"),
     onMouseUp: () => run("end"),
