@@ -175,10 +175,15 @@ export const useScrollMarker = (
       // 1,630px — it would otherwise be painted over the title for the hundred pixels of scroll
       // between the section arriving and the wall arriving. Measuring the wall instead means the
       // marker appears exactly when there is a row for it to name.
+      //
+      // The landing counts as arrived, which is why the test carries the settle loop's own slack:
+      // a jump parks its card's top within `SETTLE_SLACK` of `MARKER_TOP`, and the first bucket's
+      // card is the top of the grid itself, so a strict test below that offset hides the rail on
+      // exactly the position pressing its first chip lands at.
       const reading =
         rect.top < READING_LINE &&
         rect.bottom > window.innerHeight / 2 &&
-        cards.getBoundingClientRect().top < MARKER_TOP;
+        cards.getBoundingClientRect().top <= MARKER_TOP + SETTLE_SLACK;
       setVisible(reading);
       if (!reading) return;
 
