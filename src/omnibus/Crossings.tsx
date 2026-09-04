@@ -1,10 +1,11 @@
-import { Box, Card, CardContent, Stack, useTheme, Typography } from "@mui/material";
+import { Box, CardContent, Stack, useTheme, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { Hub } from "@mui/icons-material";
 import { Swatch, TimelineAxis, TimelineCard, INLINE_SWATCH_SIZE, type TimelineBand } from "../common/Card";
 import { FranchiseName } from "../common/FranchiseStrip";
 import { LazyTooltip } from "../common/LazyTooltip";
 import { SectionHeader } from "../common/SectionHeader";
+import { FoldedChart } from "../common/FoldedChart";
 import type { TimelineTick } from "../common/timelineLayout";
 import { ScrollFade } from "../common/ScrollFade";
 import { useScrollEdges } from "../common/useScrollEdges";
@@ -68,17 +69,29 @@ const Crossings = ({ crossings, ticks }: { crossings: Crossing[]; ticks: Timelin
   const theme = useTheme();
   useOpenAtLatest(scrollRef, crossings.length > 0);
 
+  const biggest = crossings[0];
+
   return (
-    <Card>
-      <SectionHeader
-        icon={<Hub />}
-        title="Franchises over time"
-        count={
-          crossings.length > STRIPS_SHOWN
-            ? `${format(STRIPS_SHOWN)} of ${format(crossings.length)} franchises`
-            : `${format(crossings.length)} franchises`
-        }
-      />
+    <FoldedChart
+      header={
+        <SectionHeader
+          icon={<Hub />}
+          title="Franchises over time"
+          count={
+            crossings.length > STRIPS_SHOWN
+              ? `${format(STRIPS_SHOWN)} of ${format(crossings.length)} franchises`
+              : `${format(crossings.length)} franchises`
+          }
+        />
+      }
+      // The strips are ordered by size, so the first one is the largest series the reader has met
+      // — the fact the stack is opened for, and the one a phone can state without drawing it.
+      summary={
+        biggest
+          ? `${biggest.franchise} is the largest, ${format(biggest.entries)} entries across ${format(biggest.media.length)} media`
+          : ""
+      }
+    >
       <CardContent>
         <ScrollFade
           edges={edges}
@@ -121,7 +134,7 @@ const Crossings = ({ crossings, ticks }: { crossings: Crossing[]; ticks: Timelin
           </Box>
         </ScrollFade>
       </CardContent>
-    </Card>
+    </FoldedChart>
   );
 };
 

@@ -50,6 +50,7 @@ const ShowBarchart = ({ data, measure, yearType }: { data: Show[]; measure: Meas
       count={`${format(data.length)} shows`}
       data={barchartData}
       postAggregate={measure === "Hours" ? (minutes) => Math.floor(minutes / 60) : undefined}
+      unit={measure}
       controls={controls}
     />
   );

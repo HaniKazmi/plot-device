@@ -1,4 +1,4 @@
-import type { Year, YearMonth } from "./date";
+import { Year, type YearMonth } from "./date";
 import type { Colour } from "../utils/types";
 import "../utils/arrayUtils";
 import "../utils/mapUtils";
@@ -87,12 +87,7 @@ export const convertToCumulative = (groupToDateToValue: BarchartTable) => {
  * Highcharts draws as a gap indistinguishable from a series that has not started.
  */
 export const convertToShare = (groupToDateToValue: BarchartTable): BarchartTable => {
-  const numCols = groupToDateToValue[0]?.length ?? 0;
-  const totals: number[] = [];
-
-  for (let col = 0; col < numCols; col++) {
-    totals[col] = groupToDateToValue.reduce((total, row) => total + (row[col] ?? 0), 0);
-  }
+  const totals = columnTotals(groupToDateToValue);
 
   // Null before a group's first data point survives the transform, or every series would start at
   // the left edge of the chart.
@@ -115,4 +110,82 @@ export const convertToRanking = (groupToDateToValue: BarchartTable) => {
   }
 
   return newArray;
+};
+
+/**
+ * What each column totals across its groups, which is the height a stacked column stands at and
+ * the figure a sparkline draws. A cell before a group's first data point is null and counts as
+ * nothing, the same way the chart draws it.
+ */
+export const columnTotals = (groupToDateToValue: BarchartTable): number[] => {
+  const numCols = groupToDateToValue[0]?.length ?? 0;
+  const totals: number[] = [];
+
+  for (let col = 0; col < numCols; col++) {
+    totals[col] = groupToDateToValue.reduce((total, row) => total + (row[col] ?? 0), 0);
+  }
+
+  return totals;
+};
+
+/** What a chart says in one line to a reader who has not opened it. */
+export interface BarchartSummary {
+  /** The fullest column, named the way its own grain reads. */
+  peak: { label: string; value: number };
+  /**
+   * The group at the top of the most columns. Absent where one group is drawn, which leads every
+   * column of the chart by having nothing to lead against.
+   */
+  leader?: { name: string; columns: number };
+  /** How many columns the pivot holds, and what one column is. */
+  columns: number;
+  grain: "years" | "months";
+}
+
+/**
+ * The pivot in a sentence's worth of facts: where the peak is, how big it is, and who led.
+ *
+ * Figures rather than words, because the words need `format` and a formatted number is the one
+ * thing in this module a locale can change.
+ */
+export const barchartSummary = (
+  results: BarchartTable,
+  dates: (YearMonth | Year)[],
+  groups: { name: string }[],
+): BarchartSummary | undefined => {
+  if (dates.length === 0 || groups.length === 0) return undefined;
+
+  const totals = columnTotals(results);
+  // A tie goes to the earlier column: a peak is where a library first reached its height, not the
+  // last time it matched it.
+  const peak = totals.reduce((best, total, index) => (total > totals[best] ? index : best), 0);
+
+  return {
+    peak: { label: columnLabel(dates[peak]), value: totals[peak] },
+    leader: leadingGroup(results, groups, totals),
+    columns: dates.length,
+    grain: dates[0] instanceof Year ? "years" : "months",
+  };
+};
+
+/** A column as the axis under it reads: the bare year, or the month and its year. */
+const columnLabel = (date: YearMonth | Year) =>
+  date instanceof Year ? date.yearString() : `${date.monthString()} ${date.year}`;
+
+/**
+ * The group topping the most columns, counted through the same ranking the Rank view plots so the
+ * two cannot name different leaders — ties included, which that transform breaks towards the
+ * larger group.
+ *
+ * A column totalling nothing is skipped. The ranking hands rank one to somebody in every column,
+ * and a densified year the library recorded nothing in has no leader to name.
+ */
+const leadingGroup = (results: BarchartTable, groups: { name: string }[], totals: number[]) => {
+  if (groups.length < 2) return undefined;
+
+  const ranked = convertToRanking(results);
+  const won = groups.map((_, group) => totals.filter((total, col) => total > 0 && ranked[group][col] === 1).length);
+  const best = won.reduce((leader, columns, index) => (columns > won[leader] ? index : leader), 0);
+
+  return won[best] > 0 ? { name: groups[best].name, columns: won[best] } : undefined;
 };

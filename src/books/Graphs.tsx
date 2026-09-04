@@ -21,6 +21,7 @@ import { format } from "../utils/mathUtils";
 import { finishedCount, type FinishedExtraSort } from "../common/finishedData";
 import { genreToColour } from "../utils/types";
 import { useScheme } from "../common/useScheme";
+import { usePhone } from "../common/usePhone";
 
 /** The measures this tab counts in, in the order the rail states them. */
 const MEASURES: readonly Measure[] = ["Books", "Pages", "Hours"];
@@ -87,11 +88,63 @@ const Graphs = memo(
     // Answered once for the page: it decides both whether the hero is rendered and whether the
     // rail offers a chip pointing at it, and two derivations of one test are two that can differ.
     const reading = currentlyReading(data);
+    // The phone reads the library before the charts, and the sections are ordered in the DOM
+    // rather than with CSS: the rail derives the current section from its own list's order, so a
+    // page laid out in one order and listed in another lights the wrong chip on every scroll.
+    const chartsLast = usePhone();
+
+    const charts = (
+      <Section
+        key={BOOK_SECTIONS.charts}
+        id={BOOK_SECTIONS.charts}
+      >
+        <ChartPair
+          left={
+            <Sunburst
+              data={deferredData}
+              measure={filterState.measure}
+            />
+          }
+          right={
+            <Barchart
+              data={deferredData}
+              measure={filterState.measure}
+              yearType={filterState.yearType}
+            />
+          }
+        />
+      </Section>
+    );
+
+    const library = (
+      <Section
+        key={BOOK_SECTIONS.library}
+        id={BOOK_SECTIONS.library}
+      >
+        <Finished
+          title="All Books"
+          count={`${format(finishedCount(data))} books`}
+          borderKey="genre"
+          data={data}
+          // Genre for the border: the ramp answers the neutral off its table and never throws, so
+          // it cannot take a wall of hundreds of cards down on one unfamiliar value.
+          colour={(item) => genreToColour(item.genre, scheme)}
+          // Score and pages are wall orders rather than strips of their own: "what was best"
+          // and "what was longest" are the same library read in another order, and the wall is
+          // where a whole order can be read.
+          sorts={BOOK_SORTS}
+          // A reread is a second row with the title and release year of the first, so the wall's
+          // own key — the two together — would name both cards alike.
+          keyOf={bookKey}
+          MediaComponent={BookCardMediaImage}
+        />
+      </Section>
+    );
 
     return (
       <Stack spacing={2}>
         <SectionRail
-          sections={bookSections(reading.length > 0)}
+          sections={bookSections(reading.length > 0, chartsLast)}
           tabs={tabs}
           actions={
             <MeasureControl
@@ -113,42 +166,7 @@ const Graphs = memo(
         <Section id={BOOK_SECTIONS.timeline}>
           <Timeline data={deferredData} />
         </Section>
-        <Section id={BOOK_SECTIONS.charts}>
-          <ChartPair
-            left={
-              <Sunburst
-                data={deferredData}
-                measure={filterState.measure}
-              />
-            }
-            right={
-              <Barchart
-                data={deferredData}
-                measure={filterState.measure}
-                yearType={filterState.yearType}
-              />
-            }
-          />
-        </Section>
-        <Section id={BOOK_SECTIONS.library}>
-          <Finished
-            title="All Books"
-            count={`${format(finishedCount(data))} books`}
-            borderKey="genre"
-            data={data}
-            // Genre for the border: the ramp answers the neutral off its table and never throws, so
-            // it cannot take a wall of hundreds of cards down on one unfamiliar value.
-            colour={(item) => genreToColour(item.genre, scheme)}
-            // Score and pages are wall orders rather than strips of their own: "what was best"
-            // and "what was longest" are the same library read in another order, and the wall is
-            // where a whole order can be read.
-            sorts={BOOK_SORTS}
-            // A reread is a second row with the title and release year of the first, so the wall's
-            // own key — the two together — would name both cards alike.
-            keyOf={bookKey}
-            MediaComponent={BookCardMediaImage}
-          />
-        </Section>
+        {chartsLast ? [library, charts] : [charts, library]}
       </Stack>
     );
   },

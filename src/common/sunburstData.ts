@@ -4,7 +4,8 @@ import type { Colour } from "../utils/types";
 // in the hierarchy.
 const collator = new Intl.Collator();
 
-type SunburstEntry = {
+/** One node of the hierarchy the chart draws, at whatever ring its own id places it. */
+export type SunburstEntry = {
   id: string;
   name: string;
   parent: string;
@@ -87,3 +88,13 @@ export const generateSunburstData = <T, K extends string>(
 
   return Array.from(entryMap.values()).sort((a, b) => collator.compare(a.id, b.id));
 };
+
+/**
+ * The innermost ring, largest first: the wedges a reader meets before drilling anywhere.
+ *
+ * A node on the first ring is one parented to the top, which is the same test the leaf ring is
+ * collapsed by — the tree is read off the ids rather than rebuilt beside them. Filtered before it
+ * is sorted, so the caller's own array keeps the id order the chart is handed.
+ */
+export const firstRing = (data: SunburstEntry[]): SunburstEntry[] =>
+  data.filter((entry) => entry.parent === "").sort((a, b) => b.value - a.value);

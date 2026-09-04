@@ -1,14 +1,33 @@
-import { Card, CardContent, Stack, Typography, useTheme } from "@mui/material";
+import { Box, CardContent, Stack, Typography, useTheme } from "@mui/material";
 import { DonutLarge } from "@mui/icons-material";
 import { Fragment, useLayoutEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import type {} from "@mui/material/themeCssVarsAugmentation";
-import { Chart, SunburstSeries } from "../highcharts";
+import { Chart, highchartsColors, SunburstSeries } from "../highcharts";
+import { ProportionalBar } from "./Card";
+import { FoldedChart } from "./FoldedChart";
 import { SectionHeader } from "./SectionHeader";
 import { SelectBox } from "./SelectionComponents";
-import type { Colour } from "../utils/types";
+import { useScheme } from "./useScheme";
+import { neutralFill, type Colour } from "../utils/types";
 import { keyLabel } from "../utils/stringUtils";
+import { format } from "../utils/mathUtils";
 import { LABEL_SX } from "./typography";
-import { generateSunburstData, ringOptions, sunburstRoot } from "./sunburstData";
+import { topNWithOther } from "./statsData";
+import { firstRing, generateSunburstData, ringOptions, sunburstRoot, type SunburstEntry } from "./sunburstData";
+
+/**
+ * How tall the circle stands.
+ *
+ * A sunburst is a circle, so its diameter is capped by the width of the column it is in — past
+ * that, extra height is empty ground. On a desktop that column is half a page and the ceiling is a
+ * fixed figure, never past the `80vh` the barchart beside it takes. On a phone the card *is* the
+ * page, so the width is the whole of it and the box is square: `80vh` there wraps a 340px wheel in
+ * 400px of blank paper.
+ */
+const CHART_HEIGHT = { xs: "min(calc(100vw - 64px), 480px)", md: "min(80vh, 700px)" } as const;
+
+/** How many wedges the folded preview names before the rest become one bucket. */
+const PREVIEW_WEDGES = 5;
 
 /**
  * Fades the outermost ring so leaf items read as detail rather than structure.
@@ -95,70 +114,116 @@ const Sunburst = <T, K extends string>({
     setRebuilds((count) => count + 1);
   }, [root.id, drilledId, groupsKey]);
 
+  const ring = firstRing(generatedData);
+
   return (
-    <Card>
-      <SectionHeader
-        icon={<DonutLarge />}
-        title={title}
-        count={count}
-        action={controls}
-      />
+    <FoldedChart
+      header={
+        <SectionHeader
+          icon={<DonutLarge />}
+          title={title}
+          count={count}
+          action={controls}
+        />
+      }
+      summary={ringSummary(ring)}
+      preview={<RingBar ring={ring} />}
+    >
       <CardContent>
-        <Chart
-          key={chartKey}
-          /**
-           * The chart shares a row with the barchart at half width each, so the two are read
-           * against one another and a column of empty ground under one of them is the thing that
-           * breaks the row. A sunburst is a circle: its diameter is capped by the width of a
-           * half-width column, so past that point extra height buys nothing and the ceiling is a
-           * fixed figure rather than a fraction. Below it the viewport still governs, and never
-           * past the `80vh` the barchart beside it takes.
-           */
-          containerProps={{ style: { height: "min(80vh, 700px)" } }}
-          options={{
-            chart: {
-              backgroundColor: "transparent",
-              style: {
-                color: theme.vars.palette.text.primary,
-              },
-              events: {
-                render: dimLeafRing(leafLevel),
-              },
-            },
-          }}
-        >
-          <SunburstSeries
-            data={generatedData}
+        {/* The height is a breakpoint object, which an inline `style` cannot be, so the box owns
+            it and the chart fills the box. */}
+        <Box sx={{ height: CHART_HEIGHT }}>
+          <Chart
+            key={chartKey}
+            containerProps={{ style: { height: "100%" } }}
             options={{
-              allowTraversingTree: true,
-              rootId: root.id,
-              name: "All",
-              events: {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                setRootNode: (event: any) => {
-                  setDrill({ groups: groupsKey, id: event.newRootId });
+              chart: {
+                backgroundColor: "transparent",
+                style: {
+                  color: theme.vars.palette.text.primary,
+                },
+                events: {
+                  render: dimLeafRing(leafLevel),
                 },
               },
-              levels: [
-                {
-                  level: 1,
-                  colorByPoint: true,
-                },
-                {
-                  level: leafLevel,
-                  dataLabels: {
-                    enabled: !hide,
-                  },
-                  levelSize: {
-                    value: hide ? 0 : 1,
-                  },
-                },
-              ],
             }}
-          />
-        </Chart>
+          >
+            <SunburstSeries
+              data={generatedData}
+              options={{
+                allowTraversingTree: true,
+                rootId: root.id,
+                name: "All",
+                events: {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  setRootNode: (event: any) => {
+                    setDrill({ groups: groupsKey, id: event.newRootId });
+                  },
+                },
+                levels: [
+                  {
+                    level: 1,
+                    colorByPoint: true,
+                  },
+                  {
+                    level: leafLevel,
+                    dataLabels: {
+                      enabled: !hide,
+                    },
+                    levelSize: {
+                      value: hide ? 0 : 1,
+                    },
+                  },
+                ],
+              }}
+            />
+          </Chart>
+        </Box>
       </CardContent>
-    </Card>
+    </FoldedChart>
+  );
+};
+
+/**
+ * The innermost ring named and counted, largest first — what the wheel says before a reader drills
+ * anywhere. Worded here rather than in `sunburstData` because `format` reads the machine's locale.
+ */
+const ringSummary = (ring: SunburstEntry[]) =>
+  ring
+    .slice(0, PREVIEW_WEDGES)
+    .map((entry) => `${entry.name} ${format(Math.round(entry.value))}`)
+    .join(" · ");
+
+/**
+ * The first ring as a proportional bar: the wheel's own reading, flattened.
+ *
+ * The colour policy is the Top lists' — "Other" wears the neutral, a wedge its own vocabulary's
+ * colour, and one whose grouping has no vocabulary a series colour by position — so a preview and
+ * the chart behind it cannot name one wedge two colours.
+ */
+const RingBar = ({ ring }: { ring: SunburstEntry[] }) => {
+  const scheme = useScheme();
+  const colours = new Map(ring.map((entry) => [entry.name, entry.color]));
+  const wedges = topNWithOther(
+    ring.map((entry) => ({ name: entry.name, count: entry.value })),
+    PREVIEW_WEDGES,
+  );
+
+  if (wedges.length === 0) return null;
+
+  return (
+    <ProportionalBar
+      items={wedges.map((wedge, index) => ({
+        name: wedge.name,
+        percent: wedge.percent,
+        colour:
+          wedge.name === "Other"
+            ? neutralFill(scheme)
+            : (colours.get(wedge.name) ?? highchartsColors[index % highchartsColors.length]),
+      }))}
+      hovered={null}
+      onHover={() => {}}
+    />
   );
 };
 

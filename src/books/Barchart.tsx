@@ -46,6 +46,7 @@ const BookBarchart = ({ data, measure, yearType }: { data: Book[]; measure: Meas
       // Exact hours reach the shell, so the share view divides the real figures; the column that
       // is drawn is floored the way every hours total on the tab is.
       postAggregate={measure === "Hours" ? Math.floor : undefined}
+      unit={measure}
       controls={
         <>
           {axisControls}

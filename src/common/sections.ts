@@ -21,15 +21,38 @@ export const tabSections = <P extends string, K extends string>(
     [Key in K]: `${P}-${Key}`;
   };
 
+  const keys = sections.map(({ key }) => key);
+  const labels = new Map(sections.map(({ key, label }) => [key, label]));
+
   /**
    * The chips for the sections actually rendered.
    *
    * A section is offered unless it is named `false`, so a page states only the sections it
    * conditions and the always-present ones need no entry — the vitals band always stands, because
    * a total of zero is a true answer to how much.
+   *
+   * `order` is for a page that runs its sections in a different order at some width — the phone,
+   * where the charts follow the library. The rail must be told, and told the same thing the page
+   * renders: `useActiveSection` finds the current section as the first of *its* list still in the
+   * band, so a rail whose order is not the DOM's lights the wrong chip from the first scroll.
    */
-  const chips = (has: Partial<Record<K, boolean>> = {}) =>
-    sections.filter(({ key }) => has[key] !== false).map(({ key, label }) => ({ id: ids[key], label }));
+  const chips = (has: Partial<Record<K, boolean>> = {}, order: readonly K[] = keys) =>
+    order.filter((key) => has[key] !== false).map((key) => ({ id: ids[key], label: labels.get(key)! }));
 
-  return { ids, chips };
+  return { ids, keys, chips };
+};
+
+/**
+ * The same keys with one lifted to sit directly after another.
+ *
+ * One fact stated once for the four tabs that state it: on a phone a page's charts come after its
+ * library. A key naming nothing in the list, or asked to follow itself, leaves the order as it is,
+ * so a page whose section is conditional cannot be reordered into a list it is not in.
+ */
+export const movedAfter = <K extends string>(keys: readonly K[], key: K, after: K): K[] => {
+  if (key === after || !keys.includes(key) || !keys.includes(after)) return [...keys];
+
+  const rest = keys.filter((each) => each !== key);
+  const at = rest.indexOf(after);
+  return [...rest.slice(0, at + 1), key, ...rest.slice(at + 1)];
 };

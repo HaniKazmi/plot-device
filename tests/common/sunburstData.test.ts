@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateSunburstData, ringOptions, sunburstRoot } from "../../src/common/sunburstData";
+import { firstRing, generateSunburstData, ringOptions, sunburstRoot } from "../../src/common/sunburstData";
 import type { Colour } from "../../src/utils/types";
 
 type Game = { name: string; company: string; platform: string; hours?: number };
@@ -191,5 +191,44 @@ describe("ringOptions", () => {
       ["platform", "franchise", "genre"],
       ["company", "platform", "franchise"],
     ]);
+  });
+});
+
+describe("firstRing", () => {
+  it("keeps only the nodes parented to the top, which is the innermost ring", () => {
+    const entries = build([game({ company: "Nintendo" }), game({ name: "Sonic", company: "Sega", platform: "MD" })]);
+
+    expect(firstRing(entries).map((entry) => entry.name)).toEqual(["Nintendo", "Sega"]);
+  });
+
+  it("orders the ring largest first, so a preview reads the way every ranked list on a page does", () => {
+    const entries = build([
+      game({ name: "Sonic", company: "Sega", platform: "MD", hours: 40 }),
+      game({ company: "Nintendo", hours: 10 }),
+    ]);
+
+    expect(firstRing(entries).map((entry) => [entry.name, entry.value])).toEqual([
+      ["Sega", 40],
+      ["Nintendo", 10],
+    ]);
+  });
+
+  it("carries each wedge's own colour, so a preview and the chart cannot disagree about one", () => {
+    expect(firstRing(build([game()]))[0].color).toBe("#d74840");
+  });
+
+  it("leaves the array it is handed in the id order the chart is given", () => {
+    const entries = build([
+      game({ name: "Sonic", company: "Sega", platform: "MD", hours: 40 }),
+      game({ company: "Nintendo", hours: 10 }),
+    ]);
+    const before = entries.map((entry) => entry.id);
+    firstRing(entries);
+
+    expect(entries.map((entry) => entry.id)).toEqual(before);
+  });
+
+  it("answers nothing for an empty hierarchy", () => {
+    expect(firstRing([])).toEqual([]);
   });
 });

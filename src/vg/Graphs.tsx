@@ -11,6 +11,7 @@ import { FranchiseContext, vgFranchise } from "./franchiseContext";
 import { visibleFranchiseIndex } from "../common/franchiseIndex";
 import { memo, useDeferredValue } from "react";
 import { Stack } from "@mui/material";
+import { usePhone } from "../common/usePhone";
 import Filter from "./Filter";
 import { ChartPair, Section, SectionRail } from "../common/SectionRail";
 import { MeasureControl } from "../common/SelectionComponents";
@@ -72,11 +73,55 @@ const Graphs = memo(
     // Answered once for the page: it decides both whether the hero is rendered and whether the
     // rail offers a chip pointing at it, and two derivations of one test are two that can differ.
     const playing = currentlyPlaying(data);
+    // The phone reads the library before the charts, and the sections are ordered in the DOM
+    // rather than with CSS: the rail derives the current section from its own list's order, so a
+    // page laid out in one order and listed in another lights the wrong chip on every scroll.
+    const chartsLast = usePhone();
+
+    const charts = (
+      <Section
+        key={VG_SECTIONS.charts}
+        id={VG_SECTIONS.charts}
+      >
+        <ChartPair
+          left={
+            <Sunburst
+              data={deferredData}
+              measure={filterState.measure}
+            />
+          }
+          right={
+            <Barchart
+              data={deferredData}
+              measure={filterState.measure}
+              yearType={filterState.yearType}
+            />
+          }
+        />
+      </Section>
+    );
+
+    const library = (
+      <Section
+        key={VG_SECTIONS.library}
+        id={VG_SECTIONS.library}
+      >
+        <Finished
+          MediaComponent={CardMediaImage}
+          title="All Games"
+          count={`${format(finishedCount(data))} games`}
+          borderKey="company"
+          data={data}
+          colour={(item) => companyToColor(item, scheme)}
+          landscape
+        />
+      </Section>
+    );
 
     return (
       <Stack spacing={2}>
         <SectionRail
-          sections={vgSections(playing.length > 0)}
+          sections={vgSections(playing.length > 0, chartsLast)}
           tabs={tabs}
           actions={
             <MeasureControl
@@ -98,34 +143,7 @@ const Graphs = memo(
         <Section id={VG_SECTIONS.timeline}>
           <Timeline data={deferredData} />
         </Section>
-        <Section id={VG_SECTIONS.charts}>
-          <ChartPair
-            left={
-              <Sunburst
-                data={deferredData}
-                measure={filterState.measure}
-              />
-            }
-            right={
-              <Barchart
-                data={deferredData}
-                measure={filterState.measure}
-                yearType={filterState.yearType}
-              />
-            }
-          />
-        </Section>
-        <Section id={VG_SECTIONS.library}>
-          <Finished
-            MediaComponent={CardMediaImage}
-            title="All Games"
-            count={`${format(finishedCount(data))} games`}
-            borderKey="company"
-            data={data}
-            colour={(item) => companyToColor(item, scheme)}
-            landscape
-          />
-        </Section>
+        {chartsLast ? [library, charts] : [charts, library]}
       </Stack>
     );
   },

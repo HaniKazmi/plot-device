@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Card, CardContent, Stack, Typography } from "@mui/material";
+import { CardContent, Stack, Typography } from "@mui/material";
 import { Category } from "@mui/icons-material";
 import { INLINE_SWATCH_SIZE, ProportionalBar, Swatch } from "../common/Card";
 import { SectionHeader } from "../common/SectionHeader";
+import { FoldedChart } from "../common/FoldedChart";
 import { LABEL_SX, MUTED_FIGURE_SX } from "../common/typography";
 import { format } from "../utils/mathUtils";
 import type { GenreBridgeRow } from "./genreBridgeData";
@@ -27,37 +28,58 @@ const GenreBridge = ({ rows }: { rows: GenreBridgeRow[] }) => {
 
   const [hovered, setHovered] = useState<string | null>(null);
 
+  const biggest = rows[0];
+
   return (
-    <Card>
-      <SectionHeader
-        icon={<Category />}
-        title="Genres by medium"
-        count={`${format(rows.length)} genres`}
-        action={
-          <Stack
-            direction="row"
-            spacing={1.5}
-            sx={{ alignItems: "center", flexWrap: "wrap" }}
-          >
-            {media.map((medium) => (
-              <Stack
-                key={medium}
-                direction="row"
-                spacing={0.5}
-                sx={{ alignItems: "center", cursor: "default" }}
-                onMouseEnter={() => setHovered(mediumToLabel(medium))}
-                onMouseLeave={() => setHovered(null)}
-              >
-                <Swatch
-                  colour={mediumToColour(medium, scheme)}
-                  size={INLINE_SWATCH_SIZE}
-                />
-                <Typography variant="caption">{mediumToLabel(medium)}</Typography>
-              </Stack>
-            ))}
-          </Stack>
-        }
-      />
+    <FoldedChart
+      header={
+        <SectionHeader
+          icon={<Category />}
+          title="Genres by medium"
+          count={`${format(rows.length)} genres`}
+          action={
+            <Stack
+              direction="row"
+              spacing={1.5}
+              sx={{ alignItems: "center", flexWrap: "wrap" }}
+            >
+              {media.map((medium) => (
+                <Stack
+                  key={medium}
+                  direction="row"
+                  spacing={0.5}
+                  sx={{ alignItems: "center", cursor: "default" }}
+                  onMouseEnter={() => setHovered(mediumToLabel(medium))}
+                  onMouseLeave={() => setHovered(null)}
+                >
+                  <Swatch
+                    colour={mediumToColour(medium, scheme)}
+                    size={INLINE_SWATCH_SIZE}
+                  />
+                  <Typography variant="caption">{mediumToLabel(medium)}</Typography>
+                </Stack>
+              ))}
+            </Stack>
+          }
+        />
+      }
+      // The rows are ordered by hours, so the first is the genre the library is most made of, and
+      // how its hours divide is the whole question the section asks.
+      summary={
+        biggest
+          ? `${biggest.genre} leads with ${format(biggest.hours)} hours across ${format(biggest.segments.length)} media`
+          : ""
+      }
+      preview={
+        biggest && (
+          <BridgeRow
+            row={biggest}
+            hovered={null}
+            onHover={() => {}}
+          />
+        )
+      }
+    >
       <CardContent>
         <Stack spacing={1.5}>
           {rows.map((row) => (
@@ -70,7 +92,7 @@ const GenreBridge = ({ rows }: { rows: GenreBridgeRow[] }) => {
           ))}
         </Stack>
       </CardContent>
-    </Card>
+    </FoldedChart>
   );
 };
 

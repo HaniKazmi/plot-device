@@ -36,6 +36,7 @@ const OmnibusBarchart = ({ data, measure }: { data: OmniItem[]; measure: Measure
       // Floored per column rather than per item, which is the rule every hours figure on this tab
       // follows. Share bypasses this by design and takes its percentages from the exact hours.
       postAggregate={measure === "Hours" ? Math.floor : undefined}
+      unit={measure}
       controls={controls}
     />
   );
