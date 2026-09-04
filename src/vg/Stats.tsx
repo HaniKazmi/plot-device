@@ -109,7 +109,10 @@ const Stats = ({
             data={data}
             yearType={yearType}
           />
-          <AveragesPerGame data={data} />
+          <AveragesPerGame
+            data={data}
+            yearType={yearType}
+          />
           <Vitals
             data={data}
             measure={measure}
@@ -224,11 +227,16 @@ const Averages = ({ data, yearType }: { data: VideoGame[]; yearType: YearType })
   );
 };
 
-const AveragesPerGame = ({ data }: { data: VideoGame[] }) => {
+const AveragesPerGame = ({ data, yearType }: { data: VideoGame[]; yearType: YearType }) => {
   const { hours, days } = perGameAverages(data);
 
   return (
     <StatCard
+      // The band is two cards to a row on a phone, and this is the card that decides whether it
+      // divides evenly: `Averages` renders nothing under "In {year}", leaving this one alone on
+      // the second row beside an empty half. It spans the row there instead, which is the span it
+      // would have if the band held it alone. `md` and up divides by "grow" and needs no help.
+      span={yearType === "matching" ? { xs: 12, sm: 12 } : undefined}
       icon={<AutoGraph />}
       title="Game Average"
       content={[
