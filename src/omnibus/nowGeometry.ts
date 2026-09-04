@@ -104,22 +104,51 @@ const shareGeometry = (rowWidth: number, perRow: number): NowGeometry | undefine
 };
 
 /**
- * The band two cards to a row, which is what a wide tablet draws.
+ * The narrowest card the pair is drawn at, and so the row it opens on: two of a 648px row.
  *
- * The stated card is 434, so two of them fit no page between the phone and `md` and one leaves
- * half the band empty. Sharing the row in two is the same answer the four-way share gives a wide
- * desktop, and it is bounded the same way: two of a 740px row are 366 each, exactly the floor, and
- * a narrower row gives back nothing. At 800 the page gives the row 752 and the pair is 372.
+ * Below it the band stands the cards at their stated width and they wrap one to a row. The figure
+ * is where the poster clamp below has taken a fifth of the picture: at 320 the row stands 316 and
+ * the poster beside its 133px column is 187 wide, 275 tall, against the 215 by 316 the row would
+ * give it — a picture over a quarter shorter than its card reads as a thumbnail, not the card's
+ * artwork.
+ */
+const NOW_PAIR_MIN_CARD_WIDTH = 320;
+
+/**
+ * The words beside a poster, the narrowest a date, a two-line title and two tiles read well in:
+ * the column the four-way share's floor of 366 leaves once its 233px poster is seated, and what the
+ * pair keeps whatever its row gives. Stated rather than derived, since the share rounds twice on the
+ * way to it; the geometry test holds the two to the same figure.
+ */
+const NOW_POSTER_COLUMN = 133;
+
+/**
+ * The band two cards to a row, which is what a tablet draws.
  *
- * Under 740 the band stands the cards at their stated width instead, and they wrap one to a row,
- * two of those not fitting either. That is what a 768 tablet gets — its row is 720, where the pair
- * would be 356 and the words beside a poster 128px — and what the reader gets everywhere between
- * the phone's rows and the width the pair opens at: a column of full-size cards, each the size the
- * band was drawn at, rather than a row of two whose words are narrower than they read in.
+ * The stated card is 434, so two of them fit no page between the phone and `md`, and one leaves half
+ * the band empty. Sharing the row in two is the same answer the four-way share gives a wide desktop,
+ * with one difference: the four-way share refuses a row under its floor, where this one keeps the
+ * row and spends the poster instead. A 768 tablet's row is 720, the pair 356, and a poster at the
+ * row's height would leave its words 128px — under the 133 column — so the poster is held to the
+ * column's remainder, 223 wide and 328 tall in a 336px row, the card's own ground showing under it.
+ * Refusing the pair there would stand four full-size cards in a column on the most common tablet,
+ * a band twice as tall, for five pixels of column.
+ *
+ * The clamp never crops: the picture keeps its ratio and stands shorter than the row, as a poster
+ * beside the phone's hero does. From a 740px row the natural width is inside the column and the
+ * clamp does nothing.
  *
  * @see denseNowGeometry
  */
-export const pairNowGeometry = (rowWidth: number): NowGeometry | undefined => shareGeometry(rowWidth, 2);
+export const pairNowGeometry = (rowWidth: number): NowGeometry | undefined => {
+  const cardWidth = Math.floor((rowWidth - NOW_GAP) / 2);
+  if (cardWidth < NOW_PAIR_MIN_CARD_WIDTH) return undefined;
+
+  const bannerArtHeight = Math.round(cardWidth / shapeRatioValues.landscape);
+  const height = bannerArtHeight + NOW_BANNER_TEXT_HEIGHT;
+  const posterArtWidth = Math.min(Math.round(height * shapeRatioValues.portrait), cardWidth - NOW_POSTER_COLUMN);
+  return { cardWidth, height, posterArtWidth, bannerArtHeight };
+};
 
 /**
  * The same band with all four media in flight, on one row.

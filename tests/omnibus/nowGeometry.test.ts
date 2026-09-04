@@ -30,11 +30,16 @@ describe("the Now band's geometry", () => {
     expect(pairNowGeometry(740)).toEqual({ cardWidth: 366, height: 342, posterArtWidth: 233, bannerArtHeight: 206 });
   });
 
-  it("gives no pair under the floor, so the band stands its cards at their stated width instead", () => {
-    // A 768px tablet's row is 720 and a 600px one's is 552: two cards there are 356 and 272, whose
-    // word columns are 128px and 75 against the 133 the floor is set at.
-    expect(pairNowGeometry(739)).toBeUndefined();
-    expect(pairNowGeometry(720)).toBeUndefined();
+  it("keeps the pair on a tablet's row and holds the poster to the column's remainder", () => {
+    // A 768px tablet's row is 720: two cards of 356, a 200px banner over its 136px panel, and a
+    // poster the row's 336 would draw 228 wide — 5px into the 133px column — so it stands 223.
+    expect(pairNowGeometry(720)).toEqual({ cardWidth: 356, height: 336, posterArtWidth: 223, bannerArtHeight: 200 });
+  });
+
+  it("gives no pair where the clamp would take a fifth of the poster, so the cards stand at their stated width", () => {
+    // A 600px viewport's row is 552, two cards of 272: the poster beside a 133px column would be
+    // 139 wide against the 204 its row gives.
+    expect(pairNowGeometry(647)).toBeUndefined();
     expect(pairNowGeometry(552)).toBeUndefined();
   });
 
@@ -50,6 +55,8 @@ describe("the Now band's geometry", () => {
 
     expect(column(denseNowGeometry(1488)!)).toBe(133);
     expect(column(pairNowGeometry(740)!)).toBe(133);
+    expect(column(pairNowGeometry(720)!)).toBe(133);
+    expect(column(pairNowGeometry(648)!)).toBe(133);
   });
 
   it("holds every shape at the phone row's height, so no picture is cropped to fit", () => {
