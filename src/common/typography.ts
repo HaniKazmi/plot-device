@@ -39,3 +39,21 @@ export const dimSx = (hovered: string | null, name: string) => ({
   opacity: hovered && hovered !== name ? 0.3 : 1,
   transition: "opacity 0.2s",
 });
+
+/**
+ * A segment's own type. 12px because the control sits in a card header beside a title and in the
+ * section rail beside 22px chips, and the button's own size would stand taller than either;
+ * `textTransform: none` because the labels arrive worded — "Start date", not "Start Date".
+ *
+ * Here rather than beside the control, whose file exports components alone: a button that is not
+ * a segment has to read as one — the fold's disclosure,
+ * which stands among these controls and would otherwise be the one call to action on the page.
+ * The type alone: a button outside a group is sized by what it stands next to rather than by the
+ * finger reaching for a row of them.
+ */
+export const SEGMENT_TYPE_SX = {
+  fontSize: 12,
+  textTransform: "none",
+  paddingY: 0.5,
+  paddingX: 1.25,
+} as const;
