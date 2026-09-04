@@ -439,34 +439,36 @@ kicker, a title, a subtitle and a figure into 136, spent on every card because t
 across its figures. `inlineKicker` is the two banner cards' alone: at 402px the date and platform
 take the two ends of one line, where the 176px column wraps them to four.
 
-On a phone the band is a grid of two by two rather than four cards, and each cell is a picture and a
-date and nothing else: a card that fills the width is as tall as its own artwork, and four full-bleed
+On a phone the band is two columns rather than four cards, and each cell is a picture and a date
+and nothing else: a card that fills the width is as tall as its own artwork, and four full-bleed
 pictures would put the last of them two and a half screens down, where four rows short enough to
-share a screen leave a poster 54px wide. The rows pair by shape — the two banners first, the poster
-and the cover under them — so a row shares a height, which is why `Now` reads `usePhone` as a value:
-the pairing is a DOM order, which no `sx` can state, and each item is keyed on its medium so the two
-that change slot between the orders are moved rather than rebuilt, a rebuild closing a card the reader
-had open through a rotation. A banner spans its cell at 16:9 with the date on a line beneath; a
-poster or a cover stands beside a 36px spine (`NOW_SPINE_WIDTH`, `nowGeometry.ts`) with the date set
-down it as a book's spine is. That row is one height, the poster's at the width the spine leaves it,
-solved from the measured row (`nowPortraitHeight` — 204px at 390, 234 at 430), so a wider phone gets a
-taller picture rather than ground beside one; the cover is held to the same height and takes its own
-width inside it, its spine absorbing what a cover narrower than 2:3 leaves. A cover wider than the
-poster's ratio cannot fill both the row's height and the width the spine leaves, and stands contained
-in its column with the ground above and below — the one picture on the page not edge to edge, since
-the spine's 36px is the floor a date reads at and the alternative is the card clipping the date. The
-date is bare — "1 Aug 2026", never "Since" — because a 280px cover screen gives the cell 120px and the
-spine 108 of run, and the ground already says which medium's date it is; `NowDate` reads the card's
-own arrangement for which edge it stands on, as every footer does, so the cell passes `shape`. A
-column that narrow holds a date and not a word, and the date is the one fact of the four a picture
-cannot carry; the platform, the genre and the figures are one tap away on the expanded card, which
-the whole cell opens (`openFromCell`): a finger on the spine does what a finger on the picture does,
+share a screen leave a poster 54px wide. Each column is a banner over a portrait — the game over
+the book, the show over the film — because the two shapes stand at different heights, 131px and
+204 at 390, and only a column of one each comes out the height of its neighbour, 343 both, so no
+cell is padded, stretched or left beside a gap. A multi-column box balances the four into those two
+columns by itself, which keeps the cells one flat list keyed on their media, so a turn past `sm`
+reorders them in place rather than rebuilding them and closing a card the reader had open; `Now`
+reads `usePhone` as a value for that order, which no `sx` can state. A banner spans its cell at
+16:9 with the date on a line beneath; a poster or a cover stands beside a 36px spine
+(`NOW_SPINE_WIDTH`, `nowGeometry.ts`) with the date set down it as a book's spine is. The portrait
+cells are one height, the poster's at the width the spine leaves it, solved from the measured row
+(`nowPortraitHeight` — 204px at 390, 234 at 430), so a wider phone gets a taller picture rather than
+ground beside one; the cover is held to the same height and takes its own width inside it, its spine
+absorbing what a cover narrower than 2:3 leaves. A cover wider than the poster's ratio cannot fill
+both the row's height and the width the spine leaves, and stands contained in its column with the
+ground above and below — the one picture on the page not edge to edge, since the spine's 36px is
+the floor a date reads at and the alternative is the card clipping the date. The date is bare —
+"1 Aug 2026", never "Since" — because a 280px cover screen gives the cell 120px and the spine 108
+of run, and the ground already says which medium's date it is; `NowDate` reads the card's own
+arrangement for which edge it stands on, as every footer does, so the cell passes `shape`. A column
+that narrow holds a date and not a word, and the date is the one fact of the four a picture cannot
+carry; the platform, the genre and the figures are one tap away on the expanded card, which the
+whole cell opens (`openFromCell`): a finger on the spine does what a finger on the picture does,
 and Enter on the focused picture — which lands on the action area and not on the picture the card
-opens from — is forwarded the same way. A banner alone in flight takes the whole row, half of it
-beside a gap being a 98px picture; a lone poster keeps its half, a poster across the row standing
-525px. Between `sm` and `md` the cards return two to a row, the share solved from the measured width
-as the four-way one is (`pairNowGeometry`), since the stated 434px card is wider than half a tablet's
-page.
+opens from — is forwarded the same way. A medium with nothing in flight leaves its column a cell
+short, and the columns then differ by that cell's height. Between `sm` and `md` the cards return
+two to a row, the share solved from the measured width as the four-way one is (`pairNowGeometry`),
+since the stated 434px card is wider than half a tablet's page.
 
 **Mixed rows are one card size, the Now band's rule at strip scale.** A list lays its cards out one
 of two ways (`CardLayout` in `common/Stats.tsx`): a grid at stated column spans, or a sized row.

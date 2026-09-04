@@ -186,10 +186,6 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
   // the band is a column of full-size cards rather than a row of two whose words cannot be read.
   const pair = rowWidth === undefined ? undefined : (pairNowGeometry(rowWidth) ?? NOW_GEOMETRY);
 
-  // A lone banner takes the phone's whole row rather than half of it beside a gap; a lone poster or
-  // cover keeps its half, since a poster across the whole row stands 525px and the gap beside it is
-  // the cheaper of the two.
-  const banners = (now.game ? 1 : 0) + (now.movie ? 1 : 0);
   // The portrait row's one height, once the row has been measured; until then each picture
   // stands at its own ratio for the frame before.
   const portraitHeight = phone && rowWidth !== undefined ? nowPortraitHeight(rowWidth) : undefined;
@@ -199,7 +195,6 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
       item={now.game}
       medium="game"
       phone={phone}
-      alone={phone && banners === 1}
       geometry={geometry}
       pair={pair}
       MediaComponent={VgCardMediaImage}
@@ -245,7 +240,6 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
       item={now.movie}
       medium="movie"
       phone={phone}
-      alone={phone && banners === 1}
       geometry={geometry}
       pair={pair}
       MediaComponent={MovieCardMediaImage}
@@ -284,19 +278,28 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
     <Box ref={rowRef}>
       <Box
         sx={{
-          // Two cells to a row on a phone, the banners on the first row and the portraits on the
-          // second, so a row shares a shape and a height; a wrapping row of two from `sm`, where
-          // the page is wide enough for two cards and not for four.
-          display: { xs: "grid", sm: "flex" },
-          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-          alignItems: { xs: "start", sm: "stretch" },
-          flexDirection: { xs: "column", sm: "row" },
+          // Two columns on a phone, each a banner over a portrait: the game over the book, the
+          // show over the film. Columns rather than rows because the two shapes stand at
+          // different heights, 131px and 204 at 390, and only a column of one each comes out the
+          // same height as its neighbour — 343 both — so no cell is padded, stretched or left
+          // beside a gap. Multi-column layout balances the four into two columns of that height
+          // by itself, which keeps the four cells one flat list keyed on their media, so a turn
+          // past `sm` reorders them in place rather than rebuilding them and closing a card the
+          // reader had open. From `sm` a wrapping row of two, where the page is wide enough for
+          // two cards and not for four.
+          columnCount: { xs: 2, sm: "auto" },
+          display: { xs: "block", sm: "flex" },
+          // The cells carry the column's gap as a bottom margin, which the row of the trailing
+          // cell in each column is given back here.
+          marginBottom: { xs: -1, sm: 0 },
           // A row of one height with the widths following, which is how every strip on this page
           // holds mixed artwork: an equal-thirds grid gives each card a width it did not ask for, and
           // the two shapes then reach that width at different heights. Sharing the height and letting
           // the widths differ is the same trade the other way round, and it is the one that leaves
           // every picture whole — a poster card comes out near-square and a banner card wider.
           flexWrap: { sm: "wrap" },
+          // The gap between the row's cards, and between the phone's two columns: `gap` sets the
+          // column gap of a multi-column box as it does a flex row's.
           gap: 1,
           // Four cards that do not fit one row are two rows of two, never three and one: the row
           // is held to the width two cards fill, so the third wraps.
@@ -304,14 +307,13 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
         }}
       >
         {game}
-        {/* The phone pairs the two banners on the first row and the poster and the cover on the
-            second, so each row shares a shape and a height; elsewhere the four stand in the
-            tabs' own order. Each item is keyed on its medium, so a flip between the two orders
-            moves the two that change slot rather than rebuilding them, which would close a card
-            a reader had open through a rotation. */}
-        {phone ? movie : show}
+        {/* The phone's columns read down: the book under the game, the film under the show.
+            Elsewhere the four stand in the tabs' own order. Each item is keyed on its medium, so
+            a flip between the two orders moves the cells rather than rebuilding them, which would
+            close a card a reader had open through a rotation. */}
+        {phone ? book : show}
         {phone ? show : movie}
-        {book}
+        {phone ? movie : book}
       </Box>
     </Box>
   );
@@ -349,12 +351,6 @@ const NowItem = <T,>(props: {
   stats: PanelStat[];
   /** Whether the band is the phone's grid, where a cell is a picture and a date. */
   phone: boolean;
-  /**
-   * Whether a banner is the only one in flight on the phone, where it takes the grid's whole
-   * row: a banner at half the row is 98px tall, and the half beside it would hold nothing. The
-   * two portraits never take it, a poster across the row standing 525px.
-   */
-  alone?: boolean;
   /** The phone's portrait row's height, which a poster or a cover is held to once the row is measured. */
   portraitHeight?: number;
   /** The band's one size, from `md` up. */
@@ -380,7 +376,7 @@ const NowItem = <T,>(props: {
         role="group"
         aria-label={props.title}
         onClick={openFromCell}
-        sx={{ minWidth: 0, cursor: "pointer", gridColumn: props.alone ? "1 / -1" : undefined }}
+        sx={{ minWidth: 0, cursor: "pointer", breakInside: "avoid", marginBottom: { xs: 1, sm: 0 } }}
       >
         <props.MediaComponent
           item={props.item}
