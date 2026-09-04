@@ -5,6 +5,7 @@ import Barchart from "./Barchart";
 import Sunburst from "./Sunburst";
 import Stats from "./Stats";
 import { ChartPair, Section, SectionRail } from "../common/SectionRail";
+import { FilterChip } from "../common/FilterDrawer";
 import { MeasureControl } from "../common/SelectionComponents";
 import { useOtherTabs } from "../tabs";
 import { SHOW_SECTIONS, showSections } from "./sections";
@@ -13,7 +14,7 @@ import Timeline from "./Timeline";
 import { Show, type Measure } from "./types";
 import ShowCardMediaImage from "./CardMediaImage";
 import { statusToColour } from "../utils/types";
-import { guestFilter, type FilterDispatch, type FilterState } from "./filterUtils";
+import { activeCount, guestFilter, type FilterDispatch, type FilterState } from "./filterUtils";
 import { FranchiseContext, showFranchise } from "./franchiseContext";
 import { visibleFranchiseIndex } from "../common/franchiseIndex";
 import Filter from "./Filter";
@@ -88,6 +89,7 @@ const Graphs = memo(
               dispatch={filterDispatch}
             />
           }
+          trailing={<FilterChip activeCount={activeCount(filterState)} />}
         />
         <Stats
           data={data}

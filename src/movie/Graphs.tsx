@@ -9,12 +9,13 @@ import Barchart from "./Barchart";
 import WatchTimeline from "./WatchTimeline";
 import Filter from "./Filter";
 import { ChartPair, Section, SectionRail } from "../common/SectionRail";
+import { FilterChip } from "../common/FilterDrawer";
 import { MeasureControl } from "../common/SelectionComponents";
 import { useOtherTabs } from "../tabs";
 import { MOVIE_SECTIONS, movieSections } from "./sections";
 import { FranchiseContext, movieFranchise } from "./franchiseContext";
 import { visibleFranchiseIndex } from "../common/franchiseIndex";
-import { guestFilter, type FilterDispatch, type FilterState } from "./filterUtils";
+import { activeCount, guestFilter, type FilterDispatch, type FilterState } from "./filterUtils";
 import { format } from "../utils/mathUtils";
 import { finishedCount, type FinishedExtraSort } from "../common/finishedData";
 import { useScheme } from "../common/useScheme";
@@ -78,6 +79,7 @@ const Graphs = memo(
               dispatch={filterDispatch}
             />
           }
+          trailing={<FilterChip activeCount={activeCount(filterState)} />}
         />
         <Stats
           data={data}

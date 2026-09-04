@@ -1,5 +1,14 @@
 import { Alert, Snackbar } from "@mui/material";
 import { useState } from "react";
+import { BOTTOM_TABS_CLEARANCE } from "./chrome";
+
+/**
+ * Where the notice sits, which below `sm` is above the bottom navigation rather than under it —
+ * MUI's own default puts it against the bottom edge, where the tab bar is fixed. `sm` restates
+ * MUI's own 24px, since an `sx` value lands after the component's styles and a bare `bottom` would
+ * override it at every width.
+ */
+const SNACKBAR_SX = { bottom: { xs: `calc(8px + ${BOTTOM_TABS_CLEARANCE})`, sm: 24 } } as const;
 
 /**
  * What the fetch had to say: a one-second "Refresh Complete" when it replaced whatever the cache
@@ -41,6 +50,7 @@ export const DataLoadedSnackbar = ({ open, error }: { open: boolean; error?: str
       <Snackbar
         open={error !== dismissedError}
         onClose={() => setDismissedError(error)}
+        sx={SNACKBAR_SX}
       >
         <Alert
           severity="error"
@@ -61,6 +71,7 @@ export const DataLoadedSnackbar = ({ open, error }: { open: boolean; error?: str
       autoHideDuration={1000}
       onClose={() => setSnackbarClosed(true)}
       message="Refresh Complete"
+      sx={SNACKBAR_SX}
     />
   );
 };

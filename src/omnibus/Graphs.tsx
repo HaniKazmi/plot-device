@@ -3,6 +3,7 @@ import { CURRENT_PLAINDATE, type YearNumber } from "../common/date";
 import { Stack } from "@mui/material";
 import { franchiseIndex } from "../common/franchiseIndex";
 import { Section, SectionRail } from "../common/SectionRail";
+import { FilterChip } from "../common/FilterDrawer";
 import { MeasureControl } from "../common/SelectionComponents";
 import { stripYearTicks } from "../common/timelineStripData";
 import {
@@ -27,7 +28,7 @@ import RecentlyFinished from "./RecentlyFinished";
 import { genreBridge } from "./genreBridgeData";
 import Stats from "./Stats";
 import { OMNIBUS_SECTIONS, omnibusSections } from "./sections";
-import type { FilterDispatch, FilterState } from "./filterUtils";
+import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
 import type { Measure } from "./types";
 
 /** The measures this tab counts in, in the order the rail states them. */
@@ -136,6 +137,7 @@ const Graphs = memo(
               dispatch={filterDispatch}
             />
           }
+          trailing={<FilterChip activeCount={activeCount(filterState)} />}
         />
         <Stats
           data={data}

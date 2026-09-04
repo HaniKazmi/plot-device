@@ -1,4 +1,6 @@
 import type { FunctionComponent } from "react";
+import type { SvgIconComponent } from "@mui/icons-material";
+import { AutoAwesomeMotion, MenuBook, SportsEsports, Theaters, Tv } from "@mui/icons-material";
 import type { Colour, Scheme } from "./utils/types";
 import { useLocation, useNavigate } from "react-router-dom";
 import Shows from "./show/Show";
@@ -54,6 +56,12 @@ export interface Tab {
    */
   range?: string;
   component: FunctionComponent;
+  /**
+   * The tab's mark in the bottom navigation, which is the only place a tab is named by anything
+   * but its word. Every tab carries one: an action without an icon leaves a label floating in a
+   * bar sized for both.
+   */
+  icon: SvgIconComponent;
   primaryColour?: string;
   secondaryColour?: string;
   /**
@@ -77,6 +85,7 @@ export const VideoGamesTab: SheetTab = {
   spreadsheetId: "1JCAN_lB2QaVxj1rD4f88mN4tHjmhxF3CZlGtZGwYCLk",
   range: "Games List!A:Z",
   component: VideoGames,
+  icon: SportsEsports,
   primaryColour: "#d019ca",
   secondaryColour: "#14bb7c",
   darkBar: { tint: "#441f4a", rule: "#ea4be4", ink: "#f07aeb" },
@@ -88,6 +97,7 @@ export const ShowsTab: SheetTab = {
   spreadsheetId: "1M3om2DPLfRO5dKcUfYOIcSNoLThzMLp1iZLQX6qR3pY",
   range: "Shows!A:Z",
   component: Shows,
+  icon: Tv,
   primaryColour: "#127d9c",
   secondaryColour: "#fe799b",
   darkBar: { tint: "#1b3540", rule: "#3fb3d3", ink: "#6cc7e0" },
@@ -99,6 +109,7 @@ export const MoviesTab: SheetTab = {
   spreadsheetId: "1M3om2DPLfRO5dKcUfYOIcSNoLThzMLp1iZLQX6qR3pY",
   range: "Movies!A:Z",
   component: Movies,
+  icon: Theaters,
   primaryColour: "#de4412",
   secondaryColour: "#499dfe",
   darkBar: { tint: "#472922", rule: "#ff7043", ink: "#ff8f6b" },
@@ -120,6 +131,7 @@ export const BooksTab: SheetTab = {
   spreadsheetId: "1qVG5hvXnOynXR4vmiLr6BiOd1CF3jzoytDBwSmeCnwA",
   range: "Books!A:AZ",
   component: Books,
+  icon: MenuBook,
   primaryColour: "#958112",
   secondaryColour: "#ca82fe",
   darkBar: { tint: "#373622", rule: "#c7b143", ink: "#d6c45a" },
@@ -166,6 +178,7 @@ export const OmnibusTab: Tab = {
   id: "omnibus",
   name: "Omnibus",
   component: Omnibus,
+  icon: AutoAwesomeMotion,
   primaryColour: "#7553ff",
   secondaryColour: "#ef9716",
   darkBar: { tint: "#302c56", rule: "#9d86ff", ink: "#b3a2ff" },

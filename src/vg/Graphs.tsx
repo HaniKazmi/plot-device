@@ -6,13 +6,14 @@ import Barchart from "./Barchart";
 import Finished from "../common/Finished";
 import Timeline from "./Timeline";
 import CardMediaImage from "./CardMediaImage";
-import { FilterDispatch, FilterState, guestFilter } from "./filterUtils";
+import { activeCount, FilterDispatch, FilterState, guestFilter } from "./filterUtils";
 import { FranchiseContext, vgFranchise } from "./franchiseContext";
 import { visibleFranchiseIndex } from "../common/franchiseIndex";
 import { memo, useDeferredValue } from "react";
 import { Stack } from "@mui/material";
 import Filter from "./Filter";
 import { ChartPair, Section, SectionRail } from "../common/SectionRail";
+import { FilterChip } from "../common/FilterDrawer";
 import { MeasureControl } from "../common/SelectionComponents";
 import { useOtherTabs } from "../tabs";
 import { VG_SECTIONS, vgSections } from "./sections";
@@ -85,6 +86,7 @@ const Graphs = memo(
               dispatch={filterDispatch}
             />
           }
+          trailing={<FilterChip activeCount={activeCount(filterState)} />}
         />
         <Stats
           data={data}

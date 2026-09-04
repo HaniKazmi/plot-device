@@ -1,6 +1,8 @@
 import { Container, createTheme, CssBaseline, ThemeProvider } from "@mui/material";
 import { useState } from "react";
 import NavBar from "./NavBar";
+import { BottomTabs } from "./BottomTabs";
+import { BOTTOM_TABS_CLEARANCE } from "./common/chrome";
 import { Outlet } from "react-router-dom";
 import { GoogleAuthProvider } from "./contexts/GoogleAuthContext.tsx";
 import { FranchiseUnionProvider } from "./omnibus/franchiseUnion.tsx";
@@ -13,13 +15,22 @@ const GoogleAuth = () => {
 
   return (
     <GoogleAuthProvider>
-      <NavBar setGuestMode={setGuestMode} />
-      <Container maxWidth={"xl"}>
+      <NavBar
+        guestMode={guestMode}
+        setGuestMode={setGuestMode}
+      />
+      <Container
+        maxWidth={"xl"}
+        // The bottom navigation is fixed, so it paints over whatever the page ends with unless the
+        // page stops short of it. Only below `sm`, where the bar is drawn at all.
+        sx={{ paddingBottom: { xs: BOTTOM_TABS_CLEARANCE, sm: 0 } }}
+      >
         {/* Above every tab, because a card on any of them draws the franchise across all four. */}
         <FranchiseUnionProvider guestMode={guestMode}>
           <Outlet context={{ guestMode }} />
         </FranchiseUnionProvider>
       </Container>
+      <BottomTabs />
     </GoogleAuthProvider>
   );
 };

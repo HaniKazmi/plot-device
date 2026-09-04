@@ -81,22 +81,30 @@ export const ChartPair = ({ left, right }: { left: ReactNode; right: ReactNode }
  * the chips would say it twice — so they are not rendered at all. Each chip carries its own
  * `jump`, so what a tab id means stays with the registry that owns it.
  *
- * `actions` is a page-wide control that has to stay reachable from anywhere on the page — the
- * measure every figure below is counted in. It sits outside the scrolling row, at the end of the
- * pinned bar, because a control inside the row scrolls away with the chips and the whole point of
- * putting it here is that it does not. The row therefore gives up width to it rather than pushing
- * it off: `minWidth: 0` is what lets the chips overflow into their own scroll instead.
+ * `actions` and `trailing` are page-wide controls that have to stay reachable from anywhere on the
+ * page — the measure every figure below is counted in, and on a phone the filters every chart is
+ * drawn through. They sit outside the scrolling row, at the end of the pinned bar, because a
+ * control inside the row scrolls away with the chips and the whole point of putting them here is
+ * that they do not. The row therefore gives up width to them rather than pushing them off:
+ * `minWidth: 0` is what lets the chips overflow into their own scroll instead. Two slots rather
+ * than one, because the filter control is the last thing on the bar wherever both are drawn.
+ *
+ * Below `sm` the tab chips are left out even while stuck: the bottom navigation holds all five
+ * tabs at every scroll position, and a rail 358px wide would spend 300 of them saying it again.
  */
 export const SectionRail = (props: {
   sections: RailSection[];
   tabs?: (RailSection & { jump: () => void })[];
   actions?: ReactNode;
+  trailing?: ReactNode;
 }) => {
   const active = useActiveSection(props.sections);
   const [railRef, stuck] = useStuck();
 
   const tabChips = stuck && props.tabs && props.tabs.length > 0 && (
-    <>
+    // `contents` rather than a wrapper of its own: from `sm` up the chips and the divider stay the
+    // scrolling row's own flex children, exactly as they are without this.
+    <Box sx={{ display: { xs: "none", sm: "contents" } }}>
       {props.tabs.map((tab) => (
         <RailChip
           key={tab.id}
@@ -109,7 +117,7 @@ export const SectionRail = (props: {
         flexItem
         sx={{ flexShrink: 0 }}
       />
-    </>
+    </Box>
   );
 
   return (
@@ -143,6 +151,7 @@ export const SectionRail = (props: {
         sx={{ flexGrow: 1, minWidth: 0 }}
       />
       {props.actions && <Box sx={{ flexShrink: 0 }}>{props.actions}</Box>}
+      {props.trailing && <Box sx={{ flexShrink: 0, display: "flex" }}>{props.trailing}</Box>}
     </Box>
   );
 };

@@ -10,12 +10,13 @@ import Barchart from "./Barchart";
 import Timeline from "./Timeline";
 import Filter from "./Filter";
 import { ChartPair, Section, SectionRail } from "../common/SectionRail";
+import { FilterChip } from "../common/FilterDrawer";
 import { MeasureControl } from "../common/SelectionComponents";
 import { useOtherTabs } from "../tabs";
 import { BOOK_SECTIONS, bookSections } from "./sections";
 import { bookEpoch, bookFranchise, BookEpochProvider, FranchiseContext } from "./franchiseContext";
 import { franchiseIndex } from "../common/franchiseIndex";
-import type { FilterDispatch, FilterState } from "./filterUtils";
+import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
 import { bookKey, currentlyReading, earliestYear } from "./statsData";
 import { format } from "../utils/mathUtils";
 import { finishedCount, type FinishedExtraSort } from "../common/finishedData";
@@ -100,6 +101,7 @@ const Graphs = memo(
               dispatch={filterDispatch}
             />
           }
+          trailing={<FilterChip activeCount={activeCount(filterState)} />}
         />
         <Stats
           data={data}
