@@ -90,9 +90,9 @@ export const Hero = <T,>(props: {
       cardSx={{
         flexDirection: aside ? "row" : { xs: "column", sm: "row" },
         // The panel takes the row's height where the artwork sets it, so its figures can sit on
-        // the picture's own lower edge; a card whose words are underneath has no such row.
-        alignItems: { xs: "stretch", md: "flex-start" },
-        overflow: "hidden",
+        // the picture's own lower edge; a card whose words are underneath has no such row, and
+        // below `md` the flex default already stretches the two to share one.
+        alignItems: { md: "flex-start" },
         // The artwork column is the picture's own width wherever the words sit beside it: a
         // poster's at every width, a banner's from `sm`. The shared aside column hands it the
         // whole card below `md`, which only a banner on a phone wants.
@@ -110,7 +110,6 @@ export const Hero = <T,>(props: {
         // a crop: a file's own ratio wins the moment it is known.
         aspectRatio: shapeToAspect(props.shape),
         objectFit: "contain",
-        display: "block",
       }}
       footerComponent={
         <CardPanel

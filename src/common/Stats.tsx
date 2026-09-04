@@ -29,7 +29,7 @@ import { dimSx, LABEL_SX, MUTED_FIGURE_SX } from "./typography";
 import { SectionHeader } from "./SectionHeader";
 import { shapeRatioValues, shapeToArrangement, shapeToPinnedAspect, type ArtworkShape } from "./cardArrangement";
 import { rowCardSize } from "./rowSizing";
-import { Filmstrip } from "./Filmstrip";
+import { Filmstrip, STRIP_GAP } from "./Filmstrip";
 import { useElementWidth } from "./useElementWidth";
 import { CONTAIN_SIDEWAYS_SCROLL } from "./scrollbarSx";
 import { useStackedCharts } from "./breakpoints";
@@ -80,7 +80,7 @@ export const StatCard = ({
       // that answer the card are what shrinks to make room.
       direction={{ xs: "column", sm: "row" }}
       sx={{
-        justifyContent: { xs: "flex-start", sm: "space-evenly" },
+        justifyContent: { sm: "space-evenly" },
       }}
     >
       {content.map(([key, val]) => (
@@ -476,7 +476,6 @@ export const StatsListGrid = <T,>(
             container
             spacing={1}
             sx={{
-              alignItems: "center",
               overflow: "auto",
               // Below `md` the strip does not wrap, so its own flick is the page's to lose.
               ...CONTAIN_SIDEWAYS_SCROLL,
@@ -671,9 +670,6 @@ const ROW_GAP = 8;
  */
 const STRIP_PICTURE_HEIGHT = 120;
 
-/** The space between a strip's cards — `Filmstrip`'s own gap, one spacing unit. */
-const STRIP_GAP = 8;
-
 /**
  * The card width a strip aims for, by the shape its cards share, and the fewest it shows.
  *
@@ -808,7 +804,6 @@ const StatsListCard = <T,>({
           sx={{
             height: cell.strip.pictureHeight,
             width: "auto",
-            display: "block",
             aspectRatio: shape && shapeToPinnedAspect(shape),
           }}
           // The corner badge is a fixed few dozen pixels of type, which reads as a badge over a
@@ -889,7 +884,6 @@ const StatsListCard = <T,>({
       }}
       sx={{
         flexShrink: 0,
-        alignSelf: "stretch",
       }}
     >
       {card}

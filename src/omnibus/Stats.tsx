@@ -3,7 +3,7 @@ import { Box, Stack, Typography } from "@mui/material";
 import type { MouseEventHandler } from "react";
 import { usePhone } from "../common/breakpoints";
 import { CardPanel, type PanelStat, type PanelSubtitlePart, type TypedCardMediaImage } from "../common/Card";
-import { useArtworkPalette } from "../common/artworkPalette";
+import { seamEdge, useArtworkPalette } from "../common/artworkPalette";
 import { CURRENT_PLAINDATE, formatDate, type YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
 import { Section, StatBand } from "../common/SectionRail";
@@ -26,14 +26,7 @@ import { crossingEntries, type Crossing } from "./crossingsData";
 import type { FilterDispatch } from "./filterUtils";
 import { OMNIBUS_SECTIONS } from "./sections";
 import { media, mediumToColour, mediumToLabel, mediumToShape, type Measure, type Medium } from "./types";
-import {
-  shapeIsExact,
-  shapeToArrangement,
-  shapeToAspect,
-  shapeToPinnedAspect,
-  shapeToRatio,
-  useCardArrangement,
-} from "../common/cardArrangement";
+import { shapeIsExact, shapeToArrangement, shapeToPinnedAspect, useCardArrangement } from "../common/cardArrangement";
 import { useScheme } from "../common/useScheme";
 import { useElementWidth } from "../common/useElementWidth";
 import {
@@ -435,7 +428,6 @@ const NowItem = <T,>(props: {
               : { width: "100%", height: "auto" }),
             aspectRatio: shapeToPinnedAspect(shape),
             objectFit: "contain",
-            display: "block",
           }}
           footerComponent={<NowDate date={props.date} />}
         />
@@ -472,10 +464,10 @@ const NowItem = <T,>(props: {
           // A poster card is a row at every width; only a banner card stacks, and it stacks always.
           flexDirection: beside ? "row" : "column",
           width: "100%",
-          // The artwork column is its picture's width. `ASIDE_ACTION_AREA_SX` hands it the whole
-          // card below `md` for the hero, which fills the page's width and has no second card
-          // beside it to take the room from.
-          ...(beside && { "& > .MuiCardActionArea-root": { width: "auto" } }),
+          // The poster card's artwork column is its picture's width, which is the width the row's
+          // height gives a poster; the shared aside column states none, so each caller says what
+          // its own wants.
+          //
           // The banner card is a column whose picture is the part that gives: the words are the
           // height of their own lines plus the row's shared lower inset, and everything else in
           // the card belongs to the picture above. So the last tile lands one inset above the
@@ -486,13 +478,13 @@ const NowItem = <T,>(props: {
           // than the picture wanted, and hangs the tile below the edge in one shorter; deriving the
           // card's height
           // from its own picture instead of taking the row's makes it a card of its own height in a
-          // row of one. The card is only told to be a column here because a stacked card is a
-          // block, and a block's children cannot divide up its height.
+          // row of one. The card is only told to be a flex container here because a stacked card
+          // is a block, and a block's children cannot divide up its height; the direction is the
+          // one stated above.
           ...(beside
-            ? {}
+            ? { "& > .MuiCardActionArea-root": { width: "auto" } }
             : {
                 display: "flex",
-                flexDirection: "column",
                 // Both halves are stated, because the width fixes the picture's height and the row
                 // fixes the card's: the picture is 16:9 at this width and the panel is the rest.
                 // Neither gives way to the other, which is what keeps the picture uncropped.
@@ -500,17 +492,18 @@ const NowItem = <T,>(props: {
                 "& > .MuiCardContent-root": { flex: "0 0 auto" },
               }),
         }}
-        sx={
-          shapeIsExact(shape)
+        sx={{
+          // Sized from the shape every artwork of this kind is drawn at, never from the file's own
+          // pixels, so two cards of one shape are identical and an off-size file cannot make one of
+          // them wider than the other. A cover is the exception `shapeToPinnedAspect` answers for:
+          // no two of them share a ratio, so its reservation stands in only until the picture has
+          // loaded, which keeps the card the right size to within that margin.
+          aspectRatio: shapeToPinnedAspect(shape),
+          ...(shapeIsExact(shape)
             ? {
-                // Sized from the shape every artwork of this kind is drawn at, never from the
-                // file's own pixels, so two cards of one shape are identical and an off-size file
-                // cannot make one of them wider than the other. `contain` is what keeps such a
-                // file uncropped until it is redrawn; artwork that matches the ratio fills the box
-                // exactly and nothing is letterboxed.
-                aspectRatio: shapeToRatio(shape),
+                // `contain` is what keeps an off-size file uncropped until it is redrawn; artwork
+                // that matches the ratio fills the box exactly and nothing is letterboxed.
                 objectFit: "contain",
-                display: "block",
                 ...(beside
                   ? // Its column exactly, the width the row's height gives a poster at its ratio.
                     // Width rather than height, because the column beside it does not stretch:
@@ -519,11 +512,10 @@ const NowItem = <T,>(props: {
                       width: { sm: pair?.posterArtWidth, md: geometry.posterArtWidth },
                       height: "100%",
                     }
-                  : // The card's own width at 16:9, so the banner fills it edge to edge with
-                    // nothing letterboxed and nothing cropped — the height follows the width
-                    // rather than being whatever the words left over.
+                  : // The card's own width — `CardMedia`'s own rule for a media component — at
+                    // 16:9, so the banner fills it edge to edge with nothing letterboxed and
+                    // nothing cropped, at a height stated rather than left over from the words.
                     {
-                      width: "100%",
                       height: { sm: pair?.bannerArtHeight, md: geometry.bannerArtHeight },
                     }),
               }
@@ -531,14 +523,11 @@ const NowItem = <T,>(props: {
                 // A cover's ratio is not one every cover holds, so it is pinned on the row's height
                 // and takes whatever width its file has: a cover a few percent off 2:3 stands a few
                 // pixels wider or narrower, uncropped and unletterboxed, and the text column beside
-                // it gives up or gains those pixels. The reservation stands in only until the
-                // picture has loaded, which keeps the card the right size to within that margin.
-                aspectRatio: shapeToAspect(shape),
-                display: "block",
+                // it gives up or gains those pixels.
                 width: "auto",
                 height: { sm: pair?.height, md: geometry.height },
-              }
-        }
+              }),
+        }}
         footerComponent={
           <CardPanel
             // Held to a height its content did not choose, on every card in the band.
@@ -611,19 +600,17 @@ const NowDate = ({ date }: { date: string }) => {
         backgroundColor: palette.ground,
         color: palette.onGround,
         // Where the artwork meets the words, as every other card in the app draws that edge.
-        ...(spine ? { borderLeft: palette.seam } : { borderTop: palette.seam }),
+        ...seamEdge(palette, spine),
       }}
     >
       {/* One line, cut with an ellipsis where a screen narrower than the date leaves it no room —
           the 280px cover screens, where the cell is 120 — rather than through a glyph. */}
       <Typography
         variant="subtitle2"
+        noWrap
         sx={{
           fontWeight: 600,
           lineHeight: 1,
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
           maxWidth: "100%",
           maxHeight: "100%",
           fontVariantNumeric: "tabular-nums",

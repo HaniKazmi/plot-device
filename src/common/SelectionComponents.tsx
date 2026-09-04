@@ -103,6 +103,9 @@ export const MeasureControl = <M extends string>({
   />
 );
 
+/** The theme capitalises both the select and its items; the menu is portalled, so it is stated twice. */
+const NO_TEXT_TRANSFORM_SX = { textTransform: "none" } as const;
+
 /**
  * A select over a small set of values.
  *
@@ -126,14 +129,14 @@ export const SelectBox = <T extends string>({
   <Select
     variant="standard"
     value={value}
-    sx={labelFor && { textTransform: "none" }}
+    sx={labelFor && NO_TEXT_TRANSFORM_SX}
     onChange={(event) => setValue(event.target.value as T)}
   >
     {options.map((option) => (
       <MenuItem
         key={option}
         value={option}
-        sx={labelFor && { textTransform: "none" }}
+        sx={labelFor && NO_TEXT_TRANSFORM_SX}
       >
         {labelFor ? labelFor(option) : option}
       </MenuItem>

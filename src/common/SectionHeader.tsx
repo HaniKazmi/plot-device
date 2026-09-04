@@ -3,6 +3,25 @@ import type { ReactNode } from "react";
 import { MUTED_FIGURE_SX } from "./typography";
 
 /**
+ * The header where the action takes a row of its own below `sm`. A slot that stays beside the title
+ * needs no rule at all, `CardHeader`'s own defaults being exactly that.
+ */
+const STACKED_HEADER_SX = {
+  flexDirection: { xs: "column", sm: "row" },
+  alignItems: { xs: "stretch", sm: "center" },
+  "& .MuiCardHeader-action": {
+    // `CardHeader` pulls its action up and out by 4px and 8px so the controls sit against the
+    // card's own edge rather than inside the header's padding. That is right wherever the
+    // action is beside the title, so it is restored at `sm` and up and only undone below it,
+    // where the action is a row of its own and has nothing to hold itself clear of. In pixels
+    // because `sx` reads a bare margin number as theme spacing, which would make `-4` −32px.
+    marginTop: { xs: 1, sm: "-4px" },
+    marginRight: { xs: 0, sm: "-8px" },
+    alignSelf: { xs: "stretch", sm: "flex-start" },
+  },
+};
+
+/**
  * The header every chart card wears: an icon and a title on the left, how much the section is
  * showing beside the title, and its controls pinned right.
  *
@@ -54,20 +73,7 @@ export const SectionHeader = ({
   compactActions?: boolean;
 }) => (
   <CardHeader
-    sx={{
-      flexDirection: compactActions ? "row" : { xs: "column", sm: "row" },
-      alignItems: compactActions ? "center" : { xs: "stretch", sm: "center" },
-      "& .MuiCardHeader-action": {
-        // `CardHeader` pulls its action up and out by 4px and 8px so the controls sit against the
-        // card's own edge rather than inside the header's padding. That is right wherever the
-        // action is beside the title, so it is restored at `sm` and up and only undone below it,
-        // where the action is a row of its own and has nothing to hold itself clear of. In pixels
-        // because `sx` reads a bare margin number as theme spacing, which would make `-4` −32px.
-        marginTop: compactActions ? "-4px" : { xs: 1, sm: "-4px" },
-        marginRight: compactActions ? "-8px" : { xs: 0, sm: "-8px" },
-        alignSelf: compactActions ? "flex-start" : { xs: "stretch", sm: "flex-start" },
-      },
-    }}
+    sx={compactActions ? undefined : STACKED_HEADER_SX}
     title={
       <Stack
         direction="row"

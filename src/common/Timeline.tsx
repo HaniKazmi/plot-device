@@ -89,8 +89,7 @@ const CHART_MAX_HEIGHT = { xs: "none", md: "90vh" } as const;
 const scrollSx = (theme: Theme) => ({
   width: "100%",
   maxHeight: CHART_MAX_HEIGHT,
-  overflowX: "auto",
-  overflowY: "auto",
+  overflow: "auto",
   ...CONTAIN_SIDEWAYS_SCROLL,
   ...scrollbarSx(theme),
 });
@@ -366,7 +365,6 @@ const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }) => {
             sx={{
               width: "400vw",
               maxHeight: CHART_MAX_HEIGHT,
-              position: "relative",
               display: "flex",
               flexDirection: "column",
             }}
@@ -640,8 +638,6 @@ const TimelineText = ({
   return (
     <Box
       component="g"
-      x={x}
-      y={y}
       style={{ transform: `translate(${x}, ${y})` }}
       sx={ROW_SX}
     >

@@ -19,6 +19,9 @@ export const FILMSTRIP_HEIGHT = 150;
  */
 const SCROLLBAR_HEIGHT = 10;
 
+/** The gap between a strip's cards, exported because a caller's sizing has to count it. */
+export const STRIP_GAP = 8;
+
 /**
  * A row of artwork at one height, scrolled rather than wrapped or cropped.
  *
@@ -47,8 +50,7 @@ export const Filmstrip = ({ height, children }: { height: number; children: Reac
         ref={ref}
         sx={(theme: Theme) => ({
           display: "flex",
-          alignItems: "flex-start",
-          gap: theme.spacing(1),
+          gap: `${STRIP_GAP}px`,
           height: height + SCROLLBAR_HEIGHT,
           overflowX: "auto",
           overflowY: "hidden",

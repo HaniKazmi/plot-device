@@ -1,4 +1,4 @@
-import { Box, CardContent, Stack, Typography } from "@mui/material";
+import { Box, CardContent, Stack, Typography, type Theme } from "@mui/material";
 import { TimelineBandBox, type TimelineBand } from "./Card";
 import type { TimelineTick } from "./timelineLayout";
 import { MUTED_FIGURE_SX } from "./typography";
@@ -13,6 +13,9 @@ interface RibbonRow {
 
 const TRACK_HEIGHT = 3;
 const LABEL_WIDTH = 5;
+
+/** A row's label and the axis's spacer stay one width, or the axis desynchronises from the tracks. */
+const GUTTER_SX = { width: (theme: Theme) => theme.spacing(LABEL_WIDTH), flexShrink: 0 } as const;
 
 /**
  * A stack of tracks on one shared scale, for events that are points in time rather than spans —
@@ -45,8 +48,7 @@ export const EventRibbon = ({ rows, ticks }: { rows: RibbonRow[]; ticks: Timelin
             <Typography
               variant="caption"
               sx={{
-                width: (theme) => theme.spacing(LABEL_WIDTH),
-                flexShrink: 0,
+                ...GUTTER_SX,
                 textAlign: "right",
                 ...MUTED_FIGURE_SX,
                 userSelect: "none",
@@ -91,26 +93,28 @@ const RibbonScale = ({ ticks }: { ticks: TimelineTick[] }) => (
     {ticks.map((tick) => (
       <Box
         key={tick.monthLabel}
-        sx={{
-          position: "absolute",
-          top: 0,
-          bottom: 0,
-          left: `${tick.percent}%`,
-          width: "1px",
-          backgroundColor: "divider",
-          opacity: tick.level === "month" ? 0.5 : 1,
-        }}
+        sx={GRIDLINE_SX}
+        style={{ left: `${tick.percent}%`, opacity: tick.level === "month" ? 0.5 : 1 }}
       />
     ))}
   </Box>
 );
+
+/** The form every gridline shares; where one stands and how strongly is the tick's own, in `style`. */
+const GRIDLINE_SX = {
+  position: "absolute",
+  top: 0,
+  bottom: 0,
+  width: "1px",
+  backgroundColor: "divider",
+} as const;
 
 const RibbonAxis = ({ ticks }: { ticks: TimelineTick[] }) => (
   <Stack
     direction="row"
     spacing={1}
   >
-    <Box sx={{ width: (theme) => theme.spacing(LABEL_WIDTH), flexShrink: 0 }} />
+    <Box sx={GUTTER_SX} />
     <Box sx={{ position: "relative", flexGrow: 1, height: 14 }}>
       {ticks.map((tick) => (
         <Typography

@@ -34,17 +34,14 @@ export const Section = ({ id, children }: { id: string; children: ReactNode }) =
   </Box>
 );
 
-/**
- * A band of stat cards across a section.
- *
- * Cards stretch to the tallest of the row rather than each sitting at its own height, so a row of
- * them reads as one band with a single lower edge instead of a ragged set of tiles.
- */
+/** A band of stat cards across a section. */
 export const StatBand = ({ children }: { children: ReactNode }) => (
+  // Cards stretch to the tallest of the row rather than each sitting at its own height, so a row of
+  // them reads as one band with a single lower edge instead of a ragged set of tiles — a flex
+  // container's own default, so the band states nothing.
   <Grid
     container
     spacing={1}
-    sx={{ alignItems: "stretch" }}
   >
     {children}
   </Grid>

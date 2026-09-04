@@ -99,6 +99,13 @@ const buildPalette = (accent: Colour | undefined, theme: Theme) => {
 };
 
 /**
+ * The one edge a panel shares with its artwork: the vertical one beside it, the horizontal one
+ * below.
+ */
+export const seamEdge = (palette: ReturnType<typeof artworkPalette>, beside: boolean) =>
+  beside ? { borderLeft: palette.seam } : { borderTop: palette.seam };
+
+/**
  * The accent every surface inside a card derives its palette from.
  *
  * A strip, a panel and a detail tile all sit on a ground they do not choose and cannot see — only

@@ -33,6 +33,18 @@ const MENU_ITEM_SX = { textTransform: "none" } as const;
 const DISABLED_BUTTON_SX = { "&.Mui-disabled": { color: "inherit", opacity: 0.6 } } as const;
 
 /**
+ * A finger has no long press to reach guest mode with — that gesture is the pointer's alone, and on
+ * touch it collides with the browser's own press-and-hold — so the menu is the only handle on the
+ * mode and is drawn at every width where a finger is the pointer. A tablet held sideways is `md`,
+ * and the coarse-pointer rule states its `display` after the width rule above it so it wins there.
+ * It costs a menu repeating the two buttons beside it, which is what a ⋮ is for.
+ */
+const MENU_BUTTON_SX = {
+  display: { md: "none" },
+  "@media (pointer: coarse)": { display: "flex" },
+} as const;
+
+/**
  * What the bar can do, built once and drawn twice: as buttons from `md` up, and as the items of the
  * overflow menu. Both are on screen at once wherever a finger is the pointer, so two lists would be
  * two chances for the bar and the menu to disagree — over whether "Authorising" is a live control,
@@ -115,9 +127,7 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
             fontWeight: 600,
             letterSpacing: "0.07em",
             textTransform: "uppercase",
-            color: "inherit",
-            textDecoration: "none",
-            // `color: inherit` reads the bar's own dark text otherwise (`Google.tsx`'s
+            // The inherited colour is the bar's own dark text (`Google.tsx`'s
             // `AppBar.darkColor`); the wordmark takes the tab's own ink instead, the same
             // treatment the active tab label gets below.
             ...(darkBar && theme.applyStyles("dark", { color: darkBar.ink })),
@@ -144,7 +154,7 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
             onChange={(_, value: string) => {
               navigate(value);
             }}
-            sx={{ display: { xs: "none", sm: "flex" }, minWidth: 0 }}
+            sx={{ display: { xs: "none", sm: "flex" } }}
           >
             {Tabs.map((tab) => {
               const isCurrent = tab.id === currTab.id;
@@ -189,17 +199,7 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
           edge="end"
           aria-label="More"
           onClick={(event) => setMenuAnchor(event.currentTarget)}
-          sx={{
-            display: { xs: "flex", md: "none" },
-            // A finger has no long press to reach guest mode with — that gesture is the pointer's
-            // alone, and on touch it collides with the browser's own press-and-hold — so the menu
-            // is the only handle on the mode and is drawn at every width where a finger is the
-            // pointer. A tablet held sideways is `md`, and this rule states its `display` after
-            // the width rule above so it wins there. It costs a menu repeating the two buttons
-            // beside it, which is what a ⋮ is for.
-            "@media (pointer: coarse)": { display: "flex" },
-            flexShrink: 0,
-          }}
+          sx={MENU_BUTTON_SX}
         >
           <MoreVert />
         </IconButton>

@@ -156,6 +156,5 @@ export const hoverCardArtworkSx = (shape: ArtworkShape) =>
         aspectRatio: shapeToPinnedAspect(shape),
         height: HOVER_CARD_ASIDE_ARTWORK_HEIGHT,
         width: "auto",
-        flexShrink: 0,
       }
-    : { aspectRatio: shapeToRatio("landscape"), width: "100%", display: "block" };
+    : { aspectRatio: shapeToRatio("landscape") };

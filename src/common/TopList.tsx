@@ -82,7 +82,6 @@ const TopListCard = <O extends string, T>(props: TopListCardProps<O, T>) => {
             direction="column"
             spacing={1}
             sx={{
-              alignItems: "stretch",
               mt: 2,
             }}
           >
@@ -94,7 +93,6 @@ const TopListCard = <O extends string, T>(props: TopListCardProps<O, T>) => {
                 onMouseEnter={() => setHovered(item.name)}
                 onMouseLeave={() => setHovered(null)}
                 sx={{
-                  width: "100%",
                   alignItems: "center",
                   ...dimSx(hovered, item.name),
                   cursor: "default",

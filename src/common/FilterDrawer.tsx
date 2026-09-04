@@ -127,8 +127,6 @@ export const FilterDrawer = ({
                 // of the screen and scrolls its own middle, so the Clear/Done row is always the
                 // last thing above the safe area rather than the first thing off the bottom.
                 maxHeight: "90vh",
-                display: "flex",
-                flexDirection: "column",
                 // The room above the grabber, which draws only itself.
                 paddingTop: 1,
               },
@@ -224,7 +222,7 @@ export const FilterDrawer = ({
           <Grid
             size={{ xs: 12, md: "grow" }}
             sx={{
-              display: { xs: "flex" },
+              display: "flex",
               justifyContent: { xs: "center", md: "end" },
               order: { xs: 1, md: 0 },
             }}

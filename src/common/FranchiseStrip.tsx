@@ -4,7 +4,7 @@ import { MEDIA, franchiseToColour, mediumToColour, mediumUnit, pick, type Medium
 import { useArtworkPalette, type artworkPalette } from "./artworkPalette";
 
 type Palette = ReturnType<typeof artworkPalette>;
-import { INLINE_SWATCH_SIZE, Swatch, TimelineScale } from "./Card";
+import { FADED_ENDS, INLINE_SWATCH_SIZE, Swatch, TimelineScale } from "./Card";
 import { SegmentedControl, type SegmentOption } from "./SelectionComponents";
 import { shortYear, type YearMonthDay } from "./date";
 import type { FranchiseEntry } from "./franchiseUnion";
@@ -37,13 +37,19 @@ type StripMode = "order" | "time";
  */
 export type StripVariant = "card" | "hero";
 
-const CARD_STRIP_SX = { borderRadius: 1, padding: 1, marginBottom: 1 } as const;
-
 /**
- * The hero's strip. Which widths it stands at is the hero's to say (`common/Hero.tsx`), since the
- * answer depends on the artwork's shape and the strip knows only its own variant.
+ * The well both variants stand in — one treatment, so a strip reads as part of its card wherever
+ * it is drawn. Which widths the hero's stands at is the hero's to say (`common/Hero.tsx`), since
+ * the answer depends on the artwork's shape and the strip knows only its own variant.
  */
 const HERO_STRIP_SX = { borderRadius: 1, padding: 1 } as const;
+
+/**
+ * The card's well alone carries a bottom margin: `CardDetailBody` stands the strip bare above the
+ * stat grid rather than in a spaced row, so nothing else opens a gap to the figures beneath it.
+ * The hero's sits inside the panel's own stack, which spaces it.
+ */
+const CARD_STRIP_SX = { ...HERO_STRIP_SX, marginBottom: 1 } as const;
 
 /**
  * The mode a strip opens in: the one the reader last chose. A preference is about how the reader
@@ -328,6 +334,20 @@ const BeadChain = ({
 
 const LINE_SX = { position: "absolute", top: BEAD_CENTRE - 1, height: 2 } as const;
 
+/**
+ * A bead's form, shared by every bead on the chain — its size, fill and ring are the entry's own
+ * and ride in `style`. Hoisted so a fifty-entry franchise mints one class rather than fifty.
+ */
+const BEAD_SX = {
+  position: "absolute",
+  left: "50%",
+  top: BEAD_CENTRE,
+  transform: "translate(-50%, -50%)",
+  borderRadius: "50%",
+  cursor: "default",
+  userSelect: "none",
+} as const;
+
 const Bead = ({
   entry,
   mark,
@@ -372,19 +392,7 @@ const Bead = ({
         placement="top"
       >
         <Box
-          sx={[
-            {
-              position: "absolute",
-              left: "50%",
-              top: BEAD_CENTRE,
-              transform: "translate(-50%, -50%)",
-              borderRadius: "50%",
-              cursor: "default",
-              userSelect: "none",
-            },
-            TOUCH_TARGET_SX,
-            mark === "none" && SIBLING_SX,
-          ]}
+          sx={[BEAD_SX, TOUCH_TARGET_SX, mark === "none" && SIBLING_SX]}
           style={{ width: size, height: size, backgroundColor: colour, boxShadow: ring(mark, palette) }}
         />
       </HoverCardTooltip>
@@ -440,7 +448,6 @@ const YEAR_SX = {
 const LANE_PITCH = 16;
 const BAND_HEIGHT = 12;
 const POINT = 8;
-const FADED_ENDS = "linear-gradient(to right, transparent, #000 25%, #000 75%, transparent)";
 
 /**
  * Every entry against time, on a window of the franchise's own years, with the fixed epoch–today
@@ -584,21 +591,12 @@ const StripMark = ({ band, mark }: { band: StripBand<FranchiseEntry>; mark: Mark
       >
         {point ? (
           <Box
-            sx={[
-              MARK_SX,
-              { width: POINT, height: POINT, borderRadius: "50%", transform: "translateX(-50%)" },
-              mark === "none" && SIBLING_SX,
-            ]}
+            sx={[MARK_SX, POINT_SX, mark === "none" && SIBLING_SX]}
             style={{ left: `${centre}%`, top: laneTop + (LANE_PITCH - POINT) / 2, backgroundColor: colour, boxShadow }}
           />
         ) : (
           <Box
-            sx={[
-              MARK_SX,
-              { height: BAND_HEIGHT, borderRadius: 0.5 },
-              mark === "none" && SIBLING_SX,
-              !band.precise && IMPRECISE_SX,
-            ]}
+            sx={[MARK_SX, SPAN_SX, mark === "none" && SIBLING_SX, !band.precise && IMPRECISE_SX]}
             style={{
               left: `${band.startPercent}%`,
               width: `${band.widthPercent}%`,
@@ -625,6 +623,12 @@ const MARK_SX = {
   userSelect: "none",
   ...touchTargetSx(`${LANE_PITCH}px`),
 } as const;
+
+/** A point is a dot centred on its own date, so it is pulled back by half its width. */
+const POINT_SX = { width: POINT, height: POINT, borderRadius: "50%", transform: "translateX(-50%)" } as const;
+
+/** A span keeps its width from the scale and takes rounded caps as the mark of a pinned-down date. */
+const SPAN_SX = { height: BAND_HEIGHT, borderRadius: 0.5 } as const;
 
 /**
  * An estimated span dissolves at both ends rather than stopping at one, because a hard edge is a

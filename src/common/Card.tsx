@@ -30,7 +30,7 @@ import {
 } from "react";
 import { CalendarMonthOutlined, Close } from "@mui/icons-material";
 import { cachedColour, extractColourFrom } from "../utils/colourUtils";
-import { ArtworkAccent, artworkPalette, SEAM_WIDTH, useArtworkPalette } from "./artworkPalette";
+import { ArtworkAccent, artworkPalette, SEAM_WIDTH, seamEdge, useArtworkPalette } from "./artworkPalette";
 import { HoverCardTooltip } from "./HoverCardTooltip";
 import { SheetGrabber } from "./SheetGrabber";
 import { pinnedSheetTop } from "./fullscreenSheet";
@@ -198,14 +198,17 @@ const readImage = (
  *
  * `CardActionArea` is `width: 100%`, which as a flex item resolves its basis to the whole card:
  * the panel beside it is then dividing up no free space at all, and collapses to the width of its
- * longest word while the artwork sits in a column of empty ground. Basis `auto` against a
- * shrink-to-fit width makes the column however wide the artwork turned out to be at its own
- * height, and the panel takes the rest. `flex-start` ends the column where the artwork does
- * rather than stretching it to a taller panel.
+ * longest word while the artwork sits in a column of empty ground. Basis `auto` is what lets the
+ * column be however wide the artwork turned out to be at its own height, with the panel taking the
+ * rest. `flex-start` ends the column where the artwork does rather than stretching it to a taller
+ * panel.
+ *
+ * The width itself is the caller's, stated on the card as a `& > .MuiCardActionArea-root` rule —
+ * two classes against this one, so it wins whatever is written here, and each of the three callers
+ * wants a different one.
  */
 const ASIDE_ACTION_AREA_SX = {
   flex: "0 0 auto",
-  width: { xs: "100%", md: "auto" },
   alignSelf: "flex-start",
 } as const;
 
@@ -230,11 +233,22 @@ const SHAPE_ASIDE_ACTION_AREA_SX = {
 } as const;
 
 /**
- * Artwork filling the column above, at its own ratio and uncropped: the width is the column's, so
- * the reservation has a height before the file arrives, and the file's own ratio then sets the
+ * Artwork filling the column above, at its own ratio and uncropped: the width is the column's —
+ * `CardMedia`'s own rule for a media component, so only the height is stated here — which is what
+ * gives the reservation a height before the file arrives, and the file's own ratio then sets the
  * height it stands at.
  */
-const SHAPE_ASIDE_MEDIA_SX = { width: "100%", height: "auto", display: "block" } as const;
+const SHAPE_ASIDE_MEDIA_SX = { height: "auto" } as const;
+
+/**
+ * A box as wide as the line it stands on, and adding nothing to it.
+ *
+ * A wrapping flex row sizes itself as though it were one line, so a box carrying a real width has
+ * that width added to the picture's and the words' — the card is then wider than the row that
+ * measured it. Zero basis with a full-width floor asks for nothing and fills whatever it is given,
+ * which the media band and the strip caption both want: each is exactly the picture's width.
+ */
+const FULL_WIDTH_NO_BASIS = { width: 0, minWidth: "100%" } as const;
 
 /**
  * The footer under a banner in a row of one card size: the height the row stated for it, every
@@ -252,9 +266,9 @@ const rowFooterSx = (height: number) =>
  * The box that stands where a picture would have: filled in the card's tile tone and named for
  * the picture it lacks. The thumbnail's carries the image's own `sx`, so it holds the reservation
  * a wall measures its offsets against; its own rules go first so a caller's width and height still
- * win — all but the display, which is last because it is the tile's alone: the artwork column sets
- * `block` to close the line box under an image, and a tile inherits that as a title in the top
- * corner of a box it was meant to be centred in.
+ * win — all but the display, which is last because it is the tile's alone: it centres the name in
+ * the box, where anything reaching it from a rule written for an image would leave that name in
+ * the top corner.
  */
 const ArtworkStandIn = ({
   alt,
@@ -569,7 +583,7 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
       ? [
           beside
             ? { height: rowSize.height - bandHeight, width: "auto" }
-            : { width: "100%", height: rowSize.height - bandHeight - rowSize.footerHeight },
+            : { height: rowSize.height - bandHeight - rowSize.footerHeight },
         ]
       : []),
     ...(Array.isArray(sx) ? sx : [sx]),
@@ -612,10 +626,8 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
             dialog draws its own full-width artwork and takes the default. */}
         <CardArrangementProvider value={beside ? "beside" : "stacked"}>
           {/* The whole card's width: a line of its own where the card is a row, the top of the
-              block where it is not. Given no width of its own and stretched to the card's, for
-              the reason the row footer is: a wrapping row sizes itself as if it were one line, so
-              a band with a width would add that width to the picture's and the words'. */}
-          {mediaBand && <Box sx={{ width: 0, minWidth: "100%" }}>{mediaBand.node}</Box>}
+              block where it is not. */}
+          {mediaBand && <Box sx={FULL_WIDTH_NO_BASIS}>{mediaBand.node}</Box>}
           <CardActionArea
             sx={mediaLayout === "aside" ? ASIDE_ACTION_AREA_SX : beside ? SHAPE_ASIDE_ACTION_AREA_SX : undefined}
           >
@@ -986,16 +998,14 @@ export const CardPanel = ({
         backgroundColor: palette.ground,
         color: palette.onGround,
         // Where the artwork meets the panel, so the two read as one card rather than as one pasted
-        // onto the other. One edge, never both, and the hero's rotates with its own layout.
-        // Written out rather than as one computed key, which the React Compiler cannot lower and
-        // bails on — taking every card in the app out of memoization with it.
+        // onto the other. One edge, never both, and the hero's rotates with its own layout — which
+        // is why that arm states both borders as breakpoint pairs rather than reaching for
+        // `seamEdge`: it is the one layout where the edge moves with the width.
         ...(heroAside
-          ? { borderLeft: palette.seam }
+          ? seamEdge(palette, true)
           : hero
             ? { borderTop: { xs: palette.seam, sm: "none" }, borderLeft: { xs: "none", sm: palette.seam } }
-            : beside
-              ? { borderLeft: palette.seam }
-              : { borderTop: palette.seam }),
+            : seamEdge(palette, beside)),
       }}
     >
       <Stack
@@ -1279,7 +1289,6 @@ const StatTile = ({ value, label, colour, size }: CardStat & { size?: TileSize }
   return (
     <Box
       sx={{
-        flex: 1,
         padding: TILE_PADDING[tile],
         borderRadius: 1,
         textAlign: "center",
@@ -1524,10 +1533,8 @@ export const FooterComponent = ({
         sx={{
           // A strip card is shrink-to-fit around its picture, so a caption free to ask for its own
           // width would set the card's — a poster 82px wide standing under a line of text twice
-          // that, and the ellipsis below never reached. Zero basis with a full-width floor makes
-          // the line exactly the picture's width, which is the rule the media band above it follows.
-          width: 0,
-          minWidth: "100%",
+          // that, and the ellipsis below never reached.
+          ...FULL_WIDTH_NO_BASIS,
           height: STRIP_CAPTION_HEIGHT,
           // Tighter across than down: a poster at this height is 82px wide, so every pixel of inset
           // is a character of the line the caption is held to.
@@ -1579,9 +1586,8 @@ export const FooterComponent = ({
         ...(beside && { justifyContent: "center" }),
         backgroundColor: palette.ground,
         color: palette.onGround,
-        // The one edge the two halves share. Written out rather than as one computed key, which the
-        // React Compiler cannot lower — and bailing here takes every card in the app with it.
-        ...(beside ? { borderLeft: palette.seam } : { borderTop: palette.seam }),
+        // The one edge the two halves share.
+        ...seamEdge(palette, beside),
       }}
     >
       {labels.map((stacks, index) => (
@@ -1921,7 +1927,7 @@ export const TimelineAxis = ({ ticks }: { ticks: TimelineTick[] }) => (
   </Box>
 );
 
-const FADED_ENDS = "linear-gradient(to right, transparent, #000 25%, #000 75%, transparent)";
+export const FADED_ENDS = "linear-gradient(to right, transparent, #000 25%, #000 75%, transparent)";
 
 /** Of the lane, so lanes stay visibly separate whatever the strip is divided into. */
 const LANE_PADDING = 0.08;

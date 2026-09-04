@@ -4,6 +4,15 @@ import { bucketLabel } from "./finishedData";
 import { MARKER_TOP, MARKER_Z, type ScrollMarkerState } from "./ScrollMarkerHook";
 import { NUMERIC_LABEL_SX } from "./typography";
 
+/** Where the marker stands: the pill and the rail replace each other, so both are pinned alike. */
+const markerAnchorSx = (left: number, centred: boolean) => ({
+  position: "fixed" as const,
+  top: `${MARKER_TOP}px`,
+  left: `${left}px`,
+  transform: centred ? "translateX(-50%)" : "none",
+  zIndex: MARKER_Z,
+});
+
 /**
  * A pill naming the reader's place in the sort, floating beside the wall it describes.
  *
@@ -15,11 +24,7 @@ export const ScrollMarker = ({ bucket, visible, left, centred }: ScrollMarkerSta
   <Box
     aria-hidden
     sx={{
-      position: "fixed",
-      top: `${MARKER_TOP}px`,
-      left: `${left}px`,
-      transform: centred ? "translateX(-50%)" : "none",
-      zIndex: MARKER_Z,
+      ...markerAnchorSx(left, centred),
       pointerEvents: "none",
       opacity: visible && bucket ? 1 : 0,
       transition: "opacity 150ms",
@@ -65,17 +70,13 @@ export const ScrollMarkerRail = ({ bucket, left, railHeight, buckets, jumpTo }: 
     component="nav"
     aria-label="Jump to a position in the library"
     sx={{
+      ...markerAnchorSx(left, true),
       display: "flex",
-      position: "fixed",
-      top: `${MARKER_TOP}px`,
-      left: `${left}px`,
-      transform: "translateX(-50%)",
       height: `${railHeight}px`,
       flexDirection: "column",
       justifyContent: "space-between",
       alignItems: "center",
       gap: 0.5,
-      zIndex: MARKER_Z,
     }}
   >
     {buckets.map((entry) => (

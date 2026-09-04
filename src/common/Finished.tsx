@@ -85,7 +85,6 @@ const FinishedGrid = <U extends FinishedItem>({
       ref={gridRef}
       spacing={1}
       sx={{
-        alignItems: "center",
         opacity: dimmed ? 0.5 : 1,
       }}
     >

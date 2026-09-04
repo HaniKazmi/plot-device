@@ -1,4 +1,4 @@
-import { BottomNavigation, BottomNavigationAction, Paper } from "@mui/material";
+import { BottomNavigation, BottomNavigationAction, Paper, type Theme } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import Tabs, { barColour, useCurrentTab } from "./tabs";
 import { useScheme } from "./common/useScheme";
@@ -30,6 +30,9 @@ export const BottomTabs = () => {
   // and the app bar's own active label wear. On the light paper the bar *is* the primary, and MUI's
   // own selected colour is that same primary — the current tab drawn in the colour it is drawn on.
   const activeInk = dark ? currTab.darkBar?.ink : undefined;
+  // The ink the bar's own text takes: the contrast colour over the light scheme's full-strength
+  // primary, the dark scheme's own text over its tint.
+  const barInk = (theme: Theme) => (dark ? theme.vars.palette.text.primary : theme.vars.palette.primary.contrastText);
 
   return (
     <Paper
@@ -40,7 +43,7 @@ export const BottomTabs = () => {
         bottom: 0,
         left: 0,
         right: 0,
-        display: { xs: "block", sm: "none" },
+        display: { sm: "none" },
         // Under a dialog and the app bar's own menus, over every page it covers.
         zIndex: (theme) => theme.zIndex.appBar,
         backgroundColor: ground,
@@ -73,17 +76,14 @@ export const BottomTabs = () => {
           "& .MuiBottomNavigationAction-root": {
             minWidth: 0,
             paddingX: 0.5,
-            // The ink the bar's own text takes: the contrast colour over the light scheme's
-            // full-strength primary, the dark scheme's own text over its tint. Opacity rather
-            // than a mix, since both are CSS variables under `cssVariables: true` and cannot be
-            // faded by a colour function.
-            color: (theme) => (dark ? theme.vars.palette.text.primary : theme.vars.palette.primary.contrastText),
+            // Opacity rather than a mix, since both halves of `barInk` are CSS variables under
+            // `cssVariables: true` and cannot be faded by a colour function.
+            color: barInk,
             opacity: 0.7,
           },
           "& .MuiBottomNavigationAction-root.Mui-selected": {
             opacity: 1,
-            color: (theme) =>
-              activeInk ?? (dark ? theme.vars.palette.text.primary : theme.vars.palette.primary.contrastText),
+            color: (theme) => activeInk ?? barInk(theme),
           },
           "& .MuiBottomNavigationAction-label": { fontSize: "0.6875rem" },
           "& .MuiBottomNavigationAction-label.Mui-selected": { fontSize: "0.6875rem" },

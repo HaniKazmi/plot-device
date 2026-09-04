@@ -30,6 +30,9 @@ const MAT = 4;
  */
 const WIDTH = 500;
 
+/** That width as a ceiling: the card, or the screen less a margin either side, whichever is smaller. */
+const CARD_WIDTH = `min(${WIDTH}px, calc(100vw - 16px))`;
+
 /** How much of the screen a sheet may take before its own content scrolls inside it. */
 const SHEET_MAX_HEIGHT = "85dvh";
 
@@ -125,7 +128,6 @@ const HoverCardSheet = ({ colour, title, children }: HoverCardProps) => {
                 borderTopStyle: "solid",
                 borderTopWidth: `${MAT}px`,
                 maxHeight: SHEET_MAX_HEIGHT,
-                overflowY: "auto",
                 // The room above the grabber, which draws only itself.
                 paddingTop: 1,
                 // The home indicator sits over the last few points of the screen, and the card's
@@ -191,8 +193,8 @@ const HoverCardPopper = ({ colour, title, placement, children }: HoverCardProps)
             padding: `${MAT}px`,
             borderRadius: `${Number(theme.shape.borderRadius) + MAT}px`,
             boxShadow: theme.shadows[8],
-            width: `min(${WIDTH}px, calc(100vw - 16px))`,
-            maxWidth: `min(${WIDTH}px, calc(100vw - 16px))`,
+            width: CARD_WIDTH,
+            maxWidth: CARD_WIDTH,
           }),
         },
         // The arrow takes the tooltip's default ground rather than the one set above, so the colour

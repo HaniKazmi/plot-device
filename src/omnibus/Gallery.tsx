@@ -239,7 +239,7 @@ const Shelf = ({
             mediaBand={{ node: band.render(item), height: band.height }}
             // The shelf fixes the height and each picture keeps its own width, so a banner and a
             // poster stand at one height in the shapes they were made in.
-            sx={{ height: FILMSTRIP_HEIGHT, width: "auto", display: "block" }}
+            sx={{ height: FILMSTRIP_HEIGHT, width: "auto" }}
           />
         ))}
       </Filmstrip>

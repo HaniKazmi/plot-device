@@ -126,7 +126,6 @@ export const Sparkline = ({ values }: { values: number[] }) => {
           sx={{
             flexGrow: 1,
             flexBasis: 0,
-            minWidth: 0,
             borderRadius: 0.5,
             backgroundColor: "primary.main",
             height: Math.max((value / peak) * SPARK_HEIGHT, SPARK_FLOOR),
