@@ -979,8 +979,10 @@ export const CardPanel = ({
         // Beside a 136px poster on a 358px card the panel is 222px, and the standard inset is 32
         // of them. The four pixels a side given back are the difference between a two-line title
         // and a three-line one.
-        ...(heroAside && { padding: { xs: 1.5, sm: 2 }, gap: { xs: 1, sm: 2 } }),
-        ":last-child": { paddingBottom: heroAside ? { xs: 1.5, sm: inset ?? 2 } : (inset ?? 2) },
+        // Beside the picture below `md` the panel is a column of about 260px, where the desktop's
+        // 16px of inset and gap are a quarter of it; the words take the difference.
+        ...(hero && { padding: { xs: 1.5, md: 2 }, gap: { xs: 1, md: 2 } }),
+        ":last-child": { paddingBottom: hero ? { xs: 1.5, md: inset ?? 2 } : (inset ?? 2) },
         backgroundColor: palette.ground,
         color: palette.onGround,
         // Where the artwork meets the panel, so the two read as one card rather than as one pasted
@@ -990,7 +992,7 @@ export const CardPanel = ({
         ...(heroAside
           ? { borderLeft: palette.seam }
           : hero
-            ? { borderTop: { xs: palette.seam, md: "none" }, borderLeft: { xs: "none", md: palette.seam } }
+            ? { borderTop: { xs: palette.seam, sm: "none" }, borderLeft: { xs: "none", sm: palette.seam } }
             : beside
               ? { borderLeft: palette.seam }
               : { borderTop: palette.seam }),
@@ -1031,11 +1033,11 @@ export const CardPanel = ({
             // than a page: at the hero's own size a two-word title takes three lines of a 200px
             // panel and leaves the figures under it nowhere to stand. The step is stated against
             // the variant the caller asked for, so a hero that changes its title size moves both.
-            ...(hero && { typography: { xs: "h5", sm: titleVariant ?? "h6" } }),
-            // Beside a poster the panel's height is the picture's, and the picture grows to hold
-            // the words: an unclamped title would grow the poster with it, taking width from the
-            // words it is set beside. Three lines is what a 200px row holds over a subtitle.
-            ...(heroAside && {
+            ...(hero && { typography: { xs: "h5", md: titleVariant ?? "h6" } }),
+            // Beside the picture the panel's height is the picture's: an unclamped title would
+            // stand the words taller than it and open ground under the artwork. Three lines is
+            // what a 200px row holds over a subtitle, and a 260px one over a row of tiles.
+            ...(hero && {
               display: { xs: "-webkit-box", md: "block" },
               WebkitBoxOrient: "vertical",
               WebkitLineClamp: 3,

@@ -1,3 +1,4 @@
+import { Box } from "@mui/material";
 import type { ReactNode } from "react";
 import { CardPanel, HeroStatBand, type PanelStat, type PanelSubtitlePart, type TypedCardMediaImage } from "./Card";
 import { shapeToArrangement, shapeToAspect, type ArtworkShape } from "./cardArrangement";
@@ -20,6 +21,13 @@ import { shapeToArrangement, shapeToAspect, type ArtworkShape } from "./cardArra
  * franchise strip.
  */
 const MEDIA_HEIGHT = { xs: 200, sm: 280, md: 300 };
+
+/**
+ * A banner beside its panel on a tablet. At 260 it is 462px wide and leaves a 768px page's panel
+ * 258, where 280 would leave it 222; stacked under a full-width banner instead, the panel is a
+ * column of words down the left of 720px and the card stands twice as tall as the picture.
+ */
+const BANNER_HEIGHT_SM = 260;
 
 /**
  * A panorama at 300px tall runs wide enough to leave the panel nothing, and the panel can shrink
@@ -78,24 +86,24 @@ export const Hero = <T,>(props: {
       // panel and tile grid inside it — this caller has pinned the artwork's size itself.
       mediaLayout="aside"
       cardSx={{
-        flexDirection: aside ? "row" : { xs: "column", md: "row" },
+        flexDirection: aside ? "row" : { xs: "column", sm: "row" },
         // Below `md` the tiles wrap onto a band of their own under the picture and the words.
         flexWrap: aside ? { xs: "wrap", md: "nowrap" } : "nowrap",
         // The panel takes the row's height where the artwork sets it, so its figures can sit on
         // the picture's own lower edge; a card whose words are underneath has no such row.
-        alignItems: aside ? { xs: "stretch", md: "flex-start" } : "flex-start",
+        alignItems: { xs: "stretch", md: "flex-start" },
         overflow: "hidden",
-        // The artwork column is the picture's own width at every width, not the card's. The
-        // shared aside column hands it the whole card below `md`, which is the arrangement a
-        // banner wants and the one a poster is here to avoid.
-        ...(aside && { "& > .MuiCardActionArea-root": { width: "auto" } }),
+        // The artwork column is the picture's own width wherever the words sit beside it: a
+        // poster's at every width, a banner's from `sm`. The shared aside column hands it the
+        // whole card below `md`, which only a banner on a phone wants.
+        "& > .MuiCardActionArea-root": { width: aside ? "auto" : { xs: "100%", sm: "auto" } },
       }}
       sx={{
         // Height alone is pinned and the width follows the artwork's own ratio, so nothing is cut
         // into. Left to itself the artwork sets the height instead, and a 2:3 poster at natural
         // size makes the hero taller than the screen and pushes the rest of the page below the fold.
-        width: aside ? "auto" : { xs: "100%", md: "auto" },
-        height: aside ? MEDIA_HEIGHT : { xs: "auto", md: MEDIA_HEIGHT.md },
+        width: aside ? "auto" : { xs: "100%", sm: "auto" },
+        height: aside ? MEDIA_HEIGHT : { xs: "auto", sm: BANNER_HEIGHT_SM, md: MEDIA_HEIGHT.md },
         maxWidth: { md: MEDIA_MAX_WIDTH },
         // The shape stands in until the file lands, so the panel beside it is not handed the whole
         // card for the frame it takes to arrive. The `auto` form keeps that a reservation and never
@@ -114,7 +122,9 @@ export const Hero = <T,>(props: {
             subtitle={props.subtitle}
             stats={props.stats}
             minHeight={MEDIA_HEIGHT.md}
-            middle={props.strip}
+            // Beside a banner on a tablet the panel is 258px wide and the tiles take its foot,
+            // which leaves no row for a chain of beads; the expanded card draws the strip.
+            middle={aside ? props.strip : <Box sx={{ display: { xs: "none", md: "contents" } }}>{props.strip}</Box>}
           />
           {aside && <HeroStatBand stats={props.stats} />}
         </>

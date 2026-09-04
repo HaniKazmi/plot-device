@@ -1096,8 +1096,9 @@ poster and banner keeps its shape (a banner around 533px wide, a poster around 2
 560px ceiling `objectFit: contain` letterboxes a panorama onto the card's own ground.
 
 Where the words sit is the shape rule, and the shape is all the hero is told: the domain names its
-own artwork once at the call site, and a banner stacks its words underneath until `md` while a
-poster or a cover seats them beside at every width. A portrait picture given the page's whole width
+own artwork once at the call site, and a banner stacks its words underneath on a phone and seats them beside from `sm` (at 260px,
+462 wide, beside a 258px panel on a 768 page) while a poster or a cover seats them beside at every
+width. A portrait picture given the page's whole width
 is the whole of the first screen — a poster stands 525px at 390 and a cover 585 — so the phone's
 hero would open on one picture and start its figures below the fold. Below `md` the words beside
 a poster are held to its height — a title clamped to three lines over the subtitle — and the tiles
