@@ -330,9 +330,11 @@ const MostReadCategory = ({
       title="Most Read"
       option={category}
       groups={groupsBy(category)}
-      // The name and the figure stacked rather than side by side — under a cover there is no
-      // width for both on one line.
-      labelComponent={(group) => [[group.name], [`${format(group.count)} ${measure}`]]}
+      // Name and figure on one row, as the other three tabs write theirs: the card's words stand
+      // beside its cover, where a row wraps, so under a narrow column the two fall onto their own
+      // lines anyway. It is also the row a strip caption is taken from, and a shelf that drops the
+      // figure it is ranked by leaves the reader nothing to read the order against.
+      labelComponent={(group) => [[group.name, `${format(group.count)} ${measure}`]]}
       colourOf={(top) => groupToColour(category, top, scheme)}
       MediaComponent={BookCardMediaImage}
       // Series order where the sheet numbers one, reading order where it does not: a drill-down
