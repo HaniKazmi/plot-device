@@ -43,7 +43,7 @@ export interface Crossing {
  * films seen days apart tile clear of one another inside a lane rather than stacking. A book is
  * a span the converter holds to full dates at both ends, so it is always precise.
  */
-const crossingSpan = (item: OmniItem, key: string, today: YearMonthDay): CrossingSpan => {
+export const crossingSpan = (item: OmniItem, key: string, today: YearMonthDay): CrossingSpan => {
   switch (item.medium) {
     case "game": {
       const game = item.source as VideoGame;

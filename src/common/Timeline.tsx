@@ -281,7 +281,11 @@ const useTextPlacement = (data: PositionedTimelineData[]) => {
 // ============================================================================
 // Components
 // ============================================================================
-const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }) => {
+/**
+ * The chart without its card, for a section that already stands in one and switches between this
+ * and another reading of the same rows.
+ */
+export const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }) => {
   // The scroller's own ref does both jobs: the chart drives it from the year chips, and the fades
   // read the same node to know which ends have chart past them.
   const [scrollRef, edges] = useScrollEdges<HTMLDivElement>();

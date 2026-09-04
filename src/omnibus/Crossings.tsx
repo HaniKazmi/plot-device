@@ -1,10 +1,13 @@
 import { Box, CardContent, Stack, useTheme, Typography } from "@mui/material";
+import { useState } from "react";
 import Grid from "@mui/material/Grid";
 import { Hub } from "@mui/icons-material";
 import { Swatch, TimelineAxis, TimelineCard, INLINE_SWATCH_SIZE, type TimelineBand } from "../common/Card";
 import { FranchiseName } from "../common/FranchiseStrip";
 import { LazyTooltip } from "../common/LazyTooltip";
 import { SectionHeader } from "../common/SectionHeader";
+import { SegmentedControl, type SegmentOption } from "../common/SelectionComponents";
+import { TimeLineChart } from "../common/Timeline";
 import { FoldedChart } from "../common/FoldedChart";
 import type { TimelineTick } from "../common/timelineLayout";
 import { ScrollFade } from "../common/ScrollFade";
@@ -14,6 +17,9 @@ import { useOpenAtLatest } from "../common/useOpenAtLatest";
 import { format } from "../utils/mathUtils";
 import { OmniHoverCard } from "./CardMediaImage";
 import type { Crossing } from "./crossingsData";
+import type { OmniItem } from "./adapter";
+import { omniTimeline } from "./timelineData";
+import { CURRENT_PLAINDATE } from "../common/date";
 import { mediumToColour, mediumToLabel } from "./types";
 import { useScheme } from "../common/useScheme";
 import type { Scheme } from "../utils/types";
@@ -62,8 +68,36 @@ const SCALE_WIDTH = "300%";
  * cannot vary. Stated once beneath the stack, the labels say the same thing and the strips read as
  * one chart rather than as twelve charts that happen to agree.
  */
-const Crossings = ({ crossings, ticks }: { crossings: Crossing[]; ticks: TimelineTick[] }) => {
+/**
+ * The two readings of the section: the biggest franchises as strips on one scale, or every item
+ * as a bar on the packed timeline the four tabs draw one medium at a time. Words rather than icons,
+ * as every such control on the page; held in state here rather than at module scope, since the
+ * franchise reading is what the page opens on and a reader switching to everything has asked for a
+ * one-off look rather than a setting.
+ */
+type CrossingsMode = "Franchises" | "All";
+const CROSSINGS_MODES: readonly SegmentOption<CrossingsMode>[] = [
+  { value: "Franchises", label: "Franchises" },
+  { value: "All", label: "All" },
+];
+
+const Crossings = ({
+  crossings,
+  ticks,
+  items,
+}: {
+  crossings: Crossing[];
+  ticks: TimelineTick[];
+  /** The union the crossings were grouped from, for the reading that draws every item of it. */
+  items: OmniItem[];
+}) => {
+  const scheme = useScheme();
   const biggest = crossings[0];
+  const [mode, setMode] = useState<CrossingsMode>("Franchises");
+  const all = mode === "All";
+  // Built only while that reading is chosen: the section opens on the franchises, and a thousand
+  // rows positioned for a chart the reader has not asked for is the work the fold exists to avoid.
+  const rows = all ? omniTimeline(items, CURRENT_PLAINDATE, scheme, (item) => () => <OmniHoverCard item={item} />) : [];
 
   return (
     <FoldedChart
@@ -72,9 +106,19 @@ const Crossings = ({ crossings, ticks }: { crossings: Crossing[]; ticks: Timelin
           icon={<Hub />}
           title="Franchises over time"
           count={
-            crossings.length > STRIPS_SHOWN
-              ? `${format(STRIPS_SHOWN)} of ${format(crossings.length)} franchises`
-              : `${format(crossings.length)} franchises`
+            all
+              ? `${format(rows.length)} items`
+              : crossings.length > STRIPS_SHOWN
+                ? `${format(STRIPS_SHOWN)} of ${format(crossings.length)} franchises`
+                : `${format(crossings.length)} franchises`
+          }
+          action={
+            <SegmentedControl
+              options={CROSSINGS_MODES}
+              value={mode}
+              onChange={setMode}
+              ariaLabel="What the timeline draws"
+            />
           }
         />
       }
@@ -86,10 +130,16 @@ const Crossings = ({ crossings, ticks }: { crossings: Crossing[]; ticks: Timelin
           : "",
       })}
     >
-      <CrossingsStack
-        crossings={crossings}
-        ticks={ticks}
-      />
+      {all ? (
+        <CardContent>
+          <TimeLineChart timelineData={rows} />
+        </CardContent>
+      ) : (
+        <CrossingsStack
+          crossings={crossings}
+          ticks={ticks}
+        />
+      )}
     </FoldedChart>
   );
 };
