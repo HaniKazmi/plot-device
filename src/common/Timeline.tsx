@@ -7,7 +7,7 @@ import { HoverCardTooltip } from "./HoverCardTooltip";
 import { useCoarsePointer } from "./useCoarsePointer";
 import { LazyTooltip } from "./LazyTooltip";
 import { ScrollFade } from "./ScrollFade";
-import { scrollbarSx } from "./scrollbarSx";
+import { CONTAIN_SIDEWAYS_SCROLL, scrollbarSx } from "./scrollbarSx";
 import { useOpenAtLatest } from "./useOpenAtLatest";
 import { useScrollEdges } from "./useScrollEdges";
 import {
@@ -91,9 +91,7 @@ const scrollSx = (theme: Theme) => ({
   maxHeight: CHART_MAX_HEIGHT,
   overflowX: "auto",
   overflowY: "auto",
-  // A drag that reaches either end of four viewports otherwise carries on into the browser's own
-  // back gesture, so the reader leaves the page while reading a chart.
-  overscrollBehaviorX: "contain",
+  ...CONTAIN_SIDEWAYS_SCROLL,
   ...scrollbarSx(theme),
 });
 

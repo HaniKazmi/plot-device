@@ -31,6 +31,7 @@ import { shapeIsExact, shapeToArrangement, shapeToAspect, shapeToRatio, type Art
 import { rowCardSize } from "./rowSizing";
 import { Filmstrip } from "./Filmstrip";
 import { useElementWidth } from "./useElementWidth";
+import { CONTAIN_SIDEWAYS_SCROLL } from "./scrollbarSx";
 import { useStackedCharts } from "./breakpoints";
 import { useState, type ReactNode } from "react";
 import { Radio } from "@mui/material";
@@ -456,9 +457,8 @@ export const StatsListGrid = <T,>(
               flexWrap: flexWrap ?? "wrap",
               gap: `${ROW_GAP}px`,
               overflow: "auto",
-              // Below `md` the row does not wrap, so a flick that runs out of cards would carry
-              // on into the browser's own back gesture and take the reader off the page.
-              overscrollBehaviorX: "contain",
+              // Below `md` the row does not wrap, so its own flick is the page's to lose.
+              ...CONTAIN_SIDEWAYS_SCROLL,
             }}
           >
             {cards}
@@ -470,9 +470,8 @@ export const StatsListGrid = <T,>(
             sx={{
               alignItems: "center",
               overflow: "auto",
-              // Below `md` the strip does not wrap, so a flick that runs out of cards would carry
-              // on into the browser's own back gesture and take the reader off the page.
-              overscrollBehaviorX: "contain",
+              // Below `md` the strip does not wrap, so its own flick is the page's to lose.
+              ...CONTAIN_SIDEWAYS_SCROLL,
               flexWrap,
             }}
           >

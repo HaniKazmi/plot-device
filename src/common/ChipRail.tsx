@@ -3,6 +3,7 @@ import type { ReactElement, ReactNode, Ref } from "react";
 import { NUMERIC_LABEL_SX } from "./typography";
 import { ScrollFade } from "./ScrollFade";
 import { useScrollEdges } from "./useScrollEdges";
+import { CONTAIN_SIDEWAYS_SCROLL } from "./scrollbarSx";
 
 export interface ChipRailItem {
   id: string;
@@ -149,9 +150,7 @@ export const ChipRail = (props: {
             display: "flex",
             gap: 1,
             overflowX: "auto",
-            // A flick that runs out of chips otherwise carries on into the browser's own back
-            // gesture, so the reader leaves the page while reaching for a section.
-            overscrollBehaviorX: "contain",
+            ...CONTAIN_SIDEWAYS_SCROLL,
             // A scrollbar drawn under a row this short costs as much height as the row itself.
             scrollbarWidth: "none",
             "::-webkit-scrollbar": { display: "none" },

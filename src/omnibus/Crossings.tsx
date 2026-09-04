@@ -9,7 +9,7 @@ import { FoldedChart } from "../common/FoldedChart";
 import type { TimelineTick } from "../common/timelineLayout";
 import { ScrollFade } from "../common/ScrollFade";
 import { useScrollEdges } from "../common/useScrollEdges";
-import { scrollbarSx } from "../common/scrollbarSx";
+import { CONTAIN_SIDEWAYS_SCROLL, scrollbarSx } from "../common/scrollbarSx";
 import { useOpenAtLatest } from "../common/useOpenAtLatest";
 import { format } from "../utils/mathUtils";
 import { OmniHoverCard } from "./CardMediaImage";
@@ -118,9 +118,7 @@ const CrossingsStack = ({ crossings, ticks }: { crossings: Crossing[]; ticks: Ti
           ref={scrollRef}
           sx={{
             overflowX: "auto",
-            // A flick that reaches either end of three viewports otherwise carries on into the
-            // browser's own back gesture, so the reader leaves the page while reading a strip.
-            overscrollBehaviorX: "contain",
+            ...CONTAIN_SIDEWAYS_SCROLL,
             // The bar the platform may or may not draw. Where it does, this is the room for it;
             // where it does not, the fades are what say the stack runs on.
             paddingBottom: 1,
