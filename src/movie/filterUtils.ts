@@ -26,9 +26,10 @@ export const {
   reducer,
   initialState,
   activeCount,
-  // The shared year cutoff reads `startDate.year`, which for a film is simply the year it was
-  // watched — one row, one date, so unlike Shows nothing here needs to diverge from it.
 } = createFilterReducer<Movie, Measure, FilterState>({
   schema: movieFilters,
   initial: { measure: "Films", yearType: "upto", yearTo: CURRENT_YEAR },
+  // A film's start date is the day it was watched — one row, one date, so unlike Shows the shared
+  // cutoff over that year is the whole rule.
+  yearOf: (movie) => movie.startDate.year,
 });

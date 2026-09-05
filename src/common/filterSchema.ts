@@ -9,9 +9,12 @@ import type { Colour, KeysMatching, Predicate, Scheme } from "../utils/types";
  *
  * Intersected with `string` rather than extracted from it, so a key still reads as a string where
  * `S` is generic and the conditional inside `KeysMatching` has not been reduced.
+ *
+ * Exported because the reducer subtracts them: the schema seeds a starting value for every field
+ * these two name, so what a domain still has to state is everything else its state holds.
  */
-type ToggleKey<S> = KeysMatching<S, boolean> & string;
-type CategoryKey<S> = KeysMatching<S, readonly string[]> & string;
+export type ToggleKey<S> = KeysMatching<S, boolean> & string;
+export type CategoryKey<S> = KeysMatching<S, readonly string[]> & string;
 
 /**
  * One boolean filter, as data: which field of the tab's state holds it, what it is called, and

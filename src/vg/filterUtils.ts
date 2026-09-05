@@ -34,4 +34,6 @@ export const {
 } = createFilterReducer<VideoGame, Measure, FilterState>({
   schema: vgFilters,
   initial: { measure: "Games", yearType: "upto", yearTo: CURRENT_YEAR },
+  // A game counts to the year it was started, which is the year the vitals cards place it in.
+  yearOf: (game) => game.startDate.year,
 });

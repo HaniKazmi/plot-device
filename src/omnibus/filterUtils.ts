@@ -1,10 +1,5 @@
 import { CURRENT_YEAR } from "../common/date";
-import {
-  createFilterReducer,
-  yearPredicates,
-  type BaseFilterState,
-  type FilterDispatchFor,
-} from "../common/filterReducer";
+import { createFilterReducer, type BaseFilterState, type FilterDispatchFor } from "../common/filterReducer";
 import { omniFilters } from "./filters";
 import type { OmniItem } from "../common/medium";
 import type { Measure } from "../app/types";
@@ -42,7 +37,7 @@ export const {
     yearType: "upto",
     yearTo: CURRENT_YEAR,
   },
-  // The scope over the attribution year: an `OmniItem` holds no start date, and a game played
-  // across a new year counts to the year it was finished, which is already on the record.
-  yearRule: (state) => yearPredicates<OmniItem>(state, (item) => item.year),
+  // The attribution year: an `OmniItem` holds no start date, and a game played across a new year
+  // counts to the year it was finished, which is already on the record.
+  yearOf: (item) => item.year,
 });

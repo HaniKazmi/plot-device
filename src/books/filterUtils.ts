@@ -18,9 +18,6 @@ export type FilterDispatch = FilterDispatchFor<FilterState>;
 /**
  * Guest mode pushes nothing here: nothing on the Books sheet marks a book as adult-themed the way
  * the games and shows sheets do, so there is nothing for the mode to hide.
- *
- * The shared year cutoff reads `startDate.year`: a book counts to the year it was begun, which is
- * the year the vitals cards and the timeline both place it in.
  */
 export const {
   store: pageState,
@@ -32,4 +29,7 @@ export const {
 } = createFilterReducer<Book, Measure, FilterState>({
   schema: bookFilters,
   initial: { measure: "Books", yearType: "upto", yearTo: CURRENT_YEAR },
+  // A book counts to the year it was begun, which is the year the vitals cards and the timeline
+  // both place it in.
+  yearOf: (book) => book.startDate.year,
 });

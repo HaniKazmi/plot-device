@@ -45,5 +45,8 @@ export const {
 } = createFilterReducer<Show, Measure, FilterState>({
   schema: showFilters,
   initial: { measure: "Episodes", yearType: "upto", yearTo: CURRENT_YEAR },
+  // A show's own start is its first season's, which is the year the rest of the app attributes it
+  // to; the scope alone reads the seasons instead, for the reason above, so it states a whole rule.
+  yearOf: (show) => show.startDate.year,
   yearRule: showYearPredicates,
 });

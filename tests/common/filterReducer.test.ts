@@ -5,20 +5,23 @@ import { activeCount, initialState, reducer, type FilterState } from "../../src/
 import { videoGame } from "../fixtures/vgRows";
 
 describe("yearPredicates", () => {
+  /** The reading three of the four sheets take, spelled out because no default offers it. */
+  const started = (item: { startDate: { year: YearNumber } }) => item.startDate.year;
+
   it("returns no predicate when the ceiling has reached the current year", () => {
     // "Up to this year" is the same as no filter, which is why the default state hides nothing.
-    expect(yearPredicates({ yearType: "upto", yearTo: CURRENT_YEAR })).toEqual([]);
+    expect(yearPredicates({ yearType: "upto", yearTo: CURRENT_YEAR }, started)).toEqual([]);
   });
 
   it("returns one ceiling predicate for an earlier year", () => {
     const ceiling = (CURRENT_YEAR - 1) as YearNumber;
-    const [keep] = yearPredicates({ yearType: "upto", yearTo: ceiling });
+    const [keep] = yearPredicates({ yearType: "upto", yearTo: ceiling }, started);
 
     expect(keep({ startDate: { year: ceiling } })).toBe(true);
     expect(keep({ startDate: { year: CURRENT_YEAR } })).toBe(false);
   });
 
-  it("reads the year through a caller's own accessor, for a model that attributes differently", () => {
+  it("reads the year through the caller's accessor, for a model that attributes differently", () => {
     // The two rules are the same everywhere; which year an item answers with is not. An Omnibus
     // item counts towards the year it closed in and carries no start date to read at all.
     const closed = (year: YearNumber) => ({ closedIn: year });
@@ -32,7 +35,7 @@ describe("yearPredicates", () => {
   });
 
   it("returns an exact-match predicate for the matching type, even at the current year", () => {
-    const [keep] = yearPredicates({ yearType: "matching", yearTo: CURRENT_YEAR });
+    const [keep] = yearPredicates({ yearType: "matching", yearTo: CURRENT_YEAR }, started);
 
     expect(keep({ startDate: { year: CURRENT_YEAR } })).toBe(true);
     expect(keep({ startDate: { year: (CURRENT_YEAR - 1) as YearNumber } })).toBe(false);

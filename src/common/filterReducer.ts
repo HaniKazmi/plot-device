@@ -1,6 +1,6 @@
 import { type Dispatch } from "react";
 import { CURRENT_YEAR, type YearNumber } from "./date";
-import { schemaPredicates, type FilterSchema } from "./filterSchema";
+import { schemaPredicates, type CategoryKey, type FilterSchema, type ToggleKey } from "./filterSchema";
 import { createStore, type Store } from "./store";
 import type { Predicate } from "../utils/types";
 
@@ -78,16 +78,6 @@ interface YearState {
 }
 
 /**
- * Two ways to ask, so a caller only supplies the accessor when its model needs one: a domain whose
- * record carries the date the year comes from names no second argument, and one that attributes an
- * item to some other year has to.
- */
-interface YearPredicates {
-  <T extends { startDate: { year: YearNumber } }>(state: YearState): Predicate<T>[];
-  <T>(state: YearState, yearOf: (item: T) => YearNumber): Predicate<T>[];
-}
-
-/**
  * The year cutoff, shared because every domain means the same thing by it: "up to" a year is a
  * ceiling that disappears once it reaches the current year, and "matching" is an exact year.
  *
@@ -95,21 +85,13 @@ interface YearPredicates {
  * than as a second copy of the two rules. An `OmniItem` counts towards the year it closed and holds
  * no start date to read at all, and a copy written over that field is two statements of one
  * semantic that nothing keeps in step.
- */
-/**
- * The year a record with a start date counts towards, which is the default the overload above
- * offers a caller naming no accessor.
  *
- * The assertion is what that overload's constraint checks at the call site: a reducer built over a
- * generic record cannot re-check it, so a domain whose model has no start date states its own rule
- * instead, as the composing tab does.
+ * The accessor is a parameter and never a default, because a default has to be written over a
+ * generic record: `(item as { startDate: … }).startDate.year` type-checks against every model
+ * there is, so a domain whose record has no start date would compile and answer `undefined` for
+ * every row — a year scope that silently keeps nothing.
  */
-const startDateYear = <T>(item: T): YearNumber => (item as { startDate: { year: YearNumber } }).startDate.year;
-
-export const yearPredicates: YearPredicates = <T>(
-  state: YearState,
-  yearOf: (item: T) => YearNumber = startDateYear,
-): Predicate<T>[] => {
+export const yearPredicates = <T>(state: YearState, yearOf: (item: T) => YearNumber): Predicate<T>[] => {
   if (state.yearType === "matching") return [(item) => yearOf(item) === state.yearTo];
   if (state.yearTo !== CURRENT_YEAR) return [(item) => yearOf(item) <= state.yearTo];
   return [];
@@ -157,15 +139,16 @@ export const countActiveFilters = (state: object, initialValues: object): number
 /**
  * Builds a domain's filter reducer and the store its state lives in, from the schema that already
  * says what the tab can be narrowed by. Each domain supplies only what its schema cannot: the unit
- * its figures are counted in, where its year scope starts, and — where its model answers the year
- * with something other than a start date — how to read that. Everything else, the action shape,
- * rebuilding `filter` after each change and counting what the reader has changed, is the same
- * everywhere and lives here.
+ * its figures are counted in, where its year scope starts, which year its own records answer with,
+ * and — where that scope asks something else of the model — the whole rule. Everything else, the
+ * action shape, rebuilding `filter` after each change and counting what the reader has changed, is
+ * the same everywhere and lives here.
  *
  * The unfiltered state is the schema's own: a toggle starts on, since `hides` applies while one is
  * off, and a category starts empty, an empty selection being no constraint. Derived rather than
  * restated per domain, so a filter added to a schema cannot arrive without a starting value — a
- * toggle left out would start `undefined`, which reads as off and hides rows on first paint.
+ * toggle left out would start `undefined`, which reads as off and hides rows on first paint. What
+ * the schema does not seed is what `initial` is typed as, so neither half can be left unstated.
  *
  * The state is held in a store rather than in a `useReducer` because the surfaces that read it are
  * not all inside the tab: the rail and the search box stand beside the tab's charts rather than
@@ -177,19 +160,37 @@ export const countActiveFilters = (state: object, initialValues: object): number
 export const createFilterReducer = <T, M extends string, S extends BaseFilterState<T, M>>({
   schema,
   initial,
-  yearRule = yearPredicates as YearRule<T>,
+  yearOf,
+  yearRule,
 }: {
   schema: FilterSchema<T, S>;
-  /** What the page holds beside its filters: the measure it counts in and the scope it opens at. */
-  initial: { measure: M; yearType: YearType; yearTo: YearNumber };
+  /**
+   * Every field of the state the schema does not seed, which is the page's own settings: the
+   * measure it counts in and the scope it opens at.
+   *
+   * Stated as what is left rather than as those three by name, so a field added to a domain's
+   * state that no toggle and no category covers has to be given a starting value here or it fails
+   * to compile — where a fixed shape would let it start `undefined` and be read as a filter that
+   * hides everything on first paint.
+   */
+  initial: Omit<S, "filter" | ToggleKey<S> | CategoryKey<S>>;
+  /**
+   * The year an item counts towards, which is the one part of the shared cutoff that varies by
+   * model — a start date on three of the four sheets, an attribution on the union.
+   */
+  yearOf: (item: T) => YearNumber;
+  /** A whole rule in place of that reading, where a tab's scope asks something else of its model. */
   yearRule?: YearRule<T>;
 }) => {
+  const scope: YearRule<T> = yearRule ?? ((state) => yearPredicates(state, yearOf));
+
   const initialValues = {
     ...Object.fromEntries(schema.toggles.map((toggle) => [toggle.key, true])),
     ...Object.fromEntries(schema.categories.map((category) => [category.key, []])),
     ...initial,
     // Keys and their fields are checked against each other where the schema is written; built back
-    // into a state object they are strings again, which is a lookup TypeScript cannot reduce.
+    // into a state object they are strings again, which is a lookup TypeScript cannot reduce, so
+    // the merge of the two halves is asserted rather than derived.
   } as Omit<S, "filter">;
 
   /**
@@ -199,7 +200,7 @@ export const createFilterReducer = <T, M extends string, S extends BaseFilterSta
   const filters = (state: Omit<S, "filter">): Predicate<T> => {
     // `S` extends the base state, so the scope's two fields are on it; `Omit` over a generic is a
     // lookup TypeScript defers, so it cannot see that here.
-    const predicates = [...schemaPredicates(schema, state), ...yearRule(state as unknown as YearState)];
+    const predicates = [...schemaPredicates(schema, state), ...scope(state as unknown as YearState)];
 
     return (item: T) => predicates.every((predicate) => predicate(item));
   };
