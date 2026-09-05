@@ -1695,10 +1695,12 @@ half answers what the medium is — its `DataConfig`, its guest rule, its arm of
 Nothing else changes: `toOmniItems`, `visibleLibrary`, the crossings, the gallery, the search index
 and the card dispatcher all read the registry, so a medium that answers everything on
 `MediumModule` is on every surface the day it is added, and one that answers nothing does not
-compile. A module never imports `tabs.ts`; it carries `tabId`. What is still by hand is the fetch:
-`app/LibraryProvider.tsx` writes a `useSheet` call per medium, since a hook cannot be called in a
-loop, and `Library` names the four in the tabs' plural words — so a fifth adds a field there and a
-line in the provider, and nothing else.
+compile. A module never imports `tabs.ts`; it carries `tabId`. What is still by hand is the fetch
+and the shape it lands in: `Library` names the four in the tabs' own plural words rather than by
+medium, and a hook cannot be called in a loop, so a fifth medium is written out once in each of the
+four-field literals in `app/library.ts` (`Library`, `visibleLibrary`, `completeLibrary`, `sliceOf`)
+and once in each of the provider's four (`useSheet`, `raw`, `loaded`, `error`). Eight lines in two
+files, all of which fail to compile if any is missed.
 
 The entry mapper is the piece the domain's own card strip calls too (through `CardMediaImage.tsx`),
 so a tab's index and the cross-media union cannot draw one item two ways.
