@@ -1,5 +1,5 @@
 import { groupByCategory, realFranchisesOnly, type DrilldownGroup } from "../common/statsData";
-import type { PlainDate } from "../common/date";
+import type { PlainDate, Year, YearMonthDay } from "../common/date";
 import {
   ageBandToColour,
   ageRatingBand,
@@ -115,7 +115,7 @@ export const galleryItems = (items: OmniItem[]): OmniItem[] => items.filter((ite
  * same name stays a work of its own. A game is already one row per work and keys on that row, and
  * so is a book: a reread is a second row, and it joins the first the way a film's rewatch does.
  */
-const workOf = (item: OmniItem): unknown => {
+export const workOf = (item: OmniItem): unknown => {
   switch (item.medium) {
     case "show":
       return (item.source as Season).show;
@@ -145,8 +145,8 @@ const workOf = (item: OmniItem): unknown => {
  * closed in two decades — which stands once on each shelf — would have both copies claim the later
  * decade and leave the earlier shelf empty.
  */
-interface ShelfItem extends OmniItem {
-  metDate: PlainDate;
+export interface ShelfItem extends OmniItem {
+  metDate: YearMonthDay | Year;
 }
 
 /**
@@ -158,7 +158,7 @@ interface ShelfItem extends OmniItem {
  * hours are the bucket's sum — which is what leaves both measures honest through `measureOf`, Items
  * counting works and Hours still counting every season.
  */
-const galleryWorks = (items: OmniItem[], category: GalleryCategory, today: PlainDate): ShelfItem[] => {
+export const galleryWorks = (items: OmniItem[], category: GalleryCategory, today: YearMonthDay): ShelfItem[] => {
   const shelves = new Map<string, Map<unknown, OmniItem[]>>();
   for (const item of items) {
     shelves
@@ -175,6 +175,9 @@ const galleryWorks = (items: OmniItem[], category: GalleryCategory, today: Plain
       // entry, so a show that was huge in its first season and closed quietly years later would
       // otherwise date from the season it was big in rather than from the one that ended it.
       metDate: latestOf(entries, (entry) => entry.closeDate ?? today),
+      // The work's own close, not the representative's: absent while any entry is still going,
+      // else the latest, so a caption or a sort reading `closeDate` off a work reads the work.
+      closeDate: entries.some((entry) => !entry.closeDate) ? undefined : latestOf(entries, (entry) => entry.closeDate!),
     })),
   );
 };
@@ -195,7 +198,7 @@ export const galleryGroups = (
   measure: Measure,
   sort: GallerySort,
   /** Taken as the date of anything still open: an item with no close is the one being met now. */
-  today: PlainDate,
+  today: YearMonthDay,
 ): Shelf[] =>
   groupByCategory(
     galleryWorks(items, category, today),
@@ -272,5 +275,5 @@ const galleryTop = <T extends OmniItem>(items: T[]): T =>
  * wrong end of that year to ask a maximum for. The value kept is the date itself rather than its
  * last day, so a shelf reports the precision its sheet actually holds.
  */
-const latestOf = <T>(items: T[], dateOf: (item: T) => PlainDate): PlainDate =>
+const latestOf = <T, D extends PlainDate>(items: T[], dateOf: (item: T) => D): D =>
   items.reduce((latest, item) => (dateOf(item).lastDay() > latest.lastDay() ? dateOf(item) : latest), dateOf(items[0]));

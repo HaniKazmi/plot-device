@@ -86,8 +86,11 @@ const STRIP_MODES: readonly SegmentOption<StripMode>[] = [
  */
 export const FranchiseStrip = (props: {
   entries: FranchiseEntry[];
-  /** The `subject` the card's own item answers; every entry answering it is the subject. */
-  subject: string;
+  /**
+   * The `subject` the card's own item answers; every entry answering it is the subject. Absent
+   * for a strip about the whole franchise and no one entry in it, which singles nothing out.
+   */
+  subject?: string;
   /**
    * The one entry the card is about, by its key, where the subject is wider than it — a show's
    * card is about its latest season, or the one it was opened from. Absent, the subject is the
@@ -111,6 +114,7 @@ export const FranchiseStrip = (props: {
   // franchise has no sibling on the strip, and ringing every one of its seasons says nothing.
   const contextual = ordered.some((entry) => entry.subject !== subject);
   const markOf = (entry: FranchiseEntry): Mark => {
+    if (subject === undefined) return "plain";
     if (entry.key === props.focus || (props.focus === undefined && entry.subject === subject)) return "focus";
     if (entry.subject !== subject) return "none";
     return contextual ? "subject" : "plain";

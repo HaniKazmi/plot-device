@@ -1,5 +1,6 @@
 import { Close, CloseFullscreen } from "@mui/icons-material";
 import { CardHeader, Dialog, IconButton, type Theme } from "@mui/material";
+import type { ReactNode } from "react";
 import { stickySheetHeader } from "./fullscreenSheet";
 import { EXPANDED_CARDS, StatsListGrid, type CardLayout } from "./Stats";
 import type { CardMediaImageProps, MediaBand, TypedCardMediaImage } from "./Card";
@@ -26,7 +27,7 @@ const HEADER_SX = (theme: Theme) => ({ [theme.breakpoints.down("sm")]: stickyShe
  */
 export const DrilldownDialog = <T,>(
   props: {
-    title: string;
+    title: ReactNode;
     onClose: () => void;
     content: T[];
     cardKey: (t: T) => string;
@@ -37,6 +38,11 @@ export const DrilldownDialog = <T,>(
     band?: MediaBand<T>;
     divider?: boolean;
     MediaComponent: TypedCardMediaImage<T>;
+    /**
+     * Something to say about the group before listing it, between the header and the grid — the
+     * franchise view's facts and strip. Nothing, for a drill-down whose title says it all.
+     */
+    header?: ReactNode;
   } & CardLayout,
 ) => (
   <Dialog
@@ -67,6 +73,7 @@ export const DrilldownDialog = <T,>(
       }
       slotProps={{ title: { variant: "h6" } }}
     />
+    {props.header}
     <StatsListGrid
       content={props.content}
       cardKey={props.cardKey}

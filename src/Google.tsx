@@ -6,6 +6,7 @@ import { BOTTOM_TABS_CLEARANCE, safeAreaGutters } from "./common/chrome";
 import { Outlet } from "react-router-dom";
 import { GoogleAuthProvider } from "./contexts/GoogleAuthContext.tsx";
 import { FranchiseUnionProvider } from "./omnibus/franchiseUnion.tsx";
+import { SearchHost } from "./omnibus/Search.tsx";
 import { barColour, useCurrentTab } from "./tabs.ts";
 import type { Tab } from "./tabs.ts";
 import type {} from "@mui/material/themeCssVarsAugmentation";
@@ -29,6 +30,9 @@ const GoogleAuth = () => {
         {/* Above every tab, because a card on any of them draws the franchise across all four. */}
         <FranchiseUnionProvider guestMode={guestMode}>
           <Outlet context={{ guestMode }} />
+          {/* Inside the provider, since the palette lists the union's own items; opened from the
+              app bar above through a store rather than a flag lifted over both. */}
+          <SearchHost />
         </FranchiseUnionProvider>
       </Container>
       <BottomTabs />

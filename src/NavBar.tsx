@@ -10,13 +10,14 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
-import { MoreVert, Score } from "@mui/icons-material";
+import { MoreVert, Score, Search } from "@mui/icons-material";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabs, { useCurrentTab } from "./tabs";
 import useLongPress from "./utils/useLongPress";
 import { useGoogleAuth } from "./contexts/GoogleAuthContext";
 import { safeAreaGutters } from "./common/chrome";
+import { openSearch } from "./common/searchOpen";
 
 /**
  * The menu's own items are worded rather than keyed, and the theme capitalises every `MenuItem`
@@ -42,6 +43,17 @@ const DISABLED_BUTTON_SX = { "&.Mui-disabled": { color: "inherit", opacity: 0.6 
 const MENU_BUTTON_SX = {
   display: { md: "none" },
   "@media (pointer: coarse)": { display: "flex" },
+} as const;
+
+/**
+ * The search button is the bar's last child wherever the ⋮ is not drawn, and `edge="end"` is the
+ * last child's alone — it pulls the button into the bar's gutter so its icon lines up with the
+ * page edge, and two buttons wearing it overlap. Stated by the same two rules that draw the ⋮, so
+ * the two cannot disagree about which of them is last.
+ */
+const SEARCH_BUTTON_SX = {
+  marginRight: { md: -1.5 },
+  "@media (pointer: coarse)": { marginRight: 0 },
 } as const;
 
 /**
@@ -194,6 +206,19 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
             </Button>
           ))}
         </Box>
+        {/* At every width: below `sm` the bar is a wordmark, this and the ⋮, the tabs having gone to
+            the bottom of the screen, so the box stands in the space the strip left. A button rather
+            than a `BarAction`, which is text-only and, under a finger, a menu item — a search box
+            two taps away is one nobody opens. ⌘K and `/` reach the same palette (`omnibus/Search`). */}
+        <IconButton
+          color="inherit"
+          aria-label="Search"
+          aria-keyshortcuts="Meta+K Control+K /"
+          onClick={openSearch}
+          sx={SEARCH_BUTTON_SX}
+        >
+          <Search />
+        </IconButton>
         <IconButton
           color="inherit"
           edge="end"

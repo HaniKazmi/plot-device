@@ -28,12 +28,14 @@ describe("buildFranchiseUnion", () => {
     parent.s = [season(parent, { startDate: YearMonthDay.get(2020, 1, 23), endDate: YearMonthDay.get(2020, 4, 1) })];
 
     const union = buildFranchiseUnion(
-      library({
-        games: [videoGame({ name: "Star Trek Online", franchise: "Star Trek" })],
-        shows: [parent],
-        movies: [movie({ name: "Star Trek", franchise: "Star Trek" })],
-        books: [book({ name: "Dune", franchise: "Dune" })],
-      }),
+      toOmniItems(
+        library({
+          games: [videoGame({ name: "Star Trek Online", franchise: "Star Trek" })],
+          shows: [parent],
+          movies: [movie({ name: "Star Trek", franchise: "Star Trek" })],
+          books: [book({ name: "Dune", franchise: "Dune" })],
+        }),
+      ),
       TODAY,
       factory,
     );
@@ -51,7 +53,7 @@ describe("buildFranchiseUnion", () => {
       books: [book({ name: "Hyrule Historia", franchise: "Zelda" })],
     });
 
-    const keys = buildFranchiseUnion(lib, TODAY, factory)
+    const keys = buildFranchiseUnion(toOmniItems(lib), TODAY, factory)
       .get("Zelda")!
       .map((entry) => entry.key);
 
@@ -65,7 +67,7 @@ describe("buildFranchiseUnion", () => {
     parent.s = [season(parent, { startDate: YearMonthDay.get(2022, 2, 18), endDate: YearMonthDay.get(2022, 4, 8) })];
     parent.s.push(season(parent, { startDate: YearMonthDay.get(2025, 1, 17), endDate: YearMonthDay.get(2025, 3, 21) }));
 
-    const entries = buildFranchiseUnion(library({ shows: [parent] }), TODAY, factory).get("Severance")!;
+    const entries = buildFranchiseUnion(toOmniItems(library({ shows: [parent] })), TODAY, factory).get("Severance")!;
 
     expect(entries.map((entry) => entry.subject)).toEqual([showSubject(parent), showSubject(parent)]);
     expect(new Set(entries.map((entry) => entry.key)).size).toBe(2);
@@ -76,11 +78,13 @@ describe("buildFranchiseUnion", () => {
     const { factory } = hoverCards();
     const watched = YearMonthDay.get(2013, 1, 4);
     const union = buildFranchiseUnion(
-      library({
-        games: [videoGame({ franchise: "Trek", startDate: YearMonthDay.get(2025, 6, 1), endDate: undefined })],
-        movies: [movie({ franchise: "Trek", startDate: watched })],
-        books: [book({ franchise: "Trek", startDate: YearMonthDay.get(2025, 9, 1), endDate: undefined })],
-      }),
+      toOmniItems(
+        library({
+          games: [videoGame({ franchise: "Trek", startDate: YearMonthDay.get(2025, 6, 1), endDate: undefined })],
+          movies: [movie({ franchise: "Trek", startDate: watched })],
+          books: [book({ franchise: "Trek", startDate: YearMonthDay.get(2025, 9, 1), endDate: undefined })],
+        }),
+      ),
       TODAY,
       factory,
     );
@@ -95,7 +99,9 @@ describe("buildFranchiseUnion", () => {
   it("marks a year-only game imprecise and spans its whole year", () => {
     const { factory } = hoverCards();
     const [entry] = buildFranchiseUnion(
-      library({ games: [videoGame({ franchise: "Old", startDate: Year.get(2007), endDate: Year.get(2007) })] }),
+      toOmniItems(
+        library({ games: [videoGame({ franchise: "Old", startDate: Year.get(2007), endDate: Year.get(2007) })] }),
+      ),
       TODAY,
       factory,
     ).get("Old")!;
@@ -108,10 +114,12 @@ describe("buildFranchiseUnion", () => {
   it("asks for one hover card per entry and wears the medium's fill", () => {
     const { asked, factory } = hoverCards();
     const union = buildFranchiseUnion(
-      library({
-        games: [videoGame({ franchise: "F" })],
-        movies: [movie({ franchise: "F" })],
-      }),
+      toOmniItems(
+        library({
+          games: [videoGame({ franchise: "F" })],
+          movies: [movie({ franchise: "F" })],
+        }),
+      ),
       TODAY,
       factory,
     );

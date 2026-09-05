@@ -10,7 +10,7 @@ import { seasonEntry } from "../show/cardData";
 import type { Season } from "../show/types";
 import { gameEntry } from "../vg/cardData";
 import type { VideoGame } from "../vg/types";
-import { toOmniItems, type Library, type OmniItem } from "./adapter";
+import type { OmniItem } from "./adapter";
 
 /** How an item's hover card is built, handed in so this module stays free of anything rendered. */
 export type HoverCardOf = (item: OmniItem) => () => ReactNode;
@@ -42,8 +42,8 @@ const unionEntry = (item: OmniItem, today: YearMonthDay, hoverCard: HoverCardOf)
  * whose every entry repeats the name is not applied here: that rule chooses which franchises a
  * section draws at all, and a card has already chosen.
  */
-export const buildFranchiseUnion = (library: Library, today: YearMonthDay, hoverCard: HoverCardOf): FranchiseUnion =>
+export const buildFranchiseUnion = (items: OmniItem[], today: YearMonthDay, hoverCard: HoverCardOf): FranchiseUnion =>
   franchiseIndex(
-    toOmniItems(library).map((item) => unionEntry(item, today, hoverCard)),
+    items.map((item) => unionEntry(item, today, hoverCard)),
     (entry) => entry.franchise,
   );

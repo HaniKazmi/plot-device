@@ -694,6 +694,52 @@ while a group is picked. The franchise machinery is shared the same way: `common
 groups by whatever accessor a domain passes, and `common/franchiseContext`'s factory threads the
 index down to the card strips.
 
+### Search — `common/SearchPalette.tsx`, `omnibus/Search.tsx`
+
+One box over all four libraries, opened from a magnifier in the app bar, ⌘K or Ctrl+K, and `/`
+outside a field where a slash is a character. The chord puts the caret in the box with the last
+query selected even where the box is open already — whatever a hit opened may have taken the focus
+with it — and from inside the box it closes it, so the store counts requests beside the flag. The button is in the bar and the palette is mounted
+inside `FranchiseUnionProvider`, a sibling subtree below it, so the open flag lives in a store
+outside React (`common/searchOpen.ts`), the filter sheet's arrangement: lifted to their common
+ancestor it would re-render the bar, the container and every tab on each open. Everything the box
+draws with — the shell, the index, the franchise view, the four domains' cards — is one lazy chunk
+(`SearchSurface`), prefetched on mount as the hover card is.
+
+The shell is domain-blind: it takes groups of already-shaped hits and owns the input, the keyboard
+(↑↓ through every hit as one list, ↵ on the selected, the first selected as soon as there is one)
+and the two arrangements, a dialog seated near the top from `sm` up and a fullscreen sheet below it
+with the box in the pinned bar every sheet wears. A row is lit by one `selected` flag for keyboard
+and pointer alike — the pointer moving onto a row selects it — since a tap has no leave event to
+unlight a hover of its own. The index over the union sits in `omnibus/searchData.ts`, built once
+per library from the items `FranchiseUnionProvider` computes on the way to the union
+(`omnibus/omniItems.ts`), so guest mode is applied before anything is indexed and a hidden item is
+absent from the index as it is from the union. Franchises come from the raw franchise column, held
+to the crossings' rule that some entry not repeat the name; works are collapsed once per work
+through the gallery's own `workOf`, so a show is one hit however many seasons it ran and its latest
+season is the item its hit opens.
+
+Matching (`common/searchData.ts`) folds text a character at a time — lowercased, accent dropped,
+punctuation a space — so the folded string is the raw string's length and a match found in one is
+underlined at the same index in the other. Rank is exact name, then a word start of the name, then
+of the second-rank text (an author, a director, a developer and platform, a network and season
+subtitles), then any substring of either, then every word of the query found somewhere; ties fall to
+size and then name. The entries come back as given, so the raw franchise string — the key every
+index is held on — travels through unfolded.
+
+A franchise hit opens `omnibus/FranchiseView.tsx`: the gallery's franchise drill-down with a header
+saying what the franchise is before listing it — its media counted, four facts, and the franchise
+strip with no subject, every mark `plain`, since the view is about the whole series and not one
+card's place in it. Its works are the gallery's collapse over the franchise's rows alone rather than
+its shelves, which drop a franchise of one work. A work hit mounts the item's own card with
+`openOnMount`, in a host the reader never sees and fixed at a pixel rather than `display: none` so
+the thumbnail loads and samples the colour the dialog is themed from, and unmounts it on
+`onDetailClosed`; `OmniCardMediaImage` dispatches by medium, so a hit reached through search shows
+exactly what the same artwork shows anywhere. A "Go to" group leads every answer as one line of chips: the other tabs,
+all of them before anything is typed and whichever the query names once something is, each jumping
+as the rail's chips do. Below it, before anything is typed, the box offers the hits chosen lately,
+kept in `sessionStorage` for the sitting, then the franchises met most recently.
+
 ### Franchise strip — `common/FranchiseStrip.tsx`
 
 Every entry of an item's franchise the reader has met, across all four media, with the card's own
@@ -1454,7 +1500,7 @@ key in ObjectExpression`; pulled out to a plain function taking the varying piec
   `sheetBarSx`, `dialogCardSx`, among others — the literal itself sits at module scope and the
   component stays compiled.
 
-The baseline is **242 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **255 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.
