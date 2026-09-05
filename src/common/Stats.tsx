@@ -174,7 +174,7 @@ export const StatSummary = ({
  * `FilterDispatchFor` over its own wider state — fits structurally without a generic.
  */
 type YearDispatch = (
-  action: { type: "updateFilter"; filter: "yearTo"; value: YearNumber } | { type: "toggleYearType" },
+  action: { type: "updateFilter"; filter: "yearTo"; value: YearNumber } | { type: "yearType"; yearType: YearType },
 ) => void;
 
 /**
@@ -220,7 +220,7 @@ const YearTotals = ({
       <Radio
         size="small"
         checked={yearType == activeYearType}
-        onChange={() => filterDispatch({ type: "toggleYearType" })}
+        onChange={() => filterDispatch({ type: "yearType", yearType: activeYearType })}
       />
     }
     content={Object.entries(stats).map(([key, value]) => [key[0].toUpperCase() + key.slice(1), value])}

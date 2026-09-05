@@ -26,9 +26,11 @@ export interface FilterState extends BaseFilterState<VideoGame, Measure> {
 export type FilterDispatch = FilterDispatchFor<FilterState>;
 
 /**
- * Named rather than inlined into `filters` because guest mode has to be applied a second time,
- * to the franchise index built from the unfiltered data — an index that skipped it would put
- * hidden games straight back on screen through a card strip.
+ * What guest mode hides on this tab: a game the sheet themes as adult.
+ *
+ * Exported rather than pushed onto the predicates below, because the mode is applied to the
+ * library itself, above every tab. A mode narrowing this page's charts alone would leave a hidden
+ * game on screen through the franchise index and the union, which are built from the library.
  */
 export const guestFilter: Predicate<VideoGame> = (vg) => !vg.theme.includes("Adult");
 
@@ -61,18 +63,16 @@ export const filters = (state: Omit<FilterState, "filter">): Predicate<VideoGame
 
   predicates.push(...yearPredicates<VideoGame>(state));
 
-  if (state.guestMode) {
-    predicates.push(guestFilter);
-  }
-
   return (vg: VideoGame) => predicates.every((p) => p(vg));
 };
 
-export const { useFilterReducer, reducer, initialState, activeCount } = createFilterReducer<
-  VideoGame,
-  Measure,
-  FilterState
->(
+export const {
+  store: pageState,
+  useFilterReducer,
+  reducer,
+  initialState,
+  activeCount,
+} = createFilterReducer<VideoGame, Measure, FilterState>(
   {
     endless: true,
     pokemon: true,
@@ -85,7 +85,6 @@ export const { useFilterReducer, reducer, initialState, activeCount } = createFi
     measure: "Games",
     yearType: "upto",
     yearTo: CURRENT_YEAR,
-    guestMode: false,
   },
   filters,
 );

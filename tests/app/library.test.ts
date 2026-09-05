@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { completeLibrary, visibleLibrary } from "../../src/app/library";
+import { book } from "../fixtures/books";
 import { library } from "../fixtures/library";
 import { movie } from "../fixtures/movies";
 import { show } from "../fixtures/shows";
@@ -13,6 +14,7 @@ describe("guest mode", () => {
     games: [videoGame(), adult],
     shows: [show(), anime],
     movies: [movie(), animeFilm],
+    books: [book()],
   });
 
   it("applies each domain's own rule to its own library", () => {
@@ -21,6 +23,8 @@ describe("guest mode", () => {
     expect(visible.games).not.toContain(adult);
     expect(visible.shows).not.toContain(anime);
     expect(visible.movies).not.toContain(animeFilm);
+    // Nothing on the Books sheet marks a book, so that rule keeps the whole library.
+    expect(visible.books).toEqual(full.books);
   });
 
   it("hands back the libraries untouched when it is off", () => {

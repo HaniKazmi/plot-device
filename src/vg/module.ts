@@ -1,7 +1,7 @@
 import type { MediumModule, OmniItem } from "../common/medium";
 import { gameEntry, gameKey, gameSpan } from "./cardData";
 import { vgDataConfig } from "./converter";
-import { guestFilter } from "./filterUtils";
+import { guestFilter, pageState } from "./filterUtils";
 import { vgFranchise } from "./franchiseContext";
 import type { Measure, VideoGame } from "./types";
 
@@ -46,5 +46,6 @@ export const vgModule: MediumModule<VideoGame> = {
   secondaryText: (game) => [game.developer, game.platform],
   facts: (game, hours) => [game.platform, game.status, hours ? `${hours} hours` : ""].filter(Boolean).join(" · "),
   measures: MEASURES,
+  pageState,
   load: () => import("./module.lazy"),
 };

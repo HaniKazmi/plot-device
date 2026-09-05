@@ -1,6 +1,7 @@
 import type { FunctionComponent, ReactNode } from "react";
 import type { CardMediaImageProps } from "./Card";
 import type { Year, YearMonthDay, YearNumber } from "./date";
+import type { PageStore } from "./filterReducer";
 import type { FranchiseEntry } from "./franchiseUnion";
 import type { DataConfig } from "./useData";
 import type { AgeRating, Medium } from "../utils/types";
@@ -154,5 +155,11 @@ export interface MediumModule<T, S = T> {
   /** The line a hit is told by, in this medium's own words, over hours already summed. */
   facts(item: S, hours: number): string;
   measures: readonly string[];
+  /**
+   * The tab's filter state, held outside its tree so that the surfaces standing above the page —
+   * the rail, the box that filters it — read and set the same value the charts do, and so that a
+   * filter can be set on a tab before it is mounted.
+   */
+  pageState: PageStore;
   load(): Promise<MediumLazy<S>>;
 }

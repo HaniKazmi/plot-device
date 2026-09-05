@@ -55,10 +55,6 @@ describe("toggles and categories", () => {
     expect(filters(state({ yearType: "matching", yearTo: year(1) }))(straddling)).toBe(false);
     expect(filters(state({ yearTo: year(3) }))(straddling)).toBe(false);
   });
-
-  it("adds nothing under guest mode, since nothing on the sheet marks a book to hide", () => {
-    expect(filters(state({ guestMode: true }))(book())).toBe(true);
-  });
 });
 
 describe("the measure", () => {

@@ -1,7 +1,7 @@
 import type { MediumModule, OmniItem } from "../common/medium";
 import { seasonEntry, seasonKey, seasonSpan } from "./cardData";
 import { showDataConfig } from "./converter";
-import { guestFilter } from "./filterUtils";
+import { guestFilter, pageState } from "./filterUtils";
 import { showFranchise } from "./franchiseContext";
 import type { Measure, Season, Show } from "./types";
 
@@ -68,5 +68,6 @@ export const showModule: MediumModule<Show, Season> = {
       .filter(Boolean)
       .join(" · "),
   measures: MEASURES,
+  pageState,
   load: () => import("./module.lazy"),
 };

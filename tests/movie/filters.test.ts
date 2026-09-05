@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CURRENT_YEAR, YearMonthDay, type YearNumber } from "../../src/common/date";
-import { filters, initialState, type FilterState } from "../../src/movie/filterUtils";
+import { filters, guestFilter, initialState, type FilterState } from "../../src/movie/filterUtils";
 import { movie } from "../fixtures/movies";
 
 const state = (overrides: Partial<FilterState> = {}): Omit<FilterState, "filter"> => ({
@@ -57,18 +57,16 @@ describe("categories", () => {
   });
 });
 
-describe("guest mode", () => {
-  it("hides anime, the same switch as the anime toggle but composed rather than shared", () => {
-    const keep = filters(state({ guestMode: true }));
-
-    expect(keep(movie({ anime: true }))).toBe(false);
-    expect(keep(movie({ anime: false }))).toBe(true);
+describe("what guest mode hides", () => {
+  // Applied to the library above the tab, so it is exercised as the predicate itself; the anime
+  // toggle below drops the same films, one rule serving both.
+  it("keeps everything but a film the sheet marks as anime", () => {
+    expect(guestFilter(movie({ anime: true }))).toBe(false);
+    expect(guestFilter(movie({ anime: false }))).toBe(true);
   });
 
-  it("cannot be re-enabled from the anime toggle, because it composes on top", () => {
-    const keep = filters(state({ guestMode: true, anime: true }));
-
-    expect(keep(movie({ anime: true }))).toBe(false);
+  it("cannot be undone by the anime toggle, which only ever widens what the page draws", () => {
+    expect(filters(state({ anime: true }))(movie({ anime: true }))).toBe(true);
   });
 });
 

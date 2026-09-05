@@ -45,7 +45,13 @@ export const filters = (state: Omit<FilterState, "filter">): Predicate<Book> => 
   return (book: Book) => predicates.every((p) => p(book));
 };
 
-export const { useFilterReducer, reducer, initialState, activeCount } = createFilterReducer<Book, Measure, FilterState>(
+export const {
+  store: pageState,
+  useFilterReducer,
+  reducer,
+  initialState,
+  activeCount,
+} = createFilterReducer<Book, Measure, FilterState>(
   {
     unscored: true,
     genre: [],
@@ -56,7 +62,6 @@ export const { useFilterReducer, reducer, initialState, activeCount } = createFi
     measure: "Books",
     yearType: "upto",
     yearTo: CURRENT_YEAR,
-    guestMode: false,
   },
   filters,
 );

@@ -23,9 +23,12 @@ export interface FilterState extends BaseFilterState<Show, Measure> {
 export type FilterDispatch = FilterDispatchFor<FilterState>;
 
 /**
- * Named rather than inlined into `filters` because guest mode has to be applied a second time,
- * to the franchise index built from the unfiltered data — an index that skipped it would put
- * hidden shows straight back on screen through a card strip.
+ * What guest mode hides on this tab: anime, which is also what the anime toggle drops — one rule
+ * for the two, so the mode and the toggle cannot hide by two different definitions.
+ *
+ * Exported because the mode is applied to the library itself, above every tab: narrowing this
+ * page's charts alone would leave a hidden show on screen through the franchise index and the
+ * union, which are built from the library.
  */
 export const guestFilter: Predicate<Show> = (show) => show.type !== "anime";
 
@@ -60,14 +63,16 @@ export const filters = (state: Omit<FilterState, "filter">): Predicate<Show> => 
 
   predicates.push(...showYearPredicates(state));
 
-  if (state.guestMode) {
-    predicates.push(guestFilter);
-  }
-
   return (show: Show) => predicates.every((p) => p(show));
 };
 
-export const { useFilterReducer, reducer, initialState, activeCount } = createFilterReducer<Show, Measure, FilterState>(
+export const {
+  store: pageState,
+  useFilterReducer,
+  reducer,
+  initialState,
+  activeCount,
+} = createFilterReducer<Show, Measure, FilterState>(
   {
     abandoned: true,
     anime: true,
@@ -78,7 +83,6 @@ export const { useFilterReducer, reducer, initialState, activeCount } = createFi
     measure: "Episodes",
     yearType: "upto",
     yearTo: CURRENT_YEAR,
-    guestMode: false,
   },
   filters,
 );

@@ -35,7 +35,7 @@ const GoogleAuth = () => {
         >
           {/* Above every tab, because a card on any of them draws the franchise across all four. */}
           <FranchiseUnionProvider>
-            <Outlet context={{ guestMode }} />
+            <Outlet />
             {/* Inside the provider, since the palette lists the union's own items; opened from the
                 app bar above through a store rather than a flag lifted over both. */}
             <SearchHost />

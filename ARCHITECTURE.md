@@ -87,7 +87,7 @@ source, across static, side-effect and dynamic imports alike.
 **`app/` is the medium registry** (`app/media.ts`): a `MediumModule` per medium, supplied by each
 domain's own `module.ts`, holding everything the app asks of a medium that the medium itself is the
 authority on — its data config, its guest rule, its arm of the union, the entry a franchise strip
-draws it as, its artwork and its title. A surface holding four media reads `MEDIA[item.medium]`
+draws it as, the store its tab's page state lives in, its artwork and its title. A surface holding four media reads `MEDIA[item.medium]`
 rather than switching on it, and `tests/architecture.test.ts` forbids a `switch` on a medium
 anywhere else: the compiler catches a missing arm only where somebody wrote the switch exhaustively,
 and a fifth medium is otherwise an edit in every file that ever needed to tell them apart.
@@ -732,7 +732,9 @@ otherwise tell — a switch under a wrapped label, three to a row, on desktop; a
 outlined chip in the sheet. `FilterCategory` is unchanged either way. The button carries a badge
 counting the fields the reader has changed (`activeCount`, from `createFilterReducer`): every chart
 is drawn through the drawer, so a library narrowed to one franchise otherwise looks exactly like the
-whole library.
+whole library. The measure and the year scope are not among those fields — each is a control of its
+own outside the drawer, stating on its own face that it is set, and a badge counting them would
+report a choice the surface it sits on cannot undo.
 
 `common/DrilldownDialog` and `ExpandableCard`'s own dialog (below) both take an `onClose`, so Escape
 and a backdrop press close them like any other dialog; the header button stays, since a fullscreen
@@ -1614,23 +1616,41 @@ Filter state carries a composed `filter` predicate as a _field_, rebuilt inside 
 an input changes. Components call `data.filter(state.filter)` without knowing which criteria are
 active, and adding a criterion means adding one predicate to the `filters()` builder.
 
-`createFilterReducer(initialValues, filters)` in `common/filterReducer.ts` returns a domain's
-`useFilterReducer` and owns what is the same everywhere: the action union, the `useOutletContext`
-guest-mode wiring, rebuilding `filter` after each change, and three shared pieces —
-`yearPredicates` (an "up to" ceiling that disappears once it reaches the current year, or an exact
-match), `selectedPredicates` (a multi-select where an empty selection is no constraint, returned as a
-list so an inactive control contributes nothing rather than an always-true predicate), and
-`activeCount`, bound to the initial values the reducer already holds. Each domain supplies only its
-own initial values and how to turn that state into a predicate.
+`createFilterReducer(initialValues, filters)` in `common/filterReducer.ts` returns a domain's store
+and its `useFilterReducer`, and owns what is the same everywhere: the action union, rebuilding
+`filter` after each change, and three shared pieces — `yearPredicates` (an "up to" ceiling that
+disappears once it reaches the current year, or an exact match), `selectedPredicates` (a
+multi-select where an empty selection is no constraint, returned as a list so an inactive control
+contributes nothing rather than an always-true predicate), and `activeCount`, bound to the initial
+values the reducer already holds. Each domain supplies only its own initial values and how to turn
+that state into a predicate.
+
+**A tab's state lives in a store, not in the tab.** The surfaces that read it are not all inside the
+page — the rail stands beside the charts rather than within them — and a filter can be set on a tab
+before that tab has ever been mounted, so a state lifted to their nearest common ancestor would be
+lifted to the shell and re-render every chart in the app on a change reaching two components. Each
+`filterUtils.ts` therefore holds one `common/store.ts` `createStore` at module scope, which that
+helper is written to allow: it reads no browser global while it loads, so
+`tests/architecture.test.ts`'s module-scope rule is satisfied by construction. `src/app/pageState.ts`
+keys the five by **tab id** — the composing tab is a page with filters, a measure and a scope like
+any other and is no `Medium` at all — and `usePageState(tabId)` is what a surface above the tabs
+reads one through, `PageStore` erasing the domain's own fields so a record can hold all five.
+`useFilterReducer` is the same store seen from inside the tab. Two things follow: filters, the
+measure and the scope survive a tab switch for the session, where a reducer unmounting with its page
+would drop them; and a surface narrowing a tab it is not on dispatches on that tab's store and then
+navigates, rather than parking a pending filter somewhere for the page to find.
 
 The measure action _sets_ rather than advances, the control being a segment per measure: a press
 names its own state, so setting the measure already held answers the same object and costs no render.
 It is also the one action that does not rebuild `filter`, since no `filters()` reads the measure and
-consumers re-filter on that predicate's identity.
+consumers re-filter on that predicate's identity. `yearType` names the reading it wants for the same
+reason, a control with a state per reading having a lit segment to press twice.
 
 `countActiveFilters` counts fields, not predicates — three genres picked in one select are one choice,
-undone in one place — comparing arrays element-wise and leaving `measure`, `filter` and `guestMode`
-uncounted, guest mode surviving Clear.
+undone in one place — comparing arrays element-wise and leaving `measure`, `filter`, `yearTo` and
+`yearType` uncounted. `resetFilters` restores those same filter fields alone: the measure is the unit
+every figure on the tab is counted in and the scope is a control beside it, so Clear leaves a reader
+counting hours in one year exactly where they were.
 
 `vg/filterUtils.ts` shows the full pattern: toggles, multi-selects derived from the data through
 `common/filterOptions`, a year cutoff, a Games/Hours measure. `common/FilterDrawer` is one shell
@@ -1644,12 +1664,14 @@ keeping the filter and the seasons-in-year vitals card in agreement.
 ### Guest mode
 
 Long-pressing the wordmark (`utils/useLongPress.ts`, 300 ms, over the pure `longPressReducer`) sets
-`guestMode`, which flows through the router's outlet context into each domain's reducer and appends a
-predicate: a game whose `theme` includes `"Adult"`, a show whose `type` is anime, a film carrying the
-sheet's `anime` flag; nothing marks a book. Each domain exports its `guestFilter` by name, since the
-mode is applied a second time to the franchise index and to the union through `visibleLibrary` — an
-index that skipped it would put hidden items back on screen through a card strip. It is presentation,
-not a security boundary: the data is loaded already.
+`guestMode`, which `Google.tsx` hands to `app/LibraryProvider`. `visibleLibrary` (`app/library.ts`)
+applies each medium's own `guestFilter`, exported from its `filterUtils.ts` and named by its
+`module.ts` — a game whose `theme` includes `"Adult"`, a show whose `type` is anime, a film carrying
+the sheet's `anime` flag; nothing marks a book, so that rule keeps the whole library — and every tab,
+index and union reads the slice that comes back. It is applied to the data once rather than to each
+page's filters because the franchise index, the union and the search index are all built from the
+library: a mode narrowing one page's charts would put a hidden item straight back on screen through
+a card strip. It is presentation, not a security boundary: the data is loaded already.
 
 The gesture is the pointer's alone — the hook answers with mouse handlers and nothing else, a long
 press on touch colliding with the browser's own press-and-hold — so the app bar's overflow menu
@@ -1691,7 +1713,8 @@ free.
 A fifth medium extends the `Medium` union in `utils/types.ts` with its fill, label, name and unit,
 and is then **a `module.ts`, a `module.lazy.ts` and one line in `app/media.ts`** (§2). The eager
 half answers what the medium is — its `DataConfig`, its guest rule, its arm of the union, its
-`FranchiseEntry` mapper and span, its artwork and its title; the lazy half answers what draws it.
+`FranchiseEntry` mapper and span, its page state, its artwork and its title; the lazy half answers
+what draws it.
 Nothing else changes: `toOmniItems`, `visibleLibrary`, the crossings, the gallery, the search index
 and the card dispatcher all read the registry, so a medium that answers everything on
 `MediumModule` is on every surface the day it is added, and one that answers nothing does not

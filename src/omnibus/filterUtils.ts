@@ -47,11 +47,13 @@ export const filters = (state: Omit<FilterState, "filter">): Predicate<OmniItem>
   return (item: OmniItem) => predicates.every((p) => p(item));
 };
 
-export const { useFilterReducer, reducer, initialState, activeCount } = createFilterReducer<
-  OmniItem,
-  Measure,
-  FilterState
->(
+export const {
+  store: pageState,
+  useFilterReducer,
+  reducer,
+  initialState,
+  activeCount,
+} = createFilterReducer<OmniItem, Measure, FilterState>(
   {
     game: true,
     show: true,
@@ -64,7 +66,6 @@ export const { useFilterReducer, reducer, initialState, activeCount } = createFi
     measure: "Hours",
     yearType: "upto",
     yearTo: CURRENT_YEAR,
-    guestMode: false,
   },
   filters,
 );

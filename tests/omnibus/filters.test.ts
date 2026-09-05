@@ -64,17 +64,6 @@ describe("categories", () => {
   });
 });
 
-describe("guest mode", () => {
-  it("pushes no predicate here, because it is applied to each library before the union", () => {
-    // A union-level predicate would hide an item from the charts while the Now band, which elects
-    // from the domain records, went on headlining it.
-    const keep = filters(state({ guestMode: true }));
-
-    expect(keep(game)).toBe(true);
-    expect(keep(film)).toBe(true);
-  });
-});
-
 describe("the year cutoff", () => {
   it("matches the attribution year exactly under 'matching'", () => {
     const keep = filters(state({ yearType: "matching", yearTo: 2022 as YearNumber }));

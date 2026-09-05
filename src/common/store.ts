@@ -1,11 +1,10 @@
 import { useSyncExternalStore } from "react";
 
 /**
- * A value held outside React — `searchOpen.ts` and `filterSheet.ts` are two hand-rolled instances
- * of this same shape, one flag apiece with its own listener set, because each sits between two
- * parts of the tree with no common ancestor short of lifting a re-render onto everything between
- * them. A5 wants five more, one per tab's page state, so the shape is worth a single generic
- * version rather than a sixth (and seventh, and eighth) copy of the bookkeeping.
+ * A value held outside React, for state two parts of the tree share with no common ancestor short
+ * of the shell: the search box's open flag, the filter sheet's, and a page's filter state, which
+ * the rail above a tab and the charts inside it both read. Lifted to that common ancestor, every
+ * one of them would re-render the whole app on a change that reaches two components.
  *
  * `createStore` reads no browser global at construction — the value and the listener set are
  * plain closed-over variables, nothing reaching for `localStorage` or the like while the module
