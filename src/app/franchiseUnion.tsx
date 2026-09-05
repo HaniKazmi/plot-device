@@ -4,7 +4,6 @@ import { CURRENT_PLAINDATE } from "../common/date";
 import { FranchiseUnionContext } from "../common/franchiseUnion";
 import type { OmniItem } from "../common/medium";
 import { buildFranchiseUnion } from "./franchiseUnionData";
-import { OmniItemsContext } from "./omniItems";
 
 /**
  * The hover card, loaded with the chunk that draws it rather than with the shell.
@@ -45,9 +44,5 @@ export const FranchiseUnionProvider = ({ children }: { children: ReactNode }) =>
   const { items } = useLibrary();
   const union = items ? buildFranchiseUnion(items, CURRENT_PLAINDATE, hoverCard) : undefined;
 
-  return (
-    <OmniItemsContext.Provider value={items}>
-      <FranchiseUnionContext.Provider value={union}>{children}</FranchiseUnionContext.Provider>
-    </OmniItemsContext.Provider>
-  );
+  return <FranchiseUnionContext.Provider value={union}>{children}</FranchiseUnionContext.Provider>;
 };

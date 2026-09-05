@@ -75,11 +75,11 @@ const SuspenseBlock = ({
   filterState: FilterState;
   filterDispatch: FilterDispatch;
 }) => (
-  <VgFranchiseContext.Provider value={franchiseIndex(library.games, vgFranchise)}>
-    <ShowFranchiseContext.Provider value={franchiseIndex(library.shows, showFranchise)}>
-      <MovieFranchiseContext.Provider value={franchiseIndex(library.movies, movieFranchise)}>
-        <BookFranchiseContext.Provider value={franchiseIndex(library.books, bookFranchise)}>
-          <BookEpochProvider value={bookEpoch(library.books)}>
+  <VgFranchiseContext.Provider value={franchiseIndex(library.game, vgFranchise)}>
+    <ShowFranchiseContext.Provider value={franchiseIndex(library.show, showFranchise)}>
+      <MovieFranchiseContext.Provider value={franchiseIndex(library.movie, movieFranchise)}>
+        <BookFranchiseContext.Provider value={franchiseIndex(library.book, bookFranchise)}>
+          <BookEpochProvider value={bookEpoch(library.book)}>
             <Graphs
               library={library}
               data={filteredData}

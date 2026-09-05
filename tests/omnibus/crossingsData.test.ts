@@ -24,8 +24,8 @@ describe("which franchises get a strip", () => {
     const result = found(
       toOmniItems(
         library({
-          games: [videoGame({ name: "Breath of the Wild", franchise: "Zelda" })],
-          movies: [movie({ name: "Zelda: The Movie", franchise: "Zelda" })],
+          game: [videoGame({ name: "Breath of the Wild", franchise: "Zelda" })],
+          movie: [movie({ name: "Zelda: The Movie", franchise: "Zelda" })],
         }),
       ),
     );
@@ -41,7 +41,7 @@ describe("which franchises get a strip", () => {
     const result = found(
       toOmniItems(
         library({
-          games: [
+          game: [
             videoGame({ name: "Breath of the Wild", franchise: "Zelda" }),
             videoGame({ name: "Tears of the Kingdom", franchise: "Zelda" }),
           ],
@@ -61,8 +61,8 @@ describe("which franchises get a strip", () => {
     const result = found(
       toOmniItems(
         library({
-          games: [videoGame({ name: "Alien: Isolation", franchise: "Alien" })],
-          movies: [movie({ name: "Alien", franchise: "Alien" }), movie({ name: "Aliens", franchise: "Alien" })],
+          game: [videoGame({ name: "Alien: Isolation", franchise: "Alien" })],
+          movie: [movie({ name: "Alien", franchise: "Alien" }), movie({ name: "Aliens", franchise: "Alien" })],
         }),
       ),
     );
@@ -78,8 +78,8 @@ describe("which franchises get a strip", () => {
     const result = found(
       toOmniItems(
         library({
-          games: [videoGame({ name: "Arrival", franchise: "Arrival" })],
-          movies: [movie({ name: "Arrival", franchise: "Arrival" })],
+          game: [videoGame({ name: "Arrival", franchise: "Arrival" })],
+          movie: [movie({ name: "Arrival", franchise: "Arrival" })],
         }),
       ),
     );
@@ -91,8 +91,8 @@ describe("which franchises get a strip", () => {
     const result = found(
       toOmniItems(
         library({
-          games: [videoGame({ franchise: "" })],
-          movies: [movie({ franchise: "" })],
+          game: [videoGame({ franchise: "" })],
+          movie: [movie({ franchise: "" })],
         }),
       ),
     );
@@ -104,12 +104,12 @@ describe("which franchises get a strip", () => {
     const result = found(
       toOmniItems(
         library({
-          games: [
+          game: [
             videoGame({ name: "Breath of the Wild", franchise: "Zelda" }),
             videoGame({ name: "Casino Royale Game", franchise: "Bond" }),
           ],
-          shows: [showWith("Zelda: The Show", "Zelda", 2016)],
-          movies: [
+          show: [showWith("Zelda: The Show", "Zelda", 2016)],
+          movie: [
             movie({ name: "Zelda: The Movie", franchise: "Zelda" }),
             movie({ name: "Skyfall", franchise: "Bond" }),
           ],
@@ -127,9 +127,9 @@ describe("how a crossing is laid out", () => {
     const result = found(
       toOmniItems(
         library({
-          games: [videoGame({ name: "Breath of the Wild", franchise: "Zelda" })],
-          shows: [showWith("Zelda: The Show", "Zelda", 2016)],
-          movies: [movie({ name: "Zelda: The Movie", franchise: "Zelda" })],
+          game: [videoGame({ name: "Breath of the Wild", franchise: "Zelda" })],
+          show: [showWith("Zelda: The Show", "Zelda", 2016)],
+          movie: [movie({ name: "Zelda: The Movie", franchise: "Zelda" })],
         }),
       ),
     );
@@ -148,7 +148,7 @@ describe("how a crossing is laid out", () => {
     const result = found(
       toOmniItems(
         library({
-          games: [
+          game: [
             videoGame({
               name: "Breath of the Wild",
               franchise: "Zelda",
@@ -162,7 +162,7 @@ describe("how a crossing is laid out", () => {
               endDate: YearMonthDay.get(2020, 3, 3),
             }),
           ],
-          movies: [movie({ name: "Zelda: The Movie", franchise: "Zelda" })],
+          movie: [movie({ name: "Zelda: The Movie", franchise: "Zelda" })],
         }),
       ),
     );
@@ -175,8 +175,8 @@ describe("how a crossing is laid out", () => {
     const result = found(
       toOmniItems(
         library({
-          games: [videoGame({ name: "Breath of the Wild", franchise: "Zelda" })],
-          movies: [movie({ name: "Zelda: The Movie", franchise: "Zelda" })],
+          game: [videoGame({ name: "Breath of the Wild", franchise: "Zelda" })],
+          movie: [movie({ name: "Zelda: The Movie", franchise: "Zelda" })],
         }),
       ),
     );
@@ -191,7 +191,7 @@ describe("how a crossing is laid out", () => {
     const result = found(
       toOmniItems(
         library({
-          games: [
+          game: [
             videoGame({
               name: "Breath of the Wild",
               franchise: "Zelda",
@@ -199,7 +199,7 @@ describe("how a crossing is laid out", () => {
               endDate: Year.get(2017),
             }),
           ],
-          movies: [movie({ name: "Zelda: The Movie", franchise: "Zelda" })],
+          movie: [movie({ name: "Zelda: The Movie", franchise: "Zelda" })],
         }),
       ),
     );
@@ -214,8 +214,8 @@ describe("how a crossing is laid out", () => {
     const result = found(
       toOmniItems(
         library({
-          games: [videoGame({ name: "Breath of the Wild", franchise: "Zelda", endDate: undefined })],
-          movies: [movie({ name: "Zelda: The Movie", franchise: "Zelda" })],
+          game: [videoGame({ name: "Breath of the Wild", franchise: "Zelda", endDate: undefined })],
+          movie: [movie({ name: "Zelda: The Movie", franchise: "Zelda" })],
         }),
       ),
     );
@@ -230,7 +230,7 @@ describe("how a crossing is laid out", () => {
     const result = crossings(
       toOmniItems(
         library({
-          games: [
+          game: [
             videoGame({
               name: "GoldenEye",
               franchise: "Bond",
@@ -238,7 +238,7 @@ describe("how a crossing is laid out", () => {
               endDate: YearMonthDay.get(2001, 6, 1),
             }),
           ],
-          movies: [movie({ name: "Skyfall", franchise: "Bond", startDate: YearMonthDay.get(2003, 6, 1) })],
+          movie: [movie({ name: "Skyfall", franchise: "Bond", startDate: YearMonthDay.get(2003, 6, 1) })],
         }),
       ),
       TODAY,
@@ -257,7 +257,7 @@ describe("how a crossing is laid out", () => {
     const result = found(
       toOmniItems(
         library({
-          games: [
+          game: [
             videoGame({
               name: "Breath of the Wild",
               franchise: "Zelda",
@@ -271,7 +271,7 @@ describe("how a crossing is laid out", () => {
               endDate: YearMonthDay.get(2010, 1, 1),
             }),
           ],
-          movies: [
+          movie: [
             movie({ name: "Zelda: The Movie", franchise: "Zelda", startDate: YearMonthDay.get(2012, 6, 1) }),
             movie({ name: "Skyfall", franchise: "Bond", startDate: YearMonthDay.get(2012, 6, 1) }),
           ],
@@ -289,14 +289,14 @@ describe("a book on a strip", () => {
     const [crossing] = found(
       toOmniItems(
         library({
-          movies: [
+          movie: [
             movie({
               name: "Ready Player One",
               franchise: "Ready Player One",
               startDate: YearMonthDay.get(2018, 4, 28),
             }),
           ],
-          books: [
+          book: [
             book({
               name: "Ready Player Two",
               franchise: "Ready Player One",

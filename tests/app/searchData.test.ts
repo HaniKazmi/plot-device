@@ -35,10 +35,10 @@ const showWithSeasons = (count: number, overrides = {}) => {
 const trek = () =>
   toOmniItems(
     library({
-      games: [videoGame({ name: "Star Trek: Resurgence", franchise: "Star Trek", hours: 11 })],
-      shows: [showWithSeasons(3, { name: "Star Trek: Strange New Worlds", franchise: "Star Trek" })],
-      movies: [movie({ name: "Star Trek Beyond", franchise: "Star Trek" })],
-      books: [book()],
+      game: [videoGame({ name: "Star Trek: Resurgence", franchise: "Star Trek", hours: 11 })],
+      show: [showWithSeasons(3, { name: "Star Trek: Strange New Worlds", franchise: "Star Trek" })],
+      movie: [movie({ name: "Star Trek Beyond", franchise: "Star Trek" })],
+      book: [book()],
     }),
   );
 
@@ -64,7 +64,7 @@ describe("buildSearchIndex", () => {
   });
 
   it("drops a franchise whose every entry repeats the name, which is a work naming itself", () => {
-    const items = toOmniItems(library({ movies: [movie({ name: "Arrival", franchise: "Arrival" })] }));
+    const items = toOmniItems(library({ movie: [movie({ name: "Arrival", franchise: "Arrival" })] }));
 
     expect(buildSearchIndex(items).franchises).toEqual([]);
   });
@@ -120,10 +120,7 @@ describe("franchiseWorks and franchiseFacts", () => {
   it("captions a work with any entry still open as in progress", () => {
     const items = toOmniItems(
       library({
-        games: [
-          videoGame({ franchise: "Zelda", endDate: undefined }),
-          videoGame({ franchise: "Zelda", name: "Tears" }),
-        ],
+        game: [videoGame({ franchise: "Zelda", endDate: undefined }), videoGame({ franchise: "Zelda", name: "Tears" })],
       }),
     );
     const [open] = franchiseWorks(items, "Zelda", TODAY).filter((work) => work.name === "Breath of the Wild");
@@ -144,8 +141,8 @@ describe("franchiseWorks and franchiseFacts", () => {
   it("takes the last close at the end of the range it denotes, so a bare year outlasts a day inside it", () => {
     const items = toOmniItems(
       library({
-        games: [videoGame({ franchise: "Trek", startDate: Year.get(2010), endDate: Year.get(2010) })],
-        movies: [movie({ franchise: "Trek", startDate: YearMonthDay.get(2010, 1, 5) })],
+        game: [videoGame({ franchise: "Trek", startDate: Year.get(2010), endDate: Year.get(2010) })],
+        movie: [movie({ franchise: "Trek", startDate: YearMonthDay.get(2010, 1, 5) })],
       }),
     );
 
@@ -155,10 +152,7 @@ describe("franchiseWorks and franchiseFacts", () => {
   it("leaves the last date open while any row of the franchise is", () => {
     const items = toOmniItems(
       library({
-        games: [
-          videoGame({ franchise: "Zelda", endDate: undefined }),
-          videoGame({ franchise: "Zelda", name: "Tears" }),
-        ],
+        game: [videoGame({ franchise: "Zelda", endDate: undefined }), videoGame({ franchise: "Zelda", name: "Tears" })],
       }),
     );
 

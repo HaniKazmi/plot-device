@@ -52,10 +52,10 @@ describe("the union, built arm by arm", () => {
   parent.s = [season(parent, { s: 1 })];
 
   const whole = library({
-    games: [videoGame()],
-    shows: [parent],
-    movies: [movie()],
-    books: [book()],
+    game: [videoGame()],
+    show: [parent],
+    movie: [movie()],
+    book: [book()],
   });
 
   it("holds each medium's rows in the order the registry lists the media", () => {
@@ -64,16 +64,16 @@ describe("the union, built arm by arm", () => {
 
   it("is each module's own arm over its own rows, and nothing else", () => {
     const arms: Record<Medium, unknown[]> = {
-      game: whole.games,
-      show: whole.shows,
-      movie: whole.movies,
-      book: whole.books,
+      game: whole.game,
+      show: whole.show,
+      movie: whole.movie,
+      book: whole.book,
     };
 
     expect(toOmniItems(whole)).toEqual(mediaModules.flatMap((module) => module.toOmniItems(arms[module.medium])));
   });
 
   it("leaves a medium with no rows out of the list rather than in it as a blank", () => {
-    expect(toOmniItems(library({ movies: [movie()] })).map((item) => item.medium)).toEqual(["movie"]);
+    expect(toOmniItems(library({ movie: [movie()] })).map((item) => item.medium)).toEqual(["movie"]);
   });
 });

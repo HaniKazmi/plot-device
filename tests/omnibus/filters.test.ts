@@ -15,10 +15,10 @@ const state = (overrides: Partial<FilterState> = {}): Omit<FilterState, "filter"
 });
 
 /** One item per medium, built through the adapter so the tests filter what the page filters. */
-const [game, film] = toOmniItems({ games: [videoGame()], shows: [], movies: [movie()], books: [] });
+const [game, film] = toOmniItems({ game: [videoGame()], show: [], movie: [movie()], book: [] });
 
 const inYear = (year: number, overrides: Partial<OmniItem> = {}): OmniItem => ({
-  ...toOmniItems({ games: [], shows: [], movies: [movie({ startDate: YearMonthDay.get(year, 6, 1) })], books: [] })[0],
+  ...toOmniItems({ game: [], show: [], movie: [movie({ startDate: YearMonthDay.get(year, 6, 1) })], book: [] })[0],
   ...overrides,
 });
 
@@ -98,10 +98,10 @@ describe("the year cutoff", () => {
     // What the accessor handed to the shared `yearPredicates` buys: a game played across a new
     // year answers the filter with the year its hours landed in, not the year it was started.
     const [crossing] = toOmniItems({
-      games: [videoGame({ startDate: YearMonthDay.get(2019, 12, 20), endDate: YearMonthDay.get(2020, 1, 8) })],
-      shows: [],
-      movies: [],
-      books: [],
+      game: [videoGame({ startDate: YearMonthDay.get(2019, 12, 20), endDate: YearMonthDay.get(2020, 1, 8) })],
+      show: [],
+      movie: [],
+      book: [],
     });
     const keep = filters(state({ yearType: "matching", yearTo: 2020 as YearNumber }));
 
@@ -111,7 +111,7 @@ describe("the year cutoff", () => {
 
 describe("the books switch", () => {
   it("removes books from the page the way the other three switches remove their media", () => {
-    const [read] = toOmniItems({ games: [], shows: [], movies: [], books: [book()] });
+    const [read] = toOmniItems({ game: [], show: [], movie: [], book: [book()] });
 
     expect(filters(state({ book: false }))(read)).toBe(false);
     expect(filters(state({ book: false }))(film)).toBe(true);

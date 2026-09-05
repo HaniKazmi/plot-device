@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { completeLibrary, useLibrary } from "../app/library";
+import { useLibrary } from "../app/library";
 import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
 import { useFilterReducer } from "./filterUtils";
 
@@ -49,11 +49,11 @@ const usePrefetchGraphs = () =>
  */
 const Omnibus = () => {
   usePrefetchGraphs();
-  const { visible, items: data, loaded, error } = useLibrary();
+  // The library and the union it was flattened from, both answered above: one is defined exactly
+  // when the other is, so the page has a single test for whether all four sheets are here.
+  const { whole: library, items: data, loaded, error } = useLibrary();
 
   const [filterState, filterDispatch] = useFilterReducer();
-
-  const library = completeLibrary(visible);
 
   // The first sheet to complain, not all of them: each message names a row in a different
   // spreadsheet, and four at once would say the page is broken four times over where the

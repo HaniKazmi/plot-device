@@ -11,20 +11,20 @@ describe("guest mode", () => {
   const anime = show({ type: "anime" });
   const animeFilm = movie({ anime: true });
   const full = library({
-    games: [videoGame(), adult],
-    shows: [show(), anime],
-    movies: [movie(), animeFilm],
-    books: [book()],
+    game: [videoGame(), adult],
+    show: [show(), anime],
+    movie: [movie(), animeFilm],
+    book: [book()],
   });
 
   it("applies each domain's own rule to its own library", () => {
     const visible = visibleLibrary(full, true);
 
-    expect(visible.games).not.toContain(adult);
-    expect(visible.shows).not.toContain(anime);
-    expect(visible.movies).not.toContain(animeFilm);
+    expect(visible.game).not.toContain(adult);
+    expect(visible.show).not.toContain(anime);
+    expect(visible.movie).not.toContain(animeFilm);
     // Nothing on the Books sheet marks a book, so that rule keeps the whole library.
-    expect(visible.books).toEqual(full.books);
+    expect(visible.book).toEqual(full.book);
   });
 
   it("hands back the libraries untouched when it is off", () => {
@@ -35,16 +35,16 @@ describe("guest mode", () => {
   it("leaves a library that has not arrived absent rather than empty", () => {
     // The sheets land one at a time, and an empty array is a library with nothing in it — which
     // every reader of the union treats as an answer.
-    const visible = visibleLibrary({ games: [adult, videoGame()] }, true);
+    const visible = visibleLibrary({ game: [adult, videoGame()] }, true);
 
-    expect(visible.games).toHaveLength(1);
-    expect(visible.shows).toBeUndefined();
+    expect(visible.game).toHaveLength(1);
+    expect(visible.show).toBeUndefined();
   });
 });
 
 describe("the whole library", () => {
   it("is nothing until every medium has arrived", () => {
-    expect(completeLibrary({ games: [], shows: [], movies: [] })).toBeUndefined();
+    expect(completeLibrary({ game: [], show: [], movie: [] })).toBeUndefined();
   });
 
   it("answers with all four once they have, empty ones included", () => {

@@ -48,7 +48,7 @@ describe("year attribution", () => {
     // hours landed, and it is the year every chart on the page places it in.
     const [item] = toOmniItems(
       library({
-        games: [videoGame({ startDate: YearMonthDay.get(2019, 12, 20), endDate: YearMonthDay.get(2020, 1, 8) })],
+        game: [videoGame({ startDate: YearMonthDay.get(2019, 12, 20), endDate: YearMonthDay.get(2020, 1, 8) })],
       }),
     );
 
@@ -58,7 +58,7 @@ describe("year attribution", () => {
 
   it("falls back to the start year for a game still being played, and leaves it unclosed", () => {
     const [item] = toOmniItems(
-      library({ games: [videoGame({ startDate: YearMonthDay.get(2024, 5, 1), endDate: undefined })] }),
+      library({ game: [videoGame({ startDate: YearMonthDay.get(2024, 5, 1), endDate: undefined })] }),
     );
 
     expect(item.year).toBe(2024);
@@ -66,13 +66,13 @@ describe("year attribution", () => {
   });
 
   it("reads a year-only game date, which half the games sheet carries", () => {
-    const [item] = toOmniItems(library({ games: [videoGame({ startDate: Year.get(2007), endDate: undefined })] }));
+    const [item] = toOmniItems(library({ game: [videoGame({ startDate: Year.get(2007), endDate: undefined })] }));
 
     expect(item.year).toBe(2007);
   });
 
   it("counts a season the same way — the year it ended, or the year it started while it runs", () => {
-    const items = toOmniItems(library({ shows: [showWith([{ start: 2021, end: 2022 }, { start: 2024 }])] }));
+    const items = toOmniItems(library({ show: [showWith([{ start: 2021, end: 2022 }, { start: 2024 }])] }));
 
     expect(items.map((item) => item.year)).toEqual([2022, 2024]);
     expect(items[1].closeDate).toBeUndefined();
@@ -81,7 +81,7 @@ describe("year attribution", () => {
   it("counts a film to the year it was watched, whatever year it was released", () => {
     const [item] = toOmniItems(
       library({
-        movies: [movie({ releaseDate: YearMonthDay.get(1999, 3, 31), startDate: YearMonthDay.get(2018, 7, 4) })],
+        movie: [movie({ releaseDate: YearMonthDay.get(1999, 3, 31), startDate: YearMonthDay.get(2018, 7, 4) })],
       }),
     );
 
@@ -93,7 +93,7 @@ describe("year attribution", () => {
 
 describe("hours normalisation", () => {
   it("takes a game's logged hours as they are, and zero where none are logged", () => {
-    const items = toOmniItems(library({ games: [videoGame({ hours: 50 }), videoGame({ hours: undefined })] }));
+    const items = toOmniItems(library({ game: [videoGame({ hours: 50 }), videoGame({ hours: undefined })] }));
 
     expect(items.map((item) => item.hours)).toEqual([50, 0]);
     expect(omniHours(items)).toBe(50);
@@ -102,7 +102,7 @@ describe("hours normalisation", () => {
   it("floors the total once rather than each item, so short items are not rounded away", () => {
     // Three 40-minute items are two hours. Flooring per item makes them zero, which is the shape
     // of a bug that silently removes most of a library rather than one that looks wrong.
-    const items = toOmniItems(library({ movies: [40, 40, 40].map((minutes) => movie({ minutes })) }));
+    const items = toOmniItems(library({ movie: [40, 40, 40].map((minutes) => movie({ minutes })) }));
 
     expect(omniHours(items)).toBe(2);
   });
@@ -117,14 +117,14 @@ describe("hours normalisation", () => {
         { start: 2022, minutes: 350 },
       ]),
     ];
-    const items = toOmniItems(library({ movies, shows }));
+    const items = toOmniItems(library({ movie: movies, show: shows }));
 
     expect(omniHours(ofMedium(items, "movie"))).toBe(movieMeasureOf(movies, "Hours"));
     expect(omniHours(ofMedium(items, "show"))).toBe(showMeasureOf(shows, "Hours"));
   });
 
   it("counts an item as one under the Items measure, whatever it cost in hours", () => {
-    const items = toOmniItems(library({ games: [videoGame({ hours: 120 })], movies: [movie({ minutes: 96 })] }));
+    const items = toOmniItems(library({ game: [videoGame({ hours: 120 })], movie: [movie({ minutes: 96 })] }));
 
     expect(measureOf(items, "Items")).toBe(2);
   });
@@ -139,7 +139,7 @@ describe("flattening", () => {
       franchise: "Severance",
       rating: "15",
     });
-    const items = toOmniItems(library({ shows: [parent] }));
+    const items = toOmniItems(library({ show: [parent] }));
 
     expect(items).toHaveLength(2);
     // The show's name, not the season's: which season it is stays on the source record, where a
@@ -153,7 +153,7 @@ describe("flattening", () => {
   });
 
   it("gives a game no secondary genres, because the sheet records themes rather than genres", () => {
-    const [item] = toOmniItems(library({ games: [videoGame({ theme: ["Fantasy"] })] }));
+    const [item] = toOmniItems(library({ game: [videoGame({ theme: ["Fantasy"] })] }));
 
     expect(item.genres).toEqual([]);
   });
@@ -161,7 +161,7 @@ describe("flattening", () => {
   it("keeps the record each item came from, which is what lets a domain render its own card", () => {
     const game = videoGame();
     const film = movie();
-    const items = toOmniItems(library({ games: [game], movies: [film] }));
+    const items = toOmniItems(library({ game: [game], movie: [film] }));
 
     expect(items.map((item) => item.source)).toEqual([game, film]);
     expect(items.map((item) => item.medium)).toEqual(["game", "movie"]);
@@ -174,7 +174,7 @@ describe("union totals", () => {
     // different decades is the difference between "years of this" and "years since the first row".
     const items = toOmniItems(
       library({
-        movies: [
+        movie: [
           movie({ startDate: YearMonthDay.get(2001, 1, 1) }),
           movie({ startDate: YearMonthDay.get(2001, 6, 1) }),
           movie({ startDate: YearMonthDay.get(2020, 1, 1) }),
@@ -193,8 +193,8 @@ describe("union totals", () => {
   it("opens the year select at the first year the union holds anything in", () => {
     const items = toOmniItems(
       library({
-        movies: [movie({ startDate: YearMonthDay.get(2011, 1, 1) })],
-        games: [videoGame({ startDate: Year.get(2004), endDate: undefined })],
+        movie: [movie({ startDate: YearMonthDay.get(2011, 1, 1) })],
+        game: [videoGame({ startDate: Year.get(2004), endDate: undefined })],
       }),
     );
 
@@ -205,19 +205,19 @@ describe("union totals", () => {
 describe("what a browse surface reads off an item", () => {
   it("draws a season as its show, which is where the sheets keep the artwork", () => {
     const parent = showWith([{ start: 2021, end: 2022 }]);
-    const [item] = toOmniItems(library({ shows: [parent] }));
+    const [item] = toOmniItems(library({ show: [parent] }));
 
     expect(omniBanner(item)).toBe(parent.banner);
   });
 
   it("has no artwork for a game the sheet never gave one, which is what keeps it off a wall", () => {
-    const [item] = toOmniItems(library({ games: [videoGame({ banner: undefined })] }));
+    const [item] = toOmniItems(library({ game: [videoGame({ banner: undefined })] }));
 
     expect(omniBanner(item)).toBeUndefined();
   });
 
   it("names a season by its number, so a strip of one show's seasons is not six identical labels", () => {
-    const items = toOmniItems(library({ shows: [showWith([{ start: 2021, end: 2022 }, { start: 2023 }])] }));
+    const items = toOmniItems(library({ show: [showWith([{ start: 2021, end: 2022 }, { start: 2023 }])] }));
 
     expect(items.map(omniTitle)).toEqual(["Severance S1", "Severance S2"]);
   });
@@ -225,7 +225,7 @@ describe("what a browse surface reads off an item", () => {
   it("gives every item of one show a key of its own", () => {
     // Every season carries its show's name, so a key built from the name alone repeats — and React
     // renders one card of the pair in place of the other, or drops it.
-    const items = toOmniItems(library({ shows: [showWith([{ start: 2021, end: 2022 }, { start: 2023 }])] }));
+    const items = toOmniItems(library({ show: [showWith([{ start: 2021, end: 2022 }, { start: 2023 }])] }));
 
     expect(new Set(items.map((item) => item.key)).size).toBe(items.length);
   });
@@ -236,7 +236,7 @@ describe("what a browse surface reads off an item", () => {
     // platform is what tells the two apart, and the Games tab already keys a span by it.
     const items = toOmniItems(
       library({
-        games: [
+        game: [
           videoGame({ name: "Portal", platform: "PC", startDate: Year.get(2010), endDate: Year.get(2010) }),
           videoGame({
             name: "Portal",
@@ -254,7 +254,7 @@ describe("what a browse surface reads off an item", () => {
   it("gives two watches of one film keys of their own", () => {
     const items = toOmniItems(
       library({
-        movies: [
+        movie: [
           movie({ name: "Arrival", startDate: YearMonthDay.get(2017, 2, 1) }),
           movie({ name: "Arrival", startDate: YearMonthDay.get(2024, 9, 3) }),
         ],
@@ -269,11 +269,11 @@ describe("recently finished", () => {
   const items = () =>
     toOmniItems(
       library({
-        games: [
+        game: [
           videoGame({ startDate: YearMonthDay.get(2023, 1, 1), endDate: YearMonthDay.get(2023, 5, 4) }),
           videoGame({ startDate: YearMonthDay.get(2024, 2, 2), endDate: undefined }),
         ],
-        movies: [movie({ startDate: YearMonthDay.get(2024, 3, 9) })],
+        movie: [movie({ startDate: YearMonthDay.get(2024, 3, 9) })],
       }),
     );
 
@@ -288,7 +288,7 @@ describe("recently finished", () => {
   });
 
   it("has nothing to show for a library still entirely in progress", () => {
-    const open = toOmniItems(library({ games: [videoGame({ endDate: undefined })] }));
+    const open = toOmniItems(library({ game: [videoGame({ endDate: undefined })] }));
 
     expect(recentlyFinished(open)).toEqual([]);
   });
@@ -303,7 +303,7 @@ describe("electing what each medium is on now", () => {
   const all = { game: true, show: true, movie: true, book: true };
 
   it("asks each domain for its own answer rather than inventing one", () => {
-    const now = electNow(library({ games: [videoGame(), playing], shows: [watching], movies: [movie(), latest] }), all);
+    const now = electNow(library({ game: [videoGame(), playing], show: [watching], movie: [movie(), latest] }), all);
 
     expect(now.game).toBe(playing);
     expect(now.show).toBe(watching.s[0]);
@@ -311,13 +311,13 @@ describe("electing what each medium is on now", () => {
   });
 
   it("offers nothing for a medium with nothing in flight", () => {
-    const now = electNow(library({ games: [videoGame({ status: "Beat" })] }), all);
+    const now = electNow(library({ game: [videoGame({ status: "Beat" })] }), all);
 
     expect(now.game).toBeUndefined();
   });
 
   it("offers nothing for a medium switched off, which is not on the page to be headlined", () => {
-    const now = electNow(library({ games: [playing], movies: [latest] }), { ...all, game: false });
+    const now = electNow(library({ game: [playing], movie: [latest] }), { ...all, game: false });
 
     expect(now.game).toBeUndefined();
     expect(now.movie).toBe(latest);
@@ -328,7 +328,7 @@ describe("a book in the union", () => {
   it("counts to the year it was finished, closes on its end date, and keys on its start", () => {
     const [item] = toOmniItems(
       library({
-        books: [book({ startDate: YearMonthDay.get(2025, 12, 20), endDate: YearMonthDay.get(2026, 1, 8) })],
+        book: [book({ startDate: YearMonthDay.get(2025, 12, 20), endDate: YearMonthDay.get(2026, 1, 8) })],
       }),
     );
 
@@ -340,7 +340,7 @@ describe("a book in the union", () => {
 
   it("counts an open book to the year it was begun, with no close", () => {
     const [item] = toOmniItems(
-      library({ books: [book({ status: "Reading", startDate: YearMonthDay.get(2026, 5, 1), endDate: undefined })] }),
+      library({ book: [book({ status: "Reading", startDate: YearMonthDay.get(2026, 5, 1), endDate: undefined })] }),
     );
 
     expect(item.year).toBe(2026);
@@ -348,7 +348,7 @@ describe("a book in the union", () => {
   });
 
   it("carries exact hours, one genre, its franchise and no certificate", () => {
-    const [item] = toOmniItems(library({ books: [book({ hours: 1.5, genre: "Fantasy", franchise: "Cosmere" })] }));
+    const [item] = toOmniItems(library({ book: [book({ hours: 1.5, genre: "Fantasy", franchise: "Cosmere" })] }));
 
     expect(item.hours).toBe(1.5);
     expect(item.genre).toBe("Fantasy");
@@ -361,7 +361,7 @@ describe("a book in the union", () => {
   it("tells a reread from the first read, which is a second row with one title", () => {
     const [first, again] = toOmniItems(
       library({
-        books: [book({ startDate: YearMonthDay.get(2020, 1, 1) }), book({ startDate: YearMonthDay.get(2024, 1, 1) })],
+        book: [book({ startDate: YearMonthDay.get(2020, 1, 1) }), book({ startDate: YearMonthDay.get(2024, 1, 1) })],
       }),
     );
 
@@ -369,14 +369,14 @@ describe("a book in the union", () => {
   });
 
   it("is drawn as its own cover and named by its own title", () => {
-    const [item] = toOmniItems(library({ books: [book({ banner: "cover.jpeg" })] }));
+    const [item] = toOmniItems(library({ book: [book({ banner: "cover.jpeg" })] }));
 
     expect(omniBanner(item)).toBe("cover.jpeg");
     expect(omniTitle(item)).toBe("Chasm City");
   });
 
   it("has no picture while the sheet's Banner column has not reached it", () => {
-    const [item] = toOmniItems(library({ books: [book({ banner: "" })] }));
+    const [item] = toOmniItems(library({ book: [book({ banner: "" })] }));
 
     expect(omniBanner(item)).toBeUndefined();
   });
@@ -384,7 +384,7 @@ describe("a book in the union", () => {
   it("keeps every book under guest mode, since nothing on the sheet marks one to hide", () => {
     const books = [book()];
 
-    expect(visibleLibrary(library({ books }), true).books).toEqual(books);
+    expect(visibleLibrary(library({ book: books }), true).book).toEqual(books);
   });
 
   it("is elected for the Now band by the same rule the Books tab's hero uses", () => {
@@ -396,8 +396,8 @@ describe("a book in the union", () => {
     });
     const all = { game: true, show: true, movie: true, book: true };
 
-    expect(electNow(library({ books: [book(), reading] }), all).book).toBe(reading);
-    expect(electNow(library({ books: [book()] }), all).book).toBeUndefined();
-    expect(electNow(library({ books: [reading] }), { ...all, book: false }).book).toBeUndefined();
+    expect(electNow(library({ book: [book(), reading] }), all).book).toBe(reading);
+    expect(electNow(library({ book: [book()] }), all).book).toBeUndefined();
+    expect(electNow(library({ book: [reading] }), { ...all, book: false }).book).toBeUndefined();
   });
 });

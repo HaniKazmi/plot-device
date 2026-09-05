@@ -7,9 +7,9 @@ import type { Library } from "../../src/app/library";
  * added to the union breaks this one place at once rather than each copy in turn.
  */
 export const library = (overrides: Partial<Library> = {}): Library => ({
-  games: [],
-  shows: [],
-  movies: [],
-  books: [],
+  game: [],
+  show: [],
+  movie: [],
+  book: [],
   ...overrides,
 });

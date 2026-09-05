@@ -788,8 +788,8 @@ and the two arrangements, a dialog seated near the top from `sm` up and a fullsc
 with the box in the pinned bar every sheet wears. A row is lit by one `selected` flag for keyboard
 and pointer alike — the pointer moving onto a row selects it — since a tap has no leave event to
 unlight a hover of its own. The index over the union sits in `app/searchData.ts`, built once
-per library from the items the library provider builds and `FranchiseUnionProvider` passes on
-(`app/omniItems.ts`), so guest mode is applied before anything is indexed and a hidden item is
+per library from the union the library provider builds and hands every tab (`useLibrary().items`),
+so guest mode is applied before anything is indexed and a hidden item is
 absent from the index as it is from the union. Franchises come from the raw franchise column, held
 to the crossings' rule that some entry not repeat the name; works are collapsed once per work
 through the gallery's own `workOf`, so a show is one hit however many seasons it ran and its latest
@@ -1578,8 +1578,9 @@ with an error to say so:
 - **`??=`**, which it cannot lower. Write `x = x ?? y`.
 - **A destructured prop default** (`({ landscape = false })`), an assignment pattern
   `BuildHIR::lowerAssignment` cannot lower. Read defaults off the props object instead.
-- **An import expression**, which is why each entry component keeps its `import("./Graphs")` in a
-  module-scope `loadGraphs` that `lazy()` and the prefetch effect both call.
+- **An import expression**, which is why each domain keeps its `import("./Graphs")` in a
+  module-scope `loadGraphs` that `lazy()` and the prefetch effect both call — the one piece of a
+  tab's entry that `app/tabEntry.ts`'s factory cannot own for it.
 - **An object literal with a computed key** — `{ [theme.breakpoints.down("sm")]: {...} }`, the shape
   a phone-only style rule takes wherever the value itself has to change and not only be hidden.
   Written inline it bails with `BuildHIR::lowerExpression … Expected Identifier, got CallExpression
@@ -1744,7 +1745,8 @@ what a bare `/` opens. Omnibus leads for that reason.
 **Adding a data source.** Add a `Tab` to `src/tabs.ts` (sheet id, A1 range, route id, component,
 colours) and then to the exported `Tabs` array, which generates the router and nav bar and decides the
 root route's fallback (§7). Create `src/<domain>/` with `types.ts`, a `converter.ts` exporting its
-`DataConfig`, an entry component reading its slice off `useLibrary()`, and a lazy `Graphs.tsx`.
+`DataConfig`, an entry component built by `createTabEntry` (`app/tabEntry.tsx`) over its own
+`loadGraphs`, and a lazy `Graphs.tsx`.
 Implement `CardMediaImage` against `TypedCardMediaImage<T>` to get `Finished` and `StatList` for
 free.
 
@@ -1756,12 +1758,12 @@ lazy half answers what draws it, its cards and its filter icons alike.
 Nothing else changes: `toOmniItems`, `visibleLibrary`, the crossings, the gallery, the search index
 and the card dispatcher all read the registry, so a medium that answers everything on
 `MediumModule` is on every surface the day it is added, and one that answers nothing does not
-compile. A module never imports `tabs.ts`; it carries `tabId`. What is still by hand is the fetch
-and the shape it lands in: `Library` names the four in the tabs' own plural words rather than by
-medium, and a hook cannot be called in a loop, so a fifth medium is written out once in each of the
-four-field literals in `app/library.ts` (`Library`, `visibleLibrary`, `completeLibrary`, `sliceOf`)
-and once in each of the provider's four (`useSheet`, `raw`, `loaded`, `error`). Eight lines in two
-files, all of which fail to compile if any is missed.
+compile. A module never imports `tabs.ts`; it carries `tabId`. What is still by hand is the fetch:
+a hook cannot be called in a loop, so `LibraryProvider` writes its four `useSheet` calls out and
+names each medium once more in `raw`, `loaded` and `error`. `Library` itself is keyed by medium
+over a `LibraryRecord` naming each domain's own record, so the type and every walk over it —
+`visibleLibrary`, `completeLibrary`, `toOmniItems` — take the fifth medium from the `Medium` union
+without an edit. Four lines in one file, all of which fail to compile if any is missed.
 
 The entry mapper is the piece the domain's own card strip calls too (through `CardMediaImage.tsx`),
 so a tab's index and the cross-media union cannot draw one item two ways.

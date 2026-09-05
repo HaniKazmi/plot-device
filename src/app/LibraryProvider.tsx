@@ -54,13 +54,14 @@ export const LibraryProvider = ({ guestMode, children }: { guestMode: boolean; c
   const [movies, moviesLoaded, moviesError] = useSheet(movieModule);
   const [books, booksLoaded, booksError] = useSheet(bookModule);
 
-  const raw: Partial<Library> = { games, shows, movies, books };
+  const raw: Partial<Library> = { game: games, show: shows, movie: movies, book: books };
   const visible = visibleLibrary(raw, guestMode);
   const whole = completeLibrary(visible);
 
   const value = {
     raw,
     visible,
+    whole,
     items: whole && toOmniItems(whole),
     loaded: { game: gamesLoaded, show: showsLoaded, movie: moviesLoaded, book: booksLoaded },
     error: { game: gamesError, show: showsError, movie: moviesError, book: booksError },

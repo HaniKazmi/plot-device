@@ -58,10 +58,10 @@ export const ofMedium = (items: OmniItem[], medium: Medium) => items.filter((ite
  * cannot headline the page it has been removed from.
  */
 export const electNow = (library: Library, visible: Record<Medium, boolean>) => ({
-  game: visible.game ? currentlyPlaying(library.games)[0] : undefined,
-  show: visible.show ? heroSeason(currentlyWatching(library.shows)) : undefined,
-  movie: visible.movie ? latestWatched(library.movies) : undefined,
-  book: visible.book ? currentlyReading(library.books)[0] : undefined,
+  game: visible.game ? currentlyPlaying(library.game)[0] : undefined,
+  show: visible.show ? heroSeason(currentlyWatching(library.show)) : undefined,
+  movie: visible.movie ? latestWatched(library.movie) : undefined,
+  book: visible.book ? currentlyReading(library.book)[0] : undefined,
 });
 
 /** Whether the Now band has anything to say — the same test the rail's chip is built from. */

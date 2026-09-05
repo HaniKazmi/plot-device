@@ -5,23 +5,40 @@ import type { Movie } from "../movie/types";
 import type { Show } from "../show/types";
 import type { Medium } from "../utils/types";
 import type { VideoGame } from "../vg/types";
-import { MEDIA, mediaModules } from "./media";
+import { mediaModules } from "./media";
+import "../utils/arrayUtils";
+
+/**
+ * What one row of each medium's own sheet converts to. The one place in the app that spells the
+ * four records out, so everything below it names a medium instead of a domain.
+ */
+interface LibraryRecord {
+  game: VideoGame;
+  show: Show;
+  movie: Movie;
+  book: Book;
+}
 
 /**
  * The four libraries as the domains model them, before anything is flattened.
  *
  * One record rather than four positional arguments: every function here takes all of them, and
- * four same-shaped arrays in a row is an ordering nothing but a type name can defend.
+ * four same-shaped arrays in a row is an ordering nothing but a type name can defend. Keyed by
+ * medium and not by the tabs' plural words, so a caller holding a `Medium` reads its slice off the
+ * same key it looked the module up by — and a fifth medium cannot be added to the union's
+ * vocabulary without a slice to fill.
  *
  * `Partial` is the shape a reader holds while the sheets are still arriving: each lands on its own,
  * and a tab whose own sheet is here paints from it rather than waiting on the other three.
  */
-export interface Library {
-  games: VideoGame[];
-  shows: Show[];
-  movies: Movie[];
-  books: Book[];
-}
+export type Library = { [M in Medium]: LibraryRecord[M][] };
+
+/**
+ * The rows of one medium, as a walk over the registry reads them: the element type there names no
+ * domain, so every slice comes back erased and the answer is cast once, here, rather than at each
+ * of the three walks below.
+ */
+const sliceOf = (library: Partial<Library>, medium: Medium) => library[medium] as unknown[] | undefined;
 
 /**
  * Guest mode applied to each library by its own domain's rule, before anything is composed.
@@ -34,15 +51,15 @@ export interface Library {
  * The libraries are handed back by identity when the mode is off, so the common case allocates
  * nothing and every consumer below the provider re-renders only on a real change.
  */
-export const visibleLibrary = (library: Partial<Library>, guestMode: boolean): Partial<Library> =>
-  guestMode
-    ? {
-        games: library.games?.filter(MEDIA.game.guestFilter),
-        shows: library.shows?.filter(MEDIA.show.guestFilter),
-        movies: library.movies?.filter(MEDIA.movie.guestFilter),
-        books: library.books?.filter(MEDIA.book.guestFilter),
-      }
-    : library;
+export const visibleLibrary = (library: Partial<Library>, guestMode: boolean): Partial<Library> => {
+  if (!guestMode) return library;
+
+  const visible: Record<string, unknown[] | undefined> = {};
+  for (const module of mediaModules)
+    visible[module.medium] = sliceOf(library, module.medium)?.filter(module.guestFilter);
+
+  return visible as Partial<Library>;
+};
 
 /**
  * The four libraries once all four are here, and nothing until then.
@@ -53,32 +70,24 @@ export const visibleLibrary = (library: Partial<Library>, guestMode: boolean): P
  * composing tab cannot disagree about when the library is whole.
  */
 export const completeLibrary = (library: Partial<Library>): Library | undefined =>
-  library.games && library.shows && library.movies && library.books
-    ? { games: library.games, shows: library.shows, movies: library.movies, books: library.books }
-    : undefined;
-
-/**
- * The rows a medium contributes, from the record the four are held in.
- *
- * The only thing here that knows `Library`'s own field names, which are the plural words the tabs
- * use rather than the media themselves — so nothing downstream has to spell both vocabularies.
- */
-const sliceOf = (library: Library): Record<Medium, unknown[]> => ({
-  game: library.games,
-  show: library.shows,
-  movie: library.movies,
-  book: library.books,
-});
+  mediaModules.every((module) => sliceOf(library, module.medium)) ? (library as Library) : undefined;
 
 /**
  * The four libraries as one flat list, each medium's arm supplied by its own module — so the unit
  * a medium contributes is decided in the folder that models it. Shows contribute seasons rather
  * than shows for that reason, which is a fact about the Shows sheet and not about the union.
  */
-export const toOmniItems = (library: Library): OmniItem[] => {
-  const slices = sliceOf(library);
-  return mediaModules.flatMap((module) => module.toOmniItems(slices[module.medium]));
-};
+export const toOmniItems = (library: Library): OmniItem[] =>
+  mediaModules.flatMap((module) => module.toOmniItems(library[module.medium]));
+
+/**
+ * Hours over a set of items, floored once.
+ *
+ * The single home of the floor, so no surface over the union shows a fraction of an hour and
+ * every total is the floor of the sum rather than the sum of the floors — the figure each home tab
+ * quotes for the same rows.
+ */
+export const omniHours = (items: OmniItem[]) => Math.floor(items.sum("hours"));
 
 /**
  * The four sheets as one value, read by every tab.
@@ -88,9 +97,11 @@ export const toOmniItems = (library: Library): OmniItem[] => {
  * once above the tabs rather than a second time inside each of them, where an index built before
  * the filter would put a hidden item straight back on screen through a card strip.
  *
- * `items` is the union, present only once all four libraries are, and built here rather than by
- * each surface that wants one: two flattenings of one library are two chances to disagree about
- * which rows guest mode hides.
+ * `whole` is `visible` once every medium has landed and `items` the union over it, so the two are
+ * present together or not at all. Both are answered here rather than by each surface that wants
+ * one: two flattenings of one library are two chances to disagree about which rows guest mode
+ * hides, and a page asking "is the library whole" for itself is a second answer to a question the
+ * union has already been built on.
  *
  * `loaded` is per medium and says whether this session holds the sheet's own rows rather than a
  * previous visit's copy, and `error` what the sheet had to say instead. Both stay per medium so a
@@ -100,6 +111,7 @@ export const toOmniItems = (library: Library): OmniItem[] => {
 export interface LibraryValue {
   raw: Partial<Library>;
   visible: Partial<Library>;
+  whole: Library | undefined;
   items: OmniItem[] | undefined;
   loaded: Record<Medium, boolean>;
   error: Record<Medium, string | undefined>;
