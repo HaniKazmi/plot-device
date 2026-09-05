@@ -5,14 +5,12 @@ import {
   electNow,
   measureOf,
   ofMedium,
-  omniBanner,
-  omniHours,
   omniTitle,
   recentlyFinished,
-  toOmniItems,
   unionTotals,
-  visibleLibrary,
 } from "../../src/omnibus/adapter";
+import { toOmniItems, visibleLibrary } from "../../src/app/library";
+import { omniBanner, omniHours } from "../../src/app/omniBrowse";
 import { measureOf as movieMeasureOf } from "../../src/movie/statsData";
 import { measureOf as showMeasureOf } from "../../src/show/statsData";
 import { book } from "../fixtures/books";

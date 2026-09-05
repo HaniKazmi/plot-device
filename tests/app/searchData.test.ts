@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Year, YearMonthDay } from "../../src/common/date";
-import { toOmniItems } from "../../src/omnibus/adapter";
+import { toOmniItems } from "../../src/app/library";
 import {
   buildSearchIndex,
   franchiseFacts,
@@ -8,7 +8,7 @@ import {
   recentFranchises,
   searchUnion,
   unionEpoch,
-} from "../../src/omnibus/searchData";
+} from "../../src/app/searchData";
 import { workLabels } from "../../src/omnibus/cardData";
 import { book } from "../fixtures/books";
 import { library } from "../fixtures/library";

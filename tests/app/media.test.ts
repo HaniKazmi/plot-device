@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MEDIA, mediaModules } from "../../src/app/media";
-import { toOmniItems } from "../../src/omnibus/adapter";
+import { toOmniItems } from "../../src/app/library";
 import Tabs from "../../src/tabs";
 import { MEDIA as MEDIA_ORDER, type Medium } from "../../src/utils/types";
 import { book } from "../fixtures/books";

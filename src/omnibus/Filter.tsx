@@ -3,7 +3,7 @@ import { FilterCategories, FilterToggles } from "../common/FilterControls";
 import { FilterDrawer } from "../common/FilterDrawer";
 import { useScheme } from "../common/useScheme";
 import type { Medium } from "../utils/types";
-import type { OmniItem } from "./adapter";
+import type { OmniItem } from "../common/medium";
 import { omniFilters } from "./filters";
 import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
 

@@ -2,38 +2,14 @@ import type { YearNumber } from "../common/date";
 import type { OmniItem } from "../common/medium";
 import type { Library } from "../app/library";
 import { MEDIA } from "../app/media";
+import { omniHours } from "../app/omniBrowse";
+import { media, type Measure, type Medium } from "../app/types";
 import { currentlyReading } from "../books/statsData";
 import { latestWatched } from "../movie/statsData";
 import { currentlyWatching, heroSeason } from "../show/statsData";
 import { currentlyPlaying } from "../vg/statsData";
-import { media, type Measure, type Medium } from "./types";
 import { earliestYear as earliestYearOf } from "../common/statsData";
 import "../utils/arrayUtils";
-
-/**
- * The union's own item, declared in the shared layer because each domain's `module.ts` builds its
- * own arm of the union and a tracked domain may not import the folder composing them. Re-exported
- * here, where the rest of this tab already names it.
- */
-export type { OmniItem };
-
-/**
- * The four libraries and the two operations every reader of them starts with, owned by the
- * composing layer for the same direction: one provider above every tab fetches the sheets, applies
- * guest mode and flattens the union, and this tab is one of its readers rather than the place the
- * work happens. Re-exported here, where the rest of this tab already names them.
- */
-export type { Library };
-export { toOmniItems, visibleLibrary } from "../app/library";
-
-/**
- * Hours over a set of items, floored once.
- *
- * The single home of the floor, so no surface on this tab shows a fraction of an hour and every
- * total is the floor of the sum rather than the sum of the floors — the figure each home tab
- * quotes for the same rows.
- */
-export const omniHours = (items: OmniItem[]) => Math.floor(items.sum("hours"));
 
 /** What a set of items counts for under the active measure. */
 export const measureOf = (items: OmniItem[], measure: Measure) =>
@@ -51,15 +27,6 @@ export const unionTotals = (items: OmniItem[]) => ({
   items: items.length,
   years: new Set(items.map((item) => item.year)).size,
 });
-
-/**
- * The artwork an item is shown as, which is its own tab's: a season is drawn as its show, since
- * the sheets hold one banner per show and a season has no picture of its own.
- *
- * The browse surfaces are walls of pictures, so an item with none is not on them — the rule
- * `finishedItems` already applies to every domain's library grid.
- */
-export const omniBanner = (item: OmniItem): string | undefined => MEDIA[item.medium].banner(item.source);
 
 /**
  * What the item is called on a card: a season says which season it is, because a strip of six

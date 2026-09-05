@@ -3,10 +3,11 @@ import { franchiseIndex } from "../common/franchiseIndex";
 import { YearMonthDay, type Year } from "../common/date";
 import { mediumToLabel, type Medium } from "../utils/types";
 import { namesTheSameThing } from "../utils/stringUtils";
-import { MEDIA } from "../app/media";
+import { MEDIA } from "./media";
 import type { Season } from "../show/types";
-import { omniHours, type OmniItem } from "./adapter";
-import { galleryGroups, galleryStripOrder, galleryWorks, workOf, type ShelfItem } from "./galleryData";
+import type { OmniItem } from "../common/medium";
+import { omniHours } from "./omniBrowse";
+import { galleryGroups, galleryStripOrder, galleryWorks, workOf, type ShelfItem } from "../omnibus/galleryData";
 import { media } from "./types";
 import "../utils/arrayUtils";
 import "../utils/mapUtils";
@@ -106,7 +107,7 @@ export const buildSearchIndex = (items: OmniItem[]): SearchIndex => {
 
 /** The member that stands for a work: a show's latest season, otherwise its only row's first. */
 const representative = (members: OmniItem[]): OmniItem =>
-  members[0].medium === "show"
+  members[0].medium === MEDIA.show.medium
     ? members.toSorted((a, b) => (b.source as Season).s - (a.source as Season).s)[0]
     : members[0];
 

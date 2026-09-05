@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { Year, YearMonthDay } from "../../src/common/date";
-import { toOmniItems } from "../../src/omnibus/adapter";
+import { toOmniItems } from "../../src/app/library";
 import { omniBarchartRows } from "../../src/omnibus/barchartData";
-import { mediumToColour } from "../../src/omnibus/types";
+import { mediumToColour } from "../../src/app/types";
 import { ageRatingToColour, genreToColour } from "../../src/utils/types";
 import { book } from "../fixtures/books";
 import { library } from "../fixtures/library";

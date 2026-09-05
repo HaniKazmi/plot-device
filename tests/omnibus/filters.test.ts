@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { CURRENT_YEAR, YearMonthDay, type YearNumber } from "../../src/common/date";
-import { toOmniItems, type OmniItem } from "../../src/omnibus/adapter";
+import { toOmniItems } from "../../src/app/library";
+import type { OmniItem } from "../../src/common/medium";
 import { filters, initialState, type FilterState } from "../../src/omnibus/filterUtils";
 import { book } from "../fixtures/books";
 import { movie } from "../fixtures/movies";
 import { videoGame } from "../fixtures/vgRows";
 import { omniFilters } from "../../src/omnibus/filters";
-import { media } from "../../src/omnibus/types";
+import { media } from "../../src/app/types";
 
 const state = (overrides: Partial<FilterState> = {}): Omit<FilterState, "filter"> => ({
   ...initialState,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CURRENT_PLAINDATE, Year, YearMonthDay } from "../../src/common/date";
-import { toOmniItems } from "../../src/omnibus/adapter";
+import { toOmniItems } from "../../src/app/library";
 import {
   GALLERY_CATEGORIES,
   GALLERY_SORTS,

@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { Year, YearMonthDay } from "../../src/common/date";
-import { toOmniItems, type OmniItem } from "../../src/omnibus/adapter";
-import { buildFranchiseUnion } from "../../src/omnibus/franchiseUnionData";
+import { toOmniItems } from "../../src/app/library";
+import type { OmniItem } from "../../src/common/medium";
+import { buildFranchiseUnion } from "../../src/app/franchiseUnionData";
 import { showSubject } from "../../src/show/cardData";
 import { book } from "../fixtures/books";
 import { library } from "../fixtures/library";

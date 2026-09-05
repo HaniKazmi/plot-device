@@ -92,9 +92,11 @@ src/
   contexts/            Google auth provider and OAuth token helpers
   common/              domain-blind chart shells, date model, data hook
   utils/               prototype extensions, branded types, colour extraction
+  app/                 the medium registry, the library provider, and the union,
+                       search and franchise-view code composed over all four domains
   vg/ show/ movie/     per-domain model, converter, filters, adapters
   books/               the same shape over the Books sheet
-  omnibus/             composes the four domains' own data; no sheet of its own
+  omnibus/             the fifth tab, composing nothing; no sheet of its own
 tests/                 mirrors src/, plus fixtures/ and an architecture guard
 extension/             standalone Chrome extension, outside the Vite build
 ```

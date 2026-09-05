@@ -1,9 +1,9 @@
 import { franchiseOptions } from "../common/filterOptions";
 import type { FilterSchema } from "../common/filterSchema";
 import { genreToColour, mediumToLabel } from "../utils/types";
-import type { OmniItem } from "./adapter";
+import type { OmniItem } from "../common/medium";
 import type { FilterState } from "./filterUtils";
-import { media } from "./types";
+import { media } from "../app/types";
 
 /**
  * The medium switches, which are this tab's toggles because a medium here is what a category is

@@ -11,8 +11,10 @@ import {
   type Scheme,
 } from "../utils/types";
 import { MEDIA } from "../app/media";
-import { measureOf, omniBanner, type OmniItem } from "./adapter";
-import type { Measure } from "./types";
+import { measureOf } from "./adapter";
+import { omniBanner } from "../app/omniBrowse";
+import type { OmniItem } from "../common/medium";
+import type { Measure } from "../app/types";
 import "../utils/arrayUtils";
 import "../utils/mapUtils";
 

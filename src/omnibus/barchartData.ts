@@ -1,8 +1,8 @@
 import { Year } from "../common/date";
 import type { Colour, Scheme } from "../utils/types";
-import type { OmniItem } from "./adapter";
+import type { OmniItem } from "../common/medium";
 import { galleryColour, galleryValue } from "./galleryData";
-import { mediumToColour, mediumToLabel, type Measure } from "./types";
+import { mediumToColour, mediumToLabel, type Measure } from "../app/types";
 
 /**
  * What the chart's series are, beyond the medium.

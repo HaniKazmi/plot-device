@@ -8,8 +8,8 @@ import {
 import { schemaPredicates } from "../common/filterSchema";
 import { omniFilters } from "./filters";
 import type { Predicate } from "../utils/types";
-import type { OmniItem } from "./adapter";
-import type { Measure } from "./types";
+import type { OmniItem } from "../common/medium";
+import type { Measure } from "../app/types";
 
 export interface FilterState extends BaseFilterState<OmniItem, Measure> {
   /** One switch per medium: the page's whole point is comparing them, so any subset is a view. */

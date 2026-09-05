@@ -121,7 +121,7 @@ export const MoviesTab: SheetTab = {
  * provenance columns the converter never reads, and the ones it does read sit among them.
  *
  * The primary is a gold at hue 98 — 3.87 on the white paper and 4.18 on the dark, and 16.7 from
- * the nearest of the other nine values. `mediumColours.book` in `omnibus/types.ts` is the matching
+ * the nearest of the other nine values. `mediumColours.book` in `app/types.ts` is the matching
  * medium fill, and the two are chosen together: a book is this gold whether it is a bar on the
  * Omnibus or the bar over it.
  */
@@ -157,7 +157,7 @@ export const BooksTab: SheetTab = {
  * alongside every other table, which is the only floor under a colour that lives out here on a
  * `Tab` rather than in one of the tables.
  *
- * The medium quartet in `omnibus/types.ts` is chosen from the same five hues, by hand — nothing
+ * The medium quartet in `app/types.ts` is chosen from the same five hues, by hand — nothing
  * derives one from the other, so moving a tab's primary means moving its medium fill in the same
  * edit.
  *

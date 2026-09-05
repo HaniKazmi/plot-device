@@ -1,8 +1,8 @@
 import { lazy, Suspense, useEffect, type ReactNode } from "react";
-import { useLibrary } from "../app/library";
+import { useLibrary } from "./library";
 import { CURRENT_PLAINDATE } from "../common/date";
 import { FranchiseUnionContext } from "../common/franchiseUnion";
-import type { OmniItem } from "./adapter";
+import type { OmniItem } from "../common/medium";
 import { buildFranchiseUnion } from "./franchiseUnionData";
 import { OmniItemsContext } from "./omniItems";
 
@@ -29,9 +29,9 @@ const hoverCard = (item: OmniItem) => () => (
  * Provides the union to every tab, built from the items the library provider already holds.
  *
  * Mounted above the router because a Star Trek film's card on the Movies tab draws the seasons
- * from the Shows sheet: only the composing tab may import all four domains, and only the shell
- * sits above all four tabs. The items are `undefined` until all four libraries have landed, so the
- * union is too, and a card falls back to the strip its own index draws until then.
+ * from the Shows sheet: only this composing layer reaches into all four domains, and only the
+ * shell sits above all four tabs. The items are `undefined` until all four libraries have landed,
+ * so the union is too, and a card falls back to the strip its own index draws until then.
  *
  * The union is built from those items rather than from the libraries again: guest mode is applied
  * once, above, and a second flattening here is a second chance to disagree about which rows it

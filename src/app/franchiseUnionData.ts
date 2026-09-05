@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import type { YearMonthDay } from "../common/date";
 import { franchiseIndex } from "../common/franchiseIndex";
 import type { FranchiseEntry, FranchiseUnion } from "../common/franchiseUnion";
-import { MEDIA } from "../app/media";
-import type { OmniItem } from "./adapter";
+import { MEDIA } from "./media";
+import type { OmniItem } from "../common/medium";
 
 /** How an item's hover card is built, handed in so this module stays free of anything rendered. */
 export type HoverCardOf = (item: OmniItem) => () => ReactNode;

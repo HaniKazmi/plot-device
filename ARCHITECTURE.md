@@ -77,12 +77,20 @@ computes on the main thread — which the caching layer (§4) exists to make tol
 The load-bearing rule is the boundary between the bottom two layers and the domain layer above them:
 **`common/` and `utils/` never import from `app/`, `vg/`, `show/`, `movie/`, `books/` or
 `omnibus/`.** Its second half is that **a tracked domain never imports another, nor the registry
-itself** — the four compose nothing, and `app/` and `omnibus/` compose them, which makes those two
-composing layers rather than arms of a cycle. A domain reads the rest of `app/` downwards, its entry
-component asking `app/library.ts` for the library the shell fetched; the registry is the one part of
-`app/` built _from_ the modules, so `vg/module.ts` importing `app/media.ts` is a real cycle, and
-`module.ts` therefore imports nothing from `app/` at all. `tests/architecture.test.ts` enforces both by reading the
-source, across static, side-effect and dynamic imports alike.
+itself** — all five compose nothing, and `app/` is the one folder that composes them, which is what
+keeps it a composing layer rather than an arm of a cycle. A domain reads the rest of `app/`
+downwards, its entry component asking `app/library.ts` for the library the shell fetched; the
+registry is the one part of `app/` built _from_ the modules, so `vg/module.ts` importing
+`app/media.ts` is a real cycle, and `module.ts` therefore imports nothing from `app/` at all.
+
+Three files in `omnibus/` are a named exception rather than a loosened rule: `adapter.ts`'s
+`electNow` elects across all four domains' own `statsData`, `Stats.tsx`'s Now band renders each
+domain's own `CardMediaImage` and reads its `cardData` subtitle and `statsData` hero figures, and
+`Graphs.tsx` mounts the four `FranchiseContext` providers the card strips and crossings read — the
+registry carries no election, no hero-card slot and no franchise-context slot per medium, so closing
+this is a registry change and not a move. `tests/architecture.test.ts` enforces both rules by
+reading the source across static, side-effect and dynamic imports alike, the three files named as
+exemptions rather than left to slip the check.
 
 **`app/` is the medium registry** (`app/media.ts`): a `MediumModule` per medium, supplied by each
 domain's own `module.ts`, holding everything the app asks of a medium that the medium itself is the
@@ -200,8 +208,7 @@ Omnibus runs no pipeline of its own, and neither does any tab: `app/library.ts` 
 through the registry, each medium's arm supplied by its own `module.ts` (§2) — which is why `Show[]`
 flattens at the season, the unit actually watched, carrying the show's name, genre, franchise and
 certificate onto each. A book has no certificate, so `OmniItem.rating` is optional and every surface
-grouping on it drops books. `omnibus/adapter.ts` re-exports `Library`, `visibleLibrary` and
-`toOmniItems` from there, where the rest of that tab already names them.
+grouping on it drops books.
 
 ## 4. Caching and hydration
 
@@ -465,9 +472,9 @@ ring have a shape to draw instead.
 
 ### Omnibus — `omnibus/`
 
-Every surface of the composing domain is a `common/` shell fed the union (`OmniItem[]`) instead of
-one medium's rows, so the page speaks the four tabs' own vocabulary rather than inventing a
-mixed-media one.
+The fifth tab, and the one with no sheet of its own: every surface is a `common/` shell fed the
+union (`OmniItem[]`, built in `app/`) instead of one medium's rows, so the page speaks the four
+tabs' own vocabulary rather than inventing a mixed-media one.
 
 **The Now band** (`omnibus/Stats.tsx`) is what no single tab can show: what each medium is currently
 on, side by side. `electNow` reuses each domain's own election — `currentlyPlaying`,
@@ -547,7 +554,7 @@ viewport.
 
 That band names the medium along the top of the whole card (`CardMediaImageProps.mediaBand`), the
 card's first child, rather than a chip covering the artwork; on a row-laid card it takes a line of
-its own and adds no width to the picture and words under it. `omnibus/mediumBand.tsx` builds it once
+its own and adds no width to the picture and words under it. `app/mediumBand.tsx` builds it once
 per list at a stated `MEDIUM_LABEL_HEIGHT` of 22, so the shelves, their drill-downs and Recently
 Finished cannot draw it at different heights — stated because those surfaces fix a card's height and
 the artwork takes the rest.
@@ -691,11 +698,12 @@ a grid cell has a width, and a width plus a height is a crop. It states that hei
 since 100% of the strip's box is the row plus the ten pixels reserved for its scrollbar, through a
 doubled selector (`&& > *`) that outweighs the card's own one-class rule about the same property.
 
-`omnibus/CardMediaImage.tsx` is the `TypedCardMediaImage<OmniItem>` every one of these surfaces
-renders through: it dispatches `item.source` by `item.medium` and passes `mediumToShape` down, so a
-picture opens that domain's real expanded card, strip and ledger, and only this tab's mixed rows
-arrange themselves per item. `OmniHoverCard` beside it dispatches the same four ways, so a hovered
-mark shows the card its home tab would show rather than a fifth assembly of one.
+`app/CardMediaImage.tsx` is the `TypedCardMediaImage<OmniItem>` every one of these surfaces, the
+search palette and the franchise view render through: it dispatches `item.source` by `item.medium`
+and passes `mediumToShape` down, so a picture opens that domain's real expanded card, strip and
+ledger, and only a mixed row arranges itself per item. `OmniHoverCard` beside it dispatches the same
+four ways, so a hovered mark shows the card its home tab would show rather than a fifth assembly of
+one.
 
 ### One control idiom for "how is this drawn" — `SegmentedControl`
 
@@ -762,7 +770,7 @@ while a group is picked. The franchise machinery is shared the same way: `common
 groups by whatever accessor a domain passes, and `common/franchiseContext`'s factory threads the
 index down to the card strips.
 
-### Search — `common/SearchPalette.tsx`, `omnibus/Search.tsx`
+### Search — `common/SearchPalette.tsx`, `app/Search.tsx`
 
 One box over all four libraries, opened from a magnifier in the app bar, ⌘K or Ctrl+K, and `/`
 outside a field where a slash is a character. The chord puts the caret in the box with the last
@@ -779,9 +787,9 @@ The shell is domain-blind: it takes groups of already-shaped hits and owns the i
 and the two arrangements, a dialog seated near the top from `sm` up and a fullscreen sheet below it
 with the box in the pinned bar every sheet wears. A row is lit by one `selected` flag for keyboard
 and pointer alike — the pointer moving onto a row selects it — since a tap has no leave event to
-unlight a hover of its own. The index over the union sits in `omnibus/searchData.ts`, built once
+unlight a hover of its own. The index over the union sits in `app/searchData.ts`, built once
 per library from the items the library provider builds and `FranchiseUnionProvider` passes on
-(`omnibus/omniItems.ts`), so guest mode is applied before anything is indexed and a hidden item is
+(`app/omniItems.ts`), so guest mode is applied before anything is indexed and a hidden item is
 absent from the index as it is from the union. Franchises come from the raw franchise column, held
 to the crossings' rule that some entry not repeat the name; works are collapsed once per work
 through the gallery's own `workOf`, so a show is one hit however many seasons it ran and its latest
@@ -795,7 +803,7 @@ subtitles), then any substring of either, then every word of the query found som
 size and then name. The entries come back as given, so the raw franchise string — the key every
 index is held on — travels through unfolded.
 
-A franchise hit opens `omnibus/FranchiseView.tsx`: the gallery's franchise drill-down with a header
+A franchise hit opens `app/FranchiseView.tsx`: the gallery's franchise drill-down with a header
 saying what the franchise is before listing it — its media counted, four facts, and the franchise
 strip with no subject, every mark `plain`, since the view is about the whole series and not one
 card's place in it. Its works are the gallery's collapse over the franchise's rows alone rather than
@@ -865,11 +873,11 @@ would reach into the lane below and answer for both marks at once.
 
 The entries come from one index across the four libraries. `common/franchiseUnion.ts` declares the
 `FranchiseEntry` shape — key, subject, franchise, medium, fill, label, span, `precise` and a
-hover-card thunk — and the context; `omnibus/franchiseUnionData.ts` builds it, mapping each
+hover-card thunk — and the context; `app/franchiseUnionData.ts` builds it, mapping each
 `OmniItem` through its own domain's `gameEntry`, `seasonEntry`, `movieEntry` or `bookEntry`, so the
 union and a tab's own index cannot draw one item two ways. A tracked domain may not import another
-and `common/` may import none, so the build sits beside the Omnibus adapter and its provider
-(`omnibus/franchiseUnion.tsx`) is mounted by `Google.tsx` above the outlet. It builds the union from
+and `common/` may import none, so the build sits in `app/`, beside its provider
+(`app/franchiseUnion.tsx`), which is mounted by `Google.tsx` above the outlet. It builds the union from
 the items the library provider already holds (§3) rather than flattening the four libraries a second
 time, guest mode having been applied to them once above it. Until all four land those items are
 `undefined`, so the union is too and a card falls back to the strip its own index draws. The union groups on the
@@ -1167,7 +1175,7 @@ span) for the same reason: six at 900px are 133px each. The Omnibus's closing li
 the date first.
 
 `common/Card.tsx` provides `CardMediaImage` and the `TypedCardMediaImage<T>` contract each domain
-implements (`vg/`, `show/`, `movie/`, `books/`, `omnibus/` over the union): the adapter letting
+implements (`vg/`, `show/`, `movie/`, `books/`, `app/` over the union): the adapter letting
 `Finished`, `StatList` and the timeline tooltips render domain artwork and detail panels without
 knowing the model. Several props are shaped by cost or surface:
 
@@ -1483,7 +1491,7 @@ Seven vocabularies live in `utils/types.ts` because more than one tab speaks the
 Movies and Books both rate on), `ageRatingToColour` over the `AgeRating` union three of the four
 domains record a certificate into, and `mediumFills` with `mediumToLabel`, `mediumToName` and
 `mediumUnit` — the only colour a mixed-media surface carries meaning in, re-exported by
-`omnibus/types.ts`. Its hues are the home tabs' own, so `tabs.ts` constrains them; the closest pair
+`app/types.ts`. Its hues are the home tabs' own, so `tabs.ts` constrains them; the closest pair
 is 16.8 dE. The light Books half is `#ab9219`, the brightest gold clearing 3:1 on white, not the
 tab's darker `#958112`, because lightness is what a deutan reader has left: at the Movies red's
 lightness a Books gold collapses onto it under simulation, 1.3 dE at `#857200` against a working
@@ -1750,10 +1758,11 @@ so a tab's index and the cross-media union cannot draw one item two ways.
 
 **Composing existing data sources, without a sheet of its own.** `omnibus/` is the reference: its
 `Tab` carries no `spreadsheetId`/`range` (both optional for this case, with `SheetTab` restating them
-as required for anything that fetches), and it reads the libraries the provider fetched through each
-composed domain's own config. A pure adapter re-shapes their output into one vocabulary the shared
-shells render. The new folder may
-import the domains it composes, never the reverse, and stays outside `common/`/`utils/`.
+as required for anything that fetches), and its entry component reads `useLibrary()` exactly as a
+home tab reads its own medium's slice — it composes nothing itself. The cross-domain work — the
+union, the search index, the franchise view — lives in `app/`, the one folder besides a medium's own
+`module.ts` allowed to reach into more than one domain; a new tab built the same way stays outside
+`common/`/`utils/` and reads what `app/` already composed rather than composing it a second time.
 
 **Adding a visualisation.** Domain-agnostic, it belongs in `common/`, taking data plus callbacks with
 a thin adapter per domain; domain knowledge belongs in the domain folder. The existing shells set the

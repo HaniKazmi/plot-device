@@ -2,9 +2,10 @@ import type { ReactNode } from "react";
 import type { YearMonthDay } from "../common/date";
 import type { TimelineData } from "../common/timelineLayout";
 import type { Scheme } from "../utils/types";
-import { omniTitle, type OmniItem } from "./adapter";
+import { omniTitle } from "./adapter";
+import type { OmniItem } from "../common/medium";
 import { crossingSpan } from "./crossingsData";
-import { mediumToColour } from "./types";
+import { mediumToColour } from "../app/types";
 
 /**
  * Every item of the union as one row of the packed timeline, the reading the four tabs' own

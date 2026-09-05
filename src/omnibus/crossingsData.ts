@@ -2,8 +2,8 @@ import { CURRENT_YEAR, YearMonthDay } from "../common/date";
 import { buildStrip, type StripBand, type StripSpan } from "../common/timelineStripData";
 import { namesTheSameThing } from "../utils/stringUtils";
 import { MEDIA } from "../app/media";
-import type { OmniItem } from "./adapter";
-import { media, type Medium } from "./types";
+import type { OmniItem } from "../common/medium";
+import { media, type Medium } from "../app/types";
 import "../utils/arrayUtils";
 import "../utils/mapUtils";
 

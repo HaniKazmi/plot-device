@@ -10,11 +10,11 @@ import { useSelectBox } from "../common/SelectBoxHook";
 import { SegmentedControl, type SegmentOption } from "../common/SelectionComponents";
 import { EXPANDED_CARDS, ExpandableCard } from "../common/Stats";
 import { format } from "../utils/mathUtils";
-import type { OmniItem } from "./adapter";
-import OmniCardMediaImage from "./CardMediaImage";
+import type { OmniItem } from "../common/medium";
+import OmniCardMediaImage from "../app/CardMediaImage";
 import { MIXED_CARD_SIZING, workLabels } from "./cardData";
-import { MEDIUM_LABEL_HEIGHT } from "./MediumLabel";
-import { mediumBand } from "./mediumBand";
+import { MEDIUM_LABEL_HEIGHT } from "../app/MediumLabel";
+import { mediumBand } from "../app/mediumBand";
 import {
   GALLERY_CATEGORIES,
   GALLERY_SORTS,
@@ -24,7 +24,7 @@ import {
   type GallerySort,
   type Shelf as ShelfGroup,
 } from "./galleryData";
-import type { Measure } from "./types";
+import type { Measure } from "../app/types";
 import { MUTED_FIGURE_SX } from "../common/typography";
 import { useScheme } from "../common/useScheme";
 

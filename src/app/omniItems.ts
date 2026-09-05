@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { OmniItem } from "./adapter";
+import type { OmniItem } from "../common/medium";
 
 /**
  * The union's items, as the library provider builds them and `FranchiseUnionProvider` passes on.

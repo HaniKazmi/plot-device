@@ -101,10 +101,11 @@ export const describeFailure = (cause: unknown): string => {
 /**
  * The fetch each storage key currently has in flight, shared by every hook reading that key.
  *
- * The Omnibus tab and a home tab mount the same domain's config, so a route change mid-fetch would
- * otherwise issue a second `values.get` and convert, stringify and store the same library twice.
- * Cleared once the promise settles, so a failed fetch is retried by the next mount rather than
- * replayed to it.
+ * `LibraryProvider` mounts one hook per key for the life of the page, but a remount while that
+ * key's fetch is still outstanding — React StrictMode's mount/unmount/remount in development,
+ * which every session hits — would otherwise issue a second `values.get` and convert, stringify
+ * and store the same library twice. Cleared once the promise settles, so a failed fetch is retried
+ * by the next mount rather than replayed to it.
  */
 const IN_FLIGHT = new Map<string, Promise<unknown>>();
 

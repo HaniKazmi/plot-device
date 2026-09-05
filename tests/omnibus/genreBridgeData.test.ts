@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { YearMonthDay } from "../../src/common/date";
-import { toOmniItems } from "../../src/omnibus/adapter";
+import { toOmniItems } from "../../src/app/library";
 import { genreBridge } from "../../src/omnibus/genreBridgeData";
 import { ageRatingBand, GENRE_NAMES, genreToColour, neutralFill, releaseDecade } from "../../src/utils/types";
 import { book } from "../fixtures/books";

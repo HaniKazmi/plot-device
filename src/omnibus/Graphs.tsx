@@ -16,7 +16,9 @@ import { FranchiseContext as MovieFranchiseContext, movieFranchise } from "../mo
 import { FranchiseContext as ShowFranchiseContext, showFranchise } from "../show/franchiseContext";
 import { FranchiseContext as VgFranchiseContext, vgFranchise } from "../vg/franchiseContext";
 import { useOtherTabs } from "../tabs";
-import { earliestYear, electNow, hasNow, recentlyFinished, type Library, type OmniItem } from "./adapter";
+import { earliestYear, electNow, hasNow, recentlyFinished } from "./adapter";
+import type { Library } from "../app/library";
+import type { OmniItem } from "../common/medium";
 import Barchart from "./Barchart";
 import Crossings from "./Crossings";
 import { crossings } from "./crossingsData";
@@ -29,7 +31,7 @@ import { genreBridge } from "./genreBridgeData";
 import Stats from "./Stats";
 import { OMNIBUS_SECTIONS, omnibusSections } from "./sections";
 import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
-import type { Measure } from "./types";
+import type { Measure } from "../app/types";
 
 /** The measures this tab counts in, in the order the rail states them. */
 const MEASURES: readonly Measure[] = ["Hours", "Items"];

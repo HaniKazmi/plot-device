@@ -1,9 +1,9 @@
 import Barchart from "../common/Barchart";
 import { useSelectBox } from "../common/SelectBoxHook";
 import { format } from "../utils/mathUtils";
-import type { OmniItem } from "./adapter";
+import type { OmniItem } from "../common/medium";
 import { BARCHART_SPLITS, omniBarchartRows } from "./barchartData";
-import type { Measure } from "./types";
+import type { Measure } from "../app/types";
 import { useScheme } from "../common/useScheme";
 
 /**

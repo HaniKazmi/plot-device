@@ -1,5 +1,6 @@
 import { formatDate } from "../common/date";
-import { omniTitle, type OmniItem } from "./adapter";
+import { omniTitle } from "./adapter";
+import type { OmniItem } from "../common/medium";
 import type { ShelfItem } from "./galleryData";
 import { shapeRatioValues } from "../common/cardArrangement";
 import type { CardRowSizing } from "../common/Stats";
