@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- SVG first: every current browser prefers it and it stays sharp at any size. `favicon.ico`
+         is the fallback, and also what a browser asks for at the root before it has parsed any of
+         this. `apple-touch-icon` is opaque and square on purpose — iOS composites transparency
+         onto black and applies its own corner mask, so a rounded RGBA icon comes out twice-rounded
+         with black in the gaps. The manifest's maskable icon is full-bleed for the same reason,
+         and its own file: a rounded `any` icon declared maskable too is cropped twice on Android,
+         once by its own corners and once by the launcher's mask. -->
+    <link
+      rel="icon"
+      href="/favicon.svg"
+      type="image/svg+xml"
+    />
+    <link
+      rel="icon"
+      href="/favicon.ico"
+      sizes="32x32"
+    />
+    <link
+      rel="apple-touch-icon"
+      href="/apple-touch-icon.png"
+    />
+    <link
+      rel="manifest"
+      href="/manifest.webmanifest"
+    />
+    <!-- `viewport-fit=cover` is what makes `env(safe-area-inset-*)` anything but zero: without it
+         the page is laid out inside the safe area already and the bottom navigation stops short of
+         the screen's own edge, leaving a band of paper under it on a phone with a home indicator. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <!-- Every card's artwork and every byte of data come from a host the parser cannot discover
+         until React has mounted, authorised and fetched: the handshake would otherwise start at the
+         first `<img>`. Games sit on their own bucket-as-subdomain origin, so that is a second
+         handshake and a second hint. `crossorigin` on the three that are read cross-origin — the
+         images carry `crossOrigin="anonymous"` so a card's colour can be sampled off the canvas,
+         and gapi reaches the Sheets API as a CORS XHR; a hint without it warms a connection the
+         real request cannot reuse. The two script hosts are plain. -->
+    <link
+      rel="preconnect"
+      href="https://storage.googleapis.com"
+      crossorigin
+    />
+    <link
+      rel="preconnect"
+      href="https://hanikazmi_plotdevice_vg_avif.storage.googleapis.com"
+      crossorigin
+    />
+    <link
+      rel="preconnect"
+      href="https://sheets.googleapis.com"
+      crossorigin
+    />
+    <link
+      rel="preconnect"
+      href="https://apis.google.com"
+    />
+    <link
+      rel="preconnect"
+      href="https://accounts.google.com"
+    />
+    <title>Plot Device</title>
+    <script type="module" crossorigin src="/assets/index-_icnjecz.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BzuOcc9y.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
