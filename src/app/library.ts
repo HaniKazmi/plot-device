@@ -1,24 +1,10 @@
 import { createContext, useContext } from "react";
-import type { Book } from "../books/types";
 import type { OmniItem } from "../common/medium";
-import type { Movie } from "../movie/types";
-import type { Show } from "../show/types";
-import type { Medium } from "../utils/types";
-import type { VideoGame } from "../vg/types";
-import { mediaModules } from "./media";
+import { MEDIA as MEDIA_ORDER, type Medium } from "../utils/types";
+import { eachMedium } from "./media";
+import type { LibraryRecord } from "./records";
 import type { Measure } from "./types";
 import "../utils/arrayUtils";
-
-/**
- * What one row of each medium's own sheet converts to. The one place in the app that spells the
- * four records out, so everything below it names a medium instead of a domain.
- */
-interface LibraryRecord {
-  game: VideoGame;
-  show: Show;
-  movie: Movie;
-  book: Book;
-}
 
 /**
  * The four libraries as the domains model them, before anything is flattened.
@@ -35,13 +21,6 @@ interface LibraryRecord {
 export type Library = { [M in Medium]: LibraryRecord[M][] };
 
 /**
- * The rows of one medium, as a walk over the registry reads them: the element type there names no
- * domain, so every slice comes back erased and the answer is cast once, here, rather than at each
- * of the three walks below.
- */
-const sliceOf = (library: Partial<Library>, medium: Medium) => library[medium] as unknown[] | undefined;
-
-/**
  * Guest mode applied to each library by its own domain's rule, before anything is composed.
  *
  * It has to happen here rather than as one predicate over the union, because the Now band elects
@@ -51,15 +30,23 @@ const sliceOf = (library: Partial<Library>, medium: Medium) => library[medium] a
  *
  * The libraries are handed back by identity when the mode is off, so the common case allocates
  * nothing and every consumer below the provider re-renders only on a real change.
+ *
+ * The walk is generic in the medium, so each visit holds one module and the records that module
+ * actually filters — erased, a walk over four modules and four libraries relates neither pair.
  */
 export const visibleLibrary = (library: Partial<Library>, guestMode: boolean): Partial<Library> => {
   if (!guestMode) return library;
 
-  const visible: Record<string, unknown[] | undefined> = {};
-  for (const module of mediaModules)
-    visible[module.medium] = sliceOf(library, module.medium)?.filter(module.guestFilter);
+  const visible: Partial<Library> = {};
+  eachMedium((medium, module) => {
+    // The one assertion, and it is the write and not the pairing: reading `library[medium]` under a
+    // generic key gives that medium's own rows, but writing through one is checked against the
+    // intersection of every medium's, which no library satisfies. The value assigned is the slice
+    // this same key just read, filtered by this same medium's rule.
+    (visible as Record<Medium, unknown>)[medium] = library[medium]?.filter(module.guestFilter);
+  });
 
-  return visible as Partial<Library>;
+  return visible;
 };
 
 /**
@@ -71,7 +58,9 @@ export const visibleLibrary = (library: Partial<Library>, guestMode: boolean): P
  * composing tab cannot disagree about when the library is whole.
  */
 export const completeLibrary = (library: Partial<Library>): Library | undefined =>
-  mediaModules.every((module) => sliceOf(library, module.medium)) ? (library as Library) : undefined;
+  // The one assertion here, and a narrowing rather than a pairing: the test is a runtime one over
+  // a walk, which TypeScript cannot read back as "every field is present".
+  MEDIA_ORDER.every((medium) => library[medium]) ? (library as Library) : undefined;
 
 /**
  * The four libraries as one flat list, each medium's arm supplied by its own module — so the unit
@@ -79,7 +68,7 @@ export const completeLibrary = (library: Partial<Library>): Library | undefined 
  * than shows for that reason, which is a fact about the Shows sheet and not about the union.
  */
 export const toOmniItems = (library: Library): OmniItem[] =>
-  mediaModules.flatMap((module) => module.toOmniItems(library[module.medium]));
+  eachMedium((medium, module) => module.toOmniItems(library[medium])).flat();
 
 /**
  * Hours over a set of items, floored once.

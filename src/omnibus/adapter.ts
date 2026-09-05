@@ -1,7 +1,7 @@
 import type { YearNumber } from "../common/date";
 import type { OmniItem } from "../common/medium";
 import { omniHours, type Library } from "../app/library";
-import { MEDIA } from "../app/media";
+import { moduleOf } from "../app/media";
 import { media, type Medium } from "../app/types";
 import { currentlyReading } from "../books/statsData";
 import { latestWatched } from "../movie/statsData";
@@ -27,7 +27,7 @@ export const unionTotals = (items: OmniItem[]) => ({
  * What the item is called on a card: a season says which season it is, because a strip of six
  * cards all reading the same show name says nothing about what was watched.
  */
-export const omniTitle = (item: OmniItem): string => MEDIA[item.medium].title(item.source);
+export const omniTitle = (item: OmniItem): string => moduleOf(item).title(item.source);
 
 /**
  * What was finished most recently, newest first.

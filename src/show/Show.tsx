@@ -1,7 +1,6 @@
 import { lazy } from "react";
 import { createTabEntry } from "../app/tabEntry";
-import { useFilterReducer, type FilterState } from "./filterUtils";
-import type { Show } from "./types";
+import { useFilterReducer } from "./filterUtils";
 
 /**
  * The one `import()` of the charts, at module scope: the React Compiler cannot lower an import
@@ -11,11 +10,11 @@ import type { Show } from "./types";
 const loadGraphs = () => import("./Graphs");
 
 /**
- * The records and the state are named rather than inferred: `lazy()` hands back an exotic
- * component TypeScript cannot read a prop type out of, so the tab says what its charts are drawn
- * over and the two are checked against each other here.
+ * Nothing is named: the medium is inferred from the word below and its records follow from it, so
+ * the library slice, the filter state and the charts are checked against one another here rather
+ * than each asserted to be the same tab's.
  */
-export default createTabEntry<Show, FilterState>({
+export default createTabEntry({
   medium: "show",
   loadGraphs,
   Graphs: lazy(loadGraphs),

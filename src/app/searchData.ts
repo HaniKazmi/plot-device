@@ -3,7 +3,7 @@ import { franchiseIndex } from "../common/franchiseIndex";
 import { YearMonthDay, type Year } from "../common/date";
 import { mediumToLabel, type Medium } from "../utils/types";
 import { namesTheSameThing } from "../utils/stringUtils";
-import { MEDIA } from "./media";
+import { moduleOf } from "./media";
 import type { Season } from "../show/types";
 import type { OmniItem } from "../common/medium";
 import { omniHours } from "./library";
@@ -121,14 +121,13 @@ const representative = (members: OmniItem[]): OmniItem =>
  * places a reader remembers a work by when the title escapes them. Blank cells are dropped, since
  * a blank matches nothing but would still be scanned.
  */
-const secondaryText = (item: OmniItem): string[] => MEDIA[item.medium].secondaryText(item.source);
+const secondaryText = (item: OmniItem): string[] => moduleOf(item).secondaryText(item.source);
 
 /**
  * The line a hit is told by: the facts its hover card leads with, in each medium's own words.
  * Hours over every row of the work, so a show's are its seasons' together.
  */
-const factsOf = (item: OmniItem, members: OmniItem[]): string =>
-  MEDIA[item.medium].facts(item.source, omniHours(members));
+const factsOf = (item: OmniItem, members: OmniItem[]): string => moduleOf(item).facts(item.source, omniHours(members));
 
 /** One group of the palette's answer: the franchises, or one medium's works. */
 export interface SearchGroup {

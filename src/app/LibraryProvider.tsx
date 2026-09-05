@@ -43,10 +43,9 @@ const useSheet = <T,>(module: MediumModule<T, unknown>) => useData(module.data, 
  * — needs all four anyway. The cost is a returning visitor's three extra reads behind a page that
  * has already painted from cache.
  *
- * The four calls are written out rather than walked over `mediaModules`, for two reasons that hold
- * independently: a hook called in a loop or a callback is a rules-of-hooks error, and the registry's
- * element type erases each medium's own record — walked, every library would come back `unknown[]`
- * and be cast back into shape here.
+ * The four calls are written out rather than walked over the registry because a hook called in a
+ * loop or a callback is a rules-of-hooks error. Each is typed for its own medium's records, which
+ * is what makes the object below a `Partial<Library>` with nothing asserted into it.
  */
 export const LibraryProvider = ({ guestMode, children }: { guestMode: boolean; children: ReactNode }) => {
   const [games, gamesLoaded, gamesError] = useSheet(vgModule);

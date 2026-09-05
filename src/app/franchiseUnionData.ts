@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { YearMonthDay } from "../common/date";
 import { franchiseIndex } from "../common/franchiseIndex";
 import type { FranchiseEntry, FranchiseUnion } from "../common/franchiseUnion";
-import { MEDIA } from "./media";
+import { moduleOf } from "./media";
 import type { OmniItem } from "../common/medium";
 
 /** How an item's hover card is built, handed in so this module stays free of anything rendered. */
@@ -13,7 +13,7 @@ export type HoverCardOf = (item: OmniItem) => () => ReactNode;
  * and a tab's own index cannot draw one item two ways.
  */
 const unionEntry = (item: OmniItem, today: YearMonthDay, hoverCard: HoverCardOf): FranchiseEntry =>
-  MEDIA[item.medium].entry(item.source, today, hoverCard(item));
+  moduleOf(item).entry(item.source, today, hoverCard(item));
 
 /**
  * Every franchise across the four libraries, grouped on the raw franchise column exactly as each

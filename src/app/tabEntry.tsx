@@ -3,6 +3,7 @@ import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
 import type { FilterDispatchFor } from "../common/filterReducer";
 import type { Medium, Predicate } from "../utils/types";
 import { useLibrary } from "./library";
+import type { LibraryRecord } from "./records";
 
 /** What every tab's `Graphs` takes: its own rows, filtered and whole, and the state that narrowed them. */
 interface TabGraphsProps<T, S> {
@@ -43,28 +44,30 @@ const usePrefetchGraphs = (loadGraphs: () => Promise<unknown>) =>
  * The two pieces a domain keeps for itself are the `import()` of its charts and the `lazy()` over
  * it: the React Compiler cannot lower an import expression, so one written here — or anywhere
  * inside a component — would take that whole function out of compilation, silently.
+ *
+ * The medium is the type parameter, not the record: `M` is the literal a call site writes, and the
+ * records follow from it through `LibraryRecord`. That is what pairs the three halves of a tab —
+ * the slice the shell fetched, the state that narrows it and the charts drawn over it — so a page
+ * cannot be built from one medium's library and another's filters.
  */
-export const createTabEntry = <T, S extends { filter: Predicate<T> }>({
+export const createTabEntry = <M extends Medium, S extends { filter: Predicate<LibraryRecord[M]> }>({
   medium,
   loadGraphs,
   Graphs,
   useFilterReducer,
 }: {
-  medium: Medium;
+  medium: M;
   loadGraphs: () => Promise<unknown>;
-  Graphs: ComponentType<TabGraphsProps<T, S>>;
+  Graphs: ComponentType<TabGraphsProps<LibraryRecord[M], S>>;
   useFilterReducer: () => readonly [S, FilterDispatchFor<S>];
 }) => {
   const TabEntry = () => {
     usePrefetchGraphs(loadGraphs);
     // The tab's own slice of the one library the shell fetched, with guest mode already applied:
     // the mode hides content rather than narrowing a view, so it belongs to the data every surface
-    // here reads and not to this page's filters. The library is keyed by medium and its element
-    // types erase to nothing a caller holding a bare `Medium` can name, so the slice is cast back
-    // to the records this tab's own charts are typed for — the erasure `LibraryProvider` pays
-    // going in, read back out.
+    // here reads and not to this page's filters.
     const { visible, loaded, error } = useLibrary();
-    const data = visible[medium] as T[] | undefined;
+    const data = visible[medium];
     const [filterState, filterDispatch] = useFilterReducer();
 
     // Mounted beside the charts rather than inside them, because the case worth saying most is the

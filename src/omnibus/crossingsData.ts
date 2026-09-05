@@ -1,7 +1,7 @@
 import { CURRENT_YEAR, YearMonthDay } from "../common/date";
 import { buildStrip, type StripBand, type StripSpan } from "../common/timelineStripData";
 import { namesTheSameThing } from "../utils/stringUtils";
-import { MEDIA } from "../app/media";
+import { moduleOf } from "../app/media";
 import type { OmniItem } from "../common/medium";
 import { media, type Medium } from "../app/types";
 import "../utils/arrayUtils";
@@ -43,7 +43,7 @@ export interface Crossing {
  */
 export const crossingSpan = (item: OmniItem, key: string, today: YearMonthDay): CrossingSpan => ({
   key,
-  ...MEDIA[item.medium].span(item.source, today),
+  ...moduleOf(item).span(item.source, today),
   item,
 });
 

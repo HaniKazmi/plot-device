@@ -103,16 +103,22 @@ name.
 **`app/` is the medium registry** (`app/media.ts`): a `MediumModule` per medium, supplied by each
 domain's own `module.ts`, holding everything the app asks of a medium that the medium itself is the
 authority on — its data config, its guest rule, its arm of the union, the entry a franchise strip
-draws it as, the store its tab's page state lives in, its artwork and its title. A surface holding four media reads `MEDIA[item.medium]`
+draws it as, the store its tab's page state lives in, its artwork and its title. It is keyed by
+medium over `app/records.ts`, so `MEDIA.game` takes games and nothing else: erased to
+`MediumModule<unknown, unknown>`, one medium's guest rule type-checks against another's library and
+the mistake is a page silently emptied. A surface holding four media reads `MEDIA[item.medium]`
 rather than switching on it, and `tests/architecture.test.ts` forbids a `switch` on a medium
 anywhere else: the compiler catches a missing arm only where somebody wrote the switch exhaustively,
 and a fifth medium is otherwise an edit in every file that ever needed to tell them apart.
 
 The registry is reachable from the shell, so it splits in two. `module.ts` is eager and holds what a
-tab needs before it draws anything; `module.lazy.ts` holds the cards, the hover card and the three
-accessors only the gallery and the search palette ask for, and is reached through `app/mediaLazy.ts`
-alone — a static table, so a wall of cards does not pay a round trip per medium, and the one seam,
-so there is one answer to when a medium's chunk is fetched. Nothing in `app/` imports `tabs.ts`,
+tab needs before it draws anything; `module.lazy.ts` holds the card and the hover card, and is
+reached through `app/mediaLazy.ts` alone — a static table, so a wall of cards does not pay a round
+trip per medium, and the one seam, so there is one answer to when a medium's chunk is fetched. That
+lookup is on a value the bundler cannot narrow, so the lazy half is held to those two components:
+anything else exported there is weight on the chunk the union prefetches for its hover cards on
+every visit, which is why each tab's filter glyphs sit in its own `filterIcons.ts` beside the
+`Graphs` that draws the drawer. Nothing in `app/` imports `tabs.ts`,
 because `tabs.ts` imports the five entry components eagerly and an entry component reaches the
 registry: a module carries `tabId: string`, and the one component that resolves an id to a tab is
 mounted by the shell, below both.
@@ -197,9 +203,11 @@ has one caller to land at rather than six. It is mounted by `Google.tsx` inside 
 and above `NavBar`, so the bar, the search palette, a card's franchise strip and all five tabs read
 one copy of the library.
 
-The four `useData` calls are written out rather than walked over `mediaModules`: a hook called in a
-loop or a callback is a rules-of-hooks error, and the registry's element type erases each medium's
-own record, so a walk would hand every library back as `unknown[]` to be cast into shape again.
+The four `useData` calls are written out rather than walked over the registry, because a hook called
+in a loop or a callback is a rules-of-hooks error. The walks that are not hooks go through
+`eachMedium`, whose callback is generic in the medium: an array of the four modules relates a module
+to no particular library, where one visit at a time holds a module and the records it actually
+takes.
 
 `LibraryValue` (`app/library.ts`) is what a tab reads. `raw` is what each converter produced;
 `visible` is that with guest mode applied per library by each domain's own rule, which is where the
@@ -1759,17 +1767,20 @@ Implement `CardMediaImage` against `TypedCardMediaImage<T>` to get `Finished` an
 free.
 
 A fifth medium extends the `Medium` union in `utils/types.ts` with its fill, label, name and unit,
-and is then **a `module.ts`, a `module.lazy.ts` and one line in `app/media.ts`** (§2). The eager
-half answers what the medium is — its `DataConfig`, its guest rule, its arm of the union, its
-`FranchiseEntry` mapper and span, its page state, its filter schema, its artwork and its title; the
-lazy half answers what draws it, its cards and its filter icons alike.
+and is then **a `module.ts`, a `module.lazy.ts`, a line in `app/records.ts` and one in
+`app/media.ts`** (§2). The eager half answers what the medium is — its `DataConfig`, its guest rule,
+its arm of the union, its `FranchiseEntry` mapper and span, its page state, its filter schema, its
+artwork and its title; the lazy half answers what draws it, its card and its hover card, and nothing
+else, its filter glyphs going beside its own `Graphs`. `app/records.ts` names the record its sheet
+converts to and the one it contributes to the union, which is what pairs the module with its own
+library.
 Nothing else changes: `toOmniItems`, `visibleLibrary`, the crossings, the gallery, the search index
 and the card dispatcher all read the registry, so a medium that answers everything on
 `MediumModule` is on every surface the day it is added, and one that answers nothing does not
 compile. A module never imports `tabs.ts`; it carries `tabId`. What is still by hand is the fetch:
 a hook cannot be called in a loop, so `LibraryProvider` writes its four `useSheet` calls out and
 names each medium once more in `raw`, `loaded` and `error`. `Library` itself is keyed by medium
-over a `LibraryRecord` naming each domain's own record, so the type and every walk over it —
+over `app/records.ts`'s `LibraryRecord`, so the type and every walk over it —
 `visibleLibrary`, `completeLibrary`, `toOmniItems` — take the fifth medium from the `Medium` union
 without an edit. Four lines in one file, all of which fail to compile if any is missed.
 
