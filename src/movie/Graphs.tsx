@@ -10,7 +10,7 @@ import Barchart from "./Barchart";
 import WatchTimeline from "./WatchTimeline";
 import { SchemaFilterDrawer } from "../common/FilterControls";
 import { movieFilters } from "./filters";
-import { filterIcons } from "./module.lazy";
+import { filterIcons } from "./filterIcons";
 import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
 import { FilterChip } from "../common/FilterDrawer";
 import { MeasureControl } from "../common/SelectionComponents";

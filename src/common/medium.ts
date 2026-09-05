@@ -1,4 +1,3 @@
-import type { SvgIconComponent } from "@mui/icons-material";
 import type { FunctionComponent, ReactNode } from "react";
 import type { CardMediaImageProps } from "./Card";
 import type { Year, YearMonthDay, YearNumber } from "./date";
@@ -102,16 +101,15 @@ type CardProps<S> = Omit<CardMediaImageProps, "image" | "alt" | "detailComponent
  * `MediumLazy<Season>` sit in a record whose element type names no domain: TypeScript checks a
  * method's parameters bivariantly, and a property-typed component is contravariant in its item, so
  * every module would be unassignable to the erased element type the lookup needs.
+ *
+ * Two members and no more. A medium is looked up by a value (`MEDIA_LAZY[item.medium]`), which a
+ * bundler cannot narrow, so everything reachable through this shape is weight on the chunk the
+ * union prefetches for its hover cards on every visit. Anything a medium answers that a card does
+ * not draw — a filter glyph, a label — belongs beside the surface that asks for it.
  */
 export interface MediumLazy<S> {
   CardMediaImage(props: CardProps<S>): ReturnType<FunctionComponent>;
   HoverCard(props: { item: S }): ReturnType<FunctionComponent>;
-  /**
-   * A glyph per filter toggle, keyed as the eager half's schema keys its toggles. Here and not
-   * beside the schema for this interface's own reason: a schema is data the shell reaches, and an
-   * icon named in it would put four tabs' filter glyphs in the first bundle.
-   */
-  filterIcons: Record<string, SvgIconComponent>;
 }
 
 /**

@@ -21,7 +21,7 @@ import { FranchiseContext, showFranchise } from "./franchiseContext";
 import { franchiseIndex } from "../common/franchiseIndex";
 import { SchemaFilterDrawer } from "../common/FilterControls";
 import { showFilters } from "./filters";
-import { filterIcons } from "./module.lazy";
+import { filterIcons } from "./filterIcons";
 import { memo, useDeferredValue } from "react";
 import { format } from "../utils/mathUtils";
 import { finishedCount } from "../common/finishedData";

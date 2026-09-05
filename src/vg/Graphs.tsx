@@ -15,7 +15,7 @@ import { Stack } from "@mui/material";
 import { usePhone } from "../common/breakpoints";
 import { SchemaFilterDrawer } from "../common/FilterControls";
 import { vgFilters } from "./filters";
-import { filterIcons } from "./module.lazy";
+import { filterIcons } from "./filterIcons";
 import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
 import { FilterChip } from "../common/FilterDrawer";
 import { MeasureControl } from "../common/SelectionComponents";

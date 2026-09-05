@@ -1,9 +1,9 @@
-import * as bookLazy from "../books/module.lazy";
+import { CardMediaImage as BookCard, HoverCard as BookHoverCard } from "../books/module.lazy";
 import type { MediumLazy } from "../common/medium";
-import * as movieLazy from "../movie/module.lazy";
-import * as showLazy from "../show/module.lazy";
+import { CardMediaImage as MovieCard, HoverCard as MovieHoverCard } from "../movie/module.lazy";
+import { CardMediaImage as ShowCard, HoverCard as ShowHoverCard } from "../show/module.lazy";
 import type { Medium } from "../utils/types";
-import * as vgLazy from "../vg/module.lazy";
+import { CardMediaImage as VgCard, HoverCard as VgHoverCard } from "../vg/module.lazy";
 
 /**
  * The four media's components, as one lookup — `MEDIA`'s other half.
@@ -14,10 +14,15 @@ import * as vgLazy from "../vg/module.lazy";
  * for the length of them. Nothing eager imports this file, so the four stay out of the first
  * bundle all the same — this module is the whole lazy seam, and a second way to reach a medium's
  * components is a second answer to when their chunk is fetched.
+ *
+ * Named imports rather than four namespaces: the lookup is dynamic (`MEDIA_LAZY[item.medium]`), so
+ * a namespace object is opaque to the bundler and everything the four lazy halves export is pulled
+ * into this chunk — the one the union prefetches for its hover cards on every visit. Named, only
+ * what is written here can ride along.
  */
 export const MEDIA_LAZY: Record<Medium, MediumLazy<unknown>> = {
-  game: vgLazy,
-  show: showLazy,
-  movie: movieLazy,
-  book: bookLazy,
+  game: { CardMediaImage: VgCard, HoverCard: VgHoverCard },
+  show: { CardMediaImage: ShowCard, HoverCard: ShowHoverCard },
+  movie: { CardMediaImage: MovieCard, HoverCard: MovieHoverCard },
+  book: { CardMediaImage: BookCard, HoverCard: BookHoverCard },
 };

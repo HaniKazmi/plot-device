@@ -11,7 +11,7 @@ import Barchart from "./Barchart";
 import Timeline from "./Timeline";
 import { SchemaFilterDrawer } from "../common/FilterControls";
 import { bookFilters } from "./filters";
-import { filterIcons } from "./module.lazy";
+import { filterIcons } from "./filterIcons";
 import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
 import { FilterChip } from "../common/FilterDrawer";
 import { MeasureControl } from "../common/SelectionComponents";
