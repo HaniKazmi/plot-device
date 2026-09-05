@@ -20,7 +20,7 @@ export interface TimelineData {
    * Built lazily: the timeline positions every row it is given, and the hover card is only ever
    * mounted for the one the pointer is over. As a node, each row's card and its footer labels
    * would be constructed up front and then held for the life of the layout, because `packRows`
-   * copies every row and `useTextPlacement` keys a map by those copies.
+   * copies every row and `placeLabels` copies those copies again.
    *
    * Must return something to show. Being a thunk, it cannot be inspected before the pointer
    * arrives, so MUI's "don't open an empty tooltip" check sees a wrapper that is always present

@@ -320,14 +320,24 @@ rich hover cards. Two algorithms:
 - **Greedy interval packing** (`packRows`, `common/timelineLayout.ts`): sort by start date, place
   each item in the first row whose last item has ended. Items are linked to their row neighbours
   (`previousDate` / `nextDate`), so the layout step knows how much empty space surrounds a bar.
-- **Measured text placement** (`useTextPlacement`): a `useLayoutEffect` reads real DOM geometry and
-  decides per item whether the label fits inside the bar or spills into the gap left or right,
-  tracking per row whether the right-hand gap is claimed. Labels live in a `<foreignObject>`
-  spanning the whole gap, so they overflow the bar without being clipped. It re-measures on a resize
-  — width only, every placement number being a pixel off a grid whose width alone moves it — after
-  dropping to the empty layout, so no label is measured wearing the previous width's placement.
+- **Derived text placement** (`placeLabels`): one pass over the rows decides per item whether the
+  label fits inside its bar or spills into the gap left or right, tracking per row whether the
+  right-hand gap is claimed. Labels live in a `<foreignObject>` spanning the whole gap, so they
+  overflow the bar without being clipped. Nothing is read off the DOM: the bar and its gaps are
+  already percentages of the grid, and the label's own box is
+  `round(measureText(name) + 2 × LABEL_PADDING)` — the label is `white-space: nowrap` inside
+  `overflow: hidden`, so what it reports is its glyphs plus the padding either side rounded to the
+  pixel, which a canvas answers exactly given the same font, and the font is `system-ui` so no
+  webfont can arrive late and change it. Asking the DOM costs two renders of the whole chart, since
+  the measurement can only be taken after a commit and only while every label still wears the
+  default placement — a placed label reports the width its own answer pinned it to. `useElementWidth`
+  supplies the one pixel figure the arithmetic needs, off the grid's own box: `GRID_WIDTH` is a
+  `vw` length, so the viewport agrees with it until the grid's scroller takes a classic scrollbar
+  or a fractional device pixel ratio lands the box off a whole number. The viewport is still the
+  first guess, since that hook answers `undefined` until it has measured — but it reads in a layout
+  effect, so the guess is drawn for no frame the reader sees.
 
-The chart is fixed at `400vw` inside a scroll container, the month/quarter/year axis beneath it.
+The chart is fixed at `GRID_WIDTH` (four viewports) inside a scroll container, the month/quarter/year axis beneath it.
 `buildTicks` walks the month range once in `TimeLineChart`, and that one array feeds the axis,
 `TimelineBackground` — alternating year bands and gridlines behind the bars — and `yearMarkers`,
 which folds it to one entry per calendar year, the opening one pinned to the left edge because a
@@ -1524,9 +1534,11 @@ anything out of a module-scope function:
   the caller and mounted or not by `FoldedChart` alone. The crossings stack goes one step further and
   splits into its own component, mounted only once its folded card is opened, for the same
   `useOpenAtLatest` reason (§6, Omnibus).
-- **Object lifetimes.** `useTextPlacement` keys a ref map by row objects rebuilt whenever data
-  changes, deleting an entry once all three refs detach; otherwise dead rows retain their tooltip
-  trees, and through them the domain records.
+- **Object lifetimes.** `TimelineData.tooltip` is a thunk because `packRows` copies every row and
+  `placeLabels` copies those copies again: built as nodes, each row's card and its footer labels
+  would be constructed up front and held for the life of the layout, and through them the domain
+  records. `measureLabel`'s cache is keyed on the font and the string rather than on a row, so it
+  retains nothing domain-side however many layouts pass through it.
 - **Module-scope hoisting.** `Google.tsx` caches themes per tab and reads MUI's default palette once;
   `common/sunburstData.ts` and `common/finishedData.ts` each hoist an `Intl.Collator` rather than
   calling `localeCompare` across thousands of comparisons. The compiler's per-component cache is a

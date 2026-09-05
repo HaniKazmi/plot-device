@@ -1,5 +1,5 @@
 import { Card, CardContent, Box, useTheme, type Theme } from "@mui/material";
-import { type ReactNode, useEffect, useLayoutEffect, useRef, useState, type Ref } from "react";
+import { type ReactNode, useState } from "react";
 import { shortYear, type YearMonthDay } from "./date";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 import { ChipRail } from "./ChipRail";
@@ -10,6 +10,7 @@ import { ScrollFade } from "./ScrollFade";
 import { CONTAIN_SIDEWAYS_SCROLL, scrollbarSx } from "./scrollbarSx";
 import { useOpenAtLatest } from "./useOpenAtLatest";
 import { useScrollEdges } from "./useScrollEdges";
+import { useElementWidth } from "./useElementWidth";
 import {
   buildTicks,
   decidePlacement,
@@ -51,8 +52,25 @@ const BAR_RADIUS = 6;
  * a pixel, so without a floor the shortest entries disappear entirely.
  */
 const MIN_BAR_WIDTH = 4;
+/**
+ * The weight a label is set in, shared with the canvas that measures one.
+ *
+ * A width measured at another weight is a placement decided against a label nobody draws, and it
+ * is cached under the font string, so the wrong answer is kept for the session.
+ */
+const LABEL_WEIGHT = 500;
 const SVG_PADDING = 10;
 const LABEL_FONT_SIZE = 13;
+/** The room a label keeps either side of its own text, and so what its box measures over its glyphs. */
+const LABEL_PADDING = 5;
+/**
+ * How many viewports of scroll the grid runs to, as CSS and as the number label placement is
+ * solved against. One constant for both: the placement arithmetic works in percentages of the
+ * grid and has to turn them into pixels, and a width stated twice is a width that can disagree
+ * with itself — silently, since a label placed against the wrong grid still renders.
+ */
+const GRID_VIEWPORTS = 4;
+const GRID_WIDTH = `${GRID_VIEWPORTS * 100}vw`;
 /**
  * Both sit below the bar labels, because the scale is chrome and the bars are the content — the
  * axis reading larger than the data it measures is what made it shout.
@@ -131,8 +149,8 @@ const ROW_SX = {
  *
  * What varies with the item — its padding, its offset, its width, its colour and the gradient a
  * span is painted with — is set as inline `style` instead: each distinct set of values reaching
- * `sx` mints an emotion class of its own, and the chart renders every label at least twice per
- * data change, once at the default layout and once measured.
+ * `sx` mints an emotion class of its own, and a chart draws hundreds of labels, no two of them
+ * at the same offset or width.
  */
 const LABEL_SX = {
   position: "fixed",
@@ -141,7 +159,7 @@ const LABEL_SX = {
   overflow: "hidden",
   whiteSpace: "nowrap",
   fontSize: LABEL_FONT_SIZE,
-  fontWeight: 500,
+  fontWeight: LABEL_WEIGHT,
   // A press on a label is how a card is opened on a phone, and the press that opens it would
   // otherwise put the label's own text into a selection with the handles that come with it.
   userSelect: "none",
@@ -162,120 +180,134 @@ type LayoutInfo = {
   availableRightPx: number;
 };
 
-const defaultLayout: LayoutInfo = {
-  placement: "center",
-  textPx: 0,
-  barPx: 0,
-  availableLeftPx: 0,
-  availableRightPx: 0,
-};
-
-type ItemRefs = {
-  rect: SVGRectElement | null;
-  fo: SVGForeignObjectElement | null;
-  text: HTMLDivElement | null;
-};
-
 /**
- * No measurement at all, which is what every label falls through to `defaultLayout` from: the
- * layout a label is drawn at before it has been measured, and the one it returns to whenever the
- * last measurement stops describing the screen.
+ * A bar, where it sits, and how its label is placed on it.
  *
- * One shared instance, because this is the map identity a whole chart's labels are read out of —
- * a fresh empty map per render is a new identity and re-renders every one of them.
+ * The percentages are the grid's own coordinate space, which is what the renderer draws in; the
+ * pixel figures beside them are what the placement was decided from and what the label's style is
+ * written in. Both are solved in one pass so the two cannot describe different geometry — a label
+ * padded for a bar of one width, sitting on a bar of another, is a label off its own mark.
  */
-const EMPTY_LAYOUTS: Map<PositionedTimelineData, LayoutInfo> = new Map();
+type PlacedTimelineData = PositionedTimelineData & {
+  xPercent: number;
+  widthPercent: number;
+  /** The label's box, spanning to whatever the row holds either side of this bar. */
+  labelXPercent: number;
+  labelWidthPercent: number;
+  layout: LayoutInfo;
+};
 
 // ============================================================================
 // Hooks
 // ============================================================================
 /**
- * Hook to dynamically calculate where text should be placed (center, left, right)
- * relative to its colored bar, ensuring it is fully visible and doesn't overlap other text.
- * It uses a `useLayoutEffect` to read actual DOM node dimensions after rendering.
+ * How wide a label's own box reports itself, without laying one out.
+ *
+ * The label is `white-space: nowrap` inside an `overflow: hidden` box, so the width it reports is
+ * its glyphs plus the padding either side, rounded to the whole pixel — which a canvas answers
+ * exactly, given the same font. The two agree: over 1,878 placement decisions, across both charts
+ * at two widths, none comes out differently.
+ *
+ * Asking the DOM instead costs two renders of the whole chart. The measurement can only be taken
+ * after a commit, so every label is drawn once at a default placement and again at the measured
+ * one — 1,798 style writes across 792 labels on the Shows timeline. It also has to be taken while
+ * every label still wears that default, since a placed label reports the width its own answer
+ * pinned it to rather than its text, which makes the two-pass shape load-bearing rather than
+ * incidental. And the read is `scrollWidth` on HTML inside a `foreignObject`, WebKit's weakest
+ * layout path, three hundred to eight hundred times over.
+ *
+ * Cached across charts and re-renders: a name is a fixed string, and the same library is drawn
+ * again on every filter change.
  */
-const useTextPlacement = (data: PositionedTimelineData[]) => {
-  /**
-   * The viewport width the chart is currently drawn at.
-   *
-   * Every number a placement is decided from is pixels off a grid four viewports wide, so a resize
-   * moves all of them at once: labels stay centred on bars that no longer hold them, and a gap an
-   * earlier label claimed has closed. Width alone, because nothing here reads a vertical measure —
-   * which leaves a phone's address bar collapsing, a resize that changes no width, costing nothing.
-   */
-  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
-  /** The last measurement, and the width it describes. */
-  const [measured, setMeasured] = useState({ width: viewportWidth, layouts: EMPTY_LAYOUTS });
-  /**
-   * A measurement taken at another width is dropped rather than shown, which is also what makes
-   * the next one honest: `scrollWidth` includes the padding and the pinned width the label is
-   * already wearing, so a label measured while it still carries its own last answer reads far
-   * wider than its text and falls out of a bar that still holds it. Every label is measured from a
-   * commit at the defaults — on a resize exactly as on a data change.
-   */
-  const layouts = measured.width === viewportWidth ? measured.layouts : EMPTY_LAYOUTS;
-  // Holds references to the DOM elements (bar rect, foreignObject container, and text element)
-  const itemRefs = useRef(new Map<PositionedTimelineData, ItemRefs>());
+const labelWidths = new Map<string, number>();
+let measureContext: CanvasRenderingContext2D | null | undefined;
 
-  const setItemRef =
-    <T extends keyof ItemRefs>(event: PositionedTimelineData, type: T) =>
-    (el: ItemRefs[T] | null) => {
-      const item = itemRefs.current.get(event) ?? { rect: null, fo: null, text: null };
-      item[type] = el;
-      // Keys are the row objects themselves, which are rebuilt whenever the data changes.
-      // Without this, every detached row would linger — holding its tooltip element tree,
-      // and through it the domain record — and the effect below would walk the dead ones too.
-      if (!item.rect && !item.fo && !item.text) itemRefs.current.delete(event);
-      else itemRefs.current.set(event, item);
-    };
+const measureLabel = (text: string, font: string) => {
+  const key = `${font}\u0000${text}`;
+  const held = labelWidths.get(key);
+  if (held !== undefined) return held;
 
-  useEffect(() => {
-    const readWidth = () => setViewportWidth(window.innerWidth);
-    window.addEventListener("resize", readWidth);
-    return () => window.removeEventListener("resize", readWidth);
-  }, []);
+  // Built on first use rather than at module scope, where `document` is absent under the test
+  // environment and importing this file would throw.
+  measureContext =
+    measureContext === undefined ? (document.createElement("canvas").getContext("2d") ?? null) : measureContext;
+  // Set per measurement rather than once: the context is shared, and the font is half the cache
+  // key, so a caller measuring in another face has to be able to say so.
+  if (measureContext) measureContext.font = font;
 
-  useLayoutEffect(() => {
-    const map = new Map<PositionedTimelineData, LayoutInfo>();
-    // Tracks if space to the right of an event has been taken by a previous event in the same row
-    const rightUsed: boolean[] = [];
+  // Half the font size a character is a coarse average for a proportional face, and coarse is the
+  // point: `decidePlacement` opens on `textWidth <= rectWidth`, so answering zero for a canvas that
+  // would not build reads as "fits inside any bar" and pins every label inside a sliver under
+  // `overflow: hidden` — a chart with no readable text and nothing said about why.
+  const width = measureContext
+    ? Math.round(measureContext.measureText(text).width + 2 * LABEL_PADDING)
+    : Math.round(text.length * (LABEL_FONT_SIZE / 2) + 2 * LABEL_PADDING);
+  labelWidths.set(key, width);
+  return width;
+};
 
-    itemRefs.current.forEach(({ text, fo, rect }, event) => {
-      if (!text || !fo || !rect) return;
+/**
+ * Where every bar sits and where its label goes, in one pass over the rows.
+ *
+ * Pure arithmetic over the dates, so it runs in the render body and the chart is drawn once,
+ * already placed. `rightUsed` carries along a row: a label that has taken the gap to its right
+ * has taken it from whatever comes next, which is why this walks the rows in order rather than
+ * deciding each bar on its own.
+ */
+const placeLabels = (
+  data: PositionedTimelineData[],
+  startDate: YearMonthDay,
+  endDate: YearMonthDay,
+  totalDays: number,
+  gridPx: number,
+  font: string,
+): PlacedTimelineData[] => {
+  const rightUsed: boolean[] = [];
 
-      const foBox = fo.getBoundingClientRect(); // The foreignObject boundary (total available space)
-      const rectBox = rect.getBoundingClientRect(); // The colored bar itself
+  return data.map((event) => {
+    // The offset is `percentAtDate` and the width `percentOfSpan`, so a bar opens on the same
+    // gridline the axis draws for its start date; the three quarters of a day is what leaves a
+    // visible gap between a bar and the one handed over to it, which the width gives back.
+    const xPercent = percentAtDate(startDate, event.start, totalDays, 0.75);
+    const widthPercent = percentOfSpan(event.start, event.end, totalDays, -0.75);
 
-      const textWidth = text.scrollWidth;
-      const rectWidth = rectBox.width;
+    // The label's box spans the entire empty space between the previous event and the next one on
+    // this row, and is shifted back to start exactly where the previous event ended.
+    const spaceLeftStart = event.previousDate ?? startDate;
+    const availableLeftPercent = percentOfSpan(spaceLeftStart, event.start, totalDays);
+    const labelWidthPercent = percentOfSpan(spaceLeftStart, event.nextDate ?? endDate, totalDays);
 
-      // Calculate available space to the right and left of the colored bar
-      const rightWidth = foBox.right - rectBox.right;
-      const leftWidth = rectBox.left - foBox.left;
+    // The bar as drawn, floor included: a sliver bar is painted at `MIN_BAR_WIDTH`, and a label
+    // centred on the width it was asked for would sit off the width it got.
+    const barPx = Math.max((widthPercent / 100) * gridPx, MIN_BAR_WIDTH);
+    const availableLeftPx = (availableLeftPercent / 100) * gridPx;
+    const availableRightPx = (labelWidthPercent / 100) * gridPx - availableLeftPx - barPx;
+    const textPx = measureLabel(event.name, font);
 
-      const decision = decidePlacement({
-        textWidth,
-        rectWidth,
-        leftWidth,
-        rightWidth,
-        rightUsed: rightUsed[event.rowNumber] ?? false,
-      });
-      rightUsed[event.rowNumber] = decision.rightUsed;
-
-      map.set(event, {
-        availableLeftPx: leftWidth,
-        availableRightPx: rightWidth,
-        barPx: rectWidth,
-        textPx: textWidth,
-        placement: decision.placement,
-      });
+    const decision = decidePlacement({
+      textWidth: textPx,
+      rectWidth: barPx,
+      leftWidth: availableLeftPx,
+      rightWidth: availableRightPx,
+      rightUsed: rightUsed[event.rowNumber] ?? false,
     });
+    rightUsed[event.rowNumber] = decision.rightUsed;
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMeasured({ width: viewportWidth, layouts: map });
-  }, [data, viewportWidth]);
-
-  return { layouts, setItemRef };
+    return {
+      ...event,
+      xPercent,
+      widthPercent,
+      labelXPercent: -availableLeftPercent,
+      labelWidthPercent,
+      layout: {
+        placement: decision.placement,
+        textPx,
+        barPx,
+        availableLeftPx,
+        availableRightPx,
+      },
+    };
+  });
 };
 
 // ============================================================================
@@ -367,7 +399,7 @@ export const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }
         >
           <Box
             sx={{
-              width: "400vw",
+              width: GRID_WIDTH,
               maxHeight: CHART_MAX_HEIGHT,
               display: "flex",
               flexDirection: "column",
@@ -520,14 +552,31 @@ const TimelineGrid = ({
   ticks: TimelineTick[];
   markers: YearMarker[];
 }) => {
-  const { layouts, setItemRef } = useTextPlacement(data);
+  const theme = useTheme();
   // Asked once for the whole chart. Every bar mounts two hover cards, so a chart of a few hundred
   // items would otherwise hold a thousand media-query subscriptions to answer one question that
   // cannot differ between them.
   const coarse = useCoarsePointer();
+  /**
+   * The width the grid is actually drawn at, which is what its own percentages resolve against.
+   *
+   * The viewport is the right guess and the wrong answer: `GRID_WIDTH` is a `vw` length, so the
+   * two agree until the grid's scroller takes a classic scrollbar, or a fractional device pixel
+   * ratio lands the box off a whole number. Falling back to it rather than to nothing is what
+   * lets the chart draw placed on its first pass — `useElementWidth` reads before paint, so the
+   * guess is never a frame the reader sees — and `||` rather than `??` because a zero box is a
+   * grid that is not laid out yet, not a grid nought pixels wide.
+   */
+  const [gridRef, measuredGrid] = useElementWidth<SVGSVGElement>();
+  const gridPx = measuredGrid || window.innerWidth * GRID_VIEWPORTS;
+  // The font the labels are actually set in, which is what makes the canvas answer the width the
+  // DOM would: the family off the theme, the size and weight `LABEL_SX` states.
+  const labelFont = `${LABEL_WEIGHT} ${LABEL_FONT_SIZE}px ${theme.typography.fontFamily}`;
+  const placed = placeLabels(data, startDate, endDate, totalDays, gridPx, labelFont);
 
   return (
     <svg
+      ref={gridRef}
       height={totalHeight}
       width="100%"
     >
@@ -536,18 +585,11 @@ const TimelineGrid = ({
         markers={markers}
         height={totalHeight}
       />
-      {data.map((event) => (
+      {placed.map((event) => (
         <TimelineText
           key={event.key}
           event={event}
           coarse={coarse}
-          startDate={startDate}
-          endDate={endDate}
-          totalDays={totalDays}
-          foRef={setItemRef(event, "fo")}
-          textRef={setItemRef(event, "text")}
-          rectRef={setItemRef(event, "rect")}
-          layoutInfo={layouts.get(event) ?? defaultLayout}
         />
       ))}
     </svg>
@@ -557,48 +599,24 @@ const TimelineGrid = ({
 const TimelineText = ({
   event,
   coarse,
-  startDate,
-  endDate,
-  totalDays,
-  foRef,
-  textRef,
-  rectRef,
-  layoutInfo,
 }: {
-  event: PositionedTimelineData;
+  event: PlacedTimelineData;
   /** Read once for the chart, since a bar's two triggers cannot disagree about it. */
   coarse: boolean;
-  startDate: YearMonthDay;
-  endDate: YearMonthDay;
-  totalDays: number;
-  foRef: Ref<SVGForeignObjectElement>;
-  textRef: Ref<HTMLDivElement>;
-  rectRef: Ref<SVGRectElement>;
-  layoutInfo: LayoutInfo;
 }) => {
   const theme = useTheme();
+  const layoutInfo = event.layout;
 
-  // Calculate relative X/Y positioning and width of the visual bar. The offset is `percentAtDate`
-  // and the width `percentOfSpan`, so a bar opens on the same gridline the axis draws for its start
-  // date; the three quarters of a day is what leaves a visible gap between a bar and the one handed
-  // over to it, which the width gives back.
-  const x = pct(percentAtDate(startDate, event.start, totalDays, 0.75));
-  const width = pct(percentOfSpan(event.start, event.end, totalDays, -0.75));
+  // The coordinate space is solved once for the chart, in `placeLabels`, and read here: the bar's
+  // own offset and width, and the label's box spanning to the row's neighbours either side.
+  const x = pct(event.xPercent);
+  const width = pct(event.widthPercent);
   const y = event.rowNumber * ROW_HEIGHT + SVG_PADDING + "px";
+  const foreignObjectX = pct(event.labelXPercent);
+  const totalTextContainerWidth = pct(event.labelWidthPercent);
 
-  // The `<foreignObject>` acts as a container for the text that spans the *entire available empty space*
-  // between the previous event and the next event on this row.
-  const spaceLeftStart = event.previousDate ?? startDate;
-  const availableLeft = percentOfSpan(spaceLeftStart, event.start, totalDays);
-
-  const textContainerEnd = event.nextDate ?? endDate;
-  const totalTextContainerWidth = pct(percentOfSpan(spaceLeftStart, textContainerEnd, totalDays));
-
-  // Shift the foreign object to start exactly where the previous event ended
-  const foreignObjectX = pct(-availableLeft);
-
-  const leftPadding = layoutInfo.placement === "right" ? `${layoutInfo.barPx + 5}px` : "5px";
-  const rightPadding = layoutInfo.placement === "left" ? `${layoutInfo.barPx + 5}px` : "5px";
+  const leftPadding = layoutInfo.placement === "right" ? `${layoutInfo.barPx + LABEL_PADDING}px` : `${LABEL_PADDING}px`;
+  const rightPadding = layoutInfo.placement === "left" ? `${layoutInfo.barPx + LABEL_PADDING}px` : `${LABEL_PADDING}px`;
   const leftPosition = `${layoutInfo.placement === "left" ? layoutInfo.availableLeftPx - layoutInfo.textPx : layoutInfo.availableLeftPx}px`;
   // A span starts on the bar like a centred label but is free to run off its end, so its width is
   // the two added together rather than either alone.
@@ -663,7 +681,6 @@ const TimelineText = ({
           rx={BAR_RADIUS}
           style={{ width: `max(${width}, ${MIN_BAR_WIDTH}px)` }}
           sx={BAR_SX}
-          ref={rectRef}
         />
       </HoverCardTooltip>
       {/* The label spans the whole gap around its bar, so left to itself it would swallow the
@@ -676,7 +693,6 @@ const TimelineText = ({
         height={BAR_HEIGHT}
         overflow="hidden"
         pointerEvents="none"
-        ref={foRef}
       >
         <HoverCardTooltip
           colour={event.colour}
@@ -686,7 +702,6 @@ const TimelineText = ({
           <Box
             sx={LABEL_SX}
             style={labelStyle}
-            ref={textRef}
           >
             {event.name}
           </Box>
