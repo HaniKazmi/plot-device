@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { CURRENT_YEAR, Year, YearMonthDay, type YearNumber } from "../../src/common/date";
+import { guestFilter } from "../../src/vg/filters";
 import { filters, initialState, type FilterState } from "../../src/vg/filterUtils";
 import { videoGame } from "../fixtures/vgRows";
+import { vgFilters } from "../../src/vg/filters";
 
 const state = (overrides: Partial<FilterState> = {}): Omit<FilterState, "filter"> => ({
   ...initialState,
@@ -117,15 +119,38 @@ describe("the year cutoff", () => {
   });
 });
 
-describe("guest mode", () => {
-  it("hides adult-themed games without touching anything else", () => {
-    const keep = filters(state({ guestMode: true }));
-
-    expect(keep(videoGame({ theme: ["Adult", "Fantasy"] }))).toBe(false);
-    expect(keep(videoGame({ theme: ["Fantasy"] }))).toBe(true);
+describe("what guest mode hides", () => {
+  // The rule is applied to the library above the tab rather than through these filters, so it is
+  // exercised as the predicate itself: the page's own filters never see an adult-themed game.
+  it("keeps everything but a game themed adult", () => {
+    expect(guestFilter(videoGame({ theme: ["Adult", "Fantasy"] }))).toBe(false);
+    expect(guestFilter(videoGame({ theme: ["Fantasy"] }))).toBe(true);
   });
 
   it("matches the theme exactly rather than by substring", () => {
-    expect(filters(state({ guestMode: true }))(videoGame({ theme: ["Adulthood"] }))).toBe(true);
+    expect(guestFilter(videoGame({ theme: ["Adulthood"] }))).toBe(true);
+  });
+});
+
+describe("the schema the drawer and the box are both drawn from", () => {
+  it("offers three toggles and five categories, in the order they are laid out", () => {
+    expect(vgFilters.toggles.map((toggle) => toggle.key)).toEqual(["endless", "unconfirmed", "pokemon"]);
+    expect(vgFilters.categories.map((category) => category.key)).toEqual([
+      "platform",
+      "genre",
+      "gameplay",
+      "publisher",
+      "franchise",
+    ]);
+  });
+
+  it("opens a search-within on the vocabularies this library holds hundreds of values in", () => {
+    // A reader picks a franchise or a person by typing; a genre or a format by scanning a list
+    // short enough to read. The flag is what tells the two apart, and the search box's This page
+    // mode reads it, offering a long category as a list to search rather than one to scan.
+    expect(vgFilters.categories.filter((category) => category.searchable).map((category) => category.key)).toEqual([
+      "publisher",
+      "franchise",
+    ]);
   });
 });

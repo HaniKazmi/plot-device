@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { CURRENT_YEAR, YearMonthDay, type YearNumber } from "../../src/common/date";
 import { filters, initialState, reducer, type FilterState } from "../../src/books/filterUtils";
 import { book } from "../fixtures/books";
+import { bookFilters } from "../../src/books/filters";
 
 const state = (overrides: Partial<Omit<FilterState, "filter">> = {}) => ({ ...initialState, ...overrides });
 
@@ -55,10 +56,6 @@ describe("toggles and categories", () => {
     expect(filters(state({ yearType: "matching", yearTo: year(1) }))(straddling)).toBe(false);
     expect(filters(state({ yearTo: year(3) }))(straddling)).toBe(false);
   });
-
-  it("adds nothing under guest mode, since nothing on the sheet marks a book to hide", () => {
-    expect(filters(state({ guestMode: true }))(book())).toBe(true);
-  });
 });
 
 describe("the measure", () => {
@@ -69,5 +66,28 @@ describe("the measure", () => {
     const hours = reducer(pages, { type: "measure", measure: "Hours" });
 
     expect([initialState.measure, pages.measure, hours.measure]).toEqual(["Books", "Pages", "Hours"]);
+  });
+});
+
+describe("the schema the drawer and the box are both drawn from", () => {
+  it("offers one toggle and five categories, in the order they are laid out", () => {
+    expect(bookFilters.toggles.map((toggle) => toggle.key)).toEqual(["unscored"]);
+    expect(bookFilters.categories.map((category) => category.key)).toEqual([
+      "genre",
+      "format",
+      "author",
+      "series",
+      "franchise",
+    ]);
+  });
+
+  it("opens a search-within on the vocabularies this library holds hundreds of values in", () => {
+    // A reader picks a franchise or a person by typing; a genre or a format by scanning a list
+    // short enough to read. The flag is what tells the two apart, and the search box's This page
+    // mode reads it, offering a long category as a list to search rather than one to scan.
+    expect(bookFilters.categories.filter((category) => category.searchable).map((category) => category.key)).toEqual([
+      "author",
+      "franchise",
+    ]);
   });
 });

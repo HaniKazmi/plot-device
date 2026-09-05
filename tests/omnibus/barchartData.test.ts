@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { Year, YearMonthDay } from "../../src/common/date";
-import { toOmniItems } from "../../src/omnibus/adapter";
+import { toOmniItems } from "../../src/app/library";
 import { omniBarchartRows } from "../../src/omnibus/barchartData";
-import { mediumToColour } from "../../src/omnibus/types";
+import { mediumToColour } from "../../src/app/types";
 import { ageRatingToColour, genreToColour } from "../../src/utils/types";
 import { book } from "../fixtures/books";
 import { library } from "../fixtures/library";
@@ -23,9 +23,9 @@ describe("omniBarchartRows", () => {
     const rows = omniBarchartRows(
       toOmniItems(
         library({
-          games: [videoGame()],
-          shows: [showWith(2022, 2022, 405)],
-          movies: [movie()],
+          game: [videoGame()],
+          show: [showWith(2022, 2022, 405)],
+          movie: [movie()],
         }),
       ),
       "Items",
@@ -45,7 +45,7 @@ describe("omniBarchartRows", () => {
     const rows = omniBarchartRows(
       toOmniItems(
         library({
-          games: [videoGame({ startDate: YearMonthDay.get(2019, 12, 20), endDate: YearMonthDay.get(2020, 1, 8) })],
+          game: [videoGame({ startDate: YearMonthDay.get(2019, 12, 20), endDate: YearMonthDay.get(2020, 1, 8) })],
         }),
       ),
       "Items",
@@ -57,14 +57,14 @@ describe("omniBarchartRows", () => {
   });
 
   it("keeps a whole year in every view, since two of the three media hold no finer date", () => {
-    const items = toOmniItems(library({ movies: [movie({ startDate: YearMonthDay.get(2021, 5, 9) })] }));
+    const items = toOmniItems(library({ movie: [movie({ startDate: YearMonthDay.get(2021, 5, 9) })] }));
 
     expect(omniBarchartRows(items, "Hours", "medium", "light")[0].date).toBe(Year.get(2021));
   });
 
   it("counts one per item under Items, whatever the item cost in hours", () => {
     const rows = omniBarchartRows(
-      toOmniItems(library({ games: [videoGame({ hours: 120 })], movies: [movie({ minutes: 96 })] })),
+      toOmniItems(library({ game: [videoGame({ hours: 120 })], movie: [movie({ minutes: 96 })] })),
       "Items",
       "medium",
       "light",
@@ -77,7 +77,7 @@ describe("omniBarchartRows", () => {
     // 96 minutes is 1.6 hours. Flooring here would make the film's share of a year a third of
     // what it is, and would drop every film under an hour from the chart entirely.
     const rows = omniBarchartRows(
-      toOmniItems(library({ movies: [movie({ minutes: 96 })] })),
+      toOmniItems(library({ movie: [movie({ minutes: 96 })] })),
       "Hours",
       "medium",
       "light",
@@ -90,7 +90,7 @@ describe("omniBarchartRows", () => {
     // A genre is a shelf in the gallery and a row in the genres band; a third hue for it on the
     // chart would teach a legend neither of those honours.
     const rows = omniBarchartRows(
-      toOmniItems(library({ games: [videoGame({ genre: "Action" })], movies: [movie({ genre: "Action" })] })),
+      toOmniItems(library({ game: [videoGame({ genre: "Action" })], movie: [movie({ genre: "Action" })] })),
       "Items",
       "genre",
       "light",
@@ -105,7 +105,7 @@ describe("omniBarchartRows", () => {
     // Games record PEGI and the other two BBFC. Splitting on the raw certificate would draw a
     // PEGI 16 game and the BBFC 15 film beside it as two series in the same colour.
     const rows = omniBarchartRows(
-      toOmniItems(library({ games: [videoGame({ rating: "16+" })], movies: [movie({ rating: "15" })] })),
+      toOmniItems(library({ game: [videoGame({ rating: "16+" })], movie: [movie({ rating: "15" })] })),
       "Items",
       "rating",
       "light",
@@ -118,13 +118,13 @@ describe("omniBarchartRows", () => {
   it("drops a row whose split column is empty rather than opening a nameless series", () => {
     // The legend and the tooltip both render "" as a blank, so an unnamed series is a colour with
     // nothing saying what it is.
-    const items = toOmniItems(library({ games: [videoGame({ genre: "" }), videoGame({ genre: "Action" })] }));
+    const items = toOmniItems(library({ game: [videoGame({ genre: "" }), videoGame({ genre: "Action" })] }));
 
     expect(omniBarchartRows(items, "Items", "genre", "light").map((row) => row.name)).toEqual(["Action"]);
   });
 
   it("leaves the medium split unable to be empty, since every item carries one", () => {
-    const items = toOmniItems(library({ games: [videoGame({ genre: "" })] }));
+    const items = toOmniItems(library({ game: [videoGame({ genre: "" })] }));
 
     expect(omniBarchartRows(items, "Items", "medium", "light")).toHaveLength(1);
   });
@@ -132,7 +132,7 @@ describe("omniBarchartRows", () => {
 
 describe("books in the pivot", () => {
   it("counts a book under its medium and its genre, and drops it from the certificate split", () => {
-    const items = toOmniItems(library({ books: [book({ genre: "Fantasy", hours: 6.5 })] }));
+    const items = toOmniItems(library({ book: [book({ genre: "Fantasy", hours: 6.5 })] }));
 
     const byMedium = omniBarchartRows(items, "Hours", "medium", "light");
     expect(byMedium).toEqual([

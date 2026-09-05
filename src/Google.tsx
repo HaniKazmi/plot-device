@@ -6,8 +6,9 @@ import { BrowserTint } from "./BrowserTint";
 import { BOTTOM_TABS_CLEARANCE, safeAreaGutters } from "./common/chrome";
 import { Outlet } from "react-router-dom";
 import { GoogleAuthProvider } from "./contexts/GoogleAuthContext.tsx";
-import { FranchiseUnionProvider } from "./omnibus/franchiseUnion.tsx";
-import { SearchHost } from "./omnibus/Search.tsx";
+import { LibraryProvider } from "./app/LibraryProvider.tsx";
+import { FranchiseUnionProvider } from "./app/franchiseUnion.tsx";
+import { SearchHost } from "./app/Search.tsx";
 import { barColour, useCurrentTab } from "./tabs.ts";
 import type { Tab } from "./tabs.ts";
 import type {} from "@mui/material/themeCssVarsAugmentation";
@@ -17,27 +18,32 @@ const GoogleAuth = () => {
 
   return (
     <GoogleAuthProvider>
-      <NavBar
-        guestMode={guestMode}
-        setGuestMode={setGuestMode}
-      />
-      <Container
-        maxWidth={"xl"}
-        // The bottom navigation is fixed, so it paints over whatever the page ends with unless the
-        // page stops short of it. Only below `sm`, where the bar is drawn at all. The side gutters
-        // restate the container's own with the device's insets added (`safeAreaGutters`).
-        sx={(theme) => ({ paddingBottom: { xs: BOTTOM_TABS_CLEARANCE, sm: 0 }, ...safeAreaGutters(theme) })}
-      >
-        {/* Above every tab, because a card on any of them draws the franchise across all four. */}
-        <FranchiseUnionProvider guestMode={guestMode}>
-          <Outlet context={{ guestMode }} />
-          {/* Inside the provider, since the palette lists the union's own items; opened from the
-              app bar above through a store rather than a flag lifted over both. */}
-          <SearchHost />
-        </FranchiseUnionProvider>
-      </Container>
-      <BottomTabs />
-      <BrowserTint />
+      {/* Above the bar as well as the tabs: every tab reads its own sheet from here, and the bar
+          answers for the library as a whole — what a page can show before anything is authorised
+          is a question about the cache, not about the token. */}
+      <LibraryProvider guestMode={guestMode}>
+        <NavBar
+          guestMode={guestMode}
+          setGuestMode={setGuestMode}
+        />
+        <Container
+          maxWidth={"xl"}
+          // The bottom navigation is fixed, so it paints over whatever the page ends with unless the
+          // page stops short of it. Only below `sm`, where the bar is drawn at all. The side gutters
+          // restate the container's own with the device's insets added (`safeAreaGutters`).
+          sx={(theme) => ({ paddingBottom: { xs: BOTTOM_TABS_CLEARANCE, sm: 0 }, ...safeAreaGutters(theme) })}
+        >
+          {/* Above every tab, because a card on any of them draws the franchise across all four. */}
+          <FranchiseUnionProvider>
+            <Outlet />
+            {/* Inside the provider, since the palette lists the union's own items; opened from the
+                app bar above through a store rather than a flag lifted over both. */}
+            <SearchHost />
+          </FranchiseUnionProvider>
+        </Container>
+        <BottomTabs />
+        <BrowserTint />
+      </LibraryProvider>
     </GoogleAuthProvider>
   );
 };

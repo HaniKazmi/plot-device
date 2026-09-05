@@ -7,12 +7,12 @@ import { useFranchiseUnion } from "../common/franchiseUnion";
 import { MUTED_FIGURE_SX, LABEL_SX } from "../common/typography";
 import { useScheme } from "../common/useScheme";
 import { franchiseToColour, MEDIA, mediumToColour, mediumUnit } from "../utils/types";
-import type { OmniItem } from "./adapter";
+import type { OmniItem } from "../common/medium";
 import OmniCardMediaImage from "./CardMediaImage";
 import { MIXED_CARD_SIZING, workLabels } from "./cardData";
 import { mediumBand } from "./mediumBand";
 import { franchiseFacts, franchiseWorks } from "./searchData";
-import { useOmniItems } from "./omniItems";
+import { useLibrary } from "./library";
 import type { YearMonthDay } from "../common/date";
 
 /** The swatch beside the title, a size up from the inline one a ledger row wears. */
@@ -90,7 +90,7 @@ export const FranchiseView = ({
   onClose: () => void;
 }) => {
   const scheme = useScheme();
-  const items = useOmniItems() ?? [];
+  const items = useLibrary().items ?? [];
   const entries = useFranchiseUnion(franchise) ?? [];
   const own = items.filter((item) => item.franchise === franchise);
   const works = franchiseWorks(items, franchise, CURRENT_PLAINDATE);

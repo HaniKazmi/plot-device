@@ -1,6 +1,7 @@
-import { useEffect, useReducer, type Dispatch } from "react";
-import { useOutletContext } from "react-router-dom";
+import { type Dispatch } from "react";
 import { CURRENT_YEAR, type YearNumber } from "./date";
+import { schemaPredicates, type CategoryKey, type FilterSchema, type ToggleKey } from "./filterSchema";
+import { createStore, type Store } from "./store";
 import type { Predicate } from "../utils/types";
 
 export type YearType = "upto" | "matching";
@@ -16,33 +17,70 @@ export interface BaseFilterState<T, M extends string> {
   measure: M;
   yearType: YearType;
   yearTo: YearNumber;
-  guestMode: boolean;
   filter: Predicate<T>;
 }
 
 type FilterAction<S, K extends keyof S = keyof S> =
   | { type: "resetFilters" }
   | { type: "updateFilter"; filter: K; value: S[K] }
+  // Holds a multi-select's selection to the values still on offer. The option list a select draws
+  // is computed over the *visible* library, so a value the library stops offering — guest mode
+  // switched on under a chosen franchise — would otherwise stay in the state with no control left
+  // to show or clear it, narrowing every chart on the page to nothing for no visible reason.
+  | { type: "retain"; category: CategoryKey<S>; values: readonly string[] }
   // Read off the state's own field rather than carried as a second parameter on the action union:
   // `S` already names the measure it holds, and a domain's dispatch is typed from `S` alone.
   | { type: "measure"; measure: S extends { measure: infer M } ? M : never }
-  | { type: "toggleYearType" };
+  | { type: "yearType"; yearType: YearType };
 
 export type FilterDispatchFor<S> = Dispatch<FilterAction<S, keyof S>>;
+
+/**
+ * A tab's state as a surface above that tab reads it, with the domain's own fields erased.
+ *
+ * `never` and `string` are what make all five concrete states assignable here: a measure is a
+ * union of that tab's own words, which is a `string`, and a `Predicate<VideoGame>` is a
+ * `Predicate<never>` because every parameter type accepts `never`. Reading a field one tab adds
+ * to the base means knowing which tab it is, which is exactly what a surface standing above them
+ * does not.
+ */
+export type PageState = BaseFilterState<never, string>;
+
+/**
+ * The same erasure for what such a surface sends. A field is named rather than typed, because the
+ * surface that sets a filter on a tab it is not standing inside knows the field by its name alone.
+ */
+export type PageAction =
+  | { type: "resetFilters" }
+  | { type: "updateFilter"; filter: string; value: unknown }
+  | { type: "retain"; category: string; values: readonly string[] }
+  | { type: "measure"; measure: string }
+  | { type: "yearType"; yearType: YearType };
+
+export type PageDispatch = Dispatch<PageAction>;
+
+/**
+ * A tab's page state, held outside React so that a surface above the tab can read and set it.
+ *
+ * Every member is a method rather than a property: `set` and `dispatch` take the state and the
+ * actions of one particular tab, and a property-typed parameter is contravariant, so a record
+ * holding five stores over five different states would reject all five. TypeScript checks a
+ * method's parameters bivariantly, which is what lets the erased shape hold them.
+ */
+export interface PageStore {
+  get(): PageState;
+  set(next: PageState): void;
+  subscribe(onChange: () => void): () => void;
+  useValue(): PageState;
+  dispatch(action: PageAction): void;
+}
+
+/** What a domain's own store is, before the erasure a lookup across the five needs. */
+type PageStoreFor<S> = Store<S> & { dispatch: FilterDispatchFor<S> };
 
 interface YearState {
   yearTo: YearNumber;
   yearType: YearType;
-}
-
-/**
- * Two ways to ask, so a caller only supplies the accessor when its model needs one: a domain whose
- * record carries the date the year comes from names no second argument, and one that attributes an
- * item to some other year has to.
- */
-interface YearPredicates {
-  <T extends { startDate: { year: YearNumber } }>(state: YearState): Predicate<T>[];
-  <T>(state: YearState, yearOf: (item: T) => YearNumber): Predicate<T>[];
 }
 
 /**
@@ -53,37 +91,34 @@ interface YearPredicates {
  * than as a second copy of the two rules. An `OmniItem` counts towards the year it closed and holds
  * no start date to read at all, and a copy written over that field is two statements of one
  * semantic that nothing keeps in step.
+ *
+ * The accessor is a parameter and never a default, because a default has to be written over a
+ * generic record: `(item as { startDate: … }).startDate.year` type-checks against every model
+ * there is, so a domain whose record has no start date would compile and answer `undefined` for
+ * every row — a year scope that silently keeps nothing.
  */
-export const yearPredicates: YearPredicates = <T>(
-  state: YearState,
-  yearOf: (item: T) => YearNumber = (item) => (item as { startDate: { year: YearNumber } }).startDate.year,
-): Predicate<T>[] => {
+export const yearPredicates = <T>(state: YearState, yearOf: (item: T) => YearNumber): Predicate<T>[] => {
   if (state.yearType === "matching") return [(item) => yearOf(item) === state.yearTo];
   if (state.yearTo !== CURRENT_YEAR) return [(item) => yearOf(item) <= state.yearTo];
   return [];
 };
 
 /**
- * A multi-select's predicate, or none where nothing is selected.
- *
- * Every category control in every domain means the same thing — an empty selection is no
- * constraint rather than a constraint nothing satisfies. Stated once, a change to what matching
- * means is one edit; stated per category per domain, it is fifteen, and fifteen chances to differ.
- *
- * Returns a list so a caller spreads it, which is what lets an inactive control contribute
- * nothing at all instead of a predicate that is always true.
+ * How a tab reads the year scope, where that is not the shared rule over a record's start date: a
+ * model whose year is an attribution rather than a date, or one whose page asks the scope of
+ * something nested — a show's seasons rather than the show.
  */
-export const selectedPredicates = <T>(selected: readonly string[], valueOf: (item: T) => string): Predicate<T>[] =>
-  selected.length > 0 ? [(item) => selected.includes(valueOf(item))] : [];
+export type YearRule<T> = (state: YearState) => Predicate<T>[];
 
 /**
- * What the state is not a filter: the unit its figures are counted in, the composed predicate
- * itself, and the mode the app sets rather than the panel.
+ * What the state holds that is not a filter: the unit its figures are counted in, the composed
+ * predicate itself, and the year scope.
  *
- * Guest mode is a filter in every sense but the one that matters here — the reader cannot turn it
- * off, so counting it would leave a badge nobody can clear.
+ * The scope is a control of its own, lit where it is not "all time", so counting it would put a
+ * badge on the filter surface for a choice made outside it — and offer Clear as a second way to
+ * undo something that already says on its own face that it is on.
  */
-const UNCOUNTED_FIELDS = new Set(["measure", "filter", "guestMode"]);
+const UNCOUNTED_FIELDS = new Set(["measure", "filter", "yearTo", "yearType"]);
 
 /** Element-wise, because a multi-select builds a new array for every change including a clear. */
 const sameValue = (a: unknown, b: unknown): boolean =>
@@ -108,15 +143,74 @@ export const countActiveFilters = (state: object, initialValues: object): number
   }).length;
 
 /**
- * Builds a domain's filter reducer. Each domain supplies only what is actually its own:
- * the initial values of its own fields and how to turn that state into a predicate. Everything
- * else — the action shape, the guest-mode wiring, rebuilding `filter` after each change, and
- * counting what the reader has changed — is the same everywhere and lives here.
+ * Builds a domain's filter reducer and the store its state lives in, from the schema that already
+ * says what the tab can be narrowed by. Each domain supplies only what its schema cannot: the unit
+ * its figures are counted in, where its year scope starts, which year its own records answer with,
+ * and — where that scope asks something else of the model — the whole rule. Everything else, the
+ * action shape, rebuilding `filter` after each change and counting what the reader has changed, is
+ * the same everywhere and lives here.
+ *
+ * The unfiltered state is the schema's own: a toggle starts on, since `hides` applies while one is
+ * off, and a category starts empty, an empty selection being no constraint. Derived rather than
+ * restated per domain, so a filter added to a schema cannot arrive without a starting value — a
+ * toggle left out would start `undefined`, which reads as off and hides rows on first paint. What
+ * the schema does not seed is what `initial` is typed as, so neither half can be left unstated.
+ *
+ * The state is held in a store rather than in a `useReducer` because the surfaces that read it are
+ * not all inside the tab: the rail and the search box stand beside the tab's charts rather than
+ * within them, and a tab's state can be set before that tab is ever mounted. Their nearest common
+ * ancestor is the shell, so a value lifted there would re-render every chart in the app on a
+ * change one of them made. It also means a store per domain at module scope, which is what
+ * `createStore` is written to allow: it reads no browser global while it loads.
  */
-export const createFilterReducer = <T, M extends string, S extends BaseFilterState<T, M>>(
-  initialValues: Omit<S, "filter">,
-  filters: (state: Omit<S, "filter">) => Predicate<T>,
-) => {
+export const createFilterReducer = <T, M extends string, S extends BaseFilterState<T, M>>({
+  schema,
+  initial,
+  yearOf,
+  yearRule,
+}: {
+  schema: FilterSchema<T, S>;
+  /**
+   * Every field of the state the schema does not seed, which is the page's own settings: the
+   * measure it counts in and the scope it opens at.
+   *
+   * Stated as what is left rather than as those three by name, so a field added to a domain's
+   * state that no toggle and no category covers has to be given a starting value here or it fails
+   * to compile — where a fixed shape would let it start `undefined` and be read as a filter that
+   * hides everything on first paint.
+   */
+  initial: Omit<S, "filter" | ToggleKey<S> | CategoryKey<S>>;
+  /**
+   * The year an item counts towards, which is the one part of the shared cutoff that varies by
+   * model — a start date on three of the four sheets, an attribution on the union.
+   */
+  yearOf: (item: T) => YearNumber;
+  /** A whole rule in place of that reading, where a tab's scope asks something else of its model. */
+  yearRule?: YearRule<T>;
+}) => {
+  const scope: YearRule<T> = yearRule ?? ((state) => yearPredicates(state, yearOf));
+
+  const initialValues = {
+    ...Object.fromEntries(schema.toggles.map((toggle) => [toggle.key, true])),
+    ...Object.fromEntries(schema.categories.map((category) => [category.key, []])),
+    ...initial,
+    // Keys and their fields are checked against each other where the schema is written; built back
+    // into a state object they are strings again, which is a lookup TypeScript cannot reduce, so
+    // the merge of the two halves is asserted rather than derived.
+  } as Omit<S, "filter">;
+
+  /**
+   * The tab's predicate: every per-field rule the schema states, and then the year scope, which
+   * belongs to no field and is a reading of the whole page rather than a narrowing of it.
+   */
+  const filters = (state: Omit<S, "filter">): Predicate<T> => {
+    // `S` extends the base state, so the scope's two fields are on it; `Omit` over a generic is a
+    // lookup TypeScript defers, so it cannot see that here.
+    const predicates = [...schemaPredicates(schema, state), ...scope(state as unknown as YearState)];
+
+    return (item: T) => predicates.every((predicate) => predicate(item));
+  };
+
   const withFilter = (state: Omit<S, "filter">): S => ({ ...state, filter: filters(state) }) as S;
 
   const initialState = withFilter(initialValues);
@@ -124,14 +218,30 @@ export const createFilterReducer = <T, M extends string, S extends BaseFilterSta
   const reducer = <K extends keyof S>(state: S, action: FilterAction<S, K>): S => {
     switch (action.type) {
       case "resetFilters":
-        // Guest mode is set by the app, not the filter panel, so Clear must not unhide content.
-        return withFilter({ ...initialValues, guestMode: state.guestMode });
+        // The filter surface's own fields and no others. The measure is the unit the whole tab
+        // counts in and the scope is a control beside it, both stated where the reader set them,
+        // so clearing filters leaves someone reading hours up to 2019 exactly where they were.
+        return withFilter({
+          ...initialValues,
+          measure: state.measure,
+          yearTo: state.yearTo,
+          yearType: state.yearType,
+        });
       case "updateFilter":
         // Rebuilding `filter` hands every consumer a new predicate identity and so a fresh pass
         // over the whole dataset. A multi-select builds a new array on every real change, so an
         // identity match here only ever means nothing moved.
         if (state[action.filter] === action.value) return state;
         return withFilter({ ...state, [action.filter]: action.value });
+      case "retain": {
+        // The same state object where nothing is dropped, which is every call but the few that
+        // follow a change of what the library shows: the store notifies on identity, so the sweep
+        // that runs whenever a library lands costs no render.
+        const held = (state as Record<string, unknown>)[action.category] as readonly string[];
+        const kept = held.filter((value) => action.values.includes(value));
+        if (kept.length === held.length) return state;
+        return withFilter({ ...state, [action.category]: kept });
+      }
       case "measure":
         // `filter` is carried through unrebuilt: no domain's filters() reads the measure, and
         // consumers re-filter the whole dataset on that predicate's identity. The identity
@@ -139,30 +249,36 @@ export const createFilterReducer = <T, M extends string, S extends BaseFilterSta
         // costs no render.
         if (state.measure === action.measure) return state;
         return { ...state, measure: action.measure as M };
-      case "toggleYearType":
-        return withFilter({ ...state, yearType: state.yearType === "upto" ? "matching" : "upto" });
+      case "yearType":
+        // The action names the reading rather than flipping to the other one, as the measure
+        // does: a control with a state per reading has to answer the same object when the reader
+        // presses the one already held, or every press costs a render and a re-filter.
+        if (state.yearType === action.yearType) return state;
+        return withFilter({ ...state, yearType: action.yearType });
     }
   };
 
-  const useFilterReducer = () => {
-    const [state, dispatch] = useReducer(reducer, initialState);
-    const { guestMode } = useOutletContext<{ guestMode?: boolean }>();
+  const { get, set, subscribe, useValue } = createStore(initialState);
 
-    useEffect(() => {
-      dispatch({ type: "updateFilter", filter: "guestMode" as keyof S, value: (guestMode || false) as S[keyof S] });
-    }, [guestMode]);
+  const dispatch: FilterDispatchFor<S> = (action) => set(reducer(get(), action));
 
-    return [state, dispatch] as const;
-  };
+  const store: PageStoreFor<S> = { get, set, subscribe, useValue, dispatch };
+
+  /**
+   * The tab's own view of that store, for the pages that read their state from inside the tab.
+   * The same store either way, so a chart and the rail above it cannot hold two versions of one
+   * choice, and the dispatch is one module-scope function rather than a fresh identity per render.
+   */
+  const useFilterReducer = () => [useValue(), dispatch] as const;
 
   /**
    * The badge's figure, bound to the initial values this reducer already holds rather than asked
-   * of each domain's own `Filter.tsx` — five call sites naming their own baseline are five that
-   * can name the wrong one.
+   * of each surface drawing the filters — a call site naming its own baseline is one that can name
+   * the wrong one.
    */
   const activeCount = (state: S) => countActiveFilters(state, initialValues);
 
-  // `reducer` and `initialState` come back out alongside the hook so the transitions can be
-  // exercised as plain values. Nothing in the app reads those two.
-  return { useFilterReducer, reducer, initialState, activeCount };
+  // `filters`, `reducer` and `initialState` come back out alongside the store so the composed
+  // predicate and the transitions can be exercised as plain values. Nothing in the app reads them.
+  return { store, useFilterReducer, filters, reducer, initialState, activeCount };
 };

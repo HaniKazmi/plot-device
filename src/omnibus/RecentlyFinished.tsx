@@ -2,10 +2,11 @@ import { History } from "@mui/icons-material";
 import { StatBand } from "../common/SectionRail";
 import { StatList } from "../common/Stats";
 import { format } from "../utils/mathUtils";
-import type { OmniItem } from "./adapter";
-import OmniCardMediaImage from "./CardMediaImage";
-import { MIXED_CARD_SIZING, omniLabels } from "./cardData";
-import { mediumBand } from "./mediumBand";
+import type { OmniItem } from "../common/medium";
+import OmniCardMediaImage from "../app/CardMediaImage";
+import { MIXED_CARD_SIZING } from "../app/cardData";
+import { omniLabels } from "./cardData";
+import { mediumBand } from "../app/mediumBand";
 import { useScheme } from "../common/useScheme";
 
 /**

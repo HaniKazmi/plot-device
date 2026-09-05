@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { CURRENT_YEAR, YearMonthDay, type YearNumber } from "../../src/common/date";
-import { toOmniItems, type OmniItem } from "../../src/omnibus/adapter";
+import { toOmniItems } from "../../src/app/library";
+import type { OmniItem } from "../../src/common/medium";
 import { filters, initialState, type FilterState } from "../../src/omnibus/filterUtils";
 import { book } from "../fixtures/books";
 import { movie } from "../fixtures/movies";
 import { videoGame } from "../fixtures/vgRows";
+import { omniFilters } from "../../src/omnibus/filters";
+import { media } from "../../src/app/types";
 
 const state = (overrides: Partial<FilterState> = {}): Omit<FilterState, "filter"> => ({
   ...initialState,
@@ -12,10 +15,10 @@ const state = (overrides: Partial<FilterState> = {}): Omit<FilterState, "filter"
 });
 
 /** One item per medium, built through the adapter so the tests filter what the page filters. */
-const [game, film] = toOmniItems({ games: [videoGame()], shows: [], movies: [movie()], books: [] });
+const [game, film] = toOmniItems({ game: [videoGame()], show: [], movie: [movie()], book: [] });
 
 const inYear = (year: number, overrides: Partial<OmniItem> = {}): OmniItem => ({
-  ...toOmniItems({ games: [], shows: [], movies: [movie({ startDate: YearMonthDay.get(year, 6, 1) })], books: [] })[0],
+  ...toOmniItems({ game: [], show: [], movie: [movie({ startDate: YearMonthDay.get(year, 6, 1) })], book: [] })[0],
   ...overrides,
 });
 
@@ -47,6 +50,13 @@ describe("the medium toggles", () => {
     expect(keep(film)).toBe(false);
   });
 
+  it("keeps nothing at all when every medium is off, one rule per switch composing to the empty page", () => {
+    const keep = filters(state({ game: false, show: false, movie: false, book: false }));
+
+    expect(keep(game)).toBe(false);
+    expect(keep(film)).toBe(false);
+  });
+
   it("keeps everything when all three are on, without a predicate to walk", () => {
     expect(filters(state({ game: true, show: true, movie: true }))(game)).toBe(true);
   });
@@ -61,17 +71,6 @@ describe("categories", () => {
 
     expect(filters(state({ franchise: [game.franchise] }))(game)).toBe(true);
     expect(filters(state({ franchise: [game.franchise] }))(film)).toBe(false);
-  });
-});
-
-describe("guest mode", () => {
-  it("pushes no predicate here, because it is applied to each library before the union", () => {
-    // A union-level predicate would hide an item from the charts while the Now band, which elects
-    // from the domain records, went on headlining it.
-    const keep = filters(state({ guestMode: true }));
-
-    expect(keep(game)).toBe(true);
-    expect(keep(film)).toBe(true);
   });
 });
 
@@ -99,10 +98,10 @@ describe("the year cutoff", () => {
     // What the accessor handed to the shared `yearPredicates` buys: a game played across a new
     // year answers the filter with the year its hours landed in, not the year it was started.
     const [crossing] = toOmniItems({
-      games: [videoGame({ startDate: YearMonthDay.get(2019, 12, 20), endDate: YearMonthDay.get(2020, 1, 8) })],
-      shows: [],
-      movies: [],
-      books: [],
+      game: [videoGame({ startDate: YearMonthDay.get(2019, 12, 20), endDate: YearMonthDay.get(2020, 1, 8) })],
+      show: [],
+      movie: [],
+      book: [],
     });
     const keep = filters(state({ yearType: "matching", yearTo: 2020 as YearNumber }));
 
@@ -112,10 +111,26 @@ describe("the year cutoff", () => {
 
 describe("the books switch", () => {
   it("removes books from the page the way the other three switches remove their media", () => {
-    const [read] = toOmniItems({ games: [], shows: [], movies: [], books: [book()] });
+    const [read] = toOmniItems({ game: [], show: [], movie: [], book: [book()] });
 
     expect(filters(state({ book: false }))(read)).toBe(false);
     expect(filters(state({ book: false }))(film)).toBe(true);
     expect(filters(state())(read)).toBe(true);
+  });
+});
+
+describe("the schema the drawer and the box are both drawn from", () => {
+  it("offers a switch per medium and the two vocabularies all four share", () => {
+    expect(omniFilters.toggles.map((toggle) => toggle.key)).toEqual([...media]);
+    expect(omniFilters.categories.map((category) => category.key)).toEqual(["genre", "franchise"]);
+  });
+
+  it("opens a search-within on the vocabularies this library holds hundreds of values in", () => {
+    // A reader picks a franchise or a person by typing; a genre or a format by scanning a list
+    // short enough to read. The flag is what tells the two apart, and the search box's This page
+    // mode reads it, offering a long category as a list to search rather than one to scan.
+    expect(omniFilters.categories.filter((category) => category.searchable).map((category) => category.key)).toEqual([
+      "franchise",
+    ]);
   });
 });

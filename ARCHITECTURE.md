@@ -52,6 +52,11 @@ computes on the main thread — which the caching layer (§4) exists to make tol
                     └───────────────────┬───────────────────────┘
                                         │
                     ┌───────────────────▼───────────────────────┐
+  composing         │  app/ — the medium registry                │
+                    │  MEDIA · MEDIA_LAZY · LibraryProvider      │
+                    └───────────────────┬───────────────────────┘
+                                        │
+                    ┌───────────────────▼───────────────────────┐
   domain            │  vg/ · show/ · movie/ · books/ · omnibus/ │
                     │  model, converter, filters, adapters       │
                     └───────────────────┬───────────────────────┘
@@ -70,17 +75,61 @@ computes on the main thread — which the caching layer (§4) exists to make tol
 ```
 
 The load-bearing rule is the boundary between the bottom two layers and the domain layer above them:
-**`common/` and `utils/` never import from `vg/`, `show/`, `movie/`, `books/` or `omnibus/`.** Its
-second half is that **a tracked domain never imports another** — `omnibus/` composes the four and they
-compose nothing, which makes it a composing domain rather than one arm of a cycle.
-`tests/architecture.test.ts` enforces both by reading the source, across static, side-effect and
-dynamic imports alike.
+**`common/` and `utils/` never import from `app/`, `vg/`, `show/`, `movie/`, `books/` or
+`omnibus/`.** Its second half is that **a tracked domain never imports another, nor the registry
+itself** — all five compose nothing, and `app/` is the one folder that composes them, which is what
+keeps it a composing layer rather than an arm of a cycle. A domain reads the rest of `app/`
+downwards, its entry component asking `app/library.ts` for the library the shell fetched; the
+registry is the one part of `app/` built _from_ the modules, so `vg/module.ts` importing
+`app/media.ts` is a real cycle, and `module.ts` therefore imports nothing from `app/` at all.
+
+Three files in `omnibus/` are a named exception rather than a loosened rule: `adapter.ts`'s
+`electNow` elects across all four domains' own `statsData`, `Stats.tsx`'s Now band renders each
+domain's own `CardMediaImage` and reads its `cardData` subtitle and `statsData` hero figures, and
+`Graphs.tsx` mounts the four `FranchiseContext` providers the card strips and crossings read — the
+registry carries no election, no hero-card slot and no franchise-context slot per medium, so closing
+this is a registry change and not a move. `tests/architecture.test.ts` enforces both rules by
+reading the source across static, side-effect and dynamic imports alike, the three files named as
+exemptions rather than left to slip the check.
+
+The direction holds the other way too: **nothing in `app/` imports `omnibus/`**, that folder being a
+tab like any other, so the shared half of a surface more than one tab reads — the gallery's
+grouping, a mixed row's card size — sits in `app/` rather than inside one page's folder, where the
+next reader has to reach across for it. `app/pageState.ts` is the single exception, naming the
+composing tab's own store: every other tab's is registered through its `MediumModule`, and the
+Omnibus is a tab and not a medium, so until it has a module of its own its store is registered by
+name.
+
+**`app/` is the medium registry** (`app/media.ts`): a `MediumModule` per medium, supplied by each
+domain's own `module.ts`, holding everything the app asks of a medium that the medium itself is the
+authority on — its data config, its guest rule, its arm of the union, the entry a franchise strip
+draws it as, the store its tab's page state lives in, its artwork and its title. It is keyed by
+medium over `app/records.ts`, so `MEDIA.game` takes games and nothing else: erased to
+`MediumModule<unknown, unknown>`, one medium's guest rule type-checks against another's library and
+the mistake is a page silently emptied. A surface holding four media reads `MEDIA[item.medium]`
+rather than switching on it, and `tests/architecture.test.ts` forbids a `switch` on a medium
+anywhere else: the compiler catches a missing arm only where somebody wrote the switch exhaustively,
+and a fifth medium is otherwise an edit in every file that ever needed to tell them apart.
+
+The registry is reachable from the shell, so it splits in two. `module.ts` is eager and holds what a
+tab needs before it draws anything; `module.lazy.ts` holds the card and the hover card, and is
+reached through `app/mediaLazy.ts` alone — a static table, so a wall of cards does not pay a round
+trip per medium, and the one seam, so there is one answer to when a medium's chunk is fetched. That
+lookup is on a value the bundler cannot narrow, so the lazy half is held to those two components:
+anything else exported there is weight on the chunk the union prefetches for its hover cards on
+every visit, which is why each tab's filter glyphs sit in its own `filterIcons.ts` beside the
+`Graphs` that draws the drawer. Nothing in `app/` imports `tabs.ts`,
+because `tabs.ts` imports the five entry components eagerly and an entry component reaches the
+registry: a module carries `tabId: string`, and the one component that resolves an id to a tab is
+mounted by the shell, below both.
 
 Generic components take behaviour as props and callbacks; domain folders supply the meaning. Where
 the shared layer needs a domain vocabulary it declares its own — `utils/types.ts` owns a
 `ColourableStatus` union that `show/types.ts` and `vg/types.ts` stay assignable to, where importing
-theirs would cycle, since both import `statusToColour` back out. `omnibus/` reads no sheet (§3), so it
-is the one domain with no converter.
+theirs would cycle, since both import `statusToColour` back out. `OmniItem` and `FranchiseEntry`
+(`common/medium.ts`, `common/franchiseUnion.ts`) are the same arrangement one step further out:
+each domain builds its own arm of the union, so the shape it builds has to be declared somewhere a
+domain may import. `omnibus/` reads no sheet (§3), so it is the one domain with no converter.
 
 ## 3. The data pipeline
 
@@ -99,6 +148,9 @@ utils/arrayUtils           arrayToJson()
    ▼
 common/useData             module-level Map + localStorage
    │                       → [data, dataLoaded, error]
+   ▼
+app/LibraryProvider        one call per medium, above every tab
+   │                       → LibraryValue { raw, visible, items, loaded, error }
    ▼
 common/filterReducer       reducer composes predicates → data.filter(...)
    │                       (domain supplies only its own filters())
@@ -142,13 +194,37 @@ Converters do real modelling work, not just field renaming:
 
 `show/` and `movie/` split their `Genres` cell through `splitCell`, which drops empty parts.
 
-Omnibus runs no pipeline of its own: each domain's entry component calls `useData` with a config
-(`vgDataConfig`, `showDataConfig`, `movieDataConfig`, `bookDataConfig`) exported from the file owning
-that converter, its version and — for Shows — the replacer/reviver pair, and `omnibus/Omnibus.tsx`
-calls `useData` with the same four, so a version bump cannot land at one caller alone.
-`omnibus/adapter.ts` then flattens `Show[]` at the season, the unit actually watched, carrying the
-show's name, genre, franchise and certificate onto each. A book has no certificate, so
-`OmniItem.rating` is optional and every surface grouping on it drops books.
+**The pipeline ends in one provider.** `app/LibraryProvider.tsx` is the only caller of `useData` in
+the app: it reads each medium's `DataConfig` off that medium's `module.ts` (`vgDataConfig`,
+`showDataConfig`, `movieDataConfig`, `bookDataConfig`, each exported from the file owning its
+converter, with its version and — for Shows — the replacer/reviver pair) and resolves the module's
+`tabId` against `tabs.ts`, which is the one place in `app/` allowed to (§2). A version bump therefore
+has one caller to land at rather than six. It is mounted by `Google.tsx` inside `GoogleAuthProvider`
+and above `NavBar`, so the bar, the search palette, a card's franchise strip and all five tabs read
+one copy of the library.
+
+The four `useData` calls are written out rather than walked over the registry, because a hook called
+in a loop or a callback is a rules-of-hooks error. The walks that are not hooks go through
+`eachMedium`, whose callback is generic in the medium: an array of the four modules relates a module
+to no particular library, where one visit at a time holds a module and the records it actually
+takes.
+
+`LibraryValue` (`app/library.ts`) is what a tab reads. `raw` is what each converter produced;
+`visible` is that with guest mode applied per library by each domain's own rule, which is where the
+mode belongs — it hides content rather than narrowing a view, so an index built before it would put
+a hidden item back on screen through a card strip. Both are `Partial`, the sheets landing one at a
+time, so a tab whose own sheet is here paints from it rather than waiting on the other three.
+`items` is the union, present only once all four libraries are (`completeLibrary`) and built once,
+since two flattenings of one library are two chances to disagree about which rows guest mode hides.
+`loaded` and `error` stay per medium, so **each tab keeps its own `DataLoadedSnackbar`**: a Books
+converter error belongs on Books, and the Games tab's "Refresh Complete" must not wait on three
+other sheets. The Omnibus reads all four, and the first error of the four (§4).
+
+Omnibus runs no pipeline of its own, and neither does any tab: `app/library.ts` flattens the four
+through the registry, each medium's arm supplied by its own `module.ts` (§2) — which is why `Show[]`
+flattens at the season, the unit actually watched, carrying the show's name, genre, franchise and
+certificate onto each. A book has no certificate, so `OmniItem.rating` is optional and every surface
+grouping on it drops books.
 
 ## 4. Caching and hydration
 
@@ -412,9 +488,9 @@ ring have a shape to draw instead.
 
 ### Omnibus — `omnibus/`
 
-Every surface of the composing domain is a `common/` shell fed the union (`OmniItem[]`) instead of
-one medium's rows, so the page speaks the four tabs' own vocabulary rather than inventing a
-mixed-media one.
+The fifth tab, and the one with no sheet of its own: every surface is a `common/` shell fed the
+union (`OmniItem[]`, built in `app/`) instead of one medium's rows, so the page speaks the four
+tabs' own vocabulary rather than inventing a mixed-media one.
 
 **The Now band** (`omnibus/Stats.tsx`) is what no single tab can show: what each medium is currently
 on, side by side. `electNow` reuses each domain's own election — `currentlyPlaying`,
@@ -483,7 +559,7 @@ since the stated 434px card is wider than half a tablet's page.
 **Mixed rows are one card size, the Now band's rule at strip scale.** A list lays its cards out one
 of two ways (`CardLayout` in `common/Stats.tsx`): a grid at stated column spans, or a sized row.
 Recently Finished and the gallery's drill-downs take the second, handing the shell a `rowSizing`
-(`MIXED_CARD_SIZING` in `omnibus/cardData.ts`) in place of spans — a union rather than two optional
+(`MIXED_CARD_SIZING` in `app/cardData.ts`) in place of spans — a union rather than two optional
 props, so a sized row is never handed spans it cannot read. The caller states only what it knows: a
 minimum width of 280, a 206px poster beside a 140px column wide enough for a date and a two-line
 title, and the picture's height at a width, the banner's. The shell adds the medium band, the
@@ -494,7 +570,7 @@ viewport.
 
 That band names the medium along the top of the whole card (`CardMediaImageProps.mediaBand`), the
 card's first child, rather than a chip covering the artwork; on a row-laid card it takes a line of
-its own and adds no width to the picture and words under it. `omnibus/mediumBand.tsx` builds it once
+its own and adds no width to the picture and words under it. `app/mediumBand.tsx` builds it once
 per list at a stated `MEDIUM_LABEL_HEIGHT` of 22, so the shelves, their drill-downs and Recently
 Finished cannot draw it at different heights — stated because those surfaces fix a card's height and
 the artwork takes the rest.
@@ -518,7 +594,7 @@ year is an attribution, and only a film's is a date the sheet holds. A row whose
 empty is dropped rather than opening a series named `""` — every book answers the certificate split
 that way — and the header counts the rows drawn.
 
-**The gallery** (`omnibus/Gallery.tsx`, `omnibus/galleryData.ts`) shelves the union by genre,
+**The gallery** (`omnibus/Gallery.tsx`, `app/galleryData.ts`) shelves the union by genre,
 franchise, rating or decade, each shelf a `common/Filmstrip` with a drill-down behind its handle. It
 opens on franchise, newest first — the series met lately, which the genres band does not answer. A
 shelf card carries no words, so the picture keeps the whole height below its medium band.
@@ -638,11 +714,12 @@ a grid cell has a width, and a width plus a height is a crop. It states that hei
 since 100% of the strip's box is the row plus the ten pixels reserved for its scrollbar, through a
 doubled selector (`&& > *`) that outweighs the card's own one-class rule about the same property.
 
-`omnibus/CardMediaImage.tsx` is the `TypedCardMediaImage<OmniItem>` every one of these surfaces
-renders through: it dispatches `item.source` by `item.medium` and passes `mediumToShape` down, so a
-picture opens that domain's real expanded card, strip and ledger, and only this tab's mixed rows
-arrange themselves per item. `OmniHoverCard` beside it dispatches the same four ways, so a hovered
-mark shows the card its home tab would show rather than a fifth assembly of one.
+`app/CardMediaImage.tsx` is the `TypedCardMediaImage<OmniItem>` every one of these surfaces, the
+search palette and the franchise view render through: it dispatches `item.source` by `item.medium`
+and passes `mediumToShape` down, so a picture opens that domain's real expanded card, strip and
+ledger, and only a mixed row arranges itself per item. `OmniHoverCard` beside it dispatches the same
+four ways, so a hovered mark shows the card its home tab would show rather than a fifth assembly of
+one.
 
 ### One control idiom for "how is this drawn" — `SegmentedControl`
 
@@ -676,10 +753,15 @@ tree, so lifting the open flag to their nearest common ancestor would sit it abo
 re-render all of them on an open the flag never reaches. `FilterToggle` reads which tree it is in
 through a `SheetContext` set by the drawer itself, since the slot handing it down as a child cannot
 otherwise tell — a switch under a wrapped label, three to a row, on desktop; a third-height filled or
-outlined chip in the sheet. `FilterCategory` is unchanged either way. The button carries a badge
+outlined chip in the sheet. `FilterCategory` is unchanged either way. Both slots are filled by
+`common/FilterControls`, which draws the domain's `FilterSchema` (§7) rather than a list written out
+per tab, so every surface offering a page's filters offers one description of them. The button
+carries a badge
 counting the fields the reader has changed (`activeCount`, from `createFilterReducer`): every chart
 is drawn through the drawer, so a library narrowed to one franchise otherwise looks exactly like the
-whole library.
+whole library. The measure and the year scope are not among those fields — each is a control of its
+own outside the drawer, stating on its own face that it is set, and a badge counting them would
+report a choice the surface it sits on cannot undo.
 
 `common/DrilldownDialog` and `ExpandableCard`'s own dialog (below) both take an `onClose`, so Escape
 and a backdrop press close them like any other dialog; the header button stays, since a fullscreen
@@ -704,7 +786,7 @@ while a group is picked. The franchise machinery is shared the same way: `common
 groups by whatever accessor a domain passes, and `common/franchiseContext`'s factory threads the
 index down to the card strips.
 
-### Search — `common/SearchPalette.tsx`, `omnibus/Search.tsx`
+### Search — `common/SearchPalette.tsx`, `app/Search.tsx`
 
 One box over all four libraries, opened from a magnifier in the app bar, ⌘K or Ctrl+K, and `/`
 outside a field where a slash is a character. The chord puts the caret in the box with the last
@@ -721,9 +803,9 @@ The shell is domain-blind: it takes groups of already-shaped hits and owns the i
 and the two arrangements, a dialog seated near the top from `sm` up and a fullscreen sheet below it
 with the box in the pinned bar every sheet wears. A row is lit by one `selected` flag for keyboard
 and pointer alike — the pointer moving onto a row selects it — since a tap has no leave event to
-unlight a hover of its own. The index over the union sits in `omnibus/searchData.ts`, built once
-per library from the items `FranchiseUnionProvider` computes on the way to the union
-(`omnibus/omniItems.ts`), so guest mode is applied before anything is indexed and a hidden item is
+unlight a hover of its own. The index over the union sits in `app/searchData.ts`, built once
+per library from the union the library provider builds and hands every tab (`useLibrary().items`),
+so guest mode is applied before anything is indexed and a hidden item is
 absent from the index as it is from the union. Franchises come from the raw franchise column, held
 to the crossings' rule that some entry not repeat the name; works are collapsed once per work
 through the gallery's own `workOf`, so a show is one hit however many seasons it ran and its latest
@@ -737,7 +819,7 @@ subtitles), then any substring of either, then every word of the query found som
 size and then name. The entries come back as given, so the raw franchise string — the key every
 index is held on — travels through unfolded.
 
-A franchise hit opens `omnibus/FranchiseView.tsx`: the gallery's franchise drill-down with a header
+A franchise hit opens `app/FranchiseView.tsx`: the gallery's franchise drill-down with a header
 saying what the franchise is before listing it — its media counted, four facts, and the franchise
 strip with no subject, every mark `plain`, since the view is about the whole series and not one
 card's place in it. Its works are the gallery's collapse over the franchise's rows alone rather than
@@ -807,15 +889,14 @@ would reach into the lane below and answer for both marks at once.
 
 The entries come from one index across the four libraries. `common/franchiseUnion.ts` declares the
 `FranchiseEntry` shape — key, subject, franchise, medium, fill, label, span, `precise` and a
-hover-card thunk — and the context; `omnibus/franchiseUnionData.ts` builds it, mapping each
+hover-card thunk — and the context; `app/franchiseUnionData.ts` builds it, mapping each
 `OmniItem` through its own domain's `gameEntry`, `seasonEntry`, `movieEntry` or `bookEntry`, so the
 union and a tab's own index cannot draw one item two ways. A tracked domain may not import another
-and `common/` may import none, so the build sits beside the Omnibus adapter and its provider
-(`omnibus/franchiseUnion.tsx`) is mounted by `Google.tsx` above the outlet. It calls `useData` with
-the four domain configs and applies guest mode per library by each domain's own rule; the
-module-level cache means a session that opened on the Omnibus reaches a home tab with nothing left
-to fetch, and only a deep link straight to one pays three extra sheet reads. Until all four land the
-value is `undefined` and a card falls back to the strip its own index draws. The union groups on the
+and `common/` may import none, so the build sits in `app/`, beside its provider
+(`app/franchiseUnion.tsx`), which is mounted by `Google.tsx` above the outlet. It builds the union from
+the items the library provider already holds (§3) rather than flattening the four libraries a second
+time, guest mode having been applied to them once above it. Until all four land those items are
+`undefined`, so the union is too and a card falls back to the strip its own index draws. The union groups on the
 raw franchise column exactly as the per-domain indexes do, and does not apply the crossings' rule
 dropping a group whose every entry repeats the name: that rule chooses which franchises a section
 draws at all, and a card has already chosen. The hover card behind each mark is the Omnibus's own
@@ -1110,7 +1191,7 @@ span) for the same reason: six at 900px are 133px each. The Omnibus's closing li
 the date first.
 
 `common/Card.tsx` provides `CardMediaImage` and the `TypedCardMediaImage<T>` contract each domain
-implements (`vg/`, `show/`, `movie/`, `books/`, `omnibus/` over the union): the adapter letting
+implements (`vg/`, `show/`, `movie/`, `books/`, `app/` over the union): the adapter letting
 `Finished`, `StatList` and the timeline tooltips render domain artwork and detail panels without
 knowing the model. Several props are shaped by cost or surface:
 
@@ -1426,7 +1507,7 @@ Seven vocabularies live in `utils/types.ts` because more than one tab speaks the
 Movies and Books both rate on), `ageRatingToColour` over the `AgeRating` union three of the four
 domains record a certificate into, and `mediumFills` with `mediumToLabel`, `mediumToName` and
 `mediumUnit` — the only colour a mixed-media surface carries meaning in, re-exported by
-`omnibus/types.ts`. Its hues are the home tabs' own, so `tabs.ts` constrains them; the closest pair
+`app/types.ts`. Its hues are the home tabs' own, so `tabs.ts` constrains them; the closest pair
 is 16.8 dE. The light Books half is `#ab9219`, the brightest gold clearing 3:1 on white, not the
 tab's darker `#958112`, because lightness is what a deutan reader has left: at the Movies red's
 lightness a Books gold collapses onto it under simulation, 1.3 dE at `#857200` against a working
@@ -1513,8 +1594,9 @@ with an error to say so:
 - **`??=`**, which it cannot lower. Write `x = x ?? y`.
 - **A destructured prop default** (`({ landscape = false })`), an assignment pattern
   `BuildHIR::lowerAssignment` cannot lower. Read defaults off the props object instead.
-- **An import expression**, which is why each entry component keeps its `import("./Graphs")` in a
-  module-scope `loadGraphs` that `lazy()` and the prefetch effect both call.
+- **An import expression**, which is why each domain keeps its `import("./Graphs")` in a
+  module-scope `loadGraphs` that `lazy()` and the prefetch effect both call — the one piece of a
+  tab's entry that `app/tabEntry.ts`'s factory cannot own for it.
 - **An object literal with a computed key** — `{ [theme.breakpoints.down("sm")]: {...} }`, the shape
   a phone-only style rule takes wherever the value itself has to change and not only be hidden.
   Written inline it bails with `BuildHIR::lowerExpression … Expected Identifier, got CallExpression
@@ -1522,7 +1604,7 @@ key in ObjectExpression`; pulled out to a plain function taking the varying piec
   `sheetBarSx`, `dialogCardSx`, among others — the literal itself sits at module scope and the
   component stays compiled.
 
-The baseline is **255 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **250 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.
@@ -1562,42 +1644,105 @@ Filter state carries a composed `filter` predicate as a _field_, rebuilt inside 
 an input changes. Components call `data.filter(state.filter)` without knowing which criteria are
 active, and adding a criterion means adding one predicate to the `filters()` builder.
 
-`createFilterReducer(initialValues, filters)` in `common/filterReducer.ts` returns a domain's
-`useFilterReducer` and owns what is the same everywhere: the action union, the `useOutletContext`
-guest-mode wiring, rebuilding `filter` after each change, and three shared pieces —
-`yearPredicates` (an "up to" ceiling that disappears once it reaches the current year, or an exact
-match), `selectedPredicates` (a multi-select where an empty selection is no constraint, returned as a
-list so an inactive control contributes nothing rather than an always-true predicate), and
-`activeCount`, bound to the initial values the reducer already holds. Each domain supplies only its
-own initial values and how to turn that state into a predicate.
+`createFilterReducer(initialValues, filters)` in `common/filterReducer.ts` returns a domain's store
+and its `useFilterReducer`, and owns what is the same everywhere: the action union, rebuilding
+`filter` after each change, and three shared pieces — `yearPredicates` (an "up to" ceiling that
+disappears once it reaches the current year, or an exact match), `selectedPredicates` (a
+multi-select where an empty selection is no constraint, returned as a list so an inactive control
+contributes nothing rather than an always-true predicate), and `activeCount`, bound to the initial
+values the reducer already holds. Each domain supplies only its own initial values and how to turn
+that state into a predicate.
+
+**A tab's state lives in a store, not in the tab.** The surfaces that read it are not all inside the
+page — the rail stands beside the charts rather than within them — and a filter can be set on a tab
+before that tab has ever been mounted, so a state lifted to their nearest common ancestor would be
+lifted to the shell and re-render every chart in the app on a change reaching two components. Each
+`filterUtils.ts` therefore holds one `common/store.ts` `createStore` at module scope, which that
+helper is written to allow: it reads no browser global while it loads, so
+`tests/architecture.test.ts`'s module-scope rule is satisfied by construction. `src/app/pageState.ts`
+keys the five by **tab id** — the composing tab is a page with filters, a measure and a scope like
+any other and is no `Medium` at all — and `usePageState(tabId)` is what a surface above the tabs
+reads one through, `PageStore` erasing the domain's own fields so a record can hold all five.
+`useFilterReducer` is the same store seen from inside the tab. Two things follow: filters, the
+measure and the scope survive a tab switch for the session, where a reducer unmounting with its page
+would drop them; and a surface narrowing a tab it is not on dispatches on that tab's store and then
+navigates, rather than parking a pending filter somewhere for the page to find.
 
 The measure action _sets_ rather than advances, the control being a segment per measure: a press
 names its own state, so setting the measure already held answers the same object and costs no render.
 It is also the one action that does not rebuild `filter`, since no `filters()` reads the measure and
-consumers re-filter on that predicate's identity.
+consumers re-filter on that predicate's identity. `yearType` names the reading it wants for the same
+reason, a control with a state per reading having a lit segment to press twice.
 
 `countActiveFilters` counts fields, not predicates — three genres picked in one select are one choice,
-undone in one place — comparing arrays element-wise and leaving `measure`, `filter` and `guestMode`
-uncounted, guest mode surviving Clear.
+undone in one place — comparing arrays element-wise and leaving `measure`, `filter`, `yearTo` and
+`yearType` uncounted. `resetFilters` restores those same filter fields alone: the measure is the unit
+every figure on the tab is counted in and the scope is a control beside it, so Clear leaves a reader
+counting hours in one year exactly where they were.
 
-`vg/filterUtils.ts` shows the full pattern: toggles, multi-selects derived from the data through
-`common/filterOptions`, a year cutoff, a Games/Hours measure. `common/FilterDrawer` is one shell
-taking the active count, the reset action and the domain's controls as fully controlled children; the
-measure is not in it, being the unit every figure is counted in rather than a narrowing of what is
-counted, so it rides the section rail (§6). `yearPredicates` takes a `yearOf` accessor defaulting to
-`startDate.year`, so the Omnibus passes `(item) => item.year` for an `OmniItem`, which counts towards
-the year it closed. Shows keeps its own predicate — "has a season started in (or by) the year" —
-keeping the filter and the seasons-in-year vitals card in agreement.
+**A tab describes its filters as data.** `<domain>/filters.ts` exports a `FilterSchema`
+(`common/filterSchema.ts`): a toggle is a state field, a label and the predicate the page keeps
+_while that toggle is off_; a category is a state field, a label, the accessor its values come from,
+optionally its own option list and its colour vocabulary, and whether that vocabulary is long enough
+to be searched rather than scanned. `schemaPredicates(schema, state)` composes the whole of it — each
+toggle that is off, each category holding a selection, through `selectedPredicates` — and
+`createFilterReducer` spreads the result beside the one rule a per-field schema cannot state, the
+year scope, which belongs to no field. A key is typed
+against the field it names, a boolean for a toggle and a list for a category, because a key naming
+the wrong field is a filter that draws and silently never applies. `options` falls to
+`common/filterOptions`' `categoryOptions`, and a category states its own only where the plain set is
+wrong — the franchise column repeating a standalone item's own name, a blank nobody can name, which
+is `franchiseCategory`, the one category all five tabs offer on identical terms.
+
+**The schema is also the state.** The reducer seeds a toggle to `true` and a category to `[]` from
+the schema itself, that being what "unfiltered" means for each — `hides` applies while a toggle is
+off, and an empty selection is no constraint — so a domain states only what its schema cannot,
+which is exactly how `initial` is typed: `Omit<S, "filter" | ToggleKey<S> | CategoryKey<S>>`, the
+measure it counts in, the scope it opens at and the year its records answer with. A filter added to
+a schema therefore cannot arrive without a starting value, where a toggle missed in a hand-written
+list starts `undefined`, reads as off and hides rows on first paint — and a state field the schema
+does not cover fails to compile rather than starting the same way.
+
+One description, three readers: `common/FilterControls`' `SchemaFilterDrawer` draws the whole
+surface — the drawer, its toggles and its selects — for every tab there is, and the box above the
+page and the index of what can be found by attribute read the same schema, so a page cannot be
+narrowed one way and found another. The toggle **icons** are keyed by the same keys in each
+medium's own `filterIcons.ts`, beside the `Graphs` that draws the drawer, and never on the schema
+itself: `MediumModule` carries the schema, the shell reaches the registry, and an icon named there
+would put four tabs' filter glyphs in the first bundle a visitor downloads — while one named in
+`module.lazy.ts` rides the chunk the union prefetches for its hover cards (§2). `common/FilterDrawer`
+is one shell taking the active count, the reset action and two slots as fully controlled children;
+the measure is not in it, being the unit every figure is counted in rather than a narrowing of what
+is counted, so it rides the section rail (§6). `yearPredicates` takes a `yearOf` accessor as a
+required argument and never a default: written over a generic record a default type-checks against
+every model there is, so a domain whose rows carry no start date would compile and scope on
+`undefined`, keeping nothing. The Omnibus reads `item.year`, the year it closed; Shows passes a
+whole `yearRule` instead, the shared one reading a show's _first_ season, which keeps the filter and
+the seasons-in-year vitals card in agreement.
+
+**A selection is held to the vocabulary its own control draws.** A category's options are computed
+over the _visible_ library, so guest mode switched on under a chosen franchise would leave that
+franchise selected in the store with no chip anywhere offering or clearing it, and every chart on
+the page narrowed to nothing for a reason the reader cannot see. `LibraryProvider` sweeps each tab's
+selects against exactly the rows that tab's drawer lists from — each medium's visible slice, the
+union for the composing tab — through `retainPageSelections` (`app/pageState.ts`, the one file there
+that names the composing tab). The `retain` action answers the same state object where nothing is
+dropped, so the sweep costs no render on the runs that change nothing; a category holding nothing is
+skipped before its options are computed, since a pass over the whole library per category, for five
+tabs, on every sheet landing, is what the common case of nothing selected would otherwise cost. A
+slice still in flight is skipped too, rather than swept against an empty list.
 
 ### Guest mode
 
 Long-pressing the wordmark (`utils/useLongPress.ts`, 300 ms, over the pure `longPressReducer`) sets
-`guestMode`, which flows through the router's outlet context into each domain's reducer and appends a
-predicate: a game whose `theme` includes `"Adult"`, a show whose `type` is anime, a film carrying the
-sheet's `anime` flag; nothing marks a book. Each domain exports its `guestFilter` by name, since the
-mode is applied a second time to the franchise index and to the union through `visibleLibrary` — an
-index that skipped it would put hidden items back on screen through a card strip. It is presentation,
-not a security boundary: the data is loaded already.
+`guestMode`, which `Google.tsx` hands to `app/LibraryProvider`. `visibleLibrary` (`app/library.ts`)
+applies each medium's own `guestFilter`, exported from its `filterUtils.ts` and named by its
+`module.ts` — a game whose `theme` includes `"Adult"`, a show whose `type` is anime, a film carrying
+the sheet's `anime` flag; nothing marks a book, so that rule keeps the whole library — and every tab,
+index and union reads the slice that comes back. It is applied to the data once rather than to each
+page's filters because the franchise index, the union and the search index are all built from the
+library: a mode narrowing one page's charts would put a hidden item straight back on screen through
+a card strip. It is presentation, not a security boundary: the data is loaded already.
 
 The gesture is the pointer's alone — the hook answers with mouse handlers and nothing else, a long
 press on touch colliding with the browser's own press-and-hold — so the app bar's overflow menu
@@ -1618,8 +1763,9 @@ cannot drift. Two `theme-color` metas are emitted, one per scheme. Themes are ca
 keyed by tab id:
 building one walks both schemes, typography, shadows and the whole CSS-variable map, and a stable
 identity stops the MUI tree re-evaluating `sx` on navigation. `Google.tsx` also mounts
-`FranchiseUnionProvider` around the `<Outlet>`, a card on any tab drawing its franchise across all
-four media.
+`LibraryProvider` inside `GoogleAuthProvider` and above the bar — every tab reads its sheet from
+there, and the bar answers for the library as a whole — and `FranchiseUnionProvider` around the
+`<Outlet>` inside it, a card on any tab drawing its franchise across all four media.
 
 Routing uses `HashRouter` because GitHub Pages cannot rewrite deep paths to `index.html`. The root
 route and the unmatched-path fallback are positional — `App.tsx` renders `Tabs[0].component` for the
@@ -1630,32 +1776,53 @@ what a bare `/` opens. Omnibus leads for that reason.
 
 **Adding a data source.** Add a `Tab` to `src/tabs.ts` (sheet id, A1 range, route id, component,
 colours) and then to the exported `Tabs` array, which generates the router and nav bar and decides the
-root route's fallback (§7). Create `src/<domain>/` with `types.ts`, an entry component calling
-`useData` with the `DataConfig` its `converter.ts` exports, and a lazy `Graphs.tsx`. Implement
-`CardMediaImage` against `TypedCardMediaImage<T>` to get `Finished` and `StatList` for free.
+root route's fallback (§7). Create `src/<domain>/` with `types.ts`, a `converter.ts` exporting its
+`DataConfig`, an entry component built by `createTabEntry` (`app/tabEntry.tsx`) over its own
+`loadGraphs`, and a lazy `Graphs.tsx`.
+Implement `CardMediaImage` against `TypedCardMediaImage<T>` to get `Finished` and `StatList` for
+free.
 
-A fifth medium also extends the `Medium` union in `utils/types.ts` with its fill, label, name and
-unit; gives `toOmniItems` a case and `visibleLibrary` a rule in `omnibus/adapter.ts`; adds its
-`useData` call to `omnibus/Omnibus.tsx` and `omnibus/franchiseUnion.tsx`; and exports a per-item entry
-mapper from its own `cardData.ts` beside `gameEntry`, `seasonEntry`, `movieEntry` and `bookEntry`.
-That mapper returns a `FranchiseEntry`, and both the domain's own card strip (through
-`CardMediaImage.tsx`) and `unionEntry` in `omnibus/franchiseUnionData.ts` call it, so a tab's index
-and the cross-media union cannot draw one item two ways.
+A fifth medium extends the `Medium` union in `utils/types.ts` with its fill, label, name and unit,
+and is then **a `module.ts`, a `module.lazy.ts`, a line in `app/records.ts` and one in
+`app/media.ts`** (§2). The eager half answers what the medium is — its `DataConfig`, its guest rule,
+its arm of the union, its `FranchiseEntry` mapper and span, its page state, its filter schema, its
+artwork and its title; the lazy half answers what draws it, its card and its hover card, and nothing
+else, its filter glyphs going beside its own `Graphs`. `app/records.ts` names the record its sheet
+converts to and the one it contributes to the union, which is what pairs the module with its own
+library.
+Nothing else changes: `toOmniItems`, `visibleLibrary`, the crossings, the gallery, the search index
+and the card dispatcher all read the registry, so a medium that answers everything on
+`MediumModule` is on every surface the day it is added, and one that answers nothing does not
+compile. A module never imports `tabs.ts`; it carries `tabId`. What is still by hand is the fetch:
+a hook cannot be called in a loop, so `LibraryProvider` writes its four `useSheet` calls out and
+names each medium once more in `raw`, `loaded` and `error`. `Library` itself is keyed by medium
+over `app/records.ts`'s `LibraryRecord`, so the type and every walk over it —
+`visibleLibrary`, `completeLibrary`, `toOmniItems` — take the fifth medium from the `Medium` union
+without an edit. Four lines in one file, all of which fail to compile if any is missed.
+
+The entry mapper is the piece the domain's own card strip calls too (through `CardMediaImage.tsx`),
+so a tab's index and the cross-media union cannot draw one item two ways.
 
 **Composing existing data sources, without a sheet of its own.** `omnibus/` is the reference: its
 `Tab` carries no `spreadsheetId`/`range` (both optional for this case, with `SheetTab` restating them
-as required for anything that fetches), and it calls `useData` with each composed domain's own config.
-A pure adapter re-shapes their output into one vocabulary the shared shells render. The new folder may
-import the domains it composes, never the reverse, and stays outside `common/`/`utils/`.
+as required for anything that fetches), and its entry component reads `useLibrary()` exactly as a
+home tab reads its own medium's slice — it composes nothing itself. The cross-domain work — the
+union, the search index, the franchise view — lives in `app/`, the one folder besides a medium's own
+`module.ts` allowed to reach into more than one domain; a new tab built the same way stays outside
+`common/`/`utils/` and reads what `app/` already composed rather than composing it a second time.
 
 **Adding a visualisation.** Domain-agnostic, it belongs in `common/`, taking data plus callbacks with
 a thin adapter per domain; domain knowledge belongs in the domain folder. The existing shells set the
 level of inversion — `Sunburst` takes four callbacks, `Barchart` a data function and a scalar
 `postAggregate` — and it stays at the level of _values and meaning_.
 
-**Adding a filter.** Extend the domain's `FilterState` (extending `BaseFilterState`), push a predicate
-in its `filters()`, and render a control in `Filter.tsx`. Nothing in `common/filterReducer.ts` or in
-any chart changes.
+**Adding a filter.** Add a toggle or a category to the domain's `filters.ts` and the field it names
+to its `FilterState` (extending `BaseFilterState`); a toggle also takes a glyph in that domain's
+`module.lazy.ts`, keyed the same way, which the icon record's own type requires. Nothing in
+`common/filterReducer.ts`, `common/FilterControls.tsx` or any chart changes, and no starting value
+is written anywhere — every surface that offers filters draws whatever the schema holds, and the
+reducer seeds the new field from it. A rule that is not per-field, like Shows' seasonal year cutoff,
+is that tab's own `yearRule`, passed to `createFilterReducer` in `filterUtils.ts`.
 
 ## 9. Repository layout beyond `src/`
 
@@ -1681,10 +1848,11 @@ Recorded so they are not mistaken for design:
 - **No loading state.** An entry component renders `{data && <Graphs/>}` beside its snackbar, so a
   first visit on a cold cache is a nav bar over an empty page while OAuth and the sheet read run. The
   Omnibus waits on all four sheets, so it waits longest.
-- **A deep link to a home tab fetches all four sheets.** `FranchiseUnionProvider` mounts above the
-  router so any tab has the cross-media union; a deep link to `/vg` therefore pays three extra sheet
-  reads and paints from cache until they land, where the Omnibus has usually fetched them already. A
-  deliberate trade, argued in that provider's own comment (`omnibus/franchiseUnion.tsx`).
+- **Every visit fetches all four sheets.** `app/LibraryProvider.tsx` mounts above the router, so any
+  tab has the cross-media union and the bar can say whether there is a library at all; a deep link
+  to `/vg` therefore pays three extra sheet reads and paints from cache until they land, where the
+  Omnibus — which a bare visit opens on — needs all four regardless. A deliberate trade, argued in
+  that provider's own comment.
 - **The filter drawer's desktop shape ignores `onClose`.** From `sm` up `FilterDrawer` renders a
   `Drawer` with `variant="persistent"`, and MUI never calls the `onClose` passed for that variant, so
   only the Clear/Close row and the floating button dismiss it. Below `sm` the same drawer is a

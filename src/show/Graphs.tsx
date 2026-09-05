@@ -12,20 +12,20 @@ import { useOtherTabs } from "../tabs";
 import { SHOW_SECTIONS, showSections } from "./sections";
 import { currentlyWatching, earliestYear } from "./statsData";
 import Timeline from "./Timeline";
-import { Show, type Measure } from "./types";
+import { Show } from "./types";
+import { showModule } from "./module";
 import ShowCardMediaImage from "./CardMediaImage";
 import { statusToColour } from "../utils/types";
-import { activeCount, guestFilter, type FilterDispatch, type FilterState } from "./filterUtils";
+import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
 import { FranchiseContext, showFranchise } from "./franchiseContext";
-import { visibleFranchiseIndex } from "../common/franchiseIndex";
-import Filter from "./Filter";
+import { franchiseIndex } from "../common/franchiseIndex";
+import { SchemaFilterDrawer } from "../common/FilterControls";
+import { showFilters } from "./filters";
+import { filterIcons } from "./filterIcons";
 import { memo, useDeferredValue } from "react";
 import { format } from "../utils/mathUtils";
 import { finishedCount } from "../common/finishedData";
 import { useScheme } from "../common/useScheme";
-
-/** The measures this tab counts in, in the order the rail states them. */
-const MEASURES: readonly Measure[] = ["Seasons", "Episodes", "Hours"];
 
 const SuspenseBlock = ({
   filteredData,
@@ -38,9 +38,7 @@ const SuspenseBlock = ({
   filterState: FilterState;
   filterDispatch: FilterDispatch;
 }) => (
-  <FranchiseContext.Provider
-    value={visibleFranchiseIndex(unfilteredData, showFranchise, filterState.guestMode, guestFilter)}
-  >
+  <FranchiseContext.Provider value={franchiseIndex(unfilteredData, showFranchise)}>
     <Graphs
       data={filteredData}
       // The floor of the year select, read from the whole library rather than from what the
@@ -50,10 +48,14 @@ const SuspenseBlock = ({
       filterState={filterState}
       filterDispatch={filterDispatch}
     />
-    <Filter
+    <SchemaFilterDrawer
+      schema={showFilters}
+      icons={filterIcons}
       state={filterState}
       dispatch={filterDispatch}
       data={unfilteredData}
+      activeCount={activeCount(filterState)}
+      onReset={() => filterDispatch({ type: "resetFilters" })}
     />
   </FranchiseContext.Provider>
 );
@@ -112,7 +114,7 @@ const Graphs = memo(
       >
         <Finished
           title="All Shows"
-          count={`${format(finishedCount(data))} shows`}
+          count={`${format(finishedCount(data))} ${showModule.noun}`}
           borderKey="status"
           data={data}
           colour={(item) => statusToColour(item, scheme)}
@@ -128,7 +130,7 @@ const Graphs = memo(
           tabs={tabs}
           actions={
             <MeasureControl
-              measures={MEASURES}
+              measures={showModule.measures}
               value={filterState.measure}
               dispatch={filterDispatch}
             />

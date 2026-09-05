@@ -30,7 +30,7 @@ import {
   scoreBands,
   scoreBandToColour,
 } from "../../src/movie/types";
-import { media, mediumToColour } from "../../src/omnibus/types";
+import { media, mediumToColour } from "../../src/app/types";
 import { FORMATS, formatToColour, groupToColour as bookGroupToColour } from "../../src/books/types";
 import Tabs from "../../src/tabs";
 import { PAPERS, contrast, liveGenres } from "../fixtures/colour";

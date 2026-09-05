@@ -1,5 +1,6 @@
 import type { LedgerRow, PanelSubtitlePart } from "../common/Card";
 import type { FranchiseEntry } from "../common/franchiseUnion";
+import type { MediumSpan } from "../common/medium";
 import type { ReactNode } from "react";
 import { formatDate } from "../common/date";
 import { ageRatingToColour, franchiseToColour, genreToColour, mediumFills, type Scheme } from "../utils/types";
@@ -50,8 +51,18 @@ export const movieRows = (movie: Movie, scheme: Scheme): LedgerRow[] => {
 };
 
 /**
- * A film in a franchise strip's vocabulary: a point — `start === end` — which the strip draws as
- * a dot. One mapper for the tab's own index and the Omnibus union.
+ * When a film ran, for any scale that places it: a point — `start === end` — which every strip
+ * floors to its own minimum band width and draws as a dot. Being watched is the whole of a film,
+ * so its watch date is both ends of it and there is nothing for the span to run to.
+ */
+export const movieSpan = (movie: Movie): MediumSpan => ({
+  start: movie.startDate,
+  end: movie.startDate,
+  precise: true,
+});
+
+/**
+ * A film in a franchise strip's vocabulary. One mapper for the tab's own index and the union.
  */
 export const movieEntry = (movie: Movie, hoverCard: () => ReactNode): FranchiseEntry => ({
   key: movieItemKey(movie),
@@ -60,8 +71,6 @@ export const movieEntry = (movie: Movie, hoverCard: () => ReactNode): FranchiseE
   medium: "movie",
   fill: mediumFills.movie,
   label: movie.name,
-  start: movie.startDate,
-  end: movie.startDate,
-  precise: true,
+  ...movieSpan(movie),
   hoverCard,
 });

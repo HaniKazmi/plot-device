@@ -210,7 +210,7 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
         {/* At every width: below `sm` the bar is a wordmark, this and the ⋮, the tabs having gone to
             the bottom of the screen, so the box stands in the space the strip left. A button rather
             than a `BarAction`, which is text-only and, under a finger, a menu item — a search box
-            two taps away is one nobody opens. ⌘K and `/` reach the same palette (`omnibus/Search`). */}
+            two taps away is one nobody opens. ⌘K and `/` reach the same palette (`app/Search`). */}
         <IconButton
           color="inherit"
           aria-label="Search"

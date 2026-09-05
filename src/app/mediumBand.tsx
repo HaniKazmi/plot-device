@@ -1,6 +1,6 @@
 import type { MediaBand } from "../common/Card";
 import type { Scheme } from "../utils/types";
-import type { OmniItem } from "./adapter";
+import type { OmniItem } from "../common/medium";
 import { MEDIUM_LABEL_HEIGHT, MediumLabel } from "./MediumLabel";
 
 /**

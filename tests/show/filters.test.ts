@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { CURRENT_YEAR, type YearNumber } from "../../src/common/date";
+import { guestFilter } from "../../src/show/filters";
 import { filters, initialState, type FilterState } from "../../src/show/filterUtils";
 import { show, showWithSeasonsIn } from "../fixtures/shows";
+import { showFilters } from "../../src/show/filters";
 
 const state = (overrides: Partial<FilterState> = {}): Omit<FilterState, "filter"> => ({
   ...initialState,
@@ -52,19 +54,18 @@ describe("categories", () => {
   });
 });
 
-describe("guest mode", () => {
-  it("hides anime, which is what guest mode means on this tab", () => {
-    // The same flag hides adult-themed games on the games tab — same switch, different rule.
-    const keep = filters(state({ guestMode: true }));
-
-    expect(keep(show({ type: "anime" }))).toBe(false);
-    expect(keep(show({ type: "show" }))).toBe(true);
+describe("what guest mode hides", () => {
+  // Applied to the library above the tab, so it is exercised as the predicate itself; the anime
+  // toggle below drops the same shows, one rule serving both.
+  it("keeps everything but anime, which is what the mode means on this tab", () => {
+    expect(guestFilter(show({ type: "anime" }))).toBe(false);
+    expect(guestFilter(show({ type: "show" }))).toBe(true);
   });
 
-  it("cannot be re-enabled from the anime toggle, because it composes on top", () => {
-    const keep = filters(state({ guestMode: true, anime: true }));
-
-    expect(keep(show({ type: "anime" }))).toBe(false);
+  it("cannot be undone by the anime toggle, which only ever widens what the page draws", () => {
+    // The toggle admits anime back into the charts; in guest mode there is none in the library
+    // for it to admit.
+    expect(filters(state({ anime: true }))(show({ type: "anime" }))).toBe(true);
   });
 });
 
@@ -92,5 +93,21 @@ describe("the year cutoff", () => {
     const keep = filters(state({ yearType: "upto", yearTo: CURRENT_YEAR }));
 
     expect(keep(showWithSeasonsIn(CURRENT_YEAR))).toBe(true);
+  });
+});
+
+describe("the schema the drawer and the box are both drawn from", () => {
+  it("offers two toggles and four categories, in the order they are laid out", () => {
+    expect(showFilters.toggles.map((toggle) => toggle.key)).toEqual(["abandoned", "anime"]);
+    expect(showFilters.categories.map((category) => category.key)).toEqual(["genre", "network", "type", "franchise"]);
+  });
+
+  it("opens a search-within on the vocabularies this library holds hundreds of values in", () => {
+    // A reader picks a franchise or a person by typing; a genre or a format by scanning a list
+    // short enough to read. The flag is what tells the two apart, and the search box's This page
+    // mode reads it, offering a long category as a list to search rather than one to scan.
+    expect(showFilters.categories.filter((category) => category.searchable).map((category) => category.key)).toEqual([
+      "franchise",
+    ]);
   });
 });

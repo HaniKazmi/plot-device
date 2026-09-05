@@ -1,12 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
-import useData from "../common/useData";
+import { useLibrary } from "../app/library";
 import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
-import { BooksTab, MoviesTab, ShowsTab, VideoGamesTab } from "../tabs";
-import { bookDataConfig } from "../books/converter";
-import { movieDataConfig } from "../movie/converter";
-import { showDataConfig } from "../show/converter";
-import { vgDataConfig } from "../vg/converter";
-import { toOmniItems, visibleLibrary } from "./adapter";
 import { useFilterReducer } from "./filterUtils";
 
 /**
@@ -41,31 +35,25 @@ const usePrefetchGraphs = () =>
 /**
  * The one tab with no sheet of its own.
  *
- * It mounts the four domains' own data configurations, so every row reaches it through exactly
- * the converter, cache key and reviver its home tab uses — there is no fifth copy of any of that
- * to keep in step, and no cache written from here.
+ * It reads the four libraries the shell already holds, so every row reaches it through exactly the
+ * converter, cache key and reviver its home tab uses — there is no fifth copy of any of that to
+ * keep in step, and no cache written from here.
  *
  * Nothing renders until all four have arrived. A page comparing four media against each other
  * with one of them missing is not a partial answer but a wrong one: the totals band would report
  * shares of a library three quarters present, and the reader has no way to tell.
+ *
+ * The union comes from the provider rather than being flattened again here: the Now band elects
+ * from the domain records and the charts read the flat list, and two flattenings of one library are
+ * two chances to disagree about which rows guest mode hides.
  */
 const Omnibus = () => {
   usePrefetchGraphs();
-  const [games, gamesLoaded, gamesError] = useData(vgDataConfig, VideoGamesTab);
-  const [shows, showsLoaded, showsError] = useData(showDataConfig, ShowsTab);
-  const [movies, moviesLoaded, moviesError] = useData(movieDataConfig, MoviesTab);
-  const [books, booksLoaded, booksError] = useData(bookDataConfig, BooksTab);
+  // The library and the union it was flattened from, both answered above: one is defined exactly
+  // when the other is, so the page has a single test for whether all four sheets are here.
+  const { whole: library, items: data, loaded, error } = useLibrary();
 
   const [filterState, filterDispatch] = useFilterReducer();
-
-  // Guest mode is applied per library, by each domain's own rule, before anything is composed:
-  // the Now band elects from these records rather than from the union, so a predicate applied
-  // only to the union would let it headline a title the charts had hidden.
-  const library =
-    games && shows && movies && books
-      ? visibleLibrary({ games, shows, movies, books }, filterState.guestMode)
-      : undefined;
-  const data = library && toOmniItems(library);
 
   // The first sheet to complain, not all of them: each message names a row in a different
   // spreadsheet, and four at once would say the page is broken four times over where the
@@ -78,8 +66,8 @@ const Omnibus = () => {
   // remount that sees only the second half of the turn.
   const notice = (
     <DataLoadedSnackbar
-      open={gamesLoaded && showsLoaded && moviesLoaded && booksLoaded}
-      error={gamesError ?? showsError ?? moviesError ?? booksError}
+      open={loaded.game && loaded.show && loaded.movie && loaded.book}
+      error={error.game ?? error.show ?? error.movie ?? error.book}
     />
   );
 

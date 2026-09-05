@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { YearMonthDay } from "../../src/common/date";
-import { toOmniItems } from "../../src/omnibus/adapter";
+import { toOmniItems } from "../../src/app/library";
 import { genreBridge } from "../../src/omnibus/genreBridgeData";
 import { ageRatingBand, GENRE_NAMES, genreToColour, neutralFill, releaseDecade } from "../../src/utils/types";
 import { book } from "../fixtures/books";
@@ -20,9 +20,9 @@ describe("genreBridge", () => {
     const rows = genreBridge(
       toOmniItems(
         library({
-          games: [videoGame({ genre: "Horror" })],
-          movies: [movie({ genre: "Sci-Fi" }), movie({ genre: "Sci-Fi" })],
-          shows: [showWith("Sci-Fi", 405)],
+          game: [videoGame({ genre: "Horror" })],
+          movie: [movie({ genre: "Sci-Fi" }), movie({ genre: "Sci-Fi" })],
+          show: [showWith("Sci-Fi", 405)],
         }),
       ),
     );
@@ -37,8 +37,8 @@ describe("genreBridge", () => {
     const rows = genreBridge(
       toOmniItems(
         library({
-          games: [videoGame({ genre: "Fantasy", hours: 40 })],
-          movies: [movie({ genre: "Fantasy", minutes: 120 })],
+          game: [videoGame({ genre: "Fantasy", hours: 40 })],
+          movie: [movie({ genre: "Fantasy", minutes: 120 })],
         }),
       ),
     );
@@ -54,9 +54,9 @@ describe("genreBridge", () => {
     const rows = genreBridge(
       toOmniItems(
         library({
-          games: [videoGame({ genre: "Abstract", hours: 40 }), videoGame({ genre: "Abstract", hours: 20 })],
-          movies: [movie({ genre: "Fantasy", minutes: 120 })],
-          shows: [showWith("Fantasy", 405)],
+          game: [videoGame({ genre: "Abstract", hours: 40 }), videoGame({ genre: "Abstract", hours: 20 })],
+          movie: [movie({ genre: "Fantasy", minutes: 120 })],
+          show: [showWith("Fantasy", 405)],
         }),
       ),
     );
@@ -74,8 +74,8 @@ describe("genreBridge", () => {
     const rows = genreBridge(
       toOmniItems(
         library({
-          games: [videoGame({ genre: "Abstract", hours: 0 })],
-          movies: [movie({ genre: "Fantasy", minutes: 120 })],
+          game: [videoGame({ genre: "Abstract", hours: 0 })],
+          movie: [movie({ genre: "Fantasy", minutes: 120 })],
         }),
       ),
     );
@@ -89,9 +89,9 @@ describe("genreBridge", () => {
         library({
           // A game logged with no hours records the genre but contributes nothing to spend, and a
           // slice floored to half a percent would claim it did.
-          games: [videoGame({ genre: "Action", hours: 0 })],
-          movies: [movie({ genre: "Action", minutes: 120 })],
-          shows: [showWith("Action", 600)],
+          game: [videoGame({ genre: "Action", hours: 0 })],
+          movie: [movie({ genre: "Action", minutes: 120 })],
+          show: [showWith("Action", 600)],
         }),
       ),
     );
@@ -103,8 +103,8 @@ describe("genreBridge", () => {
     const rows = genreBridge(
       toOmniItems(
         library({
-          movies: [movie({ genre: "Sci-Fi", minutes: 180 })],
-          shows: [showWith("Sci-Fi", 540)],
+          movie: [movie({ genre: "Sci-Fi", minutes: 180 })],
+          show: [showWith("Sci-Fi", 540)],
         }),
       ),
     );
@@ -118,8 +118,8 @@ describe("genreBridge", () => {
     const rows = genreBridge(
       toOmniItems(
         library({
-          movies: [movie({ genre: "Sci-Fi", minutes: 96 })],
-          shows: [showWith("Sci-Fi", 96)],
+          movie: [movie({ genre: "Sci-Fi", minutes: 96 })],
+          show: [showWith("Sci-Fi", 96)],
         }),
       ),
     );
@@ -131,8 +131,8 @@ describe("genreBridge", () => {
     const rows = genreBridge(
       toOmniItems(
         library({
-          movies: [movie({ genre: "Sci-Fi", minutes: 120 }), movie({ genre: "Horror", minutes: 90 })],
-          shows: [showWith("Sci-Fi", 3000), showWith("Horror", 300)],
+          movie: [movie({ genre: "Sci-Fi", minutes: 120 }), movie({ genre: "Horror", minutes: 90 })],
+          show: [showWith("Sci-Fi", 3000), showWith("Horror", 300)],
         }),
       ),
     );
@@ -147,8 +147,8 @@ describe("genreBridge", () => {
     const rows = genreBridge(
       toOmniItems(
         library({
-          movies: [movie({ genre: "Horror", minutes: 45 })],
-          shows: [showWith("Sci-Fi", 6000)],
+          movie: [movie({ genre: "Horror", minutes: 45 })],
+          show: [showWith("Sci-Fi", 6000)],
         }),
       ),
     );
@@ -157,7 +157,7 @@ describe("genreBridge", () => {
   });
 
   it("still draws the sub-hour genre, which is time spent whatever it rounds to", () => {
-    const rows = genreBridge(toOmniItems(library({ movies: [movie({ genre: "Horror", minutes: 45 })] })));
+    const rows = genreBridge(toOmniItems(library({ movie: [movie({ genre: "Horror", minutes: 45 })] })));
 
     expect(rows).toHaveLength(1);
     expect(rows[0].amount).toBe(0);
@@ -169,7 +169,7 @@ describe("genreBridge", () => {
     // anything the ramp has no entry for would draw on the neutral, which is the colour absence
     // is drawn in — so a real genre would render as "no genre recorded".
     const rows = genreBridge(
-      toOmniItems(library({ movies: [movie({ genre: "Sci-Fi" })], shows: [showWith("Sci-Fi", 405)] })),
+      toOmniItems(library({ movie: [movie({ genre: "Sci-Fi" })], show: [showWith("Sci-Fi", 405)] })),
     );
 
     expect(rows[0].name).toBe("Sci-Fi");
@@ -181,7 +181,7 @@ describe("genreBridge", () => {
 describe("books on the bridge", () => {
   it("gives a genre a book segment sized by its hours, beside the other media's", () => {
     const rows = genreBridge(
-      toOmniItems(library({ movies: [movie({ genre: "Sci-Fi" })], books: [book({ genre: "Sci-Fi", hours: 12.4 })] })),
+      toOmniItems(library({ movie: [movie({ genre: "Sci-Fi" })], book: [book({ genre: "Sci-Fi", hours: 12.4 })] })),
     );
 
     const media = rows[0].segments.map((segment) => segment.medium);
@@ -191,11 +191,11 @@ describe("books on the bridge", () => {
   it("keys rows on the year, decade or certificate tier as asked, newest first along time", () => {
     const items = toOmniItems(
       library({
-        movies: [
+        movie: [
           movie({ genre: "Sci-Fi", startDate: YearMonthDay.get(2022, 3, 1), rating: "15" }),
           movie({ genre: "Horror", startDate: YearMonthDay.get(2019, 3, 1), rating: "18" }),
         ],
-        shows: [showWith("Sci-Fi", 405)],
+        show: [showWith("Sci-Fi", 405)],
       }),
     );
     expect(genreBridge(items, "year").map((row) => row.name)).toEqual(
@@ -207,7 +207,7 @@ describe("books on the bridge", () => {
     // A season certifies through its show; nothing certifies a book, and a row keyed on nothing
     // is not drawn.
     const ratings = genreBridge(
-      toOmniItems(library({ books: [book({})], movies: [movie({ rating: "18" }), movie({ rating: "12" })] })),
+      toOmniItems(library({ book: [book({})], movie: [movie({ rating: "18" }), movie({ rating: "12" })] })),
       "rating",
     );
     // Youngest first, the boards' own order, whatever the hours in each.
@@ -217,8 +217,8 @@ describe("books on the bridge", () => {
   it("counts in the page's measure, so under Items a short film weighs what a long game does", () => {
     const items = toOmniItems(
       library({
-        games: [videoGame({ genre: "Sci-Fi", hours: 100 })],
-        movies: [movie({ genre: "Sci-Fi", minutes: 120 })],
+        game: [videoGame({ genre: "Sci-Fi", hours: 100 })],
+        movie: [movie({ genre: "Sci-Fi", minutes: 120 })],
       }),
     );
     const byItems = genreBridge(items, "genre", "Items")[0];

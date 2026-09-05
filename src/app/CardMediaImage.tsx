@@ -1,0 +1,47 @@
+import { type TypedCardMediaImage } from "../common/Card";
+import { MEDIA_LAZY } from "./mediaLazy";
+import { type OmniItem } from "../common/medium";
+import { mediumToShape } from "./types";
+
+/**
+ * One item of the union as its own tab's card.
+ *
+ * Everything a card can be asked for is forwarded untouched, so a surface here builds a mixed-media
+ * list exactly the way a domain builds a single-medium one — the artwork opens the domain's own
+ * expanded dialog, strip and ledger included, rather than a second and poorer copy of it. The four
+ * franchise indexes are provided above every tab, so those strips answer with the whole series. The
+ * artwork's shape comes with the card too, so a banner in a mixed row stacks its words and a poster
+ * or a cover seats them beside without this adapter deciding anything.
+ */
+const OmniCardMediaImage: TypedCardMediaImage<OmniItem> = ({ item, ...props }) => {
+  // What the card is reserved at and arranged by. Passed here rather than set inside each domain's
+  // component, so a home tab — every card of which is one shape already — keeps the layout its own
+  // page was drawn for and only a mixed row arranges itself per item.
+  const shape = mediumToShape(item.medium);
+  const { CardMediaImage } = MEDIA_LAZY[item.medium];
+
+  return (
+    <CardMediaImage
+      item={item.source}
+      shape={shape}
+      {...props}
+    />
+  );
+};
+
+/**
+ * One item of the union as its own tab's hover card.
+ *
+ * The four domains' own components, rendered untouched. A panel assembled here instead is a second
+ * card for the same item, free to state different figures from the one its home tab shows — and,
+ * because a mixed row also declares an artwork shape, to arrange them differently, stretching a
+ * show's card out of the proportions its own tab draws it at. Dispatching to the module leaves
+ * nothing here that can disagree.
+ */
+export const OmniHoverCard = ({ item }: { item: OmniItem }) => {
+  const { HoverCard } = MEDIA_LAZY[item.medium];
+
+  return <HoverCard item={item.source} />;
+};
+
+export default OmniCardMediaImage;

@@ -1,4 +1,4 @@
-import type { Library } from "../../src/omnibus/adapter";
+import type { Library } from "../../src/app/library";
 
 /**
  * A whole `Library`, every domain empty unless overridden, for tests that build the union.
@@ -7,9 +7,9 @@ import type { Library } from "../../src/omnibus/adapter";
  * added to the union breaks this one place at once rather than each copy in turn.
  */
 export const library = (overrides: Partial<Library> = {}): Library => ({
-  games: [],
-  shows: [],
-  movies: [],
-  books: [],
+  game: [],
+  show: [],
+  movie: [],
+  book: [],
   ...overrides,
 });

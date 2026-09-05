@@ -1,7 +1,7 @@
 import { assignPercents } from "../utils/mathUtils";
 import { AGE_BANDS, ageRatingBand, releaseDecade } from "../utils/types";
-import type { OmniItem } from "./adapter";
-import { media, type Measure, type Medium } from "./types";
+import type { OmniItem } from "../common/medium";
+import { media, type Measure, type Medium } from "../app/types";
 import "../utils/arrayUtils";
 import "../utils/mapUtils";
 

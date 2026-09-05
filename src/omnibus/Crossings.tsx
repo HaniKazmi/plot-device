@@ -15,12 +15,12 @@ import { useScrollEdges } from "../common/useScrollEdges";
 import { CONTAIN_SIDEWAYS_SCROLL, scrollbarSx } from "../common/scrollbarSx";
 import { useOpenAtLatest } from "../common/useOpenAtLatest";
 import { format } from "../utils/mathUtils";
-import { OmniHoverCard } from "./CardMediaImage";
+import { OmniHoverCard } from "../app/CardMediaImage";
 import type { Crossing } from "./crossingsData";
-import type { OmniItem } from "./adapter";
+import type { OmniItem } from "../common/medium";
 import { omniTimeline } from "./timelineData";
 import { CURRENT_PLAINDATE } from "../common/date";
-import { mediumToColour, mediumToLabel } from "./types";
+import { mediumToColour, mediumToLabel } from "../app/types";
 import { useScheme } from "../common/useScheme";
 import type { Scheme } from "../utils/types";
 

@@ -101,10 +101,11 @@ export const describeFailure = (cause: unknown): string => {
 /**
  * The fetch each storage key currently has in flight, shared by every hook reading that key.
  *
- * The Omnibus tab and a home tab mount the same domain's config, so a route change mid-fetch would
- * otherwise issue a second `values.get` and convert, stringify and store the same library twice.
- * Cleared once the promise settles, so a failed fetch is retried by the next mount rather than
- * replayed to it.
+ * `LibraryProvider` mounts one hook per key for the life of the page, but a remount while that
+ * key's fetch is still outstanding — React StrictMode's mount/unmount/remount in development,
+ * which every session hits — would otherwise issue a second `values.get` and convert, stringify
+ * and store the same library twice. Cleared once the promise settles, so a failed fetch is retried
+ * by the next mount rather than replayed to it.
  */
 const IN_FLIGHT = new Map<string, Promise<unknown>>();
 
@@ -127,8 +128,15 @@ const IN_FLIGHT = new Map<string, Promise<unknown>>();
 export interface DataConfig<T> {
   storageKey: string;
   converter: (json: Record<string, string>[]) => T[];
-  /** Re-attaches whatever `replacer` dropped — the two are written as a pair or not at all. */
-  reviver?: (items: T[]) => void;
+  /**
+   * Re-attaches whatever `replacer` dropped — the two are written as a pair or not at all.
+   *
+   * A method rather than a property, which is what lets a `DataConfig<Show>` sit on a
+   * `MediumModule<unknown>` in the medium registry (`app/media.ts`): TypeScript checks a method's
+   * parameters bivariantly, where a property-typed `(items: T[]) => void` is contravariant in `T`
+   * and leaves every domain's config unassignable to the record the registry is looked up in.
+   */
+  reviver?(items: T[]): void;
   replacer?: (key: string, value: unknown) => unknown;
 }
 

@@ -6,8 +6,8 @@ import {
   type BaseFilterState,
   type FilterDispatchFor,
   type YearType,
-  selectedPredicates,
 } from "../common/filterReducer";
+import { showFilters } from "./filters";
 
 export interface FilterState extends BaseFilterState<Show, Measure> {
   /** Whether Abandoned shows count — the pile that drags every average when it is in the picture. */
@@ -23,13 +23,6 @@ export interface FilterState extends BaseFilterState<Show, Measure> {
 export type FilterDispatch = FilterDispatchFor<FilterState>;
 
 /**
- * Named rather than inlined into `filters` because guest mode has to be applied a second time,
- * to the franchise index built from the unfiltered data — an index that skipped it would put
- * hidden shows straight back on screen through a card strip.
- */
-export const guestFilter: Predicate<Show> = (show) => show.type !== "anime";
-
-/**
  * The year cutoff, season-aware rather than the shared `yearPredicates`. The shared predicate
  * reads `startDate.year`, which for a show is its *first* season — so "in 2024" would keep only
  * shows that began that year, while the vitals card beside the control counts seasons started in
@@ -42,43 +35,18 @@ const showYearPredicates = (state: { yearTo: YearNumber; yearType: YearType }): 
   return [];
 };
 
-export const filters = (state: Omit<FilterState, "filter">): Predicate<Show> => {
-  const predicates: Predicate<Show>[] = [];
-
-  if (!state.abandoned) predicates.push((show) => show.status !== "Abandoned");
-  if (!state.anime) predicates.push(guestFilter);
-
-  // Matches the primary genre only, not `genres`: the charts group on `genre`, and a filter that
-  // also matched the secondary list would keep shows the Top Genre bar attributes elsewhere —
-  // the two halves of the page would disagree about what "Drama" holds.
-  predicates.push(
-    ...selectedPredicates(state.genre, (show: Show) => show.genre),
-    ...selectedPredicates(state.network, (show: Show) => show.network),
-    ...selectedPredicates(state.franchise, (show: Show) => show.franchise),
-    ...selectedPredicates(state.type, (show: Show) => show.type),
-  );
-
-  predicates.push(...showYearPredicates(state));
-
-  if (state.guestMode) {
-    predicates.push(guestFilter);
-  }
-
-  return (show: Show) => predicates.every((p) => p(show));
-};
-
-export const { useFilterReducer, reducer, initialState, activeCount } = createFilterReducer<Show, Measure, FilterState>(
-  {
-    abandoned: true,
-    anime: true,
-    genre: [],
-    network: [],
-    franchise: [],
-    type: [],
-    measure: "Episodes",
-    yearType: "upto",
-    yearTo: CURRENT_YEAR,
-    guestMode: false,
-  },
+export const {
+  store: pageState,
+  useFilterReducer,
   filters,
-);
+  reducer,
+  initialState,
+  activeCount,
+} = createFilterReducer<Show, Measure, FilterState>({
+  schema: showFilters,
+  initial: { measure: "Episodes", yearType: "upto", yearTo: CURRENT_YEAR },
+  // A show's own start is its first season's, which is the year the rest of the app attributes it
+  // to; the scope alone reads the seasons instead, for the reason above, so it states a whole rule.
+  yearOf: (show) => show.startDate.year,
+  yearRule: showYearPredicates,
+});

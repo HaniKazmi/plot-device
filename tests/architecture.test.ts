@@ -1,16 +1,19 @@
 /// <reference types="node" />
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import ts from "typescript";
 
 const SRC = fileURLToPath(new URL("../src", import.meta.url));
 
-// Omnibus is a domain that composes domains: the guard below still forbids common/ and utils/
-// from importing it, and omnibus/ importing vg/, show/ and movie/ is the direction that keeps
-// every shared shell domain-blind.
+// Omnibus is the fifth tracked domain: it composes nothing, and reaches `app/` — the one folder
+// that composes the other four — for whatever it needs of them.
 const DOMAINS = ["vg", "show", "movie", "books", "omnibus"];
+
+// The composing layer: the one folder that may import every domain, holding what each medium
+// answers so no surface has to dispatch on which one it is holding.
+const COMPOSING = "app";
 
 /**
  * Every form a module reference takes here: `from "y"`, the bare side-effect `import "y"`, and
@@ -31,6 +34,109 @@ const sourceFilesUnder = (dir: string): string[] =>
 const importsFrom = (file: string) =>
   [...readFileSync(file, "utf8").matchAll(IMPORT_SPECIFIER)].map((match) => match[1]);
 
+/** One module reference, and whether importing this file evaluates the module it names. */
+interface ModuleImport {
+  specifier: string;
+  evaluated: boolean;
+}
+
+/**
+ * The same references, read off the syntax tree so that the three forms can be told apart.
+ *
+ * An `import type` statement is erased outright and an `import(…)` is fetched when something asks
+ * rather than while the importer is evaluating, so neither can put a module in a temporal dead
+ * zone. Only the *statement* form counts as erased: `import { type X } from "y"` leaves an import
+ * statement standing, and whether the emitter drops it is a compiler setting away from changing.
+ *
+ * A re-export carries a specifier too, and `module.lazy.ts` is nothing but re-exports.
+ */
+const moduleImports = (file: string): ModuleImport[] => {
+  const parsed = ts.createSourceFile(file, readFileSync(file, "utf8"), ts.ScriptTarget.ESNext, true, ts.ScriptKind.TSX);
+  const found: ModuleImport[] = [];
+
+  const walk = (node: ts.Node) => {
+    if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier))
+      found.push({ specifier: node.moduleSpecifier.text, evaluated: !node.importClause?.isTypeOnly });
+    else if (ts.isExportDeclaration(node) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier))
+      found.push({ specifier: node.moduleSpecifier.text, evaluated: !node.isTypeOnly });
+    else if (
+      ts.isCallExpression(node) &&
+      node.expression.kind === ts.SyntaxKind.ImportKeyword &&
+      ts.isStringLiteral(node.arguments[0])
+    )
+      found.push({ specifier: node.arguments[0].text, evaluated: false });
+
+    ts.forEachChild(node, walk);
+  };
+
+  walk(parsed);
+  return found;
+};
+
+/**
+ * A relative specifier resolved to the source file it names, trying the extensions and the
+ * `index` forms a bare directory import takes. `undefined` for a bare specifier (a package name,
+ * never a path under `src/`) or one nothing on disk answers to.
+ */
+const resolveSpecifier = (fromFile: string, specifier: string): string | undefined => {
+  if (!specifier.startsWith(".")) return undefined;
+  const stem = join(dirname(fromFile), specifier);
+  return [stem, `${stem}.ts`, `${stem}.tsx`, join(stem, "index.ts"), join(stem, "index.tsx")].find((candidate) =>
+    existsSync(candidate),
+  );
+};
+
+/**
+ * Every file an entry point reaches, following relative imports to a fixed point. A direct import
+ * is the shallowest form the registry cycle takes: a `module.ts` that imports something which
+ * itself imports `app/` closes the same loop one hop later, evaluated while `app/media.ts` is
+ * still building the entry that `module.ts` is one of.
+ */
+const importClosure = (entry: string): Set<string> => {
+  const reached = new Set<string>();
+  const pending = [entry];
+  while (pending.length > 0) {
+    const file = pending.pop()!;
+    if (reached.has(file)) continue;
+    reached.add(file);
+    // `tabs.ts` is a boundary, not a hop: it eagerly imports all five entry components, so
+    // crossing it turns any module naming its `SheetTab` type into one that "reaches" the whole
+    // app through every tab — a fact about routing order the section above already covers.
+    if (/(^|\/)tabs\.tsx?$/.test(file)) continue;
+    importsFrom(file)
+      .map((specifier) => resolveSpecifier(file, specifier))
+      .filter((resolved): resolved is string => resolved !== undefined && !reached.has(resolved))
+      .forEach((resolved) => pending.push(resolved));
+  }
+  return reached;
+};
+
+/**
+ * The same walk, following only the references the importer's own evaluation reaches: an erased
+ * type import runs no module, and a dynamic one runs after whatever is loading now has finished.
+ * A closure over every reference would report a cycle through a file the running app never
+ * evaluates in that order.
+ *
+ * `tabs.ts` is a boundary here for `importClosure`'s reason, and because the rule this feeds is
+ * about the edge *into* it: crossing it would reach the whole app through five entry components.
+ */
+const evaluatedClosure = (entry: string): Set<string> => {
+  const reached = new Set<string>();
+  const pending = [entry];
+  while (pending.length > 0) {
+    const file = pending.pop()!;
+    if (reached.has(file)) continue;
+    reached.add(file);
+    if (/(^|\/)tabs\.tsx?$/.test(file)) continue;
+    moduleImports(file)
+      .filter((entry) => entry.evaluated)
+      .map((entry) => resolveSpecifier(file, entry.specifier))
+      .filter((resolved): resolved is string => resolved !== undefined && !reached.has(resolved))
+      .forEach((resolved) => pending.push(resolved));
+  }
+  return reached;
+};
+
 describe("the shared layer never depends on a domain", () => {
   // common/ and utils/ are generic by contract: they take behaviour as props and callbacks,
   // and each domain supplies the meaning. An import pointing the other way would also create
@@ -41,7 +147,7 @@ describe("the shared layer never depends on a domain", () => {
     expect(shared.length).toBeGreaterThan(10);
   });
 
-  it.each(DOMAINS)("has no import of %s/ anywhere in common/ or utils/", (domain) => {
+  it.each([...DOMAINS, COMPOSING])("has no import of %s/ anywhere in common/ or utils/", (domain) => {
     const offenders = shared.flatMap((file) =>
       importsFrom(file)
         .filter((specifier) => new RegExp(`(^|/)${domain}(/|$)`).test(specifier))
@@ -57,21 +163,186 @@ describe("the shared layer never depends on a domain", () => {
 });
 
 describe("a tracked domain never depends on another", () => {
-  // The other half of the rule `omnibus/` exists under: it composes the four tracked domains, and
-  // they compose nothing. Without this, the direction that makes `omnibus/` a composing domain
-  // rather than one arm of a cycle is enforced in one direction only.
   const TRACKED = ["vg", "show", "movie", "books"];
 
-  it.each(TRACKED)("has no import of another domain anywhere in %s/", (domain) => {
-    const others = [...DOMAINS].filter((other) => other !== domain);
+  // Omnibus composes nothing of its own: the union, the gallery, search and the franchise view
+  // reach `app/` for what they need of the four domains. Three files still reach across directly,
+  // because the registry carries no member for what they ask: `adapter.ts`'s `electNow` elects
+  // across all four domains' own `statsData`, `Stats.tsx`'s Now band renders each domain's own
+  // `CardMediaImage` and reads its `cardData` subtitle and `statsData` hero figures, and
+  // `Graphs.tsx` mounts the four `FranchiseContext` providers the card strips and crossings read.
+  // Giving the registry an election, a hero-card slot and a franchise-context slot per medium is a
+  // registry change, not a move, so these three are named exemptions rather than a loosened rule.
+  const REACHES_DOMAINS_DIRECTLY = ["omnibus/adapter.ts", "omnibus/Stats.tsx", "omnibus/Graphs.tsx"];
 
+  it.each([...TRACKED, "omnibus"])("has no import of another domain anywhere in %s/", (domain) => {
+    const others = DOMAINS.filter((other) => other !== domain);
+
+    const offenders = sourceFilesUnder(domain)
+      .filter((file) => !REACHES_DOMAINS_DIRECTLY.some((exempt) => file.replace(SRC, "src").endsWith(exempt)))
+      .flatMap((file) =>
+        importsFrom(file)
+          .filter((specifier) => others.some((other) => new RegExp(`(^|/)${other}(/|$)`).test(specifier)))
+          .map((specifier) => `${file.replace(SRC, "src")} imports ${specifier}`),
+      );
+
+    expect(offenders).toEqual([]);
+  });
+
+  // The registry is built *from* the four modules, so a domain importing it is a genuine cycle:
+  // `vg/module.ts` → `app/media.ts` → `vg/module.ts`, evaluated half-built and failing as a blank
+  // page rather than an error. The rest of `app/` is the composing layer a tab reads downwards —
+  // its entry component asks `app/library.ts` for the library the shell fetched — and imports
+  // nothing back out of a domain's own module, so that direction cycles nothing.
+  const REGISTRY = /(^|\/)app\/media(Lazy)?(\.tsx?)?$/;
+
+  it.each(TRACKED)("has no import of the registry itself anywhere in %s/", (domain) => {
     const offenders = sourceFilesUnder(domain).flatMap((file) =>
       importsFrom(file)
-        .filter((specifier) => others.some((other) => new RegExp(`(^|/)${other}(/|$)`).test(specifier)))
+        .filter((specifier) => REGISTRY.test(specifier))
         .map((specifier) => `${file.replace(SRC, "src")} imports ${specifier}`),
     );
 
     expect(offenders).toEqual([]);
+  });
+
+  it("names the registry in both its halves and nothing else in app/", () => {
+    expect(REGISTRY.test("../app/media")).toBe(true);
+    expect(REGISTRY.test("../app/mediaLazy")).toBe(true);
+    expect(REGISTRY.test("../app/library")).toBe(false);
+  });
+
+  it("has no import of app/ anywhere in a domain's module.ts closure", () => {
+    // The modules are the registry's own members, so anything they reach is reached while the
+    // registry is being built: `app/library.ts` imports it, and a module importing that closes the
+    // cycle — `MEDIA` half-built, and the failure a blank page rather than an error. A module
+    // answers questions and asks the composing layer none.
+    //
+    // The closure and not the first-degree specifiers, because naming `app/` directly is only the
+    // shallowest form: something a module imports without naming `app/` itself, that in turn
+    // imports `app/`, closes the same cycle one hop later.
+    const modules = DOMAINS.flatMap(sourceFilesUnder).filter((file) => /(^|\/)module(\.lazy)?\.tsx?$/.test(file));
+
+    const offenders = modules.flatMap((module) =>
+      [...importClosure(module)]
+        .filter((file) => file !== module && new RegExp(`(^|/)${COMPOSING}(/|$)`).test(file.replace(SRC, "src")))
+        .map((file) => `${module.replace(SRC, "src")} reaches ${file.replace(SRC, "src")}`),
+    );
+
+    expect(offenders).toEqual([]);
+  });
+
+  // The composing layer holds what more than one tab reads, and the Omnibus is a tab: an `app/`
+  // file reaching into `omnibus/` means the shared half of some surface is sitting inside one
+  // page's folder, where the next tab that wants it has to reach across for it.
+  //
+  // `pageState.ts` is the one exception, and stays one because the Omnibus is a tab and not a
+  // medium: every other tab's store is registered through its `MediumModule`, and this one is
+  // registered by name until the composing tab has a module of its own.
+  const MAY_IMPORT_OMNIBUS = ["pageState.ts"];
+
+  it("has no import of omnibus/ in app/, but for the tab store registered by name", () => {
+    const offenders = sourceFilesUnder(COMPOSING)
+      .filter((file) => !MAY_IMPORT_OMNIBUS.some((exempt) => file.endsWith(exempt)))
+      .flatMap((file) =>
+        importsFrom(file)
+          .filter((specifier) => /(^|\/)omnibus(\/|$)/.test(specifier))
+          .map((specifier) => `${file.replace(SRC, "src")} imports ${specifier}`),
+      );
+
+    expect(offenders).toEqual([]);
+  });
+});
+
+describe("the registry never reaches back for a tab", () => {
+  // `tabs.ts` imports the five entry components eagerly and an entry component reaches the
+  // registry, so an import back from the registry evaluates it while `tabs.ts` is still in its own
+  // temporal dead zone — `MEDIA` half-built, and the failure a blank page rather than an error. A
+  // module carries `tabId: string` instead, and the one component that resolves an id to a tab is
+  // mounted by the shell, below both.
+  //
+  // Two files in `app/` are exempt, for two different reasons rather than one relaxed rule.
+  // `LibraryProvider.tsx` is that one component, eager and below both. `SearchSurface.tsx` is not
+  // eager at all — `Search.tsx` reaches it only through `import("./SearchSurface")`, so its module
+  // does not evaluate until that chunk loads, well after `tabs.ts` has finished — and it reads
+  // `tabs.ts` for the palette's own "Go to" jump list, a tab's icon and bar colour among them.
+  const EXEMPT_FROM_TAB_IMPORT = ["LibraryProvider.tsx", "SearchSurface.tsx"];
+
+  // The extension is optional in the specifier and written both ways here — `vg.tsx` imports
+  // `"./filterUtils.ts"` beside `"../tabs"` — so a pattern anchored on the bare name alone would
+  // pass exactly the import it exists to catch.
+  const namesTabs = (file: string) => importsFrom(file).filter((specifier) => /(^|\/)tabs(\.tsx?)?$/.test(specifier));
+
+  it("has no import of tabs.ts in app/, but for the files that are eager below it or reached only after it", () => {
+    const offenders = sourceFilesUnder(COMPOSING)
+      .filter((file) => !EXEMPT_FROM_TAB_IMPORT.some((exempt) => file.endsWith(exempt)))
+      .filter((file) => namesTabs(file).length > 0)
+      .map((file) => file.replace(SRC, "src"));
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("has no evaluated import of tabs.ts anywhere in a domain's module.ts closure", () => {
+    // Naming `tabs.ts` in the module itself is only the shallowest form: something the module
+    // imports that in turn imports it evaluates `tabs.ts` at the same moment, one hop later, with
+    // the registry half-built and the failure a blank page rather than an error.
+    //
+    // Evaluated imports alone, in the closure and in the check. Every `module.ts` here reaches
+    // `common/useData.ts`, which names `SheetTab` through an `import type` — erased, so no module
+    // is loaded and no order is fixed. Counting that as a reach would make the rule unsatisfiable
+    // for a module that has to declare its own `DataConfig`.
+    const modules = DOMAINS.flatMap(sourceFilesUnder).filter((file) => /(^|\/)module\.tsx?$/.test(file));
+
+    const offenders = modules.flatMap((module) =>
+      [...evaluatedClosure(module)].flatMap((file) =>
+        moduleImports(file)
+          .filter((entry) => entry.evaluated && /(^|\/)tabs(\.tsx?)?$/.test(entry.specifier))
+          .map(() => `${module.replace(SRC, "src")} reaches tabs.ts through ${file.replace(SRC, "src")}`),
+      ),
+    );
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("tells an erased import of tabs.ts from one the app evaluates", () => {
+    // The rule is only worth as much as this distinction: `useData.ts` names `SheetTab` and is in
+    // every module's closure, so a check that could not see the `type` keyword would fail on the
+    // tree as it stands and be deleted rather than fixed.
+    const useData = join(SRC, "common", "useData.ts");
+    const named = moduleImports(useData).filter((entry) => /(^|\/)tabs(\.tsx?)?$/.test(entry.specifier));
+
+    expect(named.map((entry) => entry.evaluated)).toEqual([false]);
+  });
+
+  it("finds the modules to check, so the rule above is not vacuous", () => {
+    const modules = DOMAINS.flatMap(sourceFilesUnder).filter((file) => /(^|\/)module\.tsx?$/.test(file));
+
+    expect(modules.length).toBe(4);
+  });
+});
+
+describe("the medium is dispatched in one place", () => {
+  // A `switch (item.medium)` is a fifth medium's edit in whichever surface happened to need it
+  // first, and the compiler only catches the ones written as an exhaustive switch over a union —
+  // never the one somebody wrote with a default. The registry answers instead, so a surface asks
+  // `MEDIA[item.medium]` and the four arms live in the four domain folders.
+  const SWITCHES_ON_MEDIUM = /switch\s*\(\s*[\w.]*medium\s*\)/;
+
+  const allFiles = [...sourceFilesUnder("common"), ...sourceFilesUnder("utils"), ...DOMAINS.flatMap(sourceFilesUnder)];
+
+  it("has no switch on a medium outside app/", () => {
+    const offenders = allFiles
+      .filter((file) => SWITCHES_ON_MEDIUM.test(readFileSync(file, "utf8")))
+      .map((file) => file.replace(SRC, "src"));
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("catches the shapes a dispatch is written in", () => {
+    expect(SWITCHES_ON_MEDIUM.test("switch (item.medium) {")).toBe(true);
+    expect(SWITCHES_ON_MEDIUM.test("switch (medium) {")).toBe(true);
+    // The other discriminants this codebase switches on are none of its business.
+    expect(SWITCHES_ON_MEDIUM.test("switch (category) {")).toBe(false);
   });
 });
 
@@ -85,7 +356,12 @@ describe("prototype extensions are imported where they are used", () => {
     { method: "setIfAbsent", module: "mapUtils" },
   ];
 
-  const allFiles = [...sourceFilesUnder("common"), ...sourceFilesUnder("utils"), ...DOMAINS.flatMap(sourceFilesUnder)];
+  const allFiles = [
+    ...sourceFilesUnder("common"),
+    ...sourceFilesUnder("utils"),
+    ...sourceFilesUnder(COMPOSING),
+    ...DOMAINS.flatMap(sourceFilesUnder),
+  ];
 
   it.each(EXTENSIONS)("every caller of .$method imports $module", ({ method, module }) => {
     const offenders = allFiles
@@ -108,6 +384,7 @@ describe("browser globals are not read at module load", () => {
   const allFiles = [
     ...sourceFilesUnder("common"),
     ...sourceFilesUnder("utils"),
+    ...sourceFilesUnder(COMPOSING),
     ...DOMAINS.flatMap(sourceFilesUnder),
     ...sourceFilesUnder("contexts"),
     // The `src/` root too: `App.tsx` and `Google.tsx` are modules like any other, and an

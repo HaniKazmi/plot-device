@@ -1,14 +1,17 @@
 import { memo, useDeferredValue } from "react";
 import { Stack } from "@mui/material";
 import type { YearNumber } from "../common/date";
-import type { Book, Measure } from "./types";
+import type { Book } from "./types";
+import { bookModule } from "./module";
 import Finished from "../common/Finished";
 import BookCardMediaImage from "./CardMediaImage";
 import Stats from "./Stats";
 import Sunburst from "./Sunburst";
 import Barchart from "./Barchart";
 import Timeline from "./Timeline";
-import Filter from "./Filter";
+import { SchemaFilterDrawer } from "../common/FilterControls";
+import { bookFilters } from "./filters";
+import { filterIcons } from "./filterIcons";
 import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
 import { FilterChip } from "../common/FilterDrawer";
 import { MeasureControl } from "../common/SelectionComponents";
@@ -23,9 +26,6 @@ import { finishedCount, type FinishedExtraSort } from "../common/finishedData";
 import { genreToColour } from "../utils/types";
 import { useScheme } from "../common/useScheme";
 import { usePhone } from "../common/breakpoints";
-
-/** The measures this tab counts in, in the order the rail states them. */
-const MEASURES: readonly Measure[] = ["Books", "Pages", "Hours"];
 
 /**
  * The index and the scale every card strip on the tab reads, both built from the unfiltered data:
@@ -61,10 +61,14 @@ const SuspenseBlock = ({
         filterState={filterState}
         filterDispatch={filterDispatch}
       />
-      <Filter
+      <SchemaFilterDrawer
+        schema={bookFilters}
+        icons={filterIcons}
         state={filterState}
         dispatch={filterDispatch}
         data={unfilteredData}
+        activeCount={activeCount(filterState)}
+        onReset={() => filterDispatch({ type: "resetFilters" })}
       />
     </BookEpochProvider>
   </FranchiseContext.Provider>
@@ -124,7 +128,7 @@ const Graphs = memo(
       >
         <Finished
           title="All Books"
-          count={`${format(finishedCount(data))} books`}
+          count={`${format(finishedCount(data))} ${bookModule.noun}`}
           borderKey="genre"
           data={data}
           // Genre for the border: the ramp answers the neutral off its table and never throws, so
@@ -149,7 +153,7 @@ const Graphs = memo(
           tabs={tabs}
           actions={
             <MeasureControl
-              measures={MEASURES}
+              measures={bookModule.measures}
               value={filterState.measure}
               dispatch={filterDispatch}
             />

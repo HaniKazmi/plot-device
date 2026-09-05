@@ -1,18 +1,21 @@
 import Stats from "./Stats";
-import { VideoGame, companyToColor, type Measure } from "./types";
+import { VideoGame, companyToColor } from "./types";
+import { vgModule } from "./module";
 import { useScheme } from "../common/useScheme";
 import Sunburst from "./Sunburst";
 import Barchart from "./Barchart";
 import Finished from "../common/Finished";
 import Timeline from "./Timeline";
 import CardMediaImage from "./CardMediaImage";
-import { activeCount, FilterDispatch, FilterState, guestFilter } from "./filterUtils";
+import { activeCount, FilterDispatch, FilterState } from "./filterUtils";
 import { FranchiseContext, vgFranchise } from "./franchiseContext";
-import { visibleFranchiseIndex } from "../common/franchiseIndex";
+import { franchiseIndex } from "../common/franchiseIndex";
 import { memo, useDeferredValue } from "react";
 import { Stack } from "@mui/material";
 import { usePhone } from "../common/breakpoints";
-import Filter from "./Filter";
+import { SchemaFilterDrawer } from "../common/FilterControls";
+import { vgFilters } from "./filters";
+import { filterIcons } from "./filterIcons";
 import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
 import { FilterChip } from "../common/FilterDrawer";
 import { MeasureControl } from "../common/SelectionComponents";
@@ -22,9 +25,6 @@ import { currentlyPlaying, earliestYear } from "./statsData";
 import { format } from "../utils/mathUtils";
 import { finishedCount } from "../common/finishedData";
 import type { YearNumber } from "../common/date";
-
-/** The measures this tab counts in, in the order the rail states them. */
-const MEASURES: readonly Measure[] = ["Games", "Hours"];
 
 const SuspenseBlock = ({
   filteredData,
@@ -37,9 +37,7 @@ const SuspenseBlock = ({
   filterState: FilterState;
   filterDispatch: FilterDispatch;
 }) => (
-  <FranchiseContext.Provider
-    value={visibleFranchiseIndex(unfilteredData, vgFranchise, filterState.guestMode, guestFilter)}
-  >
+  <FranchiseContext.Provider value={franchiseIndex(unfilteredData, vgFranchise)}>
     <Graphs
       data={filteredData}
       // Read from the whole library rather than what the filters left, so picking "In 2020"
@@ -48,10 +46,14 @@ const SuspenseBlock = ({
       filterState={filterState}
       filterDispatch={filterDispatch}
     />
-    <Filter
+    <SchemaFilterDrawer
+      schema={vgFilters}
+      icons={filterIcons}
       state={filterState}
       dispatch={filterDispatch}
       data={unfilteredData}
+      activeCount={activeCount(filterState)}
+      onReset={() => filterDispatch({ type: "resetFilters" })}
     />
   </FranchiseContext.Provider>
 );
@@ -110,7 +112,7 @@ const Graphs = memo(
         <Finished
           MediaComponent={CardMediaImage}
           title="All Games"
-          count={`${format(finishedCount(data))} games`}
+          count={`${format(finishedCount(data))} ${vgModule.noun}`}
           borderKey="company"
           data={data}
           colour={(item) => companyToColor(item, scheme)}
@@ -126,7 +128,7 @@ const Graphs = memo(
           tabs={tabs}
           actions={
             <MeasureControl
-              measures={MEASURES}
+              measures={vgModule.measures}
               value={filterState.measure}
               dispatch={filterDispatch}
             />

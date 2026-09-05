@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { CURRENT_YEAR, YearMonthDay, type YearNumber } from "../../src/common/date";
+import { guestFilter } from "../../src/movie/filters";
 import { filters, initialState, type FilterState } from "../../src/movie/filterUtils";
 import { movie } from "../fixtures/movies";
+import { movieFilters } from "../../src/movie/filters";
 
 const state = (overrides: Partial<FilterState> = {}): Omit<FilterState, "filter"> => ({
   ...initialState,
@@ -57,18 +59,16 @@ describe("categories", () => {
   });
 });
 
-describe("guest mode", () => {
-  it("hides anime, the same switch as the anime toggle but composed rather than shared", () => {
-    const keep = filters(state({ guestMode: true }));
-
-    expect(keep(movie({ anime: true }))).toBe(false);
-    expect(keep(movie({ anime: false }))).toBe(true);
+describe("what guest mode hides", () => {
+  // Applied to the library above the tab, so it is exercised as the predicate itself; the anime
+  // toggle below drops the same films, one rule serving both.
+  it("keeps everything but a film the sheet marks as anime", () => {
+    expect(guestFilter(movie({ anime: true }))).toBe(false);
+    expect(guestFilter(movie({ anime: false }))).toBe(true);
   });
 
-  it("cannot be re-enabled from the anime toggle, because it composes on top", () => {
-    const keep = filters(state({ guestMode: true, anime: true }));
-
-    expect(keep(movie({ anime: true }))).toBe(false);
+  it("cannot be undone by the anime toggle, which only ever widens what the page draws", () => {
+    expect(filters(state({ anime: true }))(movie({ anime: true }))).toBe(true);
   });
 });
 
@@ -92,5 +92,27 @@ describe("the year cutoff", () => {
     const keep = filters(state({ yearType: "upto", yearTo: CURRENT_YEAR }));
 
     expect(keep(movie({ startDate: YearMonthDay.get(CURRENT_YEAR, 6, 1) }))).toBe(true);
+  });
+});
+
+describe("the schema the drawer and the box are both drawn from", () => {
+  it("offers three toggles and four categories, in the order they are laid out", () => {
+    expect(movieFilters.toggles.map((toggle) => toggle.key)).toEqual(["home", "unscored", "anime"]);
+    expect(movieFilters.categories.map((category) => category.key)).toEqual([
+      "genre",
+      "rating",
+      "director",
+      "franchise",
+    ]);
+  });
+
+  it("opens a search-within on the vocabularies this library holds hundreds of values in", () => {
+    // A reader picks a franchise or a person by typing; a genre or a format by scanning a list
+    // short enough to read. The flag is what tells the two apart, and the search box's This page
+    // mode reads it, offering a long category as a list to search rather than one to scan.
+    expect(movieFilters.categories.filter((category) => category.searchable).map((category) => category.key)).toEqual([
+      "director",
+      "franchise",
+    ]);
   });
 });

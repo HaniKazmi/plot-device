@@ -1,9 +1,11 @@
+import { AutoStories, LocalMovies, Tv, VideogameAsset, type SvgIconComponent } from "@mui/icons-material";
 import { memo, useDeferredValue } from "react";
 import { CURRENT_PLAINDATE, type YearNumber } from "../common/date";
 import { Stack } from "@mui/material";
 import { franchiseIndex } from "../common/franchiseIndex";
 import { Section, SectionRail } from "../common/SectionRail";
 import { FilterChip } from "../common/FilterDrawer";
+import { SchemaFilterDrawer } from "../common/FilterControls";
 import { MeasureControl } from "../common/SelectionComponents";
 import { stripYearTicks } from "../common/timelineStripData";
 import {
@@ -16,23 +18,39 @@ import { FranchiseContext as MovieFranchiseContext, movieFranchise } from "../mo
 import { FranchiseContext as ShowFranchiseContext, showFranchise } from "../show/franchiseContext";
 import { FranchiseContext as VgFranchiseContext, vgFranchise } from "../vg/franchiseContext";
 import { useOtherTabs } from "../tabs";
-import { earliestYear, electNow, hasNow, recentlyFinished, type Library, type OmniItem } from "./adapter";
+import { earliestYear, electNow, hasNow, recentlyFinished } from "./adapter";
+import type { Library } from "../app/library";
+import type { OmniItem } from "../common/medium";
 import Barchart from "./Barchart";
 import Crossings from "./Crossings";
 import { crossings } from "./crossingsData";
-import Filter from "./Filter";
 import Gallery from "./Gallery";
-import { galleryItems } from "./galleryData";
+import { galleryItems } from "../app/galleryData";
 import GenreBridge from "./GenreBridge";
 import RecentlyFinished from "./RecentlyFinished";
 import { genreBridge } from "./genreBridgeData";
 import Stats from "./Stats";
 import { OMNIBUS_SECTIONS, omnibusSections } from "./sections";
+import { omniFilters } from "./filters";
 import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
-import type { Measure } from "./types";
+import type { Measure } from "../app/types";
+import type { Medium } from "../utils/types";
 
 /** The measures this tab counts in, in the order the rail states them. */
 const MEASURES: readonly Measure[] = ["Hours", "Items"];
+
+/**
+ * An icon per medium switch. Held here rather than beside the schema for the reason every domain's
+ * are held in its lazy half: a schema is data the shell can reach, and an icon named in it would
+ * put these four in the first bundle a visitor downloads. This tab is not a medium and has no
+ * module to hang them off, so the chunk drawing its charts is where they sit.
+ */
+const filterIcons: Record<Medium, SvgIconComponent> = {
+  game: VideogameAsset,
+  show: Tv,
+  movie: LocalMovies,
+  book: AutoStories,
+};
 
 /**
  * The four franchise indexes the domains' own cards read, and the scale the Books strips draw on.
@@ -57,11 +75,11 @@ const SuspenseBlock = ({
   filterState: FilterState;
   filterDispatch: FilterDispatch;
 }) => (
-  <VgFranchiseContext.Provider value={franchiseIndex(library.games, vgFranchise)}>
-    <ShowFranchiseContext.Provider value={franchiseIndex(library.shows, showFranchise)}>
-      <MovieFranchiseContext.Provider value={franchiseIndex(library.movies, movieFranchise)}>
-        <BookFranchiseContext.Provider value={franchiseIndex(library.books, bookFranchise)}>
-          <BookEpochProvider value={bookEpoch(library.books)}>
+  <VgFranchiseContext.Provider value={franchiseIndex(library.game, vgFranchise)}>
+    <ShowFranchiseContext.Provider value={franchiseIndex(library.show, showFranchise)}>
+      <MovieFranchiseContext.Provider value={franchiseIndex(library.movie, movieFranchise)}>
+        <BookFranchiseContext.Provider value={franchiseIndex(library.book, bookFranchise)}>
+          <BookEpochProvider value={bookEpoch(library.book)}>
             <Graphs
               library={library}
               data={filteredData}
@@ -72,10 +90,14 @@ const SuspenseBlock = ({
               filterState={filterState}
               filterDispatch={filterDispatch}
             />
-            <Filter
+            <SchemaFilterDrawer
+              schema={omniFilters}
+              icons={filterIcons}
               state={filterState}
               dispatch={filterDispatch}
               data={unfilteredData}
+              activeCount={activeCount(filterState)}
+              onReset={() => filterDispatch({ type: "resetFilters" })}
             />
           </BookEpochProvider>
         </BookFranchiseContext.Provider>

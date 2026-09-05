@@ -8,10 +8,11 @@ import { rankHits, type Hit } from "../common/searchData";
 import { MUTED_FIGURE_SX } from "../common/typography";
 import { useScheme } from "../common/useScheme";
 import { franchiseToColour, MEDIA, mediumToColour, mediumUnit, type Medium, type Scheme } from "../utils/types";
-import { omniBanner, type OmniItem } from "./adapter";
+import type { OmniItem } from "../common/medium";
+import { omniBanner } from "./media";
 import OmniCardMediaImage from "./CardMediaImage";
 import { FranchiseView } from "./FranchiseView";
-import { useOmniItems } from "./omniItems";
+import { useLibrary } from "./library";
 import {
   buildSearchIndex,
   HITS_PER_GROUP,
@@ -225,7 +226,7 @@ const entriesByKey = (index: SearchIndex): Map<string, SearchEntry> =>
  */
 export const SearchSurface = ({ open, focusRequest }: { open: boolean; focusRequest: number }) => {
   const scheme = useScheme();
-  const items = useOmniItems();
+  const items = useLibrary().items;
   const index = items ? buildSearchIndex(items) : undefined;
   const [query, setQuery] = useState("");
   // The scan runs on the settled text: a keystroke lands in the box at once and the groups follow

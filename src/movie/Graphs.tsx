@@ -1,28 +1,28 @@
 import { memo, useDeferredValue } from "react";
 import { Stack } from "@mui/material";
-import { ratingToColour, type Measure, type Movie } from "./types";
+import { ratingToColour, type Movie } from "./types";
+import { movieModule } from "./module";
 import Finished from "../common/Finished";
 import MovieCardMediaImage from "./CardMediaImage";
 import Stats from "./Stats";
 import Sunburst from "./Sunburst";
 import Barchart from "./Barchart";
 import WatchTimeline from "./WatchTimeline";
-import Filter from "./Filter";
+import { SchemaFilterDrawer } from "../common/FilterControls";
+import { movieFilters } from "./filters";
+import { filterIcons } from "./filterIcons";
 import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
 import { FilterChip } from "../common/FilterDrawer";
 import { MeasureControl } from "../common/SelectionComponents";
 import { useOtherTabs } from "../tabs";
 import { MOVIE_SECTIONS, movieSections } from "./sections";
 import { FranchiseContext, movieFranchise } from "./franchiseContext";
-import { visibleFranchiseIndex } from "../common/franchiseIndex";
-import { activeCount, guestFilter, type FilterDispatch, type FilterState } from "./filterUtils";
+import { franchiseIndex } from "../common/franchiseIndex";
+import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
 import { format } from "../utils/mathUtils";
 import { finishedCount, type FinishedExtraSort } from "../common/finishedData";
 import { useScheme } from "../common/useScheme";
 import { usePhone } from "../common/breakpoints";
-
-/** The measures this tab counts in, in the order the rail states them. */
-const MEASURES: readonly Measure[] = ["Films", "Hours"];
 
 const MOVIE_SORTS: readonly FinishedExtraSort<Movie>[] = [{ label: "Score", value: (movie) => movie.score }];
 
@@ -37,18 +37,20 @@ const SuspenseBlock = ({
   filterState: FilterState;
   filterDispatch: FilterDispatch;
 }) => (
-  <FranchiseContext.Provider
-    value={visibleFranchiseIndex(unfilteredData, movieFranchise, filterState.guestMode, guestFilter)}
-  >
+  <FranchiseContext.Provider value={franchiseIndex(unfilteredData, movieFranchise)}>
     <Graphs
       data={filteredData}
       filterState={filterState}
       filterDispatch={filterDispatch}
     />
-    <Filter
+    <SchemaFilterDrawer
+      schema={movieFilters}
+      icons={filterIcons}
       state={filterState}
       dispatch={filterDispatch}
       data={unfilteredData}
+      activeCount={activeCount(filterState)}
+      onReset={() => filterDispatch({ type: "resetFilters" })}
     />
   </FranchiseContext.Provider>
 );
@@ -102,7 +104,7 @@ const Graphs = memo(
       >
         <Finished
           title="All Films"
-          count={`${format(finishedCount(data))} films`}
+          count={`${format(finishedCount(data))} ${movieModule.noun}`}
           borderKey="rating"
           data={data}
           // Rating rather than genre for the border: `ageRatingToColour` is validated at convert
@@ -124,7 +126,7 @@ const Graphs = memo(
           tabs={tabs}
           actions={
             <MeasureControl
-              measures={MEASURES}
+              measures={movieModule.measures}
               value={filterState.measure}
               dispatch={filterDispatch}
             />

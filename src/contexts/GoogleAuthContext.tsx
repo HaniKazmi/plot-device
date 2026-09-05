@@ -1,6 +1,10 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { SheetTab } from "../tabs.ts";
+// A type import and not a plain one: `tabs.ts` imports the five entry components eagerly and each
+// reaches the medium registry, so evaluating it from here — which every `module.ts` reaches through
+// `useData` — would build the registry from inside `tabs.ts`'s own temporal dead zone. Only the
+// statement form is erased per file, which is what a bundler transpiling one file at a time reads.
+import type { SheetTab } from "../tabs.ts";
 import { arrayToJson } from "../utils/arrayUtils.ts";
 import { expiryFor, isGrant, isTokenValid, parseTokenWrapper, type Token, type TokenWrapper } from "./token.ts";
 

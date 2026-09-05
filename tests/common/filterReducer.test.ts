@@ -5,20 +5,23 @@ import { activeCount, initialState, reducer, type FilterState } from "../../src/
 import { videoGame } from "../fixtures/vgRows";
 
 describe("yearPredicates", () => {
+  /** The reading three of the four sheets take, spelled out because no default offers it. */
+  const started = (item: { startDate: { year: YearNumber } }) => item.startDate.year;
+
   it("returns no predicate when the ceiling has reached the current year", () => {
     // "Up to this year" is the same as no filter, which is why the default state hides nothing.
-    expect(yearPredicates({ yearType: "upto", yearTo: CURRENT_YEAR })).toEqual([]);
+    expect(yearPredicates({ yearType: "upto", yearTo: CURRENT_YEAR }, started)).toEqual([]);
   });
 
   it("returns one ceiling predicate for an earlier year", () => {
     const ceiling = (CURRENT_YEAR - 1) as YearNumber;
-    const [keep] = yearPredicates({ yearType: "upto", yearTo: ceiling });
+    const [keep] = yearPredicates({ yearType: "upto", yearTo: ceiling }, started);
 
     expect(keep({ startDate: { year: ceiling } })).toBe(true);
     expect(keep({ startDate: { year: CURRENT_YEAR } })).toBe(false);
   });
 
-  it("reads the year through a caller's own accessor, for a model that attributes differently", () => {
+  it("reads the year through the caller's accessor, for a model that attributes differently", () => {
     // The two rules are the same everywhere; which year an item answers with is not. An Omnibus
     // item counts towards the year it closed in and carries no start date to read at all.
     const closed = (year: YearNumber) => ({ closedIn: year });
@@ -32,7 +35,7 @@ describe("yearPredicates", () => {
   });
 
   it("returns an exact-match predicate for the matching type, even at the current year", () => {
-    const [keep] = yearPredicates({ yearType: "matching", yearTo: CURRENT_YEAR });
+    const [keep] = yearPredicates({ yearType: "matching", yearTo: CURRENT_YEAR }, started);
 
     expect(keep({ startDate: { year: CURRENT_YEAR } })).toBe(true);
     expect(keep({ startDate: { year: (CURRENT_YEAR - 1) as YearNumber } })).toBe(false);
@@ -76,14 +79,60 @@ describe("the reducer rebuilds the composed predicate", () => {
     expect(reducer(hours, { type: "measure", measure: "Hours" })).toBe(hours);
   });
 
-  it("flips the year type and rebuilds, since the predicate depends on it", () => {
-    const matching = reducer(initialState, { type: "toggleYearType" });
+  it("names the year reading and rebuilds, since the predicate depends on it", () => {
+    const matching = reducer(initialState, { type: "yearType", yearType: "matching" });
 
     expect(matching.yearType).toBe("matching");
     expect(matching.filter).not.toBe(initialState.filter);
     expect(matching.filter(videoGame({ startDate: YearMonthDay.get(2017, 3, 3) }))).toBe(false);
 
-    expect(reducer(matching, { type: "toggleYearType" }).yearType).toBe("upto");
+    expect(reducer(matching, { type: "yearType", yearType: "upto" }).yearType).toBe("upto");
+  });
+
+  it("answers the same state object for the year reading already held", () => {
+    // The control has a state per reading, so pressing the lit one has to cost neither a render
+    // nor a fresh pass over the whole library.
+    const matching = reducer(initialState, { type: "yearType", yearType: "matching" });
+
+    expect(reducer(matching, { type: "yearType", yearType: "matching" })).toBe(matching);
+  });
+});
+
+describe("retain", () => {
+  const picked = (...franchises: string[]): FilterState =>
+    reducer(initialState, { type: "updateFilter", filter: "franchise", value: franchises });
+
+  it("drops a value the library no longer offers and keeps the rest", () => {
+    // A select's options are computed over the visible library, so a value guest mode takes out of
+    // it would otherwise stay selected with no chip left to clear it, and every chart on the page
+    // would narrow to nothing for a choice the reader can no longer see.
+    const held = reducer(picked("Zelda", "Pokémon"), {
+      type: "retain",
+      category: "franchise",
+      values: ["Mario", "Zelda"],
+    });
+
+    expect(held.franchise).toEqual(["Zelda"]);
+  });
+
+  it("answers the same state object when every value is still on offer", () => {
+    // The sweep runs whenever a library lands, on every tab. A fresh state per run would rebuild
+    // the composed predicate and re-filter every chart in the app for no change at all.
+    const before = picked("Zelda");
+
+    expect(reducer(before, { type: "retain", category: "franchise", values: ["Mario", "Zelda"] })).toBe(before);
+  });
+
+  it("answers the same state object for an untouched category, whatever is on offer", () => {
+    expect(reducer(initialState, { type: "retain", category: "genre", values: [] })).toBe(initialState);
+  });
+
+  it("rebuilds the composed predicate for what it did drop", () => {
+    const held = reducer(picked("Zelda"), { type: "retain", category: "franchise", values: [] });
+
+    expect(held.franchise).toEqual([]);
+    expect(held.filter).not.toBe(initialState.filter);
+    expect(held.filter(videoGame({ franchise: "Mario" }))).toBe(true);
   });
 });
 
@@ -92,27 +141,35 @@ describe("resetFilters", () => {
     [
       { type: "updateFilter", filter: "endless", value: false },
       { type: "updateFilter", filter: "franchise", value: ["Zelda"] },
-      { type: "toggleYearType" },
-      { type: "updateFilter", filter: "guestMode", value: true },
+      { type: "yearType", yearType: "matching" },
+      { type: "measure", measure: "Hours" },
     ].reduce<FilterState>((state, action) => reducer(state, action as never), initialState);
 
-  it("restores every panel field to its initial value", () => {
+  it("restores every filter field to its initial value", () => {
     const cleared = reducer(dirty(), { type: "resetFilters" });
 
     expect(cleared.endless).toBe(true);
     expect(cleared.franchise).toEqual([]);
-    expect(cleared.yearType).toBe("upto");
   });
 
-  it("preserves guest mode, which the app sets rather than the filter panel", () => {
-    // Clear must not become a way to unhide content the long-press deliberately hid.
-    expect(reducer(dirty(), { type: "resetFilters" }).guestMode).toBe(true);
+  it("keeps the measure and the year scope, which are controls of their own", () => {
+    // Neither is on the filter surface Clear belongs to: the measure is the unit every figure on
+    // the tab is counted in, and the scope states on its own face that it is on. Clearing filters
+    // leaves a reader counting hours in one year exactly where they were.
+    const cleared = reducer(dirty(), { type: "resetFilters" });
+
+    expect(cleared.measure).toBe("Hours");
+    expect(cleared.yearType).toBe("matching");
   });
 
-  it("also resets the measure, because it restores from the initial values wholesale", () => {
-    const changed = reducer(initialState, { type: "measure", measure: "Hours" });
+  it("keeps the year the scope names", () => {
+    const scoped = reducer(initialState, {
+      type: "updateFilter",
+      filter: "yearTo",
+      value: (CURRENT_YEAR - 1) as never,
+    });
 
-    expect(reducer(changed, { type: "resetFilters" }).measure).toBe("Games");
+    expect(reducer(scoped, { type: "resetFilters" }).yearTo).toBe(CURRENT_YEAR - 1);
   });
 
   it("leaves the previous state object untouched", () => {
@@ -156,20 +213,13 @@ describe("countActiveFilters", () => {
     expect(activeCount(cleared)).toBe(0);
   });
 
-  it("counts a changed year", () => {
-    expect(
-      activeCount(
-        reducer(initialState, { type: "updateFilter", filter: "yearTo", value: (CURRENT_YEAR - 1) as never }),
-      ),
-    ).toBe(1);
-  });
-
-  it("ignores the measure, the composed predicate and guest mode", () => {
-    // None of the three is something the drawer can clear: two are not filters at all, and guest
-    // mode is set by a long press on the app bar and survives Clear on purpose.
+  it("ignores the measure, the composed predicate and the year scope", () => {
+    // None of the four is a field on the filter surface the badge sits on: two are not filters at
+    // all, and the scope is a control beside it that lights itself.
     const state = [
       { type: "measure", measure: "Hours" },
-      { type: "updateFilter", filter: "guestMode", value: true },
+      { type: "updateFilter", filter: "yearTo", value: (CURRENT_YEAR - 1) as never },
+      { type: "yearType", yearType: "matching" },
     ].reduce<FilterState>((next, action) => reducer(next, action as never), initialState);
 
     expect(state.filter).not.toBe(initialState.filter);
