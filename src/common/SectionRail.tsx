@@ -2,6 +2,7 @@ import { Box, Divider } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ChipRail, RailChip, type ChipRailItem } from "./ChipRail";
+import { BROWSER_TINT_VISIBLE } from "./chrome";
 
 /** A chip in the rail. The `id` matches the `Section` it scrolls to. */
 type RailSection = ChipRailItem;
@@ -143,14 +144,14 @@ export const SectionRail = (props: {
   return (
     <Box
       ref={railRef}
-      sx={{
+      sx={(theme) => ({
         position: "sticky",
         // A pixel above the top rather than at it, so being stuck is observable: fully visible
         // means in flow, one clipped pixel means pinned — which is also exactly when the static
         // app bar above has left the viewport.
         top: "-1px",
         // Under dialogs and the app bar, over the page it scrolls across.
-        zIndex: (theme) => theme.zIndex.appBar - 1,
+        zIndex: theme.zIndex.appBar - 1,
         // The page's own ground and not a card's: the rail sits on the page rather than in one,
         // and anything translucent would let the content scroll through it. It is also what the
         // chip row's own end fades resolve to, since they default to this same token.
@@ -158,10 +159,22 @@ export const SectionRail = (props: {
         borderBottom: 1,
         borderColor: "divider",
         paddingY: 1,
+        // Pinned, the strip Safari samples to colour the status bar stands in front of the rail's
+        // own top edge (`BROWSER_TINT_VISIBLE`, `chrome.ts`), so a symmetric padding leaves the
+        // chips crowded against it with all the air beneath them. The sliver is moved from one end
+        // of the rail to the other rather than added to it, so the rail stands the same height
+        // pinned or not and nothing below it shifts as it pins. Asked for under a coarse pointer
+        // alone, which is where the strip is drawn at all.
+        ...(stuck && {
+          "@media (pointer: coarse)": {
+            paddingTop: `calc(${theme.spacing(1)} + ${BROWSER_TINT_VISIBLE}px)`,
+            paddingBottom: `calc(${theme.spacing(1)} - ${BROWSER_TINT_VISIBLE}px)`,
+          },
+        }),
         display: "flex",
         alignItems: "center",
         gap: 1,
-      }}
+      })}
     >
       <ChipRail
         items={props.sections}

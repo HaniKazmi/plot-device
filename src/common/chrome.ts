@@ -42,3 +42,20 @@ export const safeAreaGutters = (theme: Theme) => ({
     sm: `calc(${theme.spacing(3)} + env(safe-area-inset-right))`,
   },
 });
+
+/**
+ * The strip Safari samples to colour a phone's status bar (`BrowserTint.tsx`), as the two numbers
+ * the page has to know about it.
+ *
+ * Safari sees nothing it cannot see: an element anything paints over is never sampled, so the strip
+ * stands in front of whatever is at the top of the page rather than behind it. It has to be
+ * `BROWSER_TINT_HEIGHT` tall — a 3px strip is not sampled, the floor being nearer 12 — but only
+ * `BROWSER_TINT_VISIBLE` of it need be on screen, so it hangs above the edge and shows the least it
+ * can. That sliver is what the surface beneath has to make room for, the section rail being the one
+ * that reaches the top edge.
+ *
+ * Two pixels rather than one because the sliver is the whole of what Safari reads, and rather than
+ * five because every pixel of it is taken out of the rail's own top padding.
+ */
+export const BROWSER_TINT_HEIGHT = 15;
+export const BROWSER_TINT_VISIBLE = 2;
