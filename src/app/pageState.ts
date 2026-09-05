@@ -31,10 +31,23 @@ export const PAGE_STORES: Record<string, PageStore> = {
   [OMNIBUS_TAB]: omnibusPageState,
 };
 
-/** One page's selections held to the vocabulary its own controls are drawing. */
+/**
+ * One page's selections held to the vocabulary its own controls are drawing.
+ *
+ * A category holding nothing is skipped before its options are asked for: `categoryValues` is a
+ * pass over the whole library per category, and this runs for all five tabs each time a sheet
+ * lands, where the common case is a reader who has selected nothing anywhere. Nothing held is
+ * nothing to drop, so the skip changes no answer.
+ */
 const retainSelections = (store: PageStore, schema: PageSchema, data: readonly unknown[]) => {
-  for (const category of schema.categories)
+  // A tab's own fields are erased off `PageState`, and a category names one by string alone.
+  const fields = store.get() as unknown as Record<string, unknown>;
+
+  for (const category of schema.categories) {
+    const held = fields[category.key] as readonly string[] | undefined;
+    if (!held?.length) continue;
     store.dispatch({ type: "retain", category: category.key, values: categoryValues(category, data) });
+  }
 };
 
 /**

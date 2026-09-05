@@ -1727,8 +1727,10 @@ the page narrowed to nothing for a reason the reader cannot see. `LibraryProvide
 selects against exactly the rows that tab's drawer lists from — each medium's visible slice, the
 union for the composing tab — through `retainPageSelections` (`app/pageState.ts`, the one file there
 that names the composing tab). The `retain` action answers the same state object where nothing is
-dropped, so the sweep costs no render on the runs that change nothing, and a slice still in flight is
-skipped rather than swept against an empty list.
+dropped, so the sweep costs no render on the runs that change nothing; a category holding nothing is
+skipped before its options are computed, since a pass over the whole library per category, for five
+tabs, on every sheet landing, is what the common case of nothing selected would otherwise cost. A
+slice still in flight is skipped too, rather than swept against an empty list.
 
 ### Guest mode
 

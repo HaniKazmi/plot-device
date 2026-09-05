@@ -11,8 +11,9 @@ import type { LibraryRecord, UnitRecord } from "./records";
  *
  * This is the composing layer: the four tracked domains compose nothing and may not import each
  * other, so every question of the form "what does this medium answer" is asked here rather than as
- * a `switch` in whichever surface happened to need it first. A surface holding items of four media
- * reads `MEDIA[item.medium]`, and a fifth medium is a folder and a line in this object.
+ * a `switch` in whichever surface happened to need it first. A surface holding one medium reads
+ * `MEDIA.game`, one walking all four `eachMedium`, and one holding items of four media `moduleOf`;
+ * a fifth medium is a folder and a line in this object.
  *
  * A mapped type and not `Record<Medium, MediumModule<unknown, unknown>>`: erased, every module in
  * the record takes every medium's records, so `MEDIA.game.guestFilter` type-checks against the
