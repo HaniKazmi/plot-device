@@ -1305,6 +1305,18 @@ colour a phone's status bar wears before any tab-specific theme has painted. `Go
 box, which on a chart is a whole row group behind a bar a few pixels wide, and every tap here already
 answers with the card it opens.
 
+**The mark.** `public/favicon.svg` is the phone's Now band as four blocks — a banner over a cover
+beside a poster over a banner, each in its medium's fill, the two columns level as the band's own
+are — run to the tile's edge, with the Omnibus bar's dark-scheme tint (`#302c56`) showing only in
+the gutters. The tint rather than the primary because on `#7553ff` no medium fill clears 2:1,
+where on the tint the dark-scheme halves clear 3.5:1 or better, and a mark whose four colours are
+its meaning has to keep them at 16px. Every raster in `public/` is that file rendered —
+`favicon.ico` at 16 and 32 for the root fetch, the `any` PNGs with their corners transparent, and
+`apple-touch-icon.png` and `icon-maskable-512.png` full-bleed, since iOS and an Android launcher
+each apply a mask of their own to an opaque square. `AppIcon` (`src/AppIcon.tsx`) is the same four
+blocks in one ink beside the wordmark, inset rather than full-bleed since a tile in one ink is a
+square, where the bar is already a tab's colour and a magenta block on the Games bar would vanish.
+
 **Touch surfaces.** `common/touchTarget.ts` is the shared hit-box recipe behind the franchise strip's
 beads and `TimelineBandBox`'s bands (above): a box sized for a coarse pointer alone, invisible and
 stated as a height so it cannot reach over a dense neighbour. `FoldedChart` (`common/FoldedChart.tsx`)

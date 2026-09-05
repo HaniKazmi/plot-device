@@ -6,7 +6,9 @@
          is the fallback, and also what a browser asks for at the root before it has parsed any of
          this. `apple-touch-icon` is opaque and square on purpose — iOS composites transparency
          onto black and applies its own corner mask, so a rounded RGBA icon comes out twice-rounded
-         with black in the gaps. -->
+         with black in the gaps. The manifest's maskable icon is full-bleed for the same reason,
+         and its own file: a rounded `any` icon declared maskable too is cropped twice on Android,
+         once by its own corners and once by the launcher's mask. -->
     <link
       rel="icon"
       href="/favicon.svg"
