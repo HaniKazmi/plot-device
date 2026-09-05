@@ -2,7 +2,7 @@ import { bookModule } from "../books/module";
 import type { MediumModule } from "../common/medium";
 import { movieModule } from "../movie/module";
 import { showModule } from "../show/module";
-import type { Medium } from "../utils/types";
+import { MEDIA as MEDIA_ORDER, type Medium } from "../utils/types";
 import { vgModule } from "../vg/module";
 
 /**
@@ -34,5 +34,9 @@ export const MEDIA: Record<Medium, MediumModule<unknown, unknown>> = {
 /**
  * The same four in the order the app says them, which is the order the tabs themselves run in —
  * for a caller that walks every medium rather than answering for one.
+ *
+ * Read off the medium union's own order rather than listed again here, so the order the union's
+ * rows come out in and the order a legend names the media are one statement: listed twice, a
+ * fifth medium can be appended in one and inserted in the other, and nothing says which is meant.
  */
-export const mediaModules: readonly MediumModule<unknown, unknown>[] = [vgModule, showModule, movieModule, bookModule];
+export const mediaModules: readonly MediumModule<unknown, unknown>[] = MEDIA_ORDER.map((medium) => MEDIA[medium]);

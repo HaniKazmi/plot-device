@@ -125,13 +125,15 @@ export interface MediumLazy<S> {
  *
  * `T` is what the sheet converts to and the tab filters; `S` is what one row of the union is
  * *about*, which is the same record everywhere but Shows — the Shows sheet converts to `Show` and
- * the union counts in seasons, a season being the thing actually watched.
+ * the union counts in seasons, a season being the thing actually watched. `M` is the tab's own
+ * measure union, which the rail's control needs by name: erased to `string` it would take a
+ * dispatch that sets any word at all, where the tab's own dispatch sets one of its three.
  *
  * As with `MediumLazy`, every member taking a `T` or an `S` is a method: the lookup hands each
  * module the medium's own records and TypeScript relates the two only through `medium`, so the
  * record's erased element type would reject all four modules if these were properties.
  */
-export interface MediumModule<T, S = T> {
+export interface MediumModule<T, S = T, M extends string = string> {
   medium: Medium;
   tabId: string;
   /** What the tab counts in, for a population stated in words: "1,539 games". */
@@ -143,7 +145,6 @@ export interface MediumModule<T, S = T> {
    * card strip.
    */
   guestFilter(item: T): boolean;
-  franchiseOf(item: T): string;
   /** This medium's arm of the union, in the unit the medium is actually logged in. */
   toOmniItems(items: T[]): OmniItem[];
   /** The entry a card's franchise strip draws, so the union and a tab's own index agree. */
@@ -162,7 +163,8 @@ export interface MediumModule<T, S = T> {
   secondaryText(item: S): string[];
   /** The line a hit is told by, in this medium's own words, over hours already summed. */
   facts(item: S, hours: number): string;
-  measures: readonly string[];
+  /** The units the tab's rail offers, in the order it states them. */
+  measures: readonly M[];
   /**
    * What this tab can be narrowed by, as data: the surface offering the filters draws it, and the
    * index of what a search box can find by attribute reads it. The schema carries no icon — see
@@ -177,5 +179,4 @@ export interface MediumModule<T, S = T> {
    * filter can be set on a tab before it is mounted.
    */
   pageState: PageStore;
-  load(): Promise<MediumLazy<S>>;
 }

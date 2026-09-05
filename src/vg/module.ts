@@ -3,11 +3,7 @@ import { gameEntry, gameKey, gameSpan } from "./cardData";
 import { vgDataConfig } from "./converter";
 import { guestFilter, vgFilters } from "./filters";
 import { pageState } from "./filterUtils";
-import { vgFranchise } from "./franchiseContext";
 import type { Measure, VideoGame } from "./types";
-
-/** The units the tab counts in, in the rail. Games first: it is what a row of the sheet is. */
-export const MEASURES: readonly Measure[] = ["Games", "Hours"];
 
 /**
  * A game as one row of the union. `hours` falls to zero for a game the sheet records none for,
@@ -30,13 +26,12 @@ const gameItems = (games: VideoGame[]): OmniItem[] =>
     source: game,
   }));
 
-export const vgModule: MediumModule<VideoGame> = {
+export const vgModule: MediumModule<VideoGame, VideoGame, Measure> = {
   medium: "game",
   tabId: "vg",
   noun: "games",
   data: vgDataConfig,
   guestFilter,
-  franchiseOf: vgFranchise,
   toOmniItems: gameItems,
   entry: gameEntry,
   span: gameSpan,
@@ -46,8 +41,8 @@ export const vgModule: MediumModule<VideoGame> = {
   work: (game) => game,
   secondaryText: (game) => [game.developer, game.platform],
   facts: (game, hours) => [game.platform, game.status, hours ? `${hours} hours` : ""].filter(Boolean).join(" · "),
-  measures: MEASURES,
+  /** Games first: it is what a row of the sheet is. */
+  measures: ["Games", "Hours"],
   filters: vgFilters,
   pageState,
-  load: () => import("./module.lazy"),
 };

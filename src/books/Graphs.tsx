@@ -2,7 +2,7 @@ import { memo, useDeferredValue } from "react";
 import { Stack } from "@mui/material";
 import type { YearNumber } from "../common/date";
 import type { Book } from "./types";
-import { MEASURES } from "./module";
+import { bookModule } from "./module";
 import Finished from "../common/Finished";
 import BookCardMediaImage from "./CardMediaImage";
 import Stats from "./Stats";
@@ -128,7 +128,7 @@ const Graphs = memo(
       >
         <Finished
           title="All Books"
-          count={`${format(finishedCount(data))} books`}
+          count={`${format(finishedCount(data))} ${bookModule.noun}`}
           borderKey="genre"
           data={data}
           // Genre for the border: the ramp answers the neutral off its table and never throws, so
@@ -153,7 +153,7 @@ const Graphs = memo(
           tabs={tabs}
           actions={
             <MeasureControl
-              measures={MEASURES}
+              measures={bookModule.measures}
               value={filterState.measure}
               dispatch={filterDispatch}
             />

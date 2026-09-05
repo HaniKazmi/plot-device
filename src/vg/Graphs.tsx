@@ -1,6 +1,6 @@
 import Stats from "./Stats";
 import { VideoGame, companyToColor } from "./types";
-import { MEASURES } from "./module";
+import { vgModule } from "./module";
 import { useScheme } from "../common/useScheme";
 import Sunburst from "./Sunburst";
 import Barchart from "./Barchart";
@@ -112,7 +112,7 @@ const Graphs = memo(
         <Finished
           MediaComponent={CardMediaImage}
           title="All Games"
-          count={`${format(finishedCount(data))} games`}
+          count={`${format(finishedCount(data))} ${vgModule.noun}`}
           borderKey="company"
           data={data}
           colour={(item) => companyToColor(item, scheme)}
@@ -128,7 +128,7 @@ const Graphs = memo(
           tabs={tabs}
           actions={
             <MeasureControl
-              measures={MEASURES}
+              measures={vgModule.measures}
               value={filterState.measure}
               dispatch={filterDispatch}
             />

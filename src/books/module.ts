@@ -4,11 +4,7 @@ import { bookDataConfig } from "./converter";
 import { bookFilters } from "./filters";
 import { pageState } from "./filterUtils";
 import { bookItemKey } from "./statsData";
-import { bookFranchise } from "./franchiseContext";
 import type { Book, Measure } from "./types";
-
-/** The units the tab counts in, in the rail. */
-export const MEASURES: readonly Measure[] = ["Books", "Pages", "Hours"];
 
 /** A book as one row of the union. */
 const bookItems = (books: Book[]): OmniItem[] =>
@@ -27,7 +23,7 @@ const bookItems = (books: Book[]): OmniItem[] =>
     source: book,
   }));
 
-export const bookModule: MediumModule<Book> = {
+export const bookModule: MediumModule<Book, Book, Measure> = {
   medium: "book",
   tabId: "books",
   noun: "books",
@@ -36,7 +32,6 @@ export const bookModule: MediumModule<Book> = {
   // visible in it. Stated as a predicate rather than as an absence, so the mode is applied the
   // same way for four media and no caller has to test whether a medium has a rule.
   guestFilter: () => true,
-  franchiseOf: bookFranchise,
   toOmniItems: bookItems,
   entry: bookEntry,
   span: bookSpan,
@@ -48,8 +43,7 @@ export const bookModule: MediumModule<Book> = {
   work: (book) => `${book.name}-${book.releaseDate}`,
   secondaryText: (book) => [book.author, book.series],
   facts: (book) => [book.author, book.status, book.pages ? `${book.pages} pages` : ""].filter(Boolean).join(" · "),
-  measures: MEASURES,
+  measures: ["Books", "Pages", "Hours"],
   filters: bookFilters,
   pageState,
-  load: () => import("./module.lazy"),
 };

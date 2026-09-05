@@ -4,11 +4,7 @@ import { movieDataConfig } from "./converter";
 import { guestFilter, movieFilters } from "./filters";
 import { pageState } from "./filterUtils";
 import { movieItemKey } from "./statsData";
-import { movieFranchise } from "./franchiseContext";
 import type { Measure, Movie } from "./types";
-
-/** The units the tab counts in, in the rail. */
-export const MEASURES: readonly Measure[] = ["Films", "Hours"];
 
 /** A film as one row of the union. */
 const movieItems = (movies: Movie[]): OmniItem[] =>
@@ -29,13 +25,12 @@ const movieItems = (movies: Movie[]): OmniItem[] =>
     source: movie,
   }));
 
-export const movieModule: MediumModule<Movie> = {
+export const movieModule: MediumModule<Movie, Movie, Measure> = {
   medium: "movie",
   tabId: "movies",
   noun: "films",
   data: movieDataConfig,
   guestFilter,
-  franchiseOf: movieFranchise,
   toOmniItems: movieItems,
   // A film's span is its watch date at both ends, so there is no today for it to run to.
   entry: (movie, _today, hoverCard) => movieEntry(movie, hoverCard),
@@ -50,8 +45,7 @@ export const movieModule: MediumModule<Movie> = {
     [movie.cinema ? "Cinema" : "Home", movie.score === undefined ? "" : `${movie.score}/10`, movie.director]
       .filter(Boolean)
       .join(" · "),
-  measures: MEASURES,
+  measures: ["Films", "Hours"],
   filters: movieFilters,
   pageState,
-  load: () => import("./module.lazy"),
 };

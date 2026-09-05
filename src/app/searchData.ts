@@ -105,9 +105,14 @@ export const buildSearchIndex = (items: OmniItem[]): SearchIndex => {
   return { franchises, items: workEntries };
 };
 
-/** The member that stands for a work: a show's latest season, otherwise its only row's first. */
+/**
+ * The member that stands for a work: a show's latest season, otherwise its only row's first.
+ *
+ * The medium is named outright, as the cast on the line below already does: the sort reads a
+ * season's number off the source, so this branch knows what it is holding either way.
+ */
 const representative = (members: OmniItem[]): OmniItem =>
-  members[0].medium === MEDIA.show.medium
+  members[0].medium === "show"
     ? members.toSorted((a, b) => (b.source as Season).s - (a.source as Season).s)[0]
     : members[0];
 

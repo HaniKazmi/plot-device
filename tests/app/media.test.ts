@@ -28,10 +28,6 @@ describe("the medium registry", () => {
     expect(misfiled).toEqual([]);
   });
 
-  it("lists the four in the order the app says them", () => {
-    expect(mediaModules.map((module) => module.medium)).toEqual(MEDIA_ORDER);
-  });
-
   it("names a real tab, without importing one", () => {
     const ids = Tabs.map((tab) => tab.id);
 

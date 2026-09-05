@@ -3,14 +3,7 @@ import { seasonEntry, seasonKey, seasonSpan } from "./cardData";
 import { showDataConfig } from "./converter";
 import { guestFilter, showFilters } from "./filters";
 import { pageState } from "./filterUtils";
-import { showFranchise } from "./franchiseContext";
 import type { Measure, Season, Show } from "./types";
-
-/**
- * The units the tab counts in, in the rail. Shows is absent: the tab's own figures are counted in
- * seasons, which is the thing actually watched in a year.
- */
-export const MEASURES: readonly Measure[] = ["Seasons", "Episodes", "Hours"];
 
 /**
  * A season as one row of the union — the unit a show contributes, not the show.
@@ -39,13 +32,12 @@ const seasonItems = (shows: Show[]): OmniItem[] =>
     })),
   );
 
-export const showModule: MediumModule<Show, Season> = {
+export const showModule: MediumModule<Show, Season, Measure> = {
   medium: "show",
   tabId: "show",
   noun: "shows",
   data: showDataConfig,
   guestFilter,
-  franchiseOf: showFranchise,
   toOmniItems: seasonItems,
   entry: seasonEntry,
   span: seasonSpan,
@@ -68,8 +60,11 @@ export const showModule: MediumModule<Show, Season> = {
     ]
       .filter(Boolean)
       .join(" · "),
-  measures: MEASURES,
+  /**
+   * Shows is absent: the tab's own figures are counted in seasons, which is the thing actually
+   * watched in a year.
+   */
+  measures: ["Seasons", "Episodes", "Hours"],
   filters: showFilters,
   pageState,
-  load: () => import("./module.lazy"),
 };

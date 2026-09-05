@@ -13,7 +13,7 @@ import { SHOW_SECTIONS, showSections } from "./sections";
 import { currentlyWatching, earliestYear } from "./statsData";
 import Timeline from "./Timeline";
 import { Show } from "./types";
-import { MEASURES } from "./module";
+import { showModule } from "./module";
 import ShowCardMediaImage from "./CardMediaImage";
 import { statusToColour } from "../utils/types";
 import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
@@ -114,7 +114,7 @@ const Graphs = memo(
       >
         <Finished
           title="All Shows"
-          count={`${format(finishedCount(data))} shows`}
+          count={`${format(finishedCount(data))} ${showModule.noun}`}
           borderKey="status"
           data={data}
           colour={(item) => statusToColour(item, scheme)}
@@ -130,7 +130,7 @@ const Graphs = memo(
           tabs={tabs}
           actions={
             <MeasureControl
-              measures={MEASURES}
+              measures={showModule.measures}
               value={filterState.measure}
               dispatch={filterDispatch}
             />

@@ -1,7 +1,7 @@
 import { memo, useDeferredValue } from "react";
 import { Stack } from "@mui/material";
 import { ratingToColour, type Movie } from "./types";
-import { MEASURES } from "./module";
+import { movieModule } from "./module";
 import Finished from "../common/Finished";
 import MovieCardMediaImage from "./CardMediaImage";
 import Stats from "./Stats";
@@ -104,7 +104,7 @@ const Graphs = memo(
       >
         <Finished
           title="All Films"
-          count={`${format(finishedCount(data))} films`}
+          count={`${format(finishedCount(data))} ${movieModule.noun}`}
           borderKey="rating"
           data={data}
           // Rating rather than genre for the border: `ageRatingToColour` is validated at convert
@@ -126,7 +126,7 @@ const Graphs = memo(
           tabs={tabs}
           actions={
             <MeasureControl
-              measures={MEASURES}
+              measures={movieModule.measures}
               value={filterState.measure}
               dispatch={filterDispatch}
             />
