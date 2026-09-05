@@ -1,6 +1,5 @@
 import { Box, Chip, useTheme, type SxProps, type Theme } from "@mui/material";
 import type { ReactElement, ReactNode, Ref } from "react";
-import { NUMERIC_LABEL_SX } from "./typography";
 import { ScrollFade } from "./ScrollFade";
 import { useScrollEdges } from "./useScrollEdges";
 import { CONTAIN_SIDEWAYS_SCROLL } from "./scrollbarSx";
@@ -11,34 +10,15 @@ export interface ChipRailItem {
 }
 
 /**
- * The height of a rail chip, and so of any label standing in for one — the pill the scroll marker
- * falls back to speaks the same vocabulary and has to be the same size to read as the same thing.
- */
-export const CHIP_HEIGHT = 22;
-
-/**
- * The same chip under a finger. 22px is a mark on a scale a mouse lands on exactly; a thumb needs
- * a target it can hit at speed, and the rail is the one bar a phone reader reaches for from
- * anywhere on the page. `SCROLL_MARGIN` (`SectionRail.tsx`) still clears a rail built from these.
- */
-const COARSE_CHIP_HEIGHT = 30;
-
-/**
  * What every rail's chips are, beyond being chips.
  *
- * A fixed height rather than the size's own, because a rail spread down a gutter or across a chart
- * is a scale, and a scale's marks are one size. The type is the numeric label treatment, since most
- * of these labels are years. Chips never shrink either — a flex item gives
- * up width before it overflows, so without that a narrow viewport ellipsises the labels instead of
- * letting the row scroll, which is the degradation that keeps the reading order and the first
- * chip's edge.
+ * The height and the numeric type the kit gives a small chip are stated on the theme
+ * (`Google.tsx`), so a rail's marks and any chip standing in for one cannot be drawn at two sizes.
+ * What is left here is that a chip never shrinks: a flex item gives up width before it overflows,
+ * so without this a narrow viewport ellipsises the labels instead of letting the row scroll, which
+ * is the degradation that keeps the reading order and the first chip's edge.
  */
-const CHIP_SX = {
-  flexShrink: 0,
-  height: CHIP_HEIGHT,
-  "@media (pointer: coarse)": { height: COARSE_CHIP_HEIGHT },
-  ...NUMERIC_LABEL_SX,
-} as const;
+const CHIP_SX = { flexShrink: 0 } as const;
 
 /**
  * One rail chip, exported so a caller can put chips of its own in the `leading` slot or beside the

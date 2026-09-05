@@ -19,7 +19,10 @@ const PINNED_BIAS = BROWSER_TINT_VISIBLE + 2;
  *
  * The rail is the only thing pinned above it — the AppBar is `position: static` and has scrolled
  * away by the time an anchor is used — so this is the rail's own height plus enough that the
- * section's heading is not sitting against it.
+ * section's heading is not sitting against it. The rail is its padding either side of the tallest
+ * thing in it plus the rule beneath: 8 + 28 + 8 + 1 with a pointer, and 8 + 32 + 8 + 1 under a
+ * finger, the two heights the kit gives a control (`common/typography.ts`). This clears the taller
+ * of them by 23px.
  */
 export const SCROLL_MARGIN = 72;
 

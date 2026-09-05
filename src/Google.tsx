@@ -1,9 +1,16 @@
-import { Container, createTheme, CssBaseline, ThemeProvider } from "@mui/material";
+import { Container, createTheme, CssBaseline, ThemeProvider, type Theme } from "@mui/material";
 import { useState } from "react";
 import NavBar from "./NavBar";
 import { BottomTabs } from "./BottomTabs";
 import { BrowserTint } from "./BrowserTint";
 import { BOTTOM_TABS_CLEARANCE, safeAreaGutters } from "./common/chrome";
+import {
+  COARSE_CONTROL_HEIGHT,
+  CONTROL_HEIGHT,
+  CONTROL_RADIUS,
+  CONTROL_TYPE_SX,
+  NUMERIC_LABEL_SX,
+} from "./common/typography";
 import { Outlet } from "react-router-dom";
 import { GoogleAuthProvider } from "./contexts/GoogleAuthContext.tsx";
 import { LibraryProvider } from "./app/LibraryProvider.tsx";
@@ -84,6 +91,29 @@ const { palette: defaultPalette } = createTheme();
 // that could drift.
 const DARK_TEXT = "#e8eaed";
 const DARK_PAPER = "#1d2126";
+
+/**
+ * The tab's primary at a stated strength, as a wash rather than a tint: a lit segment's ground,
+ * a hovered control's.
+ *
+ * Composed from the channel triple through the CSS variable, so one rule reads on both papers —
+ * a solid colour mixed for the white paper is a different colour against the dark one, and the
+ * variable is what the scheme switch actually moves. `mainChannel` is what `cssVariables: true`
+ * emits for exactly this.
+ */
+const primaryWash = (theme: Theme, strength: number) => `rgba(${theme.vars.palette.primary.mainChannel} / ${strength})`;
+
+/**
+ * One ring for the whole kit: a segment inside a group, a chip in the rail and a picker's button
+ * all answer a keyboard the same way, so a reader tabbing through a header finds the focus in one
+ * place rather than in whatever each MUI component draws by default.
+ *
+ * Outside the part's own edge, since several of them are drawn edge to edge — a group's segments
+ * share their borders, and a ring inside would be half hidden by the neighbour.
+ */
+const focusRing = (theme: Theme) => ({
+  "&:focus-visible": { outline: `2px solid ${theme.vars.palette.primary.main}`, outlineOffset: 2 },
+});
 
 // Themes are cached per tab: building one walks both colour schemes, typography, shadows and
 // the whole CSS-variable map, and a stable identity also stops the MUI tree re-evaluating `sx`
@@ -186,25 +216,121 @@ const getTheme = (tab: Tab) => {
           elevation: 0,
         },
       },
+      // The segment: one of a small closed set, lit in the tab's own primary. The lit wash is
+      // twice MUI's own `selectedOpacity`, which at 8% on the dark paper is a tint a reader has
+      // to hunt for; the word turns primary and gains a weight with it, so the state survives
+      // being read at 12px.
+      MuiToggleButton: {
+        styleOverrides: {
+          root: ({ theme }) => ({
+            ...CONTROL_TYPE_SX,
+            minHeight: CONTROL_HEIGHT,
+            // A stated height rather than symmetrical padding: `theme.typography.button`'s own
+            // line height puts a 12px word at 21px, so padding sized for the word makes the
+            // control 31. A minimum instead of a height, so a segment holding an icon rather
+            // than a word grows to it instead of overflowing.
+            padding: "0 10px",
+            borderRadius: CONTROL_RADIUS,
+            color: theme.vars.palette.text.primary,
+            backgroundColor: theme.vars.palette.background.paper,
+            // Reset before the hover is stated, because MUI's own rule sits outside any pointer
+            // query: a touch screen has no leave event, so the last segment tapped would keep
+            // the hovered wash until another tap landed elsewhere and two would read as lit.
+            "&:hover": { backgroundColor: theme.vars.palette.background.paper },
+            "&.Mui-selected": {
+              color: theme.vars.palette.primary.main,
+              fontWeight: 600,
+              backgroundColor: primaryWash(theme, 0.16),
+              "&:hover": { backgroundColor: primaryWash(theme, 0.16) },
+            },
+            "@media (hover: hover)": {
+              "&:hover": { backgroundColor: primaryWash(theme, 0.08) },
+              "&.Mui-selected:hover": { backgroundColor: primaryWash(theme, 0.24) },
+            },
+            "@media (pointer: coarse)": { minHeight: COARSE_CONTROL_HEIGHT },
+            ...focusRing(theme),
+          }),
+        },
+      },
+      // The group's own corner, which MUI takes from `shape.borderRadius` — the card's 8, where
+      // a control is a 6. The buttons inside square their touching edges off that value, so the
+      // two have to agree or the group's outline steps at its ends.
+      MuiToggleButtonGroup: {
+        styleOverrides: {
+          root: { borderRadius: CONTROL_RADIUS },
+        },
+      },
+      // The action: one icon, one meaning — open as a layer, reveal in place, close. A square
+      // the size of a segment, so a header's controls stand level whichever of the two they are.
+      // The app bar states its own size (`NavBar.tsx`): the bar is a filled surface with nothing
+      // beside its buttons to be level with, where a 28px square reads as a control that shrank.
+      MuiIconButton: {
+        styleOverrides: {
+          root: ({ theme }) => ({
+            width: CONTROL_HEIGHT,
+            height: CONTROL_HEIGHT,
+            padding: 0,
+            borderRadius: CONTROL_RADIUS,
+            "& .MuiSvgIcon-root": { fontSize: 18 },
+            "&:hover": { backgroundColor: "transparent" },
+            "@media (hover: hover)": { "&:hover": { backgroundColor: primaryWash(theme, 0.08) } },
+            "@media (pointer: coarse)": { width: COARSE_CONTROL_HEIGHT, height: COARSE_CONTROL_HEIGHT },
+            ...focusRing(theme),
+          }),
+        },
+      },
+      // The rail chip: navigation, and the one part of the kit drawn as a pill. Sized on the
+      // small chip alone, which is what a rail asks for — a chip standing over artwork or in a
+      // filter sheet is a label rather than a mark on a scale and keeps MUI's own size.
       MuiChip: {
         styleOverrides: {
-          root: {
+          root: ({ theme }) => ({
             "& .MuiChip-label:empty": { paddingLeft: 0 },
+            ...focusRing(theme),
+          }),
+          sizeSmall: {
+            "@media (pointer: coarse)": {
+              height: COARSE_CONTROL_HEIGHT,
+              borderRadius: COARSE_CONTROL_HEIGHT / 2,
+            },
+            // Tabular figures because most of these labels are years: proportional digits change a
+            // label's width with the numerals in it, so a row of them shifts sideways as the
+            // highlight moves through it. On the label rather than the chip, since the chip's own
+            // rule about an empty one has to keep outweighing this.
+            "& .MuiChip-label": {
+              ...NUMERIC_LABEL_SX,
+              paddingLeft: 9,
+              paddingRight: 9,
+              "@media (pointer: coarse)": { paddingLeft: 11, paddingRight: 11 },
+            },
           },
         },
       },
-      MuiSelect: {
+      // The worded action — a picker's own button, a count that is its own control. Only the
+      // small size, which is the kit's: the app bar's buttons are the bar's furniture and stand
+      // at the size a filled bar gives them.
+      MuiButton: {
         styleOverrides: {
-          root: {
-            textTransform: "capitalize",
-          },
+          sizeSmall: ({ theme }) => ({
+            ...CONTROL_TYPE_SX,
+            // A word carrying an action, against the segments' plain labels beside it.
+            fontWeight: 600,
+            minHeight: CONTROL_HEIGHT,
+            // MUI's own floor is 64px, which pads "Date" out to twice its width in a header
+            // where the controls are read as a row.
+            minWidth: 0,
+            padding: "0 10px",
+            borderRadius: CONTROL_RADIUS,
+            "@media (pointer: coarse)": { minHeight: COARSE_CONTROL_HEIGHT },
+            ...focusRing(theme),
+          }),
         },
       },
+      // A menu item is read, not scanned: 14px against the kit's 12, since the menu is the one
+      // surface where the options are stated in full rather than abbreviated to fit a row.
       MuiMenuItem: {
         styleOverrides: {
-          root: {
-            textTransform: "capitalize",
-          },
+          root: { fontSize: 14 },
         },
       },
       MuiCardHeader: {

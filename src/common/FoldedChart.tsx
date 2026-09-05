@@ -1,14 +1,15 @@
 import { Box, Button, Card, CardContent, Stack, Typography } from "@mui/material";
 import { useState, type ReactNode } from "react";
 import { usePhone } from "./breakpoints";
-import { SEGMENT_TYPE_SX } from "./typography";
 
 /**
- * A segment's own type, so the disclosure reads as one more of the controls the page already has
- * rather than as a call to action — the same 12px, unshouted casing and compact padding
- * `SegmentedControl` sets, taken from it so the two cannot drift.
+ * The disclosure keeps its width: it stands beside a summary line that runs to a sentence, and a
+ * flex item gives up width before its neighbour wraps, so without this the word inside it breaks
+ * before the words it is standing next to do. Its type, height and corner are the kit's, stated
+ * on the small button in `Google.tsx`, so it reads as one more of the page's controls rather than
+ * as the one call to action on it.
  */
-const TOGGLE_SX = { ...SEGMENT_TYPE_SX, flexShrink: 0 } as const;
+const TOGGLE_SX = { flexShrink: 0 } as const;
 
 /** How tall a preview stands: enough for a shape, short enough that it is not the chart. */
 const SPARK_HEIGHT = 44;

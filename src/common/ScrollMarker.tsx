@@ -1,8 +1,8 @@
 import { Box } from "@mui/material";
-import { CHIP_HEIGHT, RailChip } from "./ChipRail";
+import { RailChip } from "./ChipRail";
 import { bucketLabel } from "./finishedData";
 import { MARKER_TOP, MARKER_Z, type ScrollMarkerState } from "./ScrollMarkerHook";
-import { NUMERIC_LABEL_SX } from "./typography";
+import { NUMERIC_LABEL_SX, RAIL_CHIP_HEIGHT } from "./typography";
 
 /** Where the marker stands: the pill and the rail replace each other, so both are pinned alike. */
 const markerAnchorSx = (left: number, centred: boolean) => ({
@@ -40,7 +40,7 @@ export const ScrollMarker = ({ bucket, visible, left, centred }: ScrollMarkerSta
       // The pill is what stands in for the rail, so it is the height of a chip in it: the two
       // never appear together, and a label that changed size as the viewport crossed the
       // threshold would read as a different thing rather than the same one relocating.
-      lineHeight: `${CHIP_HEIGHT}px`,
+      lineHeight: `${RAIL_CHIP_HEIGHT}px`,
     }}
   >
     {bucket}

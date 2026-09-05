@@ -21,11 +21,30 @@ import { openSearch } from "./common/searchOpen";
 import { AppIcon } from "./AppIcon";
 
 /**
- * The menu's own items are worded rather than keyed, and the theme capitalises every `MenuItem`
- * so that a bare model key reads as a word — which turns "Guest mode" into "Guest Mode". The
- * select boxes state the same override for the same reason.
+ * The bar's own buttons, against the kit's 28px square (`Google.tsx`).
+ *
+ * The bar is a filled surface with nothing beside these to be level with, where the page's
+ * controls stand in a card header among segments and chips. A 28px square in a 64px bar reads as
+ * a control that shrank, and `edge`'s negative margin — which is what lines the last icon up with
+ * the page's own edge — is derived from the 40px target and its padding.
  */
-const MENU_ITEM_SX = { textTransform: "none" } as const;
+const BAR_BUTTON_SX = {
+  // Doubled, because the kit's square is stated on the theme's own `MuiIconButton` and both rules
+  // are one class: which of the two lands last is the stylesheet's insertion order rather than
+  // anything either of them states, and the theme's pointer query wins the tie at 32px. Two
+  // classes outweigh one under every ordering.
+  "&&": {
+    width: 40,
+    height: 40,
+    padding: 1,
+    borderRadius: "50%",
+    // The kit hovers a control in the tab's primary, which is the colour this bar is painted in:
+    // a wash of it over itself is nothing. The bar's own ink is light on either paper, so a wash
+    // of white is the one that reads on both.
+    "@media (hover: hover)": { "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.12)" } },
+    "& .MuiSvgIcon-root": { fontSize: 24 },
+  },
+} as const;
 
 /**
  * A disabled button on the bar takes the theme's own disabled grey, a colour the bar — the tab's
@@ -42,6 +61,7 @@ const DISABLED_BUTTON_SX = { "&.Mui-disabled": { color: "inherit", opacity: 0.6 
  * It costs a menu repeating the two buttons beside it, which is what a ⋮ is for.
  */
 const MENU_BUTTON_SX = {
+  ...BAR_BUTTON_SX,
   display: { md: "none" },
   "@media (pointer: coarse)": { display: "flex" },
 } as const;
@@ -53,6 +73,7 @@ const MENU_BUTTON_SX = {
  * the two cannot disagree about which of them is last.
  */
 const SEARCH_BUTTON_SX = {
+  ...BAR_BUTTON_SX,
   marginRight: { md: -1.5 },
   "@media (pointer: coarse)": { marginRight: 0 },
 } as const;
@@ -244,7 +265,6 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
                 closeMenu();
                 action.onClick?.();
               }}
-              sx={MENU_ITEM_SX}
             >
               {action.label}
             </MenuItem>
@@ -257,7 +277,6 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
               closeMenu();
               setGuestMode(!guestMode);
             }}
-            sx={MENU_ITEM_SX}
           >
             {guestMode ? "Leave guest mode" : "Guest mode"}
           </MenuItem>

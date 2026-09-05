@@ -721,24 +721,44 @@ ledger, and only a mixed row arranges itself per item. `OmniHoverCard` beside it
 four ways, so a hovered mark shows the card its home tab would show rather than a fifth assembly of
 one.
 
-### One control idiom for "how is this drawn" — `SegmentedControl`
+### One control idiom for "how is this drawn" — the control kit
 
-`common/SelectionComponents.tsx` exports one control for a small closed set of named states, and
-every surface offering one uses it: the barchart's four views, the gallery's shelf order, the wall's
-density, the Shows timeline's Seasons · Shows, and each tab's measure in the section rail — the last
-through `MeasureControl`, which owns the wiring to the filter reducer once for the five tabs. Values
-that are already their own words become options through `common/segments.ts`. Words rather than
-icons, an icon being a legend nothing on the page teaches.
+Every control on the page is one of five parts. Four are stated once as a theme override in
+`Google.tsx` rather than at their call sites — a **segment** (`MuiToggleButton`), a **picker**
+(`MuiButton` at `size="small"`), an **action icon** (`MuiIconButton`) and a **rail chip** (`MuiChip`
+at `size="small"`) — and the fifth, the **sheet bar** every layer opens with, is a component of its
+own (`common/Card.tsx`), since a bar is a shape rather than a size. One type size, 12px
+(`CONTROL_TYPE_SX`, `common/typography.ts`), and one height per surface: 28 in a card header, 24 for
+a chip in the rail, and 32 for every part under a coarse pointer, where the type stays put and only
+the target grows. A control is a rounded rectangle at 6px and a chip is a pill — rectangles change
+how something is drawn, pills take the reader somewhere. All of them answer a keyboard the same way,
+a 2px ring in the tab's primary outside the part's own edge, so the focus is one mark rather than
+whatever each MUI component draws. The app bar is the exception it states itself (`BAR_BUTTON_SX`,
+`NavBar.tsx`): a filled bar with nothing beside its buttons to be level with, where a 28px square
+reads as a control that shrank.
 
-It is always `size="small"` at 12px, or one control would read as two between a card header and the
-22px chip rail, and a press on the lit segment is ignored rather than clearing it. The franchise
-strip's Order · Time switch passes a `tone` — `SegmentTone`, the artwork palette's `ground`,
-`onGround`, `line` and `tile` — because the theme's primary is solved against the theme's paper and
-on a sampled ground can land a hue away from legible: toned, the lit segment takes the surface's ink
-with its word in the ground, and the unlit words that same ink at full strength, the muted tone
-being a transparent ink too close to a mid-toned ground for a 12px word to carry. `SelectBox` takes
-an optional `labelFor` where a caller's options are model keys, with `textTransform: none` on the
-select and again on every item, which the portalled menu cannot inherit.
+`SegmentedControl` is a small closed set of named states, and every surface offering one uses it:
+the barchart's four views, the gallery's shelf order, the wall's density, the Shows timeline's
+Seasons · Shows, and each tab's measure in the section rail — the last through `MeasureControl`,
+which owns the wiring to the filter reducer once for the five tabs. Values that are already their
+own words become options through `common/segments.ts`. Words rather than icons, an icon being a
+legend nothing on the page teaches. A press on the lit segment is ignored rather than clearing it.
+The franchise strip's Order · Time switch passes a `tone` — `SegmentTone`, the artwork palette's
+`ground`, `onGround`, `line` and `tile` — because the theme's primary is solved against the theme's
+paper and on a sampled ground can land a hue away from legible: toned, the lit segment takes the
+surface's ink with its word in the ground, the unlit words that same ink at full strength, and the
+rest of the control the surface's own ground in place of the paper the theme would give it — the
+muted tone being a transparent ink too close to a mid-toned ground for a 12px word to carry.
+
+`SelectBox` is the picker: a button opening a `Menu`, not a `Select`. A select is a form field sized
+by MUI's input metrics, where every one of these stands beside segments in a card header, so as a
+button it takes the kit's own height, type and corner and a header holding both reads as one row.
+Options that are model keys are humanised by `keyLabel` (`utils/stringUtils.ts`) unless the caller
+passes its own `labelFor`, which is what the menu items are worded by — sentence case, `startDate`
+reading "Start date". `label` names what is being chosen where the card's title does not, muted
+beside the value; `defaultValue` is what the page opens on, and given it, the control takes a lit
+border and wash once the reader moves off it, which is the one thing a picker cannot say by its
+value alone.
 
 ### Filter drawer, Top lists and drill-down — shared shells
 
@@ -1330,9 +1350,10 @@ nothing on the page teaches.
 The tab chips that lead the stuck rail are dropped entirely below `sm`, where the bottom navigation
 already holds all five tabs at every scroll position and a rail spending 300 of its 358px saying so
 again buys nothing; a rail's own chips still fill the rest. Under a coarse pointer every chip in the
-rail — a tab's, a section's — stands 30px tall rather than 22 (`ChipRail`'s `COARSE_CHIP_HEIGHT`,
-behind `@media (pointer: coarse)` so a tablet with a mouse plugged in gets the desktop's own
-height), which `SCROLL_MARGIN`'s 72px still clears with room for the rail's padding.
+rail — a tab's, a section's — stands at the kit's coarse 32px rather than its own 24 (the theme's
+small chip, behind `@media (pointer: coarse)` so a tablet with a mouse plugged in gets the desktop's
+own height), which makes the rail 8 + 32 + 8 + 1 where a pointer gets 8 + 28 + 8 + 1; `SCROLL_MARGIN`
+clears the taller of the two by 23px.
 
 A page's charts and its library swap on a phone, library first — `ChartsAndLibrary` renders the two
 nodes in that order and `chartsLastOrder` (`common/sections.ts`) reorders the chip naming them, both

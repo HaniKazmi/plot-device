@@ -1,20 +1,15 @@
-import { MenuItem, Select, ToggleButton, ToggleButtonGroup } from "@mui/material";
+import { ArrowDropDown } from "@mui/icons-material";
+import { Box, Button, Menu, MenuItem, ToggleButton, ToggleButtonGroup, type Theme } from "@mui/material";
+import { useState } from "react";
+import { keyLabel } from "../utils/stringUtils";
 import type { artworkPalette } from "./artworkPalette";
 import { segments } from "./segments";
-import { SEGMENT_TYPE_SX } from "./typography";
 
 /** One segment: the value it selects and the word on it. */
 export interface SegmentOption<T extends string> {
   value: T;
   label: string;
 }
-
-const SEGMENT_SX = {
-  ...SEGMENT_TYPE_SX,
-  // The words stay at 12px on a phone — a control that reads as two sizes between the header and
-  // the rail is what the one size exists to avoid — so the target grows under the segment instead.
-  "@media (pointer: coarse)": { minHeight: 32 },
-} as const;
 
 /**
  * One of a few named states, as words rather than pictures.
@@ -59,7 +54,7 @@ export const SegmentedControl = <T extends string>(props: {
       <ToggleButton
         key={option.value}
         value={option.value}
-        sx={props.tone ? [SEGMENT_SX, toneSx(props.tone)] : SEGMENT_SX}
+        sx={props.tone && toneSx(props.tone)}
       >
         {option.label}
       </ToggleButton>
@@ -73,8 +68,13 @@ export type SegmentTone = Pick<ReturnType<typeof artworkPalette>, "ground" | "on
 const toneSx = (tone: SegmentTone) => ({
   color: tone.onGround,
   borderColor: tone.line,
+  // The theme grounds an unlit segment in the paper, which on an artwork-coloured card is a white
+  // rectangle inside a brown one; the surface's own ground is what the rest of the card stands on.
+  backgroundColor: tone.ground,
   // An unlit segment tapped on a touch screen keeps the hovered wash until the next tap lands
-  // somewhere else, which reads as two segments lit at once.
+  // somewhere else, which reads as two segments lit at once — so the hover is stated for a
+  // pointer alone, and reset to the surface's ground for everything else.
+  "&:hover": { backgroundColor: tone.ground },
   "@media (hover: hover)": { "&:hover": { backgroundColor: tone.tile } },
   "&.Mui-selected, &.Mui-selected:hover": { color: tone.ground, backgroundColor: tone.onGround },
 });
@@ -103,43 +103,118 @@ export const MeasureControl = <M extends string>({
   />
 );
 
-/** The theme capitalises both the select and its items; the menu is portalled, so it is stated twice. */
-const NO_TEXT_TRANSFORM_SX = { textTransform: "none" } as const;
+/**
+ * What the picker is choosing, set beside the value it holds. Muted and a size down, because the
+ * value is the answer and the label is only what the question was: at one size and one tone the
+ * two read as a phrase — "Split Status" — rather than as a field and its contents.
+ */
+const PICKER_LABEL_SX = { fontSize: 11, fontWeight: 400, color: "text.secondary", marginRight: 0.75 } as const;
+
+const PICKER_SX = {
+  // The value in the ink, on the kit's own edge: the divider the cards and the rail are ruled off
+  // in, not the half-strength primary MUI outlines a button with. A picker is a container for
+  // whatever the reader chose, so the accent is kept for saying that the choice is no longer the
+  // page's own default.
+  //
+  // Here rather than on the theme's own small outlined button, because the lit state below has to
+  // override it: a `variants` rule in `theme.components` is resolved after the `sx` on the same
+  // element, so the pair would answer the theme and not the call site.
+  color: "text.primary",
+  borderColor: "divider",
+  backgroundColor: "background.paper",
+  // The caret is the one part of the control that is not a word, so it takes the label's tone and
+  // sits closer to the value than MUI's own icon spacing puts it.
+  "& .MuiButton-endIcon": {
+    marginLeft: 0.25,
+    marginRight: -0.5,
+    color: "text.secondary",
+    "& > *:first-of-type": { fontSize: 18 },
+  },
+} as const;
+
+/** The same control, saying its value is no longer the one the card was written for. */
+const PICKER_LIT_SX = {
+  borderColor: "primary.main",
+  color: "primary.main",
+  backgroundColor: (theme: Theme) => `rgba(${theme.vars.palette.primary.mainChannel} / 0.08)`,
+} as const;
 
 /**
- * A select over a small set of values.
+ * A choice out of an open set, or one a label has to name: the kit's picker.
  *
- * `labelFor` is how a caller whose options are model keys rather than words says what each one
- * reads as. It carries `textTransform: none` with it, on the select and on every item: the theme
- * capitalises both so that a bare key like `genre` reads as a word, and that same rule turns a
- * worded label into Title Case — "Start Date" for a label that says "Start date". The menu is
- * portalled, so the item override cannot be inherited from the root and has to be stated twice.
+ * A button opening a menu rather than a select, because a select is a form field — an underlined
+ * value on a line, sized by MUI's input metrics — where every one of these is a chart control
+ * standing beside segments in a card header. As a button it takes the kit's own height, type and
+ * corner, so a header holding both reads as one row of controls rather than as a form beside them.
+ *
+ * `labelFor` is how a caller whose options are model keys says what each one reads as; left off,
+ * the app's own humaniser answers, so `startDate` reads "Start date" and a worded option is
+ * returned unchanged. `label` names what is being chosen where the card's title does not.
+ *
+ * `defaultValue` is what the page opens on. Given, the control lights when the reader has moved
+ * off it — the one thing a picker cannot say by its value alone is that the value is no longer the
+ * one every other reading of the page assumes.
  */
 export const SelectBox = <T extends string>({
   options,
   value,
   setValue,
   labelFor,
+  label,
+  defaultValue,
 }: {
   options: readonly T[];
   value: T;
   setValue: (func: T) => void;
   labelFor?: (option: T) => string;
-}) => (
-  <Select
-    variant="standard"
-    value={value}
-    sx={labelFor && NO_TEXT_TRANSFORM_SX}
-    onChange={(event) => setValue(event.target.value as T)}
-  >
-    {options.map((option) => (
-      <MenuItem
-        key={option}
-        value={option}
-        sx={labelFor && NO_TEXT_TRANSFORM_SX}
+  label?: string;
+  defaultValue?: T;
+}) => {
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const read = (option: T) => (labelFor ? labelFor(option) : keyLabel(option));
+
+  return (
+    <>
+      <Button
+        size="small"
+        variant="outlined"
+        aria-haspopup="true"
+        aria-expanded={anchor !== null}
+        aria-label={label ? `${label}: ${read(value)}` : undefined}
+        onClick={(event) => setAnchor(event.currentTarget)}
+        endIcon={<ArrowDropDown />}
+        sx={defaultValue !== undefined && value !== defaultValue ? { ...PICKER_SX, ...PICKER_LIT_SX } : PICKER_SX}
       >
-        {labelFor ? labelFor(option) : option}
-      </MenuItem>
-    ))}
-  </Select>
-);
+        {label && (
+          <Box
+            component="span"
+            sx={PICKER_LABEL_SX}
+          >
+            {label}
+          </Box>
+        )}
+        {read(value)}
+      </Button>
+      <Menu
+        anchorEl={anchor}
+        open={anchor !== null}
+        onClose={() => setAnchor(null)}
+      >
+        {options.map((option) => (
+          <MenuItem
+            key={option}
+            // Which is current, and what the menu opens focused on: a list of a dozen genres is
+            // otherwise entered at the top whatever the reader picked last.
+            selected={option === value}
+            onClick={() => {
+              setValue(option);
+              setAnchor(null);
+            }}
+          >
+            {read(option)}
+          </MenuItem>
+        ))}
+      </Menu>
+    </>
+  );
+};
