@@ -40,7 +40,7 @@ const viewOptions = segments<View>(["Totals", "Share", "Cumulative", "Rank"]);
  * chart was opened deliberately and something else is meant to follow it, so it takes three
  * fifths instead — still the tallest thing in the card, and one thumb-flick tall rather than two.
  */
-const CHART_HEIGHT = { stacked: "60vh", beside: "80vh" } as const;
+const CHART_HEIGHT = { stacked: "60vh", beside: "var(--paired-chart-height, 80vh)" } as const;
 const RANK_LANE = 44;
 const RANK_MIN_HEIGHT = 320;
 
