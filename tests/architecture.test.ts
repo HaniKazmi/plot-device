@@ -34,6 +34,45 @@ const sourceFilesUnder = (dir: string): string[] =>
 const importsFrom = (file: string) =>
   [...readFileSync(file, "utf8").matchAll(IMPORT_SPECIFIER)].map((match) => match[1]);
 
+/** One module reference, and whether importing this file evaluates the module it names. */
+interface ModuleImport {
+  specifier: string;
+  evaluated: boolean;
+}
+
+/**
+ * The same references, read off the syntax tree so that the three forms can be told apart.
+ *
+ * An `import type` statement is erased outright and an `import(…)` is fetched when something asks
+ * rather than while the importer is evaluating, so neither can put a module in a temporal dead
+ * zone. Only the *statement* form counts as erased: `import { type X } from "y"` leaves an import
+ * statement standing, and whether the emitter drops it is a compiler setting away from changing.
+ *
+ * A re-export carries a specifier too, and `module.lazy.ts` is nothing but re-exports.
+ */
+const moduleImports = (file: string): ModuleImport[] => {
+  const parsed = ts.createSourceFile(file, readFileSync(file, "utf8"), ts.ScriptTarget.ESNext, true, ts.ScriptKind.TSX);
+  const found: ModuleImport[] = [];
+
+  const walk = (node: ts.Node) => {
+    if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier))
+      found.push({ specifier: node.moduleSpecifier.text, evaluated: !node.importClause?.isTypeOnly });
+    else if (ts.isExportDeclaration(node) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier))
+      found.push({ specifier: node.moduleSpecifier.text, evaluated: !node.isTypeOnly });
+    else if (
+      ts.isCallExpression(node) &&
+      node.expression.kind === ts.SyntaxKind.ImportKeyword &&
+      ts.isStringLiteral(node.arguments[0])
+    )
+      found.push({ specifier: node.arguments[0].text, evaluated: false });
+
+    ts.forEachChild(node, walk);
+  };
+
+  walk(parsed);
+  return found;
+};
+
 /**
  * A relative specifier resolved to the source file it names, trying the extensions and the
  * `index` forms a bare directory import takes. `undefined` for a bare specifier (a package name,
@@ -66,6 +105,32 @@ const importClosure = (entry: string): Set<string> => {
     if (/(^|\/)tabs\.tsx?$/.test(file)) continue;
     importsFrom(file)
       .map((specifier) => resolveSpecifier(file, specifier))
+      .filter((resolved): resolved is string => resolved !== undefined && !reached.has(resolved))
+      .forEach((resolved) => pending.push(resolved));
+  }
+  return reached;
+};
+
+/**
+ * The same walk, following only the references the importer's own evaluation reaches: an erased
+ * type import runs no module, and a dynamic one runs after whatever is loading now has finished.
+ * A closure over every reference would report a cycle through a file the running app never
+ * evaluates in that order.
+ *
+ * `tabs.ts` is a boundary here for `importClosure`'s reason, and because the rule this feeds is
+ * about the edge *into* it: crossing it would reach the whole app through five entry components.
+ */
+const evaluatedClosure = (entry: string): Set<string> => {
+  const reached = new Set<string>();
+  const pending = [entry];
+  while (pending.length > 0) {
+    const file = pending.pop()!;
+    if (reached.has(file)) continue;
+    reached.add(file);
+    if (/(^|\/)tabs\.tsx?$/.test(file)) continue;
+    moduleImports(file)
+      .filter((entry) => entry.evaluated)
+      .map((entry) => resolveSpecifier(file, entry.specifier))
       .filter((resolved): resolved is string => resolved !== undefined && !reached.has(resolved))
       .forEach((resolved) => pending.push(resolved));
   }
@@ -217,13 +282,36 @@ describe("the registry never reaches back for a tab", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("has no import of tabs.ts in any domain's module.ts", () => {
-    const offenders = DOMAINS.flatMap(sourceFilesUnder)
-      .filter((file) => /(^|\/)module\.tsx?$/.test(file))
-      .filter((file) => namesTabs(file).length > 0)
-      .map((file) => file.replace(SRC, "src"));
+  it("has no evaluated import of tabs.ts anywhere in a domain's module.ts closure", () => {
+    // Naming `tabs.ts` in the module itself is only the shallowest form: something the module
+    // imports that in turn imports it evaluates `tabs.ts` at the same moment, one hop later, with
+    // the registry half-built and the failure a blank page rather than an error.
+    //
+    // Evaluated imports alone, in the closure and in the check. Every `module.ts` here reaches
+    // `common/useData.ts`, which names `SheetTab` through an `import type` — erased, so no module
+    // is loaded and no order is fixed. Counting that as a reach would make the rule unsatisfiable
+    // for a module that has to declare its own `DataConfig`.
+    const modules = DOMAINS.flatMap(sourceFilesUnder).filter((file) => /(^|\/)module\.tsx?$/.test(file));
+
+    const offenders = modules.flatMap((module) =>
+      [...evaluatedClosure(module)].flatMap((file) =>
+        moduleImports(file)
+          .filter((entry) => entry.evaluated && /(^|\/)tabs(\.tsx?)?$/.test(entry.specifier))
+          .map(() => `${module.replace(SRC, "src")} reaches tabs.ts through ${file.replace(SRC, "src")}`),
+      ),
+    );
 
     expect(offenders).toEqual([]);
+  });
+
+  it("tells an erased import of tabs.ts from one the app evaluates", () => {
+    // The rule is only worth as much as this distinction: `useData.ts` names `SheetTab` and is in
+    // every module's closure, so a check that could not see the `type` keyword would fail on the
+    // tree as it stands and be deleted rather than fixed.
+    const useData = join(SRC, "common", "useData.ts");
+    const named = moduleImports(useData).filter((entry) => /(^|\/)tabs(\.tsx?)?$/.test(entry.specifier));
+
+    expect(named.map((entry) => entry.evaluated)).toEqual([false]);
   });
 
   it("finds the modules to check, so the rule above is not vacuous", () => {
