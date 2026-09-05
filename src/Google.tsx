@@ -2,6 +2,7 @@ import { Container, createTheme, CssBaseline, ThemeProvider } from "@mui/materia
 import { useState } from "react";
 import NavBar from "./NavBar";
 import { BottomTabs } from "./BottomTabs";
+import { BrowserTint } from "./BrowserTint";
 import { BOTTOM_TABS_CLEARANCE, safeAreaGutters } from "./common/chrome";
 import { Outlet } from "react-router-dom";
 import { GoogleAuthProvider } from "./contexts/GoogleAuthContext.tsx";
@@ -36,6 +37,7 @@ const GoogleAuth = () => {
         </FranchiseUnionProvider>
       </Container>
       <BottomTabs />
+      <BrowserTint />
     </GoogleAuthProvider>
   );
 };
