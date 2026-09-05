@@ -671,6 +671,10 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
                   detail.show();
                 }}
                 loading={lazy ? "lazy" : undefined}
+                // WebKit decodes on the main thread as it paints, and a wall's artwork arrives
+                // while the reader is scrolling it — the frames a synchronous decode costs are
+                // exactly the ones the scroll needed.
+                decoding="async"
                 ref={imgRef}
                 onLoad={(el) => readImage(el.currentTarget, image, extractColour && !colour, setRatio, setExtracted)}
                 onError={() => setFailedImage(image)}

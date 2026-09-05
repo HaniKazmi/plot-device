@@ -206,12 +206,28 @@ export const useScrollMarker = (
       setBuckets((held) => (held.join("|") === found.join("|") ? held : found));
     }
 
+    // Every answer `update` reads is a paint-time one, and a scroll delivers events faster than
+    // the page paints: a trackpad flick is well over a hundred a second, each spending a rect read
+    // on the section, one on the grid and a binary search's worth on a wall that runs to a
+    // thousand cards. Coalescing to one run a frame asks the same question as often as the answer
+    // can change, and holds the reads to a single point in the frame — after style has settled,
+    // rather than interleaved with the renders each arriving lazy image sets off.
+    let queued = 0;
+    const schedule = () => {
+      if (queued) return;
+      queued = requestAnimationFrame(() => {
+        queued = 0;
+        update();
+      });
+    };
+
     update();
-    window.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("resize", update);
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
     return () => {
-      window.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
+      if (queued) cancelAnimationFrame(queued);
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
     };
   }, [section, grid, sort, items]);
 
