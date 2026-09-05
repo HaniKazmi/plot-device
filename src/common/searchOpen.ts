@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { createStore } from "./store";
 
 /**
  * Whether the search palette is open, held outside React, and a count of the times it was asked
@@ -20,32 +20,17 @@ export interface SearchState {
   request: number;
 }
 
-let state: SearchState = { open: false, request: 0 };
-
-const listeners = new Set<() => void>();
-
-const subscribe = (onChange: () => void) => {
-  listeners.add(onChange);
-  return () => {
-    listeners.delete(onChange);
-  };
-};
-
-const getState = () => state;
-
-const notify = () => listeners.forEach((listener) => listener());
+const store = createStore<SearchState>({ open: false, request: 0 });
 
 /** Opens the palette, or asks an open one for the caret again. */
 export const openSearch = () => {
-  state = { open: true, request: state.request + 1 };
-  notify();
+  store.set({ open: true, request: store.get().request + 1 });
 };
 
 /** Closes the palette, notifying nobody when it is closed already. */
 export const closeSearch = () => {
-  if (!state.open) return;
-  state = { ...state, open: false };
-  notify();
+  if (!store.get().open) return;
+  store.set({ ...store.get(), open: false });
 };
 
-export const useSearchState = () => useSyncExternalStore(subscribe, getState);
+export const useSearchState = () => store.useValue();
