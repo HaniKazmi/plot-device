@@ -1,7 +1,7 @@
 import { Year } from "../common/date";
 import type { Colour, Scheme } from "../utils/types";
 import type { OmniItem } from "../common/medium";
-import { galleryColour, galleryValue } from "./galleryData";
+import { galleryColour, galleryValue } from "../app/galleryData";
 import { mediumToColour, mediumToLabel, type Measure } from "../app/types";
 
 /**

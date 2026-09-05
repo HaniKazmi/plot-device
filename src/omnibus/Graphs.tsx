@@ -25,7 +25,7 @@ import Barchart from "./Barchart";
 import Crossings from "./Crossings";
 import { crossings } from "./crossingsData";
 import Gallery from "./Gallery";
-import { galleryItems } from "./galleryData";
+import { galleryItems } from "../app/galleryData";
 import GenreBridge from "./GenreBridge";
 import RecentlyFinished from "./RecentlyFinished";
 import { genreBridge } from "./genreBridgeData";

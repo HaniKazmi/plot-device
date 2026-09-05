@@ -9,7 +9,7 @@ import {
   searchUnion,
   unionEpoch,
 } from "../../src/app/searchData";
-import { workLabels } from "../../src/omnibus/cardData";
+import { workLabels } from "../../src/app/cardData";
 import { book } from "../fixtures/books";
 import { library } from "../fixtures/library";
 import { movie } from "../fixtures/movies";

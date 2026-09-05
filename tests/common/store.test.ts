@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import { createStore } from "../../src/common/store";
 
 /**
- * A5's stores sit at module scope, one per tab, so the generic version has to hold up under the
- * same case the two hand-rolled ones (`searchOpen.ts`, `filterSheet.ts`) already guard: a set to
- * the value already held must cost no render.
+ * One store per tab sits at module scope, and every control reading one can be pressed on the state
+ * it already shows — the lit measure segment, the chip that opened the filter sheet. A set to the
+ * value already held must therefore notify nobody, or each of those presses re-filters the whole
+ * library and redraws every chart on the page.
  */
 describe("createStore", () => {
   it("returns the initial value, then whatever was last set", () => {

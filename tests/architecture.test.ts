@@ -147,26 +147,15 @@ describe("a tracked domain never depends on another", () => {
     expect(REGISTRY.test("../app/library")).toBe(false);
   });
 
-  it("has no import of app/ at all in any domain's module.ts", () => {
-    // The registry's own members, so anything they reach is reached while the registry is being
-    // built: `app/library.ts` imports it, and a module importing that closes the same cycle by one
-    // more hop. A module answers questions and asks the composing layer none.
-    const offenders = DOMAINS.flatMap(sourceFilesUnder)
-      .filter((file) => /(^|\/)module(\.lazy)?\.tsx?$/.test(file))
-      .flatMap((file) =>
-        importsFrom(file)
-          .filter((specifier) => new RegExp(`(^|/)${COMPOSING}(/|$)`).test(specifier))
-          .map((specifier) => `${file.replace(SRC, "src")} imports ${specifier}`),
-      );
-
-    expect(offenders).toEqual([]);
-  });
-
-  it("has no transitive import of app/ anywhere in a domain's module.ts closure", () => {
-    // A direct import is the shallowest way a `module.ts` reaches `app/`: something it imports
-    // without naming `app/` itself, that in turn imports `app/`, closes the cycle above one hop
-    // later — evaluated while `app/media.ts` is still building the entry this `module.ts` is one
-    // of, and failing the same way, a blank page rather than an error.
+  it("has no import of app/ anywhere in a domain's module.ts closure", () => {
+    // The modules are the registry's own members, so anything they reach is reached while the
+    // registry is being built: `app/library.ts` imports it, and a module importing that closes the
+    // cycle — `MEDIA` half-built, and the failure a blank page rather than an error. A module
+    // answers questions and asks the composing layer none.
+    //
+    // The closure and not the first-degree specifiers, because naming `app/` directly is only the
+    // shallowest form: something a module imports without naming `app/` itself, that in turn
+    // imports `app/`, closes the same cycle one hop later.
     const modules = DOMAINS.flatMap(sourceFilesUnder).filter((file) => /(^|\/)module(\.lazy)?\.tsx?$/.test(file));
 
     const offenders = modules.flatMap((module) =>
@@ -174,6 +163,27 @@ describe("a tracked domain never depends on another", () => {
         .filter((file) => file !== module && new RegExp(`(^|/)${COMPOSING}(/|$)`).test(file.replace(SRC, "src")))
         .map((file) => `${module.replace(SRC, "src")} reaches ${file.replace(SRC, "src")}`),
     );
+
+    expect(offenders).toEqual([]);
+  });
+
+  // The composing layer holds what more than one tab reads, and the Omnibus is a tab: an `app/`
+  // file reaching into `omnibus/` means the shared half of some surface is sitting inside one
+  // page's folder, where the next tab that wants it has to reach across for it.
+  //
+  // `pageState.ts` is the one exception, and stays one because the Omnibus is a tab and not a
+  // medium: every other tab's store is registered through its `MediumModule`, and this one is
+  // registered by name until the composing tab has a module of its own.
+  const MAY_IMPORT_OMNIBUS = ["pageState.ts"];
+
+  it("has no import of omnibus/ in app/, but for the tab store registered by name", () => {
+    const offenders = sourceFilesUnder(COMPOSING)
+      .filter((file) => !MAY_IMPORT_OMNIBUS.some((exempt) => file.endsWith(exempt)))
+      .flatMap((file) =>
+        importsFrom(file)
+          .filter((specifier) => /(^|\/)omnibus(\/|$)/.test(specifier))
+          .map((specifier) => `${file.replace(SRC, "src")} imports ${specifier}`),
+      );
 
     expect(offenders).toEqual([]);
   });

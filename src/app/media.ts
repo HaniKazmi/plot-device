@@ -1,5 +1,5 @@
 import { bookModule } from "../books/module";
-import type { MediumModule } from "../common/medium";
+import type { MediumModule, OmniItem } from "../common/medium";
 import { movieModule } from "../movie/module";
 import { showModule } from "../show/module";
 import { MEDIA as MEDIA_ORDER, type Medium } from "../utils/types";
@@ -40,3 +40,12 @@ export const MEDIA: Record<Medium, MediumModule<unknown, unknown>> = {
  * fifth medium can be appended in one and inserted in the other, and nothing says which is meant.
  */
 export const mediaModules: readonly MediumModule<unknown, unknown>[] = MEDIA_ORDER.map((medium) => MEDIA[medium]);
+
+/**
+ * The artwork an item is shown as, which is its own tab's: a season is drawn as its show, since
+ * the sheets hold one banner per show and a season has no picture of its own.
+ *
+ * The browse surfaces are walls of pictures, so an item with none is not on them — the rule
+ * `finishedItems` already applies to every domain's library grid.
+ */
+export const omniBanner = (item: OmniItem): string | undefined => MEDIA[item.medium].banner(item.source);

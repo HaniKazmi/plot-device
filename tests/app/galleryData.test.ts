@@ -9,7 +9,7 @@ import {
   galleryItems,
   galleryStripOrder,
   galleryValue,
-} from "../../src/omnibus/galleryData";
+} from "../../src/app/galleryData";
 import { ageRatingToColour, genreToColour } from "../../src/utils/types";
 import { book } from "../fixtures/books";
 import { library } from "../fixtures/library";

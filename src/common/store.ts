@@ -26,7 +26,10 @@ export const createStore = <T>(initial: T): Store<T> => {
 
   const get = () => value;
 
-  /** A set to the value already held notifies nobody, the way the filter sheet's own flag does. */
+  /**
+   * A set to the value already held notifies nobody, which is what lets a control state its own
+   * state: pressing the open filter chip, or the lit measure segment, costs no render.
+   */
   const set = (next: T) => {
     if (Object.is(next, value)) return;
     value = next;

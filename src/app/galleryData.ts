@@ -10,11 +10,10 @@ import {
   type Colour,
   type Scheme,
 } from "../utils/types";
-import { MEDIA } from "../app/media";
-import { measureOf } from "./adapter";
-import { omniBanner } from "../app/omniBrowse";
+import { MEDIA, omniBanner } from "./media";
+import { measureOf } from "./library";
 import type { OmniItem } from "../common/medium";
-import type { Measure } from "../app/types";
+import type { Measure } from "./types";
 import "../utils/arrayUtils";
 import "../utils/mapUtils";
 

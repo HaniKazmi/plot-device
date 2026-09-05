@@ -1,19 +1,14 @@
 import type { YearNumber } from "../common/date";
 import type { OmniItem } from "../common/medium";
-import type { Library } from "../app/library";
+import { omniHours, type Library } from "../app/library";
 import { MEDIA } from "../app/media";
-import { omniHours } from "../app/omniBrowse";
-import { media, type Measure, type Medium } from "../app/types";
+import { media, type Medium } from "../app/types";
 import { currentlyReading } from "../books/statsData";
 import { latestWatched } from "../movie/statsData";
 import { currentlyWatching, heroSeason } from "../show/statsData";
 import { currentlyPlaying } from "../vg/statsData";
 import { earliestYear as earliestYearOf } from "../common/statsData";
 import "../utils/arrayUtils";
-
-/** What a set of items counts for under the active measure. */
-export const measureOf = (items: OmniItem[], measure: Measure) =>
-  measure === "Hours" ? omniHours(items) : items.length;
 
 /**
  * What the page opens with: hours, items, and the number of distinct years anything falls in.

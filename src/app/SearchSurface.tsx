@@ -9,7 +9,7 @@ import { MUTED_FIGURE_SX } from "../common/typography";
 import { useScheme } from "../common/useScheme";
 import { franchiseToColour, MEDIA, mediumToColour, mediumUnit, type Medium, type Scheme } from "../utils/types";
 import type { OmniItem } from "../common/medium";
-import { omniBanner } from "./omniBrowse";
+import { omniBanner } from "./media";
 import OmniCardMediaImage from "./CardMediaImage";
 import { FranchiseView } from "./FranchiseView";
 import { useLibrary } from "./library";

@@ -9,7 +9,7 @@ import { useScheme } from "../common/useScheme";
 import { franchiseToColour, MEDIA, mediumToColour, mediumUnit } from "../utils/types";
 import type { OmniItem } from "../common/medium";
 import OmniCardMediaImage from "./CardMediaImage";
-import { MIXED_CARD_SIZING, workLabels } from "../omnibus/cardData";
+import { MIXED_CARD_SIZING, workLabels } from "./cardData";
 import { mediumBand } from "./mediumBand";
 import { franchiseFacts, franchiseWorks } from "./searchData";
 import { useLibrary } from "./library";

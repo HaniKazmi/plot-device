@@ -92,6 +92,14 @@ this is a registry change and not a move. `tests/architecture.test.ts` enforces 
 reading the source across static, side-effect and dynamic imports alike, the three files named as
 exemptions rather than left to slip the check.
 
+The direction holds the other way too: **nothing in `app/` imports `omnibus/`**, that folder being a
+tab like any other, so the shared half of a surface more than one tab reads — the gallery's
+grouping, a mixed row's card size — sits in `app/` rather than inside one page's folder, where the
+next reader has to reach across for it. `app/pageState.ts` is the single exception, naming the
+composing tab's own store: every other tab's is registered through its `MediumModule`, and the
+Omnibus is a tab and not a medium, so until it has a module of its own its store is registered by
+name.
+
 **`app/` is the medium registry** (`app/media.ts`): a `MediumModule` per medium, supplied by each
 domain's own `module.ts`, holding everything the app asks of a medium that the medium itself is the
 authority on — its data config, its guest rule, its arm of the union, the entry a franchise strip
@@ -543,7 +551,7 @@ since the stated 434px card is wider than half a tablet's page.
 **Mixed rows are one card size, the Now band's rule at strip scale.** A list lays its cards out one
 of two ways (`CardLayout` in `common/Stats.tsx`): a grid at stated column spans, or a sized row.
 Recently Finished and the gallery's drill-downs take the second, handing the shell a `rowSizing`
-(`MIXED_CARD_SIZING` in `omnibus/cardData.ts`) in place of spans — a union rather than two optional
+(`MIXED_CARD_SIZING` in `app/cardData.ts`) in place of spans — a union rather than two optional
 props, so a sized row is never handed spans it cannot read. The caller states only what it knows: a
 minimum width of 280, a 206px poster beside a 140px column wide enough for a date and a two-line
 title, and the picture's height at a width, the banner's. The shell adds the medium band, the
@@ -578,7 +586,7 @@ year is an attribution, and only a film's is a date the sheet holds. A row whose
 empty is dropped rather than opening a series named `""` — every book answers the certificate split
 that way — and the header counts the rows drawn.
 
-**The gallery** (`omnibus/Gallery.tsx`, `omnibus/galleryData.ts`) shelves the union by genre,
+**The gallery** (`omnibus/Gallery.tsx`, `app/galleryData.ts`) shelves the union by genre,
 franchise, rating or decade, each shelf a `common/Filmstrip` with a drill-down behind its handle. It
 opens on franchise, newest first — the series met lately, which the genres band does not answer. A
 shelf card carries no words, so the picture keeps the whole height below its medium band.
@@ -1588,7 +1596,7 @@ key in ObjectExpression`; pulled out to a plain function taking the varying piec
   `sheetBarSx`, `dialogCardSx`, among others — the literal itself sits at module scope and the
   component stays compiled.
 
-The baseline is **255 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **249 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.

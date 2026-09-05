@@ -12,7 +12,7 @@ import { EXPANDED_CARDS, ExpandableCard } from "../common/Stats";
 import { format } from "../utils/mathUtils";
 import type { OmniItem } from "../common/medium";
 import OmniCardMediaImage from "../app/CardMediaImage";
-import { MIXED_CARD_SIZING, workLabels } from "./cardData";
+import { MIXED_CARD_SIZING, workLabels } from "../app/cardData";
 import { MEDIUM_LABEL_HEIGHT } from "../app/MediumLabel";
 import { mediumBand } from "../app/mediumBand";
 import {
@@ -23,7 +23,7 @@ import {
   type GalleryCategory,
   type GallerySort,
   type Shelf as ShelfGroup,
-} from "./galleryData";
+} from "../app/galleryData";
 import type { Measure } from "../app/types";
 import { MUTED_FIGURE_SX } from "../common/typography";
 import { useScheme } from "../common/useScheme";

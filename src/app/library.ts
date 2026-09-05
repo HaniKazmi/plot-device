@@ -6,6 +6,7 @@ import type { Show } from "../show/types";
 import type { Medium } from "../utils/types";
 import type { VideoGame } from "../vg/types";
 import { mediaModules } from "./media";
+import type { Measure } from "./types";
 import "../utils/arrayUtils";
 
 /**
@@ -88,6 +89,10 @@ export const toOmniItems = (library: Library): OmniItem[] =>
  * quotes for the same rows.
  */
 export const omniHours = (items: OmniItem[]) => Math.floor(items.sum("hours"));
+
+/** What a set of items counts for under the page's own measure. */
+export const measureOf = (items: OmniItem[], measure: Measure) =>
+  measure === "Hours" ? omniHours(items) : items.length;
 
 /**
  * The four sheets as one value, read by every tab.
