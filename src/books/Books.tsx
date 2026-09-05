@@ -1,7 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import useData from "../common/useData";
-import { BooksTab } from "../tabs";
-import { bookDataConfig } from "./converter";
+import { useLibrary } from "../app/library";
 import { useFilterReducer } from "./filterUtils";
 import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
 
@@ -26,7 +24,11 @@ const usePrefetchGraphs = () =>
 
 const BookGraphs = () => {
   usePrefetchGraphs();
-  const [data, dataLoaded, error] = useData(bookDataConfig, BooksTab);
+  // The tab's own slice of the one library the shell fetched, with guest mode already
+  // applied: the mode hides content rather than narrowing a view, so it belongs to the data
+  // every surface here reads and not to this page's filters.
+  const { visible, loaded, error } = useLibrary();
+  const data = visible.books;
 
   const [filterState, filterDispatch] = useFilterReducer();
 
@@ -35,8 +37,8 @@ const BookGraphs = () => {
   // rejects has nothing below this line, and the message naming the row is all there is to show.
   const notice = (
     <DataLoadedSnackbar
-      open={dataLoaded}
-      error={error}
+      open={loaded.book}
+      error={error.book}
     />
   );
 

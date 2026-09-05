@@ -136,7 +136,7 @@ localStorage.setItem("movie-data-cache-v3", JSON.stringify(movies));
 localStorage.setItem("book-data-cache-v1", JSON.stringify(books));
 ```
 
-Dates go in as ISO strings (`"2024-05-01"`); omit `Season.show`, which the reviver re-attaches. Values must be ones the colour maps recognise, and the unversioned key seeds nothing, since `dropSupersededVersions` deletes it. Seed all four whatever tab you are on: `Google.tsx` mounts `FranchiseUnionProvider` (`omnibus/franchiseUnion.tsx`) above every tab, and a card's franchise strip draws the other media only once all four libraries are present.
+Dates go in as ISO strings (`"2024-05-01"`); omit `Season.show`, which the reviver re-attaches. Values must be ones the colour maps recognise, and the unversioned key seeds nothing, since `dropSupersededVersions` deletes it. Seed all four whatever tab you are on: `Google.tsx` mounts `LibraryProvider` (`app/LibraryProvider.tsx`) above every tab and it reads all four caches, and a card's franchise strip draws the other media only once all four libraries are present.
 
 For real data without authorising, take the service-account route: sign a JWT with the key in `~/.config/plot-device/sa.json`, read the ranges in `src/tabs.ts`, run each grid through its domain's `converter` under Vitest — a converter reaches the auth module, which reads `import.meta.env` at import — and write `JSON.stringify(items, config.replacer)` under `config.storageKey`.
 

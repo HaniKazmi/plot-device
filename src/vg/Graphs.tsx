@@ -7,9 +7,9 @@ import Barchart from "./Barchart";
 import Finished from "../common/Finished";
 import Timeline from "./Timeline";
 import CardMediaImage from "./CardMediaImage";
-import { activeCount, FilterDispatch, FilterState, guestFilter } from "./filterUtils";
+import { activeCount, FilterDispatch, FilterState } from "./filterUtils";
 import { FranchiseContext, vgFranchise } from "./franchiseContext";
-import { visibleFranchiseIndex } from "../common/franchiseIndex";
+import { franchiseIndex } from "../common/franchiseIndex";
 import { memo, useDeferredValue } from "react";
 import { Stack } from "@mui/material";
 import { usePhone } from "../common/breakpoints";
@@ -35,9 +35,7 @@ const SuspenseBlock = ({
   filterState: FilterState;
   filterDispatch: FilterDispatch;
 }) => (
-  <FranchiseContext.Provider
-    value={visibleFranchiseIndex(unfilteredData, vgFranchise, filterState.guestMode, guestFilter)}
-  >
+  <FranchiseContext.Provider value={franchiseIndex(unfilteredData, vgFranchise)}>
     <Graphs
       data={filteredData}
       // Read from the whole library rather than what the filters left, so picking "In 2020"

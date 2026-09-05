@@ -15,8 +15,8 @@ import { MeasureControl } from "../common/SelectionComponents";
 import { useOtherTabs } from "../tabs";
 import { MOVIE_SECTIONS, movieSections } from "./sections";
 import { FranchiseContext, movieFranchise } from "./franchiseContext";
-import { visibleFranchiseIndex } from "../common/franchiseIndex";
-import { activeCount, guestFilter, type FilterDispatch, type FilterState } from "./filterUtils";
+import { franchiseIndex } from "../common/franchiseIndex";
+import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
 import { format } from "../utils/mathUtils";
 import { finishedCount, type FinishedExtraSort } from "../common/finishedData";
 import { useScheme } from "../common/useScheme";
@@ -35,9 +35,7 @@ const SuspenseBlock = ({
   filterState: FilterState;
   filterDispatch: FilterDispatch;
 }) => (
-  <FranchiseContext.Provider
-    value={visibleFranchiseIndex(unfilteredData, movieFranchise, filterState.guestMode, guestFilter)}
-  >
+  <FranchiseContext.Provider value={franchiseIndex(unfilteredData, movieFranchise)}>
     <Graphs
       data={filteredData}
       filterState={filterState}

@@ -1,8 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
-import { ShowsTab } from "../tabs";
-import useData from "../common/useData.ts";
+import { useLibrary } from "../app/library.ts";
 import { useFilterReducer } from "./filterUtils.ts";
-import { showDataConfig } from "./converter.ts";
 import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
 
 /**
@@ -36,7 +34,11 @@ const usePrefetchGraphs = () =>
 
 const ShowsGraph = () => {
   usePrefetchGraphs();
-  const [data, dataLoaded, error] = useData(showDataConfig, ShowsTab);
+  // The tab's own slice of the one library the shell fetched, with guest mode already
+  // applied: the mode hides content rather than narrowing a view, so it belongs to the data
+  // every surface here reads and not to this page's filters.
+  const { visible, loaded, error } = useLibrary();
+  const data = visible.shows;
 
   const [filterState, filterDispatch] = useFilterReducer();
 
@@ -49,8 +51,8 @@ const ShowsGraph = () => {
   // is a remount that sees only the second half of it.
   const notice = (
     <DataLoadedSnackbar
-      open={dataLoaded}
-      error={error}
+      open={loaded.show}
+      error={error.show}
     />
   );
 

@@ -16,9 +16,9 @@ import { Show } from "./types";
 import { MEASURES } from "./module";
 import ShowCardMediaImage from "./CardMediaImage";
 import { statusToColour } from "../utils/types";
-import { activeCount, guestFilter, type FilterDispatch, type FilterState } from "./filterUtils";
+import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
 import { FranchiseContext, showFranchise } from "./franchiseContext";
-import { visibleFranchiseIndex } from "../common/franchiseIndex";
+import { franchiseIndex } from "../common/franchiseIndex";
 import Filter from "./Filter";
 import { memo, useDeferredValue } from "react";
 import { format } from "../utils/mathUtils";
@@ -36,9 +36,7 @@ const SuspenseBlock = ({
   filterState: FilterState;
   filterDispatch: FilterDispatch;
 }) => (
-  <FranchiseContext.Provider
-    value={visibleFranchiseIndex(unfilteredData, showFranchise, filterState.guestMode, guestFilter)}
-  >
+  <FranchiseContext.Provider value={franchiseIndex(unfilteredData, showFranchise)}>
     <Graphs
       data={filteredData}
       // The floor of the year select, read from the whole library rather than from what the

@@ -1,8 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
 import { useFilterReducer } from "./filterUtils.ts";
-import { VideoGamesTab } from "../tabs";
-import useData from "../common/useData.ts";
-import { vgDataConfig } from "./converter.ts";
+import { useLibrary } from "../app/library.ts";
 import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
 
 /**
@@ -36,7 +34,11 @@ const usePrefetchGraphs = () =>
 
 const GamesGraphs = () => {
   usePrefetchGraphs();
-  const [data, dataLoaded, error] = useData(vgDataConfig, VideoGamesTab);
+  // The tab's own slice of the one library the shell fetched, with guest mode already
+  // applied: the mode hides content rather than narrowing a view, so it belongs to the data
+  // every surface here reads and not to this page's filters.
+  const { visible, loaded, error } = useLibrary();
+  const data = visible.games;
   const [filterState, filterDispatch] = useFilterReducer();
 
   // Mounted beside the charts rather than inside them, because the case worth saying most is the
@@ -48,8 +50,8 @@ const GamesGraphs = () => {
   // is a remount that sees only the second half of it.
   const notice = (
     <DataLoadedSnackbar
-      open={dataLoaded}
-      error={error}
+      open={loaded.game}
+      error={error.game}
     />
   );
 

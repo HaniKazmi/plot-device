@@ -53,7 +53,7 @@ computes on the main thread — which the caching layer (§4) exists to make tol
                                         │
                     ┌───────────────────▼───────────────────────┐
   composing         │  app/ — the medium registry                │
-                    │  MEDIA · MEDIA_LAZY                        │
+                    │  MEDIA · MEDIA_LAZY · LibraryProvider      │
                     └───────────────────┬───────────────────────┘
                                         │
                     ┌───────────────────▼───────────────────────┐
@@ -76,9 +76,12 @@ computes on the main thread — which the caching layer (§4) exists to make tol
 
 The load-bearing rule is the boundary between the bottom two layers and the domain layer above them:
 **`common/` and `utils/` never import from `app/`, `vg/`, `show/`, `movie/`, `books/` or
-`omnibus/`.** Its second half is that **a tracked domain never imports another, nor `app/`** — the
-four compose nothing, and `app/` and `omnibus/` compose them, which makes those two composing
-layers rather than arms of a cycle. `tests/architecture.test.ts` enforces both by reading the
+`omnibus/`.** Its second half is that **a tracked domain never imports another, nor the registry
+itself** — the four compose nothing, and `app/` and `omnibus/` compose them, which makes those two
+composing layers rather than arms of a cycle. A domain reads the rest of `app/` downwards, its entry
+component asking `app/library.ts` for the library the shell fetched; the registry is the one part of
+`app/` built _from_ the modules, so `vg/module.ts` importing `app/media.ts` is a real cycle, and
+`module.ts` therefore imports nothing from `app/` at all. `tests/architecture.test.ts` enforces both by reading the
 source, across static, side-effect and dynamic imports alike.
 
 **`app/` is the medium registry** (`app/media.ts`): a `MediumModule` per medium, supplied by each
@@ -124,6 +127,9 @@ utils/arrayUtils           arrayToJson()
 common/useData             module-level Map + localStorage
    │                       → [data, dataLoaded, error]
    ▼
+app/LibraryProvider        one call per medium, above every tab
+   │                       → LibraryValue { raw, visible, items, loaded, error }
+   ▼
 common/filterReducer       reducer composes predicates → data.filter(...)
    │                       (domain supplies only its own filters())
    │
@@ -166,14 +172,36 @@ Converters do real modelling work, not just field renaming:
 
 `show/` and `movie/` split their `Genres` cell through `splitCell`, which drops empty parts.
 
-Omnibus runs no pipeline of its own: each domain's entry component calls `useData` with a config
-(`vgDataConfig`, `showDataConfig`, `movieDataConfig`, `bookDataConfig`) exported from the file owning
-that converter, its version and — for Shows — the replacer/reviver pair, and `omnibus/Omnibus.tsx`
-calls `useData` with the same four, so a version bump cannot land at one caller alone.
-`omnibus/adapter.ts` then flattens the four through the registry, each medium's arm supplied by its
-own `module.ts` (§2) — which is why `Show[]` flattens at the season, the unit actually watched,
-carrying the show's name, genre, franchise and certificate onto each. A book has no certificate, so
-`OmniItem.rating` is optional and every surface grouping on it drops books.
+**The pipeline ends in one provider.** `app/LibraryProvider.tsx` is the only caller of `useData` in
+the app: it reads each medium's `DataConfig` off that medium's `module.ts` (`vgDataConfig`,
+`showDataConfig`, `movieDataConfig`, `bookDataConfig`, each exported from the file owning its
+converter, with its version and — for Shows — the replacer/reviver pair) and resolves the module's
+`tabId` against `tabs.ts`, which is the one place in `app/` allowed to (§2). A version bump therefore
+has one caller to land at rather than six. It is mounted by `Google.tsx` inside `GoogleAuthProvider`
+and above `NavBar`, so the bar, the search palette, a card's franchise strip and all five tabs read
+one copy of the library.
+
+The four `useData` calls are written out rather than walked over `mediaModules`: a hook called in a
+loop or a callback is a rules-of-hooks error, and the registry's element type erases each medium's
+own record, so a walk would hand every library back as `unknown[]` to be cast into shape again.
+
+`LibraryValue` (`app/library.ts`) is what a tab reads. `raw` is what each converter produced;
+`visible` is that with guest mode applied per library by each domain's own rule, which is where the
+mode belongs — it hides content rather than narrowing a view, so an index built before it would put
+a hidden item back on screen through a card strip. Both are `Partial`, the sheets landing one at a
+time, so a tab whose own sheet is here paints from it rather than waiting on the other three.
+`items` is the union, present only once all four libraries are (`completeLibrary`) and built once,
+since two flattenings of one library are two chances to disagree about which rows guest mode hides.
+`loaded` and `error` stay per medium, so **each tab keeps its own `DataLoadedSnackbar`**: a Books
+converter error belongs on Books, and the Games tab's "Refresh Complete" must not wait on three
+other sheets. The Omnibus reads all four, and the first error of the four (§4).
+
+Omnibus runs no pipeline of its own, and neither does any tab: `app/library.ts` flattens the four
+through the registry, each medium's arm supplied by its own `module.ts` (§2) — which is why `Show[]`
+flattens at the season, the unit actually watched, carrying the show's name, genre, franchise and
+certificate onto each. A book has no certificate, so `OmniItem.rating` is optional and every surface
+grouping on it drops books. `omnibus/adapter.ts` re-exports `Library`, `visibleLibrary` and
+`toOmniItems` from there, where the rest of that tab already names them.
 
 ## 4. Caching and hydration
 
@@ -747,7 +775,7 @@ and the two arrangements, a dialog seated near the top from `sm` up and a fullsc
 with the box in the pinned bar every sheet wears. A row is lit by one `selected` flag for keyboard
 and pointer alike — the pointer moving onto a row selects it — since a tap has no leave event to
 unlight a hover of its own. The index over the union sits in `omnibus/searchData.ts`, built once
-per library from the items `FranchiseUnionProvider` computes on the way to the union
+per library from the items the library provider builds and `FranchiseUnionProvider` passes on
 (`omnibus/omniItems.ts`), so guest mode is applied before anything is indexed and a hidden item is
 absent from the index as it is from the union. Franchises come from the raw franchise column, held
 to the crossings' rule that some entry not repeat the name; works are collapsed once per work
@@ -836,11 +864,10 @@ hover-card thunk — and the context; `omnibus/franchiseUnionData.ts` builds it,
 `OmniItem` through its own domain's `gameEntry`, `seasonEntry`, `movieEntry` or `bookEntry`, so the
 union and a tab's own index cannot draw one item two ways. A tracked domain may not import another
 and `common/` may import none, so the build sits beside the Omnibus adapter and its provider
-(`omnibus/franchiseUnion.tsx`) is mounted by `Google.tsx` above the outlet. It calls `useData` with
-the four domain configs and applies guest mode per library by each domain's own rule; the
-module-level cache means a session that opened on the Omnibus reaches a home tab with nothing left
-to fetch, and only a deep link straight to one pays three extra sheet reads. Until all four land the
-value is `undefined` and a card falls back to the strip its own index draws. The union groups on the
+(`omnibus/franchiseUnion.tsx`) is mounted by `Google.tsx` above the outlet. It builds the union from
+the items the library provider already holds (§3) rather than flattening the four libraries a second
+time, guest mode having been applied to them once above it. Until all four land those items are
+`undefined`, so the union is too and a card falls back to the strip its own index draws. The union groups on the
 raw franchise column exactly as the per-domain indexes do, and does not apply the crossings' rule
 dropping a group whose every entry repeats the name: that rule chooses which franchises a section
 draws at all, and a card has already chosen. The hover card behind each mark is the Omnibus's own
@@ -1643,8 +1670,9 @@ cannot drift. Two `theme-color` metas are emitted, one per scheme. Themes are ca
 keyed by tab id:
 building one walks both schemes, typography, shadows and the whole CSS-variable map, and a stable
 identity stops the MUI tree re-evaluating `sx` on navigation. `Google.tsx` also mounts
-`FranchiseUnionProvider` around the `<Outlet>`, a card on any tab drawing its franchise across all
-four media.
+`LibraryProvider` inside `GoogleAuthProvider` and above the bar — every tab reads its sheet from
+there, and the bar answers for the library as a whole — and `FranchiseUnionProvider` around the
+`<Outlet>` inside it, a card on any tab drawing its franchise across all four media.
 
 Routing uses `HashRouter` because GitHub Pages cannot rewrite deep paths to `index.html`. The root
 route and the unmatched-path fallback are positional — `App.tsx` renders `Tabs[0].component` for the
@@ -1655,9 +1683,10 @@ what a bare `/` opens. Omnibus leads for that reason.
 
 **Adding a data source.** Add a `Tab` to `src/tabs.ts` (sheet id, A1 range, route id, component,
 colours) and then to the exported `Tabs` array, which generates the router and nav bar and decides the
-root route's fallback (§7). Create `src/<domain>/` with `types.ts`, an entry component calling
-`useData` with the `DataConfig` its `converter.ts` exports, and a lazy `Graphs.tsx`. Implement
-`CardMediaImage` against `TypedCardMediaImage<T>` to get `Finished` and `StatList` for free.
+root route's fallback (§7). Create `src/<domain>/` with `types.ts`, a `converter.ts` exporting its
+`DataConfig`, an entry component reading its slice off `useLibrary()`, and a lazy `Graphs.tsx`.
+Implement `CardMediaImage` against `TypedCardMediaImage<T>` to get `Finished` and `StatList` for
+free.
 
 A fifth medium extends the `Medium` union in `utils/types.ts` with its fill, label, name and unit,
 and is then **a `module.ts`, a `module.lazy.ts` and one line in `app/media.ts`** (§2). The eager
@@ -1667,16 +1696,18 @@ Nothing else changes: `toOmniItems`, `visibleLibrary`, the crossings, the galler
 and the card dispatcher all read the registry, so a medium that answers everything on
 `MediumModule` is on every surface the day it is added, and one that answers nothing does not
 compile. A module never imports `tabs.ts`; it carries `tabId`. What is still by hand is the fetch:
-`omnibus/Omnibus.tsx` and `omnibus/franchiseUnion.tsx` each mount the four configs one `useData`
-call at a time, so a fifth adds a line to both.
+`app/LibraryProvider.tsx` writes a `useSheet` call per medium, since a hook cannot be called in a
+loop, and `Library` names the four in the tabs' plural words — so a fifth adds a field there and a
+line in the provider, and nothing else.
 
 The entry mapper is the piece the domain's own card strip calls too (through `CardMediaImage.tsx`),
 so a tab's index and the cross-media union cannot draw one item two ways.
 
 **Composing existing data sources, without a sheet of its own.** `omnibus/` is the reference: its
 `Tab` carries no `spreadsheetId`/`range` (both optional for this case, with `SheetTab` restating them
-as required for anything that fetches), and it calls `useData` with each composed domain's own config.
-A pure adapter re-shapes their output into one vocabulary the shared shells render. The new folder may
+as required for anything that fetches), and it reads the libraries the provider fetched through each
+composed domain's own config. A pure adapter re-shapes their output into one vocabulary the shared
+shells render. The new folder may
 import the domains it composes, never the reverse, and stays outside `common/`/`utils/`.
 
 **Adding a visualisation.** Domain-agnostic, it belongs in `common/`, taking data plus callbacks with
@@ -1712,10 +1743,11 @@ Recorded so they are not mistaken for design:
 - **No loading state.** An entry component renders `{data && <Graphs/>}` beside its snackbar, so a
   first visit on a cold cache is a nav bar over an empty page while OAuth and the sheet read run. The
   Omnibus waits on all four sheets, so it waits longest.
-- **A deep link to a home tab fetches all four sheets.** `FranchiseUnionProvider` mounts above the
-  router so any tab has the cross-media union; a deep link to `/vg` therefore pays three extra sheet
-  reads and paints from cache until they land, where the Omnibus has usually fetched them already. A
-  deliberate trade, argued in that provider's own comment (`omnibus/franchiseUnion.tsx`).
+- **Every visit fetches all four sheets.** `app/LibraryProvider.tsx` mounts above the router, so any
+  tab has the cross-media union and the bar can say whether there is a library at all; a deep link
+  to `/vg` therefore pays three extra sheet reads and paints from cache until they land, where the
+  Omnibus — which a bare visit opens on — needs all four regardless. A deliberate trade, argued in
+  that provider's own comment.
 - **The filter drawer's desktop shape ignores `onClose`.** From `sm` up `FilterDrawer` renders a
   `Drawer` with `variant="persistent"`, and MUI never calls the `onClose` passed for that variant, so
   only the Clear/Close row and the floating button dismiss it. Below `sm` the same drawer is a

@@ -1,10 +1,7 @@
 import type { YearNumber } from "../common/date";
 import type { OmniItem } from "../common/medium";
-import type { Book } from "../books/types";
-import type { Movie } from "../movie/types";
-import type { Show } from "../show/types";
-import type { VideoGame } from "../vg/types";
-import { MEDIA, mediaModules } from "../app/media";
+import type { Library } from "../app/library";
+import { MEDIA } from "../app/media";
 import { currentlyReading } from "../books/statsData";
 import { latestWatched } from "../movie/statsData";
 import { currentlyWatching, heroSeason } from "../show/statsData";
@@ -21,58 +18,13 @@ import "../utils/arrayUtils";
 export type { OmniItem };
 
 /**
- * The four libraries as the domains model them, before anything is flattened.
- *
- * One record rather than four positional arguments: every function here takes all of them, and
- * four same-shaped arrays in a row is an ordering nothing but a type name can defend.
+ * The four libraries and the two operations every reader of them starts with, owned by the
+ * composing layer for the same direction: one provider above every tab fetches the sheets, applies
+ * guest mode and flattens the union, and this tab is one of its readers rather than the place the
+ * work happens. Re-exported here, where the rest of this tab already names them.
  */
-export interface Library {
-  games: VideoGame[];
-  shows: Show[];
-  movies: Movie[];
-  books: Book[];
-}
-
-/**
- * Guest mode applied to each library by its own domain's rule, before anything is composed.
- *
- * It has to happen here rather than as one predicate over the union, because the Now band elects
- * from the domain records and never sees an `OmniItem` — a union-level predicate would keep adult
- * games out of the charts while the page headlined one. Everything downstream, elections included,
- * reads what this answers.
- */
-export const visibleLibrary = (library: Library, guestMode: boolean): Library =>
-  guestMode
-    ? {
-        games: library.games.filter(MEDIA.game.guestFilter),
-        shows: library.shows.filter(MEDIA.show.guestFilter),
-        movies: library.movies.filter(MEDIA.movie.guestFilter),
-        books: library.books.filter(MEDIA.book.guestFilter),
-      }
-    : library;
-
-/**
- * The rows a medium contributes, from the record the four are held in.
- *
- * The only thing here that knows `Library`'s own field names, which are the plural words the tabs
- * use rather than the media themselves — so nothing downstream has to spell both vocabularies.
- */
-const sliceOf = (library: Library): Record<Medium, unknown[]> => ({
-  game: library.games,
-  show: library.shows,
-  movie: library.movies,
-  book: library.books,
-});
-
-/**
- * The four libraries as one flat list, each medium's arm supplied by its own module — so the unit
- * a medium contributes is decided in the folder that models it. Shows contribute seasons rather
- * than shows for that reason, which is a fact about the Shows sheet and not about the union.
- */
-export const toOmniItems = (library: Library): OmniItem[] => {
-  const slices = sliceOf(library);
-  return mediaModules.flatMap((module) => module.toOmniItems(slices[module.medium]));
-};
+export type { Library };
+export { toOmniItems, visibleLibrary } from "../app/library";
 
 /**
  * Hours over a set of items, floored once.

@@ -1,4 +1,4 @@
-import type { Library } from "../../src/omnibus/adapter";
+import type { Library } from "../../src/app/library";
 
 /**
  * A whole `Library`, every domain empty unless overridden, for tests that build the union.

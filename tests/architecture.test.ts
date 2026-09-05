@@ -67,15 +67,51 @@ describe("a tracked domain never depends on another", () => {
   const TRACKED = ["vg", "show", "movie", "books"];
 
   it.each(TRACKED)("has no import of another domain anywhere in %s/", (domain) => {
-    // `app/` too: it composes the four, and a domain reaching back into it is the same cycle by a
-    // shorter route — every module in it is imported by the registry `app/` builds.
-    const others = [...DOMAINS, COMPOSING].filter((other) => other !== domain);
+    const others = DOMAINS.filter((other) => other !== domain);
 
     const offenders = sourceFilesUnder(domain).flatMap((file) =>
       importsFrom(file)
         .filter((specifier) => others.some((other) => new RegExp(`(^|/)${other}(/|$)`).test(specifier)))
         .map((specifier) => `${file.replace(SRC, "src")} imports ${specifier}`),
     );
+
+    expect(offenders).toEqual([]);
+  });
+
+  // The registry is built *from* the four modules, so a domain importing it is a genuine cycle:
+  // `vg/module.ts` → `app/media.ts` → `vg/module.ts`, evaluated half-built and failing as a blank
+  // page rather than an error. The rest of `app/` is the composing layer a tab reads downwards —
+  // its entry component asks `app/library.ts` for the library the shell fetched — and imports
+  // nothing back out of a domain's own module, so that direction cycles nothing.
+  const REGISTRY = /(^|\/)app\/media(Lazy)?(\.tsx?)?$/;
+
+  it.each(TRACKED)("has no import of the registry itself anywhere in %s/", (domain) => {
+    const offenders = sourceFilesUnder(domain).flatMap((file) =>
+      importsFrom(file)
+        .filter((specifier) => REGISTRY.test(specifier))
+        .map((specifier) => `${file.replace(SRC, "src")} imports ${specifier}`),
+    );
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("names the registry in both its halves and nothing else in app/", () => {
+    expect(REGISTRY.test("../app/media")).toBe(true);
+    expect(REGISTRY.test("../app/mediaLazy")).toBe(true);
+    expect(REGISTRY.test("../app/library")).toBe(false);
+  });
+
+  it("has no import of app/ at all in any domain's module.ts", () => {
+    // The registry's own members, so anything they reach is reached while the registry is being
+    // built: `app/library.ts` imports it, and a module importing that closes the same cycle by one
+    // more hop. A module answers questions and asks the composing layer none.
+    const offenders = DOMAINS.flatMap(sourceFilesUnder)
+      .filter((file) => /(^|\/)module(\.lazy)?\.tsx?$/.test(file))
+      .flatMap((file) =>
+        importsFrom(file)
+          .filter((specifier) => new RegExp(`(^|/)${COMPOSING}(/|$)`).test(specifier))
+          .map((specifier) => `${file.replace(SRC, "src")} imports ${specifier}`),
+      );
 
     expect(offenders).toEqual([]);
   });

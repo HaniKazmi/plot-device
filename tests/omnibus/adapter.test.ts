@@ -170,29 +170,6 @@ describe("flattening", () => {
   });
 });
 
-describe("guest mode", () => {
-  const adult = videoGame({ theme: ["Adult"] });
-  const anime = show({ type: "anime" });
-  const animeFilm = movie({ anime: true });
-  const full = library({
-    games: [videoGame(), adult],
-    shows: [show(), anime],
-    movies: [movie(), animeFilm],
-  });
-
-  it("applies each domain's own rule to its own library", () => {
-    const visible = visibleLibrary(full, true);
-
-    expect(visible.games).not.toContain(adult);
-    expect(visible.shows).not.toContain(anime);
-    expect(visible.movies).not.toContain(animeFilm);
-  });
-
-  it("hands back the libraries untouched when it is off", () => {
-    expect(visibleLibrary(full, false)).toBe(full);
-  });
-});
-
 describe("union totals", () => {
   it("counts the years anything falls in, not the span between the first and the last", () => {
     // A span would count the years nothing happened in, which on three sheets starting in

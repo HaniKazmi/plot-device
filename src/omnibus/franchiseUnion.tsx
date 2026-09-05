@@ -1,13 +1,8 @@
 import { lazy, Suspense, useEffect, type ReactNode } from "react";
-import useData from "../common/useData";
+import { useLibrary } from "../app/library";
 import { CURRENT_PLAINDATE } from "../common/date";
 import { FranchiseUnionContext } from "../common/franchiseUnion";
-import { BooksTab, MoviesTab, ShowsTab, VideoGamesTab } from "../tabs";
-import { bookDataConfig } from "../books/converter";
-import { movieDataConfig } from "../movie/converter";
-import { showDataConfig } from "../show/converter";
-import { vgDataConfig } from "../vg/converter";
-import { toOmniItems, visibleLibrary, type OmniItem } from "./adapter";
+import type { OmniItem } from "./adapter";
 import { buildFranchiseUnion } from "./franchiseUnionData";
 import { OmniItemsContext } from "./omniItems";
 
@@ -31,36 +26,23 @@ const hoverCard = (item: OmniItem) => () => (
 );
 
 /**
- * Provides the union to every tab, built from the four libraries through their own configs.
+ * Provides the union to every tab, built from the items the library provider already holds.
  *
  * Mounted above the router because a Star Trek film's card on the Movies tab draws the seasons
  * from the Shows sheet: only the composing tab may import all four domains, and only the shell
- * sits above all four tabs. `useData` keeps one module-level cache per sheet and skips the fetch on
- * a hit, and the Omnibus is the tab a bare visit opens on, so on the common path a home tab reaches
- * the union with nothing left to fetch; a deep link straight to a home tab pays three extra sheet
- * reads, painting from the previous visit's cached copy until they land. Until all four are here
- * the value is `undefined`, and a card falls back to the strip its own index draws.
+ * sits above all four tabs. The items are `undefined` until all four libraries have landed, so the
+ * union is too, and a card falls back to the strip its own index draws until then.
  *
- * Guest mode is applied per library by each domain's own rule, the way the Omnibus applies it, so
- * a hidden game cannot come back on screen as a bead in a film's franchise.
+ * The union is built from those items rather than from the libraries again: guest mode is applied
+ * once, above, and a second flattening here is a second chance to disagree about which rows it
+ * hides.
  */
-export const FranchiseUnionProvider = ({ guestMode, children }: { guestMode: boolean; children: ReactNode }) => {
+export const FranchiseUnionProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     void loadHoverCard();
   }, []);
 
-  const [games] = useData(vgDataConfig, VideoGamesTab);
-  const [shows] = useData(showDataConfig, ShowsTab);
-  const [movies] = useData(movieDataConfig, MoviesTab);
-  const [books] = useData(bookDataConfig, BooksTab);
-
-  // The items are built once here and the union from them, rather than the union from the
-  // library on its own: the palette above the tabs lists the same items, and two flattenings of
-  // one library are two chances to disagree about which rows guest mode hides.
-  const items =
-    games && shows && movies && books
-      ? toOmniItems(visibleLibrary({ games, shows, movies, books }, guestMode))
-      : undefined;
+  const { items } = useLibrary();
   const union = items ? buildFranchiseUnion(items, CURRENT_PLAINDATE, hoverCard) : undefined;
 
   return (
