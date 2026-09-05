@@ -10,7 +10,7 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
-import { MoreVert, Score, Search } from "@mui/icons-material";
+import { MoreVert, Search } from "@mui/icons-material";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabs, { useCurrentTab } from "./tabs";
@@ -18,6 +18,7 @@ import useLongPress from "./utils/useLongPress";
 import { useGoogleAuth } from "./contexts/GoogleAuthContext";
 import { safeAreaGutters } from "./common/chrome";
 import { openSearch } from "./common/searchOpen";
+import { AppIcon } from "./AppIcon";
 
 /**
  * The menu's own items are worded rather than keyed, and the theme capitalises every `MenuItem`
@@ -115,7 +116,7 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
     >
       {/* The bar reaches the edges of the screen, so its own gutters carry the device's insets. */}
       <Toolbar sx={safeAreaGutters}>
-        <Score sx={{ display: "flex", mr: 1 }} />
+        <AppIcon sx={{ display: "flex", mr: 1 }} />
         {/* `cursive` is a generic family, so the wordmark resolves to Snell Roundhand on macOS and
             to something else on every other platform — the one piece of the page whose shape is
             decided by the reader's OS. Weight and tracking give it the same treatment the index at
