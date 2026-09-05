@@ -57,7 +57,7 @@ const GenreBridge = ({ items, measure }: { items: OmniItem[]; measure: Measure }
   const [hovered, setHovered] = useState<string | null>(null);
   // Genre is what the section opens on, the composition the union most plainly has; the rest are
   // the same question asked of when an item was met and what it was certified.
-  const [key, keySelect] = useSelectBox(BRIDGE_KEYS, "genre");
+  const [key, keySelect] = useSelectBox(BRIDGE_KEYS, "genre", "Rows");
   const rows = genreBridge(items, key, measure);
 
   const biggest = rows[0];

@@ -91,7 +91,7 @@ const Gallery = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
   // Opens on franchises, newest first: the series met lately, which is the question this wall
   // answers that the genre band above it does not, and the one order the tab's own Recently
   // Finished list does not already give.
-  const [category, controls] = useSelectBox(GALLERY_CATEGORIES, "franchise");
+  const [category, controls] = useSelectBox(GALLERY_CATEGORIES, "franchise", "Shelf");
   const [sort, setSort] = useState<GallerySort>("recent");
   const [drilldown, setDrilldown] = useState<ShelfGroup | null>(null);
 

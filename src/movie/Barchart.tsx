@@ -22,8 +22,8 @@ const MovieBarchart = ({ data, measure, yearType }: { data: Movie[]; measure: Me
 
   // Grouped by genre from the start — the one distinction this tab is about, as company is on
   // the games tab.
-  const [group, groupControls] = useSelectBox(options, "genre");
-  const [axis, axisControls] = useSelectBox(axisOptions, "Watched");
+  const [group, groupControls] = useSelectBox(options, "genre", "Split");
+  const [axis, axisControls] = useSelectBox(axisOptions, "Watched", "Year");
 
   const barchartData = (cumulative: boolean) =>
     data.map((movie) => {

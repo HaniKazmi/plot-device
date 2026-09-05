@@ -1,4 +1,4 @@
-import { Box, Card, CardContent, FormGroup, Stack, Typography } from "@mui/material";
+import { Box, Card, CardContent, Stack, Typography } from "@mui/material";
 import { usePhone } from "./breakpoints";
 import { SegmentedControl } from "./SelectionComponents";
 import { segments } from "./segments";
@@ -230,7 +230,7 @@ const Finished = <U extends FinishedItem>({
   // than a second piece of header markup: a wall not asked for a border key gets exactly the
   // header it would without one.
   const countWithBorder = [count, borderKey && `border · ${borderKey}`].filter(Boolean).join(" · ") || undefined;
-  const [sort, selectBox] = useSelectBox<string>(sortOptions, "Date");
+  const [sort, selectBox] = useSelectBox<string>(sortOptions, "Date", "Sort");
   // The wall is what the page's height is, so this has to be the true answer on the first render:
   // read wrong, every card would mount at one density and remount at another, asking for each
   // picture twice over. `usePhone` is that answer, stated once for the app.
@@ -288,21 +288,20 @@ const Finished = <U extends FinishedItem>({
           title={title}
           count={countWithBorder}
           action={
-            <FormGroup>
-              <Stack
-                direction={"row"}
-                spacing={1}
-              >
-                {selectBox}
-                <SegmentedControl
-                  options={DENSITY_OPTIONS}
-                  value={isDialog ? dialogDensity : shownDensity}
-                  onChange={isDialog ? setDialogDensity : setDensity}
-                  ariaLabel="Card size"
-                />
-                {toggle}
-              </Stack>
-            </FormGroup>
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{ alignItems: "center" }}
+            >
+              {selectBox}
+              <SegmentedControl
+                options={DENSITY_OPTIONS}
+                value={isDialog ? dialogDensity : shownDensity}
+                onChange={isDialog ? setDialogDensity : setDensity}
+                ariaLabel="Card size"
+              />
+              {toggle}
+            </Stack>
           }
         />
         <CardContent>

@@ -263,7 +263,7 @@ const RecentlyComplete = ({ data }: { data: VideoGame[] }) => {
 };
 
 const MostPlayed = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
-  const [option, controls] = useSelectBox(videoGameOptions, "name");
+  const [option, controls] = useSelectBox(videoGameOptions, "name", "By");
 
   if (option === "name") {
     return (

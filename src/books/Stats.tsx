@@ -277,7 +277,7 @@ const RecentlyFinished = ({ data }: { data: Book[] }) => (
 const bookMostReadOptions = ["name", ...bookTopOptions] as const;
 
 const MostRead = ({ data, groupsBy, measure }: { data: Book[]; groupsBy: GroupsBy; measure: Measure }) => {
-  const [option, controls] = useSelectBox(bookMostReadOptions, "author");
+  const [option, controls] = useSelectBox(bookMostReadOptions, "author", "By");
 
   if (option === "name") {
     return (

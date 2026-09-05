@@ -256,7 +256,7 @@ const RecentlyWatched = ({ data }: { data: Movie[] }) => (
 const movieMostWatchedOptions = ["name", ...movieTopOptions] as const;
 
 const MostWatched = ({ data, measure }: { data: Movie[]; measure: Measure }) => {
-  const [option, controls] = useSelectBox(movieMostWatchedOptions, "franchise");
+  const [option, controls] = useSelectBox(movieMostWatchedOptions, "franchise", "By");
 
   if (option === "name") {
     return (

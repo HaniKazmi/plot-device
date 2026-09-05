@@ -26,7 +26,7 @@ const ShowBarchart = ({ data, measure, yearType }: { data: Show[]; measure: Meas
   // Grouped by status from the start, so the columns are born carrying the one distinction the
   // tab is about — what is still running against what is done — rather than a single flat colour
   // the reader has to open a select box to break apart.
-  const [group, controls] = useSelectBox(options, "status");
+  const [group, controls] = useSelectBox(options, "status", "Split");
   const barchartData = (cumulative: boolean) =>
     data
       .flatMap((show) => show.s)

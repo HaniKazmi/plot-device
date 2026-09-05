@@ -353,8 +353,8 @@ module has to stay one a locale cannot change.
 An arbitrary-depth hierarchy from a flat list. `generateSunburstData` (`common/sunburstData.ts`)
 builds path-style ids (`"-Nintendo-Switch-Zelda"`) and accumulates values into a `Map`, which makes
 grouping order fully dynamic: the caller passes `groups: K[]` and `SunBurstControls` renders one
-select per level, so a reader re-nests at runtime — one labelled row, "Nest by" then the rings
-joined by `›`, humanised through `keyLabel` (`utils/stringUtils.ts`). Domain meaning enters through
+picker per level joined by `›`, "Nest by" the first picker's own `label` rather than a caption
+beside the row, humanised through `keyLabel` (`utils/stringUtils.ts`). Domain meaning enters through
 four callbacks: `keyToVal`, `getCount`, `getColor`, `getLeafName`. `ringOptions` takes a chosen key
 out of the other menus, a key held twice dividing every wedge into one child of the same name,
 unless that would leave a menu holding only the value it shows.
@@ -384,9 +384,10 @@ Folded on a phone, the card states `firstRing` — the innermost ring, largest f
 `ProportionalBar` (`RingBar`) built through the Top lists' own `topNWithOther`, so wedges beyond the
 fifth become one "Other" segment. A grouping with a colour vocabulary keeps the wheel's own hex; one
 without falls back to a series colour by rank, which can disagree with Highcharts' own `colorByPoint`
-order — the names under the bar say which segment is which regardless. `SunBurstControls`' "Nest by"
-label drops below `sm`: at 390px the card is 324px and a word plus three chevron selects wants 379,
-so the label is the one a reader can infer back from the values it precedes.
+order — the names under the bar say which segment is which regardless. `FoldedChart` heads both
+states with the same header, so the three pickers stand above the preview too: at 390px the row
+asks for more room than the card holds, and scrolls under it (`SectionHeader`'s `ActionRow`, above)
+with the "Nest by" label intact rather than either wrapping the row or dropping the word.
 
 ### Timeline — `common/Timeline.tsx`
 
@@ -739,7 +740,8 @@ reads as a control that shrank.
 
 `SegmentedControl` is a small closed set of named states, and every surface offering one uses it:
 the barchart's four views, the gallery's shelf order, the wall's density, the Shows timeline's
-Seasons · Shows, and each tab's measure in the section rail — the last through `MeasureControl`,
+Seasons · Shows, the Games timeline's With party · Without, and each tab's measure in the section
+rail — the last through `MeasureControl`,
 which owns the wiring to the filter reducer once for the five tabs. Values that are already their
 own words become options through `common/segments.ts`. Words rather than icons, an icon being a
 legend nothing on the page teaches. A press on the lit segment is ignored rather than clearing it.
@@ -1127,9 +1129,15 @@ and comparing the joined labels keeps that free.
 so `MuiCardHeader` spacing and the `h6` weight reach it; the icon sits in the title row, not the
 avatar slot, which centres against the whole header. The count arrives worded — a `common/` shell
 cannot know it counts games. Below `sm` the controls take their own row, negative margins and all: a
-title and four controls otherwise divide 375px and the title wraps to a word a line. A slot holding
-no more than one icon button stays on the title row, the caller saying so through `compactActions`
-— a row of its own for an expand toggle is a blank line with an icon at the end.
+title and four controls otherwise divide 375px and the title wraps to a word a line. That row is
+`ActionRow`, a horizontal scroller rather than a wrap — the rail's own `ScrollFade` and
+hidden-scrollbar recipe over a `flexShrink: 0` child, so the sunburst's three pickers or Movies' and
+Books' axis and split pickers beside the four view segments run past the card's edge instead of
+breaking a picker's label across two lines. Mounted at every width rather than gated on `usePhone`,
+since the choice a fixed set of `sx` breakpoints already makes is exactly this: above `sm` the row
+is unconstrained and never scrolls, so the fades stay off and the wrapper changes nothing. A slot
+holding no more than one icon button stays on the title row, the caller saying so through
+`compactActions` — a row of its own for an expand toggle is a blank line with an icon at the end.
 
 `common/Stats.tsx` exports what the domain `Stats.tsx` files assemble into a grid: `StatCard` and
 `StatSummary`; `YearVitalsPair`, all-time and in-year cards differing only in figures; `StatList`;

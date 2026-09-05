@@ -25,7 +25,7 @@ const colourOptions = ["genre", "rating", "cinema", "decade", "score"] as const;
 const WatchTimeline = ({ data }: { data: Movie[] }) => {
   const scheme = useScheme();
 
-  const [colourBy, controls] = useSelectBox(colourOptions, "genre");
+  const [colourBy, controls] = useSelectBox(colourOptions, "genre", "Colour");
 
   const rows = watchRibbonYears(data).map(({ year, bands, laneCount }) => ({
     key: String(year),

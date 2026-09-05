@@ -21,7 +21,7 @@ import { useScheme } from "../common/useScheme";
 const OmnibusBarchart = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
   const scheme = useScheme();
 
-  const [split, controls] = useSelectBox(BARCHART_SPLITS, "medium");
+  const [split, controls] = useSelectBox(BARCHART_SPLITS, "medium", "Split");
   // Built once and both plotted and counted, because a split can drop a row whose column the sheet
   // has not filled in yet — a header counting what went in would overstate what came out.
   const rows = omniBarchartRows(data, measure, split, scheme);

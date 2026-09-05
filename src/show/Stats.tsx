@@ -284,7 +284,7 @@ const RecentlyComplete = ({ data }: { data: Show[] }) => {
 const mostWatchedOptions = ["name", ...showTopOptions] as const;
 
 const MostWatched = ({ data, measure }: { data: Show[]; measure: Measure }) => {
-  const [option, controls] = useSelectBox(mostWatchedOptions, "name");
+  const [option, controls] = useSelectBox(mostWatchedOptions, "name", "By");
 
   if (option === "name") {
     return (

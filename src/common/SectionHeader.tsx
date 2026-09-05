@@ -1,6 +1,9 @@
-import { CardHeader, Stack, Typography } from "@mui/material";
+import { Box, CardHeader, Stack, Typography, useTheme } from "@mui/material";
 import type { ReactNode } from "react";
 import { MUTED_FIGURE_SX } from "./typography";
+import { ScrollFade } from "./ScrollFade";
+import { useScrollEdges } from "./useScrollEdges";
+import { CONTAIN_SIDEWAYS_SCROLL } from "./scrollbarSx";
 
 /**
  * The header where the action takes a row of its own below `sm`. A slot that stays beside the title
@@ -19,6 +22,54 @@ const STACKED_HEADER_SX = {
     marginRight: { xs: 0, sm: "-8px" },
     alignSelf: { xs: "stretch", sm: "flex-start" },
   },
+};
+
+/**
+ * The action slot below `sm`: one scrolling line rather than a wrap.
+ *
+ * `CardHeader` gives the action whatever width the title has left, and below `sm` that is the
+ * whole card, stacked under the title by `STACKED_HEADER_SX`. A title and three or four 32px parts
+ * still do not all fit a phone's width — the sunburst's three pickers, or Movies' and Books'
+ * axis and split pickers beside the four view segments — so the row scrolls past its own edge
+ * instead of wrapping a picker's label across two lines. `ScrollFade` and the hidden-scrollbar
+ * recipe are the rail's own, so a header's overflow reads the same way the section rail's does.
+ *
+ * Always mounted rather than gated on `usePhone`, since the choice is what a fixed set of `sx`
+ * rules already makes: above `sm` the row is unconstrained and never scrolls, so the fades stay
+ * off and the wrapper is otherwise inert.
+ */
+const ActionRow = ({ children }: { children: ReactNode }) => {
+  const theme = useTheme();
+  const [scrollRef, edges] = useScrollEdges<HTMLDivElement>();
+
+  return (
+    <ScrollFade
+      edges={edges}
+      ground={theme.vars.palette.background.paper}
+    >
+      <Box
+        ref={scrollRef}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          overflowX: { xs: "auto", sm: "visible" },
+          flexWrap: { xs: "nowrap", sm: "wrap" },
+          // A flex item shrinks to fit its container by default, which below `sm` would squeeze
+          // the row instead of letting it run past the edge — the one child here is `action`
+          // itself, whatever `Stack` or fragment a caller built it from. Above `sm` nothing here
+          // is short of room, so holding it at its natural size changes nothing.
+          "& > *": { flexShrink: 0 },
+          ...CONTAIN_SIDEWAYS_SCROLL,
+          // A scrollbar under a single row of controls costs as much height as the row itself.
+          scrollbarWidth: "none",
+          "::-webkit-scrollbar": { display: "none" },
+        }}
+      >
+        {children}
+      </Box>
+    </ScrollFade>
+  );
 };
 
 /**
@@ -45,11 +96,12 @@ const STACKED_HEADER_SX = {
  * high leaves the icon floating below the title line it belongs to. The theme pins the content to
  * the top, so a row the icon is part of keeps the two together at any header height.
  *
- * Below `sm` the controls take a row of their own. `CardHeader` seats its action beside the title
- * at every width, so a title and three or four controls divide 375px between them and the title
- * wraps to a word a line — "Shelves / by / Genre" beside a select, two toggles and an expand. The
- * action's own negative margins are dropped there with it, since they exist to hold it clear of a
- * title it is not beside at that width, and are kept everywhere else.
+ * Below `sm` the controls take a row of their own — `ActionRow`, above — rather than sitting
+ * beside the title `CardHeader` seats them at by default: a title and three or four controls
+ * divide 375px between them and the title wraps to a word a line — "Shelves / by / Genre" beside a
+ * select, two toggles and an expand. The action's own negative margins are dropped there with it,
+ * since they exist to hold it clear of a title it is not beside at that width, and are kept
+ * everywhere else.
  *
  * `compactActions` is the exception, and the caller states it because only the caller knows what it
  * put in the slot: a single icon button costs a title nothing to sit beside, and a row of its own
@@ -99,6 +151,6 @@ export const SectionHeader = ({
       </Stack>
     }
     slotProps={{ title: { variant: "h6", component: "div" } }}
-    action={action}
+    action={compactActions || !action ? action : <ActionRow>{action}</ActionRow>}
   />
 );

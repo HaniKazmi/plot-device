@@ -1,4 +1,4 @@
-import { Card, CardContent, FormGroup, Typography, useTheme } from "@mui/material";
+import { Card, CardContent, Stack, Typography, useTheme } from "@mui/material";
 import { type ReactNode, useState } from "react";
 import { BarChart } from "@mui/icons-material";
 import { SectionHeader } from "./SectionHeader";
@@ -102,7 +102,11 @@ const Barchart = ({
       title={title}
       count={count}
       action={
-        <FormGroup>
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{ alignItems: "center" }}
+        >
           {controls}
           <SegmentedControl
             options={viewOptions}
@@ -110,7 +114,7 @@ const Barchart = ({
             onChange={setView}
             ariaLabel="View"
           />
-        </FormGroup>
+        </Stack>
       }
     />
   );

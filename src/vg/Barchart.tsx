@@ -12,7 +12,7 @@ const options: Readonly<VideoGameStringKeys | "none" | "decade">[] = ["none", ..
 const VgBarchart = ({ data, measure, yearType }: { data: VideoGame[]; measure: Measure; yearType: YearType }) => {
   const scheme = useScheme();
 
-  const [group, controls] = useSelectBox(options, "company");
+  const [group, controls] = useSelectBox(options, "company", "Split");
   const barchartData = (cumulative: boolean) =>
     data.flatMap((game) => {
       const value = measure === "Games" ? 1 : game.hours;

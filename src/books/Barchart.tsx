@@ -21,8 +21,8 @@ const BookBarchart = ({ data, measure, yearType }: { data: Book[]; measure: Meas
   const scheme = useScheme();
 
   // Grouped by genre from the start — the one distinction this tab is about.
-  const [group, groupControls] = useSelectBox(options, "genre");
-  const [axis, axisControls] = useSelectBox(axisOptions, "Read");
+  const [group, groupControls] = useSelectBox(options, "genre", "Split");
+  const [axis, axisControls] = useSelectBox(axisOptions, "Read", "Year");
 
   const barchartData = (cumulative: boolean) =>
     data.map((book) => {
