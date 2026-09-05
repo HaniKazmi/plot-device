@@ -729,7 +729,10 @@ tree, so lifting the open flag to their nearest common ancestor would sit it abo
 re-render all of them on an open the flag never reaches. `FilterToggle` reads which tree it is in
 through a `SheetContext` set by the drawer itself, since the slot handing it down as a child cannot
 otherwise tell — a switch under a wrapped label, three to a row, on desktop; a third-height filled or
-outlined chip in the sheet. `FilterCategory` is unchanged either way. The button carries a badge
+outlined chip in the sheet. `FilterCategory` is unchanged either way. Both slots are filled by
+`common/FilterControls`, which draws the domain's `FilterSchema` (§7) rather than a list written out
+per tab, so every surface offering a page's filters offers one description of them. The button
+carries a badge
 counting the fields the reader has changed (`activeCount`, from `createFilterReducer`): every chart
 is drawn through the drawer, so a library narrowed to one franchise otherwise looks exactly like the
 whole library. The measure and the year scope are not among those fields — each is a control of its
@@ -1652,14 +1655,31 @@ undone in one place — comparing arrays element-wise and leaving `measure`, `fi
 every figure on the tab is counted in and the scope is a control beside it, so Clear leaves a reader
 counting hours in one year exactly where they were.
 
-`vg/filterUtils.ts` shows the full pattern: toggles, multi-selects derived from the data through
-`common/filterOptions`, a year cutoff, a Games/Hours measure. `common/FilterDrawer` is one shell
-taking the active count, the reset action and the domain's controls as fully controlled children; the
-measure is not in it, being the unit every figure is counted in rather than a narrowing of what is
-counted, so it rides the section rail (§6). `yearPredicates` takes a `yearOf` accessor defaulting to
-`startDate.year`, so the Omnibus passes `(item) => item.year` for an `OmniItem`, which counts towards
-the year it closed. Shows keeps its own predicate — "has a season started in (or by) the year" —
-keeping the filter and the seasons-in-year vitals card in agreement.
+**A tab describes its filters as data.** `<domain>/filters.ts` exports a `FilterSchema`
+(`common/filterSchema.ts`): a toggle is a state field, a label and the predicate the page keeps
+_while that toggle is off_; a category is a state field, a label, the accessor its values come from,
+optionally its own option list and its colour vocabulary, and whether that vocabulary is long enough
+to be searched rather than scanned. `schemaPredicates(schema, state)` composes the whole of it — each
+toggle that is off, each category holding a selection, through `selectedPredicates` — and a domain's
+`filters()` spreads the result beside the rules a per-field schema cannot state: the year scope,
+which belongs to no field, and Shows' own "has a season started in (or by) the year". A key is typed
+against the field it names, a boolean for a toggle and a list for a category, because a key naming
+the wrong field is a filter that draws and silently never applies. `options` falls to
+`common/filterOptions`' `categoryOptions`, and a category states its own only where the plain set is
+wrong — the franchise column repeating a standalone item's own name, a blank nobody can name.
+
+One description, three readers: `common/FilterControls` draws it into the drawer's two slots, and the
+box above the page and the index of what can be found by attribute read the same schema, so a page
+cannot be narrowed one way and found another. The toggle **icons** are keyed by the same keys in each
+medium's `module.lazy.ts` and never on the schema itself: `MediumModule` carries the schema, the
+shell reaches the registry, and an icon named there would put four tabs' filter glyphs in the first
+bundle a visitor downloads. `common/FilterDrawer` is one shell taking the active count, the reset
+action and those two slots as fully controlled children; the measure is not in it, being the unit
+every figure is counted in rather than a narrowing of what is counted, so it rides the section rail
+(§6). `yearPredicates` takes a `yearOf` accessor defaulting to `startDate.year`, so the Omnibus
+passes `(item) => item.year` for an `OmniItem`, which counts towards the year it closed. Shows keeps
+its own predicate, the shared one reading a show's _first_ season, which keeps the filter and the
+seasons-in-year vitals card in agreement.
 
 ### Guest mode
 
@@ -1713,8 +1733,8 @@ free.
 A fifth medium extends the `Medium` union in `utils/types.ts` with its fill, label, name and unit,
 and is then **a `module.ts`, a `module.lazy.ts` and one line in `app/media.ts`** (§2). The eager
 half answers what the medium is — its `DataConfig`, its guest rule, its arm of the union, its
-`FranchiseEntry` mapper and span, its page state, its artwork and its title; the lazy half answers
-what draws it.
+`FranchiseEntry` mapper and span, its page state, its filter schema, its artwork and its title; the
+lazy half answers what draws it, its cards and its filter icons alike.
 Nothing else changes: `toOmniItems`, `visibleLibrary`, the crossings, the gallery, the search index
 and the card dispatcher all read the registry, so a medium that answers everything on
 `MediumModule` is on every surface the day it is added, and one that answers nothing does not
@@ -1740,9 +1760,12 @@ a thin adapter per domain; domain knowledge belongs in the domain folder. The ex
 level of inversion — `Sunburst` takes four callbacks, `Barchart` a data function and a scalar
 `postAggregate` — and it stays at the level of _values and meaning_.
 
-**Adding a filter.** Extend the domain's `FilterState` (extending `BaseFilterState`), push a predicate
-in its `filters()`, and render a control in `Filter.tsx`. Nothing in `common/filterReducer.ts` or in
-any chart changes.
+**Adding a filter.** Add a toggle or a category to the domain's `filters.ts` and the field it names
+to its `FilterState` (extending `BaseFilterState`); a toggle also takes a glyph in that domain's
+`module.lazy.ts`, keyed the same way, which the icon record's own type requires. Nothing in
+`common/filterReducer.ts`, `common/FilterControls.tsx` or any chart changes — every surface that
+offers filters draws whatever the schema holds. A rule that is not per-field, like Shows' seasonal
+year cutoff, stays a hand-written predicate in `filterUtils.ts`.
 
 ## 9. Repository layout beyond `src/`
 

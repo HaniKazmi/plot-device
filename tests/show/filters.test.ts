@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { CURRENT_YEAR, type YearNumber } from "../../src/common/date";
-import { filters, guestFilter, initialState, type FilterState } from "../../src/show/filterUtils";
+import { guestFilter } from "../../src/show/filters";
+import { filters, initialState, type FilterState } from "../../src/show/filterUtils";
 import { show, showWithSeasonsIn } from "../fixtures/shows";
+import { showFilters } from "../../src/show/filters";
 
 const state = (overrides: Partial<FilterState> = {}): Omit<FilterState, "filter"> => ({
   ...initialState,
@@ -91,5 +93,20 @@ describe("the year cutoff", () => {
     const keep = filters(state({ yearType: "upto", yearTo: CURRENT_YEAR }));
 
     expect(keep(showWithSeasonsIn(CURRENT_YEAR))).toBe(true);
+  });
+});
+
+describe("the schema the drawer and the box are both drawn from", () => {
+  it("offers two toggles and four categories, in the order they are laid out", () => {
+    expect(showFilters.toggles.map((toggle) => toggle.key)).toEqual(["abandoned", "anime"]);
+    expect(showFilters.categories.map((category) => category.key)).toEqual(["genre", "network", "type", "franchise"]);
+  });
+
+  it("opens a search-within on the vocabularies this library holds hundreds of values in", () => {
+    // A reader picks a franchise or a person by typing; a genre or a format by scanning a list
+    // short enough to read. The flag is what tells the two apart, and B8's box reads it.
+    expect(showFilters.categories.filter((category) => category.searchable).map((category) => category.key)).toEqual([
+      "franchise",
+    ]);
   });
 });

@@ -1,7 +1,9 @@
+import type { SvgIconComponent } from "@mui/icons-material";
 import type { FunctionComponent, ReactNode } from "react";
 import type { CardMediaImageProps } from "./Card";
 import type { Year, YearMonthDay, YearNumber } from "./date";
 import type { PageStore } from "./filterReducer";
+import type { PageSchema } from "./filterSchema";
 import type { FranchiseEntry } from "./franchiseUnion";
 import type { DataConfig } from "./useData";
 import type { AgeRating, Medium } from "../utils/types";
@@ -104,6 +106,12 @@ type CardProps<S> = Omit<CardMediaImageProps, "image" | "alt" | "detailComponent
 export interface MediumLazy<S> {
   CardMediaImage(props: CardProps<S>): ReturnType<FunctionComponent>;
   HoverCard(props: { item: S }): ReturnType<FunctionComponent>;
+  /**
+   * A glyph per filter toggle, keyed as the eager half's schema keys its toggles. Here and not
+   * beside the schema for this interface's own reason: a schema is data the shell reaches, and an
+   * icon named in it would put four tabs' filter glyphs in the first bundle.
+   */
+  filterIcons: Record<string, SvgIconComponent>;
 }
 
 /**
@@ -155,6 +163,14 @@ export interface MediumModule<T, S = T> {
   /** The line a hit is told by, in this medium's own words, over hours already summed. */
   facts(item: S, hours: number): string;
   measures: readonly string[];
+  /**
+   * What this tab can be narrowed by, as data: the surface offering the filters draws it, and the
+   * index of what a search box can find by attribute reads it. The schema carries no icon — see
+   * `MediumLazy` — and no rule that is not per-field: a domain whose model answers the year
+   * differently, or whose page has a question only it can ask, keeps that predicate beside its own
+   * reducer.
+   */
+  filters: PageSchema;
   /**
    * The tab's filter state, held outside its tree so that the surfaces standing above the page —
    * the rail, the box that filters it — read and set the same value the charts do, and so that a

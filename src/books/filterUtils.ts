@@ -3,11 +3,12 @@ import type { Predicate } from "../utils/types";
 import type { Book, Measure } from "./types";
 import {
   createFilterReducer,
-  selectedPredicates,
   yearPredicates,
   type BaseFilterState,
   type FilterDispatchFor,
 } from "../common/filterReducer";
+import { schemaPredicates } from "../common/filterSchema";
+import { bookFilters } from "./filters";
 
 export interface FilterState extends BaseFilterState<Book, Measure> {
   /** Off leaves only scored books, so the score views stop counting books nobody rated. */
@@ -22,25 +23,16 @@ export interface FilterState extends BaseFilterState<Book, Measure> {
 export type FilterDispatch = FilterDispatchFor<FilterState>;
 
 /**
- * Guest mode pushes no predicate: nothing on the Books sheet marks a book as adult-themed the way
- * the games and shows sheets do, so there is nothing for the mode to hide here.
+ * The tab's predicate: every per-field rule the schema states, and then the year scope, which
+ * belongs to no field and is a reading of the whole page rather than a narrowing of it.
+ *
+ * Guest mode pushes nothing: nothing on the Books sheet marks a book as adult-themed the way the
+ * games and shows sheets do, so there is nothing for the mode to hide here.
  */
 export const filters = (state: Omit<FilterState, "filter">): Predicate<Book> => {
-  const predicates: Predicate<Book>[] = [];
-
-  if (!state.unscored) predicates.push((book) => book.score !== undefined);
-
-  predicates.push(
-    ...selectedPredicates(state.genre, (book: Book) => book.genre),
-    ...selectedPredicates(state.author, (book: Book) => book.author),
-    ...selectedPredicates(state.franchise, (book: Book) => book.franchise),
-    ...selectedPredicates(state.series, (book: Book) => book.series),
-    ...selectedPredicates(state.format, (book: Book) => book.format),
-  );
-
-  // The shared predicate reads `startDate.year`: a book counts to the year it was begun, which is
-  // the year the vitals cards and the timeline both place it in.
-  predicates.push(...yearPredicates<Book>(state));
+  // The shared cutoff reads `startDate.year`: a book counts to the year it was begun, which is the
+  // year the vitals cards and the timeline both place it in.
+  const predicates: Predicate<Book>[] = [...schemaPredicates(bookFilters, state), ...yearPredicates<Book>(state)];
 
   return (book: Book) => predicates.every((p) => p(book));
 };

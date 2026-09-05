@@ -7,8 +7,9 @@ import {
   yearPredicates,
   type BaseFilterState,
   type FilterDispatchFor,
-  selectedPredicates,
 } from "../common/filterReducer";
+import { schemaPredicates } from "../common/filterSchema";
+import { movieFilters } from "./filters";
 
 export interface FilterState extends BaseFilterState<Movie, Measure> {
   /** Off leaves only cinema visits — the outings, against the whole library. */
@@ -26,32 +27,13 @@ export interface FilterState extends BaseFilterState<Movie, Measure> {
 export type FilterDispatch = FilterDispatchFor<FilterState>;
 
 /**
- * What guest mode hides on this tab: a film the sheet marks as anime, which is also what the anime
- * toggle drops — one rule for the two, so the mode and the toggle cannot hide by two definitions.
- *
- * Exported because the mode is applied to the library itself, above every tab: narrowing this
- * page's charts alone would leave a hidden film on screen through the franchise index and the
- * union, which are built from the library.
+ * The tab's predicate: every per-field rule the schema states, and then the year scope, which
+ * belongs to no field and is a reading of the whole page rather than a narrowing of it.
  */
-export const guestFilter: Predicate<Movie> = (movie) => !movie.anime;
-
 export const filters = (state: Omit<FilterState, "filter">): Predicate<Movie> => {
-  const predicates: Predicate<Movie>[] = [];
-
-  if (!state.home) predicates.push((movie) => movie.cinema);
-  if (!state.unscored) predicates.push((movie) => movie.score !== undefined);
-  if (!state.anime) predicates.push(guestFilter);
-
-  predicates.push(
-    ...selectedPredicates(state.genre, (movie: Movie) => movie.genre),
-    ...selectedPredicates(state.director, (movie: Movie) => movie.director),
-    ...selectedPredicates(state.franchise, (movie: Movie) => movie.franchise),
-    ...selectedPredicates(state.rating, (movie: Movie) => movie.rating),
-  );
-
-  // The shared predicate reads `startDate.year`, which for a film is simply the year it was
-  // watched — one row, one date, so unlike Shows nothing here needs to diverge from it.
-  predicates.push(...yearPredicates<Movie>(state));
+  // The shared cutoff reads `startDate.year`, which for a film is simply the year it was watched —
+  // one row, one date, so unlike Shows nothing here needs to diverge from it.
+  const predicates: Predicate<Movie>[] = [...schemaPredicates(movieFilters, state), ...yearPredicates<Movie>(state)];
 
   return (movie: Movie) => predicates.every((p) => p(movie));
 };

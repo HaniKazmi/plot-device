@@ -3,12 +3,13 @@ import {
   createFilterReducer,
   type BaseFilterState,
   type FilterDispatchFor,
-  selectedPredicates,
   yearPredicates,
 } from "../common/filterReducer";
+import { schemaPredicates } from "../common/filterSchema";
+import { omniFilters } from "./filters";
 import type { Predicate } from "../utils/types";
 import type { OmniItem } from "./adapter";
-import { media, type Measure } from "./types";
+import type { Measure } from "./types";
 
 export interface FilterState extends BaseFilterState<OmniItem, Measure> {
   /** One switch per medium: the page's whole point is comparing them, so any subset is a view. */
@@ -23,26 +24,20 @@ export interface FilterState extends BaseFilterState<OmniItem, Measure> {
 export type FilterDispatch = FilterDispatchFor<FilterState>;
 
 /**
- * Guest mode pushes no predicate here. It is applied per library by each domain's own rule before
- * the union is built (`visibleLibrary`), because the Now band elects from the domain records and
- * would otherwise headline a title the charts had already hidden.
+ * The tab's predicate: every per-field rule the schema states, and then the year scope, which
+ * belongs to no field and is a reading of the whole page rather than a narrowing of it.
+ *
+ * Guest mode pushes nothing here. It is applied per library by each domain's own rule before the
+ * union is built (`visibleLibrary`), because the Now band elects from the domain records and would
+ * otherwise headline a title the charts had already hidden.
  */
 export const filters = (state: Omit<FilterState, "filter">): Predicate<OmniItem> => {
-  const predicates: Predicate<OmniItem>[] = [];
-
-  // The exported list rather than one written out again, so a medium is switchable here the
-  // moment it exists rather than passing this predicate unchallenged.
-  const shown = media.filter((medium) => state[medium]);
-  if (shown.length < media.length) predicates.push((item) => shown.includes(item.medium));
-
-  predicates.push(
-    ...selectedPredicates(state.genre, (item: OmniItem) => item.genre),
-    ...selectedPredicates(state.franchise, (item: OmniItem) => item.franchise),
-  );
-
   // The shared cutoff over the attribution year: an `OmniItem` holds no start date, and a game
   // played across a new year counts to the year it was finished, which is already on the record.
-  predicates.push(...yearPredicates<OmniItem>(state, (item) => item.year));
+  const predicates: Predicate<OmniItem>[] = [
+    ...schemaPredicates(omniFilters, state),
+    ...yearPredicates<OmniItem>(state, (item) => item.year),
+  ];
 
   return (item: OmniItem) => predicates.every((p) => p(item));
 };

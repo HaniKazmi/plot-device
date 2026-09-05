@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { CURRENT_YEAR, Year, YearMonthDay, type YearNumber } from "../../src/common/date";
-import { filters, guestFilter, initialState, type FilterState } from "../../src/vg/filterUtils";
+import { guestFilter } from "../../src/vg/filters";
+import { filters, initialState, type FilterState } from "../../src/vg/filterUtils";
 import { videoGame } from "../fixtures/vgRows";
+import { vgFilters } from "../../src/vg/filters";
 
 const state = (overrides: Partial<FilterState> = {}): Omit<FilterState, "filter"> => ({
   ...initialState,
@@ -127,5 +129,27 @@ describe("what guest mode hides", () => {
 
   it("matches the theme exactly rather than by substring", () => {
     expect(guestFilter(videoGame({ theme: ["Adulthood"] }))).toBe(true);
+  });
+});
+
+describe("the schema the drawer and the box are both drawn from", () => {
+  it("offers three toggles and five categories, in the order they are laid out", () => {
+    expect(vgFilters.toggles.map((toggle) => toggle.key)).toEqual(["endless", "unconfirmed", "pokemon"]);
+    expect(vgFilters.categories.map((category) => category.key)).toEqual([
+      "platform",
+      "genre",
+      "gameplay",
+      "publisher",
+      "franchise",
+    ]);
+  });
+
+  it("opens a search-within on the vocabularies this library holds hundreds of values in", () => {
+    // A reader picks a franchise or a person by typing; a genre or a format by scanning a list
+    // short enough to read. The flag is what tells the two apart, and B8's box reads it.
+    expect(vgFilters.categories.filter((category) => category.searchable).map((category) => category.key)).toEqual([
+      "publisher",
+      "franchise",
+    ]);
   });
 });

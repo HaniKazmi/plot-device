@@ -1,15 +1,10 @@
-import { Animation, Block } from "@mui/icons-material";
-import { genreToColour } from "../utils/types";
-import { networkToColour, typeToColour, type Show, type Type } from "./types";
-import { categoryOptions, franchiseOptions } from "../common/filterOptions";
-import { FilterCategory, FilterDrawer, FilterToggle } from "../common/FilterDrawer";
-import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
+import { FilterCategories, FilterToggles } from "../common/FilterControls";
+import { FilterDrawer } from "../common/FilterDrawer";
 import { useScheme } from "../common/useScheme";
-
-const toggles = [
-  { toggle: "abandoned", label: "Abandoned shows", Icon: Block },
-  { toggle: "anime", label: "Anime", Icon: Animation },
-] as const;
+import { showFilters } from "./filters";
+import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
+import { filterIcons } from "./module.lazy";
+import type { Show } from "./types";
 
 const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: FilterDispatch; data: Show[] }) => {
   const scheme = useScheme();
@@ -18,49 +13,22 @@ const Filter = ({ state, dispatch, data }: { state: FilterState; dispatch: Filte
     <FilterDrawer
       activeCount={activeCount(state)}
       onReset={() => dispatch({ type: "resetFilters" })}
-      toggles={toggles.map(({ toggle, label, Icon }) => (
-        <FilterToggle
-          key={toggle}
-          label={label}
-          icon={Icon}
-          checked={state[toggle]}
-          onChange={(checked) => dispatch({ type: "updateFilter", filter: toggle, value: checked })}
+      toggles={
+        <FilterToggles
+          schema={showFilters}
+          icons={filterIcons}
+          state={state}
+          dispatch={dispatch}
         />
-      ))}
+      }
       categories={
-        <>
-          <FilterCategory
-            label="genre"
-            options={categoryOptions(data, (show) => show.genre)}
-            selected={state.genre}
-            onChange={(value) => dispatch({ type: "updateFilter", filter: "genre", value })}
-            colourFor={(value) => genreToColour(value, scheme)}
-          />
-          <FilterCategory
-            label="network"
-            options={categoryOptions(data, (show) => show.network)}
-            selected={state.network}
-            onChange={(value) => dispatch({ type: "updateFilter", filter: "network", value })}
-            colourFor={(value) => networkToColour({ network: value }, scheme) || undefined}
-          />
-          <FilterCategory
-            label="type"
-            options={categoryOptions(data, (show) => show.type)}
-            selected={state.type}
-            onChange={(value) => dispatch({ type: "updateFilter", filter: "type", value: value as Type[] })}
-            colourFor={(value) => typeToColour({ type: value as Type }, scheme)}
-          />
-          <FilterCategory
-            label="franchise"
-            options={franchiseOptions(
-              data,
-              (show) => show.franchise,
-              (show) => show.name,
-            )}
-            selected={state.franchise}
-            onChange={(value) => dispatch({ type: "updateFilter", filter: "franchise", value })}
-          />
-        </>
+        <FilterCategories
+          schema={showFilters}
+          state={state}
+          dispatch={dispatch}
+          data={data}
+          scheme={scheme}
+        />
       }
     />
   );

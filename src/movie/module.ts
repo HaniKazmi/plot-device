@@ -1,7 +1,8 @@
 import type { MediumModule, OmniItem } from "../common/medium";
 import { movieEntry, movieSpan } from "./cardData";
 import { movieDataConfig } from "./converter";
-import { guestFilter, pageState } from "./filterUtils";
+import { guestFilter, movieFilters } from "./filters";
+import { pageState } from "./filterUtils";
 import { movieItemKey } from "./statsData";
 import { movieFranchise } from "./franchiseContext";
 import type { Measure, Movie } from "./types";
@@ -50,6 +51,7 @@ export const movieModule: MediumModule<Movie> = {
       .filter(Boolean)
       .join(" · "),
   measures: MEASURES,
+  filters: movieFilters,
   pageState,
   load: () => import("./module.lazy"),
 };

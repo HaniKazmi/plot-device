@@ -5,6 +5,8 @@ import { filters, initialState, type FilterState } from "../../src/omnibus/filte
 import { book } from "../fixtures/books";
 import { movie } from "../fixtures/movies";
 import { videoGame } from "../fixtures/vgRows";
+import { omniFilters } from "../../src/omnibus/filters";
+import { media } from "../../src/omnibus/types";
 
 const state = (overrides: Partial<FilterState> = {}): Omit<FilterState, "filter"> => ({
   ...initialState,
@@ -42,6 +44,13 @@ describe("the medium toggles", () => {
 
   it("keeps only the media still switched on", () => {
     const keep = filters(state({ game: false, movie: false }));
+
+    expect(keep(game)).toBe(false);
+    expect(keep(film)).toBe(false);
+  });
+
+  it("keeps nothing at all when every medium is off, one rule per switch composing to the empty page", () => {
+    const keep = filters(state({ game: false, show: false, movie: false, book: false }));
 
     expect(keep(game)).toBe(false);
     expect(keep(film)).toBe(false);
@@ -106,5 +115,20 @@ describe("the books switch", () => {
     expect(filters(state({ book: false }))(read)).toBe(false);
     expect(filters(state({ book: false }))(film)).toBe(true);
     expect(filters(state())(read)).toBe(true);
+  });
+});
+
+describe("the schema the drawer and the box are both drawn from", () => {
+  it("offers a switch per medium and the two vocabularies all four share", () => {
+    expect(omniFilters.toggles.map((toggle) => toggle.key)).toEqual([...media]);
+    expect(omniFilters.categories.map((category) => category.key)).toEqual(["genre", "franchise"]);
+  });
+
+  it("opens a search-within on the vocabularies this library holds hundreds of values in", () => {
+    // A reader picks a franchise or a person by typing; a genre or a format by scanning a list
+    // short enough to read. The flag is what tells the two apart, and B8's box reads it.
+    expect(omniFilters.categories.filter((category) => category.searchable).map((category) => category.key)).toEqual([
+      "franchise",
+    ]);
   });
 });

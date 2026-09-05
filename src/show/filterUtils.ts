@@ -6,8 +6,9 @@ import {
   type BaseFilterState,
   type FilterDispatchFor,
   type YearType,
-  selectedPredicates,
 } from "../common/filterReducer";
+import { schemaPredicates } from "../common/filterSchema";
+import { showFilters } from "./filters";
 
 export interface FilterState extends BaseFilterState<Show, Measure> {
   /** Whether Abandoned shows count — the pile that drags every average when it is in the picture. */
@@ -23,16 +24,6 @@ export interface FilterState extends BaseFilterState<Show, Measure> {
 export type FilterDispatch = FilterDispatchFor<FilterState>;
 
 /**
- * What guest mode hides on this tab: anime, which is also what the anime toggle drops — one rule
- * for the two, so the mode and the toggle cannot hide by two different definitions.
- *
- * Exported because the mode is applied to the library itself, above every tab: narrowing this
- * page's charts alone would leave a hidden show on screen through the franchise index and the
- * union, which are built from the library.
- */
-export const guestFilter: Predicate<Show> = (show) => show.type !== "anime";
-
-/**
  * The year cutoff, season-aware rather than the shared `yearPredicates`. The shared predicate
  * reads `startDate.year`, which for a show is its *first* season — so "in 2024" would keep only
  * shows that began that year, while the vitals card beside the control counts seasons started in
@@ -45,23 +36,12 @@ const showYearPredicates = (state: { yearTo: YearNumber; yearType: YearType }): 
   return [];
 };
 
+/**
+ * The tab's predicate: every per-field rule the schema states, and then the year scope, which
+ * belongs to no field and is a reading of the whole page rather than a narrowing of it.
+ */
 export const filters = (state: Omit<FilterState, "filter">): Predicate<Show> => {
-  const predicates: Predicate<Show>[] = [];
-
-  if (!state.abandoned) predicates.push((show) => show.status !== "Abandoned");
-  if (!state.anime) predicates.push(guestFilter);
-
-  // Matches the primary genre only, not `genres`: the charts group on `genre`, and a filter that
-  // also matched the secondary list would keep shows the Top Genre bar attributes elsewhere —
-  // the two halves of the page would disagree about what "Drama" holds.
-  predicates.push(
-    ...selectedPredicates(state.genre, (show: Show) => show.genre),
-    ...selectedPredicates(state.network, (show: Show) => show.network),
-    ...selectedPredicates(state.franchise, (show: Show) => show.franchise),
-    ...selectedPredicates(state.type, (show: Show) => show.type),
-  );
-
-  predicates.push(...showYearPredicates(state));
+  const predicates: Predicate<Show>[] = [...schemaPredicates(showFilters, state), ...showYearPredicates(state)];
 
   return (show: Show) => predicates.every((p) => p(show));
 };

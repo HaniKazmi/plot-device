@@ -1,6 +1,7 @@
 import type { MediumModule, OmniItem } from "../common/medium";
 import { bookEntry, bookSpan } from "./cardData";
 import { bookDataConfig } from "./converter";
+import { bookFilters } from "./filters";
 import { pageState } from "./filterUtils";
 import { bookItemKey } from "./statsData";
 import { bookFranchise } from "./franchiseContext";
@@ -48,6 +49,7 @@ export const bookModule: MediumModule<Book> = {
   secondaryText: (book) => [book.author, book.series],
   facts: (book) => [book.author, book.status, book.pages ? `${book.pages} pages` : ""].filter(Boolean).join(" · "),
   measures: MEASURES,
+  filters: bookFilters,
   pageState,
   load: () => import("./module.lazy"),
 };

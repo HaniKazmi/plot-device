@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { CURRENT_YEAR, YearMonthDay, type YearNumber } from "../../src/common/date";
-import { filters, guestFilter, initialState, type FilterState } from "../../src/movie/filterUtils";
+import { guestFilter } from "../../src/movie/filters";
+import { filters, initialState, type FilterState } from "../../src/movie/filterUtils";
 import { movie } from "../fixtures/movies";
+import { movieFilters } from "../../src/movie/filters";
 
 const state = (overrides: Partial<FilterState> = {}): Omit<FilterState, "filter"> => ({
   ...initialState,
@@ -90,5 +92,26 @@ describe("the year cutoff", () => {
     const keep = filters(state({ yearType: "upto", yearTo: CURRENT_YEAR }));
 
     expect(keep(movie({ startDate: YearMonthDay.get(CURRENT_YEAR, 6, 1) }))).toBe(true);
+  });
+});
+
+describe("the schema the drawer and the box are both drawn from", () => {
+  it("offers three toggles and four categories, in the order they are laid out", () => {
+    expect(movieFilters.toggles.map((toggle) => toggle.key)).toEqual(["home", "unscored", "anime"]);
+    expect(movieFilters.categories.map((category) => category.key)).toEqual([
+      "genre",
+      "rating",
+      "director",
+      "franchise",
+    ]);
+  });
+
+  it("opens a search-within on the vocabularies this library holds hundreds of values in", () => {
+    // A reader picks a franchise or a person by typing; a genre or a format by scanning a list
+    // short enough to read. The flag is what tells the two apart, and B8's box reads it.
+    expect(movieFilters.categories.filter((category) => category.searchable).map((category) => category.key)).toEqual([
+      "director",
+      "franchise",
+    ]);
   });
 });
