@@ -34,6 +34,36 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
+    <!-- Every card's artwork and every byte of data come from a host the parser cannot discover
+         until React has mounted, authorised and fetched: the handshake would otherwise start at the
+         first `<img>`. Games sit on their own bucket-as-subdomain origin, so that is a second
+         handshake and a second hint. `crossorigin` on the three that are read cross-origin — the
+         images carry `crossOrigin="anonymous"` so a card's colour can be sampled off the canvas,
+         and gapi reaches the Sheets API as a CORS XHR; a hint without it warms a connection the
+         real request cannot reuse. The two script hosts are plain. -->
+    <link
+      rel="preconnect"
+      href="https://storage.googleapis.com"
+      crossorigin
+    />
+    <link
+      rel="preconnect"
+      href="https://hanikazmi_plotdevice_vg_avif.storage.googleapis.com"
+      crossorigin
+    />
+    <link
+      rel="preconnect"
+      href="https://sheets.googleapis.com"
+      crossorigin
+    />
+    <link
+      rel="preconnect"
+      href="https://apis.google.com"
+    />
+    <link
+      rel="preconnect"
+      href="https://accounts.google.com"
+    />
     <title>Plot Device</title>
   </head>
   <body>
