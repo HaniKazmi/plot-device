@@ -8,6 +8,13 @@ import { BROWSER_TINT_VISIBLE } from "./chrome";
 type RailSection = ChipRailItem;
 
 /**
+ * How far off centre a pinned rail's chips sit before its padding answers for it, in pixels: the
+ * tint strip covering the top edge, the one pixel the sticky offset clips above, and the one pixel
+ * of rule below.
+ */
+const PINNED_BIAS = BROWSER_TINT_VISIBLE + 2;
+
+/**
  * How far below the top of the viewport an anchored section comes to rest, in pixels.
  *
  * The rail is the only thing pinned above it — the AppBar is `position: static` and has scrolled
@@ -159,16 +166,20 @@ export const SectionRail = (props: {
         borderBottom: 1,
         borderColor: "divider",
         paddingY: 1,
-        // Pinned, the strip Safari samples to colour the status bar stands in front of the rail's
-        // own top edge (`BROWSER_TINT_VISIBLE`, `chrome.ts`), so a symmetric padding leaves the
-        // chips crowded against it with all the air beneath them. The sliver is moved from one end
-        // of the rail to the other rather than added to it, so the rail stands the same height
-        // pinned or not and nothing below it shifts as it pins. Asked for under a coarse pointer
+        // Pinned, three things push the chips off centre, all the same way: the strip Safari
+        // samples to colour the status bar stands in front of the rail's top `BROWSER_TINT_VISIBLE`
+        // pixels (`chrome.ts`), the sticky offset above clips one more, and the rule along the
+        // bottom edge adds one under. Half of that bias moved from the bottom padding to the top
+        // puts the chips back in the middle of what is actually on screen.
+        //
+        // Moved rather than added, so the rail stands the same height pinned or not and nothing
+        // below it shifts as it pins; solved from the constant rather than stated, so raising the
+        // sliver cannot leave the rail balanced for the old one. Asked for under a coarse pointer
         // alone, which is where the strip is drawn at all.
         ...(stuck && {
           "@media (pointer: coarse)": {
-            paddingTop: `calc(${theme.spacing(1)} + ${BROWSER_TINT_VISIBLE}px)`,
-            paddingBottom: `calc(${theme.spacing(1)} - ${BROWSER_TINT_VISIBLE}px)`,
+            paddingTop: `calc(${theme.spacing(1)} + ${PINNED_BIAS / 2}px)`,
+            paddingBottom: `calc(${theme.spacing(1)} - ${PINNED_BIAS / 2}px)`,
           },
         }),
         display: "flex",
