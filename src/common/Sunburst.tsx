@@ -25,7 +25,10 @@ import { firstRing, generateSunburstData, ringOptions, sunburstRoot, type Sunbur
  * page, so the width is the whole of it and the box is square: `80vh` there wraps a 340px wheel in
  * 400px of blank paper.
  */
-const CHART_HEIGHT = { stacked: "min(calc(100vw - 64px), 480px)", beside: "min(80vh, 700px)" } as const;
+const CHART_HEIGHT = {
+  stacked: "min(calc(100vw - 64px), 480px)",
+  beside: "var(--paired-chart-height, min(80vh, 700px))",
+} as const;
 
 /** How many wedges the folded preview names before the rest become one bucket. */
 const PREVIEW_WEDGES = 5;

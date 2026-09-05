@@ -56,6 +56,28 @@ export const StatBand = ({ children }: { children: ReactNode }) => (
 );
 
 /**
+ * What each half of the pair takes, stated by the thing that makes them a pair.
+ *
+ * A sunburst is a circle whose diameter is its column's width, so it caps where a barchart would
+ * go on climbing: left to state their own heights the two end at `min(80vh, 700px)` and a bare
+ * `80vh`, which is 23px apart on a 1440x900 window and 263 on a 1200px-tall one, the shorter card
+ * ending inside a row the taller has already stretched.
+ *
+ * A custom property rather than a prop or a context: each chart falls back to its own full-width
+ * height where nothing sets one, so the Omnibus's own barchart is untouched without either shell
+ * having to ask whether it is in a pair.
+ *
+ * The cells fill the row too. The two carry the same chart box but not the same header — the
+ * sunburst's nesting controls take a second row at the one width where three rings and a title do
+ * not share a line — so a card left at its content's height stops short by that difference.
+ */
+const PAIR_CELL_SX = {
+  "--paired-chart-height": "min(80vh, 700px)",
+  display: "flex",
+  "& > *": { flexGrow: 1, minWidth: 0 },
+} as const;
+
+/**
  * Two charts side by side once there is width for them, stacked below it.
  *
  * The pairing is the point wherever it appears: the two answer the same question — where the hours
@@ -67,8 +89,18 @@ export const ChartPair = ({ left, right }: { left: ReactNode; right: ReactNode }
     container
     spacing={2}
   >
-    <Grid size={{ xs: 12, md: 6 }}>{left}</Grid>
-    <Grid size={{ xs: 12, md: 6 }}>{right}</Grid>
+    <Grid
+      size={{ xs: 12, md: 6 }}
+      sx={PAIR_CELL_SX}
+    >
+      {left}
+    </Grid>
+    <Grid
+      size={{ xs: 12, md: 6 }}
+      sx={PAIR_CELL_SX}
+    >
+      {right}
+    </Grid>
   </Grid>
 );
 
