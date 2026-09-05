@@ -41,6 +41,10 @@ export const vgModule: MediumModule<VideoGame> = {
   span: gameSpan,
   banner: (game) => game.banner,
   title: (game) => game.name,
+  /** A game is already one row per work, so the row itself is the work. */
+  work: (game) => game,
+  secondaryText: (game) => [game.developer, game.platform],
+  facts: (game, hours) => [game.platform, game.status, hours ? `${hours} hours` : ""].filter(Boolean).join(" · "),
   measures: MEASURES,
   load: () => import("./module.lazy"),
 };

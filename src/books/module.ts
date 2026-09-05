@@ -42,6 +42,10 @@ export const bookModule: MediumModule<Book> = {
   // stand on a wall — the same absence a game without a banner already answers.
   banner: (book) => book.banner || undefined,
   title: (book) => book.name,
+  // Title and release, as a film's work is: a reread joins the first reading.
+  work: (book) => `${book.name}-${book.releaseDate}`,
+  secondaryText: (book) => [book.author, book.series],
+  facts: (book) => [book.author, book.status, book.pages ? `${book.pages} pages` : ""].filter(Boolean).join(" · "),
   measures: MEASURES,
   load: () => import("./module.lazy"),
 };

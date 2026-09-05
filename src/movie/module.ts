@@ -41,6 +41,14 @@ export const movieModule: MediumModule<Movie> = {
   span: movieSpan,
   banner: (movie) => movie.banner,
   title: (movie) => movie.name,
+  // Title and release, so a rewatch joins the first viewing while a remake of the same name stays
+  // a work of its own.
+  work: (movie) => `${movie.name}-${movie.releaseDate}`,
+  secondaryText: (movie) => [movie.director],
+  facts: (movie) =>
+    [movie.cinema ? "Cinema" : "Home", movie.score === undefined ? "" : `${movie.score}/10`, movie.director]
+      .filter(Boolean)
+      .join(" · "),
   measures: MEASURES,
   load: () => import("./module.lazy"),
 };

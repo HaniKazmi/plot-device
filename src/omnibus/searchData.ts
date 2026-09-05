@@ -3,7 +3,7 @@ import { franchiseIndex } from "../common/franchiseIndex";
 import { YearMonthDay, type Year } from "../common/date";
 import { mediumToLabel, type Medium } from "../utils/types";
 import { namesTheSameThing } from "../utils/stringUtils";
-import { MEDIA_LAZY } from "../app/mediaLazy";
+import { MEDIA } from "../app/media";
 import type { Season } from "../show/types";
 import { omniHours, type OmniItem } from "./adapter";
 import { galleryGroups, galleryStripOrder, galleryWorks, workOf, type ShelfItem } from "./galleryData";
@@ -115,14 +115,14 @@ const representative = (members: OmniItem[]): OmniItem =>
  * places a reader remembers a work by when the title escapes them. Blank cells are dropped, since
  * a blank matches nothing but would still be scanned.
  */
-const secondaryText = (item: OmniItem): string[] => MEDIA_LAZY[item.medium].secondaryText(item.source);
+const secondaryText = (item: OmniItem): string[] => MEDIA[item.medium].secondaryText(item.source);
 
 /**
  * The line a hit is told by: the facts its hover card leads with, in each medium's own words.
  * Hours over every row of the work, so a show's are its seasons' together.
  */
 const factsOf = (item: OmniItem, members: OmniItem[]): string =>
-  MEDIA_LAZY[item.medium].facts(item.source, omniHours(members));
+  MEDIA[item.medium].facts(item.source, omniHours(members));
 
 /** One group of the palette's answer: the franchises, or one medium's works. */
 export interface SearchGroup {

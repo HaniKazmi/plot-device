@@ -10,7 +10,7 @@ import {
   type Colour,
   type Scheme,
 } from "../utils/types";
-import { MEDIA_LAZY } from "../app/mediaLazy";
+import { MEDIA } from "../app/media";
 import { measureOf, omniBanner, type OmniItem } from "./adapter";
 import type { Measure } from "./types";
 import "../utils/arrayUtils";
@@ -112,7 +112,7 @@ export const galleryItems = (items: OmniItem[]): OmniItem[] => items.filter((ite
  * medium answers with whatever collapses its own rewatches and rereads without joining two works
  * that merely share a title.
  */
-export const workOf = (item: OmniItem): unknown => MEDIA_LAZY[item.medium].work(item.source);
+export const workOf = (item: OmniItem): unknown => MEDIA[item.medium].work(item.source);
 
 /**
  * A work as it stands on a shelf: the union's own item, plus when the reader was last in it.

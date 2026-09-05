@@ -86,13 +86,14 @@ export type MediumSpan = Pick<FranchiseEntry, "start" | "end" | "precise">;
 type CardProps<S> = Omit<CardMediaImageProps, "image" | "alt" | "detailComponent"> & { item: S };
 
 /**
- * What only the browse surfaces ask of a medium, behind the chunk that draws them.
+ * A medium's components, behind the chunk that draws them.
  *
  * Split off the eager half because a registry keyed by medium is reachable from the shell, so
  * anything it names statically lands in the first bundle a visitor downloads — where every card
- * and hover card in this app is deliberately not. The three accessors below sit here for the
- * weaker version of the same reason: the gallery and the search palette are the only things that
- * ask them, and both are already behind a chunk of their own.
+ * and hover card in this app is deliberately not. The seam is components and nothing else: a plain
+ * accessor put here reaches its domain's cards from whatever asks it, which drags MUI and the card
+ * shell into pure data modules — `galleryData.ts` and `searchData.ts` render nothing, and
+ * `franchiseUnionData.ts` takes its hover cards as a parameter to stay that way.
  *
  * The members are declared as methods rather than as properties, which is what lets a
  * `MediumLazy<Season>` sit in a record whose element type names no domain: TypeScript checks a
@@ -102,15 +103,6 @@ type CardProps<S> = Omit<CardMediaImageProps, "image" | "alt" | "detailComponent
 export interface MediumLazy<S> {
   CardMediaImage(props: CardProps<S>): ReturnType<FunctionComponent>;
   HoverCard(props: { item: S }): ReturnType<FunctionComponent>;
-  /**
-   * The work an item belongs to, which is what a shelf lists one picture of: a show is one banner
-   * however many seasons it ran. Opaque, being a `Map` key and nothing else.
-   */
-  work(item: S): unknown;
-  /** What a hit can be found by besides its name: the people and places a reader remembers it by. */
-  secondaryText(item: S): string[];
-  /** The line a hit is told by, in this medium's own words, over hours already summed. */
-  facts(item: S, hours: number): string;
 }
 
 /**
@@ -152,6 +144,15 @@ export interface MediumModule<T, S = T> {
   banner(item: S): string | undefined;
   /** What the item is called on a card, where that is more than the name the union carries. */
   title(item: S): string;
+  /**
+   * The work an item belongs to, which is what a shelf lists one picture of: a show is one banner
+   * however many seasons it ran. Opaque, being a `Map` key and nothing else.
+   */
+  work(item: S): unknown;
+  /** What a hit can be found by besides its name: the people and places a reader remembers it by. */
+  secondaryText(item: S): string[];
+  /** The line a hit is told by, in this medium's own words, over hours already summed. */
+  facts(item: S, hours: number): string;
   measures: readonly string[];
   load(): Promise<MediumLazy<S>>;
 }

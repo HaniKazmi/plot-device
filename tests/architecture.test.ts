@@ -89,7 +89,10 @@ describe("the registry never reaches back for a tab", () => {
   // mounted by the shell, below both.
   const RESOLVES_TAB_IDS = "LibraryProvider.tsx";
 
-  const namesTabs = (file: string) => importsFrom(file).filter((specifier) => /(^|\/)tabs$/.test(specifier));
+  // The extension is optional in the specifier and written both ways here — `vg.tsx` imports
+  // `"./filterUtils.ts"` beside `"../tabs"` — so a pattern anchored on the bare name alone would
+  // pass exactly the import it exists to catch.
+  const namesTabs = (file: string) => importsFrom(file).filter((specifier) => /(^|\/)tabs(\.tsx?)?$/.test(specifier));
 
   it("has no import of tabs.ts in app/, but for the one file that resolves an id to a tab", () => {
     const offenders = sourceFilesUnder(COMPOSING)
