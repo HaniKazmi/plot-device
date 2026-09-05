@@ -1,5 +1,4 @@
-import { franchiseOptions } from "../common/filterOptions";
-import type { FilterSchema } from "../common/filterSchema";
+import { franchiseCategory, type FilterSchema } from "../common/filterSchema";
 import { genreToColour, mediumToLabel } from "../utils/types";
 import type { OmniItem } from "../common/medium";
 import type { FilterState } from "./filterUtils";
@@ -33,17 +32,6 @@ export const omniFilters: FilterSchema<OmniItem, FilterState> = {
       // whichever medium's rows it is narrowing.
       colourFor: genreToColour,
     },
-    {
-      key: "franchise",
-      label: "franchise",
-      valueOf: (item) => item.franchise,
-      options: (data) =>
-        franchiseOptions(
-          data,
-          (item) => item.franchise,
-          (item) => item.name,
-        ),
-      searchable: true,
-    },
+    franchiseCategory(),
   ],
 };

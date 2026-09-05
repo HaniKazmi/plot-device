@@ -1,5 +1,4 @@
-import { franchiseOptions } from "../common/filterOptions";
-import type { FilterSchema } from "../common/filterSchema";
+import { franchiseCategory, type FilterSchema } from "../common/filterSchema";
 import { genreToColour, type Predicate } from "../utils/types";
 import type { FilterState } from "./filterUtils";
 import { networkToColour, typeToColour, type Show, type Type } from "./types";
@@ -43,17 +42,6 @@ export const showFilters: FilterSchema<Show, FilterState> = {
       valueOf: (show) => show.type,
       colourFor: (value, scheme) => typeToColour({ type: value as Type }, scheme),
     },
-    {
-      key: "franchise",
-      label: "franchise",
-      valueOf: (show) => show.franchise,
-      options: (data) =>
-        franchiseOptions(
-          data,
-          (show) => show.franchise,
-          (show) => show.name,
-        ),
-      searchable: true,
-    },
+    franchiseCategory(),
   ],
 };

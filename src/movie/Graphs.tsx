@@ -8,7 +8,9 @@ import Stats from "./Stats";
 import Sunburst from "./Sunburst";
 import Barchart from "./Barchart";
 import WatchTimeline from "./WatchTimeline";
-import Filter from "./Filter";
+import { SchemaFilterDrawer } from "../common/FilterControls";
+import { movieFilters } from "./filters";
+import { filterIcons } from "./module.lazy";
 import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
 import { FilterChip } from "../common/FilterDrawer";
 import { MeasureControl } from "../common/SelectionComponents";
@@ -41,10 +43,14 @@ const SuspenseBlock = ({
       filterState={filterState}
       filterDispatch={filterDispatch}
     />
-    <Filter
+    <SchemaFilterDrawer
+      schema={movieFilters}
+      icons={filterIcons}
       state={filterState}
       dispatch={filterDispatch}
       data={unfilteredData}
+      activeCount={activeCount(filterState)}
+      onReset={() => filterDispatch({ type: "resetFilters" })}
     />
   </FranchiseContext.Provider>
 );

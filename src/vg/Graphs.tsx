@@ -13,7 +13,9 @@ import { franchiseIndex } from "../common/franchiseIndex";
 import { memo, useDeferredValue } from "react";
 import { Stack } from "@mui/material";
 import { usePhone } from "../common/breakpoints";
-import Filter from "./Filter";
+import { SchemaFilterDrawer } from "../common/FilterControls";
+import { vgFilters } from "./filters";
+import { filterIcons } from "./module.lazy";
 import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
 import { FilterChip } from "../common/FilterDrawer";
 import { MeasureControl } from "../common/SelectionComponents";
@@ -44,10 +46,14 @@ const SuspenseBlock = ({
       filterState={filterState}
       filterDispatch={filterDispatch}
     />
-    <Filter
+    <SchemaFilterDrawer
+      schema={vgFilters}
+      icons={filterIcons}
       state={filterState}
       dispatch={filterDispatch}
       data={unfilteredData}
+      activeCount={activeCount(filterState)}
+      onReset={() => filterDispatch({ type: "resetFilters" })}
     />
   </FranchiseContext.Provider>
 );

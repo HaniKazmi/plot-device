@@ -9,7 +9,9 @@ import Stats from "./Stats";
 import Sunburst from "./Sunburst";
 import Barchart from "./Barchart";
 import Timeline from "./Timeline";
-import Filter from "./Filter";
+import { SchemaFilterDrawer } from "../common/FilterControls";
+import { bookFilters } from "./filters";
+import { filterIcons } from "./module.lazy";
 import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
 import { FilterChip } from "../common/FilterDrawer";
 import { MeasureControl } from "../common/SelectionComponents";
@@ -59,10 +61,14 @@ const SuspenseBlock = ({
         filterState={filterState}
         filterDispatch={filterDispatch}
       />
-      <Filter
+      <SchemaFilterDrawer
+        schema={bookFilters}
+        icons={filterIcons}
         state={filterState}
         dispatch={filterDispatch}
         data={unfilteredData}
+        activeCount={activeCount(filterState)}
+        onReset={() => filterDispatch({ type: "resetFilters" })}
       />
     </BookEpochProvider>
   </FranchiseContext.Provider>

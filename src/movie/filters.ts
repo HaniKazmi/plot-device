@@ -1,5 +1,4 @@
-import { franchiseOptions } from "../common/filterOptions";
-import type { FilterSchema } from "../common/filterSchema";
+import { franchiseCategory, type FilterSchema } from "../common/filterSchema";
 import { ageRatingToColour, genreToColour, type AgeRating, type Predicate } from "../utils/types";
 import type { FilterState } from "./filterUtils";
 import type { Movie } from "./types";
@@ -31,17 +30,6 @@ export const movieFilters: FilterSchema<Movie, FilterState> = {
       colourFor: (value, scheme) => ageRatingToColour(value as AgeRating, scheme),
     },
     { key: "director", label: "director", valueOf: (movie) => movie.director, searchable: true },
-    {
-      key: "franchise",
-      label: "franchise",
-      valueOf: (movie) => movie.franchise,
-      options: (data) =>
-        franchiseOptions(
-          data,
-          (movie) => movie.franchise,
-          (movie) => movie.name,
-        ),
-      searchable: true,
-    },
+    franchiseCategory(),
   ],
 };

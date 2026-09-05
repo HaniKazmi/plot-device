@@ -1,9 +1,7 @@
 import { Year } from "../common/date";
-import { franchiseOptions } from "../common/filterOptions";
-import type { FilterSchema } from "../common/filterSchema";
+import { franchiseCategory, type FilterSchema } from "../common/filterSchema";
 import { genreToColour, type Predicate } from "../utils/types";
 import type { FilterState } from "./filterUtils";
-import { vgFranchise } from "./franchiseContext";
 import { platformToColor, type Platform, type VideoGame } from "./types";
 
 /**
@@ -55,12 +53,6 @@ export const vgFilters: FilterSchema<VideoGame, FilterState> = {
     },
     { key: "gameplay", label: "gameplay", valueOf: (vg) => vg.gameplay },
     { key: "publisher", label: "publisher", valueOf: (vg) => vg.publisher, searchable: true },
-    {
-      key: "franchise",
-      label: "franchise",
-      valueOf: (vg) => vg.franchise,
-      options: (data) => franchiseOptions(data, vgFranchise, (vg) => vg.name),
-      searchable: true,
-    },
+    franchiseCategory(),
   ],
 };

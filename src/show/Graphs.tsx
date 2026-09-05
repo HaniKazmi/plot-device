@@ -19,7 +19,9 @@ import { statusToColour } from "../utils/types";
 import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
 import { FranchiseContext, showFranchise } from "./franchiseContext";
 import { franchiseIndex } from "../common/franchiseIndex";
-import Filter from "./Filter";
+import { SchemaFilterDrawer } from "../common/FilterControls";
+import { showFilters } from "./filters";
+import { filterIcons } from "./module.lazy";
 import { memo, useDeferredValue } from "react";
 import { format } from "../utils/mathUtils";
 import { finishedCount } from "../common/finishedData";
@@ -46,10 +48,14 @@ const SuspenseBlock = ({
       filterState={filterState}
       filterDispatch={filterDispatch}
     />
-    <Filter
+    <SchemaFilterDrawer
+      schema={showFilters}
+      icons={filterIcons}
       state={filterState}
       dispatch={filterDispatch}
       data={unfilteredData}
+      activeCount={activeCount(filterState)}
+      onReset={() => filterDispatch({ type: "resetFilters" })}
     />
   </FranchiseContext.Provider>
 );

@@ -1,5 +1,6 @@
 import { type Dispatch } from "react";
 import { CURRENT_YEAR, type YearNumber } from "./date";
+import { schemaPredicates, type FilterSchema } from "./filterSchema";
 import { createStore, type Store } from "./store";
 import type { Predicate } from "../utils/types";
 
@@ -95,9 +96,19 @@ interface YearPredicates {
  * no start date to read at all, and a copy written over that field is two statements of one
  * semantic that nothing keeps in step.
  */
+/**
+ * The year a record with a start date counts towards, which is the default the overload above
+ * offers a caller naming no accessor.
+ *
+ * The assertion is what that overload's constraint checks at the call site: a reducer built over a
+ * generic record cannot re-check it, so a domain whose model has no start date states its own rule
+ * instead, as the composing tab does.
+ */
+const startDateYear = <T>(item: T): YearNumber => (item as { startDate: { year: YearNumber } }).startDate.year;
+
 export const yearPredicates: YearPredicates = <T>(
   state: YearState,
-  yearOf: (item: T) => YearNumber = (item) => (item as { startDate: { year: YearNumber } }).startDate.year,
+  yearOf: (item: T) => YearNumber = startDateYear,
 ): Predicate<T>[] => {
   if (state.yearType === "matching") return [(item) => yearOf(item) === state.yearTo];
   if (state.yearTo !== CURRENT_YEAR) return [(item) => yearOf(item) <= state.yearTo];
@@ -105,17 +116,11 @@ export const yearPredicates: YearPredicates = <T>(
 };
 
 /**
- * A multi-select's predicate, or none where nothing is selected.
- *
- * Every category control in every domain means the same thing — an empty selection is no
- * constraint rather than a constraint nothing satisfies. Stated once, a change to what matching
- * means is one edit; stated per category per domain, it is fifteen, and fifteen chances to differ.
- *
- * Returns a list so a caller spreads it, which is what lets an inactive control contribute
- * nothing at all instead of a predicate that is always true.
+ * How a tab reads the year scope, where that is not the shared rule over a record's start date: a
+ * model whose year is an attribution rather than a date, or one whose page asks the scope of
+ * something nested — a show's seasons rather than the show.
  */
-export const selectedPredicates = <T>(selected: readonly string[], valueOf: (item: T) => string): Predicate<T>[] =>
-  selected.length > 0 ? [(item) => selected.includes(valueOf(item))] : [];
+export type YearRule<T> = (state: YearState) => Predicate<T>[];
 
 /**
  * What the state holds that is not a filter: the unit its figures are counted in, the composed
@@ -150,10 +155,17 @@ export const countActiveFilters = (state: object, initialValues: object): number
   }).length;
 
 /**
- * Builds a domain's filter reducer and the store its state lives in. Each domain supplies only
- * what is actually its own: the initial values of its own fields and how to turn that state into a
- * predicate. Everything else — the action shape, rebuilding `filter` after each change, and
- * counting what the reader has changed — is the same everywhere and lives here.
+ * Builds a domain's filter reducer and the store its state lives in, from the schema that already
+ * says what the tab can be narrowed by. Each domain supplies only what its schema cannot: the unit
+ * its figures are counted in, where its year scope starts, and — where its model answers the year
+ * with something other than a start date — how to read that. Everything else, the action shape,
+ * rebuilding `filter` after each change and counting what the reader has changed, is the same
+ * everywhere and lives here.
+ *
+ * The unfiltered state is the schema's own: a toggle starts on, since `hides` applies while one is
+ * off, and a category starts empty, an empty selection being no constraint. Derived rather than
+ * restated per domain, so a filter added to a schema cannot arrive without a starting value — a
+ * toggle left out would start `undefined`, which reads as off and hides rows on first paint.
  *
  * The state is held in a store rather than in a `useReducer` because the surfaces that read it are
  * not all inside the tab: the rail and the search box stand beside the tab's charts rather than
@@ -162,10 +174,36 @@ export const countActiveFilters = (state: object, initialValues: object): number
  * change one of them made. It also means a store per domain at module scope, which is what
  * `createStore` is written to allow: it reads no browser global while it loads.
  */
-export const createFilterReducer = <T, M extends string, S extends BaseFilterState<T, M>>(
-  initialValues: Omit<S, "filter">,
-  filters: (state: Omit<S, "filter">) => Predicate<T>,
-) => {
+export const createFilterReducer = <T, M extends string, S extends BaseFilterState<T, M>>({
+  schema,
+  initial,
+  yearRule = yearPredicates as YearRule<T>,
+}: {
+  schema: FilterSchema<T, S>;
+  /** What the page holds beside its filters: the measure it counts in and the scope it opens at. */
+  initial: { measure: M; yearType: YearType; yearTo: YearNumber };
+  yearRule?: YearRule<T>;
+}) => {
+  const initialValues = {
+    ...Object.fromEntries(schema.toggles.map((toggle) => [toggle.key, true])),
+    ...Object.fromEntries(schema.categories.map((category) => [category.key, []])),
+    ...initial,
+    // Keys and their fields are checked against each other where the schema is written; built back
+    // into a state object they are strings again, which is a lookup TypeScript cannot reduce.
+  } as Omit<S, "filter">;
+
+  /**
+   * The tab's predicate: every per-field rule the schema states, and then the year scope, which
+   * belongs to no field and is a reading of the whole page rather than a narrowing of it.
+   */
+  const filters = (state: Omit<S, "filter">): Predicate<T> => {
+    // `S` extends the base state, so the scope's two fields are on it; `Omit` over a generic is a
+    // lookup TypeScript defers, so it cannot see that here.
+    const predicates = [...schemaPredicates(schema, state), ...yearRule(state as unknown as YearState)];
+
+    return (item: T) => predicates.every((predicate) => predicate(item));
+  };
+
   const withFilter = (state: Omit<S, "filter">): S => ({ ...state, filter: filters(state) }) as S;
 
   const initialState = withFilter(initialValues);
@@ -219,12 +257,12 @@ export const createFilterReducer = <T, M extends string, S extends BaseFilterSta
 
   /**
    * The badge's figure, bound to the initial values this reducer already holds rather than asked
-   * of each domain's own `Filter.tsx` — five call sites naming their own baseline are five that
-   * can name the wrong one.
+   * of each surface drawing the filters — a call site naming its own baseline is one that can name
+   * the wrong one.
    */
   const activeCount = (state: S) => countActiveFilters(state, initialValues);
 
-  // `reducer` and `initialState` come back out alongside the store so the transitions can be
-  // exercised as plain values. Nothing in the app reads those two.
-  return { store, useFilterReducer, reducer, initialState, activeCount };
+  // `filters`, `reducer` and `initialState` come back out alongside the store so the composed
+  // predicate and the transitions can be exercised as plain values. Nothing in the app reads them.
+  return { store, useFilterReducer, filters, reducer, initialState, activeCount };
 };

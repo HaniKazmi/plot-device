@@ -1,5 +1,4 @@
-import { categoryOptions } from "./filterOptions";
-import { selectedPredicates } from "./filterReducer";
+import { categoryOptions, franchiseOptions } from "./filterOptions";
 import type { Colour, KeysMatching, Predicate, Scheme } from "../utils/types";
 
 /**
@@ -58,6 +57,31 @@ export interface FilterCategory<T, S> {
   searchable?: boolean;
 }
 
+/**
+ * The franchise select, which every tab offers on the same terms: the column each sheet writes a
+ * series into, and — where the entry names no series — the item's own title, which
+ * `franchiseOptions` erases so the list holds only what actually groups anything.
+ *
+ * Stated once rather than per tab, so the five cannot disagree about what belongs on that list.
+ * The state it names is the one field it needs, and a category is covariant in its key, so it sits
+ * in any tab's schema whose own state holds a `franchise` list.
+ */
+export const franchiseCategory = <T extends { franchise: string; name: string }>(): FilterCategory<
+  T,
+  { franchise: string[] }
+> => ({
+  key: "franchise",
+  label: "franchise",
+  valueOf: (item) => item.franchise,
+  options: (data) =>
+    franchiseOptions(
+      data,
+      (item) => item.franchise,
+      (item) => item.name,
+    ),
+  searchable: true,
+});
+
 /** Everything a tab offers as a filter, in the order the surface drawing it lays the controls out. */
 export interface FilterSchema<T, S> {
   toggles: readonly FilterToggle<T, S>[];
@@ -84,6 +108,19 @@ export type PageSchema = FilterSchema<unknown, never>;
  */
 export const categoryValues = <T, S>(category: FilterCategory<T, S>, data: readonly T[]): string[] =>
   category.options ? category.options(data) : categoryOptions(data, (item) => category.valueOf(item));
+
+/**
+ * A multi-select's predicate, or none where nothing is selected.
+ *
+ * Every category control in every domain means the same thing — an empty selection is no
+ * constraint rather than a constraint nothing satisfies. Stated once, a change to what matching
+ * means is one edit; stated per category per domain, it is fifteen, and fifteen chances to differ.
+ *
+ * Returns a list so a caller spreads it, which is what lets an inactive control contribute
+ * nothing at all instead of a predicate that is always true.
+ */
+export const selectedPredicates = <T>(selected: readonly string[], valueOf: (item: T) => string): Predicate<T>[] =>
+  selected.length > 0 ? [(item) => selected.includes(valueOf(item))] : [];
 
 /**
  * The predicates a schema and a state compose to: each toggle's rule while that toggle is off, and

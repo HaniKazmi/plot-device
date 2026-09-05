@@ -7,7 +7,6 @@ import {
   type FilterDispatchFor,
   type YearType,
 } from "../common/filterReducer";
-import { schemaPredicates } from "../common/filterSchema";
 import { showFilters } from "./filters";
 
 export interface FilterState extends BaseFilterState<Show, Measure> {
@@ -36,33 +35,15 @@ const showYearPredicates = (state: { yearTo: YearNumber; yearType: YearType }): 
   return [];
 };
 
-/**
- * The tab's predicate: every per-field rule the schema states, and then the year scope, which
- * belongs to no field and is a reading of the whole page rather than a narrowing of it.
- */
-export const filters = (state: Omit<FilterState, "filter">): Predicate<Show> => {
-  const predicates: Predicate<Show>[] = [...schemaPredicates(showFilters, state), ...showYearPredicates(state)];
-
-  return (show: Show) => predicates.every((p) => p(show));
-};
-
 export const {
   store: pageState,
   useFilterReducer,
+  filters,
   reducer,
   initialState,
   activeCount,
-} = createFilterReducer<Show, Measure, FilterState>(
-  {
-    abandoned: true,
-    anime: true,
-    genre: [],
-    network: [],
-    franchise: [],
-    type: [],
-    measure: "Episodes",
-    yearType: "upto",
-    yearTo: CURRENT_YEAR,
-  },
-  filters,
-);
+} = createFilterReducer<Show, Measure, FilterState>({
+  schema: showFilters,
+  initial: { measure: "Episodes", yearType: "upto", yearTo: CURRENT_YEAR },
+  yearRule: showYearPredicates,
+});

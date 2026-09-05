@@ -1,7 +1,8 @@
 import type { SvgIconComponent } from "@mui/icons-material";
-import { FilterCategory, FilterToggle } from "./FilterDrawer";
+import { FilterCategory, FilterDrawer, FilterToggle } from "./FilterDrawer";
 import type { FilterDispatchFor } from "./filterReducer";
 import { categoryValues, type FilterSchema } from "./filterSchema";
+import { useScheme } from "./useScheme";
 import type { Scheme } from "../utils/types";
 
 /**
@@ -25,7 +26,7 @@ import type { Scheme } from "../utils/types";
  * cannot reduce — so the assertions are here, in the one place that draws every domain's schema,
  * rather than in each domain's own file.
  */
-export const FilterToggles = <T, S>({
+const FilterToggles = <T, S>({
   schema,
   icons,
   state,
@@ -56,7 +57,7 @@ export const FilterToggles = <T, S>({
 };
 
 /** The schema's multi-selects, each over the values `categoryValues` answers for it. */
-export const FilterCategories = <T, S>({
+const FilterCategories = <T, S>({
   schema,
   state,
   dispatch,
@@ -92,5 +93,61 @@ export const FilterCategories = <T, S>({
         );
       })}
     </>
+  );
+};
+
+/**
+ * A page's whole filter surface, from its schema: the drawer, the toggles in it and the selects
+ * under them, for every tab there is.
+ *
+ * One component rather than one per tab, because what a tab actually varies is its schema, its
+ * icons and its records — and a copy per domain is five files that can drift in what a drawer does
+ * with a filter, where the filters themselves are already stated as data. The state and the
+ * dispatch are the tab's own, so the drawer sets exactly what the charts beside it read.
+ *
+ * Both type parameters are inferred from the schema, which is what keeps the state, the dispatch
+ * and the data at the call site checked against the tab whose filters are being drawn.
+ */
+export const SchemaFilterDrawer = <T, S>({
+  schema,
+  icons,
+  state,
+  dispatch,
+  data,
+  activeCount,
+  onReset,
+}: {
+  schema: FilterSchema<T, S>;
+  icons: Record<string, SvgIconComponent>;
+  state: Omit<S, "filter">;
+  dispatch: FilterDispatchFor<S>;
+  data: readonly T[];
+  activeCount: number;
+  onReset: () => void;
+}) => {
+  const scheme = useScheme();
+
+  return (
+    <FilterDrawer
+      activeCount={activeCount}
+      onReset={onReset}
+      toggles={
+        <FilterToggles
+          schema={schema}
+          icons={icons}
+          state={state}
+          dispatch={dispatch}
+        />
+      }
+      categories={
+        <FilterCategories
+          schema={schema}
+          state={state}
+          dispatch={dispatch}
+          data={data}
+          scheme={scheme}
+        />
+      }
+    />
   );
 };
