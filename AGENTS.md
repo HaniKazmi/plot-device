@@ -24,7 +24,7 @@ All of these pass cleanly on `master`, so any output is yours. TypeScript is str
 
 ## Tests
 
-`tests/` mirrors `src/` one for one across 62 files, each importing its subject at the mirrored `src/` path. `tests/fixtures/` holds raw sheet rows as `arrayToJson` hands them over, domain-object builders, and the independent WCAG implementation the fill contract is checked through.
+`tests/` mirrors `src/` one for one across 64 files, each importing its subject at the mirrored `src/` path. `tests/fixtures/` holds raw sheet rows as `arrayToJson` hands them over, domain-object builders, and the independent WCAG implementation the fill contract is checked through.
 
 The suite is pure logic in a `node` environment; `vitest.config.ts` stays separate from `vite.config.ts`, keeping the React Compiler's babel plugin out of the test transform. Vitest globals are off — import `describe`/`it`/`expect` explicitly, since a `types` array in `tsconfig.json` would drop the `@types` packages `src/` picks up implicitly.
 
@@ -77,7 +77,7 @@ babel({
 }),
 ```
 
-Then `npx vite build 2>&1 | grep -E '^OK|^BAIL'`. Baseline is **242 compiled, 0 bailed** — any `BAIL` line is yours. The commonest cause is a destructured prop default, surfacing as `BuildHIR::lowerAssignment … got: AssignmentPattern`; a computed object key (`{ [theme.breakpoints.down("sm")]: {...} }`) surfaces as `BuildHIR::lowerExpression … CallExpression key in ObjectExpression` — pull the literal out to a plain function taking the varying pieces as arguments; a `MethodCall` bailout is a different failure, cleared by moving the computation out of the component. **Revert the logger afterwards.** Grepping the bundle for `useMemoCache` proves nothing instead — minification eats the name.
+Then `npx vite build 2>&1 | grep -E '^OK|^BAIL'`. Baseline is **255 compiled, 0 bailed** — any `BAIL` line is yours. The commonest cause is a destructured prop default, surfacing as `BuildHIR::lowerAssignment … got: AssignmentPattern`; a computed object key (`{ [theme.breakpoints.down("sm")]: {...} }`) surfaces as `BuildHIR::lowerExpression … CallExpression key in ObjectExpression` — pull the literal out to a plain function taking the varying pieces as arguments; a `MethodCall` bailout is a different failure, cleared by moving the computation out of the component. **Revert the logger afterwards.** Grepping the bundle for `useMemoCache` proves nothing instead — minification eats the name.
 
 ## Traps
 
@@ -86,6 +86,7 @@ Ordered by how quietly they fail.
 - **Never name a field `somethingDate` unless it is a `PlainDate`.** `useData`'s reviver converts _any_ key containing `"Date"`: a 4- or 10-character value is miscast as a `Year` or `YearMonthDay`, anything else throws and drops the whole cached copy, and either way only after a reload.
 - **Never read a browser global at module scope.** `const storage = localStorage` at the top of a module makes importing it throw where the global is absent, the Vitest `node` environment included; read it inside the function that needs it, or behind a `typeof` check. The guard covers `localStorage`, `sessionStorage`, `document`, `window` and `navigator`.
 - **Never put a bare colour after a comma in the `background` shorthand.** Only the last layer carries a background-colour, space-separated, so `linear-gradient(a, a), ${colour}` computes to `linear-gradient(a, a), none`. Set the two properties separately.
+- **The `/` shortcut opens search unless focus is in a field.** `omnibus/Search.tsx` listens on the document for ⌘K, Ctrl+K and a bare `/`, and answers the slash only where the target is not an input, textarea, select or contenteditable. A new text field anywhere in the app is covered by that test; a control that takes typed slashes without being one of those four is not, and a reader typing into it opens the palette instead.
 - **Never write a bare `&:hover` on anything a finger can tap.** A touch screen has no leave event, so the last thing tapped keeps its hovered style — a lit border, a scaled-up bar — until another tap lands elsewhere, which reads as a selection nothing asked for. Wrap it in `@media (hover: hover)`, as `Google.tsx`'s card hover and `Timeline`'s `ROW_SX` do.
 - **Never add a field named `show` to a non-`show` domain.** `showDataConfig`'s replacer `dropSeasonParents` (`show/converter.ts`) strips that key on cache write.
 - **Cache keys are versioned — bump the version when the model's shape changes.** Each `converter.ts` passes its version to `dataCacheKey` (`common/useData.ts`): `vg-data-cache-v2`, `show-data-cache-v3`, `movie-data-cache-v3`, `book-data-cache-v1`. Without a bump the new field is silently absent from a returning visitor's cache, on their browser alone.

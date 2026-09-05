@@ -7,8 +7,9 @@ import { bookDataConfig } from "../books/converter";
 import { movieDataConfig } from "../movie/converter";
 import { showDataConfig } from "../show/converter";
 import { vgDataConfig } from "../vg/converter";
-import { visibleLibrary, type OmniItem } from "./adapter";
+import { toOmniItems, visibleLibrary, type OmniItem } from "./adapter";
 import { buildFranchiseUnion } from "./franchiseUnionData";
+import { OmniItemsContext } from "./omniItems";
 
 /**
  * The hover card, loaded with the chunk that draws it rather than with the shell.
@@ -53,10 +54,18 @@ export const FranchiseUnionProvider = ({ guestMode, children }: { guestMode: boo
   const [movies] = useData(movieDataConfig, MoviesTab);
   const [books] = useData(bookDataConfig, BooksTab);
 
-  const union =
+  // The items are built once here and the union from them, rather than the union from the
+  // library on its own: the palette above the tabs lists the same items, and two flattenings of
+  // one library are two chances to disagree about which rows guest mode hides.
+  const items =
     games && shows && movies && books
-      ? buildFranchiseUnion(visibleLibrary({ games, shows, movies, books }, guestMode), CURRENT_PLAINDATE, hoverCard)
+      ? toOmniItems(visibleLibrary({ games, shows, movies, books }, guestMode))
       : undefined;
+  const union = items ? buildFranchiseUnion(items, CURRENT_PLAINDATE, hoverCard) : undefined;
 
-  return <FranchiseUnionContext.Provider value={union}>{children}</FranchiseUnionContext.Provider>;
+  return (
+    <OmniItemsContext.Provider value={items}>
+      <FranchiseUnionContext.Provider value={union}>{children}</FranchiseUnionContext.Provider>
+    </OmniItemsContext.Provider>
+  );
 };

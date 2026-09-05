@@ -141,6 +141,16 @@ export interface CardMediaImageProps {
   mediaBand?: { node: ReactNode; height: number };
   /** Derive the card's theme colour from the image once it loads. Costs a canvas read per image. */
   extractColour?: boolean;
+  /**
+   * Mount with the expanded dialog already open, for a caller whose point is the dialog and not
+   * the thumbnail: a search hit opening the card its artwork would. Read on mount alone.
+   */
+  openOnMount?: boolean;
+  /**
+   * Called once the expanded dialog has closed and finished leaving, so a caller that mounted the
+   * card for its dialog knows when to unmount it again.
+   */
+  onDetailClosed?: () => void;
 }
 
 /**
@@ -497,7 +507,8 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
     shape !== undefined &&
     shapeToArrangement(shape) === "beside" &&
     footerComponent !== undefined;
-  const detail = useDialogMount();
+  const detail = useDialogMount(props.openOnMount ?? false);
+  const onDetailClosed = props.onDetailClosed;
   // Only cards that opted into extraction seed from the cache, so a grid that means to stay
   // uncoloured is not tinted by whatever another component happened to read first.
   const [extracted, setExtracted] = useState<ExtractedColour | undefined>(() => {
@@ -701,7 +712,12 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
             slots={{ transition: Grow }}
             slotProps={{
               paper: { sx: DIALOG_PAPER_SX },
-              transition: { onExited: detail.onExited },
+              transition: {
+                onExited: () => {
+                  detail.onExited();
+                  onDetailClosed?.();
+                },
+              },
             }}
           >
             <ArtworkAccent.Provider value={colour}>

@@ -12,7 +12,7 @@ import { EXPANDED_CARDS, ExpandableCard } from "../common/Stats";
 import { format } from "../utils/mathUtils";
 import type { OmniItem } from "./adapter";
 import OmniCardMediaImage from "./CardMediaImage";
-import { MIXED_CARD_SIZING, omniLabels } from "./cardData";
+import { MIXED_CARD_SIZING, workLabels } from "./cardData";
 import { MEDIUM_LABEL_HEIGHT } from "./MediumLabel";
 import { mediumBand } from "./mediumBand";
 import {
@@ -160,7 +160,7 @@ const Gallery = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
           onClose={() => setDrilldown(null)}
           content={drilldown.all}
           cardKey={(item) => `${category}-${item.key}`}
-          labelComponent={omniLabels}
+          labelComponent={workLabels}
           band={band}
           // One card size for a shelf's mixed shapes, as Recently Finished sizes its run.
           rowSizing={MIXED_CARD_SIZING}

@@ -1,5 +1,6 @@
 import { formatDate } from "../common/date";
 import { omniTitle, type OmniItem } from "./adapter";
+import type { ShelfItem } from "./galleryData";
 import { shapeRatioValues } from "../common/cardArrangement";
 import type { CardRowSizing } from "../common/Stats";
 
@@ -42,4 +43,18 @@ export const MIXED_CARD_SIZING: CardRowSizing = {
 export const omniLabels = (item: OmniItem): string[][] => [
   [item.closeDate ? formatDate(item.closeDate) : "In progress"],
   [omniTitle(item)],
+];
+
+/**
+ * The strip under a card standing for a whole work — a show collapsed to one card however many
+ * seasons it ran, as the gallery's drill-downs and the franchise view list them.
+ *
+ * The name and not `omniTitle`: the representative behind the card is one season, and a card for
+ * the whole show captioned "S2" claims to be about that season. The date is the work's own close,
+ * which `galleryWorks` states as the latest of its entries' and withholds while any is still
+ * going: a show with a season running is not finished whichever season the picture came from.
+ */
+export const workLabels = (item: ShelfItem): string[][] => [
+  [item.closeDate ? formatDate(item.closeDate) : "In progress"],
+  [item.name],
 ];
