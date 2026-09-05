@@ -1,7 +1,8 @@
 import { memo, useDeferredValue } from "react";
 import { Stack } from "@mui/material";
 import type { YearNumber } from "../common/date";
-import type { Book, Measure } from "./types";
+import type { Book } from "./types";
+import { MEASURES } from "./module";
 import Finished from "../common/Finished";
 import BookCardMediaImage from "./CardMediaImage";
 import Stats from "./Stats";
@@ -23,9 +24,6 @@ import { finishedCount, type FinishedExtraSort } from "../common/finishedData";
 import { genreToColour } from "../utils/types";
 import { useScheme } from "../common/useScheme";
 import { usePhone } from "../common/breakpoints";
-
-/** The measures this tab counts in, in the order the rail states them. */
-const MEASURES: readonly Measure[] = ["Books", "Pages", "Hours"];
 
 /**
  * The index and the scale every card strip on the tab reads, both built from the unfiltered data:

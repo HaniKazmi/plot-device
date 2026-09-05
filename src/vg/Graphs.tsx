@@ -1,5 +1,6 @@
 import Stats from "./Stats";
-import { VideoGame, companyToColor, type Measure } from "./types";
+import { VideoGame, companyToColor } from "./types";
+import { MEASURES } from "./module";
 import { useScheme } from "../common/useScheme";
 import Sunburst from "./Sunburst";
 import Barchart from "./Barchart";
@@ -22,9 +23,6 @@ import { currentlyPlaying, earliestYear } from "./statsData";
 import { format } from "../utils/mathUtils";
 import { finishedCount } from "../common/finishedData";
 import type { YearNumber } from "../common/date";
-
-/** The measures this tab counts in, in the order the rail states them. */
-const MEASURES: readonly Measure[] = ["Games", "Hours"];
 
 const SuspenseBlock = ({
   filteredData,

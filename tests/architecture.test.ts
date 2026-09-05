@@ -12,6 +12,10 @@ const SRC = fileURLToPath(new URL("../src", import.meta.url));
 // every shared shell domain-blind.
 const DOMAINS = ["vg", "show", "movie", "books", "omnibus"];
 
+// The composing layer: the one folder that may import every domain, holding what each medium
+// answers so no surface has to dispatch on which one it is holding.
+const COMPOSING = "app";
+
 /**
  * Every form a module reference takes here: `from "y"`, the bare side-effect `import "y"`, and
  * `import("y")`.
@@ -41,7 +45,7 @@ describe("the shared layer never depends on a domain", () => {
     expect(shared.length).toBeGreaterThan(10);
   });
 
-  it.each(DOMAINS)("has no import of %s/ anywhere in common/ or utils/", (domain) => {
+  it.each([...DOMAINS, COMPOSING])("has no import of %s/ anywhere in common/ or utils/", (domain) => {
     const offenders = shared.flatMap((file) =>
       importsFrom(file)
         .filter((specifier) => new RegExp(`(^|/)${domain}(/|$)`).test(specifier))
@@ -63,7 +67,9 @@ describe("a tracked domain never depends on another", () => {
   const TRACKED = ["vg", "show", "movie", "books"];
 
   it.each(TRACKED)("has no import of another domain anywhere in %s/", (domain) => {
-    const others = [...DOMAINS].filter((other) => other !== domain);
+    // `app/` too: it composes the four, and a domain reaching back into it is the same cycle by a
+    // shorter route — every module in it is imported by the registry `app/` builds.
+    const others = [...DOMAINS, COMPOSING].filter((other) => other !== domain);
 
     const offenders = sourceFilesUnder(domain).flatMap((file) =>
       importsFrom(file)
@@ -72,6 +78,66 @@ describe("a tracked domain never depends on another", () => {
     );
 
     expect(offenders).toEqual([]);
+  });
+});
+
+describe("the registry never reaches back for a tab", () => {
+  // `tabs.ts` imports the five entry components eagerly and an entry component reaches the
+  // registry, so an import back from the registry evaluates it while `tabs.ts` is still in its own
+  // temporal dead zone — `MEDIA` half-built, and the failure a blank page rather than an error. A
+  // module carries `tabId: string` instead, and the one component that resolves an id to a tab is
+  // mounted by the shell, below both.
+  const RESOLVES_TAB_IDS = "LibraryProvider.tsx";
+
+  const namesTabs = (file: string) => importsFrom(file).filter((specifier) => /(^|\/)tabs$/.test(specifier));
+
+  it("has no import of tabs.ts in app/, but for the one file that resolves an id to a tab", () => {
+    const offenders = sourceFilesUnder(COMPOSING)
+      .filter((file) => !file.endsWith(RESOLVES_TAB_IDS))
+      .filter((file) => namesTabs(file).length > 0)
+      .map((file) => file.replace(SRC, "src"));
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("has no import of tabs.ts in any domain's module.ts", () => {
+    const offenders = DOMAINS.flatMap(sourceFilesUnder)
+      .filter((file) => /(^|\/)module\.tsx?$/.test(file))
+      .filter((file) => namesTabs(file).length > 0)
+      .map((file) => file.replace(SRC, "src"));
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("finds the modules to check, so the rule above is not vacuous", () => {
+    const modules = DOMAINS.flatMap(sourceFilesUnder).filter((file) => /(^|\/)module\.tsx?$/.test(file));
+
+    expect(modules.length).toBe(4);
+  });
+});
+
+describe("the medium is dispatched in one place", () => {
+  // A `switch (item.medium)` is a fifth medium's edit in whichever surface happened to need it
+  // first, and the compiler only catches the ones written as an exhaustive switch over a union —
+  // never the one somebody wrote with a default. The registry answers instead, so a surface asks
+  // `MEDIA[item.medium]` and the four arms live in the four domain folders.
+  const SWITCHES_ON_MEDIUM = /switch\s*\(\s*[\w.]*medium\s*\)/;
+
+  const allFiles = [...sourceFilesUnder("common"), ...sourceFilesUnder("utils"), ...DOMAINS.flatMap(sourceFilesUnder)];
+
+  it("has no switch on a medium outside app/", () => {
+    const offenders = allFiles
+      .filter((file) => SWITCHES_ON_MEDIUM.test(readFileSync(file, "utf8")))
+      .map((file) => file.replace(SRC, "src"));
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("catches the shapes a dispatch is written in", () => {
+    expect(SWITCHES_ON_MEDIUM.test("switch (item.medium) {")).toBe(true);
+    expect(SWITCHES_ON_MEDIUM.test("switch (medium) {")).toBe(true);
+    // The other discriminants this codebase switches on are none of its business.
+    expect(SWITCHES_ON_MEDIUM.test("switch (category) {")).toBe(false);
   });
 });
 
@@ -85,7 +151,12 @@ describe("prototype extensions are imported where they are used", () => {
     { method: "setIfAbsent", module: "mapUtils" },
   ];
 
-  const allFiles = [...sourceFilesUnder("common"), ...sourceFilesUnder("utils"), ...DOMAINS.flatMap(sourceFilesUnder)];
+  const allFiles = [
+    ...sourceFilesUnder("common"),
+    ...sourceFilesUnder("utils"),
+    ...sourceFilesUnder(COMPOSING),
+    ...DOMAINS.flatMap(sourceFilesUnder),
+  ];
 
   it.each(EXTENSIONS)("every caller of .$method imports $module", ({ method, module }) => {
     const offenders = allFiles
@@ -108,6 +179,7 @@ describe("browser globals are not read at module load", () => {
   const allFiles = [
     ...sourceFilesUnder("common"),
     ...sourceFilesUnder("utils"),
+    ...sourceFilesUnder(COMPOSING),
     ...DOMAINS.flatMap(sourceFilesUnder),
     ...sourceFilesUnder("contexts"),
     // The `src/` root too: `App.tsx` and `Google.tsx` are modules like any other, and an

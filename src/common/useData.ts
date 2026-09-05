@@ -127,8 +127,15 @@ const IN_FLIGHT = new Map<string, Promise<unknown>>();
 export interface DataConfig<T> {
   storageKey: string;
   converter: (json: Record<string, string>[]) => T[];
-  /** Re-attaches whatever `replacer` dropped — the two are written as a pair or not at all. */
-  reviver?: (items: T[]) => void;
+  /**
+   * Re-attaches whatever `replacer` dropped — the two are written as a pair or not at all.
+   *
+   * A method rather than a property, which is what lets a `DataConfig<Show>` sit on a
+   * `MediumModule<unknown>` in the medium registry (`app/media.ts`): TypeScript checks a method's
+   * parameters bivariantly, where a property-typed `(items: T[]) => void` is contravariant in `T`
+   * and leaves every domain's config unassignable to the record the registry is looked up in.
+   */
+  reviver?(items: T[]): void;
   replacer?: (key: string, value: unknown) => unknown;
 }
 

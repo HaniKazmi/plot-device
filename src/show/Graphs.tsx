@@ -12,7 +12,8 @@ import { useOtherTabs } from "../tabs";
 import { SHOW_SECTIONS, showSections } from "./sections";
 import { currentlyWatching, earliestYear } from "./statsData";
 import Timeline from "./Timeline";
-import { Show, type Measure } from "./types";
+import { Show } from "./types";
+import { MEASURES } from "./module";
 import ShowCardMediaImage from "./CardMediaImage";
 import { statusToColour } from "../utils/types";
 import { activeCount, guestFilter, type FilterDispatch, type FilterState } from "./filterUtils";
@@ -23,9 +24,6 @@ import { memo, useDeferredValue } from "react";
 import { format } from "../utils/mathUtils";
 import { finishedCount } from "../common/finishedData";
 import { useScheme } from "../common/useScheme";
-
-/** The measures this tab counts in, in the order the rail states them. */
-const MEASURES: readonly Measure[] = ["Seasons", "Episodes", "Hours"];
 
 const SuspenseBlock = ({
   filteredData,

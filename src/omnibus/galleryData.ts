@@ -10,9 +10,7 @@ import {
   type Colour,
   type Scheme,
 } from "../utils/types";
-import type { Book } from "../books/types";
-import type { Movie } from "../movie/types";
-import type { Season } from "../show/types";
+import { MEDIA_LAZY } from "../app/mediaLazy";
 import { measureOf, omniBanner, type OmniItem } from "./adapter";
 import type { Measure } from "./types";
 import "../utils/arrayUtils";
@@ -105,32 +103,16 @@ export const galleryColour = (name: string, category: GalleryCategory, scheme: S
 export const galleryItems = (items: OmniItem[]): OmniItem[] => items.filter((item) => omniBanner(item));
 
 /**
- * The work an item belongs to, which is what a shelf lists one picture of.
+ * The work an item belongs to, which is what a shelf lists one picture of, asked of the item's own
+ * module.
  *
  * A season is the unit the union counts in everywhere else — it is the thing actually watched in a
  * year — but a wall of pictures draws one banner per show, so a six-season show would stand on its
- * genre shelf as six copies of the same artwork and crowd every other show off the strip. Shows key
- * on the parent record itself, which is exact: every season of one show holds the same object. A
- * film keys on its title and release, so a rewatch joins the first viewing while a remake of the
- * same name stays a work of its own. A game is already one row per work and keys on that row, and
- * so is a book: a reread is a second row, and it joins the first the way a film's rewatch does.
+ * genre shelf as six copies of the same artwork and crowd every other show off the strip. Each
+ * medium answers with whatever collapses its own rewatches and rereads without joining two works
+ * that merely share a title.
  */
-export const workOf = (item: OmniItem): unknown => {
-  switch (item.medium) {
-    case "show":
-      return (item.source as Season).show;
-    case "movie": {
-      const movie = item.source as Movie;
-      return `${movie.name}-${movie.releaseDate}`;
-    }
-    case "book": {
-      const book = item.source as Book;
-      return `${book.name}-${book.releaseDate}`;
-    }
-    case "game":
-      return item.source;
-  }
-};
+export const workOf = (item: OmniItem): unknown => MEDIA_LAZY[item.medium].work(item.source);
 
 /**
  * A work as it stands on a shelf: the union's own item, plus when the reader was last in it.

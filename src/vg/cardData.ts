@@ -1,6 +1,7 @@
 import { Year, YearMonthDay, formatDate, formatDateRange } from "../common/date";
 import type { StripSpan } from "../common/timelineStripData";
 import type { FranchiseEntry } from "../common/franchiseUnion";
+import type { MediumSpan } from "../common/medium";
 import type { ReactNode } from "react";
 import type { LedgerRow, PanelSubtitlePart } from "../common/Card";
 import { franchiseToColour, genreToColour, mediumFills, type Scheme } from "../utils/types";
@@ -188,10 +189,24 @@ export const gameRows = (game: VideoGame, scheme: Scheme): LedgerRow[] => {
 };
 
 /**
- * A game in a franchise strip's vocabulary. A year-only start spans its whole year with imprecise
- * edges: the estimate the tab's own strip shares a year out with needs the whole library to divide
- * it between, and a franchise holds two or three entries of it. One mapper for the tab's own index
- * and the Omnibus union, so the two cannot draw the same game two ways.
+ * When a game ran, for any scale that places it: a card's franchise strip, a crossings lane, a
+ * packed row. `gameSpans` above is a different thing — the tab's own strip, where an undated
+ * game's year is shared out between the games naming it.
+ *
+ * A year-only date spans its whole year with imprecise edges instead. That estimate needs the
+ * whole library to divide a year between, and a franchise lane holds two or three entries of it,
+ * so the honest answer at that scale is the year itself.
+ */
+export const gameSpan = (game: VideoGame, today: YearMonthDay): MediumSpan => ({
+  start: game.startDate.firstDay(),
+  // Still being played, whatever precision the start carries.
+  end: game.endDate ? game.endDate.lastDay() : today,
+  precise: !(game.startDate instanceof Year) && !(game.endDate instanceof Year),
+});
+
+/**
+ * A game in a franchise strip's vocabulary. One mapper for the tab's own index and the union, so
+ * the two cannot draw the same game two ways.
  */
 export const gameEntry = (game: VideoGame, today: YearMonthDay, hoverCard: () => ReactNode): FranchiseEntry => ({
   key: gameKey(game),
@@ -200,9 +215,6 @@ export const gameEntry = (game: VideoGame, today: YearMonthDay, hoverCard: () =>
   medium: "game",
   fill: mediumFills.game,
   label: game.name,
-  start: game.startDate.firstDay(),
-  // Still being played, whatever precision the start carries.
-  end: game.endDate ? game.endDate.lastDay() : today,
-  precise: !(game.startDate instanceof Year) && !(game.endDate instanceof Year),
+  ...gameSpan(game, today),
   hoverCard,
 });

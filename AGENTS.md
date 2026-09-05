@@ -100,12 +100,15 @@ Ordered by how quietly they fail.
 
 ## Where code goes
 
-The one rule that matters: **`common/` and `utils/` never import from `vg/`, `show/`, `movie/`, `books/` or `omnibus/`.**
+The one rule that matters: **`common/` and `utils/` never import from `app/`, `vg/`, `show/`, `movie/`, `books/` or `omnibus/`.**
 
 - New _visualisation behaviour_ → `common/`, parameterised by props and callbacks.
 - New _domain knowledge_ → the domain folder, as a thin adapter over a `common/` shell.
+- New _per-medium knowledge_ → `MediumModule` (`common/medium.ts`), answered by each `<domain>/module.ts` and read through `MEDIA` (`app/media.ts`).
 
-A shell that branches on something domain-specific has the wrong prop. Where the shared layer needs a domain vocabulary, declare it there and let domain types stay assignable to it. `omnibus/` is a domain folder itself, and the one that imports the other four: composition between domains, not the shared layer reaching upward. The four tracked domains compose nothing.
+A shell that branches on something domain-specific has the wrong prop. Where the shared layer needs a domain vocabulary, declare it there and let domain types stay assignable to it. `omnibus/` is a domain folder itself, and imports `app/` and the other four: composition between domains, not the shared layer reaching upward. The four tracked domains compose nothing and import neither `app/` nor each other.
+
+**Never write a `switch` on a medium outside `app/`.** `tests/architecture.test.ts` fails one anywhere else. A fifth medium is a `module.ts`, a `module.lazy.ts` and a line in `app/media.ts`; a switch is that same edit in every file that ever needed to tell four media apart, and TypeScript catches a missing arm only where somebody wrote the switch exhaustively. Put a per-medium answer on the module: eager in `module.ts` if a tab needs it before it draws, in `module.lazy.ts` if only a card, the gallery or the search palette asks — `app/media.ts` is reachable from the shell, so everything the eager half names lands in the entry chunk. Nothing in `app/` may import `tabs.ts`, and neither may a `module.ts`: `tabs.ts` imports the five entry components eagerly and an entry component reaches the registry, so the import back evaluates `MEDIA` half-built. A module carries `tabId: string`.
 
 The same instinct applies to a breakpoint: reach for `usePhone`/`useStackedCharts` (`common/breakpoints.ts`) only where the answer decides _which tree_ renders — a sheet versus a persistent drawer, a fold that mounts nothing until opened — never where it only decides how something already rendered looks. A style carries its own breakpoint in `sx`; a component reads one as a value only when CSS cannot make the choice for it.
 

@@ -1,21 +1,24 @@
-import type { Year, YearMonthDay, YearNumber } from "../common/date";
-import type { AgeRating } from "../utils/types";
+import type { YearNumber } from "../common/date";
+import type { OmniItem } from "../common/medium";
 import type { Book } from "../books/types";
 import type { Movie } from "../movie/types";
-import type { Season, Show } from "../show/types";
+import type { Show } from "../show/types";
 import type { VideoGame } from "../vg/types";
-import { guestFilter as movieGuestFilter } from "../movie/filterUtils";
-import { guestFilter as showGuestFilter } from "../show/filterUtils";
-import { guestFilter as vgGuestFilter } from "../vg/filterUtils";
-import { currentlyReading, bookItemKey } from "../books/statsData";
-import { latestWatched, movieItemKey } from "../movie/statsData";
+import { MEDIA, mediaModules } from "../app/media";
+import { currentlyReading } from "../books/statsData";
+import { latestWatched } from "../movie/statsData";
 import { currentlyWatching, heroSeason } from "../show/statsData";
-import { seasonKey } from "../show/cardData";
 import { currentlyPlaying } from "../vg/statsData";
-import { gameKey } from "../vg/cardData";
 import { media, type Measure, type Medium } from "./types";
 import { earliestYear as earliestYearOf } from "../common/statsData";
 import "../utils/arrayUtils";
+
+/**
+ * The union's own item, declared in the shared layer because each domain's `module.ts` builds its
+ * own arm of the union and a tracked domain may not import the folder composing them. Re-exported
+ * here, where the rest of this tab already names it.
+ */
+export type { OmniItem };
 
 /**
  * The four libraries as the domains model them, before anything is flattened.
@@ -31,64 +34,6 @@ export interface Library {
 }
 
 /**
- * One thing watched, played or read, in the vocabulary the four media share.
- *
- * `source` keeps the record it was built from, so a card adapter renders the domain's own artwork
- * and detail panel rather than a second, poorer copy of it. That a `Season` source carries a
- * `show` back-reference is safe here only because **Omnibus writes no cache of its own**: it reads
- * the four domains' caches through their own configs, and the `show` key is dropped and revived
- * by the pair that travels with the Shows config. An `OmniItem` may itself never carry a field
- * named `show`, and needs no replacer/reviver rules, for exactly that reason — the day this tab
- * caches anything, both facts stop holding.
- */
-export interface OmniItem {
-  medium: Medium;
-  /**
-   * What identifies this item among the union, for a React key and for a card's own name.
-   *
-   * Built from the tuple its own domain already treats as unique — a game's title, platform and
-   * start; a show's name and season number; a film's title and watch date — because no field the
-   * union shares is one. Every season of a show carries its show's name, a film watched twice is
-   * two rows with one title, and a game's close can be a bare year, so two copies of one title on
-   * two platforms finished in that year answer identically on medium, name and close together.
-   */
-  key: string;
-  /** A season answers with its show's name; which season it is stays on `source`. */
-  name: string;
-  /**
-   * When it finished, absent while it is still going. A film has no separate close — being
-   * watched is the whole of it — so its watch date is also its close.
-   *
-   * The two concrete kinds all three sheets record, rather than a bare `PlainDate`: a card states
-   * this date in the reader's own form, and `formatDate` takes the kinds that have one. A
-   * `YearMonth` has no such form and no sheet holds one.
-   */
-  closeDate?: YearMonthDay | Year;
-  /**
-   * The year it counts towards: the year it ended, or the year it started where it has not.
-   * Always answerable, since every record in all three sheets carries a start.
-   */
-  year: YearNumber;
-  /**
-   * Exact hours, so a total is floored once at the end rather than per item. Flooring here would
-   * count a 96-minute film as one hour and drop a fifth of the movie library, and Omnibus's
-   * per-medium totals would then disagree with the figure each home tab shows for the same rows.
-   */
-  hours: number;
-  genre: string;
-  /** The genres beyond the primary one. Empty for a game or a book: those sheets record one. */
-  genres: string[];
-  franchise: string;
-  /**
-   * Absent for a book: nothing certifies one. Every surface grouping on the certificate drops an
-   * item with none rather than shelving it under a blank — the one category not every medium
-   * records, stated here rather than answered with a rating nobody issued.
-   */
-  rating?: AgeRating;
-  source: VideoGame | Season | Movie | Book;
-}
-
-/**
  * Guest mode applied to each library by its own domain's rule, before anything is composed.
  *
  * It has to happen here rather than as one predicate over the union, because the Now band elects
@@ -99,87 +44,35 @@ export interface OmniItem {
 export const visibleLibrary = (library: Library, guestMode: boolean): Library =>
   guestMode
     ? {
-        games: library.games.filter(vgGuestFilter),
-        shows: library.shows.filter(showGuestFilter),
-        movies: library.movies.filter(movieGuestFilter),
-        // Nothing on the Books sheet marks a book for the mode to hide.
-        books: library.books,
+        games: library.games.filter(MEDIA.game.guestFilter),
+        shows: library.shows.filter(MEDIA.show.guestFilter),
+        movies: library.movies.filter(MEDIA.movie.guestFilter),
+        books: library.books.filter(MEDIA.book.guestFilter),
       }
     : library;
 
 /**
- * The four libraries as one flat list.
+ * The rows a medium contributes, from the record the four are held in.
  *
- * Seasons are the unit a show contributes, not the show: a show runs for years and a season is
- * the thing that was actually watched in one of them, which is what makes it comparable to a game
- * beaten, a film seen or a book read. The season carries its show's name, genre, franchise and
- * certificate, since those are facts about the show rather than about the season.
+ * The only thing here that knows `Library`'s own field names, which are the plural words the tabs
+ * use rather than the media themselves — so nothing downstream has to spell both vocabularies.
  */
-export const toOmniItems = ({ games, shows, movies, books }: Library): OmniItem[] => [
-  ...games.map((game): OmniItem => ({
-    medium: "game",
-    // The tuple the Games tab already keys a span by: a title on its own repeats across the
-    // platforms a game was played on and across a replay of it.
-    key: gameKey(game),
-    name: game.name,
-    closeDate: game.endDate,
-    year: (game.endDate ?? game.startDate).year,
-    hours: game.hours ?? 0,
-    genre: game.genre,
-    genres: [],
-    franchise: game.franchise,
-    rating: game.rating,
-    source: game,
-  })),
-  ...shows.flatMap((show) =>
-    show.s.map((season): OmniItem => ({
-      medium: "show",
-      // The show's name and the season number, which is what the Shows tab keys a season by:
-      // every season of a show carries its show's name and only the number separates them.
-      key: seasonKey(season),
-      name: show.name,
-      closeDate: season.endDate,
-      year: (season.endDate ?? season.startDate).year,
-      hours: season.minutes / 60,
-      genre: show.genre,
-      genres: show.genres,
-      franchise: show.franchise,
-      rating: show.rating,
-      source: season,
-    })),
-  ),
-  ...movies.map((movie): OmniItem => ({
-    medium: "movie",
-    // A rewatch is a second row with the same title, and the day it was seen is what separates the
-    // two.
-    key: movieItemKey(movie),
-    name: movie.name,
-    // A film's watch date is both when it happened and when it closed, so it is one date wearing
-    // both names rather than a start with no end.
-    closeDate: movie.startDate,
-    year: movie.startDate.year,
-    hours: movie.minutes / 60,
-    genre: movie.genre,
-    genres: movie.genres,
-    franchise: movie.franchise,
-    rating: movie.rating,
-    source: movie,
-  })),
-  ...books.map((book): OmniItem => ({
-    medium: "book",
-    // The tuple the Books tab keys a card by: a reread is a second row with the same title, and
-    // the day it was begun is what separates the two.
-    key: bookItemKey(book),
-    name: book.name,
-    closeDate: book.endDate,
-    year: (book.endDate ?? book.startDate).year,
-    hours: book.hours,
-    genre: book.genre,
-    genres: [],
-    franchise: book.franchise,
-    source: book,
-  })),
-];
+const sliceOf = (library: Library): Record<Medium, unknown[]> => ({
+  game: library.games,
+  show: library.shows,
+  movie: library.movies,
+  book: library.books,
+});
+
+/**
+ * The four libraries as one flat list, each medium's arm supplied by its own module — so the unit
+ * a medium contributes is decided in the folder that models it. Shows contribute seasons rather
+ * than shows for that reason, which is a fact about the Shows sheet and not about the union.
+ */
+export const toOmniItems = (library: Library): OmniItem[] => {
+  const slices = sliceOf(library);
+  return mediaModules.flatMap((module) => module.toOmniItems(slices[module.medium]));
+};
 
 /**
  * Hours over a set of items, floored once.
@@ -212,38 +105,15 @@ export const unionTotals = (items: OmniItem[]) => ({
  * the sheets hold one banner per show and a season has no picture of its own.
  *
  * The browse surfaces are walls of pictures, so an item with none is not on them — the rule
- * `finishedItems` already applies to every domain's library grid. A switch rather than a test for
- * the one medium that differs, so a medium this does not know is a compile error and not a cast.
+ * `finishedItems` already applies to every domain's library grid.
  */
-export const omniBanner = (item: OmniItem): string | undefined => {
-  switch (item.medium) {
-    case "show":
-      return (item.source as Season).show.banner;
-    case "game":
-      return (item.source as VideoGame).banner;
-    case "movie":
-      return (item.source as Movie).banner;
-    case "book":
-      // The column is new to the sheet, and a book the sheet has not reached yet has no picture
-      // to stand on a wall — the same absence a game without a banner already answers.
-      return (item.source as Book).banner || undefined;
-  }
-};
+export const omniBanner = (item: OmniItem): string | undefined => MEDIA[item.medium].banner(item.source);
 
 /**
  * What the item is called on a card: a season says which season it is, because a strip of six
  * cards all reading the same show name says nothing about what was watched.
  */
-export const omniTitle = (item: OmniItem): string => {
-  switch (item.medium) {
-    case "show":
-      return `${item.name} S${(item.source as Season).s}`;
-    case "game":
-    case "movie":
-    case "book":
-      return item.name;
-  }
-};
+export const omniTitle = (item: OmniItem): string => MEDIA[item.medium].title(item.source);
 
 /**
  * What was finished most recently, newest first.

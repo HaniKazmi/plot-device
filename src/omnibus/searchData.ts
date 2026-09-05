@@ -1,14 +1,13 @@
 import { rankHits, type Hit, type Searchable } from "../common/searchData";
 import { franchiseIndex } from "../common/franchiseIndex";
 import { YearMonthDay, type Year } from "../common/date";
-import { MEDIA, mediumToLabel, type Medium } from "../utils/types";
+import { mediumToLabel, type Medium } from "../utils/types";
 import { namesTheSameThing } from "../utils/stringUtils";
-import type { Book } from "../books/types";
-import type { Movie } from "../movie/types";
+import { MEDIA_LAZY } from "../app/mediaLazy";
 import type { Season } from "../show/types";
-import type { VideoGame } from "../vg/types";
 import { omniHours, type OmniItem } from "./adapter";
 import { galleryGroups, galleryStripOrder, galleryWorks, workOf, type ShelfItem } from "./galleryData";
+import { media } from "./types";
 import "../utils/arrayUtils";
 import "../utils/mapUtils";
 
@@ -112,57 +111,18 @@ const representative = (members: OmniItem[]): OmniItem =>
     : members[0];
 
 /**
- * What a hit can be found by besides its name, per medium: the people and places a reader
- * remembers a work by when the title escapes them. Blank cells are dropped, since a blank matches
- * nothing but would still be scanned.
+ * What a hit can be found by besides its name, asked of the item's own module: the people and
+ * places a reader remembers a work by when the title escapes them. Blank cells are dropped, since
+ * a blank matches nothing but would still be scanned.
  */
-const secondaryText = (item: OmniItem): string[] => {
-  switch (item.medium) {
-    case "game": {
-      const game = item.source as VideoGame;
-      return [game.developer, game.platform];
-    }
-    case "show": {
-      const show = (item.source as Season).show;
-      return [show.network, ...show.s.map((season) => season.subtitle ?? "")];
-    }
-    case "movie":
-      return [(item.source as Movie).director];
-    case "book": {
-      const book = item.source as Book;
-      return [book.author, book.series];
-    }
-  }
-};
+const secondaryText = (item: OmniItem): string[] => MEDIA_LAZY[item.medium].secondaryText(item.source);
 
 /**
  * The line a hit is told by: the facts its hover card leads with, in each medium's own words.
  * Hours over every row of the work, so a show's are its seasons' together.
  */
-const factsOf = (item: OmniItem, members: OmniItem[]): string => {
-  const hours = omniHours(members);
-  switch (item.medium) {
-    case "game": {
-      const game = item.source as VideoGame;
-      return [game.platform, game.status, hours ? `${hours} hours` : ""].filter(Boolean).join(" · ");
-    }
-    case "show": {
-      const show = (item.source as Season).show;
-      const seasons = show.s.length === 1 ? "1 season" : `${show.s.length} seasons`;
-      return [seasons, show.status, show.network].filter(Boolean).join(" · ");
-    }
-    case "movie": {
-      const movie = item.source as Movie;
-      return [movie.cinema ? "Cinema" : "Home", movie.score === undefined ? "" : `${movie.score}/10`, movie.director]
-        .filter(Boolean)
-        .join(" · ");
-    }
-    case "book": {
-      const book = item.source as Book;
-      return [book.author, book.status, book.pages ? `${book.pages} pages` : ""].filter(Boolean).join(" · ");
-    }
-  }
-};
+const factsOf = (item: OmniItem, members: OmniItem[]): string =>
+  MEDIA_LAZY[item.medium].facts(item.source, omniHours(members));
 
 /** One group of the palette's answer: the franchises, or one medium's works. */
 export interface SearchGroup {
@@ -184,7 +144,7 @@ export const HITS_PER_GROUP = 5;
 export const searchUnion = (index: SearchIndex, query: string, limit = HITS_PER_GROUP): SearchGroup[] => {
   const groups: SearchGroup[] = [
     { key: "franchise", label: "Franchises", ...rankHits(index.franchises, query, limit) },
-    ...MEDIA.map((medium) => ({
+    ...media.map((medium) => ({
       key: medium,
       label: mediumToLabel(medium),
       medium,

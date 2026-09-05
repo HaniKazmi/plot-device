@@ -2,6 +2,7 @@ import { formatDateRange, type YearMonthDay } from "../common/date";
 import type { LedgerRow, PanelSubtitlePart } from "../common/Card";
 import type { StripSpan } from "../common/timelineStripData";
 import type { FranchiseEntry } from "../common/franchiseUnion";
+import type { MediumSpan } from "../common/medium";
 import type { ReactNode } from "react";
 import { ageRatingToColour, franchiseToColour, genreToColour, mediumFills, type Scheme } from "../utils/types";
 import { namesTheSameThing } from "../utils/stringUtils";
@@ -94,9 +95,19 @@ export const showRows = (show: Show, scheme: Scheme): LedgerRow[] => {
 };
 
 /**
+ * When a season ran, for any scale that places it. The converter holds every season's dates to
+ * full ones, so a season is always precise; one still being watched runs to today.
+ */
+export const seasonSpan = (season: Season, today: YearMonthDay): MediumSpan => ({
+  start: season.startDate,
+  end: season.endDate ?? today,
+  precise: true,
+});
+
+/**
  * A season in a franchise strip's vocabulary. Every season answers its show as its subject, so a
  * card's own show is every one of its seasons and a sibling show's are context. One mapper for the
- * tab's own index and the Omnibus union, so the two cannot draw the same season two ways.
+ * tab's own index and the union, so the two cannot draw the same season two ways.
  */
 export const seasonEntry = (season: Season, today: YearMonthDay, hoverCard: () => ReactNode): FranchiseEntry => ({
   key: seasonKey(season),
@@ -105,8 +116,6 @@ export const seasonEntry = (season: Season, today: YearMonthDay, hoverCard: () =
   medium: "show",
   fill: mediumFills.show,
   label: `${season.show.name} S${season.s}`,
-  start: season.startDate,
-  end: season.endDate ?? today,
-  precise: true,
+  ...seasonSpan(season, today),
   hoverCard,
 });

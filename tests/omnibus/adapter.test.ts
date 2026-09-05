@@ -406,10 +406,10 @@ describe("a book in the union", () => {
     expect(omniBanner(item)).toBeUndefined();
   });
 
-  it("passes through guest mode untouched, since nothing on the sheet marks a book to hide", () => {
+  it("keeps every book under guest mode, since nothing on the sheet marks one to hide", () => {
     const books = [book()];
 
-    expect(visibleLibrary(library({ books }), true).books).toBe(books);
+    expect(visibleLibrary(library({ books }), true).books).toEqual(books);
   });
 
   it("is elected for the Now band by the same rule the Books tab's hero uses", () => {

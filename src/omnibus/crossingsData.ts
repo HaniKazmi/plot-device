@@ -1,10 +1,7 @@
-import { CURRENT_YEAR, Year, YearMonthDay } from "../common/date";
+import { CURRENT_YEAR, YearMonthDay } from "../common/date";
 import { buildStrip, type StripBand, type StripSpan } from "../common/timelineStripData";
 import { namesTheSameThing } from "../utils/stringUtils";
-import type { Book } from "../books/types";
-import type { Movie } from "../movie/types";
-import type { Season } from "../show/types";
-import type { VideoGame } from "../vg/types";
+import { MEDIA } from "../app/media";
 import type { OmniItem } from "./adapter";
 import { media, type Medium } from "./types";
 import "../utils/arrayUtils";
@@ -36,44 +33,19 @@ export interface Crossing {
 }
 
 /**
- * The span an item occupies. `medium` is the discriminant, because `source` is a union of four
- * records TypeScript cannot narrow on shape and the item already says which one it holds.
+ * The span an item occupies, through the same arithmetic the item's own card strip places it by —
+ * so a crossings lane and a franchise bead cannot disagree about when an entry ran.
  *
  * A film is a point: `start === end`, which `buildStrip` floors to its minimum band width, and
- * films seen days apart tile clear of one another inside a lane rather than stacking. A book is
- * a span the converter holds to full dates at both ends, so it is always precise.
+ * films seen days apart tile clear of one another inside a lane rather than stacking. A game
+ * logged with a bare year is the one imprecise case, drawn with dissolved edges so it does not
+ * read as a date.
  */
-export const crossingSpan = (item: OmniItem, key: string, today: YearMonthDay): CrossingSpan => {
-  switch (item.medium) {
-    case "game": {
-      const game = item.source as VideoGame;
-      return {
-        key,
-        start: game.startDate.firstDay(),
-        // Still being played, whatever precision the start carries.
-        end: game.endDate ? game.endDate.lastDay() : today,
-        item,
-        // A bare year spans the whole of that year here rather than being shared out the way a
-        // game card's own strip does: that estimate needs the whole games library to divide a year
-        // between, and a franchise lane holds two or three of its entries. The honest answer at
-        // this scale is the year itself, drawn with `imprecise` edges so it does not read as one.
-        precise: !(game.startDate instanceof Year) && !(game.endDate instanceof Year),
-      };
-    }
-    case "show": {
-      const season = item.source as Season;
-      return { key, start: season.startDate, end: season.endDate ?? today, item, precise: true };
-    }
-    case "movie": {
-      const movie = item.source as Movie;
-      return { key, start: movie.startDate, end: movie.startDate, item, precise: true };
-    }
-    case "book": {
-      const book = item.source as Book;
-      return { key, start: book.startDate, end: book.endDate ?? today, item, precise: true };
-    }
-  }
-};
+export const crossingSpan = (item: OmniItem, key: string, today: YearMonthDay): CrossingSpan => ({
+  key,
+  ...MEDIA[item.medium].span(item.source, today),
+  item,
+});
 
 /**
  * The franchises the reader has met, biggest first, each on one shared scale.

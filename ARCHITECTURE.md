@@ -52,6 +52,11 @@ computes on the main thread — which the caching layer (§4) exists to make tol
                     └───────────────────┬───────────────────────┘
                                         │
                     ┌───────────────────▼───────────────────────┐
+  composing         │  app/ — the medium registry                │
+                    │  MEDIA · MEDIA_LAZY                        │
+                    └───────────────────┬───────────────────────┘
+                                        │
+                    ┌───────────────────▼───────────────────────┐
   domain            │  vg/ · show/ · movie/ · books/ · omnibus/ │
                     │  model, converter, filters, adapters       │
                     └───────────────────┬───────────────────────┘
@@ -70,17 +75,36 @@ computes on the main thread — which the caching layer (§4) exists to make tol
 ```
 
 The load-bearing rule is the boundary between the bottom two layers and the domain layer above them:
-**`common/` and `utils/` never import from `vg/`, `show/`, `movie/`, `books/` or `omnibus/`.** Its
-second half is that **a tracked domain never imports another** — `omnibus/` composes the four and they
-compose nothing, which makes it a composing domain rather than one arm of a cycle.
-`tests/architecture.test.ts` enforces both by reading the source, across static, side-effect and
-dynamic imports alike.
+**`common/` and `utils/` never import from `app/`, `vg/`, `show/`, `movie/`, `books/` or
+`omnibus/`.** Its second half is that **a tracked domain never imports another, nor `app/`** — the
+four compose nothing, and `app/` and `omnibus/` compose them, which makes those two composing
+layers rather than arms of a cycle. `tests/architecture.test.ts` enforces both by reading the
+source, across static, side-effect and dynamic imports alike.
+
+**`app/` is the medium registry** (`app/media.ts`): a `MediumModule` per medium, supplied by each
+domain's own `module.ts`, holding everything the app asks of a medium that the medium itself is the
+authority on — its data config, its guest rule, its arm of the union, the entry a franchise strip
+draws it as, its artwork and its title. A surface holding four media reads `MEDIA[item.medium]`
+rather than switching on it, and `tests/architecture.test.ts` forbids a `switch` on a medium
+anywhere else: the compiler catches a missing arm only where somebody wrote the switch exhaustively,
+and a fifth medium is otherwise an edit in every file that ever needed to tell them apart.
+
+The registry is reachable from the shell, so it splits in two. `module.ts` is eager and holds what a
+tab needs before it draws anything; `module.lazy.ts` holds the cards, the hover card and the three
+accessors only the gallery and the search palette ask for, and is reached either through
+`app/mediaLazy.ts` — a static table, so a wall of cards does not pay a round trip per medium — or
+through the module's own `load()`, for a caller that can wait. Nothing in `app/` imports `tabs.ts`,
+because `tabs.ts` imports the five entry components eagerly and an entry component reaches the
+registry: a module carries `tabId: string`, and the one component that resolves an id to a tab is
+mounted by the shell, below both.
 
 Generic components take behaviour as props and callbacks; domain folders supply the meaning. Where
 the shared layer needs a domain vocabulary it declares its own — `utils/types.ts` owns a
 `ColourableStatus` union that `show/types.ts` and `vg/types.ts` stay assignable to, where importing
-theirs would cycle, since both import `statusToColour` back out. `omnibus/` reads no sheet (§3), so it
-is the one domain with no converter.
+theirs would cycle, since both import `statusToColour` back out. `OmniItem` and `FranchiseEntry`
+(`common/medium.ts`, `common/franchiseUnion.ts`) are the same arrangement one step further out:
+each domain builds its own arm of the union, so the shape it builds has to be declared somewhere a
+domain may import. `omnibus/` reads no sheet (§3), so it is the one domain with no converter.
 
 ## 3. The data pipeline
 
@@ -146,8 +170,9 @@ Omnibus runs no pipeline of its own: each domain's entry component calls `useDat
 (`vgDataConfig`, `showDataConfig`, `movieDataConfig`, `bookDataConfig`) exported from the file owning
 that converter, its version and — for Shows — the replacer/reviver pair, and `omnibus/Omnibus.tsx`
 calls `useData` with the same four, so a version bump cannot land at one caller alone.
-`omnibus/adapter.ts` then flattens `Show[]` at the season, the unit actually watched, carrying the
-show's name, genre, franchise and certificate onto each. A book has no certificate, so
+`omnibus/adapter.ts` then flattens the four through the registry, each medium's arm supplied by its
+own `module.ts` (§2) — which is why `Show[]` flattens at the season, the unit actually watched,
+carrying the show's name, genre, franchise and certificate onto each. A book has no certificate, so
 `OmniItem.rating` is optional and every surface grouping on it drops books.
 
 ## 4. Caching and hydration
@@ -1634,13 +1659,19 @@ root route's fallback (§7). Create `src/<domain>/` with `types.ts`, an entry co
 `useData` with the `DataConfig` its `converter.ts` exports, and a lazy `Graphs.tsx`. Implement
 `CardMediaImage` against `TypedCardMediaImage<T>` to get `Finished` and `StatList` for free.
 
-A fifth medium also extends the `Medium` union in `utils/types.ts` with its fill, label, name and
-unit; gives `toOmniItems` a case and `visibleLibrary` a rule in `omnibus/adapter.ts`; adds its
-`useData` call to `omnibus/Omnibus.tsx` and `omnibus/franchiseUnion.tsx`; and exports a per-item entry
-mapper from its own `cardData.ts` beside `gameEntry`, `seasonEntry`, `movieEntry` and `bookEntry`.
-That mapper returns a `FranchiseEntry`, and both the domain's own card strip (through
-`CardMediaImage.tsx`) and `unionEntry` in `omnibus/franchiseUnionData.ts` call it, so a tab's index
-and the cross-media union cannot draw one item two ways.
+A fifth medium extends the `Medium` union in `utils/types.ts` with its fill, label, name and unit,
+and is then **a `module.ts`, a `module.lazy.ts` and one line in `app/media.ts`** (§2). The eager
+half answers what the medium is — its `DataConfig`, its guest rule, its arm of the union, its
+`FranchiseEntry` mapper and span, its artwork and its title; the lazy half answers what draws it.
+Nothing else changes: `toOmniItems`, `visibleLibrary`, the crossings, the gallery, the search index
+and the card dispatcher all read the registry, so a medium that answers everything on
+`MediumModule` is on every surface the day it is added, and one that answers nothing does not
+compile. A module never imports `tabs.ts`; it carries `tabId`. What is still by hand is the fetch:
+`omnibus/Omnibus.tsx` and `omnibus/franchiseUnion.tsx` each mount the four configs one `useData`
+call at a time, so a fifth adds a line to both.
+
+The entry mapper is the piece the domain's own card strip calls too (through `CardMediaImage.tsx`),
+so a tab's index and the cross-media union cannot draw one item two ways.
 
 **Composing existing data sources, without a sheet of its own.** `omnibus/` is the reference: its
 `Tab` carries no `spreadsheetId`/`range` (both optional for this case, with `SheetTab` restating them

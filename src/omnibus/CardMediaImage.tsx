@@ -1,12 +1,5 @@
 import { type TypedCardMediaImage } from "../common/Card";
-import BookCardMediaImage, { BookHoverCard } from "../books/CardMediaImage";
-import type { Book } from "../books/types";
-import MovieCardMediaImage, { MovieHoverCard } from "../movie/CardMediaImage";
-import type { Movie } from "../movie/types";
-import ShowCardMediaImage, { ShowHoverCard } from "../show/CardMediaImage";
-import type { Season } from "../show/types";
-import VgCardMediaImage, { VgHoverCard } from "../vg/CardMediaImage";
-import type { VideoGame } from "../vg/types";
+import { MEDIA_LAZY } from "../app/mediaLazy";
 import { type OmniItem } from "./adapter";
 import { mediumToShape } from "./types";
 
@@ -19,50 +12,21 @@ import { mediumToShape } from "./types";
  * franchise indexes are provided above this tab, so those strips answer with the whole series. The
  * artwork's shape comes with the card too, so a banner in a mixed row stacks its words and a poster
  * or a cover seats them beside without this adapter deciding anything.
- *
- * `source` is cast rather than narrowed: it is a union of four records TypeScript cannot tell
- * apart by shape, and `medium` is the discriminant the item already carries.
  */
 const OmniCardMediaImage: TypedCardMediaImage<OmniItem> = ({ item, ...props }) => {
   // What the card is reserved at and arranged by. Passed here rather than set inside each domain's
   // component, so a home tab — every card of which is one shape already — keeps the layout its own
   // page was drawn for and only this tab's mixed rows arrange themselves per item.
   const shape = mediumToShape(item.medium);
+  const { CardMediaImage } = MEDIA_LAZY[item.medium];
 
-  switch (item.medium) {
-    case "game":
-      return (
-        <VgCardMediaImage
-          item={item.source as VideoGame}
-          shape={shape}
-          {...props}
-        />
-      );
-    case "show":
-      return (
-        <ShowCardMediaImage
-          item={item.source as Season}
-          shape={shape}
-          {...props}
-        />
-      );
-    case "movie":
-      return (
-        <MovieCardMediaImage
-          item={item.source as Movie}
-          shape={shape}
-          {...props}
-        />
-      );
-    case "book":
-      return (
-        <BookCardMediaImage
-          item={item.source as Book}
-          shape={shape}
-          {...props}
-        />
-      );
-  }
+  return (
+    <CardMediaImage
+      item={item.source}
+      shape={shape}
+      {...props}
+    />
+  );
 };
 
 /**
@@ -71,23 +35,13 @@ const OmniCardMediaImage: TypedCardMediaImage<OmniItem> = ({ item, ...props }) =
  * The four domains' own components, rendered untouched. A panel assembled here instead is a second
  * card for the same item, free to state different figures from the one its home tab shows — and,
  * because this tab's cards also declare an artwork shape, to arrange them differently, stretching a
- * show's card out of the proportions its own tab draws it at. Dispatching to the domain leaves
+ * show's card out of the proportions its own tab draws it at. Dispatching to the module leaves
  * nothing here that can disagree.
- *
- * `source` is cast rather than narrowed for the reason above: TypeScript cannot tell the four
- * records apart by shape, and `medium` is the discriminant the item already carries.
  */
 export const OmniHoverCard = ({ item }: { item: OmniItem }) => {
-  switch (item.medium) {
-    case "game":
-      return <VgHoverCard item={item.source as VideoGame} />;
-    case "show":
-      return <ShowHoverCard item={item.source as Season} />;
-    case "movie":
-      return <MovieHoverCard item={item.source as Movie} />;
-    case "book":
-      return <BookHoverCard item={item.source as Book} />;
-  }
+  const { HoverCard } = MEDIA_LAZY[item.medium];
+
+  return <HoverCard item={item.source} />;
 };
 
 export default OmniCardMediaImage;
