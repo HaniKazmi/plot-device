@@ -72,9 +72,16 @@ const FilterCategories = <T, S>({
 }) => {
   const fields = state as Record<string, unknown>;
 
+  // Two maps rather than one, because they are keyed on different things. A category's options are
+  // a pass over the whole library — a `Set` of every row's value, sorted — and depend on the data
+  // and the schema alone, so hoisted they survive every dispatch the drawer makes. Computed inside
+  // the map below they would be part of a value the state is a dependency of, and each of a
+  // library's fifteen lists would be rebuilt on every chip pressed.
+  const options = schema.categories.map((category) => categoryValues(category, data));
+
   return (
     <>
-      {schema.categories.map((category) => {
+      {schema.categories.map((category, index) => {
         // Read out before the closure: a category with no colour vocabulary passes the prop
         // undefined rather than a function answering undefined, so it keeps the plain chips it has.
         const colourFor = category.colourFor;
@@ -83,7 +90,7 @@ const FilterCategories = <T, S>({
           <FilterCategory
             key={category.key}
             label={category.label}
-            options={categoryValues(category, data)}
+            options={options[index]}
             selected={fields[category.key] as readonly string[]}
             onChange={(value) =>
               dispatch({ type: "updateFilter", filter: category.key as keyof S, value: value as S[keyof S] })

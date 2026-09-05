@@ -1,7 +1,11 @@
 import { useSyncExternalStore } from "react";
 import type { PageDispatch, PageState, PageStore } from "../common/filterReducer";
+import { categoryValues, type PageSchema } from "../common/filterSchema";
+import type { OmniItem } from "../common/medium";
+import { omniFilters } from "../omnibus/filters";
 import { pageState as omnibusPageState } from "../omnibus/filterUtils";
-import { mediaModules } from "./media";
+import type { Library } from "./library";
+import { eachMedium, mediaModules } from "./media";
 
 /**
  * The composing tab's own id, as a string rather than read off its `Tab`: `tabs.ts` imports the
@@ -25,6 +29,36 @@ const OMNIBUS_TAB = "omnibus";
 export const PAGE_STORES: Record<string, PageStore> = {
   ...Object.fromEntries(mediaModules.map((module) => [module.tabId, module.pageState])),
   [OMNIBUS_TAB]: omnibusPageState,
+};
+
+/** One page's selections held to the vocabulary its own controls are drawing. */
+const retainSelections = (store: PageStore, schema: PageSchema, data: readonly unknown[]) => {
+  for (const category of schema.categories)
+    store.dispatch({ type: "retain", category: category.key, values: categoryValues(category, data) });
+};
+
+/**
+ * Every tab's multi-selects held to the values its own library still offers.
+ *
+ * A category's options are computed over the visible library, so guest mode switched on under a
+ * chosen franchise leaves that franchise selected in the store while the select no longer lists it:
+ * the page narrows to nothing and there is no chip anywhere to take the choice back. Swept per tab
+ * against exactly the rows that tab's own drawer draws its lists from — each medium's visible
+ * slice, and the union for the composing tab.
+ *
+ * A slice still in flight is skipped rather than swept against nothing: on a cold cache a library
+ * is absent until its sheet lands, and an empty list would clear every selection the reader made.
+ *
+ * Here rather than beside the library because this is the one file in `app/` that names the
+ * composing tab, whose store is registered by name until it has a module of its own.
+ */
+export const retainPageSelections = (library: Partial<Library>, items: OmniItem[] | undefined) => {
+  eachMedium((medium, module) => {
+    const slice = library[medium];
+    if (slice) retainSelections(module.pageState, module.filters, slice);
+  });
+
+  if (items) retainSelections(omnibusPageState, omniFilters, items);
 };
 
 /**

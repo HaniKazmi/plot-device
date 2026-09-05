@@ -98,6 +98,44 @@ describe("the reducer rebuilds the composed predicate", () => {
   });
 });
 
+describe("retain", () => {
+  const picked = (...franchises: string[]): FilterState =>
+    reducer(initialState, { type: "updateFilter", filter: "franchise", value: franchises });
+
+  it("drops a value the library no longer offers and keeps the rest", () => {
+    // A select's options are computed over the visible library, so a value guest mode takes out of
+    // it would otherwise stay selected with no chip left to clear it, and every chart on the page
+    // would narrow to nothing for a choice the reader can no longer see.
+    const held = reducer(picked("Zelda", "Pokémon"), {
+      type: "retain",
+      category: "franchise",
+      values: ["Mario", "Zelda"],
+    });
+
+    expect(held.franchise).toEqual(["Zelda"]);
+  });
+
+  it("answers the same state object when every value is still on offer", () => {
+    // The sweep runs whenever a library lands, on every tab. A fresh state per run would rebuild
+    // the composed predicate and re-filter every chart in the app for no change at all.
+    const before = picked("Zelda");
+
+    expect(reducer(before, { type: "retain", category: "franchise", values: ["Mario", "Zelda"] })).toBe(before);
+  });
+
+  it("answers the same state object for an untouched category, whatever is on offer", () => {
+    expect(reducer(initialState, { type: "retain", category: "genre", values: [] })).toBe(initialState);
+  });
+
+  it("rebuilds the composed predicate for what it did drop", () => {
+    const held = reducer(picked("Zelda"), { type: "retain", category: "franchise", values: [] });
+
+    expect(held.franchise).toEqual([]);
+    expect(held.filter).not.toBe(initialState.filter);
+    expect(held.filter(videoGame({ franchise: "Mario" }))).toBe(true);
+  });
+});
+
 describe("resetFilters", () => {
   const dirty = (): FilterState =>
     [

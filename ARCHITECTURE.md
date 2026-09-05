@@ -1696,25 +1696,39 @@ is `franchiseCategory`, the one category all five tabs offer on identical terms.
 
 **The schema is also the state.** The reducer seeds a toggle to `true` and a category to `[]` from
 the schema itself, that being what "unfiltered" means for each — `hides` applies while a toggle is
-off, and an empty selection is no constraint — so a domain states only what its schema cannot: the
-measure it counts in, the scope it opens at, and a `yearRule` where its model answers the year with
-something other than a start date. A filter added to a schema therefore cannot arrive without a
-starting value, where a toggle missed in a hand-written list starts `undefined`, reads as off and
-hides rows on first paint.
+off, and an empty selection is no constraint — so a domain states only what its schema cannot,
+which is exactly how `initial` is typed: `Omit<S, "filter" | ToggleKey<S> | CategoryKey<S>>`, the
+measure it counts in, the scope it opens at and the year its records answer with. A filter added to
+a schema therefore cannot arrive without a starting value, where a toggle missed in a hand-written
+list starts `undefined`, reads as off and hides rows on first paint — and a state field the schema
+does not cover fails to compile rather than starting the same way.
 
 One description, three readers: `common/FilterControls`' `SchemaFilterDrawer` draws the whole
 surface — the drawer, its toggles and its selects — for every tab there is, and the box above the
 page and the index of what can be found by attribute read the same schema, so a page cannot be
 narrowed one way and found another. The toggle **icons** are keyed by the same keys in each
-medium's `module.lazy.ts` and never on the schema itself: `MediumModule` carries the schema, the
-shell reaches the registry, and an icon named there would put four tabs' filter glyphs in the first
-bundle a visitor downloads. `common/FilterDrawer` is one shell taking the active count, the reset
-action and two slots as fully controlled children; the measure is not in it, being the unit
-every figure is counted in rather than a narrowing of what is counted, so it rides the section rail
-(§6). `yearPredicates` takes a `yearOf` accessor defaulting to `startDate.year`, so the Omnibus
-passes a `yearRule` reading `item.year`, which counts towards the year it closed. Shows passes its
-own, the shared one reading a show's _first_ season, which keeps the filter and the
-seasons-in-year vitals card in agreement.
+medium's own `filterIcons.ts`, beside the `Graphs` that draws the drawer, and never on the schema
+itself: `MediumModule` carries the schema, the shell reaches the registry, and an icon named there
+would put four tabs' filter glyphs in the first bundle a visitor downloads — while one named in
+`module.lazy.ts` rides the chunk the union prefetches for its hover cards (§2). `common/FilterDrawer`
+is one shell taking the active count, the reset action and two slots as fully controlled children;
+the measure is not in it, being the unit every figure is counted in rather than a narrowing of what
+is counted, so it rides the section rail (§6). `yearPredicates` takes a `yearOf` accessor as a
+required argument and never a default: written over a generic record a default type-checks against
+every model there is, so a domain whose rows carry no start date would compile and scope on
+`undefined`, keeping nothing. The Omnibus reads `item.year`, the year it closed; Shows passes a
+whole `yearRule` instead, the shared one reading a show's _first_ season, which keeps the filter and
+the seasons-in-year vitals card in agreement.
+
+**A selection is held to the vocabulary its own control draws.** A category's options are computed
+over the _visible_ library, so guest mode switched on under a chosen franchise would leave that
+franchise selected in the store with no chip anywhere offering or clearing it, and every chart on
+the page narrowed to nothing for a reason the reader cannot see. `LibraryProvider` sweeps each tab's
+selects against exactly the rows that tab's drawer lists from — each medium's visible slice, the
+union for the composing tab — through `retainPageSelections` (`app/pageState.ts`, the one file there
+that names the composing tab). The `retain` action answers the same state object where nothing is
+dropped, so the sweep costs no render on the runs that change nothing, and a slice still in flight is
+skipped rather than swept against an empty list.
 
 ### Guest mode
 

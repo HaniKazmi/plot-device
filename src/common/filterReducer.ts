@@ -23,6 +23,11 @@ export interface BaseFilterState<T, M extends string> {
 type FilterAction<S, K extends keyof S = keyof S> =
   | { type: "resetFilters" }
   | { type: "updateFilter"; filter: K; value: S[K] }
+  // Holds a multi-select's selection to the values still on offer. The option list a select draws
+  // is computed over the *visible* library, so a value the library stops offering — guest mode
+  // switched on under a chosen franchise — would otherwise stay in the state with no control left
+  // to show or clear it, narrowing every chart on the page to nothing for no visible reason.
+  | { type: "retain"; category: CategoryKey<S>; values: readonly string[] }
   // Read off the state's own field rather than carried as a second parameter on the action union:
   // `S` already names the measure it holds, and a domain's dispatch is typed from `S` alone.
   | { type: "measure"; measure: S extends { measure: infer M } ? M : never }
@@ -48,6 +53,7 @@ export type PageState = BaseFilterState<never, string>;
 export type PageAction =
   | { type: "resetFilters" }
   | { type: "updateFilter"; filter: string; value: unknown }
+  | { type: "retain"; category: string; values: readonly string[] }
   | { type: "measure"; measure: string }
   | { type: "yearType"; yearType: YearType };
 
@@ -227,6 +233,15 @@ export const createFilterReducer = <T, M extends string, S extends BaseFilterSta
         // identity match here only ever means nothing moved.
         if (state[action.filter] === action.value) return state;
         return withFilter({ ...state, [action.filter]: action.value });
+      case "retain": {
+        // The same state object where nothing is dropped, which is every call but the few that
+        // follow a change of what the library shows: the store notifies on identity, so the sweep
+        // that runs whenever a library lands costs no render.
+        const held = (state as Record<string, unknown>)[action.category] as readonly string[];
+        const kept = held.filter((value) => action.values.includes(value));
+        if (kept.length === held.length) return state;
+        return withFilter({ ...state, [action.category]: kept });
+      }
       case "measure":
         // `filter` is carried through unrebuilt: no domain's filters() reads the measure, and
         // consumers re-filter the whole dataset on that predicate's identity. The identity
