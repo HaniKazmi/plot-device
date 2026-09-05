@@ -54,8 +54,11 @@ export const safeAreaGutters = (theme: Theme) => ({
  * can. That sliver is what the surface beneath has to make room for, the section rail being the one
  * that reaches the top edge.
  *
- * Two pixels rather than one because the sliver is the whole of what Safari reads, and rather than
- * five because every pixel of it is taken out of the rail's own top padding.
+ * How little it can show is a device's answer and not a documented one, and five is the floor: at
+ * four the status bar goes back to the paper, as it does at two. Every pixel of the sliver is one
+ * the rail gives back out of its own top padding, so this is the smallest that holds rather than a
+ * comfortable margin — and the rail solves its padding from it, so moving it cannot leave the two
+ * disagreeing.
  */
 export const BROWSER_TINT_HEIGHT = 15;
-export const BROWSER_TINT_VISIBLE = 2;
+export const BROWSER_TINT_VISIBLE = 5;
