@@ -1786,7 +1786,7 @@ colour a phone's status bar wears before any tab-specific theme has painted. `Go
 `MuiCssBaseline` override turns off the grey tap flash on `body`: it is drawn at a tap target's own
 box, which on a chart is a whole row group behind a bar a few pixels wide, and every tap here already
 answers with the card it opens. The same override paints the document — `html` and `body`, Safari reading
-the body's — in the tab's bar colour below `sm` while the page is against the app bar, and in the
+the body's — in the tab's bar colour while the page is against the app bar, at every width, and in the
 page's ground once past it, on a `data-past-bar` attribute `BrowserTint.tsx` sets from the boundary
 its strip already keys on; the page's own ground moves onto `#root`. Safari extends that background
 past the page's ends and under its status bar, so a pull past the top shows the bar's colour where a

@@ -65,9 +65,10 @@ export const BrowserTint = () => {
   // where a pull past the top would otherwise open a band of paper between the status bar and the
   // bar — and the page's ground once past it, where a bar colour would tint the status bar over a
   // page that has scrolled the bar away. An attribute rather than a style, so the colours stay
-  // stated once, in the theme, beside the rule that reads them.
+  // stated once, in the theme, beside the rule that reads them; at every width, where the strip
+  // itself is a phone's, since a desktop rubber-bands too.
   useEffect(() => {
-    document.documentElement.toggleAttribute("data-past-bar", phone && past);
+    document.documentElement.toggleAttribute("data-past-bar", past);
   }, [phone, past]);
   // Past the bar the strip is not drawn: with nothing fixed at the top to sample, Safari draws its
   // own translucent status bar over the page — the meta stated there for the browsers that read one
