@@ -13,8 +13,9 @@ describe("authStateOf", () => {
   });
 
   it("is stale where a copy is on screen and there is no token", () => {
-    // Revoking mid-session, and a failed `values.get` clearing the token, both leave a full page
-    // with no way to refresh it: the strip says so, where blanking the page would lose the rows.
+    // Revoking mid-session, and a failed read clearing the token, both leave a full page
+    // with no way to refresh it: the key's dot says so, where blanking the page would lose the
+    // rows.
     expect(authStateOf({ authorise: callback, revoke: undefined, raw: { book: [{}] } })).toBe("stale");
   });
 

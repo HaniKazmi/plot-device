@@ -121,7 +121,7 @@ npm run dev   # http://localhost:5173
 Authentication notes that otherwise waste your time:
 
 - The OAuth token lives in **`sessionStorage`, per-tab**. Authorise in the tab you are driving: the key beside the search button in the app bar, which carries the word from `md` up with a fine pointer.
-- A failed `values.get` clears the token, so the key coming back — with a dot on it, or the "Nothing here yet" card where there was no cache to paint — usually means auth rather than rendering. A converter throw is deliberately not guarded that way; it reports itself through the snackbar.
+- A failed read clears the token — and the four ranges travel in one `batchGet`, so one bad range clears it on behalf of all four media rather than the one that failed. The key coming back — with a dot on it, or the "Nothing here yet" card where there was no cache to paint — usually means auth rather than rendering. A converter throw is deliberately not guarded that way; it reports itself through the snackbar.
 - Data is cached in `localStorage`, so the app paints before auth completes: a stale render can outlive a broken change.
 - **Extracted artwork colours arrive seconds after the page does**, sometimes only on a reload. Until then a card wears the theme's own colours, which reads as broken styling.
 

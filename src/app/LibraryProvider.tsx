@@ -6,6 +6,7 @@ import { useGoogleAuth } from "../contexts/GoogleAuthContext";
 import { movieModule } from "../movie/module";
 import { showModule } from "../show/module";
 import Tabs, { type SheetTab } from "../tabs";
+import { MEDIA as MEDIA_ORDER } from "../utils/types";
 import { gameModule } from "../game/module";
 import { completeLibrary, LibraryContext, toOmniItems, visibleLibrary, type Library } from "./library";
 import { retainPageSelections } from "./pageState";
@@ -57,6 +58,8 @@ export const LibraryProvider = ({ guestMode, children }: { guestMode: boolean; c
   const { apiReady } = useGoogleAuth();
 
   const raw: Partial<Library> = { game: games, show: shows, movie: movies, book: books };
+  const loaded = { game: gamesLoaded, show: showsLoaded, movie: moviesLoaded, book: booksLoaded };
+  const error = { game: gamesError, show: showsError, movie: moviesError, book: booksError };
   const visible = visibleLibrary(raw, guestMode);
   const whole = completeLibrary(visible);
   const items = whole && toOmniItems(whole);
@@ -75,22 +78,21 @@ export const LibraryProvider = ({ guestMode, children }: { guestMode: boolean; c
     visible,
     whole,
     items,
-    loaded: { game: gamesLoaded, show: showsLoaded, movie: moviesLoaded, book: booksLoaded },
-    error: { game: gamesError, show: showsError, movie: moviesError, book: booksError },
-    // Written out for the reason the four `useSheet` calls are: a hook cannot be called in a loop,
-    // and each of these is typed for its own medium's records.
+    loaded,
+    error,
+    // Named one at a time because four separately-bound callbacks are not a collection to walk —
+    // a consequence of the `useSheet` calls above, where the rule against a hook in a loop is what
+    // writes them out. These are plain functions and could be looped over given an array to loop.
     refresh: () => {
       refetchGames();
       refetchShows();
       refetchMovies();
       refetchBooks();
     },
-    reading:
-      apiReady &&
-      ((!gamesLoaded && !gamesError) ||
-        (!showsLoaded && !showsError) ||
-        (!moviesLoaded && !moviesError) ||
-        (!booksLoaded && !booksError)),
+    // A read is out wherever a medium has neither landed nor failed, which is a walk over the two
+    // records above rather than their eight parts again: destructured by hand, a fifth medium is
+    // silently absent from the answer and nothing fails to compile over it.
+    reading: apiReady && MEDIA_ORDER.some((medium) => !loaded[medium] && !error[medium]),
   };
 
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>;

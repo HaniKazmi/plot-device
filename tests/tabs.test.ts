@@ -59,12 +59,12 @@ describe("tabForPath", () => {
   it("falls back rather than matching a trailing slash or a nested path", () => {
     // Only one leading slash is stripped and the comparison is exact, so nothing below a tab
     // resolves to it.
-    expect(tabForPath("/show/")).toBe(OmnibusTab);
-    expect(tabForPath("/show/detail")).toBe(OmnibusTab);
+    expect(tabForPath("/shows/")).toBe(OmnibusTab);
+    expect(tabForPath("/shows/detail")).toBe(OmnibusTab);
   });
 
   it("is case sensitive", () => {
-    expect(tabForPath("/SHOW")).toBe(OmnibusTab);
+    expect(tabForPath("/SHOWS")).toBe(OmnibusTab);
   });
 
   it("falls back to the first tab for a well-formed path naming no tab", () => {
@@ -72,7 +72,7 @@ describe("tabForPath", () => {
   });
 
   it("strips exactly one leading slash", () => {
-    expect(tabForPath("//show")).toBe(OmnibusTab);
+    expect(tabForPath("//shows")).toBe(OmnibusTab);
   });
 
   it("resolves against a caller-supplied list", () => {

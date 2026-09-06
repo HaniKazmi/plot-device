@@ -23,7 +23,7 @@ type SendBatch = (spreadsheetId: string, ranges: string[]) => Promise<(string[][
 export const rangeBatcher = (send: SendBatch) => {
   const forming = new Map<string, { ranges: string[]; grids: Promise<(string[][] | undefined)[]> }>();
 
-  return (spreadsheetId: string, range: string): Promise<string[][]> => {
+  return (spreadsheetId: string, range: string): Promise<string[][] | undefined> => {
     let batch = forming.get(spreadsheetId);
     if (!batch) {
       // The array the request is sent with rather than a copy of it, so every range pushed between
@@ -42,7 +42,12 @@ export const rangeBatcher = (send: SendBatch) => {
 
     // The response holds one entry per requested range, in the order they were asked for, so a
     // caller's own grid is the one at the index its range landed at.
+    //
+    // An absent answer travels as `undefined` rather than an empty grid: the API omits `values`
+    // for a range holding nothing, and a converter reads an empty grid as a library with no rows
+    // in it — which `useData` then stores, replacing the copy a cold visit paints from. The caller
+    // decides what a missing grid means, since only it knows a range is a build-time constant.
     const index = batch.ranges.push(range) - 1;
-    return batch.grids.then((grids) => grids[index] ?? []);
+    return batch.grids.then((grids) => grids[index]);
   };
 };

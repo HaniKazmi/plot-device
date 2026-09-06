@@ -32,9 +32,10 @@ function App() {
               Component={tab.component}
             />
           ))}
-          {/* Anything else lands where the index does. `tabForPath` already answers `Tabs[0]` for a
-              path it does not know, so the bar and the theme were the tab this draws while the
-              outlet under them held nothing at all — a blank page under a full app bar. */}
+          {/* Anything else lands where the index does, which is what keeps the outlet and the
+              chrome naming one tab: `tabForPath` answers `Tabs[0]` for a path it does not know, so
+              the bar and the theme draw this tab whether or not a route matches. Without the route
+              they draw it over an outlet holding nothing — a blank page under a full app bar. */}
           <Route
             path="*"
             Component={Tabs[0].component}

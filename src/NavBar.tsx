@@ -51,18 +51,32 @@ const BAR_BUTTON_SX = {
 } as const;
 
 /**
- * A disabled button on the bar takes the theme's own disabled grey, a colour the bar — the tab's
- * primary on the light paper, its tint on the dark — does not have anywhere else. The bar's ink,
- * stepped back, says the same thing in the bar's own terms.
+ * A bar control with a read of its own in flight.
+ *
+ * The bar's own ink stepped back, rather than the theme's disabled grey — a colour the bar, the
+ * tab's primary on the light paper and its tint on the dark, does not have anywhere else.
+ *
+ * `aria-disabled` rather than `disabled`, because the state is now reached by the reader's own
+ * press: a disabled control leaves the accessibility tree, so the press drops focus to the document
+ * and takes the changed label with it, and getting back to the button means tabbing past the
+ * wordmark, the tab strip and the badge. Held instead, it is announced where the reader already is.
+ * The handler answers the flag, so the second press a live button admits does nothing.
  */
-const DISABLED_BUTTON_SX = { "&.Mui-disabled": { color: "inherit", opacity: 0.6 } } as const;
+const BUSY_BUTTON_SX = {
+  '&&[aria-disabled="true"]': {
+    color: "inherit",
+    opacity: 0.6,
+    cursor: "default",
+    "@media (hover: hover)": { "&:hover": { backgroundColor: "transparent" } },
+  },
+} as const;
 
 /**
  * The refresh control's icon while a read is in flight.
  *
  * Behind `no-preference` rather than stopped under `reduce`, so the rule is simply absent for a
- * reader who asked for less motion — the button still disables and its label still says the state,
- * which is what actually reports the read.
+ * reader who asked for less motion — the button still steps back and its label still says the
+ * state, which is what actually reports the read.
  */
 const SPINNING_SX = {
   "@keyframes plotDeviceSpin": { to: { transform: "rotate(1turn)" } },
@@ -104,7 +118,7 @@ const BAR_WORD_SX = {
     "@media (hover: hover)": { "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.12)" } },
     "& .MuiSvgIcon-root": { fontSize: 20 },
   },
-  ...DISABLED_BUTTON_SX,
+  ...BUSY_BUTTON_SX,
 } as const;
 
 /**
@@ -294,9 +308,10 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
           <IconButton
             color="inherit"
             aria-label={action.busy ? `${action.label}…` : action.label}
-            disabled={action.busy}
-            onClick={action.onClick}
-            sx={{ ...BAR_BUTTON_SX, ...DISABLED_BUTTON_SX }}
+            aria-disabled={action.busy}
+            aria-busy={action.busy}
+            onClick={action.busy ? undefined : action.onClick}
+            sx={{ ...BAR_BUTTON_SX, ...BUSY_BUTTON_SX }}
           >
             {action.icon}
           </IconButton>
@@ -310,8 +325,9 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
           <Button
             color="inherit"
             startIcon={action.icon}
-            disabled={action.busy}
-            onClick={action.onClick}
+            aria-disabled={action.busy}
+            aria-busy={action.busy}
+            onClick={action.busy ? undefined : action.onClick}
             sx={BAR_WORD_SX}
           >
             {action.label}

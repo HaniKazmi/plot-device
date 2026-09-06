@@ -165,6 +165,13 @@ export const GoogleAuthProvider = ({ children }: { children: ReactNode }) => {
       throw error;
     }
 
+    // Outside the guard above, so a range that answered nothing reports itself as the data fault it
+    // is rather than clearing the token. A range is a build-time constant naming a tab of a
+    // spreadsheet that exists, so no answer at all means the tab has been renamed or emptied —
+    // where reading it as a library with no rows in it would store that over the copy a cold visit
+    // paints from, and report a successful refresh while doing it.
+    if (!grid) throw new Error(`${range} answered no rows, so the sheet holds nothing to read`);
+
     return jsonConverter(arrayToJson(grid));
   };
 

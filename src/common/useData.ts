@@ -189,6 +189,17 @@ const useData = <T>(
 
   const { apiReady, fetchAndConvertSheet } = useGoogleAuth();
 
+  /**
+   * How many reads the reader has asked for, which is what `refetch` moves.
+   *
+   * A counter rather than a flag, because the effect re-runs on a dependency that *changes* and the
+   * states a flag could hold are already taken: `dataLoaded` is false for a domain whose read
+   * failed, so setting it false again is a same-value write React bails on, and the retry after a
+   * bad row — the one press this control exists for — would issue no request at all while clearing
+   * the error that says why.
+   */
+  const [reads, setReads] = useState(0);
+
   useEffect(() => {
     if (!apiReady || CACHE.has(storageKey)) return;
 
@@ -218,22 +229,30 @@ const useData = <T>(
         // already in storage.
         if (CACHE.has(storageKey)) return;
         CACHE.set(storageKey, data);
-        storage().setItem(storageKey, JSON.stringify(data, replacer));
+        try {
+          storage().setItem(storageKey, JSON.stringify(data, replacer));
+        } catch (cause) {
+          // Guarded separately from the fetch, whose `catch` this handler otherwise falls into: a
+          // full quota or a private window would then be reported through `describeFailure` as the
+          // sheet's own complaint, sending a reader to find a bad row in a spreadsheet that is
+          // fine. What it actually costs is the next cold visit its paint, which is nothing this
+          // read can act on and nothing worth interrupting for.
+          console.error(cause);
+        }
       })
       .catch((cause: unknown) => {
         console.error(cause);
         setError(describeFailure(cause));
       });
-  }, [apiReady, converter, storageKey, tab, fetchAndConvertSheet, replacer, dataLoaded]);
+  }, [apiReady, converter, storageKey, tab, fetchAndConvertSheet, replacer, reads]);
 
   /**
    * Reads the sheet again, for a reader who wants what it says now.
    *
-   * The whole of it is dropping this domain's cached copy and saying so: `dataLoaded` is in the
-   * effect's dependencies, so turning it back reruns the effect, which finds no copy and fetches.
-   * The cycle closes itself — the fetch sets the flag and writes the copy, so the rerun that follows
-   * takes the early return — and a failure leaves the flag false with nothing further changing, so
-   * nothing re-fires.
+   * Dropping the cached copy is what makes the effect fetch rather than take its early return, and
+   * bumping `reads` is what makes it run at all — the two together, since neither alone re-reads.
+   * `dataLoaded` and `error` are turned back because they are what the page says about itself while
+   * the read is out; they signal nothing to the effect.
    *
    * Called from a press rather than from an effect, which is what lets it set state at all: a
    * `setState` in an effect body is the cascading render the compiler's rules reject.
@@ -246,6 +265,7 @@ const useData = <T>(
     CACHE.delete(storageKey);
     setDataLoaded(false);
     setError(undefined);
+    setReads((n) => n + 1);
   };
 
   return [data, dataLoaded, error, refetch];

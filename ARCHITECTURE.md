@@ -176,9 +176,14 @@ another document batches with itself rather than not at all.
 The response holds one entry per requested range in the order asked, which is what lets each caller
 read its own grid out by index — and is the whole of the coupling, so `fetchAndConvertSheet` keeps
 its signature and every caller, cache key and per-medium error is untouched. One range failing is
-the exception: `batchGet` rejects the whole call, where four reads failed one at a time. A range is
-a build-time constant, so that trades a per-medium failure nobody can cause for a request nobody
-pays for four times.
+the exception, and the cost is real: `batchGet` rejects the whole call, so all four media fail
+together and each reports the same message — a Games tab naming a Books range. The range string is
+a build-time constant, but it embeds a **sheet tab name** the spreadsheet's owner renames at will,
+so this is a failure somebody can cause, and the trade is that against a request nobody pays for
+four times. A grid that arrives empty is the other half: the batcher hands `undefined` up rather
+than an empty grid, and `fetchAndConvertSheet` rejects it outside its own token guard, since a
+converter reading no rows as a library with none would store that over the copy a cold visit paints
+from and report a successful refresh doing it.
 
 **A bad cell names its own row**, rather than surfacing later from a colour lookup or a chart offset
 that names none. `common/sheetError.ts` holds the vocabulary — `sheetRow`, `describing`, `sheetError`
@@ -268,12 +273,16 @@ fetching" from "already fetched by the tab you came from". Once `apiReady` turns
 sharing one in-flight promise per `storageKey` so a second mount subscribes rather than issuing a
 second read; the entry clears on settle, so a failed fetch is retried by the next mount.
 
-The fourth return value is the way to ask again. It drops that domain's cached copy and turns
-`dataLoaded` back, which is in the effect's own dependencies — so the effect reruns, finds no copy
-and fetches, and the cycle closes itself when the fetch writes one. Called from a press rather than
-an effect, which is what lets it set state at all. `localStorage` is left standing, since emptying
-it would blank the next cold visit for the window before the replacement lands, and `IN_FLIGHT` too:
-a request already on the wire is one a refresh joins rather than duplicates.
+The fourth return value is the way to ask again. It drops that domain's cached copy and bumps a
+count of the reads asked for, which is in the effect's own dependencies — so the effect reruns,
+finds no copy and fetches. A count rather than the `dataLoaded` flag, because the effect reruns on a
+dependency that _changes_ and that flag is already false for a domain whose read failed: turned back
+there it is a same-value write, so the retry after a bad row — the one press this exists for —
+would issue no request while clearing the message saying why. `dataLoaded` and `error` are still
+turned back, being what the page says about itself while the read is out. Called from a press rather
+than an effect, which is what lets it set state at all. `localStorage` is left standing, since
+emptying it would blank the next cold visit for the window before the replacement lands, and
+`IN_FLIGHT` too: a request already on the wire is one a refresh joins rather than duplicates.
 
 `LibraryProvider` composes the four into `refresh` on `LibraryValue`, beside the `loaded` and `error`
 it already assembles, and derives `reading` from them — a token, and a medium that has neither
@@ -286,8 +295,10 @@ The third return value is what went wrong. A gapi rejection is the response obje
 `Error`, so `describeFailure` reads `result.error.message` — the converter's own message, naming the
 row, item and column. `DataLoadedSnackbar` holds it until dismissed and leaves the stale copy
 standing: last week's data beside the row to fix beats an empty page. Its "Refresh Complete" fires
-only for a `false → true` turn it watches after mount, so a caller keeps it mounted at a stable
-position across that turn. Below `sm` it stands above the bottom tab bar (`BOTTOM_TABS_CLEARANCE`,
+for a `false → true` turn it watches after mount, so a caller keeps it mounted at a stable position
+across that turn. It watches the turn rather than latching on the first arrival: a refresh takes the
+flag false and true again, so a latch would answer a cold load and then stay silent for every
+re-read on the one tab the reader is standing on. Below `sm` it stands above the bottom tab bar (`BOTTOM_TABS_CLEARANCE`,
 § Phone and tablet) rather than under it, MUI's own default anchoring to an edge the tabs cover.
 
 Two subtleties live in the serialisation boundary, and both are easy to break:
