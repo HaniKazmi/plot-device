@@ -28,49 +28,49 @@ describe("the page stores", () => {
   });
 
   it("files each domain's own store under that domain's tab", () => {
-    expect(PAGE_STORES.vg).toBe(gamePageState);
-    expect(PAGE_STORES.show).toBe(showPageState);
+    expect(PAGE_STORES.games).toBe(gamePageState);
+    expect(PAGE_STORES.shows).toBe(showPageState);
   });
 
   it("keeps each tab's state to itself", () => {
-    PAGE_STORES.vg.dispatch({ type: "measure", measure: "Hours" });
+    PAGE_STORES.games.dispatch({ type: "measure", measure: "Hours" });
 
-    expect(PAGE_STORES.vg.get().measure).toBe("Hours");
-    expect(PAGE_STORES.show.get().measure).toBe("Episodes");
+    expect(PAGE_STORES.games.get().measure).toBe("Hours");
+    expect(PAGE_STORES.shows.get().measure).toBe("Episodes");
     expect(PAGE_STORES.movies.get().measure).toBe("Films");
   });
 
   it("takes a filter for a tab nothing is standing inside", () => {
     // How a surface above the tabs narrows one it is not on: it dispatches on that tab's store and
     // then navigates, so nothing has to hold a filter waiting for a page to mount and read it.
-    PAGE_STORES.show.dispatch({ type: "updateFilter", filter: "network", value: ["Netflix"] });
+    PAGE_STORES.shows.dispatch({ type: "updateFilter", filter: "network", value: ["Netflix"] });
 
     expect(showPageState.get().network).toEqual(["Netflix"]);
-    expect(showPageState.get().filter).not.toBe(opening.find(([id]) => id === "show")?.[1].filter);
+    expect(showPageState.get().filter).not.toBe(opening.find(([id]) => id === "shows")?.[1].filter);
   });
 
   it("notifies nobody for a press on the measure already held", () => {
     // The reducer answers the same object, and the store compares by identity, so a segment
     // pressed twice costs one render rather than two.
     let notified = 0;
-    const stop = PAGE_STORES.vg.subscribe(() => notified++);
+    const stop = PAGE_STORES.games.subscribe(() => notified++);
 
-    PAGE_STORES.vg.dispatch({ type: "measure", measure: "Hours" });
-    const held = PAGE_STORES.vg.get();
-    PAGE_STORES.vg.dispatch({ type: "measure", measure: "Hours" });
+    PAGE_STORES.games.dispatch({ type: "measure", measure: "Hours" });
+    const held = PAGE_STORES.games.get();
+    PAGE_STORES.games.dispatch({ type: "measure", measure: "Hours" });
 
     expect(notified).toBe(1);
-    expect(PAGE_STORES.vg.get()).toBe(held);
+    expect(PAGE_STORES.games.get()).toBe(held);
 
     stop();
   });
 
   it("notifies nobody for the scope already held", () => {
     let notified = 0;
-    const stop = PAGE_STORES.vg.subscribe(() => notified++);
+    const stop = PAGE_STORES.games.subscribe(() => notified++);
 
-    PAGE_STORES.vg.dispatch({ type: "scope", yearTo: CURRENT_YEAR, yearType: "matching" });
-    PAGE_STORES.vg.dispatch({ type: "scope", yearTo: CURRENT_YEAR, yearType: "matching" });
+    PAGE_STORES.games.dispatch({ type: "scope", yearTo: CURRENT_YEAR, yearType: "matching" });
+    PAGE_STORES.games.dispatch({ type: "scope", yearTo: CURRENT_YEAR, yearType: "matching" });
 
     expect(notified).toBe(1);
 
@@ -84,22 +84,22 @@ describe("what the badge counts and Clear clears", () => {
   it("counts a filter and not the scope beside it", () => {
     // The scope is a control of its own and lights itself, so a badge counting it would report a
     // choice made outside the surface the badge sits on.
-    PAGE_STORES.vg.dispatch({ type: "scope", yearTo: lastYear, yearType: "matching" });
+    PAGE_STORES.games.dispatch({ type: "scope", yearTo: lastYear, yearType: "matching" });
 
     expect(activeCount(gamePageState.get())).toBe(0);
 
-    PAGE_STORES.vg.dispatch({ type: "updateFilter", filter: "endless", value: false });
+    PAGE_STORES.games.dispatch({ type: "updateFilter", filter: "endless", value: false });
 
     expect(activeCount(gamePageState.get())).toBe(1);
   });
 
   it("clears the filters and leaves the measure and the scope standing", () => {
-    PAGE_STORES.vg.dispatch({ type: "updateFilter", filter: "endless", value: false });
-    PAGE_STORES.vg.dispatch({ type: "updateFilter", filter: "franchise", value: ["Zelda"] });
-    PAGE_STORES.vg.dispatch({ type: "measure", measure: "Hours" });
-    PAGE_STORES.vg.dispatch({ type: "scope", yearTo: lastYear, yearType: "matching" });
+    PAGE_STORES.games.dispatch({ type: "updateFilter", filter: "endless", value: false });
+    PAGE_STORES.games.dispatch({ type: "updateFilter", filter: "franchise", value: ["Zelda"] });
+    PAGE_STORES.games.dispatch({ type: "measure", measure: "Hours" });
+    PAGE_STORES.games.dispatch({ type: "scope", yearTo: lastYear, yearType: "matching" });
 
-    PAGE_STORES.vg.dispatch({ type: "resetFilters" });
+    PAGE_STORES.games.dispatch({ type: "resetFilters" });
     const cleared = gamePageState.get();
 
     expect(cleared.endless).toBe(true);

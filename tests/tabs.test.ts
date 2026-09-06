@@ -4,7 +4,7 @@ import Tabs, {
   MoviesTab,
   OmnibusTab,
   ShowsTab,
-  VideoGamesTab,
+  GamesTab,
   allTabs,
   tabForPath,
   type DarkBar,
@@ -14,7 +14,7 @@ import { PAPERS, contrast } from "./fixtures/colour";
 
 describe("the tab registry", () => {
   it("routes Omnibus, Games, Shows, Movies and Books", () => {
-    expect(Tabs.map((tab) => tab.id)).toEqual(["omnibus", "vg", "show", "movies", "books"]);
+    expect(Tabs.map((tab) => tab.id)).toEqual(["omnibus", "games", "shows", "movies", "books"]);
   });
 
   it("gives every tab a distinct id, since the theme cache is keyed on it", () => {
@@ -40,15 +40,15 @@ describe("the tab registry", () => {
 
 describe("tabForPath", () => {
   it("matches a path against the tab id", () => {
-    expect(tabForPath("/vg")).toBe(VideoGamesTab);
-    expect(tabForPath("/show")).toBe(ShowsTab);
+    expect(tabForPath("/games")).toBe(GamesTab);
+    expect(tabForPath("/shows")).toBe(ShowsTab);
     expect(tabForPath("/movies")).toBe(MoviesTab);
     expect(tabForPath("/books")).toBe(BooksTab);
     expect(tabForPath("/omnibus")).toBe(OmnibusTab);
   });
 
   it("matches the bare id with no leading slash", () => {
-    expect(tabForPath("show")).toBe(ShowsTab);
+    expect(tabForPath("shows")).toBe(ShowsTab);
   });
 
   it("falls back to Omnibus at the root", () => {
@@ -76,9 +76,9 @@ describe("tabForPath", () => {
   });
 
   it("resolves against a caller-supplied list", () => {
-    expect(tabForPath("/show", [ShowsTab, MoviesTab])).toBe(ShowsTab);
+    expect(tabForPath("/shows", [ShowsTab, MoviesTab])).toBe(ShowsTab);
     // The supplied list's own first entry is the fallback, not the module's.
-    expect(tabForPath("/vg", [ShowsTab, MoviesTab])).toBe(ShowsTab);
+    expect(tabForPath("/games", [ShowsTab, MoviesTab])).toBe(ShowsTab);
   });
 });
 
@@ -88,8 +88,8 @@ describe("allTabs", () => {
     // dropping the one in hand would slide the rest along by a chip on every navigation.
     expect(allTabs(ShowsTab, "light").map((tab) => [tab.id, tab.label])).toEqual([
       ["omnibus", "Omnibus"],
-      ["vg", "Games"],
-      ["show", "Shows"],
+      ["games", "Games"],
+      ["shows", "Shows"],
       ["movies", "Movies"],
       ["books", "Books"],
     ]);
@@ -101,7 +101,7 @@ describe("allTabs", () => {
       allTabs(ShowsTab, "light")
         .filter((tab) => tab.current)
         .map((tab) => tab.id),
-    ).toEqual(["show"]);
+    ).toEqual(["shows"]);
   });
 
   it("carries each tab's own icon and the colour it is named in on that paper", () => {

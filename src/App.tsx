@@ -32,6 +32,13 @@ function App() {
               Component={tab.component}
             />
           ))}
+          {/* Anything else lands where the index does. `tabForPath` already answers `Tabs[0]` for a
+              path it does not know, so the bar and the theme were the tab this draws while the
+              outlet under them held nothing at all — a blank page under a full app bar. */}
+          <Route
+            path="*"
+            Component={Tabs[0].component}
+          />
         </Route>
       </Routes>
     </HashRouter>

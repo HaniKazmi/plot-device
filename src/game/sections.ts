@@ -1,6 +1,6 @@
 import { tabSections } from "../common/sections";
 
-const { ids, chips } = tabSections("vg", [
+const { ids, chips } = tabSections("games", [
   { key: "now", label: "Now" },
   { key: "vitals", label: "Vitals" },
   { key: "top", label: "Top" },

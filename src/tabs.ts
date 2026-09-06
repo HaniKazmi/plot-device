@@ -44,6 +44,14 @@ export const barColour = (tab: Tab, scheme: Scheme): Colour | undefined =>
   (scheme === "dark" ? tab.darkBar?.tint : tab.primaryColour) as Colour | undefined;
 
 export interface Tab {
+  /**
+   * The tab's route as well as its key: `App.tsx` renders it as the path, so this is what stands
+   * after the hash, and `tabForPath` reads it back. It is also what `PAGE_MODULES` and
+   * `PAGE_STORES` are keyed on, so a surface narrowing a tab it is not standing on names it by this.
+   *
+   * The tab's own name, lowercased — plural, because every one of them names a library rather than
+   * a work. The one part of a tab a reader ever sees written down.
+   */
   id: string;
   name: string;
   /**
@@ -85,8 +93,8 @@ export interface Tab {
  */
 export type SheetTab = Tab & Required<Pick<Tab, "spreadsheetId" | "range">>;
 
-export const VideoGamesTab: SheetTab = {
-  id: "vg",
+export const GamesTab: SheetTab = {
+  id: "games",
   name: "Games",
   spreadsheetId: "1Zv8WAq1KA9L95ooQ3aiTOD1-0QrD1IPrEf4Mixgp9o0",
   range: "Games!A:Z",
@@ -98,7 +106,7 @@ export const VideoGamesTab: SheetTab = {
 };
 
 export const ShowsTab: SheetTab = {
-  id: "show",
+  id: "shows",
   name: "Shows",
   spreadsheetId: "1Zv8WAq1KA9L95ooQ3aiTOD1-0QrD1IPrEf4Mixgp9o0",
   range: "Shows!A:Z",
@@ -201,7 +209,7 @@ export const OmnibusTab: Tab = {
  * `Tabs[0].component` for the index route, and `tabForPath` falls back to `tabs[0]` for any path
  * that matches no tab id, root included.
  */
-const Tabs: Tab[] = [OmnibusTab, VideoGamesTab, ShowsTab, MoviesTab, BooksTab];
+const Tabs: Tab[] = [OmnibusTab, GamesTab, ShowsTab, MoviesTab, BooksTab];
 
 /**
  * The tab a route belongs to, falling back to the first one.

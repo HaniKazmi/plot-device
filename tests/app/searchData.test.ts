@@ -222,16 +222,16 @@ describe("attributePlacements and attributeAction", () => {
     buildAttributeIndex(trekLibrary()).find((entry) => entry.category === "genre" && entry.value === "Sci-Fi")!;
 
   it("puts the tab being read first, as the one a hit filters rather than travels to", () => {
-    const placed = attributePlacements(genre(), "show", ["genre", "network"]);
+    const placed = attributePlacements(genre(), "shows", ["genre", "network"]);
 
-    expect(placed[0]).toMatchObject({ tab: "show", here: true });
+    expect(placed[0]).toMatchObject({ tab: "shows", here: true });
     expect(placed.slice(1).map((hit) => hit.tab)).toEqual(["movies", "books"]);
     expect(placed.slice(1).every((hit) => !hit.here)).toBe(true);
   });
 
   it("offers no hit on a page holding the category but none of the value, which would empty it", () => {
     // Games can be narrowed by genre, and no game in this library is Sci-Fi.
-    const placed = attributePlacements(genre(), "vg", ["genre", "platform"]);
+    const placed = attributePlacements(genre(), "games", ["genre", "platform"]);
 
     expect(placed.every((hit) => !hit.here)).toBe(true);
   });
@@ -240,7 +240,7 @@ describe("attributePlacements and attributeAction", () => {
     const platform = buildAttributeIndex(trekLibrary()).find((entry) => entry.category === "platform")!;
     const placed = attributePlacements(platform, "shows", ["genre", "network", "type", "franchise"]);
 
-    expect(placed.map((hit) => ({ tab: hit.tab, here: hit.here }))).toEqual([{ tab: "vg", here: false }]);
+    expect(placed.map((hit) => ({ tab: hit.tab, here: hit.here }))).toEqual([{ tab: "games", here: false }]);
   });
 
   it("places a hit on a tab that is no medium, whose own values are the ones it states", () => {
@@ -255,7 +255,7 @@ describe("attributePlacements and attributeAction", () => {
   });
 
   it("adds to whatever that tab already holds, and adds nothing it holds already", () => {
-    const [placed] = attributePlacements(genre(), "show", ["genre"]);
+    const [placed] = attributePlacements(genre(), "shows", ["genre"]);
 
     expect(attributeAction(placed, ["Horror"])).toEqual({
       type: "updateFilter",
@@ -286,7 +286,7 @@ describe("attributePlacements and attributeAction", () => {
 
 describe("searchUnion over attributes", () => {
   it("splits a query's attributes into the page it can narrow and the pages it can travel to", () => {
-    const groups = searchUnion(trekIndex(), "sci-fi", { tabId: "show", categories: ["genre", "network"] });
+    const groups = searchUnion(trekIndex(), "sci-fi", { tabId: "shows", categories: ["genre", "network"] });
     const here = groups.find((group) => group.key === "filter-here")!;
     const there = groups.find((group) => group.key === "filter-there")!;
 

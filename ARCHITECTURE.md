@@ -2246,7 +2246,8 @@ there, and the bar answers for the library as a whole — and `FranchiseUnionPro
 
 Routing uses `HashRouter` because GitHub Pages cannot rewrite deep paths to `index.html`. The root
 route and the unmatched-path fallback are positional — `App.tsx` renders `Tabs[0].component` for the
-index and `tabForPath` falls back to `tabs[0]` — so a tab's place in the exported `Tabs` array decides
+index and for `*`, and `tabForPath` falls back to `tabs[0]` so the bar and theme agree with it — so a
+tab's place in the exported `Tabs` array decides
 what a bare `/` opens. Omnibus leads for that reason.
 
 ## 8. Extension points
@@ -2338,7 +2339,7 @@ Recorded so they are not mistaken for design:
   so it waits longest.
 - **Every visit reads all four ranges.** `app/LibraryProvider.tsx` mounts above the router, so any
   tab has the cross-media union and the bar can say whether there is a library at all; a deep link
-  to `/vg` therefore pays for three tabs it is not showing, where the Omnibus — which a bare visit
+  to `/games` therefore pays for three tabs it is not showing, where the Omnibus — which a bare visit
   opens on — needs all four regardless. A deliberate trade, argued in that provider's own comment.
   What it costs is now one request rather than four (§3), so what is left is the parsing: four
   converters run over four grids on the main thread whichever tab was asked for.
