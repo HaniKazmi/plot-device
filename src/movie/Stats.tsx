@@ -30,7 +30,7 @@ import { formatDate, type YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
 import { useSelectBox } from "../common/SelectBoxHook";
 import { useFranchiseMovies } from "./franchiseContext";
-import { format } from "../utils/mathUtils";
+import { stated } from "../common/population";
 import type { Scheme } from "../utils/types";
 import { movieSubtitle } from "./cardData";
 import MovieCardMediaImage, { MovieFranchiseStrip } from "./CardMediaImage";
@@ -313,7 +313,7 @@ const MostWatchedCategory = ({
       title="Most Watched"
       option={category}
       groups={groupMoviesBy(data, category, measure)}
-      labelComponent={(group) => [[group.name, `${format(group.count)} ${measure}`]]}
+      labelComponent={(group) => [[group.name, stated(group.count, measure)]]}
       colourOf={(top) => groupToColour(category, top, scheme)}
       MediaComponent={MovieCardMediaImage}
       dialogSort={(movies) => movies.toSorted((a, b) => b.minutes - a.minutes)}

@@ -10,7 +10,7 @@ import { useLibrary } from "./library";
  * - `stale` — a cached copy on screen and no token, so nothing will refresh it until someone asks.
  * - `empty` — no copy and no token: there is nothing to show at all.
  */
-export type AuthState = "live" | "authorising" | "stale" | "empty";
+type AuthState = "live" | "authorising" | "stale" | "empty";
 
 /**
  * The state from the two things that decide it: which of the auth callbacks exist, and whether any

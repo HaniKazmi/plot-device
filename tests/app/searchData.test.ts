@@ -187,16 +187,17 @@ describe("buildAttributeIndex", () => {
     // The show, the film and the book are Sci-Fi; the game is Adventure.
     // Counted in each tab's own rows: one show, not the three seasons the union flattens it to.
     expect(sciFi.counts).toEqual({ show: 1, movie: 1, book: 1 });
-    // The tabs a hit can be taken to are the ones holding a row of it, not every tab whose schema
-    // has a genre: Games would otherwise offer a page filtered to nothing.
-    expect(sciFi.tabs).toEqual(["show", "movie", "book"]);
+    // The tabs a hit can be taken to are read off those counts, so they are the tabs holding a row
+    // of it and not every tab whose schema has a genre: Games would otherwise offer a page filtered
+    // to nothing. They come in the order the app says the media, which is the order the walk takes.
+    expect(Object.keys(sciFi.counts)).toEqual(["show", "movie", "book"]);
   });
 
   it("offers a category only the tabs that hold it, counted on the medium that answers", () => {
     const platform = buildAttributeIndex(trekLibrary()).find((entry) => entry.category === "platform")!;
 
     expect(platform.value).toBe("Nintendo Switch");
-    expect(platform.tabs).toEqual(["game"]);
+    expect(Object.keys(platform.counts)).toEqual(["game"]);
   });
 
   it("leaves the franchise column out: a franchise is a thing the box already answers with", () => {

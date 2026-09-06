@@ -13,6 +13,8 @@ describe("authStateOf", () => {
   });
 
   it("is stale where a copy is on screen and there is no token", () => {
+    // Revoking mid-session, and a failed `values.get` clearing the token, both leave a full page
+    // with no way to refresh it: the strip says so, where blanking the page would lose the rows.
     expect(authStateOf({ authorise: callback, revoke: undefined, raw: { book: [{}] } })).toBe("stale");
   });
 
@@ -24,11 +26,5 @@ describe("authStateOf", () => {
     // The cache says nothing about whether Google can be asked yet, and a key offered before the
     // client exists is a key that does nothing when pressed.
     expect(authStateOf({ authorise: undefined, revoke: undefined, raw: { show: [{}] } })).toBe("authorising");
-  });
-
-  it("stays stale for rows this session fetched and can no longer refresh", () => {
-    // Revoking mid-session, and a failed `values.get` clearing the token, both leave a full page
-    // with no way to refresh it: the strip says so, where blanking the page would lose the rows.
-    expect(authStateOf({ authorise: callback, revoke: undefined, raw: { game: [{}], movie: [{}] } })).toBe("stale");
   });
 });

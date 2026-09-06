@@ -13,7 +13,7 @@ import {
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { format } from "../utils/mathUtils";
-import { all } from "./population";
+import { all, stated } from "./population";
 import { groupTotals } from "./statsData";
 import {
   FooterComponent,
@@ -1000,7 +1000,7 @@ export const TotalsBand = <T extends string, U>(props: {
               variant="body2"
               sx={{ ...MUTED_FIGURE_SX, whiteSpace: "nowrap" }}
             >
-              {`${format(struct.count)} ${measureLabel}`}
+              {stated(struct.count, measureLabel)}
             </Typography>
           </Stack>
         ))}

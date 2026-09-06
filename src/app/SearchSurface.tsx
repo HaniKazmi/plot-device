@@ -449,16 +449,22 @@ export const SearchSurface = ({
   const finding = mode === "find";
   const page = surface && { tabId: tab.id, categories: surface.schema.categories.map((category) => category.key) };
 
-  const found: PaletteGroup[] = !index
-    ? []
-    : deferredQuery.trim()
-      ? searchUnion(index, deferredQuery, page).map((group) => ({
-          key: group.key,
-          label: group.label,
-          total: group.total,
-          hits: group.hits.map(toHit),
-        }))
-      : openingGroups(index, items ?? [], recent, toHit);
+  // The surface is mounted for the life of the page once opened and subscribes to the store the
+  // tab's own charts are drawn from, so it re-renders on every filter set anywhere. Both of the
+  // answers only a drawn box shows — the scan across the four libraries, and the page's own
+  // filtered population — are built behind that, or a chip pressed in the rail would pay for a
+  // search nobody asked for.
+  const found: PaletteGroup[] =
+    !open || !finding || !index
+      ? []
+      : deferredQuery.trim()
+        ? searchUnion(index, deferredQuery, page).map((group) => ({
+            key: group.key,
+            label: group.label,
+            total: group.total,
+            hits: group.hits.map(toHit),
+          }))
+        : openingGroups(index, items ?? [], recent, toHit);
   // The tabs lead: a reader who typed a tab's name wants the page, and before anything is typed
   // they are the shortest way anywhere. Offered even while the libraries are still landing.
   const goTo = tabGroup(tabs, deferredQuery, scheme, close);
@@ -492,7 +498,7 @@ export const SearchSurface = ({
         }
         chordHint="shelf"
         footer={
-          finding
+          !open || finding
             ? undefined
             : surface && (
                 <>

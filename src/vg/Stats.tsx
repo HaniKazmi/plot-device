@@ -15,7 +15,7 @@ import {
   VideogameAsset,
   Whatshot,
 } from "@mui/icons-material";
-import { format } from "../utils/mathUtils";
+import { stated } from "../common/population";
 import {
   gamesAndHours,
   groupGamesBy,
@@ -318,7 +318,7 @@ const MostPlayedCategory = ({
       title="Most Played"
       option={category}
       groups={groupGamesBy(data, category, measure)}
-      labelComponent={(group) => [[group.name, `${format(group.count)} ${measure}`]]}
+      labelComponent={(group) => [[group.name, stated(group.count, measure)]]}
       colourOf={(top) => groupToColour(category, top, scheme)}
       MediaComponent={VgCardMediaImage}
       // A dialog under a card headed Most Played opens largest-first, whatever slice of it the

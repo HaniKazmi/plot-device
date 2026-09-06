@@ -9,8 +9,7 @@ import { SectionHeader } from "../common/SectionHeader";
 import { useSelectBox } from "../common/SelectBoxHook";
 import { CutButton, SegmentedControl, type SegmentOption } from "../common/SelectionComponents";
 import { EXPANDED_CARDS, ExpandableCard } from "../common/Stats";
-import { format } from "../utils/mathUtils";
-import { all, cut } from "../common/population";
+import { all, cut, stated } from "../common/population";
 import type { OmniItem } from "../common/medium";
 import OmniCardMediaImage from "../app/CardMediaImage";
 import { MIXED_CARD_SIZING, workLabels } from "../app/cardData";
@@ -223,7 +222,7 @@ const Shelf = ({
           variant="body2"
           sx={{ ...MUTED_FIGURE_SX, flexGrow: 1 }}
         >
-          {`${format(group.count)} ${measure}`}
+          {stated(group.count, measure)}
         </Typography>
         {/* The shelf's own cut, worded: the strip shows twenty pictures of a shelf that can hold
             hundreds, and the figure is what says so as well as what opens the rest. A chevron in a

@@ -24,9 +24,9 @@ export type SearchMode = "find" | "page";
  *
  * The count is what makes a second ⌘K do something while the box is already open: the flag alone
  * is already true and a set to the value held notifies nobody, where the box answers a new request
- * by putting the caret back in it and selecting what is there. It is also what raises the keyboard
- * on a switch *into* Find — the one transition that wants it, and one `mode` alone cannot tell
- * from a box already in Find.
+ * by putting the caret back in it and selecting what is there. Every path that opens the box raises
+ * it, since the host mounts the box's chunk from the first request on and a path that opened it
+ * without counting would leave the flag true with nothing mounted to read it.
  */
 export interface SearchState {
   open: boolean;
@@ -53,14 +53,17 @@ export const openPage = () => {
 };
 
 /**
- * Switches an open box between its two modes, notifying nobody where it is in that mode already.
- * Into Find the request rises, which is what puts the caret in the input; into This page it does
- * not, so the keyboard a phone raised for Find comes down with the lists it was covering.
+ * Switches an open box between its two modes, notifying nobody where it is in that mode already,
+ * and opens a closed one in the mode asked for.
+ *
+ * The request rises either way, the host mounting on the count; what the box does with it is the
+ * mode's business — Find puts the caret back in the field, This page blurs it, so the keyboard a
+ * phone raised for Find comes down with the lists it was covering.
  */
 export const setSearchMode = (mode: SearchMode) => {
   const held = store.get();
   if (held.open && held.mode === mode) return;
-  store.set({ open: true, mode, request: mode === "find" ? held.request + 1 : held.request });
+  store.set({ open: true, mode, request: held.request + 1 });
 };
 
 /**

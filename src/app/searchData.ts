@@ -63,8 +63,6 @@ export interface AttributeEntry extends Searchable {
   value: string;
   counts: Partial<Record<Medium, number>>;
   values: Partial<Record<Medium, string[]>>;
-  /** The media whose schema holds this category, in the order the app says them. */
-  tabs: readonly Medium[];
 }
 
 /**
@@ -182,9 +180,7 @@ const attributeValue = (category: string, cell: string): string =>
  * control surface would not draw, since the box offers exactly the narrowings the page holds.
  */
 export const buildAttributeIndex = (library: Library): AttributeEntry[] => {
-  // The tabs list is built up a medium at a time, so the working entry holds a mutable one; what
-  // comes back out is the same object read through the readonly shape every consumer takes.
-  const found = new Map<string, AttributeEntry & { tabs: Medium[] }>();
+  const found = new Map<string, AttributeEntry>();
 
   eachMedium((medium, module) => {
     for (const category of module.filters.categories) {
@@ -205,14 +201,12 @@ export const buildAttributeIndex = (library: Library): AttributeEntry[] => {
           size: 0,
           counts: {},
           values: {},
-          tabs: [],
         });
         entry.size += 1;
         entry.counts[medium] = (entry.counts[medium] ?? 0) + 1;
         const held: string[] = entry.values[medium] ?? [];
         if (!held.includes(cell)) held.push(cell);
         entry.values[medium] = held;
-        if (!entry.tabs.includes(medium)) entry.tabs.push(medium);
       }
     }
   });
@@ -235,16 +229,19 @@ export const attributePlacements = (
   currentCategories: readonly string[],
 ): PlacedAttribute[] => {
   const currentMedium = media.find((medium) => MEDIA[medium].tabId === currentTabId);
+  // The media holding the value, which is exactly the media the index counted rows for: `counts`
+  // gains a key on the first row found and the walk is in the order the app says the media.
+  const tabs = Object.keys(entry.counts) as Medium[];
   // Held rather than only offered: a page whose schema has the category but whose rows hold none
   // of this value would narrow to nothing, which is a hit that empties the page it was pressed on.
   // The composing tab holds whatever any medium does.
-  const holdsIt = currentMedium ? entry.tabs.includes(currentMedium) : entry.tabs.length > 0;
+  const holdsIt = currentMedium ? tabs.includes(currentMedium) : tabs.length > 0;
   const here: PlacedAttribute[] =
     currentCategories.includes(entry.category) && holdsIt
       ? [{ ...entry, key: `${entry.key}:${currentTabId}`, tab: currentTabId, medium: currentMedium, here: true }]
       : [];
 
-  const elsewhere = entry.tabs
+  const elsewhere = tabs
     .filter((medium) => MEDIA[medium].tabId !== currentTabId)
     .map((medium): PlacedAttribute => ({
       ...entry,
@@ -283,7 +280,7 @@ export const attributeAction = (entry: PlacedAttribute, held: readonly string[])
  * also what makes the shelf exactly what the filter would keep, so a shelf reached by ⌘↵ cannot
  * show more than the ↵ beside it leaves on the page.
  */
-export const attributeItems = (library: Library, entry: AttributeEntry): OmniItem[] =>
+const attributeItems = (library: Library, entry: AttributeEntry): OmniItem[] =>
   eachMedium((medium, module) => {
     const category = module.filters.categories.find((candidate) => (candidate.key as string) === entry.category);
     if (!category) return [];

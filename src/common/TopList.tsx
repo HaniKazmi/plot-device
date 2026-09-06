@@ -7,7 +7,7 @@ import { SectionHeader } from "./SectionHeader";
 import { dimSx } from "./typography";
 import { useSelectBox } from "./SelectBoxHook";
 import { topNWithOther, type TopGroup } from "./statsData";
-import { format } from "../utils/mathUtils";
+import { stated } from "./population";
 import { neutralFill, type Colour } from "../utils/types";
 import { useScheme } from "./useScheme";
 import { highchartsColors } from "../highcharts";
@@ -115,7 +115,7 @@ const TopListCard = <O extends string, T>(props: TopListCardProps<O, T>) => {
                   variant="body2"
                   sx={{ flexShrink: 0 }}
                 >
-                  {`${format(item.count)} ${measureLabel}`}
+                  {stated(item.count, measureLabel)}
                 </Typography>
               </Stack>
             ))}

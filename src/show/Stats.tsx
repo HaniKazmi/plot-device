@@ -44,7 +44,7 @@ import { CURRENT_PLAINDATE, formatDate, type YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
 import { Section, StatBand } from "../common/SectionRail";
 import { SHOW_SECTIONS } from "./sections";
-import { format } from "../utils/mathUtils";
+import { stated } from "../common/population";
 import {
   allTimeTotals,
   groupShowsBy,
@@ -338,7 +338,7 @@ const MostWatchedCategory = ({
       title="Most Watched"
       option={category}
       groups={groupShowsBy(data, category, measure)}
-      labelComponent={(group) => [[group.name, `${format(group.count)} ${measure}`]]}
+      labelComponent={(group) => [[group.name, stated(group.count, measure)]]}
       colourOf={(top) => groupToColour(category, top, scheme)}
       MediaComponent={ShowCardMediaImage}
       dialogSort={(shows) => shows.toSorted((a, b) => b.minutes - a.minutes)}

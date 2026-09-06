@@ -30,7 +30,7 @@ import { Section, StatBand } from "../common/SectionRail";
 import { CURRENT_PLAINDATE, formatDate, type YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
 import { useSelectBox } from "../common/SelectBoxHook";
-import { format } from "../utils/mathUtils";
+import { stated } from "../common/population";
 import { groupsOnce, type DrilldownGroup } from "../common/statsData";
 import { genreToColour, scoreBand, scoreBandToColour, scoreBands, type Scheme } from "../utils/types";
 import { bookSubtitle } from "./cardData";
@@ -345,7 +345,7 @@ const MostReadCategory = ({
       // beside its cover, where a row wraps, so under a narrow column the two fall onto their own
       // lines anyway. It is also the row a strip caption is taken from, and a shelf that drops the
       // figure it is ranked by leaves the reader nothing to read the order against.
-      labelComponent={(group) => [[group.name, `${format(group.count)} ${measure}`]]}
+      labelComponent={(group) => [[group.name, stated(group.count, measure)]]}
       colourOf={(top) => groupToColour(category, top, scheme)}
       MediaComponent={BookCardMediaImage}
       // Series order where the sheet numbers one, reading order where it does not: a drill-down

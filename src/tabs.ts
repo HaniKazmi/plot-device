@@ -223,7 +223,7 @@ export const useCurrentTab = (): Tab => tabForPath(useLocation().pathname);
  * a mark drawn in it on the dark paper is the light bar's colour on the wrong ground. Both clear
  * 3:1 on the paper they are drawn on, which is what a glyph carrying a tab's identity needs.
  */
-export const tabInk = (tab: Tab, scheme: Scheme): string | undefined =>
+const tabInk = (tab: Tab, scheme: Scheme): string | undefined =>
   scheme === "dark" ? tab.darkBar?.ink : tab.primaryColour;
 
 /**
