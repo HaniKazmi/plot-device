@@ -35,7 +35,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       genres: splitCell(row.Genres),
       franchise: row.Franchise,
       director: row.Director,
-      banner: row.Banner,
+      artwork: row.Banner ?? "",
       // The sheet writes only the true case and leaves the cell blank otherwise.
       cinema: row.Cinema === "TRUE",
       anime: row.Anime === "TRUE",
@@ -49,8 +49,10 @@ export const jsonConverter = (json: Record<string, string>[]) => {
  *
  * v3: a cached object written before `anime` reads as false for every film, and guest mode then
  * hides nothing.
+ * v4: a cached object written before this holds its picture under `banner`, so every card on
+ * every surface draws the stand-in instead.
  */
 export const movieDataConfig: DataConfig<Movie> = {
-  storageKey: dataCacheKey("movie", 3),
+  storageKey: dataCacheKey("movie", 4),
   converter: jsonConverter,
 };

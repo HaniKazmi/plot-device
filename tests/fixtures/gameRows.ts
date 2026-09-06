@@ -45,7 +45,7 @@ export const videoGame = (overrides: Partial<VideoGame> = {}): VideoGame =>
     numDays: 30,
     startDate: YearMonthDay.get(2017, 3, 3),
     endDate: YearMonthDay.get(2017, 4, 1),
-    banner: "banner.jpg",
+    artwork: "artwork.jpg",
     ...overrides,
   }) as VideoGame;
 

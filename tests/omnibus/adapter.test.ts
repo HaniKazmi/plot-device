@@ -5,7 +5,7 @@ import type { MediumLazy } from "../../src/common/medium";
 import { MEDIA as MEDIA_ORDER, type Medium } from "../../src/utils/types";
 import { earliestYear } from "../../src/omnibus/filterUtils";
 import { measureOf, omniHours, toOmniItems, visibleLibrary } from "../../src/app/library";
-import { omniBanner } from "../../src/app/media";
+import { omniArtwork } from "../../src/app/media";
 import { measureOf as movieMeasureOf } from "../../src/movie/statsData";
 import { measureOf as showMeasureOf } from "../../src/show/statsData";
 import { book } from "../fixtures/books";
@@ -206,13 +206,13 @@ describe("what a browse surface reads off an item", () => {
     const parent = showWith([{ start: 2021, end: 2022 }]);
     const [item] = toOmniItems(library({ show: [parent] }));
 
-    expect(omniBanner(item)).toBe(parent.banner);
+    expect(omniArtwork(item)).toBe(parent.artwork);
   });
 
   it("has no artwork for a game the sheet never gave one, which is what keeps it off a wall", () => {
-    const [item] = toOmniItems(library({ game: [videoGame({ banner: undefined })] }));
+    const [item] = toOmniItems(library({ game: [videoGame({ artwork: undefined })] }));
 
-    expect(omniBanner(item)).toBeUndefined();
+    expect(omniArtwork(item)).toBeUndefined();
   });
 
   it("names a season by its number, so a strip of one show's seasons is not six identical labels", () => {
@@ -381,16 +381,16 @@ describe("a book in the union", () => {
   });
 
   it("is drawn as its own cover and named by its own title", () => {
-    const [item] = toOmniItems(library({ book: [book({ banner: "cover.jpeg" })] }));
+    const [item] = toOmniItems(library({ book: [book({ artwork: "cover.jpeg" })] }));
 
-    expect(omniBanner(item)).toBe("cover.jpeg");
+    expect(omniArtwork(item)).toBe("cover.jpeg");
     expect(omniTitle(item)).toBe("Chasm City");
   });
 
   it("has no picture while the sheet's Banner column has not reached it", () => {
-    const [item] = toOmniItems(library({ book: [book({ banner: "" })] }));
+    const [item] = toOmniItems(library({ book: [book({ artwork: "" })] }));
 
-    expect(omniBanner(item)).toBeUndefined();
+    expect(omniArtwork(item)).toBeUndefined();
   });
 
   it("keeps every book under guest mode, since nothing on the sheet marks one to hide", () => {

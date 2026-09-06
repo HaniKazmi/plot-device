@@ -19,7 +19,7 @@ export const show = (overrides: Partial<Show> = {}): Show => ({
   network: "Apple TV+",
   certificate: "15",
   franchise: "Severance",
-  banner: "severance.jpg",
+  artwork: "severance.jpg",
   s: [],
   e: 9,
   minutes: 405,

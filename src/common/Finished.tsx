@@ -323,7 +323,7 @@ const Finished = <U extends FinishedItem>({
   // one; the dialog opens on Full, the wall read one item at a time, which is what expanding it
   // asks for.
   //
-  // A phone opens on Compact instead: Large there is one banner a row, and 322 games at 220px each
+  // A phone opens on Compact instead: Large there is one artwork a row, and 322 games at 220px each
   // is seventy thousand pixels of page with nothing but a picture on each screen. Held as "not yet
   // chosen" rather than seeded from the width, so the default follows a rotation until the reader
   // has an opinion, after which it is theirs.

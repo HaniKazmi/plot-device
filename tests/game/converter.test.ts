@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { YearMonthDay } from "../../src/common/date";
-import { jsonConverter } from "../../src/game/converter";
+import { gameDataConfig, jsonConverter } from "../../src/game/converter";
 import { gameRow } from "../fixtures/gameRows";
 
 const convertOne = (overrides: Record<string, string> = {}) => jsonConverter([gameRow(overrides)])[0];
@@ -178,5 +178,12 @@ describe("bad rows", () => {
     expect(() => convertOne({ Game: "Zelda", "Start Date": "2017-04-01", "End Date": "2017-03-03" })).toThrow(
       'Row 2, "Zelda", played 2017-04-01 to 2017-03-03: Invalid comparison',
     );
+  });
+});
+
+describe("the cache config", () => {
+  it("keys the cache on the domain and a version, so a shape change can bump it", () => {
+    expect(gameDataConfig.storageKey).toBe("game-data-cache-v3");
+    expect(gameDataConfig.converter).toBe(jsonConverter);
   });
 });

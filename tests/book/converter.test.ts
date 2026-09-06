@@ -150,7 +150,7 @@ describe("field parsing", () => {
     const row = bookRow();
     delete row.Banner;
 
-    expect(jsonConverter([row])[0].banner).toBe("");
+    expect(jsonConverter([row])[0].artwork).toBe("");
   });
 
   it("carries the remaining columns through untouched", () => {
@@ -159,13 +159,13 @@ describe("field parsing", () => {
     expect(book.name).toBe("Chasm City");
     expect(book.author).toBe("Alastair Reynolds");
     expect(book.genre).toBe("Sci-Fi");
-    expect(book.banner).toBe("https://assets.hardcover.app/external_data/1/chasm-city.jpeg");
+    expect(book.artwork).toBe("https://assets.hardcover.app/external_data/1/chasm-city.jpeg");
   });
 });
 
 describe("the cache config", () => {
   it("keys the cache on the domain and a version, so a shape change can bump it", () => {
-    expect(bookDataConfig.storageKey).toBe("book-data-cache-v1");
+    expect(bookDataConfig.storageKey).toBe("book-data-cache-v2");
     expect(bookDataConfig.converter).toBe(jsonConverter);
   });
 });

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { YearMonthDay } from "../../src/common/date";
-import { jsonConverter } from "../../src/show/converter";
+import { dropSeasonParents, jsonConverter, reviveSeasonParents, showDataConfig } from "../../src/show/converter";
 import { seasonRow, showRow } from "../fixtures/showRows";
 
 afterEach(() => vi.restoreAllMocks());
@@ -45,7 +45,7 @@ describe("flattening the sheet into nested shows", () => {
     expect(show.network).toBe("Apple TV+");
     expect(show.certificate).toBe("15");
     expect(show.franchise).toBe("Severance");
-    expect(show.banner).toBe("severance.jpg");
+    expect(show.artwork).toBe("severance.jpg");
   });
 
   it("rejects a show with no genre, naming the row and the show", () => {
@@ -302,5 +302,14 @@ describe("bad rows", () => {
 
   it("says so when a season row appears before any show", () => {
     expect(() => jsonConverter([seasonRow()])).toThrow("no show has been declared above it");
+  });
+});
+
+describe("the cache config", () => {
+  it("keys the cache on the domain and a version, so a shape change can bump it", () => {
+    expect(showDataConfig.storageKey).toBe("show-data-cache-v4");
+    expect(showDataConfig.converter).toBe(jsonConverter);
+    expect(showDataConfig.replacer).toBe(dropSeasonParents);
+    expect(showDataConfig.reviver).toBe(reviveSeasonParents);
   });
 });

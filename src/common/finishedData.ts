@@ -3,7 +3,7 @@ import { stated } from "./population";
 import "../utils/arrayUtils";
 
 export type FinishedItem = {
-  banner?: string;
+  artwork?: string;
   startDate?: YearMonthDay | Year;
   /** Optional because only some domains date the work itself; see `finishedKey`. */
   releaseDate?: YearMonthDay | Year;
@@ -51,17 +51,17 @@ export type FinishedDensity = "Compact" | "Large" | "Full";
 type GridColumns = Partial<Record<"xs" | "sm" | "md" | "lg" | "xl", number>>;
 
 /**
- * A banner card's columns. Landscape artwork is the widest thing on the wall — 16:9 means a card's
+ * A artwork card's columns. Landscape artwork is the widest thing on the wall — 16:9 means a card's
  * height is a ninth of its width times sixteen, so the column count alone decides how tall the
  * whole wall stands.
  *
  * `Compact` at `xl` is a fifth of the grid, about 220px of artwork, which is the width at which a
- * banner still reads as the picture it is while a screen holds fifteen of them: a wall the reader
+ * artwork still reads as the picture it is while a screen holds fifteen of them: a wall the reader
  * travels rather than a slideshow they page through. Four to a row at `md` and up — `Large` — puts
- * a banner near 400px, a size that says one card at a time.
+ * a artwork near 400px, a size that says one card at a time.
  *
  * Two to a row is the floor, and it is a phone's: at 390px each card is about 190px, where three to
- * a row is 95px and a banner's own title, which is part of the artwork rather than type the card
+ * a row is 95px and a artwork's own title, which is part of the artwork rather than type the card
  * sets, is no longer readable at all. `Large` gives a phone one card the full width, which is the
  * showcase reading of the same wall.
  *
@@ -75,10 +75,10 @@ const bannerColumns: Record<FinishedDensity, GridColumns> = {
 };
 
 /**
- * A poster or a cover's columns, one step denser than a banner's at every width.
+ * A poster or a cover's columns, one step denser than a artwork's at every width.
  *
- * Portrait artwork is two thirds as wide as it is tall against a banner's sixteen ninths, so a
- * card of the same width stands two and a half times as tall — a wall of them at a banner's column
+ * Portrait artwork is two thirds as wide as it is tall against a artwork's sixteen ninths, so a
+ * card of the same width stands two and a half times as tall — a wall of them at a artwork's column
  * count is a wall two and a half times as long. One more card to the row is what holds the two
  * walls to comparable heights, and a poster is still legible there: its title is set large on the
  * artwork precisely because a poster is read at a distance.
@@ -173,22 +173,22 @@ export const finishedItems = <U extends FinishedItem>(
   sort: string,
   extras: readonly FinishedExtraSort<U>[] = [],
 ): U[] => {
-  const withBanners = data.filter(hasBanner);
-  if (sort === "Date") return withBanners.sortByKey("startDate", false);
+  const withArtwork = data.filter(hasArtwork);
+  if (sort === "Date") return withArtwork.sortByKey("startDate", false);
 
   const extra = resolveExtra(sort, extras);
   if (extra) {
     // A numeric sort rather than `sortByKey`, which puts falsy values first in both directions —
     // a film honestly scored 0 would head a wall sorted by score. The date breaks a tie: many
     // films share a nine, and the recent ones say more.
-    return withBanners.toSorted((a, b) => {
+    return withArtwork.toSorted((a, b) => {
       const [x, y] = [extra.value(a), extra.value(b)];
       if (x === undefined || y === undefined) return (x === undefined ? 1 : 0) - (y === undefined ? 1 : 0);
       return y - x || byDate(b.startDate, a.startDate);
     });
   }
 
-  return withBanners.toSorted(
+  return withArtwork.toSorted(
     (a, b) =>
       collator.compare(franchiseKey(a), franchiseKey(b)) ||
       byDate(a.releaseDate, b.releaseDate) ||
@@ -197,7 +197,7 @@ export const finishedItems = <U extends FinishedItem>(
 };
 
 /** What the grid shows: artwork is the whole card, so an item without it is not on the wall. */
-const hasBanner = (item: FinishedItem): boolean => !!item.banner;
+const hasArtwork = (item: FinishedItem): boolean => !!item.artwork;
 
 /**
  * How many items a Finished grid holds, for a header that has to answer for the wall below it.
@@ -206,7 +206,7 @@ const hasBanner = (item: FinishedItem): boolean => !!item.banner;
  * to disagree about what is on screen. The sort does not change the population, so none is asked
  * for.
  */
-export const finishedCount = (data: readonly FinishedItem[]): number => data.filter(hasBanner).length;
+export const finishedCount = (data: readonly FinishedItem[]): number => data.filter(hasArtwork).length;
 
 /**
  * What the wall is over, in the caller's own noun — and nothing at all where that is what the page

@@ -64,7 +64,7 @@ describe("isUsableColour", () => {
 describe("cacheKey", () => {
   const BUCKET = "https://storage.googleapis.com/hanikazmi_plotdevice_show";
 
-  it("encodes a banner the way the DOM does, so a raw sheet value finds what an img.src stored", () => {
+  it("encodes a artwork the way the DOM does, so a raw sheet value finds what an img.src stored", () => {
     // Sheet cells hold the name unencoded, and almost every one of them contains a space.
     expect(cacheKey(`${BUCKET}/Ted Lasso`)).toBe(`${BUCKET}/Ted%20Lasso`);
     expect(cacheKey(`${BUCKET}/Star Trek: Strange New Worlds`)).toBe(`${BUCKET}/Star%20Trek:%20Strange%20New%20Worlds`);

@@ -39,7 +39,7 @@ const MovieCardDetail = ({ item }: { item: Movie }) => {
 const MovieCardMediaImage: TypedCardMediaImage<Movie> = ({ item, ...props }) => (
   <CardMediaImage
     alt={item.name}
-    image={item.banner}
+    image={item.artwork}
     detailComponent={() => <MovieCardDetail item={item} />}
     {...props}
   />
@@ -81,8 +81,8 @@ export const MovieFranchiseStrip = ({ movie, variant }: { movie: Movie; variant?
  *
  * A component rather than a shape each chart assembles, because the Omnibus shows the same card for
  * a film and a second assembly of it is a second thing to keep in step. A film's artwork is a 16:9
- * banner, so the card is the games card's arrangement — the panel under the picture — and not the
- * poster's, which seats the words beside it in a column a banner has no width to spare for. The
+ * artwork, so the card is the games card's arrangement — the panel under the picture — and not the
+ * poster's, which seats the words beside it in a column a artwork has no width to spare for. The
  * subtitle is the pair the tab's hero says, and the score is dropped where the film was never
  * scored rather than reading zero.
  */

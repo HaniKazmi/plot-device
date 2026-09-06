@@ -50,7 +50,7 @@ export interface PaletteGroup {
  */
 const PALETTE_WIDTH = 620;
 
-/** The space a hit's lead is given, whatever it holds: a banner thumbnail at 44×30, or a swatch. */
+/** The space a hit's lead is given, whatever it holds: a artwork thumbnail at 44×30, or a swatch. */
 export const LEAD_WIDTH = 44;
 export const LEAD_HEIGHT = 30;
 

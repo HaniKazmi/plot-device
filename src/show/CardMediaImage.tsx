@@ -44,7 +44,7 @@ const ShowCardMediaImage = <T extends Show | Season>({ item, ...props }: Paramet
   return (
     <CardMediaImage
       alt={show.name}
-      image={show.banner}
+      image={show.artwork}
       detailComponent={() => (
         <ShowCardDetail
           show={show}

@@ -11,13 +11,13 @@ import {
 
 describe("the Now band's geometry", () => {
   it("states one card width from a full-height poster beside its column of words", () => {
-    // 380 tall at 0.68 is 258, plus the 176px column; a banner across that stands 244 at 16:9.
+    // 380 tall at 0.68 is 258, plus the 176px column; a artwork across that stands 244 at 16:9.
     expect(NOW_GEOMETRY).toEqual({ cardWidth: 434, height: 380, posterArtWidth: 258, bannerArtHeight: 244 });
   });
 
   it("seats four on one row where the measured width gives each card its floor", () => {
     // The widest container's row: 1,536 less 24px of padding a side, shared four ways with three
-    // gaps between — 366 each, a 16:9 banner 206 tall over its 136px panel, and a poster at 0.68
+    // gaps between — 366 each, a 16:9 artwork 206 tall over its 136px panel, and a poster at 0.68
     // of that height.
     expect(denseNowGeometry(1488)).toEqual({ cardWidth: 366, height: 342, posterArtWidth: 233, bannerArtHeight: 206 });
   });
@@ -32,13 +32,13 @@ describe("the Now band's geometry", () => {
   });
 
   it("shares the row two ways, the poster taking its natural width where the column allows", () => {
-    // 740 halved with one gap between — 366 each, a 16:9 banner 206 tall over its 136px panel,
+    // 740 halved with one gap between — 366 each, a 16:9 artwork 206 tall over its 136px panel,
     // and a poster at 0.68 of that height, which is inside the column and so unclamped.
     expect(pairNowGeometry(740)).toEqual({ cardWidth: 366, height: 342, posterArtWidth: 233, bannerArtHeight: 206 });
   });
 
   it("keeps the pair on a tablet's row and holds the poster to the column's remainder", () => {
-    // A 768px tablet's row is 720: two cards of 356, a 200px banner over its 136px panel, and a
+    // A 768px tablet's row is 720: two cards of 356, a 200px artwork over its 136px panel, and a
     // poster the row's 336 would draw 228 wide — 5px into the 133px column — so it stands 223.
     expect(pairNowGeometry(720)).toEqual({ cardWidth: 356, height: 336, posterArtWidth: 223, bannerArtHeight: 200 });
   });

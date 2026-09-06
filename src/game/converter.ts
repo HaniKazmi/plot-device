@@ -51,7 +51,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       releaseDate: releaseDate,
       hours: row.Hours ? parseInt(row.Hours) : undefined,
       numDays: numDays,
-      banner: row.Banner,
+      artwork: row.Banner,
     } as VideoGame;
   });
 };
@@ -62,8 +62,10 @@ export const jsonConverter = (json: Record<string, string>[]) => {
  *
  * v2: a cached object written before this carries the *gameplay* vocabulary under `genre` and no
  * `gameplay` at all, so every genre surface would colour a gameplay value against the shared ramp.
+ * v3: a cached object written before this holds its picture under `banner`, so every card on
+ * every surface draws the stand-in instead.
  */
 export const gameDataConfig: DataConfig<VideoGame> = {
-  storageKey: dataCacheKey("game", 2),
+  storageKey: dataCacheKey("game", 3),
   converter: jsonConverter,
 };

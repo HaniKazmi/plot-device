@@ -31,7 +31,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
         network: row.Network,
         certificate: readCertificate(row.Rating, `Row ${sheetRow(index)}, "${row.Show}", Rating`),
         franchise: row.Franchise,
-        banner: row.Banner,
+        artwork: row.Banner ?? "",
         s: [],
       };
       showData.push(show as Show);
@@ -124,9 +124,11 @@ export const jsonConverter = (json: Record<string, string>[]) => {
  * readable by the reviver that puts them back, and neither half means anything alone.
  *
  * v3: a cached object written before `lastWatchedDate` carries none, and no hero is ever elected.
+ * v4: a cached object written before this holds its picture under `banner`, so every card on
+ * every surface draws the stand-in instead.
  */
 export const showDataConfig: DataConfig<Show> = {
-  storageKey: dataCacheKey("show", 3),
+  storageKey: dataCacheKey("show", 4),
   converter: jsonConverter,
   reviver: reviveSeasonParents,
   replacer: dropSeasonParents,

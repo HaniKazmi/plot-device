@@ -20,7 +20,7 @@ export const movie = (overrides: Partial<Movie> = {}): Movie => ({
   genres: ["Drama", "Mystery"],
   franchise: "Arrival",
   director: "Denis Villeneuve",
-  banner: "arrival.jpg",
+  artwork: "arrival.jpg",
   cinema: true,
   anime: false,
   ...overrides,

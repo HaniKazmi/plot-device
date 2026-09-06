@@ -50,7 +50,7 @@ export interface VideoGame {
   party?: boolean;
   hours?: number;
   numDays?: number;
-  banner?: string;
+  artwork?: string;
   startDate: YearMonthDay | Year;
   endDate?: YearMonthDay | Year;
 }

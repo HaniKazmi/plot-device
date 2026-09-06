@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { YearMonthDay } from "../../src/common/date";
-import { jsonConverter } from "../../src/movie/converter";
+import { movieDataConfig, jsonConverter } from "../../src/movie/converter";
 import { movieRow } from "../fixtures/movieRows";
 
 const convertOne = (overrides: Record<string, string> = {}) => jsonConverter([movieRow(overrides)])[0];
@@ -114,6 +114,13 @@ describe("field parsing", () => {
     expect(movie.genre).toBe("Sci-Fi");
     expect(movie.franchise).toBe("Arrival");
     expect(movie.director).toBe("Denis Villeneuve");
-    expect(movie.banner).toBe("arrival.jpg");
+    expect(movie.artwork).toBe("arrival.jpg");
+  });
+});
+
+describe("the cache config", () => {
+  it("keys the cache on the domain and a version, so a shape change can bump it", () => {
+    expect(movieDataConfig.storageKey).toBe("movie-data-cache-v4");
+    expect(movieDataConfig.converter).toBe(jsonConverter);
   });
 });

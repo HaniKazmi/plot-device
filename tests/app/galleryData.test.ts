@@ -79,14 +79,14 @@ describe("what a shelf is", () => {
 
 describe("what the gallery can draw", () => {
   it("keeps only what has artwork, because a picture is the whole of a card here", () => {
-    const items = toOmniItems(library({ game: [videoGame(), videoGame({ banner: undefined })] }));
+    const items = toOmniItems(library({ game: [videoGame(), videoGame({ artwork: undefined })] }));
 
     expect(galleryItems(items)).toHaveLength(1);
   });
 
   it("has nothing to draw for a library with no artwork at all", () => {
     // The rail's chip is gated on this, so a page with nothing on the wall offers no chip to it.
-    expect(galleryItems(toOmniItems(library({ game: [videoGame({ banner: undefined })] })))).toEqual([]);
+    expect(galleryItems(toOmniItems(library({ game: [videoGame({ artwork: undefined })] })))).toEqual([]);
   });
 });
 
@@ -131,7 +131,7 @@ describe("shelving", () => {
   });
 
   it("stands a show on a shelf once, however many seasons of it there are", () => {
-    // The wall draws one banner per show, so a season each would be the same picture repeated
+    // The wall draws one artwork per show, so a season each would be the same picture repeated
     // until it crowded every other show off the strip.
     const parent = show();
     parent.s = [

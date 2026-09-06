@@ -15,7 +15,7 @@ export type ArtworkShape = "landscape" | "portrait" | "cover";
  * Where a card's words sit against its artwork: underneath it, or in a column beside it.
  *
  * Shape decides this wherever a card is one of many at a size it did not choose — a strip, a grid, a
- * band. The two shapes fail in opposite directions under a single arrangement: a banner is four
+ * band. The two shapes fail in opposite directions under a single arrangement: a artwork is four
  * times as wide as it is tall, so words beside it get a sliver of a column, while a poster is half
  * as wide as it is tall, so the strip beneath it is a hundred pixels across and clamps every title
  * to three characters. Arranging by shape gives each of them the axis it has room on, and a mixed
@@ -23,8 +23,8 @@ export type ArtworkShape = "landscape" | "portrait" | "cover";
  *
  * A caller that pins its own artwork size names the arrangement instead, because the reasoning above
  * is about a card whose width is imposed on it. The hero is the one such caller: it fixes the
- * artwork's height so a banner cannot stand at nine sixteenths of the page, and at that height a
- * banner is 533px against a card of well over a thousand — the width beside it is the only place the
+ * artwork's height so a artwork cannot stand at nine sixteenths of the page, and at that height a
+ * artwork is 533px against a card of well over a thousand — the width beside it is the only place the
  * panel can go without leaving two thirds of the card empty.
  */
 type CardArrangement = "stacked" | "beside";
@@ -144,7 +144,7 @@ const HOVER_CARD_ASIDE_ARTWORK_HEIGHT = 348;
  * where the same card seen again does not. Reserved at the ratio the artwork is drawn at, the card
  * is the same size before and after.
  *
- * A poster stands beside the words and so is pinned on its height; a banner spans the card above
+ * A poster stands beside the words and so is pinned on its height; a artwork spans the card above
  * them and takes its width. A cover stands like a poster but holds its ratio only until its file
  * has loaded: the reservation keeps the card the right size to within a few percent, and the
  * picture's real width then wins, so the card grows or shrinks by the few pixels a cover is off

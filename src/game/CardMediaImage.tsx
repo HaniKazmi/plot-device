@@ -48,7 +48,7 @@ const GameCardDetail = ({ item }: { item: VideoGame }) => {
 const GameCardMediaImage: TypedCardMediaImage<VideoGame> = ({ item, ...props }) => (
   <CardMediaImage
     alt={item.name}
-    image={item.banner}
+    image={item.artwork}
     detailComponent={() => <GameCardDetail item={item} />}
     {...props}
   />

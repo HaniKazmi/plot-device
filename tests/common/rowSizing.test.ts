@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { rowCardSize, type RowSizing } from "../../src/common/rowSizing";
 
-/** A banner at 16:9 across the card, over a 22px band and a 65px footer, inside a 1px border. */
+/** A artwork at 16:9 across the card, over a 22px band and a 65px footer, inside a 1px border. */
 const sizing: RowSizing = {
   minWidth: 282,
   heightFor: (width) => 2 + 22 + Math.round((width - 2) / (16 / 9)) + 65,

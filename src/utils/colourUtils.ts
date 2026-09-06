@@ -57,7 +57,7 @@ export const cacheKey = (url: string) => {
   }
 };
 
-/** The colour already read for a banner, if anything has read it this session. */
+/** The colour already read for a artwork, if anything has read it this session. */
 export const cachedColour = (src: string | undefined) => (src ? map[cacheKey(src)] : undefined);
 
 /** Hands over the cached colour, or reads one off the image and hands that over once it arrives. */
@@ -72,13 +72,13 @@ export const extractColourFrom = (img: HTMLImageElement, onColour: (colour: Colo
 };
 
 /**
- * One extraction per src at a time. The same banner is rendered by several cards, and each one
+ * One extraction per src at a time. The same artwork is rendered by several cards, and each one
  * reading the canvas separately duplicates the decode; every subscriber gets the shared result.
  */
 const inFlight = new Map<string, Promise<Colour | undefined>>();
 
 const colourForImgAsync = (img: HTMLImageElement, onColour: (colour: Colour) => void) => {
-  // Keyed the same way as `map`, so the two never disagree about what counts as one banner.
+  // Keyed the same way as `map`, so the two never disagree about what counts as one artwork.
   const key = cacheKey(img.src);
   let pending = inFlight.get(key);
   if (!pending) {
@@ -93,7 +93,7 @@ const colourForImgAsync = (img: HTMLImageElement, onColour: (colour: Colour) => 
  *
  * Every fast-average-color algorithm bails to its `defaultColor` — fully transparent, and so
  * `#000000` in hex — the moment the accumulated alpha is zero. A drawn image always carries
- * alpha, so a zero total means `drawImage` wrote nothing, not that the banner is black. The two
+ * alpha, so a zero total means `drawImage` wrote nothing, not that the artwork is black. The two
  * are indistinguishable from the hex alone, which is why the alpha channel is the thing checked.
  */
 const isEmptyRead = (colour: FastAverageColorResult) => colour.value[3] === 0;
@@ -134,7 +134,7 @@ const extractColourFromImg = async (img: HTMLImageElement, key: string): Promise
     }
 
     // Deliberately not cached and not applied: a card left with no colour keeps the theme's own
-    // background, and the next mount of the same banner gets to try again once it has decoded.
+    // background, and the next mount of the same artwork gets to try again once it has decoded.
     return undefined;
   } catch (err) {
     console.error("Failed to extract color from image:", key, err);

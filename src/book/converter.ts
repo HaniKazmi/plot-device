@@ -80,15 +80,17 @@ export const jsonConverter = (json: Record<string, string>[]): Book[] =>
         status === "Reading" && !row["Hours (est.)"]
           ? 0
           : readNumber(row["Hours (est.)"], `${where}, Hours (est.)`, parseFloat),
-      banner: row.Banner ?? "",
+      artwork: row.Banner ?? "",
     };
   });
 
 /**
  * The cache this converter's output is read back from, shared by the Books tab and by Omnibus so
  * a version bump cannot land at one of them alone.
+ * v2: a cached object written before this holds its picture under `banner`, so every card on
+ * every surface draws the stand-in instead.
  */
 export const bookDataConfig: DataConfig<Book> = {
-  storageKey: dataCacheKey("book", 1),
+  storageKey: dataCacheKey("book", 2),
   converter: jsonConverter,
 };

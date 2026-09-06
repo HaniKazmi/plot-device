@@ -145,7 +145,7 @@ export const earliestYear = <T>(items: readonly T[], yearOf: (item: T) => YearNu
  * The one line a strip card's words are held to: its first label row, cells joined.
  *
  * A card in a strip is 120px of artwork and a caption, so the two or three rows a card under a
- * banner prints have to become one. The first row is the one taken because it is where every label
+ * artwork prints have to become one. The first row is the one taken because it is where every label
  * builder in the app puts the date or, where the list has no date to state, its only row — a
  * finished game's hours, a show's episodes and hours, a group card's name and figure. The rows
  * below it hold the rest, and on this tab's mixed list the closing row is the item's *name*, which
@@ -165,7 +165,7 @@ export const captionLines = (cells: string[]): string[] =>
 
 /**
  * A grouped strip's caption: the group's labels less the group's own name, which the fronting
- * artwork stands for — an author's name is printed on the cover, a franchise's on the banner. At
+ * artwork stands for — an author's name is printed on the cover, a franchise's on the artwork. At
  * a cover's 80px a name beside its figure is an ellipsis before the figure, and the figure is what
  * the shelf is ordered by.
  */

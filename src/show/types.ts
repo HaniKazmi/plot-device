@@ -40,7 +40,7 @@ export interface Show {
   s: Season[];
   e: number;
   minutes: number;
-  banner: string;
+  artwork: string;
 }
 
 export interface Season {

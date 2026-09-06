@@ -36,7 +36,7 @@ export const gameModule: MediumModule<VideoGame, VideoGame, Measure> = {
   toOmniItems: gameItems,
   entry: gameEntry,
   span: gameSpan,
-  banner: (game) => game.banner,
+  artwork: (game) => game.artwork,
   title: (game) => game.name,
   /** A game is already one row per work, so the row itself is the work. */
   work: (game) => game,

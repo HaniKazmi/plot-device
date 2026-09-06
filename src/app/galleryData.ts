@@ -10,7 +10,7 @@ import {
   type Colour,
   type Scheme,
 } from "../utils/types";
-import { moduleOf, omniBanner } from "./media";
+import { moduleOf, omniArtwork } from "./media";
 import { measureOf } from "./library";
 import type { OmniItem } from "../common/medium";
 import type { Measure } from "./types";
@@ -101,14 +101,14 @@ export const galleryColour = (name: string, category: GalleryCategory, scheme: S
  * domain's library grid already applies. Answered once and handed to both the section and the
  * rail's chip, so a chip cannot offer a shelf with nothing on it.
  */
-export const galleryItems = (items: OmniItem[]): OmniItem[] => items.filter((item) => omniBanner(item));
+export const galleryItems = (items: OmniItem[]): OmniItem[] => items.filter((item) => omniArtwork(item));
 
 /**
  * The work an item belongs to, which is what a shelf lists one picture of, asked of the item's own
  * module.
  *
  * A season is the unit the union counts in everywhere else — it is the thing actually watched in a
- * year — but a wall of pictures draws one banner per show, so a six-season show would stand on its
+ * year — but a wall of pictures draws one artwork per show, so a six-season show would stand on its
  * genre shelf as six copies of the same artwork and crowd every other show off the strip. Each
  * medium answers with whatever collapses its own rewatches and rereads without joining two works
  * that merely share a title.

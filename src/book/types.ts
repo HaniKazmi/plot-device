@@ -70,11 +70,11 @@ export interface Book {
    * novella read in ninety minutes is one and a half hours, and flooring it would erase it.
    */
   hours: number;
-  /** A full URL to the cover, as the other sheets' `Banner` columns hold theirs. */
-  banner: string;
+  /** A full URL to the cover, as the other three sheets' Artwork columns hold their own. */
+  artwork: string;
 }
 
-type BookStringKeys = Exclude<KeysMatching<Book, string>, "banner">;
+type BookStringKeys = Exclude<KeysMatching<Book, string>, "artwork">;
 
 /**
  * Books, hours or pages. Three rather than the two the other tabs cycle, because a page count is

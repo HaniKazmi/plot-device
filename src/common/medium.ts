@@ -255,11 +255,11 @@ export interface MediumModule<T, S = T, M extends string = string> extends PageM
   entry(item: S, today: YearMonthDay, hoverCard: () => ReactNode): FranchiseEntry;
   span(item: S, today: YearMonthDay): MediumSpan;
   /** The artwork, absent where the sheet holds none — which keeps the item off a wall of pictures. */
-  banner(item: S): string | undefined;
+  artwork(item: S): string | undefined;
   /** What the item is called on a card, where that is more than the name the union carries. */
   title(item: S): string;
   /**
-   * The work an item belongs to, which is what a shelf lists one picture of: a show is one banner
+   * The work an item belongs to, which is what a shelf lists one picture of: a show is one artwork
    * however many seasons it ran. Opaque, being a `Map` key and nothing else.
    */
   work(item: S): unknown;

@@ -25,6 +25,6 @@ export const book = (overrides: Partial<Book> = {}): Book => ({
   numDays: 13,
   pages: 694,
   hours: 12.4,
-  banner: "https://assets.hardcover.app/external_data/1/chasm-city.jpeg",
+  artwork: "https://assets.hardcover.app/external_data/1/chasm-city.jpeg",
   ...overrides,
 });

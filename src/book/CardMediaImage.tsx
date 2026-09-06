@@ -43,7 +43,7 @@ const BookCardDetail = ({ item }: { item: Book }) => {
 const BookCardMediaImage: TypedCardMediaImage<Book> = ({ item, ...props }) => (
   <CardMediaImage
     alt={item.name}
-    image={item.banner}
+    image={item.artwork}
     detailComponent={() => <BookCardDetail item={item} />}
     {...props}
   />

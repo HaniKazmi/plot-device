@@ -35,7 +35,7 @@ export interface Movie {
   /** A film with no wider franchise carries its own name here. */
   franchise: string;
   director: string;
-  banner: string;
+  artwork: string;
   /** Whether it was seen in a cinema rather than at home. */
   cinema: boolean;
   /** Guest mode hides anime here the way it does on the shows tab. */

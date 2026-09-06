@@ -7,7 +7,7 @@ import { shapeToArrangement, shapeToAspect, type ArtworkShape } from "./cardArra
  * How tall the artwork stands beside the panel, at each width the page gives the hero.
  *
  * Height is the only dimension fixed, so the hero is the same height whatever it is showing while
- * the artwork keeps its own shape — a 16:9 banner comes out around 533px wide and a 2:3 poster
+ * the artwork keeps its own shape — a 16:9 artwork comes out around 533px wide and a 2:3 poster
  * around 200px, and neither is cut into.
  *
  * The two smaller figures are the phone's and the tablet's. A poster given the page's whole width
@@ -16,7 +16,7 @@ import { shapeToArrangement, shapeToAspect, type ArtworkShape } from "./cardArra
  * shape *and* width here, since the constraint a phone adds is the one shape alone cannot see.
  *
  * The phone's 300 is a poster 204px wide beside a 154px panel — the desktop's own height, and
- * near the 380 a banner hero stands at there, so the four tabs' heroes read as one size.
+ * near the 380 a artwork hero stands at there, so the four tabs' heroes read as one size.
  * Below `md` the words beside the poster are held to its height, so the poster fills its column
  * with no ground beneath it: a kicker, a title of three lines at most, a subtitle and the figures
  * as lines (`StatLines`, one a line in the phone's narrow column) stand under 300; at 280 the
@@ -25,8 +25,8 @@ import { shapeToArrangement, shapeToAspect, type ArtworkShape } from "./cardArra
 const MEDIA_HEIGHT = { xs: 300, sm: 280, md: 300 };
 
 /**
- * A banner beside its panel on a tablet. At 260 it is 462px wide and leaves a 768px page's panel
- * 258, where 280 would leave it 222; stacked under a full-width banner instead, the panel is a
+ * A artwork beside its panel on a tablet. At 260 it is 462px wide and leaves a 768px page's panel
+ * 258, where 280 would leave it 222; stacked under a full-width artwork instead, the panel is a
  * column of words down the left of 720px and the card stands twice as tall as the picture.
  */
 const BANNER_HEIGHT_SM = 260;
@@ -51,7 +51,7 @@ type HeroStat = PanelStat;
  * `ArtworkAccent` the image publishes. Reading the accent any other way would mean the hero
  * sampling the same image a second time and painting from whichever answer arrived first.
  *
- * A banner stacks its words underneath until there is width to seat them beside it; a poster or a
+ * A artwork stacks its words underneath until there is width to seat them beside it; a poster or a
  * cover seats them beside at every width, because a portrait picture given the page's width is the
  * whole of the first screen. That is the shape rule, and the shape is all the hero is told: a
  * domain names its own artwork once and the hero never learns which domain it is drawing.
@@ -94,8 +94,8 @@ export const Hero = <T,>(props: {
         // below `md` the flex default already stretches the two to share one.
         alignItems: { md: "flex-start" },
         // The artwork column is the picture's own width wherever the words sit beside it: a
-        // poster's at every width, a banner's from `sm`. The shared aside column hands it the
-        // whole card below `md`, which only a banner on a phone wants.
+        // poster's at every width, a artwork's from `sm`. The shared aside column hands it the
+        // whole card below `md`, which only a artwork on a phone wants.
         "& > .MuiCardActionArea-root": { width: aside ? "auto" : { xs: "100%", sm: "auto" } },
       }}
       sx={{
@@ -123,9 +123,9 @@ export const Hero = <T,>(props: {
           // Where the strip stands, by shape, and once decided never undone as the page narrows.
           // Beside a poster the panel is wide from `sm` up, so the strip is drawn from there; on
           // a phone the 200px panel spends its height on the title and the figures as lines.
-          // Beside a banner the panel is 258px at `sm` and, between `md` and `lg`,
+          // Beside a artwork the panel is 258px at `sm` and, between `md` and `lg`,
           // a column the title wraps in, and a wrapped title over a strip outgrows the picture,
-          // so a banner's strip waits for `lg`. Below either width the expanded card is one tap
+          // so a artwork's strip waits for `lg`. Below either width the expanded card is one tap
           // away and draws the same strip with its Order · Time switch.
           middle={
             <Box sx={{ display: aside ? { xs: "none", sm: "contents" } : { xs: "none", lg: "contents" } }}>
