@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Tabs, { barColour, useCurrentTab } from "./tabs";
 import { usePhone } from "./common/breakpoints";
 import { useScheme } from "./common/useScheme";
-import { BOTTOM_TABS_CLEARANCE, BOTTOM_TABS_HEIGHT, PHONE_RAIL_HEIGHT } from "./common/chrome";
+import { BOTTOM_TABS_CLEARANCE, BOTTOM_TABS_HEIGHT, isOwnScroll, PHONE_RAIL_HEIGHT } from "./common/chrome";
 import { onBarSx } from "./common/barTone";
 import { setPhoneBarSlot } from "./common/phoneBar";
 
@@ -23,6 +23,12 @@ const FOLD_MS = 180;
  * two apart in either direction; asking for a few before turning keeps the row from flickering
  * between them. Near the top the tabs stay up whichever way the last movement went, since the
  * page's first screen is where the tabs are expected and a rubber band there would fold them.
+ *
+ * Two movements are not the reader's and are not read: a scroll the page started for itself —
+ * a rail chip taking the reader to a section (`isOwnScroll`, `chrome.ts`) — and the bounce past
+ * the end of the page iOS draws, which springs back upward and would otherwise return the tabs
+ * to a reader who only reached the bottom. The offset is clamped to the document's own range, so
+ * the bounce and its spring both read as standing still.
  */
 const FOLD_SLACK = 6;
 const TABS_UP_NEAR_TOP = 64;
@@ -42,9 +48,17 @@ const TABS_UP_NEAR_TOP = 64;
 const useTabsUp = () => {
   const [up, setUp] = useState(true);
   useEffect(() => {
-    let last = window.scrollY;
+    const clamped = () =>
+      Math.min(Math.max(window.scrollY, 0), document.documentElement.scrollHeight - window.innerHeight);
+    let last = clamped();
     const onScroll = () => {
-      const y = window.scrollY;
+      const y = clamped();
+      if (isOwnScroll()) {
+        // Followed rather than judged, so the first movement after a scroll to a section is
+        // measured from where the section landed and not from where the reader left.
+        last = y;
+        return;
+      }
       const delta = y - last;
       if (y < TABS_UP_NEAR_TOP) setUp(true);
       else if (delta > FOLD_SLACK) setUp(false);

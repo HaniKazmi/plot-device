@@ -142,6 +142,43 @@ const listenToScroll = () => {
 };
 
 /** Live, re-rendering the caller the moment the page crosses the app bar in either direction. */
+/**
+ * A scroll the page starts for itself — a rail chip taking the reader to a section — as distinct
+ * from one the reader makes.
+ *
+ * The bottom bar folds its tab row on a scroll down and returns it on a scroll up, reading the
+ * reader's intent off the direction; a smooth scroll to a section above answers that reading with
+ * the tabs up, when the reader asked only for a section. The rail says so before it scrolls, and the
+ * bar's listener treats every event until the scroll settles — no event for `SETTLE_MS` — as the
+ * page's own. Settling by silence rather than `scrollend`, which iOS Safari delivers only from 26,
+ * and a smooth scroll to a section already in view delivers no event at all: the mark lapses on
+ * its own either way.
+ *
+ * Module state rather than a store: nothing renders on it, and the one reader asks at the moment of
+ * each scroll event.
+ */
+const SETTLE_MS = 160;
+let ownScroll = false;
+let settle: ReturnType<typeof setTimeout> | undefined;
+
+const armSettle = () => {
+  clearTimeout(settle);
+  settle = setTimeout(() => {
+    ownScroll = false;
+  }, SETTLE_MS);
+};
+
+export const beginOwnScroll = () => {
+  ownScroll = true;
+  armSettle();
+};
+
+/** Whether the scroll event just delivered belongs to a scroll the page started, extending the mark if so. */
+export const isOwnScroll = () => {
+  if (ownScroll) armSettle();
+  return ownScroll;
+};
+
 export const useScrolledPastBar = () => {
   listenToScroll();
   return pastBarStore.useValue();

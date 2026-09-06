@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { usePhone } from "./breakpoints";
 import { ChipRail, type ChipRailItem } from "./ChipRail";
 import { RailChip } from "./RailChip";
-import { BROWSER_TINT_VISIBLE } from "./chrome";
+import { beginOwnScroll, BROWSER_TINT_VISIBLE } from "./chrome";
 import { usePhoneBarSlot } from "./phoneBar";
 import { QUIET_SIDEWAYS_SCROLL } from "./scrollbarSx";
 
@@ -273,7 +273,12 @@ export const SectionRail = (props: {
       // four of a tab's seven sections: left where it is, it states a position off the end of
       // itself for most of the page.
       follow
-      onSelect={(id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })}
+      onSelect={(id) => {
+        // Marked as the page's own before it moves, so the bottom bar reads a section above as a
+        // destination and not as the reader turning back for the tabs.
+        beginOwnScroll();
+        document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+      }}
       // Whatever the tail leaves, and never a share of the shortfall: at a basis of zero the row
       // grows into the free space and has none of its own to give up, so a phone's rail spends
       // its width on the controls first and the chips take what is left. Sized from its content
