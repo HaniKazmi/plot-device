@@ -5,7 +5,6 @@ import type { KeysMatching } from "../utils/types";
 import { PlainDate } from "../common/date";
 import Sunburst, { SunBurstControls } from "../common/Sunburst";
 import { useScheme } from "../common/useScheme";
-import { format } from "../utils/mathUtils";
 
 type OptionKeys = VideoGameStringKeys | KeysMatching<VideoGame, VideoGame["startDate"]> | "decade";
 const options: OptionKeys[] = [...videoGameOptions, "startDate", "decade"];
@@ -18,7 +17,6 @@ const VgSunburst = ({ data, measure }: { data: VideoGame[]; measure: Measure }) 
   return (
     <Sunburst
       title={`Where the ${measure.toLowerCase()} went`}
-      count={`${format(data.length)} games`}
       data={data}
       groups={controlStates}
       options={{

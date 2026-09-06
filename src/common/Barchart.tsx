@@ -53,15 +53,12 @@ const seriesTypes: Record<View, "column" | "spline" | "area"> = {
 
 const Barchart = ({
   title,
-  count,
   data,
   postAggregate,
   unit,
   controls,
 }: {
   title: string;
-  /** What the chart is over, already worded by its domain. */
-  count?: string;
   data: (cumulative: boolean) => { name: string; date: YearMonth | Year; colour: Colour; value: number }[];
   /** Converts each aggregated value, e.g. minutes to hours. Empty cells stay empty. */
   postAggregate?: (value: number) => number;
@@ -100,7 +97,6 @@ const Barchart = ({
     <SectionHeader
       icon={<BarChart />}
       title={title}
-      count={count}
       action={
         <Stack
           direction="row"

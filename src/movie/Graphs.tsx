@@ -13,18 +13,21 @@ import { movieFilters } from "./filters";
 import { filterIcons } from "./filterIcons";
 import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
 import { FilterChip } from "../common/FilterDrawer";
+import { stated } from "../common/population";
 import { MeasureControl } from "../common/SelectionComponents";
 import { useOtherTabs } from "../tabs";
 import { MOVIE_SECTIONS, movieSections } from "./sections";
 import { FranchiseContext, movieFranchise } from "./franchiseContext";
 import { franchiseIndex } from "../common/franchiseIndex";
 import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
-import { format } from "../utils/mathUtils";
-import { finishedCount, type FinishedExtraSort } from "../common/finishedData";
+import { wallPopulation, type FinishedExtraSort } from "../common/finishedData";
 import { useScheme } from "../common/useScheme";
 import { usePhone } from "../common/breakpoints";
 
 const MOVIE_SORTS: readonly FinishedExtraSort<Movie>[] = [{ label: "Score", value: (movie) => movie.score }];
+
+/** What the wall's card borders speak, and the key beneath its header names. */
+const MOVIE_BORDER = { key: "rating", valueOf: (film: Movie) => film.rating };
 
 const SuspenseBlock = ({
   filteredData,
@@ -103,9 +106,9 @@ const Graphs = memo(
         id={MOVIE_SECTIONS.library}
       >
         <Finished
+          count={wallPopulation(data, movieModule.noun)}
           title="All Films"
-          count={`${format(finishedCount(data))} ${movieModule.noun}`}
-          borderKey="rating"
+          border={MOVIE_BORDER}
           data={data}
           // Rating rather than genre for the border: `ageRatingToColour` is validated at convert
           // time and total, so it cannot throw across a wall of hundreds of cards.
@@ -131,7 +134,12 @@ const Graphs = memo(
               dispatch={filterDispatch}
             />
           }
-          trailing={<FilterChip activeCount={activeCount(filterState)} />}
+          trailing={
+            <FilterChip
+              label={stated(data.length, movieModule.noun)}
+              activeCount={activeCount(filterState)}
+            />
+          }
         />
         <Stats
           data={data}

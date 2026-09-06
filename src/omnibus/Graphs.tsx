@@ -5,6 +5,7 @@ import { Stack } from "@mui/material";
 import { franchiseIndex } from "../common/franchiseIndex";
 import { Section, SectionRail } from "../common/SectionRail";
 import { FilterChip } from "../common/FilterDrawer";
+import { stated } from "../common/population";
 import { SchemaFilterDrawer } from "../common/FilterControls";
 import { MeasureControl } from "../common/SelectionComponents";
 import { stripYearTicks } from "../common/timelineStripData";
@@ -35,6 +36,13 @@ import { omniFilters } from "./filters";
 import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
 import type { Measure } from "../app/types";
 import type { Medium } from "../utils/types";
+
+/**
+ * What this tab's population is counted in. Not a `noun` off a module, the four being composed
+ * here: a row of the union is a game, a season, a film or a book, and the only word true of all
+ * four is the one the measure control already offers beside it.
+ */
+const OMNIBUS_NOUN = "items";
 
 /** The measures this tab counts in, in the order the rail states them. */
 const MEASURES: readonly Measure[] = ["Hours", "Items"];
@@ -159,7 +167,12 @@ const Graphs = memo(
               dispatch={filterDispatch}
             />
           }
-          trailing={<FilterChip activeCount={activeCount(filterState)} />}
+          trailing={
+            <FilterChip
+              label={stated(data.length, OMNIBUS_NOUN)}
+              activeCount={activeCount(filterState)}
+            />
+          }
         />
         <Stats
           data={data}

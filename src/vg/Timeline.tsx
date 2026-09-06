@@ -7,7 +7,7 @@ import Timeline, { TimelineData } from "../common/Timeline";
 import { CURRENT_PLAINDATE, YearMonthDay } from "../common/date";
 import { VgHoverCard } from "./CardMediaImage";
 import { useScheme } from "../common/useScheme";
-import { format } from "../utils/mathUtils";
+import { stated } from "../common/population";
 import { spanKey } from "./cardData";
 
 /** Whether a party game earns its own row on the packed timeline, or is left off it. */
@@ -45,7 +45,7 @@ const VgTimeline = ({ data }: { data: VideoGame[] }) => {
         title="Every playthrough"
         // The bars actually drawn, which the Party control and the chart's own 2015 floor both
         // narrow — so the figure answers for the picture rather than for the tab's filters.
-        count={`${format(gameData.length)} games`}
+        count={stated(gameData.length, "games")}
         action={
           <SegmentedControl
             options={PARTY_OPTIONS}

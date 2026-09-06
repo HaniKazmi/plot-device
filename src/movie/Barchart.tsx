@@ -2,7 +2,6 @@ import { useSelectBox } from "../common/SelectBoxHook";
 import { groupToColour, type Measure, type Movie, type MovieGroup } from "./types";
 import Barchart from "../common/Barchart";
 import { movieGroupValue } from "./statsData";
-import { format } from "../utils/mathUtils";
 import { useScheme } from "../common/useScheme";
 import type { YearType } from "../common/filterReducer";
 
@@ -42,7 +41,6 @@ const MovieBarchart = ({ data, measure, yearType }: { data: Movie[]; measure: Me
     <Barchart
       // The title follows the axis select, or the chart lies about what its x-axis means.
       title={`${measure} by ${axis.toLowerCase()} year`}
-      count={`${format(data.length)} films`}
       data={barchartData}
       postAggregate={measure === "Hours" ? (minutes) => Math.floor(minutes / 60) : undefined}
       unit={measure}

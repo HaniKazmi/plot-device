@@ -79,10 +79,12 @@ const ActionRow = ({ children }: { children: ReactNode }) => {
  * Built on `CardHeader` rather than a stack of its own, because the theme already tightens
  * `MuiCardHeader` and a hand-rolled header would need that spacing kept in step by hand.
  *
- * The count is a population, not a figure to read against another: it says what the section is
- * over before the reader looks at the chart, and a title that says "Every playthrough" is worth
- * little without it. Muted and small so it reads as an annotation on the title, and
- * `tabular-nums` so it does not reflow as the filters move it through the digit widths.
+ * The count is a population, and stated only where it is not the page's own: the section rail's
+ * chip says how much of the library the filters left, so a header repeating it is one number
+ * printed twice a screen apart. What is left is a section counting something else — "792 seasons"
+ * on a tab whose population is shows — which is a figure no other surface offers. Muted and small
+ * so it reads as an annotation on the title, and `tabular-nums` so it does not reflow as the
+ * filters move it through the digit widths.
  *
  * `title` is rendered at `h6` — the section-title role the theme weights — and the whole line is
  * a `div`, because the count inside it is a `Typography` of its own and a block inside the span
@@ -118,7 +120,10 @@ export const SectionHeader = ({
 }: {
   icon?: ReactNode;
   title: string;
-  /** What the section is over, already worded by its domain — "338 games", "612 seasons". */
+  /**
+   * What the section is over, already worded by its domain (`common/population.ts`) — "792
+   * seasons". Left off wherever that is the page's own population, which the rail states.
+   */
   count?: string;
   action?: ReactNode;
   /** Whether the action slot holds no more than one icon button, which stays on the title row. */

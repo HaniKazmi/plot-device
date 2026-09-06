@@ -580,7 +580,9 @@ the artwork takes the rest.
 once across all four: `recentlyFinished` keeps only items with a `closeDate`, since an item in
 progress is not finished — and that filter leaves every entry with a date to sort by, where
 `sortByKey` puts falsy values first in both directions. Its cap is stated in rows (`collapsedRows`,
-two), since how many a sized row holds follows from the measured width. The library wall
+two), since how many a sized row holds follows from the measured width. Collapsed, that cut is the
+card's own control — "All 1,794 ›" — so the header states nothing; the dialog, whose control is the
+way out, states the cut its own 500-card cap still makes as a figure. The library wall
 (`common/Finished`) is not reached from the union; see §10.
 
 **By year** (`omnibus/Barchart.tsx`, `omnibus/barchartData.ts`) is the union on a time axis, split
@@ -596,7 +598,9 @@ empty is dropped rather than opening a series named `""` — every book answers 
 that way — and the header counts the rows drawn.
 
 **The gallery** (`omnibus/Gallery.tsx`, `app/galleryData.ts`) shelves the union by genre,
-franchise, rating or decade, each shelf a `common/Filmstrip` with a drill-down behind its handle. It
+franchise, rating or decade, each shelf a `common/Filmstrip` with a drill-down behind the worded cut
+at the end of its name row — the shelf holds twenty pictures of a group that can run to hundreds,
+and the figure is what says so as well as what opens the rest. It
 opens on franchise, newest first — the series met lately, which the genres band does not answer. A
 shelf card carries no words, so the picture keeps the whole height below its medium band.
 Every category but rating is a field all four media record — `groupByCategory` skips an empty value,
@@ -649,8 +653,8 @@ a show's season strip is, so the two cannot disagree about what counts as an ove
 absolute: each medium is packed on its own and offset past the lanes already spent, so a renderer
 never works out where a medium's rows begin. Reaching a second medium is not asked of a franchise,
 that cliff hiding the largest series on the page — thirty seasons of Doctor Who behind the absence
-of a Doctor Who game. The twelve biggest are drawn (`STRIPS_SHOWN`), the header stating the full
-count. A franchise groups on the raw franchise column, as `movieFranchise`/`showFranchise` do, so a
+of a Doctor Who game. The twelve biggest are drawn in the card (`STRIPS_SHOWN`), the rest behind its
+own worded cut. A franchise groups on the raw franchise column, as `movieFranchise`/`showFranchise` do, so a
 series' founding entry keeps naming itself as its own tab draws it; `namesTheSameThing` drops a group
 where _every_ entry repeats the name, that group having no series structure to draw a lane for. That
 one test holds the section to series: 588 franchise values are 169 series by it. A film is a point
@@ -661,13 +665,22 @@ library for a single game's strip. The `epoch` is the earliest _start_ drawn, fl
 earlier start against the left edge, and a mid-month epoch puts every year line off by the
 difference.
 
+The section is an `ExpandableCard` whose dialog draws every franchise, in stacks of the same twelve:
+one scroller per stack rather than one for all of them, a scroller being what holds a shared scale
+true and twelve strips being as much of one as a screen shows. The card's own control reads "All 180
+›", so the cut is both visible and one press away, and the header states no count — the strips are
+the page's own franchises and the packed reading is the page's own population, which the rail
+states. On a phone the card folds inside itself (`FoldedContent`, the fold without the `Card`
+`ExpandableCard` already owns).
+
 The header's Franchises · All switch trades the strips for the packed timeline the Games, Shows
 and Books tabs draw one medium at a time, over the whole union: `omnibus/timelineData.ts` maps
 each item to a row through the crossings' own `crossingSpan`, so the two readings cannot disagree
 about when an entry ran, coloured by medium and hovering to the same dispatcher. A game logged
 with a bare year is left out rather than drawn as a year-long solid bar — the strips dissolve such
-a span under a mask that says so, where a packed row has no way to mark one as an estimate — and
-the header counts the rows drawn. The rows are built only while that reading is chosen, and the
+a span under a mask that says so, where a packed row has no way to mark one as an estimate. That
+reading draws every row it has, so the card offers no expansion under it. The rows are built only
+while that reading is chosen, and the
 choice lasts the visit. `TimeLineChart` is exported from `common/Timeline.tsx` for it, the chart
 without the card the section already stands in.
 
@@ -738,6 +751,12 @@ whatever each MUI component draws. The app bar is the exception it states itself
 `NavBar.tsx`): a filled bar with nothing beside its buttons to be level with, where a 28px square
 reads as a control that shrank.
 
+`CutButton` is the picker's sibling: a worded action reading a `common/population.ts` `all(total)`
+with a chevron, on the same button the picker is drawn on and stating the same edge in `sx`, since
+the theme gives a small outlined button MUI's own half-strength primary. Wherever it stands on a
+card's own footer the footer restates its colours from the artwork palette — a control grounded in
+`background.paper` on a sampled ground is a rectangle of the page's paper inside a coloured card.
+
 `SegmentedControl` is a small closed set of named states, and every surface offering one uses it:
 the barchart's four views, the gallery's shelf order, the wall's density, the Shows timeline's
 Seasons · Shows, the Games timeline's With party · Without, and each tab's measure in the section
@@ -765,21 +784,26 @@ value alone.
 ### Filter drawer, Top lists and drill-down — shared shells
 
 `common/FilterDrawer` is two different trees on `usePhone`, not one tree at two sizes: from `sm` up a
-floating button opens a `Drawer` that stays out of the page's way, `variant="persistent"` so it
-never covers the chart it is narrowing; below it the button is a chip in the section rail's
-`trailing` slot (`FilterChip`) and the drawer is a modal `SwipeableDrawer` sheet, opened by that
-chip alone (`disableSwipeToOpen`, `disableDiscovery` — the bottom edge of a phone is the home
-gesture's). Both read `common/filterSheet.ts`, a store outside React rather than a context: the chip
-lives in the rail, which a domain's `Graphs` renders, and the drawer is a sibling of the whole chart
-tree, so lifting the open flag to their nearest common ancestor would sit it above every chart and
-re-render all of them on an open the flag never reaches. `FilterToggle` reads which tree it is in
+`Drawer` that stays out of the page's way, `variant="persistent"` so it never covers the chart it is
+narrowing; below it a modal `SwipeableDrawer` sheet (`disableSwipeToOpen`, `disableDiscovery` — the
+bottom edge of a phone is the home gesture's). One handle at every width opens either: `FilterChip`
+in the section rail's `trailing` slot, whose **word is the page's population** — "309 shows",
+`stated(filtered.length, module.noun)` computed once in each tab's `Graphs` — with the badge for
+how many fields the reader has changed. The figure and the control that moved it are then one
+object, which is what lets every chart below stop restating the number, and the rail is pinned at
+every scroll position, where a floating button stands over whatever the page is showing and, at the
+bottom right of a phone, under the browser's own toolbar. It toggles rather than opens, the
+persistent drawer never being handed its `onClose` (§10). Both read `common/filterSheet.ts`, a store
+outside React rather than a context: the chip lives in the rail, which a domain's `Graphs` renders,
+and the drawer is a sibling of the whole chart tree, so lifting the open flag to their nearest
+common ancestor would sit it above every chart and re-render all of them on an open the flag never
+reaches. `FilterToggle` reads which tree it is in
 through a `SheetContext` set by the drawer itself, since the slot handing it down as a child cannot
 otherwise tell — a switch under a wrapped label, three to a row, on desktop; a third-height filled or
 outlined chip in the sheet. `FilterCategory` is unchanged either way. Both slots are filled by
 `common/FilterControls`, which draws the domain's `FilterSchema` (§7) rather than a list written out
-per tab, so every surface offering a page's filters offers one description of them. The button
-carries a badge
-counting the fields the reader has changed (`activeCount`, from `createFilterReducer`): every chart
+per tab, so every surface offering a page's filters offers one description of them. The badge
+counts the fields the reader has changed (`activeCount`, from `createFilterReducer`): every chart
 is drawn through the drawer, so a library narrowed to one franchise otherwise looks exactly like the
 whole library. The measure and the year scope are not among those fields — each is a control of its
 own outside the drawer, stating on its own face that it is set, and a badge counting them would
@@ -800,9 +824,15 @@ one without takes a palette colour offset by the option's index, so switching ca
 consistently. A domain supplies its option list, whose order feeds that offset, an icon per option,
 how to group, and its vocabularies.
 
-`common/GroupedStatList` is the strip of grouped cards that drills into a group. It owns the open
-handle, the expand badge that sets it, and the drill-down's card keys, which the category prefixes
-so a change of grouping remounts the grid; it sorts the picked group at open rather than every
+`common/GroupedStatList` is the strip of grouped cards that drills into a group. It owns where the
+open handle stands at each width and the drill-down's card keys, which the category prefixes so a
+change of grouping remounts the grid; from `md` up the handle is the worded cut at the end of the
+card's footer row (`FooterComponent`'s `action`, in the footer's own artwork tones), and below it,
+where the cards stand in a strip and a 102px poster's footer is two fixed lines of caption with no
+room beside them, **the whole card opens the group** (`CardMediaImageProps.onOpen`, which replaces
+the item's own detail dialog): the picture fronts the group rather than being an item of it, so the
+tap has one meaning. A chip over the artwork covers the one thing a fronting picture is for, and the
+strip drops it at that width, which leaves the drill-down unreachable. it sorts the picked group at open rather than every
 category on every render, and mounts `common/DrilldownDialog`, the fullscreen list itself, only
 while a group is picked. The franchise machinery is shared the same way: `common/franchiseIndex`
 groups by whatever accessor a domain passes, and `common/franchiseContext`'s factory threads the
@@ -1024,6 +1054,19 @@ and `bucketFor` alike, or a shared name would sort the wall one way and label th
 falling back to the item's title, and answers `null` with no short form to give: an undated item,
 which the date sort puts first, so the topmost card can be one.
 
+The border on every card is a vocabulary the page speaks nowhere else, the charts above the wall
+being grouped by something else, so the wall draws it as a key under its header: the field's name,
+then a swatch and a word per value present. Naming the field alone tells a reader the colours mean
+something without telling them what any of them means. Both halves of an entry come off the same
+item, so the swatch and the word cannot disagree; a value whose colour lookup answers nothing is
+left out, the card wearing no border for it either. The key is dropped where the wall is sorted by
+that field — the wall then groups itself by the value and the marker names each run, which is the
+same legend spread down the page — and ordered numeric-aware, one of the four vocabularies being a
+certificate ramp a string sort runs "12, 15, 18, 3, 7". The header's own count is `wallPopulation`
+(`common/finishedData.ts`): what the wall is over, stated only where the wall is _shorter_ than the
+page, which it is wherever the sheet holds a row with no artwork — the card is the picture, so an
+item without one is not on the wall at all, and the rail's chip says the rest.
+
 Card size is the reader's — a `FinishedDensity` of Compact, Large or Full, whose column table
 `finishedColumns` owns. Compact at `xl` gives a banner a fifth of the grid, about 220px, still a
 picture with fifteen on screen; Large is four to a row from `md` up, near 400px; Full is one a row.
@@ -1127,8 +1170,12 @@ and comparing the joined labels keeps that free.
 `common/SectionHeader.tsx` is the header every chart card wears: icon and title left, a muted
 `tabular-nums` count beside the title, controls pinned right. A thin arrangement over `CardHeader`,
 so `MuiCardHeader` spacing and the `h6` weight reach it; the icon sits in the title row, not the
-avatar slot, which centres against the whole header. The count arrives worded — a `common/` shell
-cannot know it counts games. Below `sm` the controls take their own row, negative margins and all: a
+avatar slot, which centres against the whole header. **A header states a figure only where it
+differs from the page's population**, which the section rail's own chip states once
+(`common/population.ts`, below): the Shows timeline says "792 seasons" because a bar per season is
+a population nothing else on the tab counts, and says nothing under Shows, where a bar per show is
+the page's own; the four chart shells state nothing at all. It arrives worded, a `common/` shell
+not knowing it counts games. Below `sm` the controls take their own row, negative margins and all: a
 title and four controls otherwise divide 375px and the title wraps to a word a line. That row is
 `ActionRow`, a horizontal scroller rather than a wrap — the rail's own `ScrollFade` and
 hidden-scrollbar recipe over a `flexShrink: 0` child, so the sunburst's three pickers or Movies' and
@@ -1138,6 +1185,12 @@ since the choice a fixed set of `sx` breakpoints already makes is exactly this: 
 is unconstrained and never scrolls, so the fades stay off and the wrapper changes nothing. A slot
 holding no more than one icon button stays on the title row, the caller saying so through
 `compactActions` — a row of its own for an expand toggle is a blank line with an icon at the end.
+
+`common/population.ts` is the three sentences the app counts in: `stated(n, noun)` — "309 shows",
+the noun each medium's module carries — `cut(shown, total)` — "10 of 1,539", or the whole figure
+where nothing is cut — and `all(total)` — "All 1,539", the worded cut a control wears. One module
+because the alternative is these three written out at twenty-odd call sites, each one `format` away
+from a library of 1,539 reading as "1539" beside a chart that reads "1,539".
 
 `common/Stats.tsx` exports what the domain `Stats.tsx` files assemble into a grid: `StatCard` and
 `StatSummary`; `YearVitalsPair`, all-time and in-year cards differing only in figures; `StatList`;
@@ -1158,7 +1211,13 @@ happens to end.
 `StatList` is two smaller shells the same file exports, each with a caller of its own:
 
 - **`ExpandableCard`** owns a card that can also present itself fullscreen: `renderContent` draws it
-  inline and again in the dialog, and is handed the expand control for its header. `useDialogMount`
+  inline and again in the dialog, and is handed the expand control for its header. That control is
+  **the worded cut** where the card is showing fewer than it holds — `cutLabel`, `all(total)` from
+  `common/population.ts`, drawn as "All 1,539 ›" — and the ⤢ where nothing is cut: the wall, a
+  gallery whose shelves all fit, a strip that scrolls sideways and already holds the whole list
+  (`wrap={false}`). The figure and the way to the rest of it are then one object, where an icon
+  beside a header reading "10 of 1,539" states the cut twice and says nothing about how much is
+  behind it. The dialog keeps the icon either way, what it offers being the way out. `useDialogMount`
   pairs `open` with a `mounted` flag lagging it until `onExited`, so the body survives the exit
   transition and is never built behind a closed dialog. `CardMediaImage` gates the whole `Dialog`,
   not just the body: an uncapped wall mounts one per item, and a closed `Dialog` still renders
@@ -1350,7 +1409,7 @@ with, so a chip never points at an anchor that is not on the page.
 
 The rail also carries the page's measure, in an `actions` slot at its right end: the unit every
 figure on the tab is counted in belongs on the one control surface reachable from anywhere. A second
-slot, `trailing`, carries the filter control on a phone (`FilterChip`, below) — both sit outside the
+slot, `trailing`, carries the population chip (`FilterChip`, below) — both sit outside the
 scrolling chip row, which would carry either away; the row gives up width and overflows into its own
 scroll. `SegmentedControl` states the measures as words, a Σ on a floating button being a legend
 nothing on the page teaches.
@@ -1884,7 +1943,8 @@ Recorded so they are not mistaken for design:
   that provider's own comment.
 - **The filter drawer's desktop shape ignores `onClose`.** From `sm` up `FilterDrawer` renders a
   `Drawer` with `variant="persistent"`, and MUI never calls the `onClose` passed for that variant, so
-  only the Clear/Close row and the floating button dismiss it. Below `sm` the same drawer is a
+  only the Clear/Close row and the rail's own chip dismiss it — the chip toggles for that reason.
+  Below `sm` the same drawer is a
   `SwipeableDrawer` sheet instead, which does answer to `onClose` — Escape, a backdrop press and a
   downward swipe all close it — so the gap belongs to the wide layout alone, not every width.
 - **No DOM or component tests.** `tests/` covers pure logic — converters, filters, the reducer, the

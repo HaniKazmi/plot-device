@@ -24,6 +24,21 @@ export interface Fold {
   preview?: ReactNode;
 }
 
+interface FoldProps {
+  /** The card's own `SectionHeader`, controls and all — it heads both states. */
+  header: ReactNode;
+  /**
+   * The line and the picture the fold stands on, as a thunk.
+   *
+   * A thunk because both are derived from the chart's own data — a second pivot of the barchart,
+   * the sunburst's first ring — and from `sm` up nothing reads them. Called past the width check
+   * and once for the pair, so a card that needs the same pivot for both does not build it twice.
+   * `Card`'s `detailComponent` defers a subtree the same way.
+   */
+  fold: () => Fold;
+  children: ReactNode;
+}
+
 /**
  * A chart card that opens on request.
  *
@@ -39,39 +54,35 @@ export interface Fold {
  * The state is a card's own and lives for as long as the page does: leaving the tab unmounts it,
  * which is the same answer a reader gets from every other chart control here.
  */
-export const FoldedChart = ({
-  header,
-  fold,
-  children,
-}: {
-  /** The card's own `SectionHeader`, controls and all — it heads both states. */
-  header: ReactNode;
-  /**
-   * The line and the picture the fold stands on, as a thunk.
-   *
-   * A thunk because both are derived from the chart's own data — a second pivot of the barchart,
-   * the sunburst's first ring — and from `sm` up nothing reads them. Called past the width check
-   * and once for the pair, so a card that needs the same pivot for both does not build it twice.
-   * `Card`'s `detailComponent` defers a subtree the same way.
-   */
-  fold: () => Fold;
-  children: ReactNode;
-}) => {
+export const FoldedChart = (props: FoldProps) => (
+  <Card>
+    <FoldedContent {...props} />
+  </Card>
+);
+
+/**
+ * The same card without its `Card`, for a section that already stands in one.
+ *
+ * `ExpandableCard` owns the card it can also present fullscreen, so a section that both folds on a
+ * phone and opens a dialog — the crossings — nests this inside that card rather than putting one
+ * card's border and corners inside another's.
+ */
+export const FoldedContent = ({ header, fold, children }: FoldProps) => {
   const phone = usePhone();
   const [shown, setShown] = useState(false);
 
   if (!phone)
     return (
-      <Card>
+      <>
         {header}
         {children}
-      </Card>
+      </>
     );
 
   const { summary, preview } = fold();
 
   return (
-    <Card>
+    <>
       {header}
       {shown && children}
       <CardContent>
@@ -99,7 +110,7 @@ export const FoldedChart = ({
           </Stack>
         </Stack>
       </CardContent>
-    </Card>
+    </>
   );
 };
 

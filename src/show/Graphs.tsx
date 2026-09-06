@@ -7,6 +7,7 @@ import Sunburst from "./Sunburst";
 import Stats from "./Stats";
 import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
 import { FilterChip } from "../common/FilterDrawer";
+import { stated } from "../common/population";
 import { MeasureControl } from "../common/SelectionComponents";
 import { useOtherTabs } from "../tabs";
 import { SHOW_SECTIONS, showSections } from "./sections";
@@ -23,9 +24,11 @@ import { SchemaFilterDrawer } from "../common/FilterControls";
 import { showFilters } from "./filters";
 import { filterIcons } from "./filterIcons";
 import { memo, useDeferredValue } from "react";
-import { format } from "../utils/mathUtils";
-import { finishedCount } from "../common/finishedData";
+import { wallPopulation } from "../common/finishedData";
 import { useScheme } from "../common/useScheme";
+
+/** What the wall's card borders speak, and the key beneath its header names. */
+const SHOW_BORDER = { key: "status", valueOf: (show: Show) => show.status };
 
 const SuspenseBlock = ({
   filteredData,
@@ -113,9 +116,9 @@ const Graphs = memo(
         id={SHOW_SECTIONS.library}
       >
         <Finished
+          count={wallPopulation(data, showModule.noun)}
           title="All Shows"
-          count={`${format(finishedCount(data))} ${showModule.noun}`}
-          borderKey="status"
+          border={SHOW_BORDER}
           data={data}
           colour={(item) => statusToColour(item, scheme)}
           MediaComponent={ShowCardMediaImage}
@@ -135,7 +138,12 @@ const Graphs = memo(
               dispatch={filterDispatch}
             />
           }
-          trailing={<FilterChip activeCount={activeCount(filterState)} />}
+          trailing={
+            <FilterChip
+              label={stated(data.length, showModule.noun)}
+              activeCount={activeCount(filterState)}
+            />
+          }
         />
         <Stats
           data={data}

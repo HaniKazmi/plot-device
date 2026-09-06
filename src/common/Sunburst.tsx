@@ -50,15 +50,12 @@ const dimLeafRing = (leafLevel: number) =>
 
 const Sunburst = <T, K extends string>({
   title,
-  count,
   data,
   controls,
   groups,
   options,
 }: {
-  /** What the chart is of, in the caller's own words — a shell cannot know it counts games. */
   title: string;
-  count?: string;
   controls: ReactNode;
   data: T[];
   groups: K[];
@@ -124,7 +121,6 @@ const Sunburst = <T, K extends string>({
         <SectionHeader
           icon={<DonutLarge />}
           title={title}
-          count={count}
           action={controls}
         />
       }

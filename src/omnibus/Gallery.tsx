@@ -1,5 +1,5 @@
-import { ExpandCircleDown, PhotoLibrary } from "@mui/icons-material";
-import { CardContent, IconButton, Stack, Typography } from "@mui/material";
+import { PhotoLibrary } from "@mui/icons-material";
+import { CardContent, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 import { INLINE_SWATCH_SIZE, Swatch } from "../common/Card";
 import { CURRENT_PLAINDATE } from "../common/date";
@@ -7,9 +7,10 @@ import { DrilldownDialog } from "../common/DrilldownDialog";
 import { FILMSTRIP_HEIGHT, Filmstrip } from "../common/Filmstrip";
 import { SectionHeader } from "../common/SectionHeader";
 import { useSelectBox } from "../common/SelectBoxHook";
-import { SegmentedControl, type SegmentOption } from "../common/SelectionComponents";
+import { CutButton, SegmentedControl, type SegmentOption } from "../common/SelectionComponents";
 import { EXPANDED_CARDS, ExpandableCard } from "../common/Stats";
 import { format } from "../utils/mathUtils";
+import { all, cut } from "../common/population";
 import type { OmniItem } from "../common/medium";
 import OmniCardMediaImage from "../app/CardMediaImage";
 import { MIXED_CARD_SIZING, workLabels } from "../app/cardData";
@@ -118,6 +119,10 @@ const Gallery = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
     <>
       <ExpandableCard
         expandable={groups.length > SHELVES_SHOWN}
+        // The shelves left off, as the control that draws them. Expanded the card is capped again
+        // at its own picture budget, so the header states that second cut as a figure — there
+        // being no third view to word it on.
+        cutLabel={all(groups.length)}
         renderContent={(isDialog, toggle) => {
           // Answered once and shared, so the header states the cut the wall actually makes.
           const limit = isDialog ? SHELVES_EXPANDED : SHELVES_SHOWN;
@@ -128,7 +133,7 @@ const Gallery = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
               <SectionHeader
                 icon={<PhotoLibrary />}
                 title={`Shelves by ${title}`}
-                count={shown < groups.length ? `${format(shown)} of ${format(groups.length)}` : format(groups.length)}
+                count={isDialog && shown < groups.length ? cut(shown, groups.length) : undefined}
                 action={
                   <Stack
                     direction="row"
@@ -219,13 +224,13 @@ const Shelf = ({
         >
           {`${format(group.count)} ${measure}`}
         </Typography>
-        <IconButton
-          size="small"
+        {/* The shelf's own cut, worded: the strip shows twenty pictures of a shelf that can hold
+            hundreds, and the figure is what says so as well as what opens the rest. A chevron in a
+            circle says only "more", in the glyph the card's own expand means a different verb by. */}
+        <CutButton
+          label={all(group.all.length)}
           onClick={() => onOpen(group)}
-          aria-label={`Open ${group.name}`}
-        >
-          <ExpandCircleDown color="action" />
-        </IconButton>
+        />
       </Stack>
       <Filmstrip height={FILMSTRIP_HEIGHT + MEDIUM_LABEL_HEIGHT}>
         {group.all.slice(0, PICTURES_SHOWN).map((item) => (

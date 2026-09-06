@@ -6,6 +6,7 @@ import { SectionHeader } from "../common/SectionHeader";
 import { FoldedChart } from "../common/FoldedChart";
 import { LABEL_SX, MUTED_FIGURE_SX } from "../common/typography";
 import { format } from "../utils/mathUtils";
+import { stated } from "../common/population";
 import { useSelectBox } from "../common/SelectBoxHook";
 import { BRIDGE_KEYS, genreBridge, type BridgeKey, type GenreBridgeRow } from "./genreBridgeData";
 import type { OmniItem } from "../common/medium";
@@ -68,7 +69,7 @@ const GenreBridge = ({ items, measure }: { items: OmniItem[]; measure: Measure }
         <SectionHeader
           icon={<Category />}
           title={`${KEY_NOUN[key]} by medium`}
-          count={`${format(rows.length)} ${KEY_NOUN[key].toLowerCase()}`}
+          count={stated(rows.length, KEY_NOUN[key].toLowerCase())}
           action={
             <Stack
               direction="row"

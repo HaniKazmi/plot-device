@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type R
 import { usePhone } from "./breakpoints";
 import { stickySheetHeader } from "./fullscreenSheet";
 import { LABEL_SX, MUTED_FIGURE_SX } from "./typography";
+import { cut } from "./population";
 
 /**
  * One thing the palette can offer: what it is called, the run of that name the query matched, a
@@ -397,7 +398,7 @@ export const SearchPalette = (props: {
                   variant="caption"
                   sx={MUTED_FIGURE_SX}
                 >
-                  {group.total > group.hits.length ? `${group.hits.length} of ${group.total}` : group.total}
+                  {cut(group.hits.length, group.total)}
                 </Typography>
               </Stack>
               {group.hits.map((hit) => (

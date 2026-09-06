@@ -1,6 +1,5 @@
 import Barchart from "../common/Barchart";
 import { useSelectBox } from "../common/SelectBoxHook";
-import { format } from "../utils/mathUtils";
 import type { OmniItem } from "../common/medium";
 import { BARCHART_SPLITS, omniBarchartRows } from "./barchartData";
 import type { Measure } from "../app/types";
@@ -29,7 +28,6 @@ const OmnibusBarchart = ({ data, measure }: { data: OmniItem[]; measure: Measure
   return (
     <Barchart
       title={`${measure} by year`}
-      count={`${format(rows.length)} items`}
       // The year is the same in every view, so the argument the shell passes is not read: an item's
       // year is an attribution rather than a date, and a month-grained curve would invent one.
       data={() => rows}

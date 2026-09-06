@@ -47,7 +47,6 @@ const WatchTimeline = ({ data }: { data: Movie[] }) => {
           <SectionHeader
             icon={<TimelineIcon />}
             title="When films were watched"
-            count={`${format(data.length)} films`}
             action={controls}
           />
         }

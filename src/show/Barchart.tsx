@@ -1,7 +1,6 @@
 import { useSelectBox } from "../common/SelectBoxHook";
 import { groupToColour, typeToName, type Measure, type Season, type Show, type ShowStringKeys } from "./types";
 import Barchart from "../common/Barchart";
-import { format } from "../utils/mathUtils";
 import { useScheme } from "../common/useScheme";
 import type { YearType } from "../common/filterReducer";
 
@@ -47,7 +46,6 @@ const ShowBarchart = ({ data, measure, yearType }: { data: Show[]; measure: Meas
       title={`${measure} by year`}
       // The shows behind the columns rather than the seasons the chart is fed, which is the unit
       // the tab's other sections count in and the one its Sunburst neighbour states.
-      count={`${format(data.length)} shows`}
       data={barchartData}
       postAggregate={measure === "Hours" ? (minutes) => Math.floor(minutes / 60) : undefined}
       unit={measure}

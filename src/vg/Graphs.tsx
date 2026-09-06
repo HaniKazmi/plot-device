@@ -18,13 +18,16 @@ import { vgFilters } from "./filters";
 import { filterIcons } from "./filterIcons";
 import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
 import { FilterChip } from "../common/FilterDrawer";
+import { stated } from "../common/population";
 import { MeasureControl } from "../common/SelectionComponents";
 import { useOtherTabs } from "../tabs";
 import { VG_SECTIONS, vgSections } from "./sections";
 import { currentlyPlaying, earliestYear } from "./statsData";
-import { format } from "../utils/mathUtils";
-import { finishedCount } from "../common/finishedData";
+import { wallPopulation } from "../common/finishedData";
 import type { YearNumber } from "../common/date";
+
+/** What the wall's card borders speak, and the key beneath its header names. */
+const VG_BORDER = { key: "company", valueOf: (game: VideoGame) => game.company };
 
 const SuspenseBlock = ({
   filteredData,
@@ -110,10 +113,10 @@ const Graphs = memo(
         id={VG_SECTIONS.library}
       >
         <Finished
+          count={wallPopulation(data, vgModule.noun)}
           MediaComponent={CardMediaImage}
           title="All Games"
-          count={`${format(finishedCount(data))} ${vgModule.noun}`}
-          borderKey="company"
+          border={VG_BORDER}
           data={data}
           colour={(item) => companyToColor(item, scheme)}
           landscape
@@ -133,7 +136,12 @@ const Graphs = memo(
               dispatch={filterDispatch}
             />
           }
-          trailing={<FilterChip activeCount={activeCount(filterState)} />}
+          trailing={
+            <FilterChip
+              label={stated(data.length, vgModule.noun)}
+              activeCount={activeCount(filterState)}
+            />
+          }
         />
         <Stats
           data={data}

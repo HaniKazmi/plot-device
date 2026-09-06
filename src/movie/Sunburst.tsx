@@ -2,7 +2,6 @@ import { useState } from "react";
 import { groupToColour, type Measure, type Movie, type MovieGroup } from "./types";
 import Sunburst, { SunBurstControls } from "../common/Sunburst";
 import { movieGroupValue } from "./statsData";
-import { format } from "../utils/mathUtils";
 import { useScheme } from "../common/useScheme";
 
 type OptionKeys = Exclude<MovieGroup, "none"> | "startDate" | "name";
@@ -20,7 +19,6 @@ const MovieSunburst = ({ data, measure }: { data: Movie[]; measure: Measure }) =
   return (
     <Sunburst
       title={`Where the ${measure.toLowerCase()} went`}
-      count={`${format(data.length)} films`}
       data={data}
       groups={controlStates}
       options={{

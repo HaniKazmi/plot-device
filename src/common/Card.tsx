@@ -73,6 +73,16 @@ export interface CardMediaImageProps {
    * mounted for the one card whose dialog is open.
    */
   detailComponent?: () => ReactNode;
+  /**
+   * What pressing the artwork does instead of opening this item's own card.
+   *
+   * A card whose picture stands for something larger than the item in it: a grouped list's card
+   * fronts its group with the group's biggest member, and where there is no room beside the words
+   * for the group's own handle — a strip card is a 102px poster under two lines of caption — the
+   * picture has to mean the group rather than the one item that happens to represent it. Given,
+   * the detail dialog is never opened and so never mounted.
+   */
+  onOpen?: () => void;
   sx?: SxProps<Theme>;
   /**
    * The card itself rather than the artwork inside it. A caller that lays the artwork and a panel
@@ -482,6 +492,7 @@ const SheetBar = ({
 
 export const CardMediaImage = (props: CardMediaImageProps) => {
   const { image, alt, chip, colour: propColour, footerComponent, detailComponent, mediaLayout, sx, cardSx } = props;
+  const onOpen = props.onOpen;
   const rowSize = props.rowSize;
   const mediaBand = props.mediaBand;
   const bandHeight = mediaBand?.height ?? 0;
@@ -654,7 +665,7 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
                 alt={alt}
                 palette={palette}
                 component="span"
-                onClick={detail.show}
+                onClick={onOpen ?? detail.show}
                 sx={mediaSx}
               />
             ) : (
@@ -665,6 +676,7 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
                 src={image}
                 alt={alt}
                 onClick={() => {
+                  if (onOpen) return onOpen();
                   // The detail dialog is themed from this colour, so it is worth reading even for a card
                   // that did not ask for one.
                   readColour(imgRef.current);
@@ -1532,9 +1544,17 @@ export const FooterComponent = ({
   divider,
   caption,
   captionText,
+  action,
 }: {
   labels: string[][];
   divider?: boolean;
+  /**
+   * A control at the end of the last row, for a card that stands for more than itself: a grouped
+   * card's own drill-down, worded as the cut it is. Here rather than over the artwork, because the
+   * picture is a representative of the group and a chip on it covers the one thing that says which
+   * group it is. Dropped from a strip card's caption, which has two fixed lines and no room.
+   */
+  action?: ReactNode;
   /**
    * One line instead of the stack, for a card in a strip: the picture stands at a fixed height and
    * what is left is a single line of words. `stripCaption` decides which of the rows it is — never
@@ -1667,6 +1687,30 @@ export const FooterComponent = ({
               {val}
             </Typography>
           ))}
+          {/* On the closing row and at its end: the row is already spread across the card, so the
+              control lands against the edge opposite the figures — on its own line where the row
+              has already filled the width, which a genre's name and its figure do.
+
+              The tones are the footer's own, not the theme's. The ground here is a sampled colour,
+              and a control stating `background.paper` on it is a rectangle of the page's paper
+              inside a card the artwork has coloured — dark on a dark poster's footer, where only
+              its border would say it is there. Stated here rather than by the caller because only
+              the card knows its own ground. */}
+          {action && index === labels.length - 1 && (
+            <Box
+              sx={{
+                marginLeft: "auto",
+                "& .MuiButton-root": {
+                  color: palette.onGround,
+                  borderColor: palette.line,
+                  backgroundColor: palette.tile,
+                },
+                "& .MuiButton-endIcon": { color: palette.muted },
+              }}
+            >
+              {action}
+            </Box>
+          )}
         </Stack>
       ))}
     </CardContent>

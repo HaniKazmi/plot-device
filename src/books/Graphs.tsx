@@ -14,6 +14,7 @@ import { bookFilters } from "./filters";
 import { filterIcons } from "./filterIcons";
 import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
 import { FilterChip } from "../common/FilterDrawer";
+import { stated } from "../common/population";
 import { MeasureControl } from "../common/SelectionComponents";
 import { useOtherTabs } from "../tabs";
 import { BOOK_SECTIONS, bookSections } from "./sections";
@@ -21,8 +22,7 @@ import { bookEpoch, bookFranchise, BookEpochProvider, FranchiseContext } from ".
 import { franchiseIndex } from "../common/franchiseIndex";
 import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
 import { bookKey, currentlyReading, earliestYear } from "./statsData";
-import { format } from "../utils/mathUtils";
-import { finishedCount, type FinishedExtraSort } from "../common/finishedData";
+import { wallPopulation, type FinishedExtraSort } from "../common/finishedData";
 import { genreToColour } from "../utils/types";
 import { useScheme } from "../common/useScheme";
 import { usePhone } from "../common/breakpoints";
@@ -38,6 +38,9 @@ const BOOK_SORTS: readonly FinishedExtraSort<Book>[] = [
   // year: "700+" is a chip, where every page count would be a chip of its own.
   { label: "Pages", value: (book) => book.pages, bucket: (pages) => `${Math.floor(pages / 100) * 100}+` },
 ];
+
+/** What the wall's card borders speak, and the key beneath its header names. */
+const BOOK_BORDER = { key: "genre", valueOf: (book: Book) => book.genre };
 
 const SuspenseBlock = ({
   filteredData,
@@ -127,9 +130,9 @@ const Graphs = memo(
         id={BOOK_SECTIONS.library}
       >
         <Finished
+          count={wallPopulation(data, bookModule.noun)}
           title="All Books"
-          count={`${format(finishedCount(data))} ${bookModule.noun}`}
-          borderKey="genre"
+          border={BOOK_BORDER}
           data={data}
           // Genre for the border: the ramp answers the neutral off its table and never throws, so
           // it cannot take a wall of hundreds of cards down on one unfamiliar value.
@@ -158,7 +161,12 @@ const Graphs = memo(
               dispatch={filterDispatch}
             />
           }
-          trailing={<FilterChip activeCount={activeCount(filterState)} />}
+          trailing={
+            <FilterChip
+              label={stated(data.length, bookModule.noun)}
+              activeCount={activeCount(filterState)}
+            />
+          }
         />
         <Stats
           data={data}

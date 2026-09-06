@@ -2,7 +2,6 @@ import { useSelectBox } from "../common/SelectBoxHook";
 import { groupToColour, type Book, type BookGroup, type Measure } from "./types";
 import Barchart from "../common/Barchart";
 import { bookGroupValue } from "./statsData";
-import { format } from "../utils/mathUtils";
 import { useScheme } from "../common/useScheme";
 import type { YearType } from "../common/filterReducer";
 
@@ -41,7 +40,6 @@ const BookBarchart = ({ data, measure, yearType }: { data: Book[]; measure: Meas
     <Barchart
       // The title follows the axis select, or the chart lies about what its x-axis means.
       title={`${measure} by ${axis === "Read" ? "year read" : "release year"}`}
-      count={`${format(data.length)} books`}
       data={barchartData}
       // Exact hours reach the shell, so the share view divides the real figures; the column that
       // is drawn is floored the way every hours total on the tab is.

@@ -1,4 +1,4 @@
-import { ArrowDropDown } from "@mui/icons-material";
+import { ArrowDropDown, ChevronRight } from "@mui/icons-material";
 import { Box, Button, Menu, MenuItem, ToggleButton, ToggleButtonGroup, type Theme } from "@mui/material";
 import { useState } from "react";
 import { keyLabel } from "../utils/stringUtils";
@@ -218,3 +218,46 @@ export const SelectBox = <T extends string>({
     </>
   );
 };
+
+/**
+ * The kit's edge, on a button the theme leaves unbordered: `MuiButton`'s small size states the
+ * height, type and corner and nothing about `outlined`, whose default is a half-strength primary.
+ * The same divider the cards and the rail are ruled off in, so a worded action reads as one more
+ * of the row's controls rather than as the one call to action in the header.
+ */
+const CUT_SX = {
+  color: "text.primary",
+  borderColor: "divider",
+  backgroundColor: "background.paper",
+  // The chevron says which way the layer arrives from; it is punctuation on the figure rather
+  // than a second mark, so it takes the muted tone and sits close to the word.
+  "& .MuiButton-endIcon": {
+    marginLeft: 0.25,
+    marginRight: -0.5,
+    color: "text.secondary",
+    "& > *:first-of-type": { fontSize: 18 },
+  },
+} as const;
+
+/**
+ * The worded cut: "All 1,539 ›", the control a list wears where it shows fewer than it holds.
+ *
+ * The figure is the button because what is missing and the way to it are one fact — an ⤢ beside a
+ * header reading "10 of 1,539" states the cut twice and offers it once, and says nothing about
+ * how much is behind the icon. Where nothing is cut the caller keeps the ⤢ instead: there is no
+ * figure to word, only a bigger view of the same thing.
+ *
+ * The label is `common/population.ts`'s `all`, so a shelf's handle, a group card's footer and a
+ * card header's own toggle cannot spell the same sentence three ways.
+ */
+export const CutButton = ({ label, onClick }: { label: string; onClick: () => void }) => (
+  <Button
+    size="small"
+    variant="outlined"
+    onClick={onClick}
+    endIcon={<ChevronRight />}
+    sx={CUT_SX}
+  >
+    {label}
+  </Button>
+);

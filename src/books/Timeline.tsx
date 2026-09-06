@@ -5,7 +5,7 @@ import Timeline, { TimelineData } from "../common/Timeline";
 import { CURRENT_PLAINDATE } from "../common/date";
 import { BookHoverCard } from "./CardMediaImage";
 import { useScheme } from "../common/useScheme";
-import { format } from "../utils/mathUtils";
+import { stated } from "../common/population";
 import { genreToColour } from "../utils/types";
 import { bookKey } from "./statsData";
 
@@ -35,7 +35,7 @@ const BookTimeline = ({ data }: { data: Book[] }) => {
       <SectionHeader
         icon={<TimelineIcon />}
         title="Every read"
-        count={`${format(bookData.length)} books`}
+        count={stated(bookData.length, "books")}
       />
     </Timeline>
   );

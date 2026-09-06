@@ -5,7 +5,6 @@ import {
   Button,
   Chip,
   Drawer,
-  Fab,
   FormControl,
   FormControlLabel,
   InputLabel,
@@ -37,47 +36,50 @@ import { RailChip } from "./ChipRail";
 const SheetContext = createContext(false);
 
 /**
- * The control that opens the filters on a phone, for the section rail's trailing slot.
+ * The one handle on the filters, and where the page states how much of the library it is drawing.
  *
- * A chip rather than the floating button: the rail is the one bar pinned at every scroll position,
- * where a FAB stands over whatever the page is showing and, at the bottom right of a phone, under
- * the browser's own toolbar. Icon and no word, since the rail's remaining width is the section
- * chips' — the theme drops an empty chip label's padding for exactly this.
+ * The word is the population — "309 shows" — because the filters are what set it: a chip that
+ * says both is the only place on the page where the figure and the control that moved it are the
+ * same object, which is why every chart below it stops restating the number. The badge counts the
+ * fields the reader changed, since a library narrowed to one franchise otherwise looks exactly
+ * like the whole library; `Badge` draws nothing for a zero, which is the right answer.
  *
- * Drawn only below `sm`, where the FAB is not; from there up the two would be one control offered
- * twice.
+ * It rides the section rail at every width. The rail is the one bar pinned at every scroll
+ * position, where a floating button stands over whatever the page is showing and, at the bottom
+ * right of a phone, under the browser's own toolbar — and a figure stating what the page is over
+ * has to be legible from the library at the bottom of it, not only from the top.
+ *
+ * It toggles rather than opens: from `sm` up the drawer is `variant="persistent"`, which MUI never
+ * calls `onClose` for, so a chip that only opened would leave the drawer's own Close row as the
+ * single way out of it.
  */
-export const FilterChip = ({ activeCount }: { activeCount: number }) => (
-  <Box sx={{ display: { xs: "flex", sm: "none" } }}>
+export const FilterChip = ({ label, activeCount }: { label: string; activeCount: number }) => {
+  const open = useFilterSheetOpen();
+
+  return (
     <Badge
       badgeContent={activeCount}
       color="secondary"
     >
       <RailChip
-        label=""
+        label={label}
         icon={<FilterAlt />}
-        ariaLabel={activeCount > 0 ? `Filters, ${activeCount} active` : "Filters"}
+        ariaLabel={activeCount > 0 ? `${label}, ${activeCount} filters active` : label}
         active={activeCount > 0}
-        onClick={() => setFilterSheetOpen(true)}
+        onClick={() => setFilterSheetOpen(!open)}
       />
     </Badge>
-  </Box>
-);
+  );
+};
 
 /**
- * The button and the drawer every tab's filter is built from — a floating button over a drawer
- * that stays out of the page's way from `sm` up, a modal bottom sheet below it.
+ * The drawer every tab's filter is built from — one that stays out of the page's way from `sm` up,
+ * a modal bottom sheet below it.
  *
  * Fully controlled: the drawer knows nothing about filter state — a domain hands it how many
  * choices are in play, the reset action, and its own toggles and category selects as children.
- * Whether it is open lives in `filterSheet`, outside React, because the phone's own handle is the
- * rail chip and the rail is a sibling of this whole subtree.
- *
- * The badge is the closed drawer's only account of itself. Every chart on the page is drawn
- * through these controls, so a library narrowed to one franchise otherwise looks exactly like the
- * whole library — the count says something is being hidden and roughly how much. `Badge` draws
- * nothing for a zero of its own accord, which is the right answer: an unfiltered page has no
- * business carrying a mark saying so.
+ * Whether it is open lives in `filterSheet`, outside React, because its only handle is the rail's
+ * population chip and the rail is a sibling of this whole subtree.
  *
  * `toggles` and `categories` are two slots rather than one `children`: the Clear/Close row sits
  * between them in DOM order, and its `order: { xs: 1, md: 0 }` sends it to the end of the small
@@ -182,58 +184,35 @@ export const FilterDrawer = ({
   }
 
   return (
-    // Pinned to the screen rather than to the page, so it pays the device's own insets as the bars
-    // do (`safeAreaGutters`): a tablet or a phone held sideways puts a rounded corner exactly where
-    // a button 16px off both edges sits.
-    <Box
-      sx={(theme) => ({
-        position: "fixed",
-        right: `calc(${theme.spacing(2)} + env(safe-area-inset-right))`,
-        bottom: `calc(${theme.spacing(2)} + env(safe-area-inset-bottom))`,
-      })}
+    <Drawer
+      anchor="bottom"
+      open={drawerOpen}
+      variant="persistent"
+      onClose={close}
     >
-      <Badge
-        badgeContent={activeCount}
-        color="secondary"
+      <Grid
+        container
+        spacing={1}
+        sx={{
+          margin: 2,
+          justifyContent: "space-between",
+        }}
       >
-        <Fab
-          color="primary"
-          aria-label={activeCount > 0 ? `Filters, ${activeCount} active` : "Filters"}
-          onClick={() => setFilterSheetOpen(!drawerOpen)}
-        >
-          <FilterAlt />
-        </Fab>
-      </Badge>
-      <Drawer
-        anchor="bottom"
-        open={drawerOpen}
-        variant="persistent"
-        onClose={close}
-      >
+        {toggles}
         <Grid
-          container
-          spacing={1}
+          size={{ xs: 12, md: "grow" }}
           sx={{
-            margin: 2,
-            justifyContent: "space-between",
+            display: "flex",
+            justifyContent: { xs: "center", md: "end" },
+            order: { xs: 1, md: 0 },
           }}
         >
-          {toggles}
-          <Grid
-            size={{ xs: 12, md: "grow" }}
-            sx={{
-              display: "flex",
-              justifyContent: { xs: "center", md: "end" },
-              order: { xs: 1, md: 0 },
-            }}
-          >
-            <Button onClick={onReset}>Clear</Button>
-            <Button onClick={close}>Close</Button>
-          </Grid>
-          {categories}
+          <Button onClick={onReset}>Clear</Button>
+          <Button onClick={close}>Close</Button>
         </Grid>
-      </Drawer>
-    </Box>
+        {categories}
+      </Grid>
+    </Drawer>
   );
 };
 

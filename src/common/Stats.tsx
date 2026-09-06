@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { format } from "../utils/mathUtils";
+import { all } from "./population";
 import { groupTotals } from "./statsData";
 import {
   FooterComponent,
@@ -40,6 +41,7 @@ import { YearSelect } from "./YearSelect";
 import type { YearType } from "./filterReducer";
 import { CURRENT_YEAR, type YearNumber } from "./date";
 import { Close, CloseFullscreen, Fullscreen, Timer, Update } from "@mui/icons-material";
+import { CutButton } from "./SelectionComponents";
 import { useDialogMount } from "./useDialogMount";
 import { stickySheetHeader } from "./fullscreenSheet";
 
@@ -299,14 +301,24 @@ export const EXPANDED_CARDS = 500;
  * expand/collapse control to place wherever its header wants it. Only the body is gated on
  * `useDialogMount`'s `mounted`, so a strip of media cards is not built a second time behind a
  * closed dialog while the one `Dialog` this card holds stays where it is.
+ *
+ * `cutLabel` is what the card's own control reads where the card is showing fewer than it holds:
+ * "All 1,539 ›" in place of the ⤢, so the figure and the way to the rest of it are one object and
+ * the header stops stating "10 of 1,539" beside an icon that says nothing about how much is behind
+ * it. Left off — a wall drawing everything, a gallery whose shelves all fit — the icon stands,
+ * there being no figure to word. The dialog keeps the icon either way: what it offers is the way
+ * out, and nothing is cut behind it.
  */
 export const ExpandableCard = ({
   renderContent,
   expandable: expandableProp,
+  cutLabel,
   sx,
 }: {
   renderContent: (isDialog: boolean, toggle: ReactNode) => ReactNode;
   expandable?: boolean;
+  /** The worded cut, from `common/population.ts`'s `all` — see above. */
+  cutLabel?: string;
   sx?: SxProps<Theme>;
 }) => {
   // Applied after the pattern: a default inside it bails the component out of the React Compiler.
@@ -319,7 +331,12 @@ export const ExpandableCard = ({
   // ✕ instead, where the header's controls wrap to a row of their own and the way out lands
   // halfway down the first screen.
   const toggle = (isDialog: boolean) =>
-    expandable || isDialog ? (
+    !isDialog && cutLabel && expandable ? (
+      <CutButton
+        label={cutLabel}
+        onClick={dialog.show}
+      />
+    ) : expandable || isDialog ? (
       <IconButton
         aria-label={isDialog ? "Close" : "Expand"}
         onClick={() => (isDialog ? dialog.hide() : dialog.show())}
@@ -400,6 +417,10 @@ export const StatsListGrid = <T,>(
     /** A strip card's caption where the labels' first row is not it — a grouped list's figure. */
     captionOf?: (t: T) => string[];
     chipComponent?: (t: T) => CardMediaImageProps["chip"];
+    /** A control at the end of a card's footer — see `FooterComponent`'s `action`. */
+    actionComponent?: (t: T) => ReactNode;
+    /** What a card's artwork opens instead of the item's own card — see `CardMediaImageProps`. */
+    onOpen?: (t: T) => void;
     shape?: ArtworkShape;
     /** A band along the top of each card, and its height — see `CardMediaImageProps.mediaBand`. */
     band?: MediaBand<T>;
@@ -415,6 +436,7 @@ export const StatsListGrid = <T,>(
 ) => {
   const { content, flexWrap, cardKey, labelComponent, captionOf, chipComponent, shape, band, divider, MediaComponent } =
     props;
+  const { actionComponent, onOpen } = props;
   // The row's own width, which only a sized row reads: a grid needs none, and the observer is
   // only attached to the element a sized row renders.
   const [rowRef, rowWidth] = useElementWidth<HTMLDivElement>();
@@ -439,6 +461,8 @@ export const StatsListGrid = <T,>(
       labels={labelComponent(entry)}
       captionText={captionOf?.(entry)}
       chip={chipComponent?.(entry)}
+      action={actionComponent?.(entry)}
+      onOpen={onOpen && (() => onOpen(entry))}
       cell={cell}
       shape={shape}
       band={band}
@@ -553,9 +577,14 @@ export interface StatListBaseProps<T> {
   controls?: ReactNode;
   content: T[];
   /**
-   * The population the header states, worded by the caller — a shell cannot know it is counting
-   * seasons. It is given how many cards are actually drawn as well as how many there are, because
-   * the strip is capped and a cut a header does not state is a cut the reader cannot see.
+   * The cut the header states, worded by the caller — a shell cannot know it is counting seasons.
+   * It is given how many cards are actually drawn as well as how many there are, because a sized
+   * row's count follows from the width it measures.
+   *
+   * Asked only of the dialog. Collapsed, the cut is already the card's own control — "All 1,539 ›"
+   * is the figure and the way to it in one object — and a header stating "10 of 1,539" beside it
+   * says the same thing twice. The dialog has no such control, its own being the way out, so a cut
+   * the expanded cap still makes is stated as a figure or not at all.
    */
   count?: (shown: number, total: number) => string;
   /**
@@ -573,6 +602,10 @@ export interface StatListBaseProps<T> {
   captionOf?: (t: T) => string[];
   MediaComponent: TypedCardMediaImage<T>;
   chipComponent?: (t: T) => CardMediaImageProps["chip"];
+  /** See `StatsListGrid`: a control at the end of a card's footer. */
+  actionComponent?: (t: T) => ReactNode;
+  /** See `StatsListGrid`: what a card's artwork opens instead of the item's own card. */
+  onOpen?: (t: T) => void;
   shape?: ArtworkShape;
   /** See `StatsListGrid`: a band along the top of each card. */
   band?: MediaBand<T>;
@@ -618,6 +651,10 @@ export const StatList = <T,>(props: StatsListProps<T>) => {
         // A floor, since a cap in rows holds at least a card a row; the header below drops the
         // toggle once it knows everything is already drawn.
         expandable={content.length > (props.collapsedRows ?? collapsed)}
+        // The worded cut, except where the strip already draws everything: a non-wrapping strip
+        // scrolls sideways and holds the whole list, so its control opens a bigger view of what is
+        // already there rather than the part that was left out.
+        cutLabel={wrap ? all(content.length) : undefined}
         renderContent={(isDialog, toggle) => (
           <StatsListGrid
             content={content}
@@ -625,7 +662,7 @@ export const StatList = <T,>(props: StatsListProps<T>) => {
               <SectionHeader
                 title={title}
                 icon={icon}
-                count={count?.(shown, content.length)}
+                count={isDialog ? count?.(shown, content.length) : undefined}
                 // With nothing but the toggle in it, the slot is one icon button and stays beside
                 // the title: a row of its own for it is a blank line with an icon at the end.
                 compactActions={!controls}
@@ -645,6 +682,8 @@ export const StatList = <T,>(props: StatsListProps<T>) => {
             labelComponent={labelComponent}
             captionOf={props.captionOf}
             chipComponent={chipComponent}
+            actionComponent={props.actionComponent}
+            onOpen={props.onOpen}
             shape={props.shape}
             band={props.band}
             divider={props.divider}
@@ -767,6 +806,8 @@ const StatsListCard = <T,>({
   labels,
   captionText,
   chip,
+  action,
+  onOpen,
   cell,
   shape,
   band,
@@ -777,6 +818,8 @@ const StatsListCard = <T,>({
   labels: string[][];
   captionText?: string[];
   chip?: CardMediaImageProps["chip"];
+  action?: ReactNode;
+  onOpen?: () => void;
   cell: CardCell;
   shape?: ArtworkShape;
   band?: MediaBand<T>;
@@ -793,6 +836,7 @@ const StatsListCard = <T,>({
       <Card variant="outlined">
         <MediaComponent
           item={item}
+          onOpen={onOpen}
           mediaBand={band && { node: band.render(item), height: band.height }}
           // The words go under the picture whatever shape it is. The arrangement rule seats a
           // poster's beside it, which on a card 82px wide is a column of two characters — and a
@@ -856,6 +900,7 @@ const StatsListCard = <T,>({
         // cropped — and takes the reservation instead, standing at its file's own height.
         sx={{ aspectRatio: shape && shapeToPinnedAspect(shape), flexShrink: 0 }}
         chip={chip}
+        onOpen={onOpen}
         // A dialog list can run to hundreds of cards; off-screen artwork loads as it scrolls
         // into view rather than all at once on open.
         lazy
@@ -864,6 +909,7 @@ const StatsListCard = <T,>({
           <FooterComponent
             labels={labels}
             divider={divider}
+            action={action}
           />
         }
       />
