@@ -1698,11 +1698,16 @@ itself, past `usePhone` alone; from `sm` up it is the plain card it always was. 
 a ⌄ in the header, turned over to ⌃ once the chart is drawn, and the summary row answers the same
 press: those words and that picture are what a reader is looking at when they decide they want the
 chart. The ⌄ rides `SectionHeader`'s `titleAction` slot rather than its action row, since below `sm`
-that row scrolls and a setting may go past the edge where the way to the chart may not. `header` is
-a function of `{ shown, toggle }` for that reason and one more: a caller withholds its own live
-controls while folded, a split or a set of rings being a choice about a chart that is not mounted,
-and the line the fold states drawn from the same pivot whatever they say. The packed timeline
-alone never folds (above). `CONTAIN_SIDEWAYS_SCROLL` (`common/scrollbarSx.ts`) is the same fix
+that row scrolls and a setting may go past the edge where the way to the chart may not — and
+`FoldedChart` is that slot's only caller for the same reason. The header is built here rather than
+handed in as a function of the fold's state, because every one of its four states — folded, drawn,
+nothing to plot, nothing matching — heads the same card, and a caller building it is five copies of
+one arrangement. It takes the header's parts instead: `icon`, `title` and `count`, `controls` for
+its own live settings, drawn only with the chart they are about — a split or a set of rings is a
+choice about a chart that is not mounted, and the line the fold states is drawn from the same pivot
+whatever they say — and `action` for a control that stands either way, the crossings' cut being the
+one. `blank` is the fourth state: what the caller states in place of a chart it cannot draw, which
+is the barchart's empty pivot. The packed timeline alone never folds (above). `CONTAIN_SIDEWAYS_SCROLL` (`common/scrollbarSx.ts`) is the same fix
 against the browser's back gesture (above, Timeline), worn by every other horizontal scroller in the
 app — the charts, the strips, the chip rails, the sized card rows.
 

@@ -109,8 +109,9 @@ const ActionRow = ({ children }: { children: ReactNode }) => {
  * known before it is drawn.
  *
  * `titleAction` is the other end of that: a control that belongs beside the title however full the
- * controls row gets. The folded chart's ⌄ is the one — a control row that scrolls can carry a
- * setting past the edge, but not the way to the chart those settings are about.
+ * controls row gets, and `FoldedChart` is its only caller. The fold's ⌄ is the one control that
+ * cannot travel — a control row that scrolls can carry a setting past its edge, but not the way to
+ * the chart those settings are about — so it is seated in the title row instead.
  */
 export const SectionHeader = ({
   icon,

@@ -2,7 +2,6 @@ import { useState } from "react";
 import { CardContent, Stack, Typography } from "@mui/material";
 import { Category } from "@mui/icons-material";
 import { INLINE_SWATCH_SIZE, ProportionalBar, Swatch } from "../common/Card";
-import { SectionHeader } from "../common/SectionHeader";
 import { FoldedChart } from "../common/FoldedChart";
 import { LABEL_SX, MUTED_FIGURE_SX } from "../common/typography";
 import { format } from "../utils/mathUtils";
@@ -65,44 +64,37 @@ const GenreBridge = ({ items, measure }: { items: OmniItem[]; measure: Measure }
 
   return (
     <FoldedChart
-      header={({ shown, toggle }) => (
-        <SectionHeader
-          icon={<Category />}
-          title={`${KEY_NOUN[key]} by medium`}
-          count={stated(rows.length, KEY_NOUN[key].toLowerCase())}
-          titleAction={toggle}
-          // The picker chooses what a row is and the swatches key the bars: both are about a stack
-          // that is not drawn until the card is opened, and the fold's own line names its leading
-          // row in words.
-          action={
-            shown ? (
-              <Stack
-                direction="row"
-                spacing={1.5}
-                sx={{ alignItems: "center", flexWrap: "wrap" }}
-              >
-                {keySelect}
-                {media.map((medium) => (
-                  <Stack
-                    key={medium}
-                    direction="row"
-                    spacing={0.5}
-                    sx={{ alignItems: "center", cursor: "default" }}
-                    onMouseEnter={() => setHovered(mediumToLabel(medium))}
-                    onMouseLeave={() => setHovered(null)}
-                  >
-                    <Swatch
-                      colour={mediumToColour(medium, scheme)}
-                      size={INLINE_SWATCH_SIZE}
-                    />
-                    <Typography variant="caption">{mediumToLabel(medium)}</Typography>
-                  </Stack>
-                ))}
-              </Stack>
-            ) : undefined
-          }
-        />
-      )}
+      icon={<Category />}
+      title={`${KEY_NOUN[key]} by medium`}
+      count={stated(rows.length, KEY_NOUN[key].toLowerCase())}
+      // The picker chooses what a row is and the swatches key the bars: both are about a stack
+      // that is not drawn until the card is opened, and the fold's own line names its leading row
+      // in words.
+      controls={
+        <Stack
+          direction="row"
+          spacing={1.5}
+          sx={{ alignItems: "center", flexWrap: "wrap" }}
+        >
+          {keySelect}
+          {media.map((medium) => (
+            <Stack
+              key={medium}
+              direction="row"
+              spacing={0.5}
+              sx={{ alignItems: "center", cursor: "default" }}
+              onMouseEnter={() => setHovered(mediumToLabel(medium))}
+              onMouseLeave={() => setHovered(null)}
+            >
+              <Swatch
+                colour={mediumToColour(medium, scheme)}
+                size={INLINE_SWATCH_SIZE}
+              />
+              <Typography variant="caption">{mediumToLabel(medium)}</Typography>
+            </Stack>
+          ))}
+        </Stack>
+      }
       // The rows open on genre, biggest first, so the first is the genre the library is most made
       // of, and how it divides is the whole question the section asks.
       fold={() => ({

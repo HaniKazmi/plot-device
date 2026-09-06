@@ -1,12 +1,9 @@
-import { Card, CardContent, Stack, Typography, useTheme } from "@mui/material";
+import { CardContent, Stack, Typography, useTheme } from "@mui/material";
 import { type ReactNode, useState } from "react";
 import { BarChart } from "@mui/icons-material";
-import { SectionHeader } from "./SectionHeader";
 import { SegmentedControl } from "./SelectionComponents";
 import { segments } from "./segments";
-import { FoldedChart, Sparkline, type FoldHeader } from "./FoldedChart";
-import { NothingMatches } from "./NothingMatches";
-import { useNothingMatches } from "./nothingMatchesContext";
+import { FoldedChart, Sparkline } from "./FoldedChart";
 import { useStackedCharts } from "./breakpoints";
 import { Chart, Series, XAxis, YAxis, PlotOptions, Tooltip, Legend } from "../highcharts";
 import type { Year, YearMonth } from "./date";
@@ -69,7 +66,6 @@ const Barchart = ({
   controls: ReactNode;
 }) => {
   const [view, setView] = useState<View>("Totals");
-  const { active: nothing } = useNothingMatches();
   const theme = useTheme();
   const full = useStackedCharts() ? CHART_HEIGHT.stacked : CHART_HEIGHT.beside;
 
@@ -96,65 +92,43 @@ const Barchart = ({
   // are given, so they keep it.
   const height = view === "Rank" ? `min(${full}, max(${RANK_MIN_HEIGHT}px, ${groups.length * RANK_LANE}px))` : full;
 
-  // The split and the View appear with the chart: both are choices about a pivot that is not
-  // mounted while the card is folded, and the line the fold states is the Totals reading whatever
-  // they say.
-  const header = ({ shown, toggle }: FoldHeader) => (
-    <SectionHeader
-      icon={<BarChart />}
-      title={title}
-      titleAction={toggle}
-      action={
-        shown ? (
-          <Stack
-            direction="row"
-            spacing={1}
-            sx={{ alignItems: "center" }}
-          >
-            {controls}
-            <SegmentedControl
-              options={viewOptions}
-              value={view}
-              onChange={setView}
-              ariaLabel="View"
-            />
-          </Stack>
-        ) : undefined
-      }
-    />
-  );
-
-  // An empty pivot is not drawn as nothing: Highcharts invents an index axis and a series of its
-  // own from it, so a chart with no data reads as a chart of unnamed data. A caller's own section
-  // gate cannot answer this, because a grouping the caller offers can empty the pivot after the
-  // gate has decided there is something to say — which is why the guard is here, where the pivot
-  // is built. The header stays, and the controls with it: whatever emptied the chart is a choice
-  // in that row, so it has to remain reachable.
-  if (groups.length === 0) {
-    return (
-      <Card>
-        {/* Nothing is folded here: the card states why it is empty, which is shorter than the
-            summary a fold would draw and needs no chart behind it. */}
-        {header({ shown: true, toggle: null })}
-        <CardContent>
-          {nothing ? (
-            <NothingMatches />
-          ) : (
-            <Typography
-              variant="body2"
-              sx={{ color: "text.secondary" }}
-            >
-              Nothing to plot for the current selection.
-            </Typography>
-          )}
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <FoldedChart
-      header={header}
+      icon={<BarChart />}
+      title={title}
+      // The split and the View appear with the chart: both are choices about a pivot that is not
+      // mounted while the card is folded, and the line the fold states is the Totals reading
+      // whatever they say.
+      controls={
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{ alignItems: "center" }}
+        >
+          {controls}
+          <SegmentedControl
+            options={viewOptions}
+            value={view}
+            onChange={setView}
+            ariaLabel="View"
+          />
+        </Stack>
+      }
+      // An empty pivot is not drawn as nothing: Highcharts invents an index axis and a series of
+      // its own from it, so a chart with no data reads as a chart of unnamed data. A caller's own
+      // section gate cannot answer this, because a grouping the caller offers can empty the pivot
+      // after the gate has decided there is something to say — which is why the guard is here,
+      // where the pivot is built.
+      blank={
+        groups.length === 0 ? (
+          <Typography
+            variant="body2"
+            sx={{ color: "text.secondary" }}
+          >
+            Nothing to plot for the current selection.
+          </Typography>
+        ) : undefined
+      }
       fold={() => {
         // The Totals reading, which is what a folded card's line and sparkline describe whatever
         // the View: the only view whose cells are the measure itself rather than a percentage of a

@@ -138,34 +138,20 @@ const Crossings = ({
           </>
         ) : (
           <FoldedContent
-            header={({ shown, toggle: reveal }) => (
-              <SectionHeader
-                icon={<Hub />}
-                title={CROSSINGS_TITLE}
-                titleAction={reveal}
-                action={
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    sx={{ alignItems: "center" }}
-                  >
-                    {/* Which reading the stack draws is a choice about a stack that is not
-                        mounted while the card is folded; the cut stands either way, being the
-                        way to the franchises the card has no room for rather than a setting on
-                        the ones it does. */}
-                    {shown && (
-                      <SegmentedControl
-                        options={CROSSINGS_MODES}
-                        value={mode}
-                        onChange={setMode}
-                        ariaLabel="What the timeline draws"
-                      />
-                    )}
-                    {toggle}
-                  </Stack>
-                }
+            icon={<Hub />}
+            title={CROSSINGS_TITLE}
+            /* Which reading the stack draws is a choice about a stack that is not mounted while
+               the card is folded; the cut stands either way, being the way to the franchises the
+               card has no room for rather than a setting on the ones it does. */
+            controls={
+              <SegmentedControl
+                options={CROSSINGS_MODES}
+                value={mode}
+                onChange={setMode}
+                ariaLabel="What the timeline draws"
               />
-            )}
+            }
+            action={toggle}
             // The strips are ordered by size, so the first one is the largest series the reader has
             // met — the fact the stack is opened for, and the one a phone can state without drawing
             // it.
