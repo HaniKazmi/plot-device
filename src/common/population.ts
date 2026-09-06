@@ -51,9 +51,14 @@ export const narrowedTo = (population: string, activeCount: number) =>
 /**
  * Whether an empty list is the reader's own doing.
  *
- * A library with nothing in it draws no message and offers no Clear — there is no choice to undo.
- * A library some filter has narrowed to zero is a different picture with the same shape, so the
- * two are told apart by the one thing a chart cannot see for itself: whether the page holds any
- * choices at all.
+ * A library with nothing in it draws no message and offers no way back — there is no choice to
+ * undo. A library narrowed to zero is a different picture with the same shape, so the two are told
+ * apart by the one thing a chart cannot see for itself: whether the page holds any choices at all.
+ *
+ * Both settings count, not the filters alone. The year scope narrows a page exactly as a filter
+ * does and is stated on a control of its own, so a page scoped to a year its library has nothing
+ * in would otherwise draw a blank canvas with nothing anywhere saying why — and the reader's way
+ * out is the setting that emptied it, which is why each half is asked separately.
  */
-export const isFilteredEmpty = (count: number, activeCount: number): boolean => count === 0 && activeCount > 0;
+export const isNarrowedEmpty = (count: number, filtersActive: boolean, scoped: boolean): boolean =>
+  count === 0 && (filtersActive || scoped);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { all, cut, isFilteredEmpty, narrowedTo, stated } from "../../src/common/population";
+import { all, cut, isNarrowedEmpty, narrowedTo, stated } from "../../src/common/population";
 import { format } from "../../src/utils/mathUtils";
 
 /**
@@ -57,16 +57,20 @@ describe("narrowedTo", () => {
   });
 });
 
-describe("isFilteredEmpty", () => {
-  it("is true only where a filter has left nothing", () => {
-    expect(isFilteredEmpty(0, 2)).toBe(true);
+describe("isNarrowedEmpty", () => {
+  it("is true where a filter has left nothing", () => {
+    expect(isNarrowedEmpty(0, true, false)).toBe(true);
   });
 
-  it("is false for an empty library with no filters set", () => {
-    expect(isFilteredEmpty(0, 0)).toBe(false);
+  it("is true where the year scope alone has left nothing", () => {
+    expect(isNarrowedEmpty(0, false, true)).toBe(true);
   });
 
-  it("is false wherever the count is not zero, however many filters are active", () => {
-    expect(isFilteredEmpty(1, 2)).toBe(false);
+  it("is false for an empty library nothing has been narrowed", () => {
+    expect(isNarrowedEmpty(0, false, false)).toBe(false);
+  });
+
+  it("is false wherever the count is not zero, whatever narrows the page", () => {
+    expect(isNarrowedEmpty(1, true, true)).toBe(false);
   });
 });

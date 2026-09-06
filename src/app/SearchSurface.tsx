@@ -459,7 +459,10 @@ export const SearchSurface = ({
                     variant="caption"
                     sx={{ color: "text.secondary", flexGrow: 1 }}
                   >
-                    {narrowedTo(stated(pageCount(surface, pageState), surface.noun), surface.store.activeCount())}
+                    {narrowedTo(
+                      stated(pageCount(surface, pageState), surface.noun),
+                      surface.store.activeCountOf(pageState),
+                    )}
                   </Typography>
                   <Button
                     size="small"

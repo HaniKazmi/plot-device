@@ -74,14 +74,20 @@ export interface PageStore {
   useValue(): PageState;
   dispatch(action: PageAction): void;
   /**
-   * How many of the reader's own choices this page is holding, bound to the initial values its own
-   * reducer knows — a surface above the tabs holds five stores and no baseline to count against.
+   * How many of the reader's own choices a state holds, bound to the initial values this store's
+   * own reducer knows — a surface above the tabs holds five stores and no baseline to count
+   * against.
+   *
+   * The state is the caller's rather than read out of the store here, so the figure is a function
+   * of what the component already subscribed to: read off `get()` inside a render, it is a value
+   * the React Compiler sees no dependency for, and a badge memoised at the count the page was
+   * first drawn with never moves again.
    */
-  activeCount(): number;
+  activeCountOf(state: PageState): number;
 }
 
 /** What a domain's own store is, before the erasure a lookup across the five needs. */
-type PageStoreFor<S> = Store<S> & { dispatch: FilterDispatchFor<S>; activeCount(): number };
+type PageStoreFor<S> = Store<S> & { dispatch: FilterDispatchFor<S>; activeCountOf(state: S): number };
 
 interface YearState {
   yearTo: YearNumber;
@@ -268,7 +274,14 @@ export const createFilterReducer = <T, M extends string, S extends BaseFilterSta
 
   const dispatch: FilterDispatchFor<S> = (action) => set(reducer(get(), action));
 
-  const store: PageStoreFor<S> = { get, set, subscribe, useValue, dispatch, activeCount: () => activeCount(get()) };
+  const store: PageStoreFor<S> = {
+    get,
+    set,
+    subscribe,
+    useValue,
+    dispatch,
+    activeCountOf: (state) => activeCount(state),
+  };
 
   /**
    * The tab's own view of that store, for the pages that read their state from inside the tab.

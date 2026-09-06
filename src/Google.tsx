@@ -22,7 +22,9 @@ import { useAuthState } from "./app/authState.ts";
 import { useLibrary } from "./app/library.ts";
 import { pageCount, pageOf, usePageState } from "./app/pageState.ts";
 import { NothingMatchesContext } from "./common/nothingMatchesContext.ts";
-import { isFilteredEmpty } from "./common/population.ts";
+import { isNarrowedEmpty } from "./common/population.ts";
+import { isAllTime, scopeLabel } from "./common/scope.ts";
+import { CURRENT_YEAR } from "./common/date.ts";
 import { EmptyCard } from "./app/EmptyCard.tsx";
 import { barColour, useCurrentTab } from "./tabs.ts";
 import type { Tab } from "./tabs.ts";
@@ -40,9 +42,10 @@ import type {} from "@mui/material/themeCssVarsAugmentation";
  * Whether the page being drawn has been narrowed to nothing, answered once for every shell on it.
  *
  * The test is the page's own population and not any one chart's: a library with nothing in it draws
- * no message and offers no Clear, and only the page knows whether the reader has made any choices
- * at all. Answered here, above the outlet, because the tab's own tree is a dozen shells deep and
- * each of them would otherwise be handed a node it never looks at.
+ * no message and offers no way back, and only the page knows which of its two settings — the
+ * filters or the year scope — the reader has moved. Answered here, above the outlet, because the
+ * tab's own tree is a dozen shells deep and each of them would otherwise be handed a node it never
+ * looks at.
  *
  * It costs one pass of the page's own predicate over its library per filter change — the same pass
  * the box's footer makes for the same figure — and the outlet below it is the caller's own element,
@@ -53,12 +56,22 @@ const NothingMatchesProvider = ({ children }: { children: ReactNode }) => {
   const library = useLibrary();
   const [state] = usePageState(tab.id);
   const page = pageOf(tab.id, library);
+  const filtersActive = page !== undefined && page.store.activeCountOf(state) > 0;
+  const scoped = !isAllTime(state.yearTo, state.yearType, CURRENT_YEAR);
 
   return (
     <NothingMatchesContext
       value={{
-        active: page ? isFilteredEmpty(pageCount(page, state), page.store.activeCount()) : false,
-        clear: () => page?.store.dispatch({ type: "resetFilters" }),
+        active: page ? isNarrowedEmpty(pageCount(page, state), filtersActive, scoped) : false,
+        filtersActive,
+        scope: scoped ? scopeLabel(state.yearTo, state.yearType, CURRENT_YEAR) : undefined,
+        clearFilters: () => page?.store.dispatch({ type: "resetFilters" }),
+        // The two halves of the scope, as the picker's own "All time" sets them: the reading and
+        // the year it is read against, one being no answer without the other.
+        clearScope: () => {
+          page?.store.dispatch({ type: "updateFilter", filter: "yearTo", value: CURRENT_YEAR });
+          page?.store.dispatch({ type: "yearType", yearType: "upto" });
+        },
       }}
     >
       {children}

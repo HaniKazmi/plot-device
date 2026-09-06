@@ -60,14 +60,14 @@ export const PageRail = ({ sections, count }: { sections: RailSection[]; count: 
         page && (
           <FilterChip
             label={stated(count, page.noun)}
-            activeCount={page.store.activeCount()}
+            activeCount={page.store.activeCountOf(state)}
           />
         )
       }
       pageChip={
         <PageChip
           measure={state.measure}
-          activeCount={page?.store.activeCount() ?? 0}
+          activeCount={page ? page.store.activeCountOf(state) : 0}
         />
       }
     />
