@@ -71,7 +71,7 @@ export type Measure = "Shows" | "Seasons" | "Episodes" | "Hours";
 export const isShow = (arg: Show | Season): arg is Show => "name" in arg;
 
 /**
- * The broadcasters and streamers with a colour, as fills built the way `vg/types.ts` builds its
+ * The broadcasters and streamers with a colour, as fills built the way `game/types.ts` builds its
  * franchise brands: hue and chroma are the brand's, and only lightness moves, as far as the fill
  * contract on `NEUTRAL_FILL` demands of each half.
  *

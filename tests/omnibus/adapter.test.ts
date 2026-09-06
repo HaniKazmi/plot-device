@@ -12,11 +12,11 @@ import { book } from "../fixtures/books";
 import { library } from "../fixtures/library";
 import { movie } from "../fixtures/movies";
 import { season, show } from "../fixtures/shows";
-import { videoGame } from "../fixtures/vgRows";
-import { now as bookNow } from "../../src/books/now";
+import { videoGame } from "../fixtures/gameRows";
+import { now as bookNow } from "../../src/book/now";
 import { now as movieNow } from "../../src/movie/now";
 import { now as showNow } from "../../src/show/now";
-import { now as vgNow } from "../../src/vg/now";
+import { now as gameNow } from "../../src/game/now";
 
 /**
  * A show holding the seasons described, with the totals rolled up into the parent the way the
@@ -407,10 +407,10 @@ describe("a book in the union", () => {
 describe("each medium's Now pair", () => {
   it("names the game in progress", () => {
     const playing = videoGame({ name: "Tunic", status: "Playing", startDate: YearMonthDay.get(2026, 1, 2) });
-    const item = vgNow.elect([videoGame(), playing]);
+    const item = gameNow.elect([videoGame(), playing]);
 
     expect(item).toBe(playing);
-    expect(vgNow.nowPanel(item!, "light").title).toBe("Tunic");
+    expect(gameNow.nowPanel(item!, "light").title).toBe("Tunic");
   });
 
   it("names the season the sheet marks as current", () => {

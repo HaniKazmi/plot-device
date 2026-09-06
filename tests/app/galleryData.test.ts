@@ -15,7 +15,7 @@ import { book } from "../fixtures/books";
 import { library } from "../fixtures/library";
 import { movie } from "../fixtures/movies";
 import { season, show } from "../fixtures/shows";
-import { videoGame } from "../fixtures/vgRows";
+import { videoGame } from "../fixtures/gameRows";
 
 // What an open item is dated at, which is what the app passes. Every fixture below closes, so
 // nothing here is compared against it — a shelf's order is read off the dates the rows carry.

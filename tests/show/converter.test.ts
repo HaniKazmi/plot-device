@@ -272,7 +272,7 @@ describe("the 2005 cutoff", () => {
 describe("date ordering assertions", () => {
   it("reports an inverted date pair with both dates, and keeps the season", () => {
     // Logging does not alter control flow, so the bad row still enters the dataset — unlike
-    // vg/, where an inverted pair throws out of the converter.
+    // game/, where an inverted pair throws out of the converter.
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
 
     const [show] = jsonConverter([

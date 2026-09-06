@@ -1,9 +1,9 @@
-import { bookModule } from "../books/module";
+import { bookModule } from "../book/module";
 import type { MediumModule, OmniItem } from "../common/medium";
 import { movieModule } from "../movie/module";
 import { showModule } from "../show/module";
 import { MEDIA as MEDIA_ORDER, type Medium } from "../utils/types";
-import { vgModule } from "../vg/module";
+import { gameModule } from "../game/module";
 import type { LibraryRecord, UnitRecord } from "./records";
 
 /**
@@ -28,7 +28,7 @@ import type { LibraryRecord, UnitRecord } from "./records";
  * component that resolves an id to a tab sits above both.
  */
 export const MEDIA: { [M in Medium]: MediumModule<LibraryRecord[M], UnitRecord[M]> } = {
-  game: vgModule,
+  game: gameModule,
   show: showModule,
   movie: movieModule,
   book: bookModule,

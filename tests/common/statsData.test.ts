@@ -53,7 +53,7 @@ describe("groupTotals", () => {
   });
 
   it("ignores values the whitelist leaves out rather than folding them into the first segment", () => {
-    // vg/Stats.tsx lists Beat, Playing, Endless and Abandoned, omitting the Status union's
+    // game/Stats.tsx lists Beat, Playing, Endless and Abandoned, omitting the Status union's
     // Backlog and Next. Measured against the whole dataset the uncovered rows would be counted
     // and never drawn, and assignPercents — built to absorb rounding — would put that entire
     // remainder on Beat.

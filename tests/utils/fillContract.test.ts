@@ -21,8 +21,8 @@ import {
   GAMEPLAY,
   companyToColor,
   gameplayToColour,
-  groupToColour as vgGroupToColour,
-} from "../../src/vg/types";
+  groupToColour as gameGroupToColour,
+} from "../../src/game/types";
 import { NETWORK_NAMES, groupToColour as showGroupToColour, networkToColour, typeToColour } from "../../src/show/types";
 import {
   cinemaToColour,
@@ -31,10 +31,10 @@ import {
   scoreBandToColour,
 } from "../../src/movie/types";
 import { media, mediumToColour } from "../../src/app/types";
-import { FORMATS, formatToColour, groupToColour as bookGroupToColour } from "../../src/books/types";
+import { FORMATS, formatToColour, groupToColour as bookGroupToColour } from "../../src/book/types";
 import Tabs from "../../src/tabs";
 import { PAPERS, contrast, liveGenres } from "../fixtures/colour";
-import { videoGame } from "../fixtures/vgRows";
+import { videoGame } from "../fixtures/gameRows";
 import { show } from "../fixtures/shows";
 import { movie } from "../fixtures/movies";
 import { book } from "../fixtures/books";
@@ -48,7 +48,7 @@ import { book } from "../fixtures/books";
  * papers would re-impose the single narrow lightness band the pair exists to escape.
  *
  * Every list is the table's own, exported beside it rather than restated here: a franchise added to
- * `vg/types.ts` or a network to `show/types.ts` is covered without anyone remembering this file,
+ * `game/types.ts` or a network to `show/types.ts` is covered without anyone remembering this file,
  * which is the only way a contract test stays one.
  *
  * `contrast` is a second implementation of the WCAG formula rather than an import, so this cannot
@@ -157,7 +157,7 @@ describe("one franchise, one colour, every tab", () => {
 
   it.each(CROSS_MEDIA)("draws %s the same on Games, Shows, Movies and Books", (franchise) => {
     for (const scheme of SCHEMES) {
-      const fromGames = vgGroupToColour("franchise", videoGame({ franchise }), scheme);
+      const fromGames = gameGroupToColour("franchise", videoGame({ franchise }), scheme);
       const fromShows = showGroupToColour("franchise", show({ franchise }), scheme);
       const fromMovies = movieGroupToColour("franchise", movie({ franchise }), scheme);
       const fromBooks = bookGroupToColour("franchise", book({ franchise }), scheme);

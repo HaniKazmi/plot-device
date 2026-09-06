@@ -19,7 +19,7 @@ import { book } from "../fixtures/books";
 import { library } from "../fixtures/library";
 import { movie } from "../fixtures/movies";
 import { season, show } from "../fixtures/shows";
-import { videoGame } from "../fixtures/vgRows";
+import { videoGame } from "../fixtures/gameRows";
 
 const TODAY = YearMonthDay.get(2026, 9, 1);
 

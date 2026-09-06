@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { PAGE_STORES } from "../../src/app/pageState";
 import { CURRENT_YEAR, type YearNumber } from "../../src/common/date";
 import Tabs from "../../src/tabs";
-import { activeCount, pageState as vgPageState } from "../../src/vg/filterUtils";
+import { activeCount, pageState as gamePageState } from "../../src/game/filterUtils";
 import { pageState as showPageState } from "../../src/show/filterUtils";
 
 /**
@@ -28,7 +28,7 @@ describe("the page stores", () => {
   });
 
   it("files each domain's own store under that domain's tab", () => {
-    expect(PAGE_STORES.vg).toBe(vgPageState);
+    expect(PAGE_STORES.vg).toBe(gamePageState);
     expect(PAGE_STORES.show).toBe(showPageState);
   });
 
@@ -86,11 +86,11 @@ describe("what the badge counts and Clear clears", () => {
     // choice made outside the surface the badge sits on.
     PAGE_STORES.vg.dispatch({ type: "scope", yearTo: lastYear, yearType: "matching" });
 
-    expect(activeCount(vgPageState.get())).toBe(0);
+    expect(activeCount(gamePageState.get())).toBe(0);
 
     PAGE_STORES.vg.dispatch({ type: "updateFilter", filter: "endless", value: false });
 
-    expect(activeCount(vgPageState.get())).toBe(1);
+    expect(activeCount(gamePageState.get())).toBe(1);
   });
 
   it("clears the filters and leaves the measure and the scope standing", () => {
@@ -100,7 +100,7 @@ describe("what the badge counts and Clear clears", () => {
     PAGE_STORES.vg.dispatch({ type: "scope", yearTo: lastYear, yearType: "matching" });
 
     PAGE_STORES.vg.dispatch({ type: "resetFilters" });
-    const cleared = vgPageState.get();
+    const cleared = gamePageState.get();
 
     expect(cleared.endless).toBe(true);
     expect(cleared.franchise).toEqual([]);

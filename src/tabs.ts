@@ -5,9 +5,9 @@ import type { Colour, Scheme } from "./utils/types";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useScheme } from "./common/useScheme";
 import Shows from "./show/Show";
-import VideoGames from "./vg/vg";
+import VideoGames from "./game/Game";
 import Movies from "./movie/Movie";
-import Books from "./books/Books";
+import Books from "./book/Book";
 import Omnibus from "./omnibus/Omnibus";
 
 /**

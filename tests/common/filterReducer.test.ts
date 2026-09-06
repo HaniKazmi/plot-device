@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { CURRENT_YEAR, YearMonthDay, type YearNumber } from "../../src/common/date";
 import { countActiveFilters, yearPredicates } from "../../src/common/filterReducer";
-import { activeCount, initialState, reducer, type FilterState } from "../../src/vg/filterUtils";
-import { videoGame } from "../fixtures/vgRows";
+import { activeCount, initialState, reducer, type FilterState } from "../../src/game/filterUtils";
+import { videoGame } from "../fixtures/gameRows";
 
 describe("yearPredicates", () => {
   /** The reading three of the four sheets take, spelled out because no default offers it. */

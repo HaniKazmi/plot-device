@@ -43,6 +43,26 @@ describe("supersededKeys", () => {
     // "show" is a prefix of "showcase", and matching on the bare string would collect it.
     expect(supersededKeys("show-data-cache-v2", ["showcase-data-cache-v1"])).toEqual([]);
   });
+
+  it("sweeps a retired prefix, which no active key's own prefix can reach", () => {
+    // The prefix is derived from the active key, so a renamed domain's old keys are unreachable
+    // by every other rule here: no bump moves anything but the "-v" suffix.
+    const left = ["old-data-cache", "old-data-cache-v3", "show-data-cache-v2"];
+    expect(supersededKeys("show-data-cache-v2", left, ["old-data-cache"])).toEqual([
+      "old-data-cache",
+      "old-data-cache-v3",
+    ]);
+  });
+
+  it("holds a retired prefix to whole keys, as the superseded rule is held", () => {
+    expect(supersededKeys("show-data-cache-v2", ["oldest-data-cache-v1"], ["old-data-cache"])).toEqual([]);
+  });
+
+  it("sweeps the games cache the vg-to-game rename stranded", () => {
+    // Pins the live default rather than an argument. Retire this with the entry itself, once no
+    // profile can still be holding a key written under the old domain name.
+    expect(supersededKeys("show-data-cache-v2", ["vg-data-cache-v2"])).toEqual(["vg-data-cache-v2"]);
+  });
 });
 
 describe("dateReviver", () => {

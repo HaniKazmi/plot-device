@@ -262,7 +262,7 @@ export const ageRatingToColour = (rating: AgeRating, scheme: Scheme): Colour =>
  * `Endless` and `Up To Date` are separate states rather than one. Up To Date is a show you are
  * current on that is still running — you are waiting on the source, which is as alive as a status
  * gets short of watching it, and it keeps the blue. Endless is a game with no completion state at
- * all; `vg/converter.ts` folds a Party game into it, and nothing about it was ever going to be
+ * all; `game/converter.ts` folds a Party game into it, and nothing about it was ever going to be
  * beaten. It takes a yellow-green beside Beat/Ended, as the second way a thing can be done with —
  * there was never an end to reach rather than one you got to — a step above Beat because a game
  * with no end is still one you might open again.
@@ -331,7 +331,7 @@ export const statusToColour = ({ status }: { status: ColourableStatus }, scheme:
  * for it takes the ramp's worst pair from 10.8 to 9.1 while costing Comedy its yellow. The dark
  * half has no such problem and clears everything by 16.1.
  *
- * Two of these hexes also appear in `vg/types.ts`'s gameplay table: Action and Adventure, which
+ * Two of these hexes also appear in `game/types.ts`'s gameplay table: Action and Adventure, which
  * mean the same thing in both vocabularies and so are deliberately the same colour. The rest are
  * pushed as far apart as one band holds, which is not always far — Role Playing lands 2.3 from
  * Thriller on the dark paper. Both ramps are still drawn at full chroma, because the two are always

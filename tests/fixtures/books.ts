@@ -1,5 +1,5 @@
 import { YearMonthDay } from "../../src/common/date";
-import type { Book } from "../../src/books/types";
+import type { Book } from "../../src/book/types";
 
 /**
  * A whole `Book`, as the converter would have built it, for tests that start from the model
