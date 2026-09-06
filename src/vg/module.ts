@@ -2,6 +2,7 @@ import type { MediumModule, OmniItem } from "../common/medium";
 import { gameEntry, gameKey, gameSpan } from "./cardData";
 import { vgDataConfig } from "./converter";
 import { guestFilter, vgFilters } from "./filters";
+import { earliestYear as earliestYearOf } from "../common/statsData";
 import { pageState } from "./filterUtils";
 import type { Measure, VideoGame } from "./types";
 
@@ -43,6 +44,7 @@ export const vgModule: MediumModule<VideoGame, VideoGame, Measure> = {
   facts: (game, hours) => [game.platform, game.status, hours ? `${hours} hours` : ""].filter(Boolean).join(" · "),
   /** Games first: it is what a row of the sheet is. */
   measures: ["Games", "Hours"],
+  earliestYear: (games) => earliestYearOf(games, (game) => game.startDate.year),
   filters: vgFilters,
   pageState,
 };

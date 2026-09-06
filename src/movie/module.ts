@@ -3,7 +3,7 @@ import { movieEntry, movieSpan } from "./cardData";
 import { movieDataConfig } from "./converter";
 import { guestFilter, movieFilters } from "./filters";
 import { pageState } from "./filterUtils";
-import { movieItemKey } from "./statsData";
+import { MOVIE_EPOCH, movieItemKey } from "./statsData";
 import type { Measure, Movie } from "./types";
 
 /** A film as one row of the union. */
@@ -46,6 +46,8 @@ export const movieModule: MediumModule<Movie, Movie, Measure> = {
       .filter(Boolean)
       .join(" · "),
   measures: ["Films", "Hours"],
+  /** The sheet's own epoch: this tab logs from 2001, whatever the rows it currently holds. */
+  earliestYear: () => MOVIE_EPOCH.year,
   filters: movieFilters,
   pageState,
 };

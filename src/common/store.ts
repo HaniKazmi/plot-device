@@ -2,8 +2,8 @@ import { useSyncExternalStore } from "react";
 
 /**
  * A value held outside React, for state two parts of the tree share with no common ancestor short
- * of the shell: the search box's open flag, the filter sheet's, and a page's filter state, which
- * the rail above a tab and the charts inside it both read. Lifted to that common ancestor, every
+ * of the shell: the box's own open flag and mode, and a page's filter state, which the rail above a
+ * tab, the box standing over it and the charts inside it all read. Lifted to that common ancestor, every
  * one of them would re-render the whole app on a change that reaches two components.
  *
  * `createStore` reads no browser global at construction — the value and the listener set are

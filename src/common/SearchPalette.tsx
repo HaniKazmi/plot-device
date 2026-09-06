@@ -2,7 +2,9 @@ import { Close, Search } from "@mui/icons-material";
 import { Box, Dialog, IconButton, InputBase, Stack, Typography, type Theme } from "@mui/material";
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import { usePhone } from "./breakpoints";
-import { stickySheetHeader } from "./fullscreenSheet";
+import { pinnedSheetBar } from "./fullscreenSheet";
+import { SegmentedControl, type SegmentOption } from "./SelectionComponents";
+import type { SearchMode } from "./searchOpen";
 import { LABEL_SX, MUTED_FIGURE_SX } from "./typography";
 import { cut } from "./population";
 
@@ -10,6 +12,10 @@ import { cut } from "./population";
  * One thing the palette can offer: what it is called, the run of that name the query matched, a
  * line of facts beneath, something to stand at its left — a thumbnail, a swatch — and what
  * choosing it does. The shell draws these and knows nothing about what any of them is.
+ *
+ * `secondary` is a second thing one hit can do — an attribute filtering the page under ↵ and
+ * standing on the Omnibus's own shelf under ⌘↵ — taken as a word and a callback, so the shell
+ * offers it without learning what a shelf is.
  */
 export interface PaletteHit {
   key: string;
@@ -19,6 +25,7 @@ export interface PaletteHit {
   lead?: ReactNode;
   trailing?: ReactNode;
   onOpen: () => void;
+  secondary?: { label: string; onOpen: () => void };
 }
 
 /**
@@ -64,10 +71,8 @@ const paperSx = (theme: Theme) => ({
 const CONTAINER_SX = { "& .MuiDialog-container": { alignItems: "flex-start" } } as const;
 
 /**
- * The input row: the whole width from `sm` up, and the phone's own sheet bar below it — the box is
- * what the sheet is about, so a bar above it stating the same thing would be two headers. Its ✕
- * stands where every other layer's does, in the kit's own 28px box rather than pulled out to the
- * paper's edge. A breakpoint key again, so a function at module scope.
+ * The input row, under the mode segment at every width. A breakpoint key again, so a function at
+ * module scope.
  */
 const inputRowSx = (theme: Theme) => ({
   display: "flex",
@@ -76,15 +81,36 @@ const inputRowSx = (theme: Theme) => ({
   paddingX: 2,
   paddingY: 1.25,
   borderBottom: `1px solid ${theme.vars.palette.divider}`,
-  [theme.breakpoints.down("sm")]: {
-    ...stickySheetHeader(theme),
-    // Longhands rather than `paddingY`, which the sx pipeline resolves after the spread and which
-    // would write over the notch inset the pinned bar pays for above its content.
-    paddingTop: `calc(env(safe-area-inset-top) + ${theme.spacing(0.75)})`,
-    paddingBottom: 0.75,
-    gap: 1,
-  },
+  [theme.breakpoints.down("sm")]: { paddingY: 0.75, gap: 1 },
 });
+
+/**
+ * The phone's bar: the mode segment where every other layer states its title, with the ✕ beside it.
+ *
+ * The segment is the title, because what the box *is* changes with it — a list of hits, or this
+ * page's own settings — and a word above the segment saying the same thing is two headers. No
+ * grabber: this is a fullscreen dialog and not a swipeable sheet, so a grabber would offer a
+ * gesture that does nothing.
+ */
+const phoneBarSx = (theme: Theme) => ({
+  ...pinnedSheetBar(theme),
+  backgroundColor: theme.vars.palette.background.paper,
+  borderBottom: `1px solid ${theme.vars.palette.divider}`,
+});
+
+/** The two things the box can be, as the words that switch between them. */
+const MODE_SEGMENTS: readonly SegmentOption<SearchMode>[] = [
+  { value: "find", label: "Find" },
+  { value: "page", label: "This page" },
+];
+
+/**
+ * Whether a key press landed somewhere Tab is the box's to take: the input, or the mode segment
+ * itself. Everywhere else — a menu inside This page, a popover's own year picker — Tab is the
+ * focus trap's, and stealing it would leave a reader unable to walk out of a list by keyboard.
+ */
+const inModeSwitchReach = (target: EventTarget | null) =>
+  target instanceof HTMLElement && (target.dataset.searchInput !== undefined || target.closest("[data-search-mode]"));
 
 /**
  * A row, lit by keyboard or pointer through one `selected` flag rather than a hover style of its
@@ -221,18 +247,25 @@ const Title = ({ title, matched }: { title: string; matched?: [number, number] }
 };
 
 /**
- * One box over all the libraries, and a grouped list of what it finds.
+ * One box over all the libraries, and — in its other mode — over the page behind it.
  *
- * A dialog from `sm` up and a fullscreen sheet below it, the input in the pinned bar every sheet
- * in the app wears; `usePhone` is read as a value because the two are different trees rather than
- * one at two sizes. The caller owns the query and the groups, so the shell renders whatever it is
- * handed and stays domain-blind; it owns the keyboard — ↑↓ through every hit as one list, ↵ on
- * the selected, first hit selected as soon as there is one — so a reader can type and press
- * return without touching the pointer.
+ * A dialog from `sm` up and a fullscreen sheet below it, the mode segment in the pinned bar every
+ * sheet in the app wears; `usePhone` is read as a value because the two are different trees rather
+ * than one at two sizes. The caller owns the query, the groups and This page's own rows, so the
+ * shell renders whatever it is handed and stays domain-blind; it owns the keyboard — ↑↓ through
+ * every hit as one list, ↵ on the selected, ⌘↵ on its second action, ⇥ between the modes — so a
+ * reader can type and press return without touching the pointer.
+ *
+ * **The keyboard rises for Find and stays down for This page.** A phone's This page is lists to be
+ * tapped, and a keyboard over them covers exactly what the reader opened the box to press — so the
+ * focus is asked for on the mode and the request count together, which is what makes a switch
+ * *into* Find raise it while opening in This page does not.
  */
 export const SearchPalette = (props: {
   open: boolean;
-  /** Counts the times the box was asked for; a new count while open puts the caret back in it. */
+  mode: SearchMode;
+  onMode: (mode: SearchMode) => void;
+  /** Counts the times the box was asked for; a new count in Find puts the caret back in it. */
   focusRequest: number;
   onClose: () => void;
   query: string;
@@ -243,16 +276,29 @@ export const SearchPalette = (props: {
   /** What stands under the box before a query answers anything: nothing typed, or nothing found. */
   emptyState: ReactNode;
   placeholder: string;
+  /** The current page's own settings and filters, drawn in place of the groups in `page` mode. */
+  pageContent?: ReactNode;
+  /** What stands on This page's last line: the population its settings have left, and Clear. */
+  footer?: ReactNode;
+  /** What ⌘↵ does to a hit that has a second action, for the keyboard line Find ends on. */
+  chordHint?: string;
 }) => {
-  const { open, focusRequest, onClose, query, onQueryChange, groups, loading, emptyState, placeholder } = props;
+  const { open, mode, onMode, focusRequest, onClose, query, onQueryChange, groups } = props;
+  const { loading, emptyState, placeholder, pageContent, footer, chordHint } = props;
   const phone = usePhone();
+  const finding = mode === "find";
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (open) return focusSoon(inputRef);
-  }, [open, focusRequest]);
+    if (!open) return;
+    if (finding) return focusSoon(inputRef);
+    // Asked for on the way into This page as well as on the way out of it: a reader who typed in
+    // Find and then switched still has the caret in the box, and on a phone that is a keyboard
+    // standing over the lists the switch was made to reach.
+    inputRef.current?.blur();
+  }, [open, finding, focusRequest]);
 
   // Keyed by group as well as hit, since one entry can stand in two groups — a franchise both
   // searched lately and met lately — and one flag must light one row.
@@ -275,7 +321,12 @@ export const SearchPalette = (props: {
   };
 
   const onKeyDown = (event: KeyboardEvent) => {
-    if (event.key === "ArrowDown") {
+    // ⇥ where the box owns it: the input and the segment. Everywhere else it belongs to the focus
+    // trap, and a list inside This page has to be walkable out of.
+    if (event.key === "Tab" && !event.altKey && inModeSwitchReach(event.target)) {
+      event.preventDefault();
+      onMode(finding ? "page" : "find");
+    } else if (event.key === "ArrowDown") {
       event.preventDefault();
       move(1);
     } else if (event.key === "ArrowUp") {
@@ -283,9 +334,24 @@ export const SearchPalette = (props: {
       move(-1);
     } else if (event.key === "Enter" && selected) {
       event.preventDefault();
-      openHit(selected);
+      // ⌘↵ takes a hit's second action where it has one, and its first where it does not: a chord
+      // that silently did nothing on four hits out of five would read as the box having missed it.
+      const chord = event.metaKey || event.ctrlKey;
+      if (chord && selected.secondary) selected.secondary.onOpen();
+      else openHit(selected);
     }
   };
+
+  const modeSwitch = (
+    <Box data-search-mode>
+      <SegmentedControl
+        options={MODE_SEGMENTS}
+        value={mode}
+        onChange={onMode}
+        ariaLabel="What the box is for"
+      />
+    </Box>
+  );
 
   return (
     <Dialog
@@ -299,17 +365,33 @@ export const SearchPalette = (props: {
       // On the dialog as well as the input, so the arrows and ↵ answer wherever focus has landed.
       onKeyDown={onKeyDown}
     >
+      {phone && (
+        <Box sx={phoneBarSx}>
+          <Box sx={{ flexGrow: 1, minWidth: 0 }}>{modeSwitch}</Box>
+          <IconButton
+            aria-label="Close"
+            onClick={onClose}
+          >
+            <Close />
+          </IconButton>
+        </Box>
+      )}
       <Box sx={inputRowSx}>
         <Search color="action" />
         <InputBase
-          autoFocus
+          // Asked for in Find alone, so a phone opening This page does not raise the keyboard over
+          // the lists it opened to show. The effect above asks again once the trap has settled.
+          autoFocus={finding}
           fullWidth
           inputRef={inputRef}
           value={query}
           placeholder={placeholder}
           onChange={(event) => onQueryChange(event.target.value)}
           inputProps={{
-            "aria-label": "Search",
+            "aria-label": finding ? "Search" : "Narrow this page",
+            // What ⌘K reads to tell a press inside the box from one anywhere else, since the label
+            // above says which mode the box is in rather than which element this is.
+            "data-search-input": "",
             "aria-activedescendant": selected ? `search-hit-${selectedIndex}` : undefined,
             autoCapitalize: "off",
             autoCorrect: "off",
@@ -318,167 +400,223 @@ export const SearchPalette = (props: {
           }}
           sx={{ fontSize: { xs: 16, sm: 18 } }}
         />
-        {phone ? (
-          <IconButton
-            aria-label="Close"
-            onClick={onClose}
-          >
-            <Close />
-          </IconButton>
-        ) : (
-          <Key>esc</Key>
-        )}
-      </Box>
-      <Box
-        ref={listRef}
-        role="listbox"
-        aria-label="Results"
-        sx={{ overflowY: "auto", flexGrow: 1, paddingY: 0.5 }}
-      >
-        {/* The groups are drawn whatever the loading state, so a group the caller can answer before
-            the libraries land — the tabs — is on screen exactly when the keys can reach it. */}
-        {groups.map((group) =>
-          group.layout === "chips" ? (
-            <Stack
-              key={group.key}
-              role="group"
-              aria-label={group.label}
-              direction="row"
-              spacing={1}
-              useFlexGap
-              sx={{ flexWrap: "wrap", alignItems: "center", paddingX: 2, paddingY: 1 }}
-            >
-              <Typography
-                variant="caption"
-                sx={{ ...LABEL_SX, color: "text.secondary", marginRight: 0.5 }}
-              >
-                {group.label}
-              </Typography>
-              {group.hits.map((hit) => (
-                <Box
-                  key={hit.key}
-                  component="button"
-                  type="button"
-                  role="option"
-                  id={`search-hit-${flatIndex.get(`${group.key}:${hit.key}`)}`}
-                  aria-selected={`${group.key}:${hit.key}` === selected?.key}
-                  tabIndex={-1}
-                  onMouseMove={() => {
-                    if (`${group.key}:${hit.key}` !== selected?.key) setSelectedKey(`${group.key}:${hit.key}`);
-                  }}
-                  onClick={hit.onOpen}
-                  sx={CHIP_SX}
-                >
-                  {hit.lead}
-                  <Title
-                    title={hit.title}
-                    matched={hit.matched}
-                  />
-                </Box>
-              ))}
-            </Stack>
-          ) : (
-            <Box
-              key={group.key}
-              role="group"
-              aria-label={group.label}
-              sx={{ paddingBottom: 0.5 }}
-            >
-              <Stack
-                direction="row"
-                sx={{ justifyContent: "space-between", paddingX: 2, paddingY: 0.75 }}
-              >
-                <Typography
-                  variant="caption"
-                  sx={{ ...LABEL_SX, color: "text.secondary" }}
-                >
-                  {group.label}
-                </Typography>
-                <Typography
-                  variant="caption"
-                  sx={MUTED_FIGURE_SX}
-                >
-                  {cut(group.hits.length, group.total)}
-                </Typography>
-              </Stack>
-              {group.hits.map((hit) => (
-                <Box
-                  key={hit.key}
-                  component="button"
-                  type="button"
-                  role="option"
-                  id={`search-hit-${flatIndex.get(`${group.key}:${hit.key}`)}`}
-                  aria-selected={`${group.key}:${hit.key}` === selected?.key}
-                  tabIndex={-1}
-                  onMouseMove={() => {
-                    if (`${group.key}:${hit.key}` !== selected?.key) setSelectedKey(`${group.key}:${hit.key}`);
-                  }}
-                  onClick={hit.onOpen}
-                  sx={HIT_SX}
-                >
-                  <Box sx={{ width: LEAD_WIDTH, height: LEAD_HEIGHT, display: "grid", placeItems: "center" }}>
-                    {hit.lead}
-                  </Box>
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography
-                      variant="body2"
-                      noWrap
-                      sx={{ fontWeight: 500 }}
-                    >
-                      <Title
-                        title={hit.title}
-                        matched={hit.matched}
-                      />
-                    </Typography>
-                    {hit.facts && (
-                      <Typography
-                        variant="caption"
-                        noWrap
-                        component="div"
-                        sx={{ color: "text.secondary" }}
-                      >
-                        {hit.facts}
-                      </Typography>
-                    )}
-                  </Box>
-                  <Box sx={{ textAlign: "right" }}>{hit.trailing}</Box>
-                </Box>
-              ))}
-            </Box>
-          ),
-        )}
-        {loading ? (
-          <Typography
-            variant="body2"
-            sx={{ ...MUTED_FIGURE_SX, padding: 2 }}
-          >
-            Loading the libraries…
-          </Typography>
-        ) : (
-          flat.length === 0 && emptyState
-        )}
+        {!phone && <Key>esc</Key>}
       </Box>
       {!phone && (
         <Stack
           direction="row"
-          spacing={2}
-          sx={{ paddingX: 2, paddingY: 1, borderTop: 1, borderColor: "divider", alignItems: "center" }}
+          spacing={1.5}
+          sx={{
+            alignItems: "center",
+            paddingX: 2,
+            paddingY: 1,
+            borderBottom: 1,
+            borderColor: "divider",
+          }}
         >
+          {modeSwitch}
           <Typography
             variant="caption"
-            sx={{ color: "text.secondary", display: "flex", gap: 0.5, alignItems: "center" }}
+            sx={{ color: "text.secondary" }}
           >
-            <Key>↑</Key>
-            <Key>↓</Key> move
+            ⇥ switches
           </Typography>
-          <Typography
-            variant="caption"
-            sx={{ color: "text.secondary", display: "flex", gap: 0.5, alignItems: "center" }}
-          >
-            <Key>↵</Key> open
-          </Typography>
+        </Stack>
+      )}
+      {!finding ? (
+        <Box sx={{ overflowY: "auto", flexGrow: 1 }}>{pageContent}</Box>
+      ) : (
+        <Box
+          ref={listRef}
+          role="listbox"
+          aria-label="Results"
+          sx={{ overflowY: "auto", flexGrow: 1, paddingY: 0.5 }}
+        >
+          {/* The groups are drawn whatever the loading state, so a group the caller can answer before
+            the libraries land — the tabs — is on screen exactly when the keys can reach it. */}
+          {groups.map((group) =>
+            group.layout === "chips" ? (
+              <Stack
+                key={group.key}
+                role="group"
+                aria-label={group.label}
+                direction="row"
+                spacing={1}
+                useFlexGap
+                sx={{ flexWrap: "wrap", alignItems: "center", paddingX: 2, paddingY: 1 }}
+              >
+                <Typography
+                  variant="caption"
+                  sx={{ ...LABEL_SX, color: "text.secondary", marginRight: 0.5 }}
+                >
+                  {group.label}
+                </Typography>
+                {group.hits.map((hit) => (
+                  <Box
+                    key={hit.key}
+                    component="button"
+                    type="button"
+                    role="option"
+                    id={`search-hit-${flatIndex.get(`${group.key}:${hit.key}`)}`}
+                    aria-selected={`${group.key}:${hit.key}` === selected?.key}
+                    tabIndex={-1}
+                    onMouseMove={() => {
+                      if (`${group.key}:${hit.key}` !== selected?.key) setSelectedKey(`${group.key}:${hit.key}`);
+                    }}
+                    onClick={hit.onOpen}
+                    sx={CHIP_SX}
+                  >
+                    {hit.lead}
+                    <Title
+                      title={hit.title}
+                      matched={hit.matched}
+                    />
+                  </Box>
+                ))}
+              </Stack>
+            ) : (
+              <Box
+                key={group.key}
+                role="group"
+                aria-label={group.label}
+                sx={{ paddingBottom: 0.5 }}
+              >
+                <Stack
+                  direction="row"
+                  sx={{ justifyContent: "space-between", paddingX: 2, paddingY: 0.75 }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{ ...LABEL_SX, color: "text.secondary" }}
+                  >
+                    {group.label}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={MUTED_FIGURE_SX}
+                  >
+                    {cut(group.hits.length, group.total)}
+                  </Typography>
+                </Stack>
+                {group.hits.map((hit) => (
+                  <Box
+                    key={hit.key}
+                    component="button"
+                    type="button"
+                    role="option"
+                    id={`search-hit-${flatIndex.get(`${group.key}:${hit.key}`)}`}
+                    aria-selected={`${group.key}:${hit.key}` === selected?.key}
+                    tabIndex={-1}
+                    onMouseMove={() => {
+                      if (`${group.key}:${hit.key}` !== selected?.key) setSelectedKey(`${group.key}:${hit.key}`);
+                    }}
+                    onClick={hit.onOpen}
+                    sx={HIT_SX}
+                  >
+                    <Box sx={{ width: LEAD_WIDTH, height: LEAD_HEIGHT, display: "grid", placeItems: "center" }}>
+                      {hit.lead}
+                    </Box>
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography
+                        variant="body2"
+                        noWrap
+                        sx={{ fontWeight: 500 }}
+                      >
+                        <Title
+                          title={hit.title}
+                          matched={hit.matched}
+                        />
+                      </Typography>
+                      {hit.facts && (
+                        <Typography
+                          variant="caption"
+                          noWrap
+                          component="div"
+                          sx={{ color: "text.secondary" }}
+                        >
+                          {hit.facts}
+                        </Typography>
+                      )}
+                    </Box>
+                    <Box sx={{ textAlign: "right" }}>
+                      {hit.trailing}
+                      {/* Offered on the lit row alone: a chord printed against every hit is a legend
+                        five lines long for a key that answers one of them. */}
+                      {hit.secondary && `${group.key}:${hit.key}` === selected?.key && (
+                        <Typography
+                          variant="caption"
+                          component="div"
+                          noWrap
+                          sx={{ color: "text.secondary" }}
+                        >
+                          ⌘↵ {hit.secondary.label}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
+            ),
+          )}
+          {loading ? (
+            <Typography
+              variant="body2"
+              sx={{ ...MUTED_FIGURE_SX, padding: 2 }}
+            >
+              Loading the libraries…
+            </Typography>
+          ) : (
+            flat.length === 0 && emptyState
+          )}
+        </Box>
+      )}
+      {/* In Find the last line is the keyboard, which a phone has none of; in This page it is the
+          caller's own — the population the settings above have left, and the Clear that undoes
+          them — which every width states. */}
+      {(finding ? !phone : Boolean(footer)) && (
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{
+            paddingX: 2,
+            paddingY: 1,
+            paddingBottom: "calc(8px + env(safe-area-inset-bottom))",
+            borderTop: 1,
+            borderColor: "divider",
+            alignItems: "center",
+            flexShrink: 0,
+          }}
+        >
+          {finding ? <PaletteKeys chord={chordHint} /> : footer}
         </Stack>
       )}
     </Dialog>
   );
 };
+
+/** The keys the box answers to, on the last line of Find wherever there is a keyboard to press. */
+const PaletteKeys = ({ chord }: { chord?: string }) => (
+  <>
+    <Typography
+      variant="caption"
+      sx={{ color: "text.secondary", display: "flex", gap: 0.5, alignItems: "center" }}
+    >
+      <Key>↑</Key>
+      <Key>↓</Key> move
+    </Typography>
+    <Typography
+      variant="caption"
+      sx={{ color: "text.secondary", display: "flex", gap: 0.5, alignItems: "center" }}
+    >
+      <Key>↵</Key> open or filter
+    </Typography>
+    {chord && (
+      <Typography
+        variant="caption"
+        sx={{ color: "text.secondary", display: "flex", gap: 0.5, alignItems: "center" }}
+      >
+        <Key>⌘↵</Key> {chord}
+      </Typography>
+    )}
+  </>
+);

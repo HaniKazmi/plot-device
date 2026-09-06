@@ -105,7 +105,7 @@ type CardProps<S> = Omit<CardMediaImageProps, "image" | "alt" | "detailComponent
  * Two members and no more. A medium is looked up by a value (`MEDIA_LAZY[item.medium]`), which a
  * bundler cannot narrow, so everything reachable through this shape is weight on the chunk the
  * union prefetches for its hover cards on every visit. Anything a medium answers that a card does
- * not draw — a filter glyph, a label — belongs beside the surface that asks for it.
+ * not draw belongs beside the surface that asks for it.
  */
 export interface MediumLazy<S> {
   CardMediaImage(props: CardProps<S>): ReturnType<FunctionComponent>;
@@ -164,9 +164,19 @@ export interface MediumModule<T, S = T, M extends string = string> {
   /** The units the tab's rail offers, in the order it states them. */
   measures: readonly M[];
   /**
+   * The oldest year the tab's year scope offers, read from its whole library rather than from what
+   * its filters left — derived from the filtered rows, picking "In 2020" would make 2020 the
+   * earliest year on offer and strand the reader in it.
+   *
+   * On the module because the box standing above the tabs draws that scope for whichever tab is
+   * open, and the floor is the one part of it a shared control cannot work out for itself: the
+   * sheets start in different years, and Movies' is a fixed epoch rather than anything in the rows.
+   */
+  earliestYear(items: readonly T[]): YearNumber;
+  /**
    * What this tab can be narrowed by, as data: the surface offering the filters draws it, and the
    * index of what a search box can find by attribute reads it. The schema carries no icon — see
-   * `MediumLazy` — and no rule that is not per-field: a domain whose model answers the year
+   * `FilterToggle` — and no rule that is not per-field: a domain whose model answers the year
    * differently, or whose page has a question only it can ask, keeps that predicate beside its own
    * reducer.
    */

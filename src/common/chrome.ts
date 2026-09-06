@@ -27,8 +27,8 @@ export const BOTTOM_TABS_CLEARANCE = `calc(${BOTTOM_TABS_HEIGHT}px + env(safe-ar
  * and 24px from `sm` — restated with the inset on top.
  *
  * Only the surfaces that reach those edges take it: the app bar and the page container here, the
- * bottom bar and the pinned filter button with the bare `env()` they have no gutter to add to. The
- * sheets need none — the filter sheet and the expanded card's bar are drawn below `sm` alone,
+ * bottom bar with the bare `env()` it has no gutter to add to. The sheets need none — the box and
+ * the expanded card's bar are drawn below `sm` alone,
  * which is portrait, where the two horizontal insets are zero, and the hover card's sheet holds its
  * content to 500px in the middle of whatever width it is given.
  */

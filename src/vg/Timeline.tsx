@@ -21,7 +21,7 @@ const PARTY_OPTIONS: readonly SegmentOption<PartyOption>[] = [
 const VgTimeline = ({ data }: { data: VideoGame[] }) => {
   const scheme = useScheme();
 
-  // Opens on Without: the toggle is this chart's own, not the tab's filter drawer, so a party game
+  // Opens on Without: the toggle is this chart's own, not one of the tab's filters, so a party game
   // stays counted everywhere else on the tab and is only left off its own row here until asked for.
   const [partyOption, setPartyOption] = useState<PartyOption>("without");
 

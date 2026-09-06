@@ -3,6 +3,7 @@ import { seasonEntry, seasonKey, seasonSpan } from "./cardData";
 import { showDataConfig } from "./converter";
 import { guestFilter, showFilters } from "./filters";
 import { pageState } from "./filterUtils";
+import { earliestYear as earliestYearOf } from "../common/statsData";
 import type { Measure, Season, Show } from "./types";
 
 /**
@@ -65,6 +66,7 @@ export const showModule: MediumModule<Show, Season, Measure> = {
    * watched in a year.
    */
   measures: ["Seasons", "Episodes", "Hours"],
+  earliestYear: (shows) => earliestYearOf(shows, (show) => show.startDate.year),
   filters: showFilters,
   pageState,
 };

@@ -161,8 +161,8 @@ const TRAILING_SX = { flexShrink: 0, display: "flex" } as const;
 /**
  * Where the year scope is drawn, which is the one part of the tail a tablet has no room for: at
  * 768 a rail holding four tab chips, seven section chips, a picker, three segments and the
- * population wants about 950px of 720. Below `md` the scope is a row in the page-controls surface
- * instead, so the rail keeps the two readings a page is most often changed by.
+ * population wants about 950px of 720. Below `md` the scope is a labelled row in the box's This
+ * page mode instead, so the rail keeps the two readings a page is most often changed by.
  *
  * A `display` rule rather than the width the rail reads as a value, since the control is drawn in
  * the filter surface at every width below `md` — one of the two is hidden either way, and hiding
@@ -192,7 +192,7 @@ const SCOPE_SX = { display: { xs: "none", md: "flex" } } as const;
  * than pushing them off: `minWidth: 0` is what lets the chips overflow into their own scroll
  * instead. Three named slots rather than one node, because where each stands is a rule this shell
  * states once — the population is the last thing on the bar, the scope is drawn from `md` and
- * stands in the page-controls surface below it — where five pages handing over opaque nodes would
+ * stands in the box's This page mode below it — where five pages handing over opaque nodes would
  * each carry a copy of that rule.
  *
  * On a phone the three give the row up entirely and `pageChip` stands in their place: at 390px
@@ -217,7 +217,7 @@ export const SectionRail = (props: {
   const active = useActiveSection(props.sections);
   const [railRef, stuck] = useStuck();
   // Which tail the rail draws. A value rather than a `display` rule, because the controls it hides
-  // are mounted in the page-controls sheet at this width instead: drawn here and hidden, each
+  // are mounted in the box's This page mode at this width instead: drawn here and hidden, each
   // would be a second live copy dispatching to the same page state from a control nobody can see.
   const phone = usePhone();
 

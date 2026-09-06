@@ -24,9 +24,10 @@ export type CategoryKey<S> = KeysMatching<S, readonly string[]> & string;
  * every predicate's direction here — the name says what turning the toggle off does, not what the
  * function returns.
  *
- * No icon: a schema is reachable from the shell, and a filter icon named here would put every
- * tab's icons in the first bundle a visitor downloads. The icons are keyed by these same keys in
- * each medium's lazy half, where the surface drawing them already is.
+ * No icon: the surface drawing these is a row of chips reading the label, and an icon on a chip
+ * a word already names is a picture standing for a word beside it. A schema is also reachable from
+ * the shell, so an icon named here would put every tab's filter glyphs in the first bundle a
+ * visitor downloads.
  */
 export interface FilterToggle<T, S> {
   key: ToggleKey<S>;
@@ -105,9 +106,9 @@ export type PageSchema = FilterSchema<unknown, never>;
 
 /**
  * The values a category's control offers: its own list where it states one, and otherwise every
- * distinct value in the data. Asked here rather than at each drawing surface, so the drawer, the
- * box that filters a page and the attribute index cannot offer three different vocabularies for
- * one category.
+ * distinct value in the data. Asked here rather than at each reader, so the box that filters a page
+ * and the index of what can be found by attribute cannot offer two different vocabularies for one
+ * category.
  */
 export const categoryValues = <T, S>(category: FilterCategory<T, S>, data: readonly T[]): string[] =>
   category.options ? category.options(data) : categoryOptions(data, (item) => category.valueOf(item));

@@ -323,7 +323,7 @@ export const ScopeControl = ({
   /**
    * What the picker's face says it is choosing, where its surface does not. The rail needs it —
    * "All time" beside three measure words says nothing about what is all — and a labelled row in
-   * the page-controls sheet has already said it, where repeating it reads as "Years Years".
+   * the box's own labelled row has already said it, where repeating it reads as "Years Years".
    */
   label?: string;
   /**

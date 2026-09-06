@@ -123,7 +123,7 @@ const typeColours: Record<Type, Fill> = {
 
 export const typeToColour = ({ type }: { type: Type }, scheme: Scheme): Colour => {
   const colour = typeColours[type];
-  // `converter.ts` casts the Type cell without validating it, and the filter drawer derives its
+  // `converter.ts` casts the Type cell without validating it, and the type filter derives its
   // options from those raw values, so a blank or misspelt cell reaches here. It answers the
   // neutral rather than throwing: an uncoloured wedge is a smaller failure than a tab that will
   // not render.

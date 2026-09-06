@@ -6,7 +6,7 @@ import Barchart from "./Barchart";
 import Sunburst from "./Sunburst";
 import Stats from "./Stats";
 import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
-import { FilterChip, PageChip } from "../common/FilterDrawer";
+import { FilterChip, PageChip } from "../common/PageHandles";
 import { stated } from "../common/population";
 import { MeasureControl, ScopeControl } from "../common/SelectionComponents";
 import { useOtherTabs } from "../tabs";
@@ -20,9 +20,6 @@ import { statusToColour } from "../utils/types";
 import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
 import { FranchiseContext, showFranchise } from "./franchiseContext";
 import { franchiseIndex } from "../common/franchiseIndex";
-import { SchemaFilterDrawer } from "../common/FilterControls";
-import { showFilters } from "./filters";
-import { filterIcons } from "./filterIcons";
 import { memo, useDeferredValue } from "react";
 import { wallPopulation } from "../common/finishedData";
 import { useScheme } from "../common/useScheme";
@@ -50,18 +47,6 @@ const SuspenseBlock = ({
       earliestYear={earliestYear(unfilteredData)}
       filterState={filterState}
       filterDispatch={filterDispatch}
-    />
-    <SchemaFilterDrawer
-      schema={showFilters}
-      icons={filterIcons}
-      state={filterState}
-      dispatch={filterDispatch}
-      data={unfilteredData}
-      activeCount={activeCount(filterState)}
-      population={stated(filteredData.length, showModule.noun)}
-      measures={showModule.measures}
-      earliestYear={earliestYear(unfilteredData)}
-      onReset={() => filterDispatch({ type: "resetFilters" })}
     />
   </FranchiseContext.Provider>
 );

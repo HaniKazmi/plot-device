@@ -1,12 +1,10 @@
-import { AutoStories, LocalMovies, Tv, VideogameAsset, type SvgIconComponent } from "@mui/icons-material";
 import { memo, useDeferredValue } from "react";
 import { CURRENT_PLAINDATE, type YearNumber } from "../common/date";
 import { Stack } from "@mui/material";
 import { franchiseIndex } from "../common/franchiseIndex";
 import { Section, SectionRail } from "../common/SectionRail";
-import { FilterChip, PageChip } from "../common/FilterDrawer";
+import { FilterChip, PageChip } from "../common/PageHandles";
 import { stated } from "../common/population";
-import { SchemaFilterDrawer } from "../common/FilterControls";
 import { MeasureControl, ScopeControl } from "../common/SelectionComponents";
 import { stripYearTicks } from "../common/timelineStripData";
 import {
@@ -19,7 +17,7 @@ import { FranchiseContext as MovieFranchiseContext, movieFranchise } from "../mo
 import { FranchiseContext as ShowFranchiseContext, showFranchise } from "../show/franchiseContext";
 import { FranchiseContext as VgFranchiseContext, vgFranchise } from "../vg/franchiseContext";
 import { useOtherTabs } from "../tabs";
-import { earliestYear, electNow, hasNow, recentlyFinished } from "./adapter";
+import { electNow, hasNow, recentlyFinished } from "./adapter";
 import type { Library } from "../app/library";
 import type { OmniItem } from "../common/medium";
 import Barchart from "./Barchart";
@@ -32,33 +30,7 @@ import RecentlyFinished from "./RecentlyFinished";
 import { genreBridge } from "./genreBridgeData";
 import Stats from "./Stats";
 import { OMNIBUS_SECTIONS, omnibusSections } from "./sections";
-import { omniFilters } from "./filters";
-import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
-import type { Measure } from "../app/types";
-import type { Medium } from "../utils/types";
-
-/**
- * What this tab's population is counted in. Not a `noun` off a module, the four being composed
- * here: a row of the union is a game, a season, a film or a book, and the only word true of all
- * four is the one the measure control already offers beside it.
- */
-const OMNIBUS_NOUN = "items";
-
-/** The measures this tab counts in, in the order the rail states them. */
-const MEASURES: readonly Measure[] = ["Hours", "Items"];
-
-/**
- * An icon per medium switch. Held here rather than beside the schema for the reason every domain's
- * are held in its lazy half: a schema is data the shell can reach, and an icon named in it would
- * put these four in the first bundle a visitor downloads. This tab is not a medium and has no
- * module to hang them off, so the chunk drawing its charts is where they sit.
- */
-const filterIcons: Record<Medium, SvgIconComponent> = {
-  game: VideogameAsset,
-  show: Tv,
-  movie: LocalMovies,
-  book: AutoStories,
-};
+import { activeCount, earliestYear, MEASURES, NOUN, type FilterDispatch, type FilterState } from "./filterUtils";
 
 /**
  * The four franchise indexes the domains' own cards read, and the scale the Books strips draw on.
@@ -97,18 +69,6 @@ const SuspenseBlock = ({
               earliestYear={earliestYear(unfilteredData)}
               filterState={filterState}
               filterDispatch={filterDispatch}
-            />
-            <SchemaFilterDrawer
-              schema={omniFilters}
-              icons={filterIcons}
-              state={filterState}
-              dispatch={filterDispatch}
-              data={unfilteredData}
-              activeCount={activeCount(filterState)}
-              population={stated(filteredData.length, OMNIBUS_NOUN)}
-              measures={MEASURES}
-              earliestYear={earliestYear(unfilteredData)}
-              onReset={() => filterDispatch({ type: "resetFilters" })}
             />
           </BookEpochProvider>
         </BookFranchiseContext.Provider>
@@ -181,7 +141,7 @@ const Graphs = memo(
           }
           population={
             <FilterChip
-              label={stated(data.length, OMNIBUS_NOUN)}
+              label={stated(data.length, NOUN)}
               activeCount={activeCount(filterState)}
             />
           }

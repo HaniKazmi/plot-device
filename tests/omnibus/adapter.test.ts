@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CURRENT_YEAR, YearMonthDay, Year, type YearNumber } from "../../src/common/date";
-import { earliestYear, electNow, ofMedium, omniTitle, recentlyFinished, unionTotals } from "../../src/omnibus/adapter";
+import { electNow, ofMedium, omniTitle, recentlyFinished, unionTotals } from "../../src/omnibus/adapter";
+import { earliestYear } from "../../src/omnibus/filterUtils";
 import { measureOf, omniHours, toOmniItems, visibleLibrary } from "../../src/app/library";
 import { omniBanner } from "../../src/app/media";
 import { measureOf as movieMeasureOf } from "../../src/movie/statsData";

@@ -304,7 +304,7 @@ const getTheme = (tab: Tab) => {
       },
       // The rail chip: navigation, and the one part of the kit drawn as a pill. Sized on the
       // small chip alone, which is what a rail asks for — a chip standing over artwork or in a
-      // filter sheet is a label rather than a mark on a scale and keeps MUI's own size.
+      // list of values is a label rather than a mark on a scale and keeps MUI's own size.
       MuiChip: {
         styleOverrides: {
           root: ({ theme }) => ({

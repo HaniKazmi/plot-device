@@ -73,10 +73,15 @@ export interface PageStore {
   subscribe(onChange: () => void): () => void;
   useValue(): PageState;
   dispatch(action: PageAction): void;
+  /**
+   * How many of the reader's own choices this page is holding, bound to the initial values its own
+   * reducer knows — a surface above the tabs holds five stores and no baseline to count against.
+   */
+  activeCount(): number;
 }
 
 /** What a domain's own store is, before the erasure a lookup across the five needs. */
-type PageStoreFor<S> = Store<S> & { dispatch: FilterDispatchFor<S> };
+type PageStoreFor<S> = Store<S> & { dispatch: FilterDispatchFor<S>; activeCount(): number };
 
 interface YearState {
   yearTo: YearNumber;
@@ -125,10 +130,11 @@ const sameValue = (a: unknown, b: unknown): boolean =>
   Array.isArray(a) && Array.isArray(b) ? a.length === b.length && a.every((item, index) => item === b[index]) : a === b;
 
 /**
- * How many of the reader's own choices are in play, for the badge on the filter button.
+ * How many of the reader's own choices are in play, for the badge on the rail's own handle.
  *
- * A closed drawer says nothing about what it is hiding, and every chart on the page is drawn
- * through it — so a page filtered down to one franchise looks exactly like a page that is not.
+ * A control surface that is closed says nothing about what it is holding, and every chart on the
+ * page is drawn through it — so a page filtered down to one franchise looks exactly like one that
+ * is not.
  * The count is of fields rather than of predicates: a reader picking three genres in one select
  * made one choice and can undo it in one place, which is what a badge of 1 says and a badge of 3
  * does not.
@@ -262,7 +268,7 @@ export const createFilterReducer = <T, M extends string, S extends BaseFilterSta
 
   const dispatch: FilterDispatchFor<S> = (action) => set(reducer(get(), action));
 
-  const store: PageStoreFor<S> = { get, set, subscribe, useValue, dispatch };
+  const store: PageStoreFor<S> = { get, set, subscribe, useValue, dispatch, activeCount: () => activeCount(get()) };
 
   /**
    * The tab's own view of that store, for the pages that read their state from inside the tab.

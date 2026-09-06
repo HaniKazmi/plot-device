@@ -1,14 +1,15 @@
 import { lazy, Suspense, useEffect } from "react";
-import { closeSearch, openSearch, useSearchState } from "../common/searchOpen";
+import { closeSearch, openSearch, toggleSearchMode, useSearchState } from "../common/searchOpen";
 
 /**
- * The palette and everything it opens, loaded with their own chunk rather than the shell's.
+ * The box and everything it opens, loaded with their own chunk rather than the shell's.
  *
  * This host mounts above every tab, so what it imports at module scope is in the first bundle a
- * visitor downloads; the surface imports the four domains' cards and the drill-down grid, which
- * live in the tabs' lazy chunks. The download starts on mount all the same, since a search box
- * that arrives a second after ⌘K is a box that swallowed the first letters. Module scope rather
- * than inside the component, because the React Compiler cannot lower an import expression.
+ * visitor downloads; the surface imports the four domains' cards, their filter schemas' drawing
+ * surface and the drill-down grid, which live in the tabs' lazy chunks. The download starts on
+ * mount all the same, since a box that arrives a second after ⌘K is a box that swallowed the first
+ * letters. Module scope rather than inside the component, because the React Compiler cannot lower
+ * an import expression.
  */
 const loadSurface = () => import("./SearchSurface");
 const SearchSurface = lazy(() => loadSurface().then((module) => ({ default: module.SearchSurface })));
@@ -19,24 +20,35 @@ const inEditableField = (target: EventTarget | null) => {
   return target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
 };
 
-/** Whether the press came from inside the palette's own box, which is what makes ⌘K a toggle. */
+/**
+ * Whether the press came from inside the box's own field, which is what makes ⌘K a toggle.
+ *
+ * Read off an attribute the field carries rather than off its accessible name: the name says which
+ * of the two modes the box is in, so a rule keyed on it would stop recognising the box the moment
+ * the reader switched to This page.
+ */
 const inSearchBox = (target: EventTarget | null) =>
-  target instanceof HTMLElement && target.getAttribute("aria-label") === "Search" && target.tagName === "INPUT";
+  target instanceof HTMLElement && target.dataset.searchInput !== undefined;
 
 /**
- * The app's search, mounted once in the shell inside the union provider.
+ * The app's box, mounted once in the shell inside the union provider.
  *
- * Reads the open flag from its store, so the button in the app bar and the shortcut here reach
- * one palette without a flag lifted through the tree. ⌘K and Ctrl+K open it from anywhere and
- * put the caret in the box even where it is open already, since whatever a hit opened may have
- * taken the focus with it; from inside the box they close it instead, the way a palette's own
- * chord reads as a toggle. `/` opens it too, except in a field where a slash is a character. The
- * surface is mounted for the life of the page once first opened — it holds the query and
- * whatever a hit opened — and never before, so a visitor who never searches pays only the
- * prefetch.
+ * Reads the open flag and the mode from their store, so the button in the app bar, the rail's own
+ * chips and the shortcuts here reach one box without a flag lifted through the tree.
+ *
+ * ⌘K and Ctrl+K open it in Find from anywhere and put the caret in it even where it is open
+ * already, since whatever a hit opened may have taken the focus with it; from inside the field
+ * they close it instead, the way a palette's own chord reads as a toggle. `/` opens Find too,
+ * except in a field where a slash is a character — the box's own field included, which is what
+ * `inEditableField` already answers for every input in the app. ⌘⇧K switches which mode the box is
+ * in, opening it in the other one where it is closed, so the page's own filters have a chord as
+ * well as the two chips.
+ *
+ * The surface is mounted for the life of the page once first opened — it holds the query and
+ * whatever a hit opened — and never before, so a visitor who never searches pays only the prefetch.
  */
 export const SearchHost = () => {
-  const { open, request } = useSearchState();
+  const { open, mode, request } = useSearchState();
 
   useEffect(() => {
     void loadSurface().catch(() => {});
@@ -44,9 +56,14 @@ export const SearchHost = () => {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      const palette = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k";
+      const chord = event.metaKey || event.ctrlKey;
+      const k = chord && event.key.toLowerCase() === "k";
       const slash = event.key === "/" && !event.metaKey && !event.ctrlKey && !event.altKey;
-      if (palette) {
+      if (k && event.shiftKey) {
+        // Tested before the bare chord, which the same press would otherwise answer as ⌘K.
+        event.preventDefault();
+        toggleSearchMode();
+      } else if (k) {
         event.preventDefault();
         if (inSearchBox(event.target)) closeSearch();
         else openSearch();
@@ -66,6 +83,7 @@ export const SearchHost = () => {
     <Suspense fallback={null}>
       <SearchSurface
         open={open}
+        mode={mode}
         focusRequest={request}
       />
     </Suspense>

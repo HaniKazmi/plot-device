@@ -1,11 +1,18 @@
 import { useSyncExternalStore } from "react";
+import type { YearNumber } from "../common/date";
 import type { PageDispatch, PageState, PageStore } from "../common/filterReducer";
 import { categoryValues, type PageSchema } from "../common/filterSchema";
 import type { OmniItem } from "../common/medium";
 import { omniFilters } from "../omnibus/filters";
-import { pageState as omnibusPageState } from "../omnibus/filterUtils";
-import type { Library } from "./library";
-import { eachMedium, mediaModules } from "./media";
+import {
+  earliestYear as omnibusEarliestYear,
+  MEASURES as OMNIBUS_MEASURES,
+  NOUN as OMNIBUS_NOUN,
+  pageState as omnibusPageState,
+} from "../omnibus/filterUtils";
+import type { Library, LibraryValue } from "./library";
+import { eachMedium, mediaModules, MEDIA } from "./media";
+import { MEDIA as MEDIA_ORDER } from "../utils/types";
 
 /**
  * The composing tab's own id, as a string rather than read off its `Tab`: `tabs.ts` imports the
@@ -56,7 +63,7 @@ const retainSelections = (store: PageStore, schema: PageSchema, data: readonly u
  * A category's options are computed over the visible library, so guest mode switched on under a
  * chosen franchise leaves that franchise selected in the store while the select no longer lists it:
  * the page narrows to nothing and there is no chip anywhere to take the choice back. Swept per tab
- * against exactly the rows that tab's own drawer draws its lists from — each medium's visible
+ * against exactly the rows that tab's own controls draw their lists from — each medium's visible
  * slice, and the union for the composing tab.
  *
  * A slice still in flight is skipped rather than swept against nothing: on a cold cache a library
@@ -86,4 +93,73 @@ export const usePageState = (tabId: string): readonly [PageState, PageDispatch] 
   const state = useSyncExternalStore(store.subscribe, store.get, store.get);
 
   return [state, store.dispatch];
+};
+
+/**
+ * Everything a surface standing above the tabs needs to draw one tab's own controls: what it can
+ * be narrowed by, where that narrowing is held, what it counts in, the word it counts, the rows
+ * its lists are built from, and the floor its year picker offers.
+ *
+ * The box that filters a page is mounted above the router and holds a tab id, not a domain — so
+ * the five answers are looked up here, in the one file in this folder that may name the composing
+ * tab, and the box never learns that four of the five come from a `MediumModule` and one does not.
+ *
+ * `data` is the tab's own rows with guest mode already applied, which is exactly what that tab's
+ * entry component hands its charts: a population stated from anything else would disagree with the
+ * figure the rail's own chip states for the same page.
+ *
+ * `undefined` while a tab's sheet is still in flight — a control surface over an empty library
+ * offers no values and a population of zero, where drawing nothing says the page is still landing.
+ */
+export interface PageSurface {
+  schema: PageSchema;
+  store: PageStore;
+  measures: readonly string[];
+  noun: string;
+  data: readonly unknown[];
+  earliestYear: YearNumber;
+}
+
+/**
+ * How many rows a page's own settings have left it, for the population its control surface states.
+ *
+ * The predicate is the composed one the state already carries, so the figure the box states in its
+ * footer is arrived at exactly as the figure the rail's chip states — the same predicate over the
+ * same rows, rather than two counts that can drift.
+ */
+export const pageCount = (surface: PageSurface, state: PageState): number =>
+  // A tab's own record is erased off the state a surface above it holds, and `Predicate<never>` is
+  // what every domain's predicate becomes under that erasure.
+  surface.data.filter(state.filter as (item: unknown) => boolean).length;
+
+export const pageOf = (tabId: string, library: LibraryValue): PageSurface | undefined => {
+  if (tabId === OMNIBUS_TAB) {
+    const items = library.items;
+    if (!items) return undefined;
+    return {
+      schema: omniFilters,
+      store: omnibusPageState,
+      measures: OMNIBUS_MEASURES,
+      noun: OMNIBUS_NOUN,
+      data: items,
+      earliestYear: omnibusEarliestYear(items),
+    };
+  }
+
+  const medium = MEDIA_ORDER.find((candidate) => MEDIA[candidate].tabId === tabId);
+  if (!medium) return undefined;
+  const module = MEDIA[medium];
+  const data = library.visible[medium];
+  if (!data) return undefined;
+
+  return {
+    schema: module.filters,
+    store: module.pageState,
+    measures: module.measures,
+    noun: module.noun,
+    data,
+    // The pairing survives the lookup: `library.visible[medium]` and `MEDIA[medium]` are read off
+    // one key, and the assertion is only that TypeScript cannot follow a `find` back to it.
+    earliestYear: module.earliestYear(data as never),
+  };
 };
