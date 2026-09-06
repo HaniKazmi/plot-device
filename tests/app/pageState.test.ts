@@ -20,8 +20,8 @@ beforeEach(() => opening.forEach(([id, state]) => PAGE_STORES[id].set(state)));
 describe("the page stores", () => {
   it("holds one for every tab", () => {
     // A missing entry is a throw inside a hook, with no error boundary above it: the tab paints
-    // as a blank page. The composing tab's own id is a literal in `pageState.ts`, which is the
-    // one this pins.
+    // as a blank page. The composing tab's own id is a literal in `omnibus/pageModule.ts`, which
+    // is the one this pins.
     const missing = Tabs.map((tab) => tab.id).filter((id) => !PAGE_STORES[id]);
 
     expect(missing).toEqual([]);

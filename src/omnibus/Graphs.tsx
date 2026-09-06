@@ -1,11 +1,9 @@
 import { memo, useDeferredValue } from "react";
-import { CURRENT_PLAINDATE, type YearNumber } from "../common/date";
+import { CURRENT_PLAINDATE } from "../common/date";
 import { Stack } from "@mui/material";
 import { franchiseIndex } from "../common/franchiseIndex";
-import { Section, SectionRail } from "../common/SectionRail";
-import { FilterChip, PageChip } from "../common/PageHandles";
-import { stated } from "../common/population";
-import { MeasureControl, ScopeControl } from "../common/SelectionComponents";
+import { Section } from "../common/SectionRail";
+import { PageRail } from "../app/PageRail";
 import { stripYearTicks } from "../common/timelineStripData";
 import {
   bookEpoch,
@@ -16,7 +14,6 @@ import {
 import { FranchiseContext as MovieFranchiseContext, movieFranchise } from "../movie/franchiseContext";
 import { FranchiseContext as ShowFranchiseContext, showFranchise } from "../show/franchiseContext";
 import { FranchiseContext as VgFranchiseContext, vgFranchise } from "../vg/franchiseContext";
-import { useOtherTabs } from "../tabs";
 import { electNow, hasNow, recentlyFinished } from "./adapter";
 import type { Library } from "../app/library";
 import type { OmniItem } from "../common/medium";
@@ -30,7 +27,7 @@ import RecentlyFinished from "./RecentlyFinished";
 import { genreBridge } from "./genreBridgeData";
 import Stats from "./Stats";
 import { OMNIBUS_SECTIONS, omnibusSections } from "./sections";
-import { activeCount, earliestYear, MEASURES, NOUN, type FilterDispatch, type FilterState } from "./filterUtils";
+import type { FilterState } from "./filterUtils";
 
 /**
  * The four franchise indexes the domains' own cards read, and the scale the Books strips draw on.
@@ -45,15 +42,11 @@ import { activeCount, earliestYear, MEASURES, NOUN, type FilterDispatch, type Fi
 const SuspenseBlock = ({
   library,
   filteredData,
-  unfilteredData,
   filterState,
-  filterDispatch,
 }: {
   library: Library;
   filteredData: OmniItem[];
-  unfilteredData: OmniItem[];
   filterState: FilterState;
-  filterDispatch: FilterDispatch;
 }) => (
   <VgFranchiseContext.Provider value={franchiseIndex(library.game, vgFranchise)}>
     <ShowFranchiseContext.Provider value={franchiseIndex(library.show, showFranchise)}>
@@ -63,12 +56,7 @@ const SuspenseBlock = ({
             <Graphs
               library={library}
               data={filteredData}
-              // The floor of the rail's year picker, read from the whole union rather than from what the
-              // filters left: derived from the filtered data, picking "In 2020" would leave 2020
-              // the earliest year on offer and strand the reader in it.
-              earliestYear={earliestYear(unfilteredData)}
               filterState={filterState}
-              filterDispatch={filterDispatch}
             />
           </BookEpochProvider>
         </BookFranchiseContext.Provider>
@@ -78,24 +66,11 @@ const SuspenseBlock = ({
 );
 
 const Graphs = memo(
-  ({
-    library,
-    data,
-    earliestYear,
-    filterState,
-    filterDispatch,
-  }: {
-    library: Library;
-    data: OmniItem[];
-    earliestYear: YearNumber;
-    filterState: FilterState;
-    filterDispatch: FilterDispatch;
-  }) => {
+  ({ library, data, filterState }: { library: Library; data: OmniItem[]; filterState: FilterState }) => {
     // The charts and the browse surfaces re-render at lower priority, so a filter toggle answers
     // at once on a page composing four libraries; the bands above them read the fresh array, the
     // way every other tab splits the two.
     const deferredData = useDeferredValue(data, []);
-    const tabs = useOtherTabs();
     // Answered once for the page: it decides both whether the Now band is rendered and whether the
     // rail offers a chip pointing at it, and two derivations of one test are two that can differ.
     const now = electNow(library, filterState);
@@ -113,7 +88,7 @@ const Graphs = memo(
 
     return (
       <Stack spacing={2}>
-        <SectionRail
+        <PageRail
           sections={omnibusSections({
             now: hasNow(now),
             charts: deferredData.length > 0,
@@ -122,35 +97,7 @@ const Graphs = memo(
             finished: finished.length > 0,
             genres: bridge.length > 0,
           })}
-          tabs={tabs}
-          scope={
-            <ScopeControl
-              label="Years"
-              yearTo={filterState.yearTo}
-              yearType={filterState.yearType}
-              earliestYear={earliestYear}
-              dispatch={filterDispatch}
-            />
-          }
-          measure={
-            <MeasureControl
-              measures={MEASURES}
-              value={filterState.measure}
-              dispatch={filterDispatch}
-            />
-          }
-          population={
-            <FilterChip
-              label={stated(data.length, NOUN)}
-              activeCount={activeCount(filterState)}
-            />
-          }
-          pageChip={
-            <PageChip
-              measure={filterState.measure}
-              activeCount={activeCount(filterState)}
-            />
-          }
+          count={data.length}
         />
         <Stats
           data={data}

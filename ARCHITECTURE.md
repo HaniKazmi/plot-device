@@ -96,9 +96,9 @@ The direction holds the other way too: **nothing in `app/` imports `omnibus/`**,
 tab like any other, so the shared half of a surface more than one tab reads — the gallery's
 grouping, a mixed row's card size — sits in `app/` rather than inside one page's folder, where the
 next reader has to reach across for it. `app/pageState.ts` is the single exception, naming the
-composing tab's own store: every other tab's is registered through its `MediumModule`, and the
-Omnibus is a tab and not a medium, so until it has a module of its own its store is registered by
-name.
+composing tab's own `PageModule`: every other tab's arrives through its `MediumModule`, and the
+Omnibus is a tab and not a medium, so the fifth page module is declared in that folder
+(`omnibus/pageModule.ts`) and looked up here.
 
 **`app/` is the medium registry** (`app/media.ts`): a `MediumModule` per medium, supplied by each
 domain's own `module.ts`, holding everything the app asks of a medium that the medium itself is the
@@ -915,8 +915,11 @@ field narrows the lists as well as the libraries.
 Which tab that is comes from `app/pageState.ts`'s `pageOf(tabId, library)`, the one file in `app/`
 that may name the composing tab: it answers with that tab's schema, its store, its measures, the
 noun its population is counted in, the rows its lists are built from and the floor its year picker
-offers. Four of the five come off a `MediumModule` and the fifth is registered by name, and the box
-never learns which is which. `pageCount` states the population through the same composed predicate
+offers. All five come off a `PageModule` — four of them a `MediumModule`, which extends it, and the
+fifth the composing tab's own — so the lookup has no branch in it and the box never learns which is
+which. Where a tab's rows are is the one answer a module cannot give, `library` being a shape in the
+composing folder that a domain module reaching for would cycle, so `PAGE_MODULES` pairs each with
+that accessor: a medium's visible slice, the union for the composing tab. `pageCount` states the population through the same composed predicate
 the charts are drawn by, so the box's footer and the rail's chip cannot arrive at two figures.
 
 **Three kinds of hit.** _Places_ are the other tabs, offered as a "Go to" line of chips — all of
@@ -1524,7 +1527,18 @@ the chip list, whose ids have two holders — `Stats` the bands above the charts
 below — and which comes from the same test `Stats` makes about whether there is anything to lead
 with, so a chip never points at an anchor that is not on the page.
 
-The rail also carries the page's whole-page readings, in named slots at its right end: `scope`, the
+**`app/PageRail.tsx` is the rail with those readings already in it.** The four controls at its tail
+are one arrangement over one page's state, and each tab was building it out of its own filter state
+— five copies of a rule about which control stands where, kept in step by hand, and the fifth of
+them over a state that comes from no medium at all. It reads the current tab, that tab's state and
+its page module for itself, so a `Graphs` says only which sections its page has and how many rows
+its charts are drawing. The row count is the one thing passed in: re-derived here it would run the
+page's own predicate over the library a second time every render, and a figure arrived at twice can
+disagree with what is on screen. It lives in `app/` because it asks the composing layer which page
+it is over, and it is reached only from a tab's own lazy `Graphs` — so, like the search surface, it
+may read `tabs.ts` without the temporal-dead-zone problem an eager import would create.
+
+The rail carries the page's whole-page readings in named slots at its right end: `scope`, the
 years every figure on the tab is scoped to; `measure`, the unit they are counted in; and
 `population`, the chip stating what the filters leave (`FilterChip`, below). Each belongs on the
 one control surface reachable from anywhere — they narrow the vitals, the timeline, the charts and
@@ -1990,9 +2004,9 @@ The two vitals cards mirror that state without setting it.
 over the _visible_ library, so guest mode switched on under a chosen franchise would leave that
 franchise selected in the store with no chip anywhere offering or clearing it, and every chart on
 the page narrowed to nothing for a reason the reader cannot see. `LibraryProvider` sweeps each tab's
-selects against exactly the rows that tab's own controls list from — each medium's visible slice, the
-union for the composing tab — through `retainPageSelections` (`app/pageState.ts`, the one file there
-that names the composing tab). The `retain` action answers the same state object where nothing is
+selects against exactly the rows that tab's own controls list from — which is what each page module
+answers with — through `retainPageSelections` (`app/pageState.ts`, the one file there that names the
+composing tab). The `retain` action answers the same state object where nothing is
 dropped, so the sweep costs no render on the runs that change nothing; a category holding nothing is
 skipped before its options are computed, since a pass over the whole library per category, for five
 tabs, on every sheet landing, is what the common case of nothing selected would otherwise cost. A

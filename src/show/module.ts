@@ -66,6 +66,8 @@ export const showModule: MediumModule<Show, Season, Measure> = {
    * watched in a year.
    */
   measures: ["Seasons", "Episodes", "Hours"],
+  // The accessor and not `statsData`'s own copy of it — see `vg/module.ts` for what the shared
+  // one costs the chunk every visit preloads.
   earliestYear: (shows) => earliestYearOf(shows, (show) => show.startDate.year),
   filters: showFilters,
   pageState,

@@ -65,7 +65,7 @@ export const LibraryProvider = ({ guestMode, children }: { guestMode: boolean; c
   // it, and the page reads as empty for no reason a reader can see or undo. Run from an effect
   // because it writes to stores every tab subscribes to.
   useEffect(() => {
-    retainPageSelections(visible, items);
+    retainPageSelections({ visible, items });
   }, [visible, items]);
 
   const value = {

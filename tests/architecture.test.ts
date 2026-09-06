@@ -261,12 +261,14 @@ describe("the registry never reaches back for a tab", () => {
   // module carries `tabId: string` instead, and the one component that resolves an id to a tab is
   // mounted by the shell, below both.
   //
-  // Two files in `app/` are exempt, for two different reasons rather than one relaxed rule.
-  // `LibraryProvider.tsx` is that one component, eager and below both. `SearchSurface.tsx` is not
-  // eager at all — `Search.tsx` reaches it only through `import("./SearchSurface")`, so its module
-  // does not evaluate until that chunk loads, well after `tabs.ts` has finished — and it reads
-  // `tabs.ts` for the palette's own "Go to" jump list, a tab's icon and bar colour among them.
-  const EXEMPT_FROM_TAB_IMPORT = ["LibraryProvider.tsx", "SearchSurface.tsx"];
+  // Three files in `app/` are exempt, for two different reasons rather than one relaxed rule.
+  // `LibraryProvider.tsx` is that one component, eager and below both. `SearchSurface.tsx` and
+  // `PageRail.tsx` are not eager at all — the first is reached only through
+  // `import("./SearchSurface")` and the second only from a tab's own lazy `Graphs`, so neither
+  // module evaluates until that chunk loads, well after `tabs.ts` has finished. Both read the tab
+  // the reader is on: the palette for its "Go to" jump list, a tab's icon and bar colour among
+  // them, and the rail for the page whose controls it is drawing.
+  const EXEMPT_FROM_TAB_IMPORT = ["LibraryProvider.tsx", "SearchSurface.tsx", "PageRail.tsx"];
 
   // The extension is optional in the specifier and written both ways here — `vg.tsx` imports
   // `"./filterUtils.ts"` beside `"../tabs"` — so a pattern anchored on the bare name alone would

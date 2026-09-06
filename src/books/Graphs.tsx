@@ -1,6 +1,5 @@
 import { memo, useDeferredValue } from "react";
 import { Stack } from "@mui/material";
-import type { YearNumber } from "../common/date";
 import type { Book } from "./types";
 import { bookModule } from "./module";
 import Finished from "../common/Finished";
@@ -9,17 +8,15 @@ import Stats from "./Stats";
 import Sunburst from "./Sunburst";
 import Barchart from "./Barchart";
 import Timeline from "./Timeline";
-import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
-import { FilterChip, PageChip } from "../common/PageHandles";
-import { isFilteredEmpty, stated } from "../common/population";
+import { ChartPair, ChartsAndLibrary, Section } from "../common/SectionRail";
+import { PageRail } from "../app/PageRail";
+import { isFilteredEmpty } from "../common/population";
 import { NothingMatches } from "../common/NothingMatches";
-import { MeasureControl, ScopeControl } from "../common/SelectionComponents";
-import { useOtherTabs } from "../tabs";
 import { BOOK_SECTIONS, bookSections } from "./sections";
 import { bookEpoch, bookFranchise, BookEpochProvider, FranchiseContext } from "./franchiseContext";
 import { franchiseIndex } from "../common/franchiseIndex";
 import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
-import { bookKey, currentlyReading, earliestYear } from "./statsData";
+import { bookKey, currentlyReading } from "./statsData";
 import { wallPopulation, type FinishedExtraSort } from "../common/finishedData";
 import { genreToColour } from "../utils/types";
 import { useScheme } from "../common/useScheme";
@@ -55,10 +52,6 @@ const SuspenseBlock = ({
     <BookEpochProvider value={bookEpoch(unfilteredData)}>
       <Graphs
         data={filteredData}
-        // The floor of the rail's year picker, read from the whole library rather than from what the
-        // filters left: derived from the filtered data, picking "In 2020" would leave 2020 the
-        // earliest year on offer and strand the reader in it.
-        earliestYear={earliestYear(unfilteredData)}
         filterState={filterState}
         filterDispatch={filterDispatch}
       />
@@ -69,19 +62,16 @@ const SuspenseBlock = ({
 const Graphs = memo(
   ({
     data,
-    earliestYear,
     filterState,
     filterDispatch,
   }: {
     data: Book[];
-    earliestYear: YearNumber;
     filterState: FilterState;
     filterDispatch: FilterDispatch;
   }) => {
     const scheme = useScheme();
 
     const deferredData = useDeferredValue(data, []);
-    const tabs = useOtherTabs();
     // Answered once for the page: it decides both whether the hero is rendered and whether the
     // rail offers a chip pointing at it, and two derivations of one test are two that can differ.
     const reading = currentlyReading(data);
@@ -149,37 +139,9 @@ const Graphs = memo(
 
     return (
       <Stack spacing={2}>
-        <SectionRail
+        <PageRail
           sections={bookSections(reading.length > 0, chartsLast)}
-          tabs={tabs}
-          scope={
-            <ScopeControl
-              label="Years"
-              yearTo={filterState.yearTo}
-              yearType={filterState.yearType}
-              earliestYear={earliestYear}
-              dispatch={filterDispatch}
-            />
-          }
-          measure={
-            <MeasureControl
-              measures={bookModule.measures}
-              value={filterState.measure}
-              dispatch={filterDispatch}
-            />
-          }
-          population={
-            <FilterChip
-              label={stated(data.length, bookModule.noun)}
-              activeCount={activeCount(filterState)}
-            />
-          }
-          pageChip={
-            <PageChip
-              measure={filterState.measure}
-              activeCount={activeCount(filterState)}
-            />
-          }
+          count={data.length}
         />
         <Stats
           data={data}

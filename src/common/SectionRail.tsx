@@ -8,7 +8,7 @@ import { BROWSER_TINT_VISIBLE } from "./chrome";
 import { QUIET_SIDEWAYS_SCROLL } from "./scrollbarSx";
 
 /** A chip in the rail. The `id` matches the `Section` it scrolls to. */
-type RailSection = ChipRailItem;
+export type RailSection = ChipRailItem;
 
 /**
  * How far off centre a pinned rail's chips sit before its padding answers for it, in pixels: the

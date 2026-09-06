@@ -2,41 +2,53 @@ import { useSyncExternalStore } from "react";
 import type { YearNumber } from "../common/date";
 import type { PageDispatch, PageState, PageStore } from "../common/filterReducer";
 import { categoryValues, fieldsOf, type PageSchema } from "../common/filterSchema";
-import type { OmniItem } from "../common/medium";
-import { omniFilters } from "../omnibus/filters";
-import {
-  earliestYear as omnibusEarliestYear,
-  MEASURES as OMNIBUS_MEASURES,
-  NOUN as OMNIBUS_NOUN,
-  pageState as omnibusPageState,
-} from "../omnibus/filterUtils";
-import type { Library, LibraryValue } from "./library";
-import { eachMedium, mediaModules, MEDIA } from "./media";
-import { MEDIA as MEDIA_ORDER } from "../utils/types";
+import type { PageModule } from "../common/medium";
+import { omniPageModule } from "../omnibus/pageModule";
+import type { LibraryValue } from "./library";
+import { eachMedium } from "./media";
 
 /**
- * The composing tab's own id, as a string rather than read off its `Tab`: `tabs.ts` imports the
- * five entry components eagerly and an entry component reaches this folder, so an import back
- * would evaluate this module while `tabs.ts` was still in its own temporal dead zone.
+ * The two halves of the library a page's own rows come out of: each medium's visible slice, and
+ * the union across all four. Taken as the pair rather than the whole value, so the sweep that runs
+ * whenever a sheet lands can be called before the provider has built the value it hands down.
  */
-const OMNIBUS_TAB = "omnibus";
+export type PageRows = Pick<LibraryValue, "visible" | "items">;
 
 /**
- * Every tab's page state, by tab id.
+ * One tab as a page, plus the one answer the tab itself cannot give: which rows of what the shell
+ * fetched are its own. A medium's are its visible slice, the composing tab's are the union — and a
+ * `MediumModule` cannot say so, `library` being a shape in this folder and a domain module reaching
+ * for it a cycle.
+ */
+type PageEntry = PageModule & { rows(library: PageRows): readonly unknown[] | undefined };
+
+/**
+ * Every tab as a page, by tab id.
  *
  * Keyed by tab and not by medium, because the composing tab is a page with filters, a measure and
- * a scope like any other and is no medium at all. Each store is created beside the reducer that
- * owns its initial state, in that tab's own `filterUtils.ts`, so this is a lookup and never a
- * second declaration of what a tab's state holds.
+ * a scope like any other and is no medium at all. Each entry is that tab's own module — created
+ * beside the reducer that owns its initial state — so this is a lookup and never a second
+ * declaration of what a tab holds, and every surface standing above the tabs reads one shape
+ * whichever page it is over.
  *
  * Every tab has an entry, which is what lets `usePageState` read one unconditionally — a hook
  * cannot be skipped for a tab that has none, and `tests/app/pageState.test.ts` pins the map
  * against the tabs themselves.
  */
-export const PAGE_STORES: Record<string, PageStore> = {
-  ...Object.fromEntries(mediaModules.map((module) => [module.tabId, module.pageState])),
-  [OMNIBUS_TAB]: omnibusPageState,
-};
+export const PAGE_MODULES: Record<string, PageEntry> = Object.fromEntries([
+  ...eachMedium((medium, module): [string, PageEntry] => [
+    module.tabId,
+    // The pairing is the registry's own: the slice is held under exactly the key the module was
+    // looked up by, so the rows a page draws are the rows its own filters were written against.
+    { ...module, rows: (library) => library.visible[medium] },
+  ]),
+  [omniPageModule.tabId, { ...omniPageModule, rows: (library: PageRows) => library.items }],
+]);
+
+/** The same map read for the one thing a surface setting a filter on another tab needs. */
+export const PAGE_STORES: Record<string, PageStore> = Object.fromEntries(
+  Object.entries(PAGE_MODULES).map(([tabId, page]) => [tabId, page.pageState]),
+);
 
 /**
  * One page's selections held to the vocabulary its own controls are drawing.
@@ -62,22 +74,17 @@ const retainSelections = (store: PageStore, schema: PageSchema, data: readonly u
  * A category's options are computed over the visible library, so guest mode switched on under a
  * chosen franchise leaves that franchise selected in the store while the select no longer lists it:
  * the page narrows to nothing and there is no chip anywhere to take the choice back. Swept per tab
- * against exactly the rows that tab's own controls draw their lists from — each medium's visible
- * slice, and the union for the composing tab.
+ * against exactly the rows that tab's own controls draw their lists from, which is what each page
+ * answers `rows` with.
  *
  * A slice still in flight is skipped rather than swept against nothing: on a cold cache a library
  * is absent until its sheet lands, and an empty list would clear every selection the reader made.
- *
- * Here rather than beside the library because this is the one file in `app/` that names the
- * composing tab, whose store is registered by name until it has a module of its own.
  */
-export const retainPageSelections = (library: Partial<Library>, items: OmniItem[] | undefined) => {
-  eachMedium((medium, module) => {
-    const slice = library[medium];
-    if (slice) retainSelections(module.pageState, module.filters, slice);
-  });
-
-  if (items) retainSelections(omnibusPageState, omniFilters, items);
+export const retainPageSelections = (library: PageRows) => {
+  for (const page of Object.values(PAGE_MODULES)) {
+    const rows = page.rows(library);
+    if (rows) retainSelections(page.pageState, page.filters, rows);
+  }
 };
 
 /**
@@ -131,34 +138,17 @@ export const pageCount = (surface: PageSurface, state: PageState): number =>
   // what every domain's predicate becomes under that erasure.
   surface.data.filter(state.filter as (item: unknown) => boolean).length;
 
-export const pageOf = (tabId: string, library: LibraryValue): PageSurface | undefined => {
-  if (tabId === OMNIBUS_TAB) {
-    const items = library.items;
-    if (!items) return undefined;
-    return {
-      schema: omniFilters,
-      store: omnibusPageState,
-      measures: OMNIBUS_MEASURES,
-      noun: OMNIBUS_NOUN,
-      data: items,
-      earliestYear: omnibusEarliestYear(items),
-    };
-  }
-
-  const medium = MEDIA_ORDER.find((candidate) => MEDIA[candidate].tabId === tabId);
-  if (!medium) return undefined;
-  const module = MEDIA[medium];
-  const data = library.visible[medium];
-  if (!data) return undefined;
+export const pageOf = (tabId: string, library: PageRows): PageSurface | undefined => {
+  const page = PAGE_MODULES[tabId];
+  const data = page?.rows(library);
+  if (!page || !data) return undefined;
 
   return {
-    schema: module.filters,
-    store: module.pageState,
-    measures: module.measures,
-    noun: module.noun,
+    schema: page.filters,
+    store: page.pageState,
+    measures: page.measures,
+    noun: page.noun,
     data,
-    // The pairing survives the lookup: `library.visible[medium]` and `MEDIA[medium]` are read off
-    // one key, and the assertion is only that TypeScript cannot follow a `find` back to it.
-    earliestYear: module.earliestYear(data as never),
+    earliestYear: page.earliestYear(data),
   };
 };

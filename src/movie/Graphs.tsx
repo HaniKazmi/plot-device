@@ -8,12 +8,10 @@ import Stats from "./Stats";
 import Sunburst from "./Sunburst";
 import Barchart from "./Barchart";
 import WatchTimeline from "./WatchTimeline";
-import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
-import { FilterChip, PageChip } from "../common/PageHandles";
-import { isFilteredEmpty, stated } from "../common/population";
+import { ChartPair, ChartsAndLibrary, Section } from "../common/SectionRail";
+import { PageRail } from "../app/PageRail";
+import { isFilteredEmpty } from "../common/population";
 import { NothingMatches } from "../common/NothingMatches";
-import { MeasureControl, ScopeControl } from "../common/SelectionComponents";
-import { useOtherTabs } from "../tabs";
 import { MOVIE_SECTIONS, movieSections } from "./sections";
 import { FranchiseContext, movieFranchise } from "./franchiseContext";
 import { franchiseIndex } from "../common/franchiseIndex";
@@ -21,7 +19,6 @@ import { activeCount, type FilterDispatch, type FilterState } from "./filterUtil
 import { wallPopulation, type FinishedExtraSort } from "../common/finishedData";
 import { useScheme } from "../common/useScheme";
 import { usePhone } from "../common/breakpoints";
-import { MOVIE_EPOCH } from "./statsData";
 
 const MOVIE_SORTS: readonly FinishedExtraSort<Movie>[] = [{ label: "Score", value: (movie) => movie.score }];
 
@@ -61,7 +58,6 @@ const Graphs = memo(
     const scheme = useScheme();
 
     const deferredData = useDeferredValue(data, []);
-    const tabs = useOtherTabs();
     // The phone reads the library before the charts. One answer for the page and the rail alike:
     // `ChartsAndLibrary` orders the two sections and `chartsLastOrder`, inside the sections list,
     // orders the chips naming them.
@@ -123,37 +119,9 @@ const Graphs = memo(
 
     return (
       <Stack spacing={2}>
-        <SectionRail
+        <PageRail
           sections={movieSections(data.length > 0, chartsLast)}
-          tabs={tabs}
-          scope={
-            <ScopeControl
-              label="Years"
-              yearTo={filterState.yearTo}
-              yearType={filterState.yearType}
-              earliestYear={MOVIE_EPOCH.year}
-              dispatch={filterDispatch}
-            />
-          }
-          measure={
-            <MeasureControl
-              measures={movieModule.measures}
-              value={filterState.measure}
-              dispatch={filterDispatch}
-            />
-          }
-          population={
-            <FilterChip
-              label={stated(data.length, movieModule.noun)}
-              activeCount={activeCount(filterState)}
-            />
-          }
-          pageChip={
-            <PageChip
-              measure={filterState.measure}
-              activeCount={activeCount(filterState)}
-            />
-          }
+          count={data.length}
         />
         <Stats
           data={data}

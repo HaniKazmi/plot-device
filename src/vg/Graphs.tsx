@@ -13,16 +13,13 @@ import { franchiseIndex } from "../common/franchiseIndex";
 import { memo, useDeferredValue } from "react";
 import { Stack } from "@mui/material";
 import { usePhone } from "../common/breakpoints";
-import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
-import { FilterChip, PageChip } from "../common/PageHandles";
-import { isFilteredEmpty, stated } from "../common/population";
+import { ChartPair, ChartsAndLibrary, Section } from "../common/SectionRail";
+import { PageRail } from "../app/PageRail";
+import { isFilteredEmpty } from "../common/population";
 import { NothingMatches } from "../common/NothingMatches";
-import { MeasureControl, ScopeControl } from "../common/SelectionComponents";
-import { useOtherTabs } from "../tabs";
 import { VG_SECTIONS, vgSections } from "./sections";
-import { currentlyPlaying, earliestYear } from "./statsData";
+import { currentlyPlaying } from "./statsData";
 import { wallPopulation } from "../common/finishedData";
-import type { YearNumber } from "../common/date";
 
 /** What the wall's card borders speak, and the key beneath its header names. */
 const VG_BORDER = { key: "company", valueOf: (game: VideoGame) => game.company };
@@ -41,9 +38,6 @@ const SuspenseBlock = ({
   <FranchiseContext.Provider value={franchiseIndex(unfilteredData, vgFranchise)}>
     <Graphs
       data={filteredData}
-      // Read from the whole library rather than what the filters left, so picking "In 2020"
-      // cannot strand the reader at 2020 by making that year the earliest one on offer.
-      earliestYear={earliestYear(unfilteredData)}
       filterState={filterState}
       filterDispatch={filterDispatch}
     />
@@ -53,18 +47,15 @@ const SuspenseBlock = ({
 const Graphs = memo(
   ({
     data,
-    earliestYear,
     filterState,
     filterDispatch,
   }: {
     data: VideoGame[];
-    earliestYear: YearNumber;
     filterState: FilterState;
     filterDispatch: FilterDispatch;
   }) => {
     const scheme = useScheme();
     const deferredData = useDeferredValue(data, []);
-    const tabs = useOtherTabs();
     // Answered once for the page: it decides both whether the hero is rendered and whether the
     // rail offers a chip pointing at it, and two derivations of one test are two that can differ.
     const playing = currentlyPlaying(data);
@@ -124,37 +115,9 @@ const Graphs = memo(
 
     return (
       <Stack spacing={2}>
-        <SectionRail
+        <PageRail
           sections={vgSections(playing.length > 0, chartsLast)}
-          tabs={tabs}
-          scope={
-            <ScopeControl
-              label="Years"
-              yearTo={filterState.yearTo}
-              yearType={filterState.yearType}
-              earliestYear={earliestYear}
-              dispatch={filterDispatch}
-            />
-          }
-          measure={
-            <MeasureControl
-              measures={vgModule.measures}
-              value={filterState.measure}
-              dispatch={filterDispatch}
-            />
-          }
-          population={
-            <FilterChip
-              label={stated(data.length, vgModule.noun)}
-              activeCount={activeCount(filterState)}
-            />
-          }
-          pageChip={
-            <PageChip
-              measure={filterState.measure}
-              activeCount={activeCount(filterState)}
-            />
-          }
+          count={data.length}
         />
         <Stats
           data={data}

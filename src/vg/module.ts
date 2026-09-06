@@ -44,6 +44,9 @@ export const vgModule: MediumModule<VideoGame, VideoGame, Measure> = {
   facts: (game, hours) => [game.platform, game.status, hours ? `${hours} hours` : ""].filter(Boolean).join(" · "),
   /** Games first: it is what a row of the sheet is. */
   measures: ["Games", "Hours"],
+  // The accessor rather than `statsData`'s own copy of it: a `module.ts` is in the chunk every
+  // visit preloads, and importing one line out of that file lands the rest of it there too — 1.15
+  // kB gzipped of Top-list categories and date arithmetic on the first paint of every tab.
   earliestYear: (games) => earliestYearOf(games, (game) => game.startDate.year),
   filters: vgFilters,
   pageState,
