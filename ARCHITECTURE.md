@@ -83,14 +83,13 @@ downwards, its entry component asking `app/library.ts` for the library the shell
 registry is the one part of `app/` built _from_ the modules, so `vg/module.ts` importing
 `app/media.ts` is a real cycle, and `module.ts` therefore imports nothing from `app/` at all.
 
-Three files in `omnibus/` are a named exception rather than a loosened rule: `adapter.ts`'s
-`electNow` elects across all four domains' own `statsData`, `Stats.tsx`'s Now band renders each
-domain's own `CardMediaImage` and reads its `cardData` subtitle and `statsData` hero figures, and
-`Graphs.tsx` mounts the four `FranchiseContext` providers the card strips and crossings read — the
-registry carries no election, no hero-card slot and no franchise-context slot per medium, so closing
-this is a registry change and not a move. `tests/architecture.test.ts` enforces both rules by
-reading the source across static, side-effect and dynamic imports alike, the three files named as
-exemptions rather than left to slip the check.
+One file in `omnibus/` is a named exception rather than a loosened rule: `Graphs.tsx` mounts the
+four `FranchiseContext` providers the card strips and the crossings read. The four are not one
+shape — Books stands a second provider inside its own, for the epoch every book strip opens at —
+and a per-medium provider member would have to be what each domain's _own_ `Graphs` mounts as well,
+or the tree would hold two definitions of one provider. `tests/architecture.test.ts` enforces both
+rules by reading the source across static, side-effect and dynamic imports alike, that one file
+named as an exemption rather than left to slip the check.
 
 The direction holds the other way too: **nothing in `app/` imports `omnibus/`**, that folder being a
 tab like any other, so the shared half of a surface more than one tab reads — the gallery's
@@ -114,8 +113,10 @@ and a fifth medium is otherwise an edit in every file that ever needed to tell t
 The registry is reachable from the shell, so it splits in two. `module.ts` is eager and holds what a
 tab needs before it draws anything; `module.lazy.ts` holds the card and the hover card, and is
 reached through `app/mediaLazy.ts` alone — a static table, so a wall of cards does not pay a round
-trip per medium, and the one seam, so there is one answer to when a medium's chunk is fetched. That
-lookup is on a value the bundler cannot narrow, so the lazy half is held to those two components:
+trip per medium, and the one seam, so there is one answer to when a medium's chunk is fetched. It also holds the two answers the Now band's card is
+made of, the medium's own election and the panel it states — what they answer is a card, and what
+they read is the `cardData` and `statsData` that domain's card already imports. That
+lookup is on a value the bundler cannot narrow, so the lazy half is held to those four members:
 anything else exported there is weight on the chunk the union prefetches for its hover cards on
 every visit. Nothing in `app/` imports `tabs.ts`,
 because `tabs.ts` imports the five entry components eagerly and an entry component reaches the
@@ -260,8 +261,8 @@ Two subtleties live in the serialisation boundary, and both are easy to break:
    `PlainDate`, a convention rather than a schema: a field like `updateDate` whose value happens to be
    4 or 10 characters is silently miscast, and any other length or `null` makes `PlainDate.from`
    throw. `parseCachedItems` catches that inside the `useState` initialiser and drops the cached copy,
-   the domain's reviver running in the same guard — a throw during render, with no error boundary
-   above it (§10), takes the page down.
+   the domain's reviver running in the same guard — the hook is called from `LibraryProvider`, above
+   the page's own error boundary (§10), so a throw here takes the app down and not just the page.
 
 Cache keys are versioned per domain — `dataCacheKey(domain, version)` yields `vg-data-cache-v2`,
 `show-data-cache-v3`, `movie-data-cache-v3`, `book-data-cache-v1` — and `dropSupersededVersions`
@@ -537,11 +538,15 @@ union (`OmniItem[]`, built in `app/`) instead of one medium's rows, so the page 
 tabs' own vocabulary rather than inventing a mixed-media one.
 
 **The Now band** (`omnibus/Stats.tsx`) is what no single tab can show: what each medium is currently
-on, side by side. `electNow` reuses each domain's own election — `currentlyPlaying`,
-`heroSeason(currentlyWatching(...))`, `latestWatched`, `currentlyReading` — so a card cannot
-disagree with the hero its home tab shows, and its `visible` record keeps a medium switched off in
-the box's This page mode from headlining. A medium with nothing in flight contributes no card; with none in
-flight, no band.
+on, side by side. `electNow` walks the registry rather than the four domains: each medium's
+`module.lazy.ts` holds its own election — `currentlyPlaying`, `heroSeason(currentlyWatching(...))`,
+`latestWatched`, `currentlyReading` — beside the `nowPanel` saying what that card states, so a card
+cannot disagree with the hero its home tab shows and the band dispatches on no medium anywhere. The
+walk takes the registry as a parameter, `adapter.ts` being a pure module that four card trees have
+no business in. `visible` keeps a medium switched off in the box's This page mode from being asked
+at all. A medium with nothing in flight contributes no card; with none in flight, no band. The
+phone's cell order — the book under the game, the film under the show — is a list of media beside
+that walk rather than four literals in the tree.
 
 The composing layer supplies the ground under each card's own `TypedCardMediaImage`: `barColour`
 (`src/tabs.ts`) — a tab's primary on the light paper, its 22% `darkBar.tint` on the dark — arrives
@@ -1557,28 +1562,26 @@ clear. Chips scroll rather than link, the app being served under a `HashRouter` 
 `scroll-margin-top`, without which the browser lands a section's top edge under the sticky rail —
 `SCROLL_MARGIN`, 72px, from `sm` up.
 
-**Below `sm` the rail is the bottom bar's scrolled state**, and nothing is pinned at the top of the
-page at all. The bar fixed to the bottom edge (`BottomTabs.tsx`) holds the five tabs while the page
-is against the app bar and the page's own rail once it has scrolled past it, cross-fading between the
-two at one height — so a phone pays for one bar rather than a pinned rail above the page and the tabs
-below it, 49px of a 720px screen given back to what the page is for. The swap is keyed on the same
-question the rail's own pin is, whether the app bar has left the screen (`APP_BAR_HEIGHT`,
-`chrome.ts`), read off `scrollY` rather than off an observed element: the rail is not drawn up there
-to observe, and a sentinel standing in for it would open a gap of its own in the page's spaced stack.
-The rail leads with a chip carrying the current tab's icon, which calls the tabs back **in place** —
-the alternative, scrolling to the top where they already are, costs a reader deep in a library wall
-their position to answer a question about navigation — and the reader's next scroll takes them away
-again, heard on a one-shot listener the request attaches for itself (`phoneBar.ts`), the crossing
-store answering only where the page crosses the app bar and so leaving the tabs up for a reader who
-asked for them a thousand pixels down and read on. A press on the tab already open scrolls to the top anyway, `BottomNavigation` answering a
-press on its selected action, so the way back exists without the chip having to be it.
+**Below `sm` the rail is the bottom row of the bottom bar**, and nothing is pinned at the top of
+the page at all. The bar fixed to the bottom edge (`BottomTabs.tsx`) is two rows: the page's own
+rail along the edge the thumb rests on, at every scroll position, and the five tabs above it. The
+rail is what a page is read through — sections, the measure, the filters — and the tabs are what a
+reader changes pages with, and both are used often enough that a bar showing one at a time makes
+every tab change two taps. The tab row folds on a scroll down and returns on a scroll up
+(`useTabsUp`), so most of a page is read under a 40px bar (`PHONE_RAIL_HEIGHT`, `chrome.ts`) and a
+tab is one tap away the moment the reader turns back; near the top of the page it stays up whichever
+way the last movement went. Direction rather than the app bar's crossing, because the tabs are
+wanted between pages and a scroll back up is the gesture that says the reader is done with this one.
+The page clears the bar at its full height throughout (`BOTTOM_TABS_CLEARANCE`), so nothing under
+the fold moves as the row folds. A press on the tab already open scrolls to the top,
+`BottomNavigation` answering a press on its selected action.
 
 `SectionRail` renders that row through a portal into a slot the bar publishes on a module store
 (`common/phoneBar.ts`), rather than the bar building it: the two are on opposite sides of the tree —
 the bar above the outlet, the rail inside a tab's own lazy `Graphs` — and only the page knows what
-its sections are. It is also what keeps the chips' own machinery, a tooltip and with it MUI's popper,
-out of the chunk every visitor evaluates before the first paint, which
-`tests/architecture.test.ts` pins. `PHONE_SCROLL_MARGIN` is what an anchored section clears there:
+its sections are. The slot is a `display: contents` box, so what the page portals in are the bar
+row's own flex children beside the tab chip; `RailChip` is its own module (`common/RailChip.tsx`)
+so that the bar takes the chip and not the scrolling row, its fades and its edge observer with it. `PHONE_SCROLL_MARGIN` is what an anchored section clears there:
 8px, plus `env(safe-area-inset-top)` in the CSS form, since nothing is above it but the device's own
 inset. The wall's sticky `BucketHeading` takes that same CSS form, the notch included, being drawn
 on a phone alone;
@@ -1619,8 +1622,8 @@ container putting the whole document on a sideways drag. `SegmentedControl` stat
 words, a Σ on a floating button being a legend nothing on the page teaches.
 
 **The chips own the row at the two widths where everything will not fit.** From `md` the tail is
-all three. Below `md` the scope leaves it — at 768 four tab chips, seven section chips, a picker,
-three segments and the population want about 950px of 720 — for the labelled row the box's own This
+all three. Below `md` the scope leaves it — at 768 five tab chips, seven section chips, a picker,
+three segments and the population want about 990px of 720 — for the labelled row the box's own This
 page mode draws (§ Search), through a `display` rule rather than the width read as a value, since
 that row is drawn at every width and one of the two copies is hidden either way. Below `sm` the
 measure and the population go with it and `pageChip` stands alone in their place: at 390 the three
@@ -1643,12 +1646,23 @@ everything, which is also why the scope is neither counted by the filter badge n
 Clear (§7): a control that says on its own face that it is on would otherwise be stated twice and
 undone in two places.
 
-The tab chips that lead the stuck rail are each their tab's own icon in its own colour — the
+The tab chips that lead the pinned rail from `sm` up are each their tab's own icon in its own colour — the
 primary on the light paper, the bar's `ink` on the dark, through `tabInk` (`tabs.ts`), since the
 primary on the dark paper is the value that tab's tint was mixed from. Icons rather than words at
-every width they are drawn at: four names and a divider take a third of a tablet's rail where four
-glyphs take 136px, and the app bar's own strip carries the same icons beside its words, which is
-where a reader learns them. Every `ChipRail` — this one, the timeline's years — keeps its lit chip
+every width they are drawn at: five names and a divider take half a tablet's rail where five glyphs
+take 172px, and the app bar's own strip carries the same icons beside its words, which is where a
+reader learns them. All five (`allTabs` and `useTabChips`, `tabs.ts`), and only once the app bar has
+scrolled away: what makes the row quicker than the app bar's own strip is that a hand reaches the
+third chip without reading the row, which a set sliding along by a chip wherever the current tab is
+left out cannot offer, and under the bar the five icons would restate the strip of five names a
+line above. The chip for the tab in hand is lit
+— filled in that tab's own colour rather than the theme's primary, which on that tab's own page is
+the same value and so would say least exactly where it is drawn — and answers a press by scrolling
+to the top and navigating nowhere, routing to the path already open pushing a second history entry
+for it, as the bottom bar's own selected action does. They stand beside the scrolling row rather than
+in it: at 768 a tab's seven sections overflow the row, and a rail that follows its lit chip would
+otherwise carry the tabs off the left as the page is read. `useOtherTabs` is those five less the one in hand, for the search box's "Go to" line, which
+offers places to go rather than positions to learn. Every `ChipRail` — this one, the timeline's years — keeps its lit chip
 in view: when the active id changes the row scrolls so that chip and a margin of its neighbours are
 inside it (`railScrollTarget`, `common/chipRailData.ts`), instantly under `prefers-reduced-motion`.
 A rail is a reading of where in the page the reader is, and on a phone the row holds four of a tab's
@@ -1659,8 +1673,11 @@ alone, so the reader's own flick along the row is never taken back. `RailChip`'s
 circle — the label's padding and MUI's
 own offsets for a mark beside a word are dropped and the width follows the height through
 `aspect-ratio`, so the glyph is centred at whatever height the pointer gives a chip — and it is
-named by its `aria-label` with a tooltip carrying the same word for a pointer; a finger is told
-nothing, its press-and-hold being the browser's own.
+named by its `aria-label` and nothing else: a word appearing only under a pointer teaches nothing to
+the finger a rail is mostly read with, where the app bar's own strip pairs each glyph with its word.
+No chip anywhere carries a hover label, which is also what keeps MUI's `Tooltip` and the Popper
+engine behind it out of every chunk a rail is drawn in — `tests/architecture.test.ts` pins that the
+first paint never reaches it.
 
 The chips are dropped entirely below `sm`, where the bar's own leading chip calls the five tabs
 back into the row and a rail spending 300 of its 358px saying so again buys nothing; a rail's own
@@ -1720,27 +1737,27 @@ item a finger has no way in, and a mouse no way out but a reload.
 
 Each tab in the strip carries its own icon beside its word (`iconPosition="start"`, so the strip
 keeps one row's height). The word is what the strip is for, and the glyph beside it is what teaches
-the mark the section rail names that tab by once the bar has scrolled away, and the bottom
-navigation names it by on a phone — one icon per tab, from `Tab.icon`, drawn in all three places.
+the mark the pinned section rail names every tab by from `sm` up, and the bottom navigation names it by on
+a phone — one icon per tab, from `Tab.icon`, drawn in all three places.
 
 Below `sm` the tab strip itself is replaced by `BottomTabs`, fixed to the screen's bottom edge and
 reachable from any scroll position and a thumb, which no arrangement of the `position: static` app
 bar achieves; it wears the tab's own `barColour` as the app bar does, so the top and bottom of a
 phone name the same tab, and a tab change resets scroll (`window.scrollTo({ top: 0 })`) the way the
-rail's own chips do. That is one of its two states (§ Page architecture): scrolled, the same bar is
-the page's rail, still in the tab's colour so the bar reads as one thing either way; the chips it
-then holds are the kit's, solved against `background.default` — a lit chip is filled in the primary
-and would be invisible on a bar that _is_ the primary — so `onBarSx` (`common/barTone.ts`) re-tones
-them onto the bar, the unlit in the bar's ink and the lit filled with it and worded in the bar's own
-colour, and the chip row's end fades resolve to the bar rather than to the page (`SectionRail`'s
-`phoneGround`). Those are descendant rules and outrank a child's own `sx`, so the one chip drawn in a
-colour of its own — the tab in hand, in that tab's ink — publishes `data-own-colour` and the dark
-sheet skips it, the tab inks being solved to read against the tint. Safari samples this bar
-for the bottom of its chrome, which is then the tab's colour at every scroll position.
+rail's own chips do. The tabs are its upper row (§ Page architecture): the lower is the page's
+rail, in the tab's colour too so the bar reads as one thing; the chips it holds are the kit's, solved
+against `background.default` — a lit chip is filled in the primary and would be invisible on a bar
+that _is_ the primary — so `onBarSx` (`common/barTone.ts`) re-tones them onto the bar, the unlit in
+the bar's ink and the lit filled with it and worded in the bar's own colour, and the chip row's end
+fades resolve to the bar rather than to the page (`SectionRail`'s `phoneGround`). Every part of
+that row takes those tones: those are descendant rules and outrank a child's own `sx`, and a chip
+that carved itself out of them would be drawn in the colour the light bar is painted in. Safari
+samples this bar for the bottom of its chrome, which is then the tab's colour at every scroll
+position.
 
 The top edge has no bar of its own to sample, so `BrowserTint.tsx` stands a strip there in the tab's
 own colour while the page is against the app bar, and is not drawn at all once scrolled past it, on
-the same `useScrolledPastBar` boundary (`common/chrome.ts`) `BottomTabs` reads for its own two states.
+the `useScrolledPastBar` boundary (`common/chrome.ts`).
 With nothing fixed at the top to sample, Safari draws its own translucent status bar over the page,
 which a stated ground can only imitate; the `theme-color` metas `Google.tsx` emits (§ Theming and
 routing) stay, stating the page's own ground there for the browsers that still read one. Left at the
@@ -1980,7 +1997,7 @@ key in ObjectExpression`; pulled out to a plain function taking the varying piec
   `sheetBarSx`, `dialogCardSx`, among others — the literal itself sits at module scope and the
   component stays compiled.
 
-The baseline is **266 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **271 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.
@@ -2045,13 +2062,21 @@ would drop them; and a surface narrowing a tab it is not on dispatches on that t
 navigates, rather than parking a pending filter somewhere for the page to find — which is exactly
 what an attribute hit does in the box (§6). `pageOf` beside `usePageState` answers the rest of what
 such a surface needs of a tab it is not standing inside: its schema, its measures, the noun its
-population is counted in, its rows and the floor its year picker offers.
+population is counted in, its rows and the floor its year picker offers. A surface standing over
+_the current_ tab asks `usePage()` (`app/page.ts`) for all four at once — the tab, that page, its
+state and its dispatch — rather than repeating the tab-then-library-then-state-then-module lookup
+the rail, the box and the shell's empty-state provider each need: three copies of one order are
+three that can pair a state with another tab's module. It is the one file in `app/` outside the
+provider that names `tabs.ts`, which is safe because nothing the registry reaches imports it.
 
 The measure action _sets_ rather than advances, the control being a segment per measure: a press
 names its own state, so setting the measure already held answers the same object and costs no render.
 It is also the one action that does not rebuild `filter`, since no `filters()` reads the measure and
-consumers re-filter on that predicate's identity. `yearType` names the reading it wants for the same
-reason, a control with a state per reading having a lit segment to press twice.
+consumers re-filter on that predicate's identity. `scope` names the whole year scope it wants for the
+same reason, a control with a state per reading having a lit segment to press twice — and both
+halves at once, since a reading and the year it is read against are one choice: sent as two actions,
+moving from "Up to 2019" to "In 2026" passes through "In 2019" and every consumer on the page
+re-filters against a scope nobody asked for.
 
 `countActiveFilters` counts fields, not predicates — three genres picked in one select are one choice,
 undone in one place — comparing arrays element-wise and leaving `measure`, `filter`, `yearTo` and
@@ -2144,8 +2169,7 @@ MUI's stock blue. `enableColorOnDark` stays off and each tab carries a `darkBar`
 cannot drift. Two `theme-color` metas are emitted, one per scheme, each carrying the tab's own bar
 colour above `sm` and, below it, swapping to the scheme's own page ground once the page has scrolled
 past the app bar — the same boundary and the same `useScrolledPastBar` (`common/chrome.ts`) the
-top-edge tint strip (`BrowserTint.tsx`, § Phone and tablet) and the bottom bar's own tabs/rail swap
-key on. Safari reads neither meta and samples the strip, which past the bar is not drawn; a browser
+top-edge tint strip (`BrowserTint.tsx`, § Phone and tablet) keys on. Safari reads neither meta and samples the strip, which past the bar is not drawn; a browser
 that does read one — Android Chrome, and an installed app, whose manifest otherwise answers with the
 Omnibus's own purple whatever tab is open — lands on the ground the page at that edge actually
 paints.
@@ -2184,8 +2208,9 @@ A fifth medium extends the `Medium` union in `utils/types.ts` with its fill, lab
 and is then **a `module.ts`, a `module.lazy.ts`, a line in `app/records.ts` and one in
 `app/media.ts`** (§2). The eager half answers what the medium is — its `DataConfig`, its guest rule,
 its arm of the union, its `FranchiseEntry` mapper and span, its page state, its filter schema, its
-artwork and its title; the lazy half answers what draws it, its card and its hover card, and nothing
-else, its filter glyphs going beside its own `Graphs`. `app/records.ts` names the record its sheet
+artwork and its title; the lazy half answers what draws it: its card, its hover card, and the
+election and Now panel the composing tab's band leads with — those four and nothing else, its
+filter glyphs going beside its own `Graphs`. `app/records.ts` names the record its sheet
 converts to and the one it contributes to the union, which is what pairs the module with its own
 library.
 Nothing else changes: `toOmniItems`, `visibleLibrary`, the crossings, the gallery, the search index
@@ -2238,11 +2263,17 @@ is that tab's own `yearRule`, passed to `createFilterReducer` in `filterUtils.ts
 
 Recorded so they are not mistaken for design:
 
-- **No error boundary.** `main.tsx` renders `<App/>` bare, so one throw anywhere in the tree blanks
-  the page with no message — which is why `parseCachedItems` and `parseTokenWrapper` each guard a
-  `JSON.parse` in a `useState` initialiser. Unguarded paths remain:
-  `initTokenClient({ client_id: CLIENT_ID })` runs in an effect with no check, so a missing
-  `VITE_GOOGLE_CLIENT_ID` throws there and takes the app with it.
+- **The error boundary covers the page and not the shell.** `common/ErrorBoundary.tsx` — the one
+  class in the tree, since React exposes catching a render error through no hook — is mounted in
+  `Google.tsx` around the outlet and the search host, inside the providers: a throw in a chart, a
+  card or a colour lookup states itself on a `NoticeCard` carrying the error's own message and a
+  Reload, and leaves the app bar, the tabs and the search key standing to leave the broken page by.
+  It is keyed on the tab id, so a change of tab builds a fresh boundary and the next page draws
+  without a reload. What it cannot catch is what renders above it: a throw in a `useState`
+  initialiser, `LibraryProvider` wrapping `NavBar` and so standing higher — which is why
+  `parseCachedItems` and `parseTokenWrapper` each guard a `JSON.parse` in one — and
+  `initTokenClient({ client_id: CLIENT_ID })`, which runs in an effect in `GoogleAuthProvider` with
+  no check, so a missing `VITE_GOOGLE_CLIENT_ID` still takes the app with it.
 - **No loading state.** An entry component renders `{data && <Graphs/>}` beside its snackbar, so a
   page with nothing to draw draws nothing. The `empty` state has a card of its own now (§5), which
   covers the reader who has never authorised; the two windows either side of it are still bare. While

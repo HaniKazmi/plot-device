@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { CURRENT_YEAR, YearMonthDay, Year, type YearNumber } from "../../src/common/date";
-import { electNow, ofMedium, omniTitle, recentlyFinished, unionTotals } from "../../src/omnibus/adapter";
+import { electNow, hasNow, ofMedium, omniTitle, recentlyFinished, unionTotals } from "../../src/omnibus/adapter";
+import type { MediumLazy } from "../../src/common/medium";
+import { MEDIA as MEDIA_ORDER, type Medium } from "../../src/utils/types";
 import { earliestYear } from "../../src/omnibus/filterUtils";
 import { measureOf, omniHours, toOmniItems, visibleLibrary } from "../../src/app/library";
 import { omniBanner } from "../../src/app/media";
@@ -11,6 +13,10 @@ import { library } from "../fixtures/library";
 import { movie } from "../fixtures/movies";
 import { season, show } from "../fixtures/shows";
 import { videoGame } from "../fixtures/vgRows";
+import { now as bookNow } from "../../src/books/now";
+import { now as movieNow } from "../../src/movie/now";
+import { now as showNow } from "../../src/show/now";
+import { now as vgNow } from "../../src/vg/now";
 
 /**
  * A show holding the seasons described, with the totals rolled up into the parent the way the
@@ -287,30 +293,43 @@ describe("recently finished", () => {
   });
 });
 
+/**
+ * A registry whose every medium elects its first row.
+ *
+ * What `electNow` owns is the walk — which medium's module is handed which library, and which
+ * media are asked at all — where each domain's own pair is run below through its `now` module,
+ * the pure half of `module.lazy.ts`: naming the lazy module itself here would put four card trees
+ * in a `node` test process.
+ */
+const firstRow: Record<Medium, MediumLazy<unknown>> = Object.fromEntries(
+  MEDIA_ORDER.map((medium) => [medium, { elect: (rows: readonly unknown[]) => rows[0] }]),
+) as Record<Medium, MediumLazy<unknown>>;
+
 describe("electing what each medium is on now", () => {
   const playing = videoGame({ status: "Playing", startDate: YearMonthDay.get(2026, 1, 2) });
-  const watching = showWith([{ start: 2026 }]);
-  watching.s[0].lastWatchedDate = YearMonthDay.get(2026, 2, 1);
-  watching.lastWatchedDate = watching.s[0].lastWatchedDate;
   const latest = movie({ startDate: YearMonthDay.get(2026, 2, 3) });
   const all = { game: true, show: true, movie: true, book: true };
 
-  it("asks each domain for its own answer rather than inventing one", () => {
-    const now = electNow(library({ game: [videoGame(), playing], show: [watching], movie: [movie(), latest] }), all);
+  it("hands each medium's own module that medium's own rows", () => {
+    const now = electNow(firstRow, library({ game: [playing, videoGame()], movie: [latest] }), all);
 
     expect(now.game).toBe(playing);
-    expect(now.show).toBe(watching.s[0]);
     expect(now.movie).toBe(latest);
   });
 
   it("offers nothing for a medium with nothing in flight", () => {
-    const now = electNow(library({ game: [videoGame({ status: "Beat" })] }), all);
+    const now = electNow(firstRow, library({ movie: [latest] }), all);
 
     expect(now.game).toBeUndefined();
+    expect(hasNow(now)).toBe(true);
   });
 
-  it("offers nothing for a medium switched off, which is not on the page to be headlined", () => {
-    const now = electNow(library({ game: [playing], movie: [latest] }), { ...all, game: false });
+  it("says there is no band where no medium answers", () => {
+    expect(hasNow(electNow(firstRow, library(), all))).toBe(false);
+  });
+
+  it("asks nothing of a medium switched off, which is not on the page to be headlined", () => {
+    const now = electNow(firstRow, library({ game: [playing], movie: [latest] }), { ...all, game: false });
 
     expect(now.game).toBeUndefined();
     expect(now.movie).toBe(latest);
@@ -379,18 +398,43 @@ describe("a book in the union", () => {
 
     expect(visibleLibrary(library({ book: books }), true).book).toEqual(books);
   });
+});
 
-  it("is elected for the Now band by the same rule the Books tab's hero uses", () => {
-    const reading = book({
-      name: "Open",
-      status: "Reading",
-      startDate: YearMonthDay.get(2026, 5, 1),
-      endDate: undefined,
-    });
-    const all = { game: true, show: true, movie: true, book: true };
+/**
+ * Each medium's own election feeds its own panel: the registry erases the record, so the one
+ * place the pair is run as the band runs it is here, on the rows each tab's hero is elected from.
+ */
+describe("each medium's Now pair", () => {
+  it("names the game in progress", () => {
+    const playing = videoGame({ name: "Tunic", status: "Playing", startDate: YearMonthDay.get(2026, 1, 2) });
+    const item = vgNow.elect([videoGame(), playing]);
 
-    expect(electNow(library({ book: [book(), reading] }), all).book).toBe(reading);
-    expect(electNow(library({ book: [book()] }), all).book).toBeUndefined();
-    expect(electNow(library({ book: [reading] }), { ...all, book: false }).book).toBeUndefined();
+    expect(item).toBe(playing);
+    expect(vgNow.nowPanel(item!, "light").title).toBe("Tunic");
+  });
+
+  it("names the season the sheet marks as current", () => {
+    const watching = show({ name: "Severance", lastWatchedDate: YearMonthDay.get(2026, 3, 4) });
+    watching.s.push(season(watching, { s: 2 }));
+    const item = showNow.elect([show({ status: "Ended" }), watching]);
+
+    expect(item?.show).toBe(watching);
+    expect(showNow.nowPanel(item!, "light").title).toBe("Severance S2");
+  });
+
+  it("names the film watched most recently", () => {
+    const latest = movie({ name: "Dune", startDate: YearMonthDay.get(2026, 2, 3) });
+    const item = movieNow.elect([movie(), latest]);
+
+    expect(item).toBe(latest);
+    expect(movieNow.nowPanel(item!, "light").title).toBe("Dune");
+  });
+
+  it("names the book in hand", () => {
+    const reading = book({ name: "Pushing Ice", status: "Reading", startDate: YearMonthDay.get(2026, 4, 5) });
+    const item = bookNow.elect([book(), reading]);
+
+    expect(item).toBe(reading);
+    expect(bookNow.nowPanel(item!, "light").title).toBe("Pushing Ice");
   });
 });

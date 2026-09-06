@@ -1,4 +1,13 @@
 import { shapeRatioValues } from "../common/cardArrangement";
+import type { Medium } from "../utils/types";
+
+/**
+ * The order the phone's two columns read down: the book under the game, the film under the show,
+ * so a banner stands over a portrait in each and the two columns come out one height. Elsewhere
+ * the four stand in the tabs' own order (`media`). Every medium once, which its test pins: a
+ * medium left out here has a card from `sm` up and no cell on a phone.
+ */
+export const NOW_PHONE_ORDER: readonly Medium[] = ["game", "book", "show", "movie"];
 
 /** The row's one height, and the column of words a poster card carries beside its picture. */
 export const NOW_HEIGHT = 380;

@@ -20,13 +20,14 @@ import { LibraryProvider } from "./app/LibraryProvider.tsx";
 import { FranchiseUnionProvider } from "./app/franchiseUnion.tsx";
 import { SearchHost } from "./app/Search.tsx";
 import { useAuthState } from "./app/authState.ts";
-import { useLibrary } from "./app/library.ts";
-import { pageCount, pageOf, usePageState } from "./app/pageState.ts";
+import { usePage } from "./app/page.ts";
+import { pageCount } from "./app/pageState.ts";
 import { NothingMatchesContext } from "./common/nothingMatchesContext.ts";
 import { isNarrowedEmpty } from "./common/population.ts";
 import { isAllTime, scopeLabel } from "./common/scope.ts";
 import { CURRENT_YEAR } from "./common/date.ts";
 import { EmptyCard } from "./app/EmptyCard.tsx";
+import { ErrorBoundary } from "./common/ErrorBoundary.tsx";
 import { barColour, useCurrentTab } from "./tabs.ts";
 import type { Tab } from "./tabs.ts";
 import type {} from "@mui/material/themeCssVarsAugmentation";
@@ -53,10 +54,7 @@ import type {} from "@mui/material/themeCssVarsAugmentation";
  * so a change here re-renders this and not the page.
  */
 const NothingMatchesProvider = ({ children }: { children: ReactNode }) => {
-  const tab = useCurrentTab();
-  const library = useLibrary();
-  const [state] = usePageState(tab.id);
-  const page = pageOf(tab.id, library);
+  const { page, state, dispatch } = usePage();
   const filtersActive = page !== undefined && page.store.activeCountOf(state) > 0;
   const scoped = !isAllTime(state.yearTo, state.yearType, CURRENT_YEAR);
 
@@ -66,18 +64,28 @@ const NothingMatchesProvider = ({ children }: { children: ReactNode }) => {
         active: page ? isNarrowedEmpty(pageCount(page, state), filtersActive, scoped) : false,
         filtersActive,
         scope: scoped ? scopeLabel(state.yearTo, state.yearType, CURRENT_YEAR) : undefined,
-        clearFilters: () => page?.store.dispatch({ type: "resetFilters" }),
-        // The two halves of the scope, as the picker's own "All time" sets them: the reading and
-        // the year it is read against, one being no answer without the other.
-        clearScope: () => {
-          page?.store.dispatch({ type: "updateFilter", filter: "yearTo", value: CURRENT_YEAR });
-          page?.store.dispatch({ type: "yearType", yearType: "upto" });
-        },
+        clearFilters: () => dispatch({ type: "resetFilters" }),
+        // The whole scope, exactly as the picker's own "All time" sets it.
+        clearScope: () => dispatch({ type: "scope", yearTo: CURRENT_YEAR, yearType: "upto" }),
       }}
     >
       {children}
     </NothingMatchesContext>
   );
+};
+
+/**
+ * The boundary around the page, keyed on the tab it stands over.
+ *
+ * A boundary holds its error until something remounts it, and the reader's own way out of a page
+ * that threw is another tab — keyed on the tab id, a change of tab builds a fresh boundary and the
+ * next page draws, where one boundary for the app would keep the card up until a reload. The key
+ * is the whole reason this is a component: `ErrorBoundary` is domain-blind and reads no route.
+ */
+const PageBoundary = ({ children }: { children: ReactNode }) => {
+  const tab = useCurrentTab();
+
+  return <ErrorBoundary key={tab.id}>{children}</ErrorBoundary>;
 };
 
 const PageContent = () =>
@@ -111,7 +119,14 @@ const GoogleAuth = () => {
         >
           {/* Above every tab, because a card on any of them draws the franchise across all four. */}
           <FranchiseUnionProvider>
-            <PageContent />
+            {/* Below the bar and the providers, and around the page alone: a throw in a chart, a
+                converter's colour lookup or a card leaves the app bar, the tabs and the search
+                standing, which is what the reader leaves the broken page by. The search host is a
+                sibling rather than a child, so a page's throw cannot take it down with the page,
+                and the boundary's tab key cannot remount it and drop the query it holds. */}
+            <PageBoundary>
+              <PageContent />
+            </PageBoundary>
             {/* Inside the provider, since the palette lists the union's own items; opened from the
                 app bar above through a store rather than a flag lifted over both. */}
             <SearchHost />

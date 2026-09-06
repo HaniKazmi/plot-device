@@ -262,12 +262,10 @@ export const SelectBox = <T extends string>({
 };
 
 /**
- * Typed as exactly the two actions this control sends, so every domain's dispatch — each a
+ * Typed as exactly the one action this control sends, so every domain's dispatch — each a
  * `FilterDispatchFor` over its own wider state — fits structurally without a generic.
  */
-type YearDispatch = (
-  action: { type: "updateFilter"; filter: "yearTo"; value: YearNumber } | { type: "yearType"; yearType: YearType },
-) => void;
+type YearDispatch = (action: { type: "scope"; yearTo: YearNumber; yearType: YearType }) => void;
 
 /** The two readings of a year: everything up to it, or that year alone. */
 const SCOPE_SEGMENTS: SegmentOption<YearType>[] = [
@@ -330,8 +328,7 @@ export const ScopeControl = ({
   };
 
   const setScope = (year: YearNumber, type: YearType) => {
-    dispatch({ type: "updateFilter", filter: "yearTo", value: year });
-    dispatch({ type: "yearType", yearType: type });
+    dispatch({ type: "scope", yearTo: year, yearType: type });
     close();
   };
 
@@ -396,7 +393,10 @@ export const ScopeControl = ({
             <SegmentedControl
               options={SCOPE_SEGMENTS}
               value={yearType}
-              onChange={(next) => dispatch({ type: "yearType", yearType: next })}
+              // Each of the popover's two controls names the whole scope: the half it does not
+              // move is the one the page is already reading, so a press states a scope rather
+              // than half of one.
+              onChange={(next) => dispatch({ type: "scope", yearTo, yearType: next })}
               ariaLabel="Year reading"
             />
             <SelectBox
@@ -405,9 +405,7 @@ export const ScopeControl = ({
               // The years are already the words on them, where the app's humaniser would take a
               // capital to a digit.
               labelFor={(year) => year}
-              setValue={(year) =>
-                dispatch({ type: "updateFilter", filter: "yearTo", value: Number(year) as YearNumber })
-              }
+              setValue={(year) => dispatch({ type: "scope", yearTo: Number(year) as YearNumber, yearType })}
             />
           </Stack>
         </Stack>

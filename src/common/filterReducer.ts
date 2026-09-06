@@ -31,7 +31,11 @@ type FilterAction<S, K extends keyof S = keyof S> =
   // Read off the state's own field rather than carried as a second parameter on the action union:
   // `S` already names the measure it holds, and a domain's dispatch is typed from `S` alone.
   | { type: "measure"; measure: S extends { measure: infer M } ? M : never }
-  | { type: "yearType"; yearType: YearType };
+  // The whole scope, both halves at once: a reading and the year it is read against are one choice
+  // and neither is an answer without the other. Sent as two actions, moving from "Up to 2019" to
+  // "In 2026" passes through "In 2019" — a scope nobody asked for, which every consumer on the
+  // page re-filters its library against before the second action lands.
+  | { type: "scope"; yearTo: YearNumber; yearType: YearType };
 
 export type FilterDispatchFor<S> = Dispatch<FilterAction<S, keyof S>>;
 
@@ -55,7 +59,7 @@ export type PageAction =
   | { type: "updateFilter"; filter: string; value: unknown }
   | { type: "retain"; category: string; values: readonly string[] }
   | { type: "measure"; measure: string }
-  | { type: "yearType"; yearType: YearType };
+  | { type: "scope"; yearTo: YearNumber; yearType: YearType };
 
 export type PageDispatch = Dispatch<PageAction>;
 
@@ -261,12 +265,12 @@ export const createFilterReducer = <T, M extends string, S extends BaseFilterSta
         // costs no render.
         if (state.measure === action.measure) return state;
         return { ...state, measure: action.measure as M };
-      case "yearType":
-        // The action names the reading rather than flipping to the other one, as the measure
-        // does: a control with a state per reading has to answer the same object when the reader
-        // presses the one already held, or every press costs a render and a re-filter.
-        if (state.yearType === action.yearType) return state;
-        return withFilter({ ...state, yearType: action.yearType });
+      case "scope":
+        // The action names the scope rather than flipping a reading, as the measure does: a
+        // control with a state per reading has to answer the same object when the reader picks
+        // the one already held, or every press costs a render and a re-filter of the page.
+        if (state.yearTo === action.yearTo && state.yearType === action.yearType) return state;
+        return withFilter({ ...state, yearTo: action.yearTo, yearType: action.yearType });
     }
   };
 

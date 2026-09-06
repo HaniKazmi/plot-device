@@ -5,7 +5,7 @@ import Tabs, {
   OmnibusTab,
   ShowsTab,
   VideoGamesTab,
-  otherTabs,
+  allTabs,
   tabForPath,
   type DarkBar,
   type Tab,
@@ -82,24 +82,34 @@ describe("tabForPath", () => {
   });
 });
 
-describe("otherTabs", () => {
-  it("offers every routed tab but the current one, as rail chips", () => {
-    // The current tab is deliberately absent: the rail offers movement, not orientation, and a
-    // chip for where the reader already is would rebuild the app bar the rail stands in for.
-    expect(otherTabs(ShowsTab, "light").map((tab) => [tab.id, tab.label])).toEqual([
+describe("allTabs", () => {
+  it("offers every routed tab, in the registry's own order", () => {
+    // All five and always in this order: the chips are a fixed set of positions a hand learns, so
+    // dropping the one in hand would slide the rest along by a chip on every navigation.
+    expect(allTabs(ShowsTab, "light").map((tab) => [tab.id, tab.label])).toEqual([
       ["omnibus", "Omnibus"],
       ["vg", "Games"],
+      ["show", "Shows"],
       ["movies", "Movies"],
       ["books", "Books"],
     ]);
   });
 
+  it("marks the tab in hand and nothing else", () => {
+    // The lit chip is orientation, and exactly one of five is where the reader is.
+    expect(
+      allTabs(ShowsTab, "light")
+        .filter((tab) => tab.current)
+        .map((tab) => tab.id),
+    ).toEqual(["show"]);
+  });
+
   it("carries each tab's own icon and the colour it is named in on that paper", () => {
     // A rail chip is the glyph and the hue and nothing else, so both travel with the entry.
-    const [omnibus] = otherTabs(ShowsTab, "light");
+    const [omnibus] = allTabs(ShowsTab, "light");
     expect(omnibus.icon).toBe(OmnibusTab.icon);
     expect(omnibus.colour).toBe(OmnibusTab.primaryColour);
-    expect(otherTabs(ShowsTab, "dark")[0].colour).toBe(OmnibusTab.darkBar?.ink);
+    expect(allTabs(ShowsTab, "dark")[0].colour).toBe(OmnibusTab.darkBar?.ink);
   });
 });
 

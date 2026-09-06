@@ -2,31 +2,22 @@ import { Hub, Layers } from "@mui/icons-material";
 import { Box, Stack, Typography } from "@mui/material";
 import type { MouseEventHandler } from "react";
 import { usePhone } from "../common/breakpoints";
-import { CardPanel, type PanelStat, type PanelSubtitlePart, type TypedCardMediaImage } from "../common/Card";
+import { CardPanel, type TypedCardMediaImage } from "../common/Card";
 import { seamEdge, useArtworkPalette } from "../common/artworkPalette";
-import { CURRENT_PLAINDATE, formatDate, type YearNumber } from "../common/date";
+import type { YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
 import { Section, StatBand } from "../common/SectionRail";
 import { StatCard, TotalsBand, VitalsCard, YearVitalsPair } from "../common/Stats";
-import { genreToColour } from "../utils/types";
-import BookCardMediaImage from "../books/CardMediaImage";
-import { bookSubtitle } from "../books/cardData";
-import { bookHeroStats } from "../books/statsData";
-import MovieCardMediaImage from "../movie/CardMediaImage";
-import { movieSubtitle } from "../movie/cardData";
-import { movieHeroStats } from "../movie/statsData";
-import ShowCardMediaImage from "../show/CardMediaImage";
-import { showSubtitle } from "../show/cardData";
-import { showHeroStats } from "../show/statsData";
-import VgCardMediaImage from "../vg/CardMediaImage";
-import { heroStats } from "../vg/statsData";
-import { barColour, BooksTab, MoviesTab, ShowsTab, VideoGamesTab, type Tab } from "../tabs";
+import { barColour, tabForId } from "../tabs";
 import { measureOf } from "../app/library";
-import { electNow, hasNow, unionTotals } from "./adapter";
-import type { OmniItem } from "../common/medium";
+import { MEDIA } from "../app/media";
+import { MEDIA_LAZY } from "../app/mediaLazy";
+import { hasNow, unionTotals, type NowElection } from "./adapter";
+import type { NowPanel, OmniItem } from "../common/medium";
 import { crossingEntries, type Crossing } from "./crossingsData";
 import { OMNIBUS_SECTIONS } from "./sections";
 import { media, mediumToColour, mediumToLabel, mediumToShape, type Measure, type Medium } from "../app/types";
+import type { Colour } from "../utils/types";
 import { shapeIsExact, shapeToArrangement, shapeToPinnedAspect, useCardArrangement } from "../common/cardArrangement";
 import { useScheme } from "../common/useScheme";
 import { useElementWidth } from "../common/useElementWidth";
@@ -40,6 +31,7 @@ import {
   nowPortraitHeight,
   pairNowGeometry,
   type NowGeometry,
+  NOW_PHONE_ORDER,
 } from "./nowGeometry";
 
 const Stats = ({
@@ -52,7 +44,7 @@ const Stats = ({
 }: {
   data: OmniItem[];
   /** Computed by `Graphs`, which decides on the same value whether the rail offers a Now chip. */
-  now: ReturnType<typeof electNow>;
+  now: NowElection;
   /** The same list the Crossings section draws, so the count and the strips cannot disagree. */
   crossings: Crossing[];
   measure: Measure;
@@ -151,7 +143,7 @@ const Stats = ({
  * bar is painted. A medium with nothing in flight simply contributes no card, rather than a card
  * saying nothing.
  */
-const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
+const Now = ({ now }: { now: NowElection }) => {
   const scheme = useScheme();
   /**
    * Whether the band is the phone's grid of pictures rather than a row of cards.
@@ -187,88 +179,35 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
   // The portrait row's one height, once the row has been measured; until then each picture
   // stands at its own ratio for the frame before.
   const portraitHeight = phone && rowWidth ? nowPortraitHeight(rowWidth) : undefined;
-  const game = now.game && (
-    <NowItem
-      key="game"
-      item={now.game}
-      medium="game"
-      phone={phone}
-      pair={pair}
-      wide={wide}
-      MediaComponent={VgCardMediaImage}
-      tab={VideoGamesTab}
-      kicker={`Since ${formatDate(now.game.startDate)}`}
-      date={formatDate(now.game.startDate)}
-      title={now.game.name}
-      // The genre alone, like the two cards beside it: this page draws no gameplay
-      // vocabulary, so a game's Now card names the one thing all three media record.
-      subtitle={[{ text: now.game.platform }, { text: now.game.genre, swatch: genreToColour(now.game.genre, scheme) }]}
-      // The franchise tile is dropped by passing the game alone. The Franchises section is
-      // where this page states what a franchise holds, and it is drawn from the filtered
-      // union — while the hero is elected from the library and the filters do not narrow it,
-      // so a tile here would quote a number that moves under a control the card ignores.
-      stats={heroStats(now.game, [now.game], CURRENT_PLAINDATE)}
-    />
-  );
-  const show = now.show && (
-    <NowItem
-      key="show"
-      item={now.show}
-      medium="show"
-      phone={phone}
-      portraitHeight={portraitHeight}
-      pair={pair}
-      wide={wide}
-      MediaComponent={ShowCardMediaImage}
-      tab={ShowsTab}
-      kicker={formatDate(now.show.show.lastWatchedDate!)}
-      date={formatDate(now.show.show.lastWatchedDate!)}
-      // The episode in hand, which the row has no title to carry: the poster names the show
-      // and cannot say which season, let alone how far into it.
-      title={`${now.show.show.name} S${now.show.s}`}
-      subtitle={showSubtitle(now.show.show, scheme)}
-      // The rate tile stays on the Shows tab's own hero; beside a poster this card's text
-      // column holds two figures comfortably and three crowd it.
-      stats={showHeroStats(now.show, 1, CURRENT_PLAINDATE, { pace: false })}
-    />
-  );
-  const movie = now.movie && (
-    <NowItem
-      key="movie"
-      item={now.movie}
-      medium="movie"
-      phone={phone}
-      pair={pair}
-      wide={wide}
-      MediaComponent={MovieCardMediaImage}
-      tab={MoviesTab}
-      kicker={formatDate(now.movie.startDate)}
-      date={formatDate(now.movie.startDate)}
-      title={now.movie.name}
-      subtitle={movieSubtitle(now.movie, scheme)}
-      stats={movieHeroStats(now.movie, 1)}
-    />
-  );
-  const book = now.book && (
-    <NowItem
-      key="book"
-      item={now.book}
-      medium="book"
-      phone={phone}
-      portraitHeight={portraitHeight}
-      pair={pair}
-      wide={wide}
-      MediaComponent={BookCardMediaImage}
-      tab={BooksTab}
-      kicker={`Since ${formatDate(now.book.startDate)}`}
-      date={formatDate(now.book.startDate)}
-      title={now.book.name}
-      subtitle={bookSubtitle(now.book, scheme)}
-      // Two tiles, as the show card beside it carries: the column beside a cover holds two and
-      // wraps a third under them, and the rest stay on the Books tab's own hero.
-      stats={bookHeroStats(now.book, CURRENT_PLAINDATE, "card")}
-    />
-  );
+  // The four cells, each the medium's own card in the medium's own words: the registry holds the
+  // election and the panel beside the components that draw them, so nothing here dispatches on
+  // which medium it is holding and a fifth is a line in the registry rather than a fifth arm.
+  //
+  // The phone's columns read down: the book under the game, the film under the show. Elsewhere the
+  // four stand in the tabs' own order. Each cell is keyed on its medium, so a flip between the two
+  // orders moves the cells rather than rebuilding them, which would close a card a reader had open
+  // through a rotation.
+  const cells = (phone ? NOW_PHONE_ORDER : media).map((medium) => {
+    const item = now[medium];
+    if (item === undefined) return null;
+    const lazy = MEDIA_LAZY[medium];
+    const tab = tabForId(MEDIA[medium].tabId);
+
+    return (
+      <NowItem
+        key={medium}
+        item={item}
+        medium={medium}
+        phone={phone}
+        portraitHeight={portraitHeight}
+        pair={pair}
+        wide={wide}
+        MediaComponent={lazy.CardMediaImage}
+        ground={tab && barColour(tab, scheme)}
+        panel={lazy.nowPanel(item, scheme)}
+      />
+    );
+  });
 
   return (
     // Measured on a wrapper the cap below does not narrow: the row itself is held to two cards'
@@ -304,14 +243,7 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
           maxWidth: { md: dense && !oneRow ? 2 * NOW_CARD_WIDTH + NOW_GAP : undefined },
         }}
       >
-        {game}
-        {/* The phone's columns read down: the book under the game, the film under the show.
-            Elsewhere the four stand in the tabs' own order. Each item is keyed on its medium, so
-            a flip between the two orders moves the cells rather than rebuilding them, which would
-            close a card a reader had open through a rotation. */}
-        {phone ? book : show}
-        {phone ? show : movie}
-        {phone ? movie : book}
+        {cells}
       </Box>
     </Box>
   );
@@ -335,18 +267,10 @@ const NowItem = <T,>(props: {
   item: T;
   medium: Medium;
   MediaComponent: TypedCardMediaImage<T>;
-  /** The home tab, whose app bar's colour the card is painted in. */
-  tab: Tab;
-  kicker: string;
-  /**
-   * The bare date, which is all the phone's cell says: the kicker's "Since" is the words a
-   * 36px spine on a 280px screen has no room for, and the ground already says which medium's date
-   * it is.
-   */
-  date: string;
-  title: string;
-  subtitle: PanelSubtitlePart[];
-  stats: PanelStat[];
+  /** The colour its home tab's app bar wears in this scheme, which the card is painted in. */
+  ground: Colour | undefined;
+  /** What the card says, in the medium's own words (`nowPanel`, each domain's `module.lazy.ts`). */
+  panel: NowPanel;
   /** Whether the band is the phone's grid, where a cell is a picture and a date. */
   phone: boolean;
   /** The phone's portrait row's height, which a poster or a cover is held to once the row is measured. */
@@ -359,13 +283,11 @@ const NowItem = <T,>(props: {
   /** The same from `md`, where a band with all four in flight shares its row four ways instead. */
   wide: NowGeometry | undefined;
 }) => {
-  const scheme = useScheme();
-
   const shape = mediumToShape(props.medium);
   const beside = shapeToArrangement(shape) === "beside";
   const wide = props.wide;
   const pair = props.pair;
-  const ground = barColour(props.tab, scheme);
+  const ground = props.ground;
 
   if (props.phone) {
     const measured = props.portraitHeight !== undefined;
@@ -375,7 +297,7 @@ const NowItem = <T,>(props: {
       // cell opens the card, so a finger on the date does what a finger on the picture does.
       <Box
         role="group"
-        aria-label={props.title}
+        aria-label={props.panel.title}
         onClick={openFromCell}
         sx={{ minWidth: 0, cursor: "pointer", breakInside: "avoid", marginBottom: { xs: 1, sm: 0 } }}
       >
@@ -426,7 +348,7 @@ const NowItem = <T,>(props: {
             aspectRatio: shapeToPinnedAspect(shape),
             objectFit: "contain",
           }}
-          footerComponent={<NowDate date={props.date} />}
+          footerComponent={<NowDate date={props.panel.date} />}
         />
       </Box>
     );
@@ -539,11 +461,11 @@ const NowItem = <T,>(props: {
             // height had spare. The poster panels are a 176px column, where the same two would wrap
             // to four lines and cost more than they saved.
             inlineKicker={!beside}
-            kicker={props.kicker}
-            title={props.title}
+            kicker={props.panel.kicker}
+            title={props.panel.title}
             titleVariant="h6"
-            subtitle={props.subtitle}
-            stats={props.stats}
+            subtitle={props.panel.subtitle}
+            stats={props.panel.stats}
           />
         }
       />

@@ -1,75 +1,114 @@
 import { BottomNavigation, BottomNavigationAction, Box, Paper, type Theme } from "@mui/material";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabs, { barColour, useCurrentTab } from "./tabs";
 import { usePhone } from "./common/breakpoints";
 import { useScheme } from "./common/useScheme";
-import { BOTTOM_TABS_CLEARANCE, BOTTOM_TABS_HEIGHT, useScrolledPastBar } from "./common/chrome";
+import { BOTTOM_TABS_CLEARANCE, BOTTOM_TABS_HEIGHT, isOwnScroll, PHONE_RAIL_HEIGHT } from "./common/chrome";
 import { onBarSx } from "./common/barTone";
-import { setPhoneBarSlot, usePhoneBarTabsAsked } from "./common/phoneBar";
+import { setPhoneBarSlot } from "./common/phoneBar";
 
 /**
- * How long a state takes to give way to the other, and the rule that turns it off.
- *
- * A cross-fade rather than a slide: the two states are the same bar saying two different things,
- * where anything travelling would read as a second bar arriving. Short enough that a flick past the
- * app bar does not leave the reader watching the swap.
+ * How long the tab row takes to fold or return. Short enough that a flick down the page does not
+ * leave the reader watching it go; a height rather than a fade, so the rail row slides to the edge
+ * the thumb rests at instead of standing over an empty band.
  */
-const SWAP_MS = 160;
-
-const swapSx = (shown: boolean) => ({
-  gridArea: "1 / 1",
-  display: "flex",
-  alignItems: "center",
-  minWidth: 0,
-  opacity: shown ? 1 : 0,
-  // Visibility as well as opacity, so the hidden state takes neither a tap nor the focus ring: it
-  // is a live row of controls sitting exactly under the one on screen. It transitions discretely at
-  // the end of the fade, which is what keeps the outgoing state pressable until it has gone.
-  visibility: shown ? "visible" : "hidden",
-  transition: `opacity ${SWAP_MS}ms ease, visibility ${SWAP_MS}ms`,
-  "@media (prefers-reduced-motion: reduce)": { transition: "none" },
-});
-
-/** One cell, both states in it, at the bar's own height. */
-const SWAP_BOX_SX = { display: "grid", height: `${BOTTOM_TABS_HEIGHT}px` } as const;
+const FOLD_MS = 180;
 
 /**
- * The row the page's rail draws itself into: its tab chip, its section chips and its page chip, in
- * the page's own gutter inside whatever the device reserves at the sides, so the leading chip stands
- * where the first card of every row above it does.
+ * How far the page has to move, in one direction, before the tab row answers, and how near the top
+ * the tabs stay up regardless.
+ *
+ * Momentum scrolling and a thumb resting on the glass both deliver a stream of events a pixel or
+ * two apart in either direction; asking for a few before turning keeps the row from flickering
+ * between them. Near the top the tabs stay up whichever way the last movement went, since the
+ * page's first screen is where the tabs are expected and a rubber band there would fold them.
+ *
+ * Two movements are not the reader's and are not read: a scroll the page started for itself —
+ * a rail chip taking the reader to a section (`isOwnScroll`, `chrome.ts`) — and the bounce past
+ * the end of the page iOS draws, which springs back upward and would otherwise return the tabs
+ * to a reader who only reached the bottom. The offset is clamped to the document's own range, so
+ * the bounce and its spring both read as standing still.
  */
-const RAIL_ROW_SX = { gap: 1, paddingX: 2 } as const;
+const FOLD_SLACK = 6;
+const TABS_UP_NEAR_TOP = 64;
 
 /**
- * The one bar at the bottom of a phone's screen, in either of the two states it swaps between.
+ * Whether the tab row is up: the page is near its top, or the reader's last movement was upward.
  *
- * At the top of the page it is the five tabs. The app bar is `position: static`, so a screen into a
- * page there is no way to change tab at all; a strip up there is also the far corner of a phone from
- * the hand holding it. Fixed to the bottom, the tabs are reachable from the thumb, which is what no
- * arrangement of the app bar achieves.
+ * Direction rather than position, because the two things the bar carries are wanted at different
+ * moments. The rail — sections, measure, filters — is used while reading down a page, and stays
+ * on the bottom edge at every position; the tabs are used between pages, and a scroll back up is
+ * the gesture that says the reader is done with this one. Folding them on the way down gives that
+ * reading the tab row's 56px, on the screen where height is scarcest, without a second tap to get
+ * them back. Held as component state on the bar's own listener rather than in a shared store: the
+ * bar is the only surface that reads the direction, where the crossing of the app bar
+ * (`useScrolledPastBar`) is read by three.
+ */
+const useTabsUp = () => {
+  const [up, setUp] = useState(true);
+  useEffect(() => {
+    const clamped = () =>
+      Math.min(Math.max(window.scrollY, 0), document.documentElement.scrollHeight - window.innerHeight);
+    let last = clamped();
+    const onScroll = () => {
+      const y = clamped();
+      if (isOwnScroll()) {
+        // Followed rather than judged, so the first movement after a scroll to a section is
+        // measured from where the section landed and not from where the reader left.
+        last = y;
+        return;
+      }
+      const delta = y - last;
+      if (y < TABS_UP_NEAR_TOP) setUp(true);
+      else if (delta > FOLD_SLACK) setUp(false);
+      else if (delta < -FOLD_SLACK) setUp(true);
+      // The reference moves only with a movement that counted, so a slow drift of single pixels
+      // still adds up to a turn rather than resetting under itself.
+      if (Math.abs(delta) > FOLD_SLACK) last = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  return up;
+};
+
+/**
+ * The row the page's rail stands in, in the page's own gutter inside whatever the device reserves
+ * at the sides, so the first chip stands where the first card of every row above it does.
+ */
+const RAIL_ROW_SX = { gap: 1, paddingX: 2, display: "flex", alignItems: "center", height: PHONE_RAIL_HEIGHT } as const;
+
+/**
+ * The rail's own cell inside that row: no box of its own, so the chips and controls the page
+ * portals in are the row's flex children.
+ */
+const SLOT_SX = { display: "contents" } as const;
+
+/**
+ * The one bar at the bottom of a phone's screen: the page's rail along the bottom edge, and the
+ * five tabs above it while they are wanted.
  *
- * Once the page is scrolled past the app bar it becomes the page's own rail — the section chips and
- * the page chip a wider screen pins under the app bar (`SectionRail`, which renders into this bar
- * through `common/phoneBar.ts` rather than at the top of the page). One bar rather than two is 49px
- * of a 720px screen given back to the page, on the platform where height is scarcest and where the
- * rail and the tabs would otherwise be stacked at the same edge. The swap is keyed on the same
- * question the top rail's own pin is — whether the app bar has left the screen — so the rail appears
- * exactly where it would have pinned.
+ * The rail row is the section chips and the page chip a wider screen pins under the app bar
+ * (`SectionRail`, which renders into this bar through `common/phoneBar.ts` rather than at the top
+ * of the page). It is always there, at the edge the thumb rests on, because it is what a page is
+ * read through — sections, the measure, the filters. Above it the tabs, which the app bar's
+ * `position: static` strip cannot offer a screen into a page and which are the far corner of a
+ * phone from the hand holding it even where it can. Both at the bottom rather than the rail pinned
+ * at the top, since the rail is the row used most while reading and the top is where the eye is,
+ * not the thumb.
  *
- * The rail leads with a chip carrying the current tab's own icon, which calls the tabs back **in
- * place**, without moving the page: the alternative, scrolling to the top, is where the tabs already are, and on a
- * library wall seventy thousand pixels deep it costs the reader their position to answer a question
- * about navigation. The next scroll takes the tabs away again. Tapping the tab already open there
- * scrolls to the top anyway (`BottomNavigation` answers a press on the selected action), so the
- * journey back exists without the chip having to be it.
+ * The tab row folds on the way down and returns on the way up (`useTabsUp`), so most of a page is
+ * read under a 40px bar and a tab is one tap away the moment the reader turns back. The page
+ * clears the bar at its full height throughout, so nothing under the fold moves as the row folds.
  *
- * The tabs wear the tab's own bar colour (`barColour`, the single answer for that) so the top and
- * bottom edges of a phone say the same thing about which tab is open, and in the dark scheme the 3px
- * rule runs along the top edge as the app bar carries it along its bottom — the tint alone is a
- * fifth of the primary's strength and needs the line to carry the hue. The rail state keeps that
- * colour, so the bar reads as one thing whichever way it is scrolled; its parts are the kit's, solved
- * against the page ground — a lit chip is filled in the primary, invisible on a bar that *is* the
- * primary — so they are re-toned onto the bar through `onBarSx` (`common/barTone.ts`).
+ * The bar wears the tab's own colour (`barColour`, the single answer for that) so the top and
+ * bottom edges of a phone say the same thing about which tab is open, and in the dark scheme the
+ * 3px rule runs along its top edge as the app bar carries it along its bottom — the tint alone is
+ * a fifth of the primary's strength and needs the line to carry the hue. The rail's parts are the
+ * kit's, solved against the page ground — a lit chip is filled in the primary, invisible on a bar
+ * that *is* the primary — so they are re-toned onto the bar through `onBarSx`
+ * (`common/barTone.ts`).
  *
  * Drawn on a phone alone: from `sm` up the app bar's own strip holds the tabs and the rail pins
  * under it.
@@ -79,6 +118,7 @@ export const BottomTabs = () => {
   const currTab = useCurrentTab();
   const scheme = useScheme();
   const phone = usePhone();
+  const tabsUp = useTabsUp();
   const dark = scheme === "dark";
   const ground = barColour(currTab, scheme);
   const rule = currTab.darkBar?.rule;
@@ -89,16 +129,6 @@ export const BottomTabs = () => {
   // The ink the bar's own text takes: the contrast colour over the light scheme's full-strength
   // primary, the dark scheme's own text over its tint.
   const barInk = (theme: Theme) => (dark ? theme.vars.palette.text.primary : theme.vars.palette.primary.contrastText);
-  // Whether the page is still against the app bar, and whether the reader has asked for the tabs
-  // back below it. Two answers rather than one: the request is the reader's and survives until they
-  // scroll, where the offset is the page's and answers again on every event. The request is a store
-  // because the chip that makes it is in the rail, which is drawn from inside this bar by a page
-  // several levels down the tree (`phoneBar.ts`). The offset itself comes from `useScrolledPastBar`
-  // (`chrome.ts`), the one shared listener `BrowserTint` and the `theme-color` metas key their own
-  // swap on too.
-  const pastBar = useScrolledPastBar();
-  const tabsAsked = usePhoneBarTabsAsked();
-  const tabsShown = !pastBar || tabsAsked;
 
   // Nothing at all from `sm` up, where the app bar's own strip holds the tabs and the rail pins
   // under it: a bar hidden by a `display` rule still publishes the slot the page's rail portals
@@ -119,28 +149,40 @@ export const BottomTabs = () => {
         zIndex: (theme) => theme.zIndex.appBar,
         backgroundColor: ground,
         // `border-box` from `CssBaseline`, so the safe area has to be added to the height rather
-        // than taken out of the actions' own.
-        height: BOTTOM_TABS_CLEARANCE,
+        // than taken out of the rows' own. The bar itself shrinks with the tab row, so the page
+        // shows through where the tabs were rather than a band of the bar's colour under nothing.
+        height: tabsUp ? BOTTOM_TABS_CLEARANCE : `calc(${PHONE_RAIL_HEIGHT}px + env(safe-area-inset-bottom))`,
+        transition: `height ${FOLD_MS}ms ease`,
+        "@media (prefers-reduced-motion: reduce)": { transition: "none" },
         paddingBottom: "env(safe-area-inset-bottom)",
         // Held sideways the screen's corners cover the ends of a full-width bar, so what is in it
         // stops short of them. No gutter of its own to add to: the actions divide whatever is left
         // (`safeAreaGutters` states the rule for the surfaces that do have one).
         paddingLeft: "env(safe-area-inset-left)",
         paddingRight: "env(safe-area-inset-right)",
-        // The bar's own top edge, which is one line in either state: the dark scheme's coloured
-        // rule while the tabs are up, carrying the hue a 22% tint alone cannot, and a hairline
-        // divider while the rail is, where the row is chips and a picker rather than a filled
-        // strip of five. Both at once would be a hairline under a coloured line.
-        // An inset shadow rather than a border: a border is laid out, so it would push the bar's
-        // own 56px row down by a pixel where a shadow drawn inside does not.
-        ...(tabsShown
-          ? rule && dark && { boxShadow: `inset 0 3px 0 0 ${rule}` }
-          : { boxShadow: (theme: Theme) => `inset 0 1px 0 0 ${theme.vars.palette.divider}` }),
+        // The dark scheme's coloured rule along the top edge, carrying the hue a 22% tint alone
+        // cannot. An inset shadow rather than a border: a border is laid out, so it would push the
+        // rows down by a pixel where a shadow drawn inside does not.
+        ...(rule && dark && { boxShadow: `inset 0 3px 0 0 ${rule}` }),
       }}
     >
-      {/* One cell holding both states, so the bar is the height of one of them and the two cross
-          fade in place rather than one pushing the other out. */}
-      <Box sx={SWAP_BOX_SX}>
+      <Box sx={{ display: "flex", flexDirection: "column" }}>
+        <Box
+          sx={[
+            RAIL_ROW_SX,
+            {
+              // The line between the two rows, drawn only while there are two: folded, it would be
+              // a rule along the bar's bottom edge under nothing.
+              boxShadow: (theme: Theme) => (tabsUp ? `inset 0 -1px 0 0 ${rule ?? theme.vars.palette.divider}` : "none"),
+            },
+            onBarSx(dark, ground),
+          ]}
+        >
+          <Box
+            sx={SLOT_SX}
+            ref={setPhoneBarSlot}
+          />
+        </Box>
         <BottomNavigation
           showLabels
           value={currTab.id}
@@ -148,12 +190,15 @@ export const BottomTabs = () => {
             navigate(`/${value}`);
             // A tab change from deep in one page otherwise lands mid-scroll in the next, which the
             // rail's own tab chips avoid the same way. It is also what answers a press on the tab
-            // already open: the page goes back to the top, where the tabs stay drawn.
+            // already open: the page goes back to the top.
             window.scrollTo({ top: 0 });
           }}
           sx={{
-            ...swapSx(tabsShown),
-            height: BOTTOM_TABS_HEIGHT,
+            // Folded to nothing rather than hidden, so the rail row above slides to the edge.
+            height: tabsUp ? BOTTOM_TABS_HEIGHT : 0,
+            overflow: "hidden",
+            transition: `height ${FOLD_MS}ms ease`,
+            "@media (prefers-reduced-motion: reduce)": { transition: "none" },
             backgroundColor: "transparent",
             // Five actions at MUI's own 80px floor want 400px of a 390px phone. Nothing here needs
             // a floor: the labels are one short word each and the row divides evenly.
@@ -185,13 +230,6 @@ export const BottomTabs = () => {
             );
           })}
         </BottomNavigation>
-        {/* The rail draws itself in here, so what a page's chips are — and the chip calling the
-            tabs back — stays with the page, and this bar carries none of MUI's popper engine into
-            the chunk every visitor evaluates before the first paint. */}
-        <Box
-          sx={[swapSx(!tabsShown), RAIL_ROW_SX, onBarSx(dark, ground)]}
-          ref={setPhoneBarSlot}
-        />
       </Box>
     </Paper>
   );

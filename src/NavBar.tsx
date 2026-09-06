@@ -241,28 +241,22 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
             thumb already on its way to the search beside it. */}
         {authState !== "live" && (
           <>
-            {/* The word is a native `title` rather than MUI's `Tooltip`, which is the app bar's
-                whole reason for reaching `@popperjs`: a hover label on one icon otherwise puts
-                Tooltip and the Popper engine — 31KB raw, 11KB gzipped — in the chunk every visit
-                preloads, where the charts that draw hundreds of hover cards pay for the same
-                engine once, lazily, in a chunk arriving after first paint. The two forms of the
-                key are one control, so the icon reads its word off the same state the worded form
-                spells out from `md` on a mouse.
-
-                It sits on the `Badge`'s own span rather than the button, since a disabled button
-                takes no pointer events and so shows no title — which is exactly the state
-                "Authorising…" names. */}
+            {/* No hover label of any kind, native or MUI's: a word that appears only under a
+                pointer is not there for the finger this bar is mostly read with, and the key's
+                own `aria-label` is what a screen reader says either way, and it follows the state, since
+                below `md` a dimmed key is otherwise the only sign that the scripts are still
+                landing. From `md` on a mouse the worded form of the same control stands beside
+                it and spells the state out. */}
             <Badge
               color="secondary"
               variant="dot"
               overlap="circular"
               invisible={authState !== "stale"}
-              title={authState === "authorising" ? "Authorising…" : "Authorise"}
               sx={KEY_ICON_SX}
             >
               <IconButton
                 color="inherit"
-                aria-label="Authorise"
+                aria-label={authState === "authorising" ? "Authorising…" : "Authorise"}
                 disabled={authState === "authorising"}
                 onClick={authorise}
                 sx={{ ...BAR_BUTTON_SX, ...DISABLED_BUTTON_SX }}

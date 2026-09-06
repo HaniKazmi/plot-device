@@ -55,7 +55,7 @@ VITE_GOOGLE_CLIENT_ID=your_google_client_id_here.apps.googleusercontent.com
 VITE_GOOGLE_API_KEY=your_google_api_key_here
 ```
 
-Both are inlined at build time. The build succeeds without them, but the page comes up blank: `GoogleAuthProvider` hands `initTokenClient` an undefined client id as soon as the sign-in script loads, that throws, and the app mounts no error boundary to catch it.
+Both are inlined at build time. The build succeeds without them, but the page comes up blank: `GoogleAuthProvider` hands `initTokenClient` an undefined client id as soon as the sign-in script loads, that throws, and the page's own error boundary is mounted below the provider that threw.
 
 The spreadsheet IDs and cell ranges themselves live in [`src/tabs.ts`](./src/tabs.ts), which is the single source of truth for a data source.
 

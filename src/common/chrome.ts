@@ -4,19 +4,26 @@ import { createStore } from "./store";
 /**
  * The app's own furniture, in numbers the page has to make room for.
  *
- * Below `sm` one bar is fixed to the bottom of the screen (`BottomTabs.tsx`) — the five tabs at the
- * top of the page, the page's own rail once it is scrolled — so the page and anything else pinned
- * down there, the data snackbar, have to stop short of it. It is the same height in both states, so
- * the clearance is one number and nothing below the fold moves as the bar swaps. Stated here rather
- * than beside the bar, because the bar is not a `common/` shell and the things standing clear of it
- * are: two copies of the number would be two that drift.
+ * Below `sm` one bar is fixed to the bottom of the screen (`BottomTabs.tsx`): the page's own rail
+ * along the bottom edge at every scroll position, and the five tabs above it whenever the reader is
+ * at the top of the page or scrolling up. The page and anything else pinned down there, the data
+ * snackbar, stop short of the bar at its full height, so nothing below the fold moves as the tab row
+ * folds and returns. Stated here rather than beside the bar, because the bar is not a `common/`
+ * shell and the things standing clear of it are: two copies of the number would be two that drift.
  */
 export const BOTTOM_TABS_HEIGHT = 56;
 
 /**
- * The app bar's own height, which is how far the page scrolls before the bottom bar swaps its tabs
- * for the rail: the bar is `position: static`, so this is exactly the offset at which it leaves the
- * screen and the page has nothing else naming the tab it is on.
+ * The rail's row in that bar. Four under a header's control (`RAIL_CHIP_HEIGHT` is 24, or 32 under
+ * a finger), which is the least a row of coarse chips sits in with its own breathing room, on the
+ * screen where every pixel of chrome is taken from the page.
+ */
+export const PHONE_RAIL_HEIGHT = 40;
+
+/**
+ * The app bar's own height, which is how far the page scrolls before the tint strip and the
+ * `theme-color` metas give up the bar's colour: the bar is `position: static`, so this is exactly
+ * the offset at which it leaves the screen.
  *
  * MUI's own `Toolbar` minimum at `xs`, which is 48 in the landscape query alone — a phone turned
  * sideways swaps 8px later than it could, and nothing reads differently in that gap.
@@ -27,9 +34,9 @@ const APP_BAR_HEIGHT = 56;
  * How far past the bar the page has to be before the answer changes, and how far back before it
  * changes again.
  *
- * Three surfaces swap on this one boundary — the bottom bar's tabs for the page's rail, the tint
- * strip at the top edge, and the two `theme-color` metas — so a reader who comes to rest with the
- * page a pixel either side of the app bar's own height would otherwise have all three flicker on
+ * Two surfaces swap on this one boundary — the tint strip at the top edge and the two
+ * `theme-color` metas — so a reader who comes to rest with the page a pixel either side of the
+ * app bar's own height would otherwise have both flicker on
  * every small movement of the thumb, momentum scrolling and a rubber band at the top both crossing
  * a bare threshold repeatedly. A band around it makes each crossing a deliberate one: the page has
  * to travel 16px to change the answer back.
@@ -45,10 +52,11 @@ export const scrolledPastBar = (scrollY: number, past: boolean): boolean =>
   past ? scrollY > APP_BAR_HEIGHT - BAR_DEAD_BAND : scrollY > APP_BAR_HEIGHT + BAR_DEAD_BAND;
 
 /**
- * The bar plus whatever the device reserves under it: 34px on a phone with a home indicator, zero
- * everywhere else. `env()` needs `viewport-fit=cover` in `index.html` to be anything but zero.
+ * The bar at its full height — both rows — plus whatever the device reserves under it: 34px on a
+ * phone with a home indicator, zero everywhere else. `env()` needs `viewport-fit=cover` in
+ * `index.html` to be anything but zero.
  */
-export const BOTTOM_TABS_CLEARANCE = `calc(${BOTTOM_TABS_HEIGHT}px + env(safe-area-inset-bottom))`;
+export const BOTTOM_TABS_CLEARANCE = `calc(${BOTTOM_TABS_HEIGHT + PHONE_RAIL_HEIGHT}px + env(safe-area-inset-bottom))`;
 
 /**
  * The page's own side gutters with whatever the device reserves beside them.
@@ -100,8 +108,8 @@ export const BROWSER_TINT_HEIGHT = 15;
 export const BROWSER_TINT_VISIBLE = 5;
 
 /**
- * Whether the page has scrolled past the app bar — the boundary the bottom bar's tabs/rail swap
- * (`BottomTabs.tsx`) already keys on, and the one the phone's status-bar tint (`BrowserTint.tsx`)
+ * Whether the page has scrolled past the app bar — the boundary the phone's status-bar tint
+ * (`BrowserTint.tsx`)
  * and its `theme-color` metas (`Google.tsx`) key on too: past it, the app bar has left the screen
  * and nothing else at that edge still says which tab is open, so the top of the page can stop
  * wearing the tab's own colour and read as the page instead.
@@ -134,6 +142,43 @@ const listenToScroll = () => {
 };
 
 /** Live, re-rendering the caller the moment the page crosses the app bar in either direction. */
+/**
+ * A scroll the page starts for itself — a rail chip taking the reader to a section — as distinct
+ * from one the reader makes.
+ *
+ * The bottom bar folds its tab row on a scroll down and returns it on a scroll up, reading the
+ * reader's intent off the direction; a smooth scroll to a section above answers that reading with
+ * the tabs up, when the reader asked only for a section. The rail says so before it scrolls, and the
+ * bar's listener treats every event until the scroll settles — no event for `SETTLE_MS` — as the
+ * page's own. Settling by silence rather than `scrollend`, which iOS Safari delivers only from 26,
+ * and a smooth scroll to a section already in view delivers no event at all: the mark lapses on
+ * its own either way.
+ *
+ * Module state rather than a store: nothing renders on it, and the one reader asks at the moment of
+ * each scroll event.
+ */
+const SETTLE_MS = 160;
+let ownScroll = false;
+let settle: ReturnType<typeof setTimeout> | undefined;
+
+const armSettle = () => {
+  clearTimeout(settle);
+  settle = setTimeout(() => {
+    ownScroll = false;
+  }, SETTLE_MS);
+};
+
+export const beginOwnScroll = () => {
+  ownScroll = true;
+  armSettle();
+};
+
+/** Whether the scroll event just delivered belongs to a scroll the page started, extending the mark if so. */
+export const isOwnScroll = () => {
+  if (ownScroll) armSettle();
+  return ownScroll;
+};
+
 export const useScrolledPastBar = () => {
   listenToScroll();
   return pastBarStore.useValue();

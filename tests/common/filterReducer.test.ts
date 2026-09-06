@@ -79,22 +79,33 @@ describe("the reducer rebuilds the composed predicate", () => {
     expect(reducer(hours, { type: "measure", measure: "Hours" })).toBe(hours);
   });
 
-  it("names the year reading and rebuilds, since the predicate depends on it", () => {
-    const matching = reducer(initialState, { type: "yearType", yearType: "matching" });
+  it("names the whole scope and rebuilds, since the predicate depends on both halves", () => {
+    const matching = reducer(initialState, { type: "scope", yearTo: CURRENT_YEAR, yearType: "matching" });
 
     expect(matching.yearType).toBe("matching");
+    expect(matching.yearTo).toBe(CURRENT_YEAR);
     expect(matching.filter).not.toBe(initialState.filter);
     expect(matching.filter(videoGame({ startDate: YearMonthDay.get(2017, 3, 3) }))).toBe(false);
 
-    expect(reducer(matching, { type: "yearType", yearType: "upto" }).yearType).toBe("upto");
+    expect(reducer(matching, { type: "scope", yearTo: CURRENT_YEAR, yearType: "upto" }).yearType).toBe("upto");
   });
 
-  it("answers the same state object for the year reading already held", () => {
-    // The control has a state per reading, so pressing the lit one has to cost neither a render
-    // nor a fresh pass over the whole library.
-    const matching = reducer(initialState, { type: "yearType", yearType: "matching" });
+  it("rebuilds where only the year moves, the reading standing", () => {
+    // Both halves are read by the same predicate, so a scope that keeps its reading and names
+    // another year is as much a new predicate as one that swaps the reading.
+    const lastYear = (CURRENT_YEAR - 1) as YearNumber;
+    const scoped = reducer(initialState, { type: "scope", yearTo: lastYear, yearType: "upto" });
 
-    expect(reducer(matching, { type: "yearType", yearType: "matching" })).toBe(matching);
+    expect(scoped.yearTo).toBe(lastYear);
+    expect(scoped.filter).not.toBe(initialState.filter);
+  });
+
+  it("answers the same state object for the scope already held", () => {
+    // The control has a state per reading, so picking the lit one has to cost neither a render
+    // nor a fresh pass over the whole library.
+    const matching = reducer(initialState, { type: "scope", yearTo: CURRENT_YEAR, yearType: "matching" });
+
+    expect(reducer(matching, { type: "scope", yearTo: CURRENT_YEAR, yearType: "matching" })).toBe(matching);
   });
 });
 
@@ -141,7 +152,7 @@ describe("resetFilters", () => {
     [
       { type: "updateFilter", filter: "endless", value: false },
       { type: "updateFilter", filter: "franchise", value: ["Zelda"] },
-      { type: "yearType", yearType: "matching" },
+      { type: "scope", yearTo: CURRENT_YEAR, yearType: "matching" },
       { type: "measure", measure: "Hours" },
     ].reduce<FilterState>((state, action) => reducer(state, action as never), initialState);
 
@@ -164,9 +175,9 @@ describe("resetFilters", () => {
 
   it("keeps the year the scope names", () => {
     const scoped = reducer(initialState, {
-      type: "updateFilter",
-      filter: "yearTo",
-      value: (CURRENT_YEAR - 1) as never,
+      type: "scope",
+      yearTo: (CURRENT_YEAR - 1) as YearNumber,
+      yearType: "upto",
     });
 
     expect(reducer(scoped, { type: "resetFilters" }).yearTo).toBe(CURRENT_YEAR - 1);
@@ -218,8 +229,7 @@ describe("countActiveFilters", () => {
     // all, and the scope is a control beside it that lights itself.
     const state = [
       { type: "measure", measure: "Hours" },
-      { type: "updateFilter", filter: "yearTo", value: (CURRENT_YEAR - 1) as never },
-      { type: "yearType", yearType: "matching" },
+      { type: "scope", yearTo: (CURRENT_YEAR - 1) as YearNumber, yearType: "matching" },
     ].reduce<FilterState>((next, action) => reducer(next, action as never), initialState);
 
     expect(state.filter).not.toBe(initialState.filter);

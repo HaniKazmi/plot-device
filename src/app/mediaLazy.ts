@@ -1,9 +1,9 @@
-import { CardMediaImage as BookCard, HoverCard as BookHoverCard } from "../books/module.lazy";
+import { CardMediaImage as BookCard, HoverCard as BookHoverCard, now as bookNow } from "../books/module.lazy";
 import type { MediumLazy } from "../common/medium";
-import { CardMediaImage as MovieCard, HoverCard as MovieHoverCard } from "../movie/module.lazy";
-import { CardMediaImage as ShowCard, HoverCard as ShowHoverCard } from "../show/module.lazy";
+import { CardMediaImage as MovieCard, HoverCard as MovieHoverCard, now as movieNow } from "../movie/module.lazy";
+import { CardMediaImage as ShowCard, HoverCard as ShowHoverCard, now as showNow } from "../show/module.lazy";
 import type { Medium } from "../utils/types";
-import { CardMediaImage as VgCard, HoverCard as VgHoverCard } from "../vg/module.lazy";
+import { CardMediaImage as VgCard, HoverCard as VgHoverCard, now as vgNow } from "../vg/module.lazy";
 
 /**
  * The four media's components, as one lookup — `MEDIA`'s other half.
@@ -21,8 +21,8 @@ import { CardMediaImage as VgCard, HoverCard as VgHoverCard } from "../vg/module
  * what is written here can ride along.
  */
 export const MEDIA_LAZY: Record<Medium, MediumLazy<unknown>> = {
-  game: { CardMediaImage: VgCard, HoverCard: VgHoverCard },
-  show: { CardMediaImage: ShowCard, HoverCard: ShowHoverCard },
-  movie: { CardMediaImage: MovieCard, HoverCard: MovieHoverCard },
-  book: { CardMediaImage: BookCard, HoverCard: BookHoverCard },
+  game: { CardMediaImage: VgCard, HoverCard: VgHoverCard, ...vgNow },
+  show: { CardMediaImage: ShowCard, HoverCard: ShowHoverCard, ...showNow },
+  movie: { CardMediaImage: MovieCard, HoverCard: MovieHoverCard, ...movieNow },
+  book: { CardMediaImage: BookCard, HoverCard: BookHoverCard, ...bookNow },
 };

@@ -167,15 +167,14 @@ describe("the shared layer never depends on a domain", () => {
 describe("a tracked domain never depends on another", () => {
   const TRACKED = ["vg", "show", "movie", "books"];
 
-  // Omnibus composes nothing of its own: the union, the gallery, search and the franchise view
-  // reach `app/` for what they need of the four domains. Three files still reach across directly,
-  // because the registry carries no member for what they ask: `adapter.ts`'s `electNow` elects
-  // across all four domains' own `statsData`, `Stats.tsx`'s Now band renders each domain's own
-  // `CardMediaImage` and reads its `cardData` subtitle and `statsData` hero figures, and
-  // `Graphs.tsx` mounts the four `FranchiseContext` providers the card strips and crossings read.
-  // Giving the registry an election, a hero-card slot and a franchise-context slot per medium is a
-  // registry change, not a move, so these three are named exemptions rather than a loosened rule.
-  const REACHES_DOMAINS_DIRECTLY = ["omnibus/adapter.ts", "omnibus/Stats.tsx", "omnibus/Graphs.tsx"];
+  // Omnibus composes nothing of its own: the union, the gallery, search, the Now band and the
+  // franchise view reach `app/` for what they need of the four domains. One file still reaches
+  // across directly. `Graphs.tsx` mounts the four `FranchiseContext` providers the card strips and
+  // the crossings read, and the four are not one shape: Books stands a second provider inside its
+  // own for the epoch every book strip opens at. A per-medium provider member would also have to
+  // be what each domain's *own* `Graphs` mounts, or the tree would hold two definitions of one
+  // provider — four more files than this exemption costs.
+  const REACHES_DOMAINS_DIRECTLY = ["omnibus/Graphs.tsx"];
 
   it.each([...TRACKED, "omnibus"])("has no import of another domain anywhere in %s/", (domain) => {
     const others = DOMAINS.filter((other) => other !== domain);
@@ -263,14 +262,19 @@ describe("the registry never reaches back for a tab", () => {
   // module carries `tabId: string` instead, and the one component that resolves an id to a tab is
   // mounted by the shell, below both.
   //
-  // Three files in `app/` are exempt, for two different reasons rather than one relaxed rule.
+  // Four files in `app/` are exempt, for three different reasons rather than one relaxed rule.
   // `LibraryProvider.tsx` is that one component, eager and below both. `SearchSurface.tsx` and
   // `PageRail.tsx` are not eager at all — the first is reached only through
   // `import("./SearchSurface")` and the second only from a tab's own lazy `Graphs`, so neither
   // module evaluates until that chunk loads, well after `tabs.ts` has finished. Both read the tab
   // the reader is on: the palette for its "Go to" jump list, a tab's icon and bar colour among
   // them, and the rail for the page whose controls it is drawing.
-  const EXEMPT_FROM_TAB_IMPORT = ["LibraryProvider.tsx", "SearchSurface.tsx", "PageRail.tsx"];
+  //
+  // `page.ts` is the lookup those two and the shell share, so it *is* eager — and safe for a third
+  // reason: `Google.tsx` imports `tabs.ts` itself, so this adds no edge the evaluated closure
+  // lacks, and nothing the registry reaches imports it. That last is the load-bearing half, and
+  // the rule below about a module's own closure is what keeps it true.
+  const EXEMPT_FROM_TAB_IMPORT = ["LibraryProvider.tsx", "SearchSurface.tsx", "PageRail.tsx", "/page.ts"];
 
   // The extension is optional in the specifier and written both ways here — `vg.tsx` imports
   // `"./filterUtils.ts"` beside `"../tabs"` — so a pattern anchored on the bare name alone would
@@ -329,9 +333,9 @@ describe("the popper engine stays off the first paint", () => {
   // MUI's `Tooltip` mounts Popper, and Popper brings `@popperjs/core` with it: about 11 kB gzipped
   // of positioning engine, on the chunk the browser evaluates before it paints anything. Nothing
   // on a first paint hovers — the two surfaces that need it are a chart's hover card
-  // (`common/HoverCardTooltip.tsx`) and the rail's own chips (`common/ChipRail.tsx`), both inside a
-  // tab's lazy chunk — so an evaluated import of it anywhere `main.tsx` reaches is that engine paid
-  // for by every visitor, whether or not they ever hover anything.
+  // (`common/HoverCardTooltip.tsx`) and a timeline band naming its own span (`common/Card.tsx`),
+  // both inside a tab's lazy chunk — so an evaluated import of it anywhere `main.tsx` reaches is
+  // that engine paid for by every visitor, whether or not they ever hover anything.
   //
   // The closure crosses `tabs.ts` here, unlike every rule above: what the five entry components
   // drag in with them is precisely the question.
@@ -381,7 +385,7 @@ describe("the popper engine stays off the first paint", () => {
   });
 
   it("still reaches the two files that do import it, so the rule above is not vacuous", () => {
-    const importers = [join(SRC, "common", "HoverCardTooltip.tsx"), join(SRC, "common", "ChipRail.tsx")];
+    const importers = [join(SRC, "common", "HoverCardTooltip.tsx"), join(SRC, "common", "Card.tsx")];
 
     expect(importers.filter(importsMuiTooltip)).toEqual(importers);
   });

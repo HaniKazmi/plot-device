@@ -18,6 +18,7 @@ import { FranchiseContext as MovieFranchiseContext, movieFranchise } from "../mo
 import { FranchiseContext as ShowFranchiseContext, showFranchise } from "../show/franchiseContext";
 import { FranchiseContext as VgFranchiseContext, vgFranchise } from "../vg/franchiseContext";
 import { electNow, hasNow, recentlyFinished } from "./adapter";
+import { MEDIA_LAZY } from "../app/mediaLazy";
 import type { Library } from "../app/library";
 import type { OmniItem } from "../common/medium";
 import Barchart from "./Barchart";
@@ -77,7 +78,7 @@ const Graphs = memo(
     const { active: nothing } = useNothingMatches();
     // Answered once for the page: it decides both whether the Now band is rendered and whether the
     // rail offers a chip pointing at it, and two derivations of one test are two that can differ.
-    const now = electNow(library, filterState);
+    const now = electNow(MEDIA_LAZY, library, filterState);
 
     // Derived here and handed to both the section and the vitals card, on the `now` rule: the
     // grouping is not cheap, and two derivations of it could report different counts. The epoch is

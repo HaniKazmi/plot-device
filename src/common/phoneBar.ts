@@ -1,20 +1,15 @@
 import { createStore } from "./store";
 
 /**
- * The two things the bar fixed to a phone's bottom edge (`BottomTabs.tsx`) and the page's own rail
- * (`SectionRail.tsx`) have to say to each other: where the rail is drawn, and when the reader has
- * asked for the tabs back.
+ * The one thing the bar fixed to a phone's bottom edge (`BottomTabs.tsx`) and the page's own rail
+ * (`SectionRail.tsx`) have to say to each other: where the rail is drawn.
  *
  * The two are on opposite sides of the tree — the bar is mounted above the outlet, the rail by the
  * tab's own lazy `Graphs` inside it — so the rail reaches its slot through a portal, and the slot
- * has to travel from a node the bar only has after its first commit. Stores rather than a context:
- * a provider around both would sit above every tab and re-render the whole page each time either
- * answer changed, where this re-renders the one component that reads it. They are also what keeps
- * the bar from having to know what a page's sections are, which only the page it is drawn over does,
- * and the rail from having to know which state the bar is in.
- *
- * Two stores rather than one value, so the rail is not re-rendered by a press that only concerns the
- * bar.
+ * has to travel from a node the bar only has after its first commit. A store rather than a context:
+ * a provider around both would sit above every tab and re-render the whole page each time the
+ * answer changed, where this re-renders the one component that reads it. It is also what keeps the
+ * bar from having to know what a page's sections are, which only the page it is drawn over does.
  */
 const slotStore = createStore<HTMLElement | null>(null);
 
@@ -29,24 +24,3 @@ export const usePhoneBarSlot = () => slotStore.useValue();
 export const setPhoneBarSlot = (node: HTMLElement | null) => {
   slotStore.set(node);
 };
-
-const tabsAskedStore = createStore(false);
-
-/**
- * Calls the five tabs back into the bar without moving the page, and is cleared by the reader's next
- * scroll: the alternative — going back to the top, where the tabs already are — costs a reader deep
- * in a library wall their position to answer a question about navigation.
- *
- * That next scroll is heard here, on a listener attached with the request and taken away by its own
- * first event. The page's own crossing store (`chrome.ts`) cannot answer for it: that one fires
- * only where the page crosses the app bar, so a reader who asked for the tabs a thousand pixels
- * down and then read on would keep them for the rest of the visit. A `scroll` on an element does
- * not reach `window`, so flicking the rail's chips sideways to reach a control leaves the tabs
- * standing — which is the one gesture made while they are on screen.
- */
-export const askPhoneBarTabs = () => {
-  tabsAskedStore.set(true);
-  window.addEventListener("scroll", () => tabsAskedStore.set(false), { once: true, passive: true });
-};
-
-export const usePhoneBarTabsAsked = () => tabsAskedStore.useValue();

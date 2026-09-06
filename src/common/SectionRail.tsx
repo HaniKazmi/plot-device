@@ -4,8 +4,9 @@ import Grid from "@mui/material/Grid";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { usePhone } from "./breakpoints";
-import { ChipRail, RailChip, type ChipRailItem } from "./ChipRail";
-import { BROWSER_TINT_VISIBLE } from "./chrome";
+import { ChipRail, type ChipRailItem } from "./ChipRail";
+import { RailChip } from "./RailChip";
+import { beginOwnScroll, BROWSER_TINT_VISIBLE } from "./chrome";
 import { usePhoneBarSlot } from "./phoneBar";
 import { QUIET_SIDEWAYS_SCROLL } from "./scrollbarSx";
 
@@ -157,11 +158,12 @@ const ACTIONS_SX = {
 
 /** The rail's last cell, which never gives up a pixel: the population chip, or the phone's own. */
 const TRAILING_SX = { flexShrink: 0, display: "flex" } as const;
+const TAB_CHIPS_SX = { flexShrink: 0, display: "flex", alignItems: "center", gap: 1 } as const;
 
 /**
  * Where the year scope is drawn, which is the one part of the tail a tablet has no room for: at
- * 768 a rail holding four tab chips, seven section chips, a picker, three segments and the
- * population wants about 950px of 720. Below `md` the scope is a labelled row in the box's This
+ * 768 a rail holding five tab chips, seven section chips, a picker, three segments and the
+ * population wants about 990px of 720. Below `md` the scope is a labelled row in the box's This
  * page mode instead, so the rail keeps the two readings a page is most often changed by.
  *
  * A `display` rule rather than the width the rail reads as a value, since the control is drawn in
@@ -177,12 +179,13 @@ const SCOPE_SX = { display: { xs: "none", md: "flex" } } as const;
  * `href="#timeline"` would be read as a route and navigate away from the page it was meant to
  * move within. The `tabs` chips are the one exception — they exist to leave the page.
  *
- * While the rail is stuck, the app bar has scrolled away and the rail is the only navigation on
- * screen — so it leads with chips for the *other* tabs, ahead of a divider. Only the others: the
- * current tab is where the reader already is, and a third chip would rebuild the app bar rather
- * than offer the two jumps it cannot. Unstuck, the app bar is in view saying the same thing, and
- * the chips would say it twice — so they are not rendered at all. Each chip carries its own
- * `jump`, so what a tab id means stays with the registry that owns it.
+ * From `sm` up the row leads with a chip per tab, ahead of a divider, the one in hand lit in its
+ * own colour. Every tab, and at every scroll position: what makes five glyphs faster than the app
+ * bar's own strip is that a hand reaches the third of them without reading the row, and a set that
+ * appears only once the rail is pinned — or that slides along by a chip as the current tab drops
+ * out of it — has to be read before it can be used. The lit chip is that constancy's cost and its
+ * point: it says which of the five this page is, and a press on it navigates nowhere. Each chip
+ * carries its own `jump`, so what a tab id means stays with the registry that owns it.
  *
  * `scope`, `measure` and `population` are the page-wide controls, the readings that have to stay
  * reachable from anywhere on the page — the years every figure below is scoped to, the unit they
@@ -201,29 +204,20 @@ const SCOPE_SX = { display: { xs: "none", md: "flex" } } as const;
  * opens the sheet holding all three.
  *
  * Below `sm` the whole row is drawn inside the bar at the bottom of the screen instead
- * (`BottomTabs.tsx`, through `phoneBar.ts`): one bar rather than a pinned rail above the page and
- * the tabs below it, which is 49px of a 720px screen given back to what the page is for. The tab
- * chips are left out there — the bar's own leading chip calls the five tabs back into it, and a rail
+ * (`BottomTabs.tsx`, through `phoneBar.ts`), where the thumb rests, with the five tabs standing
+ * above it. The tab chips are left out there — the bar's own tab row is a line away, and a rail
  * 358px wide would spend 300 of them saying that again.
- * From `sm` up each is its tab's own icon in its own colour rather than its name: four words and a
- * divider take a third of a tablet's rail, where four glyphs take 136px of it, and the app bar's
- * own strip carries the same icons beside its words, which is where the glyphs are learnt.
+ * From `sm` up each is its tab's own icon in its own colour rather than its name: five words and a
+ * divider take half a tablet's rail, where five glyphs take 172px of it, and the app bar's own
+ * strip carries the same icons beside its words, which is where the glyphs are learnt.
  */
 export const SectionRail = (props: {
   sections: RailSection[];
-  tabs?: (RailSection & { icon: SvgIconComponent; colour?: string; jump: () => void })[];
+  tabs?: (RailSection & { icon: SvgIconComponent; colour?: string; current: boolean; jump: () => void })[];
   scope?: ReactNode;
   measure?: ReactNode;
   population?: ReactNode;
   pageChip?: ReactNode;
-  /**
-   * The phone row's leading chip: the current tab, calling the five back into the bar this row is
-   * drawn in. It comes from the caller because only the registry knows what a tab is, and it is
-   * drawn here rather than by the bar itself so that the bar carries none of the chip's own
-   * machinery — a tooltip, and with it MUI's popper — into the chunk evaluated before the first
-   * paint.
-   */
-  tabChip?: ReactNode;
   /**
    * The ground the phone's bar draws this row on, which the chip row's end fades have to resolve
    * to: left to their default they fade into the page's own ground, a pale band over a bar that is
@@ -242,9 +236,13 @@ export const SectionRail = (props: {
   const slot = usePhoneBarSlot();
 
   const tabChips = stuck && props.tabs && props.tabs.length > 0 && (
-    // `contents` rather than a wrapper of its own: from `sm` up the chips and the divider stay the
-    // scrolling row's own flex children, exactly as they are without this.
-    <Box sx={{ display: { xs: "none", sm: "contents" } }}>
+    // Only once the app bar has scrolled away: drawn under it, the five icons restate the strip of
+    // five names a line above. A row of its own beside the scroller rather than the scroller's
+    // first children, since at 768px a tab's seven sections overflow the row and `follow` would
+    // carry the tabs off the left as the page is read; outside it the row's own end fade runs
+    // where the sections pass out of view, and nothing is asked of `position: sticky` inside a
+    // flex scroller, which Safari lays out at the wrong width.
+    <Box sx={TAB_CHIPS_SX}>
       {props.tabs.map((tab) => {
         const Icon = tab.icon;
         return (
@@ -253,6 +251,7 @@ export const SectionRail = (props: {
             icon={<Icon />}
             ariaLabel={tab.label}
             colour={tab.colour}
+            active={tab.current}
             onClick={tab.jump}
           />
         );
@@ -274,8 +273,12 @@ export const SectionRail = (props: {
       // four of a tab's seven sections: left where it is, it states a position off the end of
       // itself for most of the page.
       follow
-      leading={tabChips || undefined}
-      onSelect={(id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })}
+      onSelect={(id) => {
+        // Marked as the page's own before it moves, so the bottom bar reads a section above as a
+        // destination and not as the reader turning back for the tabs.
+        beginOwnScroll();
+        document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+      }}
       // Whatever the tail leaves, and never a share of the shortfall: at a basis of zero the row
       // grows into the free space and has none of its own to give up, so a phone's rail spends
       // its width on the controls first and the chips take what is left. Sized from its content
@@ -309,16 +312,15 @@ export const SectionRail = (props: {
     </>
   );
 
-  // Below `sm` the row is the bottom bar's scrolled state rather than a bar of its own: the page
-  // gives back the 49px a second pinned strip would cost it, on the one screen where height is
-  // scarcest. It renders nothing until the bar has published its slot, and nothing at all where
-  // there is no bar — a rail drawn at the top as well would be the arrangement stated twice.
+  // Below `sm` the row is the bottom bar's own rail row rather than a bar of its own, at the edge
+  // the thumb rests on rather than the one the eye starts at. It renders nothing until the bar has
+  // published its slot, and nothing at all where there is no bar — a rail drawn at the top as well
+  // would be the arrangement stated twice.
   if (phone)
     return (
       slot &&
       createPortal(
         <>
-          {props.tabChip}
           {chipRow}
           {tail}
         </>,
@@ -365,6 +367,7 @@ export const SectionRail = (props: {
         gap: 1,
       })}
     >
+      {tabChips}
       {chipRow}
       {tail}
     </Box>
