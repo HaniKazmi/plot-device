@@ -26,9 +26,9 @@ const seasonItems = (shows: Show[]): OmniItem[] =>
       year: (season.endDate ?? season.startDate).year,
       hours: season.minutes / 60,
       genre: show.genre,
-      genres: show.genres,
+      otherGenres: show.otherGenres,
       franchise: show.franchise,
-      rating: show.rating,
+      certificate: show.certificate,
       source: season,
     })),
   );
@@ -43,7 +43,7 @@ export const showModule: MediumModule<Show, Season, Measure> = {
   entry: seasonEntry,
   span: seasonSpan,
   // The sheets hold one banner per show, so a season is drawn as its show.
-  banner: (season) => season.show.banner,
+  artwork: (season) => season.show.artwork,
   // A strip of six cards all reading the same show name says nothing about what was watched.
   title: (season) => `${season.show.name} S${season.s}`,
   // The show itself, which is exact: every season of one show holds the same object. A wall draws
@@ -66,7 +66,7 @@ export const showModule: MediumModule<Show, Season, Measure> = {
    * watched in a year.
    */
   measures: ["Seasons", "Episodes", "Hours"],
-  // The accessor and not `statsData`'s own copy of it — see `vg/module.ts` for what the shared
+  // The accessor and not `statsData`'s own copy of it — see `game/module.ts` for what the shared
   // one costs the chunk every visit preloads.
   earliestYear: (shows) => earliestYearOf(shows, (show) => show.startDate.year),
   filters: showFilters,

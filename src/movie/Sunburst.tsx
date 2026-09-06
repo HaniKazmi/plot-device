@@ -56,7 +56,7 @@ const options: OptionKeys[] = [
   "decade",
   "genre",
   "franchise",
-  "rating",
+  "certificate",
   "cinema",
   "score",
   "director",

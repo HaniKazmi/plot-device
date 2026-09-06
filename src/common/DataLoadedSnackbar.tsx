@@ -36,7 +36,7 @@ export const DataLoadedSnackbar = ({ open, error }: { open: boolean; error?: str
   const [snackbarClosed, setSnackbarClosed] = useState(false);
   /**
    * The message a reader has waved away, rather than a flag saying they waved one away. A refetch
-   * after re-authorising, or the Omnibus's three sheets answering in turn, replaces one complaint
+   * after re-authorising, or the Omnibus's four sheets answering in turn, replaces one complaint
    * with a different one; a flag would swallow every message after the first, and each of them
    * names a different row somebody has to go and fix.
    */

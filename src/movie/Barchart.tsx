@@ -7,7 +7,7 @@ import type { YearType } from "../common/filterReducer";
 
 type Option = Exclude<MovieGroup, "name"> | "none";
 
-const options: Option[] = ["none", "genre", "rating", "cinema", "decade", "score", "franchise", "director"];
+const options: Option[] = ["none", "genre", "certificate", "cinema", "decade", "score", "franchise", "director"];
 
 /**
  * Which year a film counts under. Watched is the tab's own axis; Released redraws the same

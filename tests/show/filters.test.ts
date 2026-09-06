@@ -43,7 +43,7 @@ describe("categories", () => {
     expect(keep(show({ genre: "Drama" }))).toBe(true);
     // "Drama" sits in this show's secondary list; the charts attribute it to Sci-Fi, so the
     // filter must too.
-    expect(keep(show({ genre: "Sci-Fi", genres: ["Drama"] }))).toBe(false);
+    expect(keep(show({ genre: "Sci-Fi", otherGenres: ["Drama"] }))).toBe(false);
   });
 
   it("filters by network, type and franchise as inclusion lists", () => {

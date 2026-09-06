@@ -15,7 +15,7 @@ import { useScheme } from "../common/useScheme";
 import { franchiseToColour, mediumToColour, mediumToLabel, mediumUnit, type Scheme } from "../utils/types";
 import type { OmniItem } from "../common/medium";
 import { MediaCounts, MediumDot } from "./MediaCounts";
-import { MEDIA as MEDIA_MODULES, omniBanner } from "./media";
+import { MEDIA as MEDIA_MODULES, omniArtwork } from "./media";
 import OmniCardMediaImage from "./CardMediaImage";
 import { MIXED_CARD_SIZING, workLabels } from "./cardData";
 import { FranchiseView } from "./FranchiseView";
@@ -78,8 +78,8 @@ const writeRecent = (keys: string[]) => {
  * tall inside it, and a tile in the medium's fill where the sheet holds no picture.
  */
 const Thumb = ({ item, scheme }: { item: OmniItem; scheme: Scheme }) => {
-  const src = omniBanner(item);
-  const tall = mediumToShape(item.medium) !== "landscape";
+  const src = omniArtwork(item);
+  const tall = mediumToShape(item.medium) !== "banner";
   const size = tall ? { width: 24, height: 36 } : { width: LEAD_WIDTH, height: LEAD_HEIGHT };
   if (!src) {
     return (

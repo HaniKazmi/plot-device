@@ -143,7 +143,7 @@ const MovieHero = ({ movie }: { movie: Movie }) => {
     <Hero
       item={movie}
       MediaComponent={MovieCardMediaImage}
-      shape="landscape"
+      shape="banner"
       kicker={`Latest watch · ${formatDate(movie.startDate)} · ${cinemaLabel(movie)}`}
       title={movie.name}
       // The genre wears the same swatch its ledger row and every genre wedge on the tab wear.
@@ -161,7 +161,7 @@ const MovieHero = ({ movie }: { movie: Movie }) => {
 
 /**
  * Score bands and cinema-vs-home — the two distinctions only this tab records, as one band each.
- * Rating is deliberately not a third: it lives on the Top band, and three bands makes the card as
+ * The certificate is deliberately not a third: it lives on the Top band, and three bands makes the card as
  * tall as the charts it introduces.
  */
 const Vitals = ({ data, measure }: { data: Movie[]; measure: Measure }) => {
@@ -228,7 +228,7 @@ const optionIcons: Record<MovieTopOption, ReactNode> = {
   genre: <Category />,
   director: <Person />,
   franchise: <Stars />,
-  rating: <VerifiedUser />,
+  certificate: <VerifiedUser />,
   decade: <History />,
   cinema: <Theaters />,
   score: <Grade />,
@@ -324,7 +324,7 @@ const movieScoreChip = (movie: Movie, scheme: Scheme) =>
 const movieStatListSharedProps: Pick<StatListBaseProps<Movie>, "shape" | "divider" | "width"> & GridListLayout = {
   // Banners, the shape the sheet's artwork is drawn at and the library grid shows it at — the
   // same layout the Games tab gives its own.
-  shape: "landscape",
+  shape: "banner",
   divider: true,
   width: [12, 12, 6],
   pictureWidth: [12, 4, 6],

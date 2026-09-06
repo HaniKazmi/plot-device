@@ -1,8 +1,8 @@
 import { groupByCategory, realFranchisesOnly, type DrilldownGroup } from "../common/statsData";
 import type { PlainDate, Year, YearMonthDay } from "../common/date";
 import {
-  ageBandToColour,
-  ageRatingBand,
+  certificateBandToColour,
+  certificateBand,
   decadeToColour,
   franchiseToColour,
   genreToColour,
@@ -10,7 +10,7 @@ import {
   type Colour,
   type Scheme,
 } from "../utils/types";
-import { moduleOf, omniBanner } from "./media";
+import { moduleOf, omniArtwork } from "./media";
 import { measureOf } from "./library";
 import type { OmniItem } from "../common/medium";
 import type { Measure } from "./types";
@@ -20,13 +20,13 @@ import "../utils/mapUtils";
 /**
  * The ways the gallery groups the union.
  *
- * Every one but rating is a field all four media record, which is what a shelf shared between them
+ * Every one but certificate is a field all four media record, which is what a shelf shared between them
  * has to be — a category one medium answers `""` to drops that medium out of the wall, since
- * `groupByCategory` skips empty values. Rating is the deliberate exception: nothing certifies a
- * book, so books are absent from the rating shelves rather than shelved under a certificate nobody
- * issued, and `galleryValue` answers `""` for them on purpose.
+ * `groupByCategory` skips empty values. The certificate is the deliberate exception: nothing
+ * certifies a book, so books are absent from those shelves rather than shelved under a certificate
+ * nobody issued, and `galleryValue` answers `""` for them on purpose.
  */
-export const GALLERY_CATEGORIES = ["genre", "franchise", "rating", "decade"] as const;
+export const GALLERY_CATEGORIES = ["genre", "franchise", "certificate", "decade"] as const;
 
 export type GalleryCategory = (typeof GALLERY_CATEGORIES)[number];
 
@@ -55,10 +55,10 @@ export type GallerySort = (typeof GALLERY_SORTS)[number];
  * answer and the third vanishes from. The home tabs' own decade groupings mean the other thing,
  * which is why the label here says so.
  *
- * "Rating" is the age band and not the certificate as written: the two boards this library records
- * name one tier differently, so grouping on the cell would shelve a PEGI 16 game apart from the
- * BBFC 15 film it sits at the same age as, and split every other tier by its suffix. The cards
- * themselves still state the certificate their own row carries.
+ * "Certificate" shelves on the band and not the cell: the two boards this library records name the
+ * middle tier differently, so grouping on the cell would shelve a PEGI 16 game apart from the BBFC
+ * 15 film it sits at the same age as. The cards themselves still state the certificate their own
+ * row carries.
  */
 export const galleryValue = (item: OmniItem, category: GalleryCategory): string => {
   switch (category) {
@@ -66,8 +66,8 @@ export const galleryValue = (item: OmniItem, category: GalleryCategory): string 
       return item.genre;
     case "franchise":
       return item.franchise;
-    case "rating":
-      return item.rating ? ageRatingBand(item.rating) : "";
+    case "certificate":
+      return item.certificate ? certificateBand(item.certificate) : "";
     case "decade":
       return releaseDecade(item.year);
   }
@@ -82,8 +82,8 @@ export const galleryColour = (name: string, category: GalleryCategory, scheme: S
   switch (category) {
     case "genre":
       return genreToColour(name, scheme);
-    case "rating":
-      return ageBandToColour(name, scheme);
+    case "certificate":
+      return certificateBandToColour(name, scheme);
     case "decade":
       return decadeToColour(name, scheme);
     case "franchise":
@@ -101,7 +101,7 @@ export const galleryColour = (name: string, category: GalleryCategory, scheme: S
  * domain's library grid already applies. Answered once and handed to both the section and the
  * rail's chip, so a chip cannot offer a shelf with nothing on it.
  */
-export const galleryItems = (items: OmniItem[]): OmniItem[] => items.filter((item) => omniBanner(item));
+export const galleryItems = (items: OmniItem[]): OmniItem[] => items.filter((item) => omniArtwork(item));
 
 /**
  * The work an item belongs to, which is what a shelf lists one picture of, asked of the item's own

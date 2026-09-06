@@ -5,7 +5,7 @@ import type { PageStore } from "./filterReducer";
 import type { PageSchema } from "./filterSchema";
 import type { FranchiseEntry } from "./franchiseUnion";
 import type { DataConfig } from "./useData";
-import type { AgeRating, Medium, Scheme } from "../utils/types";
+import type { Certificate, Medium, Scheme } from "../utils/types";
 
 /**
  * One thing watched, played or read, in the vocabulary the four media share.
@@ -63,15 +63,15 @@ export interface OmniItem {
    */
   hours: number;
   genre: string;
-  /** The genres beyond the primary one. Empty for a game or a book: those sheets record one. */
-  genres: string[];
+  /** Empty for a game or a book: those two sheets record a single genre and nothing beside it. */
+  otherGenres: string[];
   franchise: string;
   /**
    * Absent for a book: nothing certifies one. Every surface grouping on the certificate drops an
    * item with none rather than shelving it under a blank — the one category not every medium
-   * records, stated here rather than answered with a rating nobody issued.
+   * records, stated here rather than answered with a certificate nobody issued.
    */
-  rating?: AgeRating;
+  certificate?: Certificate;
   source: object;
 }
 
@@ -255,7 +255,7 @@ export interface MediumModule<T, S = T, M extends string = string> extends PageM
   entry(item: S, today: YearMonthDay, hoverCard: () => ReactNode): FranchiseEntry;
   span(item: S, today: YearMonthDay): MediumSpan;
   /** The artwork, absent where the sheet holds none — which keeps the item off a wall of pictures. */
-  banner(item: S): string | undefined;
+  artwork(item: S): string | undefined;
   /** What the item is called on a card, where that is more than the name the union carries. */
   title(item: S): string;
   /**

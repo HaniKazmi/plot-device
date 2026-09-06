@@ -3,7 +3,7 @@ import { stated } from "./population";
 import "../utils/arrayUtils";
 
 export type FinishedItem = {
-  banner?: string;
+  artwork?: string;
   startDate?: YearMonthDay | Year;
   /** Optional because only some domains date the work itself; see `finishedKey`. */
   releaseDate?: YearMonthDay | Year;
@@ -173,22 +173,22 @@ export const finishedItems = <U extends FinishedItem>(
   sort: string,
   extras: readonly FinishedExtraSort<U>[] = [],
 ): U[] => {
-  const withBanners = data.filter(hasBanner);
-  if (sort === "Date") return withBanners.sortByKey("startDate", false);
+  const withArtwork = data.filter(hasArtwork);
+  if (sort === "Date") return withArtwork.sortByKey("startDate", false);
 
   const extra = resolveExtra(sort, extras);
   if (extra) {
     // A numeric sort rather than `sortByKey`, which puts falsy values first in both directions —
     // a film honestly scored 0 would head a wall sorted by score. The date breaks a tie: many
     // films share a nine, and the recent ones say more.
-    return withBanners.toSorted((a, b) => {
+    return withArtwork.toSorted((a, b) => {
       const [x, y] = [extra.value(a), extra.value(b)];
       if (x === undefined || y === undefined) return (x === undefined ? 1 : 0) - (y === undefined ? 1 : 0);
       return y - x || byDate(b.startDate, a.startDate);
     });
   }
 
-  return withBanners.toSorted(
+  return withArtwork.toSorted(
     (a, b) =>
       collator.compare(franchiseKey(a), franchiseKey(b)) ||
       byDate(a.releaseDate, b.releaseDate) ||
@@ -197,7 +197,7 @@ export const finishedItems = <U extends FinishedItem>(
 };
 
 /** What the grid shows: artwork is the whole card, so an item without it is not on the wall. */
-const hasBanner = (item: FinishedItem): boolean => !!item.banner;
+const hasArtwork = (item: FinishedItem): boolean => !!item.artwork;
 
 /**
  * How many items a Finished grid holds, for a header that has to answer for the wall below it.
@@ -206,7 +206,7 @@ const hasBanner = (item: FinishedItem): boolean => !!item.banner;
  * to disagree about what is on screen. The sort does not change the population, so none is asked
  * for.
  */
-export const finishedCount = (data: readonly FinishedItem[]): number => data.filter(hasBanner).length;
+export const finishedCount = (data: readonly FinishedItem[]): number => data.filter(hasArtwork).length;
 
 /**
  * What the wall is over, in the caller's own noun — and nothing at all where that is what the page

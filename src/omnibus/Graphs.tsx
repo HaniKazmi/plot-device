@@ -13,10 +13,10 @@ import {
   bookFranchise,
   BookEpochProvider,
   FranchiseContext as BookFranchiseContext,
-} from "../books/franchiseContext";
+} from "../book/franchiseContext";
 import { FranchiseContext as MovieFranchiseContext, movieFranchise } from "../movie/franchiseContext";
 import { FranchiseContext as ShowFranchiseContext, showFranchise } from "../show/franchiseContext";
-import { FranchiseContext as VgFranchiseContext, vgFranchise } from "../vg/franchiseContext";
+import { FranchiseContext as GameFranchiseContext, gameFranchise } from "../game/franchiseContext";
 import { electNow, hasNow, recentlyFinished } from "./adapter";
 import { MEDIA_LAZY } from "../app/mediaLazy";
 import type { Library } from "../app/library";
@@ -52,7 +52,7 @@ const SuspenseBlock = ({
   filteredData: OmniItem[];
   filterState: FilterState;
 }) => (
-  <VgFranchiseContext.Provider value={franchiseIndex(library.game, vgFranchise)}>
+  <GameFranchiseContext.Provider value={franchiseIndex(library.game, gameFranchise)}>
     <ShowFranchiseContext.Provider value={franchiseIndex(library.show, showFranchise)}>
       <MovieFranchiseContext.Provider value={franchiseIndex(library.movie, movieFranchise)}>
         <BookFranchiseContext.Provider value={franchiseIndex(library.book, bookFranchise)}>
@@ -66,7 +66,7 @@ const SuspenseBlock = ({
         </BookFranchiseContext.Provider>
       </MovieFranchiseContext.Provider>
     </ShowFranchiseContext.Provider>
-  </VgFranchiseContext.Provider>
+  </GameFranchiseContext.Provider>
 );
 
 const Graphs = memo(

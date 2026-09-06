@@ -26,8 +26,8 @@ const POSTER_PICTURE_HEIGHT = 206;
 const POSTER_TEXT_WIDTH = 140;
 
 export const MIXED_CARD_SIZING: CardRowSizing = {
-  minWidth: Math.round(POSTER_PICTURE_HEIGHT * shapeRatioValues.portrait) + POSTER_TEXT_WIDTH,
-  pictureHeightFor: (width) => Math.round(width / shapeRatioValues.landscape),
+  minWidth: Math.round(POSTER_PICTURE_HEIGHT * shapeRatioValues.poster) + POSTER_TEXT_WIDTH,
+  pictureHeightFor: (width) => Math.round(width / shapeRatioValues.banner),
 };
 
 /**

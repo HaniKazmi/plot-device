@@ -5,11 +5,23 @@ import { dropSeasonParents, jsonConverter, reviveSeasonParents } from "../../src
 import { seasonRow, showRow } from "../fixtures/showRows";
 
 const rows = [
-  showRow({ Show: "Severance" }),
-  seasonRow({ Season: "1", Episode: "9", Start: "2022-02-18", End: "2022-04-08", Episodes: "45" }),
-  seasonRow({ Season: "2", Episode: "10", Start: "2025-01-17", End: "", Episodes: "50" }),
-  showRow({ Show: "Andor", Type: "anime" }),
-  seasonRow({ Season: "1", Episode: "12", Start: "2022-09-21", End: "2022-11-23", Episodes: "40" }),
+  showRow({ Title: "Severance" }),
+  seasonRow({
+    Season: "1",
+    Episodes: "9",
+    "Start Date": "2022-02-18",
+    "End Date": "2022-04-08",
+    "Episode Length (min)": "45",
+  }),
+  seasonRow({ Season: "2", Episodes: "10", "Start Date": "2025-01-17", "End Date": "", "Episode Length (min)": "50" }),
+  showRow({ Title: "Andor", Type: "anime" }),
+  seasonRow({
+    Season: "1",
+    Episodes: "12",
+    "Start Date": "2022-09-21",
+    "End Date": "2022-11-23",
+    "Episode Length (min)": "40",
+  }),
 ];
 
 /** Exactly what `useData` does across a reload: write with the replacer, read with the reviver. */
@@ -69,9 +81,9 @@ describe("the localStorage round trip", () => {
     expect(severance.genre).toBe("Sci-Fi");
     // An array survives JSON as an array, but only if the replacer leaves it alone — the same
     // replacer that has to strip the season back-references two levels down.
-    expect(severance.genres).toEqual(["Drama", "Thriller"]);
+    expect(severance.otherGenres).toEqual(["Drama", "Thriller"]);
     expect(severance.network).toBe("Apple TV+");
-    expect(severance.rating).toBe("15");
+    expect(severance.certificate).toBe("15");
     expect(severance.franchise).toBe("Severance");
   });
 });

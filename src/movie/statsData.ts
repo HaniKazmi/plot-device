@@ -11,7 +11,7 @@ import "../utils/arrayUtils";
  * The order is load-bearing beyond presentation: `TopList` turns a category's index into a
  * Highcharts palette offset, so reordering this recolours those charts.
  */
-export const movieTopOptions = ["genre", "director", "franchise", "rating", "decade", "cinema", "score"] as const;
+export const movieTopOptions = ["genre", "director", "franchise", "certificate", "decade", "cinema", "score"] as const;
 
 export type MovieTopOption = (typeof movieTopOptions)[number];
 

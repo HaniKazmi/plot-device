@@ -1,8 +1,15 @@
-import { PlainDate, YearMonthDay } from "../common/date.ts";
+import type { YearMonthDay } from "../common/date.ts";
 import { dataCacheKey, type DataConfig } from "../common/useData.ts";
-import { describing, readAgeRating, readFullDate, readGenre, sheetError, sheetRow } from "../common/sheetError.ts";
+import { readCertificate, readChecked, readFullDate, readGenre, sheetError, sheetRow } from "../common/sheetError.ts";
 import { splitCell } from "../utils/stringUtils";
-import type { Season, Show, Status, Type } from "./types";
+import { TYPES, type Season, type Show, type Status } from "./types";
+
+/**
+ * Reads the show/anime cell. Guest mode hides anime (`filters.ts`), so a value that fails to say so
+ * is a hidden show on screen rather than a wrong figure — the one cell here whose misreading costs
+ * more than a chart, and the same reading the Movies sheet's own `Type` column carries.
+ */
+const readType = readChecked(TYPES, "a show type");
 import "../utils/arrayUtils";
 
 // Season.show is a back-reference to its parent, so it has to be dropped before serialising
@@ -19,19 +26,22 @@ const describeSeason = (row: Record<string, string>, show: Partial<Show>, index:
 export const jsonConverter = (json: Record<string, string>[]) => {
   const showData: Show[] = [];
   json.reduce((show, row, index) => {
-    if (row.Show !== "") {
+    // An absent key is `undefined`, which is `!== ""` — so a truncated row would read as a show
+    // row and swallow the seasons below it. `Title` is column A, which is why that cannot happen:
+    // the API ends a row at its last filled cell, never before its first.
+    if (row.Title !== "") {
       show = {
-        name: row.Show,
+        name: row.Title,
         status: row.Status as Status,
-        type: row.Type as Type,
-        genre: readGenre(row.Genre, `Row ${sheetRow(index)}, "${row.Show}", Genre`),
-        // Genres is the sheet's last column, and the API ends a row at its final filled cell, so
-        // a show without it arrives with no key at all rather than an empty string.
-        genres: splitCell(row.Genres),
+        type: readType(row.Type, `Row ${sheetRow(index)}, "${row.Title}", Type`),
+        genre: readGenre(row.Genre, `Row ${sheetRow(index)}, "${row.Title}", Genre`),
+        // A show with none carries an empty string, `Other Genres` sitting well before the last
+        // column; `splitCell` answers `[]` to that and to an absent key alike.
+        otherGenres: splitCell(row["Other Genres"]),
         network: row.Network,
-        rating: readAgeRating(row.Rating, `Row ${sheetRow(index)}, "${row.Show}", Rating`),
+        certificate: readCertificate(row.Certificate, `Row ${sheetRow(index)}, "${row.Title}", Certificate`),
         franchise: row.Franchise,
-        banner: row.Banner,
+        artwork: row.Artwork ?? "",
         s: [],
       };
       showData.push(show as Show);
@@ -44,27 +54,30 @@ export const jsonConverter = (json: Record<string, string>[]) => {
 
       // No pair check beside these: `readFullDate` rejects a bare year on either end, so the two
       // can only ever agree. Games needs one because both of its precisions are legal there.
-      const startDate = readFullDate(row.Start, `${where}, Start`);
-      const endDate = row.End ? readFullDate(row.End, `${where}, End`) : undefined;
+      const startDate = readFullDate(row["Start Date"], `${where}, Start Date`);
+      const endDate = row["End Date"] ? readFullDate(row["End Date"], `${where}, End Date`) : undefined;
 
-      const episodes = parseInt(row.Episode);
+      const episodes = parseInt(row.Episodes);
       if (Number.isNaN(episodes)) {
         // Counted as zero rather than left as NaN, which would propagate through the show's
         // episode total and every statistic derived from it, blanking numbers far from here.
-        console.error(`${where}: episode count "${row.Episode}" is not a number, counting it as 0`);
+        console.error(`${where}: episode count "${row.Episodes}" is not a number, counting it as 0`);
       }
 
-      const episodeLength = row.Episodes ? parseInt(row.Episodes) : undefined;
+      const length = row["Episode Length (min)"];
+      const episodeLength = length ? parseInt(length) : undefined;
       const e = Number.isNaN(episodes) ? 0 : episodes;
 
-      // A season row reuses the Status column for when an episode was last watched — the cell is
-      // otherwise always blank, since status is a show-row fact. Read only while the season has
-      // no end date: the sheet maintains the cell for the season in progress, and honouring it on
-      // a finished season would let a value nobody clears elect an old watch as the current one.
+      // One column carries two facts by row kind: the season count on a show row, and on a
+      // season row the date an episode was last watched. Only the season half is read here, the
+      // show half being what `show.s.length` already answers.
+      //
+      // Read only while the season has no end date: the sheet maintains the cell for the season in
+      // progress, and honouring it on a finished season would let a value nobody clears elect an
+      // old watch as the current one.
+      const watched = row["Seasons / Last Watched"];
       const lastWatchedDate =
-        row.Status && !endDate
-          ? describing(`${where}, Status (last watched)`, () => PlainDate.from(row.Status) as YearMonthDay)
-          : undefined;
+        watched && !endDate ? readFullDate(watched, `${where}, Seasons / Last Watched`) : undefined;
 
       const season: Season = {
         s: parseFloat(row.Season),
@@ -124,9 +137,11 @@ export const jsonConverter = (json: Record<string, string>[]) => {
  * readable by the reviver that puts them back, and neither half means anything alone.
  *
  * v3: a cached object written before `lastWatchedDate` carries none, and no hero is ever elected.
+ * v4: a cached object written before this holds its picture under `banner`, so every card on
+ * every surface draws the stand-in instead.
  */
 export const showDataConfig: DataConfig<Show> = {
-  storageKey: dataCacheKey("show", 3),
+  storageKey: dataCacheKey("show", 4),
   converter: jsonConverter,
   reviver: reviveSeasonParents,
   replacer: dropSeasonParents,

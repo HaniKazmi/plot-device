@@ -19,9 +19,9 @@ const movieItems = (movies: Movie[]): OmniItem[] =>
     year: movie.startDate.year,
     hours: movie.minutes / 60,
     genre: movie.genre,
-    genres: movie.genres,
+    otherGenres: movie.otherGenres,
     franchise: movie.franchise,
-    rating: movie.rating,
+    certificate: movie.certificate,
     source: movie,
   }));
 
@@ -35,7 +35,7 @@ export const movieModule: MediumModule<Movie, Movie, Measure> = {
   // A film's span is its watch date at both ends, so there is no today for it to run to.
   entry: (movie, _today, hoverCard) => movieEntry(movie, hoverCard),
   span: movieSpan,
-  banner: (movie) => movie.banner,
+  artwork: (movie) => movie.artwork,
   title: (movie) => movie.name,
   // Title and release, so a rewatch joins the first viewing while a remake of the same name stays
   // a work of its own.

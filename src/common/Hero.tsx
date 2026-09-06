@@ -7,7 +7,7 @@ import { shapeToArrangement, shapeToAspect, type ArtworkShape } from "./cardArra
  * How tall the artwork stands beside the panel, at each width the page gives the hero.
  *
  * Height is the only dimension fixed, so the hero is the same height whatever it is showing while
- * the artwork keeps its own shape — a 16:9 banner comes out around 533px wide and a 2:3 poster
+ * the artwork keeps its own shape — a 16:9 artwork comes out around 533px wide and a 2:3 poster
  * around 200px, and neither is cut into.
  *
  * The two smaller figures are the phone's and the tablet's. A poster given the page's whole width

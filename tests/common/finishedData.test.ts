@@ -13,9 +13,9 @@ import {
   type FinishedExtraSort,
 } from "../../src/common/finishedData";
 
-const item = (name: string, banner: string | undefined, year?: number) => ({
+const item = (name: string, artwork: string | undefined, year?: number) => ({
   name,
-  banner,
+  artwork,
   franchise: "",
   startDate: year === undefined ? undefined : YearMonthDay.get(year, 1, 1),
 });
@@ -24,7 +24,7 @@ const item = (name: string, banner: string | undefined, year?: number) => ({
 const entry = (name: string, franchise: string, release?: number, start?: number) => ({
   name,
   franchise,
-  banner: "a.jpg",
+  artwork: "a.jpg",
   releaseDate: release === undefined ? undefined : YearMonthDay.get(release, 1, 1),
   startDate: start === undefined ? undefined : YearMonthDay.get(start, 1, 1),
 });
@@ -36,7 +36,7 @@ describe("finishedItems", () => {
     expect(finishedItems(data, "Date").map((i) => i.name)).toEqual(["with"]);
   });
 
-  it("treats an empty banner string as no artwork", () => {
+  it("treats an empty artwork string as no artwork", () => {
     expect(finishedItems([item("blank", "", 2020)], "Date")).toEqual([]);
   });
 
@@ -138,7 +138,7 @@ describe("finishedBucket", () => {
   });
 
   it("gives a year-only date the same year a full date gives", () => {
-    const yearOnly = { name: "Old", banner: "a.jpg", franchise: "", startDate: Year.get(2007) };
+    const yearOnly = { name: "Old", artwork: "a.jpg", franchise: "", startDate: Year.get(2007) };
 
     expect(finishedBucket(yearOnly, "Date")).toBe("2007");
     expect(finishedBucket(item("New", "a.jpg", 2007), "Date")).toBe("2007");
@@ -215,7 +215,7 @@ describe("bucketLabel", () => {
 describe("finishedKey", () => {
   const released = (name: string, year: number) => ({
     name,
-    banner: "a.jpg",
+    artwork: "a.jpg",
     franchise: "",
     startDate: YearMonthDay.get(2020, 1, 1),
     releaseDate: YearMonthDay.get(year, 1, 1),
@@ -242,12 +242,12 @@ describe("finishedKey", () => {
 
   it("falls back to the bare name where a domain dates only the watching", () => {
     // Shows carry no release date, and no two shows on record share a title.
-    expect(finishedKey({ name: "Severance", banner: "a.jpg", franchise: "" })).toBe("Severance");
+    expect(finishedKey({ name: "Severance", artwork: "a.jpg", franchise: "" })).toBe("Severance");
   });
 
   it("reads a year-only release date, which games record", () => {
     expect(
-      finishedKey({ name: "Ocarina of Time", banner: "a.jpg", franchise: "Zelda", releaseDate: Year.get(1998) }),
+      finishedKey({ name: "Ocarina of Time", artwork: "a.jpg", franchise: "Zelda", releaseDate: Year.get(1998) }),
     ).toBe("Ocarina of Time (1998)");
   });
 });
@@ -334,7 +334,7 @@ describe("a caller's own sort", () => {
   });
 
   it("still filters by artwork", () => {
-    const items = [scored("shown", 8, 2020), { ...scored("hidden", 9, 2021), banner: undefined }];
+    const items = [scored("shown", 8, 2020), { ...scored("hidden", 9, 2021), artwork: undefined }];
     expect(finishedItems(items, "Score", byScore).map((entry) => entry.name)).toEqual(["shown"]);
   });
 

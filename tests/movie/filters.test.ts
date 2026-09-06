@@ -44,7 +44,7 @@ describe("toggles", () => {
 });
 
 describe("categories", () => {
-  it("filters by genre, director, franchise and rating as inclusion lists", () => {
+  it("filters by genre, director, franchise and certificate as inclusion lists", () => {
     expect(filters(state({ genre: ["Horror"] }))(movie({ genre: "Sci-Fi" }))).toBe(false);
     expect(filters(state({ genre: ["Horror"] }))(movie({ genre: "Horror" }))).toBe(true);
 
@@ -54,8 +54,8 @@ describe("categories", () => {
     expect(filters(state({ franchise: ["Alien"] }))(movie({ franchise: "Alien" }))).toBe(true);
     expect(filters(state({ franchise: ["Alien"] }))(movie({ franchise: "Arrival" }))).toBe(false);
 
-    expect(filters(state({ rating: ["15"] }))(movie({ rating: "15" }))).toBe(true);
-    expect(filters(state({ rating: ["15"] }))(movie({ rating: "12" }))).toBe(false);
+    expect(filters(state({ certificate: ["15"] }))(movie({ certificate: "15" }))).toBe(true);
+    expect(filters(state({ certificate: ["15"] }))(movie({ certificate: "12" }))).toBe(false);
   });
 });
 
@@ -100,7 +100,7 @@ describe("the schema the drawer and the box are both drawn from", () => {
     expect(movieFilters.toggles.map((toggle) => toggle.key)).toEqual(["home", "unscored", "anime"]);
     expect(movieFilters.categories.map((category) => category.key)).toEqual([
       "genre",
-      "rating",
+      "certificate",
       "director",
       "franchise",
     ]);

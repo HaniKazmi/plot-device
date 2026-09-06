@@ -1,11 +1,11 @@
 import { useEffect, type ReactNode } from "react";
-import { bookModule } from "../books/module";
+import { bookModule } from "../book/module";
 import type { MediumModule } from "../common/medium";
 import useData from "../common/useData";
 import { movieModule } from "../movie/module";
 import { showModule } from "../show/module";
 import Tabs, { type SheetTab } from "../tabs";
-import { vgModule } from "../vg/module";
+import { gameModule } from "../game/module";
 import { completeLibrary, LibraryContext, toOmniItems, visibleLibrary, type Library } from "./library";
 import { retainPageSelections } from "./pageState";
 
@@ -49,7 +49,7 @@ const useSheet = <T,>(module: MediumModule<T, unknown>) => useData(module.data, 
  * is what makes the object below a `Partial<Library>` with nothing asserted into it.
  */
 export const LibraryProvider = ({ guestMode, children }: { guestMode: boolean; children: ReactNode }) => {
-  const [games, gamesLoaded, gamesError] = useSheet(vgModule);
+  const [games, gamesLoaded, gamesError] = useSheet(gameModule);
   const [shows, showsLoaded, showsError] = useSheet(showModule);
   const [movies, moviesLoaded, moviesError] = useSheet(movieModule);
   const [books, booksLoaded, booksError] = useSheet(bookModule);

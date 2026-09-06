@@ -22,9 +22,9 @@ export const media: readonly Medium[] = MEDIA;
  * the page reserves and arranges itself from the item's own medium.
  */
 const mediumShapes: Record<Medium, ArtworkShape> = {
-  game: "landscape",
-  show: "portrait",
-  movie: "landscape",
+  game: "banner",
+  show: "poster",
+  movie: "banner",
   book: "cover",
 };
 

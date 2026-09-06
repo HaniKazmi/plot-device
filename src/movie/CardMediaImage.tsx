@@ -39,7 +39,7 @@ const MovieCardDetail = ({ item }: { item: Movie }) => {
 const MovieCardMediaImage: TypedCardMediaImage<Movie> = ({ item, ...props }) => (
   <CardMediaImage
     alt={item.name}
-    image={item.banner}
+    image={item.artwork}
     detailComponent={() => <MovieCardDetail item={item} />}
     {...props}
   />
@@ -93,7 +93,7 @@ export const MovieHoverCard = ({ item }: { item: Movie }) => {
     <MovieCardMediaImage
       item={item}
       extractColour
-      sx={hoverCardArtworkSx("landscape")}
+      sx={hoverCardArtworkSx("banner")}
       footerComponent={
         <CardPanel
           title={item.name}

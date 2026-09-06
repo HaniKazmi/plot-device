@@ -3,7 +3,7 @@ import type { FranchiseEntry } from "../common/franchiseUnion";
 import type { MediumSpan } from "../common/medium";
 import type { ReactNode } from "react";
 import { formatDate } from "../common/date";
-import { ageRatingToColour, franchiseToColour, genreToColour, mediumFills, type Scheme } from "../utils/types";
+import { certificateToColour, franchiseToColour, genreToColour, mediumFills, type Scheme } from "../utils/types";
 import { movieItemKey } from "./statsData";
 import { namesTheSameThing } from "../utils/stringUtils";
 import type { Movie } from "./types";
@@ -24,7 +24,7 @@ export const movieSubtitle = (movie: Movie, scheme: Scheme): PanelSubtitlePart[]
  * The facts that are not figures.
  *
  * A row carries a swatch exactly where the app speaks that field's colour somewhere else — the
- * genre shares the shows tab's vocabulary, the rating the games tab's map.
+ * genre shares the shows tab's vocabulary, the certificate the games tab's map.
  */
 export const movieRows = (movie: Movie, scheme: Scheme): LedgerRow[] => {
   const rows: LedgerRow[] = [
@@ -36,8 +36,12 @@ export const movieRows = (movie: Movie, scheme: Scheme): LedgerRow[] => {
     { label: "By", value: movie.director },
     // The primary genre leads and the rest follow it, which is the order the sheet holds them in
     // and the order the charts group by.
-    { label: "Genre", value: [movie.genre, ...movie.genres].join(" · "), swatch: genreToColour(movie.genre, scheme) },
-    { label: "Rating", value: movie.rating, swatch: ageRatingToColour(movie.rating, scheme) },
+    {
+      label: "Genre",
+      value: [movie.genre, ...movie.otherGenres].join(" · "),
+      swatch: genreToColour(movie.genre, scheme),
+    },
+    { label: "BBFC", value: movie.certificate, swatch: certificateToColour(movie.certificate, scheme) },
   );
 
   // A film with no wider franchise carries its own name in the column, so the row appears only

@@ -115,7 +115,7 @@ describe("yearlyAverages", () => {
   });
 
   it("floors the average rather than rounding it, unlike the games tab", () => {
-    // vg/statsData's yearlyAverages keeps two decimals; this one truncates. The two domains
+    // game/statsData's yearlyAverages keeps two decimals; this one truncates. The two domains
     // disagree, and the difference is visible on screen.
     const data = [
       withSeasons(

@@ -11,14 +11,19 @@ import { BRIDGE_KEYS, genreBridge, type BridgeKey, type GenreBridgeRow } from ".
 import type { OmniItem } from "../common/medium";
 import { media, mediumToColour, mediumToLabel, type Measure } from "../app/types";
 import { useScheme } from "../common/useScheme";
-import { decadeToColour, genreToColour, ageBandToColour, releaseDecade, type Scheme } from "../utils/types";
+import { decadeToColour, genreToColour, certificateBandToColour, releaseDecade, type Scheme } from "../utils/types";
 import type { Colour } from "../utils/types";
 
 /** The figure's unit, short enough to sit beside a five-digit number in the figure column. */
 const UNIT: Record<Measure, string> = { Hours: "hrs", Items: "items" };
 
 /** The plural a key's rows are counted in, and the title's first word. */
-const KEY_NOUN: Record<BridgeKey, string> = { genre: "Genres", year: "Years", decade: "Decades", rating: "Ratings" };
+const KEY_NOUN: Record<BridgeKey, string> = {
+  genre: "Genres",
+  year: "Years",
+  decade: "Decades",
+  certificate: "Certificates",
+};
 
 /**
  * The swatch a row wears: the vocabulary the app already speaks for that field, as the gallery's
@@ -29,8 +34,8 @@ const rowColour = (name: string, key: BridgeKey, scheme: Scheme): Colour | undef
   switch (key) {
     case "genre":
       return genreToColour(name, scheme);
-    case "rating":
-      return ageBandToColour(name, scheme);
+    case "certificate":
+      return certificateBandToColour(name, scheme);
     case "decade":
       return decadeToColour(name, scheme);
     case "year":

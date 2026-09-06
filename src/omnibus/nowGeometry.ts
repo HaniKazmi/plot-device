@@ -52,9 +52,9 @@ export const NOW_SPINE_WIDTH = 36;
  * carries no subtitle and why its title cannot wrap: at this width the words have to fit 136px, and
  * a picture that gave way instead would be letterboxed inside a card the row had already sized.
  */
-const NOW_POSTER_ART_WIDTH = Math.round(NOW_HEIGHT * shapeRatioValues.portrait);
+const NOW_POSTER_ART_WIDTH = Math.round(NOW_HEIGHT * shapeRatioValues.poster);
 export const NOW_CARD_WIDTH = NOW_POSTER_ART_WIDTH + NOW_TEXT_WIDTH;
-const NOW_BANNER_ART_HEIGHT = Math.round(NOW_CARD_WIDTH / shapeRatioValues.landscape);
+const NOW_BANNER_ART_HEIGHT = Math.round(NOW_CARD_WIDTH / shapeRatioValues.banner);
 export const NOW_BANNER_TEXT_HEIGHT = NOW_HEIGHT - NOW_BANNER_ART_HEIGHT;
 
 /** One width and one height for every card, and the artwork size each shape takes from them. */
@@ -87,7 +87,7 @@ export const NOW_GAP = 8;
  * cropped and the cover a few percent narrower than 2:3 gives its spine those pixels.
  */
 export const nowPortraitHeight = (rowWidth: number): number =>
-  Math.round((Math.floor((rowWidth - NOW_GAP) / 2) - NOW_SPINE_WIDTH) / shapeRatioValues.portrait);
+  Math.round((Math.floor((rowWidth - NOW_GAP) / 2) - NOW_SPINE_WIDTH) / shapeRatioValues.poster);
 
 /**
  * The narrowest card the four-way share may produce.
@@ -121,9 +121,9 @@ const NOW_MIN_CARD_WIDTH = 366;
 const shareGeometry = (rowWidth: number, perRow: number): NowGeometry => {
   const cardWidth = Math.floor((rowWidth - (perRow - 1) * NOW_GAP) / perRow);
 
-  const bannerArtHeight = Math.round(cardWidth / shapeRatioValues.landscape);
+  const bannerArtHeight = Math.round(cardWidth / shapeRatioValues.banner);
   const height = bannerArtHeight + NOW_BANNER_TEXT_HEIGHT;
-  return { cardWidth, height, posterArtWidth: Math.round(height * shapeRatioValues.portrait), bannerArtHeight };
+  return { cardWidth, height, posterArtWidth: Math.round(height * shapeRatioValues.poster), bannerArtHeight };
 };
 
 /**

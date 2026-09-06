@@ -7,7 +7,7 @@ import { book } from "../fixtures/books";
 import { library } from "../fixtures/library";
 import { movie } from "../fixtures/movies";
 import { season, show } from "../fixtures/shows";
-import { videoGame } from "../fixtures/vgRows";
+import { videoGame } from "../fixtures/gameRows";
 
 /**
  * The registry is what a fifth medium is added through, so what these pin is that it is complete

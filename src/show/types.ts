@@ -2,13 +2,13 @@ import { YearMonthDay } from "../common/date";
 import {
   KeysMatching,
   NEUTRAL_FILL,
-  ageRatingToColour,
+  certificateToColour,
   fill,
   franchiseToColour,
   genreToColour,
   pick,
   statusToColour,
-  type AgeRating,
+  type Certificate,
   type Colour,
   type Fill,
   type Scheme,
@@ -23,13 +23,13 @@ export interface Show {
   type: Type;
   genre: string;
   /**
-   * The genres beyond the primary one. The sheet lists them in a single cell and never repeats
-   * `genre` among them, so the two together are the show's full set rather than an overlapping
-   * pair. Empty where the sheet says nothing, which is 23 of 308 shows.
+   * The sheet lists these in one cell and never repeats `genre` among them, so the two fields
+   * together are the show's full set rather than an overlapping pair. Empty where the sheet says
+   * nothing, which is 23 of 308 shows.
    */
-  genres: string[];
+  otherGenres: string[];
   network: string;
-  rating: AgeRating;
+  certificate: Certificate;
   /** A show with no wider franchise carries its own name here, which 229 of 308 shows do. */
   franchise: string;
   /**
@@ -40,7 +40,7 @@ export interface Show {
   s: Season[];
   e: number;
   minutes: number;
-  banner: string;
+  artwork: string;
 }
 
 export interface Season {
@@ -59,7 +59,9 @@ export interface Season {
 export type Status = "Watching" | "Up To Date" | "Ended" | "Cancelled" | "Abandoned";
 
 /** The sheet's own values, which are lower case. */
-export type Type = "show" | "anime";
+export const TYPES = ["show", "anime"] as const;
+
+export type Type = (typeof TYPES)[number];
 
 /** `Type` as a chart labels it — the sheet's values are lower case and a wedge should not be. */
 export const typeToName = (type: Type) => (type === "anime" ? "Anime" : "Show");
@@ -71,7 +73,7 @@ export type Measure = "Shows" | "Seasons" | "Episodes" | "Hours";
 export const isShow = (arg: Show | Season): arg is Show => "name" in arg;
 
 /**
- * The broadcasters and streamers with a colour, as fills built the way `vg/types.ts` builds its
+ * The broadcasters and streamers with a colour, as fills built the way `game/types.ts` builds its
  * franchise brands: hue and chroma are the brand's, and only lightness moves, as far as the fill
  * contract on `NEUTRAL_FILL` demands of each half.
  *
@@ -134,9 +136,9 @@ export const groupToColour = (group: keyof Show | "none" | "show", show: Show, s
   switch (group) {
     case "status":
       return statusToColour(show, scheme);
-    case "rating":
+    case "certificate":
       // The same map the games tab paints its PEGI with, so a swatch means one thing across the app.
-      return ageRatingToColour(show.rating, scheme);
+      return certificateToColour(show.certificate, scheme);
     case "genre":
       // The vocabulary Movies shares, so one hue means one genre on both tabs.
       return genreToColour(show.genre, scheme);

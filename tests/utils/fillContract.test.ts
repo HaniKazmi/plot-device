@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
-  AGE_BANDS,
-  AGE_RATINGS,
+  CERTIFICATE_BANDS,
+  CERTIFICATES,
   COLOURABLE_STATUSES,
   DECADE_NAMES,
   FRANCHISE_NAMES,
   GENRE_NAMES,
-  ageBandToColour,
-  ageRatingToColour,
+  certificateBandToColour,
+  certificateToColour,
   decadeToColour,
   franchiseToColour,
   genreToColour,
@@ -21,8 +21,8 @@ import {
   GAMEPLAY,
   companyToColor,
   gameplayToColour,
-  groupToColour as vgGroupToColour,
-} from "../../src/vg/types";
+  groupToColour as gameGroupToColour,
+} from "../../src/game/types";
 import { NETWORK_NAMES, groupToColour as showGroupToColour, networkToColour, typeToColour } from "../../src/show/types";
 import {
   cinemaToColour,
@@ -31,10 +31,10 @@ import {
   scoreBandToColour,
 } from "../../src/movie/types";
 import { media, mediumToColour } from "../../src/app/types";
-import { FORMATS, formatToColour, groupToColour as bookGroupToColour } from "../../src/books/types";
+import { FORMATS, formatToColour, groupToColour as bookGroupToColour } from "../../src/book/types";
 import Tabs from "../../src/tabs";
 import { PAPERS, contrast, liveGenres } from "../fixtures/colour";
-import { videoGame } from "../fixtures/vgRows";
+import { videoGame } from "../fixtures/gameRows";
 import { show } from "../fixtures/shows";
 import { movie } from "../fixtures/movies";
 import { book } from "../fixtures/books";
@@ -48,7 +48,7 @@ import { book } from "../fixtures/books";
  * papers would re-impose the single narrow lightness band the pair exists to escape.
  *
  * Every list is the table's own, exported beside it rather than restated here: a franchise added to
- * `vg/types.ts` or a network to `show/types.ts` is covered without anyone remembering this file,
+ * `game/types.ts` or a network to `show/types.ts` is covered without anyone remembering this file,
  * which is the only way a contract test stays one.
  *
  * `contrast` is a second implementation of the WCAG formula rather than an import, so this cannot
@@ -86,9 +86,10 @@ describe.each(SCHEMES)("every fill clears 3:1 on the %s paper", (scheme) => {
 
   it("the neutral, which every table falls back to", () => check("neutral", neutralFill(scheme)));
 
-  it("age ratings, by certificate and by band", () => {
-    for (const rating of AGE_RATINGS) check(`rating ${rating}`, ageRatingToColour(rating, scheme));
-    for (const band of AGE_BANDS) check(`band ${band}`, ageBandToColour(band, scheme));
+  it("certificates, by value and by band", () => {
+    for (const certificate of CERTIFICATES)
+      check(`certificate ${certificate}`, certificateToColour(certificate, scheme));
+    for (const band of CERTIFICATE_BANDS) check(`band ${band}`, certificateBandToColour(band, scheme));
   });
 
   it("statuses", () => {
@@ -157,7 +158,7 @@ describe("one franchise, one colour, every tab", () => {
 
   it.each(CROSS_MEDIA)("draws %s the same on Games, Shows, Movies and Books", (franchise) => {
     for (const scheme of SCHEMES) {
-      const fromGames = vgGroupToColour("franchise", videoGame({ franchise }), scheme);
+      const fromGames = gameGroupToColour("franchise", videoGame({ franchise }), scheme);
       const fromShows = showGroupToColour("franchise", show({ franchise }), scheme);
       const fromMovies = movieGroupToColour("franchise", movie({ franchise }), scheme);
       const fromBooks = bookGroupToColour("franchise", book({ franchise }), scheme);

@@ -5,7 +5,7 @@ import type { OmniItem } from "../../src/common/medium";
 import { filters, initialState, type FilterState } from "../../src/omnibus/filterUtils";
 import { book } from "../fixtures/books";
 import { movie } from "../fixtures/movies";
-import { videoGame } from "../fixtures/vgRows";
+import { videoGame } from "../fixtures/gameRows";
 import { omniFilters } from "../../src/omnibus/filters";
 import { media } from "../../src/app/types";
 

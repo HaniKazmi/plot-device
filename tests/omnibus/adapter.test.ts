@@ -5,18 +5,18 @@ import type { MediumLazy } from "../../src/common/medium";
 import { MEDIA as MEDIA_ORDER, type Medium } from "../../src/utils/types";
 import { earliestYear } from "../../src/omnibus/filterUtils";
 import { measureOf, omniHours, toOmniItems, visibleLibrary } from "../../src/app/library";
-import { omniBanner } from "../../src/app/media";
+import { omniArtwork } from "../../src/app/media";
 import { measureOf as movieMeasureOf } from "../../src/movie/statsData";
 import { measureOf as showMeasureOf } from "../../src/show/statsData";
 import { book } from "../fixtures/books";
 import { library } from "../fixtures/library";
 import { movie } from "../fixtures/movies";
 import { season, show } from "../fixtures/shows";
-import { videoGame } from "../fixtures/vgRows";
-import { now as bookNow } from "../../src/books/now";
+import { videoGame } from "../fixtures/gameRows";
+import { now as bookNow } from "../../src/book/now";
 import { now as movieNow } from "../../src/movie/now";
 import { now as showNow } from "../../src/show/now";
-import { now as vgNow } from "../../src/vg/now";
+import { now as gameNow } from "../../src/game/now";
 
 /**
  * A show holding the seasons described, with the totals rolled up into the parent the way the
@@ -134,9 +134,9 @@ describe("flattening", () => {
     const parent = showWith([{ start: 2021, end: 2022 }, { start: 2024 }], {
       name: "Severance",
       genre: "Sci-Fi",
-      genres: ["Drama"],
+      otherGenres: ["Drama"],
       franchise: "Severance",
-      rating: "15",
+      certificate: "15",
     });
     const items = toOmniItems(library({ show: [parent] }));
 
@@ -145,16 +145,16 @@ describe("flattening", () => {
     // card that wants to say "S2" reads it.
     expect(items.map((item) => item.name)).toEqual(["Severance", "Severance"]);
     expect(items[0].genre).toBe("Sci-Fi");
-    expect(items[0].genres).toEqual(["Drama"]);
+    expect(items[0].otherGenres).toEqual(["Drama"]);
     expect(items[0].franchise).toBe("Severance");
-    expect(items[0].rating).toBe("15");
+    expect(items[0].certificate).toBe("15");
     expect(items[0].source).toBe(parent.s[0]);
   });
 
   it("gives a game no secondary genres, because the sheet records themes rather than genres", () => {
-    const [item] = toOmniItems(library({ game: [videoGame({ theme: ["Fantasy"] })] }));
+    const [item] = toOmniItems(library({ game: [videoGame({ themes: ["Fantasy"] })] }));
 
-    expect(item.genres).toEqual([]);
+    expect(item.otherGenres).toEqual([]);
   });
 
   it("keeps the record each item came from, which is what lets a domain render its own card", () => {
@@ -206,13 +206,13 @@ describe("what a browse surface reads off an item", () => {
     const parent = showWith([{ start: 2021, end: 2022 }]);
     const [item] = toOmniItems(library({ show: [parent] }));
 
-    expect(omniBanner(item)).toBe(parent.banner);
+    expect(omniArtwork(item)).toBe(parent.artwork);
   });
 
   it("has no artwork for a game the sheet never gave one, which is what keeps it off a wall", () => {
-    const [item] = toOmniItems(library({ game: [videoGame({ banner: undefined })] }));
+    const [item] = toOmniItems(library({ game: [videoGame({ artwork: undefined })] }));
 
-    expect(omniBanner(item)).toBeUndefined();
+    expect(omniArtwork(item)).toBeUndefined();
   });
 
   it("names a season by its number, so a strip of one show's seasons is not six identical labels", () => {
@@ -364,10 +364,10 @@ describe("a book in the union", () => {
 
     expect(item.hours).toBe(1.5);
     expect(item.genre).toBe("Fantasy");
-    expect(item.genres).toEqual([]);
+    expect(item.otherGenres).toEqual([]);
     expect(item.franchise).toBe("Cosmere");
     // Nothing certifies a book; every certificate surface drops it rather than shelving a blank.
-    expect(item.rating).toBeUndefined();
+    expect(item.certificate).toBeUndefined();
   });
 
   it("tells a reread from the first read, which is a second row with one title", () => {
@@ -381,16 +381,16 @@ describe("a book in the union", () => {
   });
 
   it("is drawn as its own cover and named by its own title", () => {
-    const [item] = toOmniItems(library({ book: [book({ banner: "cover.jpeg" })] }));
+    const [item] = toOmniItems(library({ book: [book({ artwork: "cover.jpeg" })] }));
 
-    expect(omniBanner(item)).toBe("cover.jpeg");
+    expect(omniArtwork(item)).toBe("cover.jpeg");
     expect(omniTitle(item)).toBe("Chasm City");
   });
 
   it("has no picture while the sheet's Banner column has not reached it", () => {
-    const [item] = toOmniItems(library({ book: [book({ banner: "" })] }));
+    const [item] = toOmniItems(library({ book: [book({ artwork: "" })] }));
 
-    expect(omniBanner(item)).toBeUndefined();
+    expect(omniArtwork(item)).toBeUndefined();
   });
 
   it("keeps every book under guest mode, since nothing on the sheet marks one to hide", () => {
@@ -407,10 +407,10 @@ describe("a book in the union", () => {
 describe("each medium's Now pair", () => {
   it("names the game in progress", () => {
     const playing = videoGame({ name: "Tunic", status: "Playing", startDate: YearMonthDay.get(2026, 1, 2) });
-    const item = vgNow.elect([videoGame(), playing]);
+    const item = gameNow.elect([videoGame(), playing]);
 
     expect(item).toBe(playing);
-    expect(vgNow.nowPanel(item!, "light").title).toBe("Tunic");
+    expect(gameNow.nowPanel(item!, "light").title).toBe("Tunic");
   });
 
   it("names the season the sheet marks as current", () => {

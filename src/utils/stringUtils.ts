@@ -29,11 +29,14 @@ const normaliseTitle = (title: string) =>
  * as a value of its own in any tally. A cell the row ended before arrives as `undefined`.
  *
  * The separator is fixed because the sheets write these lists both ways, `a, b` and `a,b`, so the
- * space cannot be part of it and each part is trimmed instead.
+ * space cannot be part of it and each part is trimmed instead. A newline counts as one too: no
+ * value in any of these columns contains one, and a cell typed with Alt+Enter would otherwise come
+ * back as a single part with the newline inside it — which reads as one unrecognised value and
+ * silently takes every name after the first out of `includes`, the test guest mode hides on.
  */
 export const splitCell = (value: string | undefined) =>
   (value ?? "")
-    .split(",")
+    .split(/[,\n]/)
     .map((part) => part.trim())
     .filter(Boolean);
 

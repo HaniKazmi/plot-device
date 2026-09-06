@@ -165,7 +165,7 @@ export const captionLines = (cells: string[]): string[] =>
 
 /**
  * A grouped strip's caption: the group's labels less the group's own name, which the fronting
- * artwork stands for — an author's name is printed on the cover, a franchise's on the banner. At
+ * artwork stands for — an author's name is printed on the cover, a franchise's on the artwork. At
  * a cover's 80px a name beside its figure is an ellipsis before the figure, and the figure is what
  * the shelf is ordered by.
  */

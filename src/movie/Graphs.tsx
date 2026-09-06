@@ -1,6 +1,6 @@
 import { memo, useDeferredValue } from "react";
 import { Stack } from "@mui/material";
-import { ratingToColour, type Movie } from "./types";
+import { certificateColour, type Movie } from "./types";
 import { movieModule } from "./module";
 import Finished from "../common/Finished";
 import MovieCardMediaImage from "./CardMediaImage";
@@ -20,7 +20,7 @@ import { useScheme } from "../common/useScheme";
 const MOVIE_SORTS: readonly FinishedExtraSort<Movie>[] = [{ label: "Score", value: (movie) => movie.score }];
 
 /** What the wall's card borders speak, and the key beneath its header names. */
-const MOVIE_BORDER = { key: "rating", valueOf: (film: Movie) => film.rating };
+const MOVIE_BORDER = { key: "certificate", valueOf: (film: Movie) => film.certificate };
 
 const SuspenseBlock = ({
   filteredData,
@@ -82,9 +82,9 @@ const Graphs = memo(({ data, filterState }: { data: Movie[]; filterState: Filter
           title="All Films"
           border={MOVIE_BORDER}
           data={data}
-          // Rating rather than genre for the border: `ageRatingToColour` is validated at convert
+          // The certificate rather than genre for the border: `certificateToColour` is validated at convert
           // time and total, so it cannot throw across a wall of hundreds of cards.
-          colour={(item) => ratingToColour(item, scheme)}
+          colour={(item) => certificateColour(item, scheme)}
           MediaComponent={MovieCardMediaImage}
           landscape
           // Score is a wall order rather than a strip of its own: "what was best" is the same

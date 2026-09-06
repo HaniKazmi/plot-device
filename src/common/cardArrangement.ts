@@ -9,7 +9,7 @@ import { createContext, useContext } from "react";
  * their publishers at roughly 2:3 and vary by a few percent each. A layout that pins a poster's
  * declared ratio firmly therefore lets a cover take its own — see `shapeIsExact`.
  */
-export type ArtworkShape = "landscape" | "portrait" | "cover";
+export type ArtworkShape = "banner" | "poster" | "cover";
 
 /**
  * Where a card's words sit against its artwork: underneath it, or in a column beside it.
@@ -30,8 +30,8 @@ export type ArtworkShape = "landscape" | "portrait" | "cover";
 type CardArrangement = "stacked" | "beside";
 
 const shapeArrangements: Record<ArtworkShape, CardArrangement> = {
-  landscape: "stacked",
-  portrait: "beside",
+  banner: "stacked",
+  poster: "beside",
   cover: "beside",
 };
 
@@ -55,14 +55,14 @@ export const shapeToArrangement = (shape: ArtworkShape): CardArrangement => shap
  * beside it. Nothing is authored to a cover's ratio, so there is no canonical file to hold it to.
  */
 export const shapeRatioValues: Record<ArtworkShape, number> = {
-  landscape: 16 / 9,
-  portrait: 680 / 1000,
+  banner: 16 / 9,
+  poster: 680 / 1000,
   cover: 2 / 3,
 };
 
 const shapeRatios: Record<ArtworkShape, string> = {
-  landscape: "16 / 9",
-  portrait: "680 / 1000",
+  banner: "16 / 9",
+  poster: "680 / 1000",
   cover: "2 / 3",
 };
 
@@ -73,8 +73,8 @@ export const shapeToRatio = (shape: ArtworkShape): string => shapeRatios[shape];
  * to it. False only for covers, whose ratio is a reservation and never a size.
  */
 const shapeExact: Record<ArtworkShape, boolean> = {
-  landscape: true,
-  portrait: true,
+  banner: true,
+  poster: true,
   cover: false,
 };
 
@@ -99,8 +99,8 @@ export const shapeToPinnedAspect = (shape: ArtworkShape): string =>
  * the moment it is known, and this stands in only while there is none.
  */
 const shapeAspects: Record<ArtworkShape, string> = {
-  landscape: `auto ${shapeRatios.landscape}`,
-  portrait: `auto ${shapeRatios.portrait}`,
+  banner: `auto ${shapeRatios.banner}`,
+  poster: `auto ${shapeRatios.poster}`,
   cover: `auto ${shapeRatios.cover}`,
 };
 
@@ -157,4 +157,4 @@ export const hoverCardArtworkSx = (shape: ArtworkShape) =>
         height: HOVER_CARD_ASIDE_ARTWORK_HEIGHT,
         width: "auto",
       }
-    : { aspectRatio: shapeToRatio("landscape") };
+    : { aspectRatio: shapeToRatio("banner") };

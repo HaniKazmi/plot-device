@@ -1,13 +1,13 @@
 /**
- * Raw rows as `arrayToJson` hands them over: every value a string.
+ * Raw rows as `arrayToJson` hands them over: every value a string, in the Shows tab's own column
+ * order.
  *
- * The sheet is flat and order-dependent — a non-empty `Show` cell opens a show and every row
- * after it with an empty `Show` cell is one of its seasons. Note the two similarly named
- * columns: `Episode` is the episode count, `Episodes` is the runtime of one episode. `Status`
- * changes meaning by row kind: a show's status on show rows, a last-watched date on in-progress
- * season rows.
+ * The sheet is flat and order-dependent — a non-empty `Title` cell opens a show and every row
+ * after it with an empty `Title` cell is one of its seasons. Two columns change meaning by row
+ * kind: `Status` is a show's own status and blank on a season, and `Seasons / Last Watched` is the
+ * season count on a show row and the date an episode was last watched on an in-progress season.
  *
- * `Genres` is the sheet's last column, so a row can end before it and carry no key at all.
+ * `Artwork` is the sheet's last column, so a row can end before it and carry no key at all.
  * Overriding a column to `undefined` drops the key, which is how such a row actually arrives.
  */
 type Overrides = Record<string, string | undefined>;
@@ -21,22 +21,22 @@ const withOverrides = (base: Record<string, string>, overrides: Overrides): Reco
 export const showRow = (overrides: Overrides = {}): Record<string, string> =>
   withOverrides(
     {
-      Show: "Severance",
-      Status: "Watching",
-      Genre: "Sci-Fi",
-      Subtitle: "",
-      Season: "",
-      Episode: "",
-      Start: "",
-      End: "",
-      Episodes: "",
-      Length: "",
-      Network: "Apple TV+",
-      Rating: "15",
-      Type: "show",
-      Banner: "severance.jpg",
+      Title: "Severance",
       Franchise: "Severance",
-      Genres: "Drama, Thriller",
+      Genre: "Sci-Fi",
+      "Other Genres": "Drama, Thriller",
+      Network: "Apple TV+",
+      Certificate: "15",
+      Type: "show",
+      Status: "Watching",
+      Season: "",
+      Subtitle: "",
+      Episodes: "",
+      "Episode Length (min)": "",
+      "Start Date": "",
+      "End Date": "",
+      "Seasons / Last Watched": "",
+      Artwork: "severance.jpg",
     },
     overrides,
   );
@@ -44,22 +44,22 @@ export const showRow = (overrides: Overrides = {}): Record<string, string> =>
 export const seasonRow = (overrides: Overrides = {}): Record<string, string> =>
   withOverrides(
     {
-      Show: "",
-      Status: "",
-      Genre: "",
-      Subtitle: "",
-      Season: "1",
-      Episode: "9",
-      Start: "2022-02-18",
-      End: "2022-04-08",
-      Episodes: "45",
-      Length: "",
-      Network: "",
-      Rating: "",
-      Type: "",
-      Banner: "",
+      Title: "",
       Franchise: "",
-      Genres: "",
+      Genre: "",
+      "Other Genres": "",
+      Network: "",
+      Certificate: "",
+      Type: "",
+      Status: "",
+      Season: "1",
+      Subtitle: "",
+      Episodes: "9",
+      "Episode Length (min)": "45",
+      "Start Date": "2022-02-18",
+      "End Date": "2022-04-08",
+      "Seasons / Last Watched": "",
+      Artwork: "",
     },
     overrides,
   );

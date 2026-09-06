@@ -1,28 +1,28 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { YearMonthDay } from "../../src/common/date";
-import { jsonConverter } from "../../src/show/converter";
+import { dropSeasonParents, jsonConverter, reviveSeasonParents, showDataConfig } from "../../src/show/converter";
 import { seasonRow, showRow } from "../fixtures/showRows";
 
 afterEach(() => vi.restoreAllMocks());
 
 describe("flattening the sheet into nested shows", () => {
-  it("opens a show on a non-empty Show cell and attaches the rows after it as seasons", () => {
+  it("opens a show on a non-empty Title cell and attaches the rows after it as seasons", () => {
     const [show] = jsonConverter([
-      showRow({ Show: "Severance" }),
-      seasonRow({ Season: "1", Episode: "9" }),
-      seasonRow({ Season: "2", Episode: "10", Start: "2025-01-17", End: "2025-03-21" }),
+      showRow({ Title: "Severance" }),
+      seasonRow({ Season: "1", Episodes: "9" }),
+      seasonRow({ Season: "2", Episodes: "10", "Start Date": "2025-01-17", "End Date": "2025-03-21" }),
     ]);
 
     expect(show.name).toBe("Severance");
     expect(show.s.map((s) => s.s)).toEqual([1, 2]);
   });
 
-  it("starts a new show at the next non-empty Show cell", () => {
+  it("starts a new show at the next non-empty Title cell", () => {
     const shows = jsonConverter([
-      showRow({ Show: "Severance" }),
+      showRow({ Title: "Severance" }),
       seasonRow(),
-      showRow({ Show: "Andor" }),
-      seasonRow({ Start: "2022-09-21", End: "2022-11-23" }),
+      showRow({ Title: "Andor" }),
+      seasonRow({ "Start Date": "2022-09-21", "End Date": "2022-11-23" }),
     ]);
 
     expect(shows.map((s) => s.name)).toEqual(["Severance", "Andor"]);
@@ -43,9 +43,9 @@ describe("flattening the sheet into nested shows", () => {
     expect(show.type).toBe("show");
     expect(show.genre).toBe("Sci-Fi");
     expect(show.network).toBe("Apple TV+");
-    expect(show.rating).toBe("15");
+    expect(show.certificate).toBe("15");
     expect(show.franchise).toBe("Severance");
-    expect(show.banner).toBe("severance.jpg");
+    expect(show.artwork).toBe("severance.jpg");
   });
 
   it("rejects a show with no genre, naming the row and the show", () => {
@@ -58,7 +58,7 @@ describe("flattening the sheet into nested shows", () => {
     // Cast to a full date instead, it reaches `buildStrip` and throws "Invalid comparison" out of
     // a render naming no row — a season is packed against its neighbours, and a whole year
     // overlaps all of them.
-    expect(() => jsonConverter([showRow(), seasonRow({ Start: "2022" })])).toThrow(
+    expect(() => jsonConverter([showRow(), seasonRow({ "Start Date": "2022" })])).toThrow(
       '"2022" is a bare year, not a full date',
     );
   });
@@ -66,13 +66,13 @@ describe("flattening the sheet into nested shows", () => {
   it("rejects a bare year on the end as readily as on the start", () => {
     // Both ends go through the same reader, so a season cannot be recorded at two precisions —
     // there is no mixed-pair case left for this converter to have an opinion about.
-    expect(() => jsonConverter([showRow(), seasonRow({ Start: "2022-02-18", End: "2022" })])).toThrow(
+    expect(() => jsonConverter([showRow(), seasonRow({ "Start Date": "2022-02-18", "End Date": "2022" })])).toThrow(
       '"2022" is a bare year, not a full date',
     );
   });
 
   it("leaves a season still running alone, where there is no end to agree with", () => {
-    expect(() => jsonConverter([showRow(), seasonRow({ Start: "2022-02-18", End: "" })])).not.toThrow();
+    expect(() => jsonConverter([showRow(), seasonRow({ "Start Date": "2022-02-18", "End Date": "" })])).not.toThrow();
   });
 
   it("asks the question only of a row that opens a show, since a season carries no genre", () => {
@@ -81,8 +81,22 @@ describe("flattening the sheet into nested shows", () => {
     expect(() => jsonConverter([showRow(), seasonRow({ Genre: "" })])).not.toThrow();
   });
 
+  it("rejects a type outside the sheet's two words, guest mode depending on it", () => {
+    // Guest mode hides anime (`show/filters.ts`), so a cell that fails to say a show is one puts a
+    // hidden show on screen — silently, where a wrong genre only mislabels a wedge.
+    expect(() => jsonConverter([showRow({ Type: "cartoon" }), seasonRow()])).toThrow(
+      'Row 2, "Severance", Type: "cartoon" is not a show type',
+    );
+  });
+
+  it("takes a hand-typed type cell's case and spacing as the same answer", () => {
+    const [show] = jsonConverter([showRow({ Type: " Anime " }), seasonRow()]);
+
+    expect(show.type).toBe("anime");
+  });
+
   it("splits the secondary genres on the comma the sheet separates them with", () => {
-    const genres = (value: string) => jsonConverter([showRow({ Genres: value }), seasonRow()])[0].genres;
+    const genres = (value: string) => jsonConverter([showRow({ "Other Genres": value }), seasonRow()])[0].otherGenres;
 
     expect(genres("Drama, Thriller")).toEqual(["Drama", "Thriller"]);
     // Written both ways in the sheet, so the space cannot be part of the separator.
@@ -91,37 +105,50 @@ describe("flattening the sheet into nested shows", () => {
 
   it("gives a show with no secondary genres an empty list, not a list holding an empty string", () => {
     // Every reader counts or renders this list directly, and [""] shows up as a blank entry and
-    // as a genre of its own in any tally. Genres is the sheet's last column, so a row can also
-    // end before it and carry no key at all.
-    expect(jsonConverter([showRow({ Genres: "" }), seasonRow()])[0].genres).toEqual([]);
-    expect(jsonConverter([showRow({ Genres: undefined }), seasonRow()])[0].genres).toEqual([]);
+    // as a genre of its own in any tally. The absent-key case is `splitCell`'s own guarantee
+    // rather than a shape this sheet still produces — `Artwork` closes a row now, not `Genres` —
+    // and it costs nothing to keep pinned.
+    expect(jsonConverter([showRow({ "Other Genres": "" }), seasonRow()])[0].otherGenres).toEqual([]);
+    expect(jsonConverter([showRow({ "Other Genres": undefined }), seasonRow()])[0].otherGenres).toEqual([]);
   });
 
-  it("rejects a rating the colour map could not paint, naming the row and the show", () => {
-    // Left to reach ageRatingToColour, a bad cell throws from inside a render instead — naming
+  it("rejects a certificate the colour map could not paint, naming the row and the show", () => {
+    // Left to reach certificateToColour, a bad cell throws from inside a render instead — naming
     // the value but not which of three hundred shows carried it.
-    expect(() => jsonConverter([showRow({ Rating: "" }), seasonRow()])).toThrow(
-      'Row 2, "Severance", Rating: "" is not an age rating',
+    expect(() => jsonConverter([showRow({ Certificate: "" }), seasonRow()])).toThrow(
+      'Row 2, "Severance", Certificate: "" is not a certificate',
     );
-    expect(() => jsonConverter([showRow({ Rating: "PG" }), seasonRow()])).toThrow("not an age rating");
+    expect(() => jsonConverter([showRow({ Certificate: "PG" }), seasonRow()])).toThrow("not a certificate");
     // A duration is not a certificate: a cell formatted as one reads "360h  00m", not "15".
-    expect(() => jsonConverter([showRow({ Rating: "360h  00m" }), seasonRow()])).toThrow("not an age rating");
+    expect(() => jsonConverter([showRow({ Certificate: "360h  00m" }), seasonRow()])).toThrow("not a certificate");
   });
 
-  it("accepts the BBFC numbers this sheet records, alongside the PEGI form games use", () => {
-    const rating = (value: string) => jsonConverter([showRow({ Rating: value }), seasonRow()])[0].rating;
+  it("accepts the bare ages every tab now records", () => {
+    const certificate = (value: string) => jsonConverter([showRow({ Certificate: value }), seasonRow()])[0].certificate;
 
-    expect(rating("3")).toBe("3");
-    expect(rating("15")).toBe("15");
-    expect(rating("18")).toBe("18");
+    expect(certificate("3")).toBe("3");
+    expect(certificate("15")).toBe("15");
+    expect(certificate("18")).toBe("18");
   });
 });
 
 describe("rolling season totals up into the show", () => {
   const twoSeasons = () => [
     showRow(),
-    seasonRow({ Season: "1", Episode: "9", Start: "2022-02-18", End: "2022-04-08", Episodes: "45" }),
-    seasonRow({ Season: "2", Episode: "10", Start: "2025-01-17", End: "2025-03-21", Episodes: "50" }),
+    seasonRow({
+      Season: "1",
+      Episodes: "9",
+      "Start Date": "2022-02-18",
+      "End Date": "2022-04-08",
+      "Episode Length (min)": "45",
+    }),
+    seasonRow({
+      Season: "2",
+      Episodes: "10",
+      "Start Date": "2025-01-17",
+      "End Date": "2025-03-21",
+      "Episode Length (min)": "50",
+    }),
   ];
 
   it("sums episodes and minutes across seasons", () => {
@@ -143,8 +170,8 @@ describe("rolling season totals up into the show", () => {
     // fact that the show has any completed run at all.
     const [show] = jsonConverter([
       showRow(),
-      seasonRow({ Season: "1", Start: "2022-02-18", End: "2022-04-08" }),
-      seasonRow({ Season: "2", Start: "2025-01-17", End: "" }),
+      seasonRow({ Season: "1", "Start Date": "2022-02-18", "End Date": "2022-04-08" }),
+      seasonRow({ Season: "2", "Start Date": "2025-01-17", "End Date": "" }),
     ]);
 
     expect(show.endDate).toBeUndefined();
@@ -153,8 +180,8 @@ describe("rolling season totals up into the show", () => {
   it("depends on sheet order, taking the first row rather than the earliest date", () => {
     const [show] = jsonConverter([
       showRow(),
-      seasonRow({ Season: "2", Start: "2025-01-17", End: "2025-03-21" }),
-      seasonRow({ Season: "1", Start: "2022-02-18", End: "2022-04-08" }),
+      seasonRow({ Season: "2", "Start Date": "2025-01-17", "End Date": "2025-03-21" }),
+      seasonRow({ Season: "1", "Start Date": "2022-02-18", "End Date": "2022-04-08" }),
     ]);
 
     expect(show.startDate).toBe(YearMonthDay.get(2025, 1, 17));
@@ -170,7 +197,7 @@ describe("season fields", () => {
 
   it("records minutes as 0 when the runtime column is blank, not undefined", () => {
     // An hours-based measure therefore under-reports these seasons rather than skipping them.
-    const [show] = jsonConverter([showRow(), seasonRow({ Episodes: "" })]);
+    const [show] = jsonConverter([showRow(), seasonRow({ "Episode Length (min)": "" })]);
 
     expect(show.s[0].minutes).toBe(0);
     expect(show.minutes).toBe(0);
@@ -201,7 +228,7 @@ describe("season fields", () => {
     // derived from it, blanking numbers nowhere near the row at fault.
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
 
-    const [show] = jsonConverter([showRow({ Show: "Severance" }), seasonRow({ Season: "1", Episode: "" })]);
+    const [show] = jsonConverter([showRow({ Title: "Severance" }), seasonRow({ Season: "1", Episodes: "" })]);
 
     expect(show.s[0].e).toBe(0);
     expect(show.e).toBe(0);
@@ -210,9 +237,9 @@ describe("season fields", () => {
   });
 });
 
-describe("last watched, via the Status column on season rows", () => {
+describe("last watched, via the Seasons / Last Watched column on season rows", () => {
   it("parses the date off an in-progress season row and rolls it up to the show", () => {
-    const [show] = jsonConverter([showRow(), seasonRow({ End: "", Status: "2026-08-28" })]);
+    const [show] = jsonConverter([showRow(), seasonRow({ "End Date": "", "Seasons / Last Watched": "2026-08-28" })]);
 
     expect(show.s[0].lastWatchedDate).toBe(YearMonthDay.get(2026, 8, 28));
     expect(show.lastWatchedDate).toBe(YearMonthDay.get(2026, 8, 28));
@@ -221,7 +248,10 @@ describe("last watched, via the Status column on season rows", () => {
   it("ignores the cell on a season that has ended", () => {
     // The sheet maintains the cell for the season in progress; a value nobody clears on a
     // finished season must not elect an old watch as the current one.
-    const [show] = jsonConverter([showRow(), seasonRow({ End: "2026-04-08", Status: "2026-03-01" })]);
+    const [show] = jsonConverter([
+      showRow(),
+      seasonRow({ "End Date": "2026-04-08", "Seasons / Last Watched": "2026-03-01" }),
+    ]);
 
     expect(show.s[0].lastWatchedDate).toBeUndefined();
     expect(show.lastWatchedDate).toBeUndefined();
@@ -230,15 +260,15 @@ describe("last watched, via the Status column on season rows", () => {
   it("rolls up the latest value any in-progress season records", () => {
     const [show] = jsonConverter([
       showRow(),
-      seasonRow({ Season: "1", End: "", Status: "2026-08-28" }),
-      seasonRow({ Season: "1.5", Start: "2026-01-05", End: "", Status: "2025-11-02" }),
+      seasonRow({ Season: "1", "End Date": "", "Seasons / Last Watched": "2026-08-28" }),
+      seasonRow({ Season: "1.5", "Start Date": "2026-01-05", "End Date": "", "Seasons / Last Watched": "2025-11-02" }),
     ]);
 
     expect(show.lastWatchedDate).toBe(YearMonthDay.get(2026, 8, 28));
   });
 
   it("leaves the field undefined when the cell is blank, which is every season before the convention", () => {
-    const [show] = jsonConverter([showRow(), seasonRow({ End: "", Status: "" })]);
+    const [show] = jsonConverter([showRow(), seasonRow({ "End Date": "", "Seasons / Last Watched": "" })]);
 
     expect(show.lastWatchedDate).toBeUndefined();
   });
@@ -248,8 +278,8 @@ describe("the 2005 cutoff", () => {
   it("drops a season that started in or before 2005 while keeping later ones", () => {
     const [show] = jsonConverter([
       showRow(),
-      seasonRow({ Season: "1", Start: "2004-01-01", End: "2004-06-01" }),
-      seasonRow({ Season: "2", Start: "2022-02-18", End: "2022-04-08" }),
+      seasonRow({ Season: "1", "Start Date": "2004-01-01", "End Date": "2004-06-01" }),
+      seasonRow({ Season: "2", "Start Date": "2022-02-18", "End Date": "2022-04-08" }),
     ]);
 
     expect(show.s.map((s) => s.s)).toEqual([2]);
@@ -260,24 +290,24 @@ describe("the 2005 cutoff", () => {
     // rollup with nothing to summarise. That stays a hard failure — the sheet is wrong — but
     // it names the show rather than dereferencing undefined somewhere downstream.
     expect(() =>
-      jsonConverter([showRow({ Show: "Lost" }), seasonRow({ Start: "2004-01-01", End: "2004-06-01" })]),
+      jsonConverter([showRow({ Title: "Lost" }), seasonRow({ "Start Date": "2004-01-01", "End Date": "2004-06-01" })]),
     ).toThrow('Show "Lost": has no seasons starting after 2005');
   });
 
   it("throws by name when a show has no season rows at all", () => {
-    expect(() => jsonConverter([showRow({ Show: "Lost" })])).toThrow('Show "Lost"');
+    expect(() => jsonConverter([showRow({ Title: "Lost" })])).toThrow('Show "Lost"');
   });
 });
 
 describe("date ordering assertions", () => {
   it("reports an inverted date pair with both dates, and keeps the season", () => {
     // Logging does not alter control flow, so the bad row still enters the dataset — unlike
-    // vg/, where an inverted pair throws out of the converter.
+    // game/, where an inverted pair throws out of the converter.
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
 
     const [show] = jsonConverter([
-      showRow({ Show: "Severance" }),
-      seasonRow({ Season: "1", Start: "2022-04-08", End: "2022-02-18" }),
+      showRow({ Title: "Severance" }),
+      seasonRow({ Season: "1", "Start Date": "2022-04-08", "End Date": "2022-02-18" }),
     ]);
 
     expect(error).toHaveBeenCalledWith(expect.stringContaining("starts 2022-04-08 but ends 2022-02-18"));
@@ -295,12 +325,21 @@ describe("date ordering assertions", () => {
 
 describe("bad rows", () => {
   it("names the row and column when a season date will not parse", () => {
-    expect(() => jsonConverter([showRow({ Show: "Severance" }), seasonRow({ Season: "1", Start: "" })])).toThrow(
-      'Row 3, season 1 of "Severance", Start: Unkown Date Format',
-    );
+    expect(() =>
+      jsonConverter([showRow({ Title: "Severance" }), seasonRow({ Season: "1", "Start Date": "" })]),
+    ).toThrow('Row 3, season 1 of "Severance", Start Date: Unkown Date Format');
   });
 
   it("says so when a season row appears before any show", () => {
     expect(() => jsonConverter([seasonRow()])).toThrow("no show has been declared above it");
+  });
+});
+
+describe("the cache config", () => {
+  it("keys the cache on the domain and a version, so a shape change can bump it", () => {
+    expect(showDataConfig.storageKey).toBe("show-data-cache-v4");
+    expect(showDataConfig.converter).toBe(jsonConverter);
+    expect(showDataConfig.replacer).toBe(dropSeasonParents);
+    expect(showDataConfig.reviver).toBe(reviveSeasonParents);
   });
 });

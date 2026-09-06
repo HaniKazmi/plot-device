@@ -5,9 +5,9 @@ import type { Colour, Scheme } from "./utils/types";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useScheme } from "./common/useScheme";
 import Shows from "./show/Show";
-import VideoGames from "./vg/vg";
+import VideoGames from "./game/Game";
 import Movies from "./movie/Movie";
-import Books from "./books/Books";
+import Books from "./book/Book";
 import Omnibus from "./omnibus/Omnibus";
 
 /**
@@ -48,9 +48,10 @@ export interface Tab {
   name: string;
   /**
    * The sheet this tab is the dashboard for, absent on a tab that has none of its own. Omnibus
-   * composes the three sheets the other tabs already fetch, so a sheet id here would name one of
-   * them arbitrarily — and the "Sheet" button in the app bar would send a reader to a third of
-   * what they are looking at.
+   * composes the four the other tabs already fetch. They are four tabs of one book now, so an id
+   * here would be the right *file* and still the wrong answer: the "Sheet" button opens what a
+   * reader is looking at, and on the Omnibus that is all four rather than whichever one a range
+   * happened to name.
    */
   spreadsheetId?: string;
   /**
@@ -87,8 +88,8 @@ export type SheetTab = Tab & Required<Pick<Tab, "spreadsheetId" | "range">>;
 export const VideoGamesTab: SheetTab = {
   id: "vg",
   name: "Games",
-  spreadsheetId: "1JCAN_lB2QaVxj1rD4f88mN4tHjmhxF3CZlGtZGwYCLk",
-  range: "Games List!A:Z",
+  spreadsheetId: "1Zv8WAq1KA9L95ooQ3aiTOD1-0QrD1IPrEf4Mixgp9o0",
+  range: "Games!A:Z",
   component: VideoGames,
   icon: SportsEsports,
   primaryColour: "#d019ca",
@@ -99,7 +100,7 @@ export const VideoGamesTab: SheetTab = {
 export const ShowsTab: SheetTab = {
   id: "show",
   name: "Shows",
-  spreadsheetId: "1M3om2DPLfRO5dKcUfYOIcSNoLThzMLp1iZLQX6qR3pY",
+  spreadsheetId: "1Zv8WAq1KA9L95ooQ3aiTOD1-0QrD1IPrEf4Mixgp9o0",
   range: "Shows!A:Z",
   component: Shows,
   icon: Tv,
@@ -111,7 +112,7 @@ export const ShowsTab: SheetTab = {
 export const MoviesTab: SheetTab = {
   id: "movies",
   name: "Movies",
-  spreadsheetId: "1M3om2DPLfRO5dKcUfYOIcSNoLThzMLp1iZLQX6qR3pY",
+  spreadsheetId: "1Zv8WAq1KA9L95ooQ3aiTOD1-0QrD1IPrEf4Mixgp9o0",
   range: "Movies!A:Z",
   component: Movies,
   icon: Theaters,
@@ -121,9 +122,8 @@ export const MoviesTab: SheetTab = {
 };
 
 /**
- * The Books sheet: one row per book, full dates throughout, and a `Banner` column holding a cover
- * URL the way the other sheets' do. The range runs to AZ because the sheet carries thirty-odd
- * provenance columns the converter never reads, and the ones it does read sit among them.
+ * The Books tab: one row per book, full dates throughout, and an `Artwork` column holding a cover
+ * URL the way the other three hold theirs.
  *
  * The primary is a gold at hue 98 — 3.87 on the white paper and 4.18 on the dark, and 16.7 from
  * the nearest of the other nine values. `mediumColours.book` in `app/types.ts` is the matching
@@ -133,8 +133,8 @@ export const MoviesTab: SheetTab = {
 export const BooksTab: SheetTab = {
   id: "books",
   name: "Books",
-  spreadsheetId: "1qVG5hvXnOynXR4vmiLr6BiOd1CF3jzoytDBwSmeCnwA",
-  range: "Books!A:AZ",
+  spreadsheetId: "1Zv8WAq1KA9L95ooQ3aiTOD1-0QrD1IPrEf4Mixgp9o0",
+  range: "Books!A:Z",
   component: Books,
   icon: MenuBook,
   primaryColour: "#958112",

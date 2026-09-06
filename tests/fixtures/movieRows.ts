@@ -1,23 +1,27 @@
 /**
- * A raw sheet row as `arrayToJson` hands it over: every value a string.
+ * A raw sheet row as `arrayToJson` hands it over: every value a string, in the Movies tab's own
+ * column order.
  *
- * `Cinema` is written only in the true case and left blank otherwise. Unlike the Shows sheet this
- * one has no trailing optional columns — every row runs the full width — so a missing value is
- * always an empty string here and never an absent key.
+ * `Format` and `Type` are worded rather than flags, so every row states both readings and neither
+ * has a blank case. Unlike the Shows sheet this one has no trailing optional columns before
+ * `Artwork` — every row runs the full width — so a missing value is an empty string and never an
+ * absent key.
  */
 export const movieRow = (overrides: Record<string, string> = {}): Record<string, string> => ({
-  Name: "Arrival",
-  "Watch Date": "2017-01-14",
-  Score: "9",
-  Cinema: "TRUE",
-  Runtime: "116min",
-  Genre: "Sci-Fi",
-  Genres: "Drama, Mystery",
-  Rating: "12",
-  "Release Date": "2016-11-11",
+  Title: "Arrival",
+  Series: "",
+  "Series #": "",
   Franchise: "Arrival",
   Director: "Denis Villeneuve",
-  Banner: "arrival.jpg",
-  Anime: "",
+  Genre: "Sci-Fi",
+  "Other Genres": "Drama, Mystery",
+  Certificate: "12",
+  Format: "Cinema",
+  "Release Date": "2016-11-11",
+  "Watch Date": "2017-01-14",
+  "Runtime (min)": "116",
+  Score: "9",
+  Type: "film",
+  Artwork: "arrival.jpg",
   ...overrides,
 });

@@ -1,7 +1,7 @@
-import type { Book } from "../books/types";
+import type { Book } from "../book/types";
 import type { Movie } from "../movie/types";
 import type { Season, Show } from "../show/types";
-import type { VideoGame } from "../vg/types";
+import type { VideoGame } from "../game/types";
 
 /**
  * What one row of each medium's own sheet converts to, and what one row of the union is *about* —

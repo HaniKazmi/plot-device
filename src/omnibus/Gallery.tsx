@@ -70,7 +70,7 @@ const sortOptions: SegmentOption<GallerySort>[] = GALLERY_SORTS.map((sort) => ({
 const categoryTitles: Record<GalleryCategory, string> = {
   genre: "Genre",
   franchise: "Franchise",
-  rating: "Rating",
+  certificate: "Certificate",
   // Not the decade it was made in — shows carry no release date — so the header says which decade
   // it means rather than letting the reader assume the home tabs' sense of the word.
   decade: "Decade Met",

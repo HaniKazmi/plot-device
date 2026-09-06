@@ -4,7 +4,7 @@ import type { StripSpan } from "../common/timelineStripData";
 import type { FranchiseEntry } from "../common/franchiseUnion";
 import type { MediumSpan } from "../common/medium";
 import type { ReactNode } from "react";
-import { ageRatingToColour, franchiseToColour, genreToColour, mediumFills, type Scheme } from "../utils/types";
+import { certificateToColour, franchiseToColour, genreToColour, mediumFills, type Scheme } from "../utils/types";
 import { namesTheSameThing } from "../utils/stringUtils";
 import { networkToColour, type Season, type Show } from "./types";
 import "../utils/arrayUtils";
@@ -62,7 +62,7 @@ export const showSubtitle = (show: Show, scheme: Scheme): PanelSubtitlePart[] =>
  * The facts that are not figures.
  *
  * A row carries a swatch exactly where the app speaks that field's colour somewhere else — the
- * rating shares the games tab's map, the genre the vocabulary Movies shares, the network its own
+ * certificate shares the games tab's map, the genre the vocabulary Movies shares, the network its own
  * table where it has an entry. Status has a colour too and is already a filled tile above, so
  * repeating it here would say it twice.
  */
@@ -74,9 +74,9 @@ export const showRows = (show: Show, scheme: Scheme): LedgerRow[] => {
     { label: "Last Watched", value: `S${show.s.at(-1)!.s}E${show.s.at(-1)!.e}` },
     // The primary genre leads and the rest follow it, which is the order the sheet holds them in
     // and the order the charts group by.
-    { label: "Genre", value: [show.genre, ...show.genres].join(" · "), swatch: genreToColour(show.genre, scheme) },
+    { label: "Genre", value: [show.genre, ...show.otherGenres].join(" · "), swatch: genreToColour(show.genre, scheme) },
     { label: "Network", value: show.network, swatch: networkToColour(show, scheme) || undefined },
-    { label: "Rating", value: show.rating, swatch: ageRatingToColour(show.rating, scheme) },
+    { label: "BBFC", value: show.certificate, swatch: certificateToColour(show.certificate, scheme) },
   ];
 
   // The runtime of the most recent season's episodes — where the seasons disagree, the latest is

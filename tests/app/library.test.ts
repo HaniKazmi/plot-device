@@ -4,10 +4,10 @@ import { book } from "../fixtures/books";
 import { library } from "../fixtures/library";
 import { movie } from "../fixtures/movies";
 import { show } from "../fixtures/shows";
-import { videoGame } from "../fixtures/vgRows";
+import { videoGame } from "../fixtures/gameRows";
 
 describe("guest mode", () => {
-  const adult = videoGame({ theme: ["Adult"] });
+  const adult = videoGame({ themes: ["Adult"] });
   const anime = show({ type: "anime" });
   const animeFilm = movie({ anime: true });
   const full = library({

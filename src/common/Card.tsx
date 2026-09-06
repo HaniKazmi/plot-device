@@ -1353,7 +1353,7 @@ const HeroStatRow = ({ stats }: { stats: CardStat[] }) => {
  * The mark a legend puts beside a name.
  *
  * It appears exactly where the app already speaks that field's colour somewhere else — a platform,
- * a franchise, a genre, a rating, a status. A swatch on a field with no colour vocabulary invents
+ * a franchise, a genre, a certificate, a status. A swatch on a field with no colour vocabulary invents
  * one, and then the reader has learnt a legend that no chart honours.
  *
  * `size` is the caller's because the mark is read against what it sits beside: 10 on a line of

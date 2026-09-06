@@ -9,7 +9,7 @@ const SRC = fileURLToPath(new URL("../src", import.meta.url));
 
 // Omnibus is the fifth tracked domain: it composes nothing, and reaches `app/` — the one folder
 // that composes the other four — for whatever it needs of them.
-const DOMAINS = ["vg", "show", "movie", "books", "omnibus"];
+const DOMAINS = ["game", "show", "movie", "book", "omnibus"];
 
 // The composing layer: the one folder that may import every domain, holding what each medium
 // answers so no surface has to dispatch on which one it is holding.
@@ -160,12 +160,12 @@ describe("the shared layer never depends on a domain", () => {
   });
 
   it("sees a dynamic import, which is how every tab loads its own charts", () => {
-    expect(importsFrom(join(SRC, "vg", "vg.tsx"))).toContain("./Graphs");
+    expect(importsFrom(join(SRC, "game", "Game.tsx"))).toContain("./Graphs");
   });
 });
 
 describe("a tracked domain never depends on another", () => {
-  const TRACKED = ["vg", "show", "movie", "books"];
+  const TRACKED = ["game", "show", "movie", "book"];
 
   // Omnibus composes nothing of its own: the union, the gallery, search, the Now band and the
   // franchise view reach `app/` for what they need of the four domains. One file still reaches
@@ -191,7 +191,7 @@ describe("a tracked domain never depends on another", () => {
   });
 
   // The registry is built *from* the four modules, so a domain importing it is a genuine cycle:
-  // `vg/module.ts` → `app/media.ts` → `vg/module.ts`, evaluated half-built and failing as a blank
+  // `game/module.ts` → `app/media.ts` → `game/module.ts`, evaluated half-built and failing as a blank
   // page rather than an error. The rest of `app/` is the composing layer a tab reads downwards —
   // its entry component asks `app/library.ts` for the library the shell fetched — and imports
   // nothing back out of a domain's own module, so that direction cycles nothing.
@@ -276,7 +276,7 @@ describe("the registry never reaches back for a tab", () => {
   // the rule below about a module's own closure is what keeps it true.
   const EXEMPT_FROM_TAB_IMPORT = ["LibraryProvider.tsx", "SearchSurface.tsx", "PageRail.tsx", "/page.ts"];
 
-  // The extension is optional in the specifier and written both ways here — `vg.tsx` imports
+  // The extension is optional in the specifier and written both ways here — `Game.tsx` imports
   // `"./filterUtils.ts"` beside `"../tabs"` — so a pattern anchored on the bare name alone would
   // pass exactly the import it exists to catch.
   const namesTabs = (file: string) => importsFrom(file).filter((specifier) => /(^|\/)tabs(\.tsx?)?$/.test(specifier));
@@ -393,7 +393,7 @@ describe("the popper engine stays off the first paint", () => {
   it("crosses tabs.ts, which is where the five entry components hang", () => {
     const reached = evaluatedClosure(join(SRC, "main.tsx"), true);
 
-    expect(reached.has(join(SRC, "vg", "vg.tsx"))).toBe(true);
+    expect(reached.has(join(SRC, "game", "Game.tsx"))).toBe(true);
   });
 });
 

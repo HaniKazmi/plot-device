@@ -136,7 +136,7 @@ const FinishedGrid = <U extends FinishedItem>({
                * settle after one lands is a card's own rounding rather than a card's height,
                * because every file is authored to the shape it declares.
                */
-              sx={{ aspectRatio: shapeToAspect(landscape ? "landscape" : "portrait") }}
+              sx={{ aspectRatio: shapeToAspect(landscape ? "banner" : "poster") }}
             />
           </Card>
         </Grid>

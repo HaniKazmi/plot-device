@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { YearMonthDay } from "../../src/common/date";
-import type { AgeRating } from "../../src/utils/types";
+import type { Certificate } from "../../src/utils/types";
 import { decadeToColour, neutralFill, releaseDecade } from "../../src/utils/types";
 import {
   cinemaToColour,
@@ -90,8 +90,10 @@ describe("groupToColour", () => {
     expect(groupToColour("name", movie(), "light")).toBe("");
   });
 
-  it("propagates the rating throw, the deliberate catch for a spreadsheet typo", () => {
-    expect(() => groupToColour("rating", movie({ rating: "PG-13" as AgeRating }), "light")).toThrow("Unknown rating");
+  it("propagates the certificate throw, the deliberate catch for a spreadsheet typo", () => {
+    expect(() => groupToColour("certificate", movie({ certificate: "PG-13" as Certificate }), "light")).toThrow(
+      "Unknown certificate",
+    );
   });
 });
 
