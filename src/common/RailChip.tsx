@@ -103,7 +103,10 @@ export const RailChip = ({
       color={active ? "primary" : "default"}
       variant={active ? "filled" : "outlined"}
       onClick={onClick}
-      sx={colour ? { ...base, ...chipColourSx(colour, !!active) } : base}
+      // An array rather than one spread object: both halves state a rule for `& .MuiChip-icon`,
+      // and a spread keeps only the later key, which puts the lit chip's glyph back on MUI's
+      // beside-a-word offset.
+      sx={colour ? [base, chipColourSx(colour, !!active)] : base}
     />
   );
 };
