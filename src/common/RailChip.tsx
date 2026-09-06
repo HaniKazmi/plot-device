@@ -41,10 +41,11 @@ const ICON_ONLY_SX = {
  * the chip would look right exactly where it says least.
  *
  * Built by a function rather than inline so the `getContrastText` call over the chosen colour is
- * made once against a value the caller already holds. Hover pins the same ground: MUI's own
- * `.MuiChip-clickable:hover` rule outweighs an `sx` class and would otherwise take a lit chip to
- * the primary's hover tint. Suppressing a treatment rather than adding one, so it needs no
- * `(hover: hover)` guard — there is nothing for a finger to leave behind.
+ * made once against a value the caller already holds. Hover and keyboard focus pin the same
+ * ground: MUI's own `.MuiChip-clickable:hover` and `.Mui-focusVisible` rules outweigh an `sx`
+ * class and would otherwise take a lit chip to the primary's own dark under a type solved for the
+ * tab's colour. Suppressing a treatment rather than adding one, so it needs no `(hover: hover)`
+ * guard — there is nothing for a finger to leave behind; the focus ring itself is the theme's.
  */
 const chipColourSx = (colour: string, active: boolean) =>
   active
@@ -53,6 +54,7 @@ const chipColourSx = (colour: string, active: boolean) =>
         color: (theme: Theme) => theme.palette.getContrastText(colour),
         "& .MuiChip-icon": { color: "inherit" },
         "&.MuiChip-clickable:hover": { backgroundColor: colour },
+        "&.Mui-focusVisible": { backgroundColor: colour },
       }
     : { color: colour, borderColor: colour };
 

@@ -143,6 +143,21 @@ export interface MediumLazy<S> {
 }
 
 /**
+ * The two Now band answers as one pair, typed on the medium's own record.
+ *
+ * `MediumLazy` erases the record at the registry, so there the election and the panel are never
+ * checked against each other; a domain states its pair through this shape first, where `S` is
+ * concrete and a panel reading a season off a show's election fails to compile. Property-typed
+ * for that reason, where `MediumLazy`'s members are methods: a property is checked in full, and
+ * bivariance is only wanted at the erased lookup. `T` is the row the library holds and `S` what
+ * is elected from it, the same record for three media and a season out of a show for the fourth.
+ */
+export interface NowModule<T, S = T> {
+  elect: (rows: T[]) => S | undefined;
+  nowPanel: (item: S, scheme: Scheme) => NowPanel;
+}
+
+/**
  * What a Now card says about the item its medium is on: why it is shown, when, what it is, and the
  * two or three figures its own tab's hero carries.
  *

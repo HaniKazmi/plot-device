@@ -119,15 +119,17 @@ const GoogleAuth = () => {
         >
           {/* Above every tab, because a card on any of them draws the franchise across all four. */}
           <FranchiseUnionProvider>
-            {/* Below the bar and the providers, and around everything the page draws: a throw in a
-                chart, a converter's colour lookup or a card leaves the app bar, the tabs and the
-                search key standing, which is what the reader leaves the broken page by. */}
+            {/* Below the bar and the providers, and around the page alone: a throw in a chart, a
+                converter's colour lookup or a card leaves the app bar, the tabs and the search
+                standing, which is what the reader leaves the broken page by. The search host is a
+                sibling rather than a child, so a page's throw cannot take it down with the page,
+                and the boundary's tab key cannot remount it and drop the query it holds. */}
             <PageBoundary>
               <PageContent />
-              {/* Inside the provider, since the palette lists the union's own items; opened from the
-                  app bar above through a store rather than a flag lifted over both. */}
-              <SearchHost />
             </PageBoundary>
+            {/* Inside the provider, since the palette lists the union's own items; opened from the
+                app bar above through a store rather than a flag lifted over both. */}
+            <SearchHost />
           </FranchiseUnionProvider>
         </Container>
         <BottomTabs />

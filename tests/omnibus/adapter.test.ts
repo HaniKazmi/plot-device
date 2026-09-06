@@ -13,6 +13,10 @@ import { library } from "../fixtures/library";
 import { movie } from "../fixtures/movies";
 import { season, show } from "../fixtures/shows";
 import { videoGame } from "../fixtures/vgRows";
+import { now as bookNow } from "../../src/books/now";
+import { now as movieNow } from "../../src/movie/now";
+import { now as showNow } from "../../src/show/now";
+import { now as vgNow } from "../../src/vg/now";
 
 /**
  * A show holding the seasons described, with the totals rolled up into the parent the way the
@@ -293,9 +297,9 @@ describe("recently finished", () => {
  * A registry whose every medium elects its first row.
  *
  * What `electNow` owns is the walk — which medium's module is handed which library, and which
- * media are asked at all — where what each domain elects is pinned beside that election in its own
- * `statsData` test. The modules themselves sit behind the chunk that draws the cards, so naming
- * them here would put four card trees in a `node` test process.
+ * media are asked at all — where each domain's own pair is run below through its `now` module,
+ * the pure half of `module.lazy.ts`: naming the lazy module itself here would put four card trees
+ * in a `node` test process.
  */
 const firstRow: Record<Medium, MediumLazy<unknown>> = Object.fromEntries(
   MEDIA_ORDER.map((medium) => [medium, { elect: (rows: readonly unknown[]) => rows[0] }]),
@@ -393,5 +397,44 @@ describe("a book in the union", () => {
     const books = [book()];
 
     expect(visibleLibrary(library({ book: books }), true).book).toEqual(books);
+  });
+});
+
+/**
+ * Each medium's own election feeds its own panel: the registry erases the record, so the one
+ * place the pair is run as the band runs it is here, on the rows each tab's hero is elected from.
+ */
+describe("each medium's Now pair", () => {
+  it("names the game in progress", () => {
+    const playing = videoGame({ name: "Tunic", status: "Playing", startDate: YearMonthDay.get(2026, 1, 2) });
+    const item = vgNow.elect([videoGame(), playing]);
+
+    expect(item).toBe(playing);
+    expect(vgNow.nowPanel(item!, "light").title).toBe("Tunic");
+  });
+
+  it("names the season the sheet marks as current", () => {
+    const watching = show({ name: "Severance", lastWatchedDate: YearMonthDay.get(2026, 3, 4) });
+    watching.s.push(season(watching, { s: 2 }));
+    const item = showNow.elect([show({ status: "Ended" }), watching]);
+
+    expect(item?.show).toBe(watching);
+    expect(showNow.nowPanel(item!, "light").title).toBe("Severance S2");
+  });
+
+  it("names the film watched most recently", () => {
+    const latest = movie({ name: "Dune", startDate: YearMonthDay.get(2026, 2, 3) });
+    const item = movieNow.elect([movie(), latest]);
+
+    expect(item).toBe(latest);
+    expect(movieNow.nowPanel(item!, "light").title).toBe("Dune");
+  });
+
+  it("names the book in hand", () => {
+    const reading = book({ name: "Pushing Ice", status: "Reading", startDate: YearMonthDay.get(2026, 4, 5) });
+    const item = bookNow.elect([book(), reading]);
+
+    expect(item).toBe(reading);
+    expect(bookNow.nowPanel(item!, "light").title).toBe("Pushing Ice");
   });
 });

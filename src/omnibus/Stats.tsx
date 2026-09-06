@@ -31,6 +31,7 @@ import {
   nowPortraitHeight,
   pairNowGeometry,
   type NowGeometry,
+  NOW_PHONE_ORDER,
 } from "./nowGeometry";
 
 const Stats = ({
@@ -142,13 +143,6 @@ const Stats = ({
  * bar is painted. A medium with nothing in flight simply contributes no card, rather than a card
  * saying nothing.
  */
-/**
- * The order the phone's two columns read down: the book under the game, the film under the show,
- * so a banner stands over a portrait in each and the two columns come out one height. Elsewhere
- * the four stand in the tabs' own order (`media`).
- */
-const PHONE_ORDER: readonly Medium[] = ["game", "book", "show", "movie"];
-
 const Now = ({ now }: { now: NowElection }) => {
   const scheme = useScheme();
   /**
@@ -193,7 +187,7 @@ const Now = ({ now }: { now: NowElection }) => {
   // four stand in the tabs' own order. Each cell is keyed on its medium, so a flip between the two
   // orders moves the cells rather than rebuilding them, which would close a card a reader had open
   // through a rotation.
-  const cells = (phone ? PHONE_ORDER : media).map((medium) => {
+  const cells = (phone ? NOW_PHONE_ORDER : media).map((medium) => {
     const item = now[medium];
     if (item === undefined) return null;
     const lazy = MEDIA_LAZY[medium];

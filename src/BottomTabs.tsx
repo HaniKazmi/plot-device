@@ -99,11 +99,9 @@ export const BottomTabs = () => {
   const barInk = (theme: Theme) => (dark ? theme.vars.palette.text.primary : theme.vars.palette.primary.contrastText);
   // Whether the page is still against the app bar, and whether the reader has asked for the tabs
   // back below it. Two answers rather than one: the request is the reader's and survives until they
-  // scroll, where the offset is the page's and answers again on every event. The request is a store
-  // because the chip that makes it is in the rail, which is drawn from inside this bar by a page
-  // several levels down the tree (`phoneBar.ts`). The offset itself comes from `useScrolledPastBar`
-  // (`chrome.ts`), the one shared listener `BrowserTint` and the `theme-color` metas key their own
-  // swap on too.
+  // scroll, where the offset is the page's and answers again on every event. The offset comes from
+  // `useScrolledPastBar` (`chrome.ts`), the one shared listener `BrowserTint` and the `theme-color`
+  // metas key their own swap on too.
   const CurrentIcon = currTab.icon;
   const pastBar = useScrolledPastBar();
   // Whether the reader has asked for the tabs back below the app bar. The bar draws the chip that

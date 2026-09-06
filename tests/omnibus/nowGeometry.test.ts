@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { MEDIA } from "../../src/utils/types";
 import {
   denseNowGeometry,
   NOW_GAP,
   NOW_GEOMETRY,
+  NOW_PHONE_ORDER,
   nowPortraitHeight,
   pairNowGeometry,
 } from "../../src/omnibus/nowGeometry";
@@ -87,5 +89,11 @@ describe("the Now band's geometry", () => {
     // same height whatever ratio its file has.
     expect(nowPortraitHeight(358)).toBe(204);
     expect(nowPortraitHeight(398)).toBe(234);
+  });
+});
+
+describe("the phone's cell order", () => {
+  it("seats every medium once, so no medium has a card from `sm` up and no cell on a phone", () => {
+    expect([...NOW_PHONE_ORDER].toSorted()).toEqual([...MEDIA].toSorted());
   });
 });

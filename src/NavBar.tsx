@@ -243,8 +243,10 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
           <>
             {/* No hover label of any kind, native or MUI's: a word that appears only under a
                 pointer is not there for the finger this bar is mostly read with, and the key's
-                own `aria-label` is what a screen reader says either way. From `md` on a mouse the
-                worded form of the same control stands beside it and spells the state out. */}
+                own `aria-label` is what a screen reader says either way, and it follows the state, since
+                below `md` a dimmed key is otherwise the only sign that the scripts are still
+                landing. From `md` on a mouse the worded form of the same control stands beside
+                it and spells the state out. */}
             <Badge
               color="secondary"
               variant="dot"
@@ -254,7 +256,7 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
             >
               <IconButton
                 color="inherit"
-                aria-label="Authorise"
+                aria-label={authState === "authorising" ? "Authorising…" : "Authorise"}
                 disabled={authState === "authorising"}
                 onClick={authorise}
                 sx={{ ...BAR_BUTTON_SX, ...DISABLED_BUTTON_SX }}
