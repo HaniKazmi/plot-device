@@ -167,15 +167,14 @@ describe("the shared layer never depends on a domain", () => {
 describe("a tracked domain never depends on another", () => {
   const TRACKED = ["vg", "show", "movie", "books"];
 
-  // Omnibus composes nothing of its own: the union, the gallery, search and the franchise view
-  // reach `app/` for what they need of the four domains. Three files still reach across directly,
-  // because the registry carries no member for what they ask: `adapter.ts`'s `electNow` elects
-  // across all four domains' own `statsData`, `Stats.tsx`'s Now band renders each domain's own
-  // `CardMediaImage` and reads its `cardData` subtitle and `statsData` hero figures, and
-  // `Graphs.tsx` mounts the four `FranchiseContext` providers the card strips and crossings read.
-  // Giving the registry an election, a hero-card slot and a franchise-context slot per medium is a
-  // registry change, not a move, so these three are named exemptions rather than a loosened rule.
-  const REACHES_DOMAINS_DIRECTLY = ["omnibus/adapter.ts", "omnibus/Stats.tsx", "omnibus/Graphs.tsx"];
+  // Omnibus composes nothing of its own: the union, the gallery, search, the Now band and the
+  // franchise view reach `app/` for what they need of the four domains. One file still reaches
+  // across directly. `Graphs.tsx` mounts the four `FranchiseContext` providers the card strips and
+  // the crossings read, and the four are not one shape: Books stands a second provider inside its
+  // own for the epoch every book strip opens at. A per-medium provider member would also have to
+  // be what each domain's *own* `Graphs` mounts, or the tree would hold two definitions of one
+  // provider — four more files than this exemption costs.
+  const REACHES_DOMAINS_DIRECTLY = ["omnibus/Graphs.tsx"];
 
   it.each([...TRACKED, "omnibus"])("has no import of another domain anywhere in %s/", (domain) => {
     const others = DOMAINS.filter((other) => other !== domain);

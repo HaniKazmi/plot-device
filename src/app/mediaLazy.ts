@@ -1,9 +1,29 @@
-import { CardMediaImage as BookCard, HoverCard as BookHoverCard } from "../books/module.lazy";
+import {
+  CardMediaImage as BookCard,
+  elect as bookElect,
+  HoverCard as BookHoverCard,
+  nowPanel as bookNowPanel,
+} from "../books/module.lazy";
 import type { MediumLazy } from "../common/medium";
-import { CardMediaImage as MovieCard, HoverCard as MovieHoverCard } from "../movie/module.lazy";
-import { CardMediaImage as ShowCard, HoverCard as ShowHoverCard } from "../show/module.lazy";
+import {
+  CardMediaImage as MovieCard,
+  elect as movieElect,
+  HoverCard as MovieHoverCard,
+  nowPanel as movieNowPanel,
+} from "../movie/module.lazy";
+import {
+  CardMediaImage as ShowCard,
+  elect as showElect,
+  HoverCard as ShowHoverCard,
+  nowPanel as showNowPanel,
+} from "../show/module.lazy";
 import type { Medium } from "../utils/types";
-import { CardMediaImage as VgCard, HoverCard as VgHoverCard } from "../vg/module.lazy";
+import {
+  CardMediaImage as VgCard,
+  elect as vgElect,
+  HoverCard as VgHoverCard,
+  nowPanel as vgNowPanel,
+} from "../vg/module.lazy";
 
 /**
  * The four media's components, as one lookup — `MEDIA`'s other half.
@@ -21,8 +41,8 @@ import { CardMediaImage as VgCard, HoverCard as VgHoverCard } from "../vg/module
  * what is written here can ride along.
  */
 export const MEDIA_LAZY: Record<Medium, MediumLazy<unknown>> = {
-  game: { CardMediaImage: VgCard, HoverCard: VgHoverCard },
-  show: { CardMediaImage: ShowCard, HoverCard: ShowHoverCard },
-  movie: { CardMediaImage: MovieCard, HoverCard: MovieHoverCard },
-  book: { CardMediaImage: BookCard, HoverCard: BookHoverCard },
+  game: { CardMediaImage: VgCard, HoverCard: VgHoverCard, elect: vgElect, nowPanel: vgNowPanel },
+  show: { CardMediaImage: ShowCard, HoverCard: ShowHoverCard, elect: showElect, nowPanel: showNowPanel },
+  movie: { CardMediaImage: MovieCard, HoverCard: MovieHoverCard, elect: movieElect, nowPanel: movieNowPanel },
+  book: { CardMediaImage: BookCard, HoverCard: BookHoverCard, elect: bookElect, nowPanel: bookNowPanel },
 };

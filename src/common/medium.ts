@@ -1,11 +1,11 @@
 import type { FunctionComponent, ReactNode } from "react";
-import type { CardMediaImageProps } from "./Card";
+import type { CardMediaImageProps, PanelStat, PanelSubtitlePart } from "./Card";
 import type { Year, YearMonthDay, YearNumber } from "./date";
 import type { PageStore } from "./filterReducer";
 import type { PageSchema } from "./filterSchema";
 import type { FranchiseEntry } from "./franchiseUnion";
 import type { DataConfig } from "./useData";
-import type { AgeRating, Medium } from "../utils/types";
+import type { AgeRating, Medium, Scheme } from "../utils/types";
 
 /**
  * One thing watched, played or read, in the vocabulary the four media share.
@@ -116,14 +116,46 @@ type CardProps<S> = Omit<CardMediaImageProps, "image" | "alt" | "detailComponent
  * method's parameters bivariantly, and a property-typed component is contravariant in its item, so
  * every module would be unassignable to the erased element type the lookup needs.
  *
- * Two members and no more. A medium is looked up by a value (`MEDIA_LAZY[item.medium]`), which a
+ * Four members and no more. A medium is looked up by a value (`MEDIA_LAZY[item.medium]`), which a
  * bundler cannot narrow, so everything reachable through this shape is weight on the chunk the
  * union prefetches for its hover cards on every visit. Anything a medium answers that a card does
- * not draw belongs beside the surface that asks for it.
+ * not draw belongs beside the surface that asks for it — `elect` and `nowPanel` are here because
+ * what they answer *is* a card, the one the composing tab's Now band leads with, and what they
+ * reach for is each domain's `cardData` and `statsData`, which that domain's own card already
+ * imports.
  */
 export interface MediumLazy<S> {
   CardMediaImage(props: CardProps<S>): ReturnType<FunctionComponent>;
   HoverCard(props: { item: S }): ReturnType<FunctionComponent>;
+  /**
+   * What this medium is on right now, by its own tab's election — the game in progress, the season
+   * the sheet's Last Watched column marks as current, the film watched most recently, the book in
+   * hand — and `undefined` where it has nothing in flight, which is a band one card shorter rather
+   * than a card saying nothing.
+   *
+   * The rows come in erased: a lookup across the four relates a module to no particular record,
+   * which is the trade the union already makes. The pairing is the registry's own, a medium's
+   * module being handed that medium's library.
+   */
+  elect(rows: readonly unknown[]): S | undefined;
+  /** What that item states on the band's card, in this medium's own words. */
+  nowPanel(item: S, scheme: Scheme): NowPanel;
+}
+
+/**
+ * What a Now card says about the item its medium is on: why it is shown, when, what it is, and the
+ * two or three figures its own tab's hero carries.
+ *
+ * Data rather than a card, so the band lays all four out one way and each medium keeps its own
+ * vocabulary — a game in hours and days in, a season in episodes. `date` is the bare date the
+ * phone's cell has room for down a 36px spine, where `kicker` carries the "Since" a card can say.
+ */
+export interface NowPanel {
+  kicker: string;
+  date: string;
+  title: string;
+  subtitle: PanelSubtitlePart[];
+  stats: PanelStat[];
 }
 
 /**

@@ -1,11 +1,7 @@
-import type { OmniItem } from "../common/medium";
+import type { MediumLazy, OmniItem } from "../common/medium";
 import { omniHours, type Library } from "../app/library";
 import { moduleOf } from "../app/media";
 import { media, type Medium } from "../app/types";
-import { currentlyReading } from "../books/statsData";
-import { latestWatched } from "../movie/statsData";
-import { currentlyWatching, heroSeason } from "../show/statsData";
-import { currentlyPlaying } from "../vg/statsData";
 import "../utils/arrayUtils";
 
 /**
@@ -41,21 +37,37 @@ export const recentlyFinished = (items: OmniItem[]): OmniItem[] =>
 /** Items of one medium, which is how every per-medium figure on the page is scoped. */
 export const ofMedium = (items: OmniItem[], medium: Medium) => items.filter((item) => item.medium === medium);
 
+/** What the band leads with, by medium; a medium with nothing in flight is absent rather than held. */
+export type NowElection = Partial<Record<Medium, unknown>>;
+
 /**
- * What each medium is currently on, by the election its own tab already makes: the game in
- * progress, the show the sheet's Last Watched column marks as current, the film watched most
- * recently and the book in hand. Nothing is invented here — a medium with no honest answer
- * contributes none, and the band renders the cards it was given.
+ * What each medium is currently on, each by the election its own tab already makes: the game in
+ * progress, the season the sheet's Last Watched column marks as current, the film watched most
+ * recently and the book in hand. Nothing is invented here — the walk asks and the band renders the
+ * cards it was given, so a card cannot disagree with the hero its home tab shows.
+ *
+ * The registry arrives as a parameter rather than being imported: the elections live behind the
+ * chunk that draws the cards, and naming it here would put four `CardMediaImage`s in this pure
+ * module — the arrangement `franchiseUnionData.ts` takes its hover cards by, for the same reason.
  *
  * `visible` decides which media are asked at all, so a medium switched off in this page's own
- * filters cannot headline the page it has been removed from.
+ * filters cannot headline the page it has been removed from. The item comes back erased, as
+ * everything held by medium rather than by record does: the module drawing it is looked up by the
+ * same key it was elected under.
  */
-export const electNow = (library: Library, visible: Record<Medium, boolean>) => ({
-  game: visible.game ? currentlyPlaying(library.game)[0] : undefined,
-  show: visible.show ? heroSeason(currentlyWatching(library.show)) : undefined,
-  movie: visible.movie ? latestWatched(library.movie) : undefined,
-  book: visible.book ? currentlyReading(library.book)[0] : undefined,
-});
+export const electNow = (
+  lazy: Record<Medium, MediumLazy<unknown>>,
+  library: Library,
+  visible: Record<Medium, boolean>,
+): NowElection => {
+  const now: NowElection = {};
+
+  for (const medium of media) {
+    if (visible[medium]) now[medium] = lazy[medium].elect(library[medium]);
+  }
+
+  return now;
+};
 
 /** Whether the Now band has anything to say — the same test the rail's chip is built from. */
-export const hasNow = (now: ReturnType<typeof electNow>) => media.some((medium) => now[medium] !== undefined);
+export const hasNow = (now: NowElection) => media.some((medium) => now[medium] !== undefined);

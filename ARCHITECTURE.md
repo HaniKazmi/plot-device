@@ -83,14 +83,13 @@ downwards, its entry component asking `app/library.ts` for the library the shell
 registry is the one part of `app/` built _from_ the modules, so `vg/module.ts` importing
 `app/media.ts` is a real cycle, and `module.ts` therefore imports nothing from `app/` at all.
 
-Three files in `omnibus/` are a named exception rather than a loosened rule: `adapter.ts`'s
-`electNow` elects across all four domains' own `statsData`, `Stats.tsx`'s Now band renders each
-domain's own `CardMediaImage` and reads its `cardData` subtitle and `statsData` hero figures, and
-`Graphs.tsx` mounts the four `FranchiseContext` providers the card strips and crossings read — the
-registry carries no election, no hero-card slot and no franchise-context slot per medium, so closing
-this is a registry change and not a move. `tests/architecture.test.ts` enforces both rules by
-reading the source across static, side-effect and dynamic imports alike, the three files named as
-exemptions rather than left to slip the check.
+One file in `omnibus/` is a named exception rather than a loosened rule: `Graphs.tsx` mounts the
+four `FranchiseContext` providers the card strips and the crossings read. The four are not one
+shape — Books stands a second provider inside its own, for the epoch every book strip opens at —
+and a per-medium provider member would have to be what each domain's _own_ `Graphs` mounts as well,
+or the tree would hold two definitions of one provider. `tests/architecture.test.ts` enforces both
+rules by reading the source across static, side-effect and dynamic imports alike, that one file
+named as an exemption rather than left to slip the check.
 
 The direction holds the other way too: **nothing in `app/` imports `omnibus/`**, that folder being a
 tab like any other, so the shared half of a surface more than one tab reads — the gallery's
@@ -114,8 +113,10 @@ and a fifth medium is otherwise an edit in every file that ever needed to tell t
 The registry is reachable from the shell, so it splits in two. `module.ts` is eager and holds what a
 tab needs before it draws anything; `module.lazy.ts` holds the card and the hover card, and is
 reached through `app/mediaLazy.ts` alone — a static table, so a wall of cards does not pay a round
-trip per medium, and the one seam, so there is one answer to when a medium's chunk is fetched. That
-lookup is on a value the bundler cannot narrow, so the lazy half is held to those two components:
+trip per medium, and the one seam, so there is one answer to when a medium's chunk is fetched. It also holds the two answers the Now band's card is
+made of, the medium's own election and the panel it states — what they answer is a card, and what
+they read is the `cardData` and `statsData` that domain's card already imports. That
+lookup is on a value the bundler cannot narrow, so the lazy half is held to those four members:
 anything else exported there is weight on the chunk the union prefetches for its hover cards on
 every visit. Nothing in `app/` imports `tabs.ts`,
 because `tabs.ts` imports the five entry components eagerly and an entry component reaches the
@@ -537,11 +538,15 @@ union (`OmniItem[]`, built in `app/`) instead of one medium's rows, so the page 
 tabs' own vocabulary rather than inventing a mixed-media one.
 
 **The Now band** (`omnibus/Stats.tsx`) is what no single tab can show: what each medium is currently
-on, side by side. `electNow` reuses each domain's own election — `currentlyPlaying`,
-`heroSeason(currentlyWatching(...))`, `latestWatched`, `currentlyReading` — so a card cannot
-disagree with the hero its home tab shows, and its `visible` record keeps a medium switched off in
-the box's This page mode from headlining. A medium with nothing in flight contributes no card; with none in
-flight, no band.
+on, side by side. `electNow` walks the registry rather than the four domains: each medium's
+`module.lazy.ts` holds its own election — `currentlyPlaying`, `heroSeason(currentlyWatching(...))`,
+`latestWatched`, `currentlyReading` — beside the `nowPanel` saying what that card states, so a card
+cannot disagree with the hero its home tab shows and the band dispatches on no medium anywhere. The
+walk takes the registry as a parameter, `adapter.ts` being a pure module that four card trees have
+no business in. `visible` keeps a medium switched off in the box's This page mode from being asked
+at all. A medium with nothing in flight contributes no card; with none in flight, no band. The
+phone's cell order — the book under the game, the film under the show — is a list of media beside
+that walk rather than four literals in the tree.
 
 The composing layer supplies the ground under each card's own `TypedCardMediaImage`: `barColour`
 (`src/tabs.ts`) — a tab's primary on the light paper, its 22% `darkBar.tint` on the dark — arrives
@@ -2192,8 +2197,9 @@ A fifth medium extends the `Medium` union in `utils/types.ts` with its fill, lab
 and is then **a `module.ts`, a `module.lazy.ts`, a line in `app/records.ts` and one in
 `app/media.ts`** (§2). The eager half answers what the medium is — its `DataConfig`, its guest rule,
 its arm of the union, its `FranchiseEntry` mapper and span, its page state, its filter schema, its
-artwork and its title; the lazy half answers what draws it, its card and its hover card, and nothing
-else, its filter glyphs going beside its own `Graphs`. `app/records.ts` names the record its sheet
+artwork and its title; the lazy half answers what draws it: its card, its hover card, and the
+election and Now panel the composing tab's band leads with — those four and nothing else, its
+filter glyphs going beside its own `Graphs`. `app/records.ts` names the record its sheet
 converts to and the one it contributes to the union, which is what pairs the module with its own
 library.
 Nothing else changes: `toOmniItems`, `visibleLibrary`, the crossings, the gallery, the search index

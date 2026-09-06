@@ -215,6 +215,17 @@ export const tabForPath = (pathname: string, tabs: readonly Tab[] = Tabs): Tab =
 export const useCurrentTab = (): Tab => tabForPath(useLocation().pathname);
 
 /**
+ * The tab an id names, for a surface holding a page module or a medium rather than a tab: a module
+ * carries `tabId` and never the `Tab` itself, this file importing every tab's entry component
+ * eagerly and a module naming its tab closing that cycle.
+ *
+ * `undefined` where no tab answers to the id, rather than the first tab `tabForPath` falls back to:
+ * a path with no tab is a reader who typed one, where an id with no tab is a caller asking about a
+ * tab that is not there, and painting its surface in the first tab's colour hides that.
+ */
+export const tabForId = (id: string): Tab | undefined => Tabs.find((tab) => tab.id === id);
+
+/**
  * The colour a tab is named in away from its own page — the rail's chip for it, where four of them
  * stand side by side in a row of grey section chips, and the phone bar's own chip for the tab in
  * hand.

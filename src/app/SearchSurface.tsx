@@ -39,7 +39,7 @@ import {
   type SearchIndex,
 } from "./searchData";
 import { mediumToShape } from "./types";
-import Tabs, { useOtherTabs } from "../tabs";
+import { tabForId, useOtherTabs } from "../tabs";
 
 /** What a chosen hit opens: a whole franchise, one work's own expanded card, or an attribute's shelf. */
 type Picked =
@@ -177,7 +177,7 @@ const tabGroup = (tabs: TabEntry[], query: string, scheme: Scheme, close: () => 
     total: hits.length,
     layout: "chips",
     hits: hits.map(({ entry, matched }) => {
-      const tab = Tabs.find((candidate) => candidate.id === entry.id);
+      const tab = tabForId(entry.id);
       const Icon = tab?.icon;
       const colour = scheme === "dark" ? tab?.darkBar?.ink : tab?.primaryColour;
       return {

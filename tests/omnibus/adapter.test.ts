@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { CURRENT_YEAR, YearMonthDay, Year, type YearNumber } from "../../src/common/date";
-import { electNow, ofMedium, omniTitle, recentlyFinished, unionTotals } from "../../src/omnibus/adapter";
+import { electNow, hasNow, ofMedium, omniTitle, recentlyFinished, unionTotals } from "../../src/omnibus/adapter";
+import type { MediumLazy } from "../../src/common/medium";
+import { MEDIA as MEDIA_ORDER, type Medium } from "../../src/utils/types";
 import { earliestYear } from "../../src/omnibus/filterUtils";
 import { measureOf, omniHours, toOmniItems, visibleLibrary } from "../../src/app/library";
 import { omniBanner } from "../../src/app/media";
@@ -287,30 +289,43 @@ describe("recently finished", () => {
   });
 });
 
+/**
+ * A registry whose every medium elects its first row.
+ *
+ * What `electNow` owns is the walk — which medium's module is handed which library, and which
+ * media are asked at all — where what each domain elects is pinned beside that election in its own
+ * `statsData` test. The modules themselves sit behind the chunk that draws the cards, so naming
+ * them here would put four card trees in a `node` test process.
+ */
+const firstRow: Record<Medium, MediumLazy<unknown>> = Object.fromEntries(
+  MEDIA_ORDER.map((medium) => [medium, { elect: (rows: readonly unknown[]) => rows[0] }]),
+) as Record<Medium, MediumLazy<unknown>>;
+
 describe("electing what each medium is on now", () => {
   const playing = videoGame({ status: "Playing", startDate: YearMonthDay.get(2026, 1, 2) });
-  const watching = showWith([{ start: 2026 }]);
-  watching.s[0].lastWatchedDate = YearMonthDay.get(2026, 2, 1);
-  watching.lastWatchedDate = watching.s[0].lastWatchedDate;
   const latest = movie({ startDate: YearMonthDay.get(2026, 2, 3) });
   const all = { game: true, show: true, movie: true, book: true };
 
-  it("asks each domain for its own answer rather than inventing one", () => {
-    const now = electNow(library({ game: [videoGame(), playing], show: [watching], movie: [movie(), latest] }), all);
+  it("hands each medium's own module that medium's own rows", () => {
+    const now = electNow(firstRow, library({ game: [playing, videoGame()], movie: [latest] }), all);
 
     expect(now.game).toBe(playing);
-    expect(now.show).toBe(watching.s[0]);
     expect(now.movie).toBe(latest);
   });
 
   it("offers nothing for a medium with nothing in flight", () => {
-    const now = electNow(library({ game: [videoGame({ status: "Beat" })] }), all);
+    const now = electNow(firstRow, library({ movie: [latest] }), all);
 
     expect(now.game).toBeUndefined();
+    expect(hasNow(now)).toBe(true);
   });
 
-  it("offers nothing for a medium switched off, which is not on the page to be headlined", () => {
-    const now = electNow(library({ game: [playing], movie: [latest] }), { ...all, game: false });
+  it("says there is no band where no medium answers", () => {
+    expect(hasNow(electNow(firstRow, library(), all))).toBe(false);
+  });
+
+  it("asks nothing of a medium switched off, which is not on the page to be headlined", () => {
+    const now = electNow(firstRow, library({ game: [playing], movie: [latest] }), { ...all, game: false });
 
     expect(now.game).toBeUndefined();
     expect(now.movie).toBe(latest);
@@ -378,19 +393,5 @@ describe("a book in the union", () => {
     const books = [book()];
 
     expect(visibleLibrary(library({ book: books }), true).book).toEqual(books);
-  });
-
-  it("is elected for the Now band by the same rule the Books tab's hero uses", () => {
-    const reading = book({
-      name: "Open",
-      status: "Reading",
-      startDate: YearMonthDay.get(2026, 5, 1),
-      endDate: undefined,
-    });
-    const all = { game: true, show: true, movie: true, book: true };
-
-    expect(electNow(library({ book: [book(), reading] }), all).book).toBe(reading);
-    expect(electNow(library({ book: [book()] }), all).book).toBeUndefined();
-    expect(electNow(library({ book: [reading] }), { ...all, book: false }).book).toBeUndefined();
   });
 });
