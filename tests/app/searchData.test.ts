@@ -12,6 +12,7 @@ import {
   recentFranchises,
   searchUnion,
   unionEpoch,
+  type FranchiseSearchEntry,
   type PlacedAttribute,
 } from "../../src/app/searchData";
 import { workLabels } from "../../src/app/cardData";
@@ -431,6 +432,75 @@ describe("searchUnion over attributes", () => {
     // No `filter-there`: no other library here holds the value, and a page holding the category
     // but none of the value gets no hit, that hit being one that empties the page it is pressed on.
     expect(groups.map((group) => group.key)).toEqual(["franchise", "shelf", "filter-here", "book"]);
+  });
+
+  it("counts a franchise narrowing in the tab's own rows, where the Franchises row counts the union's", () => {
+    // The two figures answer different questions and the box shows them three rows apart: the
+    // Franchises row is worded in the union's unit — three seasons — and a narrowing in the tab's
+    // own noun, where a show is one show and pressing the hit leaves one row on the page.
+    const groups = searchUnion(trekIndex(), "star trek", { tabId: "shows", categories: ["genre", "franchise"] });
+    const here = groups.find((group) => group.key === "filter-here")!;
+    const franchise = groups.find((group) => group.key === "franchise")!;
+
+    expect((here.hits[0].entry as PlacedAttribute).counts).toEqual({ game: 1, show: 1, movie: 1 });
+    expect((franchise.hits[0].entry as FranchiseSearchEntry).counts).toEqual({ game: 1, show: 3, movie: 1 });
+  });
+
+  it("offers no narrowing on a tab whose own picker erases the franchise", () => {
+    // `isSeries` runs over the union, so a franchise crossing two media is a series even where one
+    // tab's only row names itself — and that tab's own `franchiseOptions` drops it. Placed there,
+    // the filter would be set with no chip offering or clearing it, and swept away silently by
+    // `retainPageSelections` on the next library landing.
+    const halo = library({
+      game: [videoGame({ name: "Halo", franchise: "Halo" })],
+      movie: [movie({ name: "Halo: The Movie", franchise: "Halo" })],
+    });
+    const groups = searchUnion(buildSearchIndex(toOmniItems(halo), halo), "halo", {
+      tabId: "movies",
+      categories: ["genre", "franchise"],
+    });
+    const placed = groups
+      .filter((group) => group.key === "filter-here" || group.key === "filter-there")
+      .flatMap((group) => group.hits.map((hit) => (hit.entry as PlacedAttribute).tab));
+
+    // Movies names the series; the lone Halo game names only itself, so Games offers no chip.
+    expect(placed).toEqual(["movies"]);
+  });
+
+  it("states how many values the shelf matched, not how many it showed", () => {
+    // The figure the header turns into "2 of 4" and the only thing saying there is more behind the
+    // row. Counted off the cut list instead it can never exceed the cut, so the leading group would
+    // say "2" beside a franchise group saying "2 of 4".
+    const noirs = library({
+      movie: ["Noir One", "Noir Two", "Noir Three", "Noir Four"].map((genre, index) =>
+        movie({ name: `Film ${index}`, franchise: `Noir ${index}`, genre }),
+      ),
+    });
+    const groups = searchUnion(buildSearchIndex(toOmniItems(noirs), noirs), "noir", undefined, 2);
+    const shelf = groups.find((group) => group.key === "shelf")!;
+
+    expect(shelf.hits).toHaveLength(2);
+    expect(shelf.total).toBe(4);
+  });
+
+  it("ranks a franchise against the attributes it is placed beside rather than after them", () => {
+    // One place to be narrowed by, and the franchise answers the query exactly where the genres
+    // hold it inside a word: concatenated, the five genres would fill the cut and the series a
+    // reader typed the name of would fall out of the group.
+    const noir = library({
+      movie: [
+        movie({ name: "Noir", franchise: "Noir", genre: "Anoir" }),
+        movie({ name: "Noir II", franchise: "Noir", genre: "Bnoir" }),
+        movie({ name: "Noir III", franchise: "Noir", genre: "Cnoir" }),
+      ],
+    });
+    const groups = searchUnion(buildSearchIndex(toOmniItems(noir), noir), "noir", {
+      tabId: "movies",
+      categories: ["genre", "franchise"],
+    });
+    const here = groups.find((group) => group.key === "filter-here")!;
+
+    expect((here.hits[0].entry as PlacedAttribute).category).toBe("franchise");
   });
 
   it("gives a franchise the two narrowings a genre gets, on the tabs recording it", () => {

@@ -14,6 +14,17 @@ export interface Searchable {
 /** A ranked entry, with the run of its raw name the query matched where the name is what matched. */
 export interface Hit<T> {
   entry: T;
+  /**
+   * How well the entry answered: 0 an exact name, 1 a word start, up to 5 every word found
+   * somewhere. Carried on the hit rather than dropped at the cut, so two lists ranked apart can be
+   * merged or ordered against each other — which the box does with the values it shelves and the
+   * franchises it places beside them.
+   *
+   * Absent on a list nothing was matched against: the tabs offered before anything is typed, and
+   * the franchises met lately, which are shown because they are worth offering and not because
+   * they answered.
+   */
+  rank?: number;
   matched?: [start: number, end: number];
 }
 
@@ -138,30 +149,22 @@ const rankOf = <T extends Searchable>(
 /** Ties within a rank fall to the larger entry, then to the name the reader's locale sorts first. */
 const collator = new Intl.Collator();
 
-/** The rank of a list nothing answered, so it sorts behind every list something did. */
-const NO_RANK = Infinity;
-
 /**
- * The entries answering a query, best first, cut to `limit`, with the count before the cut and the
- * rank the first of them was found at.
+ * The entries answering a query, best first, cut to `limit`, with the count before the cut.
  *
  * Rank first, then size, then name, so two franchises both starting with the phrase stand in size
  * order and a name is the last thing separating them. An empty query answers nothing: the palette
  * has its own idea of what to show before anything is typed. The entries come back as given, so a
  * caller reads its own fields off them and a franchise's raw name — the key every index here is
  * held on — travels through unfolded.
- *
- * `best` is what lets two separately ranked lists be ordered against each other without merging
- * them into one — the box's shelf and franchise groups, which open different layers and so keep
- * their own headers. It is `hits[0]`'s rank, and lower is the closer match.
  */
 export const rankHits = <T extends Searchable>(
   entries: readonly T[],
   query: string,
   limit: number,
-): { hits: Hit<T>[]; total: number; best: number } => {
+): { hits: Hit<T>[]; total: number } => {
   const phrase = foldText(query);
-  if (!phrase) return { hits: [], total: 0, best: NO_RANK };
+  if (!phrase) return { hits: [], total: 0 };
   const words = phrase.split(" ");
 
   const ranked = entries
@@ -169,9 +172,5 @@ export const rankHits = <T extends Searchable>(
     .filter((hit) => hit !== undefined)
     .toSorted((a, b) => a.rank - b.rank || b.entry.size - a.entry.size || collator.compare(a.entry.name, b.entry.name));
 
-  return {
-    hits: ranked.slice(0, limit).map(({ entry, matched }) => (matched ? { entry, matched } : { entry })),
-    total: ranked.length,
-    best: ranked[0]?.rank ?? NO_RANK,
-  };
+  return { hits: ranked.slice(0, limit), total: ranked.length };
 };
