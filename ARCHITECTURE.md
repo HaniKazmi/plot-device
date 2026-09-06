@@ -210,7 +210,10 @@ Converters do real modelling work, not just field renaming:
   finale was watched — and otherwise the `Seasons / Last Watched` cell, a column carrying the season
   count on a show row instead. The end date taking precedence is what keeps a cell nobody clears on a
   finished row from electing an old watch as the current one, and it leaves one field the hero is
-  elected on rather than two the election would have to choose between. A date-ordering mismatch is
+  elected on rather than two the election would have to choose between. Its `Type` cell is checked
+  against the sheet's own two words and stored as `anime`, a boolean: the column records one split
+  and nothing else, so a vocabulary on the model would be two values standing for one question. A
+  date-ordering mismatch is
   only a `console.error`; the `show` back-reference makes the graph cyclic (§4).
 - **`movie/`** reads both its dates as full ones, a blank runtime as `0` and a blank Score as
   `undefined`: `sum` accumulates with `+`, so one `NaN` blanks every hours total, where a score is
@@ -981,7 +984,7 @@ chunk (`SearchSurface`), prefetched on mount as the hover card is.
 
 The shell is domain-blind: it takes groups of already-shaped hits, This page's rows as one node,
 and a footer, and owns the input, the mode segment, the keyboard (↑↓ through every hit as one list,
-↵ on the selected, ⌘↵ on its second action, the first selected as soon as there is one) and the two
+↵ on the selected, the first selected as soon as there is one) and the two
 arrangements — a dialog seated near the top from `sm` up, and below it a fullscreen sheet whose
 pinned bar carries the mode segment where every other layer carries a title, since what the box _is_
 changes with it. No grabber there: a fullscreen dialog is not a swipeable sheet, and a grabber would
@@ -1025,8 +1028,13 @@ them before anything is typed, whichever the query names once something is. _Thi
 franchises. _Attributes_ are a genre, network, platform, author, director, certificate, decade or format,
 each with its count in each medium: `buildAttributeIndex` (`app/searchData.ts`) walks every medium's
 own schema over that medium's own rows, so the box can only offer a narrowing that tab's controls
-actually draw. Franchise is left out of it — a franchise is a _thing_ the box already answers with,
-and indexing it twice would list every series twice on one query. The certificate is grouped on
+actually draw. It walks a medium's **toggles** too, where one is marked `shelf` — `hides` names a
+subset and `!hides(item)` is its membership test, which is all a shelf needs. Two carry it, Shows'
+and Movies' anime switches, keyed and worded alike so the two fold into one entry with a count in
+each: every other toggle names a page's own noise rather than a thing a reader looks for, and the
+Omnibus's medium switches would shelve a whole tab. Franchise is scanned from the franchise index
+rather than the column, which is mostly works naming themselves — 168 values in the games sheet
+alone. The certificate is grouped on
 `certificateBand`, the gallery's own rule, so `15` and `16` are one hit; what it _sets_ is whichever
 notations that tab's rows carry, which is why an entry keeps its values per medium.
 
@@ -1038,8 +1046,18 @@ narrows the page in place; on any other it stands under "Go to, filtered" as "Sh
 be set on a page before that page has ever been mounted. A page holding the category but none of the
 value gets no hit at all, that hit being one that empties the page it was pressed on.
 `attributeAction` adds to whatever the target already holds rather than replacing it, the same thing
-a second chip pressed in This page means. ⌘↵ takes the third reading: the same value across all four
-libraries, as a `DrilldownDialog` over the gallery's own collapsed works.
+a second chip pressed in This page means.
+
+**The third reading is a row of its own, and it leads.** "Across the library" opens the value as a
+`DrilldownDialog` over the gallery's own collapsed works, across every library recording it — which
+is one library where only one records it, an author or a platform, and why it is worded for the
+library rather than for the media. It stands above the narrowings because a phone's box shows about
+five rows and a reading put third falls under the fold on any query matching several values; the
+cost is that ↵ and a soft keyboard's Go open the layer rather than filtering the page. A hit answers
+one press and one press only — a chord would be a reading a touch screen has no key for, and the
+lit row would advertise it. An entry from a toggle carries the shelf alone: a toggle's states are
+"everything" and "these rows dropped", with none meaning "these rows alone", so `narrows` is what
+keeps it out of the two placement groups.
 
 Matching (`common/searchData.ts`) folds text a character at a time — lowercased, accent dropped,
 punctuation a space — so the folded string is the raw string's length and a match found in one is
@@ -1061,8 +1079,8 @@ its shelves, which drop a franchise of one work. A work hit mounts the item's ow
 `openOnMount`, in a host the reader never sees and fixed at a pixel rather than `display: none` so
 the thumbnail loads and samples the colour the dialog is themed from, and unmounts it on
 `onDetailClosed`; `OmniCardMediaImage` dispatches by medium, so a hit reached through search shows
-exactly what the same artwork shows anywhere. Before anything is typed, the box offers the hits
-chosen lately, kept in `sessionStorage` for the sitting, then the franchises met most recently.
+exactly what the same artwork shows anywhere. Before anything is typed, the box offers the
+franchises met most recently — the series the reader is in the middle of.
 
 ### Franchise strip — `common/FranchiseStrip.tsx`
 
@@ -1996,7 +2014,12 @@ in which of them they use, BBFC issuing a 15 where PEGI issues a 16 for one tier
 off the tier rather than the number. `isCertificate` lets a converter reject a bad cell while it
 still knows the row — though what actually keeps a board's own five values in its column is the
 sheet's dropdown, a converter only being able to report a cell already written. `certificateBand` names that tier rather
-than colouring it, and is what the colour is looked up by. Books adds three formats at chroma 0.14,
+than colouring it, and is what the colour is looked up by. `animeToColour` is the eighth, a pair
+rather than a ramp: Shows and Movies both record the split and both group charts by it, so the rose
+means anime on either tab. Only the anime half is shared — the word for it is the `ANIME` constant,
+which is also what folds the two tabs' switches into one entry the box shelves — while each tab
+keeps its own word for the rest, a series that is not anime being a show and a film a film. Books
+adds three formats at chroma 0.14,
 drawn only in a labelled band and the filter's chips; Movies adds the Cinema/Home pair and
 re-exports the score bands — valenced red through amber to green, Unscored on the neutral — under
 its own name. Shows colours networks as brand-derived fills with `""` off-table, the column gaining
@@ -2325,8 +2348,14 @@ level of inversion — `Sunburst` takes four callbacks, `Barchart` a data functi
 `postAggregate` — and it stays at the level of _values and meaning_.
 
 **Adding a filter.** Add a toggle or a category to the domain's `filters.ts` and the field it names
-to its `FilterState` (extending `BaseFilterState`); a toggle also takes a glyph in that domain's
-`module.lazy.ts`, keyed the same way, which the icon record's own type requires. Nothing in
+to its `FilterState` (extending `BaseFilterState`). No glyph: the surface drawing these is a row of
+chips already reading the label, and a schema is reachable from the shell, so an icon named there
+would put four tabs' filter glyphs in the first bundle a visitor downloads. A toggle naming a set a
+reader goes looking for rather than a page's own noise takes `shelf`, which puts its value in the
+search index with a shelf and no narrowing (§6, Search). A category built by a shared helper —
+`franchiseCategory`, `certificateCategory` — states its key inside that helper, so the compiler does
+not hold it to the tab's own state the way it holds a category written out inline: the field has to
+be added by hand, and a missing one is a filter that silently never applies. Nothing in
 `common/filterReducer.ts`, `common/FilterControls.tsx` or any chart changes, and no starting value
 is written anywhere — every surface that offers filters draws whatever the schema holds, and the
 reducer seeds the new field from it. A rule that is not per-field, like Shows' seasonal year cutoff,
