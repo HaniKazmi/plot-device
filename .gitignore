@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# The local seeding harness (AGENTS.md): a whole library dumped to disk so the app can be driven
+# with no token. It is personal data, `npm run build` copies public/ into dist/, and `npm run deploy`
+# publishes dist/ to a public site — so it is ignored here rather than in .git/info/exclude, which
+# is per-machine and protects neither a clone nor a checkout whose exclude file has been rewritten.
+public/seed.html
+public/seed.json
