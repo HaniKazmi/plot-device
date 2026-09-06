@@ -294,26 +294,23 @@ const getTheme = (tab: Tab) => {
           // the boundary the tint strip already keys on), where the bar colour would tint the
           // status bar over a page that has scrolled the bar away. Both `html` and `body`, since
           // Safari reads the body's and paints nothing above the document's edge, so a bar
-          // reaching up past it shows nothing; only below `sm`, where both bars wear the colour.
-          // The dark half is stated under the same media query MUI emits the dark palette in,
-          // there being no `colorSchemeSelector`.
+          // reaching up past it shows nothing. At every width: a desktop Safari rubber-bands too,
+          // and the app bar is what stands at the top there as well. The dark half is stated
+          // under the same media query MUI emits the dark palette in, there being no
+          // `colorSchemeSelector`.
           "html, body": {
-            [theme.breakpoints.down("sm")]: {
-              backgroundColor: barColour(tab, "light"),
-              "@media (prefers-color-scheme: dark)": { backgroundColor: barColour(tab, "dark") ?? DARK_PAPER },
-            },
+            backgroundColor: barColour(tab, "light"),
+            "@media (prefers-color-scheme: dark)": { backgroundColor: barColour(tab, "dark") ?? DARK_PAPER },
           },
           "html[data-past-bar], html[data-past-bar] body": {
-            [theme.breakpoints.down("sm")]: { backgroundColor: theme.vars.palette.background.default },
+            backgroundColor: theme.vars.palette.background.default,
           },
-          // The page's ground moves onto the app's own root below `sm`, the body having given it
-          // up: the root is what the page is drawn in, and it stands at least a screen tall so a
-          // short page does not end on the bar colour above the bottom bar.
+          // The page's ground moves onto the app's own root, the body having given it up: the
+          // root is what the page is drawn in, and it stands at least a screen tall so a short
+          // page does not end on the bar colour.
           "#root": {
-            [theme.breakpoints.down("sm")]: {
-              minHeight: "100svh",
-              backgroundColor: theme.vars.palette.background.default,
-            },
+            minHeight: "100svh",
+            backgroundColor: theme.vars.palette.background.default,
           },
         }),
       },
