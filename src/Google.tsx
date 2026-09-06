@@ -287,16 +287,32 @@ const getTheme = (tab: Tab) => {
           // The app answers a tap with the card it opens, which is a stronger acknowledgement
           // than a flash. Inherited, so the body is the only place it has to be said.
           body: { WebkitTapHighlightColor: "transparent" },
-          // What shows past the page's ends when a phone rubber-bands: the tab's own bar colour,
-          // which is what stands at both ends — the app bar above the page and the bottom bar
-          // below it — so a pull past the top opens no band of paper between the status bar and
-          // the app bar. Only the root, since the body keeps the page's ground; only below `sm`,
-          // where both bars wear the colour. The dark half is stated under the same media query
-          // MUI emits the dark palette in, there being no `colorSchemeSelector`.
-          html: {
+          // What shows past the page's ends when a phone rubber-bands, and what Safari extends
+          // under its status bar: the tab's own bar colour while the page is against the app bar,
+          // so a pull past the top opens no band of paper between the status bar and the bar, and
+          // the page's ground once scrolled past it (`data-past-bar`, set by `BrowserTint.tsx` on
+          // the boundary the tint strip already keys on), where the bar colour would tint the
+          // status bar over a page that has scrolled the bar away. Both `html` and `body`, since
+          // Safari reads the body's and paints nothing above the document's edge, so a bar
+          // reaching up past it shows nothing; only below `sm`, where both bars wear the colour.
+          // The dark half is stated under the same media query MUI emits the dark palette in,
+          // there being no `colorSchemeSelector`.
+          "html, body": {
             [theme.breakpoints.down("sm")]: {
               backgroundColor: barColour(tab, "light"),
               "@media (prefers-color-scheme: dark)": { backgroundColor: barColour(tab, "dark") ?? DARK_PAPER },
+            },
+          },
+          "html[data-past-bar], html[data-past-bar] body": {
+            [theme.breakpoints.down("sm")]: { backgroundColor: theme.vars.palette.background.default },
+          },
+          // The page's ground moves onto the app's own root below `sm`, the body having given it
+          // up: the root is what the page is drawn in, and it stands at least a screen tall so a
+          // short page does not end on the bar colour above the bottom bar.
+          "#root": {
+            [theme.breakpoints.down("sm")]: {
+              minHeight: "100svh",
+              backgroundColor: theme.vars.palette.background.default,
             },
           },
         }),

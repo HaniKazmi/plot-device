@@ -1,4 +1,5 @@
 import { Box } from "@mui/material";
+import { useEffect } from "react";
 import { barColour, useCurrentTab } from "./tabs";
 import { BROWSER_TINT_HEIGHT, BROWSER_TINT_VISIBLE, useScrolledPastBar } from "./common/chrome";
 import { usePhone } from "./common/breakpoints";
@@ -58,6 +59,16 @@ export const BrowserTint = () => {
   const phone = usePhone();
   const past = useScrolledPastBar();
   const ground = barColour(currTab, scheme);
+  // The same boundary, published on the root element for the document's own background to read
+  // (`Google.tsx`, the `CssBaseline` override): Safari extends that background under the status bar
+  // and past the page's ends, so it is the bar's colour while the page is against the app bar —
+  // where a pull past the top would otherwise open a band of paper between the status bar and the
+  // bar — and the page's ground once past it, where a bar colour would tint the status bar over a
+  // page that has scrolled the bar away. An attribute rather than a style, so the colours stay
+  // stated once, in the theme, beside the rule that reads them.
+  useEffect(() => {
+    document.documentElement.toggleAttribute("data-past-bar", phone && past);
+  }, [phone, past]);
   // Past the bar the strip is not drawn: with nothing fixed at the top to sample, Safari draws its
   // own translucent status bar over the page — the meta stated there for the browsers that read one
   // is not one Safari reads.
