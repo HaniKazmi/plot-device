@@ -3,7 +3,7 @@ import { Year, YearMonthDay } from "../../src/common/date";
 import { toOmniItems } from "../../src/app/library";
 import { omniBarchartRows } from "../../src/omnibus/barchartData";
 import { mediumToColour } from "../../src/app/types";
-import { ageRatingToColour, genreToColour } from "../../src/utils/types";
+import { certificateToColour, genreToColour } from "../../src/utils/types";
 import { book } from "../fixtures/books";
 import { library } from "../fixtures/library";
 import { movie } from "../fixtures/movies";
@@ -105,14 +105,14 @@ describe("omniBarchartRows", () => {
     // Games record PEGI and the other two BBFC. Splitting on the raw certificate would draw a
     // PEGI 16 game and the BBFC 15 film beside it as two series in the same colour.
     const rows = omniBarchartRows(
-      toOmniItems(library({ game: [videoGame({ rating: "16+" })], movie: [movie({ rating: "15" })] })),
+      toOmniItems(library({ game: [videoGame({ certificate: "16" })], movie: [movie({ certificate: "15" })] })),
       "Items",
-      "rating",
+      "certificate",
       "light",
     );
 
     expect(rows.map((row) => row.name)).toEqual(["15/16", "15/16"]);
-    expect(rows[0].colour).toBe(ageRatingToColour("15", "light"));
+    expect(rows[0].colour).toBe(certificateToColour("15", "light"));
   });
 
   it("drops a row whose split column is empty rather than opening a nameless series", () => {
@@ -141,6 +141,6 @@ describe("books in the pivot", () => {
 
     expect(omniBarchartRows(items, "Items", "genre", "light")[0].name).toBe("Fantasy");
     // No certificate to split on, so no series is opened for it: the header counts drawn rows.
-    expect(omniBarchartRows(items, "Items", "rating", "light")).toEqual([]);
+    expect(omniBarchartRows(items, "Items", "certificate", "light")).toEqual([]);
   });
 });

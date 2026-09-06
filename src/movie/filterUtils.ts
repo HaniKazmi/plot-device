@@ -1,5 +1,5 @@
 import { CURRENT_YEAR } from "../common/date";
-import type { AgeRating } from "../utils/types";
+import type { Certificate } from "../utils/types";
 import type { Measure, Movie } from "./types";
 import { createFilterReducer, type BaseFilterState, type FilterDispatchFor } from "../common/filterReducer";
 import { movieFilters } from "./filters";
@@ -14,7 +14,7 @@ export interface FilterState extends BaseFilterState<Movie, Measure> {
   genre: string[];
   director: string[];
   franchise: string[];
-  rating: AgeRating[];
+  certificate: Certificate[];
 }
 
 export type FilterDispatch = FilterDispatchFor<FilterState>;

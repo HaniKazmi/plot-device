@@ -58,7 +58,7 @@ const options: OptionKeys[] = [
   "type",
   "genre",
   "network",
-  "rating",
+  "certificate",
   "franchise",
 ];
 

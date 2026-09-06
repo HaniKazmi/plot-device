@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { YearMonthDay } from "../../src/common/date";
 import { toOmniItems } from "../../src/app/library";
 import { genreBridge } from "../../src/omnibus/genreBridgeData";
-import { ageRatingBand, GENRE_NAMES, genreToColour, neutralFill, releaseDecade } from "../../src/utils/types";
+import { certificateBand, GENRE_NAMES, genreToColour, neutralFill, releaseDecade } from "../../src/utils/types";
 import { book } from "../fixtures/books";
 import { library } from "../fixtures/library";
 import { movie } from "../fixtures/movies";
@@ -192,8 +192,8 @@ describe("books on the bridge", () => {
     const items = toOmniItems(
       library({
         movie: [
-          movie({ genre: "Sci-Fi", startDate: YearMonthDay.get(2022, 3, 1), rating: "15" }),
-          movie({ genre: "Horror", startDate: YearMonthDay.get(2019, 3, 1), rating: "18" }),
+          movie({ genre: "Sci-Fi", startDate: YearMonthDay.get(2022, 3, 1), certificate: "15" }),
+          movie({ genre: "Horror", startDate: YearMonthDay.get(2019, 3, 1), certificate: "18" }),
         ],
         show: [showWith("Sci-Fi", 405)],
       }),
@@ -207,11 +207,11 @@ describe("books on the bridge", () => {
     // A season certifies through its show; nothing certifies a book, and a row keyed on nothing
     // is not drawn.
     const ratings = genreBridge(
-      toOmniItems(library({ book: [book({})], movie: [movie({ rating: "18" }), movie({ rating: "12" })] })),
-      "rating",
+      toOmniItems(library({ book: [book({})], movie: [movie({ certificate: "18" }), movie({ certificate: "12" })] })),
+      "certificate",
     );
     // Youngest first, the boards' own order, whatever the hours in each.
-    expect(ratings.map((row) => row.name)).toEqual([ageRatingBand("12"), ageRatingBand("18")]);
+    expect(ratings.map((row) => row.name)).toEqual([certificateBand("12"), certificateBand("18")]);
   });
 
   it("counts in the page's measure, so under Items a short film weighs what a long game does", () => {

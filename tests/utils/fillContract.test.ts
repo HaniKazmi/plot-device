@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
-  AGE_BANDS,
-  AGE_RATINGS,
+  CERTIFICATE_BANDS,
+  CERTIFICATES,
   COLOURABLE_STATUSES,
   DECADE_NAMES,
   FRANCHISE_NAMES,
   GENRE_NAMES,
-  ageBandToColour,
-  ageRatingToColour,
+  certificateBandToColour,
+  certificateToColour,
   decadeToColour,
   franchiseToColour,
   genreToColour,
@@ -86,9 +86,9 @@ describe.each(SCHEMES)("every fill clears 3:1 on the %s paper", (scheme) => {
 
   it("the neutral, which every table falls back to", () => check("neutral", neutralFill(scheme)));
 
-  it("age ratings, by certificate and by band", () => {
-    for (const rating of AGE_RATINGS) check(`rating ${rating}`, ageRatingToColour(rating, scheme));
-    for (const band of AGE_BANDS) check(`band ${band}`, ageBandToColour(band, scheme));
+  it("certificates, by value and by band", () => {
+    for (const certificate of CERTIFICATES) check(`certificate ${certificate}`, certificateToColour(certificate, scheme));
+    for (const band of CERTIFICATE_BANDS) check(`band ${band}`, certificateBandToColour(band, scheme));
   });
 
   it("statuses", () => {

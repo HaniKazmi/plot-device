@@ -136,7 +136,7 @@ describe("flattening", () => {
       genre: "Sci-Fi",
       genres: ["Drama"],
       franchise: "Severance",
-      rating: "15",
+      certificate: "15",
     });
     const items = toOmniItems(library({ show: [parent] }));
 
@@ -147,7 +147,7 @@ describe("flattening", () => {
     expect(items[0].genre).toBe("Sci-Fi");
     expect(items[0].genres).toEqual(["Drama"]);
     expect(items[0].franchise).toBe("Severance");
-    expect(items[0].rating).toBe("15");
+    expect(items[0].certificate).toBe("15");
     expect(items[0].source).toBe(parent.s[0]);
   });
 
@@ -367,7 +367,7 @@ describe("a book in the union", () => {
     expect(item.genres).toEqual([]);
     expect(item.franchise).toBe("Cosmere");
     // Nothing certifies a book; every certificate surface drops it rather than shelving a blank.
-    expect(item.rating).toBeUndefined();
+    expect(item.certificate).toBeUndefined();
   });
 
   it("tells a reread from the first read, which is a second row with one title", () => {

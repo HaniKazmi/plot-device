@@ -28,7 +28,7 @@ const seasonItems = (shows: Show[]): OmniItem[] =>
       genre: show.genre,
       genres: show.genres,
       franchise: show.franchise,
-      rating: show.rating,
+      certificate: show.certificate,
       source: season,
     })),
   );

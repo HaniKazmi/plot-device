@@ -361,7 +361,7 @@ const optionIcons: Record<TopOption, ReactNode> = {
   platform: <VideogameAsset />,
   developer: <Code />,
   publisher: <Storefront />,
-  rating: <VerifiedUser />,
+  certificate: <VerifiedUser />,
   status: <TaskAlt />,
   gameplay: <SportsEsports />,
   genre: <Category />,

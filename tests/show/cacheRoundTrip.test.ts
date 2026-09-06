@@ -71,7 +71,7 @@ describe("the localStorage round trip", () => {
     // replacer that has to strip the season back-references two levels down.
     expect(severance.genres).toEqual(["Drama", "Thriller"]);
     expect(severance.network).toBe("Apple TV+");
-    expect(severance.rating).toBe("15");
+    expect(severance.certificate).toBe("15");
     expect(severance.franchise).toBe("Severance");
   });
 });

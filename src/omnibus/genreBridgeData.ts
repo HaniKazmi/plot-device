@@ -1,5 +1,5 @@
 import { assignPercents } from "../utils/mathUtils";
-import { AGE_BANDS, ageRatingBand, releaseDecade } from "../utils/types";
+import { CERTIFICATE_BANDS, certificateBand, releaseDecade } from "../utils/types";
 import type { OmniItem } from "../common/medium";
 import { media, type Measure, type Medium } from "../app/types";
 import "../utils/arrayUtils";
@@ -18,7 +18,7 @@ interface GenreBridgeSegment {
  * which the decade coarsens. Every one is a field all four media record; a book answers the
  * certificate with nothing, and a row keyed on nothing is not drawn.
  */
-export const BRIDGE_KEYS = ["genre", "year", "decade", "rating"] as const;
+export const BRIDGE_KEYS = ["genre", "year", "decade", "certificate"] as const;
 
 export type BridgeKey = (typeof BRIDGE_KEYS)[number];
 
@@ -31,8 +31,8 @@ export const bridgeValue = (item: OmniItem, key: BridgeKey): string => {
       return String(item.year);
     case "decade":
       return releaseDecade(item.year);
-    case "rating":
-      return item.rating ? ageRatingBand(item.rating) : "";
+    case "certificate":
+      return item.certificate ? certificateBand(item.certificate) : "";
   }
 };
 
@@ -83,8 +83,8 @@ const rowOrder = (
     case "year":
     case "decade":
       return (a, b) => (a.name < b.name ? 1 : a.name > b.name ? -1 : 0);
-    case "rating":
-      return (a, b) => AGE_BANDS.indexOf(a.name) - AGE_BANDS.indexOf(b.name);
+    case "certificate":
+      return (a, b) => CERTIFICATE_BANDS.indexOf(a.name) - CERTIFICATE_BANDS.indexOf(b.name);
   }
 };
 

@@ -254,7 +254,7 @@ const optionIcons: Record<ShowTopOption, ReactNode> = {
   franchise: <Stars />,
   type: <Animation />,
   status: <TaskAlt />,
-  rating: <VerifiedUser />,
+  certificate: <VerifiedUser />,
 };
 
 const RecentlyComplete = ({ data }: { data: Show[] }) => {

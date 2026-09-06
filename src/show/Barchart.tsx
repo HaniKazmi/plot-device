@@ -6,7 +6,7 @@ import type { YearType } from "../common/filterReducer";
 
 type Option = ShowStringKeys | "none";
 
-const options: Option[] = ["none", "name", "status", "type", "genre", "network", "rating", "franchise"];
+const options: Option[] = ["none", "name", "status", "type", "genre", "network", "certificate", "franchise"];
 
 const optionToName = (season: Season, option: Option) => {
   switch (option) {

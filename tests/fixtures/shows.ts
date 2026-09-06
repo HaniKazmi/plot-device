@@ -17,7 +17,7 @@ export const show = (overrides: Partial<Show> = {}): Show => ({
   genre: "Sci-Fi",
   genres: ["Drama", "Thriller"],
   network: "Apple TV+",
-  rating: "15",
+  certificate: "15",
   franchise: "Severance",
   banner: "severance.jpg",
   s: [],

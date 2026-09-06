@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { relativeLuminance } from "../fixtures/colour";
 import {
-  ageRatingBand,
-  ageRatingToColour,
+  certificateBand,
+  certificateToColour,
   genreToColour,
-  isAgeRating,
+  isCertificate,
   neutralFill,
   statusToColour,
-  type AgeRating,
+  type Certificate,
   type ColourableStatus,
 } from "../../src/utils/types";
 import { liveGenres } from "../fixtures/colour";
@@ -77,15 +77,15 @@ describe("statusToColour", () => {
   });
 });
 
-describe("ageRatingToColour", () => {
+describe("certificateToColour", () => {
   it.each([
-    ["3+", "#14ac00"],
-    ["7+", "#707400"],
-    ["12+", "#be7e00"],
-    ["16+", "#aa4600"],
-    ["18+", "#a10017"],
-  ] satisfies [AgeRating, string][])("maps the PEGI rating %s to %s on the light paper", (rating, expected) => {
-    expect(ageRatingToColour(rating, "light")).toBe(expected);
+    ["3", "#14ac00"],
+    ["7", "#707400"],
+    ["12", "#be7e00"],
+    ["16", "#aa4600"],
+    ["18", "#a10017"],
+  ] satisfies [Certificate, string][])("maps the certificate %s to %s on the light paper", (certificate, expected) => {
+    expect(certificateToColour(certificate, "light")).toBe(expected);
   });
 
   it.each([
@@ -94,79 +94,64 @@ describe("ageRatingToColour", () => {
     ["12", "#fdaa00"],
     ["15", "#dd5e00"],
     ["18", "#de0024"],
-  ] satisfies [AgeRating, string][])("maps the BBFC rating %s to %s on the dark paper", (rating, expected) => {
-    expect(ageRatingToColour(rating, "dark")).toBe(expected);
+  ] satisfies [Certificate, string][])("maps the certificate %s to %s on the dark paper", (certificate, expected) => {
+    expect(certificateToColour(certificate, "dark")).toBe(expected);
   });
 
-  it("gives an age the same colour whichever board named it", () => {
-    // Games record PEGI and Shows and Movies record BBFC, so the same age reaches this function
-    // written two ways. A reader moving between tabs should not have to learn the ramp twice.
-    expect(ageRatingToColour("12", "light")).toBe(ageRatingToColour("12+", "light"));
-    expect(ageRatingToColour("18", "light")).toBe(ageRatingToColour("18+", "light"));
+  it("gives BBFC 15 and PEGI 16 one colour, because they are one tier", () => {
+    // The boards agree on every tier but this one, where BBFC issues a 15 and PEGI a 16 for the
+    // same thing. Two colours would split one tier across the two tabs that record it.
+    expect(certificateToColour("15", "light")).toBe(certificateToColour("16", "light"));
   });
 
-  it("puts BBFC 15 and PEGI 16 on one band, because they are one tier", () => {
-    // Neither scale holds both values, so no chart ever draws them side by side needing to tell
-    // them apart — and giving the tier two colours would split it across the two tabs.
-    expect(ageRatingToColour("15", "light")).toBe(ageRatingToColour("16+", "light"));
+  it("gives every tier beside that one a colour of its own", () => {
+    // A swatch is the only thing distinguishing two certificates at a glance, so a value shared
+    // outside the 15/16 tier would make the badge decorative rather than informative.
+    const tiers: Certificate[] = ["3", "7", "12", "15", "18"];
+
+    expect(new Set(tiers.map((certificate) => certificateToColour(certificate, "light"))).size).toBe(tiers.length);
   });
 
-  it("gives every age within one scale a colour of its own", () => {
-    // A swatch is the only thing distinguishing two ratings at a glance, so a shared value
-    // inside a single board's scale would make the badge decorative rather than informative.
-    const bbfc: AgeRating[] = ["3", "7", "12", "15", "18"];
-    const pegi: AgeRating[] = ["3+", "7+", "12+", "16+", "18+"];
-
-    expect(new Set(bbfc.map((rating) => ageRatingToColour(rating, "light"))).size).toBe(bbfc.length);
-    expect(new Set(pegi.map((rating) => ageRatingToColour(rating, "light"))).size).toBe(pegi.length);
+  it("rejects a suffixed certificate, which no sheet writes", () => {
+    // Every tab records the bare age, so a suffix is a cell in a notation this library no longer
+    // holds rather than a certificate it can colour.
+    expect(isCertificate("16+")).toBe(false);
+    expect(isCertificate("12+")).toBe(false);
+    expect(isCertificate("15")).toBe(true);
+    expect(isCertificate("16")).toBe(true);
   });
 
-  it("rejects a certificate neither board issues", () => {
-    // PEGI has no 15 and BBFC no 16, so the ten valid values are listed rather than crossed with
-    // an optional suffix — a cross product would accept both of these, which is the shape the
-    // likeliest typo takes.
-    expect(isAgeRating("15+")).toBe(false);
-    expect(isAgeRating("16")).toBe(false);
-    expect(isAgeRating("15")).toBe(true);
-    expect(isAgeRating("16+")).toBe(true);
-  });
-
-  it("throws on a rating outside the union rather than falling back", () => {
-    // Every domain casts a sheet cell straight to AgeRating, so a typo or a certificate from a
+  it("throws on a certificate outside the union rather than falling back", () => {
+    // Every domain casts a sheet cell straight to Certificate, so a typo or a certificate from a
     // board neither scale covers arrives here. Throwing surfaces it; a fallback colour would
     // render the wrong badge in silence.
-    expect(() => ageRatingToColour("PG" as AgeRating, "light")).toThrow("Unknown rating: PG");
-    expect(() => ageRatingToColour("21" as AgeRating, "light")).toThrow("Unknown rating: 21");
+    expect(() => certificateToColour("PG" as Certificate, "light")).toThrow("Unknown certificate: PG");
+    expect(() => certificateToColour("21" as Certificate, "light")).toThrow("Unknown certificate: 21");
   });
 });
 
-describe("ageRatingBand", () => {
-  it("names one tier once, whichever board wrote the certificate", () => {
-    // A grouping over the raw cell splits every tier by its suffix, so the same age stands as two
-    // groups and the two halves are drawn in the same colour beside each other.
-    expect(ageRatingBand("12")).toBe(ageRatingBand("12+"));
-    expect(ageRatingBand("18")).toBe(ageRatingBand("18+"));
-  });
-
+describe("certificateBand", () => {
   it("puts BBFC 15 and PEGI 16 on one band, the tier whose number the boards disagree on", () => {
-    expect(ageRatingBand("15")).toBe(ageRatingBand("16+"));
+    // Grouped on the raw cell these stand as two shelves saying the same thing. The band is what
+    // a chart and a shelf both key on, so neither can split the tier the other keeps whole.
+    expect(certificateBand("15")).toBe(certificateBand("16"));
   });
 
   it("names that band after both numbers, since no sheet writes a PEGI 16 game as a 15", () => {
-    expect(ageRatingBand("16+")).toBe("15/16");
-    expect(ageRatingBand("12+")).toBe("12");
+    expect(certificateBand("16")).toBe("15/16");
+    expect(certificateBand("12")).toBe("12");
   });
 
-  it("leaves the ten certificates as five bands, one per age the library records", () => {
-    const every: AgeRating[] = ["3", "7", "12", "15", "18", "3+", "7+", "12+", "16+", "18+"];
+  it("leaves the six certificates as five bands, the tiers the boards between them name", () => {
+    const every: Certificate[] = ["3", "7", "12", "15", "16", "18"];
 
-    expect(new Set(every.map(ageRatingBand)).size).toBe(5);
+    expect(new Set(every.map(certificateBand)).size).toBe(5);
   });
 
   it("throws on a certificate outside the union rather than banding it as something", () => {
     // The colour is looked up by band, so a fallback here would reach the swatch as a wrong
     // colour rather than as an error naming the value.
-    expect(() => ageRatingBand("PG" as AgeRating)).toThrow("Unknown rating: PG");
+    expect(() => certificateBand("PG" as Certificate)).toThrow("Unknown certificate: PG");
   });
 });
 

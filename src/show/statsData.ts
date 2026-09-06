@@ -20,7 +20,7 @@ export const earliestYear = (data: readonly Show[]): YearNumber => earliestYearO
  * The order is load-bearing beyond presentation: `TopList` turns a category's index into a
  * Highcharts palette offset, so reordering this recolours those charts.
  */
-export const showTopOptions = ["genre", "network", "franchise", "type", "status", "rating"] as const;
+export const showTopOptions = ["genre", "network", "franchise", "type", "status", "certificate"] as const;
 
 export type ShowTopOption = (typeof showTopOptions)[number];
 

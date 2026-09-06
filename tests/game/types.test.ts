@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { genreToColour, type AgeRating } from "../../src/utils/types";
+import { genreToColour, type Certificate } from "../../src/utils/types";
 import {
   companyToAccent,
   companyToColor,
@@ -85,7 +85,7 @@ describe("groupToColour", () => {
 
     expect(groupToColour("company", game, "light")).toBe(companyToColor(game, "light"));
     expect(groupToColour("status", game, "light")).toBe("#326e54");
-    expect(groupToColour("rating", game, "light")).toBe("#be7e00");
+    expect(groupToColour("certificate", game, "light")).toBe("#be7e00");
     expect(groupToColour("gameplay", game, "light")).toBe(gameplayToColour(game, "light"));
     expect(groupToColour("genre", game, "light")).toBe(genreToColour(game.genre, "light"));
   });
@@ -115,9 +115,9 @@ describe("groupToColour", () => {
     expect(groupToColour("none", videoGame(), "light")).toBe("");
   });
 
-  it("propagates the rating throw, because grouping by rating renders every game", () => {
+  it("propagates the certificate throw, because grouping by certificate renders every game", () => {
     // The cast is the point: the union describes what the sheet should hold, and a blank cell
     // is what it holds when someone forgets — that has to reach the throw rather than a fallback.
-    expect(() => groupToColour("rating", videoGame({ rating: "" as AgeRating }), "light")).toThrow("Unknown rating");
+    expect(() => groupToColour("certificate", videoGame({ certificate: "" as Certificate }), "light")).toThrow("Unknown certificate");
   });
 });

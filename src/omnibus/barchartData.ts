@@ -19,7 +19,7 @@ import { mediumToColour, mediumToLabel, type Measure } from "../app/types";
  * Decade is not offered either: a decade is derived from the year, so plotting it against the year
  * draws each series into exactly one run of columns and nothing crosses.
  */
-export const BARCHART_SPLITS = ["medium", "genre", "rating"] as const;
+export const BARCHART_SPLITS = ["medium", "genre", "certificate"] as const;
 
 type BarchartSplit = (typeof BARCHART_SPLITS)[number];
 

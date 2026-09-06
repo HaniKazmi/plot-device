@@ -2,13 +2,13 @@ import { YearMonthDay } from "../common/date";
 import {
   KeysMatching,
   NEUTRAL_FILL,
-  ageRatingToColour,
+  certificateToColour,
   fill,
   franchiseToColour,
   genreToColour,
   pick,
   statusToColour,
-  type AgeRating,
+  type Certificate,
   type Colour,
   type Fill,
   type Scheme,
@@ -29,7 +29,7 @@ export interface Show {
    */
   genres: string[];
   network: string;
-  rating: AgeRating;
+  certificate: Certificate;
   /** A show with no wider franchise carries its own name here, which 229 of 308 shows do. */
   franchise: string;
   /**
@@ -134,9 +134,9 @@ export const groupToColour = (group: keyof Show | "none" | "show", show: Show, s
   switch (group) {
     case "status":
       return statusToColour(show, scheme);
-    case "rating":
+    case "certificate":
       // The same map the games tab paints its PEGI with, so a swatch means one thing across the app.
-      return ageRatingToColour(show.rating, scheme);
+      return certificateToColour(show.certificate, scheme);
     case "genre":
       // The vocabulary Movies shares, so one hue means one genre on both tabs.
       return genreToColour(show.genre, scheme);

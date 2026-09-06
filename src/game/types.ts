@@ -1,7 +1,7 @@
 import type { Year, YearMonthDay } from "../common/date";
 import {
   NEUTRAL_FILL,
-  ageRatingToColour,
+  certificateToColour,
   decadeToColour,
   fill,
   franchiseToColour,
@@ -9,7 +9,7 @@ import {
   pick,
   releaseDecade,
   statusToColour,
-  type AgeRating,
+  type Certificate,
   type Colour,
   type Fill,
   type KeysMatching,
@@ -36,7 +36,7 @@ export interface VideoGame {
   /** How it is *played*, which is a games-only distinction and so keeps a closed union. */
   gameplay: Gameplay;
   theme: string[];
-  rating: AgeRating;
+  certificate: Certificate;
   /**
    * Either precision, because the sheet holds both: a release is often recorded as a bare year,
    * and `PlainDate.from` answers a `Year` for one. Narrowing this to `YearMonthDay` states
@@ -64,7 +64,7 @@ export const videoGameOptions: readonly VideoGameStringKeys[] = [
   "platform",
   "status",
   "format",
-  "rating",
+  "certificate",
   "developer",
   "publisher",
   "franchise",
@@ -207,7 +207,7 @@ export const platformToShort: (game: VideoGame) => [string, Colour] = (game) => 
   return [short, companyToAccent(game)];
 };
 
-export const ratingToColour = ({ rating }: VideoGame, scheme: Scheme) => ageRatingToColour(rating, scheme);
+export const certificateColour = ({ certificate }: VideoGame, scheme: Scheme) => certificateToColour(certificate, scheme);
 
 /**
  * A gameplay style has no brand to reproduce, so each colour is chosen to *represent* it: flame for
@@ -243,7 +243,7 @@ export const ratingToColour = ({ rating }: VideoGame, scheme: Scheme) => ageRati
  * without moving a single pair, and muting the genre ramp by 45% leaves the worst cross-table pair
  * at 4.5 dE and puts *more* pairs under 15, not fewer.
  *
- * Ratings and franchises deliberately do not draw on this: a rating ramp encodes an order, and a
+ * Certificates and franchises deliberately do not draw on this: a certificate ramp encodes an order, and a
  * franchise colour is somebody's brand, which keeps its hue and chroma and yields only lightness
  * to contrast. Neither is free to be reassigned a hue the way a gameplay style is.
  */
@@ -276,8 +276,8 @@ export const groupToColour = (group: keyof VideoGame | "none" | "decade", game: 
       return companyToColor(game, scheme);
     case "status":
       return statusToColour(game, scheme);
-    case "rating":
-      return ratingToColour(game, scheme);
+    case "certificate":
+      return certificateColour(game, scheme);
     case "gameplay":
       return gameplayToColour(game, scheme);
     case "genre":

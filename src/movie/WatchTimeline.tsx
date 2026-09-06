@@ -19,7 +19,7 @@ import { useScheme } from "../common/useScheme";
  */
 const RIBBON_TICKS = buildTicks(YearMonth.get(2001, 1), YearMonth.get(2001, 12), 365);
 
-const colourOptions = ["genre", "rating", "cinema", "decade", "score"] as const;
+const colourOptions = ["genre", "certificate", "cinema", "decade", "score"] as const;
 
 const WatchTimeline = ({ data }: { data: Movie[] }) => {
   const scheme = useScheme();

@@ -5,7 +5,7 @@ import type { MediumSpan } from "../common/medium";
 import type { ReactNode } from "react";
 import type { LedgerRow, PanelSubtitlePart } from "../common/Card";
 import { franchiseToColour, genreToColour, mediumFills, type Scheme } from "../utils/types";
-import { companyToAccent, gameplayToColour, platformToColor, ratingToColour, type VideoGame } from "./types";
+import { companyToAccent, gameplayToColour, platformToColor, certificateColour, type VideoGame } from "./types";
 import "../utils/arrayUtils";
 import "../utils/mapUtils";
 
@@ -148,7 +148,7 @@ const joinParts = (parts: (string | undefined)[]): string => parts.filter(Boolea
  * release is a date and a format, and a game is made by a developer for a publisher.
  *
  * A swatch appears only where the colour is one the app already speaks — the platform's brand
- * accent is the badge in this card's own corner, and franchise, gameplay, genre and rating each
+ * accent is the badge in this card's own corner, and franchise, gameplay, genre and certificate each
  * fill a ring or a bar on the tab behind it. The rest are text, because inventing a colour for a
  * publisher teaches the reader a legend no chart honours.
  */
@@ -183,7 +183,7 @@ export const gameRows = (game: VideoGame, scheme: Scheme): LedgerRow[] => {
   const themes = joinParts(game.theme);
   if (themes) rows.push({ label: "Themes", value: themes });
 
-  rows.push({ label: "PEGI", value: game.rating, swatch: ratingToColour(game, scheme) });
+  rows.push({ label: "PEGI", value: game.certificate, swatch: certificateColour(game, scheme) });
 
   return rows;
 };

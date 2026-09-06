@@ -206,14 +206,14 @@ describe("buildAttributeIndex", () => {
 
   it("groups a certificate on its band, so the two boards' names for one tier are one hit", () => {
     const rated = library({
-      movie: [movie({ name: "Blade Runner", rating: "15" }), movie({ name: "Akira", rating: "16+" })],
+      movie: [movie({ name: "Blade Runner", certificate: "15" }), movie({ name: "Akira", certificate: "16" })],
     });
-    const tiers = buildAttributeIndex(rated).filter((entry) => entry.category === "rating");
+    const tiers = buildAttributeIndex(rated).filter((entry) => entry.category === "certificate");
 
     expect(tiers.map((entry) => entry.value)).toEqual(["15/16"]);
     expect(tiers[0].counts.movie).toBe(2);
     // What the hit sets on the Movies tab: both notations, since the sheet holds each of them.
-    expect(tiers[0].values.movie).toEqual(["15", "16+"]);
+    expect(tiers[0].values.movie).toEqual(["15", "16"]);
   });
 });
 
@@ -271,15 +271,15 @@ describe("attributePlacements and attributeAction", () => {
 
   it("sets both of a band's notations on a tab whose rows carry each of them", () => {
     const rated = library({
-      movie: [movie({ name: "Blade Runner", rating: "15" }), movie({ name: "Akira", rating: "16+" })],
+      movie: [movie({ name: "Blade Runner", certificate: "15" }), movie({ name: "Akira", certificate: "16" })],
     });
-    const tier = buildAttributeIndex(rated).find((entry) => entry.category === "rating")!;
-    const [placed] = attributePlacements(tier, "movies", ["genre", "rating"]);
+    const tier = buildAttributeIndex(rated).find((entry) => entry.category === "certificate")!;
+    const [placed] = attributePlacements(tier, "movies", ["genre", "certificate"]);
 
     expect(attributeAction(placed, [])).toEqual({
       type: "updateFilter",
-      filter: "rating",
-      value: ["15", "16+"],
+      filter: "certificate",
+      value: ["15", "16"],
     });
   });
 });

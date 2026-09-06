@@ -10,7 +10,7 @@ import {
   galleryStripOrder,
   galleryValue,
 } from "../../src/app/galleryData";
-import { ageRatingToColour, genreToColour } from "../../src/utils/types";
+import { certificateToColour, genreToColour } from "../../src/utils/types";
 import { book } from "../fixtures/books";
 import { library } from "../fixtures/library";
 import { movie } from "../fixtures/movies";
@@ -50,16 +50,16 @@ describe("what a shelf is", () => {
     expect(galleryValue(item, "decade")).toBe("2010s");
   });
 
-  it("shelves a rating by its age band, so one tier is not two shelves in two notations", () => {
+  it("shelves a certificate by its age band, so one tier is not two shelves in two notations", () => {
     // Games record PEGI and the other two BBFC, so the raw cell splits every tier by its suffix —
     // and the halves are then drawn in the same colour beside each other. The cards themselves
     // still state the certificate their own row carries.
-    const [game] = toOmniItems(library({ game: [videoGame({ rating: "16+" })] }));
-    const [film] = toOmniItems(library({ movie: [movie({ rating: "15" })] }));
+    const [game] = toOmniItems(library({ game: [videoGame({ certificate: "16" })] }));
+    const [film] = toOmniItems(library({ movie: [movie({ certificate: "15" })] }));
 
-    expect(galleryValue(game, "rating")).toBe(galleryValue(film, "rating"));
-    expect(game.rating).toBe("16+");
-    expect(film.rating).toBe("15");
+    expect(galleryValue(game, "certificate")).toBe(galleryValue(film, "certificate"));
+    expect(game.certificate).toBe("16");
+    expect(film.certificate).toBe("15");
   });
 
   it("marks a shelf only where the app already paints that field", () => {
@@ -68,11 +68,11 @@ describe("what a shelf is", () => {
     expect(galleryColour("Sci-Fi", "genre", "light")).toBe(genreToColour("Sci-Fi", "light"));
     expect(
       galleryColour(
-        galleryValue(toOmniItems(library({ game: [videoGame({ rating: "16+" })] }))[0], "rating"),
-        "rating",
+        galleryValue(toOmniItems(library({ game: [videoGame({ certificate: "16" })] }))[0], "certificate"),
+        "certificate",
         "light",
       ),
-    ).toBe(ageRatingToColour("15", "light"));
+    ).toBe(certificateToColour("15", "light"));
     expect(galleryColour("Severance", "franchise", "light")).toBeUndefined();
   });
 });
@@ -333,15 +333,15 @@ describe("ordering the shelves", () => {
 });
 
 describe("books on the wall", () => {
-  it("shelves a book by genre, franchise and decade, and leaves it off the rating shelves", () => {
-    // Nothing certifies a book, so the rating category answers "" and `groupByCategory` drops it —
+  it("shelves a book by genre, franchise and decade, and leaves it off the certificate shelves", () => {
+    // Nothing certifies a book, so the certificate category answers "" and `groupByCategory` drops it —
     // the one category not every medium records, stated rather than shelved under a blank.
     const [item] = toOmniItems(library({ book: [book({ genre: "Sci-Fi", franchise: "Cosmere" })] }));
 
     expect(galleryValue(item, "genre")).toBe("Sci-Fi");
     expect(galleryValue(item, "franchise")).toBe("Cosmere");
     expect(galleryValue(item, "decade")).toBe("2020s");
-    expect(galleryValue(item, "rating")).toBe("");
+    expect(galleryValue(item, "certificate")).toBe("");
   });
 
   it("stands a reread book on a shelf once, where two reads are two rows of one work", () => {

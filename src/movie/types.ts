@@ -1,6 +1,6 @@
 import type { YearMonthDay } from "../common/date";
 import {
-  ageRatingToColour,
+  certificateToColour,
   decadeToColour,
   franchiseToColour,
   genreToColour,
@@ -10,7 +10,7 @@ import {
   releaseDecade,
   scoreBand,
   scoreBandToColour,
-  type AgeRating,
+  type Certificate,
   type Colour,
   type Fill,
   type KeysMatching,
@@ -21,7 +21,7 @@ export interface Movie {
   name: string;
   releaseDate: YearMonthDay;
   startDate: YearMonthDay;
-  rating: AgeRating;
+  certificate: Certificate;
   /** Absent for the handful of films never scored, which is not the same as scoring one zero. */
   score?: number;
   minutes: number;
@@ -73,15 +73,15 @@ export const cinemaToColour = (label: string, scheme: Scheme): Colour =>
  */
 export { scoreBands, scoreBand, scoreBandToColour, type ScoreBand } from "../utils/types";
 
-export const ratingToColour = ({ rating }: Movie, scheme: Scheme) => ageRatingToColour(rating, scheme);
+export const certificateColour = ({ certificate }: Movie, scheme: Scheme) => certificateToColour(certificate, scheme);
 
 export const groupToColour = (group: MovieGroup, movie: Movie, scheme: Scheme): Colour => {
   switch (group) {
     case "genre":
       // The vocabulary Shows shares, so one hue means one genre on both tabs.
       return genreToColour(movie.genre, scheme);
-    case "rating":
-      return ratingToColour(movie, scheme);
+    case "certificate":
+      return certificateColour(movie, scheme);
     case "cinema":
       return cinemaToColour(cinemaLabel(movie), scheme);
     case "decade":

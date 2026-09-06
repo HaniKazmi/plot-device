@@ -1,5 +1,5 @@
 import { franchiseCategory, type FilterSchema } from "../common/filterSchema";
-import { ageRatingToColour, genreToColour, type AgeRating, type Predicate } from "../utils/types";
+import { certificateToColour, genreToColour, type Certificate, type Predicate } from "../utils/types";
 import type { FilterState } from "./filterUtils";
 import type { Movie } from "./types";
 
@@ -24,10 +24,10 @@ export const movieFilters: FilterSchema<Movie, FilterState> = {
   categories: [
     { key: "genre", label: "genre", valueOf: (movie) => movie.genre, colourFor: genreToColour },
     {
-      key: "rating",
-      label: "rating",
-      valueOf: (movie) => movie.rating,
-      colourFor: (value, scheme) => ageRatingToColour(value as AgeRating, scheme),
+      key: "certificate",
+      label: "certificate",
+      valueOf: (movie) => movie.certificate,
+      colourFor: (value, scheme) => certificateToColour(value as Certificate, scheme),
     },
     { key: "director", label: "director", valueOf: (movie) => movie.director, searchable: true },
     franchiseCategory(),

@@ -1,7 +1,7 @@
 import { rankHits, type Hit, type Searchable } from "../common/searchData";
 import { franchiseIndex } from "../common/franchiseIndex";
 import { YearMonthDay, type Year } from "../common/date";
-import { ageRatingBand, isAgeRating, mediumToLabel, type Medium } from "../utils/types";
+import { certificateBand, isCertificate, mediumToLabel, type Medium } from "../utils/types";
 import { namesTheSameThing } from "../utils/stringUtils";
 import { eachMedium, MEDIA, moduleOf } from "./media";
 import type { Season } from "../show/types";
@@ -48,7 +48,7 @@ export interface ItemSearchEntry extends Searchable {
  * *thing* the box already answers with, opening the view over the whole series, and indexing it
  * here as well would put every series on one query twice.
  *
- * `values` is what the hit stands for on a tab, which is the value itself everywhere but rating:
+ * `values` is what the hit stands for on a tab, which is the value itself everywhere but certificate:
  * the two boards write one tier as `15` and as `16+`, so a hit on the tier has to set whichever of
  * them that tab's own rows carry.
  */
@@ -59,7 +59,7 @@ export interface AttributeEntry extends Searchable {
   category: string;
   /** What the category is called, for the line of facts under the hit's name. */
   label: string;
-  /** The value as the hit states it: a rating band, or the cell as written. */
+  /** The value as the hit states it: a certificate band, or the cell as written. */
   value: string;
   counts: Partial<Record<Medium, number>>;
   values: Partial<Record<Medium, string[]>>;
@@ -160,13 +160,13 @@ const NOT_AN_ATTRIBUTE = "franchise";
 /**
  * The value a category's cell is found under.
  *
- * Rating is the one category whose values differ by tab: PEGI marks the age with a suffix and BBFC
- * writes the bare number, so `15` and `16+` are one tier said two ways. Grouped on the band, one
- * hit filters each tab to whichever notation that tab's own rows carry — the rule the gallery's
- * rating shelves already group by.
+ * The certificate is the one category whose values differ by tab: BBFC issues a 15 where PEGI
+ * issues a 16, for one tier under two numbers. Grouped on the band, one hit filters each tab to
+ * whichever number that tab's own rows carry — the rule the gallery's certificate shelves already
+ * group by.
  */
 const attributeValue = (category: string, cell: string): string =>
-  category === "rating" && isAgeRating(cell) ? ageRatingBand(cell) : cell;
+  category === "certificate" && isCertificate(cell) ? certificateBand(cell) : cell;
 
 /**
  * What every tab can be narrowed by, with a count per medium: one entry per category value, over

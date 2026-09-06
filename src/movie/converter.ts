@@ -1,6 +1,6 @@
 import { PlainDate } from "../common/date";
 import { dataCacheKey, type DataConfig } from "../common/useData";
-import { describing, readAgeRating, readFullDate, readGenre, sheetRow } from "../common/sheetError";
+import { describing, readCertificate, readFullDate, readGenre, sheetRow } from "../common/sheetError";
 import { splitCell } from "../utils/stringUtils";
 import type { Movie } from "./types";
 
@@ -23,7 +23,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       // `watchTimelineData` compares it as a string, so a bare year falls outside the range it is
       // in and drops off the ribbon without a word, and `MovieTimelineCard` places it as NaN.
       startDate: readFullDate(row["Watch Date"], `${where}, Watch Date`),
-      rating: readAgeRating(row.Rating, `${where}, Rating`),
+      certificate: readCertificate(row.Rating, `${where}, Rating`),
       // A film nobody scored is left out rather than counted as NaN, which would propagate
       // into any average taken over the column and blank the figure far from here.
       score: Number.isNaN(score) ? undefined : score,

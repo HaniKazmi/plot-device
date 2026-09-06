@@ -9,7 +9,7 @@ import {
   type Season,
   type Show,
 } from "../../src/show/types";
-import { ageRatingToColour, genreToColour, neutralFill } from "../../src/utils/types";
+import { certificateToColour, genreToColour, neutralFill } from "../../src/utils/types";
 import { show } from "../fixtures/shows";
 
 const season = (parent: Show): Season => ({
@@ -45,11 +45,11 @@ describe("groupToColour", () => {
     expect(groupToColour("status", { ...show(), status: "Ended" }, "light")).toBe("#326e54");
   });
 
-  it("paints a rating with the same map the games tab uses", () => {
-    // An age rating is the one field all three tabs record, so a swatch has to mean the same
+  it("paints a certificate with the same map the games tab uses", () => {
+    // A certificate is the one field all three tabs record, so a swatch has to mean the same
     // thing on each — these sheets write BBFC bare numbers where games write PEGI.
-    expect(groupToColour("rating", show({ rating: "15" }), "light")).toBe(ageRatingToColour("15", "light"));
-    expect(groupToColour("rating", show({ rating: "18" }), "light")).toBe(ageRatingToColour("18", "light"));
+    expect(groupToColour("certificate", show({ certificate: "15" }), "light")).toBe(certificateToColour("15", "light"));
+    expect(groupToColour("certificate", show({ certificate: "18" }), "light")).toBe(certificateToColour("18", "light"));
   });
 
   it("paints a genre with the vocabulary Movies shares", () => {

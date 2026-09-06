@@ -18,7 +18,7 @@ export const topOptions = [
   "platform",
   "developer",
   "publisher",
-  "rating",
+  "certificate",
   "status",
   "gameplay",
   "genre",

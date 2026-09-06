@@ -70,16 +70,16 @@ describe("field parsing", () => {
     expect(convertOne({ Runtime: "" }).minutes).toBe(0);
   });
 
-  it("rejects a rating the colour map could not paint, naming the row and the film", () => {
-    // Left to reach ageRatingToColour, a bad cell throws from inside a render instead — naming
+  it("rejects a certificate the colour map could not paint, naming the row and the film", () => {
+    // Left to reach certificateToColour, a bad cell throws from inside a render instead — naming
     // the value but not which film carried it.
-    expect(() => convertOne({ Rating: "" })).toThrow('Row 2, "Arrival", Rating: "" is not an age rating');
-    expect(() => convertOne({ Rating: "PG-13" })).toThrow("not an age rating");
+    expect(() => convertOne({ Rating: "" })).toThrow('Row 2, "Arrival", Rating: "" is not a certificate');
+    expect(() => convertOne({ Rating: "PG-13" })).toThrow("not a certificate");
   });
 
   it("accepts the BBFC numbers this sheet records, alongside the PEGI form games use", () => {
-    expect(convertOne({ Rating: "3" }).rating).toBe("3");
-    expect(convertOne({ Rating: "15" }).rating).toBe("15");
+    expect(convertOne({ Rating: "3" }).certificate).toBe("3");
+    expect(convertOne({ Rating: "15" }).certificate).toBe("15");
   });
 
   it("splits the secondary genres on the comma the sheet separates them with", () => {

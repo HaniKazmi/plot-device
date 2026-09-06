@@ -1,6 +1,6 @@
 import { PlainDate } from "../common/date.ts";
 import { dataCacheKey, type DataConfig } from "../common/useData.ts";
-import { describing, readAgeRating, readDatePair, readGenre, sheetError, sheetRow } from "../common/sheetError.ts";
+import { describing, readCertificate, readDatePair, readGenre, sheetError, sheetRow } from "../common/sheetError.ts";
 import { isGameplay, type Company, type Format, type Platform, type Status, type VideoGame } from "./types";
 
 export const jsonConverter = (json: Record<string, string>[]) => {
@@ -43,7 +43,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       format: row.Format as Format,
       developer: row.Developer,
       publisher: row.Publisher,
-      rating: readAgeRating(row.Rating, `${where}, Rating`),
+      certificate: readCertificate(row.Rating, `${where}, Rating`),
       status: status,
       party: party,
       startDate: startDate,

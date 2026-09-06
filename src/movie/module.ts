@@ -21,7 +21,7 @@ const movieItems = (movies: Movie[]): OmniItem[] =>
     genre: movie.genre,
     genres: movie.genres,
     franchise: movie.franchise,
-    rating: movie.rating,
+    certificate: movie.certificate,
     source: movie,
   }));
 

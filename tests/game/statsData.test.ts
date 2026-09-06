@@ -164,7 +164,7 @@ describe("topOptions", () => {
       "platform",
       "developer",
       "publisher",
-      "rating",
+      "certificate",
       "status",
       "gameplay",
       "genre",

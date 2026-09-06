@@ -13,7 +13,7 @@ export const movie = (overrides: Partial<Movie> = {}): Movie => ({
   name: "Arrival",
   releaseDate: YearMonthDay.get(2016, 11, 11),
   startDate: YearMonthDay.get(2017, 1, 14),
-  rating: "12",
+  certificate: "12",
   score: 9,
   minutes: 116,
   genre: "Sci-Fi",

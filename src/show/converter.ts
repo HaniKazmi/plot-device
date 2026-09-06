@@ -1,6 +1,6 @@
 import { PlainDate, YearMonthDay } from "../common/date.ts";
 import { dataCacheKey, type DataConfig } from "../common/useData.ts";
-import { describing, readAgeRating, readFullDate, readGenre, sheetError, sheetRow } from "../common/sheetError.ts";
+import { describing, readCertificate, readFullDate, readGenre, sheetError, sheetRow } from "../common/sheetError.ts";
 import { splitCell } from "../utils/stringUtils";
 import type { Season, Show, Status, Type } from "./types";
 import "../utils/arrayUtils";
@@ -29,7 +29,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
         // a show without it arrives with no key at all rather than an empty string.
         genres: splitCell(row.Genres),
         network: row.Network,
-        rating: readAgeRating(row.Rating, `Row ${sheetRow(index)}, "${row.Show}", Rating`),
+        certificate: readCertificate(row.Rating, `Row ${sheetRow(index)}, "${row.Show}", Rating`),
         franchise: row.Franchise,
         banner: row.Banner,
         s: [],

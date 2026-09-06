@@ -43,7 +43,7 @@ describe("flattening the sheet into nested shows", () => {
     expect(show.type).toBe("show");
     expect(show.genre).toBe("Sci-Fi");
     expect(show.network).toBe("Apple TV+");
-    expect(show.rating).toBe("15");
+    expect(show.certificate).toBe("15");
     expect(show.franchise).toBe("Severance");
     expect(show.banner).toBe("severance.jpg");
   });
@@ -97,23 +97,23 @@ describe("flattening the sheet into nested shows", () => {
     expect(jsonConverter([showRow({ Genres: undefined }), seasonRow()])[0].genres).toEqual([]);
   });
 
-  it("rejects a rating the colour map could not paint, naming the row and the show", () => {
-    // Left to reach ageRatingToColour, a bad cell throws from inside a render instead — naming
+  it("rejects a certificate the colour map could not paint, naming the row and the show", () => {
+    // Left to reach certificateToColour, a bad cell throws from inside a render instead — naming
     // the value but not which of three hundred shows carried it.
     expect(() => jsonConverter([showRow({ Rating: "" }), seasonRow()])).toThrow(
-      'Row 2, "Severance", Rating: "" is not an age rating',
+      'Row 2, "Severance", Rating: "" is not a certificate',
     );
-    expect(() => jsonConverter([showRow({ Rating: "PG" }), seasonRow()])).toThrow("not an age rating");
+    expect(() => jsonConverter([showRow({ Rating: "PG" }), seasonRow()])).toThrow("not a certificate");
     // A duration is not a certificate: a cell formatted as one reads "360h  00m", not "15".
-    expect(() => jsonConverter([showRow({ Rating: "360h  00m" }), seasonRow()])).toThrow("not an age rating");
+    expect(() => jsonConverter([showRow({ Rating: "360h  00m" }), seasonRow()])).toThrow("not a certificate");
   });
 
   it("accepts the BBFC numbers this sheet records, alongside the PEGI form games use", () => {
-    const rating = (value: string) => jsonConverter([showRow({ Rating: value }), seasonRow()])[0].rating;
+    const certificate = (value: string) => jsonConverter([showRow({ Rating: value }), seasonRow()])[0].certificate;
 
-    expect(rating("3")).toBe("3");
-    expect(rating("15")).toBe("15");
-    expect(rating("18")).toBe("18");
+    expect(certificate("3")).toBe("3");
+    expect(certificate("15")).toBe("15");
+    expect(certificate("18")).toBe("18");
   });
 });
 
