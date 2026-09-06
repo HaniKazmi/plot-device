@@ -19,19 +19,22 @@ const describeSeason = (row: Record<string, string>, show: Partial<Show>, index:
 export const jsonConverter = (json: Record<string, string>[]) => {
   const showData: Show[] = [];
   json.reduce((show, row, index) => {
-    if (row.Show !== "") {
+    // An absent key is `undefined`, which is `!== ""` — so a truncated row would read as a show
+    // row and swallow the seasons below it. `Title` is column A, which is why that cannot happen:
+    // the API ends a row at its last filled cell, never before its first.
+    if (row.Title !== "") {
       show = {
-        name: row.Show,
+        name: row.Title,
         status: row.Status as Status,
         type: row.Type as Type,
-        genre: readGenre(row.Genre, `Row ${sheetRow(index)}, "${row.Show}", Genre`),
-        // Genres is the sheet's last column, and the API ends a row at its final filled cell, so
-        // a show without it arrives with no key at all rather than an empty string.
-        otherGenres: splitCell(row.Genres),
+        genre: readGenre(row.Genre, `Row ${sheetRow(index)}, "${row.Title}", Genre`),
+        // A show with none carries no key at all rather than an empty string, `splitCell`
+        // answering `[]` to both alike.
+        otherGenres: splitCell(row["Other Genres"]),
         network: row.Network,
-        certificate: readCertificate(row.Rating, `Row ${sheetRow(index)}, "${row.Show}", Rating`),
+        certificate: readCertificate(row.Certificate, `Row ${sheetRow(index)}, "${row.Title}", Certificate`),
         franchise: row.Franchise,
-        artwork: row.Banner ?? "",
+        artwork: row.Artwork ?? "",
         s: [],
       };
       showData.push(show as Show);
@@ -44,26 +47,31 @@ export const jsonConverter = (json: Record<string, string>[]) => {
 
       // No pair check beside these: `readFullDate` rejects a bare year on either end, so the two
       // can only ever agree. Games needs one because both of its precisions are legal there.
-      const startDate = readFullDate(row.Start, `${where}, Start`);
-      const endDate = row.End ? readFullDate(row.End, `${where}, End`) : undefined;
+      const startDate = readFullDate(row["Start Date"], `${where}, Start Date`);
+      const endDate = row["End Date"] ? readFullDate(row["End Date"], `${where}, End Date`) : undefined;
 
-      const episodes = parseInt(row.Episode);
+      const episodes = parseInt(row.Episodes);
       if (Number.isNaN(episodes)) {
         // Counted as zero rather than left as NaN, which would propagate through the show's
         // episode total and every statistic derived from it, blanking numbers far from here.
-        console.error(`${where}: episode count "${row.Episode}" is not a number, counting it as 0`);
+        console.error(`${where}: episode count "${row.Episodes}" is not a number, counting it as 0`);
       }
 
-      const episodeLength = row.Episodes ? parseInt(row.Episodes) : undefined;
+      const length = row["Episode Length (min)"];
+      const episodeLength = length ? parseInt(length) : undefined;
       const e = Number.isNaN(episodes) ? 0 : episodes;
 
-      // A season row reuses the Status column for when an episode was last watched — the cell is
-      // otherwise always blank, since status is a show-row fact. Read only while the season has
-      // no end date: the sheet maintains the cell for the season in progress, and honouring it on
-      // a finished season would let a value nobody clears elect an old watch as the current one.
+      // One column carries two facts by row kind: the season count on a show row, and on a
+      // season row the date an episode was last watched. Only the season half is read here, the
+      // show half being what `show.s.length` already answers.
+      //
+      // Read only while the season has no end date: the sheet maintains the cell for the season in
+      // progress, and honouring it on a finished season would let a value nobody clears elect an
+      // old watch as the current one.
+      const watched = row["Seasons / Last Watched"];
       const lastWatchedDate =
-        row.Status && !endDate
-          ? describing(`${where}, Status (last watched)`, () => PlainDate.from(row.Status) as YearMonthDay)
+        watched && !endDate
+          ? describing(`${where}, Seasons / Last Watched`, () => PlainDate.from(watched) as YearMonthDay)
           : undefined;
 
       const season: Season = {
