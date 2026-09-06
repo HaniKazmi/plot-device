@@ -57,7 +57,7 @@ VITE_GOOGLE_API_KEY=your_google_api_key_here
 
 Both are inlined at build time. The build succeeds without them, but the page comes up blank: `GoogleAuthProvider` hands `initTokenClient` an undefined client id as soon as the sign-in script loads, that throws, and the page's own error boundary is mounted below the provider that threw.
 
-The spreadsheet IDs and cell ranges themselves live in [`src/tabs.ts`](./src/tabs.ts), which is the single source of truth for a data source.
+The spreadsheet ID and cell ranges themselves live in [`src/tabs.ts`](./src/tabs.ts), which is the single source of truth for a data source.
 
 ### Running locally
 
@@ -95,8 +95,8 @@ src/
   utils/               prototype extensions, branded types, colour extraction
   app/                 the medium registry, the library provider, and the union,
                        search and franchise-view code composed over all four domains
-  vg/ show/ movie/     per-domain model, converter, filters, adapters
-  books/               the same shape over the Books sheet
+  game/ show/ movie/     per-domain model, converter, filters, adapters
+  book/                the same shape over the Books tab
   omnibus/             the fifth tab, composing nothing; no sheet of its own
 tests/                 mirrors src/, plus fixtures/ and an architecture guard
 extension/             standalone Chrome extension, outside the Vite build

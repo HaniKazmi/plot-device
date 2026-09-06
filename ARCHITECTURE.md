@@ -26,10 +26,10 @@ why they are shaped the way they are. For conventions see [AGENTS.md](./AGENTS.m
 └──────────────────────┘
 ```
 
-There is no backend, no database, and no build-time data. Four sheet ranges across three
-spreadsheets are the system of record — Shows and Movies are two ranges in one file — and the browser
-authenticates, fetches whole ranges, and parses, joins, aggregates and renders locally. Deployment is
-a static bundle pushed to GitHub Pages by `npm run deploy`.
+There is no backend, no database, and no build-time data. One spreadsheet is the system of record —
+four ranges, a tab each — and the browser authenticates, fetches whole ranges, and parses, joins,
+aggregates and renders locally. Deployment is a static bundle pushed to GitHub Pages by
+`npm run deploy`.
 
 **Why this shape.** The dataset is one person's media history, thousands of rows and already
 comfortable to edit in Sheets, so a write path and a server would cost operationally for no gain. The
@@ -57,7 +57,7 @@ computes on the main thread — which the caching layer (§4) exists to make tol
                     └───────────────────┬───────────────────────┘
                                         │
                     ┌───────────────────▼───────────────────────┐
-  domain            │  vg/ · show/ · movie/ · books/ · omnibus/ │
+  domain            │  game/ · show/ · movie/ · book/ · omnibus/ │
                     │  model, converter, filters, adapters       │
                     └───────────────────┬───────────────────────┘
                                         │
@@ -75,12 +75,12 @@ computes on the main thread — which the caching layer (§4) exists to make tol
 ```
 
 The load-bearing rule is the boundary between the bottom two layers and the domain layer above them:
-**`common/` and `utils/` never import from `app/`, `vg/`, `show/`, `movie/`, `books/` or
+**`common/` and `utils/` never import from `app/`, `game/`, `show/`, `movie/`, `book/` or
 `omnibus/`.** Its second half is that **a tracked domain never imports another, nor the registry
 itself** — all five compose nothing, and `app/` is the one folder that composes them, which is what
 keeps it a composing layer rather than an arm of a cycle. A domain reads the rest of `app/`
 downwards, its entry component asking `app/library.ts` for the library the shell fetched; the
-registry is the one part of `app/` built _from_ the modules, so `vg/module.ts` importing
+registry is the one part of `app/` built _from_ the modules, so `game/module.ts` importing
 `app/media.ts` is a real cycle, and `module.ts` therefore imports nothing from `app/` at all.
 
 One file in `omnibus/` is a named exception rather than a loosened rule: `Graphs.tsx` mounts the
@@ -125,7 +125,7 @@ mounted by the shell, below both.
 
 Generic components take behaviour as props and callbacks; domain folders supply the meaning. Where
 the shared layer needs a domain vocabulary it declares its own — `utils/types.ts` owns a
-`ColourableStatus` union that `show/types.ts` and `vg/types.ts` stay assignable to, where importing
+`ColourableStatus` union that `show/types.ts` and `game/types.ts` stay assignable to, where importing
 theirs would cycle, since both import `statusToColour` back out. `OmniItem` and `FranchiseEntry`
 (`common/medium.ts`, `common/franchiseUnion.ts`) are the same arrangement one step further out:
 each domain builds its own arm of the union, so the shape it builds has to be declared somewhere a
@@ -165,37 +165,46 @@ add (§8).
 
 **A bad cell names its own row**, rather than surfacing later from a colour lookup or a chart offset
 that names none. `common/sheetError.ts` holds the vocabulary — `sheetRow`, `describing`, `sheetError`
-— and four readers over it: `readAgeRating` rejects a certificate outside `AgeRating`, `readGenre` a
+— and four readers over it: `readCertificate` rejects a certificate outside `Certificate`, `readGenre` a
 blank, `readFullDate` a bare year where the model claims a day, and `readDatePair` a span logged at
-two precisions. `readGenre` defaults its argument, since the API ends a row at its last filled cell
+two precisions. Two more sit in the converters that need them: Movies checks its `Format` and `Type`
+cells against the two words each holds, and Games rejects an absent `Themes` column while allowing a
+blank cell. `readGenre` defaults its argument, since the API ends a row at its last filled cell
 and a half-entered row carries no `Genre` key; genre is also read before the dates to its right, so
 such a row names its missing genre rather than a date.
 
 Converters do real modelling work, not just field renaming:
 
-- **`vg/`** derives `company` from the platform string, folds a `"Party"` status into
-  `status: "Endless"` plus a `party` boolean, splits `Theme` on newlines, computes `numDays` from the
-  date pair, and checks `Gameplay` through `isGameplay` rather than casting it past
-  `gameplayToColour`'s neutral.
-- **`show/`** nests a flat sheet: a non-empty `Show` cell opens a show, the rows after it are its
-  seasons. Seasons from `EARLIEST_SEASON_YEAR` (2005) or earlier are dropped as untrustworthy, and a
+- **`game/`** derives `company` from the platform string, folds a `"Party"` status into
+  `status: "Endless"` plus a `party` boolean, splits `Themes` through `splitCell`, computes `numDays`
+  from the date pair, and checks `Gameplay` through `isGameplay` rather than casting it past
+  `gameplayToColour`'s neutral. The themes read rejects an _absent_ column while allowing a blank
+  cell: 12 of 340 games honestly carry no theme, and `themes.includes("Adult")` is what guest mode
+  hides on, so reading a missing column as "no themes" would put every adult game back on screen.
+- **`show/`** nests a flat sheet: a non-empty `Title` cell opens a show, the rows after it are its
+  seasons — safe only because `Title` is column A, an absent key being `!== ""` as well. Seasons from `EARLIEST_SEASON_YEAR` (2005) or earlier are dropped as untrustworthy, and a
   show left with none is rejected. Dates, episode and minute sums and `lastWatchedDate` — the latest
-  any season records, read from an unfinished season's Status cell, which the sheet reuses for it —
+  any season records, read from an unfinished season's `Seasons / Last Watched` cell, which carries
+  the season count on a show row instead —
   roll up to the parent. A date-ordering mismatch is only a `console.error`; the `show` back-reference
   makes the graph cyclic (§4).
-- **`movie/`** reads `startDate` from Watch Date as a full date, a blank Runtime as `0` and a blank
-  Score as `undefined`: `sum` accumulates with `+`, so one `NaN` blanks every hours total, where a
-  score is honestly absent rather than zero.
-- **`books/`** holds every date to a full one and rejects a `Status` or `Format` outside its two small
+- **`movie/`** reads both its dates as full ones, a blank runtime as `0` and a blank Score as
+  `undefined`: `sum` accumulates with `+`, so one `NaN` blanks every hours total, where a score is
+  honestly absent rather than zero. `cinema` and `anime` stay booleans on the model but are read from
+  worded cells and checked: the columns were flags written only in their true case, where a blank
+  _was_ the false case, and a worded column has no blank case — so anything outside the pair would
+  land silently as Home and non-anime, the second of which guest mode hides on.
+- **`book/`** holds every date to a full one and rejects a `Status` or `Format` outside its two small
   vocabularies, which `statusToColour` answers `undefined` for and the status band drops silently. It
   requires status and end date to agree, and rejects a non-numeric page or hour count: a `NaN` blanks
   a total, a `0` lies in a sum. A blank `Franchise` becomes the book's own name, as the other sheets
   write a standalone work.
 
-`show/` and `movie/` split their `Genres` cell through `splitCell`, which drops empty parts.
+`show/` and `movie/` split their `Other Genres` cell through `splitCell`, which drops empty parts,
+as `game/` does its `Themes`.
 
 **The pipeline ends in one provider.** `app/LibraryProvider.tsx` is the only caller of `useData` in
-the app: it reads each medium's `DataConfig` off that medium's `module.ts` (`vgDataConfig`,
+the app: it reads each medium's `DataConfig` off that medium's `module.ts` (`gameDataConfig`,
 `showDataConfig`, `movieDataConfig`, `bookDataConfig`, each exported from the file owning its
 converter, with its version and — for Shows — the replacer/reviver pair) and resolves the module's
 `tabId` against `tabs.ts`, which is the one place in `app/` allowed to (§2). A version bump therefore
@@ -223,7 +232,7 @@ other sheets. The Omnibus reads all four, and the first error of the four (§4).
 Omnibus runs no pipeline of its own, and neither does any tab: `app/library.ts` flattens the four
 through the registry, each medium's arm supplied by its own `module.ts` (§2) — which is why `Show[]`
 flattens at the season, the unit actually watched, carrying the show's name, genre, franchise and
-certificate onto each. A book has no certificate, so `OmniItem.rating` is optional and every surface
+certificate onto each. A book has no certificate, so `OmniItem.certificate` is optional and every surface
 grouping on it drops books.
 
 ## 4. Caching and hydration
@@ -264,8 +273,8 @@ Two subtleties live in the serialisation boundary, and both are easy to break:
    the domain's reviver running in the same guard — the hook is called from `LibraryProvider`, above
    the page's own error boundary (§10), so a throw here takes the app down and not just the page.
 
-Cache keys are versioned per domain — `dataCacheKey(domain, version)` yields `vg-data-cache-v2`,
-`show-data-cache-v3`, `movie-data-cache-v3`, `book-data-cache-v1` — and `dropSupersededVersions`
+Cache keys are versioned per domain — `dataCacheKey(domain, version)` yields `game-data-cache-v3`,
+`show-data-cache-v4`, `movie-data-cache-v4`, `book-data-cache-v2` — and `dropSupersededVersions`
 clears earlier keys on first load, matched on the domain's prefix so one tab's bump cannot empty
 another's. Bump the version in the domain's `converter.ts` on any model-shape change, or returning
 visitors' cached objects lack the field until their next authorised fetch — indefinitely, for a
@@ -494,7 +503,7 @@ The chart caps its height and scrolls vertically within the card from `md` up
 (`CHART_MAX_HEIGHT`), a packed timeline running to dozens of rows; below it the cap lifts and the
 grid stands at whatever height `packRows` gives it, since a second scroller inside a page that
 already scrolls takes the drag meant for the page. Alone among the app's charts it never folds —
-`show/Timeline.tsx`, `vg/Timeline.tsx` and `books/Timeline.tsx` draw it through a plain
+`show/Timeline.tsx`, `game/Timeline.tsx` and `book/Timeline.tsx` draw it through a plain
 `SectionHeader` and `Card` — since a folded card would show only a picture of a Gantt chart's shape,
 no cheaper a reading than the chart itself.
 
@@ -648,15 +657,16 @@ empty is dropped rather than opening a series named `""` — every book answers 
 that way — and the header counts the rows drawn.
 
 **The gallery** (`omnibus/Gallery.tsx`, `app/galleryData.ts`) shelves the union by genre,
-franchise, rating or decade, each shelf a `common/Filmstrip` with a drill-down behind the worded cut
+franchise, certificate or decade, each shelf a `common/Filmstrip` with a drill-down behind the worded cut
 at the end of its name row — the shelf holds twenty pictures of a group that can run to hundreds,
 and the figure is what says so as well as what opens the rest. It
 opens on franchise, newest first — the series met lately, which the genres band does not answer. A
 shelf card carries no words, so the picture keeps the whole height below its medium band.
 Every category but rating is a field all four media record — `groupByCategory` skips an empty value,
-so a category one medium answers `""` to drops that medium off the wall with no error. Rating is the
-exception: nothing certifies a book, so books are absent from the rating shelves and the certificate
-split rather than shelved under a certificate nobody issued. It groups on `ageRatingBand` and not
+so a category one medium answers `""` to drops that medium off the wall with no error. The
+certificate is the exception: nothing certifies a book, so books are absent from those shelves and
+from the certificate
+split rather than shelved under a certificate nobody issued. It groups on `certificateBand` and not
 the cell, or a PEGI 16 game would shelve apart from the BBFC 15 film at the same age. "Decade" is
 the decade the reader _met_ the item — Shows carries no release date anywhere in its model — hence
 the header "Decade Met". A franchise shelf holding one work is dropped on the shared
@@ -685,7 +695,7 @@ that vocabulary has elsewhere on the page and a year its decade's. Franchise is 
 By year chart's reason. Genres run biggest first; years and decades newest first; certificates
 youngest first through the shared `AGE_BANDS`, the order the boards print them in, so the bridge
 cannot order the tiers differently from the colour ramp. A book carries no certificate and drops
-out of that view, as it does off the rating shelves. Only the primary genre counts, since two media
+out of that view, as it does off the certificate shelves. Only the primary genre counts, since two media
 carry secondaries. A row held by one medium is a solid bar rather than held back until a second
 arrives — requiring the crossing puts a cliff in the section, Abstract being 136 hours of games
 that a single abstract film would admit at full size — and the bar states the confinement the cliff
@@ -709,7 +719,7 @@ series' founding entry keeps naming itself as its own tab draws it; `namesTheSam
 where _every_ entry repeats the name, that group having no series structure to draw a lane for. That
 one test holds the section to series: 588 franchise values are 169 series by it. A film is a point
 (`start === end`), floored to the strip's minimum band width; a bare-year game date draws its whole
-year, marked `precise: false`, rather than the share `vg/cardData.ts` estimates from the whole
+year, marked `precise: false`, rather than the share `game/cardData.ts` estimates from the whole
 library for a single game's strip. The `epoch` is the earliest _start_ drawn, floored to that year's
 1 January: an attribution year is the year an item ended, so a scale opened on it clamps every
 earlier start against the left edge, and a mid-month epoch puts every year line off by the
@@ -961,12 +971,12 @@ the charts are drawn by, so the box's footer and the rail's chip cannot arrive a
 
 **Three kinds of hit.** _Places_ are the other tabs, offered as a "Go to" line of chips — all of
 them before anything is typed, whichever the query names once something is. _Things_ are works and
-franchises. _Attributes_ are a genre, network, platform, author, director, rating, decade or format,
+franchises. _Attributes_ are a genre, network, platform, author, director, certificate, decade or format,
 each with its count in each medium: `buildAttributeIndex` (`app/searchData.ts`) walks every medium's
 own schema over that medium's own rows, so the box can only offer a narrowing that tab's controls
 actually draw. Franchise is left out of it — a franchise is a _thing_ the box already answers with,
-and indexing it twice would list every series twice on one query. Rating is grouped on
-`ageRatingBand`, the gallery's own rule, so `15` and `16+` are one hit; what it _sets_ is whichever
+and indexing it twice would list every series twice on one query. The certificate is grouped on
+`certificateBand`, the gallery's own rule, so `15` and `16+` are one hit; what it _sets_ is whichever
 notations that tab's rows carry, which is why an entry keeps its values per medium.
 
 **An attribute hit knows which tabs carry its category, and ↵ does the nearest thing.**
@@ -1125,10 +1135,10 @@ status tile is that fill with `getContrastText` type, the rule a card's corner c
 Columns rather than a grid because the rows are independent: a grid holds each pair to the tallest
 row on it, so a value that wraps opens a gap beside it. Related facts share a line, which keeps the
 ledger to a third of the height the tiles took, and a row carries a colour swatch exactly where the
-app already speaks that field's colour elsewhere — platform, franchise, genre, rating, status, and
+app already speaks that field's colour elsewhere — platform, franchise, genre, certificate, status, and
 nothing else, a swatch with no vocabulary behind it teaching a legend no chart honours.
 
-Both shells take plain `{ label, value, … }` arrays, so `common/` never learns what a PEGI rating
+Both shells take plain `{ label, value, … }` arrays, so `common/` never learns what a PEGI certificate
 is: the four domain `CardMediaImage.tsx` files build them and choose the omissions, a tile reading
 zero because the sheet recorded nothing saying something false. `LedgerList` is exported for a
 surface that seats those rows itself, and `DetailCard`, the uniform tile, for a domain with too few
@@ -1431,7 +1441,7 @@ span) for the same reason: six at 900px are 133px each. The Omnibus's closing li
 the date first.
 
 `common/Card.tsx` provides `CardMediaImage` and the `TypedCardMediaImage<T>` contract each domain
-implements (`vg/`, `show/`, `movie/`, `books/`, `app/` over the union): the adapter letting
+implements (`game/`, `show/`, `movie/`, `book/`, `app/` over the union): the adapter letting
 `Finished`, `StatList` and the timeline tooltips render domain artwork and detail panels without
 knowing the model. Several props are shaped by cost or surface:
 
@@ -1865,7 +1875,7 @@ allows that where colour is not the only carrier, and each is named beside its s
 separation between brands sharing a hue — seven reds, six blues — so the set is scoped to keep those
 off one chart, Marvel beside Harry Potter on the Movies bar the closest pair anywhere at 10.7 dE.
 
-`vg/types.ts` splits a company two ways: **fills** for chart geometry and **accents**, the brand
+`game/types.ts` splits a company two ways: **fills** for chart geometry and **accents**, the brand
 hexes themselves, drawn only in a card's corner chip, where a few dozen pixels of type read as a
 badge rather than as something to compare. PC has no brand to reproduce and takes the amber of the
 beige box rather than Steam's cool blue-grey, which sits on PlayStation's own hue — two blues
@@ -1897,7 +1907,7 @@ all four domains' `groupToColour`.
 
 Seven vocabularies live in `utils/types.ts` because more than one tab speaks them: the genre ramp,
 `statusToColour`, `franchiseToColour`, `decadeToColour`, the score bands (`scoreBandToColour`, which
-Movies and Books both rate on), `ageRatingToColour` over the `AgeRating` union three of the four
+Movies and Books both rate on), `certificateToColour` over the `Certificate` union three of the four
 domains record a certificate into, and `mediumFills` with `mediumToLabel`, `mediumToName` and
 `mediumUnit` — the only colour a mixed-media surface carries meaning in, re-exported by
 `app/types.ts`. Its hues are the home tabs' own, so `tabs.ts` constrains them; the closest pair
@@ -1909,9 +1919,11 @@ brighter the pair sits 10 dE apart under deutan and 19 under protan, hue unchang
 
 The status table treats Playing, Watching and Reading as one state and Beat, Ended and Finished as
 another, each word taking its state's fill exactly, so a chart over the union draws one colour per
-state. Games are logged as PEGI and write the suffix (`16+`), Shows and Movies as BBFC and write the
-bare number (`15`); the colour keys off the age, not the notation, and `isAgeRating` lets a
-converter reject a bad cell while it still knows the row. `ageRatingBand` names that tier rather
+state. Every tab writes the bare age, so the six values are one vocabulary; the boards differ only
+in which of them they use, BBFC issuing a 15 where PEGI issues a 16 for one tier, and the colour keys
+off the tier rather than the number. `isCertificate` lets a converter reject a bad cell while it
+still knows the row — though what actually keeps a board's own five values in its column is the
+sheet's dropdown, a converter only being able to report a cell already written. `certificateBand` names that tier rather
 than colouring it, and is what the colour is looked up by. Books adds three formats at chroma 0.14,
 drawn only in a labelled band and the filter's chips; Movies adds the Cinema/Home pair and
 re-exports the score bands — valenced red through amber to green, Unscored on the neutral — under
@@ -1953,7 +1965,7 @@ imprecise date it wants instead of reaching for a subclass. `daysTo` compares th
 is a prefix of every date inside it, so comparing values directly reads 1 January as later than its
 own year — and throws only on a genuinely transposed pair. It answers `undefined` when either side is
 year-only, so durations degrade rather than fabricate precision; where a chart cannot degrade, half
-the games carrying a bare year, `vg/cardData.ts` shares each year between the games naming it, in
+the games carrying a bare year, `game/cardData.ts` shares each year between the games naming it, in
 release order, and marks the spans `precise: false`.
 
 ### Prototype augmentation
@@ -2256,7 +2268,7 @@ is that tab's own `yearRule`, passed to `createFilterReducer` in `filterUtils.ts
 - **`.idx/`, `.vscode/`** — Google Project IDX and VS Code editor configuration.
 - **`analyze.html` / `analyze.json`** — committed output of `npm run analyze`, indexing a
   `src/holiday/` domain the tree does not contain and mentioning neither `omnibus/`, `movie/` nor
-  `books/`: neither compares against a shape the build produces. The script prints its analysis rather
+  `book/`: neither compares against a shape the build produces. The script prints its analysis rather
   than writing a file, so refreshing them is a manual capture.
 
 ## 10. Known gaps
@@ -2285,7 +2297,12 @@ Recorded so they are not mistaken for design:
   tab has the cross-media union and the bar can say whether there is a library at all; a deep link
   to `/vg` therefore pays three extra sheet reads and paints from cache until they land, where the
   Omnibus — which a bare visit opens on — needs all four regardless. A deliberate trade, argued in
-  that provider's own comment.
+  that provider's own comment. Now that the four ranges live in one spreadsheet, most of the cost is
+  addressable: `spreadsheets.values.batchGet` would fetch all four in one round trip where
+  `fetchAndConvertSheet` issues one `values.get` per tab. It is a transport change rather than a
+  schema one — `useData`'s per-key in-flight promise becomes one shared promise and per-medium
+  `loaded` collapses, though per-medium `error` has to stay, a converter throw being per-domain — so
+  it is left for its own change rather than folded into the migration that enabled it.
 - **No DOM or component tests.** `tests/` covers pure logic — converters, filters, the reducer, the
   chart data transforms, the cache round trip — and stops there; AGENTS.md explains the trade. Nothing
   verifies that a chart renders.

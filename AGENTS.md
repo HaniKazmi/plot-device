@@ -36,7 +36,7 @@ The suite is pure logic in a `node` environment; `vitest.config.ts` stays separa
 - **No snapshots**, so a failure names the property that broke.
 - **Nothing asynchronous** — no timers, no promises, no `act()`.
 
-There are no DOM or component tests. `tests/architecture.test.ts` covers what a mount test would most likely catch: it parses the sources and enforces seven rules: `common/` and `utils/` import no domain; a tracked domain (`vg/`, `show/`, `movie/`, `books/`) imports neither another domain nor `omnibus/`; the registry never imports `tabs.ts` back, which would evaluate it inside its own temporal dead zone; a medium is dispatched through the registry rather than switched on outside `app/`; every prototype-extension caller imports the module installing it; no module but `main.tsx` reads a browser global at module scope; and nothing `main.tsx` evaluates imports MUI's `Tooltip`, whose Popper engine is about 11 kB gzipped on a chunk every visit downloads before it paints — the app draws no hover labels at all, so the two files that still import it are the chart hover card's own shell and the timeline band naming its span.
+There are no DOM or component tests. `tests/architecture.test.ts` covers what a mount test would most likely catch: it parses the sources and enforces seven rules: `common/` and `utils/` import no domain; a tracked domain (`game/`, `show/`, `movie/`, `book/`) imports neither another domain nor `omnibus/`; the registry never imports `tabs.ts` back, which would evaluate it inside its own temporal dead zone; a medium is dispatched through the registry rather than switched on outside `app/`; every prototype-extension caller imports the module installing it; no module but `main.tsx` reads a browser global at module scope; and nothing `main.tsx` evaluates imports MUI's `Tooltip`, whose Popper engine is about 11 kB gzipped on a chunk every visit downloads before it paints — the app draws no hover labels at all, so the two files that still import it are the chart hover card's own shell and the timeline band naming its span.
 
 A test can pin behaviour that is wrong but deliberate, with a comment saying so — `assignPercents` (`utils/mathUtils.ts`) divides by an unguarded `total` and its test pins the non-finite percent. Leave such a test alone.
 
@@ -89,9 +89,9 @@ Ordered by how quietly they fail.
 - **The `/` shortcut opens the box unless focus is in a field.** `app/Search.tsx` listens on the document for ⌘K, Ctrl+K, ⌘⇧K and a bare `/`, and answers the slash only where the target is not an input, textarea, select or contenteditable. The box's own field is one of those four, so a slash typed into it stays a slash and never reopens the box. A new text field anywhere in the app is covered by that same test; a control that takes typed slashes without being one of those four is not, and a reader typing into it opens the box instead.
 - **Never write a bare `&:hover` on anything a finger can tap.** A touch screen has no leave event, so the last thing tapped keeps its hovered style — a lit border, a scaled-up bar — until another tap lands elsewhere, which reads as a selection nothing asked for. Wrap it in `@media (hover: hover)`, as `Google.tsx`'s card hover and `Timeline`'s `ROW_SX` do.
 - **Never add a field named `show` to a non-`show` domain.** `showDataConfig`'s replacer `dropSeasonParents` (`show/converter.ts`) strips that key on cache write.
-- **Cache keys are versioned — bump the version when the model's shape changes.** Each `converter.ts` passes its version to `dataCacheKey` (`common/useData.ts`): `vg-data-cache-v2`, `show-data-cache-v3`, `movie-data-cache-v3`, `book-data-cache-v1`. Without a bump the new field is silently absent from a returning visitor's cache, on their browser alone.
+- **Cache keys are versioned — bump the version when the model's shape changes.** Each `converter.ts` passes its version to `dataCacheKey` (`common/useData.ts`): `game-data-cache-v3`, `show-data-cache-v4`, `movie-data-cache-v4`, `book-data-cache-v2`. Without a bump the new field is silently absent from a returning visitor's cache, on their browser alone.
 - **`PlainDate.from()` throws on partial dates.** It dispatches on length: 10 chars → `YearMonthDay`, 4 → `Year`, and `"2024-05"` throws — deliberately, to surface bad sheet data loudly.
-- **Colour lookups throw on unknown values** — `platformToShort` and `platformToColor` (`vg/types.ts`), `ageRatingBand` and `ageRatingToColour` (`utils/types.ts`) — deliberately, to catch spreadsheet typos. The open-ended vocabularies are the exceptions: genre falls to `NEUTRAL_FILL`, franchise and `networkToColour` to `""`. Soften neither kind.
+- **Colour lookups throw on unknown values** — `platformToShort` and `platformToColor` (`game/types.ts`), `certificateBand` and `certificateToColour` (`utils/types.ts`) — deliberately, to catch spreadsheet typos. The open-ended vocabularies are the exceptions: genre falls to `NEUTRAL_FILL`, franchise and `networkToColour` to `""`. Soften neither kind.
 - **Every colour lookup takes a `Scheme`.** A fill is a light/dark `Fill`, so `genreToColour(genre)` alone does not type-check: components read the paper from `useScheme()`, pure builders take it as a parameter. Never reach for `theme.palette.mode`, which gives the light literal on either paper.
 - **A network is keyed on the string the sheet writes.** `HBO` is that value where the brand is HBO Max; renaming it silently drops the colour.
 - **Adding a `Tab` to `src/tabs.ts` is two steps** — define it _and_ add it to the exported `Tabs` array, which generates router, nav bar and root route. `App.tsx` renders `Tabs[0].component` for `/`, so Omnibus leads the array and a bare visit opens there.
@@ -100,7 +100,7 @@ Ordered by how quietly they fail.
 
 ## Where code goes
 
-The one rule that matters: **`common/` and `utils/` never import from `app/`, `vg/`, `show/`, `movie/`, `books/` or `omnibus/`.**
+The one rule that matters: **`common/` and `utils/` never import from `app/`, `game/`, `show/`, `movie/`, `book/` or `omnibus/`.**
 
 - New _visualisation behaviour_ → `common/`, parameterised by props and callbacks.
 - New _domain knowledge_ → the domain folder, as a thin adapter over a `common/` shell.
@@ -130,10 +130,10 @@ Authentication notes that otherwise waste your time:
 **To test without real data**, seed the caches and reload — `useData` reads them on mount, and with no token it never overwrites them:
 
 ```js
-localStorage.setItem("vg-data-cache-v2", JSON.stringify(games));
-localStorage.setItem("show-data-cache-v3", JSON.stringify(shows));
-localStorage.setItem("movie-data-cache-v3", JSON.stringify(movies));
-localStorage.setItem("book-data-cache-v1", JSON.stringify(books));
+localStorage.setItem("game-data-cache-v3", JSON.stringify(games));
+localStorage.setItem("show-data-cache-v4", JSON.stringify(shows));
+localStorage.setItem("movie-data-cache-v4", JSON.stringify(movies));
+localStorage.setItem("book-data-cache-v2", JSON.stringify(books));
 ```
 
 Dates go in as ISO strings (`"2024-05-01"`); omit `Season.show`, which the reviver re-attaches. Values must be ones the colour maps recognise, and the unversioned key seeds nothing, since `dropSupersededVersions` deletes it. Seed all four whatever tab you are on: `Google.tsx` mounts `LibraryProvider` (`app/LibraryProvider.tsx`) above every tab and it reads all four caches, and a card's franchise strip draws the other media only once all four libraries are present.
@@ -146,5 +146,5 @@ If you seed fake data, **clear those keys afterwards**.
 
 - Prototype extensions are real here: `Array.prototype.sum` / `sortByKey` (`utils/arrayUtils.ts`) and `Map.prototype.setIfAbsent` (`utils/mapUtils.ts`). Prefer them to hand-rolled reduces, and import the installing module wherever you call one.
 - `Colour` is a branded string; literals need an `as Colour` cast, or the `fill(light, dark)` helper.
-- Every `Graphs` module is `lazy()`-loaded, and its entry component's `usePrefetchGraphs` effect (see `vg/vg.tsx`) starts `import("./Graphs")` on mount. Keep that pattern — bundle size is actively tracked.
+- Every `Graphs` module is `lazy()`-loaded, and its entry component's `usePrefetchGraphs` effect (see `game/Game.tsx`) starts `import("./Graphs")` on mount. Keep that pattern — bundle size is actively tracked.
 - Use `PlainDate`, never JS `Date`, for anything tracked.
