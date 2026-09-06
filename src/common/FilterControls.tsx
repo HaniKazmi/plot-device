@@ -1,10 +1,10 @@
-import { ExpandMore, Search } from "@mui/icons-material";
-import { Box, Chip, Divider, InputBase, Stack, Typography, type Theme } from "@mui/material";
+import { Clear, ExpandMore, Search } from "@mui/icons-material";
+import { Box, Chip, Divider, IconButton, InputBase, Stack, Typography, type Theme } from "@mui/material";
 import { useState, type ReactNode } from "react";
 import type { YearNumber } from "./date";
 import type { PageDispatch, PageState } from "./filterReducer";
 import { MeasureControl, ScopeControl } from "./SelectionComponents";
-import { categoryValues, fieldsOf, type PageSchema } from "./filterSchema";
+import { categoryTally, fieldsOf, type PageSchema } from "./filterSchema";
 import { foldText } from "./searchData";
 import { focusRingSx, MUTED_FIGURE_SX } from "./typography";
 import { useScheme } from "./useScheme";
@@ -49,16 +49,6 @@ const PageRow = ({ label, children }: { label: string; children: ReactNode }) =>
     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, flex: 1, minWidth: 0 }}>{children}</Box>
   </Stack>
 );
-
-/** How many rows each of a category's values holds, over the library the tab is drawing from. */
-const valueCounts = <T,>(valueOf: (item: T) => string, data: readonly T[]): Map<string, number> => {
-  const counts = new Map<string, number>();
-  for (const item of data) {
-    const value = valueOf(item);
-    counts.set(value, (counts.get(value) ?? 0) + 1);
-  }
-  return counts;
-};
 
 /**
  * A chip the reader presses to narrow the page: a value out of a category's vocabulary, or a
@@ -131,6 +121,12 @@ const colourSx = (colour: Colour | undefined, selected: boolean) => {
  * The summary is the chosen values joined, or "Any" where nothing is — and, on a searchable
  * category, how long the list behind it is, since a reader deciding whether to open a franchise
  * picker wants to know it holds a hundred and sixty-eight names and a field to find one by.
+ *
+ * A category holding a selection ends in a clear of its own: the whole-surface Clear undoes every
+ * category at once, so taking one of them back otherwise means opening the list, finding the chips
+ * that are lit and pressing each of them off. It is a sibling of the row's button rather than a
+ * child of it — a button inside a button is closed by the parser at the inner one, leaving the
+ * label and the caret outside anything pressable.
  */
 const CategoryRow = ({
   label,
@@ -139,6 +135,7 @@ const CategoryRow = ({
   open,
   dimmed,
   onToggle,
+  onClear,
 }: {
   label: string;
   summary: string;
@@ -146,46 +143,59 @@ const CategoryRow = ({
   open: boolean;
   dimmed: boolean;
   onToggle: () => void;
+  onClear: () => void;
 }) => (
-  <Box
-    component="button"
-    type="button"
-    aria-expanded={open}
-    onClick={onToggle}
-    sx={(theme) => ({
-      display: "flex",
-      alignItems: "center",
-      gap: 1,
-      width: "100%",
-      minHeight: 36,
-      padding: 0,
-      border: 0,
-      background: "none",
-      color: "inherit",
-      font: "inherit",
-      textAlign: "left",
-      cursor: "pointer",
-      opacity: dimmed ? 0.4 : 1,
-      ...focusRingSx(theme),
-    })}
-  >
-    <Typography
-      variant="caption"
-      sx={{ ...ROW_LABEL_SX, textTransform: "capitalize" }}
+  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, opacity: dimmed ? 0.4 : 1 }}>
+    <Box
+      component="button"
+      type="button"
+      aria-expanded={open}
+      onClick={onToggle}
+      sx={(theme) => ({
+        display: "flex",
+        alignItems: "center",
+        gap: 1,
+        flex: 1,
+        minWidth: 0,
+        minHeight: 36,
+        padding: 0,
+        border: 0,
+        background: "none",
+        color: "inherit",
+        font: "inherit",
+        textAlign: "left",
+        cursor: "pointer",
+        ...focusRingSx(theme),
+      })}
     >
-      {label}
-    </Typography>
-    <Typography
-      variant="body2"
-      noWrap
-      sx={{ flexGrow: 1, minWidth: 0, color: chosen ? "text.primary" : "text.secondary" }}
-    >
-      {summary}
-    </Typography>
-    <ExpandMore
-      fontSize="small"
-      sx={{ color: "text.secondary", transform: open ? "rotate(180deg)" : undefined, flexShrink: 0 }}
-    />
+      <Typography
+        variant="caption"
+        sx={{ ...ROW_LABEL_SX, textTransform: "capitalize" }}
+      >
+        {label}
+      </Typography>
+      <Typography
+        variant="body2"
+        noWrap
+        sx={{ flexGrow: 1, minWidth: 0, color: chosen ? "text.primary" : "text.secondary" }}
+      >
+        {summary}
+      </Typography>
+      <ExpandMore
+        fontSize="small"
+        sx={{ color: "text.secondary", transform: open ? "rotate(180deg)" : undefined, flexShrink: 0 }}
+      />
+    </Box>
+    {chosen && (
+      <IconButton
+        size="small"
+        aria-label={`Clear ${label}`}
+        onClick={onClear}
+        sx={{ color: "text.secondary", flexShrink: 0 }}
+      >
+        <Clear fontSize="small" />
+      </IconButton>
+    )}
   </Box>
 );
 
@@ -244,7 +254,16 @@ const CategoryValues = ({
 }) => {
   const [within, setWithin] = useState("");
   const phrase = foldText(within);
-  const shown = searchable && phrase ? values.filter((value) => foldText(value).includes(phrase)) : values;
+  // What is chosen leads the list while a phrase narrows it, and the matches follow without
+  // repeating any of it. A phrase names what the reader is looking for and not what they have
+  // already picked, so a list filtered to the matches alone takes every chosen chip off the screen
+  // — the only place the choice is shown, and the only place it can be taken back. With the field
+  // empty the vocabulary keeps its own order, or a short list would reorder itself under a thumb
+  // on every press.
+  const shown =
+    searchable && phrase
+      ? [...selected, ...values.filter((value) => !selected.includes(value) && foldText(value).includes(phrase))]
+      : values;
 
   const chips = (
     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
@@ -332,10 +351,11 @@ export const SchemaPageControls = ({
   const fields = fieldsOf(state);
   const phrase = foldText(query);
 
-  // A pass over the whole library per category, hoisted out of the map below so a chip pressed
-  // rebuilds no list: computed inside it, each of a library's fifteen vocabularies would be part
-  // of a value the state is a dependency of.
-  const options = schema.categories.map((category) => categoryValues(category, data));
+  // A pass over the whole library per category, hoisted out of the map below so a chip pressed or
+  // a letter typed rebuilds no list: computed inside it, each of a library's fifteen vocabularies
+  // would be part of a value the state and the query are dependencies of. The values and their
+  // figures come off the one pass, the chips stating both.
+  const tallies = schema.categories.map((category) => categoryTally(category, data));
 
   return (
     <Box sx={{ paddingX: 2, paddingY: 1 }}>
@@ -372,7 +392,7 @@ export const SchemaPageControls = ({
       <Divider sx={{ marginY: 1 }} />
       {schema.categories.map((category, index) => {
         const chosen = fields[category.key] as readonly string[];
-        const values = options[index];
+        const { values, counts } = tallies[index];
         const matching = phrase ? values.filter((value) => foldText(value).includes(phrase)) : values;
         // With something typed, a category answering it is open and one answering nothing is
         // dimmed and shut; otherwise the reader opens one at a time, two open lists on a phone
@@ -391,6 +411,7 @@ export const SchemaPageControls = ({
               open={open}
               dimmed={phrase.length > 0 && matching.length === 0}
               onToggle={() => setOpenCategory(openCategory === category.key ? null : category.key)}
+              onClear={() => dispatch({ type: "updateFilter", filter: category.key, value: [] })}
             />
             {open && (
               <CategoryValues
@@ -400,7 +421,7 @@ export const SchemaPageControls = ({
                 label={category.label}
                 searchable={Boolean(category.searchable)}
                 values={matching}
-                counts={valueCounts(category.valueOf, data)}
+                counts={counts}
                 selected={chosen}
                 colourFor={colourFor && ((value: string) => colourFor(value, scheme))}
                 onToggle={(value) =>

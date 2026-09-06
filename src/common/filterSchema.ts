@@ -125,6 +125,28 @@ export const categoryValues = <T, S>(category: FilterCategory<T, S>, data: reado
   category.options ? category.options(data) : categoryOptions(data, (item) => category.valueOf(item));
 
 /**
+ * The same values with how many rows each of them holds, in one pass over the library.
+ *
+ * The control drawing a category states the figure inside each chip, so it needs both halves, and
+ * a library of fifteen vocabularies is fifteen scans of every row — paid again on each render that
+ * cannot be memoised past. Where the category states no list of its own the values are the tally's
+ * own keys sorted as `categoryOptions` sorts them, which is the same distinct set by the same rule,
+ * so the box and the search index still offer one vocabulary.
+ */
+export const categoryTally = <T, S>(
+  category: FilterCategory<T, S>,
+  data: readonly T[],
+): { values: string[]; counts: Map<string, number> } => {
+  const counts = new Map<string, number>();
+  for (const item of data) {
+    const value = category.valueOf(item);
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+  }
+
+  return { values: category.options ? category.options(data) : [...counts.keys()].toSorted(), counts };
+};
+
+/**
  * A multi-select's predicate, or none where nothing is selected.
  *
  * Every category control in every domain means the same thing — an empty selection is no

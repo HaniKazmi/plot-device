@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  categoryTally,
   categoryValues,
   schemaPredicates,
   type FilterCategory,
@@ -80,5 +81,28 @@ describe("the values a category offers", () => {
     const listed: FilterCategory<Row, State> = { ...schema.categories[0], options: () => ["Only this"] };
 
     expect(categoryValues(listed, data)).toEqual(["Only this"]);
+  });
+});
+
+describe("a category's tally", () => {
+  const data = [row({ kind: "Drama" }), row({ kind: "Action" }), row({ kind: "Drama" })];
+
+  it("offers the same vocabulary the values alone do, so a chip and an index cannot differ", () => {
+    expect(categoryTally(schema.categories[0], data).values).toEqual(categoryValues(schema.categories[0], data));
+  });
+
+  it("counts the rows each value holds", () => {
+    expect([...categoryTally(schema.categories[0], data).counts]).toEqual([
+      ["Drama", 2],
+      ["Action", 1],
+    ]);
+  });
+
+  it("counts every value in the data, including one the category's own list leaves out", () => {
+    const listed: FilterCategory<Row, State> = { ...schema.categories[0], options: () => ["Action"] };
+    const { values, counts } = categoryTally(listed, data);
+
+    expect(values).toEqual(["Action"]);
+    expect(counts.get("Drama")).toBe(2);
   });
 });
