@@ -5,14 +5,12 @@ import type {} from "@mui/material/themeCssVarsAugmentation";
 import { Chart, highchartsColors, SunburstSeries } from "../highcharts";
 import { ProportionalBar } from "./Card";
 import { FoldedChart } from "./FoldedChart";
-import { SectionHeader } from "./SectionHeader";
 import { SelectBox } from "./SelectionComponents";
 import { useScheme } from "./useScheme";
 import { useStackedCharts } from "./breakpoints";
 import { neutralFill, type Colour } from "../utils/types";
 import { keyLabel } from "../utils/stringUtils";
 import { format } from "../utils/mathUtils";
-import { LABEL_SX } from "./typography";
 import { topNWithOther } from "./statsData";
 import { firstRing, generateSunburstData, ringOptions, sunburstRoot, type SunburstEntry } from "./sunburstData";
 
@@ -51,15 +49,12 @@ const dimLeafRing = (leafLevel: number) =>
 
 const Sunburst = <T, K extends string>({
   title,
-  count,
   data,
   controls,
   groups,
   options,
 }: {
-  /** What the chart is of, in the caller's own words — a shell cannot know it counts games. */
   title: string;
-  count?: string;
   controls: ReactNode;
   data: T[];
   groups: K[];
@@ -121,14 +116,11 @@ const Sunburst = <T, K extends string>({
 
   return (
     <FoldedChart
-      header={
-        <SectionHeader
-          icon={<DonutLarge />}
-          title={title}
-          count={count}
-          action={controls}
-        />
-      }
+      icon={<DonutLarge />}
+      title={title}
+      // The three ring pickers appear with the wheel they re-nest: folded, the card draws its
+      // innermost ring in words whatever they say.
+      controls={controls}
       // The innermost ring is what both halves of the fold read, so it is flattened out of the
       // hierarchy once here rather than by each of them.
       fold={() => {
@@ -233,10 +225,12 @@ const RingBar = ({ ring }: { ring: SunburstEntry[] }) => {
 /**
  * The rings, as one labelled row: what the hierarchy nests by, outermost ring last.
  *
- * A stack of bare selects says nothing about what it does or which order it reads in — three
- * dropdowns holding model keys are three unrelated settings until something names them. The word
- * says what the row is for; the chevrons say the row is a path and which way it runs, which is the
- * one thing about a nesting order that cannot be recovered from the values.
+ * A row of bare pickers says nothing about what it does or which order it reads in — three
+ * buttons holding model keys are three unrelated settings until something names them. "Nest by" is
+ * the first picker's own `label`, in place of a caption beside the row, so the word travels with
+ * the value it introduces rather than sitting in a separate block a header's scroller can crop from
+ * the value it names; the chevrons say the row is a path and which way it runs, which is the one
+ * thing about a nesting order that cannot be recovered from the values.
  *
  * `labels` is where a domain overrides a key whose own name means the wrong thing on screen — a
  * `show` ring is grouping by the show's *name*, and the key alone reads as the medium.
@@ -259,34 +253,21 @@ export const SunBurstControls = <T extends string>({
       direction="row"
       // Tighter around the chevrons where the row has to hold three rings in a phone's card width.
       spacing={{ xs: 0.5, sm: 1 }}
-      // A gap rather than margins, so the label dropped below `sm` takes its own spacing with it —
-      // a `display: none` sibling still earns the next child its margin.
       useFlexGap
       sx={{
         alignItems: "center",
         flexWrap: "wrap",
-        // Two rings to a line at the one width where three do not fit. `CardHeader` sizes its
-        // action to whatever the controls ask for and gives the title what is left, so a row
-        // asking for all three — 317px — leaves the heading beside it 96px in the 418px card
-        // `ChartPair` makes of a 900px page, and four lines to say "Where the books went" in. A
-        // break in the controls is one the reader absorbs; a heading read down a column is not.
-        // Uncapped either side of that: below `md` the card is the full page, and from `lg` half
-        // of one is 580px, where the title and all three rings sit on one line together.
+        // One ring to a line at the one width where three do not fit on it — the first picker's
+        // own `label` widens it past sharing a line with a second. `CardHeader` sizes its action
+        // to whatever the controls ask for and gives the title what is left, so a row asking for
+        // all three — 368px — leaves the heading beside it 119px in the 418px card `ChartPair`
+        // makes of a 900px page, several lines to say "Where the books went" in. A break in the
+        // controls is one the reader absorbs; a heading read down a column is not. Uncapped
+        // either side of that: below `md` the card is the full page, and from `lg` half of one is
+        // 580px, where the title and all three rings sit on one line together.
         maxWidth: { xs: "none", md: 220, lg: "none" },
       }}
     >
-      {/* Dropped on a phone, where the three rings and the word do not share a line: at 390 the
-          card is 324px and the row asks for 379, so the last ring wraps under the label and the
-          control stands two rows tall on a page the fold is there to shorten. The word is what
-          says the row is a nesting order to a reader meeting it — the chevrons say the rest, and
-          on the one width where only one of the two fits, they are the half that cannot be
-          inferred from the values. */}
-      <Typography
-        variant="caption"
-        sx={{ ...LABEL_SX, color: "text.secondary", display: { xs: "none", sm: "inline" } }}
-      >
-        Nest by
-      </Typography>
       {controlStates.map((val, index) => (
         <Fragment key={"sunburst-control-" + index}>
           {index > 0 && (
@@ -303,6 +284,7 @@ export const SunBurstControls = <T extends string>({
             value={val}
             setValue={(key) => setControlStates(controlStates.with(index, key))}
             labelFor={(key) => labels?.[key] ?? keyLabel(key)}
+            label={index === 0 ? "Nest by" : undefined}
           />
         </Fragment>
       ))}

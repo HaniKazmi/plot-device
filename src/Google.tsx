@@ -1,17 +1,93 @@
 import { Container, createTheme, CssBaseline, ThemeProvider } from "@mui/material";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import NavBar from "./NavBar";
 import { BottomTabs } from "./BottomTabs";
 import { BrowserTint } from "./BrowserTint";
-import { BOTTOM_TABS_CLEARANCE, safeAreaGutters } from "./common/chrome";
+import { BOTTOM_TABS_CLEARANCE, safeAreaGutters, useScrolledPastBar } from "./common/chrome";
+import { usePhone } from "./common/breakpoints";
+import {
+  COARSE_CONTROL_HEIGHT,
+  CONTROL_HEIGHT,
+  CONTROL_RADIUS,
+  CONTROL_TYPE_SX,
+  focusRingSx,
+  NUMERIC_LABEL_SX,
+  primaryWash,
+} from "./common/typography";
 import { Outlet } from "react-router-dom";
 import { GoogleAuthProvider } from "./contexts/GoogleAuthContext.tsx";
 import { LibraryProvider } from "./app/LibraryProvider.tsx";
 import { FranchiseUnionProvider } from "./app/franchiseUnion.tsx";
 import { SearchHost } from "./app/Search.tsx";
+import { useAuthState } from "./app/authState.ts";
+import { useLibrary } from "./app/library.ts";
+import { pageCount, pageOf, usePageState } from "./app/pageState.ts";
+import { NothingMatchesContext } from "./common/nothingMatchesContext.ts";
+import { isNarrowedEmpty } from "./common/population.ts";
+import { isAllTime, scopeLabel } from "./common/scope.ts";
+import { CURRENT_YEAR } from "./common/date.ts";
+import { EmptyCard } from "./app/EmptyCard.tsx";
 import { barColour, useCurrentTab } from "./tabs.ts";
 import type { Tab } from "./tabs.ts";
 import type {} from "@mui/material/themeCssVarsAugmentation";
+
+/**
+ * The tab, or the reason there is none to draw.
+ *
+ * A component of its own because the state is read from a hook and `GoogleAuth` below mounts the
+ * providers that answer it, so it is above them and cannot ask. Every other state renders the
+ * outlet: a tab holding a cached copy paints it with the strip above saying so, and one still
+ * fetching paints what it has, which is what a cache-first page is for.
+ */
+/**
+ * Whether the page being drawn has been narrowed to nothing, answered once for every shell on it.
+ *
+ * The test is the page's own population and not any one chart's: a library with nothing in it draws
+ * no message and offers no way back, and only the page knows which of its two settings — the
+ * filters or the year scope — the reader has moved. Answered here, above the outlet, because the
+ * tab's own tree is a dozen shells deep and each of them would otherwise be handed a node it never
+ * looks at.
+ *
+ * It costs one pass of the page's own predicate over its library per filter change — the same pass
+ * the box's footer makes for the same figure — and the outlet below it is the caller's own element,
+ * so a change here re-renders this and not the page.
+ */
+const NothingMatchesProvider = ({ children }: { children: ReactNode }) => {
+  const tab = useCurrentTab();
+  const library = useLibrary();
+  const [state] = usePageState(tab.id);
+  const page = pageOf(tab.id, library);
+  const filtersActive = page !== undefined && page.store.activeCountOf(state) > 0;
+  const scoped = !isAllTime(state.yearTo, state.yearType, CURRENT_YEAR);
+
+  return (
+    <NothingMatchesContext
+      value={{
+        active: page ? isNarrowedEmpty(pageCount(page, state), filtersActive, scoped) : false,
+        filtersActive,
+        scope: scoped ? scopeLabel(state.yearTo, state.yearType, CURRENT_YEAR) : undefined,
+        clearFilters: () => page?.store.dispatch({ type: "resetFilters" }),
+        // The two halves of the scope, as the picker's own "All time" sets them: the reading and
+        // the year it is read against, one being no answer without the other.
+        clearScope: () => {
+          page?.store.dispatch({ type: "updateFilter", filter: "yearTo", value: CURRENT_YEAR });
+          page?.store.dispatch({ type: "yearType", yearType: "upto" });
+        },
+      }}
+    >
+      {children}
+    </NothingMatchesContext>
+  );
+};
+
+const PageContent = () =>
+  useAuthState() === "empty" ? (
+    <EmptyCard />
+  ) : (
+    <NothingMatchesProvider>
+      <Outlet />
+    </NothingMatchesProvider>
+  );
 
 const GoogleAuth = () => {
   const [guestMode, setGuestMode] = useState(false);
@@ -35,7 +111,7 @@ const GoogleAuth = () => {
         >
           {/* Above every tab, because a card on any of them draws the franchise across all four. */}
           <FranchiseUnionProvider>
-            <Outlet />
+            <PageContent />
             {/* Inside the provider, since the palette lists the union's own items; opened from the
                 app bar above through a store rather than a flag lifted over both. */}
             <SearchHost />
@@ -45,6 +121,47 @@ const GoogleAuth = () => {
         <BrowserTint />
       </LibraryProvider>
     </GoogleAuthProvider>
+  );
+};
+
+/**
+ * The two `theme-color` metas, in a component of its own nested inside the `ThemeProvider` below:
+ * `usePhone` reads a breakpoint off the nearest theme in context, which is the one `Graphs` is
+ * itself in the middle of providing — called from `Graphs`' own body the hook would find no theme
+ * above it at all, this being the outermost `ThemeProvider` in the tree.
+ */
+const ThemeColorMetas = ({
+  theme,
+  darkThemeColour,
+}: {
+  theme: ReturnType<typeof getTheme>;
+  darkThemeColour: string;
+}) => {
+  const phone = usePhone();
+  // Below `sm`, once the page has scrolled past the app bar, the two metas state the page's own
+  // ground: nothing at the top of the screen still says which tab is open, so the status bar over
+  // it should read as the page it is above. Safari answers none of this — it samples the strip
+  // `BrowserTint` draws and, past the bar, there is none, so it falls to its own translucent bar —
+  // but a browser that does honour the meta lands on the ground the page actually paints rather
+  // than on a tab colour scrolled out of reach. Stated rather than dropped, because a meta removed
+  // is a meta the installed app answers from its manifest instead, which names the Omnibus's purple
+  // whatever tab is open.
+  const scrolledPastBar = useScrolledPastBar();
+  const onPage = phone && scrolledPastBar;
+
+  return (
+    <>
+      <meta
+        name="theme-color"
+        content={onPage ? LIGHT_PAGE_GROUND : theme.palette.primary.main}
+        media="(prefers-color-scheme: light)"
+      />
+      <meta
+        name="theme-color"
+        content={onPage ? DARK_PAGE_GROUND : darkThemeColour}
+        media="(prefers-color-scheme: dark)"
+      />
+    </>
   );
 };
 
@@ -60,15 +177,9 @@ const Graphs = () => {
       theme={theme}
       noSsr
     >
-      <meta
-        name="theme-color"
-        content={theme.palette.primary.main}
-        media="(prefers-color-scheme: light)"
-      />
-      <meta
-        name="theme-color"
-        content={darkThemeColour}
-        media="(prefers-color-scheme: dark)"
+      <ThemeColorMetas
+        theme={theme}
+        darkThemeColour={darkThemeColour}
       />
       <CssBaseline />
       <GoogleAuth />
@@ -84,6 +195,11 @@ const { palette: defaultPalette } = createTheme();
 // that could drift.
 const DARK_TEXT = "#e8eaed";
 const DARK_PAPER = "#1d2126";
+
+// The two schemes' own page ground, named once so `getTheme`'s palette and the scrolled-past
+// `theme-color` metas cannot drift onto a value that is not what the page at that edge paints.
+const LIGHT_PAGE_GROUND = "#f6f7f9";
+const DARK_PAGE_GROUND = "#14171a";
 
 // Themes are cached per tab: building one walks both colour schemes, typography, shadows and
 // the whole CSS-variable map, and a stable identity also stops the MUI tree re-evaluating `sx`
@@ -110,16 +226,23 @@ const getTheme = (tab: Tab) => {
         palette: {
           primary: { main: primaryColour },
           secondary: { main: secondaryColour },
-          background: { default: "#f6f7f9", paper: "#ffffff" },
+          background: { default: LIGHT_PAGE_GROUND, paper: "#ffffff" },
           text: { primary: "#1b1f24", secondary: "#6a737d" },
           divider: "#e1e4e8",
         },
       },
       dark: {
         palette: {
-          primary: { main: primaryColour },
+          // The bar's own `rule` rather than the primary that tint is mixed from. A primary is
+          // solved against the white paper: on the dark one Games' carries 3.6:1 and Shows' 3.4,
+          // enough for a band and short of what a lit segment's 12px word or a picker's lit edge
+          // needs, where `rule` is that same hue solved lighter and clears 5:1 on the paper
+          // (`DarkBar`, `tabs.ts`). The bar keeps the tint, through the `AppBar.darkBg` override
+          // below; a chart's single-group series keeps the light literal, `Barchart` reading
+          // `theme.palette` rather than `theme.vars`.
+          primary: { main: tab.darkBar?.rule ?? primaryColour },
           secondary: { main: secondaryColour },
-          background: { default: "#14171a", paper: DARK_PAPER },
+          background: { default: DARK_PAGE_GROUND, paper: DARK_PAPER },
           text: { primary: DARK_TEXT, secondary: "#9aa4af" },
           divider: "#2c3238",
           // Left unset, `AppBar.darkBg`/`darkColor` default to `background.paper`/`text.primary` —
@@ -186,25 +309,121 @@ const getTheme = (tab: Tab) => {
           elevation: 0,
         },
       },
+      // The segment: one of a small closed set, lit in the tab's own primary. The lit wash is
+      // twice MUI's own `selectedOpacity`, which at 8% on the dark paper is a tint a reader has
+      // to hunt for; the word turns primary and gains a weight with it, so the state survives
+      // being read at 12px.
+      MuiToggleButton: {
+        styleOverrides: {
+          root: ({ theme }) => ({
+            ...CONTROL_TYPE_SX,
+            minHeight: CONTROL_HEIGHT,
+            // A stated height rather than symmetrical padding: `theme.typography.button`'s own
+            // line height puts a 12px word at 21px, so padding sized for the word makes the
+            // control 31. A minimum instead of a height, so a segment holding an icon rather
+            // than a word grows to it instead of overflowing.
+            padding: "0 10px",
+            borderRadius: CONTROL_RADIUS,
+            color: theme.vars.palette.text.primary,
+            backgroundColor: theme.vars.palette.background.paper,
+            // Reset before the hover is stated, because MUI's own rule sits outside any pointer
+            // query: a touch screen has no leave event, so the last segment tapped would keep
+            // the hovered wash until another tap landed elsewhere and two would read as lit.
+            "&:hover": { backgroundColor: theme.vars.palette.background.paper },
+            "&.Mui-selected": {
+              color: theme.vars.palette.primary.main,
+              fontWeight: 600,
+              backgroundColor: primaryWash(theme, 0.16),
+              "&:hover": { backgroundColor: primaryWash(theme, 0.16) },
+            },
+            "@media (hover: hover)": {
+              "&:hover": { backgroundColor: primaryWash(theme, 0.08) },
+              "&.Mui-selected:hover": { backgroundColor: primaryWash(theme, 0.24) },
+            },
+            "@media (pointer: coarse)": { minHeight: COARSE_CONTROL_HEIGHT },
+            ...focusRingSx(theme),
+          }),
+        },
+      },
+      // The group's own corner, which MUI takes from `shape.borderRadius` — the card's 8, where
+      // a control is a 6. The buttons inside square their touching edges off that value, so the
+      // two have to agree or the group's outline steps at its ends.
+      MuiToggleButtonGroup: {
+        styleOverrides: {
+          root: { borderRadius: CONTROL_RADIUS },
+        },
+      },
+      // The action: one icon, one meaning — open as a layer, reveal in place, close. A square
+      // the size of a segment, so a header's controls stand level whichever of the two they are.
+      // The app bar states its own size (`NavBar.tsx`): the bar is a filled surface with nothing
+      // beside its buttons to be level with, where a 28px square reads as a control that shrank.
+      MuiIconButton: {
+        styleOverrides: {
+          root: ({ theme }) => ({
+            width: CONTROL_HEIGHT,
+            height: CONTROL_HEIGHT,
+            padding: 0,
+            borderRadius: CONTROL_RADIUS,
+            "& .MuiSvgIcon-root": { fontSize: 18 },
+            "&:hover": { backgroundColor: "transparent" },
+            "@media (hover: hover)": { "&:hover": { backgroundColor: primaryWash(theme, 0.08) } },
+            "@media (pointer: coarse)": { width: COARSE_CONTROL_HEIGHT, height: COARSE_CONTROL_HEIGHT },
+            ...focusRingSx(theme),
+          }),
+        },
+      },
+      // The rail chip: navigation, and the one part of the kit drawn as a pill. Sized on the
+      // small chip alone, which is what a rail asks for — a chip standing over artwork or in a
+      // list of values is a label rather than a mark on a scale and keeps MUI's own size.
       MuiChip: {
         styleOverrides: {
-          root: {
+          root: ({ theme }) => ({
             "& .MuiChip-label:empty": { paddingLeft: 0 },
+            ...focusRingSx(theme),
+          }),
+          sizeSmall: {
+            "@media (pointer: coarse)": {
+              height: COARSE_CONTROL_HEIGHT,
+              borderRadius: COARSE_CONTROL_HEIGHT / 2,
+            },
+            // Tabular figures because most of these labels are years: proportional digits change a
+            // label's width with the numerals in it, so a row of them shifts sideways as the
+            // highlight moves through it. On the label rather than the chip, since the chip's own
+            // rule about an empty one has to keep outweighing this.
+            "& .MuiChip-label": {
+              ...NUMERIC_LABEL_SX,
+              paddingLeft: 9,
+              paddingRight: 9,
+              "@media (pointer: coarse)": { paddingLeft: 11, paddingRight: 11 },
+            },
           },
         },
       },
-      MuiSelect: {
+      // The worded action — a picker's own button, a count that is its own control. Only the
+      // small size, which is the kit's: the app bar's buttons are the bar's furniture and stand
+      // at the size a filled bar gives them.
+      MuiButton: {
         styleOverrides: {
-          root: {
-            textTransform: "capitalize",
-          },
+          sizeSmall: ({ theme }) => ({
+            ...CONTROL_TYPE_SX,
+            // A word carrying an action, against the segments' plain labels beside it.
+            fontWeight: 600,
+            minHeight: CONTROL_HEIGHT,
+            // MUI's own floor is 64px, which pads "Date" out to twice its width in a header
+            // where the controls are read as a row.
+            minWidth: 0,
+            padding: "0 10px",
+            borderRadius: CONTROL_RADIUS,
+            "@media (pointer: coarse)": { minHeight: COARSE_CONTROL_HEIGHT },
+            ...focusRingSx(theme),
+          }),
         },
       },
+      // A menu item is read, not scanned: 14px against the kit's 12, since the menu is the one
+      // surface where the options are stated in full rather than abbreviated to fit a row.
       MuiMenuItem: {
         styleOverrides: {
-          root: {
-            textTransform: "capitalize",
-          },
+          root: { fontSize: 14 },
         },
       },
       MuiCardHeader: {

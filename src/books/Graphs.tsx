@@ -1,6 +1,5 @@
 import { memo, useDeferredValue } from "react";
 import { Stack } from "@mui/material";
-import type { YearNumber } from "../common/date";
 import type { Book } from "./types";
 import { bookModule } from "./module";
 import Finished from "../common/Finished";
@@ -9,23 +8,16 @@ import Stats from "./Stats";
 import Sunburst from "./Sunburst";
 import Barchart from "./Barchart";
 import Timeline from "./Timeline";
-import { SchemaFilterDrawer } from "../common/FilterControls";
-import { bookFilters } from "./filters";
-import { filterIcons } from "./filterIcons";
-import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
-import { FilterChip } from "../common/FilterDrawer";
-import { MeasureControl } from "../common/SelectionComponents";
-import { useOtherTabs } from "../tabs";
+import { ChartPair, Section } from "../common/SectionRail";
+import { PageRail } from "../app/PageRail";
 import { BOOK_SECTIONS, bookSections } from "./sections";
 import { bookEpoch, bookFranchise, BookEpochProvider, FranchiseContext } from "./franchiseContext";
 import { franchiseIndex } from "../common/franchiseIndex";
-import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
-import { bookKey, currentlyReading, earliestYear } from "./statsData";
-import { format } from "../utils/mathUtils";
-import { finishedCount, type FinishedExtraSort } from "../common/finishedData";
+import type { FilterState } from "./filterUtils";
+import { bookKey, currentlyReading } from "./statsData";
+import { wallPopulation, type FinishedExtraSort } from "../common/finishedData";
 import { genreToColour } from "../utils/types";
 import { useScheme } from "../common/useScheme";
-import { usePhone } from "../common/breakpoints";
 
 /**
  * The index and the scale every card strip on the tab reads, both built from the unfiltered data:
@@ -39,70 +31,53 @@ const BOOK_SORTS: readonly FinishedExtraSort<Book>[] = [
   { label: "Pages", value: (book) => book.pages, bucket: (pages) => `${Math.floor(pages / 100) * 100}+` },
 ];
 
+/** What the wall's card borders speak, and the key beneath its header names. */
+const BOOK_BORDER = { key: "genre", valueOf: (book: Book) => book.genre };
+
 const SuspenseBlock = ({
   filteredData,
   unfilteredData,
   filterState,
-  filterDispatch,
 }: {
   filteredData: Book[];
   unfilteredData: Book[];
   filterState: FilterState;
-  filterDispatch: FilterDispatch;
 }) => (
   <FranchiseContext.Provider value={franchiseIndex(unfilteredData, bookFranchise)}>
     <BookEpochProvider value={bookEpoch(unfilteredData)}>
       <Graphs
         data={filteredData}
-        // The floor of the year select, read from the whole library rather than from what the
-        // filters left: derived from the filtered data, picking "In 2020" would leave 2020 the
-        // earliest year on offer and strand the reader in it.
-        earliestYear={earliestYear(unfilteredData)}
         filterState={filterState}
-        filterDispatch={filterDispatch}
-      />
-      <SchemaFilterDrawer
-        schema={bookFilters}
-        icons={filterIcons}
-        state={filterState}
-        dispatch={filterDispatch}
-        data={unfilteredData}
-        activeCount={activeCount(filterState)}
-        onReset={() => filterDispatch({ type: "resetFilters" })}
       />
     </BookEpochProvider>
   </FranchiseContext.Provider>
 );
 
-const Graphs = memo(
-  ({
-    data,
-    earliestYear,
-    filterState,
-    filterDispatch,
-  }: {
-    data: Book[];
-    earliestYear: YearNumber;
-    filterState: FilterState;
-    filterDispatch: FilterDispatch;
-  }) => {
-    const scheme = useScheme();
+const Graphs = memo(({ data, filterState }: { data: Book[]; filterState: FilterState }) => {
+  const scheme = useScheme();
 
-    const deferredData = useDeferredValue(data, []);
-    const tabs = useOtherTabs();
-    // Answered once for the page: it decides both whether the hero is rendered and whether the
-    // rail offers a chip pointing at it, and two derivations of one test are two that can differ.
-    const reading = currentlyReading(data);
-    // The phone reads the library before the charts. One answer for the page and the rail alike:
-    // `ChartsAndLibrary` orders the two sections and `chartsLastOrder`, inside the sections list,
-    // orders the chips naming them.
-    const chartsLast = usePhone();
+  const deferredData = useDeferredValue(data, []);
+  // Answered once for the page: it decides both whether the hero is rendered and whether the
+  // rail offers a chip pointing at it, and two derivations of one test are two that can differ.
+  const reading = currentlyReading(data);
 
-    const charts = (
-      <Section
-        key={BOOK_SECTIONS.charts}
-        id={BOOK_SECTIONS.charts}
-      >
+  return (
+    <Stack spacing={2}>
+      <PageRail
+        sections={bookSections(reading.length > 0)}
+        count={data.length}
+      />
+      <Stats
+        data={data}
+        reading={reading}
+        measure={filterState.measure}
+        yearType={filterState.yearType}
+        yearTo={filterState.yearTo}
+      />
+      <Section id={BOOK_SECTIONS.timeline}>
+        <Timeline data={deferredData} />
+      </Section>
+      <Section id={BOOK_SECTIONS.charts}>
         <ChartPair
           left={
             <Sunburst
@@ -119,17 +94,11 @@ const Graphs = memo(
           }
         />
       </Section>
-    );
-
-    const library = (
-      <Section
-        key={BOOK_SECTIONS.library}
-        id={BOOK_SECTIONS.library}
-      >
+      <Section id={BOOK_SECTIONS.library}>
         <Finished
+          count={wallPopulation(data, bookModule.noun)}
           title="All Books"
-          count={`${format(finishedCount(data))} ${bookModule.noun}`}
-          borderKey="genre"
+          border={BOOK_BORDER}
           data={data}
           // Genre for the border: the ramp answers the neutral off its table and never throws, so
           // it cannot take a wall of hundreds of cards down on one unfamiliar value.
@@ -144,43 +113,9 @@ const Graphs = memo(
           MediaComponent={BookCardMediaImage}
         />
       </Section>
-    );
-
-    return (
-      <Stack spacing={2}>
-        <SectionRail
-          sections={bookSections(reading.length > 0, chartsLast)}
-          tabs={tabs}
-          actions={
-            <MeasureControl
-              measures={bookModule.measures}
-              value={filterState.measure}
-              dispatch={filterDispatch}
-            />
-          }
-          trailing={<FilterChip activeCount={activeCount(filterState)} />}
-        />
-        <Stats
-          data={data}
-          reading={reading}
-          earliestYear={earliestYear}
-          measure={filterState.measure}
-          yearType={filterState.yearType}
-          yearTo={filterState.yearTo}
-          filterDispatch={filterDispatch}
-        />
-        <Section id={BOOK_SECTIONS.timeline}>
-          <Timeline data={deferredData} />
-        </Section>
-        <ChartsAndLibrary
-          charts={charts}
-          library={library}
-          chartsLast={chartsLast}
-        />
-      </Stack>
-    );
-  },
-);
+    </Stack>
+  );
+});
 
 Graphs.displayName = "Graphs";
 

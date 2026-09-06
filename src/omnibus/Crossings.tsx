@@ -8,13 +8,15 @@ import { LazyTooltip } from "../common/LazyTooltip";
 import { SectionHeader } from "../common/SectionHeader";
 import { SegmentedControl, type SegmentOption } from "../common/SelectionComponents";
 import { TimeLineChart } from "../common/Timeline";
-import { FoldedChart } from "../common/FoldedChart";
+import { FoldedContent } from "../common/FoldedChart";
 import type { TimelineTick } from "../common/timelineLayout";
 import { ScrollFade } from "../common/ScrollFade";
 import { useScrollEdges } from "../common/useScrollEdges";
 import { CONTAIN_SIDEWAYS_SCROLL, scrollbarSx } from "../common/scrollbarSx";
 import { useOpenAtLatest } from "../common/useOpenAtLatest";
 import { format } from "../utils/mathUtils";
+import { all } from "../common/population";
+import { ExpandableCard } from "../common/Stats";
 import { OmniHoverCard } from "../app/CardMediaImage";
 import type { Crossing } from "./crossingsData";
 import type { OmniItem } from "../common/medium";
@@ -25,12 +27,15 @@ import { useScheme } from "../common/useScheme";
 import type { Scheme } from "../utils/types";
 
 /**
- * How many franchises the section draws. The strips are ordered by size, so the cut falls wherever
- * that order reaches twelve and not at any boundary in the data — currently part-way through a tie
- * at thirteen entries; the header states the full count so what is left off is visible rather than
- * silent.
+ * How many franchises the card draws, and how many stand in one stack of the dialog. The strips
+ * are ordered by size, so the cut falls wherever that order reaches twelve and not at any boundary
+ * in the data — currently part-way through a tie at thirteen entries; the card's own control reads
+ * "All 180 ›", so what is left off is both visible and one press away.
  */
 const STRIPS_SHOWN = 12;
+
+/** The section's name, stated by the card, by the dialog it opens and by that dialog's own bar. */
+const CROSSINGS_TITLE = "Franchises over time";
 
 /**
  * The horizontal inset a strip sits at inside its own card, which the shared axis has to match to
@@ -94,62 +99,101 @@ const Crossings = ({
   const scheme = useScheme();
   const biggest = crossings[0];
   const [mode, setMode] = useState<CrossingsMode>("Franchises");
-  const all = mode === "All";
+  const everything = mode === "All";
   // Built only while that reading is chosen: the section opens on the franchises, and a thousand
   // rows positioned for a chart the reader has not asked for is the work the fold exists to avoid.
-  const rows = all ? omniTimeline(items, CURRENT_PLAINDATE, scheme, (item) => () => <OmniHoverCard item={item} />) : [];
+  const rows = everything
+    ? omniTimeline(items, CURRENT_PLAINDATE, scheme, (item) => () => <OmniHoverCard item={item} />)
+    : [];
 
   return (
-    <FoldedChart
-      header={
-        <SectionHeader
-          icon={<Hub />}
-          title="Franchises over time"
-          count={
-            all
-              ? `${format(rows.length)} items`
-              : crossings.length > STRIPS_SHOWN
-                ? `${format(STRIPS_SHOWN)} of ${format(crossings.length)} franchises`
-                : `${format(crossings.length)} franchises`
-          }
-          action={
-            <SegmentedControl
-              options={CROSSINGS_MODES}
-              value={mode}
-              onChange={setMode}
-              ariaLabel="What the timeline draws"
+    <ExpandableCard
+      title={CROSSINGS_TITLE}
+      // The strips the collapsed card has no room for are the whole point of the dialog, so the
+      // reading that draws every row of the union has nothing to expand into. Its own count is
+      // gone with the rest: the chart is over the page's population, which the rail states.
+      expandable={!everything && crossings.length > STRIPS_SHOWN}
+      cutLabel={all(crossings.length)}
+      renderContent={(isDialog, toggle) =>
+        isDialog ? (
+          <>
+            <SectionHeader
+              icon={<Hub />}
+              title={CROSSINGS_TITLE}
+              action={toggle}
+              compactActions
             />
-          }
-        />
+            {/* Every franchise, in stacks of the twelve the card itself draws. One scroller per
+                stack rather than one for all of them: a scroller is what holds a shared scale
+                true, and twelve strips is as much of one as a screen shows — a single scroller
+                a hundred and eighty rows deep is a scale nothing on screen can be compared
+                across anyway. */}
+            {pages(crossings).map((page) => (
+              <CrossingsStack
+                key={page[0].franchise}
+                crossings={page}
+                ticks={ticks}
+              />
+            ))}
+          </>
+        ) : (
+          <FoldedContent
+            icon={<Hub />}
+            title={CROSSINGS_TITLE}
+            /* Which reading the stack draws is a choice about a stack that is not mounted while
+               the card is folded; the cut stands either way, being the way to the franchises the
+               card has no room for rather than a setting on the ones it does. */
+            controls={
+              <SegmentedControl
+                options={CROSSINGS_MODES}
+                value={mode}
+                onChange={setMode}
+                ariaLabel="What the timeline draws"
+              />
+            }
+            action={toggle}
+            // The strips are ordered by size, so the first one is the largest series the reader has
+            // met — the fact the stack is opened for, and the one a phone can state without drawing
+            // it.
+            fold={() => ({
+              summary: biggest
+                ? `${biggest.franchise} is the largest, ${format(biggest.entries)} entries across ${format(biggest.media.length)} media`
+                : "",
+            })}
+          >
+            {everything ? (
+              <CardContent>
+                <TimeLineChart timelineData={rows} />
+              </CardContent>
+            ) : (
+              <CrossingsStack
+                crossings={crossings.slice(0, STRIPS_SHOWN)}
+                ticks={ticks}
+              />
+            )}
+          </FoldedContent>
+        )
       }
-      // The strips are ordered by size, so the first one is the largest series the reader has met
-      // — the fact the stack is opened for, and the one a phone can state without drawing it.
-      fold={() => ({
-        summary: biggest
-          ? `${biggest.franchise} is the largest, ${format(biggest.entries)} entries across ${format(biggest.media.length)} media`
-          : "",
-      })}
-    >
-      {all ? (
-        <CardContent>
-          <TimeLineChart timelineData={rows} />
-        </CardContent>
-      ) : (
-        <CrossingsStack
-          crossings={crossings}
-          ticks={ticks}
-        />
-      )}
-    </FoldedChart>
+    />
   );
 };
 
+/** The franchises in the runs a stack draws, so the dialog is stacks of twelve down the page. */
+const pages = (crossings: Crossing[]): Crossing[][] =>
+  Array.from({ length: Math.ceil(crossings.length / STRIPS_SHOWN) }, (_, index) =>
+    crossings.slice(index * STRIPS_SHOWN, (index + 1) * STRIPS_SHOWN),
+  );
+
 /**
- * The stack itself, apart from the card that holds it, because both its hooks measure the scroller.
+ * One stack of strips, apart from the card that holds it, because both its hooks measure the
+ * scroller.
  *
  * A folded card does not render this at all until the reader opens it, and `useOpenAtLatest` fires
  * once for a library that has data: mounted with the card, it would find no element on that one
  * run and the stack would open at the epoch, the oldest end of a scale whose point is the newest.
+ *
+ * It draws exactly the franchises it is handed, so the card can pass the twelve biggest and the
+ * dialog can pass every run of twelve.
  */
 const CrossingsStack = ({ crossings, ticks }: { crossings: Crossing[]; ticks: TimelineTick[] }) => {
   const scheme = useScheme();
@@ -183,7 +227,7 @@ const CrossingsStack = ({ crossings, ticks }: { crossings: Crossing[]; ticks: Ti
               // other or with the axis: a scroller per strip would let a reader compare two rows
               // showing different decades, which is the one thing a shared scale exists to stop.
             >
-              {crossings.slice(0, STRIPS_SHOWN).map((crossing) => (
+              {crossings.map((crossing) => (
                 <TimelineCard
                   key={crossing.franchise}
                   bands={crossing.bands.map((band) => toBand(band, scheme))}

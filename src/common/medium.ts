@@ -76,6 +76,20 @@ export interface OmniItem {
 }
 
 /**
+ * How many entries of each medium a set of rows holds, which is what every "which libraries is
+ * this in" line is drawn from — a franchise's hit in the search box, and the franchise view's own
+ * header above the same series.
+ *
+ * A medium with nothing in the rows is absent rather than held at zero, which is exactly what the
+ * row drawing it says nothing about.
+ */
+export const countByMedium = (items: readonly OmniItem[]): Partial<Record<Medium, number>> => {
+  const counts: Partial<Record<Medium, number>> = {};
+  for (const item of items) counts[item.medium] = (counts[item.medium] ?? 0) + 1;
+  return counts;
+};
+
+/**
  * When an entry ran, as every surface that places one on a scale reads it.
  *
  * Taken off `FranchiseEntry` rather than declared beside it, so a card's strip mark, a crossings
@@ -105,7 +119,7 @@ type CardProps<S> = Omit<CardMediaImageProps, "image" | "alt" | "detailComponent
  * Two members and no more. A medium is looked up by a value (`MEDIA_LAZY[item.medium]`), which a
  * bundler cannot narrow, so everything reachable through this shape is weight on the chunk the
  * union prefetches for its hover cards on every visit. Anything a medium answers that a card does
- * not draw — a filter glyph, a label — belongs beside the surface that asks for it.
+ * not draw belongs beside the surface that asks for it.
  */
 export interface MediumLazy<S> {
   CardMediaImage(props: CardProps<S>): ReturnType<FunctionComponent>;
@@ -113,29 +127,74 @@ export interface MediumLazy<S> {
 }
 
 /**
+ * What every tab answers about itself as a *page*: what it counts and in what units, what it can be
+ * narrowed by, where that narrowing is held, and the floor its year scope offers.
+ *
+ * Declared apart from the medium's own answers because the composing tab is a page like any other
+ * and no medium at all: it has filters, a measure, a scope and a population, and the surfaces
+ * standing above the tabs — the rail, the box that narrows a page — ask exactly these six things of
+ * whichever tab is open. Held to those six, the tab that composes the four can satisfy the shape
+ * without pretending to be a fifth medium.
+ *
+ * `M` is the tab's own measure union, which the rail's control needs by name: erased to `string` it
+ * would take a dispatch setting any word at all, where the tab's own dispatch sets one of its three.
+ * `earliestYear` is a method for `MediumModule`'s own reason, below.
+ */
+export interface PageModule<T = unknown, M extends string = string> {
+  /**
+   * `tabId` and not the `Tab`: `tabs.ts` imports the five entry components eagerly and an entry
+   * component reaches the registry, so a module naming its tab would have the registry evaluating
+   * while `tabs.ts` is still in its own temporal dead zone. The id is a string, and the one module
+   * that resolves it to a tab sits above both.
+   */
+  tabId: string;
+  /** What the tab counts in, for a population stated in words: "1,539 games". */
+  noun: string;
+  /** The units the tab's rail offers, in the order it states them. */
+  measures: readonly M[];
+  /**
+   * What this tab can be narrowed by, as data: the surface offering the filters draws it, and the
+   * index of what a search box can find by attribute reads it. The schema carries no icon — see
+   * `FilterToggle` — and no rule that is not per-field: a domain whose model answers the year
+   * differently, or whose page has a question only it can ask, keeps that predicate beside its own
+   * reducer.
+   */
+  filters: PageSchema;
+  /**
+   * The tab's filter state, held outside its tree so that the surfaces standing above the page —
+   * the rail, the box that filters it — read and set the same value the charts do, and so that a
+   * filter can be set on a tab before it is mounted.
+   */
+  pageState: PageStore;
+  /**
+   * The oldest year the tab's year scope offers, read from its whole library rather than from what
+   * its filters left — derived from the filtered rows, picking "In 2020" would make 2020 the
+   * earliest year on offer and strand the reader in it.
+   *
+   * On the module because the box standing above the tabs draws that scope for whichever tab is
+   * open, and the floor is the one part of it a shared control cannot work out for itself: the
+   * sheets start in different years, and Movies' is a fixed epoch rather than anything in the rows.
+   */
+  earliestYear(items: readonly T[]): YearNumber;
+}
+
+/**
  * Everything the app asks of a medium, in one place, so that adding a fifth is a folder and a line
  * rather than an edit in every surface that dispatches on which medium it is holding.
  *
- * `tabId` and not the `Tab`: `tabs.ts` imports the five entry components eagerly and an entry
- * component reaches the registry, so a module naming its tab would have the registry evaluating
- * while `tabs.ts` is still in its own temporal dead zone. The id is a string, and the one module
- * that resolves it to a tab sits above both.
+ * A medium's tab is a page, so the six answers a page gives come in from `PageModule` above and are
+ * not restated here.
  *
  * `T` is what the sheet converts to and the tab filters; `S` is what one row of the union is
  * *about*, which is the same record everywhere but Shows — the Shows sheet converts to `Show` and
- * the union counts in seasons, a season being the thing actually watched. `M` is the tab's own
- * measure union, which the rail's control needs by name: erased to `string` it would take a
- * dispatch that sets any word at all, where the tab's own dispatch sets one of its three.
+ * the union counts in seasons, a season being the thing actually watched.
  *
  * As with `MediumLazy`, every member taking a `T` or an `S` is a method: the lookup hands each
  * module the medium's own records and TypeScript relates the two only through `medium`, so the
  * record's erased element type would reject all four modules if these were properties.
  */
-export interface MediumModule<T, S = T, M extends string = string> {
+export interface MediumModule<T, S = T, M extends string = string> extends PageModule<T, M> {
   medium: Medium;
-  tabId: string;
-  /** What the tab counts in, for a population stated in words: "1,539 games". */
-  noun: string;
   data: DataConfig<T>;
   /**
    * What guest mode keeps. Applied to the library rather than folded into the tab's filters, since
@@ -161,20 +220,4 @@ export interface MediumModule<T, S = T, M extends string = string> {
   secondaryText(item: S): string[];
   /** The line a hit is told by, in this medium's own words, over hours already summed. */
   facts(item: S, hours: number): string;
-  /** The units the tab's rail offers, in the order it states them. */
-  measures: readonly M[];
-  /**
-   * What this tab can be narrowed by, as data: the surface offering the filters draws it, and the
-   * index of what a search box can find by attribute reads it. The schema carries no icon — see
-   * `MediumLazy` — and no rule that is not per-field: a domain whose model answers the year
-   * differently, or whose page has a question only it can ask, keeps that predicate beside its own
-   * reducer.
-   */
-  filters: PageSchema;
-  /**
-   * The tab's filter state, held outside its tree so that the surfaces standing above the page —
-   * the rail, the box that filters it — read and set the same value the charts do, and so that a
-   * filter can be set on a tab before it is mounted.
-   */
-  pageState: PageStore;
 }

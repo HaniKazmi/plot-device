@@ -6,7 +6,7 @@ import { earliestYear as earliestYearOf, groupByCategory, realFranchisesOnly } f
 import "../utils/arrayUtils";
 
 /**
- * The library's own first year, so the vitals band's year select offers a floor the data actually
+ * The library's own first year, so the rail's year picker offers a floor the data actually
  * reaches. A constant one year after the converter's own trust cutoff would answer the same thing
  * only as long as the earliest surviving season happens to sit right on that cutoff; read from the
  * data instead, the floor still tracks the actual earliest season if that cutoff or the sheet's

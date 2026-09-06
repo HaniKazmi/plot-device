@@ -1,6 +1,7 @@
 import { Box } from "@mui/material";
 import { barColour, useCurrentTab } from "./tabs";
-import { BROWSER_TINT_HEIGHT, BROWSER_TINT_VISIBLE } from "./common/chrome";
+import { BROWSER_TINT_HEIGHT, BROWSER_TINT_VISIBLE, useScrolledPastBar } from "./common/chrome";
+import { usePhone } from "./common/breakpoints";
 import { useScheme } from "./common/useScheme";
 
 /**
@@ -10,16 +11,28 @@ import { useScheme } from "./common/useScheme";
  * `theme-color` meta is still parsed and no longer read, and what is sampled is the
  * `background-color` of a qualifying fixed or sticky element, falling back to `body`. Left to that
  * fallback the answer is the paper, so the status bar reads as a band of blank page above a bar
- * that is anything but. `BottomTabs` already answers for the bottom edge, being a fixed full-width
- * bar in this colour, which is why only the top needs stating.
+ * that is anything but. The bottom edge is already a fixed full-width bar (`BottomTabs`), which
+ * wears the tab's colour at every scroll position and is sampled for the bottom of the chrome; only
+ * the top has nothing of its own up there to sample.
+ *
+ * Below `sm` the strip is drawn while the app bar is still on screen and taken away past it, on the
+ * boundary that bar's own tabs/rail swap keys on (`useScrolledPastBar`). Left standing throughout,
+ * a phone scrolled deep into a library reads a coloured band at the very top of an otherwise plain
+ * page, naming a bar that scrolled out of reach screens ago; taken away, nothing at that edge is
+ * fixed and Safari draws its own translucent status bar over the page, which is a transparency a
+ * stated ground can only imitate. The `theme-color` metas (`Google.tsx`) answer for the browsers
+ * that do read one, stating the page's own ground there rather than leaving. From `sm` up the strip
+ * keeps the tab's colour at every scroll position: the pinned rail beneath it is its own separate
+ * surface, not sampled.
  *
  * What a strip has to be is measured rather than declared: an element that anything paints over is
  * never sampled, which is what the `zIndex` is for — the section rail pins opaque one below the app
  * bar, and a strip beneath it would stop answering the moment the rail reached the top. A strip
  * standing 3px high is not sampled either, the floor being nearer 12, so it stands
  * `BROWSER_TINT_HEIGHT` and hangs above the edge, showing the `BROWSER_TINT_VISIBLE` sliver that
- * has to be on screen and no more — every pixel of it is one the section rail gives up out of its
- * own top padding (`chrome.ts`). `visibility: hidden` is not sampled at all, so there is no drawing
+ * has to be on screen and no more — from `sm` up every pixel of it is one the section rail gives up
+ * out of its own top padding (`chrome.ts`), and below that width it lies over the page, which keeps
+ * an anchored section clear of it by a larger margin. `visibility: hidden` is not sampled at all, so there is no drawing
  * it and hiding it.
  *
  * Under a coarse pointer alone, because the two platforms sample on different schedules and only
@@ -38,12 +51,18 @@ import { useScheme } from "./common/useScheme";
  * A tab with no bar colour of its own draws no strip, leaving Safari the paper it would have
  * sampled anyway.
  */
+
 export const BrowserTint = () => {
   const currTab = useCurrentTab();
   const scheme = useScheme();
+  const phone = usePhone();
+  const past = useScrolledPastBar();
   const ground = barColour(currTab, scheme);
-
-  if (!ground) return null;
+  // Past the bar the strip is not drawn: with nothing fixed at the top to sample, Safari draws its
+  // own translucent status bar over the page — the meta stated there for the browsers that read one
+  // is not one Safari reads.
+  if (!ground || (phone && past)) return null;
+  const background = ground;
 
   return (
     <Box
@@ -61,7 +80,11 @@ export const BrowserTint = () => {
           // It lies across the top of the page, and a strip that answered a tap would take one
           // meant for whatever it covers.
           pointerEvents: "none",
-          backgroundColor: ground,
+          // No transition on the colour: the strip is mounted while the tab's colour is what the
+          // top edge is, and taken away rather than recoloured once it is not, so the only changes
+          // left are a tab change and the scheme flipping at dusk, neither of which is a state of
+          // this element crossing to another.
+          backgroundColor: background,
         },
       })}
     />

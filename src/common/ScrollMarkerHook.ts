@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { SCROLL_MARGIN } from "./SectionRail";
-import { CHIP_HEIGHT } from "./ChipRail";
 import { orderedBuckets } from "./finishedData";
 import { scrollBehaviourFor } from "./timelineLayout";
+import { RAIL_CHIP_HEIGHT } from "./typography";
 
-/** Just clear of the rail, which is the only thing pinned above it. */
+/**
+ * Just clear of the rail, which is the only thing pinned above it — from `sm` up, the width the pill
+ * and the jump rail this positions are mounted at. Below it the wall indexes itself with sticky
+ * headings instead, which clear the phone's own smaller margin.
+ */
 export const MARKER_TOP = SCROLL_MARGIN + 8;
 
 /**
@@ -55,7 +59,7 @@ const CHIP_GAP = 6;
  * so a rail that would need less falls back to the pill rather than shrinking into an unreadable
  * stack.
  */
-const CHIP_SLOT = CHIP_HEIGHT + CHIP_GAP;
+const CHIP_SLOT = RAIL_CHIP_HEIGHT + CHIP_GAP;
 
 /** How long the settle loop leaves between measurements, which is long enough for a decoded image to land. */
 const SETTLE_STEP = 90;

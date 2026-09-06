@@ -2,7 +2,6 @@ import { useState } from "react";
 import { groupToColour, type Book, type BookGroup, type Measure } from "./types";
 import Sunburst, { SunBurstControls } from "../common/Sunburst";
 import { bookGroupValue } from "./statsData";
-import { format } from "../utils/mathUtils";
 import { useScheme } from "../common/useScheme";
 
 type OptionKeys = Exclude<BookGroup, "none"> | "startDate";
@@ -20,7 +19,6 @@ const BookSunburst = ({ data, measure }: { data: Book[]; measure: Measure }) => 
   return (
     <Sunburst
       title={`Where the ${measure.toLowerCase()} went`}
-      count={`${format(data.length)} books`}
       data={data}
       groups={controlStates}
       options={{

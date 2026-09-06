@@ -130,7 +130,7 @@ export const groupTotals = <T extends string, U>(
 };
 
 /**
- * The first year a library holds anything in, which is the floor a year select offers and where a
+ * The first year a library holds anything in, which is the floor a year picker offers and where a
  * shared scale opens. Read from the data rather than fixed, because the sheets start in different
  * years and a sheet is a record still being entered. Falls back to the current year when the
  * library is empty, since a select then has nothing below it to offer anyway.

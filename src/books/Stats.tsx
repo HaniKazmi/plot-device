@@ -30,13 +30,12 @@ import { Section, StatBand } from "../common/SectionRail";
 import { CURRENT_PLAINDATE, formatDate, type YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
 import { useSelectBox } from "../common/SelectBoxHook";
-import { format } from "../utils/mathUtils";
+import { stated } from "../common/population";
 import { groupsOnce, type DrilldownGroup } from "../common/statsData";
 import { genreToColour, scoreBand, scoreBandToColour, scoreBands, type Scheme } from "../utils/types";
 import { bookSubtitle } from "./cardData";
 import BookCardMediaImage, { BookFranchiseStrip } from "./CardMediaImage";
 import { BOOK_SECTIONS } from "./sections";
-import type { FilterDispatch } from "./filterUtils";
 import { FORMATS, formatToColour, groupToColour, type Book, type Measure } from "./types";
 import {
   bookHeroStats,
@@ -58,23 +57,17 @@ import { useScheme } from "../common/useScheme";
 const Stats = ({
   data,
   reading,
-  earliestYear,
   measure,
   yearType,
   yearTo,
-  filterDispatch,
 }: {
   data: Book[];
   /** Every book in progress, most recently started first. Computed by `Graphs`, which also
       decides on it whether the rail offers a chip pointing at the hero below. */
   reading: Book[];
-  /** The library's own first year, read from the unfiltered data so the select's floor does not
-      rise with the filters. */
-  earliestYear: YearNumber;
   measure: Measure;
   yearType: YearType;
   yearTo: YearNumber;
-  filterDispatch: FilterDispatch;
 }) => {
   // One grouping per category for the page: the vitals band, the Top card and Most Read all ask
   // for genre or author, and each grouping is a pass over the library.
@@ -95,8 +88,6 @@ const Stats = ({
           <YearVitalsPair
             yearTo={yearTo}
             yearType={yearType}
-            filterDispatch={filterDispatch}
-            earliestYear={earliestYear}
             allTime={bookTotals(data)}
             inYear={booksInYear(data, yearTo)}
           />
@@ -277,7 +268,7 @@ const RecentlyFinished = ({ data }: { data: Book[] }) => (
 const bookMostReadOptions = ["name", ...bookTopOptions] as const;
 
 const MostRead = ({ data, groupsBy, measure }: { data: Book[]; groupsBy: GroupsBy; measure: Measure }) => {
-  const [option, controls] = useSelectBox(bookMostReadOptions, "author");
+  const [option, controls] = useSelectBox(bookMostReadOptions, "author", "By");
 
   if (option === "name") {
     return (
@@ -334,7 +325,7 @@ const MostReadCategory = ({
       // beside its cover, where a row wraps, so under a narrow column the two fall onto their own
       // lines anyway. It is also the row a strip caption is taken from, and a shelf that drops the
       // figure it is ranked by leaves the reader nothing to read the order against.
-      labelComponent={(group) => [[group.name, `${format(group.count)} ${measure}`]]}
+      labelComponent={(group) => [[group.name, stated(group.count, measure)]]}
       colourOf={(top) => groupToColour(category, top, scheme)}
       MediaComponent={BookCardMediaImage}
       // Series order where the sheet numbers one, reading order where it does not: a drill-down

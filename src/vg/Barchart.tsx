@@ -1,5 +1,4 @@
 import { useSelectBox } from "../common/SelectBoxHook";
-import { format } from "../utils/mathUtils";
 import { groupToColour, videoGameOptions, type Measure, type VideoGame, type VideoGameStringKeys } from "./types";
 import Barchart from "../common/Barchart";
 import { useScheme } from "../common/useScheme";
@@ -12,7 +11,7 @@ const options: Readonly<VideoGameStringKeys | "none" | "decade">[] = ["none", ..
 const VgBarchart = ({ data, measure, yearType }: { data: VideoGame[]; measure: Measure; yearType: YearType }) => {
   const scheme = useScheme();
 
-  const [group, controls] = useSelectBox(options, "company");
+  const [group, controls] = useSelectBox(options, "company", "Split");
   const barchartData = (cumulative: boolean) =>
     data.flatMap((game) => {
       const value = measure === "Games" ? 1 : game.hours;
@@ -38,7 +37,6 @@ const VgBarchart = ({ data, measure, yearType }: { data: VideoGame[]; measure: M
       // The games behind the columns rather than the rows the chart is fed, which drop to those
       // with hours under the Hours measure — a population that changed with the toggle would read
       // as the library itself having shrunk.
-      count={`${format(data.length)} games`}
       unit={measure}
       controls={controls}
     />

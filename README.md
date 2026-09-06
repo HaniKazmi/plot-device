@@ -11,11 +11,12 @@ There is no backend and no database — a spreadsheet _is_ the storage layer, an
 - **Google Sheets as a backend** — reads via the Sheets API with a read-only scope; the app never writes.
 - **Data visualisation** — stat cards, a packed SVG timeline, sunburst hierarchies you can re-nest at runtime, and bar/line/bump charts, powered by [Highcharts](https://www.highcharts.com/).
 - **Media tracking** — Video Games, Shows, Movies and Books, each with its own model, filters and theme colour.
+- **Search and filters as one box** — ⌘K or `/` finds a work, a franchise or an attribute across all four libraries; the section rail's own chip opens the same box on the current page's settings and filters. A genre typed in Find narrows the page in place, or takes you to the tab that records it with the filter already set.
 - **Franchises across media** — every expanded card and hero places its item among the whole franchise, games beside seasons beside films beside books, as a chain in the order met or against a window of the franchise's own years.
 - **Omnibus** — a fifth tab, and the one the app opens on, composing the other four's own data into a cross-media Now band, totals, a recently-finished list, a by-year chart with a Totals/Share/Cumulative/Rank view switch, a browsable gallery, and a franchise timeline.
 - **Client-side rendering** — Google Identity Services plus `gapi`, authenticating and fetching straight from the browser.
 - **Cache-first loading** — the dashboard paints from `localStorage` before authentication completes, then refreshes.
-- **Phone and tablet layouts** — a bottom tab bar, most charts folded to a one-line summary until opened, filters and hover cards as bottom sheets on a coarse pointer, and layouts that adapt by pointer as well as by width.
+- **Phone and tablet layouts** — a bottom tab bar, most charts folded to a one-line summary until opened, the box and the hover cards as full-width sheets, and layouts that adapt by pointer as well as by width.
 
 ## Tech stack
 
@@ -64,7 +65,7 @@ The spreadsheet IDs and cell ranges themselves live in [`src/tabs.ts`](./src/tab
 npm run dev
 ```
 
-The app is served at `http://localhost:5173`. Click **Authorise** in the app bar to grant access — below `md`, and on any touch device regardless of width, it is in the app bar's **⋮** menu instead. The token is held in `sessionStorage` for that tab only.
+The app is served at `http://localhost:5173`. Click the **key** in the app bar to grant access: it is there at every width whenever there is something to authorise, wearing the word "Authorise" from `md` up with a fine pointer, and it carries a dot while the page is painted from a cached copy. The app bar's **⋮** holds the tab's Sheet, Revoke and guest mode, at every width and pointer. The token is held in `sessionStorage` for that tab only.
 
 ## Scripts
 

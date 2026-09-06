@@ -8,6 +8,8 @@ import { useCoarsePointer } from "./useCoarsePointer";
 import { LazyTooltip } from "./LazyTooltip";
 import { ScrollFade } from "./ScrollFade";
 import { CONTAIN_SIDEWAYS_SCROLL, scrollbarSx } from "./scrollbarSx";
+import { NothingMatches } from "./NothingMatches";
+import { useNothingMatches } from "./nothingMatchesContext";
 import { useOpenAtLatest } from "./useOpenAtLatest";
 import { useScrollEdges } from "./useScrollEdges";
 import { useElementWidth } from "./useElementWidth";
@@ -671,6 +673,7 @@ const TimelineText = ({
       <HoverCardTooltip
         colour={event.colour}
         title={<LazyTooltip render={event.tooltip} />}
+        name={event.name}
         coarse={coarse}
       >
         <Box
@@ -697,6 +700,7 @@ const TimelineText = ({
         <HoverCardTooltip
           colour={event.colour}
           title={<LazyTooltip render={event.tooltip} />}
+          name={event.name}
           coarse={coarse}
         >
           <Box
@@ -778,11 +782,15 @@ const TimeAxis = ({ ticks }: { ticks: TimelineTick[] }) => {
 };
 
 const Timeline = ({ data, children }: { data: TimelineData[]; children?: ReactNode }) => {
+  // The packed timeline never folds, so this plain `Card` is the one state it has to draw for
+  // itself: a grid with no rows in it says nothing about why there are none.
+  const { active } = useNothingMatches();
+
   return (
     <Card>
       {children}
       <CardContent>
-        <TimeLineChart timelineData={data} />
+        {data.length === 0 && active ? <NothingMatches /> : <TimeLineChart timelineData={data} />}
       </CardContent>
     </Card>
   );

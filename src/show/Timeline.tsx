@@ -2,7 +2,7 @@ import { Timeline as TimelineIcon } from "@mui/icons-material";
 import { useState } from "react";
 import { SectionHeader } from "../common/SectionHeader";
 import { SegmentedControl, type SegmentOption } from "../common/SelectionComponents";
-import { format } from "../utils/mathUtils";
+import { stated } from "../common/population";
 import { Season, Show } from "./types";
 import Timeline, { TimelineData } from "../common/Timeline";
 import { Colour, statusToColour } from "../utils/types";
@@ -51,9 +51,10 @@ const ShowTimeline = ({ data }: { data: Show[] }) => {
       <SectionHeader
         icon={<TimelineIcon />}
         title={groupData ? "Every show" : "Every season"}
-        // The bars actually drawn, which the control beside it changes from one per season to one
-        // per show — so the title and the count turn over with the bars rather than outliving them.
-        count={`${format(titleData.length)} ${groupData ? "shows" : "seasons"}`}
+        // Seasons alone. The count is here to say what the chart is over where that is not what
+        // the page is over, and a bar per season is a population no other surface on the tab
+        // states — where a bar per show is the tab's own, already on the rail's chip.
+        count={groupData ? undefined : stated(titleData.length, "seasons")}
         // The same control the charts' views and the wall's density are chosen with: "one bar per
         // season or per show" is the same kind of choice, a small closed set where the current one
         // has to be readable at a glance, and a switch labelled "Combine Seasons" states only the

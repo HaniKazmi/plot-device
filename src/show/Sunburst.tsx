@@ -3,7 +3,6 @@ import type { KeysMatching } from "../utils/types";
 import { groupToColour, typeToName, type Measure, type Show } from "./types";
 import Sunburst, { SunBurstControls } from "../common/Sunburst";
 import { useScheme } from "../common/useScheme";
-import { format } from "../utils/mathUtils";
 
 type OptionKeys = KeysMatching<Show, string | Show["startDate"]> | "show";
 
@@ -17,7 +16,6 @@ const ShowSunburst = ({ data, measure }: { data: Show[]; measure: Measure }) => 
       title={`Where the ${measure.toLowerCase()} went`}
       // The shows behind the rings rather than the seasons the chart is fed, which is the unit
       // the tab's other sections count in.
-      count={`${format(data.length)} shows`}
       data={data.flatMap((show) => show.s)}
       groups={controlStates}
       options={{

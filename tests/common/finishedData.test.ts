@@ -6,6 +6,7 @@ import {
   finishedBucket,
   finishedColumns,
   finishedCount,
+  wallPopulation,
   finishedItems,
   finishedKey,
   orderedBuckets,
@@ -113,6 +114,21 @@ describe("finishedCount", () => {
 
     expect(finishedCount(data)).toBe(1);
     expect(finishedCount(data)).toBe(finishedItems(data, "Date").length);
+  });
+});
+
+describe("wallPopulation", () => {
+  it("says what the wall is over where the wall is shorter than the library", () => {
+    const data = [item("with", "a.jpg", 2020), item("blank", "", 2021), item("without", undefined, 2022)];
+
+    expect(wallPopulation(data, "games")).toBe("1 games");
+  });
+
+  it("says nothing where the wall draws the whole library, which the rail already states", () => {
+    const data = [item("one", "a.jpg", 2020), item("two", "b.jpg", 2021)];
+
+    expect(wallPopulation(data, "games")).toBeUndefined();
+    expect(wallPopulation([], "games")).toBeUndefined();
   });
 });
 

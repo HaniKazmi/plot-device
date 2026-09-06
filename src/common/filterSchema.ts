@@ -13,6 +13,17 @@ import type { Colour, KeysMatching, Predicate, Scheme } from "../utils/types";
  * Exported because the reducer subtracts them: the schema seeds a starting value for every field
  * these two name, so what a domain still has to state is everything else its state holds.
  */
+/**
+ * A page's state read by field name.
+ *
+ * A tab's own fields are erased off the shape every shared surface holds it through — a schema, a
+ * store, a control drawing one category — and a key is checked against the field it names where
+ * the schema is written. Reading `S[ToggleKey<S>]` back out of a generic `S` is a lookup TypeScript
+ * cannot reduce, so the assertion is made once here rather than at each surface that indexes a
+ * state by a key it was handed.
+ */
+export const fieldsOf = (state: unknown): Record<string, unknown> => state as Record<string, unknown>;
+
 export type ToggleKey<S> = KeysMatching<S, boolean> & string;
 export type CategoryKey<S> = KeysMatching<S, readonly string[]> & string;
 
@@ -24,9 +35,10 @@ export type CategoryKey<S> = KeysMatching<S, readonly string[]> & string;
  * every predicate's direction here — the name says what turning the toggle off does, not what the
  * function returns.
  *
- * No icon: a schema is reachable from the shell, and a filter icon named here would put every
- * tab's icons in the first bundle a visitor downloads. The icons are keyed by these same keys in
- * each medium's lazy half, where the surface drawing them already is.
+ * No icon: the surface drawing these is a row of chips reading the label, and an icon on a chip
+ * a word already names is a picture standing for a word beside it. A schema is also reachable from
+ * the shell, so an icon named here would put every tab's filter glyphs in the first bundle a
+ * visitor downloads.
  */
 export interface FilterToggle<T, S> {
   key: ToggleKey<S>;
@@ -105,12 +117,34 @@ export type PageSchema = FilterSchema<unknown, never>;
 
 /**
  * The values a category's control offers: its own list where it states one, and otherwise every
- * distinct value in the data. Asked here rather than at each drawing surface, so the drawer, the
- * box that filters a page and the attribute index cannot offer three different vocabularies for
- * one category.
+ * distinct value in the data. Asked here rather than at each reader, so the box that filters a page
+ * and the index of what can be found by attribute cannot offer two different vocabularies for one
+ * category.
  */
 export const categoryValues = <T, S>(category: FilterCategory<T, S>, data: readonly T[]): string[] =>
   category.options ? category.options(data) : categoryOptions(data, (item) => category.valueOf(item));
+
+/**
+ * The same values with how many rows each of them holds, in one pass over the library.
+ *
+ * The control drawing a category states the figure inside each chip, so it needs both halves, and
+ * a library of fifteen vocabularies is fifteen scans of every row — paid again on each render that
+ * cannot be memoised past. Where the category states no list of its own the values are the tally's
+ * own keys sorted as `categoryOptions` sorts them, which is the same distinct set by the same rule,
+ * so the box and the search index still offer one vocabulary.
+ */
+export const categoryTally = <T, S>(
+  category: FilterCategory<T, S>,
+  data: readonly T[],
+): { values: string[]; counts: Map<string, number> } => {
+  const counts = new Map<string, number>();
+  for (const item of data) {
+    const value = category.valueOf(item);
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+  }
+
+  return { values: category.options ? category.options(data) : [...counts.keys()].toSorted(), counts };
+};
 
 /**
  * A multi-select's predicate, or none where nothing is selected.
@@ -133,12 +167,10 @@ export const selectedPredicates = <T>(selected: readonly string[], valueOf: (ite
  * per-field — a year cutoff, or a question only that domain's model can answer — and an inactive
  * control contributes nothing at all rather than a predicate that is always true.
  *
- * The state is indexed through a record type: a key is checked against the field it names where
- * the schema is written, but reading `S[ToggleKey<S>]` back out of a generic `S` is a lookup
- * TypeScript cannot reduce, so the two assertions sit here rather than one per domain.
+ * The state is indexed through `fieldsOf`, a schema naming a field by string alone.
  */
 export const schemaPredicates = <T, S>(schema: FilterSchema<T, S>, state: Omit<S, "filter">): Predicate<T>[] => {
-  const fields = state as Record<string, unknown>;
+  const fields = fieldsOf(state);
 
   return [
     ...schema.toggles

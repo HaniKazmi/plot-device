@@ -3,7 +3,7 @@ import { bookEntry, bookSpan } from "./cardData";
 import { bookDataConfig } from "./converter";
 import { bookFilters } from "./filters";
 import { pageState } from "./filterUtils";
-import { bookItemKey } from "./statsData";
+import { bookItemKey, earliestYear } from "./statsData";
 import type { Book, Measure } from "./types";
 
 /** A book as one row of the union. */
@@ -44,6 +44,7 @@ export const bookModule: MediumModule<Book, Book, Measure> = {
   secondaryText: (book) => [book.author, book.series],
   facts: (book) => [book.author, book.status, book.pages ? `${book.pages} pages` : ""].filter(Boolean).join(" · "),
   measures: ["Books", "Pages", "Hours"],
+  earliestYear,
   filters: bookFilters,
   pageState,
 };

@@ -1,94 +1,69 @@
 import { Stack } from "@mui/material";
-import { usePhone } from "../common/breakpoints";
-import type { YearNumber } from "../common/date";
 import Finished from "../common/Finished";
 import Barchart from "./Barchart";
 import Sunburst from "./Sunburst";
 import Stats from "./Stats";
-import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
-import { FilterChip } from "../common/FilterDrawer";
-import { MeasureControl } from "../common/SelectionComponents";
-import { useOtherTabs } from "../tabs";
+import { ChartPair, Section } from "../common/SectionRail";
+import { PageRail } from "../app/PageRail";
 import { SHOW_SECTIONS, showSections } from "./sections";
-import { currentlyWatching, earliestYear } from "./statsData";
+import { currentlyWatching } from "./statsData";
 import Timeline from "./Timeline";
 import { Show } from "./types";
 import { showModule } from "./module";
 import ShowCardMediaImage from "./CardMediaImage";
 import { statusToColour } from "../utils/types";
-import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
+import type { FilterState } from "./filterUtils";
 import { FranchiseContext, showFranchise } from "./franchiseContext";
 import { franchiseIndex } from "../common/franchiseIndex";
-import { SchemaFilterDrawer } from "../common/FilterControls";
-import { showFilters } from "./filters";
-import { filterIcons } from "./filterIcons";
 import { memo, useDeferredValue } from "react";
-import { format } from "../utils/mathUtils";
-import { finishedCount } from "../common/finishedData";
+import { wallPopulation } from "../common/finishedData";
 import { useScheme } from "../common/useScheme";
+
+/** What the wall's card borders speak, and the key beneath its header names. */
+const SHOW_BORDER = { key: "status", valueOf: (show: Show) => show.status };
 
 const SuspenseBlock = ({
   filteredData,
   unfilteredData,
   filterState,
-  filterDispatch,
 }: {
   filteredData: Show[];
   unfilteredData: Show[];
   filterState: FilterState;
-  filterDispatch: FilterDispatch;
 }) => (
   <FranchiseContext.Provider value={franchiseIndex(unfilteredData, showFranchise)}>
     <Graphs
       data={filteredData}
-      // The floor of the year select, read from the whole library rather than from what the
-      // filters left: derived from the filtered data, picking "In 2020" would leave 2020 the
-      // earliest year on offer and strand the reader in it.
-      earliestYear={earliestYear(unfilteredData)}
       filterState={filterState}
-      filterDispatch={filterDispatch}
-    />
-    <SchemaFilterDrawer
-      schema={showFilters}
-      icons={filterIcons}
-      state={filterState}
-      dispatch={filterDispatch}
-      data={unfilteredData}
-      activeCount={activeCount(filterState)}
-      onReset={() => filterDispatch({ type: "resetFilters" })}
     />
   </FranchiseContext.Provider>
 );
 
-const Graphs = memo(
-  ({
-    data,
-    earliestYear,
-    filterState,
-    filterDispatch,
-  }: {
-    data: Show[];
-    earliestYear: YearNumber;
-    filterState: FilterState;
-    filterDispatch: FilterDispatch;
-  }) => {
-    const scheme = useScheme();
+const Graphs = memo(({ data, filterState }: { data: Show[]; filterState: FilterState }) => {
+  const scheme = useScheme();
 
-    const deferredData = useDeferredValue(data, []);
-    const tabs = useOtherTabs();
-    // Answered once for the page: it decides both whether the "now" strip is rendered and whether
-    // the rail offers a chip pointing at it, and two derivations of one test are two that can differ.
-    const watching = currentlyWatching(data);
-    // The phone reads the library before the charts. One answer for the page and the rail alike:
-    // `ChartsAndLibrary` orders the two sections and `chartsLastOrder`, inside the sections list,
-    // orders the chips naming them.
-    const chartsLast = usePhone();
+  const deferredData = useDeferredValue(data, []);
+  // Answered once for the page: it decides both whether the "now" strip is rendered and whether
+  // the rail offers a chip pointing at it, and two derivations of one test are two that can differ.
+  const watching = currentlyWatching(data);
 
-    const charts = (
-      <Section
-        key={SHOW_SECTIONS.charts}
-        id={SHOW_SECTIONS.charts}
-      >
+  return (
+    <Stack spacing={2}>
+      <PageRail
+        sections={showSections(watching.length > 0)}
+        count={data.length}
+      />
+      <Stats
+        data={data}
+        watching={watching}
+        measure={filterState.measure}
+        yearType={filterState.yearType}
+        yearTo={filterState.yearTo}
+      />
+      <Section id={SHOW_SECTIONS.timeline}>
+        <Timeline data={deferredData} />
+      </Section>
+      <Section id={SHOW_SECTIONS.charts}>
         <ChartPair
           left={
             <Sunburst
@@ -105,59 +80,19 @@ const Graphs = memo(
           }
         />
       </Section>
-    );
-
-    const library = (
-      <Section
-        key={SHOW_SECTIONS.library}
-        id={SHOW_SECTIONS.library}
-      >
+      <Section id={SHOW_SECTIONS.library}>
         <Finished
+          count={wallPopulation(data, showModule.noun)}
           title="All Shows"
-          count={`${format(finishedCount(data))} ${showModule.noun}`}
-          borderKey="status"
+          border={SHOW_BORDER}
           data={data}
           colour={(item) => statusToColour(item, scheme)}
           MediaComponent={ShowCardMediaImage}
         />
       </Section>
-    );
-
-    return (
-      <Stack spacing={2}>
-        <SectionRail
-          sections={showSections(watching.length > 0, chartsLast)}
-          tabs={tabs}
-          actions={
-            <MeasureControl
-              measures={showModule.measures}
-              value={filterState.measure}
-              dispatch={filterDispatch}
-            />
-          }
-          trailing={<FilterChip activeCount={activeCount(filterState)} />}
-        />
-        <Stats
-          data={data}
-          watching={watching}
-          earliestYear={earliestYear}
-          measure={filterState.measure}
-          yearType={filterState.yearType}
-          yearTo={filterState.yearTo}
-          filterDispatch={filterDispatch}
-        />
-        <Section id={SHOW_SECTIONS.timeline}>
-          <Timeline data={deferredData} />
-        </Section>
-        <ChartsAndLibrary
-          charts={charts}
-          library={library}
-          chartsLast={chartsLast}
-        />
-      </Stack>
-    );
-  },
-);
+    </Stack>
+  );
+});
 
 Graphs.displayName = "Graphs";
 

@@ -40,10 +40,10 @@ export const splitCell = (value: string | undefined) =>
 /**
  * A model key as a phrase, in sentence case: `startDate` reads "Start date", `name` reads "Name".
  *
- * The sunburst's ring selects offer the fields themselves — the grouping is the model's own keys —
- * so a menu left to the raw values reads `startDate` beside `franchise`, in the theme's
- * `capitalize`, which puts a capital on each word and none on a camelCase run. Sentence case is
- * what a label is: one capital, at the front.
+ * Every picker's default wording, and what a menu of model keys is read by: the sunburst's rings
+ * offer the fields themselves, so a menu left to the raw values reads `startDate` beside
+ * `franchise`. Sentence case is what a label is — one capital, at the front — where a rule
+ * capitalising each word puts none on a camelCase run and two on a worded one.
  *
  * The split is on the camelCase boundary alone, so a key that is an acronym comes back as a word —
  * every key this is asked of is a field name typed as one.

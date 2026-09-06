@@ -96,9 +96,9 @@ The direction holds the other way too: **nothing in `app/` imports `omnibus/`**,
 tab like any other, so the shared half of a surface more than one tab reads — the gallery's
 grouping, a mixed row's card size — sits in `app/` rather than inside one page's folder, where the
 next reader has to reach across for it. `app/pageState.ts` is the single exception, naming the
-composing tab's own store: every other tab's is registered through its `MediumModule`, and the
-Omnibus is a tab and not a medium, so until it has a module of its own its store is registered by
-name.
+composing tab's own `PageModule`: every other tab's arrives through its `MediumModule`, and the
+Omnibus is a tab and not a medium, so the fifth page module is declared in that folder
+(`omnibus/pageModule.ts`) and looked up here.
 
 **`app/` is the medium registry** (`app/media.ts`): a `MediumModule` per medium, supplied by each
 domain's own `module.ts`, holding everything the app asks of a medium that the medium itself is the
@@ -117,8 +117,7 @@ reached through `app/mediaLazy.ts` alone — a static table, so a wall of cards 
 trip per medium, and the one seam, so there is one answer to when a medium's chunk is fetched. That
 lookup is on a value the bundler cannot narrow, so the lazy half is held to those two components:
 anything else exported there is weight on the chunk the union prefetches for its hover cards on
-every visit, which is why each tab's filter glyphs sit in its own `filterIcons.ts` beside the
-`Graphs` that draws the drawer. Nothing in `app/` imports `tabs.ts`,
+every visit. Nothing in `app/` imports `tabs.ts`,
 because `tabs.ts` imports the five entry components eagerly and an entry component reaches the
 registry: a module carries `tabId: string`, and the one component that resolves an id to a tab is
 mounted by the shell, below both.
@@ -284,16 +283,39 @@ visitor who never authorises.
   yields a `NaN` expiry, which fails every validity test and discards the token on its next read.
 - **Readiness.** `apiReady = tokenSet && apiReadyToFetch` — a valid token _and_ an initialised gapi
   client, so consumers wait on one flag rather than two async loads.
-- **Failure handling.** A rejected `values.get` clears `tokenSet`, flipping the NavBar back to
-  "Authorise", so mid-session expiry self-heals into a re-prompt. **Only the request is guarded**: a
+- **Failure handling.** A rejected `values.get` clears `tokenSet`, putting the key back in the bar,
+  so mid-session expiry self-heals into a re-prompt. **Only the request is guarded**: a
   converter throw travels on to `useData` instead, since clearing the token would make a data fault
   look like an auth fault. A refusal — GIS delivers a dismissed consent popup to the callback a grant
   arrives on, carrying `error` and no `access_token` — is rejected by `isGrant` (`contexts/token.ts`)
   before it can leave the app reporting itself authorised on a credential-less token.
 
 The requested scope is `spreadsheets.readonly`; there is no write path by design. `authorise` and
-`revoke` are exposed as `undefined` when unavailable, so `NavBar` renders its three states
-(Authorising / Authorise / Revoke) by presence-checking rather than reading separate booleans.
+`revoke` are exposed as `undefined` when unavailable, so which of them exists _is_ the token, read by
+presence rather than through separate booleans.
+
+**What the reader is told is a fourth thing, and it takes the cache as well as the token.**
+`app/authState.ts` answers `live` · `authorising` · `stale` · `empty`: neither callback present is
+the loading state whatever the cache holds, `revoke` present is live, and only then does the cache
+decide — some library with a copy behind it is `stale`, none at all is `empty`. Presence alone, never
+`useData`'s `loaded`: a reader who revokes mid-session, and a failed `values.get` that cleared the
+token, both leave rows on screen this session did fetch and can no longer refresh, which is what the
+key's dot is for and what reading `loaded` would blank the page over. The auth context sits above the
+library provider and knows nothing about the cache, so the derivation is a hook below both — which
+the bar and the page body are, `Google.tsx` mounting `LibraryProvider` above `NavBar` for it.
+
+The bar draws one thing about all this: an authorise key beside the search button, at every width,
+and only where there is something to authorise — a dot on it while the page is stale, its word
+beside it from `md` up with a fine pointer, and nothing at all when the session is live. Everything
+else is behind the `⋮`, which is drawn at every width and pointer: the tab's Sheet, Revoke, and
+guest mode in both directions. One list and one surface, so nothing is reachable at one width and
+not another — an iPad held sideways clears every width test and still points with a finger, and a
+mouse at 1440 has no other way out of guest mode. The dot is all a stale page is told: the rows are
+last visit's and one press refreshes them, which a line of chrome under the bar states at the cost of
+a strip standing over every page for the whole sitting. `app/EmptyCard.tsx` is the exception, for the
+`empty` state, which `Google.tsx` renders in place of the `<Outlet>`: with no cache and no token
+there is no fetch to fail, so the snackbar has nothing to report and the card is the only thing that
+can say what to do.
 
 ## 6. Presentation subsystems
 
@@ -327,7 +349,28 @@ share of the values behind them. `Rank` ranks the measure `Totals` plots and kee
 figure, so the axis plots position while the hover card states the number. Clicking a column
 isolates that series and clicking again restores all, through Highcharts' plot-options event rather
 than React state, and an empty pivot is refused outright, Highcharts inventing an index axis and a
-series of its own from nothing.
+series of its own from nothing. Where the reader's own settings are what emptied it, it draws
+`common/NothingMatches.tsx` — what emptied the page, and that setting's own way back — in place of
+the "nothing to plot" line; a library with nothing in it and nothing to blame draws the plain line
+instead, since there is no choice to undo. `Sunburst`, the packed `Timeline`, `FoldedChart`,
+`Finished` and `StatList` answer the same way for the same reason, each drawing it in the body at a
+modest height rather than the chart's own `80vh`.
+
+**Which of the two it is, is the page's answer and not the chart's.** `common/nothingMatchesContext.ts`
+carries whether the page's own settings have left it with no rows at all, which of the two did it —
+a filter, the year scope, or both — and the dispatch that undoes each. The message names the one
+that emptied the page and offers exactly its way back: "Nothing matches these filters · Clear
+filters", or "Nothing in 2019 · Show all time", the scope stated in the words its own picker wears.
+A reader told the filters emptied a page holding none has been sent to look for a control that is
+not lit. `Google.tsx` provides it once above the outlet, from the current
+tab's page module — one pass of that page's own predicate over its library per filter change, the
+same figure the box's footer states — and every shell asks it at the empty branch it already has.
+Handed down instead, it is a prop threaded through sixteen domain wrappers that never look at it,
+and a shell added later is silently the one that says nothing. Asked at the shell's own empty
+branch rather than in place of it, a chart emptied by a control of its own — the games timeline's
+2015 floor, a grouping that yields no rings — still states that in its own words while the page
+around it has rows. The Omnibus gates each of its sections on having something to draw, so it draws
+the message itself where they would stand.
 
 `groupDate` sorts groups ascending so `reversedStacks` — on by default — puts the biggest at the
 foot of the stack, where a stack is read from, and the legend is reversed to match. Height is the
@@ -353,8 +396,8 @@ module has to stay one a locale cannot change.
 An arbitrary-depth hierarchy from a flat list. `generateSunburstData` (`common/sunburstData.ts`)
 builds path-style ids (`"-Nintendo-Switch-Zelda"`) and accumulates values into a `Map`, which makes
 grouping order fully dynamic: the caller passes `groups: K[]` and `SunBurstControls` renders one
-select per level, so a reader re-nests at runtime — one labelled row, "Nest by" then the rings
-joined by `›`, humanised through `keyLabel` (`utils/stringUtils.ts`). Domain meaning enters through
+picker per level joined by `›`, "Nest by" the first picker's own `label` rather than a caption
+beside the row, humanised through `keyLabel` (`utils/stringUtils.ts`). Domain meaning enters through
 four callbacks: `keyToVal`, `getCount`, `getColor`, `getLeafName`. `ringOptions` takes a chosen key
 out of the other menus, a key held twice dividing every wedge into one child of the same name,
 unless that would leave a menu holding only the value it shows.
@@ -384,9 +427,10 @@ Folded on a phone, the card states `firstRing` — the innermost ring, largest f
 `ProportionalBar` (`RingBar`) built through the Top lists' own `topNWithOther`, so wedges beyond the
 fifth become one "Other" segment. A grouping with a colour vocabulary keeps the wheel's own hex; one
 without falls back to a series colour by rank, which can disagree with Highcharts' own `colorByPoint`
-order — the names under the bar say which segment is which regardless. `SunBurstControls`' "Nest by"
-label drops below `sm`: at 390px the card is 324px and a word plus three chevron selects wants 379,
-so the label is the one a reader can infer back from the values it precedes.
+order — the names under the bar say which segment is which regardless. The three pickers appear with the wheel they re-nest, a folded
+card having nothing to nest: shown, the row asks for more room at 390px than the card holds and
+scrolls under the title (`SectionHeader`'s `ActionRow`, above) with the "Nest by" label intact
+rather than either wrapping the row or dropping the word.
 
 ### Timeline — `common/Timeline.tsx`
 
@@ -496,7 +540,7 @@ tabs' own vocabulary rather than inventing a mixed-media one.
 on, side by side. `electNow` reuses each domain's own election — `currentlyPlaying`,
 `heroSeason(currentlyWatching(...))`, `latestWatched`, `currentlyReading` — so a card cannot
 disagree with the hero its home tab shows, and its `visible` record keeps a medium switched off in
-the filter drawer from headlining. A medium with nothing in flight contributes no card; with none in
+the box's This page mode from headlining. A medium with nothing in flight contributes no card; with none in
 flight, no band.
 
 The composing layer supplies the ground under each card's own `TypedCardMediaImage`: `barColour`
@@ -549,12 +593,14 @@ of run, and the ground already says which medium's date it is; `NowDate` reads t
 arrangement for which edge it stands on, as every footer does, so the cell passes `shape`. A column
 that narrow holds a date and not a word, and the date is the one fact of the four a picture cannot
 carry; the platform, the genre and the figures are one tap away on the expanded card, which the
-whole cell opens (`openFromCell`): a finger on the spine does what a finger on the picture does,
-and Enter on the focused picture — which lands on the action area and not on the picture the card
-opens from — is forwarded the same way. A medium with nothing in flight leaves its column a cell
-short, and the columns then differ by that cell's height. Between `sm` and `md` the cards return
-two to a row, the share solved from the measured width as the four-way one is (`pairNowGeometry`),
-since the stated 434px card is wider than half a tablet's page.
+whole cell opens (`openFromCell`): a finger on the spine does what a finger on the picture does. A
+press inside the card's own action area is left alone, that button carrying the card's press itself
+and answering the keyboard with it. A medium with nothing in flight leaves its column a cell
+short, and the columns then differ by that cell's height. From `sm` up the cards stand two to a row, the share solved
+from the measured width as the four-way one is (`pairNowGeometry`) and capped at the stated card,
+which it reaches from a 876px row. The share is unconditional: a card wider than half its row can
+only stand one to a row, so refusing a narrow share would hand a 558px row four rows of the stated
+card, 1,544px against the 590 the same row's pair costs.
 
 **Mixed rows are one card size, the Now band's rule at strip scale.** A list lays its cards out one
 of two ways (`CardLayout` in `common/Stats.tsx`): a grid at stated column spans, or a sized row.
@@ -579,7 +625,9 @@ the artwork takes the rest.
 once across all four: `recentlyFinished` keeps only items with a `closeDate`, since an item in
 progress is not finished — and that filter leaves every entry with a date to sort by, where
 `sortByKey` puts falsy values first in both directions. Its cap is stated in rows (`collapsedRows`,
-two), since how many a sized row holds follows from the measured width. The library wall
+two), since how many a sized row holds follows from the measured width. Collapsed, that cut is the
+card's own control — "All 1,794 ›" — so the header states nothing; the dialog, whose control is the
+way out, states the cut its own 500-card cap still makes as a figure. The library wall
 (`common/Finished`) is not reached from the union; see §10.
 
 **By year** (`omnibus/Barchart.tsx`, `omnibus/barchartData.ts`) is the union on a time axis, split
@@ -595,7 +643,9 @@ empty is dropped rather than opening a series named `""` — every book answers 
 that way — and the header counts the rows drawn.
 
 **The gallery** (`omnibus/Gallery.tsx`, `app/galleryData.ts`) shelves the union by genre,
-franchise, rating or decade, each shelf a `common/Filmstrip` with a drill-down behind its handle. It
+franchise, rating or decade, each shelf a `common/Filmstrip` with a drill-down behind the worded cut
+at the end of its name row — the shelf holds twenty pictures of a group that can run to hundreds,
+and the figure is what says so as well as what opens the rest. It
 opens on franchise, newest first — the series met lately, which the genres band does not answer. A
 shelf card carries no words, so the picture keeps the whole height below its medium band.
 Every category but rating is a field all four media record — `groupByCategory` skips an empty value,
@@ -648,8 +698,8 @@ a show's season strip is, so the two cannot disagree about what counts as an ove
 absolute: each medium is packed on its own and offset past the lanes already spent, so a renderer
 never works out where a medium's rows begin. Reaching a second medium is not asked of a franchise,
 that cliff hiding the largest series on the page — thirty seasons of Doctor Who behind the absence
-of a Doctor Who game. The twelve biggest are drawn (`STRIPS_SHOWN`), the header stating the full
-count. A franchise groups on the raw franchise column, as `movieFranchise`/`showFranchise` do, so a
+of a Doctor Who game. The twelve biggest are drawn in the card (`STRIPS_SHOWN`), the rest behind its
+own worded cut. A franchise groups on the raw franchise column, as `movieFranchise`/`showFranchise` do, so a
 series' founding entry keeps naming itself as its own tab draws it; `namesTheSameThing` drops a group
 where _every_ entry repeats the name, that group having no series structure to draw a lane for. That
 one test holds the section to series: 588 franchise values are 169 series by it. A film is a point
@@ -660,13 +710,22 @@ library for a single game's strip. The `epoch` is the earliest _start_ drawn, fl
 earlier start against the left edge, and a mid-month epoch puts every year line off by the
 difference.
 
+The section is an `ExpandableCard` whose dialog draws every franchise, in stacks of the same twelve:
+one scroller per stack rather than one for all of them, a scroller being what holds a shared scale
+true and twelve strips being as much of one as a screen shows. The card's own control reads "All 180
+›", so the cut is both visible and one press away, and the header states no count — the strips are
+the page's own franchises and the packed reading is the page's own population, which the rail
+states. On a phone the card folds inside itself (`FoldedContent`, the fold without the `Card`
+`ExpandableCard` already owns).
+
 The header's Franchises · All switch trades the strips for the packed timeline the Games, Shows
 and Books tabs draw one medium at a time, over the whole union: `omnibus/timelineData.ts` maps
 each item to a row through the crossings' own `crossingSpan`, so the two readings cannot disagree
 about when an entry ran, coloured by medium and hovering to the same dispatcher. A game logged
 with a bare year is left out rather than drawn as a year-long solid bar — the strips dissolve such
-a span under a mask that says so, where a packed row has no way to mark one as an estimate — and
-the header counts the rows drawn. The rows are built only while that reading is chosen, and the
+a span under a mask that says so, where a packed row has no way to mark one as an estimate. That
+reading draws every row it has, so the card offers no expansion under it. The rows are built only
+while that reading is chosen, and the
 choice lasts the visit. `TimeLineChart` is exported from `common/Timeline.tsx` for it, the chart
 without the card the section already stands in.
 
@@ -721,54 +780,81 @@ ledger, and only a mixed row arranges itself per item. `OmniHoverCard` beside it
 four ways, so a hovered mark shows the card its home tab would show rather than a fifth assembly of
 one.
 
-### One control idiom for "how is this drawn" — `SegmentedControl`
+### One control idiom for "how is this drawn" — the control kit
 
-`common/SelectionComponents.tsx` exports one control for a small closed set of named states, and
-every surface offering one uses it: the barchart's four views, the gallery's shelf order, the wall's
-density, the Shows timeline's Seasons · Shows, and each tab's measure in the section rail — the last
-through `MeasureControl`, which owns the wiring to the filter reducer once for the five tabs. Values
-that are already their own words become options through `common/segments.ts`. Words rather than
-icons, an icon being a legend nothing on the page teaches.
+Every control on the page is one of five parts. Four are stated once as a theme override in
+`Google.tsx` rather than at their call sites — a **segment** (`MuiToggleButton`), a **picker**
+(`MuiButton` at `size="small"`), an **action icon** (`MuiIconButton`) and a **rail chip** (`MuiChip`
+at `size="small"`) — and the fifth, the **sheet bar** every layer opens with, is a component of its
+own (`common/Card.tsx`), since a bar is a shape rather than a size. One type size, 12px
+(`CONTROL_TYPE_SX`, `common/typography.ts`), and one height per surface: 28 in a card header, 24 for
+a chip in the rail, and 32 for every part under a coarse pointer, where the type stays put and only
+the target grows. A control is a rounded rectangle at 6px and a chip is a pill — rectangles change
+how something is drawn, pills take the reader somewhere. All of them answer a keyboard the same way,
+a 2px ring in the tab's primary outside the part's own edge, so the focus is one mark rather than
+whatever each MUI component draws. The app bar is the exception it states itself (`BAR_BUTTON_SX`,
+`NavBar.tsx`): a filled bar with nothing beside its buttons to be level with, where a 28px square
+reads as a control that shrank.
 
-It is always `size="small"` at 12px, or one control would read as two between a card header and the
-22px chip rail, and a press on the lit segment is ignored rather than clearing it. The franchise
-strip's Order · Time switch passes a `tone` — `SegmentTone`, the artwork palette's `ground`,
-`onGround`, `line` and `tile` — because the theme's primary is solved against the theme's paper and
-on a sampled ground can land a hue away from legible: toned, the lit segment takes the surface's ink
-with its word in the ground, and the unlit words that same ink at full strength, the muted tone
-being a transparent ink too close to a mid-toned ground for a 12px word to carry. `SelectBox` takes
-an optional `labelFor` where a caller's options are model keys, with `textTransform: none` on the
-select and again on every item, which the portalled menu cannot inherit.
+`CutButton` is the picker's sibling: a worded action reading a `common/population.ts` `all(total)`
+with a chevron, on the same button the picker is drawn on and stating the same edge in `sx`, since
+the theme gives a small outlined button MUI's own half-strength primary. Wherever it stands on a
+card's own footer the footer restates its colours from the artwork palette — a control grounded in
+`background.paper` on a sampled ground is a rectangle of the page's paper inside a coloured card.
 
-### Filter drawer, Top lists and drill-down — shared shells
+`SegmentedControl` is a small closed set of named states, and every surface offering one uses it:
+the barchart's four views, the gallery's shelf order, the wall's density, the Shows timeline's
+Seasons · Shows, the Games timeline's With party · Without, and each tab's measure in the section
+rail — the last through `MeasureControl`,
+which owns the wiring to the filter reducer once for the five tabs. Values that are already their
+own words become options through `common/segments.ts`. Words rather than icons, an icon being a
+legend nothing on the page teaches. A press on the lit segment is ignored rather than clearing it.
+The franchise strip's Order · Time switch passes a `tone` — `SegmentTone`, the artwork palette's
+`ground`, `onGround`, `line` and `tile` — because the theme's primary is solved against the theme's
+paper and on a sampled ground can land a hue away from legible: toned, the lit segment takes the
+surface's ink with its word in the ground, the unlit words that same ink at full strength, and the
+rest of the control the surface's own ground in place of the paper the theme would give it — the
+muted tone being a transparent ink too close to a mid-toned ground for a 12px word to carry.
 
-`common/FilterDrawer` is two different trees on `usePhone`, not one tree at two sizes: from `sm` up a
-floating button opens a `Drawer` that stays out of the page's way, `variant="persistent"` so it
-never covers the chart it is narrowing; below it the button is a chip in the section rail's
-`trailing` slot (`FilterChip`) and the drawer is a modal `SwipeableDrawer` sheet, opened by that
-chip alone (`disableSwipeToOpen`, `disableDiscovery` — the bottom edge of a phone is the home
-gesture's). Both read `common/filterSheet.ts`, a store outside React rather than a context: the chip
-lives in the rail, which a domain's `Graphs` renders, and the drawer is a sibling of the whole chart
-tree, so lifting the open flag to their nearest common ancestor would sit it above every chart and
-re-render all of them on an open the flag never reaches. `FilterToggle` reads which tree it is in
-through a `SheetContext` set by the drawer itself, since the slot handing it down as a child cannot
-otherwise tell — a switch under a wrapped label, three to a row, on desktop; a third-height filled or
-outlined chip in the sheet. `FilterCategory` is unchanged either way. Both slots are filled by
-`common/FilterControls`, which draws the domain's `FilterSchema` (§7) rather than a list written out
-per tab, so every surface offering a page's filters offers one description of them. The button
-carries a badge
-counting the fields the reader has changed (`activeCount`, from `createFilterReducer`): every chart
-is drawn through the drawer, so a library narrowed to one franchise otherwise looks exactly like the
-whole library. The measure and the year scope are not among those fields — each is a control of its
-own outside the drawer, stating on its own face that it is set, and a badge counting them would
-report a choice the surface it sits on cannot undo.
+`SelectBox` is the picker: a button opening a `Menu`, not a `Select`. A select is a form field sized
+by MUI's input metrics, where every one of these stands beside segments in a card header, so as a
+button it takes the kit's own height, type and corner and a header holding both reads as one row.
+Options that are model keys are humanised by `keyLabel` (`utils/stringUtils.ts`) unless the caller
+passes its own `labelFor`, which is what the menu items are worded by — sentence case, `startDate`
+reading "Start date". `label` names what is being chosen where the card's title does not, muted
+beside the value; `defaultValue` is what the page opens on, and given it, the control takes a lit
+border and wash once the reader moves off it, which is the one thing a picker cannot say by its
+value alone.
 
-`common/DrilldownDialog` and `ExpandableCard`'s own dialog (below) both take an `onClose`, so Escape
-and a backdrop press close them like any other dialog; the header button stays, since a fullscreen
-dialog covers the handle that opened it. Below `sm` `DrilldownDialog`'s header sticks to the top
-(`stickySheetHeader`) rather than scrolling with a grid five hundred cards deep, and swaps its
-arrows-in icon for a ✕ — the sheet's own word for leaving, where the arrows would read as "back to
-the card this came out of".
+### The page's controls, Top lists and drill-down — shared shells
+
+**A page's filters live in the box above it** (§ Search), not in a surface of their own. The two
+handles are in the section rail: from `sm` up `FilterChip`, in the rail's `population` slot, whose
+**word is the page's population** — "309 shows", `stated(filtered.length, module.noun)` computed
+once in each tab's `Graphs` — with a badge for how many fields the reader has changed; below `sm`
+`PageChip`, the picker-shaped chip reading the measure with that same badge, since a 358px rail has
+no room for the figure (§ Page architecture). Both live in `common/PageHandles.tsx` and both call
+`openPage()`, so the figure and the controls that moved it are one object and the rail is the one
+surface pinned at every scroll position, where a floating button stands over whatever the page is
+showing and, at the bottom right of a phone, under the browser's own toolbar.
+
+The badge counts the fields the reader has changed (`activeCount`, off the tab's own `PageStore`):
+every chart is drawn through those filters, so a library narrowed to one franchise otherwise looks
+exactly like the whole library. The measure and the year scope are not among them — each is a
+control of its own with its own lit face, and a badge counting them would report a choice its own
+surface cannot undo.
+
+What the box draws is `common/FilterControls`' `SchemaPageControls`, over the tab's `FilterSchema`
+(§7) rather than a list written out per tab, so every surface offering a page's filters offers one
+description of them.
+
+`common/DrilldownDialog` and `ExpandableCard`'s own dialog (below) both open with the `SheetBar`
+every layer wears (§ The expanded card): the name of what was opened and a ✕, pinned at the top at
+every width, since a fullscreen dialog covers the handle that opened it and a grid five hundred
+cards deep leaves the reader nothing else to press. Both also take an `onClose`, so Escape and a
+backdrop press close them like any other dialog. Neither header carries a way out of its own: the
+drill-down states its group in the bar alone, and the expanded list keeps its `SectionHeader` for
+the controls that live in it, which costs one title stated twice.
 
 `common/TopList` exports `TopCategoryBand`, the row of "Top X" cards a tab opens on. The card owns
 what is the same everywhere: the category select, `topNWithOther`'s top-five-plus-Other reduction
@@ -778,46 +864,128 @@ one without takes a palette colour offset by the option's index, so switching ca
 consistently. A domain supplies its option list, whose order feeds that offset, an icon per option,
 how to group, and its vocabularies.
 
-`common/GroupedStatList` is the strip of grouped cards that drills into a group. It owns the open
-handle, the expand badge that sets it, and the drill-down's card keys, which the category prefixes
-so a change of grouping remounts the grid; it sorts the picked group at open rather than every
-category on every render, and mounts `common/DrilldownDialog`, the fullscreen list itself, only
-while a group is picked. The franchise machinery is shared the same way: `common/franchiseIndex`
+`common/GroupedStatList` is the strip of grouped cards that drills into a group. It owns the
+drill-down's card keys, which the category prefixes so a change of grouping remounts the grid, and
+the rule that **the whole card opens the group, at every width** (`CardMediaImageProps.onOpen`,
+which replaces the item's own detail dialog): the picture fronts the group rather than being an item
+of it, so the press has one meaning — and the press is the card's own action area, a button, so
+Enter on the focused card opens the group where a handler on the picture inside it would answer the
+pointer alone. What says so is a › at the end of the footer's closing row (`FooterComponent`'s
+`chevron`, in the footer's own artwork tones), following the handle rather than asked for
+separately, so the two cannot disagree; on a phone's strip card, whose footer is a caption of two
+fixed lines, it rides the closing line — the figure, and the shorter of the two, so the date above
+keeps the card's full width. It is a glyph and not a worded button because a
+button there stands the footer a row taller than the plain `StatList` beside it — the two cards
+sharing a `StatBand` row then end 30px apart — and it sits outside the row's own flex box, which wraps
+between its cells and would otherwise give a long group's name a second line the short names do not
+take. The card names what it opens (`openLabel`, "Open Fantasy, 116 games"), since its `alt` and its
+words between them name the group's biggest member — the one item pressing it does not open. It
+sorts the picked group at open rather than every category on every render, and mounts
+`common/DrilldownDialog`, the fullscreen list itself, only while a group is picked. The franchise machinery is shared the same way: `common/franchiseIndex`
 groups by whatever accessor a domain passes, and `common/franchiseContext`'s factory threads the
 index down to the card strips.
 
-### Search — `common/SearchPalette.tsx`, `app/Search.tsx`
+### Search and the page's own filters, as one box — `common/SearchPalette.tsx`, `app/Search.tsx`
 
-One box over all four libraries, opened from a magnifier in the app bar, ⌘K or Ctrl+K, and `/`
-outside a field where a slash is a character. The chord puts the caret in the box with the last
-query selected even where the box is open already — whatever a hit opened may have taken the focus
-with it — and from inside the box it closes it, so the store counts requests beside the flag. The button is in the bar and the palette is mounted
-inside `FranchiseUnionProvider`, a sibling subtree below it, so the open flag lives in a store
-outside React (`common/searchOpen.ts`), the filter sheet's arrangement: lifted to their common
-ancestor it would re-render the bar, the container and every tab on each open. Everything the box
-draws with — the shell, the index, the franchise view, the four domains' cards — is one lazy chunk
-(`SearchSurface`), prefetched on mount as the hover card is.
+**One box with two modes.** _Find_ is the search over all four libraries; _This page_ is the
+current tab's own settings and filters. They are one surface because they answer one question in
+two directions — a reader typing "comedy" is asking either for the thing called Comedy or for the
+page narrowed to it — and because a filter surface with no keyboard route and a box with no tap
+route are two half-controls.
 
-The shell is domain-blind: it takes groups of already-shaped hits and owns the input, the keyboard
-(↑↓ through every hit as one list, ↵ on the selected, the first selected as soon as there is one)
-and the two arrangements, a dialog seated near the top from `sm` up and a fullscreen sheet below it
-with the box in the pinned bar every sheet wears. A row is lit by one `selected` flag for keyboard
-and pointer alike — the pointer moving onto a row selects it — since a tap has no leave event to
-unlight a hover of its own. The index over the union sits in `app/searchData.ts`, built once
-per library from the union the library provider builds and hands every tab (`useLibrary().items`),
-so guest mode is applied before anything is indexed and a hidden item is
-absent from the index as it is from the union. Franchises come from the raw franchise column, held
-to the crossings' rule that some entry not repeat the name; works are collapsed once per work
-through the gallery's own `workOf`, so a show is one hit however many seasons it ran and its latest
-season is the item its hit opens.
+**The handle decides the mode.** The magnifier in the app bar, ⌘K and `/` open Find with the
+keyboard up; the rail's population chip (`FilterChip`) from `sm` and its measure chip (`PageChip`)
+below it open This page with the keyboard down (§ The page's controls). ⌘⇧K switches an open box
+and opens a closed one in the other mode; ⇥ inside the box switches it, but only where focus is in
+the input or on the mode segment — a menu inside This page has to stay walkable out of by keyboard.
+The keyboard is asked for on the mode _and_ the request count together (`common/searchOpen.ts`), so
+a switch **into** Find raises it and opening This page does not; switching the other way blurs the
+field, since a reader who typed in Find still has the caret in it and on a phone that is a keyboard
+standing over the lists the switch was made to reach.
+
+The chord puts the caret in the box with the last query selected even where the box is open already
+— whatever a hit opened may have taken the focus with it — and from inside the field it closes it,
+so the store counts requests beside the flag. The button is in the bar and the box is mounted inside
+`FranchiseUnionProvider`, a sibling subtree below it, so the flag, the mode and the count live in a
+store outside React: lifted to their common ancestor they would re-render the bar, the container and
+every tab on each open. `/` still opens Find outside a field, and the box's own field is one of
+those fields, so a slash typed into it never reopens it. Everything the box draws with — the shell,
+the index, the four domains' cards, and the renderer every tab's filters are drawn by — is one lazy
+chunk (`SearchSurface`), prefetched on mount as the hover card is.
+
+The shell is domain-blind: it takes groups of already-shaped hits, This page's rows as one node,
+and a footer, and owns the input, the mode segment, the keyboard (↑↓ through every hit as one list,
+↵ on the selected, ⌘↵ on its second action, the first selected as soon as there is one) and the two
+arrangements — a dialog seated near the top from `sm` up, and below it a fullscreen sheet whose
+pinned bar carries the mode segment where every other layer carries a title, since what the box _is_
+changes with it. No grabber there: a fullscreen dialog is not a swipeable sheet, and a grabber would
+offer a gesture that does nothing. A row is lit by one `selected` flag for keyboard and pointer
+alike — the pointer moving onto a row selects it — since a tap has no leave event to unlight a hover
+of its own.
+
+**This page** (`common/FilterControls.tsx`) draws the current tab's schema as rows: the measure
+("Count in") and the year scope ("Years") first and ruled off, being readings of the whole page
+rather than narrowings of it, then the toggles as chips, then one row per category. A category
+**expands in place** into its values as chips with counts, so a value is a tap and never a portalled
+menu item a thumb has to aim at; a `searchable` category — the authors, directors, publishers and
+series a library holds hundreds of — opens a field and a scroller instead, two hundred chips being
+no list anyone scans; there the values chosen lead the list whatever is typed into that field, since
+a phrase names what the reader is looking for and not what they have already picked, and the chips
+are the only place a choice is shown or taken back. A category with a colour vocabulary keeps its
+swatch on the chip, so a chip and a wedge naming one value are one colour, and a category holding a
+selection ends its row in a clear of its own — the footer's Clear undoes every category at once,
+where taking one back otherwise means opening it and pressing each lit chip off. Both halves of a
+category, its vocabulary and the figure inside each chip, come off one scan of the library apiece
+(`categoryTally`), cached against the schema and rows they were built from: the surface is rebuilt
+on every letter typed, and the compiler's scope for anything in it depends on that query, so a
+library of fifteen vocabularies would otherwise be fifteen passes over every row per keystroke. The
+footer states `narrowedTo(population, activeCount)` beside the Clear that undoes the second half.
+With something typed, the same rows narrow: a category shows the values matching the query and one
+matching none is dimmed and stays shut, so the single field narrows the lists as well as the
+libraries.
+
+Which tab that is comes from `app/pageState.ts`'s `pageOf(tabId, library)`, the one file in `app/`
+that may name the composing tab: it answers with that tab's schema, its store, its measures, the
+noun its population is counted in, the rows its lists are built from and the floor its year picker
+offers. All five come off a `PageModule` — four of them a `MediumModule`, which extends it, and the
+fifth the composing tab's own — so the lookup has no branch in it and the box never learns which is
+which. Where a tab's rows are is the one answer a module cannot give, `library` being a shape in the
+composing folder that a domain module reaching for would cycle, so `PAGE_MODULES` pairs each with
+that accessor: a medium's visible slice, the union for the composing tab. `pageCount` states the population through the same composed predicate
+the charts are drawn by, so the box's footer and the rail's chip cannot arrive at two figures.
+
+**Three kinds of hit.** _Places_ are the other tabs, offered as a "Go to" line of chips — all of
+them before anything is typed, whichever the query names once something is. _Things_ are works and
+franchises. _Attributes_ are a genre, network, platform, author, director, rating, decade or format,
+each with its count in each medium: `buildAttributeIndex` (`app/searchData.ts`) walks every medium's
+own schema over that medium's own rows, so the box can only offer a narrowing that tab's controls
+actually draw. Franchise is left out of it — a franchise is a _thing_ the box already answers with,
+and indexing it twice would list every series twice on one query. Rating is grouped on
+`ageRatingBand`, the gallery's own rule, so `15` and `16+` are one hit; what it _sets_ is whichever
+notations that tab's rows carry, which is why an entry keeps its values per medium.
+
+**An attribute hit knows which tabs carry its category, and ↵ does the nearest thing.**
+`attributePlacements` expands one entry into a hit per tab, the tab being read first: on a tab whose
+schema holds the category _and_ whose rows hold the value it stands under "Filter this page" and ↵
+narrows the page in place; on any other it stands under "Go to, filtered" as "Shows · Netflix", and
+↵ sets the filter on that tab's own module-scope store and navigates — which is what lets a filter
+be set on a page before that page has ever been mounted. A page holding the category but none of the
+value gets no hit at all, that hit being one that empties the page it was pressed on.
+`attributeAction` adds to whatever the target already holds rather than replacing it, the same thing
+a second chip pressed in This page means. ⌘↵ takes the third reading: the same value across all four
+libraries, as a `DrilldownDialog` over the gallery's own collapsed works.
 
 Matching (`common/searchData.ts`) folds text a character at a time — lowercased, accent dropped,
 punctuation a space — so the folded string is the raw string's length and a match found in one is
-underlined at the same index in the other. Rank is exact name, then a word start of the name, then
-of the second-rank text (an author, a director, a developer and platform, a network and season
-subtitles), then any substring of either, then every word of the query found somewhere; ties fall to
-size and then name. The entries come back as given, so the raw franchise string — the key every
-index is held on — travels through unfolded.
+underlined at the same index in the other. A go-to hit's title carries the tab's name before the
+value, so its matched run is moved along by that prefix or the underline lands on the wrong word.
+Rank is exact name, then a word start of the name, then of the second-rank text (an author, a
+director, a developer and platform, a network and season subtitles), then any substring of either,
+then every word of the query found somewhere; ties fall to size and then name. The entries come back
+as given, so the raw franchise string — the key every index is held on — travels through unfolded.
+The whole index is built once per library from the union the library provider hands every tab
+(`useLibrary().items`) and the four libraries behind it, so guest mode is applied before anything is
+indexed and a hidden item is absent from the index as it is from the union.
 
 A franchise hit opens `app/FranchiseView.tsx`: the gallery's franchise drill-down with a header
 saying what the franchise is before listing it — its media counted, four facts, and the franchise
@@ -827,10 +995,8 @@ its shelves, which drop a franchise of one work. A work hit mounts the item's ow
 `openOnMount`, in a host the reader never sees and fixed at a pixel rather than `display: none` so
 the thumbnail loads and samples the colour the dialog is themed from, and unmounts it on
 `onDetailClosed`; `OmniCardMediaImage` dispatches by medium, so a hit reached through search shows
-exactly what the same artwork shows anywhere. A "Go to" group leads every answer as one line of chips: the other tabs,
-all of them before anything is typed and whichever the query names once something is, each jumping
-as the rail's chips do. Below it, before anything is typed, the box offers the hits chosen lately,
-kept in `sessionStorage` for the sitting, then the franchises met most recently.
+exactly what the same artwork shows anywhere. Before anything is typed, the box offers the hits
+chosen lately, kept in `sessionStorage` for the sitting, then the franchises met most recently.
 
 ### Franchise strip — `common/FranchiseStrip.tsx`
 
@@ -968,9 +1134,24 @@ a grabber, the item's own name and a ✕, 48px tall (`SHEET_BAR_HEIGHT`) — as 
 above the artwork on the artwork's own ground rather than the paper's, so the name and the way out
 survive the scroll a full-bleed picture invites. The name is stated at every scroll position rather
 than faded in, since a bar that fills in as you scroll reads as something loading rather than as
-chrome that was there from the start. `pinnedSheetTop` (`common/fullscreenSheet.ts`) is the sticky
-recipe every sheet bar in the app shares — this one, the filter sheet's, a hover card's — pinning at
-the top with the notch paid for above the bar's own content; the dialog's `Paper` and `Card` both
+chrome that was there from the start.
+
+**`common/SheetBar.tsx` is that bar, and every layer in the app opens with it**: this one, the
+expanded list, the drill-down, the hover sheet and the box, whose bar carries the Find · This page
+segment as its title, since what the box _is_ changes with that segment and a word above it saying
+the same thing is two headers. The reader's question at
+each is the same — what is this, and how do I leave — so a chrome per layer taught an answer per
+layer. The ✕ is that answer at every width: an arrows-in glyph in a dialog's header reads as "back
+to the card this came out of", which is a second verb for the one thing a layer does. It lives beside the sheet recipes rather than
+in `Card.tsx`, since `Card` mounts every hover card through `HoverCardTooltip` and a bar exported
+from there would close that import into a cycle. `sheetBarRow` (`common/fullscreenSheet.ts`) is the
+48px row itself and the ground is the caller's: the paper's under a layer over the page, the
+artwork's under an expanded card, and the sheet's own — not pinned at all — under a bottom sheet,
+which stands under no notch. The expanded card's is the one drawn below `sm` alone: from `sm` up
+that dialog is a window over the page, whose picture, backdrop and Escape are the ways out.
+`pinnedSheetBar` is the row pinned at the top with the notch paid for above the bar's own content,
+and `paperSheetBar` is that row on the paper with a rule under it — the ground every layer but the
+expanded card wears; the dialog's `Paper` and `Card` both
 open their `overflow` to `visible` at this width, since either being anything else becomes the
 scrollport a sticky element measures itself against. The artwork below reads its own room off two
 custom properties, `--sheet-room-width` and `--sheet-room-height` — `100vw` and `100svh` less the
@@ -1001,6 +1182,20 @@ and `bucketFor` alike, or a shared name would sort the wall one way and label th
 `bucketFor` reads the field `finishedItems` orders by, through the same trimmed `franchiseKey`
 falling back to the item's title, and answers `null` with no short form to give: an undated item,
 which the date sort puts first, so the topmost card can be one.
+
+The border on every card is a vocabulary the page speaks nowhere else, the charts above the wall
+being grouped by something else, so the wall draws it as a key under its header: the field's name,
+then a swatch and a word per value present. Naming the field alone tells a reader the colours mean
+something without telling them what any of them means. Both halves of an entry come off the same
+item, so the swatch and the word cannot disagree; a value whose colour lookup answers nothing is
+left out, the card wearing no border for it either. It is drawn under every sort the wall offers,
+none of which is the border's own field — the wall orders by date, by franchise or by one of a
+domain's own figures, and the marker names its runs by that order — and ordered numeric-aware, one
+of the four vocabularies being a
+certificate ramp a string sort runs "12, 15, 18, 3, 7". The header's own count is `wallPopulation`
+(`common/finishedData.ts`): what the wall is over, stated only where the wall is _shorter_ than the
+page, which it is wherever the sheet holds a row with no artwork — the card is the picture, so an
+item without one is not on the wall at all, and the rail's chip says the rest.
 
 Card size is the reader's — a `FinishedDensity` of Compact, Large or Full, whose column table
 `finishedColumns` owns. Compact at `xl` gives a banner a fifth of the grid, about 220px, still a
@@ -1105,17 +1300,53 @@ and comparing the joined labels keeps that free.
 `common/SectionHeader.tsx` is the header every chart card wears: icon and title left, a muted
 `tabular-nums` count beside the title, controls pinned right. A thin arrangement over `CardHeader`,
 so `MuiCardHeader` spacing and the `h6` weight reach it; the icon sits in the title row, not the
-avatar slot, which centres against the whole header. The count arrives worded — a `common/` shell
-cannot know it counts games. Below `sm` the controls take their own row, negative margins and all: a
-title and four controls otherwise divide 375px and the title wraps to a word a line. A slot holding
-no more than one icon button stays on the title row, the caller saying so through `compactActions`
-— a row of its own for an expand toggle is a blank line with an icon at the end.
+avatar slot, which centres against the whole header. **A header states a figure only where it
+differs from the page's population**, which the section rail's own chip states once
+(`common/population.ts`, below): the Shows timeline says "792 seasons" because a bar per season is
+a population nothing else on the tab counts, and says nothing under Shows, where a bar per show is
+the page's own; the four chart shells state nothing at all. It arrives worded, a `common/` shell
+not knowing it counts games. Below `sm` the controls take their own row, negative margins and all: a
+title and four controls otherwise divide 375px and the title wraps to a word a line. That row is
+`ActionRow`, a horizontal scroller rather than a wrap — the rail's own `ScrollFade` and
+hidden-scrollbar recipe over a `flexShrink: 0` child, so the sunburst's three pickers or Movies' and
+Books' axis and split pickers beside the four view segments run past the card's edge instead of
+breaking a picker's label across two lines. Mounted at every width rather than gated on `usePhone`,
+since the choice a fixed set of `sx` breakpoints already makes is exactly this: above `sm` the row
+is unconstrained and never scrolls, so the fades stay off and the wrapper changes nothing. A slot
+holding no more than one icon button stays on the title row, the caller saying so through
+`compactActions` — a row of its own for an expand toggle is a blank line with an icon at the end.
+
+`common/population.ts` is the three sentences the app counts in: `stated(n, noun)` — "309 shows",
+the noun each medium's module carries — `cut(shown, total)` — "10 of 1,539", or the whole figure
+where nothing is cut — and `all(total)` — "All 1,539", the worded cut a control wears. One module
+because the alternative is these three written out at twenty-odd call sites, each one `format` away
+from a library of 1,539 reading as "1539" beside a chart that reads "1,539". `isNarrowedEmpty(count,
+filtersActive, scoped)` is the fourth: true only where a setting the reader made, and not an empty
+library, is why a page holds nothing, which is what tells a chart's own "nothing to plot" line apart
+from `common/NothingMatches.tsx` and its way back. Both settings count — the year scope narrows a
+page exactly as a filter does, and a page scoped to a year its library has nothing in would
+otherwise draw a blank canvas with nothing anywhere saying why — and each is asked separately,
+because the message offers the setting's own undo. It is asked of the page once, above the outlet,
+and reaches the shells through `common/nothingMatchesContext.ts` (§6).
 
 `common/Stats.tsx` exports what the domain `Stats.tsx` files assemble into a grid: `StatCard` and
 `StatSummary`; `YearVitalsPair`, all-time and in-year cards differing only in figures; `StatList`;
 `VitalsCard`, one card however many bands a domain stacks; `TotalsBand`, a proportional bar and
 wrapping legend over `common/statsData`'s `groupTotals`. Domains hold the arithmetic, shells the
-layout.
+layout. `StatList` takes the same `empty` prop the chart shells do, drawn by `StatsListGrid` in
+place of the card grid where the reader's own filters have left `content` empty; a domain's
+"Recently X" and name-sorted "Most X" lists pass it down from the page's own `Graphs`, since it is
+the whole page's filters and not a card's own further narrowing that the message answers for.
+
+`YearVitalsPair` is two plain cards and no control. The year scope is one page-wide reading, set in
+the rail (§ Page architecture), so the pair states the two readings side by side — "All time" or
+"Up to 2019", and "In 2026" — and the one the page is filtered to wears `StatCard`'s `scoped` rule:
+the tab's primary as an inset three-pixel line along the card's top edge, inset so a lit card
+cannot stand a pixel taller than the one stretched beside it. Both titles come from `scopeLabel`
+(`common/scope.ts`), the words the rail's own picker reads, so a control and the card it lights
+cannot word one scope two ways. Marked on the card as well as on the control because the pair is
+the one place the two readings stand together, and the lit figure is the one a reader carries down
+to the charts and the wall.
 
 `StatCard` stands two to a row on a phone rather than one (`xs: 6`), a `span` prop overriding it
 where a band's own count would otherwise leave a card beside a gap — the Now band's Franchises card
@@ -1130,16 +1361,20 @@ happens to end.
 `StatList` is two smaller shells the same file exports, each with a caller of its own:
 
 - **`ExpandableCard`** owns a card that can also present itself fullscreen: `renderContent` draws it
-  inline and again in the dialog, and is handed the expand control for its header. `useDialogMount`
+  inline and again in the dialog, and is handed the expand control for its header. That control is
+  **the worded cut** where the card is showing fewer than it holds — `cutLabel`, `all(total)` from
+  `common/population.ts`, drawn as "All 1,539 ›" — and the ⤢ where nothing is cut: the wall, a
+  gallery whose shelves all fit, a strip that scrolls sideways and already holds the whole list
+  (`wrap={false}`). The figure and the way to the rest of it are then one object, where an icon
+  beside a header reading "10 of 1,539" states the cut twice and says nothing about how much is
+  behind it. The dialog carries no control of its own, its bar's ✕ being the way out. `useDialogMount`
   pairs `open` with a `mounted` flag lagging it until `onExited`, so the body survives the exit
   transition and is never built behind a closed dialog. `CardMediaImage` gates the whole `Dialog`,
   not just the body: an uncapped wall mounts one per item, and a closed `Dialog` still renders
   itself, its `Modal` and their hooks before returning null. The dialog takes an `onClose`, so
-  Escape and a backdrop press close it like any other dialog; the header keeps its own control
-  regardless, since a select switching to a category with fewer groups can shrink the content and
-  strand the reader with nothing to press. Below `sm` that control is a pinned bar's own ✕
-  (`stickySheetHeader`) rather than the header's icon, which wraps to its own row down there and
-  would put the way out halfway down the first screen.
+  Escape and a backdrop press close it like any other dialog, and the bar's ✕ stands at every
+  width — which also answers a caller whose content shrinks while it is open, a select switching to
+  a category with fewer groups leaving nothing in the header to press.
 - **`StatsListGrid`** owns the capped strip of media cards. `COLLAPSED_CARDS` and `EXPANDED_CARDS`
   (6, and 500 — effectively everything, so a drill-down shows a whole group) apply _here_: a caller
   pre-slicing its list would make either a no-op. A strip laid out differently passes its own figure
@@ -1216,9 +1451,18 @@ shadow outside it; the flip keeping a tall card on screen, with `altAxis` doing 
 of a sideways-scrolling chart; and a 500px width that is a ceiling rather than a size below it
 (`min(500px, 100vw - 16px)`), against a tooltip's own 300px default. A popper positions once, so the
 content is observed and asked to place it again on every size change: a card whose chunk or picture
-lands late otherwise grows from an anchor placed for something smaller, off the screen top. A finger
-gets a bottom sheet instead, opened by a tap rather than MUI's own 700ms press, interactive so the
-card inside can open the expanded card (a `disableInteractive` tooltip cannot), and mounted only
+lands late otherwise grows from an anchor placed for something smaller, off the screen top. The popper is interactive, so the pointer can cross the mat and reach the
+card, whose picture opens the item's expanded card: a hovered mark is a door to the same place a
+tapped one is, which is the one thing a mouse would otherwise be offered less of than a finger. `leaveDelay` is what makes the
+crossing possible — a tooltip closing on the anchor's own leave event is gone before the pointer
+arrives — and the open flag is held in the popper rather than left to MUI, because that dialog is a
+child of the tooltip's own content: its backdrop takes the pointer off the popper, and a popper
+closing there would unmount the card in the same frame it opened. `HoverCardHold`
+(`common/hoverCardHold.ts`) is what `CardMediaImage` says so through, a pair of no-ops for every
+card rendered anywhere else. A finger
+gets a bottom sheet instead, opened by a tap rather than MUI's own 700ms press, wearing the same
+`SheetBar` as every other layer where the mark knows its item's name and the grabber alone where it
+does not, and mounted only
 while open: `SwipeableDrawer` keeps touch listeners on the document for the life of every instance,
 and a franchise strip is hundreds of marks for the one tapped. It sits at the modal layer, above the
 dialog a bead inside an expanded card was opened from, and above that card in turn once the reader
@@ -1310,7 +1554,35 @@ already in the panel.
 the app bar — `position: static` and scrolling away, so the rail is the only thing an anchor has to
 clear. Chips scroll rather than link, the app being served under a `HashRouter` where an
 `href="#timeline"` reads as a route; `Section` exists rather than a bare `id` for its
-`scroll-margin-top`, without which the browser lands a section's top edge under the sticky rail.
+`scroll-margin-top`, without which the browser lands a section's top edge under the sticky rail —
+`SCROLL_MARGIN`, 72px, from `sm` up.
+
+**Below `sm` the rail is the bottom bar's scrolled state**, and nothing is pinned at the top of the
+page at all. The bar fixed to the bottom edge (`BottomTabs.tsx`) holds the five tabs while the page
+is against the app bar and the page's own rail once it has scrolled past it, cross-fading between the
+two at one height — so a phone pays for one bar rather than a pinned rail above the page and the tabs
+below it, 49px of a 720px screen given back to what the page is for. The swap is keyed on the same
+question the rail's own pin is, whether the app bar has left the screen (`APP_BAR_HEIGHT`,
+`chrome.ts`), read off `scrollY` rather than off an observed element: the rail is not drawn up there
+to observe, and a sentinel standing in for it would open a gap of its own in the page's spaced stack.
+The rail leads with a chip carrying the current tab's icon, which calls the tabs back **in place** —
+the alternative, scrolling to the top where they already are, costs a reader deep in a library wall
+their position to answer a question about navigation — and the reader's next scroll takes them away
+again, heard on a one-shot listener the request attaches for itself (`phoneBar.ts`), the crossing
+store answering only where the page crosses the app bar and so leaving the tabs up for a reader who
+asked for them a thousand pixels down and read on. A press on the tab already open scrolls to the top anyway, `BottomNavigation` answering a
+press on its selected action, so the way back exists without the chip having to be it.
+
+`SectionRail` renders that row through a portal into a slot the bar publishes on a module store
+(`common/phoneBar.ts`), rather than the bar building it: the two are on opposite sides of the tree —
+the bar above the outlet, the rail inside a tab's own lazy `Graphs` — and only the page knows what
+its sections are. It is also what keeps the chips' own machinery, a tooltip and with it MUI's popper,
+out of the chunk every visitor evaluates before the first paint, which
+`tests/architecture.test.ts` pins. `PHONE_SCROLL_MARGIN` is what an anchored section clears there:
+8px, plus `env(safe-area-inset-top)` in the CSS form, since nothing is above it but the device's own
+inset. The wall's sticky `BucketHeading` takes that same CSS form, the notch included, being drawn
+on a phone alone;
+`MARKER_TOP` keeps the full margin, the pill and the jump rail it positions mounting from `sm` up.
 
 The same module holds the two arrangements a section is built from, page structure rather than
 visualisation: `StatBand`, the stretched row of stat cards, taking children, and `ChartPair`, the
@@ -1320,29 +1592,95 @@ the chip list, whose ids have two holders — `Stats` the bands above the charts
 below — and which comes from the same test `Stats` makes about whether there is anything to lead
 with, so a chip never points at an anchor that is not on the page.
 
-The rail also carries the page's measure, in an `actions` slot at its right end: the unit every
-figure on the tab is counted in belongs on the one control surface reachable from anywhere. A second
-slot, `trailing`, carries the filter control on a phone (`FilterChip`, below) — both sit outside the
-scrolling chip row, which would carry either away; the row gives up width and overflows into its own
-scroll. `SegmentedControl` states the measures as words, a Σ on a floating button being a legend
-nothing on the page teaches.
+**`app/PageRail.tsx` is the rail with those readings already in it.** The four controls at its tail
+are one arrangement over one page's state, and each tab was building it out of its own filter state
+— five copies of a rule about which control stands where, kept in step by hand, and the fifth of
+them over a state that comes from no medium at all. It reads the current tab, that tab's state and
+its page module for itself, so a `Graphs` says only which sections its page has and how many rows
+its charts are drawing. The row count is the one thing passed in: re-derived here it would run the
+page's own predicate over the library a second time every render, and a figure arrived at twice can
+disagree with what is on screen. It lives in `app/` because it asks the composing layer which page
+it is over, and it is reached only from a tab's own lazy `Graphs` — so, like the search surface, it
+may read `tabs.ts` without the temporal-dead-zone problem an eager import would create.
 
-The tab chips that lead the stuck rail are dropped entirely below `sm`, where the bottom navigation
-already holds all five tabs at every scroll position and a rail spending 300 of its 358px saying so
-again buys nothing; a rail's own chips still fill the rest. Under a coarse pointer every chip in the
-rail — a tab's, a section's — stands 30px tall rather than 22 (`ChipRail`'s `COARSE_CHIP_HEIGHT`,
-behind `@media (pointer: coarse)` so a tablet with a mouse plugged in gets the desktop's own
-height), which `SCROLL_MARGIN`'s 72px still clears with room for the rail's padding.
+The rail carries the page's whole-page readings in named slots at its right end: `scope`, the
+years every figure on the tab is scoped to; `measure`, the unit they are counted in; and
+`population`, the chip stating what the filters leave (`FilterChip`, below). Each belongs on the
+one control surface reachable from anywhere — they narrow the vitals, the timeline, the charts and
+the library alike, and a control standing beside the cards it most visibly changes cannot be
+reached from the wall, which is where a reader notices the page is a subset. Named slots rather
+than a node per end, because where each of the three stands is a rule this shell states once and
+five `Graphs` modules would otherwise each carry a copy of. All of them sit outside the scrolling
+chip row, which would carry them away. The chip row is sized at a basis of zero, so it takes what
+the controls leave and never a share of the shortfall, and overflows into its own scroll: a picker
+at three quarters of its width is a value with no room for its own caret, where a chip row is a
+list that scrolls by design. Past that the controls' own row scrolls too, a rail overflowing its
+container putting the whole document on a sideways drag. `SegmentedControl` states the measures as
+words, a Σ on a floating button being a legend nothing on the page teaches.
 
-A page's charts and its library swap on a phone, library first — `ChartsAndLibrary` renders the two
-nodes in that order and `chartsLastOrder` (`common/sections.ts`) reorders the chip naming them, both
-driven off the one `usePhone` a `Graphs` module reads once. Both halves have to agree in the DOM and
-not only in CSS: `useActiveSection` lights the first of the rail's own list still inside the reading
-band, so a page painted in one order and a rail listing another lights the wrong chip from the first
-scroll, and a chart folded shut under `FoldedChart` mounting nothing at all rules out a `flex-order`
-swap that would still fetch and lay out the chart it hides. Only the `charts`/`library` pair moves —
-a tracked tab's packed timeline, drawn through its own `Section`, keeps its place in the list either
-way.
+**The chips own the row at the two widths where everything will not fit.** From `md` the tail is
+all three. Below `md` the scope leaves it — at 768 four tab chips, seven section chips, a picker,
+three segments and the population want about 950px of 720 — for the labelled row the box's own This
+page mode draws (§ Search), through a `display` rule rather than the width read as a value, since
+that row is drawn at every width and one of the two copies is hidden either way. Below `sm` the
+measure and the population go with it and `pageChip` stands alone in their place: at 390 the three
+want 440px of 358. `PageChip` (`common/PageHandles.tsx`) is the picker's own face reading the
+measure — the setting changed most often — with the filter badge on it, and it opens the box on
+all three; the population reads in the box's own footer. Four
+section chips of Shows' seven then stand in the 258px left, with the fifth cut at the fade, where
+the chips are a list that says by scrolling that there is more. That split is read as a value
+(`usePhone`) and not as a `display` rule: the controls it drops are live in the box at this width,
+and hiding them here would leave a second copy of each dispatching to the page state from a control
+nobody can see.
+
+`ScopeControl` (`common/SelectionComponents.tsx`) is the scope's picker, reading "All time",
+"In 2026" or "Up to 2019" through `scopeLabel`. Its menu holds the two scopes asked for by name —
+everything, and the year in progress — and sends the rest to a popover carrying an Up to · In
+segment and a year picker down to the domain's own `earliestYear`: every year the sheets cover is
+thirty menu items, where those two are almost every use of the control, and the reading and the
+year are one choice a menu has no room to hold. The picker lights whenever the page is not reading
+everything, which is also why the scope is neither counted by the filter badge nor cleared by
+Clear (§7): a control that says on its own face that it is on would otherwise be stated twice and
+undone in two places.
+
+The tab chips that lead the stuck rail are each their tab's own icon in its own colour — the
+primary on the light paper, the bar's `ink` on the dark, through `tabInk` (`tabs.ts`), since the
+primary on the dark paper is the value that tab's tint was mixed from. Icons rather than words at
+every width they are drawn at: four names and a divider take a third of a tablet's rail where four
+glyphs take 136px, and the app bar's own strip carries the same icons beside its words, which is
+where a reader learns them. Every `ChipRail` — this one, the timeline's years — keeps its lit chip
+in view: when the active id changes the row scrolls so that chip and a margin of its neighbours are
+inside it (`railScrollTarget`, `common/chipRailData.ts`), instantly under `prefers-reduced-motion`.
+A rail is a reading of where in the page the reader is, and on a phone the row holds four of a tab's
+seven sections, so most of those positions are off-screen ones. The offset is computed rather than
+asked for through `scrollIntoView`, which scrolls every scrollable ancestor — the document included,
+which would move the page the highlight is a reading of — and the effect is keyed on the lit chip
+alone, so the reader's own flick along the row is never taken back. `RailChip`'s icon-only form is a
+circle — the label's padding and MUI's
+own offsets for a mark beside a word are dropped and the width follows the height through
+`aspect-ratio`, so the glyph is centred at whatever height the pointer gives a chip — and it is
+named by its `aria-label` with a tooltip carrying the same word for a pointer; a finger is told
+nothing, its press-and-hold being the browser's own.
+
+The chips are dropped entirely below `sm`, where the bar's own leading chip calls the five tabs
+back into the row and a rail spending 300 of its 358px saying so again buys nothing; a rail's own
+chips still fill the rest. Under a coarse pointer every chip in the
+rail — a tab's, a section's — stands at the kit's coarse 32px rather than its own 24 (the theme's
+small chip, behind `@media (pointer: coarse)` so a tablet with a mouse plugged in gets the desktop's
+own height), which makes the rail 8 + 32 + 8 + 1 where a pointer gets 8 + 28 + 8 + 1; `SCROLL_MARGIN`
+clears the taller of the two by 23px.
+
+A tracked tab's library closes its page at every width — the wall runs to hundreds of cards, so it
+is the section a reader scrolls into and stays in rather than one to glance past on the way to
+something else. The Omnibus reorders instead: its gallery is the other section built to be scrolled
+rather than read at a glance, so on a phone it moves after Franchises, the two longest sections on
+the page trading places so only one of them closes it — `omnibusSections` (`omnibus/sections.ts`)
+reorders the chip through `movedAfter` (`common/sections.ts`) on the same `usePhone` its `Graphs`
+module reads once to reorder the DOM. Both halves have to agree: `useActiveSection` lights the first
+of the rail's own list still inside the reading band, so a page painted in one order and a rail
+listing another lights the wrong chip from the first scroll, and a chart folded shut under
+`FoldedChart` mounting nothing at all rules out a `flex-order` swap that would still fetch and lay
+out the chart it hides.
 
 ### Phone and tablet
 
@@ -1354,7 +1692,7 @@ around the page itself.
 **Two questions, answered as values.** `usePhone` and `useStackedCharts` (`common/breakpoints.ts`)
 are the only breakpoints the app reads as booleans rather than writes as `sx` keys, because their
 callers need the answer before they can decide what to render at all — a folded chart mounts nothing
-until opened, a sheet and a persistent drawer are different trees, and the tracked tabs put their
+until opened, a dialog and a fullscreen sheet are different trees, and the tracked tabs put their
 charts after their library in DOM order (above), which no `display: none` or flex `order` can do.
 Both are `useMediaQuery` with `noSsr: true`, stating the query's real answer as the server snapshot
 too: `main.tsx` mounts with `createRoot` and never hydrates, so that snapshot is never read and the
@@ -1369,22 +1707,48 @@ string, held at module scope and fanned out through `useSyncExternalStore`, beca
 component instance and a chart is hundreds of them — a fresh `matchMedia()` and a fresh listener per
 instance would be that many of both minted on every render.
 
-**Chrome.** Below `md`, or on any coarse pointer regardless of width, `NavBar`'s Sheet/Authorise-or-
-Revoke buttons collapse from the app bar into an overflow menu (`⋮`), built from a single `BarAction`
-list drawn twice — as buttons and as menu items — so the bar and the menu can never disagree about
-which actions exist or whether "Authorising" is live: both are on screen at once wherever a finger is
-the pointer. At 768px the wordmark, five tabs and two buttons want about 800px of a 720px content
-width, which is the arithmetic behind the `md` cutoff; a tablet held sideways clears the width test
-but still fails the pointer one, so the menu stays. The same menu is guest mode's only handle under a
-touch pointer, carrying a "Guest mode"/"Leave guest mode" item — the long press that reaches it
-elsewhere is a mouse gesture alone (§7, Guest mode), and without the item a finger would have no way
-in, or once in, no way out but a reload.
+**Chrome.** `NavBar` keeps three targets at every width — the authorise key while there is something
+to authorise, search, and the `⋮` — and everything else the session can do is in that menu, drawn at
+every width and pointer (§5). One list on one surface is what keeps the bar and the menu from
+disagreeing about which actions exist; drawn as buttons as well below some width, an iPad held
+sideways would list Sheet and Authorise twice, since it clears the width test and still points with a
+finger. At 768px the wordmark, five tabs and two worded buttons want about 800px of a 720px content
+width, which is why only the key wears its word, and only from `md` with a fine pointer. The menu is
+also guest mode's only handle, carrying a "Guest mode"/"Leave guest mode" item in both directions —
+the long press that reaches it elsewhere is a mouse gesture alone (§7, Guest mode), so without the
+item a finger has no way in, and a mouse no way out but a reload.
+
+Each tab in the strip carries its own icon beside its word (`iconPosition="start"`, so the strip
+keeps one row's height). The word is what the strip is for, and the glyph beside it is what teaches
+the mark the section rail names that tab by once the bar has scrolled away, and the bottom
+navigation names it by on a phone — one icon per tab, from `Tab.icon`, drawn in all three places.
 
 Below `sm` the tab strip itself is replaced by `BottomTabs`, fixed to the screen's bottom edge and
 reachable from any scroll position and a thumb, which no arrangement of the `position: static` app
 bar achieves; it wears the tab's own `barColour` as the app bar does, so the top and bottom of a
 phone name the same tab, and a tab change resets scroll (`window.scrollTo({ top: 0 })`) the way the
-rail's own chips do. `common/chrome.ts` states what the app's own furniture costs the page:
+rail's own chips do. That is one of its two states (§ Page architecture): scrolled, the same bar is
+the page's rail, still in the tab's colour so the bar reads as one thing either way; the chips it
+then holds are the kit's, solved against `background.default` — a lit chip is filled in the primary
+and would be invisible on a bar that _is_ the primary — so `onBarSx` (`common/barTone.ts`) re-tones
+them onto the bar, the unlit in the bar's ink and the lit filled with it and worded in the bar's own
+colour, and the chip row's end fades resolve to the bar rather than to the page (`SectionRail`'s
+`phoneGround`). Those are descendant rules and outrank a child's own `sx`, so the one chip drawn in a
+colour of its own — the tab in hand, in that tab's ink — publishes `data-own-colour` and the dark
+sheet skips it, the tab inks being solved to read against the tint. Safari samples this bar
+for the bottom of its chrome, which is then the tab's colour at every scroll position.
+
+The top edge has no bar of its own to sample, so `BrowserTint.tsx` stands a strip there in the tab's
+own colour while the page is against the app bar, and is not drawn at all once scrolled past it, on
+the same `useScrolledPastBar` boundary (`common/chrome.ts`) `BottomTabs` reads for its own two states.
+With nothing fixed at the top to sample, Safari draws its own translucent status bar over the page,
+which a stated ground can only imitate; the `theme-color` metas `Google.tsx` emits (§ Theming and
+routing) stay, stating the page's own ground there for the browsers that still read one. Left at the
+tab's colour throughout, a reader scrolled deep into a library sees a coloured band at the top of an
+otherwise plain page, naming a bar long since scrolled out of reach. That boundary carries a dead
+band of eight pixels either side (`scrolledPastBar`), so a reader coming to rest against the app
+bar's own height does not have the strip, the bar and the metas flicker on every small movement of
+the thumb. `common/chrome.ts` states what the app's own furniture costs the page:
 `BOTTOM_TABS_HEIGHT` (56) and its `env(safe-area-inset-bottom)`-padded `BOTTOM_TABS_CLEARANCE`, which
 the page container and the data snackbar both stop short of, and `safeAreaGutters`, MUI's own
 `Container`/`Toolbar` gutters restated with the device's side insets added — a notched phone held
@@ -1413,8 +1777,20 @@ beads and `TimelineBandBox`'s bands (above): a box sized for a coarse pointer al
 stated as a height so it cannot reach over a dense neighbour. `FoldedChart` (`common/FoldedChart.tsx`)
 is the general mechanism behind every folded chart above — five callers — a card that renders only
 its header, a one-line summary and a shape-of-the-data preview until the reader asks for the chart
-itself, past `usePhone` alone; from `sm` up it is the plain card it always was. The packed timeline
-alone never folds (above). `CONTAIN_SIDEWAYS_SCROLL` (`common/scrollbarSx.ts`) is the same fix
+itself, past `usePhone` alone; from `sm` up it is the plain card it always was. What asks for it is
+a ⌄ in the header, turned over to ⌃ once the chart is drawn, and the summary row answers the same
+press: those words and that picture are what a reader is looking at when they decide they want the
+chart. The ⌄ rides `SectionHeader`'s `titleAction` slot rather than its action row, since below `sm`
+that row scrolls and a setting may go past the edge where the way to the chart may not — and
+`FoldedChart` is that slot's only caller for the same reason. The header is built here rather than
+handed in as a function of the fold's state, because every one of its four states — folded, drawn,
+nothing to plot, nothing matching — heads the same card, and a caller building it is five copies of
+one arrangement. It takes the header's parts instead: `icon`, `title` and `count`, `controls` for
+its own live settings, drawn only with the chart they are about — a split or a set of rings is a
+choice about a chart that is not mounted, and the line the fold states is drawn from the same pivot
+whatever they say — and `action` for a control that stands either way, the crossings' cut being the
+one. `blank` is the fourth state: what the caller states in place of a chart it cannot draw, which
+is the barchart's empty pivot. The packed timeline alone never folds (above). `CONTAIN_SIDEWAYS_SCROLL` (`common/scrollbarSx.ts`) is the same fix
 against the browser's back gesture (above, Timeline), worn by every other horizontal scroller in the
 app — the charts, the strips, the chip rails, the sized card rows.
 
@@ -1604,7 +1980,7 @@ key in ObjectExpression`; pulled out to a plain function taking the varying piec
   `sheetBarSx`, `dialogCardSx`, among others — the literal itself sits at module scope and the
   component stays compiled.
 
-The baseline is **250 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **266 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.
@@ -1654,8 +2030,8 @@ values the reducer already holds. Each domain supplies only its own initial valu
 that state into a predicate.
 
 **A tab's state lives in a store, not in the tab.** The surfaces that read it are not all inside the
-page — the rail stands beside the charts rather than within them — and a filter can be set on a tab
-before that tab has ever been mounted, so a state lifted to their nearest common ancestor would be
+page — the rail stands beside the charts rather than within them, and the box that filters a page is
+mounted above the router — and a filter can be set on a tab before that tab has ever been mounted, so a state lifted to their nearest common ancestor would be
 lifted to the shell and re-render every chart in the app on a change reaching two components. Each
 `filterUtils.ts` therefore holds one `common/store.ts` `createStore` at module scope, which that
 helper is written to allow: it reads no browser global while it loads, so
@@ -1666,7 +2042,10 @@ reads one through, `PageStore` erasing the domain's own fields so a record can h
 `useFilterReducer` is the same store seen from inside the tab. Two things follow: filters, the
 measure and the scope survive a tab switch for the session, where a reducer unmounting with its page
 would drop them; and a surface narrowing a tab it is not on dispatches on that tab's store and then
-navigates, rather than parking a pending filter somewhere for the page to find.
+navigates, rather than parking a pending filter somewhere for the page to find — which is exactly
+what an attribute hit does in the box (§6). `pageOf` beside `usePageState` answers the rest of what
+such a surface needs of a tab it is not standing inside: its schema, its measures, the noun its
+population is counted in, its rows and the floor its year picker offers.
 
 The measure action _sets_ rather than advances, the control being a segment per measure: a press
 names its own state, so setting the measure already held answers the same object and costs no render.
@@ -1703,30 +2082,32 @@ a schema therefore cannot arrive without a starting value, where a toggle missed
 list starts `undefined`, reads as off and hides rows on first paint — and a state field the schema
 does not cover fails to compile rather than starting the same way.
 
-One description, three readers: `common/FilterControls`' `SchemaFilterDrawer` draws the whole
-surface — the drawer, its toggles and its selects — for every tab there is, and the box above the
-page and the index of what can be found by attribute read the same schema, so a page cannot be
-narrowed one way and found another. The toggle **icons** are keyed by the same keys in each
-medium's own `filterIcons.ts`, beside the `Graphs` that draws the drawer, and never on the schema
-itself: `MediumModule` carries the schema, the shell reaches the registry, and an icon named there
-would put four tabs' filter glyphs in the first bundle a visitor downloads — while one named in
-`module.lazy.ts` rides the chunk the union prefetches for its hover cards (§2). `common/FilterDrawer`
-is one shell taking the active count, the reset action and two slots as fully controlled children;
-the measure is not in it, being the unit every figure is counted in rather than a narrowing of what
-is counted, so it rides the section rail (§6). `yearPredicates` takes a `yearOf` accessor as a
+One description, two readers: `common/FilterControls`' `SchemaPageControls` draws the whole surface
+— the rows, the toggle chips and the value chips — for every tab there is, and the index of what can
+be found by attribute walks the same schemas, so a page cannot be narrowed one way and found
+another. Neither reader draws a toggle **icon**: the surface is a row of chips already reading the
+label, and a schema is data the shell reaches, so an icon named there would put four tabs' filter
+glyphs in the first bundle a visitor downloads. `SchemaPageControls` takes the schema, the state,
+the dispatch and the rows through the `PageSchema`/`PageState`/`PageDispatch` erasure rather than a
+domain's own generics, since the surface holding it stands above all five tabs and holds a tab id
+and not a domain. `yearPredicates` takes a `yearOf` accessor as a
 required argument and never a default: written over a generic record a default type-checks against
 every model there is, so a domain whose rows carry no start date would compile and scope on
 `undefined`, keeping nothing. The Omnibus reads `item.year`, the year it closed; Shows passes a
 whole `yearRule` instead, the shared one reading a show's _first_ season, which keeps the filter and
-the seasons-in-year vitals card in agreement.
+the seasons-in-year vitals card in agreement. The scope those predicates read is set from the rail's
+own picker and lights it (§6); `UNCOUNTED_FIELDS` leaves `yearTo` and `yearType` out of
+`countActiveFilters` and `resetFilters` carries both through, so the badge counts only what the
+filter surface holds and Clear leaves a reader counting hours up to 2019 exactly where they were.
+The two vitals cards mirror that state without setting it.
 
 **A selection is held to the vocabulary its own control draws.** A category's options are computed
 over the _visible_ library, so guest mode switched on under a chosen franchise would leave that
 franchise selected in the store with no chip anywhere offering or clearing it, and every chart on
 the page narrowed to nothing for a reason the reader cannot see. `LibraryProvider` sweeps each tab's
-selects against exactly the rows that tab's drawer lists from — each medium's visible slice, the
-union for the composing tab — through `retainPageSelections` (`app/pageState.ts`, the one file there
-that names the composing tab). The `retain` action answers the same state object where nothing is
+selects against exactly the rows that tab's own controls list from — which is what each page module
+answers with — through `retainPageSelections` (`app/pageState.ts`, the one file there that names the
+composing tab). The `retain` action answers the same state object where nothing is
 dropped, so the sweep costs no render on the runs that change nothing; a category holding nothing is
 skipped before its options are computed, since a pass over the whole library per category, for five
 tabs, on every sheet landing, is what the common case of nothing selected would otherwise cost. A
@@ -1746,10 +2127,11 @@ a card strip. It is presentation, not a security boundary: the data is loaded al
 
 The gesture is the pointer's alone — the hook answers with mouse handlers and nothing else, a long
 press on touch colliding with the browser's own press-and-hold — so the app bar's overflow menu
-carries the mode as an item instead, in both directions, and is drawn wherever a finger is the
-pointer. The wordmark carries the press rather than the whole bar: a bar holding a tab strip and a
-menu button is three hundred pixels where a press landing on none of them changes what the page
-shows.
+carries the mode as an item instead, in both directions and at every width and pointer (§5): the
+press is the way in for a mouse and the item the way in for a finger, and the item is the only way
+back out for either. The wordmark carries the press rather than the whole bar: a bar holding a tab
+strip and a menu button is three hundred pixels where a press landing on none of them changes what
+the page shows.
 
 ### Theming and routing
 
@@ -1759,7 +2141,23 @@ top-level `palette` rather than adding to it, so a value named on one side only 
 MUI's stock blue. `enableColorOnDark` stays off and each tab carries a `darkBar` (`tabs.ts`) — a 22%
 `tint` of its primary over the dark paper plus `rule` and `ink` siblings — read through
 `barColour(tab, scheme)`, the single answer for what the bar wears, so a surface painted to match it
-cannot drift. Two `theme-color` metas are emitted, one per scheme. Themes are cached in a `Map`
+cannot drift. Two `theme-color` metas are emitted, one per scheme, each carrying the tab's own bar
+colour above `sm` and, below it, swapping to the scheme's own page ground once the page has scrolled
+past the app bar — the same boundary and the same `useScrolledPastBar` (`common/chrome.ts`) the
+top-edge tint strip (`BrowserTint.tsx`, § Phone and tablet) and the bottom bar's own tabs/rail swap
+key on. Safari reads neither meta and samples the strip, which past the bar is not drawn; a browser
+that does read one — Android Chrome, and an installed app, whose manifest otherwise answers with the
+Omnibus's own purple whatever tab is open — lands on the ground the page at that edge actually
+paints.
+
+**The dark scheme's `primary.main` is that `rule`, not the primary.** A primary is solved against
+the white paper: on the dark one Games' carries 3.6:1 and Shows' 3.4, which is a full-strength
+band's floor and under what a lit segment's 12px word, a picker's lit edge or a filled chip's ground
+needs — where `rule` is the same hue solved lighter and clears 5:1 on that paper, held there by
+`tabs.test.ts`. The bar keeps the tint through `AppBar.darkBg`, and a chart's single-group series
+keeps the light literal either way: `Barchart` reads `theme.palette.primary.main`, which under
+`cssVariables: true` is the light scheme's value on both papers, which is why a primary is held to
+3:1 on both (`fillContract.test.ts`). Themes are cached in a `Map`
 keyed by tab id:
 building one walks both schemes, typography, shadows and the whole CSS-variable map, and a stable
 identity stops the MUI tree re-evaluating `sx` on navigation. `Google.tsx` also mounts
@@ -1846,18 +2244,17 @@ Recorded so they are not mistaken for design:
   `initTokenClient({ client_id: CLIENT_ID })` runs in an effect with no check, so a missing
   `VITE_GOOGLE_CLIENT_ID` throws there and takes the app with it.
 - **No loading state.** An entry component renders `{data && <Graphs/>}` beside its snackbar, so a
-  first visit on a cold cache is a nav bar over an empty page while OAuth and the sheet read run. The
-  Omnibus waits on all four sheets, so it waits longest.
+  page with nothing to draw draws nothing. The `empty` state has a card of its own now (§5), which
+  covers the reader who has never authorised; the two windows either side of it are still bare. While
+  `authorising` — the GIS and gapi scripts landing — a cold cache shows the bar with its key dimmed
+  over an empty page, since the state cannot yet tell "nothing here" from "about to fetch". Once
+  `live`, the sheet read runs behind the same empty page, and the Omnibus waits on all four sheets,
+  so it waits longest.
 - **Every visit fetches all four sheets.** `app/LibraryProvider.tsx` mounts above the router, so any
   tab has the cross-media union and the bar can say whether there is a library at all; a deep link
   to `/vg` therefore pays three extra sheet reads and paints from cache until they land, where the
   Omnibus — which a bare visit opens on — needs all four regardless. A deliberate trade, argued in
   that provider's own comment.
-- **The filter drawer's desktop shape ignores `onClose`.** From `sm` up `FilterDrawer` renders a
-  `Drawer` with `variant="persistent"`, and MUI never calls the `onClose` passed for that variant, so
-  only the Clear/Close row and the floating button dismiss it. Below `sm` the same drawer is a
-  `SwipeableDrawer` sheet instead, which does answer to `onClose` — Escape, a backdrop press and a
-  downward swipe all close it — so the gap belongs to the wide layout alone, not every width.
 - **No DOM or component tests.** `tests/` covers pure logic — converters, filters, the reducer, the
   chart data transforms, the cache round trip — and stops there; AGENTS.md explains the trade. Nothing
   verifies that a chart renders.

@@ -1,6 +1,6 @@
 import { type Dispatch } from "react";
 import { CURRENT_YEAR, type YearNumber } from "./date";
-import { schemaPredicates, type CategoryKey, type FilterSchema, type ToggleKey } from "./filterSchema";
+import { fieldsOf, schemaPredicates, type CategoryKey, type FilterSchema, type ToggleKey } from "./filterSchema";
 import { createStore, type Store } from "./store";
 import type { Predicate } from "../utils/types";
 
@@ -73,10 +73,21 @@ export interface PageStore {
   subscribe(onChange: () => void): () => void;
   useValue(): PageState;
   dispatch(action: PageAction): void;
+  /**
+   * How many of the reader's own choices a state holds, bound to the initial values this store's
+   * own reducer knows — a surface above the tabs holds five stores and no baseline to count
+   * against.
+   *
+   * The state is the caller's rather than read out of the store here, so the figure is a function
+   * of what the component already subscribed to: read off `get()` inside a render, it is a value
+   * the React Compiler sees no dependency for, and a badge memoised at the count the page was
+   * first drawn with never moves again.
+   */
+  activeCountOf(state: PageState): number;
 }
 
 /** What a domain's own store is, before the erasure a lookup across the five needs. */
-type PageStoreFor<S> = Store<S> & { dispatch: FilterDispatchFor<S> };
+type PageStoreFor<S> = Store<S> & { dispatch: FilterDispatchFor<S>; activeCountOf(state: S): number };
 
 interface YearState {
   yearTo: YearNumber;
@@ -125,10 +136,11 @@ const sameValue = (a: unknown, b: unknown): boolean =>
   Array.isArray(a) && Array.isArray(b) ? a.length === b.length && a.every((item, index) => item === b[index]) : a === b;
 
 /**
- * How many of the reader's own choices are in play, for the badge on the filter button.
+ * How many of the reader's own choices are in play, for the badge on the rail's own handle.
  *
- * A closed drawer says nothing about what it is hiding, and every chart on the page is drawn
- * through it — so a page filtered down to one franchise looks exactly like a page that is not.
+ * A control surface that is closed says nothing about what it is holding, and every chart on the
+ * page is drawn through it — so a page filtered down to one franchise looks exactly like one that
+ * is not.
  * The count is of fields rather than of predicates: a reader picking three genres in one select
  * made one choice and can undo it in one place, which is what a badge of 1 says and a badge of 3
  * does not.
@@ -136,7 +148,7 @@ const sameValue = (a: unknown, b: unknown): boolean =>
 export const countActiveFilters = (state: object, initialValues: object): number =>
   Object.entries(initialValues).filter(([field, initial]) => {
     if (UNCOUNTED_FIELDS.has(field)) return false;
-    const value = (state as Record<string, unknown>)[field];
+    const value = fieldsOf(state)[field];
     // A composed predicate under any other name is still not something the reader set.
     if (typeof value === "function" || typeof initial === "function") return false;
     return !sameValue(value, initial);
@@ -237,7 +249,7 @@ export const createFilterReducer = <T, M extends string, S extends BaseFilterSta
         // The same state object where nothing is dropped, which is every call but the few that
         // follow a change of what the library shows: the store notifies on identity, so the sweep
         // that runs whenever a library lands costs no render.
-        const held = (state as Record<string, unknown>)[action.category] as readonly string[];
+        const held = fieldsOf(state)[action.category] as readonly string[];
         const kept = held.filter((value) => action.values.includes(value));
         if (kept.length === held.length) return state;
         return withFilter({ ...state, [action.category]: kept });
@@ -262,7 +274,14 @@ export const createFilterReducer = <T, M extends string, S extends BaseFilterSta
 
   const dispatch: FilterDispatchFor<S> = (action) => set(reducer(get(), action));
 
-  const store: PageStoreFor<S> = { get, set, subscribe, useValue, dispatch };
+  const store: PageStoreFor<S> = {
+    get,
+    set,
+    subscribe,
+    useValue,
+    dispatch,
+    activeCountOf: (state) => activeCount(state),
+  };
 
   /**
    * The tab's own view of that store, for the pages that read their state from inside the tab.

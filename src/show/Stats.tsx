@@ -44,8 +44,7 @@ import { CURRENT_PLAINDATE, formatDate, type YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
 import { Section, StatBand } from "../common/SectionRail";
 import { SHOW_SECTIONS } from "./sections";
-import { format } from "../utils/mathUtils";
-import type { FilterDispatch } from "./filterUtils";
+import { stated } from "../common/population";
 import {
   allTimeTotals,
   groupShowsBy,
@@ -70,21 +69,15 @@ import "../utils/arrayUtils";
 const Stats = ({
   data,
   watching,
-  earliestYear,
   measure,
   yearType,
   yearTo,
-  filterDispatch,
 }: {
   data: Show[];
   watching: Season[];
-  /** The library's own first year, read from the unfiltered data so the select's floor does not
-      rise with the filters. */
-  earliestYear: YearNumber;
   measure: Measure;
   yearType: YearType;
   yearTo: YearNumber;
-  filterDispatch: FilterDispatch;
 }) => {
   return (
     <Stack spacing={2}>
@@ -102,8 +95,6 @@ const Stats = ({
           <YearVitalsPair
             yearTo={yearTo}
             yearType={yearType}
-            filterDispatch={filterDispatch}
-            earliestYear={earliestYear}
             allTime={allTimeTotals(data)}
             inYear={seasonsInYear(data, yearTo)}
           />
@@ -284,7 +275,7 @@ const RecentlyComplete = ({ data }: { data: Show[] }) => {
 const mostWatchedOptions = ["name", ...showTopOptions] as const;
 
 const MostWatched = ({ data, measure }: { data: Show[]; measure: Measure }) => {
-  const [option, controls] = useSelectBox(mostWatchedOptions, "name");
+  const [option, controls] = useSelectBox(mostWatchedOptions, "name", "By");
 
   if (option === "name") {
     return (
@@ -337,7 +328,7 @@ const MostWatchedCategory = ({
       title="Most Watched"
       option={category}
       groups={groupShowsBy(data, category, measure)}
-      labelComponent={(group) => [[group.name, `${format(group.count)} ${measure}`]]}
+      labelComponent={(group) => [[group.name, stated(group.count, measure)]]}
       colourOf={(top) => groupToColour(category, top, scheme)}
       MediaComponent={ShowCardMediaImage}
       dialogSort={(shows) => shows.toSorted((a, b) => b.minutes - a.minutes)}

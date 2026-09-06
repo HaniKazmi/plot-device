@@ -1,7 +1,7 @@
 import { History } from "@mui/icons-material";
 import { StatBand } from "../common/SectionRail";
 import { StatList } from "../common/Stats";
-import { format } from "../utils/mathUtils";
+import { cut } from "../common/population";
 import type { OmniItem } from "../common/medium";
 import OmniCardMediaImage from "../app/CardMediaImage";
 import { MIXED_CARD_SIZING } from "../app/cardData";
@@ -18,9 +18,8 @@ import { useScheme } from "../common/useScheme";
  * not, and it is the same band the gallery's shelves draw.
  *
  * The strip is capped where every card strip in the app is, and expanding lifts the cap to the
- * dialog's own. Over three libraries the run can outrun that too, so the header states how many of
- * it are drawn — the way the crossings and the gallery state theirs — rather than letting the cut
- * pass as the whole list.
+ * dialog's own. Over four libraries the run outruns that too, and the dialog has no control left
+ * to word the cut on — its own is the way out — so the header states it there as a figure.
  */
 const RecentlyFinished = ({ items }: { items: OmniItem[] }) => {
   const scheme = useScheme();
@@ -31,7 +30,7 @@ const RecentlyFinished = ({ items }: { items: OmniItem[] }) => {
         icon={<History />}
         title="Recently Finished"
         content={items}
-        count={(shown, total) => (shown < total ? `${format(shown)} of ${format(total)}` : format(total))}
+        count={cut}
         // Full width: a mixed row is read across, and half a row of it beside another card would
         // hold three cards where the strip's whole point is the run.
         width={[12, 12, 12]}

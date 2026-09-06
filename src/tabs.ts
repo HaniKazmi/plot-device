@@ -1,8 +1,9 @@
 import type { FunctionComponent } from "react";
 import type { SvgIconComponent } from "@mui/icons-material";
-import { AutoAwesomeMotion, MenuBook, SportsEsports, Theaters, Tv } from "@mui/icons-material";
+import { GridView, MenuBook, SportsEsports, Theaters, Tv } from "@mui/icons-material";
 import type { Colour, Scheme } from "./utils/types";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useScheme } from "./common/useScheme";
 import Shows from "./show/Show";
 import VideoGames from "./vg/vg";
 import Movies from "./movie/Movie";
@@ -19,9 +20,13 @@ import Omnibus from "./omnibus/Omnibus";
  * paper is the light bar's own treatment redrawn on the wrong ground, where a fifth of it is
  * what still carries the hue without losing the scheme. `rule` and `ink` are lighter siblings of
  * the primary at the same hue, solved against `tint` rather than against the paper — `ink` clears
- * 4.5:1 and `rule` clears 3:1. `rule` draws a 3px line along the bar's own bottom edge, which is
- * what still separates five tinted bars at a glance; `ink` carries the wordmark and the active
- * tab's own label.
+ * 4.5:1 and `rule` clears 3:1, and both clear those floors against the paper too, which is what
+ * lets them be drawn away from the bar. `rule` draws a 3px line along the bar's own bottom edge,
+ * which is what still separates five tinted bars at a glance, and is the dark scheme's own
+ * `primary.main` (`Google.tsx`): a lit segment's word and a picker's edge are the primary at 12px
+ * on the paper, where the light primary the tint is mixed from stands at about 3:1 for a
+ * full-strength surface and under it for type. `ink` carries the wordmark, the active tab's own
+ * label and a rail chip naming the tab.
  */
 export interface DarkBar {
   tint: string;
@@ -151,9 +156,11 @@ export const BooksTab: SheetTab = {
  * inside a card, and `Barchart` only reaches for the primary when a chart has no other series to
  * confuse it with.
  *
- * Every primary clears 3:1 on both papers, because `Google.tsx` writes one hex into both colour
- * schemes and `Barchart` paints a single-group series in `palette.primary.main` — a theme colour is
- * chart geometry, so it is held to the same floor as a `Fill`. The contract test asserts it
+ * Every primary clears 3:1 on both papers, because `Barchart` paints a single-group series in
+ * `theme.palette.primary.main` — which under `cssVariables: true` is the light scheme's literal
+ * whichever paper is on screen, the schemes differing only in the CSS variable the dark half sets
+ * to `darkBar.rule`. A theme colour is chart geometry, so it is held to the same floor as a
+ * `Fill`. The contract test asserts it
  * alongside every other table, which is the only floor under a colour that lives out here on a
  * `Tab` rather than in one of the tables.
  *
@@ -173,12 +180,17 @@ export const BooksTab: SheetTab = {
  * fixed reaches only 14.1 from the Omnibus bar. Every accent moving within its own gap is what
  * clears the floor for all five: the values here are the joint solution, and re-solving any one of
  * them alone gives up the floor for the pair it sits nearest.
+ *
+ * Its icon is four equal squares, where every other tab's is the thing it holds — a gamepad, a
+ * television, a film strip, a book. Four of anything says "all of them" beside those four, and at
+ * the 18px the rail draws a tab chip at, equal squares are the reading that survives: a grid of
+ * nine dots is a texture at that size, and panels of unequal size read as a layout.
  */
 export const OmnibusTab: Tab = {
   id: "omnibus",
   name: "Omnibus",
   component: Omnibus,
-  icon: AutoAwesomeMotion,
+  icon: GridView,
   primaryColour: "#7553ff",
   secondaryColour: "#ef9716",
   darkBar: { tint: "#302c56", rule: "#9d86ff", ink: "#b3a2ff" },
@@ -203,22 +215,43 @@ export const tabForPath = (pathname: string, tabs: readonly Tab[] = Tabs): Tab =
 export const useCurrentTab = (): Tab => tabForPath(useLocation().pathname);
 
 /**
+ * The colour a tab is named in away from its own page — the rail's chip for it, where four of them
+ * stand side by side in a row of grey section chips, and the phone bar's own chip for the tab in
+ * hand.
+ *
+ * The primary on the light paper, as the bar is; the bar's `ink` on the dark, where the tint is a
+ * fifth of the primary's strength and the primary itself is the value that tint was mixed from —
+ * a mark drawn in it on the dark paper is the light bar's colour on the wrong ground. Both clear
+ * 3:1 on the paper they are drawn on, which is what a glyph carrying a tab's identity needs.
+ */
+export const tabInk = (tab: Tab, scheme: Scheme): string | undefined =>
+  scheme === "dark" ? tab.darkBar?.ink : tab.primaryColour;
+
+/**
  * Every routed tab but the current one, as chips for the section rail — the jumps the rail can
  * offer once the app bar has scrolled away. The current tab is deliberately absent: it is where
  * the reader already is, and the rail offers movement, not orientation.
+ *
+ * The icon travels with the label because the chip draws the icon alone: four words plus a divider
+ * take a third of a tablet's rail, where four glyphs in four colours take 136px and say the same
+ * thing. The word stays as the chip's own accessible name and its tooltip.
  */
-export const otherTabs = (current: Tab, tabs: readonly Tab[] = Tabs) =>
-  tabs.filter((tab) => tab !== current).map((tab) => ({ id: tab.id, label: tab.name }));
+export const otherTabs = (current: Tab, scheme: Scheme, tabs: readonly Tab[] = Tabs) =>
+  tabs
+    .filter((tab) => tab !== current)
+    .map((tab) => ({ id: tab.id, label: tab.name, icon: tab.icon, colour: tabInk(tab, scheme) }));
 
 /**
- * The rail's tab chips with their navigation attached here, where the id-is-a-route convention
- * already lives — the rail itself never learns what an id means. A jump also starts at the top
- * of the target page: the reader is deep in this one, and a route change alone leaves the
- * scroll offset where it is.
+ * The rail's tab chips with their navigation and their colour attached here, where the
+ * id-is-a-route convention and the tab registry already live — the rail itself never learns what
+ * an id means, and `common/` cannot import this module at all. A jump also starts at the top of
+ * the target page: the reader is deep in this one, and a route change alone leaves the scroll
+ * offset where it is.
  */
 export const useOtherTabs = () => {
   const navigate = useNavigate();
-  return otherTabs(useCurrentTab()).map((tab) => ({
+  const scheme = useScheme();
+  return otherTabs(useCurrentTab(), scheme).map((tab) => ({
     ...tab,
     jump: () => {
       navigate(`/${tab.id}`);

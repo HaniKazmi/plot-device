@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { format } from "../utils/mathUtils";
+import { all, stated } from "./population";
 import { groupTotals } from "./statsData";
 import {
   FooterComponent,
@@ -26,6 +27,8 @@ import {
   type TypedCardMediaImage,
 } from "./Card";
 import { dimSx, LABEL_SX, MUTED_FIGURE_SX } from "./typography";
+import { NothingMatches } from "./NothingMatches";
+import { useNothingMatches } from "./nothingMatchesContext";
 import { SectionHeader } from "./SectionHeader";
 import { shapeRatioValues, shapeToArrangement, shapeToPinnedAspect, type ArtworkShape } from "./cardArrangement";
 import { rowCardSize } from "./rowSizing";
@@ -34,14 +37,14 @@ import { useElementWidth } from "./useElementWidth";
 import { CONTAIN_SIDEWAYS_SCROLL } from "./scrollbarSx";
 import { useStackedCharts } from "./breakpoints";
 import { useState, type ReactNode } from "react";
-import { Radio } from "@mui/material";
 import type { Colour } from "../utils/types";
-import { YearSelect } from "./YearSelect";
+import { scopeLabel } from "./scope";
 import type { YearType } from "./filterReducer";
 import { CURRENT_YEAR, type YearNumber } from "./date";
-import { Close, CloseFullscreen, Fullscreen, Timer, Update } from "@mui/icons-material";
+import { Fullscreen, Timer, Update } from "@mui/icons-material";
+import { CutButton } from "./SelectionComponents";
 import { useDialogMount } from "./useDialogMount";
-import { stickySheetHeader } from "./fullscreenSheet";
+import { SheetBar } from "./SheetBar";
 
 export const StatCard = ({
   icon,
@@ -49,11 +52,22 @@ export const StatCard = ({
   action,
   content,
   span,
+  scoped,
 }: {
   icon: ReactNode;
   title: ReactNode;
   action?: ReactNode;
   content: [string, number][];
+  /**
+   * That this card is the reading the whole page is filtered to, drawn as a rule along its top
+   * edge in the tab's own primary.
+   *
+   * The band states two readings of one library side by side and only one of them is what the
+   * charts, the timeline and the wall below are counting. The card the page is scoped to is the
+   * figure a reader carries down the page, so it is marked where it stands and not only on the
+   * control that set it.
+   */
+  scoped?: boolean;
   /**
    * The cell this card takes, where the band's default pairing would leave it standing alone.
    *
@@ -136,7 +150,20 @@ export const StatCard = ({
         ...span,
       }}
     >
-      <Card sx={{ height: "100%" }}>
+      <Card
+        sx={
+          scoped
+            ? {
+                height: "100%",
+                // Inset, so the rule stands inside the card's own border rather than adding a
+                // pixel to its box: a lit card in a stretched row must not stand taller than the
+                // one beside it.
+                boxShadow: (theme: Theme) => `inset 0 3px 0 0 ${theme.vars.palette.primary.main}`,
+                borderColor: "primary.main",
+              }
+            : { height: "100%" }
+        }
+      >
         <CardHeader
           title={title}
           avatar={icon}
@@ -152,7 +179,13 @@ export const StatCard = ({
   );
 };
 
-/** Each `statsData` total is already keyed by the label it renders under, in display order. */
+/**
+ * Each `statsData` total is already keyed by the label it renders under, in display order, so the
+ * key is the word and only its case is this layer's.
+ */
+const statRows = (stats: Record<string, number>): [string, number][] =>
+  Object.entries(stats).map(([key, value]) => [key[0].toUpperCase() + key.slice(1), value]);
+
 export const StatSummary = ({
   icon,
   title,
@@ -165,65 +198,7 @@ export const StatSummary = ({
   <StatCard
     icon={icon}
     title={title}
-    content={Object.entries(stats).map(([key, value]) => [key[0].toUpperCase() + key.slice(1), value])}
-  />
-);
-
-/**
- * Typed as exactly the two actions these cards send, so every domain's dispatch — each a
- * `FilterDispatchFor` over its own wider state — fits structurally without a generic.
- */
-type YearDispatch = (
-  action: { type: "updateFilter"; filter: "yearTo"; value: YearNumber } | { type: "yearType"; yearType: YearType },
-) => void;
-
-/**
- * The vitals card carrying the page-wide year controls: a year select as its title and the radio
- * that picks which of the two year cards the filter applies to, hence `activeYearType`. The
- * figures themselves arrive as a keyed record, already scoped by the caller to whatever the card
- * claims to total.
- */
-const YearTotals = ({
-  yearType,
-  yearTo,
-  filterDispatch,
-  icon,
-  activeYearType,
-  minWidth,
-  earliestYear,
-  stats,
-  renderValue,
-}: {
-  yearType: YearType;
-  yearTo: YearNumber;
-  filterDispatch: YearDispatch;
-  icon: ReactNode;
-  activeYearType: YearType;
-  minWidth?: number;
-  /** Passed through to the year select, which takes no floor of its own. */
-  earliestYear: YearNumber;
-  stats: Record<string, number>;
-  renderValue: (value: number) => ReactNode;
-}) => (
-  <StatCard
-    icon={icon}
-    title={
-      <YearSelect
-        value={yearTo}
-        onChange={(value) => filterDispatch({ type: "updateFilter", filter: "yearTo", value })}
-        minWidth={minWidth}
-        earliestYear={earliestYear}
-        renderValue={renderValue}
-      />
-    }
-    action={
-      <Radio
-        size="small"
-        checked={yearType == activeYearType}
-        onChange={() => filterDispatch({ type: "yearType", yearType: activeYearType })}
-      />
-    }
-    content={Object.entries(stats).map(([key, value]) => [key[0].toUpperCase() + key.slice(1), value])}
+    content={statRows(stats)}
   />
 );
 
@@ -231,11 +206,15 @@ const YearTotals = ({
  * The pair of year cards every tab opens its vitals band with: the library up to a year, and the
  * library inside it.
  *
- * They are one component rather than two placed side by side at each of the four call sites,
- * because everything that makes them a pair is fixed — the two icons, which of them the radio
- * marks active, the wording of each title, and the wider select the second needs for "In 2024".
- * What a tab actually varies is the two sets of figures it counts, and a tab that stated the rest
- * again could state it differently.
+ * Neither card is a control. The scope is one page-wide reading and it is set in the rail, which
+ * stays on screen past the band; here the pair states the two readings side by side and the one
+ * the page is filtered to wears the lit rule, so a reader who has scrolled to the wall and back
+ * can see which of the two figures the rest of the page is counting.
+ *
+ * They are one component rather than two placed side by side at each of the five call sites,
+ * because everything that makes them a pair is fixed — the two icons, the wording of each title
+ * and which of them the scope lights. What a tab varies is the two sets of figures it counts, and
+ * a tab that stated the rest again could state it differently.
  *
  * A fragment rather than a container: they are two cards of the band they sit in, beside whatever
  * else that tab puts there, not a group within it.
@@ -243,42 +222,29 @@ const YearTotals = ({
 export const YearVitalsPair = ({
   yearTo,
   yearType,
-  filterDispatch,
-  earliestYear,
   allTime,
   inYear,
 }: {
   yearTo: YearNumber;
   yearType: YearType;
-  filterDispatch: YearDispatch;
-  /** Passed through to both year cards' selects, which take no floor of their own. */
-  earliestYear: YearNumber;
   allTime: Record<string, number>;
   inYear: Record<string, number>;
 }) => (
   <>
-    <YearTotals
-      yearTo={yearTo}
-      yearType={yearType}
-      filterDispatch={filterDispatch}
+    <StatCard
       icon={<Timer />}
-      activeYearType="upto"
-      earliestYear={earliestYear}
-      stats={allTime}
-      renderValue={(value) => (
-        <Typography variant="h6">{value == CURRENT_YEAR ? "All Time" : `Up To ${value}`}</Typography>
-      )}
+      // Each card titles itself with the reading it stands for rather than with the page's, so
+      // the two read as a pair whichever one is lit: the same words the rail's picker states,
+      // through the same rule, so the control and the card it lights cannot word one scope twice.
+      title={scopeLabel(yearTo, "upto", CURRENT_YEAR)}
+      scoped={yearType === "upto"}
+      content={statRows(allTime)}
     />
-    <YearTotals
-      yearTo={yearTo}
-      yearType={yearType}
-      filterDispatch={filterDispatch}
+    <StatCard
       icon={<Update />}
-      activeYearType="matching"
-      minWidth={120}
-      earliestYear={earliestYear}
-      stats={inYear}
-      renderValue={(value) => <Typography variant="h6">In {value}</Typography>}
+      title={scopeLabel(yearTo, "matching", CURRENT_YEAR)}
+      scoped={yearType === "matching"}
+      content={statRows(inYear)}
     />
   </>
 );
@@ -299,39 +265,60 @@ export const EXPANDED_CARDS = 500;
  * expand/collapse control to place wherever its header wants it. Only the body is gated on
  * `useDialogMount`'s `mounted`, so a strip of media cards is not built a second time behind a
  * closed dialog while the one `Dialog` this card holds stays where it is.
+ *
+ * `cutLabel` is what the card's own control reads where the card is showing fewer than it holds:
+ * "All 1,539 ›" in place of the ⤢, so the figure and the way to the rest of it are one object and
+ * the header stops stating "10 of 1,539" beside an icon that says nothing about how much is behind
+ * it. Left off — a wall drawing everything, a gallery whose shelves all fit — the icon stands,
+ * there being no figure to word.
+ *
+ * The dialog carries no control of its own: it opens with the `SheetBar` every layer wears, whose
+ * ✕ is the way out at every width. The bar names the card as well, which the content's own
+ * `SectionHeader` then states again directly below — the header cannot be dropped, since it is
+ * where the card's controls live, and a layer that does not name itself is the thing the bar
+ * exists to fix.
  */
 export const ExpandableCard = ({
   renderContent,
+  title,
   expandable: expandableProp,
+  cutLabel,
   sx,
 }: {
   renderContent: (isDialog: boolean, toggle: ReactNode) => ReactNode;
+  /** What the layer is, for its bar. */
+  title: string;
   expandable?: boolean;
+  /** The worded cut, from `common/population.ts`'s `all` — see above. */
+  cutLabel?: string;
   sx?: SxProps<Theme>;
 }) => {
   // Applied after the pattern: a default inside it bails the component out of the React Compiler.
   const expandable = expandableProp ?? true;
   const dialog = useDialogMount();
 
-  // The dialog always keeps a control, whatever `expandable` says: a caller whose content shrinks
-  // while it is open — a select box in the header switching to a category with fewer groups —
-  // would otherwise strand the reader with nothing to press. Below `sm` that control is the bar's
-  // ✕ instead, where the header's controls wrap to a row of their own and the way out lands
-  // halfway down the first screen.
-  const toggle = (isDialog: boolean) =>
-    expandable || isDialog ? (
+  // The card's own control, and the dialog's nothing: the layer's bar carries the ✕ instead, which
+  // also answers for a caller whose content shrinks while it is open — a select switching to a
+  // category with fewer groups — where a control in the header would go with the content.
+  const toggle = expandable ? (
+    cutLabel ? (
+      <CutButton
+        label={cutLabel}
+        onClick={dialog.show}
+      />
+    ) : (
       <IconButton
-        aria-label={isDialog ? "Close" : "Expand"}
-        onClick={() => (isDialog ? dialog.hide() : dialog.show())}
-        sx={isDialog ? DIALOG_TOGGLE_SX : undefined}
+        aria-label="Expand"
+        onClick={dialog.show}
       >
-        {isDialog ? <CloseFullscreen color="primary" /> : <Fullscreen />}
+        <Fullscreen />
       </IconButton>
-    ) : null;
+    )
+  ) : null;
 
   return (
     <Card sx={sx}>
-      {renderContent(false, toggle(false))}
+      {renderContent(false, toggle)}
       <Dialog
         open={dialog.open}
         fullScreen
@@ -341,40 +328,17 @@ export const ExpandableCard = ({
       >
         {dialog.mounted && (
           <>
-            {/* The way out, pinned. The bar carries no title: the content's own `SectionHeader`
-                states it directly below, and only the caller knows what it is. */}
-            <Box sx={SHEET_CLOSE_BAR_SX}>
-              <IconButton
-                aria-label="Close"
-                onClick={dialog.hide}
-              >
-                <Close color="primary" />
-              </IconButton>
-            </Box>
-            {renderContent(true, toggle(true))}
+            <SheetBar
+              title={title}
+              onClose={dialog.hide}
+            />
+            {renderContent(true, null)}
           </>
         )}
       </Dialog>
     </Card>
   );
 };
-
-/** The dialog's own expand control, which the sheet bar's ✕ stands in for below `sm`. */
-const DIALOG_TOGGLE_SX = { display: { xs: "none", sm: "inline-flex" } } as const;
-
-/**
- * The bar carrying that ✕. Built here rather than in the component: a width is a key computed from
- * the theme, and an object literal with a computed key is a shape the React Compiler cannot lower,
- * so written inline it would take `ExpandableCard` out of memoization with nothing to say so.
- */
-const SHEET_CLOSE_BAR_SX = (theme: Theme) => ({
-  display: "none",
-  [theme.breakpoints.down("sm")]: {
-    display: "flex",
-    justifyContent: "flex-end",
-    ...stickySheetHeader(theme),
-  },
-});
 
 /**
  * A strip of media cards, capped so a long list does not render in full.
@@ -400,6 +364,10 @@ export const StatsListGrid = <T,>(
     /** A strip card's caption where the labels' first row is not it — a grouped list's figure. */
     captionOf?: (t: T) => string[];
     chipComponent?: (t: T) => CardMediaImageProps["chip"];
+    /** What a card's artwork opens instead of the item's own card — see `CardMediaImageProps`. */
+    onOpen?: (t: T) => void;
+    /** The accessible name of a card that opens something else — see `CardMediaImageProps`. */
+    openLabelOf?: (t: T) => string;
     shape?: ArtworkShape;
     /** A band along the top of each card, and its height — see `CardMediaImageProps.mediaBand`. */
     band?: MediaBand<T>;
@@ -415,6 +383,7 @@ export const StatsListGrid = <T,>(
 ) => {
   const { content, flexWrap, cardKey, labelComponent, captionOf, chipComponent, shape, band, divider, MediaComponent } =
     props;
+  const { onOpen, openLabelOf } = props;
   // The row's own width, which only a sized row reads: a grid needs none, and the observer is
   // only attached to the element a sized row renders.
   const [rowRef, rowWidth] = useElementWidth<HTMLDivElement>();
@@ -423,6 +392,7 @@ export const StatsListGrid = <T,>(
   // mount every card in a grid and remount it in a strip a frame later, asking for each picture
   // twice and sampling each of them twice with it.
   const narrow = useStackedCharts();
+  const { active: nothing } = useNothingMatches();
   const cell = cellOf(props, rowWidth, band?.height ?? 0, (props.strip ?? false) && narrow, shape);
   const limit = limitOf(props.limit, cell);
 
@@ -439,6 +409,8 @@ export const StatsListGrid = <T,>(
       labels={labelComponent(entry)}
       captionText={captionOf?.(entry)}
       chip={chipComponent?.(entry)}
+      onOpen={onOpen && (() => onOpen(entry))}
+      openLabel={openLabelOf?.(entry)}
       cell={cell}
       shape={shape}
       band={band}
@@ -451,7 +423,9 @@ export const StatsListGrid = <T,>(
     <>
       {props.header?.(drawn.length)}
       <CardContent>
-        {"strip" in cell ? (
+        {content.length === 0 && nothing ? (
+          <NothingMatches />
+        ) : "strip" in cell ? (
           // Measured for the same reason the sized row is: the strip's card count is solved from
           // the width it has, and a first frame at the stated height is not seen.
           <Box ref={rowRef}>
@@ -553,9 +527,14 @@ export interface StatListBaseProps<T> {
   controls?: ReactNode;
   content: T[];
   /**
-   * The population the header states, worded by the caller — a shell cannot know it is counting
-   * seasons. It is given how many cards are actually drawn as well as how many there are, because
-   * the strip is capped and a cut a header does not state is a cut the reader cannot see.
+   * The cut the header states, worded by the caller — a shell cannot know it is counting seasons.
+   * It is given how many cards are actually drawn as well as how many there are, because a sized
+   * row's count follows from the width it measures.
+   *
+   * Asked only of the dialog. Collapsed, the cut is already the card's own control — "All 1,539 ›"
+   * is the figure and the way to it in one object — and a header stating "10 of 1,539" beside it
+   * says the same thing twice. The dialog has no such control, its own being the way out, so a cut
+   * the expanded cap still makes is stated as a figure or not at all.
    */
   count?: (shown: number, total: number) => string;
   /**
@@ -573,6 +552,10 @@ export interface StatListBaseProps<T> {
   captionOf?: (t: T) => string[];
   MediaComponent: TypedCardMediaImage<T>;
   chipComponent?: (t: T) => CardMediaImageProps["chip"];
+  /** See `StatsListGrid`: what a card's artwork opens instead of the item's own card. */
+  onOpen?: (t: T) => void;
+  /** See `StatsListGrid`: the accessible name of a card that opens something else. */
+  openLabelOf?: (t: T) => string;
   shape?: ArtworkShape;
   /** See `StatsListGrid`: a band along the top of each card. */
   band?: MediaBand<T>;
@@ -614,10 +597,15 @@ export const StatList = <T,>(props: StatsListProps<T>) => {
       }}
     >
       <ExpandableCard
+        title={title}
         sx={{ height: "100%" }}
         // A floor, since a cap in rows holds at least a card a row; the header below drops the
         // toggle once it knows everything is already drawn.
         expandable={content.length > (props.collapsedRows ?? collapsed)}
+        // The worded cut, except where the strip already draws everything: a non-wrapping strip
+        // scrolls sideways and holds the whole list, so its control opens a bigger view of what is
+        // already there rather than the part that was left out.
+        cutLabel={wrap ? all(content.length) : undefined}
         renderContent={(isDialog, toggle) => (
           <StatsListGrid
             content={content}
@@ -625,7 +613,7 @@ export const StatList = <T,>(props: StatsListProps<T>) => {
               <SectionHeader
                 title={title}
                 icon={icon}
-                count={count?.(shown, content.length)}
+                count={isDialog ? count?.(shown, content.length) : undefined}
                 // With nothing but the toggle in it, the slot is one icon button and stays beside
                 // the title: a row of its own for it is a blank line with an icon at the end.
                 compactActions={!controls}
@@ -645,6 +633,8 @@ export const StatList = <T,>(props: StatsListProps<T>) => {
             labelComponent={labelComponent}
             captionOf={props.captionOf}
             chipComponent={chipComponent}
+            onOpen={props.onOpen}
+            openLabelOf={props.openLabelOf}
             shape={props.shape}
             band={props.band}
             divider={props.divider}
@@ -767,6 +757,8 @@ const StatsListCard = <T,>({
   labels,
   captionText,
   chip,
+  onOpen,
+  openLabel,
   cell,
   shape,
   band,
@@ -777,6 +769,8 @@ const StatsListCard = <T,>({
   labels: string[][];
   captionText?: string[];
   chip?: CardMediaImageProps["chip"];
+  onOpen?: () => void;
+  openLabel?: string;
   cell: CardCell;
   shape?: ArtworkShape;
   band?: MediaBand<T>;
@@ -793,6 +787,8 @@ const StatsListCard = <T,>({
       <Card variant="outlined">
         <MediaComponent
           item={item}
+          onOpen={onOpen}
+          openLabel={openLabel}
           mediaBand={band && { node: band.render(item), height: band.height }}
           // The words go under the picture whatever shape it is. The arrangement rule seats a
           // poster's beside it, which on a card 82px wide is a column of two characters — and a
@@ -819,6 +815,9 @@ const StatsListCard = <T,>({
               labels={labels}
               caption
               captionText={captionText}
+              // As on the grid's own cards: a card whose press opens a group rather than the item
+              // in it says so, and a strip is where a phone reads a grouped list.
+              chevron={onOpen !== undefined}
             />
           }
         />
@@ -856,6 +855,8 @@ const StatsListCard = <T,>({
         // cropped — and takes the reservation instead, standing at its file's own height.
         sx={{ aspectRatio: shape && shapeToPinnedAspect(shape), flexShrink: 0 }}
         chip={chip}
+        onOpen={onOpen}
+        openLabel={openLabel}
         // A dialog list can run to hundreds of cards; off-screen artwork loads as it scrolls
         // into view rather than all at once on open.
         lazy
@@ -864,6 +865,9 @@ const StatsListCard = <T,>({
           <FooterComponent
             labels={labels}
             divider={divider}
+            // The glyph follows the handle rather than being asked for separately, so a card that
+            // opens something other than its own item cannot fail to say so.
+            chevron={onOpen !== undefined}
           />
         }
       />
@@ -1001,7 +1005,7 @@ export const TotalsBand = <T extends string, U>(props: {
               variant="body2"
               sx={{ ...MUTED_FIGURE_SX, whiteSpace: "nowrap" }}
             >
-              {`${format(struct.count)} ${measureLabel}`}
+              {stated(struct.count, measureLabel)}
             </Typography>
           </Stack>
         ))}

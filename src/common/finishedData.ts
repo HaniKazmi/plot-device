@@ -1,4 +1,5 @@
 import { PlainDate, shortYear, type Year, type YearMonthDay } from "./date";
+import { stated } from "./population";
 import "../utils/arrayUtils";
 
 export type FinishedItem = {
@@ -206,6 +207,20 @@ const hasBanner = (item: FinishedItem): boolean => !!item.banner;
  * for.
  */
 export const finishedCount = (data: readonly FinishedItem[]): number => data.filter(hasBanner).length;
+
+/**
+ * What the wall is over, in the caller's own noun — and nothing at all where that is what the page
+ * is over.
+ *
+ * The page states its population once, on the section rail's filter chip, so a wall header
+ * repeating it is one number printed twice a screen apart. The thing the chip cannot say is that
+ * the wall is *shorter* than the page, which it is wherever the sheet holds a row with no artwork:
+ * the card is the picture, so an item without one is not on the wall at all.
+ */
+export const wallPopulation = (data: readonly FinishedItem[], noun: string): string | undefined => {
+  const count = finishedCount(data);
+  return count < data.length ? stated(count, noun) : undefined;
+};
 
 /**
  * Where an item falls in the current sort, as the short label a position marker can show: a year

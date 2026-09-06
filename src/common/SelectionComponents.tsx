@@ -1,20 +1,31 @@
-import { MenuItem, Select, ToggleButton, ToggleButtonGroup } from "@mui/material";
+import { ArrowDropDown, ChevronRight } from "@mui/icons-material";
+import {
+  Box,
+  Button,
+  Divider,
+  Menu,
+  MenuItem,
+  Popover,
+  Stack,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
+  type Theme,
+} from "@mui/material";
+import { useState } from "react";
+import { keyLabel } from "../utils/stringUtils";
 import type { artworkPalette } from "./artworkPalette";
 import { segments } from "./segments";
-import { SEGMENT_TYPE_SX } from "./typography";
+import { CURRENT_YEAR, type YearNumber } from "./date";
+import type { YearType } from "./filterReducer";
+import { isAllTime, scopeLabel } from "./scope";
+import { KIT_OUTLINED_SX, primaryWash } from "./typography";
 
 /** One segment: the value it selects and the word on it. */
 export interface SegmentOption<T extends string> {
   value: T;
   label: string;
 }
-
-const SEGMENT_SX = {
-  ...SEGMENT_TYPE_SX,
-  // The words stay at 12px on a phone — a control that reads as two sizes between the header and
-  // the rail is what the one size exists to avoid — so the target grows under the segment instead.
-  "@media (pointer: coarse)": { minHeight: 32 },
-} as const;
 
 /**
  * One of a few named states, as words rather than pictures.
@@ -59,7 +70,7 @@ export const SegmentedControl = <T extends string>(props: {
       <ToggleButton
         key={option.value}
         value={option.value}
-        sx={props.tone ? [SEGMENT_SX, toneSx(props.tone)] : SEGMENT_SX}
+        sx={props.tone && toneSx(props.tone)}
       >
         {option.label}
       </ToggleButton>
@@ -73,8 +84,13 @@ export type SegmentTone = Pick<ReturnType<typeof artworkPalette>, "ground" | "on
 const toneSx = (tone: SegmentTone) => ({
   color: tone.onGround,
   borderColor: tone.line,
+  // The theme grounds an unlit segment in the paper, which on an artwork-coloured card is a white
+  // rectangle inside a brown one; the surface's own ground is what the rest of the card stands on.
+  backgroundColor: tone.ground,
   // An unlit segment tapped on a touch screen keeps the hovered wash until the next tap lands
-  // somewhere else, which reads as two segments lit at once.
+  // somewhere else, which reads as two segments lit at once — so the hover is stated for a
+  // pointer alone, and reset to the surface's ground for everything else.
+  "&:hover": { backgroundColor: tone.ground },
   "@media (hover: hover)": { "&:hover": { backgroundColor: tone.tile } },
   "&.Mui-selected, &.Mui-selected:hover": { color: tone.ground, backgroundColor: tone.onGround },
 });
@@ -103,43 +119,322 @@ export const MeasureControl = <M extends string>({
   />
 );
 
-/** The theme capitalises both the select and its items; the menu is portalled, so it is stated twice. */
-const NO_TEXT_TRANSFORM_SX = { textTransform: "none" } as const;
+/**
+ * What the picker is choosing, set beside the value it holds. Muted and a size down, because the
+ * value is the answer and the label is only what the question was: at one size and one tone the
+ * two read as a phrase — "Split Status" — rather than as a field and its contents.
+ */
+const PICKER_LABEL_SX = { fontSize: 11, fontWeight: 400, color: "text.secondary", marginRight: 0.75 } as const;
+
+/** The kit's outlined button, holding whatever the reader chose. */
+const PICKER_SX = {
+  ...KIT_OUTLINED_SX,
+  // A picker's value is one phrase: wrapped, "All time" is two lines in a control the kit gives
+  // one line's height, and the caret is left beside the second of them.
+  whiteSpace: "nowrap",
+} as const;
+
+/** The same control, saying its value is no longer the one the card was written for. */
+const PICKER_LIT_SX = {
+  borderColor: "primary.main",
+  color: "primary.main",
+  backgroundColor: (theme: Theme) => primaryWash(theme, 0.08),
+} as const;
 
 /**
- * A select over a small set of values.
+ * The picker's face: what the reader chose, what the choice was about, and a caret.
  *
- * `labelFor` is how a caller whose options are model keys rather than words says what each one
- * reads as. It carries `textTransform: none` with it, on the select and on every item: the theme
- * capitalises both so that a bare key like `genre` reads as a word, and that same rule turns a
- * worded label into Title Case — "Start Date" for a label that says "Start date". The menu is
- * portalled, so the item override cannot be inherited from the root and has to be stated twice.
+ * A button opening a surface rather than a select, because a select is a form field — an
+ * underlined value on a line, sized by MUI's input metrics — where every one of these is a chart
+ * or page control standing beside segments in a header or the rail. As a button it takes the
+ * kit's own height, type and corner, so a row holding both reads as one set of controls rather
+ * than as a form beside them.
+ *
+ * The face is stated once and the surface behind it is the caller's, because the two pickers here
+ * open different things — a list of values, and a small popover holding two controls — while
+ * reading identically. `lit` is what neither can say by its value alone: that the value is no
+ * longer the one every other reading of the page assumes.
+ *
+ * `onOpen` takes the element rather than reading the event, since what a menu or popover anchors
+ * to is the button itself and the caller is the one holding that state.
+ *
+ * Exported for the phone's page chip, whose surface is a bottom sheet held open in a store and
+ * anchored to nothing: the face is the same control, so it is drawn by the same component rather
+ * than by a second one that could come to differ from it.
+ */
+export const PickerButton = ({
+  label,
+  value,
+  lit,
+  open,
+  ariaLabel,
+  onOpen,
+}: {
+  label?: string;
+  value: string;
+  lit: boolean;
+  open: boolean;
+  /** What the control is, where its own label does not say — a face carrying a value alone. */
+  ariaLabel?: string;
+  onOpen: (anchor: HTMLElement) => void;
+}) => (
+  <Button
+    size="small"
+    variant="outlined"
+    aria-haspopup="true"
+    aria-expanded={open}
+    aria-label={ariaLabel ?? (label ? `${label}: ${value}` : undefined)}
+    onClick={(event) => onOpen(event.currentTarget)}
+    endIcon={<ArrowDropDown />}
+    sx={lit ? { ...PICKER_SX, ...PICKER_LIT_SX } : PICKER_SX}
+  >
+    {label && (
+      <Box
+        component="span"
+        sx={PICKER_LABEL_SX}
+      >
+        {label}
+      </Box>
+    )}
+    {value}
+  </Button>
+);
+
+/**
+ * A choice out of an open set, or one a label has to name: the kit's picker over a list of values.
+ *
+ * `labelFor` is how a caller whose options are model keys says what each one reads as; left off,
+ * the app's own humaniser answers, so `startDate` reads "Start date" and a worded option is
+ * returned unchanged. `label` names what is being chosen where the card's title does not.
+ *
+ * `defaultValue` is what the page opens on. Given, the control lights when the reader has moved
+ * off it.
  */
 export const SelectBox = <T extends string>({
   options,
   value,
   setValue,
   labelFor,
+  label,
+  defaultValue,
 }: {
   options: readonly T[];
   value: T;
   setValue: (func: T) => void;
   labelFor?: (option: T) => string;
-}) => (
-  <Select
-    variant="standard"
-    value={value}
-    sx={labelFor && NO_TEXT_TRANSFORM_SX}
-    onChange={(event) => setValue(event.target.value as T)}
-  >
-    {options.map((option) => (
-      <MenuItem
-        key={option}
-        value={option}
-        sx={labelFor && NO_TEXT_TRANSFORM_SX}
+  label?: string;
+  defaultValue?: T;
+}) => {
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const read = (option: T) => (labelFor ? labelFor(option) : keyLabel(option));
+
+  return (
+    <>
+      <PickerButton
+        label={label}
+        value={read(value)}
+        lit={defaultValue !== undefined && value !== defaultValue}
+        open={anchor !== null}
+        onOpen={setAnchor}
+      />
+      <Menu
+        anchorEl={anchor}
+        open={anchor !== null}
+        onClose={() => setAnchor(null)}
       >
-        {labelFor ? labelFor(option) : option}
-      </MenuItem>
-    ))}
-  </Select>
+        {options.map((option) => (
+          <MenuItem
+            key={option}
+            // Which is current, and what the menu opens focused on: a list of a dozen genres is
+            // otherwise entered at the top whatever the reader picked last.
+            selected={option === value}
+            onClick={() => {
+              setValue(option);
+              setAnchor(null);
+            }}
+          >
+            {read(option)}
+          </MenuItem>
+        ))}
+      </Menu>
+    </>
+  );
+};
+
+/**
+ * Typed as exactly the two actions this control sends, so every domain's dispatch — each a
+ * `FilterDispatchFor` over its own wider state — fits structurally without a generic.
+ */
+type YearDispatch = (
+  action: { type: "updateFilter"; filter: "yearTo"; value: YearNumber } | { type: "yearType"; yearType: YearType },
+) => void;
+
+/** The two readings of a year: everything up to it, or that year alone. */
+const SCOPE_SEGMENTS: SegmentOption<YearType>[] = [
+  { value: "upto", label: "Up to" },
+  { value: "matching", label: "In" },
+];
+
+/**
+ * The page's year scope, in the section rail beside the measure. Which years the whole tab is
+ * counting — every row up to a year, or one year alone — as a picker reading "All time",
+ * "In 2026" or "Up to 2019".
+ *
+ * It rides the rail for the measure's own reason: the scope narrows the vitals, the charts, the
+ * timeline and the library alike, and the rail is the only control surface still on screen
+ * wherever the reader has scrolled to — a control standing beside the two cards it most visibly
+ * changes cannot be found from the wall, which is where a reader notices the page is a subset.
+ *
+ * The menu holds the two scopes a reader asks for by name and sends the rest to a popover: every
+ * year the sheets cover is thirty items, where the whole library and the year in progress are
+ * almost every use of the control. The popover is the full state — which reading, and which year
+ * — because the two are one choice and a menu cannot hold a control.
+ *
+ * Lit whenever the page is not reading everything, since a picker cannot otherwise say that the
+ * figures below it are a subset. It lights itself rather than being counted by the filter badge:
+ * the badge counts the fields the filter surface holds, and a control that says on its own face
+ * that it is on would be stated twice.
+ */
+export const ScopeControl = ({
+  yearTo,
+  yearType,
+  earliestYear,
+  label,
+  dispatch,
+}: {
+  yearTo: YearNumber;
+  yearType: YearType;
+  /**
+   * What the picker's face says it is choosing, where its surface does not. The rail needs it —
+   * "All time" beside three measure words says nothing about what is all — and a labelled row in
+   * the box's own labelled row has already said it, where repeating it reads as "Years Years".
+   */
+  label?: string;
+  /**
+   * The oldest year on offer. The sheets start in different years and one of them (Games) has no
+   * fixed epoch at all, so no floor here would be right for every tab — each works out its own
+   * from its whole library rather than from what the filters left, or picking "In 2020" would
+   * strand the reader at 2020 by making that year the earliest on offer.
+   */
+  earliestYear: YearNumber;
+  dispatch: YearDispatch;
+}) => {
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  // Which surface the one anchor is holding. The menu hands over to the popover in place, so the
+  // button they both hang off is the same element and only one of them is open at a time.
+  const [pickingYear, setPickingYear] = useState(false);
+
+  const close = () => {
+    setAnchor(null);
+    setPickingYear(false);
+  };
+
+  const setScope = (year: YearNumber, type: YearType) => {
+    dispatch({ type: "updateFilter", filter: "yearTo", value: year });
+    dispatch({ type: "yearType", yearType: type });
+    close();
+  };
+
+  const years = Array.from({ length: CURRENT_YEAR - earliestYear + 1 }, (_, index) => String(CURRENT_YEAR - index));
+
+  return (
+    <>
+      <PickerButton
+        label={label}
+        value={scopeLabel(yearTo, yearType, CURRENT_YEAR)}
+        // Named whether or not the face carries the word, since a button reading "All time" alone
+        // says nothing about what is being counted.
+        ariaLabel={`Years: ${scopeLabel(yearTo, yearType, CURRENT_YEAR)}`}
+        lit={!isAllTime(yearTo, yearType, CURRENT_YEAR)}
+        open={anchor !== null}
+        onOpen={setAnchor}
+      />
+      <Menu
+        anchorEl={anchor}
+        open={anchor !== null && !pickingYear}
+        onClose={close}
+      >
+        <MenuItem
+          selected={isAllTime(yearTo, yearType, CURRENT_YEAR)}
+          onClick={() => setScope(CURRENT_YEAR, "upto")}
+        >
+          All time
+        </MenuItem>
+        <MenuItem
+          selected={yearType === "matching" && yearTo === CURRENT_YEAR}
+          onClick={() => setScope(CURRENT_YEAR, "matching")}
+        >
+          In {CURRENT_YEAR}
+        </MenuItem>
+        <Divider />
+        <MenuItem
+          // Marked where the page is scoped to a year the two items above do not name, so a
+          // reader opening the menu on "Up to 2019" is told which line their scope came from.
+          selected={yearTo !== CURRENT_YEAR}
+          onClick={() => setPickingYear(true)}
+        >
+          Another year…
+        </MenuItem>
+      </Menu>
+      <Popover
+        anchorEl={anchor}
+        open={anchor !== null && pickingYear}
+        onClose={close}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+      >
+        <Stack sx={{ padding: 1.5, gap: 1 }}>
+          <Typography
+            variant="caption"
+            sx={{ color: "text.secondary" }}
+          >
+            Another year
+          </Typography>
+          <Stack
+            direction="row"
+            sx={{ gap: 1, alignItems: "center" }}
+          >
+            <SegmentedControl
+              options={SCOPE_SEGMENTS}
+              value={yearType}
+              onChange={(next) => dispatch({ type: "yearType", yearType: next })}
+              ariaLabel="Year reading"
+            />
+            <SelectBox
+              options={years}
+              value={String(yearTo)}
+              // The years are already the words on them, where the app's humaniser would take a
+              // capital to a digit.
+              labelFor={(year) => year}
+              setValue={(year) =>
+                dispatch({ type: "updateFilter", filter: "yearTo", value: Number(year) as YearNumber })
+              }
+            />
+          </Stack>
+        </Stack>
+      </Popover>
+    </>
+  );
+};
+
+/**
+ * The worded cut: "All 1,539 ›", the control a list wears where it shows fewer than it holds.
+ *
+ * The figure is the button because what is missing and the way to it are one fact — an ⤢ beside a
+ * header reading "10 of 1,539" states the cut twice and offers it once, and says nothing about
+ * how much is behind the icon. Where nothing is cut the caller keeps the ⤢ instead: there is no
+ * figure to word, only a bigger view of the same thing.
+ *
+ * The label is `common/population.ts`'s `all`, so a shelf's handle, a group card's footer and a
+ * card header's own toggle cannot spell the same sentence three ways.
+ */
+export const CutButton = ({ label, onClick }: { label: string; onClick: () => void }) => (
+  <Button
+    size="small"
+    variant="outlined"
+    onClick={onClick}
+    endIcon={<ChevronRight />}
+    sx={KIT_OUTLINED_SX}
+  >
+    {label}
+  </Button>
 );

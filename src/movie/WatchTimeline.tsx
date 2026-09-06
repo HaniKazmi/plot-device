@@ -1,6 +1,5 @@
 import { Timeline as TimelineIcon } from "@mui/icons-material";
 import Grid from "@mui/material/Grid";
-import { SectionHeader } from "../common/SectionHeader";
 import { EventRibbon } from "../common/EventRibbon";
 import { FoldedChart } from "../common/FoldedChart";
 import { LazyTooltip } from "../common/LazyTooltip";
@@ -25,7 +24,7 @@ const colourOptions = ["genre", "rating", "cinema", "decade", "score"] as const;
 const WatchTimeline = ({ data }: { data: Movie[] }) => {
   const scheme = useScheme();
 
-  const [colourBy, controls] = useSelectBox(colourOptions, "genre");
+  const [colourBy, controls] = useSelectBox(colourOptions, "genre", "Colour");
 
   const rows = watchRibbonYears(data).map(({ year, bands, laneCount }) => ({
     key: String(year),
@@ -43,14 +42,9 @@ const WatchTimeline = ({ data }: { data: Movie[] }) => {
   return (
     <Grid size={12}>
       <FoldedChart
-        header={
-          <SectionHeader
-            icon={<TimelineIcon />}
-            title="When films were watched"
-            count={`${format(data.length)} films`}
-            action={controls}
-          />
-        }
+        icon={<TimelineIcon />}
+        title="When films were watched"
+        controls={controls}
         // The stack's own shape in words: how many years it draws and which of them is fullest.
         // A ribbon has no single figure to preview, every row being the same twelve months.
         fold={() => ({ summary: summarise(rows) })}

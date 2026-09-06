@@ -10,7 +10,6 @@ interface TabGraphsProps<T, S> {
   filteredData: T[];
   unfilteredData: T[];
   filterState: S;
-  filterDispatch: FilterDispatchFor<S>;
 }
 
 /**
@@ -68,7 +67,7 @@ export const createTabEntry = <M extends Medium, S extends { filter: Predicate<L
     // here reads and not to this page's filters.
     const { visible, loaded, error } = useLibrary();
     const data = visible[medium];
-    const [filterState, filterDispatch] = useFilterReducer();
+    const [filterState] = useFilterReducer();
 
     // Mounted beside the charts rather than inside them, because the case worth saying most is the
     // one where there are none: a reader arriving for the first time against a sheet the converter
@@ -92,7 +91,6 @@ export const createTabEntry = <M extends Medium, S extends { filter: Predicate<L
               filteredData={data.filter(filterState.filter)}
               unfilteredData={data}
               filterState={filterState}
-              filterDispatch={filterDispatch}
             />
           </Suspense>
         )}

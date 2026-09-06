@@ -1,12 +1,12 @@
-import { AutoStories, LocalMovies, Tv, VideogameAsset, type SvgIconComponent } from "@mui/icons-material";
 import { memo, useDeferredValue } from "react";
-import { CURRENT_PLAINDATE, type YearNumber } from "../common/date";
-import { Stack } from "@mui/material";
+import { CURRENT_PLAINDATE } from "../common/date";
+import { Card, CardContent, Stack } from "@mui/material";
+import { usePhone } from "../common/breakpoints";
 import { franchiseIndex } from "../common/franchiseIndex";
-import { Section, SectionRail } from "../common/SectionRail";
-import { FilterChip } from "../common/FilterDrawer";
-import { SchemaFilterDrawer } from "../common/FilterControls";
-import { MeasureControl } from "../common/SelectionComponents";
+import { Section } from "../common/SectionRail";
+import { PageRail } from "../app/PageRail";
+import { NothingMatches } from "../common/NothingMatches";
+import { useNothingMatches } from "../common/nothingMatchesContext";
 import { stripYearTicks } from "../common/timelineStripData";
 import {
   bookEpoch,
@@ -17,8 +17,7 @@ import {
 import { FranchiseContext as MovieFranchiseContext, movieFranchise } from "../movie/franchiseContext";
 import { FranchiseContext as ShowFranchiseContext, showFranchise } from "../show/franchiseContext";
 import { FranchiseContext as VgFranchiseContext, vgFranchise } from "../vg/franchiseContext";
-import { useOtherTabs } from "../tabs";
-import { earliestYear, electNow, hasNow, recentlyFinished } from "./adapter";
+import { electNow, hasNow, recentlyFinished } from "./adapter";
 import type { Library } from "../app/library";
 import type { OmniItem } from "../common/medium";
 import Barchart from "./Barchart";
@@ -31,26 +30,7 @@ import RecentlyFinished from "./RecentlyFinished";
 import { genreBridge } from "./genreBridgeData";
 import Stats from "./Stats";
 import { OMNIBUS_SECTIONS, omnibusSections } from "./sections";
-import { omniFilters } from "./filters";
-import { activeCount, type FilterDispatch, type FilterState } from "./filterUtils";
-import type { Measure } from "../app/types";
-import type { Medium } from "../utils/types";
-
-/** The measures this tab counts in, in the order the rail states them. */
-const MEASURES: readonly Measure[] = ["Hours", "Items"];
-
-/**
- * An icon per medium switch. Held here rather than beside the schema for the reason every domain's
- * are held in its lazy half: a schema is data the shell can reach, and an icon named in it would
- * put these four in the first bundle a visitor downloads. This tab is not a medium and has no
- * module to hang them off, so the chunk drawing its charts is where they sit.
- */
-const filterIcons: Record<Medium, SvgIconComponent> = {
-  game: VideogameAsset,
-  show: Tv,
-  movie: LocalMovies,
-  book: AutoStories,
-};
+import type { FilterState } from "./filterUtils";
 
 /**
  * The four franchise indexes the domains' own cards read, and the scale the Books strips draw on.
@@ -65,15 +45,11 @@ const filterIcons: Record<Medium, SvgIconComponent> = {
 const SuspenseBlock = ({
   library,
   filteredData,
-  unfilteredData,
   filterState,
-  filterDispatch,
 }: {
   library: Library;
   filteredData: OmniItem[];
-  unfilteredData: OmniItem[];
   filterState: FilterState;
-  filterDispatch: FilterDispatch;
 }) => (
   <VgFranchiseContext.Provider value={franchiseIndex(library.game, vgFranchise)}>
     <ShowFranchiseContext.Provider value={franchiseIndex(library.show, showFranchise)}>
@@ -83,21 +59,7 @@ const SuspenseBlock = ({
             <Graphs
               library={library}
               data={filteredData}
-              // The floor of the year select, read from the whole union rather than from what the
-              // filters left: derived from the filtered data, picking "In 2020" would leave 2020
-              // the earliest year on offer and strand the reader in it.
-              earliestYear={earliestYear(unfilteredData)}
               filterState={filterState}
-              filterDispatch={filterDispatch}
-            />
-            <SchemaFilterDrawer
-              schema={omniFilters}
-              icons={filterIcons}
-              state={filterState}
-              dispatch={filterDispatch}
-              data={unfilteredData}
-              activeCount={activeCount(filterState)}
-              onReset={() => filterDispatch({ type: "resetFilters" })}
             />
           </BookEpochProvider>
         </BookFranchiseContext.Provider>
@@ -107,24 +69,12 @@ const SuspenseBlock = ({
 );
 
 const Graphs = memo(
-  ({
-    library,
-    data,
-    earliestYear,
-    filterState,
-    filterDispatch,
-  }: {
-    library: Library;
-    data: OmniItem[];
-    earliestYear: YearNumber;
-    filterState: FilterState;
-    filterDispatch: FilterDispatch;
-  }) => {
+  ({ library, data, filterState }: { library: Library; data: OmniItem[]; filterState: FilterState }) => {
     // The charts and the browse surfaces re-render at lower priority, so a filter toggle answers
     // at once on a page composing four libraries; the bands above them read the fresh array, the
     // way every other tab splits the two.
     const deferredData = useDeferredValue(data, []);
-    const tabs = useOtherTabs();
+    const { active: nothing } = useNothingMatches();
     // Answered once for the page: it decides both whether the Now band is rendered and whether the
     // rail offers a chip pointing at it, and two derivations of one test are two that can differ.
     const now = electNow(library, filterState);
@@ -139,37 +89,82 @@ const Graphs = memo(
     // offer a shelf with nothing on it.
     const shelved = galleryItems(deferredData);
     const finished = recentlyFinished(deferredData);
+    // The wall and the gallery are the two longest sections on the page, so only one of them can
+    // close it on a phone; the gallery moves after Franchises there (`omnibusSections` reorders
+    // the chip the same way).
+    const phone = usePhone();
+
+    const gallerySection = shelved.length > 0 && (
+      <Section
+        key={OMNIBUS_SECTIONS.gallery}
+        id={OMNIBUS_SECTIONS.gallery}
+      >
+        <Gallery
+          data={shelved}
+          measure={filterState.measure}
+        />
+      </Section>
+    );
+
+    const genresSection = bridge.length > 0 && (
+      <Section
+        key={OMNIBUS_SECTIONS.genres}
+        id={OMNIBUS_SECTIONS.genres}
+      >
+        <GenreBridge
+          items={deferredData}
+          measure={filterState.measure}
+        />
+      </Section>
+    );
+
+    const crossingsSection = crossed.found.length > 0 && (
+      <Section
+        key={OMNIBUS_SECTIONS.crossings}
+        id={OMNIBUS_SECTIONS.crossings}
+      >
+        <Crossings
+          crossings={crossed.found}
+          ticks={stripYearTicks(crossed.epoch, CURRENT_PLAINDATE)}
+          items={deferredData}
+        />
+      </Section>
+    );
 
     return (
       <Stack spacing={2}>
-        <SectionRail
-          sections={omnibusSections({
-            now: hasNow(now),
-            charts: deferredData.length > 0,
-            crossings: crossed.found.length > 0,
-            gallery: shelved.length > 0,
-            finished: finished.length > 0,
-            genres: bridge.length > 0,
-          })}
-          tabs={tabs}
-          actions={
-            <MeasureControl
-              measures={MEASURES}
-              value={filterState.measure}
-              dispatch={filterDispatch}
-            />
-          }
-          trailing={<FilterChip activeCount={activeCount(filterState)} />}
+        <PageRail
+          sections={omnibusSections(
+            {
+              now: hasNow(now),
+              charts: deferredData.length > 0,
+              crossings: crossed.found.length > 0,
+              gallery: shelved.length > 0,
+              finished: finished.length > 0,
+              genres: bridge.length > 0,
+            },
+            phone,
+          )}
+          count={data.length}
         />
+        {/* Every section below is gated on having something to draw, so a page the reader has
+            narrowed to nothing would otherwise be a rail over an empty page: the shells that state
+            why are all unmounted. The vitals above still stand, reading zero, which is the honest
+            answer to what the filters left. */}
+        {nothing && (
+          <Card>
+            <CardContent>
+              <NothingMatches />
+            </CardContent>
+          </Card>
+        )}
         <Stats
           data={data}
           now={now}
           crossings={crossed.found}
-          earliestYear={earliestYear}
           measure={filterState.measure}
           yearType={filterState.yearType}
           yearTo={filterState.yearTo}
-          filterDispatch={filterDispatch}
         />
         {finished.length > 0 && (
           <Section id={OMNIBUS_SECTIONS.finished}>
@@ -184,31 +179,7 @@ const Graphs = memo(
             />
           </Section>
         )}
-        {shelved.length > 0 && (
-          <Section id={OMNIBUS_SECTIONS.gallery}>
-            <Gallery
-              data={shelved}
-              measure={filterState.measure}
-            />
-          </Section>
-        )}
-        {bridge.length > 0 && (
-          <Section id={OMNIBUS_SECTIONS.genres}>
-            <GenreBridge
-              items={deferredData}
-              measure={filterState.measure}
-            />
-          </Section>
-        )}
-        {crossed.found.length > 0 && (
-          <Section id={OMNIBUS_SECTIONS.crossings}>
-            <Crossings
-              crossings={crossed.found}
-              ticks={stripYearTicks(crossed.epoch, CURRENT_PLAINDATE)}
-              items={deferredData}
-            />
-          </Section>
-        )}
+        {phone ? [genresSection, crossingsSection, gallerySection] : [gallerySection, genresSection, crossingsSection]}
       </Stack>
     );
   },

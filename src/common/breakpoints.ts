@@ -10,8 +10,8 @@ import { useMediaQuery } from "@mui/material";
  * the reader came for.
  *
  * A media query rather than an `sx` breakpoint because the callers need the answer as a value: a
- * folded chart mounts nothing at all until it is opened, a sheet and a drawer are different trees
- * rather than one tree at two sizes, and the tracked tabs put their charts after their library **in
+ * folded chart mounts nothing at all until it is opened, a dialog and a fullscreen sheet are
+ * different trees rather than one tree at two sizes, and the tracked tabs put their charts after their library **in
  * DOM order**, which `useActiveSection` reads the page's order from. CSS can hide a chart and it can
  * reorder a flex container, and neither of those is any of these.
  *

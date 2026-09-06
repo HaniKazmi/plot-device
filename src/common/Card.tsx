@@ -9,7 +9,6 @@ import {
   Dialog,
   Divider,
   Grow,
-  IconButton,
   Stack,
   SxProps,
   Theme,
@@ -28,12 +27,13 @@ import {
   useRef,
   useState,
 } from "react";
-import { CalendarMonthOutlined, Close } from "@mui/icons-material";
+import { CalendarMonthOutlined, ChevronRight } from "@mui/icons-material";
 import { cachedColour, extractColourFrom } from "../utils/colourUtils";
 import { ArtworkAccent, artworkPalette, SEAM_WIDTH, seamEdge, useArtworkPalette } from "./artworkPalette";
 import { HoverCardTooltip } from "./HoverCardTooltip";
-import { SheetGrabber } from "./SheetGrabber";
-import { pinnedSheetTop } from "./fullscreenSheet";
+import { useHoverCardHold } from "./hoverCardHold";
+import { pinnedSheetBar, SHEET_BAR_HEIGHT } from "./fullscreenSheet";
+import { SheetBar } from "./SheetBar";
 import { TOUCH_TARGET_SX, touchTargetSx } from "./touchTarget";
 import {
   CardArrangementProvider,
@@ -73,6 +73,22 @@ export interface CardMediaImageProps {
    * mounted for the one card whose dialog is open.
    */
   detailComponent?: () => ReactNode;
+  /**
+   * What pressing the artwork does instead of opening this item's own card.
+   *
+   * A card whose picture stands for something larger than the item in it: a grouped list's card
+   * fronts its group with the group's biggest member, so the picture means the group rather than
+   * the one item that happens to represent it, and the card is the group's own handle. Given,
+   * the detail dialog is never opened and so never mounted.
+   */
+  onOpen?: () => void;
+  /**
+   * What the card is a handle for, where that is not the item whose artwork it shows: the
+   * accessible name of the whole press target. Without one the name is read off the picture's
+   * `alt` and the words under it, which between them name the group's biggest member — the one
+   * item pressing the card does not open.
+   */
+  openLabel?: string;
   sx?: SxProps<Theme>;
   /**
    * The card itself rather than the artwork inside it. A caller that lays the artwork and a panel
@@ -285,20 +301,17 @@ const ArtworkStandIn = ({
   palette,
   size,
   component,
-  onClick,
   sx,
 }: {
   alt: string;
   palette: ReturnType<typeof artworkPalette>;
   size?: "thumbnail" | "dialog";
   component?: "span";
-  onClick?: () => void;
   /** The picture's own rules, carried so the tile holds the picture's reservation. */
   sx?: SxProps<Theme>;
 }) => (
   <Box
     component={component ?? "div"}
-    onClick={onClick}
     sx={[
       {
         width: "100%",
@@ -322,44 +335,28 @@ const ArtworkStandIn = ({
 );
 
 /**
- * The bar an expanded card wears where it fills the screen, and the room it takes from the picture
- * below it: the two together are the first screen, so the reader meets the artwork with a way out
- * of it already on show.
- *
- * A height rather than the floor the paper-ground headers stand on (`SHEET_HEADER_BOTTOM`), and a
- * taller one: this bar seats a grabber, a title and a ✕ on one line with no `CardHeader` padding
- * to grow it, and `--sheet-room-height` below subtracts exactly this figure, so what it states has
- * to be what the bar takes rather than the least it may take.
- */
-const SHEET_BAR_HEIGHT = 48;
-
-/**
  * The four rules a sheet is made of, each built here rather than in the component that wears it.
  *
  * A width is a key computed from the theme, and an object literal with a computed key is one of
  * the shapes the React Compiler cannot lower: written inline it would bail the whole component,
  * silently, and this one is rendered once per card on a wall of a thousand. Taking the values that
  * vary — the palette, the artwork's ratio — as arguments keeps the literal itself at module scope.
+ *
+ * This first is the bar an expanded card wears where it fills the screen, and the room it takes
+ * from the picture below it: the two together are the first screen, so the reader meets the artwork
+ * with a way out of it already on show. From `sm` up the dialog is a window over the page, whose
+ * picture, backdrop and Escape are the ways out, so nothing here is emitted.
+ *
+ * The bar is the top of the card rather than chrome laid over it, so it takes the artwork's own
+ * ground and ink and the picture meets it with no rule between them — which is the whole of what
+ * separates it from every other layer's, which stand on the paper.
  */
 const sheetBarSx = (palette: ReturnType<typeof artworkPalette>) => (theme: Theme) => ({
   display: "none",
   [theme.breakpoints.down("sm")]: {
-    display: "flex",
-    // What pins any sheet's bar: sticky at the top, above the body, with the notch paid for on top
-    // of the bar's own height — which is what the picture below is sized against.
-    ...pinnedSheetTop(theme),
-    // The bar is the top of the card rather than chrome laid over it, so it takes the artwork's
-    // own ground and ink, and the picture meets it with no rule between them — which is why it
-    // pins itself rather than wearing `stickySheetHeader`, whose ground is the paper's.
+    ...pinnedSheetBar(theme),
     backgroundColor: palette.ground,
     color: palette.onGround,
-    alignItems: "center",
-    gap: 1,
-    // The notch padding sits inside this box, so the floor is the bar plus the inset: the room the
-    // picture is given subtracts both, and a floor of the bar alone would leave the two agreeing
-    // only where the inset is at least the difference between 48 and the bar's own content.
-    minHeight: `calc(${SHEET_BAR_HEIGHT}px + env(safe-area-inset-top))`,
-    paddingInline: 1,
   },
 });
 
@@ -437,51 +434,9 @@ const dialogImageSx = (ratio: number | undefined) => (theme: Theme) => ({
   }),
 });
 
-/**
- * A grabber, the item's name and a way out, in the card's own ground so the bar reads as the top
- * of the card rather than as chrome laid over it.
- *
- * It is the dialog's first child and sticky, so the name and the ✕ stay on screen as the picture
- * scrolls past. Both the paper and the card open their clipping at this width for it: an ancestor
- * whose `overflow` is anything but `visible` becomes the scrollport a sticky element is measured
- * against, and neither of those boxes ever scrolls, so the bar would sit at the top of a card
- * several screens tall and never come back.
- *
- * The name is stated at every scroll position rather than faded in past the picture: the title is
- * the one fact a full-bleed picture does not carry, and a bar whose middle fills in as you scroll
- * moves the ✕ nowhere but reads as something loading.
- */
-const SheetBar = ({
-  title,
-  palette,
-  onClose,
-}: {
-  title: string;
-  palette: ReturnType<typeof artworkPalette>;
-  onClose: () => void;
-}) => (
-  <Box sx={sheetBarSx(palette)}>
-    <SheetGrabber colour={palette.muted} />
-    <Typography
-      variant="subtitle2"
-      noWrap
-      sx={{ flexGrow: 1, minWidth: 0 }}
-    >
-      {title}
-    </Typography>
-    <IconButton
-      aria-label="Close"
-      size="small"
-      onClick={onClose}
-      sx={{ color: "inherit" }}
-    >
-      <Close />
-    </IconButton>
-  </Box>
-);
-
 export const CardMediaImage = (props: CardMediaImageProps) => {
   const { image, alt, chip, colour: propColour, footerComponent, detailComponent, mediaLayout, sx, cardSx } = props;
+  const onOpen = props.onOpen;
   const rowSize = props.rowSize;
   const mediaBand = props.mediaBand;
   const bandHeight = mediaBand?.height ?? 0;
@@ -508,6 +463,19 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
     shapeToArrangement(shape) === "beside" &&
     footerComponent !== undefined;
   const detail = useDialogMount(props.openOnMount ?? false);
+  const hoverHold = useHoverCardHold();
+  /**
+   * Opening the expanded card, and holding open whatever this card was drawn inside.
+   *
+   * A hover card's popper renders this card, so the dialog below is a child of the popper's own
+   * content: the dialog's backdrop takes the pointer off the popper, the popper closes on the
+   * leave, and React unmounts the dialog with the subtree it was rendered in. The hold is released
+   * once the dialog has finished leaving, and is a pair of no-ops everywhere else.
+   */
+  const openDetail = () => {
+    hoverHold.hold();
+    detail.show();
+  };
   const onDetailClosed = props.onDetailClosed;
   // Only cards that opted into extraction seed from the cache, so a grid that means to stay
   // uncoloured is not tinted by whatever another component happened to read first.
@@ -639,7 +607,19 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
           {/* The whole card's width: a line of its own where the card is a row, the top of the
               block where it is not. */}
           {mediaBand && <Box sx={FULL_WIDTH_NO_BASIS}>{mediaBand.node}</Box>}
+          {/* The press is the action area's own, not the picture's inside it. The area is a
+              button, and a button's Enter fires the button — never a click on some element within
+              it — so a handler on the image is a card openable by the pointer alone, which is
+              every card on the page for a reader on the keyboard. */}
           <CardActionArea
+            aria-label={props.openLabel}
+            onClick={() => {
+              if (onOpen) return onOpen();
+              // The detail dialog is themed from this colour, so it is worth reading even for a card
+              // that did not ask for one.
+              readColour(imgRef.current);
+              openDetail();
+            }}
             sx={mediaLayout === "aside" ? ASIDE_ACTION_AREA_SX : beside ? SHAPE_ASIDE_ACTION_AREA_SX : undefined}
           >
             {missing ? (
@@ -654,7 +634,6 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
                 alt={alt}
                 palette={palette}
                 component="span"
-                onClick={detail.show}
                 sx={mediaSx}
               />
             ) : (
@@ -664,12 +643,6 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
                 crossOrigin="anonymous"
                 src={image}
                 alt={alt}
-                onClick={() => {
-                  // The detail dialog is themed from this colour, so it is worth reading even for a card
-                  // that did not ask for one.
-                  readColour(imgRef.current);
-                  detail.show();
-                }}
                 loading={lazy ? "lazy" : undefined}
                 // WebKit decodes on the main thread as it paints, and a wall's artwork arrives
                 // while the reader is scrolling it — the frames a synchronous decode costs are
@@ -719,6 +692,7 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
               transition: {
                 onExited: () => {
                   detail.onExited();
+                  hoverHold.release();
                   onDetailClosed?.();
                 },
               },
@@ -731,7 +705,9 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
               >
                 <SheetBar
                   title={alt}
-                  palette={dialogPalette}
+                  grabber
+                  grabberColour={dialogPalette.muted}
+                  sx={sheetBarSx(dialogPalette)}
                   onClose={detail.hide}
                 />
                 <Box
@@ -1532,9 +1508,19 @@ export const FooterComponent = ({
   divider,
   caption,
   captionText,
+  chevron,
 }: {
   labels: string[][];
   divider?: boolean;
+  /**
+   * A › at the end of the last row, for a card whose press opens something other than the item in
+   * it: a grouped card fronts its group, and the whole card is the handle. The glyph is the only
+   * thing that says so — a worded button there stands a row taller than the plain footers beside
+   * it, and a chip over the artwork covers the one thing a fronting picture is for. A strip card's
+   * caption carries it on its closing line, the phone's grouped lists being the one place a
+   * fronting card is drawn at no other size.
+   */
+  chevron?: boolean;
   /**
    * One line instead of the stack, for a card in a strip: the picture stands at a fixed height and
    * what is left is a single line of words. `stripCaption` decides which of the rows it is — never
@@ -1569,26 +1555,48 @@ export const FooterComponent = ({
         }}
       >
         <Box sx={{ minWidth: 0, width: "100%" }}>
-          {(captionText ?? stripCaption(labels)).slice(0, STRIP_CAPTION_LINES).map((line) => (
-            <Typography
-              key={line}
-              variant="caption"
-              noWrap
-              sx={{
-                display: "block",
-                fontWeight: 600,
-                // Stated, so the height above is the height this actually takes rather than
-                // whatever the variant's ratio works out to.
-                lineHeight: `${STRIP_CAPTION_LINE}px`,
-                // One size down from the variant, so a date fits a cover's line; every strip card
-                // takes it, the strip being read across its captions.
-                fontSize: 11,
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              {line}
-            </Typography>
-          ))}
+          {(captionText ?? stripCaption(labels)).slice(0, STRIP_CAPTION_LINES).map((line, index, lines) => {
+            // The glyph rides the caption's *last* line, which is the figure — the shorter of the
+            // two. On the last line the date above keeps the card's full width, where a glyph
+            // standing beside both lines takes 16 of an 82px poster's caption from a date that
+            // already ellipsizes there.
+            const closing = chevron === true && index === lines.length - 1;
+
+            return (
+              <Typography
+                key={line}
+                variant="caption"
+                noWrap={!closing}
+                sx={{
+                  display: closing ? "flex" : "block",
+                  ...(closing && { alignItems: "center", columnGap: "2px" }),
+                  fontWeight: 600,
+                  // Stated, so the height above is the height this actually takes rather than
+                  // whatever the variant's ratio works out to.
+                  lineHeight: `${STRIP_CAPTION_LINE}px`,
+                  // One size down from the variant, so a date fits a cover's line; every strip card
+                  // takes it, the strip being read across its captions.
+                  fontSize: 11,
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                {closing ? (
+                  <Box
+                    component="span"
+                    sx={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                  >
+                    {line}
+                  </Box>
+                ) : (
+                  line
+                )}
+                {/* Under the caption's own 17px line rather than the footer's 18px glyph: an icon
+                    taller than the line box sets the line's height, and the caption's height is
+                    what the strip reserved the card's picture out of. */}
+                {closing && <ChevronRight sx={{ fontSize: 14, color: palette.muted, flexShrink: 0 }} />}
+              </Typography>
+            );
+          })}
         </Box>
       </CardContent>
     );
@@ -1610,65 +1618,88 @@ export const FooterComponent = ({
         ...seamEdge(palette, beside),
       }}
     >
-      {labels.map((stacks, index) => (
-        <Stack
-          key={`stacks-${index}`}
-          direction="row"
-          divider={
-            divider && !beside ? (
-              <Divider
-                orientation="vertical"
-                flexItem
-                sx={{ borderColor: palette.line }}
-              />
-            ) : null
-          }
-          sx={{
-            // Beside, a row opens a line of prose; under the artwork it is spread across the card.
-            justifyContent: beside ? "flex-start" : stacks.length === 1 ? "center" : "space-between",
-            columnGap: beside ? 0.75 : 1,
-            // Under the artwork a row that does not fit breaks between its cells, never inside a
-            // date: each cell keeps its words together and the second takes a line of its own.
-            flexWrap: "wrap",
-            color: index < labels.length - 1 ? palette.muted : undefined,
-          }}
-        >
-          {stacks.map((val) => (
-            <Typography
-              key={val}
-              // A context row is set as a label and the closing row as the card's own line: the
-              // hero and the Now band already state a date as a kicker over the thing it dates,
-              // and a stat card is the same card smaller. Left at one size the two rows differ
-              // only in tone, which reads as one line dimmed rather than as two ranks.
-              variant={index < labels.length - 1 ? "caption" : "subtitle2"}
-              sx={[
-                index < labels.length - 1 ? LABEL_SX : { fontWeight: 600 },
-                beside
-                  ? {
-                      lineHeight: 1.3,
-                      overflowWrap: "break-word",
-                      minWidth: 0,
-                      display: "-webkit-box",
-                      WebkitBoxOrient: "vertical",
-                      WebkitLineClamp: BESIDE_LABEL_LINES,
-                      overflow: "hidden",
-                    }
-                  : {
-                      whiteSpace: "nowrap",
-                      // On a card under 210px — six posters across a 1,200px page — a date and a
-                      // "days in" at the caption's size and tracking are a line and a half; one
-                      // size down with half the tracking they are one line.
-                      ...(index < labels.length - 1 && {
-                        "@container (max-width: 210px)": { fontSize: 10, letterSpacing: "0.04em" },
-                      }),
-                    },
-              ]}
-            >
-              {val}
-            </Typography>
-          ))}
-        </Stack>
-      ))}
+      {labels.map((stacks, index) => {
+        const closing = chevron && index === labels.length - 1;
+        const row = (
+          <Stack
+            key={`stacks-${index}`}
+            direction="row"
+            divider={
+              divider && !beside ? (
+                <Divider
+                  orientation="vertical"
+                  flexItem
+                  sx={{ borderColor: palette.line }}
+                />
+              ) : null
+            }
+            sx={{
+              // Beside, a row opens a line of prose; under the artwork it is spread across the card.
+              justifyContent: beside ? "flex-start" : stacks.length === 1 ? "center" : "space-between",
+              columnGap: beside ? 0.75 : 1,
+              // Under the artwork a row that does not fit breaks between its cells, never inside a
+              // date: each cell keeps its words together and the second takes a line of its own.
+              flexWrap: "wrap",
+              color: index < labels.length - 1 ? palette.muted : undefined,
+              // The row takes the width the glyph leaves, so its cells still spread across the card.
+              ...(closing && { flex: "1 1 0", minWidth: 0 }),
+            }}
+          >
+            {stacks.map((val) => (
+              <Typography
+                key={val}
+                // A context row is set as a label and the closing row as the card's own line: the
+                // hero and the Now band already state a date as a kicker over the thing it dates,
+                // and a stat card is the same card smaller. Left at one size the two rows differ
+                // only in tone, which reads as one line dimmed rather than as two ranks.
+                variant={index < labels.length - 1 ? "caption" : "subtitle2"}
+                sx={[
+                  index < labels.length - 1 ? LABEL_SX : { fontWeight: 600 },
+                  beside
+                    ? {
+                        lineHeight: 1.3,
+                        overflowWrap: "break-word",
+                        minWidth: 0,
+                        display: "-webkit-box",
+                        WebkitBoxOrient: "vertical",
+                        WebkitLineClamp: BESIDE_LABEL_LINES,
+                        overflow: "hidden",
+                      }
+                    : {
+                        whiteSpace: "nowrap",
+                        // On a card under 210px — six posters across a 1,200px page — a date and a
+                        // "days in" at the caption's size and tracking are a line and a half; one
+                        // size down with half the tracking they are one line.
+                        ...(index < labels.length - 1 && {
+                          "@container (max-width: 210px)": { fontSize: 10, letterSpacing: "0.04em" },
+                        }),
+                      },
+                ]}
+              >
+                {val}
+              </Typography>
+            ))}
+          </Stack>
+        );
+
+        // Beside the row rather than inside it. The row wraps between its cells, so a third item in
+        // it takes a line of its own wherever the name and the figure already fill the width —
+        // a second line on the long names alone, which is the uneven height the glyph is here to
+        // avoid. Outside, it sits within the closing line and the footer is a plain footer's height.
+        // The tone is the footer's own: the ground is a sampled colour, and a glyph stating the
+        // theme's muted ink can land invisible on it.
+        return closing ? (
+          <Box
+            key={`stacks-${index}`}
+            sx={{ display: "flex", alignItems: "center", columnGap: 0.5 }}
+          >
+            {row}
+            <ChevronRight sx={{ fontSize: 18, color: palette.muted, flexShrink: 0 }} />
+          </Box>
+        ) : (
+          row
+        );
+      })}
     </CardContent>
   );
 };

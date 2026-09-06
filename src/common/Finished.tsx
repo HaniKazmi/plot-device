@@ -1,11 +1,13 @@
-import { Box, Card, CardContent, FormGroup, Stack, Typography } from "@mui/material";
+import { Box, Card, CardContent, Stack, Typography } from "@mui/material";
 import { usePhone } from "./breakpoints";
 import { SegmentedControl } from "./SelectionComponents";
 import { segments } from "./segments";
 import Grid from "@mui/material/Grid";
 import { GridView } from "@mui/icons-material";
 import { useDeferredValue, useRef, useState, type ReactNode, type RefObject } from "react";
-import type { TypedCardMediaImage } from "./Card";
+import { INLINE_SWATCH_SIZE, Swatch, type TypedCardMediaImage } from "./Card";
+import { NothingMatches } from "./NothingMatches";
+import { useNothingMatches } from "./nothingMatchesContext";
 import { SectionHeader } from "./SectionHeader";
 import { useSelectBox } from "./SelectBoxHook";
 import { ScrollMarker, ScrollMarkerRail } from "./ScrollMarker";
@@ -24,10 +26,11 @@ import {
 } from "./finishedData";
 import { withAlpha } from "../utils/colourUtils";
 import { shapeToAspect } from "./cardArrangement";
-import { SCROLL_MARGIN } from "./SectionRail";
+import { PHONE_SCROLL_MARGIN_CSS } from "./SectionRail";
 import { SHEET_HEADER_BOTTOM } from "./fullscreenSheet";
-import { MUTED_FIGURE_SX, NUMERIC_LABEL_SX } from "./typography";
+import { LABEL_SX, MUTED_FIGURE_SX, NUMERIC_LABEL_SX } from "./typography";
 import { format } from "../utils/mathUtils";
+import "../utils/mapUtils";
 
 /** One empty list, so a wall with no extra sorts does not mint a fresh array every render. */
 const NO_SORTS: readonly never[] = [];
@@ -147,9 +150,12 @@ const FinishedGrid = <U extends FinishedItem>({
  *
  * It is the jump rail's derivation drawn in the flow rather than beside it: on a phone the page has
  * no gutter to hang a rail in and no room for a pill that is not over the cards it names, and a
- * sticky heading is what every list on the platform indexes itself with. It clears the section rail
- * on the page and, in the dialog, the sheet's own close bar: both are pinned in the scrollport this
- * heading sticks in, and a heading pinned at 0 parks behind whichever of them is above it.
+ * sticky heading is what every list on the platform indexes itself with. On the page it clears
+ * nothing but the screen's own edge and whatever the device reserves above it — `viewport-fit=cover`
+ * lays the page out to the physical top, so on a notched phone an unpadded heading pins under the
+ * sensor housing — the rail at this width being drawn in the bar along the bottom;
+ * in the dialog it clears the sheet's own close bar, which is pinned in the scrollport this heading
+ * sticks in, and a heading pinned at 0 parks behind it.
  *
  * The ground and the stacking order are both load-bearing: artwork arrives while the reader is
  * inside the wall, and a transparent heading has a card sliding under it and a picture landing over
@@ -159,7 +165,7 @@ const BucketHeading = ({ label, count, isDialog }: { label: string; count: numbe
   <Box
     sx={{
       position: "sticky",
-      top: isDialog ? SHEET_HEADER_BOTTOM : `${SCROLL_MARGIN}px`,
+      top: isDialog ? SHEET_HEADER_BOTTOM : PHONE_SCROLL_MARGIN_CSS,
       zIndex: 1,
       display: "flex",
       alignItems: "baseline",
@@ -183,10 +189,85 @@ const BucketHeading = ({ label, count, isDialog }: { label: string; count: numbe
   </Box>
 );
 
+/**
+ * The border's own legend: the field it speaks, then a swatch and a word per value on the wall.
+ *
+ * A wall of hundreds of cards each ringed in a colour is a vocabulary the page states nowhere
+ * else — the charts above it are grouped by something else — so naming the field alone ("border ·
+ * status") tells a reader that the colours mean something without telling them what any of them
+ * means. The key is the whole of it: a row of dots and words is a legend a reader can read the
+ * wall by.
+ *
+ * Drawn under every sort the wall offers, since none of them is the border's own field: the wall
+ * orders by date, by franchise or by one of a domain's figures, and the marker rail names its runs
+ * by that order — so nothing else on the page ever spells this vocabulary out.
+ */
+const BorderKey = ({ field, entries }: { field: string; entries: readonly { value: string; colour: string }[] }) => (
+  <Stack
+    direction="row"
+    spacing={1.5}
+    sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 0.5, paddingX: 2, paddingBottom: 1 }}
+  >
+    <Typography
+      variant="caption"
+      sx={{ ...LABEL_SX, color: "text.secondary" }}
+    >
+      {field}
+    </Typography>
+    {entries.map((entry) => (
+      <Stack
+        key={entry.value}
+        direction="row"
+        spacing={0.5}
+        sx={{ alignItems: "center" }}
+      >
+        <Swatch
+          colour={entry.colour}
+          size={INLINE_SWATCH_SIZE}
+        />
+        <Typography variant="caption">{entry.value}</Typography>
+      </Stack>
+    ))}
+  </Stack>
+);
+
+/**
+ * How the border key's values are ordered: the order a reader looks a colour up in, which for a
+ * list of words is alphabetical. Numeric-aware, because one of the four vocabularies is a
+ * certificate ramp — a plain string sort runs it "12, 15, 18, 3, 7", where the ages themselves are
+ * what the colours climb by. Hoisted, since the wall re-derives its key on every filter change.
+ */
+const keyCollator = new Intl.Collator(undefined, { numeric: true });
+
+/**
+ * The border's vocabulary as it stands on this wall: one entry per value present, in the order a
+ * reader reads them.
+ *
+ * Both halves come off the same item, so the swatch and the word cannot disagree about which value
+ * wears which colour. A value whose colour lookup answers nothing is left out — `statusToColour`
+ * and `companyToColor` both answer `undefined` off their tables, and the card wears no border for
+ * it either.
+ */
+const borderEntries = <U,>(
+  data: readonly U[],
+  valueOf: (item: U) => string,
+  colour: ((item: U) => string) | undefined,
+): { value: string; colour: string }[] => {
+  if (!colour) return [];
+  const found = new Map<string, string>();
+  data.forEach((item) => {
+    const fill = colour(item);
+    if (fill) found.setIfAbsent(valueOf(item), fill);
+  });
+  return [...found]
+    .map(([value, fill]) => ({ value, colour: fill }))
+    .toSorted((a, b) => keyCollator.compare(a.value, b.value));
+};
+
 const Finished = <U extends FinishedItem>({
   title,
   count,
-  borderKey,
+  border,
   data,
   colour,
   landscape: landscapeProp,
@@ -198,12 +279,13 @@ const Finished = <U extends FinishedItem>({
   /** What the grid is over, in the caller's own words. Optional: a domain may have no noun yet. */
   count?: string;
   /**
-   * What field the card border is coloured by, in the caller's own words — "platform", "status",
-   * "genre". The wall draws a border on every card whichever domain it is, and with nothing
-   * naming the field a reader has no way to tell a colour means something from a colour that is
-   * just decoration.
+   * What the card border is coloured by: the field in the caller's own words — "platform",
+   * "status", "genre" — and how to read that field off an item, which is what lets the key below
+   * the header name each colour. The wall draws a border on every card whichever domain it is, and
+   * with nothing naming the values a reader has no way to tell a colour means something from a
+   * colour that is just decoration.
    */
-  borderKey?: string;
+  border?: { key: string; valueOf: (item: U) => string };
   data: readonly U[];
   colour?: (item: U) => string;
   landscape?: boolean;
@@ -226,11 +308,10 @@ const Finished = <U extends FinishedItem>({
   const shadowed = sorts.find((extra) => (FINISHED_SORTS as readonly string[]).includes(extra.label));
   if (shadowed) throw new Error(`A wall sort cannot be named "${shadowed.label}": that order is built in`);
   const sortOptions: readonly string[] = [...FINISHED_SORTS, ...sorts.map((extra) => extra.label)];
-  // Joined onto the same muted caption `SectionHeader` already renders beside the title, rather
-  // than a second piece of header markup: a wall not asked for a border key gets exactly the
-  // header it would without one.
-  const countWithBorder = [count, borderKey && `border · ${borderKey}`].filter(Boolean).join(" · ") || undefined;
-  const [sort, selectBox] = useSelectBox<string>(sortOptions, "Date");
+  const [sort, selectBox] = useSelectBox<string>(sortOptions, "Date", "Sort");
+  // Derived here rather than inside `renderContent`, which is called for the card and again for
+  // the dialog and on each of that dialog's own state changes: this walks the whole library.
+  const keyEntries = border ? borderEntries(data, border.valueOf, colour) : [];
   // The wall is what the page's height is, so this has to be the true answer on the first render:
   // read wrong, every card would mount at one density and remount at another, asking for each
   // picture twice over. `usePhone` is that answer, stated once for the app.
@@ -252,6 +333,7 @@ const Finished = <U extends FinishedItem>({
 
   const slowData = useDeferredValue(data, []);
   const recent = finishedItems(slowData, sort, sorts);
+  const { active: nothing } = useNothingMatches();
 
   // The marker measures and queries the page itself, so it holds the two elements it reads rather
   // than a copy of what they contain. Both are the inline grid's: the dialog renders the same
@@ -286,27 +368,34 @@ const Finished = <U extends FinishedItem>({
         <SectionHeader
           icon={<GridView />}
           title={title}
-          count={countWithBorder}
+          count={count}
           action={
-            <FormGroup>
-              <Stack
-                direction={"row"}
-                spacing={1}
-              >
-                {selectBox}
-                <SegmentedControl
-                  options={DENSITY_OPTIONS}
-                  value={isDialog ? dialogDensity : shownDensity}
-                  onChange={isDialog ? setDialogDensity : setDensity}
-                  ariaLabel="Card size"
-                />
-                {toggle}
-              </Stack>
-            </FormGroup>
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{ alignItems: "center" }}
+            >
+              {selectBox}
+              <SegmentedControl
+                options={DENSITY_OPTIONS}
+                value={isDialog ? dialogDensity : shownDensity}
+                onChange={isDialog ? setDialogDensity : setDensity}
+                ariaLabel="Card size"
+              />
+              {toggle}
+            </Stack>
           }
         />
+        {border && keyEntries.length > 0 && (
+          <BorderKey
+            field={border.key}
+            entries={keyEntries}
+          />
+        )}
         <CardContent>
-          {phone ? (
+          {recent.length === 0 && nothing ? (
+            <NothingMatches />
+          ) : phone ? (
             <Stack spacing={1}>
               {/* The position as well as the label: a sort that returns to a bucket it has passed
                 opens a second run under the same heading, and two of them keyed alike would have
@@ -328,8 +417,12 @@ const Finished = <U extends FinishedItem>({
         </CardContent>
         {/* Two presentations of one derivation: the rail where the gutter and the viewport hold it,
           the pill everywhere else. Which one is the hook's answer, so they cannot both appear.
-          Neither is mounted on a phone, where the wall carries its own headings instead. */}
-        {!isDialog && !phone && (marker.rail ? <ScrollMarkerRail {...marker} /> : <ScrollMarker {...marker} />)}
+          Neither is mounted on a phone, where the wall carries its own headings instead. Nothing
+          on an empty wall to mark a position in. */}
+        {!isDialog &&
+          !phone &&
+          recent.length > 0 &&
+          (marker.rail ? <ScrollMarkerRail {...marker} /> : <ScrollMarker {...marker} />)}
       </Box>
     );
   };
@@ -340,6 +433,7 @@ const Finished = <U extends FinishedItem>({
     // would then stand still inside a box that never scrolls. Opened only where they are drawn —
     // the wall's own content stops well inside the card's corners, so there is nothing to clip.
     <ExpandableCard
+      title={title}
       sx={{ overflow: { xs: "visible", sm: "hidden" } }}
       renderContent={renderContent}
     />

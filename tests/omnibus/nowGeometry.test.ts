@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { denseNowGeometry, NOW_GEOMETRY, nowPortraitHeight, pairNowGeometry } from "../../src/omnibus/nowGeometry";
+import {
+  denseNowGeometry,
+  NOW_GAP,
+  NOW_GEOMETRY,
+  nowPortraitHeight,
+  pairNowGeometry,
+} from "../../src/omnibus/nowGeometry";
 
 describe("the Now band's geometry", () => {
   it("states one card width from a full-height poster beside its column of words", () => {
@@ -23,9 +29,9 @@ describe("the Now band's geometry", () => {
     expect(denseNowGeometry(1688)?.cardWidth).toBe(416);
   });
 
-  it("seats two to a row from the width that gives each of them the floor", () => {
+  it("shares the row two ways, the poster taking its natural width where the column allows", () => {
     // 740 halved with one gap between — 366 each, a 16:9 banner 206 tall over its 136px panel,
-    // and a poster at 0.68 of that height.
+    // and a poster at 0.68 of that height, which is inside the column and so unclamped.
     expect(pairNowGeometry(740)).toEqual({ cardWidth: 366, height: 342, posterArtWidth: 233, bannerArtHeight: 206 });
   });
 
@@ -35,27 +41,44 @@ describe("the Now band's geometry", () => {
     expect(pairNowGeometry(720)).toEqual({ cardWidth: 356, height: 336, posterArtWidth: 223, bannerArtHeight: 200 });
   });
 
-  it("gives no pair where the clamp would take a fifth of the poster, so the cards stand at their stated width", () => {
-    // A 600px viewport's row is 552, two cards of 272: the poster beside a 133px column would be
-    // 139 wide against the 204 its row gives.
-    expect(pairNowGeometry(647)).toBeUndefined();
-    expect(pairNowGeometry(552)).toBeUndefined();
+  it("keeps two to a row on the narrowest row above the phone, spending the poster to do it", () => {
+    // A 600px viewport's row is 552, two cards of 272: the poster beside its 133px column stands
+    // 139 wide in a 289px card rather than the 197 the row's height would give it.
+    expect(pairNowGeometry(552)).toEqual({ cardWidth: 272, height: 289, posterArtWidth: 139, bannerArtHeight: 153 });
+  });
+
+  // A card wider than half its row can only stand one to a row, so a share refused is four rows of
+  // a stated card — 1,544px against the 590 the same row's pair costs.
+  it("never draws a card the row cannot hold two of", () => {
+    for (let rowWidth = 400; rowWidth <= 1600; rowWidth++) {
+      const { cardWidth } = pairNowGeometry(rowWidth);
+      expect(2 * cardWidth + NOW_GAP).toBeLessThanOrEqual(Math.max(rowWidth, 2 * NOW_GEOMETRY.cardWidth + NOW_GAP));
+    }
+  });
+
+  it("reaches the stated card and stops there, which is the row the four-card cap is set at", () => {
+    // Two stated cards and a gap between them: 876. One pixel under it the share is a pixel short.
+    expect(pairNowGeometry(2 * NOW_GEOMETRY.cardWidth + NOW_GAP)).toEqual(NOW_GEOMETRY);
+    expect(pairNowGeometry(1488)).toEqual(NOW_GEOMETRY);
+    expect(pairNowGeometry(875).cardWidth).toBe(433);
   });
 
   it("gives the pair a card wider than the four-way share of the same row", () => {
-    expect(pairNowGeometry(1488)!.cardWidth).toBeGreaterThan(denseNowGeometry(1488)!.cardWidth);
+    expect(pairNowGeometry(1488).cardWidth).toBeGreaterThan(denseNowGeometry(1488)!.cardWidth);
   });
 
-  // The floor is a floor on the words, not on the card: the column is the card less the poster the
-  // row's height gives it, so it is what the figure was chosen for and what both shares protect.
-  it("leaves a poster's column of words at 133px at either share's floor", () => {
+  // The figure is a floor on the words, not on the card: the column is the card less the poster the
+  // row's height gives it, so it is what the figure was chosen for and what the clamp protects at
+  // every width the pair is drawn at, the four-way share's own floor included.
+  it("leaves a poster's column of words at 133px wherever the clamp is what sizes it", () => {
     const column = (geometry: { cardWidth: number; posterArtWidth: number }) =>
       geometry.cardWidth - geometry.posterArtWidth;
 
     expect(column(denseNowGeometry(1488)!)).toBe(133);
-    expect(column(pairNowGeometry(740)!)).toBe(133);
-    expect(column(pairNowGeometry(720)!)).toBe(133);
-    expect(column(pairNowGeometry(648)!)).toBe(133);
+    expect(column(pairNowGeometry(740))).toBe(133);
+    expect(column(pairNowGeometry(720))).toBe(133);
+    expect(column(pairNowGeometry(648))).toBe(133);
+    expect(column(pairNowGeometry(552))).toBe(133);
   });
 
   it("holds the phone's portrait row at the poster's height beside the spine, taller on a wider phone", () => {

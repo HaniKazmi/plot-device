@@ -53,7 +53,7 @@ const Omnibus = () => {
   // when the other is, so the page has a single test for whether all four sheets are here.
   const { whole: library, items: data, loaded, error } = useLibrary();
 
-  const [filterState, filterDispatch] = useFilterReducer();
+  const [filterState] = useFilterReducer();
 
   // The first sheet to complain, not all of them: each message names a row in a different
   // spreadsheet, and four at once would say the page is broken four times over where the
@@ -78,9 +78,7 @@ const Omnibus = () => {
           <Graphs
             library={library}
             filteredData={data.filter(filterState.filter)}
-            unfilteredData={data}
             filterState={filterState}
-            filterDispatch={filterDispatch}
           />
         </Suspense>
       )}

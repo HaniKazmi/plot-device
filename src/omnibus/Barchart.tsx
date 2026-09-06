@@ -1,6 +1,5 @@
 import Barchart from "../common/Barchart";
 import { useSelectBox } from "../common/SelectBoxHook";
-import { format } from "../utils/mathUtils";
 import type { OmniItem } from "../common/medium";
 import { BARCHART_SPLITS, omniBarchartRows } from "./barchartData";
 import type { Measure } from "../app/types";
@@ -21,7 +20,7 @@ import { useScheme } from "../common/useScheme";
 const OmnibusBarchart = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
   const scheme = useScheme();
 
-  const [split, controls] = useSelectBox(BARCHART_SPLITS, "medium");
+  const [split, controls] = useSelectBox(BARCHART_SPLITS, "medium", "Split");
   // Built once and both plotted and counted, because a split can drop a row whose column the sheet
   // has not filled in yet — a header counting what went in would overstate what came out.
   const rows = omniBarchartRows(data, measure, split, scheme);
@@ -29,7 +28,6 @@ const OmnibusBarchart = ({ data, measure }: { data: OmniItem[]; measure: Measure
   return (
     <Barchart
       title={`${measure} by year`}
-      count={`${format(rows.length)} items`}
       // The year is the same in every view, so the argument the shell passes is not read: an item's
       // year is an attribution rather than a date, and a month-grained curve would invent one.
       data={() => rows}

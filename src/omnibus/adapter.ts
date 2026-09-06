@@ -1,4 +1,3 @@
-import type { YearNumber } from "../common/date";
 import type { OmniItem } from "../common/medium";
 import { omniHours, type Library } from "../app/library";
 import { moduleOf } from "../app/media";
@@ -7,7 +6,6 @@ import { currentlyReading } from "../books/statsData";
 import { latestWatched } from "../movie/statsData";
 import { currentlyWatching, heroSeason } from "../show/statsData";
 import { currentlyPlaying } from "../vg/statsData";
-import { earliestYear as earliestYearOf } from "../common/statsData";
 import "../utils/arrayUtils";
 
 /**
@@ -49,8 +47,8 @@ export const ofMedium = (items: OmniItem[], medium: Medium) => items.filter((ite
  * recently and the book in hand. Nothing is invented here — a medium with no honest answer
  * contributes none, and the band renders the cards it was given.
  *
- * `visible` decides which media are asked at all, so a medium switched off in the filter drawer
- * cannot headline the page it has been removed from.
+ * `visible` decides which media are asked at all, so a medium switched off in this page's own
+ * filters cannot headline the page it has been removed from.
  */
 export const electNow = (library: Library, visible: Record<Medium, boolean>) => ({
   game: visible.game ? currentlyPlaying(library.game)[0] : undefined,
@@ -61,9 +59,3 @@ export const electNow = (library: Library, visible: Record<Medium, boolean>) => 
 
 /** Whether the Now band has anything to say — the same test the rail's chip is built from. */
 export const hasNow = (now: ReturnType<typeof electNow>) => media.some((medium) => now[medium] !== undefined);
-
-/**
- * The first year the union holds anything in, which is the floor the year select offers: the four
- * sheets start in different years, and the union's floor is whichever of them starts first.
- */
-export const earliestYear = (items: OmniItem[]): YearNumber => earliestYearOf(items, (item) => item.year);

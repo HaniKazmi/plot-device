@@ -1,4 +1,3 @@
-import { ExpandCircleDown } from "@mui/icons-material";
 import { useState, type ReactNode } from "react";
 import type { CardMediaImageProps, TypedCardMediaImage } from "./Card";
 import type { ArtworkShape } from "./cardArrangement";
@@ -10,8 +9,8 @@ import { groupCaption, type DrilldownGroup } from "./statsData";
  * A strip of grouped cards that drills into a group: each card fronts its group with the group's
  * biggest item, and opening one lists that group's members fullscreen.
  *
- * The card owns everything that is the same on every tab — the open handle, the expand badge that
- * sets it, mounting the dialog only while a group is picked, and the key a drill-down card carries
+ * The card owns everything that is the same on every tab — the card being the group's own handle,
+ * mounting the dialog only while a group is picked, and the key a drill-down card carries
  * (the option prefixes it, so switching category remounts the grid rather than reusing cards under
  * a different grouping). What a domain supplies is what varies: its groups, how a group and a
  * member label themselves, which badge a member wears, the artwork and the colour its fronting
@@ -70,10 +69,13 @@ export const GroupedStatList = <T,>(props: {
         title={props.title}
         content={props.groups}
         collapsed={props.collapsed}
-        chipComponent={(entry) => ({
-          icon: <ExpandCircleDown color="action" />,
-          onClick: () => setDialogContent(entry),
-        })}
+        // The whole card opens the group, at every width. The picture takes the meaning it already
+        // carries — it fronts the group rather than being an item of it — and the footer's own ›
+        // is the affordance, where a worded button in that footer stands the row a line taller than
+        // the plain `StatList` rows beside it and ends the pair of cards at different heights.
+        onOpen={setDialogContent}
+        // The card names the group it opens, not the member whose picture and words it wears.
+        openLabelOf={(entry) => `Open ${props.labelComponent(entry).flat().join(", ")}`}
         labelComponent={props.labelComponent}
         captionOf={(entry) => groupCaption(props.labelComponent(entry), entry.name)}
         MediaComponent={(cardProps) => (

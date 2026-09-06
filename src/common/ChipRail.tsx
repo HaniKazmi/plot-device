@@ -1,9 +1,9 @@
-import { Box, Chip, useTheme, type SxProps, type Theme } from "@mui/material";
-import type { ReactElement, ReactNode, Ref } from "react";
-import { NUMERIC_LABEL_SX } from "./typography";
+import { Box, Chip, Tooltip, useTheme, type SxProps, type Theme } from "@mui/material";
+import { useEffect, type ReactElement, type ReactNode, type Ref } from "react";
+import { railScrollTarget } from "./chipRailData";
 import { ScrollFade } from "./ScrollFade";
 import { useScrollEdges } from "./useScrollEdges";
-import { CONTAIN_SIDEWAYS_SCROLL } from "./scrollbarSx";
+import { QUIET_SIDEWAYS_SCROLL } from "./scrollbarSx";
 
 export interface ChipRailItem {
   id: string;
@@ -11,66 +11,100 @@ export interface ChipRailItem {
 }
 
 /**
- * The height of a rail chip, and so of any label standing in for one — the pill the scroll marker
- * falls back to speaks the same vocabulary and has to be the same size to read as the same thing.
- */
-export const CHIP_HEIGHT = 22;
-
-/**
- * The same chip under a finger. 22px is a mark on a scale a mouse lands on exactly; a thumb needs
- * a target it can hit at speed, and the rail is the one bar a phone reader reaches for from
- * anywhere on the page. `SCROLL_MARGIN` (`SectionRail.tsx`) still clears a rail built from these.
- */
-const COARSE_CHIP_HEIGHT = 30;
-
-/**
  * What every rail's chips are, beyond being chips.
  *
- * A fixed height rather than the size's own, because a rail spread down a gutter or across a chart
- * is a scale, and a scale's marks are one size. The type is the numeric label treatment, since most
- * of these labels are years. Chips never shrink either — a flex item gives
- * up width before it overflows, so without that a narrow viewport ellipsises the labels instead of
- * letting the row scroll, which is the degradation that keeps the reading order and the first
- * chip's edge.
+ * The height and the numeric type the kit gives a small chip are stated on the theme
+ * (`Google.tsx`), so a rail's marks and any chip standing in for one cannot be drawn at two sizes.
+ * What is left here is that a chip never shrinks: a flex item gives up width before it overflows,
+ * so without this a narrow viewport ellipsises the labels instead of letting the row scroll, which
+ * is the degradation that keeps the reading order and the first chip's edge.
  */
-const CHIP_SX = {
-  flexShrink: 0,
-  height: CHIP_HEIGHT,
-  "@media (pointer: coarse)": { height: COARSE_CHIP_HEIGHT },
-  ...NUMERIC_LABEL_SX,
+const CHIP_SX = { flexShrink: 0 } as const;
+
+/**
+ * A chip that is only its mark, drawn as a circle.
+ *
+ * A chip's label padding and MUI's own icon offsets are spacing for a mark set beside a word, and
+ * left in they seat the glyph 4px left of centre in a pill 9px wider than it needs to be. The
+ * width follows the height through the ratio rather than a figure, so the circle is whatever the
+ * theme gives a small chip on this pointer — 24px, or 32 under a finger — without this file
+ * holding a second copy of either.
+ */
+const ICON_ONLY_SX = {
+  ...CHIP_SX,
+  aspectRatio: "1",
+  "& .MuiChip-icon": { marginInline: 0 },
+  "& .MuiChip-label": { paddingInline: 0 },
 } as const;
 
 /**
  * One rail chip, exported so a caller can put chips of its own in the `leading` slot or beside the
- * rail's actions.
+ * rail's own controls.
  *
- * `icon` with no `label` is a chip that is only its mark — the theme drops the empty label's
- * padding for exactly that — which is how a control with no room for a word joins the row.
+ * `icon` with no `label` is a chip that is only its mark, which is how a control with no room for
+ * a word joins the row. Such a
+ * chip is named by `ariaLabel` alone, so it also carries a tooltip: the word is what a reader who
+ * has not learnt the glyph needs, and a pointer is the one that can ask for it without committing
+ * to the press. A finger is told nothing, its own press-and-hold belonging to the browser.
+ *
+ * `colour` is for a chip standing for something the app already speaks a colour for — a tab, in
+ * its own — and lands on the mark and the edge rather than on the ground: four filled chips in
+ * four hues read as four things chosen, where a filled chip in this row means the one section the
+ * reader is in.
  */
 export const RailChip = ({
   label,
   active,
   icon,
   ariaLabel,
+  colour,
+  railId,
   onClick,
 }: {
-  label: string;
+  label?: string;
   active?: boolean;
   icon?: ReactElement;
   ariaLabel?: string;
+  colour?: string;
+  /**
+   * What the chip stands for, published on the element so the row can find the lit one to scroll it
+   * into view. An attribute rather than an `id`, which the section chips share with the `Section`
+   * elements they scroll to: two nodes carrying one id leaves `getElementById` answering whichever
+   * the document reaches first.
+   */
+  railId?: string;
   onClick: () => void;
-}) => (
-  <Chip
-    label={label}
-    aria-label={ariaLabel}
-    icon={icon}
-    size="small"
-    color={active ? "primary" : "default"}
-    variant={active ? "filled" : "outlined"}
-    onClick={onClick}
-    sx={CHIP_SX}
-  />
-);
+}) => {
+  const base = label === undefined ? ICON_ONLY_SX : CHIP_SX;
+  const chip = (
+    <Chip
+      label={label ?? ""}
+      data-rail-chip={railId}
+      // Published so a row re-toning the kit onto a coloured bar (`barTone.ts`) can leave this chip
+      // alone: those are descendant rules and outrank the `sx` below, so a chip drawn in a colour
+      // of its own keeps it only where the row is told to skip it.
+      data-own-colour={colour === undefined ? undefined : ""}
+      aria-label={ariaLabel}
+      icon={icon}
+      size="small"
+      color={active ? "primary" : "default"}
+      variant={active ? "filled" : "outlined"}
+      onClick={onClick}
+      sx={colour ? { ...base, color: colour, borderColor: colour } : base}
+    />
+  );
+
+  return label === undefined && ariaLabel ? (
+    <Tooltip
+      title={ariaLabel}
+      disableTouchListener
+    >
+      {chip}
+    </Tooltip>
+  ) : (
+    chip
+  );
+};
 
 /**
  * A scrolling row of chips, one of which is current.
@@ -107,13 +141,63 @@ export const ChipRail = (props: {
    * one is a band of a foreign colour at the end of the row rather than the row running out.
    */
   ground?: string;
+  /**
+   * Whether the row scrolls itself to keep the lit chip in view.
+   *
+   * A rail whose chips are a reading of where in the page the reader is asks for it: the lit chip
+   * moves as the page is read, and one scrolled off the end says nothing. A rail whose chips are a
+   * scale under a chart does not — the years are spread `space-between` across the chart's own
+   * width, the lit one changes as the chart is dragged sideways, and following it would take the
+   * row out from under the finger that is moving the chart.
+   */
+  follow?: boolean;
 }) => {
-  const { items, activeId, onSelect, leading, label, sx, rowSx, ref } = props;
+  const { items, activeId, onSelect, leading, label, sx, rowSx, ref, follow } = props;
   // The hidden scrollbar leaves a rail wider than its row with nothing saying so, and on a phone
   // that is most of them — the chips simply stop mid-word at the edge.
   const [scrollRef, edges] = useScrollEdges<HTMLDivElement>();
   const theme = useTheme();
   const ground = props.ground ?? theme.vars.palette.background.default;
+
+  /**
+   * The row follows the highlight where the caller asks for it: a rail that is a reading of where
+   * in the page the reader is says nothing with its lit chip scrolled off the end — on a phone the
+   * row holds four of a tab's seven sections, so most of the page's positions are off-screen
+   * positions.
+   *
+   * Keyed on the lit chip alone, so the reader's own flick along the row is never taken back: the
+   * effect runs when the answer changes and not when the row moves. The offset is computed rather
+   * than asked for through `scrollIntoView`, which scrolls every scrollable ancestor — including the
+   * document, which would move the page the highlight is a reading of.
+   *
+   * Measured from the two rects rather than `offsetLeft`, whose origin is the nearest positioned
+   * ancestor and not necessarily this row.
+   */
+  useEffect(() => {
+    const row = scrollRef.current;
+    if (!follow || !row || activeId === undefined) return;
+    const chip = row.querySelector<HTMLElement>(`[data-rail-chip="${CSS.escape(activeId)}"]`);
+    if (!chip) return;
+    const rowBox = row.getBoundingClientRect();
+    const chipBox = chip.getBoundingClientRect();
+    const target = railScrollTarget(
+      row.scrollLeft,
+      row.clientWidth,
+      chipBox.left - rowBox.left + row.scrollLeft,
+      chipBox.width,
+    );
+    // A sub-pixel correction is a scroll nobody asked for: `scrollLeft` is fractional under a
+    // device pixel ratio that is not a whole number, so an exact comparison moves the row on every
+    // change of highlight, smoothly, by nothing.
+    if (Math.abs(target - row.scrollLeft) < 1) return;
+    row.scrollTo({
+      left: target,
+      // A reader who has asked for less motion gets the row in its new position rather than a
+      // journey to it. Read here rather than subscribed to: the answer is wanted at the moment of
+      // the scroll, and a change to it re-renders nothing.
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    });
+  }, [activeId, follow, scrollRef]);
 
   const chips = (
     <>
@@ -122,6 +206,7 @@ export const ChipRail = (props: {
         <RailChip
           key={item.id}
           label={item.label}
+          railId={item.id}
           active={item.id === activeId}
           onClick={() => onSelect(item.id)}
         />
@@ -150,10 +235,7 @@ export const ChipRail = (props: {
             display: "flex",
             gap: 1,
             overflowX: "auto",
-            ...CONTAIN_SIDEWAYS_SCROLL,
-            // A scrollbar drawn under a row this short costs as much height as the row itself.
-            scrollbarWidth: "none",
-            "::-webkit-scrollbar": { display: "none" },
+            ...QUIET_SIDEWAYS_SCROLL,
           },
           ...(Array.isArray(rowSx) ? rowSx : [rowSx]),
         ]}

@@ -172,8 +172,10 @@ describe("one franchise, one colour, every tab", () => {
 
 /**
  * A tab's primary is chart geometry, not only chrome: `Barchart` paints a single-group series in
- * `palette.primary.main`, so a bar can be drawn in it. `Google.tsx` writes the one hex into both
- * colour schemes, which means it has to clear both papers rather than the one a `Fill` half meets.
+ * `theme.palette.primary.main`, which under `cssVariables: true` is the light scheme's literal on
+ * either paper — so one hex is drawn on both and has to clear both, where a `Fill` half meets one.
+ * The dark scheme's CSS *variable* is that tab's `darkBar.rule` instead, held to the same floor by
+ * `tabs.test.ts`.
  *
  * Nothing else covers this. Every table above exports its own key list and is walked here, while
  * the tab colours live in `tabs.ts` as fields on an object the router builds from — reachable by

@@ -2,10 +2,10 @@ import { useState } from "react";
 import { CardContent, Stack, Typography } from "@mui/material";
 import { Category } from "@mui/icons-material";
 import { INLINE_SWATCH_SIZE, ProportionalBar, Swatch } from "../common/Card";
-import { SectionHeader } from "../common/SectionHeader";
 import { FoldedChart } from "../common/FoldedChart";
 import { LABEL_SX, MUTED_FIGURE_SX } from "../common/typography";
 import { format } from "../utils/mathUtils";
+import { stated } from "../common/population";
 import { useSelectBox } from "../common/SelectBoxHook";
 import { BRIDGE_KEYS, genreBridge, type BridgeKey, type GenreBridgeRow } from "./genreBridgeData";
 import type { OmniItem } from "../common/medium";
@@ -57,44 +57,43 @@ const GenreBridge = ({ items, measure }: { items: OmniItem[]; measure: Measure }
   const [hovered, setHovered] = useState<string | null>(null);
   // Genre is what the section opens on, the composition the union most plainly has; the rest are
   // the same question asked of when an item was met and what it was certified.
-  const [key, keySelect] = useSelectBox(BRIDGE_KEYS, "genre");
+  const [key, keySelect] = useSelectBox(BRIDGE_KEYS, "genre", "Rows");
   const rows = genreBridge(items, key, measure);
 
   const biggest = rows[0];
 
   return (
     <FoldedChart
-      header={
-        <SectionHeader
-          icon={<Category />}
-          title={`${KEY_NOUN[key]} by medium`}
-          count={`${format(rows.length)} ${KEY_NOUN[key].toLowerCase()}`}
-          action={
+      icon={<Category />}
+      title={`${KEY_NOUN[key]} by medium`}
+      count={stated(rows.length, KEY_NOUN[key].toLowerCase())}
+      // The picker chooses what a row is and the swatches key the bars: both are about a stack
+      // that is not drawn until the card is opened, and the fold's own line names its leading row
+      // in words.
+      controls={
+        <Stack
+          direction="row"
+          spacing={1.5}
+          sx={{ alignItems: "center", flexWrap: "wrap" }}
+        >
+          {keySelect}
+          {media.map((medium) => (
             <Stack
+              key={medium}
               direction="row"
-              spacing={1.5}
-              sx={{ alignItems: "center", flexWrap: "wrap" }}
+              spacing={0.5}
+              sx={{ alignItems: "center", cursor: "default" }}
+              onMouseEnter={() => setHovered(mediumToLabel(medium))}
+              onMouseLeave={() => setHovered(null)}
             >
-              {keySelect}
-              {media.map((medium) => (
-                <Stack
-                  key={medium}
-                  direction="row"
-                  spacing={0.5}
-                  sx={{ alignItems: "center", cursor: "default" }}
-                  onMouseEnter={() => setHovered(mediumToLabel(medium))}
-                  onMouseLeave={() => setHovered(null)}
-                >
-                  <Swatch
-                    colour={mediumToColour(medium, scheme)}
-                    size={INLINE_SWATCH_SIZE}
-                  />
-                  <Typography variant="caption">{mediumToLabel(medium)}</Typography>
-                </Stack>
-              ))}
+              <Swatch
+                colour={mediumToColour(medium, scheme)}
+                size={INLINE_SWATCH_SIZE}
+              />
+              <Typography variant="caption">{mediumToLabel(medium)}</Typography>
             </Stack>
-          }
-        />
+          ))}
+        </Stack>
       }
       // The rows open on genre, biggest first, so the first is the genre the library is most made
       // of, and how it divides is the whole question the section asks.

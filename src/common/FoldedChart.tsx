@@ -1,14 +1,37 @@
-import { Box, Button, Card, CardContent, Stack, Typography } from "@mui/material";
+import { Box, ButtonBase, Card, CardContent, IconButton, Stack, Typography } from "@mui/material";
+import { ExpandMore } from "@mui/icons-material";
 import { useState, type ReactNode } from "react";
 import { usePhone } from "./breakpoints";
-import { SEGMENT_TYPE_SX } from "./typography";
+import { SectionHeader } from "./SectionHeader";
+import { NothingMatches } from "./NothingMatches";
+import { useNothingMatches } from "./nothingMatchesContext";
 
 /**
- * A segment's own type, so the disclosure reads as one more of the controls the page already has
- * rather than as a call to action — the same 12px, unshouted casing and compact padding
- * `SegmentedControl` sets, taken from it so the two cannot drift.
+ * The ⌄ that reveals the chart, turned over to ⌃ once it is drawn.
+ *
+ * One glyph rotated rather than two, so the control the reader presses is the same object before
+ * and after — a swap would read as a different button appearing where the last one was pressed.
  */
-const TOGGLE_SX = { ...SEGMENT_TYPE_SX, flexShrink: 0 } as const;
+const CHEVRON_SX = { transition: "transform 150ms", transform: "rotate(180deg)" } as const;
+
+/**
+ * The fold row as a second way in.
+ *
+ * The summary and its picture are what a reader is looking at when they decide they want the
+ * chart, and the ⌄ is a 32px target at the far end of the card from them; the row answers the same
+ * press, so a thumb resting on the words does not have to travel. It is a `ButtonBase` for the
+ * press feedback alone — a `div` and out of the tab order, since the ⌄ in the header is the named
+ * control and a second stop for one action is a tab that reports nothing new. Laid out as the
+ * block it stands in rather than as a button: the centring and the type `ButtonBase` imposes are
+ * for a label, and this is a paragraph over a sparkline.
+ */
+const FOLD_ROW_SX = {
+  display: "block",
+  width: "100%",
+  textAlign: "left",
+  borderRadius: 1,
+  cursor: "pointer",
+} as const;
 
 /** How tall a preview stands: enough for a shape, short enough that it is not the chart. */
 const SPARK_HEIGHT = 44;
@@ -21,6 +44,42 @@ export interface Fold {
   summary: string;
   /** The chart's shape at a glance: a sparkline, a proportional bar. */
   preview?: ReactNode;
+}
+
+interface FoldProps {
+  /** The header every chart card wears, built here so the fold decides what it carries. */
+  icon: ReactNode;
+  title: string;
+  /** What the section is over, already worded by its domain (`common/population.ts`). */
+  count?: string;
+  /**
+   * The chart's own settings, drawn only while the chart is: a split, a view or a set of rings is
+   * a choice about a chart that is not mounted, and a folded card's one line is drawn from the
+   * same pivot whatever they say, so pressing one changes nothing the reader can see.
+   */
+  controls?: ReactNode;
+  /**
+   * A control that stands whichever state the card is in: the way to what the card has no room
+   * for, rather than a setting on what it does show.
+   */
+  action?: ReactNode;
+  /**
+   * What the card states in place of the chart where the caller has nothing it can draw — a pivot
+   * with no groups in it, which Highcharts would otherwise draw as an index axis and a series of
+   * its own invention. The fold is skipped with it: a summary and a preview are the same claim
+   * about the same absent data.
+   */
+  blank?: ReactNode;
+  /**
+   * The line and the picture the fold stands on, as a thunk.
+   *
+   * A thunk because both are derived from the chart's own data — a second pivot of the barchart,
+   * the sunburst's first ring — and from `sm` up nothing reads them. Called past the width check
+   * and once for the pair, so a card that needs the same pivot for both does not build it twice.
+   * `Card`'s `detailComponent` defers a subtree the same way.
+   */
+  fold: () => Fold;
+  children: ReactNode;
 }
 
 /**
@@ -38,67 +97,110 @@ export interface Fold {
  * The state is a card's own and lives for as long as the page does: leaving the tab unmounts it,
  * which is the same answer a reader gets from every other chart control here.
  */
-export const FoldedChart = ({
-  header,
-  fold,
-  children,
-}: {
-  /** The card's own `SectionHeader`, controls and all — it heads both states. */
-  header: ReactNode;
-  /**
-   * The line and the picture the fold stands on, as a thunk.
-   *
-   * A thunk because both are derived from the chart's own data — a second pivot of the barchart,
-   * the sunburst's first ring — and from `sm` up nothing reads them. Called past the width check
-   * and once for the pair, so a card that needs the same pivot for both does not build it twice.
-   * `Card`'s `detailComponent` defers a subtree the same way.
-   */
-  fold: () => Fold;
-  children: ReactNode;
-}) => {
+export const FoldedChart = (props: FoldProps) => (
+  <Card>
+    <FoldedContent {...props} />
+  </Card>
+);
+
+/**
+ * The header's right-hand slot: the chart's own settings while it is drawn, and beside them
+ * anything that stands either way.
+ *
+ * A plain function at module scope rather than a branch inside the component, so the `Stack` a row
+ * of two needs is stated once and neither half has to know whether the other is there.
+ */
+const headerAction = (controls: ReactNode, action: ReactNode, shown: boolean): ReactNode => {
+  const settings = shown ? controls : undefined;
+  if (!settings || !action) return settings ?? action;
+  return (
+    <Stack
+      direction="row"
+      spacing={1}
+      sx={{ alignItems: "center" }}
+    >
+      {settings}
+      {action}
+    </Stack>
+  );
+};
+
+/**
+ * The same card without its `Card`, for a section that already stands in one.
+ *
+ * `ExpandableCard` owns the card it can also present fullscreen, so a section that both folds on a
+ * phone and opens a dialog — the crossings — nests this inside that card rather than putting one
+ * card's border and corners inside another's.
+ */
+export const FoldedContent = ({ icon, title, count, controls, action, blank, fold, children }: FoldProps) => {
   const phone = usePhone();
+  const { active } = useNothingMatches();
   const [shown, setShown] = useState(false);
+
+  // The header heads every state this card can be in, so it is built once and told which one.
+  const header = (drawn: boolean, toggle: ReactNode) => (
+    <SectionHeader
+      icon={icon}
+      title={title}
+      count={count}
+      titleAction={toggle}
+      action={headerAction(controls, action, drawn)}
+    />
+  );
+
+  // Ahead of the phone check and unconditional on it, at every width: a fold's summary and preview
+  // are built from the same data the chart is, and all three read as claims about a library that
+  // answers none of them — a fold row over nothing is a second empty state beside the message.
+  if (active || blank)
+    return (
+      <>
+        {header(true, null)}
+        <CardContent>{active ? <NothingMatches /> : blank}</CardContent>
+      </>
+    );
 
   if (!phone)
     return (
-      <Card>
-        {header}
+      <>
+        {header(true, null)}
         {children}
-      </Card>
+      </>
     );
 
   const { summary, preview } = fold();
+  const toggle = (
+    <IconButton
+      aria-label={shown ? "Hide chart" : "Show chart"}
+      aria-expanded={shown}
+      onClick={() => setShown(!shown)}
+    >
+      <ExpandMore sx={shown ? CHEVRON_SX : undefined} />
+    </IconButton>
+  );
 
   return (
-    <Card>
-      {header}
+    <>
+      {header(shown, toggle)}
       {shown && children}
       <CardContent>
-        <Stack spacing={1}>
-          {!shown && preview}
-          <Stack
-            direction="row"
-            spacing={1}
-            sx={{ alignItems: "center", justifyContent: "space-between" }}
-          >
+        <ButtonBase
+          component="div"
+          tabIndex={-1}
+          onClick={() => setShown(!shown)}
+          sx={FOLD_ROW_SX}
+        >
+          <Stack spacing={1}>
+            {!shown && preview}
             <Typography
               variant="caption"
               sx={{ color: "text.secondary" }}
             >
               {summary}
             </Typography>
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={() => setShown(!shown)}
-              sx={TOGGLE_SX}
-            >
-              {shown ? "Hide chart" : "Show chart"}
-            </Button>
           </Stack>
-        </Stack>
+        </ButtonBase>
       </CardContent>
-    </Card>
+    </>
   );
 };
 
