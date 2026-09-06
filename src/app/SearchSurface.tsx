@@ -602,13 +602,17 @@ const AttributeShelf = ({
           sx={{ alignItems: "center", minWidth: 0 }}
         >
           <span>{attribute.value}</span>
-          <Typography
-            variant="body2"
-            component="span"
-            sx={{ ...MUTED_FIGURE_SX, textTransform: "capitalize" }}
-          >
-            {attribute.label}
-          </Typography>
+          {/* A toggle's label is the value itself, left blank on its entry: drawn anyway it would be
+              an empty span the row's own gap still spaces out, leaving the title trailing. */}
+          {attribute.label && (
+            <Typography
+              variant="body2"
+              component="span"
+              sx={{ ...MUTED_FIGURE_SX, textTransform: "capitalize" }}
+            >
+              {attribute.label}
+            </Typography>
+          )}
         </Stack>
       }
       onClose={onClose}

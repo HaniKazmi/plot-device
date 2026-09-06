@@ -488,6 +488,29 @@ export const franchiseToColour = ({ franchise }: { franchise: string }, scheme: 
   return colour ? pick(colour, scheme) : ("" as Colour);
 };
 
+/**
+ * The word both sheets that record anime write it as.
+ *
+ * One constant rather than a literal on each tab, because the box folds an attribute on its value:
+ * a shelf holding every anime show *and* film exists only where the two labels are the same string,
+ * and two literals a rename can part would quietly become two shelves of one thing.
+ */
+export const ANIME = "Anime";
+
+/**
+ * Anime against everything else: the rose its fandom paints in, and a broadcast indigo for the
+ * rest. Both meet the fill contract.
+ *
+ * Shared here rather than kept on the Shows tab because Movies splits by the same distinction —
+ * one hue means anime on either tab, and a tracked domain may not import another's vocabulary. The
+ * word for the *other* half stays each tab's own, a show that is not anime being a show and a film
+ * a film; only the anime half has to agree, and it is the half keyed on.
+ */
+const animeFills: [Fill, Fill] = [fill("#006bd1", "#1a82f2"), fill("#c42b91", "#de47a8")];
+
+export const animeToColour = (label: string, scheme: Scheme): Colour =>
+  pick(animeFills[label === ANIME ? 1 : 0], scheme);
+
 export const scoreBands = ["9–10", "7–8", "5–6", "3–4", "1–2", "Unscored"] as const;
 
 export type ScoreBand = (typeof scoreBands)[number];

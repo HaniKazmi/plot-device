@@ -1,10 +1,12 @@
 import { useState } from "react";
 import type { KeysMatching } from "../utils/types";
-import { groupToColour, typeToName, type Measure, type Show } from "./types";
+import { animeLabel, groupToColour, type Measure, type Show } from "./types";
 import Sunburst, { SunBurstControls } from "../common/Sunburst";
 import { useScheme } from "../common/useScheme";
 
-type OptionKeys = KeysMatching<Show, string | Show["startDate"]> | "show";
+// `anime` is named beside the string keys because it is a boolean on the model, as `show` is named
+// for being the parent rather than a field.
+type OptionKeys = KeysMatching<Show, string | Show["startDate"]> | "show" | "anime";
 
 const ShowSunburst = ({ data, measure }: { data: Show[]; measure: Measure }) => {
   const [controlStates, setControlStates] = useState<OptionKeys[]>(["status", "startDate", "show"]);
@@ -25,8 +27,8 @@ const ShowSunburst = ({ data, measure }: { data: Show[]; measure: Measure }) => 
               return season.startDate.yearString();
             case "show":
               return season.show.name;
-            case "type":
-              return typeToName(season.show.type);
+            case "anime":
+              return animeLabel(season.show);
             default:
               return String(season.show[key as keyof Show]);
           }
@@ -55,7 +57,7 @@ const options: OptionKeys[] = [
   "status",
   "startDate",
   "show",
-  "type",
+  "anime",
   "genre",
   "network",
   "certificate",

@@ -218,6 +218,49 @@ describe("buildAttributeIndex", () => {
   });
 });
 
+describe("buildAttributeIndex over a shelved toggle", () => {
+  const animeLibrary = () =>
+    library({
+      game: [videoGame({ name: "Star Trek: Resurgence", franchise: "Star Trek", hours: 11 })],
+      show: [showWithSeasons(3, { name: "Cowboy Bebop", franchise: "Cowboy Bebop", anime: true })],
+      movie: [movie({ name: "Akira", franchise: "Akira", anime: true })],
+      book: [book()],
+    });
+
+  it("folds the two tabs' anime switches into one entry, since both are keyed and worded alike", () => {
+    const anime = buildAttributeIndex(animeLibrary()).filter((entry) => entry.category === "anime");
+
+    expect(anime).toHaveLength(1);
+    expect(anime[0].value).toBe("Anime");
+    // Each tab's own rows: one show, not the three seasons the union flattens it to.
+    expect(anime[0].counts).toEqual({ show: 1, movie: 1 });
+  });
+
+  it("shelves such an entry and never places it, a toggle having no state meaning these rows alone", () => {
+    const [anime] = buildAttributeIndex(animeLibrary()).filter((entry) => entry.category === "anime");
+
+    expect(anime.narrows).toBe(false);
+    // Its label is blank: a toggle's label is the value itself, and the facts line would repeat it.
+    expect(anime.label).toBe("");
+  });
+
+  it("leaves a toggle that names a page's own noise out of the index entirely", () => {
+    const keys = buildAttributeIndex(animeLibrary()).map((entry) => entry.category);
+
+    expect(keys).not.toContain("unconfirmed");
+    expect(keys).not.toContain("unscored");
+    // The Omnibus keys its medium switches by medium; none is shelved, or a whole tab would be one.
+    expect(keys).not.toContain("game");
+  });
+
+  it("holds every row the shelved toggle names, across both media that record it", () => {
+    const [anime] = buildAttributeIndex(animeLibrary()).filter((entry) => entry.category === "anime");
+    const works = attributeWorks(animeLibrary(), anime, TODAY);
+
+    expect(works.map((work) => work.medium).toSorted()).toEqual(["movie", "show"]);
+  });
+});
+
 describe("attributePlacements and attributeAction", () => {
   const genre = () =>
     buildAttributeIndex(trekLibrary()).find((entry) => entry.category === "genre" && entry.value === "Sci-Fi")!;
@@ -283,6 +326,37 @@ describe("attributePlacements and attributeAction", () => {
       value: ["15", "16"],
     });
   });
+
+  it("sets each board's own number, one tier being written as a 15 here and a 16 there", () => {
+    // The two boards part in the middle: BBFC issues a 15 where PEGI issues a 16, and the sheets
+    // write whichever their own board does. One hit on the tier has to land as the number the tab
+    // it is pressed on actually holds, or it narrows that page to nothing.
+    const rated = library({
+      game: [videoGame({ name: "The Witcher 3", certificate: "16" })],
+      movie: [movie({ name: "Blade Runner", certificate: "15" })],
+    });
+    const tier = buildAttributeIndex(rated).find((entry) => entry.category === "certificate")!;
+
+    expect(tier.value).toBe("15/16");
+    const onGames = attributePlacements(tier, "games", ["certificate"])[0];
+    const onMovies = attributePlacements(tier, "movies", ["certificate"])[0];
+
+    expect(attributeAction(onGames, [])).toMatchObject({ filter: "certificate", value: ["16"] });
+    expect(attributeAction(onMovies, [])).toMatchObject({ filter: "certificate", value: ["15"] });
+  });
+
+  it("sets the band itself on the tab that is no medium, which has no board of its own", () => {
+    const rated = library({
+      game: [videoGame({ name: "The Witcher 3", certificate: "16" })],
+      movie: [movie({ name: "Blade Runner", certificate: "15" })],
+    });
+    const tier = buildAttributeIndex(rated).find((entry) => entry.category === "certificate")!;
+    const [placed] = attributePlacements(tier, "omnibus", ["certificate"]);
+
+    // Its own category groups on the band for the same reason the gallery's shelves do, so the
+    // band string is the value that page can actually be narrowed by.
+    expect(attributeAction(placed, [])).toMatchObject({ filter: "certificate", value: ["15/16"] });
+  });
 });
 
 describe("searchUnion over attributes", () => {
@@ -328,7 +402,7 @@ describe("searchUnion over attributes", () => {
     const there = groups.find((group) => group.key === "filter-there")!;
 
     expect(here.hits.map((hit) => (hit.entry as PlacedAttribute).value)).toEqual(["Star Trek"]);
-    expect(here.hits[0].entry.category).toBe("franchise");
+    expect((here.hits[0].entry as PlacedAttribute).category).toBe("franchise");
     expect(there.hits.map((hit) => (hit.entry as PlacedAttribute).tab)).toEqual(["games", "movies"]);
   });
 

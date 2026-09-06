@@ -1,5 +1,13 @@
-import { franchiseCategory, type FilterSchema } from "../common/filterSchema";
-import { certificateToColour, genreToColour, type Certificate, type Predicate } from "../utils/types";
+import { certificateCategory, franchiseCategory, type FilterSchema } from "../common/filterSchema";
+import {
+  ANIME,
+  CERTIFICATES,
+  animeToColour,
+  certificateToColour,
+  genreToColour,
+  type Certificate,
+  type Predicate,
+} from "../utils/types";
 import type { FilterState } from "./filterUtils";
 import type { Movie } from "./types";
 
@@ -19,16 +27,24 @@ export const movieFilters: FilterSchema<Movie, FilterState> = {
     { key: "unscored", label: "Unscored films", hides: (movie) => movie.score !== undefined },
     // The toggle's rule is guest mode's own function and not a copy of it, so the two cannot come
     // to hide by different definitions of what anime is.
-    { key: "anime", label: "Anime", hides: guestFilter },
+    //
+    // Shelved on the same terms Shows shelves its own, and under the same label, which is what
+    // folds the two into one entry the box can open a single shelf from.
+    {
+      key: "anime",
+      label: ANIME,
+      hides: guestFilter,
+      shelf: true,
+      colourFor: (value, scheme) => animeToColour(value, scheme),
+    },
   ],
   categories: [
     { key: "genre", label: "genre", valueOf: (movie) => movie.genre, colourFor: genreToColour },
-    {
-      key: "certificate",
-      label: "certificate",
-      valueOf: (movie) => movie.certificate,
-      colourFor: (value, scheme) => certificateToColour(value as Certificate, scheme),
-    },
+    certificateCategory<Movie>(
+      (movie) => movie.certificate,
+      CERTIFICATES,
+      (value, scheme) => certificateToColour(value as Certificate, scheme),
+    ),
     { key: "director", label: "director", valueOf: (movie) => movie.director, searchable: true },
     franchiseCategory(),
   ],

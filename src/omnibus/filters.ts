@@ -1,5 +1,11 @@
-import { franchiseCategory, type FilterSchema } from "../common/filterSchema";
-import { genreToColour, mediumToLabel } from "../utils/types";
+import { certificateCategory, franchiseCategory, type FilterSchema } from "../common/filterSchema";
+import {
+  CERTIFICATE_BANDS,
+  certificateBand,
+  certificateBandToColour,
+  genreToColour,
+  mediumToLabel,
+} from "../utils/types";
 import type { OmniItem } from "../common/medium";
 import type { FilterState } from "./filterUtils";
 import { media } from "../app/types";
@@ -32,6 +38,14 @@ export const omniFilters: FilterSchema<OmniItem, FilterState> = {
       // whichever medium's rows it is narrowing.
       colourFor: genreToColour,
     },
+    // The band and not the cell: this page holds two boards' notations, where a BBFC 15 and a PEGI
+    // 16 are one tier, and the gallery's own certificate shelves already group it that way. A book
+    // carries none, answers `""` and drops off the category, as it drops off those shelves.
+    certificateCategory<OmniItem>(
+      (item) => (item.certificate ? certificateBand(item.certificate) : ""),
+      CERTIFICATE_BANDS,
+      certificateBandToColour,
+    ),
     franchiseCategory(),
   ],
 };

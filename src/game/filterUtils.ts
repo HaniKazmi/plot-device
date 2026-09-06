@@ -8,6 +8,7 @@ import {
 } from "../common/filterReducer";
 import { gameFilters } from "./filters";
 import type { Measure } from "./types";
+import type { Certificate } from "../utils/types";
 
 export type { YearType };
 
@@ -20,6 +21,7 @@ export interface FilterState extends BaseFilterState<VideoGame, Measure> {
   gameplay: string[];
   genre: string[];
   publisher: string[];
+  certificate: Certificate[];
 }
 
 export type FilterDispatch = FilterDispatchFor<FilterState>;

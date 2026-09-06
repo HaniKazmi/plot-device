@@ -1,7 +1,15 @@
-import { franchiseCategory, type FilterSchema } from "../common/filterSchema";
-import { genreToColour, type Predicate } from "../utils/types";
+import { certificateCategory, franchiseCategory, type FilterSchema } from "../common/filterSchema";
+import {
+  ANIME,
+  CERTIFICATES,
+  animeToColour,
+  certificateToColour,
+  genreToColour,
+  type Certificate,
+  type Predicate,
+} from "../utils/types";
 import type { FilterState } from "./filterUtils";
-import { networkToColour, typeToColour, type Show, type Type } from "./types";
+import { networkToColour, type Show } from "./types";
 
 /**
  * What guest mode hides on this tab: anime, which is also what the anime toggle drops — one rule
@@ -11,14 +19,24 @@ import { networkToColour, typeToColour, type Show, type Type } from "./types";
  * page's charts alone would leave a hidden show on screen through the franchise index and the
  * union, which are built from the library.
  */
-export const guestFilter: Predicate<Show> = (show) => show.type !== "anime";
+export const guestFilter: Predicate<Show> = (show) => !show.anime;
 
 export const showFilters: FilterSchema<Show, FilterState> = {
   toggles: [
     { key: "abandoned", label: "Abandoned shows", hides: (show) => show.status !== "Abandoned" },
     // The toggle's rule is guest mode's own function and not a copy of it, so the two cannot come
     // to hide by different definitions of what anime is.
-    { key: "anime", label: "Anime", hides: guestFilter },
+    //
+    // Shelved, because anime is a thing a reader goes looking for rather than a page's own noise,
+    // and Movies labels its own switch identically — one entry in the box's index, one shelf
+    // holding both media. The colour is the pair both tabs split by.
+    {
+      key: "anime",
+      label: ANIME,
+      hides: guestFilter,
+      shelf: true,
+      colourFor: (value, scheme) => animeToColour(value, scheme),
+    },
   ],
   categories: [
     {
@@ -36,12 +54,11 @@ export const showFilters: FilterSchema<Show, FilterState> = {
       valueOf: (show) => show.network,
       colourFor: (value, scheme) => networkToColour({ network: value }, scheme) || undefined,
     },
-    {
-      key: "type",
-      label: "type",
-      valueOf: (show) => show.type,
-      colourFor: (value, scheme) => typeToColour({ type: value as Type }, scheme),
-    },
+    certificateCategory<Show>(
+      (show) => show.certificate,
+      CERTIFICATES,
+      (value, scheme) => certificateToColour(value as Certificate, scheme),
+    ),
     franchiseCategory(),
   ],
 };

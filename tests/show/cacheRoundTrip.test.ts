@@ -94,8 +94,8 @@ describe("the localStorage round trip", () => {
 
     expect(severance.e).toBe(19);
     expect(severance.minutes).toBe(9 * 45 + 10 * 50);
-    expect(andor.type).toBe("anime");
-    expect(severance.type).toBe("show");
+    expect(andor.anime).toBe(true);
+    expect(severance.anime).toBe(false);
     expect(severance.genre).toBe("Sci-Fi");
     // An array survives JSON as an array, but only if the replacer leaves it alone — the same
     // replacer that has to strip the season back-references two levels down.

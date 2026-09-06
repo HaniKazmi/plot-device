@@ -1,7 +1,8 @@
 import { YearMonthDay } from "../common/date";
 import {
+  ANIME,
   KeysMatching,
-  NEUTRAL_FILL,
+  animeToColour,
   certificateToColour,
   fill,
   franchiseToColour,
@@ -20,7 +21,8 @@ export interface Show {
   startDate: YearMonthDay;
   // A show still running has no end, which is the one absence the sheet means rather than owes.
   endDate?: YearMonthDay;
-  type: Type;
+  /** Whether the sheet's Type column marks the show as anime, which is the one split it records. */
+  anime: boolean;
   genre: string;
   /**
    * The sheet lists these in one cell and never repeats `genre` among them, so the two fields
@@ -58,13 +60,16 @@ export interface Season {
 
 export type Status = "Watching" | "Up To Date" | "Ended" | "Cancelled" | "Abandoned";
 
-/** The sheet's own values, which are lower case. */
-export const TYPES = ["show", "anime"] as const;
-
-export type Type = (typeof TYPES)[number];
-
-/** `Type` as a chart labels it — the sheet's values are lower case and a wedge should not be. */
-export const typeToName = (type: Type) => (type === "anime" ? "Anime" : "Show");
+/**
+ * Anime, or the tab's own word for everything else — what a chart groups this library by, and the
+ * value the box shelves.
+ *
+ * The anime half is `ANIME` and not a literal, since Movies labels its own split with the same
+ * constant and the box folds the two into one shelf on that string. The other half is "Show"
+ * rather than a shared word: a series that is not anime is a show, and the sheet claims nothing
+ * more specific than that about it.
+ */
+export const animeLabel = ({ anime }: { anime: boolean }) => (anime ? ANIME : "Show");
 
 export type ShowStringKeys = KeysMatching<Show, string>;
 
@@ -114,24 +119,6 @@ export const networkToColour = ({ network }: { network: string }, scheme: Scheme
   return colour ? pick(colour, scheme) : ("" as Colour);
 };
 
-/**
- * Exhaustive over `Type`, so adding a type without deciding its colour is a compile error.
- * Both meet the fill contract; anime takes the rose its fandom paints in, shows a broadcast indigo.
- */
-const typeColours: Record<Type, Fill> = {
-  show: fill("#006bd1", "#1a82f2"),
-  anime: fill("#c42b91", "#de47a8"),
-};
-
-export const typeToColour = ({ type }: { type: Type }, scheme: Scheme): Colour => {
-  const colour = typeColours[type];
-  // `converter.ts` casts the Type cell without validating it, and the type filter derives its
-  // options from those raw values, so a blank or misspelt cell reaches here. It answers the
-  // neutral rather than throwing: an uncoloured wedge is a smaller failure than a tab that will
-  // not render.
-  return pick(colour ?? NEUTRAL_FILL, scheme);
-};
-
 export const groupToColour = (group: keyof Show | "none" | "show", show: Show, scheme: Scheme) => {
   switch (group) {
     case "status":
@@ -144,8 +131,9 @@ export const groupToColour = (group: keyof Show | "none" | "show", show: Show, s
       return genreToColour(show.genre, scheme);
     case "network":
       return networkToColour(show, scheme);
-    case "type":
-      return typeToColour(show, scheme);
+    case "anime":
+      // The pair Movies splits by too, so the rose means anime on either tab.
+      return animeToColour(animeLabel(show), scheme);
     case "franchise":
       // The table `utils/types.ts` shares with Games and Movies, so Star Trek is one colour whether
       // it is drawn here or on the Omnibus. 229 of 308 shows carry their own name in this column

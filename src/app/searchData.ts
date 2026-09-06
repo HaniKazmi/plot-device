@@ -226,16 +226,45 @@ const attributeValue = (category: string, cell: string): string =>
   category === "certificate" && isCertificate(cell) ? certificateBand(cell) : cell;
 
 /**
- * What every tab can be narrowed by, with a count per medium: one entry per category value, over
- * each medium's own schema and its own rows.
+ * What the box can find, with a count per medium: one entry per category value, plus one per
+ * toggle that names a set worth opening, over each medium's own schema and its own rows.
  *
  * Built beside the work index and with it, since both are a pass over the libraries and a
  * keystroke should cost a scan of strings already assembled. A blank cell is skipped — a category
  * a medium answers `""` to is a hit nobody could name — and so is every category a tab's own
  * control surface would not draw, since the box offers exactly the narrowings the page holds.
+ *
+ * A toggle's entry is keyed on the toggle's own key and worded by its label, so two tabs marking
+ * the same thing under the same word — anime, which Shows and Movies both record — fold into one
+ * entry and one shelf. Its `label` is left empty, a toggle's own label being the value itself:
+ * carried into the facts line it would repeat the title above it. It does not narrow (see
+ * `AttributeEntry.narrows`).
  */
 export const buildAttributeIndex = (library: Library): AttributeEntry[] => {
   const found = new Map<string, AttributeEntry>();
+
+  const record = (
+    key: string,
+    fields: Pick<AttributeEntry, "category" | "label" | "value" | "narrows">,
+    medium: Medium,
+    cell: string,
+  ) => {
+    const entry = found.setIfAbsent(key, {
+      kind: "attribute" as const,
+      key,
+      ...fields,
+      name: fields.value,
+      secondary: [],
+      size: 0,
+      counts: {},
+      values: {},
+    });
+    entry.size += 1;
+    entry.counts[medium] = (entry.counts[medium] ?? 0) + 1;
+    const held: string[] = entry.values[medium] ?? [];
+    if (!held.includes(cell)) held.push(cell);
+    entry.values[medium] = held;
+  };
 
   eachMedium((medium, module) => {
     for (const category of module.filters.categories) {
@@ -244,25 +273,26 @@ export const buildAttributeIndex = (library: Library): AttributeEntry[] => {
         const cell = category.valueOf(item);
         if (!cell) continue;
         const value = attributeValue(category.key, cell);
-        const key = `attribute:${category.key}:${value}`;
-        const entry = found.setIfAbsent(key, {
-          kind: "attribute" as const,
-          key,
-          category: category.key,
-          label: category.label,
-          value,
-          name: value,
-          secondary: [],
-          size: 0,
-          counts: {},
-          values: {},
-          narrows: true,
-        });
-        entry.size += 1;
-        entry.counts[medium] = (entry.counts[medium] ?? 0) + 1;
-        const held: string[] = entry.values[medium] ?? [];
-        if (!held.includes(cell)) held.push(cell);
-        entry.values[medium] = held;
+        record(
+          `attribute:${category.key}:${value}`,
+          { category: category.key, label: category.label, value, narrows: true },
+          medium,
+          cell,
+        );
+      }
+    }
+    for (const toggle of module.filters.toggles) {
+      if (!toggle.shelf) continue;
+      for (const item of library[medium]) {
+        // `hides` is what the page keeps while the toggle is off, so its negation is membership of
+        // the set the toggle names — all a shelf needs.
+        if (toggle.hides(item)) continue;
+        record(
+          `attribute:${toggle.key}:${toggle.label}`,
+          { category: toggle.key, label: "", value: toggle.label, narrows: false },
+          medium,
+          toggle.label,
+        );
       }
     }
   });
@@ -339,13 +369,22 @@ export const attributeAction = (entry: PlacedAttribute, held: readonly string[])
 const attributeItems = (library: Library, entry: AttributeEntry): OmniItem[] =>
   eachMedium((medium, module) => {
     const category = module.filters.categories.find((candidate) => (candidate.key as string) === entry.category);
-    if (!category) return [];
-    return module.toOmniItems(
-      library[medium].filter((item) => {
-        const cell = category.valueOf(item);
-        return Boolean(cell) && attributeValue(entry.category, cell) === entry.value;
-      }),
+    if (category) {
+      return module.toOmniItems(
+        library[medium].filter((item) => {
+          const cell = category.valueOf(item);
+          return Boolean(cell) && attributeValue(entry.category, cell) === entry.value;
+        }),
+      );
+    }
+    // The toggle carrying the shelf, found the way the index found it: only one marked `shelf`,
+    // since the Omnibus keys its own switches by medium and a category named `show` on some later
+    // tab would otherwise collect a medium switch's rows.
+    const toggle = module.filters.toggles.find(
+      (candidate) => candidate.shelf && (candidate.key as string) === entry.category,
     );
+    if (!toggle) return [];
+    return module.toOmniItems(library[medium].filter((item) => !toggle.hides(item)));
   }).flat();
 
 /**

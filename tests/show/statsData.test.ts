@@ -400,11 +400,11 @@ describe("groupShowsBy", () => {
     expect(groupShowsBy(data, "franchise", "Shows")[0]).toMatchObject({ name: "Star Wars", count: 2 });
   });
 
-  it("title-cases the type group names through typeToName", () => {
-    const data = [show({ type: "anime" }), show({ name: "Andor", type: "show" })];
+  it("words the anime split through animeLabel, the boolean being no label of its own", () => {
+    const data = [show({ anime: true }), show({ name: "Andor", anime: false })];
 
     expect(
-      groupShowsBy(data, "type", "Shows")
+      groupShowsBy(data, "anime", "Shows")
         .map((g) => g.name)
         .toSorted(),
     ).toEqual(["Anime", "Show"]);

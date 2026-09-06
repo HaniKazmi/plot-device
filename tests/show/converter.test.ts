@@ -40,7 +40,7 @@ describe("flattening the sheet into nested shows", () => {
   it("carries the show-level columns through as the sheet holds them", () => {
     const [show] = jsonConverter([showRow(), seasonRow()]);
 
-    expect(show.type).toBe("show");
+    expect(show.anime).toBe(false);
     expect(show.genre).toBe("Sci-Fi");
     expect(show.network).toBe("Apple TV+");
     expect(show.certificate).toBe("15");
@@ -92,7 +92,7 @@ describe("flattening the sheet into nested shows", () => {
   it("takes a hand-typed type cell's case and spacing as the same answer", () => {
     const [show] = jsonConverter([showRow({ Type: " Anime " }), seasonRow()]);
 
-    expect(show.type).toBe("anime");
+    expect(show.anime).toBe(true);
   });
 
   it("splits the secondary genres on the comma the sheet separates them with", () => {
@@ -339,7 +339,7 @@ describe("bad rows", () => {
 
 describe("the cache config", () => {
   it("keys the cache on the domain and a version, so a shape change can bump it", () => {
-    expect(showDataConfig.storageKey).toBe("show-data-cache-v5");
+    expect(showDataConfig.storageKey).toBe("show-data-cache-v6");
     expect(showDataConfig.converter).toBe(jsonConverter);
     expect(showDataConfig.replacer).toBe(dropSeasonParents);
     expect(showDataConfig.reviver).toBe(reviveSeasonParents);

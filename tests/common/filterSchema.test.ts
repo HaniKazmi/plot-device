@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   categoryTally,
   categoryValues,
+  certificateCategory,
   schemaPredicates,
   type FilterCategory,
   type FilterSchema,
 } from "../../src/common/filterSchema";
+import { CERTIFICATES, certificateToColour, type Certificate } from "../../src/utils/types";
 
 interface Row {
   name: string;
@@ -104,5 +106,32 @@ describe("a category's tally", () => {
 
     expect(values).toEqual(["Action"]);
     expect(counts.get("Drama")).toBe(2);
+  });
+});
+
+describe("certificateCategory", () => {
+  interface Rated {
+    certificate: string;
+  }
+  const rated = (certificate: string): Rated => ({ certificate });
+  const category = certificateCategory<Rated>(
+    (item) => item.certificate,
+    CERTIFICATES,
+    (value, scheme) => certificateToColour(value as Certificate, scheme),
+  );
+
+  it("offers the board's own order, which a lexicographic sort runs 12, 15, 18, 3, 7", () => {
+    const data = [rated("15"), rated("3"), rated("18"), rated("7"), rated("12")];
+
+    expect(category.options!(data)).toEqual(["3", "7", "12", "15", "18"]);
+  });
+
+  it("offers only what the rows carry, a board's unused number narrowing to nothing", () => {
+    // BBFC issues a 15 where PEGI issues a 16, so each sheet holds five of the six values.
+    expect(category.options!([rated("15"), rated("18")])).toEqual(["15", "18"]);
+  });
+
+  it("wears the ramp its own charts are drawn in, so a chip and a wedge are one colour", () => {
+    expect(category.colourFor!("15", "light")).toBe(certificateToColour("15", "light"));
   });
 });

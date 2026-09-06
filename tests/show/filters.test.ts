@@ -14,7 +14,7 @@ describe("the default state", () => {
   it("is a no-op: every toggle is permissive, the year ceiling is the current year, guest mode is off", () => {
     const keep = filters(state());
 
-    expect(keep(show({ type: "anime" }))).toBe(true);
+    expect(keep(show({ anime: true }))).toBe(true);
     expect(keep(show({ status: "Abandoned" }))).toBe(true);
     expect(keep(showWithSeasonsIn(2008))).toBe(true);
   });
@@ -31,8 +31,8 @@ describe("toggles", () => {
   it("drops anime when the anime switch is off", () => {
     const keep = filters(state({ anime: false }));
 
-    expect(keep(show({ type: "anime" }))).toBe(false);
-    expect(keep(show({ type: "show" }))).toBe(true);
+    expect(keep(show({ anime: true }))).toBe(false);
+    expect(keep(show({ anime: false }))).toBe(true);
   });
 });
 
@@ -46,9 +46,10 @@ describe("categories", () => {
     expect(keep(show({ genre: "Sci-Fi", otherGenres: ["Drama"] }))).toBe(false);
   });
 
-  it("filters by network, type and franchise as inclusion lists", () => {
+  it("filters by network, certificate and franchise as inclusion lists", () => {
     expect(filters(state({ network: ["HBO"] }))(show({ network: "Netflix" }))).toBe(false);
-    expect(filters(state({ type: ["anime"] }))(show({ type: "anime" }))).toBe(true);
+    expect(filters(state({ certificate: ["15"] }))(show({ certificate: "15" }))).toBe(true);
+    expect(filters(state({ certificate: ["15"] }))(show({ certificate: "18" }))).toBe(false);
     expect(filters(state({ franchise: ["Star Trek"] }))(show({ franchise: "Star Trek" }))).toBe(true);
     expect(filters(state({ franchise: ["Star Trek"] }))(show())).toBe(false);
   });
@@ -58,14 +59,14 @@ describe("what guest mode hides", () => {
   // Applied to the library above the tab, so it is exercised as the predicate itself; the anime
   // toggle below drops the same shows, one rule serving both.
   it("keeps everything but anime, which is what the mode means on this tab", () => {
-    expect(guestFilter(show({ type: "anime" }))).toBe(false);
-    expect(guestFilter(show({ type: "show" }))).toBe(true);
+    expect(guestFilter(show({ anime: true }))).toBe(false);
+    expect(guestFilter(show({ anime: false }))).toBe(true);
   });
 
   it("cannot be undone by the anime toggle, which only ever widens what the page draws", () => {
     // The toggle admits anime back into the charts; in guest mode there is none in the library
     // for it to admit.
-    expect(filters(state({ anime: true }))(show({ type: "anime" }))).toBe(true);
+    expect(filters(state({ anime: true }))(show({ anime: true }))).toBe(true);
   });
 });
 
@@ -99,7 +100,12 @@ describe("the year cutoff", () => {
 describe("the schema the drawer and the box are both drawn from", () => {
   it("offers two toggles and four categories, in the order they are laid out", () => {
     expect(showFilters.toggles.map((toggle) => toggle.key)).toEqual(["abandoned", "anime"]);
-    expect(showFilters.categories.map((category) => category.key)).toEqual(["genre", "network", "type", "franchise"]);
+    expect(showFilters.categories.map((category) => category.key)).toEqual([
+      "genre",
+      "network",
+      "certificate",
+      "franchise",
+    ]);
   });
 
   it("opens a search-within on the vocabularies this library holds hundreds of values in", () => {

@@ -115,6 +115,29 @@ export const franchiseCategory = <T extends { franchise: string; name: string }>
   searchable: true,
 });
 
+/**
+ * The certificate select, which every tab recording one offers on the same terms. Nothing certifies
+ * a book, so the Books tab is the one that does not.
+ *
+ * `values` is the vocabulary that tab writes, in the order the boards print it, because
+ * `categoryOptions` sorts lexicographically and a ramp a string sort runs "12, 15, 18, 3, 7". It is
+ * the caller's rather than derived here: a medium tab offers the numbers its own sheet holds, and
+ * the composing tab the bands, those being the only notation a page over four boards can group by.
+ * Filtered to what the rows actually carry, so a board's unused number is not a chip that narrows
+ * to nothing.
+ */
+export const certificateCategory = <T>(
+  certificateOf: (item: T) => string,
+  values: readonly string[],
+  colourFor: (value: string, scheme: Scheme) => Colour,
+): FilterCategory<T, { certificate: string[] }> => ({
+  key: "certificate",
+  label: "certificate",
+  valueOf: certificateOf,
+  options: (data) => values.filter((value) => data.some((item) => certificateOf(item) === value)),
+  colourFor,
+});
+
 /** Everything a tab offers as a filter, in the order the surface drawing it lays the controls out. */
 export interface FilterSchema<T, S> {
   toggles: readonly FilterToggle<T, S>[];

@@ -1,6 +1,6 @@
 import { CURRENT_YEAR, type YearNumber } from "../common/date";
-import type { Predicate } from "../utils/types";
-import type { Measure, Show, Type } from "./types";
+import type { Certificate, Predicate } from "../utils/types";
+import type { Measure, Show } from "./types";
 import {
   createFilterReducer,
   type BaseFilterState,
@@ -17,7 +17,7 @@ export interface FilterState extends BaseFilterState<Show, Measure> {
   genre: string[];
   network: string[];
   franchise: string[];
-  type: Type[];
+  certificate: Certificate[];
 }
 
 export type FilterDispatch = FilterDispatchFor<FilterState>;

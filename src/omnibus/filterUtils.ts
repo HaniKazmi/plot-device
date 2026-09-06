@@ -13,6 +13,8 @@ export interface FilterState extends BaseFilterState<OmniItem, Measure> {
   book: boolean;
   genre: string[];
   franchise: string[];
+  /** Certificate *bands*, this page holding two boards' notations for one tier. */
+  certificate: string[];
 }
 
 export type FilterDispatch = FilterDispatchFor<FilterState>;
