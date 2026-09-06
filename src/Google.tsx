@@ -1,4 +1,4 @@
-import { Container, createTheme, CssBaseline, ThemeProvider, type Theme } from "@mui/material";
+import { Container, createTheme, CssBaseline, ThemeProvider } from "@mui/material";
 import { useState } from "react";
 import NavBar from "./NavBar";
 import { BottomTabs } from "./BottomTabs";
@@ -9,7 +9,9 @@ import {
   CONTROL_HEIGHT,
   CONTROL_RADIUS,
   CONTROL_TYPE_SX,
+  focusRingSx,
   NUMERIC_LABEL_SX,
+  primaryWash,
 } from "./common/typography";
 import { Outlet } from "react-router-dom";
 import { GoogleAuthProvider } from "./contexts/GoogleAuthContext.tsx";
@@ -107,29 +109,6 @@ const { palette: defaultPalette } = createTheme();
 // that could drift.
 const DARK_TEXT = "#e8eaed";
 const DARK_PAPER = "#1d2126";
-
-/**
- * The tab's primary at a stated strength, as a wash rather than a tint: a lit segment's ground,
- * a hovered control's.
- *
- * Composed from the channel triple through the CSS variable, so one rule reads on both papers —
- * a solid colour mixed for the white paper is a different colour against the dark one, and the
- * variable is what the scheme switch actually moves. `mainChannel` is what `cssVariables: true`
- * emits for exactly this.
- */
-const primaryWash = (theme: Theme, strength: number) => `rgba(${theme.vars.palette.primary.mainChannel} / ${strength})`;
-
-/**
- * One ring for the whole kit: a segment inside a group, a chip in the rail and a picker's button
- * all answer a keyboard the same way, so a reader tabbing through a header finds the focus in one
- * place rather than in whatever each MUI component draws by default.
- *
- * Outside the part's own edge, since several of them are drawn edge to edge — a group's segments
- * share their borders, and a ring inside would be half hidden by the neighbour.
- */
-const focusRing = (theme: Theme) => ({
-  "&:focus-visible": { outline: `2px solid ${theme.vars.palette.primary.main}`, outlineOffset: 2 },
-});
 
 // Themes are cached per tab: building one walks both colour schemes, typography, shadows and
 // the whole CSS-variable map, and a stable identity also stops the MUI tree re-evaluating `sx`
@@ -271,7 +250,7 @@ const getTheme = (tab: Tab) => {
               "&.Mui-selected:hover": { backgroundColor: primaryWash(theme, 0.24) },
             },
             "@media (pointer: coarse)": { minHeight: COARSE_CONTROL_HEIGHT },
-            ...focusRing(theme),
+            ...focusRingSx(theme),
           }),
         },
       },
@@ -298,7 +277,7 @@ const getTheme = (tab: Tab) => {
             "&:hover": { backgroundColor: "transparent" },
             "@media (hover: hover)": { "&:hover": { backgroundColor: primaryWash(theme, 0.08) } },
             "@media (pointer: coarse)": { width: COARSE_CONTROL_HEIGHT, height: COARSE_CONTROL_HEIGHT },
-            ...focusRing(theme),
+            ...focusRingSx(theme),
           }),
         },
       },
@@ -309,7 +288,7 @@ const getTheme = (tab: Tab) => {
         styleOverrides: {
           root: ({ theme }) => ({
             "& .MuiChip-label:empty": { paddingLeft: 0 },
-            ...focusRing(theme),
+            ...focusRingSx(theme),
           }),
           sizeSmall: {
             "@media (pointer: coarse)": {
@@ -345,7 +324,7 @@ const getTheme = (tab: Tab) => {
             padding: "0 10px",
             borderRadius: CONTROL_RADIUS,
             "@media (pointer: coarse)": { minHeight: COARSE_CONTROL_HEIGHT },
-            ...focusRing(theme),
+            ...focusRingSx(theme),
           }),
         },
       },

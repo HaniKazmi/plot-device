@@ -1,11 +1,8 @@
 import { Box, IconButton, Typography, type SxProps, type Theme } from "@mui/material";
 import { Close } from "@mui/icons-material";
 import type { ReactNode } from "react";
-import { sheetBarRow, stickySheetHeader } from "./fullscreenSheet";
+import { paperSheetBar } from "./fullscreenSheet";
 import { SheetGrabber } from "./SheetGrabber";
-
-/** A bar over the page's own paper, pinned, at every width: what every layer but the card wears. */
-const SHEET_BAR_SX = (theme: Theme) => ({ ...sheetBarRow, ...stickySheetHeader(theme) });
 
 /**
  * What every layer in the app wears as its first child: a title and a ✕, on a 48px row, sticky at
@@ -46,13 +43,20 @@ export const SheetBar = (props: {
   grabberColour?: string;
   /** Where the bar stands and what it stands on, where that is not the paper at every width. */
   sx?: SxProps<Theme>;
+  /**
+   * Whether the title is clipped at the ✕ rather than given the room it asks for. A name is, since
+   * a long one would otherwise push the way out off the row; a title that is itself a control is
+   * not, `noWrap`'s own `overflow: hidden` cutting the focus ring off whatever inside it takes the
+   * keyboard.
+   */
+  titleNoWrap?: boolean;
 }) => (
-  <Box sx={props.sx ?? SHEET_BAR_SX}>
+  <Box sx={props.sx ?? paperSheetBar}>
     {props.grabber && <SheetGrabber colour={props.grabberColour} />}
     <Typography
       variant="subtitle2"
       component="div"
-      noWrap
+      noWrap={props.titleNoWrap ?? true}
       sx={{ flexGrow: 1, minWidth: 0 }}
     >
       {props.title}

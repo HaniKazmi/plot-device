@@ -1102,7 +1102,9 @@ than faded in, since a bar that fills in as you scroll reads as something loadin
 chrome that was there from the start.
 
 **`common/SheetBar.tsx` is that bar, and every layer in the app opens with it**: this one, the
-expanded list, the drill-down, the hover sheet and search's own input row. The reader's question at
+expanded list, the drill-down, the hover sheet and the box, whose bar carries the Find · This page
+segment as its title, since what the box _is_ changes with that segment and a word above it saying
+the same thing is two headers. The reader's question at
 each is the same — what is this, and how do I leave — so a chrome per layer taught an answer per
 layer. The ✕ is that answer at every width: an arrows-in glyph in a dialog's header reads as "back
 to the card this came out of", which is a second verb for the one thing a layer does. It lives beside the sheet recipes rather than
@@ -1112,8 +1114,9 @@ from there would close that import into a cycle. `sheetBarRow` (`common/fullscre
 artwork's under an expanded card, and the sheet's own — not pinned at all — under a bottom sheet,
 which stands under no notch. The expanded card's is the one drawn below `sm` alone: from `sm` up
 that dialog is a window over the page, whose picture, backdrop and Escape are the ways out.
-`pinnedSheetTop` is the sticky half every top bar shares, pinning at
-the top with the notch paid for above the bar's own content; the dialog's `Paper` and `Card` both
+`pinnedSheetBar` is the row pinned at the top with the notch paid for above the bar's own content,
+and `paperSheetBar` is that row on the paper with a rule under it — the ground every layer but the
+expanded card wears; the dialog's `Paper` and `Card` both
 open their `overflow` to `visible` at this width, since either being anything else becomes the
 scrollport a sticky element measures itself against. The artwork below reads its own room off two
 custom properties, `--sheet-room-width` and `--sheet-room-height` — `100vw` and `100svh` less the

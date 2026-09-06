@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import type { YearNumber } from "../common/date";
 import type { PageDispatch, PageState, PageStore } from "../common/filterReducer";
-import { categoryValues, type PageSchema } from "../common/filterSchema";
+import { categoryValues, fieldsOf, type PageSchema } from "../common/filterSchema";
 import type { OmniItem } from "../common/medium";
 import { omniFilters } from "../omnibus/filters";
 import {
@@ -47,8 +47,7 @@ export const PAGE_STORES: Record<string, PageStore> = {
  * nothing to drop, so the skip changes no answer.
  */
 const retainSelections = (store: PageStore, schema: PageSchema, data: readonly unknown[]) => {
-  // A tab's own fields are erased off `PageState`, and a category names one by string alone.
-  const fields = store.get() as unknown as Record<string, unknown>;
+  const fields = fieldsOf(store.get());
 
   for (const category of schema.categories) {
     const held = fields[category.key] as readonly string[] | undefined;

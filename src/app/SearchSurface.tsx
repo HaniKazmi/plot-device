@@ -8,20 +8,13 @@ import { SchemaPageControls } from "../common/FilterControls";
 import { narrowedTo, stated } from "../common/population";
 import { LEAD_HEIGHT, LEAD_WIDTH, SearchPalette, type PaletteGroup, type PaletteHit } from "../common/SearchPalette";
 import { closeSearch, setSearchMode, type SearchMode } from "../common/searchOpen";
-import type { PageSchema } from "../common/filterSchema";
+import { fieldsOf, type PageSchema } from "../common/filterSchema";
 import { rankHits, type Hit } from "../common/searchData";
 import { MUTED_FIGURE_SX } from "../common/typography";
 import { useScheme } from "../common/useScheme";
-import {
-  franchiseToColour,
-  MEDIA,
-  mediumToColour,
-  mediumToLabel,
-  mediumUnit,
-  type Medium,
-  type Scheme,
-} from "../utils/types";
+import { franchiseToColour, mediumToColour, mediumToLabel, mediumUnit, type Scheme } from "../utils/types";
 import type { OmniItem } from "../common/medium";
+import { MediaCounts, MediumDot } from "./MediaCounts";
 import { MEDIA as MEDIA_MODULES, omniBanner } from "./media";
 import OmniCardMediaImage from "./CardMediaImage";
 import { MIXED_CARD_SIZING, workLabels } from "./cardData";
@@ -78,23 +71,6 @@ const writeRecent = (keys: string[]) => {
     // Storage full or refused: the list is a convenience, and the palette works without it.
   }
 };
-
-/** A medium's dot, the palette's one word for which library a hit is from. */
-const MediumDot = ({ medium, scheme }: { medium: Medium; scheme: Scheme }) => (
-  <Box
-    component="span"
-    sx={{
-      display: "inline-block",
-      width: 8,
-      height: 8,
-      borderRadius: "50%",
-      backgroundColor: mediumToColour(medium, scheme),
-      marginRight: 0.75,
-      verticalAlign: "0.05em",
-      flexShrink: 0,
-    }}
-  />
-);
 
 /**
  * The thumbnail at a hit's left: a banner at the lead's full width, a poster or a cover standing
@@ -156,29 +132,11 @@ const FranchiseLead = ({ franchise, scheme }: { franchise: string; scheme: Schem
 };
 
 const franchiseFacts = (entry: FranchiseSearchEntry, scheme: Scheme) => (
-  <Stack
-    direction="row"
-    spacing={1.25}
-    component="span"
-  >
-    {MEDIA.map((medium) => {
-      const count = entry.counts[medium];
-      if (!count) return null;
-      return (
-        <Box
-          key={medium}
-          component="span"
-          sx={{ display: "inline-flex", alignItems: "center" }}
-        >
-          <MediumDot
-            medium={medium}
-            scheme={scheme}
-          />
-          {mediumUnit(medium, count)}
-        </Box>
-      );
-    })}
-  </Stack>
+  <MediaCounts
+    counts={entry.counts}
+    wordFor={mediumUnit}
+    scheme={scheme}
+  />
 );
 
 const yearLabel = (text: string) => (
@@ -260,37 +218,22 @@ const attributeTitle = (entry: PlacedAttribute, matched: [number, number] | unde
  * acts on, or across every medium for a tab that is no medium.
  */
 const attributeFacts = (entry: PlacedAttribute, scheme: Scheme) => (
-  <Stack
-    direction="row"
-    spacing={1.25}
-    component="span"
-  >
-    <Box
-      component="span"
-      sx={{ textTransform: "capitalize" }}
-    >
-      {entry.label}
-    </Box>
-    {(entry.medium ? [entry.medium] : MEDIA).map((medium) => {
-      const count = entry.counts[medium];
-      if (!count) return null;
-      return (
-        <Box
-          key={medium}
-          component="span"
-          sx={{ display: "inline-flex", alignItems: "center" }}
-        >
-          <MediumDot
-            medium={medium}
-            scheme={scheme}
-          />
-          {/* The tab's own noun and not the union's unit: the count is that tab's rows, and a
-              show is a show there where the union counts the seasons inside it. */}
-          {stated(count, MEDIA_MODULES[medium].noun)}
-        </Box>
-      );
-    })}
-  </Stack>
+  <MediaCounts
+    counts={entry.counts}
+    media={entry.medium ? [entry.medium] : undefined}
+    // The tab's own noun and not the union's unit: the count is that tab's rows, and a show is a
+    // show there where the union counts the seasons inside it.
+    wordFor={(medium, count) => stated(count, MEDIA_MODULES[medium].noun)}
+    scheme={scheme}
+    lead={
+      <Box
+        component="span"
+        sx={{ textTransform: "capitalize" }}
+      >
+        {entry.label}
+      </Box>
+    }
+  />
 );
 
 /**
@@ -373,7 +316,7 @@ export const SearchSurface = ({
    */
   const applyAttribute = (entry: PlacedAttribute) => {
     const store = PAGE_STORES[entry.tab];
-    const held = (store.get() as unknown as Record<string, unknown>)[entry.category] as readonly string[];
+    const held = fieldsOf(store.get())[entry.category] as readonly string[];
     store.dispatch(attributeAction(entry, held ?? []));
     close();
     if (!entry.here) {

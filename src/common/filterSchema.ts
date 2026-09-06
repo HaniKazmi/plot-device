@@ -13,6 +13,17 @@ import type { Colour, KeysMatching, Predicate, Scheme } from "../utils/types";
  * Exported because the reducer subtracts them: the schema seeds a starting value for every field
  * these two name, so what a domain still has to state is everything else its state holds.
  */
+/**
+ * A page's state read by field name.
+ *
+ * A tab's own fields are erased off the shape every shared surface holds it through — a schema, a
+ * store, a control drawing one category — and a key is checked against the field it names where
+ * the schema is written. Reading `S[ToggleKey<S>]` back out of a generic `S` is a lookup TypeScript
+ * cannot reduce, so the assertion is made once here rather than at each surface that indexes a
+ * state by a key it was handed.
+ */
+export const fieldsOf = (state: unknown): Record<string, unknown> => state as Record<string, unknown>;
+
 export type ToggleKey<S> = KeysMatching<S, boolean> & string;
 export type CategoryKey<S> = KeysMatching<S, readonly string[]> & string;
 
@@ -134,12 +145,10 @@ export const selectedPredicates = <T>(selected: readonly string[], valueOf: (ite
  * per-field — a year cutoff, or a question only that domain's model can answer — and an inactive
  * control contributes nothing at all rather than a predicate that is always true.
  *
- * The state is indexed through a record type: a key is checked against the field it names where
- * the schema is written, but reading `S[ToggleKey<S>]` back out of a generic `S` is a lookup
- * TypeScript cannot reduce, so the two assertions sit here rather than one per domain.
+ * The state is indexed through `fieldsOf`, a schema naming a field by string alone.
  */
 export const schemaPredicates = <T, S>(schema: FilterSchema<T, S>, state: Omit<S, "filter">): Predicate<T>[] => {
-  const fields = state as Record<string, unknown>;
+  const fields = fieldsOf(state);
 
   return [
     ...schema.toggles

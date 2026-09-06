@@ -1,11 +1,11 @@
-import { Close, Search } from "@mui/icons-material";
-import { Box, Dialog, IconButton, InputBase, Stack, Typography, type Theme } from "@mui/material";
+import { Search } from "@mui/icons-material";
+import { Box, Dialog, InputBase, Stack, Typography, type Theme } from "@mui/material";
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import { usePhone } from "./breakpoints";
-import { pinnedSheetBar } from "./fullscreenSheet";
+import { SheetBar } from "./SheetBar";
 import { SegmentedControl, type SegmentOption } from "./SelectionComponents";
 import type { SearchMode } from "./searchOpen";
-import { LABEL_SX, MUTED_FIGURE_SX } from "./typography";
+import { focusRingSx, LABEL_SX, MUTED_FIGURE_SX } from "./typography";
 import { cut } from "./population";
 
 /**
@@ -84,20 +84,6 @@ const inputRowSx = (theme: Theme) => ({
   [theme.breakpoints.down("sm")]: { paddingY: 0.75, gap: 1 },
 });
 
-/**
- * The phone's bar: the mode segment where every other layer states its title, with the ✕ beside it.
- *
- * The segment is the title, because what the box *is* changes with it — a list of hits, or this
- * page's own settings — and a word above the segment saying the same thing is two headers. No
- * grabber: this is a fullscreen dialog and not a swipeable sheet, so a grabber would offer a
- * gesture that does nothing.
- */
-const phoneBarSx = (theme: Theme) => ({
-  ...pinnedSheetBar(theme),
-  backgroundColor: theme.vars.palette.background.paper,
-  borderBottom: `1px solid ${theme.vars.palette.divider}`,
-});
-
 /** The two things the box can be, as the words that switch between them. */
 const MODE_SEGMENTS: readonly SegmentOption<SearchMode>[] = [
   { value: "find", label: "Find" },
@@ -117,7 +103,7 @@ const inModeSwitchReach = (target: EventTarget | null) =>
  * own: the arrow keys and the pointer would otherwise light two rows at once, and a tap has no
  * leave event to unlight one. The pointer moving onto a row selects it, which is the hover.
  */
-const HIT_SX = {
+const hitSx = (theme: Theme) => ({
   display: "grid",
   gridTemplateColumns: `${LEAD_WIDTH}px minmax(0, 1fr) auto`,
   gap: 1.5,
@@ -136,14 +122,15 @@ const HIT_SX = {
     backgroundColor: "action.selected",
     borderLeftColor: "primary.main",
   },
-  "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main", outlineOffset: -2 },
-} as const;
+  // Inside the row's own edge: a row spans the box, so a ring outside it has nowhere to be drawn.
+  ...focusRingSx(theme, -2),
+});
 
 /**
  * A chip, lit by the same flag a row is. It carries the option role and the selection colour a
  * row does, so the keyboard walks through it as through any other hit.
  */
-const CHIP_SX = {
+const chipSx = (theme: Theme) => ({
   display: "inline-flex",
   alignItems: "center",
   gap: 0.75,
@@ -163,8 +150,8 @@ const CHIP_SX = {
     backgroundColor: "action.selected",
     borderColor: "primary.main",
   },
-  "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main", outlineOffset: -2 },
-} as const;
+  ...focusRingSx(theme, -2),
+});
 
 const KEY_SX = {
   fontSize: 10.5,
@@ -375,16 +362,15 @@ export const SearchPalette = (props: {
       // On the dialog as well as the input, so the arrows and ↵ answer wherever focus has landed.
       onKeyDown={onKeyDown}
     >
+      {/* The segment stands where every other layer states its title, because what the box *is*
+          changes with it — a list of hits, or this page's own settings — and a word above the
+          segment saying the same thing is two headers. */}
       {phone && (
-        <Box sx={phoneBarSx}>
-          <Box sx={{ flexGrow: 1, minWidth: 0 }}>{modeSwitch}</Box>
-          <IconButton
-            aria-label="Close"
-            onClick={onClose}
-          >
-            <Close />
-          </IconButton>
-        </Box>
+        <SheetBar
+          title={modeSwitch}
+          titleNoWrap={false}
+          onClose={onClose}
+        />
       )}
       <Box sx={inputRowSx}>
         <Search color="action" />
@@ -474,7 +460,7 @@ export const SearchPalette = (props: {
                       if (`${group.key}:${hit.key}` !== selected?.key) setSelectedKey(`${group.key}:${hit.key}`);
                     }}
                     onClick={hit.onOpen}
-                    sx={CHIP_SX}
+                    sx={chipSx}
                   >
                     {hit.lead}
                     <Title
@@ -521,7 +507,7 @@ export const SearchPalette = (props: {
                       if (`${group.key}:${hit.key}` !== selected?.key) setSelectedKey(`${group.key}:${hit.key}`);
                     }}
                     onClick={hit.onOpen}
-                    sx={HIT_SX}
+                    sx={hitSx}
                   >
                     <Box sx={{ width: LEAD_WIDTH, height: LEAD_HEIGHT, display: "grid", placeItems: "center" }}>
                       {hit.lead}

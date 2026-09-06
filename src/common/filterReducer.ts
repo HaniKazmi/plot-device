@@ -1,6 +1,6 @@
 import { type Dispatch } from "react";
 import { CURRENT_YEAR, type YearNumber } from "./date";
-import { schemaPredicates, type CategoryKey, type FilterSchema, type ToggleKey } from "./filterSchema";
+import { fieldsOf, schemaPredicates, type CategoryKey, type FilterSchema, type ToggleKey } from "./filterSchema";
 import { createStore, type Store } from "./store";
 import type { Predicate } from "../utils/types";
 
@@ -142,7 +142,7 @@ const sameValue = (a: unknown, b: unknown): boolean =>
 export const countActiveFilters = (state: object, initialValues: object): number =>
   Object.entries(initialValues).filter(([field, initial]) => {
     if (UNCOUNTED_FIELDS.has(field)) return false;
-    const value = (state as Record<string, unknown>)[field];
+    const value = fieldsOf(state)[field];
     // A composed predicate under any other name is still not something the reader set.
     if (typeof value === "function" || typeof initial === "function") return false;
     return !sameValue(value, initial);
@@ -243,7 +243,7 @@ export const createFilterReducer = <T, M extends string, S extends BaseFilterSta
         // The same state object where nothing is dropped, which is every call but the few that
         // follow a change of what the library shows: the store notifies on identity, so the sweep
         // that runs whenever a library lands costs no render.
-        const held = (state as Record<string, unknown>)[action.category] as readonly string[];
+        const held = fieldsOf(state)[action.category] as readonly string[];
         const kept = held.filter((value) => action.values.includes(value));
         if (kept.length === held.length) return state;
         return withFilter({ ...state, [action.category]: kept });

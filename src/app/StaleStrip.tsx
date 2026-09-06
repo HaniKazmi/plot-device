@@ -3,6 +3,7 @@ import { Box, Button, IconButton, Typography, type Theme } from "@mui/material";
 import { useState } from "react";
 import { safeAreaGutters } from "../common/chrome";
 import { useGoogleAuth } from "../contexts/GoogleAuthContext";
+import { KIT_OUTLINED_SX, primaryWash } from "../common/typography";
 import { useAuthState } from "./authState";
 
 /** Where a dismissal is held: the sitting, not the profile — the next visit's cache is stale again. */
@@ -31,9 +32,7 @@ const writeDismissed = () => {
 
 /**
  * The strip's ground: the tab's primary at the strength a lit control wears, so the line reads as
- * belonging to the bar above it rather than as a card the page opened with. Composed from the
- * channel triple through the CSS variable, since a colour mixed for the white paper is a different
- * colour against the dark one and the variable is what the scheme switch moves.
+ * belonging to the bar above it rather than as a card the page opened with.
  *
  * It gives back the bar's own bottom margin and takes it again below, which is what stands the
  * strip flush against the bar: the two are one piece of chrome, and 16px of page between them reads
@@ -47,14 +46,12 @@ const STRIP_SX = (theme: Theme) => ({
   paddingBottom: 0.75,
   marginTop: -2,
   marginBottom: 2,
-  backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.08)`,
+  backgroundColor: primaryWash(theme, 0.08),
   borderBottom: `1px solid ${theme.vars.palette.divider}`,
   // A wash carries further on white than on the dark paper, where 8% of a colour over #14171a is
   // a strip a reader has to look for. `applyStyles` rather than `theme.palette.mode`, which reads
   // the light scheme's literal under `cssVariables: true` whichever paper is on screen.
-  ...theme.applyStyles("dark", {
-    backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.14)`,
-  }),
+  ...theme.applyStyles("dark", { backgroundColor: primaryWash(theme, 0.14) }),
   ...safeAreaGutters(theme),
 });
 
@@ -92,7 +89,7 @@ export const StaleStrip = () => {
         size="small"
         variant="outlined"
         onClick={authorise}
-        sx={{ borderColor: "divider", backgroundColor: "background.paper" }}
+        sx={KIT_OUTLINED_SX}
       >
         Authorise
       </Button>

@@ -2,7 +2,7 @@ import { Box, Chip, Tooltip, useTheme, type SxProps, type Theme } from "@mui/mat
 import type { ReactElement, ReactNode, Ref } from "react";
 import { ScrollFade } from "./ScrollFade";
 import { useScrollEdges } from "./useScrollEdges";
-import { CONTAIN_SIDEWAYS_SCROLL } from "./scrollbarSx";
+import { QUIET_SIDEWAYS_SCROLL } from "./scrollbarSx";
 
 export interface ChipRailItem {
   id: string;
@@ -170,10 +170,7 @@ export const ChipRail = (props: {
             display: "flex",
             gap: 1,
             overflowX: "auto",
-            ...CONTAIN_SIDEWAYS_SCROLL,
-            // A scrollbar drawn under a row this short costs as much height as the row itself.
-            scrollbarWidth: "none",
-            "::-webkit-scrollbar": { display: "none" },
+            ...QUIET_SIDEWAYS_SCROLL,
           },
           ...(Array.isArray(rowSx) ? rowSx : [rowSx]),
         ]}

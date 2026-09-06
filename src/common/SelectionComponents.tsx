@@ -19,6 +19,7 @@ import { segments } from "./segments";
 import { CURRENT_YEAR, type YearNumber } from "./date";
 import type { YearType } from "./filterReducer";
 import { isAllTime, scopeLabel } from "./scope";
+import { KIT_OUTLINED_SX, primaryWash } from "./typography";
 
 /** One segment: the value it selects and the word on it. */
 export interface SegmentOption<T extends string> {
@@ -125,36 +126,19 @@ export const MeasureControl = <M extends string>({
  */
 const PICKER_LABEL_SX = { fontSize: 11, fontWeight: 400, color: "text.secondary", marginRight: 0.75 } as const;
 
+/** The kit's outlined button, holding whatever the reader chose. */
 const PICKER_SX = {
-  // The value in the ink, on the kit's own edge: the divider the cards and the rail are ruled off
-  // in, not the half-strength primary MUI outlines a button with. A picker is a container for
-  // whatever the reader chose, so the accent is kept for saying that the choice is no longer the
-  // page's own default.
-  //
-  // Here rather than on the theme's own small outlined button, because the lit state below has to
-  // override it: a `variants` rule in `theme.components` is resolved after the `sx` on the same
-  // element, so the pair would answer the theme and not the call site.
-  color: "text.primary",
-  borderColor: "divider",
-  backgroundColor: "background.paper",
+  ...KIT_OUTLINED_SX,
   // A picker's value is one phrase: wrapped, "All time" is two lines in a control the kit gives
   // one line's height, and the caret is left beside the second of them.
   whiteSpace: "nowrap",
-  // The caret is the one part of the control that is not a word, so it takes the label's tone and
-  // sits closer to the value than MUI's own icon spacing puts it.
-  "& .MuiButton-endIcon": {
-    marginLeft: 0.25,
-    marginRight: -0.5,
-    color: "text.secondary",
-    "& > *:first-of-type": { fontSize: 18 },
-  },
 } as const;
 
 /** The same control, saying its value is no longer the one the card was written for. */
 const PICKER_LIT_SX = {
   borderColor: "primary.main",
   color: "primary.main",
-  backgroundColor: (theme: Theme) => `rgba(${theme.vars.palette.primary.mainChannel} / 0.08)`,
+  backgroundColor: (theme: Theme) => primaryWash(theme, 0.08),
 } as const;
 
 /**
@@ -433,26 +417,6 @@ export const ScopeControl = ({
 };
 
 /**
- * The kit's edge, on a button the theme leaves unbordered: `MuiButton`'s small size states the
- * height, type and corner and nothing about `outlined`, whose default is a half-strength primary.
- * The same divider the cards and the rail are ruled off in, so a worded action reads as one more
- * of the row's controls rather than as the one call to action in the header.
- */
-const CUT_SX = {
-  color: "text.primary",
-  borderColor: "divider",
-  backgroundColor: "background.paper",
-  // The chevron says which way the layer arrives from; it is punctuation on the figure rather
-  // than a second mark, so it takes the muted tone and sits close to the word.
-  "& .MuiButton-endIcon": {
-    marginLeft: 0.25,
-    marginRight: -0.5,
-    color: "text.secondary",
-    "& > *:first-of-type": { fontSize: 18 },
-  },
-} as const;
-
-/**
  * The worded cut: "All 1,539 ›", the control a list wears where it shows fewer than it holds.
  *
  * The figure is the button because what is missing and the way to it are one fact — an ⤢ beside a
@@ -469,7 +433,7 @@ export const CutButton = ({ label, onClick }: { label: string; onClick: () => vo
     variant="outlined"
     onClick={onClick}
     endIcon={<ChevronRight />}
-    sx={CUT_SX}
+    sx={KIT_OUTLINED_SX}
   >
     {label}
   </Button>

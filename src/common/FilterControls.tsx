@@ -4,9 +4,9 @@ import { useState, type ReactNode } from "react";
 import type { YearNumber } from "./date";
 import type { PageDispatch, PageState } from "./filterReducer";
 import { MeasureControl, ScopeControl } from "./SelectionComponents";
-import { categoryValues, type PageSchema } from "./filterSchema";
+import { categoryValues, fieldsOf, type PageSchema } from "./filterSchema";
 import { foldText } from "./searchData";
-import { MUTED_FIGURE_SX } from "./typography";
+import { focusRingSx, MUTED_FIGURE_SX } from "./typography";
 import { useScheme } from "./useScheme";
 import { format } from "../utils/mathUtils";
 import type { Colour } from "../utils/types";
@@ -61,11 +61,14 @@ const valueCounts = <T,>(valueOf: (item: T) => string, data: readonly T[]): Map<
 };
 
 /**
- * A value's chip: its name, how many rows it holds, and — where the app already speaks that
- * field's colour — its own swatch, so a chip and a wedge naming one value are one colour.
+ * A chip the reader presses to narrow the page: a value out of a category's vocabulary, or a
+ * toggle standing for a rule of its own. One component for both, since the two are the same object
+ * — a thing chosen or not — and a toggle drawn by a second one would come to differ in its filled
+ * state, its edge or the height it stands at.
  *
  * The figure rides inside the chip rather than beside it: a chip is what a finger lands on, and a
- * count set outside it is a word that says something about a target it is not part of.
+ * count set outside it is a word that says something about a target it is not part of. A toggle
+ * counts nothing and names no vocabulary, so it passes neither.
  */
 const ValueChip = ({
   value,
@@ -75,26 +78,32 @@ const ValueChip = ({
   onToggle,
 }: {
   value: string;
-  count: number;
+  /** How many rows the value holds, where the chip stands for a value in the data. */
+  count?: number;
   selected: boolean;
-  colour: Colour | undefined;
+  /** Its swatch, where the app already speaks that field's colour, so a chip and a wedge naming one value are one colour. */
+  colour?: Colour;
   onToggle: () => void;
 }) => (
   <Chip
     size="small"
     label={
-      <Box
-        component="span"
-        sx={{ display: "inline-flex", alignItems: "baseline", gap: 0.75 }}
-      >
-        {value}
+      count === undefined ? (
+        value
+      ) : (
         <Box
           component="span"
-          sx={{ ...MUTED_FIGURE_SX, fontSize: 10.5, color: "inherit", opacity: 0.7 }}
+          sx={{ display: "inline-flex", alignItems: "baseline", gap: 0.75 }}
         >
-          {format(count)}
+          {value}
+          <Box
+            component="span"
+            sx={{ ...MUTED_FIGURE_SX, fontSize: 10.5, color: "inherit", opacity: 0.7 }}
+          >
+            {format(count)}
+          </Box>
         </Box>
-      </Box>
+      )
     }
     color={selected ? "primary" : "default"}
     variant={selected ? "filled" : "outlined"}
@@ -143,7 +152,7 @@ const CategoryRow = ({
     type="button"
     aria-expanded={open}
     onClick={onToggle}
-    sx={{
+    sx={(theme) => ({
       display: "flex",
       alignItems: "center",
       gap: 1,
@@ -157,8 +166,8 @@ const CategoryRow = ({
       textAlign: "left",
       cursor: "pointer",
       opacity: dimmed ? 0.4 : 1,
-      "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main", outlineOffset: 2 },
-    }}
+      ...focusRingSx(theme),
+    })}
   >
     <Typography
       variant="caption"
@@ -320,9 +329,7 @@ export const SchemaPageControls = ({
 }) => {
   const scheme = useScheme();
   const [openCategory, setOpenCategory] = useState<string | null>(null);
-  // A tab's own fields are erased off the state a surface above it holds, and a schema names one
-  // by string alone — the key was checked against the field it names where the schema was written.
-  const fields = state as unknown as Record<string, unknown>;
+  const fields = fieldsOf(state);
   const phrase = foldText(query);
 
   // A pass over the whole library per category, hoisted out of the map below so a chip pressed
@@ -352,14 +359,11 @@ export const SchemaPageControls = ({
           {schema.toggles.map((toggle) => {
             const checked = Boolean(fields[toggle.key]);
             return (
-              <Chip
+              <ValueChip
                 key={toggle.key}
-                size="small"
-                label={toggle.label}
-                color={checked ? "primary" : "default"}
-                variant={checked ? "filled" : "outlined"}
-                aria-pressed={checked}
-                onClick={() => dispatch({ type: "updateFilter", filter: toggle.key, value: !checked })}
+                value={toggle.label}
+                selected={checked}
+                onToggle={() => dispatch({ type: "updateFilter", filter: toggle.key, value: !checked })}
               />
             );
           })}

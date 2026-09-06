@@ -6,10 +6,11 @@ import { FranchiseStrip } from "../common/FranchiseStrip";
 import { useFranchiseUnion } from "../common/franchiseUnion";
 import { MUTED_FIGURE_SX, LABEL_SX } from "../common/typography";
 import { useScheme } from "../common/useScheme";
-import { franchiseToColour, MEDIA, mediumToColour, mediumUnit } from "../utils/types";
+import { franchiseToColour, MEDIA, mediumUnit, type Medium } from "../utils/types";
 import type { OmniItem } from "../common/medium";
 import OmniCardMediaImage from "./CardMediaImage";
 import { MIXED_CARD_SIZING, workLabels } from "./cardData";
+import { MediaCounts } from "./MediaCounts";
 import { mediumBand } from "./mediumBand";
 import { franchiseFacts, franchiseWorks } from "./searchData";
 import { useLibrary } from "./library";
@@ -18,38 +19,11 @@ import type { YearMonthDay } from "../common/date";
 /** The swatch beside the title, a size up from the inline one a ledger row wears. */
 const TITLE_SWATCH_SIZE = 14;
 
-/**
- * Every medium the franchise reaches, counted in its own unit and wearing its fill — the strip
- * caption's own legend, stated once above the facts so the header reads before the strip does.
- */
-const MediaCounts = ({ items }: { items: OmniItem[] }) => {
-  const scheme = useScheme();
-  return (
-    <Stack
-      direction="row"
-      spacing={1.5}
-      useFlexGap
-      sx={{ flexWrap: "wrap" }}
-    >
-      {MEDIA.map((medium) => {
-        const count = items.filter((item) => item.medium === medium).length;
-        if (count === 0) return null;
-        return (
-          <Typography
-            key={medium}
-            variant="caption"
-            sx={{ display: "inline-flex", alignItems: "center", gap: 0.75, fontWeight: 600 }}
-          >
-            <Box
-              component="span"
-              sx={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: mediumToColour(medium, scheme) }}
-            />
-            {mediumUnit(medium, count)}
-          </Typography>
-        );
-      })}
-    </Stack>
-  );
+/** How many entries of each medium a franchise's rows hold. */
+const countByMedium = (items: OmniItem[]): Partial<Record<Medium, number>> => {
+  const counts: Partial<Record<Medium, number>> = {};
+  for (const item of items) counts[item.medium] = (counts[item.medium] ?? 0) + 1;
+  return counts;
 };
 
 const Fact = ({ label, value }: { label: string; value: string }) => (
@@ -128,7 +102,15 @@ export const FranchiseView = ({
             spacing={2}
             sx={{ paddingX: 2, paddingBottom: 1 }}
           >
-            <MediaCounts items={own} />
+            {/* Every medium the franchise reaches, counted in its own unit and wearing its fill —
+                the strip caption's own legend, stated once above the facts so the header reads
+                before the strip does. */}
+            <MediaCounts
+              counts={countByMedium(own)}
+              wordFor={mediumUnit}
+              scheme={scheme}
+              band
+            />
             <Stack
               direction="row"
               spacing={3}

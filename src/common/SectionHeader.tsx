@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { MUTED_FIGURE_SX } from "./typography";
 import { ScrollFade } from "./ScrollFade";
 import { useScrollEdges } from "./useScrollEdges";
-import { CONTAIN_SIDEWAYS_SCROLL } from "./scrollbarSx";
+import { QUIET_SIDEWAYS_SCROLL } from "./scrollbarSx";
 
 /**
  * The header where the action takes a row of its own below `sm`. A slot that stays beside the title
@@ -60,10 +60,7 @@ const ActionRow = ({ children }: { children: ReactNode }) => {
           // itself, whatever `Stack` or fragment a caller built it from. Above `sm` nothing here
           // is short of room, so holding it at its natural size changes nothing.
           "& > *": { flexShrink: 0 },
-          ...CONTAIN_SIDEWAYS_SCROLL,
-          // A scrollbar under a single row of controls costs as much height as the row itself.
-          scrollbarWidth: "none",
-          "::-webkit-scrollbar": { display: "none" },
+          ...QUIET_SIDEWAYS_SCROLL,
         }}
       >
         {children}

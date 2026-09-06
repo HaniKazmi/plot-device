@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePhone } from "./breakpoints";
 import { ChipRail, RailChip, type ChipRailItem } from "./ChipRail";
 import { BROWSER_TINT_VISIBLE } from "./chrome";
-import { CONTAIN_SIDEWAYS_SCROLL } from "./scrollbarSx";
+import { QUIET_SIDEWAYS_SCROLL } from "./scrollbarSx";
 
 /** A chip in the rail. The `id` matches the `Section` it scrolls to. */
 type RailSection = ChipRailItem;
@@ -150,9 +150,7 @@ const ACTIONS_SX = {
   // drawn wrong rather than one waiting off the end of a row.
   "& > *": { flexShrink: 0 },
   overflowX: "auto",
-  ...CONTAIN_SIDEWAYS_SCROLL,
-  scrollbarWidth: "none",
-  "::-webkit-scrollbar": { display: "none" },
+  ...QUIET_SIDEWAYS_SCROLL,
 } as const;
 
 /** The rail's last cell, which never gives up a pixel: the population chip, or the phone's own. */

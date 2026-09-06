@@ -52,7 +52,7 @@ export const sheetBarRow = {
  * The rules alone rather than the media query around them, so a caller states its own width: the
  * expanded card draws its bar below `sm` alone, where every other layer draws one at every width.
  */
-export const pinnedSheetTop = (theme: Theme) => ({
+const pinnedSheetTop = (theme: Theme) => ({
   position: "sticky",
   top: 0,
   // Above whatever a dialog's own body pins or fades, which would otherwise paint over the bar
@@ -72,16 +72,14 @@ export const pinnedSheetBar = (theme: Theme) => ({
 });
 
 /**
- * The pinned bar as a *header*: the paper's own ground, a rule under it, and the floor
- * `SHEET_HEADER_BOTTOM` states. `CssBaseline` puts every box in `border-box`, so the safe-area
- * padding and the rule are inside that figure.
+ * The pinned bar on the page's own paper, ruled off from what scrolls under it: what every layer
+ * but the expanded card wears, that one taking its artwork's ground instead.
  *
- * A caller whose header is not a sheet bar — search, whose input row is the bar — takes this
- * without `sheetBarRow` and states its own spacing.
+ * `CssBaseline` puts every box in `border-box`, so the safe-area padding and the rule are inside
+ * the floor `SHEET_HEADER_BOTTOM` states.
  */
-export const stickySheetHeader = (theme: Theme) => ({
-  ...pinnedSheetTop(theme),
-  minHeight: SHEET_HEADER_BOTTOM,
+export const paperSheetBar = (theme: Theme) => ({
+  ...pinnedSheetBar(theme),
   backgroundColor: theme.vars.palette.background.paper,
   borderBottom: `1px solid ${theme.vars.palette.divider}`,
 });

@@ -1,3 +1,5 @@
+import type { Theme } from "@mui/material";
+
 /**
  * A line of type set as a label rather than as prose — a stat tile's caption, a hero's kicker,
  * the heading over a vitals band. Uppercase at caption size sets too tight to read as words
@@ -79,3 +81,62 @@ export const COARSE_CONTROL_HEIGHT = 32;
  * at half its own height and keeps the distinction the eye reads the rail by.
  */
 export const CONTROL_RADIUS = 6;
+
+/**
+ * The kit's edge on a button the theme leaves unbordered: the word in the ink, the divider the
+ * cards and the rail are ruled off in, and the paper behind it.
+ *
+ * `MuiButton`'s small size states the height, type and corner and nothing about `outlined`, whose
+ * default is a half-strength primary — the treatment of the one call to action on a screen, where
+ * each of these is a container for what the reader chose, a way into more of what is already
+ * shown, or an action standing among other controls. The accent is kept for saying that a value is
+ * no longer the page's own default.
+ *
+ * Stated as a rule a call site spreads rather than on the theme's own outlined button, because a
+ * lit state has to override it: a `variants` rule in `theme.components` is resolved after the `sx`
+ * on the same element, so the pair would answer the theme and not the call site.
+ */
+export const KIT_OUTLINED_SX = {
+  color: "text.primary",
+  borderColor: "divider",
+  backgroundColor: "background.paper",
+  // The end icon — a caret saying the control opens, a chevron saying which way the layer arrives
+  // from — is punctuation on the word rather than a second mark, so it takes the muted tone and
+  // sits closer to it than MUI's own icon spacing puts it.
+  "& .MuiButton-endIcon": {
+    marginLeft: 0.25,
+    marginRight: -0.5,
+    color: "text.secondary",
+    "& > *:first-of-type": { fontSize: 18 },
+  },
+} as const;
+
+/**
+ * The tab's primary at a stated strength, as a wash rather than a tint: a lit segment's ground, a
+ * hovered control's, the strip a cached page wears.
+ *
+ * Composed from the channel triple through the CSS variable, so one rule reads on both papers — a
+ * solid colour mixed for the white paper is a different colour against the dark one, and the
+ * variable is what the scheme switch actually moves. `mainChannel` is what `cssVariables: true`
+ * emits for exactly this.
+ */
+export const primaryWash = (theme: Theme, strength: number) =>
+  `rgba(${theme.vars.palette.primary.mainChannel} / ${strength})`;
+
+/**
+ * One ring for the whole app: a segment inside a group, a chip in the rail, a picker's button and
+ * the rows a surface builds out of bare buttons all answer a keyboard the same way, so a reader
+ * tabbing through a header or a list finds the focus in one place rather than in whatever each
+ * element draws for itself.
+ *
+ * Outside the part's own edge by default, since several of them are drawn edge to edge — a group's
+ * segments share their borders, and a ring inside would be half hidden by the neighbour. A row
+ * that spans its container states a negative offset instead: a ring outside the full width of a
+ * list is a ring with nowhere to be drawn.
+ *
+ * The theme is taken rather than the palette read through `sx`, because the theme's own
+ * `styleOverrides` resolve no palette path: the value has to be the colour itself.
+ */
+export const focusRingSx = (theme: Theme, offset = 2) => ({
+  "&:focus-visible": { outline: `2px solid ${theme.vars.palette.primary.main}`, outlineOffset: offset },
+});
