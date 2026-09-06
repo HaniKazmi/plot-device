@@ -1,6 +1,14 @@
 import { Search } from "@mui/icons-material";
 import { Box, Dialog, InputBase, Stack, Typography, type Theme } from "@mui/material";
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { usePhone } from "./breakpoints";
 import { SheetBar } from "./SheetBar";
 import { SegmentedControl, type SegmentOption } from "./SelectionComponents";
@@ -280,6 +288,7 @@ export const SearchPalette = (props: {
   const finding = mode === "find";
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const pointerAt = useRef<{ x: number; y: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -304,6 +313,22 @@ export const SearchPalette = (props: {
   useEffect(() => {
     revealSelected(listRef.current);
   }, [selectedIndex]);
+
+  /**
+   * Whether the pointer actually moved, which is what a row's own selection is allowed to follow.
+   *
+   * Safari dispatches a `mousemove` at the cursor's own position whenever content scrolls under a
+   * stationary pointer, and an arrow key scrolls the list to reveal what it selected — so the row
+   * that slides under the mouse takes the selection straight back, and holding ↑ reads as the list
+   * jumping to wherever the pointer happens to rest. Comparing the position is what tells a
+   * reader's own movement from the page moving beneath them; Chrome sends no event for the second
+   * and so needs no telling.
+   */
+  const pointerMoved = (event: MouseEvent) => {
+    const last = pointerAt.current;
+    pointerAt.current = { x: event.clientX, y: event.clientY };
+    return last === null || last.x !== event.clientX || last.y !== event.clientY;
+  };
 
   const move = (step: number) => {
     if (flat.length === 0) return;
@@ -449,8 +474,9 @@ export const SearchPalette = (props: {
                     id={`search-hit-${flatIndex.get(`${group.key}:${hit.key}`)}`}
                     aria-selected={`${group.key}:${hit.key}` === selected?.key}
                     tabIndex={-1}
-                    onMouseMove={() => {
-                      if (`${group.key}:${hit.key}` !== selected?.key) setSelectedKey(`${group.key}:${hit.key}`);
+                    onMouseMove={(event) => {
+                      if (pointerMoved(event) && `${group.key}:${hit.key}` !== selected?.key)
+                        setSelectedKey(`${group.key}:${hit.key}`);
                     }}
                     onClick={hit.onOpen}
                     sx={chipSx}
@@ -496,8 +522,9 @@ export const SearchPalette = (props: {
                     id={`search-hit-${flatIndex.get(`${group.key}:${hit.key}`)}`}
                     aria-selected={`${group.key}:${hit.key}` === selected?.key}
                     tabIndex={-1}
-                    onMouseMove={() => {
-                      if (`${group.key}:${hit.key}` !== selected?.key) setSelectedKey(`${group.key}:${hit.key}`);
+                    onMouseMove={(event) => {
+                      if (pointerMoved(event) && `${group.key}:${hit.key}` !== selected?.key)
+                        setSelectedKey(`${group.key}:${hit.key}`);
                     }}
                     onClick={hit.onOpen}
                     sx={hitSx}
