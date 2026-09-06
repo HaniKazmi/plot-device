@@ -6,6 +6,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 // statement form is erased per file, which is what a bundler transpiling one file at a time reads.
 import type { SheetTab } from "../tabs.ts";
 import { arrayToJson } from "../utils/arrayUtils.ts";
+import { rangeBatcher } from "../common/rangeBatch.ts";
 import { expiryFor, isGrant, isTokenValid, parseTokenWrapper, type Token, type TokenWrapper } from "./token.ts";
 
 export const gapi_script = "https://apis.google.com/js/api.js";
@@ -70,6 +71,21 @@ interface GoogleAuthContextType {
 }
 
 const GoogleAuthContext = createContext<GoogleAuthContextType | null>(null);
+
+/**
+ * The one reader every sheet fetch goes through, batching the ranges asked for in one tick.
+ *
+ * At module scope rather than per provider: a batch forms and closes inside a single microtask, so
+ * a provider that remounted mid-tick would otherwise open a second batch beside the first and turn
+ * one request back into two.
+ *
+ * `gapi` is read inside the send rather than captured, since a module must name no browser global
+ * while it loads — and the client is not on the page yet when this file is first evaluated.
+ */
+const fetchRange = rangeBatcher(async (spreadsheetId, ranges) => {
+  const response = await gapi.client.sheets.spreadsheets.values.batchGet({ spreadsheetId, ranges: [...ranges] });
+  return (response.result.valueRanges ?? []).map((valueRange) => valueRange.values);
+});
 
 export const GoogleAuthProvider = ({ children }: { children: ReactNode }) => {
   const [tokenSet, setTokenSet] = useState(() => !!getValidToken());
@@ -140,16 +156,16 @@ export const GoogleAuthProvider = ({ children }: { children: ReactNode }) => {
     // not, and clearing the token for that turns a data fault into an apparent auth fault: the
     // NavBar falls back to "Authorise", every other tab loses its session too, and authorising
     // again refetches the same bad cell and clears it again, with nothing on screen to say why.
-    let response;
+    let grid;
     try {
-      response = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId, range });
+      grid = await fetchRange(spreadsheetId, range);
     } catch (error) {
       console.error(error);
       setTokenSet(false);
       throw error;
     }
 
-    return jsonConverter(arrayToJson(response.result.values!));
+    return jsonConverter(arrayToJson(grid));
   };
 
   return (

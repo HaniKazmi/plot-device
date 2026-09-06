@@ -13,7 +13,7 @@ why they are shaped the way they are. For conventions see [AGENTS.md](./AGENTS.m
 │  (the whole  │ ◄─── token ───── │     Services      │
 │  application)│                  └───────────────────┘
 │              │
-│              │  sheets.values.get (read-only scope)
+│              │  sheets.values.batchGet (read-only scope)
 │              │ ───────────────► ┌───────────────────┐
 │              │ ◄── string[][] ── │ Google Sheets API │
 └──────┬───────┘                  └───────────────────┘
@@ -137,7 +137,7 @@ domain may import. `omnibus/` reads no sheet (§3), so it is the one domain with
 tabs.ts                    { spreadsheetId, range }
    │
    ▼
-GoogleAuthContext          gapi.client.sheets.spreadsheets.values.get
+GoogleAuthContext          values.batchGet, one request for all four ranges
    │                       → string[][]  (raw grid, header row first)
    ▼
 utils/arrayUtils           arrayToJson()
@@ -162,6 +162,23 @@ common/filterReducer       reducer composes predicates → data.filter(...)
 `fetchAndConvertSheet` runs the converter inside the fetch, so `useData` never sees a raw grid. Only
 `jsonConverter` knows a spreadsheet's column names, which is what makes a new data source cheap to
 add (§8).
+
+**The four reads are one request.** `common/rangeBatch.ts` collects every range asked for in a tick
+and sends them together, which is available because the four ranges are four tabs of one file: the
+provider mounts four hooks whose effects run in a single commit, so four separate reads would be
+four requests and four quota units for what one `batchGet` answers. The gain is quota rather than
+latency — the four were already concurrent against one host. The batch forms in a microtask, long
+enough for a commit's effects to have queued every range and short enough that a caller arriving
+alone still leaves in the tick it asked in; a range asked for later, by a tab mounted after the
+others or by a refresh, forms the next batch. It is keyed by spreadsheet, so a fifth medium in
+another document batches with itself rather than not at all.
+
+The response holds one entry per requested range in the order asked, which is what lets each caller
+read its own grid out by index — and is the whole of the coupling, so `fetchAndConvertSheet` keeps
+its signature and every caller, cache key and per-medium error is untouched. One range failing is
+the exception: `batchGet` rejects the whole call, where four reads failed one at a time. A range is
+a build-time constant, so that trades a per-medium failure nobody can cause for a request nobody
+pays for four times.
 
 **A bad cell names its own row**, rather than surfacing later from a colour lookup or a chart offset
 that names none. `common/sheetError.ts` holds the vocabulary — `sheetRow`, `describing`, `sheetError`
@@ -2300,16 +2317,12 @@ Recorded so they are not mistaken for design:
   over an empty page, since the state cannot yet tell "nothing here" from "about to fetch". Once
   `live`, the sheet read runs behind the same empty page, and the Omnibus waits on all four sheets,
   so it waits longest.
-- **Every visit fetches all four sheets.** `app/LibraryProvider.tsx` mounts above the router, so any
+- **Every visit reads all four ranges.** `app/LibraryProvider.tsx` mounts above the router, so any
   tab has the cross-media union and the bar can say whether there is a library at all; a deep link
-  to `/vg` therefore pays three extra sheet reads and paints from cache until they land, where the
-  Omnibus — which a bare visit opens on — needs all four regardless. A deliberate trade, argued in
-  that provider's own comment. Now that the four ranges live in one spreadsheet, most of the cost is
-  addressable: `spreadsheets.values.batchGet` would fetch all four in one round trip where
-  `fetchAndConvertSheet` issues one `values.get` per tab. It is a transport change rather than a
-  schema one — `useData`'s per-key in-flight promise becomes one shared promise and per-medium
-  `loaded` collapses, though per-medium `error` has to stay, a converter throw being per-domain — so
-  it is left for its own change rather than folded into the migration that enabled it.
+  to `/vg` therefore pays for three tabs it is not showing, where the Omnibus — which a bare visit
+  opens on — needs all four regardless. A deliberate trade, argued in that provider's own comment.
+  What it costs is now one request rather than four (§3), so what is left is the parsing: four
+  converters run over four grids on the main thread whichever tab was asked for.
 - **No DOM or component tests.** `tests/` covers pure logic — converters, filters, the reducer, the
   chart data transforms, the cache round trip — and stops there; AGENTS.md explains the trade. Nothing
   verifies that a chart renders.
