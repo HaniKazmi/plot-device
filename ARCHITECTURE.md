@@ -266,7 +266,14 @@ the previous visit's copy. `dataLoaded` starts `true` on a `CACHE` hit, every en
 been written by a fetch this session made, so a caller waiting on four domains can tell "still
 fetching" from "already fetched by the tab you came from". Once `apiReady` turns true it fetches,
 sharing one in-flight promise per `storageKey` so a second mount subscribes rather than issuing a
-second `values.get`; the entry clears on settle, so a failed fetch is retried by the next mount.
+second read; the entry clears on settle, so a failed fetch is retried by the next mount.
+
+`refreshSheets` is the way to ask again. It empties `CACHE` and bumps a counter every hook reads, so
+each finds nothing and fetches; `IN_FLIGHT` is left alone, a request already on the wire being one a
+refresh can join rather than duplicate, and `localStorage` is left standing, since a refresh that
+emptied it would blank the next cold visit for the window before its replacement lands. A separate
+tally counts the reads in progress — written from inside the effect, where a `setState` would be the
+cascading render the compiler's rules reject — and is what the bar's refresh control spins on.
 
 The third return value is what went wrong. A gapi rejection is the response object rather than an
 `Error`, so `describeFailure` reads `result.error.message` — the converter's own message, naming the
@@ -331,9 +338,14 @@ key's dot is for and what reading `loaded` would blank the page over. The auth c
 library provider and knows nothing about the cache, so the derivation is a hook below both — which
 the bar and the page body are, `Google.tsx` mounting `LibraryProvider` above `NavBar` for it.
 
-The bar draws one thing about all this: an authorise key beside the search button, at every width,
-and only where there is something to authorise — a dot on it while the page is stale, its word
-beside it from `md` up with a fine pointer, and nothing at all when the session is live. Everything
+The bar draws one thing about all this, in one slot beside the search button at every width: an
+authorise key while there is something to authorise — a dot on it while the page is stale, its word
+beside it from `md` up with a fine pointer — and, once the session is live, a refresh in its place.
+The two are the same control at two states of one question, which is why they share a slot: a
+session holds its sheets for as long as it lasts, so without the second there is no way to re-read
+them but to reload the page, and an installed app offers no handle for that at all. It spins and
+disables itself while the read is in flight, that being the whole of the report — the rows do not
+blank, and a page of last visit's data is what stands until the new ones land. Everything
 else is behind the `⋮`, which is drawn at every width and pointer: the tab's Sheet, Revoke, and
 guest mode in both directions. One list and one surface, so nothing is reachable at one width and
 not another — an iPad held sideways clears every width test and still points with a finger, and a

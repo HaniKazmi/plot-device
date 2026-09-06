@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createStore } from "./store";
 import { PlainDate } from "./date";
 import { useGoogleAuth } from "../contexts/GoogleAuthContext";
 import type { SheetTab } from "../tabs";
@@ -7,6 +8,52 @@ import type { SheetTab } from "../tabs";
 const storage = () => localStorage;
 
 const CACHE = new Map<string, unknown>();
+
+/**
+ * How many times this session has been asked for fresh sheets, which every `useData` reads as the
+ * signal to fetch again.
+ *
+ * A counter rather than a flag: what the hooks need is a value that *changes*, since the effect
+ * re-runs on a new one and a flag set twice is one change. Held outside React because the four
+ * hooks have no common ancestor short of the provider, and because the control that presses it
+ * sits in the bar, above them.
+ */
+const refreshes = createStore(0);
+
+/**
+ * Drops this session's copies and re-reads every sheet.
+ *
+ * `CACHE` is what stops a fetch happening twice in a session, so clearing it is the whole of the
+ * refresh — the hooks then find nothing and ask again. `IN_FLIGHT` is deliberately left alone: a
+ * request already on the wire is one this refresh can join rather than duplicate, and it will
+ * write the copy the hooks are about to look for.
+ *
+ * `localStorage` is left standing too. A refresh that emptied it would blank the next cold visit
+ * for the window between it and the fetch that replaces it, which is the one thing that cache is
+ * for.
+ */
+export const refreshSheets = () => {
+  CACHE.clear();
+  refreshes.set(refreshes.get() + 1);
+};
+
+/**
+ * How many sheets are being read right now, so a control can say a refresh is in progress.
+ *
+ * Counted rather than flagged, four hooks sharing one answer: the count also stays right where two
+ * of them join one in-flight request, since each subscriber both opens and closes its own tally.
+ *
+ * This is a store and not component state on purpose. The tally is written from inside an effect,
+ * where a `setState` would be a cascading render the compiler's rules reject outright — an external
+ * system updated from an effect is exactly what an effect is for.
+ */
+const reading = createStore(0);
+
+const openRead = () => reading.set(reading.get() + 1);
+const closeRead = () => reading.set(reading.get() - 1);
+
+/** Whether any sheet is being read, for the bar's refresh control. */
+export const useReadingSheets = () => reading.useValue() > 0;
 
 /**
  * A cache key that changes when the shape behind it does.
@@ -189,9 +236,12 @@ const useData = <T>(
 
   const { apiReady, fetchAndConvertSheet } = useGoogleAuth();
 
+  const refreshCount = refreshes.useValue();
+
   useEffect(() => {
     if (!apiReady || CACHE.has(storageKey)) return;
 
+    openRead();
     let pending = IN_FLIGHT.get(storageKey) as Promise<T[]> | undefined;
     if (!pending) {
       const started = fetchAndConvertSheet(tab, converter);
@@ -223,8 +273,11 @@ const useData = <T>(
       .catch((cause: unknown) => {
         console.error(cause);
         setError(describeFailure(cause));
-      });
-  }, [apiReady, converter, storageKey, tab, fetchAndConvertSheet, replacer]);
+      })
+      // However it settled, this subscriber has stopped reading. Each one opens and closes its own
+      // tally, so two hooks joining a single in-flight request still leave the count balanced.
+      .finally(closeRead);
+  }, [apiReady, converter, storageKey, tab, fetchAndConvertSheet, replacer, refreshCount]);
 
   return [data, dataLoaded, error];
 };

@@ -12,13 +12,14 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
-import { Key, MoreVert, Search } from "@mui/icons-material";
+import { Key, MoreVert, Refresh, Search } from "@mui/icons-material";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabs, { useCurrentTab } from "./tabs";
 import useLongPress from "./utils/useLongPress";
 import { useGoogleAuth } from "./contexts/GoogleAuthContext";
 import { useAuthState } from "./app/authState";
+import { refreshSheets, useReadingSheets } from "./common/useData";
 import { safeAreaGutters } from "./common/chrome";
 import { openSearch } from "./common/searchOpen";
 import { AppIcon } from "./AppIcon";
@@ -55,6 +56,18 @@ const BAR_BUTTON_SX = {
  * stepped back, says the same thing in the bar's own terms.
  */
 const DISABLED_BUTTON_SX = { "&.Mui-disabled": { color: "inherit", opacity: 0.6 } } as const;
+
+/**
+ * The refresh control's icon while a read is in flight.
+ *
+ * Behind `no-preference` rather than stopped under `reduce`, so the rule is simply absent for a
+ * reader who asked for less motion — the button still disables and its label still says the state,
+ * which is what actually reports the read.
+ */
+const SPINNING_SX = {
+  "@keyframes plotDeviceSpin": { to: { transform: "rotate(1turn)" } },
+  "@media (prefers-reduced-motion: no-preference)": { animation: "plotDeviceSpin 900ms linear infinite" },
+} as const;
 
 /**
  * The authorise key wearing its word, which it can only do where there is room for one and a
@@ -116,6 +129,7 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
   const { onMouseDown, onMouseUp, onMouseLeave } = useLongPress(() => setGuestMode(true));
   const { authorise, revoke } = useGoogleAuth();
   const authState = useAuthState();
+  const reading = useReadingSheets();
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   // A tab with no `darkBar` (none currently exist) keeps the plain dark bar `Google.tsx` falls
   // back to, so nothing here draws a rule or an ink colour with nothing to derive them from.
@@ -239,6 +253,33 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
 
             Dimmed rather than absent while the scripts land, so the key does not appear under a
             thumb already on its way to the search beside it. */}
+        {/* Live, the slot the key would take carries a refresh instead. There is nothing to
+            authorise, and a session holds its sheets for as long as it lasts — so without this the
+            only way to re-read them is to reload the page, which an installed app gives no handle
+            for at all. Same slot, same two forms, so the bar keeps one action beside the search
+            however the session stands. */}
+        {authState === "live" && (
+          <>
+            <IconButton
+              color="inherit"
+              aria-label={reading ? "Refreshing…" : "Refresh"}
+              disabled={reading}
+              onClick={refreshSheets}
+              sx={{ ...KEY_ICON_SX, ...BAR_BUTTON_SX, ...DISABLED_BUTTON_SX }}
+            >
+              <Refresh sx={reading ? SPINNING_SX : undefined} />
+            </IconButton>
+            <Button
+              color="inherit"
+              startIcon={<Refresh sx={reading ? SPINNING_SX : undefined} />}
+              disabled={reading}
+              onClick={refreshSheets}
+              sx={{ ...KEY_WORD_SX, ...BAR_WORD_SX }}
+            >
+              {reading ? "Refreshing" : "Refresh"}
+            </Button>
+          </>
+        )}
         {authState !== "live" && (
           <>
             {/* No hover label of any kind, native or MUI's: a word that appears only under a
