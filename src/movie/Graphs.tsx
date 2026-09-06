@@ -14,7 +14,7 @@ import { filterIcons } from "./filterIcons";
 import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
 import { FilterChip } from "../common/FilterDrawer";
 import { stated } from "../common/population";
-import { MeasureControl } from "../common/SelectionComponents";
+import { MeasureControl, ScopeControl } from "../common/SelectionComponents";
 import { useOtherTabs } from "../tabs";
 import { MOVIE_SECTIONS, movieSections } from "./sections";
 import { FranchiseContext, movieFranchise } from "./franchiseContext";
@@ -23,6 +23,7 @@ import { activeCount, type FilterDispatch, type FilterState } from "./filterUtil
 import { wallPopulation, type FinishedExtraSort } from "../common/finishedData";
 import { useScheme } from "../common/useScheme";
 import { usePhone } from "../common/breakpoints";
+import { MOVIE_EPOCH } from "./statsData";
 
 const MOVIE_SORTS: readonly FinishedExtraSort<Movie>[] = [{ label: "Score", value: (movie) => movie.score }];
 
@@ -128,11 +129,19 @@ const Graphs = memo(
           sections={movieSections(data.length > 0, chartsLast)}
           tabs={tabs}
           actions={
-            <MeasureControl
-              measures={movieModule.measures}
-              value={filterState.measure}
-              dispatch={filterDispatch}
-            />
+            <>
+              <ScopeControl
+                yearTo={filterState.yearTo}
+                yearType={filterState.yearType}
+                earliestYear={MOVIE_EPOCH.year}
+                dispatch={filterDispatch}
+              />
+              <MeasureControl
+                measures={movieModule.measures}
+                value={filterState.measure}
+                dispatch={filterDispatch}
+              />
+            </>
           }
           trailing={
             <FilterChip
@@ -146,7 +155,6 @@ const Graphs = memo(
           measure={filterState.measure}
           yearType={filterState.yearType}
           yearTo={filterState.yearTo}
-          filterDispatch={filterDispatch}
         />
         <Section id={MOVIE_SECTIONS.timeline}>
           <WatchTimeline data={deferredData} />

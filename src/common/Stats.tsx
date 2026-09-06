@@ -35,9 +35,8 @@ import { useElementWidth } from "./useElementWidth";
 import { CONTAIN_SIDEWAYS_SCROLL } from "./scrollbarSx";
 import { useStackedCharts } from "./breakpoints";
 import { useState, type ReactNode } from "react";
-import { Radio } from "@mui/material";
 import type { Colour } from "../utils/types";
-import { YearSelect } from "./YearSelect";
+import { scopeLabel } from "./scope";
 import type { YearType } from "./filterReducer";
 import { CURRENT_YEAR, type YearNumber } from "./date";
 import { Fullscreen, Timer, Update } from "@mui/icons-material";
@@ -51,11 +50,22 @@ export const StatCard = ({
   action,
   content,
   span,
+  scoped,
 }: {
   icon: ReactNode;
   title: ReactNode;
   action?: ReactNode;
   content: [string, number][];
+  /**
+   * That this card is the reading the whole page is filtered to, drawn as a rule along its top
+   * edge in the tab's own primary.
+   *
+   * The band states two readings of one library side by side and only one of them is what the
+   * charts, the timeline and the wall below are counting. The card the page is scoped to is the
+   * figure a reader carries down the page, so it is marked where it stands and not only on the
+   * control that set it.
+   */
+  scoped?: boolean;
   /**
    * The cell this card takes, where the band's default pairing would leave it standing alone.
    *
@@ -138,7 +148,20 @@ export const StatCard = ({
         ...span,
       }}
     >
-      <Card sx={{ height: "100%" }}>
+      <Card
+        sx={
+          scoped
+            ? {
+                height: "100%",
+                // Inset, so the rule stands inside the card's own border rather than adding a
+                // pixel to its box: a lit card in a stretched row must not stand taller than the
+                // one beside it.
+                boxShadow: (theme: Theme) => `inset 0 3px 0 0 ${theme.vars.palette.primary.main}`,
+                borderColor: "primary.main",
+              }
+            : { height: "100%" }
+        }
+      >
         <CardHeader
           title={title}
           avatar={icon}
@@ -154,7 +177,13 @@ export const StatCard = ({
   );
 };
 
-/** Each `statsData` total is already keyed by the label it renders under, in display order. */
+/**
+ * Each `statsData` total is already keyed by the label it renders under, in display order, so the
+ * key is the word and only its case is this layer's.
+ */
+const statRows = (stats: Record<string, number>): [string, number][] =>
+  Object.entries(stats).map(([key, value]) => [key[0].toUpperCase() + key.slice(1), value]);
+
 export const StatSummary = ({
   icon,
   title,
@@ -167,65 +196,7 @@ export const StatSummary = ({
   <StatCard
     icon={icon}
     title={title}
-    content={Object.entries(stats).map(([key, value]) => [key[0].toUpperCase() + key.slice(1), value])}
-  />
-);
-
-/**
- * Typed as exactly the two actions these cards send, so every domain's dispatch — each a
- * `FilterDispatchFor` over its own wider state — fits structurally without a generic.
- */
-type YearDispatch = (
-  action: { type: "updateFilter"; filter: "yearTo"; value: YearNumber } | { type: "yearType"; yearType: YearType },
-) => void;
-
-/**
- * The vitals card carrying the page-wide year controls: a year select as its title and the radio
- * that picks which of the two year cards the filter applies to, hence `activeYearType`. The
- * figures themselves arrive as a keyed record, already scoped by the caller to whatever the card
- * claims to total.
- */
-const YearTotals = ({
-  yearType,
-  yearTo,
-  filterDispatch,
-  icon,
-  activeYearType,
-  minWidth,
-  earliestYear,
-  stats,
-  renderValue,
-}: {
-  yearType: YearType;
-  yearTo: YearNumber;
-  filterDispatch: YearDispatch;
-  icon: ReactNode;
-  activeYearType: YearType;
-  minWidth?: number;
-  /** Passed through to the year select, which takes no floor of its own. */
-  earliestYear: YearNumber;
-  stats: Record<string, number>;
-  renderValue: (value: number) => ReactNode;
-}) => (
-  <StatCard
-    icon={icon}
-    title={
-      <YearSelect
-        value={yearTo}
-        onChange={(value) => filterDispatch({ type: "updateFilter", filter: "yearTo", value })}
-        minWidth={minWidth}
-        earliestYear={earliestYear}
-        renderValue={renderValue}
-      />
-    }
-    action={
-      <Radio
-        size="small"
-        checked={yearType == activeYearType}
-        onChange={() => filterDispatch({ type: "yearType", yearType: activeYearType })}
-      />
-    }
-    content={Object.entries(stats).map(([key, value]) => [key[0].toUpperCase() + key.slice(1), value])}
+    content={statRows(stats)}
   />
 );
 
@@ -233,11 +204,15 @@ const YearTotals = ({
  * The pair of year cards every tab opens its vitals band with: the library up to a year, and the
  * library inside it.
  *
- * They are one component rather than two placed side by side at each of the four call sites,
- * because everything that makes them a pair is fixed — the two icons, which of them the radio
- * marks active, the wording of each title, and the wider select the second needs for "In 2024".
- * What a tab actually varies is the two sets of figures it counts, and a tab that stated the rest
- * again could state it differently.
+ * Neither card is a control. The scope is one page-wide reading and it is set in the rail, which
+ * stays on screen past the band; here the pair states the two readings side by side and the one
+ * the page is filtered to wears the lit rule, so a reader who has scrolled to the wall and back
+ * can see which of the two figures the rest of the page is counting.
+ *
+ * They are one component rather than two placed side by side at each of the five call sites,
+ * because everything that makes them a pair is fixed — the two icons, the wording of each title
+ * and which of them the scope lights. What a tab varies is the two sets of figures it counts, and
+ * a tab that stated the rest again could state it differently.
  *
  * A fragment rather than a container: they are two cards of the band they sit in, beside whatever
  * else that tab puts there, not a group within it.
@@ -245,42 +220,29 @@ const YearTotals = ({
 export const YearVitalsPair = ({
   yearTo,
   yearType,
-  filterDispatch,
-  earliestYear,
   allTime,
   inYear,
 }: {
   yearTo: YearNumber;
   yearType: YearType;
-  filterDispatch: YearDispatch;
-  /** Passed through to both year cards' selects, which take no floor of their own. */
-  earliestYear: YearNumber;
   allTime: Record<string, number>;
   inYear: Record<string, number>;
 }) => (
   <>
-    <YearTotals
-      yearTo={yearTo}
-      yearType={yearType}
-      filterDispatch={filterDispatch}
+    <StatCard
       icon={<Timer />}
-      activeYearType="upto"
-      earliestYear={earliestYear}
-      stats={allTime}
-      renderValue={(value) => (
-        <Typography variant="h6">{value == CURRENT_YEAR ? "All Time" : `Up To ${value}`}</Typography>
-      )}
+      // Each card titles itself with the reading it stands for rather than with the page's, so
+      // the two read as a pair whichever one is lit: the same words the rail's picker states,
+      // through the same rule, so the control and the card it lights cannot word one scope twice.
+      title={scopeLabel(yearTo, "upto", CURRENT_YEAR)}
+      scoped={yearType === "upto"}
+      content={statRows(allTime)}
     />
-    <YearTotals
-      yearTo={yearTo}
-      yearType={yearType}
-      filterDispatch={filterDispatch}
+    <StatCard
       icon={<Update />}
-      activeYearType="matching"
-      minWidth={120}
-      earliestYear={earliestYear}
-      stats={inYear}
-      renderValue={(value) => <Typography variant="h6">In {value}</Typography>}
+      title={scopeLabel(yearTo, "matching", CURRENT_YEAR)}
+      scoped={yearType === "matching"}
+      content={statRows(inYear)}
     />
   </>
 );

@@ -3,6 +3,7 @@ import Grid from "@mui/material/Grid";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ChipRail, RailChip, type ChipRailItem } from "./ChipRail";
 import { BROWSER_TINT_VISIBLE } from "./chrome";
+import { CONTAIN_SIDEWAYS_SCROLL } from "./scrollbarSx";
 
 /** A chip in the rail. The `id` matches the `Section` it scrolls to. */
 type RailSection = ChipRailItem;
@@ -131,6 +132,28 @@ export const ChartsAndLibrary = ({
 }) => <>{chartsLast ? [library, charts] : [charts, library]}</>;
 
 /**
+ * The rail's tail: the page-wide controls, laid out in a row that scrolls before it overflows.
+ *
+ * The scrollbar is hidden for the chip row's own reason — one drawn under a row this short costs
+ * as much height as the row — and the flick is contained, or a drag reaching either end carries on
+ * into the browser's back gesture.
+ */
+const ACTIONS_SX = {
+  display: "flex",
+  alignItems: "center",
+  gap: 1,
+  minWidth: 0,
+  // The controls keep their own width and the row scrolls past them: left to shrink, a picker
+  // wraps its value onto a second line and a segment loses its last word, which is a control
+  // drawn wrong rather than one waiting off the end of a row.
+  "& > *": { flexShrink: 0 },
+  overflowX: "auto",
+  ...CONTAIN_SIDEWAYS_SCROLL,
+  scrollbarWidth: "none",
+  "::-webkit-scrollbar": { display: "none" },
+} as const;
+
+/**
  * The page's own table of contents, pinned under the app bar.
  *
  * Section chips scroll rather than link: the app is served under a `HashRouter`, so an
@@ -145,8 +168,8 @@ export const ChartsAndLibrary = ({
  * `jump`, so what a tab id means stays with the registry that owns it.
  *
  * `actions` and `trailing` are page-wide controls that have to stay reachable from anywhere on the
- * page — the measure every figure below is counted in, and on a phone the filters every chart is
- * drawn through. They sit outside the scrolling row, at the end of the pinned bar, because a
+ * page — the years every figure below is scoped to, the measure they are counted in, and the
+ * filters every chart is drawn through. They sit outside the scrolling row, at the end of the pinned bar, because a
  * control inside the row scrolls away with the chips and the whole point of putting them here is
  * that they do not. The row therefore gives up width to them rather than pushing them off:
  * `minWidth: 0` is what lets the chips overflow into their own scroll instead. Two slots rather
@@ -227,9 +250,26 @@ export const SectionRail = (props: {
         activeId={active}
         leading={tabChips || undefined}
         onSelect={(id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })}
-        sx={{ flexGrow: 1, minWidth: 0 }}
+        // Whatever the tail leaves, and never a share of the shortfall: at a basis of zero the row
+        // grows into the free space and has none of its own to give up, so a phone's rail spends
+        // its width on the controls first and the chips take what is left. Sized from its content
+        // instead, the two shrink in proportion and the controls are the half that cannot degrade
+        // — a picker at three quarters of its width is a value with no room for its own caret,
+        // where a chip row is a list that scrolls by design.
+        sx={{ flexGrow: 1, flexBasis: 0, minWidth: 0 }}
       />
-      {props.actions && <Box sx={{ flexShrink: 0 }}>{props.actions}</Box>}
+      {props.actions && (
+        // A row of its own, the slot holding more than one control: the scope and the measure are
+        // two page-wide readings side by side, and a block would stack them and stand the rail at
+        // twice its height.
+        //
+        // It scrolls rather than pushing the page wider. A picker, three segments and the
+        // population chip want 440px of a phone's 358, and a rail that overflows its own container
+        // puts the whole document on a sideways scroll — every drag on the page drifts it off
+        // centre. Shrinking here instead keeps the tail's own controls a flick apart at the end of
+        // the bar where they are pinned, and costs nothing at a width that fits them.
+        <Box sx={ACTIONS_SX}>{props.actions}</Box>
+      )}
       {props.trailing && <Box sx={{ flexShrink: 0, display: "flex" }}>{props.trailing}</Box>}
     </Box>
   );

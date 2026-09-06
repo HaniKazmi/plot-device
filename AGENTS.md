@@ -24,7 +24,7 @@ All of these pass cleanly on `master`, so any output is yours. TypeScript is str
 
 ## Tests
 
-`tests/` mirrors `src/` one for one across 69 files, each importing its subject at the mirrored `src/` path — `architecture.test.ts` and `tabs.test.ts` included, the two whose subject is the tree itself. `tests/fixtures/` holds raw sheet rows as `arrayToJson` hands them over, domain-object builders, and the independent WCAG implementation the fill contract is checked through.
+`tests/` mirrors `src/` one for one across 71 files, each importing its subject at the mirrored `src/` path — `architecture.test.ts` and `tabs.test.ts` included, the two whose subject is the tree itself. `tests/fixtures/` holds raw sheet rows as `arrayToJson` hands them over, domain-object builders, and the independent WCAG implementation the fill contract is checked through.
 
 The suite is pure logic in a `node` environment; `vitest.config.ts` stays separate from `vite.config.ts`, keeping the React Compiler's babel plugin out of the test transform. Vitest globals are off — import `describe`/`it`/`expect` explicitly, since a `types` array in `tsconfig.json` would drop the `@types` packages `src/` picks up implicitly.
 

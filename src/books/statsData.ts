@@ -178,7 +178,7 @@ export const bookKey = (book: Book) => `${book.name}-${book.startDate}`;
 export const bookItemKey = (book: Book) => `book-${bookKey(book)}`;
 
 /**
- * The first year a book was begun in: the floor the year select offers and the January every card
+ * The first year a book was begun in: the floor the rail's year picker offers and the January every card
  * strip opens on. The sheet is a sample of a library still being entered, which is why it is read
  * rather than fixed.
  */

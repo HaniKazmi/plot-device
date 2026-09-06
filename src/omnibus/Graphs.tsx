@@ -7,7 +7,7 @@ import { Section, SectionRail } from "../common/SectionRail";
 import { FilterChip } from "../common/FilterDrawer";
 import { stated } from "../common/population";
 import { SchemaFilterDrawer } from "../common/FilterControls";
-import { MeasureControl } from "../common/SelectionComponents";
+import { MeasureControl, ScopeControl } from "../common/SelectionComponents";
 import { stripYearTicks } from "../common/timelineStripData";
 import {
   bookEpoch,
@@ -91,7 +91,7 @@ const SuspenseBlock = ({
             <Graphs
               library={library}
               data={filteredData}
-              // The floor of the year select, read from the whole union rather than from what the
+              // The floor of the rail's year picker, read from the whole union rather than from what the
               // filters left: derived from the filtered data, picking "In 2020" would leave 2020
               // the earliest year on offer and strand the reader in it.
               earliestYear={earliestYear(unfilteredData)}
@@ -161,11 +161,19 @@ const Graphs = memo(
           })}
           tabs={tabs}
           actions={
-            <MeasureControl
-              measures={MEASURES}
-              value={filterState.measure}
-              dispatch={filterDispatch}
-            />
+            <>
+              <ScopeControl
+                yearTo={filterState.yearTo}
+                yearType={filterState.yearType}
+                earliestYear={earliestYear}
+                dispatch={filterDispatch}
+              />
+              <MeasureControl
+                measures={MEASURES}
+                value={filterState.measure}
+                dispatch={filterDispatch}
+              />
+            </>
           }
           trailing={
             <FilterChip
@@ -178,11 +186,9 @@ const Graphs = memo(
           data={data}
           now={now}
           crossings={crossed.found}
-          earliestYear={earliestYear}
           measure={filterState.measure}
           yearType={filterState.yearType}
           yearTo={filterState.yearTo}
-          filterDispatch={filterDispatch}
         />
         {finished.length > 0 && (
           <Section id={OMNIBUS_SECTIONS.finished}>

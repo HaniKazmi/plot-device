@@ -52,7 +52,7 @@ import { GroupedStatList } from "../common/GroupedStatList";
 import VgCardMediaImage, { GameFranchiseStrip } from "./CardMediaImage";
 import { gameSubtitle, spanKey } from "./cardData";
 import { Stack } from "@mui/material";
-import type { FilterDispatch, YearType } from "./filterUtils";
+import type { YearType } from "./filterUtils";
 import { statusToColour } from "../utils/types";
 import { useScheme } from "../common/useScheme";
 import { CURRENT_PLAINDATE, formatDate, YearNumber } from "../common/date";
@@ -67,23 +67,17 @@ import "../utils/arrayUtils";
 const Stats = ({
   data,
   playing,
-  earliestYear,
   measure,
   yearType,
   yearTo,
-  filterDispatch,
 }: {
   data: VideoGame[];
   /** Every game in progress, most recently started first. Computed by `Graphs`, which also
       decides on it whether the rail offers a chip pointing at the hero below. */
   playing: VideoGame[];
-  /** The library's own first year, read from the unfiltered data so the select's floor does not
-      rise with the filters. */
-  earliestYear: YearNumber;
   measure: Measure;
   yearType: YearType;
   yearTo: YearNumber;
-  filterDispatch: FilterDispatch;
 }) => {
   return (
     <Stack spacing={2}>
@@ -100,8 +94,6 @@ const Stats = ({
           <YearVitalsPair
             yearTo={yearTo}
             yearType={yearType}
-            filterDispatch={filterDispatch}
-            earliestYear={earliestYear}
             allTime={gamesAndHours(data)}
             inYear={gamesAndHours(data.filter((game) => game.startDate.year === yearTo))}
           />

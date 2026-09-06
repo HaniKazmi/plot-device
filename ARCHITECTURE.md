@@ -1211,6 +1211,16 @@ from a library of 1,539 reading as "1539" beside a chart that reads "1,539".
 wrapping legend over `common/statsData`'s `groupTotals`. Domains hold the arithmetic, shells the
 layout.
 
+`YearVitalsPair` is two plain cards and no control. The year scope is one page-wide reading, set in
+the rail (§ Page architecture), so the pair states the two readings side by side — "All time" or
+"Up to 2019", and "In 2026" — and the one the page is filtered to wears `StatCard`'s `scoped` rule:
+the tab's primary as an inset three-pixel line along the card's top edge, inset so a lit card
+cannot stand a pixel taller than the one stretched beside it. Both titles come from `scopeLabel`
+(`common/scope.ts`), the words the rail's own picker reads, so a control and the card it lights
+cannot word one scope two ways. Marked on the card as well as on the control because the pair is
+the one place the two readings stand together, and the lit figure is the one a reader carries down
+to the charts and the wall.
+
 `StatCard` stands two to a row on a phone rather than one (`xs: 6`), a `span` prop overriding it
 where a band's own count would otherwise leave a card beside a gap — the Now band's Franchises card
 takes the full row alone, closing a band of three. Its figures stack rather than sit abreast below
@@ -1427,12 +1437,29 @@ the chip list, whose ids have two holders — `Stats` the bands above the charts
 below — and which comes from the same test `Stats` makes about whether there is anything to lead
 with, so a chip never points at an anchor that is not on the page.
 
-The rail also carries the page's measure, in an `actions` slot at its right end: the unit every
-figure on the tab is counted in belongs on the one control surface reachable from anywhere. A second
-slot, `trailing`, carries the population chip (`FilterChip`, below) — both sit outside the
-scrolling chip row, which would carry either away; the row gives up width and overflows into its own
-scroll. `SegmentedControl` states the measures as words, a Σ on a floating button being a legend
-nothing on the page teaches.
+The rail also carries the page's two whole-page readings, in an `actions` slot at its right end:
+the years every figure on the tab is scoped to and the unit they are counted in. Both belong on the
+one control surface reachable from anywhere — each narrows the vitals, the timeline, the charts and
+the library alike, and a control standing beside the cards it most visibly changes cannot be
+reached from the wall, which is where a reader notices the page is a subset. A second slot,
+`trailing`, carries the population chip (`FilterChip`, below) — all of them sit outside the
+scrolling chip row, which would carry them away. The chip row is sized at a basis of zero, so it
+takes what the controls leave and never a share of the shortfall, and overflows into its own
+scroll: a picker at three quarters of its width is a value with no room for its own caret, where a
+chip row is a list that scrolls by design. Past that the controls' own row scrolls too — a picker,
+three segments and the population chip want 440px of a phone's 358, and a rail that overflows its
+container puts the whole document on a sideways drag. `SegmentedControl` states the measures as
+words, a Σ on a floating button being a legend nothing on the page teaches.
+
+`ScopeControl` (`common/SelectionComponents.tsx`) is the scope's picker, reading "All time",
+"In 2026" or "Up to 2019" through `scopeLabel`. Its menu holds the two scopes asked for by name —
+everything, and the year in progress — and sends the rest to a popover carrying an Up to · In
+segment and a year picker down to the domain's own `earliestYear`: every year the sheets cover is
+thirty menu items, where those two are almost every use of the control, and the reading and the
+year are one choice a menu has no room to hold. The picker lights whenever the page is not reading
+everything, which is also why the scope is neither counted by the filter badge nor cleared by
+Clear (§7): a control that says on its own face that it is on would otherwise be stated twice and
+undone in two places.
 
 The tab chips that lead the stuck rail are dropped entirely below `sm`, where the bottom navigation
 already holds all five tabs at every scroll position and a rail spending 300 of its 358px saying so
@@ -1833,7 +1860,11 @@ required argument and never a default: written over a generic record a default t
 every model there is, so a domain whose rows carry no start date would compile and scope on
 `undefined`, keeping nothing. The Omnibus reads `item.year`, the year it closed; Shows passes a
 whole `yearRule` instead, the shared one reading a show's _first_ season, which keeps the filter and
-the seasons-in-year vitals card in agreement.
+the seasons-in-year vitals card in agreement. The scope those predicates read is set from the rail's
+own picker and lights it (§6); `UNCOUNTED_FIELDS` leaves `yearTo` and `yearType` out of
+`countActiveFilters` and `resetFilters` carries both through, so the badge counts only what the
+filter surface holds and Clear leaves a reader counting hours up to 2019 exactly where they were.
+The two vitals cards mirror that state without setting it.
 
 **A selection is held to the vocabulary its own control draws.** A category's options are computed
 over the _visible_ library, so guest mode switched on under a chosen franchise would leave that

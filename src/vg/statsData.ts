@@ -39,7 +39,7 @@ export const groupGamesBy = (data: VideoGame[], key: VideoGameStringKeys, measur
   );
 
 /**
- * The first year the library holds a game in, which is the floor the year select offers. There is
+ * The first year the library holds a game in, which is the floor the rail's year picker offers. There is
  * no fixed epoch for Games the way Movies has a tracking start date — the sheet's own oldest
  * release is whatever it is — so the floor is read from the data rather than a constant.
  */

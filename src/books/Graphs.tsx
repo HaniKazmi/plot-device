@@ -15,7 +15,7 @@ import { filterIcons } from "./filterIcons";
 import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
 import { FilterChip } from "../common/FilterDrawer";
 import { stated } from "../common/population";
-import { MeasureControl } from "../common/SelectionComponents";
+import { MeasureControl, ScopeControl } from "../common/SelectionComponents";
 import { useOtherTabs } from "../tabs";
 import { BOOK_SECTIONS, bookSections } from "./sections";
 import { bookEpoch, bookFranchise, BookEpochProvider, FranchiseContext } from "./franchiseContext";
@@ -57,7 +57,7 @@ const SuspenseBlock = ({
     <BookEpochProvider value={bookEpoch(unfilteredData)}>
       <Graphs
         data={filteredData}
-        // The floor of the year select, read from the whole library rather than from what the
+        // The floor of the rail's year picker, read from the whole library rather than from what the
         // filters left: derived from the filtered data, picking "In 2020" would leave 2020 the
         // earliest year on offer and strand the reader in it.
         earliestYear={earliestYear(unfilteredData)}
@@ -155,11 +155,19 @@ const Graphs = memo(
           sections={bookSections(reading.length > 0, chartsLast)}
           tabs={tabs}
           actions={
-            <MeasureControl
-              measures={bookModule.measures}
-              value={filterState.measure}
-              dispatch={filterDispatch}
-            />
+            <>
+              <ScopeControl
+                yearTo={filterState.yearTo}
+                yearType={filterState.yearType}
+                earliestYear={earliestYear}
+                dispatch={filterDispatch}
+              />
+              <MeasureControl
+                measures={bookModule.measures}
+                value={filterState.measure}
+                dispatch={filterDispatch}
+              />
+            </>
           }
           trailing={
             <FilterChip
@@ -171,11 +179,9 @@ const Graphs = memo(
         <Stats
           data={data}
           reading={reading}
-          earliestYear={earliestYear}
           measure={filterState.measure}
           yearType={filterState.yearType}
           yearTo={filterState.yearTo}
-          filterDispatch={filterDispatch}
         />
         <Section id={BOOK_SECTIONS.timeline}>
           <Timeline data={deferredData} />

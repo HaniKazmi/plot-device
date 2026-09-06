@@ -1,9 +1,24 @@
 import { ArrowDropDown, ChevronRight } from "@mui/icons-material";
-import { Box, Button, Menu, MenuItem, ToggleButton, ToggleButtonGroup, type Theme } from "@mui/material";
+import {
+  Box,
+  Button,
+  Divider,
+  Menu,
+  MenuItem,
+  Popover,
+  Stack,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
+  type Theme,
+} from "@mui/material";
 import { useState } from "react";
 import { keyLabel } from "../utils/stringUtils";
 import type { artworkPalette } from "./artworkPalette";
 import { segments } from "./segments";
+import { CURRENT_YEAR, type YearNumber } from "./date";
+import type { YearType } from "./filterReducer";
+import { isAllTime, scopeLabel } from "./scope";
 
 /** One segment: the value it selects and the word on it. */
 export interface SegmentOption<T extends string> {
@@ -122,6 +137,9 @@ const PICKER_SX = {
   color: "text.primary",
   borderColor: "divider",
   backgroundColor: "background.paper",
+  // A picker's value is one phrase: wrapped, "All time" is two lines in a control the kit gives
+  // one line's height, and the caret is left beside the second of them.
+  whiteSpace: "nowrap",
   // The caret is the one part of the control that is not a word, so it takes the label's tone and
   // sits closer to the value than MUI's own icon spacing puts it.
   "& .MuiButton-endIcon": {
@@ -140,20 +158,66 @@ const PICKER_LIT_SX = {
 } as const;
 
 /**
- * A choice out of an open set, or one a label has to name: the kit's picker.
+ * The picker's face: what the reader chose, what the choice was about, and a caret.
  *
- * A button opening a menu rather than a select, because a select is a form field — an underlined
- * value on a line, sized by MUI's input metrics — where every one of these is a chart control
- * standing beside segments in a card header. As a button it takes the kit's own height, type and
- * corner, so a header holding both reads as one row of controls rather than as a form beside them.
+ * A button opening a surface rather than a select, because a select is a form field — an
+ * underlined value on a line, sized by MUI's input metrics — where every one of these is a chart
+ * or page control standing beside segments in a header or the rail. As a button it takes the
+ * kit's own height, type and corner, so a row holding both reads as one set of controls rather
+ * than as a form beside them.
+ *
+ * The face is stated once and the surface behind it is the caller's, because the two pickers here
+ * open different things — a list of values, and a small popover holding two controls — while
+ * reading identically. `lit` is what neither can say by its value alone: that the value is no
+ * longer the one every other reading of the page assumes.
+ *
+ * `onOpen` takes the element rather than reading the event, since what a menu or popover anchors
+ * to is the button itself and the caller is the one holding that state.
+ */
+const PickerButton = ({
+  label,
+  value,
+  lit,
+  open,
+  onOpen,
+}: {
+  label?: string;
+  value: string;
+  lit: boolean;
+  open: boolean;
+  onOpen: (anchor: HTMLElement) => void;
+}) => (
+  <Button
+    size="small"
+    variant="outlined"
+    aria-haspopup="true"
+    aria-expanded={open}
+    aria-label={label ? `${label}: ${value}` : undefined}
+    onClick={(event) => onOpen(event.currentTarget)}
+    endIcon={<ArrowDropDown />}
+    sx={lit ? { ...PICKER_SX, ...PICKER_LIT_SX } : PICKER_SX}
+  >
+    {label && (
+      <Box
+        component="span"
+        sx={PICKER_LABEL_SX}
+      >
+        {label}
+      </Box>
+    )}
+    {value}
+  </Button>
+);
+
+/**
+ * A choice out of an open set, or one a label has to name: the kit's picker over a list of values.
  *
  * `labelFor` is how a caller whose options are model keys says what each one reads as; left off,
  * the app's own humaniser answers, so `startDate` reads "Start date" and a worded option is
  * returned unchanged. `label` names what is being chosen where the card's title does not.
  *
  * `defaultValue` is what the page opens on. Given, the control lights when the reader has moved
- * off it — the one thing a picker cannot say by its value alone is that the value is no longer the
- * one every other reading of the page assumes.
+ * off it.
  */
 export const SelectBox = <T extends string>({
   options,
@@ -175,26 +239,13 @@ export const SelectBox = <T extends string>({
 
   return (
     <>
-      <Button
-        size="small"
-        variant="outlined"
-        aria-haspopup="true"
-        aria-expanded={anchor !== null}
-        aria-label={label ? `${label}: ${read(value)}` : undefined}
-        onClick={(event) => setAnchor(event.currentTarget)}
-        endIcon={<ArrowDropDown />}
-        sx={defaultValue !== undefined && value !== defaultValue ? { ...PICKER_SX, ...PICKER_LIT_SX } : PICKER_SX}
-      >
-        {label && (
-          <Box
-            component="span"
-            sx={PICKER_LABEL_SX}
-          >
-            {label}
-          </Box>
-        )}
-        {read(value)}
-      </Button>
+      <PickerButton
+        label={label}
+        value={read(value)}
+        lit={defaultValue !== undefined && value !== defaultValue}
+        open={anchor !== null}
+        onOpen={setAnchor}
+      />
       <Menu
         anchorEl={anchor}
         open={anchor !== null}
@@ -215,6 +266,151 @@ export const SelectBox = <T extends string>({
           </MenuItem>
         ))}
       </Menu>
+    </>
+  );
+};
+
+/**
+ * Typed as exactly the two actions this control sends, so every domain's dispatch — each a
+ * `FilterDispatchFor` over its own wider state — fits structurally without a generic.
+ */
+type YearDispatch = (
+  action: { type: "updateFilter"; filter: "yearTo"; value: YearNumber } | { type: "yearType"; yearType: YearType },
+) => void;
+
+/** The two readings of a year: everything up to it, or that year alone. */
+const SCOPE_SEGMENTS: SegmentOption<YearType>[] = [
+  { value: "upto", label: "Up to" },
+  { value: "matching", label: "In" },
+];
+
+/**
+ * The page's year scope, in the section rail beside the measure. Which years the whole tab is
+ * counting — every row up to a year, or one year alone — as a picker reading "All time",
+ * "In 2026" or "Up to 2019".
+ *
+ * It rides the rail for the measure's own reason: the scope narrows the vitals, the charts, the
+ * timeline and the library alike, and the rail is the only control surface still on screen
+ * wherever the reader has scrolled to — a control standing beside the two cards it most visibly
+ * changes cannot be found from the wall, which is where a reader notices the page is a subset.
+ *
+ * The menu holds the two scopes a reader asks for by name and sends the rest to a popover: every
+ * year the sheets cover is thirty items, where the whole library and the year in progress are
+ * almost every use of the control. The popover is the full state — which reading, and which year
+ * — because the two are one choice and a menu cannot hold a control.
+ *
+ * Lit whenever the page is not reading everything, since a picker cannot otherwise say that the
+ * figures below it are a subset. It lights itself rather than being counted by the filter badge:
+ * the badge counts the fields the filter surface holds, and a control that says on its own face
+ * that it is on would be stated twice.
+ */
+export const ScopeControl = ({
+  yearTo,
+  yearType,
+  earliestYear,
+  dispatch,
+}: {
+  yearTo: YearNumber;
+  yearType: YearType;
+  /**
+   * The oldest year on offer. The sheets start in different years and one of them (Games) has no
+   * fixed epoch at all, so no floor here would be right for every tab — each works out its own
+   * from its whole library rather than from what the filters left, or picking "In 2020" would
+   * strand the reader at 2020 by making that year the earliest on offer.
+   */
+  earliestYear: YearNumber;
+  dispatch: YearDispatch;
+}) => {
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  // Which surface the one anchor is holding. The menu hands over to the popover in place, so the
+  // button they both hang off is the same element and only one of them is open at a time.
+  const [pickingYear, setPickingYear] = useState(false);
+
+  const close = () => {
+    setAnchor(null);
+    setPickingYear(false);
+  };
+
+  const setScope = (year: YearNumber, type: YearType) => {
+    dispatch({ type: "updateFilter", filter: "yearTo", value: year });
+    dispatch({ type: "yearType", yearType: type });
+    close();
+  };
+
+  const years = Array.from({ length: CURRENT_YEAR - earliestYear + 1 }, (_, index) => String(CURRENT_YEAR - index));
+
+  return (
+    <>
+      <PickerButton
+        label="Years"
+        value={scopeLabel(yearTo, yearType, CURRENT_YEAR)}
+        lit={!isAllTime(yearTo, yearType, CURRENT_YEAR)}
+        open={anchor !== null}
+        onOpen={setAnchor}
+      />
+      <Menu
+        anchorEl={anchor}
+        open={anchor !== null && !pickingYear}
+        onClose={close}
+      >
+        <MenuItem
+          selected={isAllTime(yearTo, yearType, CURRENT_YEAR)}
+          onClick={() => setScope(CURRENT_YEAR, "upto")}
+        >
+          All time
+        </MenuItem>
+        <MenuItem
+          selected={yearType === "matching" && yearTo === CURRENT_YEAR}
+          onClick={() => setScope(CURRENT_YEAR, "matching")}
+        >
+          In {CURRENT_YEAR}
+        </MenuItem>
+        <Divider />
+        <MenuItem
+          // Marked where the page is scoped to a year the two items above do not name, so a
+          // reader opening the menu on "Up to 2019" is told which line their scope came from.
+          selected={yearTo !== CURRENT_YEAR}
+          onClick={() => setPickingYear(true)}
+        >
+          Another year…
+        </MenuItem>
+      </Menu>
+      <Popover
+        anchorEl={anchor}
+        open={anchor !== null && pickingYear}
+        onClose={close}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+      >
+        <Stack sx={{ padding: 1.5, gap: 1 }}>
+          <Typography
+            variant="caption"
+            sx={{ color: "text.secondary" }}
+          >
+            Another year
+          </Typography>
+          <Stack
+            direction="row"
+            sx={{ gap: 1, alignItems: "center" }}
+          >
+            <SegmentedControl
+              options={SCOPE_SEGMENTS}
+              value={yearType}
+              onChange={(next) => dispatch({ type: "yearType", yearType: next })}
+              ariaLabel="Year reading"
+            />
+            <SelectBox
+              options={years}
+              value={String(yearTo)}
+              // The years are already the words on them, where the app's humaniser would take a
+              // capital to a digit.
+              labelFor={(year) => year}
+              setValue={(year) =>
+                dispatch({ type: "updateFilter", filter: "yearTo", value: Number(year) as YearNumber })
+              }
+            />
+          </Stack>
+        </Stack>
+      </Popover>
     </>
   );
 };

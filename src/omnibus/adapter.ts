@@ -63,7 +63,7 @@ export const electNow = (library: Library, visible: Record<Medium, boolean>) => 
 export const hasNow = (now: ReturnType<typeof electNow>) => media.some((medium) => now[medium] !== undefined);
 
 /**
- * The first year the union holds anything in, which is the floor the year select offers: the four
+ * The first year the union holds anything in, which is the floor the rail's year picker offers: the four
  * sheets start in different years, and the union's floor is whichever of them starts first.
  */
 export const earliestYear = (items: OmniItem[]): YearNumber => earliestYearOf(items, (item) => item.year);

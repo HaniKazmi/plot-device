@@ -8,7 +8,7 @@ import Stats from "./Stats";
 import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
 import { FilterChip } from "../common/FilterDrawer";
 import { stated } from "../common/population";
-import { MeasureControl } from "../common/SelectionComponents";
+import { MeasureControl, ScopeControl } from "../common/SelectionComponents";
 import { useOtherTabs } from "../tabs";
 import { SHOW_SECTIONS, showSections } from "./sections";
 import { currentlyWatching, earliestYear } from "./statsData";
@@ -44,7 +44,7 @@ const SuspenseBlock = ({
   <FranchiseContext.Provider value={franchiseIndex(unfilteredData, showFranchise)}>
     <Graphs
       data={filteredData}
-      // The floor of the year select, read from the whole library rather than from what the
+      // The floor of the rail's year picker, read from the whole library rather than from what the
       // filters left: derived from the filtered data, picking "In 2020" would leave 2020 the
       // earliest year on offer and strand the reader in it.
       earliestYear={earliestYear(unfilteredData)}
@@ -132,11 +132,19 @@ const Graphs = memo(
           sections={showSections(watching.length > 0, chartsLast)}
           tabs={tabs}
           actions={
-            <MeasureControl
-              measures={showModule.measures}
-              value={filterState.measure}
-              dispatch={filterDispatch}
-            />
+            <>
+              <ScopeControl
+                yearTo={filterState.yearTo}
+                yearType={filterState.yearType}
+                earliestYear={earliestYear}
+                dispatch={filterDispatch}
+              />
+              <MeasureControl
+                measures={showModule.measures}
+                value={filterState.measure}
+                dispatch={filterDispatch}
+              />
+            </>
           }
           trailing={
             <FilterChip
@@ -148,11 +156,9 @@ const Graphs = memo(
         <Stats
           data={data}
           watching={watching}
-          earliestYear={earliestYear}
           measure={filterState.measure}
           yearType={filterState.yearType}
           yearTo={filterState.yearTo}
-          filterDispatch={filterDispatch}
         />
         <Section id={SHOW_SECTIONS.timeline}>
           <Timeline data={deferredData} />

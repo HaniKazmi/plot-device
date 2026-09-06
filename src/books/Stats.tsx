@@ -36,7 +36,6 @@ import { genreToColour, scoreBand, scoreBandToColour, scoreBands, type Scheme } 
 import { bookSubtitle } from "./cardData";
 import BookCardMediaImage, { BookFranchiseStrip } from "./CardMediaImage";
 import { BOOK_SECTIONS } from "./sections";
-import type { FilterDispatch } from "./filterUtils";
 import { FORMATS, formatToColour, groupToColour, type Book, type Measure } from "./types";
 import {
   bookHeroStats,
@@ -58,23 +57,17 @@ import { useScheme } from "../common/useScheme";
 const Stats = ({
   data,
   reading,
-  earliestYear,
   measure,
   yearType,
   yearTo,
-  filterDispatch,
 }: {
   data: Book[];
   /** Every book in progress, most recently started first. Computed by `Graphs`, which also
       decides on it whether the rail offers a chip pointing at the hero below. */
   reading: Book[];
-  /** The library's own first year, read from the unfiltered data so the select's floor does not
-      rise with the filters. */
-  earliestYear: YearNumber;
   measure: Measure;
   yearType: YearType;
   yearTo: YearNumber;
-  filterDispatch: FilterDispatch;
 }) => {
   // One grouping per category for the page: the vitals band, the Top card and Most Read all ask
   // for genre or author, and each grouping is a pass over the library.
@@ -95,8 +88,6 @@ const Stats = ({
           <YearVitalsPair
             yearTo={yearTo}
             yearType={yearType}
-            filterDispatch={filterDispatch}
-            earliestYear={earliestYear}
             allTime={bookTotals(data)}
             inYear={booksInYear(data, yearTo)}
           />

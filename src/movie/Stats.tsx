@@ -35,7 +35,6 @@ import type { Scheme } from "../utils/types";
 import { movieSubtitle } from "./cardData";
 import MovieCardMediaImage, { MovieFranchiseStrip } from "./CardMediaImage";
 import { MOVIE_SECTIONS } from "./sections";
-import type { FilterDispatch } from "./filterUtils";
 import {
   cinemaLabel,
   cinemaToColour,
@@ -51,7 +50,6 @@ import {
   filmsInYear,
   latestWatched,
   measureOf,
-  MOVIE_EPOCH,
   movieHeroStats,
   groupMoviesBy,
   movieTopOptions,
@@ -70,13 +68,11 @@ const Stats = ({
   measure,
   yearType,
   yearTo,
-  filterDispatch,
 }: {
   data: Movie[];
   measure: Measure;
   yearType: YearType;
   yearTo: YearNumber;
-  filterDispatch: FilterDispatch;
 }) => {
   const latest = latestWatched(data);
 
@@ -97,8 +93,6 @@ const Stats = ({
           <YearVitalsPair
             yearTo={yearTo}
             yearType={yearType}
-            filterDispatch={filterDispatch}
-            earliestYear={MOVIE_EPOCH.year}
             allTime={allTimeTotals(data)}
             inYear={filmsInYear(data, yearTo)}
           />

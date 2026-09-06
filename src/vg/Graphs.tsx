@@ -19,7 +19,7 @@ import { filterIcons } from "./filterIcons";
 import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
 import { FilterChip } from "../common/FilterDrawer";
 import { stated } from "../common/population";
-import { MeasureControl } from "../common/SelectionComponents";
+import { MeasureControl, ScopeControl } from "../common/SelectionComponents";
 import { useOtherTabs } from "../tabs";
 import { VG_SECTIONS, vgSections } from "./sections";
 import { currentlyPlaying, earliestYear } from "./statsData";
@@ -130,11 +130,19 @@ const Graphs = memo(
           sections={vgSections(playing.length > 0, chartsLast)}
           tabs={tabs}
           actions={
-            <MeasureControl
-              measures={vgModule.measures}
-              value={filterState.measure}
-              dispatch={filterDispatch}
-            />
+            <>
+              <ScopeControl
+                yearTo={filterState.yearTo}
+                yearType={filterState.yearType}
+                earliestYear={earliestYear}
+                dispatch={filterDispatch}
+              />
+              <MeasureControl
+                measures={vgModule.measures}
+                value={filterState.measure}
+                dispatch={filterDispatch}
+              />
+            </>
           }
           trailing={
             <FilterChip
@@ -146,11 +154,9 @@ const Graphs = memo(
         <Stats
           data={data}
           playing={playing}
-          earliestYear={earliestYear}
           yearType={filterState.yearType}
           yearTo={filterState.yearTo}
           measure={filterState.measure}
-          filterDispatch={filterDispatch}
         />
         <Section id={VG_SECTIONS.timeline}>
           <Timeline data={deferredData} />

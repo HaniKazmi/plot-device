@@ -45,7 +45,6 @@ import type { YearType } from "../common/filterReducer";
 import { Section, StatBand } from "../common/SectionRail";
 import { SHOW_SECTIONS } from "./sections";
 import { format } from "../utils/mathUtils";
-import type { FilterDispatch } from "./filterUtils";
 import {
   allTimeTotals,
   groupShowsBy,
@@ -70,21 +69,15 @@ import "../utils/arrayUtils";
 const Stats = ({
   data,
   watching,
-  earliestYear,
   measure,
   yearType,
   yearTo,
-  filterDispatch,
 }: {
   data: Show[];
   watching: Season[];
-  /** The library's own first year, read from the unfiltered data so the select's floor does not
-      rise with the filters. */
-  earliestYear: YearNumber;
   measure: Measure;
   yearType: YearType;
   yearTo: YearNumber;
-  filterDispatch: FilterDispatch;
 }) => {
   return (
     <Stack spacing={2}>
@@ -102,8 +95,6 @@ const Stats = ({
           <YearVitalsPair
             yearTo={yearTo}
             yearType={yearType}
-            filterDispatch={filterDispatch}
-            earliestYear={earliestYear}
             allTime={allTimeTotals(data)}
             inYear={seasonsInYear(data, yearTo)}
           />

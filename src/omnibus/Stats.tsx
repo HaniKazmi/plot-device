@@ -25,7 +25,6 @@ import { measureOf } from "../app/library";
 import { electNow, hasNow, unionTotals } from "./adapter";
 import type { OmniItem } from "../common/medium";
 import { crossingEntries, type Crossing } from "./crossingsData";
-import type { FilterDispatch } from "./filterUtils";
 import { OMNIBUS_SECTIONS } from "./sections";
 import { media, mediumToColour, mediumToLabel, mediumToShape, type Measure, type Medium } from "../app/types";
 import { shapeIsExact, shapeToArrangement, shapeToPinnedAspect, useCardArrangement } from "../common/cardArrangement";
@@ -48,23 +47,18 @@ const Stats = ({
   data,
   now,
   crossings,
-  earliestYear,
   measure,
   yearType,
   yearTo,
-  filterDispatch,
 }: {
   data: OmniItem[];
   /** Computed by `Graphs`, which decides on the same value whether the rail offers a Now chip. */
   now: ReturnType<typeof electNow>;
   /** The same list the Crossings section draws, so the count and the strips cannot disagree. */
   crossings: Crossing[];
-  /** The union's own first year, so the select's floor does not rise with the filters. */
-  earliestYear: YearNumber;
   measure: Measure;
   yearType: YearType;
   yearTo: YearNumber;
-  filterDispatch: FilterDispatch;
 }) => {
   const scheme = useScheme();
 
@@ -91,8 +85,6 @@ const Stats = ({
           <YearVitalsPair
             yearTo={yearTo}
             yearType={yearType}
-            filterDispatch={filterDispatch}
-            earliestYear={earliestYear}
             allTime={totals}
             // The years figure is dropped: inside one year it can only ever read 1.
             inYear={{ hours: inYear.hours, items: inYear.items }}
