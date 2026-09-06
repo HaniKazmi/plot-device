@@ -22,7 +22,9 @@ export const CONTAIN_SIDEWAYS_SCROLL = { overscrollBehaviorX: "contain" } as con
 export const QUIET_SIDEWAYS_SCROLL = {
   ...CONTAIN_SIDEWAYS_SCROLL,
   scrollbarWidth: "none",
-  "::-webkit-scrollbar": { display: "none" },
+  // The `&` is what makes it this element's own bar: without it emotion nests the pseudo-element
+  // under a descendant combinator and the rule lands on a scrollbar the children draw instead.
+  "&::-webkit-scrollbar": { display: "none" },
 } as const;
 
 /**

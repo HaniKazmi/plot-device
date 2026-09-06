@@ -46,8 +46,12 @@ export const PHONE_SCROLL_MARGIN = 8;
  * inset is what stands between a landed heading and the sensor housing. The observer's own band
  * takes the plain figure: a few tens of pixels either way decide nothing about which section a
  * reader is in, and `env()` cannot be read from a `rootMargin` at all.
+ *
+ * Exported for the wall's own bucket headings (`Finished.tsx`), which pin at this width where the
+ * rail is drawn in the bar along the bottom: the two clear the same edge, and stating the notch
+ * twice is stating it in two places that can move apart.
  */
-const PHONE_SCROLL_MARGIN_CSS = `calc(${PHONE_SCROLL_MARGIN}px + env(safe-area-inset-top))`;
+export const PHONE_SCROLL_MARGIN_CSS = `calc(${PHONE_SCROLL_MARGIN}px + env(safe-area-inset-top))`;
 
 /** Where the observer calls a section current: from just under whatever is pinned to the upper third. */
 const activeBand = (top: number) => `-${top}px 0px -66% 0px`;
@@ -266,6 +270,10 @@ export const SectionRail = (props: {
       items={props.sections}
       ground={phone ? props.phoneGround : undefined}
       activeId={active}
+      // The lit chip is a reading of where in the page the reader is, and on a phone the row holds
+      // four of a tab's seven sections: left where it is, it states a position off the end of
+      // itself for most of the page.
+      follow
       leading={tabChips || undefined}
       onSelect={(id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })}
       // Whatever the tail leaves, and never a share of the shortfall: at a basis of zero the row

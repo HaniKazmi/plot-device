@@ -433,7 +433,7 @@ export const SearchSurface = ({
         loading={finding && !index}
         placeholder={finding ? "Search games, shows, films, books and franchises" : "Narrow these lists…"}
         pageContent={
-          surface && (
+          surface ? (
             <SchemaPageControls
               schema={surface.schema}
               state={pageState}
@@ -443,6 +443,17 @@ export const SearchSurface = ({
               earliestYear={surface.earliestYear}
               query={deferredQuery}
             />
+          ) : (
+            /* A page whose sheet is still in flight has no vocabularies to offer and no population
+               to state, and the chord opens this pane from anywhere — the first seconds of a cold
+               visit included. The line is what keeps that from reading as a surface that failed to
+               draw. */
+            <Typography
+              variant="body2"
+              sx={{ ...MUTED_FIGURE_SX, padding: 2 }}
+            >
+              Still loading this page&rsquo;s rows.
+            </Typography>
           )
         }
         chordHint="shelf"

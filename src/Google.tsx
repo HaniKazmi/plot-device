@@ -138,25 +138,27 @@ const ThemeColorMetas = ({
   darkThemeColour: string;
 }) => {
   const phone = usePhone();
+  // Below `sm`, once the page has scrolled past the app bar, the two metas state the page's own
+  // ground: nothing at the top of the screen still says which tab is open, so the status bar over
+  // it should read as the page it is above. Safari answers none of this — it samples the strip
+  // `BrowserTint` draws and, past the bar, there is none, so it falls to its own translucent bar —
+  // but a browser that does honour the meta lands on the ground the page actually paints rather
+  // than on a tab colour scrolled out of reach. Stated rather than dropped, because a meta removed
+  // is a meta the installed app answers from its manifest instead, which names the Omnibus's purple
+  // whatever tab is open.
   const scrolledPastBar = useScrolledPastBar();
-  // Below `sm`, once the page has scrolled past the app bar, the two metas agree with what
-  // `BrowserTint` samples there instead: a device that still honours `theme-color` (`BrowserTint`'s
-  // own comment covers the one that no longer does) would otherwise keep painting the tab's colour
-  // over a status bar the sampled strip has already handed back to the page.
-  // No meta at all past the bar: with none stated Safari draws its own translucent status bar
-  // over the page, which is the transparency a stated ground can only imitate.
-  if (phone && scrolledPastBar) return null;
+  const onPage = phone && scrolledPastBar;
 
   return (
     <>
       <meta
         name="theme-color"
-        content={theme.palette.primary.main}
+        content={onPage ? LIGHT_PAGE_GROUND : theme.palette.primary.main}
         media="(prefers-color-scheme: light)"
       />
       <meta
         name="theme-color"
-        content={darkThemeColour}
+        content={onPage ? DARK_PAGE_GROUND : darkThemeColour}
         media="(prefers-color-scheme: dark)"
       />
     </>
@@ -194,9 +196,8 @@ const { palette: defaultPalette } = createTheme();
 const DARK_TEXT = "#e8eaed";
 const DARK_PAPER = "#1d2126";
 
-// The two schemes' own page ground, named once so `getTheme`'s palette and `Graphs`' scrolled-past
-// `theme-color` metas cannot drift onto a value that is not what the page beneath the strip
-// actually paints.
+// The two schemes' own page ground, named once so `getTheme`'s palette and the scrolled-past
+// `theme-color` metas cannot drift onto a value that is not what the page at that edge paints.
 const LIGHT_PAGE_GROUND = "#f6f7f9";
 const DARK_PAGE_GROUND = "#14171a";
 

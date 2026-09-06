@@ -141,8 +141,18 @@ export const ChipRail = (props: {
    * one is a band of a foreign colour at the end of the row rather than the row running out.
    */
   ground?: string;
+  /**
+   * Whether the row scrolls itself to keep the lit chip in view.
+   *
+   * A rail whose chips are a reading of where in the page the reader is asks for it: the lit chip
+   * moves as the page is read, and one scrolled off the end says nothing. A rail whose chips are a
+   * scale under a chart does not — the years are spread `space-between` across the chart's own
+   * width, the lit one changes as the chart is dragged sideways, and following it would take the
+   * row out from under the finger that is moving the chart.
+   */
+  follow?: boolean;
 }) => {
-  const { items, activeId, onSelect, leading, label, sx, rowSx, ref } = props;
+  const { items, activeId, onSelect, leading, label, sx, rowSx, ref, follow } = props;
   // The hidden scrollbar leaves a rail wider than its row with nothing saying so, and on a phone
   // that is most of them — the chips simply stop mid-word at the edge.
   const [scrollRef, edges] = useScrollEdges<HTMLDivElement>();
@@ -150,9 +160,10 @@ export const ChipRail = (props: {
   const ground = props.ground ?? theme.vars.palette.background.default;
 
   /**
-   * The row follows the highlight: a rail is a reading of where in the page the reader is, and a
-   * lit chip scrolled off the end of it says nothing at all — on a phone the row holds four of a
-   * tab's seven sections, so most of the page's positions are off-screen positions.
+   * The row follows the highlight where the caller asks for it: a rail that is a reading of where
+   * in the page the reader is says nothing with its lit chip scrolled off the end — on a phone the
+   * row holds four of a tab's seven sections, so most of the page's positions are off-screen
+   * positions.
    *
    * Keyed on the lit chip alone, so the reader's own flick along the row is never taken back: the
    * effect runs when the answer changes and not when the row moves. The offset is computed rather
@@ -164,7 +175,7 @@ export const ChipRail = (props: {
    */
   useEffect(() => {
     const row = scrollRef.current;
-    if (!row || activeId === undefined) return;
+    if (!follow || !row || activeId === undefined) return;
     const chip = row.querySelector<HTMLElement>(`[data-rail-chip="${CSS.escape(activeId)}"]`);
     if (!chip) return;
     const rowBox = row.getBoundingClientRect();
@@ -186,7 +197,7 @@ export const ChipRail = (props: {
       // the scroll, and a change to it re-renders nothing.
       behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
     });
-  }, [activeId, scrollRef]);
+  }, [activeId, follow, scrollRef]);
 
   const chips = (
     <>
