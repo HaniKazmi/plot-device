@@ -12,6 +12,7 @@ import {
   groupBooksBy,
   measureOf,
   perBookAverages,
+  seriesSpans,
   yearlyAverages,
 } from "../../src/book/statsData";
 import { book } from "../fixtures/books";
@@ -192,5 +193,111 @@ describe("keys and floors", () => {
   it("reads the earliest start from the data, and falls back to the current year when empty", () => {
     expect(earliestYear([book({ startDate: YearMonthDay.get(2015, 10, 14) }), book()])).toBe(2015);
     expect(earliestYear([])).toBe(CURRENT_YEAR);
+  });
+});
+
+describe("seriesSpans", () => {
+  const first = book({
+    name: "Revelation Space",
+    series: "Revelation Space",
+    startDate: YearMonthDay.get(2025, 2, 1),
+    endDate: YearMonthDay.get(2025, 3, 4),
+  });
+  const second = book({
+    name: "Chasm City",
+    series: "Revelation Space",
+    startDate: YearMonthDay.get(2025, 6, 10),
+    endDate: YearMonthDay.get(2025, 7, 20),
+  });
+
+  // Started last and finished first, so the latest end is neither the last to start nor the last
+  // in any order the sheet could list: a span that read the end off its final book would miss it.
+  const shortest = book({
+    name: "Diamond Dogs",
+    series: "Revelation Space",
+    startDate: YearMonthDay.get(2025, 6, 20),
+    endDate: YearMonthDay.get(2025, 6, 24),
+  });
+
+  it("collapses a series into one span running from its first start to its last end", () => {
+    // Handed out of read order, since the sheet's rows are in neither.
+    const [span, ...rest] = seriesSpans([second, first]);
+
+    expect(rest).toEqual([]);
+    expect(span.name).toBe("Revelation Space");
+    expect(span.lead.startDate).toBe(first.startDate);
+    expect(span.end).toBe(second.endDate);
+    expect(span.books.map((b) => b.name)).toEqual(["Revelation Space", "Chasm City"]);
+  });
+
+  it("ends the span at the latest end, not at the end of the book read last", () => {
+    const [span] = seriesSpans([first, shortest, second]);
+
+    expect(span.books.at(-1)).toBe(shortest);
+    expect(span.end).toBe(second.endDate);
+  });
+
+  it("fronts the span with the book that opens it, whatever order it arrives in", () => {
+    expect(seriesSpans([second, first])[0].lead).toBe(first);
+  });
+
+  it("leaves a series still running where any book in it is open, however many have ended", () => {
+    // The shape the converter builds for a book in hand: `Reading` with neither an end nor a day
+    // count, which it rejects a row for carrying together with `Finished`.
+    const open = book({
+      name: "Redemption Ark",
+      series: "Revelation Space",
+      status: "Reading",
+      endDate: undefined,
+      numDays: undefined,
+    });
+
+    expect(seriesSpans([first, second, open])[0].end).toBeUndefined();
+  });
+
+  it("keeps a standalone as its own span, under its own name", () => {
+    const alone = book({ name: "Piranesi", series: "", startDate: YearMonthDay.get(2024, 1, 2) });
+    const spans = seriesSpans([first, second, alone]);
+
+    expect(spans.map((span) => span.name).sort()).toEqual(["Piranesi", "Revelation Space"]);
+    const standalone = spans.find((span) => span.name === "Piranesi")!;
+    expect(standalone.books).toEqual([alone]);
+    expect(standalone.lead.startDate).toBe(alone.startDate);
+  });
+
+  it("does not pool the standalones the sheet named no series for", () => {
+    const one = book({ name: "Piranesi", series: "" });
+    const other = book({ name: "Klara and the Sun", series: "" });
+
+    expect(seriesSpans([one, other])).toHaveLength(2);
+  });
+
+  it("keys a standalone's reread apart from the read before it, as a second span", () => {
+    const read = book({ name: "Piranesi", series: "", startDate: YearMonthDay.get(2023, 4, 1) });
+    const reread = book({ name: "Piranesi", series: "", startDate: YearMonthDay.get(2026, 4, 1) });
+    const spans = seriesSpans([read, reread]);
+
+    expect(spans).toHaveLength(2);
+    expect(new Set(spans.map((span) => span.key)).size).toBe(2);
+  });
+
+  // The deliberate half of the rule above, pinned because it reads as an oversight: a book that
+  // names a series is keyed on the series alone, so a reread lengthens that series' one span
+  // rather than opening a second. A series is one thing however many sittings it was read in, and
+  // the price is the gap between them drawn as part of the span.
+  it("lengthens a series' own span when one of its books is read again, rather than opening a second", () => {
+    const reread = book({
+      name: "Revelation Space",
+      series: "Revelation Space",
+      startDate: YearMonthDay.get(2026, 1, 5),
+      endDate: YearMonthDay.get(2026, 2, 9),
+    });
+    const spans = seriesSpans([first, second, reread]);
+
+    expect(spans).toHaveLength(1);
+    expect(spans[0].lead.startDate).toBe(first.startDate);
+    expect(spans[0].end).toBe(reread.endDate);
+    // Reads, not distinct titles: the same book counted twice.
+    expect(spans[0].books).toHaveLength(3);
   });
 });

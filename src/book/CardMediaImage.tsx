@@ -1,4 +1,12 @@
-import { CardDetailBody, CardMediaImage, CardPanel, TypedCardMediaImage, type CardStat } from "../common/Card";
+import {
+  CardDetailBody,
+  CardMediaImage,
+  CardPanel,
+  TypedCardMediaImage,
+  type CardStat,
+  type PanelStat,
+  type PanelSubtitlePart,
+} from "../common/Card";
 import type { Book } from "./types";
 import { scoreBand, scoreBandToColour, type Scheme } from "../utils/types";
 import { CURRENT_PLAINDATE, type YearMonthDay } from "../common/date";
@@ -83,11 +91,60 @@ export const BookFranchiseStrip = ({ book, variant }: { book: Book; variant?: St
 };
 
 /**
+ * The shape every hover card on this tab takes: the cover at the hover card's own size, and the
+ * panel beside it.
+ *
+ * One shell rather than one per card, because the tab shows two — a book's, and the series bar's
+ * on the timeline — and what varies between them is the words, not the chrome. Written twice, the
+ * artwork shape and the panel's layout drift apart between two cards a reader flips between with
+ * one control.
+ *
+ * `onOpen` is for a card whose picture stands for more than the book whose cover it shows: given,
+ * `CardMediaImage` never opens that book's own dialog, and the caller owns what does open. The
+ * artwork takes the cover shape, whose ratio is a reservation rather than a size (see
+ * `cardArrangement`).
+ */
+export const BookPanelCard = ({
+  item,
+  title,
+  subtitle,
+  dateRange,
+  stats,
+  onOpen,
+  openLabel,
+}: {
+  item: Book;
+  title: string;
+  subtitle: PanelSubtitlePart[];
+  dateRange: string;
+  stats: PanelStat[];
+  onOpen?: () => void;
+  openLabel?: string;
+}) => (
+  <BookCardMediaImage
+    item={item}
+    landscape
+    extractColour
+    sx={hoverCardArtworkSx("cover")}
+    onOpen={onOpen}
+    openLabel={openLabel}
+    footerComponent={
+      <CardPanel
+        layout="beside"
+        title={title}
+        subtitle={subtitle}
+        dateRange={dateRange}
+        stats={stats}
+      />
+    }
+  />
+);
+
+/**
  * The card a hovered bar shows: the artwork, what the book is, when it was read, and its figures.
  *
  * A component rather than a shape each chart assembles, because the Omnibus shows the same card
- * for a book and a second assembly of it is a second thing to keep in step. The artwork takes the
- * cover shape, whose ratio is a reservation rather than a size (see `cardArrangement`).
+ * for a book and a second assembly of it is a second thing to keep in step.
  */
 export const BookHoverCard = ({ item }: { item: Book }) => {
   const scheme = useScheme();
@@ -95,24 +152,16 @@ export const BookHoverCard = ({ item }: { item: Book }) => {
   const days = daysReading(item, CURRENT_PLAINDATE);
 
   return (
-    <BookCardMediaImage
+    <BookPanelCard
       item={item}
-      landscape
-      extractColour
-      sx={hoverCardArtworkSx("cover")}
-      footerComponent={
-        <CardPanel
-          layout="beside"
-          title={item.name}
-          subtitle={bookSubtitle(item, scheme)}
-          dateRange={readRange(item)}
-          stats={[
-            ...(item.score !== undefined ? [{ value: item.score, label: "Score" }] : []),
-            { value: item.pages, label: "Pages" },
-            ...(days !== undefined ? [{ value: days, label: "Days" }] : []),
-          ]}
-        />
-      }
+      title={item.name}
+      subtitle={bookSubtitle(item, scheme)}
+      dateRange={readRange(item)}
+      stats={[
+        ...(item.score !== undefined ? [{ value: item.score, label: "Score" }] : []),
+        { value: item.pages, label: "Pages" },
+        ...(days !== undefined ? [{ value: days, label: "Days" }] : []),
+      ]}
     />
   );
 };
