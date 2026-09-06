@@ -21,7 +21,8 @@ import { MIXED_CARD_SIZING, workLabels } from "./cardData";
 import { FranchiseView } from "./FranchiseView";
 import { useLibrary, type Library } from "./library";
 import { mediumBand } from "./mediumBand";
-import { PAGE_STORES, pageCount, pageOf, usePageState } from "./pageState";
+import { usePage } from "./page";
+import { PAGE_STORES, pageCount } from "./pageState";
 import {
   attributeAction,
   attributeWorks,
@@ -38,7 +39,7 @@ import {
   type SearchIndex,
 } from "./searchData";
 import { mediumToShape } from "./types";
-import Tabs, { useCurrentTab, useOtherTabs } from "../tabs";
+import Tabs, { useOtherTabs } from "../tabs";
 
 /** What a chosen hit opens: a whole franchise, one work's own expanded card, or an attribute's shelf. */
 type Picked =
@@ -287,9 +288,7 @@ export const SearchSurface = ({
   const tabs: TabEntry[] = useOtherTabs().map((tab) => ({ name: tab.label, secondary: [], size: 0, ...tab }));
   // The page the box is standing over: its own schema, store, measures and rows. Subscribed to
   // through the store the tab's charts read, so a filter set here is the filter they are drawn by.
-  const tab = useCurrentTab();
-  const surface = pageOf(tab.id, library);
-  const [pageState] = usePageState(tab.id);
+  const { tab, page: surface, state: pageState } = usePage();
 
   const close = closeSearch;
 

@@ -2045,13 +2045,21 @@ would drop them; and a surface narrowing a tab it is not on dispatches on that t
 navigates, rather than parking a pending filter somewhere for the page to find — which is exactly
 what an attribute hit does in the box (§6). `pageOf` beside `usePageState` answers the rest of what
 such a surface needs of a tab it is not standing inside: its schema, its measures, the noun its
-population is counted in, its rows and the floor its year picker offers.
+population is counted in, its rows and the floor its year picker offers. A surface standing over
+_the current_ tab asks `usePage()` (`app/page.ts`) for all four at once — the tab, that page, its
+state and its dispatch — rather than repeating the tab-then-library-then-state-then-module lookup
+the rail, the box and the shell's empty-state provider each need: three copies of one order are
+three that can pair a state with another tab's module. It is the one file in `app/` outside the
+provider that names `tabs.ts`, which is safe because nothing the registry reaches imports it.
 
 The measure action _sets_ rather than advances, the control being a segment per measure: a press
 names its own state, so setting the measure already held answers the same object and costs no render.
 It is also the one action that does not rebuild `filter`, since no `filters()` reads the measure and
-consumers re-filter on that predicate's identity. `yearType` names the reading it wants for the same
-reason, a control with a state per reading having a lit segment to press twice.
+consumers re-filter on that predicate's identity. `scope` names the whole year scope it wants for the
+same reason, a control with a state per reading having a lit segment to press twice — and both
+halves at once, since a reading and the year it is read against are one choice: sent as two actions,
+moving from "Up to 2019" to "In 2026" passes through "In 2019" and every consumer on the page
+re-filters against a scope nobody asked for.
 
 `countActiveFilters` counts fields, not predicates — three genres picked in one select are one choice,
 undone in one place — comparing arrays element-wise and leaving `measure`, `filter`, `yearTo` and

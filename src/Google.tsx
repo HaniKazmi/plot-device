@@ -20,8 +20,8 @@ import { LibraryProvider } from "./app/LibraryProvider.tsx";
 import { FranchiseUnionProvider } from "./app/franchiseUnion.tsx";
 import { SearchHost } from "./app/Search.tsx";
 import { useAuthState } from "./app/authState.ts";
-import { useLibrary } from "./app/library.ts";
-import { pageCount, pageOf, usePageState } from "./app/pageState.ts";
+import { usePage } from "./app/page.ts";
+import { pageCount } from "./app/pageState.ts";
 import { NothingMatchesContext } from "./common/nothingMatchesContext.ts";
 import { isNarrowedEmpty } from "./common/population.ts";
 import { isAllTime, scopeLabel } from "./common/scope.ts";
@@ -54,10 +54,7 @@ import type {} from "@mui/material/themeCssVarsAugmentation";
  * so a change here re-renders this and not the page.
  */
 const NothingMatchesProvider = ({ children }: { children: ReactNode }) => {
-  const tab = useCurrentTab();
-  const library = useLibrary();
-  const [state] = usePageState(tab.id);
-  const page = pageOf(tab.id, library);
+  const { page, state, dispatch } = usePage();
   const filtersActive = page !== undefined && page.store.activeCountOf(state) > 0;
   const scoped = !isAllTime(state.yearTo, state.yearType, CURRENT_YEAR);
 
@@ -67,9 +64,9 @@ const NothingMatchesProvider = ({ children }: { children: ReactNode }) => {
         active: page ? isNarrowedEmpty(pageCount(page, state), filtersActive, scoped) : false,
         filtersActive,
         scope: scoped ? scopeLabel(state.yearTo, state.yearType, CURRENT_YEAR) : undefined,
-        clearFilters: () => page?.store.dispatch({ type: "resetFilters" }),
+        clearFilters: () => dispatch({ type: "resetFilters" }),
         // The whole scope, exactly as the picker's own "All time" sets it.
-        clearScope: () => page?.store.dispatch({ type: "scope", yearTo: CURRENT_YEAR, yearType: "upto" }),
+        clearScope: () => dispatch({ type: "scope", yearTo: CURRENT_YEAR, yearType: "upto" }),
       }}
     >
       {children}

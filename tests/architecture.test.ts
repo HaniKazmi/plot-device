@@ -263,14 +263,19 @@ describe("the registry never reaches back for a tab", () => {
   // module carries `tabId: string` instead, and the one component that resolves an id to a tab is
   // mounted by the shell, below both.
   //
-  // Three files in `app/` are exempt, for two different reasons rather than one relaxed rule.
+  // Four files in `app/` are exempt, for three different reasons rather than one relaxed rule.
   // `LibraryProvider.tsx` is that one component, eager and below both. `SearchSurface.tsx` and
   // `PageRail.tsx` are not eager at all — the first is reached only through
   // `import("./SearchSurface")` and the second only from a tab's own lazy `Graphs`, so neither
   // module evaluates until that chunk loads, well after `tabs.ts` has finished. Both read the tab
   // the reader is on: the palette for its "Go to" jump list, a tab's icon and bar colour among
   // them, and the rail for the page whose controls it is drawing.
-  const EXEMPT_FROM_TAB_IMPORT = ["LibraryProvider.tsx", "SearchSurface.tsx", "PageRail.tsx"];
+  //
+  // `page.ts` is the lookup those two and the shell share, so it *is* eager — and safe for a third
+  // reason: `Google.tsx` imports `tabs.ts` itself, so this adds no edge the evaluated closure
+  // lacks, and nothing the registry reaches imports it. That last is the load-bearing half, and
+  // the rule below about a module's own closure is what keeps it true.
+  const EXEMPT_FROM_TAB_IMPORT = ["LibraryProvider.tsx", "SearchSurface.tsx", "PageRail.tsx", "/page.ts"];
 
   // The extension is optional in the specifier and written both ways here — `vg.tsx` imports
   // `"./filterUtils.ts"` beside `"../tabs"` — so a pattern anchored on the bare name alone would
