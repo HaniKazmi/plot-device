@@ -207,7 +207,8 @@ export const platformToShort: (game: VideoGame) => [string, Colour] = (game) => 
   return [short, companyToAccent(game)];
 };
 
-export const certificateColour = ({ certificate }: VideoGame, scheme: Scheme) => certificateToColour(certificate, scheme);
+export const certificateColour = ({ certificate }: VideoGame, scheme: Scheme) =>
+  certificateToColour(certificate, scheme);
 
 /**
  * A gameplay style has no brand to reproduce, so each colour is chosen to *represent* it: flame for

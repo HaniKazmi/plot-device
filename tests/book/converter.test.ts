@@ -74,9 +74,7 @@ describe("bad rows", () => {
   it("rejects a page count or an hours figure that is not a number, since both are measures", () => {
     // A NaN in either column would blank every total taken over it, and a 0 would be a lie in the
     // sum: a book has pages, and the sheet estimates hours for every finished book.
-    expect(() => convertOne({ Pages: "" })).toThrow(
-      'Row 2, "Chasm City", Pages: "" is not a number',
-    );
+    expect(() => convertOne({ Pages: "" })).toThrow('Row 2, "Chasm City", Pages: "" is not a number');
     expect(() => convertOne({ Hours: "n/a" })).toThrow('Hours: "n/a" is not a number');
   });
 

@@ -36,7 +36,11 @@ export const movieRows = (movie: Movie, scheme: Scheme): LedgerRow[] => {
     { label: "By", value: movie.director },
     // The primary genre leads and the rest follow it, which is the order the sheet holds them in
     // and the order the charts group by.
-    { label: "Genre", value: [movie.genre, ...movie.otherGenres].join(" · "), swatch: genreToColour(movie.genre, scheme) },
+    {
+      label: "Genre",
+      value: [movie.genre, ...movie.otherGenres].join(" · "),
+      swatch: genreToColour(movie.genre, scheme),
+    },
     { label: "BBFC", value: movie.certificate, swatch: certificateToColour(movie.certificate, scheme) },
   );
 

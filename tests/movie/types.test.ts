@@ -91,7 +91,9 @@ describe("groupToColour", () => {
   });
 
   it("propagates the certificate throw, the deliberate catch for a spreadsheet typo", () => {
-    expect(() => groupToColour("certificate", movie({ certificate: "PG-13" as Certificate }), "light")).toThrow("Unknown certificate");
+    expect(() => groupToColour("certificate", movie({ certificate: "PG-13" as Certificate }), "light")).toThrow(
+      "Unknown certificate",
+    );
   });
 });
 

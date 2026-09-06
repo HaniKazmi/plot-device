@@ -87,7 +87,8 @@ describe.each(SCHEMES)("every fill clears 3:1 on the %s paper", (scheme) => {
   it("the neutral, which every table falls back to", () => check("neutral", neutralFill(scheme)));
 
   it("certificates, by value and by band", () => {
-    for (const certificate of CERTIFICATES) check(`certificate ${certificate}`, certificateToColour(certificate, scheme));
+    for (const certificate of CERTIFICATES)
+      check(`certificate ${certificate}`, certificateToColour(certificate, scheme));
     for (const band of CERTIFICATE_BANDS) check(`band ${band}`, certificateBandToColour(band, scheme));
   });
 

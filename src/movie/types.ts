@@ -34,6 +34,13 @@ export interface Movie {
   otherGenres: string[];
   /** A film with no wider franchise carries its own name here. */
   franchise: string;
+  /**
+   * The series inside the franchise, or `""` where the film stands alone — blank rather than the
+   * film's own name, as `Book.series` is and unlike `franchise` above.
+   */
+  series: string;
+  /** Its place in `series`, absent for a standalone or an entry the sheet does not number. */
+  seriesNumber?: number;
   director: string;
   artwork: string;
   /** Whether it was seen in a cinema rather than at home. */

@@ -118,6 +118,8 @@ describe("groupToColour", () => {
   it("propagates the certificate throw, because grouping by certificate renders every game", () => {
     // The cast is the point: the union describes what the sheet should hold, and a blank cell
     // is what it holds when someone forgets — that has to reach the throw rather than a fallback.
-    expect(() => groupToColour("certificate", videoGame({ certificate: "" as Certificate }), "light")).toThrow("Unknown certificate");
+    expect(() => groupToColour("certificate", videoGame({ certificate: "" as Certificate }), "light")).toThrow(
+      "Unknown certificate",
+    );
   });
 });

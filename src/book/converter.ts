@@ -76,10 +76,7 @@ export const jsonConverter = (json: Record<string, string>[]): Book[] =>
       // A book still being read may have no sessions logged yet, and the sheet estimates hours only
       // for finished books — so a blank there is honestly none so far, where on a finished book it
       // is a cell nobody filled.
-      hours:
-        status === "Reading" && !row.Hours
-          ? 0
-          : readNumber(row.Hours, `${where}, Hours`, parseFloat),
+      hours: status === "Reading" && !row.Hours ? 0 : readNumber(row.Hours, `${where}, Hours`, parseFloat),
       artwork: row.Artwork ?? "",
     };
   });

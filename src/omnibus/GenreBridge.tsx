@@ -18,7 +18,12 @@ import type { Colour } from "../utils/types";
 const UNIT: Record<Measure, string> = { Hours: "hrs", Items: "items" };
 
 /** The plural a key's rows are counted in, and the title's first word. */
-const KEY_NOUN: Record<BridgeKey, string> = { genre: "Genres", year: "Years", decade: "Decades", certificate: "Certificates" };
+const KEY_NOUN: Record<BridgeKey, string> = {
+  genre: "Genres",
+  year: "Years",
+  decade: "Decades",
+  certificate: "Certificates",
+};
 
 /**
  * The swatch a row wears: the vocabulary the app already speaks for that field, as the gallery's
