@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { useSelectBox } from "../common/SelectBoxHook";
 import { groupToColour, typeToName, type Measure, type Season, type Show, type ShowStringKeys } from "./types";
 import Barchart from "../common/Barchart";
@@ -20,17 +19,7 @@ const optionToName = (season: Season, option: Option) => {
   }
 };
 
-const ShowBarchart = ({
-  data,
-  measure,
-  yearType,
-  empty,
-}: {
-  data: Show[];
-  measure: Measure;
-  yearType: YearType;
-  empty?: ReactNode;
-}) => {
+const ShowBarchart = ({ data, measure, yearType }: { data: Show[]; measure: Measure; yearType: YearType }) => {
   const scheme = useScheme();
 
   // Grouped by status from the start, so the columns are born carrying the one distinction the
@@ -61,7 +50,6 @@ const ShowBarchart = ({
       postAggregate={measure === "Hours" ? (minutes) => Math.floor(minutes / 60) : undefined}
       unit={measure}
       controls={controls}
-      empty={empty}
     />
   );
 };

@@ -5,6 +5,8 @@ import { SectionHeader } from "./SectionHeader";
 import { SegmentedControl } from "./SelectionComponents";
 import { segments } from "./segments";
 import { FoldedChart, Sparkline, type FoldHeader } from "./FoldedChart";
+import { NothingMatches } from "./NothingMatches";
+import { useNothingMatches } from "./nothingMatchesContext";
 import { useStackedCharts } from "./breakpoints";
 import { Chart, Series, XAxis, YAxis, PlotOptions, Tooltip, Legend } from "../highcharts";
 import type { Year, YearMonth } from "./date";
@@ -57,7 +59,6 @@ const Barchart = ({
   postAggregate,
   unit,
   controls,
-  empty,
 }: {
   title: string;
   data: (cumulative: boolean) => { name: string; date: YearMonth | Year; colour: Colour; value: number }[];
@@ -66,10 +67,9 @@ const Barchart = ({
   /** What one unit of the measure is called, for the line a folded chart states instead of itself. */
   unit: string;
   controls: ReactNode;
-  /** Drawn instead of the "nothing to plot" line when the caller's own filters left the pivot empty. */
-  empty?: ReactNode;
 }) => {
   const [view, setView] = useState<View>("Totals");
+  const { active: nothing } = useNothingMatches();
   const theme = useTheme();
   const full = useStackedCharts() ? CHART_HEIGHT.stacked : CHART_HEIGHT.beside;
 
@@ -137,7 +137,9 @@ const Barchart = ({
             summary a fold would draw and needs no chart behind it. */}
         {header({ shown: true, toggle: null })}
         <CardContent>
-          {empty ?? (
+          {nothing ? (
+            <NothingMatches />
+          ) : (
             <Typography
               variant="body2"
               sx={{ color: "text.secondary" }}

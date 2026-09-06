@@ -6,6 +6,8 @@ import Grid from "@mui/material/Grid";
 import { GridView } from "@mui/icons-material";
 import { useDeferredValue, useRef, useState, type ReactNode, type RefObject } from "react";
 import { INLINE_SWATCH_SIZE, Swatch, type TypedCardMediaImage } from "./Card";
+import { NothingMatches } from "./NothingMatches";
+import { useNothingMatches } from "./nothingMatchesContext";
 import { SectionHeader } from "./SectionHeader";
 import { useSelectBox } from "./SelectBoxHook";
 import { ScrollMarker, ScrollMarkerRail } from "./ScrollMarker";
@@ -269,7 +271,6 @@ const Finished = <U extends FinishedItem>({
   keyOf: keyOfProp,
   sorts: sortsProp,
   MediaComponent,
-  empty,
 }: {
   title: string;
   /** What the grid is over, in the caller's own words. Optional: a domain may have no noun yet. */
@@ -294,8 +295,6 @@ const Finished = <U extends FinishedItem>({
   /** Orders over the domain's own figures, offered after the two every wall has. */
   sorts?: readonly FinishedExtraSort<U>[];
   MediaComponent: TypedCardMediaImage<U>;
-  /** Drawn instead of the grid when the caller's own filters left the wall with nothing on it. */
-  empty?: ReactNode;
 }) => {
   // Applied after the pattern: a default inside it bails the component out of the React Compiler.
   const landscape = landscapeProp ?? false;
@@ -331,6 +330,7 @@ const Finished = <U extends FinishedItem>({
 
   const slowData = useDeferredValue(data, []);
   const recent = finishedItems(slowData, sort, sorts);
+  const { active: nothing } = useNothingMatches();
 
   // The marker measures and queries the page itself, so it holds the two elements it reads rather
   // than a copy of what they contain. Both are the inline grid's: the dialog renders the same
@@ -390,8 +390,8 @@ const Finished = <U extends FinishedItem>({
           />
         )}
         <CardContent>
-          {recent.length === 0 && empty ? (
-            empty
+          {recent.length === 0 && nothing ? (
+            <NothingMatches />
           ) : phone ? (
             <Stack spacing={1}>
               {/* The position as well as the label: a sort that returns to a bucket it has passed

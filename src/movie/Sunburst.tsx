@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { groupToColour, type Measure, type Movie, type MovieGroup } from "./types";
 import Sunburst, { SunBurstControls } from "../common/Sunburst";
 import { movieGroupValue } from "./statsData";
@@ -11,7 +11,7 @@ type OptionKeys = Exclude<MovieGroup, "none"> | "startDate" | "name";
  * library's questions actually nest in. Director stays in the options but never leads: four
  * hundred names make an unreadable inner ring, and read fine one ring out from the leaves.
  */
-const MovieSunburst = ({ data, measure, empty }: { data: Movie[]; measure: Measure; empty?: ReactNode }) => {
+const MovieSunburst = ({ data, measure }: { data: Movie[]; measure: Measure }) => {
   const scheme = useScheme();
 
   const [controlStates, setControlStates] = useState<OptionKeys[]>(["decade", "genre", "franchise"]);
@@ -21,7 +21,6 @@ const MovieSunburst = ({ data, measure, empty }: { data: Movie[]; measure: Measu
       title={`Where the ${measure.toLowerCase()} went`}
       data={data}
       groups={controlStates}
-      empty={empty}
       options={{
         keyToVal: (movie, key) => {
           switch (key) {

@@ -27,6 +27,8 @@ import {
   type TypedCardMediaImage,
 } from "./Card";
 import { dimSx, LABEL_SX, MUTED_FIGURE_SX } from "./typography";
+import { NothingMatches } from "./NothingMatches";
+import { useNothingMatches } from "./nothingMatchesContext";
 import { SectionHeader } from "./SectionHeader";
 import { shapeRatioValues, shapeToArrangement, shapeToPinnedAspect, type ArtworkShape } from "./cardArrangement";
 import { rowCardSize } from "./rowSizing";
@@ -377,8 +379,6 @@ export const StatsListGrid = <T,>(
      * those hold follows from the width it measures.
      */
     header?: (shown: number) => ReactNode;
-    /** Drawn instead of the cards when the caller's own filters left the list with nothing on it. */
-    empty?: ReactNode;
   } & GridLimit,
 ) => {
   const { content, flexWrap, cardKey, labelComponent, captionOf, chipComponent, shape, band, divider, MediaComponent } =
@@ -392,6 +392,7 @@ export const StatsListGrid = <T,>(
   // mount every card in a grid and remount it in a strip a frame later, asking for each picture
   // twice and sampling each of them twice with it.
   const narrow = useStackedCharts();
+  const { active: nothing } = useNothingMatches();
   const cell = cellOf(props, rowWidth, band?.height ?? 0, (props.strip ?? false) && narrow, shape);
   const limit = limitOf(props.limit, cell);
 
@@ -422,8 +423,8 @@ export const StatsListGrid = <T,>(
     <>
       {props.header?.(drawn.length)}
       <CardContent>
-        {content.length === 0 && props.empty ? (
-          props.empty
+        {content.length === 0 && nothing ? (
+          <NothingMatches />
         ) : "strip" in cell ? (
           // Measured for the same reason the sized row is: the strip's card count is solved from
           // the width it has, and a first frame at the stated height is not seen.
@@ -560,8 +561,6 @@ export interface StatListBaseProps<T> {
   band?: MediaBand<T>;
   divider?: boolean;
   wrap?: boolean;
-  /** Drawn instead of the cards when the caller's own filters left the list with nothing on it. */
-  empty?: ReactNode;
 }
 
 export type StatsListProps<T> = StatListBaseProps<T> & StatListLayout;
@@ -640,7 +639,6 @@ export const StatList = <T,>(props: StatsListProps<T>) => {
             band={props.band}
             divider={props.divider}
             MediaComponent={props.MediaComponent}
-            empty={props.empty}
             {...grid(isDialog)}
           />
         )}

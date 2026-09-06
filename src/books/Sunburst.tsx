@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { groupToColour, type Book, type BookGroup, type Measure } from "./types";
 import Sunburst, { SunBurstControls } from "../common/Sunburst";
 import { bookGroupValue } from "./statsData";
@@ -11,7 +11,7 @@ type OptionKeys = Exclude<BookGroup, "none"> | "startDate";
  * library's questions nest in. Author leads the second ring rather than the first because the
  * genre ring is five wedges and the author ring is dozens, and a chart is read from the centre out.
  */
-const BookSunburst = ({ data, measure, empty }: { data: Book[]; measure: Measure; empty?: ReactNode }) => {
+const BookSunburst = ({ data, measure }: { data: Book[]; measure: Measure }) => {
   const scheme = useScheme();
 
   const [controlStates, setControlStates] = useState<OptionKeys[]>(["genre", "author", "series"]);
@@ -21,7 +21,6 @@ const BookSunburst = ({ data, measure, empty }: { data: Book[]; measure: Measure
       title={`Where the ${measure.toLowerCase()} went`}
       data={data}
       groups={controlStates}
-      empty={empty}
       options={{
         keyToVal: (book, key) => {
           switch (key) {

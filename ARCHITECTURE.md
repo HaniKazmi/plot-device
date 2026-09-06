@@ -351,12 +351,24 @@ share of the values behind them. `Rank` ranks the measure `Totals` plots and kee
 figure, so the axis plots position while the hover card states the number. Clicking a column
 isolates that series and clicking again restores all, through Highcharts' plot-options event rather
 than React state, and an empty pivot is refused outright, Highcharts inventing an index axis and a
-series of its own from nothing. Where the reader's own filters are what emptied it, the caller passes
-`empty` — `common/NothingMatches.tsx`, "Nothing matches these filters" and a Clear that dispatches
-`resetFilters` — in place of the "nothing to plot" line; a library with nothing in it and no filter
-to blame draws the plain line instead, since there is no choice to undo. `Sunburst`, the packed
-`Timeline`, `EventRibbon`'s callers, `Finished` and `StatList` take the same prop for the same
-reason, each drawing it in the body at a modest height rather than the chart's own `80vh`.
+series of its own from nothing. Where the reader's own filters are what emptied it, it draws
+`common/NothingMatches.tsx` — "Nothing matches these filters" and a Clear — in place of the
+"nothing to plot" line; a library with nothing in it and no filter to blame draws the plain line
+instead, since there is no choice to undo. `Sunburst`, the packed `Timeline`, `FoldedChart`,
+`Finished` and `StatList` answer the same way for the same reason, each drawing it in the body at a
+modest height rather than the chart's own `80vh`.
+
+**Which of the two it is, is the page's answer and not the chart's.** `common/nothingMatchesContext.ts`
+carries `{ active, clear }`: whether the page's own filters have left it with no rows at all, and
+the dispatch that undoes them. `Google.tsx` provides it once above the outlet, from the current
+tab's page module — one pass of that page's own predicate over its library per filter change, the
+same figure the box's footer states — and every shell asks it at the empty branch it already has.
+Handed down instead, it is a prop threaded through sixteen domain wrappers that never look at it,
+and a shell added later is silently the one that says nothing. Asked at the shell's own empty
+branch rather than in place of it, a chart emptied by a control of its own — the games timeline's
+2015 floor, a grouping that yields no rings — still states that in its own words while the page
+around it has rows. The Omnibus gates each of its sections on having something to draw, so it draws
+the message itself where they would stand.
 
 `groupDate` sorts groups ascending so `reversedStacks` — on by default — puts the biggest at the
 foot of the stack, where a stack is read from, and the legend is reversed to match. Height is the
@@ -1288,9 +1300,10 @@ the noun each medium's module carries — `cut(shown, total)` — "10 of 1,539",
 where nothing is cut — and `all(total)` — "All 1,539", the worded cut a control wears. One module
 because the alternative is these three written out at twenty-odd call sites, each one `format` away
 from a library of 1,539 reading as "1539" beside a chart that reads "1,539". `isFilteredEmpty(count,
-activeCount)` is the fourth: true only where a filter, not an empty library, is why a list holds
+activeCount)` is the fourth: true only where a filter, not an empty library, is why a page holds
 nothing, which is what tells a chart's own "nothing to plot" line apart from
-`common/NothingMatches.tsx`'s "Nothing matches these filters" and its Clear.
+`common/NothingMatches.tsx`'s "Nothing matches these filters" and its Clear. It is asked of the
+page once, above the outlet, and reaches the shells through `common/nothingMatchesContext.ts` (§6).
 
 `common/Stats.tsx` exports what the domain `Stats.tsx` files assemble into a grid: `StatCard` and
 `StatSummary`; `YearVitalsPair`, all-time and in-year cards differing only in figures; `StatList`;

@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { useSelectBox } from "../common/SelectBoxHook";
 import { groupToColour, videoGameOptions, type Measure, type VideoGame, type VideoGameStringKeys } from "./types";
 import Barchart from "../common/Barchart";
@@ -9,17 +8,7 @@ import type { YearType } from "./filterUtils";
 
 const options: Readonly<VideoGameStringKeys | "none" | "decade">[] = ["none", ...videoGameOptions, "decade"];
 
-const VgBarchart = ({
-  data,
-  measure,
-  yearType,
-  empty,
-}: {
-  data: VideoGame[];
-  measure: Measure;
-  yearType: YearType;
-  empty?: ReactNode;
-}) => {
+const VgBarchart = ({ data, measure, yearType }: { data: VideoGame[]; measure: Measure; yearType: YearType }) => {
   const scheme = useScheme();
 
   const [group, controls] = useSelectBox(options, "company", "Split");
@@ -50,7 +39,6 @@ const VgBarchart = ({
       // as the library itself having shrunk.
       unit={measure}
       controls={controls}
-      empty={empty}
     />
   );
 };

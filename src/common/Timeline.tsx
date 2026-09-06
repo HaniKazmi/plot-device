@@ -8,6 +8,8 @@ import { useCoarsePointer } from "./useCoarsePointer";
 import { LazyTooltip } from "./LazyTooltip";
 import { ScrollFade } from "./ScrollFade";
 import { CONTAIN_SIDEWAYS_SCROLL, scrollbarSx } from "./scrollbarSx";
+import { NothingMatches } from "./NothingMatches";
+import { useNothingMatches } from "./nothingMatchesContext";
 import { useOpenAtLatest } from "./useOpenAtLatest";
 import { useScrollEdges } from "./useScrollEdges";
 import { useElementWidth } from "./useElementWidth";
@@ -779,23 +781,17 @@ const TimeAxis = ({ ticks }: { ticks: TimelineTick[] }) => {
   );
 };
 
-const Timeline = ({
-  data,
-  children,
-  empty,
-}: {
-  data: TimelineData[];
-  children?: ReactNode;
-  /**
-   * Drawn instead of the grid when the caller's own filters left nothing to pack — the packed
-   * timeline never folds, so this is the one state its plain `Card` has to draw for itself.
-   */
-  empty?: ReactNode;
-}) => {
+const Timeline = ({ data, children }: { data: TimelineData[]; children?: ReactNode }) => {
+  // The packed timeline never folds, so this plain `Card` is the one state it has to draw for
+  // itself: a grid with no rows in it says nothing about why there are none.
+  const { active } = useNothingMatches();
+
   return (
     <Card>
       {children}
-      <CardContent>{empty ?? <TimeLineChart timelineData={data} />}</CardContent>
+      <CardContent>
+        {data.length === 0 && active ? <NothingMatches /> : <TimeLineChart timelineData={data} />}
+      </CardContent>
     </Card>
   );
 };

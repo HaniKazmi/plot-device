@@ -70,7 +70,6 @@ const Stats = ({
   measure,
   yearType,
   yearTo,
-  empty,
 }: {
   data: VideoGame[];
   /** Every game in progress, most recently started first. Computed by `Graphs`, which also
@@ -79,8 +78,6 @@ const Stats = ({
   measure: Measure;
   yearType: YearType;
   yearTo: YearNumber;
-  /** Drawn by the lists this band builds straight from `data`, once the reader's filters empty it. */
-  empty?: ReactNode;
 }) => {
   return (
     <Stack spacing={2}>
@@ -127,12 +124,8 @@ const Stats = ({
           <MostPlayed
             data={data}
             measure={measure}
-            empty={empty}
           />
-          <RecentlyComplete
-            data={data}
-            empty={empty}
-          />
+          <RecentlyComplete data={data} />
           {/* Everything being played that the hero above is not already showing. */}
           <CurrentlyPlaying playing={playing.slice(1)} />
         </StatBand>
@@ -246,7 +239,7 @@ const AveragesPerGame = ({ data, yearType }: { data: VideoGame[]; yearType: Year
   );
 };
 
-const RecentlyComplete = ({ data, empty }: { data: VideoGame[]; empty?: ReactNode }) => {
+const RecentlyComplete = ({ data }: { data: VideoGame[] }) => {
   const recent = data
     .filter(({ party }) => !party)
     .filter((a) => a.hours && a.endDate)
@@ -257,12 +250,11 @@ const RecentlyComplete = ({ data, empty }: { data: VideoGame[]; empty?: ReactNod
       title="Recently Finished"
       content={recent}
       labelComponent={statsCardLabelEndDateHours}
-      empty={empty}
     />
   );
 };
 
-const MostPlayed = ({ data, measure, empty }: { data: VideoGame[]; measure: Measure; empty?: ReactNode }) => {
+const MostPlayed = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
   const [option, controls] = useSelectBox(videoGameOptions, "name", "By");
 
   if (option === "name") {
@@ -270,7 +262,6 @@ const MostPlayed = ({ data, measure, empty }: { data: VideoGame[]; measure: Meas
       <MostPlayedGames
         data={data}
         controls={controls}
-        empty={empty}
       />
     );
   }
@@ -284,7 +275,7 @@ const MostPlayed = ({ data, measure, empty }: { data: VideoGame[]; measure: Meas
   );
 };
 
-const MostPlayedGames = ({ data, controls, empty }: { data: VideoGame[]; controls: ReactNode; empty?: ReactNode }) => {
+const MostPlayedGames = ({ data, controls }: { data: VideoGame[]; controls: ReactNode }) => {
   const most = data.filter((a) => a.hours && a.endDate).sortByKey("hours");
   return (
     <VgStatList
@@ -293,7 +284,6 @@ const MostPlayedGames = ({ data, controls, empty }: { data: VideoGame[]; control
       title="Most Played"
       content={most}
       labelComponent={statsCardLabelEndDateHours}
-      empty={empty}
     />
   );
 };

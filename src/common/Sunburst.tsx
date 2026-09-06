@@ -54,7 +54,6 @@ const Sunburst = <T, K extends string>({
   controls,
   groups,
   options,
-  empty,
 }: {
   title: string;
   controls: ReactNode;
@@ -66,8 +65,6 @@ const Sunburst = <T, K extends string>({
     getColor: (item: T, firstGroup: K) => Colour | undefined;
     getLeafName: (item: T) => string;
   };
-  /** Drawn instead of the wheel when the caller's own filters left nothing to nest. */
-  empty?: ReactNode;
 }) => {
   const theme = useTheme();
   const stacked = useStackedCharts();
@@ -130,7 +127,6 @@ const Sunburst = <T, K extends string>({
           action={shown ? controls : undefined}
         />
       )}
-      empty={empty}
       // The innermost ring is what both halves of the fold read, so it is flattened out of the
       // hierarchy once here rather than by each of them.
       fold={() => {

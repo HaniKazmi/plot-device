@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import type { KeysMatching } from "../utils/types";
 import { groupToColour, typeToName, type Measure, type Show } from "./types";
 import Sunburst, { SunBurstControls } from "../common/Sunburst";
@@ -6,7 +6,7 @@ import { useScheme } from "../common/useScheme";
 
 type OptionKeys = KeysMatching<Show, string | Show["startDate"]> | "show";
 
-const ShowSunburst = ({ data, measure, empty }: { data: Show[]; measure: Measure; empty?: ReactNode }) => {
+const ShowSunburst = ({ data, measure }: { data: Show[]; measure: Measure }) => {
   const [controlStates, setControlStates] = useState<OptionKeys[]>(["status", "startDate", "show"]);
 
   const scheme = useScheme();
@@ -18,7 +18,6 @@ const ShowSunburst = ({ data, measure, empty }: { data: Show[]; measure: Measure
       // the tab's other sections count in.
       data={data.flatMap((show) => show.s)}
       groups={controlStates}
-      empty={empty}
       options={{
         keyToVal: (season, key) => {
           switch (key) {

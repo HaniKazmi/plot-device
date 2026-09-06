@@ -1,5 +1,5 @@
 import { Container, createTheme, CssBaseline, ThemeProvider } from "@mui/material";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import NavBar from "./NavBar";
 import { BottomTabs } from "./BottomTabs";
 import { BrowserTint } from "./BrowserTint";
@@ -20,6 +20,10 @@ import { FranchiseUnionProvider } from "./app/franchiseUnion.tsx";
 import { SearchHost } from "./app/Search.tsx";
 import { useAuthState } from "./app/authState.ts";
 import { StaleStrip } from "./app/StaleStrip.tsx";
+import { useLibrary } from "./app/library.ts";
+import { pageCount, pageOf, usePageState } from "./app/pageState.ts";
+import { NothingMatchesContext } from "./common/nothingMatchesContext.ts";
+import { isFilteredEmpty } from "./common/population.ts";
 import { EmptyCard } from "./app/EmptyCard.tsx";
 import { barColour, useCurrentTab } from "./tabs.ts";
 import type { Tab } from "./tabs.ts";
@@ -33,7 +37,44 @@ import type {} from "@mui/material/themeCssVarsAugmentation";
  * outlet: a tab holding a cached copy paints it with the strip above saying so, and one still
  * fetching paints what it has, which is what a cache-first page is for.
  */
-const PageContent = () => (useAuthState() === "empty" ? <EmptyCard /> : <Outlet />);
+/**
+ * Whether the page being drawn has been narrowed to nothing, answered once for every shell on it.
+ *
+ * The test is the page's own population and not any one chart's: a library with nothing in it draws
+ * no message and offers no Clear, and only the page knows whether the reader has made any choices
+ * at all. Answered here, above the outlet, because the tab's own tree is a dozen shells deep and
+ * each of them would otherwise be handed a node it never looks at.
+ *
+ * It costs one pass of the page's own predicate over its library per filter change — the same pass
+ * the box's footer makes for the same figure — and the outlet below it is the caller's own element,
+ * so a change here re-renders this and not the page.
+ */
+const NothingMatchesProvider = ({ children }: { children: ReactNode }) => {
+  const tab = useCurrentTab();
+  const library = useLibrary();
+  const [state] = usePageState(tab.id);
+  const page = pageOf(tab.id, library);
+
+  return (
+    <NothingMatchesContext
+      value={{
+        active: page ? isFilteredEmpty(pageCount(page, state), page.store.activeCount()) : false,
+        clear: () => page?.store.dispatch({ type: "resetFilters" }),
+      }}
+    >
+      {children}
+    </NothingMatchesContext>
+  );
+};
+
+const PageContent = () =>
+  useAuthState() === "empty" ? (
+    <EmptyCard />
+  ) : (
+    <NothingMatchesProvider>
+      <Outlet />
+    </NothingMatchesProvider>
+  );
 
 const GoogleAuth = () => {
   const [guestMode, setGuestMode] = useState(false);

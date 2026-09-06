@@ -60,7 +60,6 @@ const Stats = ({
   measure,
   yearType,
   yearTo,
-  empty,
 }: {
   data: Book[];
   /** Every book in progress, most recently started first. Computed by `Graphs`, which also
@@ -69,8 +68,6 @@ const Stats = ({
   measure: Measure;
   yearType: YearType;
   yearTo: YearNumber;
-  /** Drawn by the lists this band builds straight from `data`, once the reader's filters empty it. */
-  empty?: ReactNode;
 }) => {
   // One grouping per category for the page: the vitals band, the Top card and Most Read all ask
   // for genre or author, and each grouping is a pass over the library.
@@ -117,15 +114,11 @@ const Stats = ({
       </Section>
       <Section id={BOOK_SECTIONS.explore}>
         <StatBand>
-          <RecentlyFinished
-            data={data}
-            empty={empty}
-          />
+          <RecentlyFinished data={data} />
           <MostRead
             data={data}
             groupsBy={groupsBy}
             measure={measure}
-            empty={empty}
           />
         </StatBand>
       </Section>
@@ -263,29 +256,18 @@ const optionIcons: Record<BookTopOption, ReactNode> = {
  * "finished" listing it says something false. The filter also leaves every entry a date to sort
  * by, where `sortByKey` would otherwise head the list with the undated one.
  */
-const RecentlyFinished = ({ data, empty }: { data: Book[]; empty?: ReactNode }) => (
+const RecentlyFinished = ({ data }: { data: Book[] }) => (
   <BookStatList
     icon={<History />}
     title="Recently Finished"
     content={data.filter((book) => book.endDate).sortByKey("endDate")}
     labelComponent={statsCardLabelFinished}
-    empty={empty}
   />
 );
 
 const bookMostReadOptions = ["name", ...bookTopOptions] as const;
 
-const MostRead = ({
-  data,
-  groupsBy,
-  measure,
-  empty,
-}: {
-  data: Book[];
-  groupsBy: GroupsBy;
-  measure: Measure;
-  empty?: ReactNode;
-}) => {
+const MostRead = ({ data, groupsBy, measure }: { data: Book[]; groupsBy: GroupsBy; measure: Measure }) => {
   const [option, controls] = useSelectBox(bookMostReadOptions, "author", "By");
 
   if (option === "name") {
@@ -293,7 +275,6 @@ const MostRead = ({
       <MostReadBooks
         data={data}
         controls={controls}
-        empty={empty}
       />
     );
   }
@@ -307,7 +288,7 @@ const MostRead = ({
   );
 };
 
-const MostReadBooks = ({ data, controls, empty }: { data: Book[]; controls: ReactNode; empty?: ReactNode }) => {
+const MostReadBooks = ({ data, controls }: { data: Book[]; controls: ReactNode }) => {
   const most = data.filter((book) => book.hours).sortByKey("hours");
   return (
     <BookStatList
@@ -316,7 +297,6 @@ const MostReadBooks = ({ data, controls, empty }: { data: Book[]; controls: Reac
       title="Most Read"
       content={most}
       labelComponent={statsCardLabelPages}
-      empty={empty}
     />
   );
 };

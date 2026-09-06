@@ -1,9 +1,11 @@
 import { memo, useDeferredValue } from "react";
 import { CURRENT_PLAINDATE } from "../common/date";
-import { Stack } from "@mui/material";
+import { Card, CardContent, Stack } from "@mui/material";
 import { franchiseIndex } from "../common/franchiseIndex";
 import { Section } from "../common/SectionRail";
 import { PageRail } from "../app/PageRail";
+import { NothingMatches } from "../common/NothingMatches";
+import { useNothingMatches } from "../common/nothingMatchesContext";
 import { stripYearTicks } from "../common/timelineStripData";
 import {
   bookEpoch,
@@ -71,6 +73,7 @@ const Graphs = memo(
     // at once on a page composing four libraries; the bands above them read the fresh array, the
     // way every other tab splits the two.
     const deferredData = useDeferredValue(data, []);
+    const { active: nothing } = useNothingMatches();
     // Answered once for the page: it decides both whether the Now band is rendered and whether the
     // rail offers a chip pointing at it, and two derivations of one test are two that can differ.
     const now = electNow(library, filterState);
@@ -99,6 +102,17 @@ const Graphs = memo(
           })}
           count={data.length}
         />
+        {/* Every section below is gated on having something to draw, so a page the reader has
+            narrowed to nothing would otherwise be a rail over an empty page: the shells that state
+            why are all unmounted. The vitals above still stand, reading zero, which is the honest
+            answer to what the filters left. */}
+        {nothing && (
+          <Card>
+            <CardContent>
+              <NothingMatches />
+            </CardContent>
+          </Card>
+        )}
         <Stats
           data={data}
           now={now}

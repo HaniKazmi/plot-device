@@ -68,14 +68,11 @@ const Stats = ({
   measure,
   yearType,
   yearTo,
-  empty,
 }: {
   data: Movie[];
   measure: Measure;
   yearType: YearType;
   yearTo: YearNumber;
-  /** Drawn by the lists this band builds straight from `data`, once the reader's filters empty it. */
-  empty?: ReactNode;
 }) => {
   const latest = latestWatched(data);
 
@@ -121,14 +118,10 @@ const Stats = ({
       </Section>
       <Section id={MOVIE_SECTIONS.explore}>
         <StatBand>
-          <RecentlyWatched
-            data={data}
-            empty={empty}
-          />
+          <RecentlyWatched data={data} />
           <MostWatched
             data={data}
             measure={measure}
-            empty={empty}
           />
         </StatBand>
       </Section>
@@ -245,19 +238,18 @@ const optionIcons: Record<MovieTopOption, ReactNode> = {
  * The full list, the hero's film included: the hero is a spotlight on this strip, not a removal
  * from it, so the strip stays the one complete answer to "what was watched lately".
  */
-const RecentlyWatched = ({ data, empty }: { data: Movie[]; empty?: ReactNode }) => (
+const RecentlyWatched = ({ data }: { data: Movie[] }) => (
   <MovieStatList
     icon={<History />}
     title="Recently Watched"
     content={data.sortByKey("startDate")}
     labelComponent={statsCardLabelWatched}
-    empty={empty}
   />
 );
 
 const movieMostWatchedOptions = ["name", ...movieTopOptions] as const;
 
-const MostWatched = ({ data, measure, empty }: { data: Movie[]; measure: Measure; empty?: ReactNode }) => {
+const MostWatched = ({ data, measure }: { data: Movie[]; measure: Measure }) => {
   const [option, controls] = useSelectBox(movieMostWatchedOptions, "franchise", "By");
 
   if (option === "name") {
@@ -265,7 +257,6 @@ const MostWatched = ({ data, measure, empty }: { data: Movie[]; measure: Measure
       <MostWatchedFilms
         data={data}
         controls={controls}
-        empty={empty}
       />
     );
   }
@@ -279,7 +270,7 @@ const MostWatched = ({ data, measure, empty }: { data: Movie[]; measure: Measure
   );
 };
 
-const MostWatchedFilms = ({ data, controls, empty }: { data: Movie[]; controls: ReactNode; empty?: ReactNode }) => {
+const MostWatchedFilms = ({ data, controls }: { data: Movie[]; controls: ReactNode }) => {
   const most = data.filter((movie) => movie.minutes).sortByKey("minutes");
   return (
     <MovieStatList
@@ -288,7 +279,6 @@ const MostWatchedFilms = ({ data, controls, empty }: { data: Movie[]; controls: 
       title="Most Watched"
       content={most}
       labelComponent={statsCardLabelScore}
-      empty={empty}
     />
   );
 };

@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { useSelectBox } from "../common/SelectBoxHook";
 import { groupToColour, type Measure, type Movie, type MovieGroup } from "./types";
 import Barchart from "../common/Barchart";
@@ -17,17 +16,7 @@ const options: Option[] = ["none", "genre", "rating", "cinema", "decade", "score
  */
 const axisOptions = ["Watched", "Released"] as const;
 
-const MovieBarchart = ({
-  data,
-  measure,
-  yearType,
-  empty,
-}: {
-  data: Movie[];
-  measure: Measure;
-  yearType: YearType;
-  empty?: ReactNode;
-}) => {
+const MovieBarchart = ({ data, measure, yearType }: { data: Movie[]; measure: Measure; yearType: YearType }) => {
   const scheme = useScheme();
 
   // Grouped by genre from the start — the one distinction this tab is about, as company is on
@@ -61,7 +50,6 @@ const MovieBarchart = ({
           {groupControls}
         </>
       }
-      empty={empty}
     />
   );
 };

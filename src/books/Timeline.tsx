@@ -1,5 +1,4 @@
 import { Timeline as TimelineIcon } from "@mui/icons-material";
-import type { ReactNode } from "react";
 import { SectionHeader } from "../common/SectionHeader";
 import type { Book } from "./types";
 import Timeline, { TimelineData } from "../common/Timeline";
@@ -15,7 +14,7 @@ import { bookKey } from "./statsData";
  * finished days to years apart, which is what makes it a bar rather than a mark on a ribbon. The
  * converter holds every date to a full one, so there is no year-only floor to apply here.
  */
-const BookTimeline = ({ data, empty }: { data: Book[]; empty?: ReactNode }) => {
+const BookTimeline = ({ data }: { data: Book[] }) => {
   const scheme = useScheme();
 
   const bookData: TimelineData[] = data
@@ -32,10 +31,7 @@ const BookTimeline = ({ data, empty }: { data: Book[]; empty?: ReactNode }) => {
     }));
 
   return (
-    <Timeline
-      data={bookData}
-      empty={empty}
-    >
+    <Timeline data={bookData}>
       <SectionHeader
         icon={<TimelineIcon />}
         title="Every read"
