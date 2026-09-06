@@ -1,4 +1,5 @@
-import { Button, Paper, Stack, Typography } from "@mui/material";
+import { Button } from "@mui/material";
+import { NoticeCard } from "../common/NoticeCard";
 import { useGoogleAuth } from "../contexts/GoogleAuthContext";
 
 /**
@@ -8,31 +9,17 @@ import { useGoogleAuth } from "../contexts/GoogleAuthContext";
  * it — a first visit otherwise paints a bar over an empty container, with no fetch to fail and so
  * nothing for the snackbar to report either. It says what the app does before it asks for anything,
  * since "Authorise" alone on a blank page is a request with no stated purpose.
- *
- * `Paper` rather than `Card`, whose theme lights its border on hover: nothing here is hovered but
- * the button, and a card that answers the pointer without doing anything reads as a dead control.
  */
 export const EmptyCard = () => {
   const { authorise } = useGoogleAuth();
 
   return (
-    <Paper
-      variant="outlined"
-      sx={{ maxWidth: 420, marginX: "auto", marginTop: 3, padding: 3 }}
-    >
-      <Stack
-        spacing={1}
-        sx={{ alignItems: "center", textAlign: "center" }}
-      >
-        <Typography variant="h6">Nothing here yet</Typography>
-        <Typography
-          variant="body2"
-          color="text.secondary"
-        >
-          Plot Device reads your sheets in the browser. Authorise once per tab to load them.
-        </Typography>
-        {/* `authorise` is certainly there: the card is drawn for the `empty` state alone, which is
-            reached only once neither callback being present has been ruled out. */}
+    <NoticeCard
+      title="Nothing here yet"
+      body="Plot Device reads your sheets in the browser. Authorise once per tab to load them."
+      action={
+        // `authorise` is certainly there: the card is drawn for the `empty` state alone, which is
+        // reached only once neither callback being present has been ruled out.
         <Button
           size="small"
           variant="contained"
@@ -41,7 +28,7 @@ export const EmptyCard = () => {
         >
           Authorise with Google
         </Button>
-      </Stack>
-    </Paper>
+      }
+    />
   );
 };

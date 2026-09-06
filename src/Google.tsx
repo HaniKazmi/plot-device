@@ -27,6 +27,7 @@ import { isNarrowedEmpty } from "./common/population.ts";
 import { isAllTime, scopeLabel } from "./common/scope.ts";
 import { CURRENT_YEAR } from "./common/date.ts";
 import { EmptyCard } from "./app/EmptyCard.tsx";
+import { ErrorBoundary } from "./common/ErrorBoundary.tsx";
 import { barColour, useCurrentTab } from "./tabs.ts";
 import type { Tab } from "./tabs.ts";
 import type {} from "@mui/material/themeCssVarsAugmentation";
@@ -80,6 +81,20 @@ const NothingMatchesProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
+/**
+ * The boundary around the page, keyed on the tab it stands over.
+ *
+ * A boundary holds its error until something remounts it, and the reader's own way out of a page
+ * that threw is another tab — keyed on the tab id, a change of tab builds a fresh boundary and the
+ * next page draws, where one boundary for the app would keep the card up until a reload. The key
+ * is the whole reason this is a component: `ErrorBoundary` is domain-blind and reads no route.
+ */
+const PageBoundary = ({ children }: { children: ReactNode }) => {
+  const tab = useCurrentTab();
+
+  return <ErrorBoundary key={tab.id}>{children}</ErrorBoundary>;
+};
+
 const PageContent = () =>
   useAuthState() === "empty" ? (
     <EmptyCard />
@@ -111,10 +126,15 @@ const GoogleAuth = () => {
         >
           {/* Above every tab, because a card on any of them draws the franchise across all four. */}
           <FranchiseUnionProvider>
-            <PageContent />
-            {/* Inside the provider, since the palette lists the union's own items; opened from the
-                app bar above through a store rather than a flag lifted over both. */}
-            <SearchHost />
+            {/* Below the bar and the providers, and around everything the page draws: a throw in a
+                chart, a converter's colour lookup or a card leaves the app bar, the tabs and the
+                search key standing, which is what the reader leaves the broken page by. */}
+            <PageBoundary>
+              <PageContent />
+              {/* Inside the provider, since the palette lists the union's own items; opened from the
+                  app bar above through a store rather than a flag lifted over both. */}
+              <SearchHost />
+            </PageBoundary>
           </FranchiseUnionProvider>
         </Container>
         <BottomTabs />

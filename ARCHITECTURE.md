@@ -260,8 +260,8 @@ Two subtleties live in the serialisation boundary, and both are easy to break:
    `PlainDate`, a convention rather than a schema: a field like `updateDate` whose value happens to be
    4 or 10 characters is silently miscast, and any other length or `null` makes `PlainDate.from`
    throw. `parseCachedItems` catches that inside the `useState` initialiser and drops the cached copy,
-   the domain's reviver running in the same guard — a throw during render, with no error boundary
-   above it (§10), takes the page down.
+   the domain's reviver running in the same guard — the hook is called from `LibraryProvider`, above
+   the page's own error boundary (§10), so a throw here takes the app down and not just the page.
 
 Cache keys are versioned per domain — `dataCacheKey(domain, version)` yields `vg-data-cache-v2`,
 `show-data-cache-v3`, `movie-data-cache-v3`, `book-data-cache-v1` — and `dropSupersededVersions`
@@ -2238,11 +2238,17 @@ is that tab's own `yearRule`, passed to `createFilterReducer` in `filterUtils.ts
 
 Recorded so they are not mistaken for design:
 
-- **No error boundary.** `main.tsx` renders `<App/>` bare, so one throw anywhere in the tree blanks
-  the page with no message — which is why `parseCachedItems` and `parseTokenWrapper` each guard a
-  `JSON.parse` in a `useState` initialiser. Unguarded paths remain:
-  `initTokenClient({ client_id: CLIENT_ID })` runs in an effect with no check, so a missing
-  `VITE_GOOGLE_CLIENT_ID` throws there and takes the app with it.
+- **The error boundary covers the page and not the shell.** `common/ErrorBoundary.tsx` — the one
+  class in the tree, since React exposes catching a render error through no hook — is mounted in
+  `Google.tsx` around the outlet and the search host, inside the providers: a throw in a chart, a
+  card or a colour lookup states itself on a `NoticeCard` carrying the error's own message and a
+  Reload, and leaves the app bar, the tabs and the search key standing to leave the broken page by.
+  It is keyed on the tab id, so a change of tab builds a fresh boundary and the next page draws
+  without a reload. What it cannot catch is what renders above it: a throw in a `useState`
+  initialiser, `LibraryProvider` wrapping `NavBar` and so standing higher — which is why
+  `parseCachedItems` and `parseTokenWrapper` each guard a `JSON.parse` in one — and
+  `initTokenClient({ client_id: CLIENT_ID })`, which runs in an effect in `GoogleAuthProvider` with
+  no check, so a missing `VITE_GOOGLE_CLIENT_ID` still takes the app with it.
 - **No loading state.** An entry component renders `{data && <Graphs/>}` beside its snackbar, so a
   page with nothing to draw draws nothing. The `empty` state has a card of its own now (§5), which
   covers the reader who has never authorised; the two windows either side of it are still bare. While
