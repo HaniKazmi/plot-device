@@ -554,21 +554,18 @@ const NowItem = <T,>(props: {
 /**
  * Opens a phone cell's card from anywhere in the cell, which is what makes the date a target.
  *
- * At module scope, so the cell's handler is one function rather than one per render. The card
- * opens from its picture's own handler, so a click that came from inside the action area is
- * left alone; a click whose target is the action area itself is the keyboard's — Enter on the
- * focused button lands there and not on the picture — and is forwarded like a tap on the date. A
+ * At module scope, so the cell's handler is one function rather than one per render. The card's
+ * own press is on its action area, which is a button: anything inside it — a tap on the picture,
+ * Enter on the focused card — already opens the card, and is left alone here. What is left is the
+ * date beside the picture, which has nothing to open with and is pressed onto the area instead. A
  * click from the expanded dialog, which portals out of the cell's DOM but bubbles to it through
  * React, is left alone too: forwarded, its close button would reopen the card it had just closed.
  */
 const openFromCell: MouseEventHandler<HTMLElement> = (event) => {
   const target = event.target;
   if (!(target instanceof Element) || !event.currentTarget.contains(target)) return;
-  const area = target.closest(".MuiCardActionArea-root");
-  if (area && area !== target) return;
-  const opener = area
-    ? area.firstElementChild
-    : event.currentTarget.querySelector(".MuiCardActionArea-root > :first-child");
+  if (target.closest(".MuiCardActionArea-root")) return;
+  const opener = event.currentTarget.querySelector(".MuiCardActionArea-root");
   if (opener instanceof HTMLElement) opener.click();
 };
 

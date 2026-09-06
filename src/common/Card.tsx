@@ -301,20 +301,17 @@ const ArtworkStandIn = ({
   palette,
   size,
   component,
-  onClick,
   sx,
 }: {
   alt: string;
   palette: ReturnType<typeof artworkPalette>;
   size?: "thumbnail" | "dialog";
   component?: "span";
-  onClick?: () => void;
   /** The picture's own rules, carried so the tile holds the picture's reservation. */
   sx?: SxProps<Theme>;
 }) => (
   <Box
     component={component ?? "div"}
-    onClick={onClick}
     sx={[
       {
         width: "100%",
@@ -610,8 +607,19 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
           {/* The whole card's width: a line of its own where the card is a row, the top of the
               block where it is not. */}
           {mediaBand && <Box sx={FULL_WIDTH_NO_BASIS}>{mediaBand.node}</Box>}
+          {/* The press is the action area's own, not the picture's inside it. The area is a
+              button, and a button's Enter fires the button — never a click on some element within
+              it — so a handler on the image is a card openable by the pointer alone, which is
+              every card on the page for a reader on the keyboard. */}
           <CardActionArea
             aria-label={props.openLabel}
+            onClick={() => {
+              if (onOpen) return onOpen();
+              // The detail dialog is themed from this colour, so it is worth reading even for a card
+              // that did not ask for one.
+              readColour(imgRef.current);
+              openDetail();
+            }}
             sx={mediaLayout === "aside" ? ASIDE_ACTION_AREA_SX : beside ? SHAPE_ASIDE_ACTION_AREA_SX : undefined}
           >
             {missing ? (
@@ -626,7 +634,6 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
                 alt={alt}
                 palette={palette}
                 component="span"
-                onClick={onOpen ?? openDetail}
                 sx={mediaSx}
               />
             ) : (
@@ -636,13 +643,6 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
                 crossOrigin="anonymous"
                 src={image}
                 alt={alt}
-                onClick={() => {
-                  if (onOpen) return onOpen();
-                  // The detail dialog is themed from this colour, so it is worth reading even for a card
-                  // that did not ask for one.
-                  readColour(imgRef.current);
-                  openDetail();
-                }}
                 loading={lazy ? "lazy" : undefined}
                 // WebKit decodes on the main thread as it paints, and a wall's artwork arrives
                 // while the reader is scrolling it — the frames a synchronous decode costs are
@@ -1517,7 +1517,8 @@ export const FooterComponent = ({
    * it: a grouped card fronts its group, and the whole card is the handle. The glyph is the only
    * thing that says so — a worded button there stands a row taller than the plain footers beside
    * it, and a chip over the artwork covers the one thing a fronting picture is for. A strip card's
-   * caption has two fixed lines and no room, and drops it.
+   * caption carries it on its closing line, the phone's grouped lists being the one place a
+   * fronting card is drawn at no other size.
    */
   chevron?: boolean;
   /**
@@ -1554,26 +1555,48 @@ export const FooterComponent = ({
         }}
       >
         <Box sx={{ minWidth: 0, width: "100%" }}>
-          {(captionText ?? stripCaption(labels)).slice(0, STRIP_CAPTION_LINES).map((line) => (
-            <Typography
-              key={line}
-              variant="caption"
-              noWrap
-              sx={{
-                display: "block",
-                fontWeight: 600,
-                // Stated, so the height above is the height this actually takes rather than
-                // whatever the variant's ratio works out to.
-                lineHeight: `${STRIP_CAPTION_LINE}px`,
-                // One size down from the variant, so a date fits a cover's line; every strip card
-                // takes it, the strip being read across its captions.
-                fontSize: 11,
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              {line}
-            </Typography>
-          ))}
+          {(captionText ?? stripCaption(labels)).slice(0, STRIP_CAPTION_LINES).map((line, index, lines) => {
+            // The glyph rides the caption's *last* line, which is the figure — the shorter of the
+            // two. On the last line the date above keeps the card's full width, where a glyph
+            // standing beside both lines takes 16 of an 82px poster's caption from a date that
+            // already ellipsizes there.
+            const closing = chevron === true && index === lines.length - 1;
+
+            return (
+              <Typography
+                key={line}
+                variant="caption"
+                noWrap={!closing}
+                sx={{
+                  display: closing ? "flex" : "block",
+                  ...(closing && { alignItems: "center", columnGap: "2px" }),
+                  fontWeight: 600,
+                  // Stated, so the height above is the height this actually takes rather than
+                  // whatever the variant's ratio works out to.
+                  lineHeight: `${STRIP_CAPTION_LINE}px`,
+                  // One size down from the variant, so a date fits a cover's line; every strip card
+                  // takes it, the strip being read across its captions.
+                  fontSize: 11,
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                {closing ? (
+                  <Box
+                    component="span"
+                    sx={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                  >
+                    {line}
+                  </Box>
+                ) : (
+                  line
+                )}
+                {/* Under the caption's own 17px line rather than the footer's 18px glyph: an icon
+                    taller than the line box sets the line's height, and the caption's height is
+                    what the strip reserved the card's picture out of. */}
+                {closing && <ChevronRight sx={{ fontSize: 14, color: palette.muted, flexShrink: 0 }} />}
+              </Typography>
+            );
+          })}
         </Box>
       </CardContent>
     );

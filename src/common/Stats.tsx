@@ -815,6 +815,9 @@ const StatsListCard = <T,>({
               labels={labels}
               caption
               captionText={captionText}
+              // As on the grid's own cards: a card whose press opens a group rather than the item
+              // in it says so, and a strip is where a phone reads a grouped list.
+              chevron={onOpen !== undefined}
             />
           }
         />
