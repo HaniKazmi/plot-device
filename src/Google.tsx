@@ -281,13 +281,25 @@ const getTheme = (tab: Tab) => {
     },
     components: {
       MuiCssBaseline: {
-        styleOverrides: {
+        styleOverrides: (theme) => ({
           // The grey flash a mobile browser paints on every tap target is drawn at the target's
           // own box, so on a chart it lights a whole row group behind a bar a few pixels wide.
           // The app answers a tap with the card it opens, which is a stronger acknowledgement
           // than a flash. Inherited, so the body is the only place it has to be said.
           body: { WebkitTapHighlightColor: "transparent" },
-        },
+          // What shows past the page's ends when a phone rubber-bands: the tab's own bar colour,
+          // which is what stands at both ends — the app bar above the page and the bottom bar
+          // below it — so a pull past the top opens no band of paper between the status bar and
+          // the app bar. Only the root, since the body keeps the page's ground; only below `sm`,
+          // where both bars wear the colour. The dark half is stated under the same media query
+          // MUI emits the dark palette in, there being no `colorSchemeSelector`.
+          html: {
+            [theme.breakpoints.down("sm")]: {
+              backgroundColor: barColour(tab, "light"),
+              "@media (prefers-color-scheme: dark)": { backgroundColor: barColour(tab, "dark") ?? DARK_PAPER },
+            },
+          },
+        }),
       },
       // A hairline instead of a raised edge, which is how the other two sites separate a card from
       // the page. Floating surfaces — menus, dialogs, popovers — keep their elevation: a shadow is

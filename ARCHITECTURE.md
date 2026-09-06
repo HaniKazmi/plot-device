@@ -1775,7 +1775,10 @@ anything but zero, and the manifest's `theme_color` is the Omnibus tab's own pri
 colour a phone's status bar wears before any tab-specific theme has painted. `Google.tsx`'s
 `MuiCssBaseline` override turns off the grey tap flash on `body`: it is drawn at a tap target's own
 box, which on a chart is a whole row group behind a bar a few pixels wide, and every tap here already
-answers with the card it opens.
+answers with the card it opens. The same override paints the root element in the tab's bar colour
+below `sm`, the body keeping the page's ground: a rubber-band past either end of the page shows the
+root, and both ends are that colour already — the app bar above the page, the bottom bar below it —
+so a pull past the top opens no band of paper between the status bar and the app bar.
 
 **The mark.** `public/favicon.svg` is the phone's Now band as four blocks — a banner over a cover
 beside a poster over a banner, each in its medium's fill, the two columns level as the band's own
