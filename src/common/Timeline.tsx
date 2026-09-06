@@ -155,7 +155,6 @@ const ROW_SX = {
  * at the same offset or width.
  */
 const LABEL_SX = {
-  position: "fixed",
   pointerEvents: "auto",
   textOverflow: "ellipsis",
   overflow: "hidden",
@@ -165,9 +164,16 @@ const LABEL_SX = {
   // A press on a label is how a card is opened on a phone, and the press that opens it would
   // otherwise put the label's own text into a selection with the handles that come with it.
   userSelect: "none",
-  // The label sets `left` but never `top`, so it lands at the top of its row and is centred only
-  // by its own line box. Matching that box to the bar is what keeps the text on the bar's centre
-  // line at any bar height.
+  // The label is in flow and offset by a margin rather than positioned, so it lands at the top of
+  // its `foreignObject` and is centred only by its own line box. Matching that box to the bar is
+  // what keeps the text on the bar's centre line at any bar height.
+  //
+  // Positioned, the offset would be `left` against whatever the label's containing block turns out
+  // to be, and the engines do not agree: an SVG `foreignObject` establishes a viewport, which
+  // Chrome resolves a `position: fixed` descendant against — landing it correctly — where WebKit
+  // resolves it against the browser viewport instead. Every label then sits at its offset from the
+  // window's own left edge and stays there as the chart is scrolled. A margin is read the same way
+  // everywhere.
   lineHeight: `${BAR_HEIGHT}px`,
 } as const;
 
@@ -619,7 +625,10 @@ const TimelineText = ({
 
   const leftPadding = layoutInfo.placement === "right" ? `${layoutInfo.barPx + LABEL_PADDING}px` : `${LABEL_PADDING}px`;
   const rightPadding = layoutInfo.placement === "left" ? `${layoutInfo.barPx + LABEL_PADDING}px` : `${LABEL_PADDING}px`;
-  const leftPosition = `${layoutInfo.placement === "left" ? layoutInfo.availableLeftPx - layoutInfo.textPx : layoutInfo.availableLeftPx}px`;
+  // How far into its `foreignObject` the label starts. The box spans the whole gap between the
+  // row's neighbours and opens where the previous item ended, so a label on its bar is exactly the
+  // gap's own width in, and one placed to the left ends where the bar begins.
+  const leftOffset = `${layoutInfo.placement === "left" ? layoutInfo.availableLeftPx - layoutInfo.textPx : layoutInfo.availableLeftPx}px`;
   // A span starts on the bar like a centred label but is free to run off its end, so its width is
   // the two added together rather than either alone.
   const labelWidth =
@@ -639,7 +648,7 @@ const TimelineText = ({
   const labelStyle = {
     paddingLeft: leftPadding,
     paddingRight: rightPadding,
-    left: leftPosition,
+    marginLeft: leftOffset,
     width: labelWidth,
     /**
      * A span is the one label crossing from its bar onto the card, so no single colour has
