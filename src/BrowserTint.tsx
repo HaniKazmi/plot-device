@@ -1,6 +1,7 @@
 import { Box } from "@mui/material";
 import { barColour, useCurrentTab } from "./tabs";
-import { BROWSER_TINT_HEIGHT, BROWSER_TINT_VISIBLE } from "./common/chrome";
+import { BROWSER_TINT_HEIGHT, BROWSER_TINT_VISIBLE, useScrolledPastBar } from "./common/chrome";
+import { usePhone } from "./common/breakpoints";
 import { useScheme } from "./common/useScheme";
 
 /**
@@ -14,6 +15,13 @@ import { useScheme } from "./common/useScheme";
  * the top needs stating — the colour that bar is sampled in follows its two states, the tab's own
  * while it holds the tabs and the page's ground once it holds the rail, which is the colour the
  * page at that edge actually is either way.
+ *
+ * Below `sm` this strip carries the same two states as the bar it sits above, on the same boundary
+ * (`useScrolledPastBar`): the tab's colour while that bar holds the tabs, and the page's own ground
+ * once it holds the rail instead. Left at the tab's colour throughout, a phone scrolled deep into a
+ * library reads a coloured band at the very top of an otherwise plain page, naming a bar that
+ * scrolled out of reach screens ago. From `sm` up the strip keeps the tab's colour at every scroll
+ * position, unchanged here: the pinned rail beneath it is its own separate surface, not sampled.
  *
  * What a strip has to be is measured rather than declared: an element that anything paints over is
  * never sampled, which is what the `zIndex` is for — the section rail pins opaque one below the app
@@ -41,12 +49,24 @@ import { useScheme } from "./common/useScheme";
  * A tab with no bar colour of its own draws no strip, leaving Safari the paper it would have
  * sampled anyway.
  */
+
+/**
+ * How long the strip takes to cross from one colour to the other, matching `BottomTabs`' own
+ * `SWAP_MS`: the two are opposite edges answering the same crossing, and one lagging the other
+ * would read as two events instead of one.
+ */
+const TINT_SWAP_MS = 160;
+
 export const BrowserTint = () => {
   const currTab = useCurrentTab();
   const scheme = useScheme();
+  const phone = usePhone();
+  const past = useScrolledPastBar();
   const ground = barColour(currTab, scheme);
-
-  if (!ground) return null;
+  // Past the bar the strip is not drawn: with nothing fixed at the top and no `theme-color`
+  // stated, Safari draws its own translucent status bar over the page.
+  if (!ground || (phone && past)) return null;
+  const background = ground;
 
   return (
     <Box
@@ -64,7 +84,9 @@ export const BrowserTint = () => {
           // It lies across the top of the page, and a strip that answered a tap would take one
           // meant for whatever it covers.
           pointerEvents: "none",
-          backgroundColor: ground,
+          backgroundColor: background,
+          transition: `background-color ${TINT_SWAP_MS}ms ease`,
+          "@media (prefers-reduced-motion: reduce)": { transition: "none" },
         },
       })}
     />

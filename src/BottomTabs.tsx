@@ -1,10 +1,10 @@
 import { BottomNavigation, BottomNavigationAction, Box, Paper, type Theme } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabs, { barColour, useCurrentTab } from "./tabs";
 import { usePhone } from "./common/breakpoints";
 import { useScheme } from "./common/useScheme";
-import { APP_BAR_HEIGHT, BOTTOM_TABS_CLEARANCE, BOTTOM_TABS_HEIGHT } from "./common/chrome";
+import { BOTTOM_TABS_CLEARANCE, BOTTOM_TABS_HEIGHT, useScrolledPastBar } from "./common/chrome";
 import { dismissPhoneBarTabs, setPhoneBarSlot, usePhoneBarTabsAsked } from "./common/phoneBar";
 
 /**
@@ -92,32 +92,22 @@ export const BottomTabs = () => {
   // back below it. Two answers rather than one: the request is the reader's and survives until they
   // scroll, where the offset is the page's and answers again on every event. The request is a store
   // because the chip that makes it is in the rail, which is drawn from inside this bar by a page
-  // several levels down the tree (`phoneBar.ts`).
-  const [atTop, setAtTop] = useState(true);
+  // several levels down the tree (`phoneBar.ts`). The offset itself comes from `useScrolledPastBar`
+  // (`chrome.ts`), the one shared listener `BrowserTint` and the `theme-color` metas key their own
+  // swap on too.
+  const pastBar = useScrolledPastBar();
+  const atTop = !pastBar;
   const tabsAsked = usePhoneBarTabsAsked();
   const tabsShown = atTop || tabsAsked;
+  console.log("DEBUG BottomTabs render", { pastBar, atTop, tabsAsked, tabsShown });
 
   useEffect(() => {
-    // Nothing to swap where the bar is not drawn, so a desktop pays no listener at all. Keyed on
-    // the width, so a phone turned sideways past `sm` drops it and turned back gets it again.
-    if (!phone) return;
-    const read = () => {
-      const top = window.scrollY <= APP_BAR_HEIGHT;
-      // Both are sets to the value already held on most events, which React drops without a render:
-      // a scroll that crosses nothing costs nothing.
-      setAtTop(top);
-      // The reader's own scroll is what takes the called-back tabs away again. Only below the app
-      // bar: above it the tabs are the state anyway, and clearing there would leave the flag set
-      // for the next crossing.
-      if (!top) dismissPhoneBarTabs();
-    };
-    // Read once rather than waiting for a scroll: a reload restores the offset, and a page that
-    // comes back mid-wall would otherwise open showing the tabs over content it is not at the top
-    // of.
-    read();
-    window.addEventListener("scroll", read, { passive: true });
-    return () => window.removeEventListener("scroll", read);
-  }, [phone]);
+    // The reader's own scroll is what takes the called-back tabs away again. Only below the app
+    // bar and only on a phone: above it the tabs are the state anyway, and a desktop crossing the
+    // same offset — paid for by the one listener every caller shares — has no rail here to call
+    // back from.
+    if (phone && pastBar) dismissPhoneBarTabs();
+  }, [phone, pastBar]);
 
   return (
     <Paper

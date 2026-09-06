@@ -3,7 +3,8 @@ import { useState, type ReactNode } from "react";
 import NavBar from "./NavBar";
 import { BottomTabs } from "./BottomTabs";
 import { BrowserTint } from "./BrowserTint";
-import { BOTTOM_TABS_CLEARANCE, safeAreaGutters } from "./common/chrome";
+import { BOTTOM_TABS_CLEARANCE, safeAreaGutters, useScrolledPastBar } from "./common/chrome";
+import { usePhone } from "./common/breakpoints";
 import {
   COARSE_CONTROL_HEIGHT,
   CONTROL_HEIGHT,
@@ -123,6 +124,45 @@ const GoogleAuth = () => {
   );
 };
 
+/**
+ * The two `theme-color` metas, in a component of its own nested inside the `ThemeProvider` below:
+ * `usePhone` reads a breakpoint off the nearest theme in context, which is the one `Graphs` is
+ * itself in the middle of providing — called from `Graphs`' own body the hook would find no theme
+ * above it at all, this being the outermost `ThemeProvider` in the tree.
+ */
+const ThemeColorMetas = ({
+  theme,
+  darkThemeColour,
+}: {
+  theme: ReturnType<typeof getTheme>;
+  darkThemeColour: string;
+}) => {
+  const phone = usePhone();
+  const scrolledPastBar = useScrolledPastBar();
+  // Below `sm`, once the page has scrolled past the app bar, the two metas agree with what
+  // `BrowserTint` samples there instead: a device that still honours `theme-color` (`BrowserTint`'s
+  // own comment covers the one that no longer does) would otherwise keep painting the tab's colour
+  // over a status bar the sampled strip has already handed back to the page.
+  // No meta at all past the bar: with none stated Safari draws its own translucent status bar
+  // over the page, which is the transparency a stated ground can only imitate.
+  if (phone && scrolledPastBar) return null;
+
+  return (
+    <>
+      <meta
+        name="theme-color"
+        content={theme.palette.primary.main}
+        media="(prefers-color-scheme: light)"
+      />
+      <meta
+        name="theme-color"
+        content={darkThemeColour}
+        media="(prefers-color-scheme: dark)"
+      />
+    </>
+  );
+};
+
 const Graphs = () => {
   const currTab = useCurrentTab();
   const theme = getTheme(currTab);
@@ -135,15 +175,9 @@ const Graphs = () => {
       theme={theme}
       noSsr
     >
-      <meta
-        name="theme-color"
-        content={theme.palette.primary.main}
-        media="(prefers-color-scheme: light)"
-      />
-      <meta
-        name="theme-color"
-        content={darkThemeColour}
-        media="(prefers-color-scheme: dark)"
+      <ThemeColorMetas
+        theme={theme}
+        darkThemeColour={darkThemeColour}
       />
       <CssBaseline />
       <GoogleAuth />
@@ -159,6 +193,12 @@ const { palette: defaultPalette } = createTheme();
 // that could drift.
 const DARK_TEXT = "#e8eaed";
 const DARK_PAPER = "#1d2126";
+
+// The two schemes' own page ground, named once so `getTheme`'s palette and `Graphs`' scrolled-past
+// `theme-color` metas cannot drift onto a value that is not what the page beneath the strip
+// actually paints.
+const LIGHT_PAGE_GROUND = "#f6f7f9";
+const DARK_PAGE_GROUND = "#14171a";
 
 // Themes are cached per tab: building one walks both colour schemes, typography, shadows and
 // the whole CSS-variable map, and a stable identity also stops the MUI tree re-evaluating `sx`
@@ -185,7 +225,7 @@ const getTheme = (tab: Tab) => {
         palette: {
           primary: { main: primaryColour },
           secondary: { main: secondaryColour },
-          background: { default: "#f6f7f9", paper: "#ffffff" },
+          background: { default: LIGHT_PAGE_GROUND, paper: "#ffffff" },
           text: { primary: "#1b1f24", secondary: "#6a737d" },
           divider: "#e1e4e8",
         },
@@ -201,7 +241,7 @@ const getTheme = (tab: Tab) => {
           // `theme.palette` rather than `theme.vars`.
           primary: { main: tab.darkBar?.rule ?? primaryColour },
           secondary: { main: secondaryColour },
-          background: { default: "#14171a", paper: DARK_PAPER },
+          background: { default: DARK_PAGE_GROUND, paper: DARK_PAPER },
           text: { primary: DARK_TEXT, secondary: "#9aa4af" },
           divider: "#2c3238",
           // Left unset, `AppBar.darkBg`/`darkColor` default to `background.paper`/`text.primary` —

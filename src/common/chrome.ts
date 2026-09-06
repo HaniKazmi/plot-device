@@ -1,4 +1,5 @@
 import type { Theme } from "@mui/material";
+import { useSyncExternalStore } from "react";
 
 /**
  * The app's own furniture, in numbers the page has to make room for.
@@ -76,3 +77,56 @@ export const safeAreaGutters = (theme: Theme) => ({
  */
 export const BROWSER_TINT_HEIGHT = 15;
 export const BROWSER_TINT_VISIBLE = 5;
+
+/**
+ * Whether the page has scrolled past the app bar — the boundary the bottom bar's tabs/rail swap
+ * (`BottomTabs.tsx`) already keys on, and the one the phone's status-bar tint (`BrowserTint.tsx`)
+ * and its `theme-color` metas (`Google.tsx`) key on too: past it, the app bar has left the screen
+ * and nothing else at that edge still says which tab is open, so the top of the page can stop
+ * wearing the tab's own colour and read as the page instead.
+ *
+ * One `scroll` listener at module scope, lazily attached on first use and fanned out to every
+ * caller through `useSyncExternalStore` — the trade `useMatchMedia.ts` makes for a media query,
+ * for the same reason: a caller asks per component instance, and minting a fresh listener each
+ * would be one per caller rather than one for the page. `window` is reached from inside the getter
+ * rather than at module scope, so importing this module does not require one.
+ */
+interface ScrollStore {
+  subscribe: (onChange: () => void) => () => void;
+  snapshot: () => boolean;
+}
+
+let scrollStore: ScrollStore | undefined;
+
+const getScrollStore = (): ScrollStore => {
+  if (scrollStore) return scrollStore;
+
+  const listeners = new Set<() => void>();
+  let past = window.scrollY > APP_BAR_HEIGHT;
+  const read = () => {
+    const next = window.scrollY > APP_BAR_HEIGHT;
+    // A set to the value already held notifies nobody, so a scroll that crosses nothing costs no
+    // render in any caller.
+    if (next === past) return;
+    past = next;
+    listeners.forEach((listener) => listener());
+  };
+  window.addEventListener("scroll", read, { passive: true });
+
+  scrollStore = {
+    subscribe: (onChange) => {
+      listeners.add(onChange);
+      return () => {
+        listeners.delete(onChange);
+      };
+    },
+    snapshot: () => past,
+  };
+  return scrollStore;
+};
+
+/** Live, re-rendering the caller the moment the page crosses the app bar in either direction. */
+export const useScrolledPastBar = () => {
+  const store = getScrollStore();
+  return useSyncExternalStore(store.subscribe, store.snapshot);
+};
