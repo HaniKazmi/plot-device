@@ -1,5 +1,6 @@
 import { Box, Chip, Tooltip, useTheme, type SxProps, type Theme } from "@mui/material";
-import type { ReactElement, ReactNode, Ref } from "react";
+import { useEffect, type ReactElement, type ReactNode, type Ref } from "react";
+import { railScrollTarget } from "./chipRailData";
 import { ScrollFade } from "./ScrollFade";
 import { useScrollEdges } from "./useScrollEdges";
 import { QUIET_SIDEWAYS_SCROLL } from "./scrollbarSx";
@@ -57,6 +58,7 @@ export const RailChip = ({
   icon,
   ariaLabel,
   colour,
+  railId,
   onClick,
 }: {
   label?: string;
@@ -64,12 +66,20 @@ export const RailChip = ({
   icon?: ReactElement;
   ariaLabel?: string;
   colour?: string;
+  /**
+   * What the chip stands for, published on the element so the row can find the lit one to scroll it
+   * into view. An attribute rather than an `id`, which the section chips share with the `Section`
+   * elements they scroll to: two nodes carrying one id leaves `getElementById` answering whichever
+   * the document reaches first.
+   */
+  railId?: string;
   onClick: () => void;
 }) => {
   const base = label === undefined ? ICON_ONLY_SX : CHIP_SX;
   const chip = (
     <Chip
       label={label ?? ""}
+      data-rail-chip={railId}
       aria-label={ariaLabel}
       icon={icon}
       size="small"
@@ -135,6 +145,45 @@ export const ChipRail = (props: {
   const theme = useTheme();
   const ground = props.ground ?? theme.vars.palette.background.default;
 
+  /**
+   * The row follows the highlight: a rail is a reading of where in the page the reader is, and a
+   * lit chip scrolled off the end of it says nothing at all — on a phone the row holds four of a
+   * tab's seven sections, so most of the page's positions are off-screen positions.
+   *
+   * Keyed on the lit chip alone, so the reader's own flick along the row is never taken back: the
+   * effect runs when the answer changes and not when the row moves. The offset is computed rather
+   * than asked for through `scrollIntoView`, which scrolls every scrollable ancestor — including the
+   * document, which would move the page the highlight is a reading of.
+   *
+   * Measured from the two rects rather than `offsetLeft`, whose origin is the nearest positioned
+   * ancestor and not necessarily this row.
+   */
+  useEffect(() => {
+    const row = scrollRef.current;
+    if (!row || activeId === undefined) return;
+    const chip = row.querySelector<HTMLElement>(`[data-rail-chip="${CSS.escape(activeId)}"]`);
+    if (!chip) return;
+    const rowBox = row.getBoundingClientRect();
+    const chipBox = chip.getBoundingClientRect();
+    const target = railScrollTarget(
+      row.scrollLeft,
+      row.clientWidth,
+      chipBox.left - rowBox.left + row.scrollLeft,
+      chipBox.width,
+    );
+    // A sub-pixel correction is a scroll nobody asked for: `scrollLeft` is fractional under a
+    // device pixel ratio that is not a whole number, so an exact comparison moves the row on every
+    // change of highlight, smoothly, by nothing.
+    if (Math.abs(target - row.scrollLeft) < 1) return;
+    row.scrollTo({
+      left: target,
+      // A reader who has asked for less motion gets the row in its new position rather than a
+      // journey to it. Read here rather than subscribed to: the answer is wanted at the moment of
+      // the scroll, and a change to it re-renders nothing.
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    });
+  }, [activeId, scrollRef]);
+
   const chips = (
     <>
       {leading}
@@ -142,6 +191,7 @@ export const ChipRail = (props: {
         <RailChip
           key={item.id}
           label={item.label}
+          railId={item.id}
           active={item.id === activeId}
           onClick={() => onSelect(item.id)}
         />

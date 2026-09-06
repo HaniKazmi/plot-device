@@ -1645,7 +1645,15 @@ primary on the light paper, the bar's `ink` on the dark, through `tabInk` (`tabs
 primary on the dark paper is the value that tab's tint was mixed from. Icons rather than words at
 every width they are drawn at: four names and a divider take a third of a tablet's rail where four
 glyphs take 136px, and the app bar's own strip carries the same icons beside its words, which is
-where a reader learns them. `RailChip`'s icon-only form is a circle — the label's padding and MUI's
+where a reader learns them. Every `ChipRail` — this one, the timeline's years — keeps its lit chip
+in view: when the active id changes the row scrolls so that chip and a margin of its neighbours are
+inside it (`railScrollTarget`, `common/chipRailData.ts`), instantly under `prefers-reduced-motion`.
+A rail is a reading of where in the page the reader is, and on a phone the row holds four of a tab's
+seven sections, so most of those positions are off-screen ones. The offset is computed rather than
+asked for through `scrollIntoView`, which scrolls every scrollable ancestor — the document included,
+which would move the page the highlight is a reading of — and the effect is keyed on the lit chip
+alone, so the reader's own flick along the row is never taken back. `RailChip`'s icon-only form is a
+circle — the label's padding and MUI's
 own offsets for a mark beside a word are dropped and the width follows the height through
 `aspect-ratio`, so the glyph is centred at whatever height the pointer gives a chip — and it is
 named by its `aria-label` with a tooltip carrying the same word for a pointer; a finger is told
