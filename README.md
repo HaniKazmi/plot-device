@@ -64,7 +64,7 @@ The spreadsheet IDs and cell ranges themselves live in [`src/tabs.ts`](./src/tab
 npm run dev
 ```
 
-The app is served at `http://localhost:5173`. Click **Authorise** in the app bar to grant access — below `md`, and on any touch device regardless of width, it is in the app bar's **⋮** menu instead. The token is held in `sessionStorage` for that tab only.
+The app is served at `http://localhost:5173`. Click the **key** in the app bar to grant access: it is there at every width whenever there is something to authorise, wearing the word "Authorise" from `md` up with a fine pointer, and it carries a dot while the page is painted from a cached copy. The app bar's **⋮** holds the tab's Sheet, Revoke and guest mode, at every width and pointer. The token is held in `sessionStorage` for that tab only.
 
 ## Scripts
 

@@ -120,12 +120,12 @@ npm run dev   # http://localhost:5173
 
 Authentication notes that otherwise waste your time:
 
-- The OAuth token lives in **`sessionStorage`, per-tab**. Click **Authorise** in the tab you are driving.
-- A failed `values.get` clears the token, so an empty page plus an "Authorise" button usually means auth rather than rendering. A converter throw is deliberately not guarded that way; it reports itself through the snackbar.
+- The OAuth token lives in **`sessionStorage`, per-tab**. Authorise in the tab you are driving: the key beside the search button in the app bar, which carries the word from `md` up with a fine pointer.
+- A failed `values.get` clears the token, so the key coming back — with a dot on it and the "Showing cached data" strip under the bar, or the "Nothing here yet" card where there was no cache to paint — usually means auth rather than rendering. A converter throw is deliberately not guarded that way; it reports itself through the snackbar.
 - Data is cached in `localStorage`, so the app paints before auth completes: a stale render can outlive a broken change.
 - **Extracted artwork colours arrive seconds after the page does**, sometimes only on a reload. Until then a card wears the theme's own colours, which reads as broken styling.
 
-**Checking a phone or tablet width** means checking a pointer as well as a width: `usePhone`, `useStackedCharts` and `useCoarsePointer` are live media queries, so a browser DevTools device toolbar flips all three without a reload as you resize or switch device, and its emulated device sets both `pointer: coarse` and `hasTouch` — which is what puts the guest-mode toggle behind the app bar's `⋮` menu rather than the wordmark's long press (`NavBar.tsx`), since the long press is deliberately a mouse gesture and collides with a touch device's own press-and-hold. Check `xs`, `sm` and `md` widths, and separately check a coarse pointer at `md` and above — a tablet held sideways clears every width breakpoint but still wants the overflow menu and the bottom-sheet hover cards a phone gets.
+**Checking a phone or tablet width** means checking a pointer as well as a width: `usePhone`, `useStackedCharts` and `useCoarsePointer` are live media queries, so a browser DevTools device toolbar flips all three without a reload as you resize or switch device, and its emulated device sets both `pointer: coarse` and `hasTouch` — which is what takes the wordmark's long press away, leaving the `⋮` menu's own item as the only handle on guest mode (`NavBar.tsx`), since the long press is deliberately a mouse gesture and collides with a touch device's own press-and-hold, and what holds the authorise key to its glyph where a mouse gets the word beside it. Check `xs`, `sm` and `md` widths, and separately check a coarse pointer at `md` and above — a tablet held sideways clears every width breakpoint but still wants the icon-only key and the bottom-sheet hover cards a phone gets.
 
 **To test without real data**, seed the caches and reload — `useData` reads them on mount, and with no token it never overwrites them:
 

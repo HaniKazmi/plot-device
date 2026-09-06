@@ -16,9 +16,22 @@ import { GoogleAuthProvider } from "./contexts/GoogleAuthContext.tsx";
 import { LibraryProvider } from "./app/LibraryProvider.tsx";
 import { FranchiseUnionProvider } from "./app/franchiseUnion.tsx";
 import { SearchHost } from "./app/Search.tsx";
+import { useAuthState } from "./app/authState.ts";
+import { StaleStrip } from "./app/StaleStrip.tsx";
+import { EmptyCard } from "./app/EmptyCard.tsx";
 import { barColour, useCurrentTab } from "./tabs.ts";
 import type { Tab } from "./tabs.ts";
 import type {} from "@mui/material/themeCssVarsAugmentation";
+
+/**
+ * The tab, or the reason there is none to draw.
+ *
+ * A component of its own because the state is read from a hook and `GoogleAuth` below mounts the
+ * providers that answer it, so it is above them and cannot ask. Every other state renders the
+ * outlet: a tab holding a cached copy paints it with the strip above saying so, and one still
+ * fetching paints what it has, which is what a cache-first page is for.
+ */
+const PageContent = () => (useAuthState() === "empty" ? <EmptyCard /> : <Outlet />);
 
 const GoogleAuth = () => {
   const [guestMode, setGuestMode] = useState(false);
@@ -33,6 +46,9 @@ const GoogleAuth = () => {
           guestMode={guestMode}
           setGuestMode={setGuestMode}
         />
+        {/* Under the bar and above everything the page states about itself, since what it says is
+            true of the whole page rather than of any one section of it. */}
+        <StaleStrip />
         <Container
           maxWidth={"xl"}
           // The bottom navigation is fixed, so it paints over whatever the page ends with unless the
@@ -42,7 +58,7 @@ const GoogleAuth = () => {
         >
           {/* Above every tab, because a card on any of them draws the franchise across all four. */}
           <FranchiseUnionProvider>
-            <Outlet />
+            <PageContent />
             {/* Inside the provider, since the palette lists the union's own items; opened from the
                 app bar above through a store rather than a flag lifted over both. */}
             <SearchHost />

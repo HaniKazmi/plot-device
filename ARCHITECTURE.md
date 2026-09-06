@@ -284,16 +284,41 @@ visitor who never authorises.
   yields a `NaN` expiry, which fails every validity test and discards the token on its next read.
 - **Readiness.** `apiReady = tokenSet && apiReadyToFetch` — a valid token _and_ an initialised gapi
   client, so consumers wait on one flag rather than two async loads.
-- **Failure handling.** A rejected `values.get` clears `tokenSet`, flipping the NavBar back to
-  "Authorise", so mid-session expiry self-heals into a re-prompt. **Only the request is guarded**: a
+- **Failure handling.** A rejected `values.get` clears `tokenSet`, putting the key back in the bar,
+  so mid-session expiry self-heals into a re-prompt. **Only the request is guarded**: a
   converter throw travels on to `useData` instead, since clearing the token would make a data fault
   look like an auth fault. A refusal — GIS delivers a dismissed consent popup to the callback a grant
   arrives on, carrying `error` and no `access_token` — is rejected by `isGrant` (`contexts/token.ts`)
   before it can leave the app reporting itself authorised on a credential-less token.
 
 The requested scope is `spreadsheets.readonly`; there is no write path by design. `authorise` and
-`revoke` are exposed as `undefined` when unavailable, so `NavBar` renders its three states
-(Authorising / Authorise / Revoke) by presence-checking rather than reading separate booleans.
+`revoke` are exposed as `undefined` when unavailable, so which of them exists _is_ the token, read by
+presence rather than through separate booleans.
+
+**What the reader is told is a fourth thing, and it takes the cache as well as the token.**
+`app/authState.ts` answers `live` · `authorising` · `stale` · `empty`: neither callback present is
+the loading state whatever the cache holds, `revoke` present is live, and only then does the cache
+decide — some library with a copy behind it is `stale`, none at all is `empty`. Presence alone, never
+`useData`'s `loaded`: a reader who revokes mid-session, and a failed `values.get` that cleared the
+token, both leave rows on screen this session did fetch and can no longer refresh, which is what the
+strip is for and what reading `loaded` would blank the page over. The auth context sits above the
+library provider and knows nothing about the cache, so the derivation is a hook below both — which
+the bar, the strip and the page body are, `Google.tsx` mounting `LibraryProvider` above `NavBar` for
+it.
+
+The bar draws one thing about all this: an authorise key beside the search button, at every width,
+and only where there is something to authorise — a dot on it while the page is stale, its word
+beside it from `md` up with a fine pointer, and nothing at all when the session is live. Everything
+else is behind the `⋮`, which is drawn at every width and pointer: the tab's Sheet, Revoke, and
+guest mode in both directions. One list and one surface, so nothing is reachable at one width and
+not another — an iPad held sideways clears every width test and still points with a finger, and a
+mouse at 1440 has no other way out of guest mode. `app/StaleStrip.tsx` carries the sentence the key
+cannot ("Showing cached data", the same callback, and a ✕ that dismisses for the sitting through
+`sessionStorage`), under the bar and flush against it; both are `position: static`, so the strip
+scrolls away with the bar and the section rail below still pins itself at the top of the viewport.
+`app/EmptyCard.tsx` is that strip grown to the page for the `empty` state, which `Google.tsx` renders
+in place of the `<Outlet>`: with no cache and no token there is no fetch to fail, so the snackbar has
+nothing to report and the card is the only thing that can say what to do.
 
 ## 6. Presentation subsystems
 
@@ -1539,16 +1564,16 @@ string, held at module scope and fanned out through `useSyncExternalStore`, beca
 component instance and a chart is hundreds of them — a fresh `matchMedia()` and a fresh listener per
 instance would be that many of both minted on every render.
 
-**Chrome.** Below `md`, or on any coarse pointer regardless of width, `NavBar`'s Sheet/Authorise-or-
-Revoke buttons collapse from the app bar into an overflow menu (`⋮`), built from a single `BarAction`
-list drawn twice — as buttons and as menu items — so the bar and the menu can never disagree about
-which actions exist or whether "Authorising" is live: both are on screen at once wherever a finger is
-the pointer. At 768px the wordmark, five tabs and two buttons want about 800px of a 720px content
-width, which is the arithmetic behind the `md` cutoff; a tablet held sideways clears the width test
-but still fails the pointer one, so the menu stays. The same menu is guest mode's only handle under a
-touch pointer, carrying a "Guest mode"/"Leave guest mode" item — the long press that reaches it
-elsewhere is a mouse gesture alone (§7, Guest mode), and without the item a finger would have no way
-in, or once in, no way out but a reload.
+**Chrome.** `NavBar` keeps three targets at every width — the authorise key while there is something
+to authorise, search, and the `⋮` — and everything else the session can do is in that menu, drawn at
+every width and pointer (§5). One list on one surface is what keeps the bar and the menu from
+disagreeing about which actions exist; drawn as buttons as well below some width, an iPad held
+sideways would list Sheet and Authorise twice, since it clears the width test and still points with a
+finger. At 768px the wordmark, five tabs and two worded buttons want about 800px of a 720px content
+width, which is why only the key wears its word, and only from `md` with a fine pointer. The menu is
+also guest mode's only handle, carrying a "Guest mode"/"Leave guest mode" item in both directions —
+the long press that reaches it elsewhere is a mouse gesture alone (§7, Guest mode), so without the
+item a finger has no way in, and a mouse no way out but a reload.
 
 Each tab in the strip carries its own icon beside its word (`iconPosition="start"`, so the strip
 keeps one row's height). The word is what the strip is for, and the glyph beside it is what teaches
@@ -1932,10 +1957,11 @@ a card strip. It is presentation, not a security boundary: the data is loaded al
 
 The gesture is the pointer's alone — the hook answers with mouse handlers and nothing else, a long
 press on touch colliding with the browser's own press-and-hold — so the app bar's overflow menu
-carries the mode as an item instead, in both directions, and is drawn wherever a finger is the
-pointer. The wordmark carries the press rather than the whole bar: a bar holding a tab strip and a
-menu button is three hundred pixels where a press landing on none of them changes what the page
-shows.
+carries the mode as an item instead, in both directions and at every width and pointer (§5): the
+press is the way in for a mouse and the item the way in for a finger, and the item is the only way
+back out for either. The wordmark carries the press rather than the whole bar: a bar holding a tab
+strip and a menu button is three hundred pixels where a press landing on none of them changes what
+the page shows.
 
 ### Theming and routing
 
@@ -2041,8 +2067,12 @@ Recorded so they are not mistaken for design:
   `initTokenClient({ client_id: CLIENT_ID })` runs in an effect with no check, so a missing
   `VITE_GOOGLE_CLIENT_ID` throws there and takes the app with it.
 - **No loading state.** An entry component renders `{data && <Graphs/>}` beside its snackbar, so a
-  first visit on a cold cache is a nav bar over an empty page while OAuth and the sheet read run. The
-  Omnibus waits on all four sheets, so it waits longest.
+  page with nothing to draw draws nothing. The `empty` state has a card of its own now (§5), which
+  covers the reader who has never authorised; the two windows either side of it are still bare. While
+  `authorising` — the GIS and gapi scripts landing — a cold cache shows the bar with its key dimmed
+  over an empty page, since the state cannot yet tell "nothing here" from "about to fetch". Once
+  `live`, the sheet read runs behind the same empty page, and the Omnibus waits on all four sheets,
+  so it waits longest.
 - **Every visit fetches all four sheets.** `app/LibraryProvider.tsx` mounts above the router, so any
   tab has the cross-media union and the bar can say whether there is a library at all; a deep link
   to `/vg` therefore pays three extra sheet reads and paints from cache until they land, where the

@@ -1,21 +1,25 @@
 import {
   AppBar,
+  Badge,
   Box,
   Button,
+  Divider,
   IconButton,
   Menu,
   MenuItem,
   Tab as MuiTab,
   Tabs as MuiTabs,
   Toolbar,
+  Tooltip,
   Typography,
 } from "@mui/material";
-import { MoreVert, Search } from "@mui/icons-material";
+import { Key, MoreVert, Search } from "@mui/icons-material";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabs, { useCurrentTab } from "./tabs";
 import useLongPress from "./utils/useLongPress";
 import { useGoogleAuth } from "./contexts/GoogleAuthContext";
+import { useAuthState } from "./app/authState";
 import { safeAreaGutters } from "./common/chrome";
 import { openSearch } from "./common/searchOpen";
 import { AppIcon } from "./AppIcon";
@@ -54,38 +58,49 @@ const BAR_BUTTON_SX = {
 const DISABLED_BUTTON_SX = { "&.Mui-disabled": { color: "inherit", opacity: 0.6 } } as const;
 
 /**
- * A finger has no long press to reach guest mode with — that gesture is the pointer's alone, and on
- * touch it collides with the browser's own press-and-hold — so the menu is the only handle on the
- * mode and is drawn at every width where a finger is the pointer. A tablet held sideways is `md`,
- * and the coarse-pointer rule states its `display` after the width rule above it so it wins there.
- * It costs a menu repeating the two buttons beside it, which is what a ⋮ is for.
+ * The authorise key wearing its word, which it can only do where there is room for one and a
+ * pointer to read it with: a phone's bar is a wordmark and three targets, and a coarse pointer
+ * wants the whole 40px square whatever the width. The two forms are one control drawn twice and
+ * hidden by `display`, rather than a width read as a value — a hidden element is out of the
+ * accessibility tree, so a reader is offered exactly one Authorise however wide the bar is.
  */
-const MENU_BUTTON_SX = {
-  ...BAR_BUTTON_SX,
-  display: { md: "none" },
-  "@media (pointer: coarse)": { display: "flex" },
+const KEY_ICON_SX = {
+  display: { xs: "inline-flex", md: "none" },
+  "@media (pointer: coarse)": { display: "inline-flex" },
+} as const;
+
+const KEY_WORD_SX = {
+  display: { xs: "none", md: "inline-flex" },
+  "@media (pointer: coarse)": { display: "none" },
 } as const;
 
 /**
- * The search button is the bar's last child wherever the ⋮ is not drawn, and `edge="end"` is the
- * last child's alone — it pulls the button into the bar's gutter so its icon lines up with the
- * page edge, and two buttons wearing it overlap. Stated by the same two rules that draw the ⋮, so
- * the two cannot disagree about which of them is last.
+ * The worded form of the same key: a pill rather than a square, and the bar's own type size, so it
+ * reads as bar furniture beside the wordmark rather than as a card header's control shrunk into
+ * the bar. Doubled for the reason `BAR_BUTTON_SX` is, and stated separately from it because that
+ * one fixes a 40px circle a word cannot fit in.
  */
-const SEARCH_BUTTON_SX = {
-  ...BAR_BUTTON_SX,
-  marginRight: { md: -1.5 },
-  "@media (pointer: coarse)": { marginRight: 0 },
+const BAR_WORD_SX = {
+  "&&": {
+    height: 40,
+    minWidth: 0,
+    padding: "0 12px",
+    borderRadius: 20,
+    fontSize: "0.875rem",
+    fontWeight: 500,
+    textTransform: "none",
+    "@media (hover: hover)": { "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.12)" } },
+    "& .MuiSvgIcon-root": { fontSize: 20 },
+  },
+  ...DISABLED_BUTTON_SX,
 } as const;
 
 /**
- * What the bar can do, built once and drawn twice: as buttons from `md` up, and as the items of the
- * overflow menu. Both are on screen at once wherever a finger is the pointer, so two lists would be
- * two chances for the bar and the menu to disagree — over whether "Authorising" is a live control,
- * or over an action one of them gained and the other did not. Guest mode is the one item outside
- * this list: the buttons have no room for a mode switch, and the menu is its only handle.
+ * What the ⋮ holds: everything about the reader's session that is not the one thing the bar draws
+ * for itself. One list and one surface, so nothing here can be reachable at one width and not
+ * another — an iPad held sideways clears every width test and still points with a finger.
  */
-type BarAction = { label: string; href?: string; onClick?: () => void; disabled?: boolean };
+type BarAction = { label: string; href?: string; onClick?: () => void };
 
 /**
  * An action with a destination is a link and opens in its own tab; one without is a button. Given
@@ -101,6 +116,7 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
   // mode outright: a finger has no long press to reach it with.
   const { onMouseDown, onMouseUp, onMouseLeave } = useLongPress(() => setGuestMode(true));
   const { authorise, revoke } = useGoogleAuth();
+  const authState = useAuthState();
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   // A tab with no `darkBar` (none currently exist) keeps the plain dark bar `Google.tsx` falls
   // back to, so nothing here draws a rule or an ink colour with nothing to derive them from.
@@ -113,10 +129,9 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
     // Only where the tab has a sheet of its own. A tab composing several has no single one to
     // open, and the action would otherwise link to `/d/undefined`.
     ...(currTab.spreadsheetId ? [{ label: "Sheet", href: sheetHref }] : []),
-    // The three auth states are told apart by which of the two callbacks the context exposes, so
-    // neither present is the state where it is still loading.
-    ...(!authorise && !revoke ? [{ label: "Authorising", disabled: true }] : []),
-    ...(authorise ? [{ label: "Authorise", onClick: authorise }] : []),
+    // Its counterpart is the bar's own key: authorising is the one thing a reader arriving at a
+    // stale or empty page has to do, and a menu is two taps away from doing it. Giving a session
+    // back is neither urgent nor frequent, so it stays here.
     ...(revoke ? [{ label: "Revoke", onClick: revoke }] : []),
   ];
 
@@ -218,23 +233,52 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
             })}
           </MuiTabs>
         </Box>
-        {/* The buttons stand in the bar only from `md`. At 768 the wordmark, five tabs and two
-            buttons want about 800px of a 720px content width, so below that they are the overflow
-            menu's items and the bar keeps one row at every size. */}
-        <Box sx={{ display: { xs: "none", md: "flex" }, flexShrink: 0 }}>
-          {actions.map((action) => (
-            <Button
-              key={action.label}
-              color="inherit"
-              {...linkProps(action)}
-              onClick={action.onClick}
-              disabled={action.disabled}
-              sx={DISABLED_BUTTON_SX}
+        {/* The bar's one action, and only while there is something to authorise: live, nothing here
+            says so, since a page drawing this session's own data has already said it. The dot is
+            what tells the two remaining states apart — stale is a full page nothing on it would
+            otherwise mark as last visit's — and the strip below the bar carries the sentence.
+
+            Dimmed rather than absent while the scripts land, so the key does not appear under a
+            thumb already on its way to the search beside it. */}
+        {authState !== "live" && (
+          <>
+            <Tooltip title={authState === "authorising" ? "Authorising…" : "Authorise"}>
+              <Badge
+                color="secondary"
+                variant="dot"
+                overlap="circular"
+                invisible={authState !== "stale"}
+                sx={KEY_ICON_SX}
+              >
+                <IconButton
+                  color="inherit"
+                  aria-label="Authorise"
+                  disabled={authState === "authorising"}
+                  onClick={authorise}
+                  sx={{ ...BAR_BUTTON_SX, ...DISABLED_BUTTON_SX }}
+                >
+                  <Key />
+                </IconButton>
+              </Badge>
+            </Tooltip>
+            <Badge
+              color="secondary"
+              variant="dot"
+              invisible={authState !== "stale"}
+              sx={KEY_WORD_SX}
             >
-              {action.label}
-            </Button>
-          ))}
-        </Box>
+              <Button
+                color="inherit"
+                startIcon={<Key />}
+                disabled={authState === "authorising"}
+                onClick={authorise}
+                sx={BAR_WORD_SX}
+              >
+                {authState === "authorising" ? "Authorising" : "Authorise"}
+              </Button>
+            </Badge>
+          </>
+        )}
         {/* At every width: below `sm` the bar is a wordmark, this and the ⋮, the tabs having gone to
             the bottom of the screen, so the box stands in the space the strip left. A button rather
             than a `BarAction`, which is text-only and, under a finger, a menu item — a search box
@@ -244,16 +288,19 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
           aria-label="Search"
           aria-keyshortcuts="Meta+K Control+K /"
           onClick={openSearch}
-          sx={SEARCH_BUTTON_SX}
+          sx={BAR_BUTTON_SX}
         >
           <Search />
         </IconButton>
+        {/* The bar's last child at every width and pointer, which is what `edge="end"` states: it
+            pulls the button into the bar's own gutter so the glyph lines up with the page edge
+            below, and two buttons wearing it would overlap. */}
         <IconButton
           color="inherit"
           edge="end"
           aria-label="More"
           onClick={(event) => setMenuAnchor(event.currentTarget)}
-          sx={MENU_BUTTON_SX}
+          sx={BAR_BUTTON_SX}
         >
           <MoreVert />
         </IconButton>
@@ -267,7 +314,6 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
               key={action.label}
               component={action.href ? "a" : "li"}
               {...linkProps(action)}
-              disabled={action.disabled}
               onClick={() => {
                 closeMenu();
                 action.onClick?.();
@@ -276,9 +322,11 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
               {action.label}
             </MenuItem>
           ))}
-          {/* Both directions, because the menu is the only handle a touch reader has on the mode:
-              the long press that turns it on is a pointer gesture, and without an item saying so
-              leaving the mode is a reload. */}
+          {actions.length > 0 && <Divider />}
+          {/* Both directions, and at every width and pointer, because this item is the only handle
+              on the mode that everyone has: the long press that turns it on is the pointer's alone,
+              so a finger has no way in and a mouse no way out but a reload. Below the rule because
+              it is a mode and not an errand — the two above act on the session's data. */}
           <MenuItem
             onClick={() => {
               closeMenu();
