@@ -1785,10 +1785,14 @@ anything but zero, and the manifest's `theme_color` is the Omnibus tab's own pri
 colour a phone's status bar wears before any tab-specific theme has painted. `Google.tsx`'s
 `MuiCssBaseline` override turns off the grey tap flash on `body`: it is drawn at a tap target's own
 box, which on a chart is a whole row group behind a bar a few pixels wide, and every tap here already
-answers with the card it opens. The same override paints the root element in the tab's bar colour
-below `sm`, the body keeping the page's ground: a rubber-band past either end of the page shows the
-root, and both ends are that colour already — the app bar above the page, the bottom bar below it —
-so a pull past the top opens no band of paper between the status bar and the app bar.
+answers with the card it opens. The same override paints the document — `html` and `body`, Safari reading
+the body's — in the tab's bar colour below `sm` while the page is against the app bar, and in the
+page's ground once past it, on a `data-past-bar` attribute `BrowserTint.tsx` sets from the boundary
+its strip already keys on; the page's own ground moves onto `#root`. Safari extends that background
+past the page's ends and under its status bar, so a pull past the top shows the bar's colour where a
+band of paper would otherwise open between the status bar and the app bar, and a page scrolled past
+the bar keeps a status bar over its own ground rather than one tinted in a bar that is gone. A bar
+reaching above the document's edge shows nothing there: Safari paints nothing past it.
 
 **The mark.** `public/favicon.svg` is the phone's Now band as four blocks — a banner over a cover
 beside a poster over a banner, each in its medium's fill, the two columns level as the band's own
