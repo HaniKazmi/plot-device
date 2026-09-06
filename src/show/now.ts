@@ -23,10 +23,11 @@ const nowPanel = (season: Season, scheme: Scheme): NowPanel => ({
  * checked against the same record here, where `MediumLazy` erases it. Pure, so a test can run the
  * pair as the band runs it, without the card tree `module.lazy.ts` also carries.
  *
- * The election is the tab's own hero exactly, so the card and the page it stands for cannot name
- * two different seasons. It reads the whole library rather than the page's rows, as every
- * medium's card does. Every season the sheet dates is a candidate, so Shows contributes a card to
- * almost any library — the band's "nothing in flight, no card" is a rule Movies already answers
+ * The election is the tab's own, so the card cannot state a rule the Shows page does not. It is
+ * not always the same season: the band reads the whole library where the tab reads the page's own
+ * rows, as every medium's card does, so a filter set on Shows moves that page's hero and leaves
+ * this card where it was. Every season the sheet dates is a candidate, so Shows contributes a card
+ * to almost any library — the band's "nothing to name, no card" is a rule Movies already answers
  * the same way, a film being finished the day it is started.
  */
 export const now: NowModule<Show, Season> = { elect: heroSeason, nowPanel };

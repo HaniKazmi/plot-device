@@ -69,8 +69,7 @@ export const groupShowsBy = (data: Show[], key: ShowTopOption, measure: Measure)
  * start is after its end is only a `console.error` in the converter and survives into the model,
  * where a bare `daysTo` throws from inside a render.
  */
-export const daysWatching = (season: Season, today: YearMonthDay) =>
-  daysSince(season.startDate, season.endDate ?? today);
+const daysWatching = (season: Season, today: YearMonthDay) => daysSince(season.startDate, season.endDate ?? today);
 
 /**
  * The honest progress figures for a season: pace, never a fraction. The sheet records episodes
@@ -80,8 +79,10 @@ export const daysWatching = (season: Season, today: YearMonthDay) =>
  * `today` is a parameter rather than read from the clock, so the figures are a function of the
  * data alone — and it is only reached for a season still running, `daysWatching` measuring a
  * finished one to its own end. Each figure is dropped where the sheet cannot support it: no
- * runtime means no hours, a span the sheet typed backwards means no day count, and a pace over
- * less than a week is a projection rather than a rate.
+ * runtime means no hours, a span the sheet typed backwards means no day count, and a pace is
+ * stated only past a week, where a shorter run is too little of either kind of span to rate — a
+ * projection while a season is open, and a handful of days that averages to a wild figure once it
+ * has closed.
  */
 export const watchingProgress = (season: Season, today: YearMonthDay) => {
   const days = daysWatching(season, today);
@@ -185,28 +186,44 @@ const byLastWatched = (a: Season, b: Season) => {
 };
 
 /**
+ * The season of a list holding the newest watch, and nothing where the sheet dates none of them.
+ *
+ * A reduce rather than a sort: only the one season is wanted. Strictly `< 0`, so a full tie keeps
+ * the season the sheet lists first, which is the answer the strip's own stable sort gives. The
+ * closing test is what keeps the undated rule in one place: `byLastWatched` sorts an undated
+ * season last, so the winner is dated whenever anything is, and no caller has to know that.
+ */
+const newestWatched = (seasons: Season[]) => {
+  const best = seasons.reduce<Season | undefined>(
+    (best, season) => (!best || byLastWatched(season, best) < 0 ? season : best),
+    undefined,
+  );
+
+  return best?.lastWatchedDate ? best : undefined;
+};
+
+/**
  * The season holding the last episode watched, which is the page's hero. Every season in the
- * library is a candidate whatever its show's status: a show is Ended by the time the page next
- * draws it, so pinning the election to what is still in flight puts the finale you watched
- * yesterday out of reach of the one surface meant to name it.
+ * library is a candidate whatever its show's status — Ended, Cancelled and Abandoned alike: a
+ * status says what the reader has decided about a show's future, where the hero states what they
+ * last watched, so pinning the election to what is still in flight puts the finale watched
+ * yesterday out of reach of the one surface meant to name it. The card carries no status chip, so
+ * a show given up on leads exactly as one still running does.
  *
  * Answers nothing where the sheet dates no season at all — the column predates the rows and
  * nothing has finished — and the page then falls back to the plain strip rather than promoting a
  * season by a tie-break the data does not hold.
- *
- * A reduce rather than a sort: only the one season is wanted. Strictly `< 0`, so a full tie keeps
- * the season the sheet lists first, which is the answer the strip's own stable sort gives.
  */
-export const heroSeason = (data: Show[]) => {
-  const best = data
-    .flatMap((show) => show.s)
-    .reduce<Season | undefined>(
-      (best, season) => (!best || byLastWatched(season, best) < 0 ? season : best),
-      undefined,
-    );
+export const heroSeason = (data: Show[]) => newestWatched(data.flatMap((show) => show.s));
 
-  return best?.lastWatchedDate ? best : undefined;
-};
+/**
+ * The one season of a show holding its last watched episode, read by the order the hero is elected
+ * in, so a card's own ledger and the hero above it cannot name two different seasons of one show.
+ *
+ * Falls back to the last season listed where the sheet dates none of them: a ledger row has to say
+ * something, and the newest row is the best guess left once no date is.
+ */
+export const lastWatchedSeason = (show: Show) => newestWatched(show.s) ?? show.s.at(-1)!;
 
 /** Which of the optional figures a caller has room for. */
 interface ShowHeroStatOptions {

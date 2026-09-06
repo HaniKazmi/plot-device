@@ -67,6 +67,7 @@ import "../utils/arrayUtils";
 
 const Stats = ({
   data,
+  hasNow,
   hero,
   watching,
   measure,
@@ -74,6 +75,7 @@ const Stats = ({
   yearTo,
 }: {
   data: Show[];
+  hasNow: boolean;
   hero?: Season;
   watching: Season[];
   measure: Measure;
@@ -84,9 +86,10 @@ const Stats = ({
     <Stack spacing={2}>
       {/* The page's "now": the season holding the last episode watched, promoted the way the games
           tab promotes the game in progress, with whatever is in flight in a compact strip below
-          it. Both are computed by `Graphs`, which decides on the same values whether the rail
-          offers a chip here; with neither the section is not rendered at all. */}
-      {(hero || watching.length > 0) && (
+          it. Whether there is a section at all is `Graphs`' own answer, passed down rather than
+          asked again: the rail's chip is offered on that same value, and a chip pointing at an
+          anchor the page never rendered is what two derivations of one test buy. */}
+      {hasNow && (
         <Now
           hero={hero}
           watching={watching}

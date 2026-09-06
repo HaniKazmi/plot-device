@@ -26,16 +26,23 @@ import { show as buildShow } from "../fixtures/shows";
 // is measuring; the shared builder carries a populated show.
 const show = (overrides: Partial<Show> = {}): Show => buildShow({ e: 0, minutes: 0, ...overrides });
 
-const season = (parent: Show, overrides: Partial<Season> = {}): Season => ({
-  s: 1,
-  e: 9,
-  startDate: YearMonthDay.get(2022, 2, 18),
-  endDate: YearMonthDay.get(2022, 4, 8),
-  episodeLength: 45,
-  minutes: 405,
-  show: parent,
-  ...overrides,
-});
+const season = (parent: Show, overrides: Partial<Season> = {}): Season => {
+  const built = {
+    s: 1,
+    e: 9,
+    startDate: YearMonthDay.get(2022, 2, 18),
+    endDate: YearMonthDay.get(2022, 4, 8),
+    episodeLength: 45,
+    minutes: 405,
+    show: parent,
+    ...overrides,
+  };
+
+  // Derived as the converter derives it, so a fixture cannot build a finished season carrying no
+  // last watch — a record no sheet produces, and one every order over these seasons files under
+  // "undated" where a real row sorts by its date.
+  return { ...built, lastWatchedDate: built.endDate ?? built.lastWatchedDate };
+};
 
 /** A show with its seasons attached, as the converter produces it. */
 const withSeasons = (overrides: Partial<Show>, ...seasons: Partial<Season>[]): Show => {
@@ -238,13 +245,14 @@ describe("currentlyWatching", () => {
   });
 
   it("takes a finished season at its end date, which is what the converter dates it by", () => {
-    const finale = YearMonthDay.get(2026, 8, 28);
+    // Only the end date is set, as a sheet row sets it: the last watch is derived from it, here as
+    // in the converter, so this orders on the linkage rather than on a value handed to the fixture.
     const data = [
       withSeasons(
         { name: "Andor", status: "Watching" },
         { s: 1, endDate: undefined, lastWatchedDate: YearMonthDay.get(2026, 8, 1) },
       ),
-      withSeasons({ status: "Watching" }, { s: 1, endDate: finale, lastWatchedDate: finale }),
+      withSeasons({ status: "Watching" }, { s: 1, endDate: YearMonthDay.get(2026, 8, 28) }),
     ];
 
     expect(currentlyWatching(data).map((s) => s.show.name)).toEqual(["Severance", "Andor"]);
@@ -432,6 +440,20 @@ describe("watchingProgress", () => {
     expect(watchingProgress(s, today).days).toBe(10);
   });
 
+  it("leaves days undefined for a season the sheet typed backwards, rather than throwing mid-render", () => {
+    // The converter only reports an end before its own start, and lets the row through, so a
+    // transposed pair reaches here — where a bare `daysTo` throws and takes the page with it.
+    const today = YearMonthDay.get(2026, 1, 1);
+    const transposed = season(show(), {
+      startDate: YearMonthDay.get(2022, 4, 8),
+      endDate: YearMonthDay.get(2022, 1, 1),
+    });
+
+    expect(() => watchingProgress(transposed, today)).not.toThrow();
+    expect(watchingProgress(transposed, today).days).toBeUndefined();
+    expect(watchingProgress(transposed, today).perWeek).toBeUndefined();
+  });
+
   it("measures a finished season to its own end, not to today", () => {
     // Read to today, a finished season's day count climbs and its pace falls for as long as the
     // row is in the library.
@@ -518,9 +540,7 @@ describe("heroSeason", () => {
   /** A show whose last season is still running, optionally behind one the sheet has closed. */
   const watchingShow = (name: string, dates: { cell?: YearMonthDay; finale?: YearMonthDay } = {}) => {
     const parent = show({ name });
-    const finished = dates.finale
-      ? [season(parent, { s: 1, endDate: dates.finale, lastWatchedDate: dates.finale })]
-      : [];
+    const finished = dates.finale ? [season(parent, { s: 1, endDate: dates.finale })] : [];
     parent.s = [
       ...finished,
       season(parent, {
@@ -556,10 +576,21 @@ describe("heroSeason", () => {
     expect(heroSeason([finished, watching])).toBe(finished.s[0]);
   });
 
-  it("names the season a show is on, not its show's most recent finale", () => {
+  it("names a show's finale where the season it has moved on to is one the sheet has not dated", () => {
+    // The running season records no watch, so the finale before it is the last episode this show
+    // can be shown to have played.
     const between = watchingShow("Fargo", { finale: YearMonthDay.get(2026, 8, 28) });
 
     expect(heroSeason([between])).toBe(between.s[0]);
+  });
+
+  it("names the season a show is on once the sheet dates it, over that show's own earlier finale", () => {
+    const onIt = watchingShow("Fargo", {
+      finale: YearMonthDay.get(2026, 8, 28),
+      cell: YearMonthDay.get(2026, 9, 4),
+    });
+
+    expect(heroSeason([onIt])).toBe(onIt.s[1]);
   });
 
   it("leads with the finished season where two were watched on one day", () => {

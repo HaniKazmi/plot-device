@@ -1535,8 +1535,10 @@ then what the library is made of, then what can be explored, then the deep dives
 
 All four tabs lead with a single item by a tie-break its data holds: Games the game in progress,
 Books the book in hand most recently begun, Movies the film watched most recently. Shows leads with
-the season holding the last episode watched, which is the date the converter puts on every season
-(§3): a finale is a watch like any other, and a show is `Ended` by the time the page next draws it,
+the season holding the last episode watched, read off the date the converter puts on a season it can
+date (§3) — its end, or the sheet's own cell, and neither for a season still running that the cell
+has not reached: a finale is a watch like any other, and a show is `Ended` by the time the page next
+draws it,
 so an election pinned to what is still in flight puts the season finished yesterday out of reach of
 the one surface meant to name it. Every season in the library is a candidate whatever its show's
 status. Day precision is all the sheet records, so two watched on one day are separated by the

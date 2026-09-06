@@ -49,15 +49,17 @@ const Graphs = memo(({ data, filterState }: { data: Show[]; filterState: FilterS
   // so a page can hold either without the other.
   const watching = currentlyWatching(data);
   const hero = heroSeason(data);
+  const hasNow = hero !== undefined || watching.length > 0;
 
   return (
     <Stack spacing={2}>
       <PageRail
-        sections={showSections(hero !== undefined || watching.length > 0)}
+        sections={showSections(hasNow)}
         count={data.length}
       />
       <Stats
         data={data}
+        hasNow={hasNow}
         hero={hero}
         watching={watching}
         measure={filterState.measure}
