@@ -405,6 +405,10 @@ export const SchemaPageControls = ({
                 key={toggle.key}
                 value={toggle.label}
                 selected={checked}
+                // A toggle naming a value the app already colours wears it, on the same terms a
+                // category's chip does: anime is a rose in every chart on two tabs and in the box's
+                // own hit, and a plain chip here would be the one place it is not.
+                colour={toggle.colourFor?.(toggle.label, scheme)}
                 onToggle={() => dispatch({ type: "updateFilter", filter: toggle.key, value: !checked })}
               />
             );

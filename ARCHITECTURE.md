@@ -2352,7 +2352,8 @@ to its `FilterState` (extending `BaseFilterState`). No glyph: the surface drawin
 chips already reading the label, and a schema is reachable from the shell, so an icon named there
 would put four tabs' filter glyphs in the first bundle a visitor downloads. A toggle naming a set a
 reader goes looking for rather than a page's own noise takes `shelf`, which puts its value in the
-search index with a shelf and no narrowing (§6, Search). A category built by a shared helper —
+search index with a shelf and no narrowing (§6, Search), and a `colourFor` beside it where the app
+already speaks that value's colour — the chip, the hit's swatch and every wedge then being one hue. A category built by a shared helper —
 `franchiseCategory`, `certificateCategory` — states its key inside that helper, so the compiler does
 not hold it to the tab's own state the way it holds a category written out inline: the field has to
 be added by hand, and a missing one is a filter that silently never applies. Nothing in
