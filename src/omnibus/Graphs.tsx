@@ -4,7 +4,7 @@ import { CURRENT_PLAINDATE, type YearNumber } from "../common/date";
 import { Stack } from "@mui/material";
 import { franchiseIndex } from "../common/franchiseIndex";
 import { Section, SectionRail } from "../common/SectionRail";
-import { FilterChip } from "../common/FilterDrawer";
+import { FilterChip, PageChip } from "../common/FilterDrawer";
 import { stated } from "../common/population";
 import { SchemaFilterDrawer } from "../common/FilterControls";
 import { MeasureControl, ScopeControl } from "../common/SelectionComponents";
@@ -105,6 +105,9 @@ const SuspenseBlock = ({
               dispatch={filterDispatch}
               data={unfilteredData}
               activeCount={activeCount(filterState)}
+              population={stated(filteredData.length, OMNIBUS_NOUN)}
+              measures={MEASURES}
+              earliestYear={earliestYear(unfilteredData)}
               onReset={() => filterDispatch({ type: "resetFilters" })}
             />
           </BookEpochProvider>
@@ -160,24 +163,31 @@ const Graphs = memo(
             genres: bridge.length > 0,
           })}
           tabs={tabs}
-          actions={
-            <>
-              <ScopeControl
-                yearTo={filterState.yearTo}
-                yearType={filterState.yearType}
-                earliestYear={earliestYear}
-                dispatch={filterDispatch}
-              />
-              <MeasureControl
-                measures={MEASURES}
-                value={filterState.measure}
-                dispatch={filterDispatch}
-              />
-            </>
+          scope={
+            <ScopeControl
+              label="Years"
+              yearTo={filterState.yearTo}
+              yearType={filterState.yearType}
+              earliestYear={earliestYear}
+              dispatch={filterDispatch}
+            />
           }
-          trailing={
+          measure={
+            <MeasureControl
+              measures={MEASURES}
+              value={filterState.measure}
+              dispatch={filterDispatch}
+            />
+          }
+          population={
             <FilterChip
               label={stated(data.length, OMNIBUS_NOUN)}
+              activeCount={activeCount(filterState)}
+            />
+          }
+          pageChip={
+            <PageChip
+              measure={filterState.measure}
               activeCount={activeCount(filterState)}
             />
           }

@@ -4,6 +4,7 @@ import {
   Box,
   Button,
   Chip,
+  Divider,
   Drawer,
   FormControl,
   FormControlLabel,
@@ -17,13 +18,16 @@ import {
   Typography,
 } from "@mui/material";
 import { usePhone } from "./breakpoints";
-import { SheetGrabber } from "./SheetGrabber";
+import { SheetBar } from "./SheetBar";
+import { sheetBarRow } from "./fullscreenSheet";
 import Grid from "@mui/material/Grid";
 import { createContext, useContext, useEffect, type ReactNode } from "react";
 import type { Colour } from "../utils/types";
 import { toValueArray } from "./filterOptions";
 import { setFilterSheetOpen, useFilterSheetOpen } from "./filterSheet";
 import { RailChip } from "./ChipRail";
+import { PickerButton } from "./SelectionComponents";
+import { narrowedTo } from "./population";
 
 /**
  * Whether the filters are being drawn as a phone's bottom sheet.
@@ -44,10 +48,11 @@ const SheetContext = createContext(false);
  * fields the reader changed, since a library narrowed to one franchise otherwise looks exactly
  * like the whole library; `Badge` draws nothing for a zero, which is the right answer.
  *
- * It rides the section rail at every width. The rail is the one bar pinned at every scroll
- * position, where a floating button stands over whatever the page is showing and, at the bottom
- * right of a phone, under the browser's own toolbar — and a figure stating what the page is over
- * has to be legible from the library at the bottom of it, not only from the top.
+ * It rides the section rail from `sm` up. The rail is the one bar pinned at every scroll position,
+ * where a floating button stands over whatever the page is showing — and a figure stating what the
+ * page is over has to be legible from the library at the bottom of it, not only from the top.
+ * Below `sm` the rail has no room for it and `PageChip` carries the badge instead, the figure
+ * reading in the sheet's own footer.
  *
  * It toggles rather than opens: from `sm` up the drawer is `variant="persistent"`, which MUI never
  * calls `onClose` for, so a chip that only opened would leave the drawer's own Close row as the
@@ -73,26 +78,93 @@ export const FilterChip = ({ label, activeCount }: { label: string; activeCount:
 };
 
 /**
- * The drawer every tab's filter is built from — one that stays out of the page's way from `sm` up,
- * a modal bottom sheet below it.
+ * The phone's one handle on everything the page is drawn through: the measure, the years and the
+ * filters, behind a single control in the rail reading the measure with the filter badge on it.
  *
- * Fully controlled: the drawer knows nothing about filter state — a domain hands it how many
- * choices are in play, the reset action, and its own toggles and category selects as children.
- * Whether it is open lives in `filterSheet`, outside React, because its only handle is the rail's
- * population chip and the rail is a sibling of this whole subtree.
+ * The measure is the word on it because it is the setting a reader changes most, and because the
+ * three cannot all stand in a 358px rail — the chips are what the rail is for. The population the
+ * desktop's chip states is in the sheet's own footer instead, beside the Clear that answers it.
  *
- * `toggles` and `categories` are two slots rather than one `children`: the Clear/Close row sits
- * between them in DOM order, and its `order: { xs: 1, md: 0 }` sends it to the end of the small
- * layout alone. One combined slot would push the row to the end at `md` too.
+ * The picker's face rather than a chip's, since what it opens is a surface holding a page's
+ * settings: a pill is the shape the rail's navigation wears, and the sheet is not somewhere the
+ * reader is going. It opens rather than toggling, the sheet being a modal one the backdrop, the ✕
+ * and a swipe all close.
+ */
+export const PageChip = ({ measure, activeCount }: { measure: string; activeCount: number }) => {
+  const open = useFilterSheetOpen();
+
+  return (
+    <Badge
+      badgeContent={activeCount}
+      color="secondary"
+    >
+      <PickerButton
+        value={measure}
+        // The word is the measure alone: a label beside it spends a fifth of the rail saying what
+        // the sheet's own title says on opening.
+        ariaLabel={activeCount > 0 ? `This page: ${measure}, ${activeCount} filters active` : `This page: ${measure}`}
+        lit={activeCount > 0}
+        open={open}
+        onOpen={() => setFilterSheetOpen(true)}
+      />
+    </Badge>
+  );
+};
+
+/** Where the drawer draws the years: below `md` alone, the rail holding them above it. */
+const SCOPE_ROW_SX = { display: { xs: "flex", md: "none" } } as const;
+
+/** A labelled row of the page-controls sheet: what the setting is, and the control that sets it. */
+const SheetRow = ({ label, children }: { label: string; children: ReactNode }) => (
+  <Stack
+    direction="row"
+    sx={{ alignItems: "center", flexWrap: "wrap", gap: 1, paddingY: 0.5 }}
+  >
+    <Typography
+      variant="caption"
+      // A stated width rather than the word's own, so the controls beside three labels of
+      // different lengths stand on one edge and read as a column of settings.
+      sx={{ width: 64, flexShrink: 0, color: "text.secondary" }}
+    >
+      {label}
+    </Typography>
+    {children}
+  </Stack>
+);
+
+/**
+ * Everything the page is drawn through, on one surface — a bottom sheet on a phone, a drawer that
+ * stays out of the page's way from `sm` up.
+ *
+ * Fully controlled: the surface knows nothing about filter state — a domain hands it how many
+ * choices are in play, the population they leave, the reset action, and its own controls as slots.
+ * Whether it is open lives in `filterSheet`, outside React, because its handles are the rail's own
+ * chips and the rail is a sibling of this whole subtree.
+ *
+ * `measure` and `scope` are the page's two readings rather than filters, and they stand here only
+ * where the rail has no room for them: the measure below `sm`, the scope below `md`. The rail
+ * holds them at every other width, so each is drawn once and dispatches to the page state the
+ * charts beside it read.
+ *
+ * `toggles` and `categories` are two slots rather than one `children`: the desktop drawer's
+ * Clear/Close row sits between them in DOM order, and its `order: { xs: 1, md: 0 }` sends it to
+ * the end of the small layout alone. One combined slot would push the row to the end at `md` too.
  */
 export const FilterDrawer = ({
   activeCount,
+  population,
   onReset,
+  measure,
+  scope,
   toggles,
   categories,
 }: {
   activeCount: number;
+  /** What the filters have left, worded: "309 shows". The sheet states it where no rail chip does. */
+  population: string;
   onReset: () => void;
+  measure?: ReactNode;
+  scope?: ReactNode;
   toggles?: ReactNode;
   categories: ReactNode;
 }) => {
@@ -126,33 +198,41 @@ export const FilterDrawer = ({
                 borderTopLeftRadius: (theme) => theme.shape.borderRadius,
                 borderTopRightRadius: (theme) => theme.shape.borderRadius,
                 // The five selects on the Games tab are taller than a phone: the sheet stops short
-                // of the screen and scrolls its own middle, so the Clear/Done row is always the
-                // last thing above the safe area rather than the first thing off the bottom.
+                // of the screen and scrolls its own middle, so the footer stating what is left is
+                // always the last thing above the safe area rather than the first thing off the
+                // bottom.
                 maxHeight: "90vh",
-                // The room above the grabber, which draws only itself.
-                paddingTop: 1,
               },
             },
           }}
         >
-          <SheetGrabber />
-          <Stack
-            direction="row"
-            sx={{ flexShrink: 0, alignItems: "baseline", justifyContent: "space-between", paddingX: 2, paddingY: 1 }}
-          >
-            <Typography variant="h6">Filters</Typography>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-            >
-              {activeCount > 0 ? `${activeCount} active` : "None active"}
-            </Typography>
-          </Stack>
+          {/* The bar every layer wears, with the grabber this one can be dragged away by. It takes
+              the row alone rather than the pinned recipe: a sheet on the bottom edge stands under
+              no notch, and the drawer's own paper is the ground beneath it. */}
+          <SheetBar
+            title="This page"
+            grabber
+            onClose={close}
+            sx={sheetBarRow}
+          />
           <Box sx={{ flex: 1, overflowY: "auto", paddingX: 2, paddingBottom: 1 }}>
-            {toggles && <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, paddingBottom: 2 }}>{toggles}</Box>}
+            {/* The two readings the page counts by, above the filters and ruled off from them:
+                they change what the figures mean, where a filter changes which rows there are. */}
+            {measure && <SheetRow label="Count in">{measure}</SheetRow>}
+            {scope && <SheetRow label="Years">{scope}</SheetRow>}
+            {(measure || scope) && <Divider sx={{ marginY: 1 }} />}
+            {toggles && (
+              <SheetRow label="Filters">
+                {/* The chips take the column beside the label and wrap inside it: at their own
+                    width Games' three want 450px of the 286 there, and a box that cannot shrink
+                    wraps whole, leaving the word alone on its line and the chips over the edge. */}
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, flex: 1, minWidth: 0 }}>{toggles}</Box>
+              </SheetRow>
+            )}
             <Grid
               container
               spacing={2}
+              sx={{ paddingTop: 1 }}
             >
               {categories}
             </Grid>
@@ -161,21 +241,31 @@ export const FilterDrawer = ({
             direction="row"
             sx={{
               flexShrink: 0,
+              alignItems: "center",
               justifyContent: "space-between",
               gap: 1,
-              paddingX: 2,
+              paddingLeft: 2,
+              paddingRight: 1,
               paddingTop: 1,
               paddingBottom: "calc(8px + env(safe-area-inset-bottom))",
               borderTop: 1,
               borderColor: "divider",
             }}
           >
-            <Button onClick={onReset}>Clear</Button>
-            <Button
-              variant="contained"
-              onClick={close}
+            {/* What the settings above have left, which the rail's chip states at every other
+                width: the figure and the control that moved it belong on one surface, and the
+                Clear beside it is what undoes the difference. */}
+            <Typography
+              variant="caption"
+              sx={{ color: "text.secondary" }}
             >
-              Done
+              {narrowedTo(population, activeCount)}
+            </Typography>
+            <Button
+              size="small"
+              onClick={onReset}
+            >
+              Clear
             </Button>
           </Stack>
         </SwipeableDrawer>
@@ -198,6 +288,17 @@ export const FilterDrawer = ({
           justifyContent: "space-between",
         }}
       >
+        {/* A tablet's rail has no room for the years (`SectionRail`), so the drawer carries them —
+            hidden rather than unmounted from `md`, where the rail draws its own and this one would
+            be a second copy of a control the reader can see one of. */}
+        {scope && (
+          <Grid
+            size={12}
+            sx={SCOPE_ROW_SX}
+          >
+            <SheetRow label="Years">{scope}</SheetRow>
+          </Grid>
+        )}
         {toggles}
         <Grid
           size={{ xs: 12, md: "grow" }}

@@ -173,18 +173,25 @@ const PICKER_LIT_SX = {
  *
  * `onOpen` takes the element rather than reading the event, since what a menu or popover anchors
  * to is the button itself and the caller is the one holding that state.
+ *
+ * Exported for the phone's page chip, whose surface is a bottom sheet held open in a store and
+ * anchored to nothing: the face is the same control, so it is drawn by the same component rather
+ * than by a second one that could come to differ from it.
  */
-const PickerButton = ({
+export const PickerButton = ({
   label,
   value,
   lit,
   open,
+  ariaLabel,
   onOpen,
 }: {
   label?: string;
   value: string;
   lit: boolean;
   open: boolean;
+  /** What the control is, where its own label does not say — a face carrying a value alone. */
+  ariaLabel?: string;
   onOpen: (anchor: HTMLElement) => void;
 }) => (
   <Button
@@ -192,7 +199,7 @@ const PickerButton = ({
     variant="outlined"
     aria-haspopup="true"
     aria-expanded={open}
-    aria-label={label ? `${label}: ${value}` : undefined}
+    aria-label={ariaLabel ?? (label ? `${label}: ${value}` : undefined)}
     onClick={(event) => onOpen(event.currentTarget)}
     endIcon={<ArrowDropDown />}
     sx={lit ? { ...PICKER_SX, ...PICKER_LIT_SX } : PICKER_SX}
@@ -308,10 +315,17 @@ export const ScopeControl = ({
   yearTo,
   yearType,
   earliestYear,
+  label,
   dispatch,
 }: {
   yearTo: YearNumber;
   yearType: YearType;
+  /**
+   * What the picker's face says it is choosing, where its surface does not. The rail needs it —
+   * "All time" beside three measure words says nothing about what is all — and a labelled row in
+   * the page-controls sheet has already said it, where repeating it reads as "Years Years".
+   */
+  label?: string;
   /**
    * The oldest year on offer. The sheets start in different years and one of them (Games) has no
    * fixed epoch at all, so no floor here would be right for every tab — each works out its own
@@ -342,8 +356,11 @@ export const ScopeControl = ({
   return (
     <>
       <PickerButton
-        label="Years"
+        label={label}
         value={scopeLabel(yearTo, yearType, CURRENT_YEAR)}
+        // Named whether or not the face carries the word, since a button reading "All time" alone
+        // says nothing about what is being counted.
+        ariaLabel={`Years: ${scopeLabel(yearTo, yearType, CURRENT_YEAR)}`}
         lit={!isAllTime(yearTo, yearType, CURRENT_YEAR)}
         open={anchor !== null}
         onOpen={setAnchor}

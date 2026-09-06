@@ -193,10 +193,17 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
             {Tabs.map((tab) => {
               const isCurrent = tab.id === currTab.id;
               const tabDarkBar = tab.darkBar;
+              const Icon = tab.icon;
               return (
                 <MuiTab
                   key={`muitab-${tab.id}`}
                   label={tab.name}
+                  // The glyph beside the word is what teaches it: the section rail names the other
+                  // tabs by icon alone, where four words and a divider take a third of its row, and
+                  // the bottom navigation already pairs the two on a phone. Beside the label rather
+                  // than above it, which is MUI's own default and stands the strip at 72px.
+                  icon={<Icon />}
+                  iconPosition="start"
                   value={tab.id}
                   // Only the selected label needs its own ink: `textColor="inherit"` already
                   // renders the rest at reduced opacity, which is dimming enough to tell them

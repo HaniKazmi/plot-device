@@ -86,12 +86,20 @@ describe("otherTabs", () => {
   it("offers every routed tab but the current one, as rail chips", () => {
     // The current tab is deliberately absent: the rail offers movement, not orientation, and a
     // chip for where the reader already is would rebuild the app bar the rail stands in for.
-    expect(otherTabs(ShowsTab)).toEqual([
-      { id: "omnibus", label: "Omnibus" },
-      { id: "vg", label: "Games" },
-      { id: "movies", label: "Movies" },
-      { id: "books", label: "Books" },
+    expect(otherTabs(ShowsTab, "light").map((tab) => [tab.id, tab.label])).toEqual([
+      ["omnibus", "Omnibus"],
+      ["vg", "Games"],
+      ["movies", "Movies"],
+      ["books", "Books"],
     ]);
+  });
+
+  it("carries each tab's own icon and the colour it is named in on that paper", () => {
+    // A rail chip is the glyph and the hue and nothing else, so both travel with the entry.
+    const [omnibus] = otherTabs(ShowsTab, "light");
+    expect(omnibus.icon).toBe(OmnibusTab.icon);
+    expect(omnibus.colour).toBe(OmnibusTab.primaryColour);
+    expect(otherTabs(ShowsTab, "dark")[0].colour).toBe(OmnibusTab.darkBar?.ink);
   });
 });
 
@@ -132,6 +140,18 @@ describe("the dark app-bar triples", () => {
       const { tint, rule, ink } = tab.darkBar;
       expect(contrast(ink, tint), `${tab.name} ink (${ink}) on tint (${tint})`).toBeGreaterThanOrEqual(4.5);
       expect(contrast(rule, tint), `${tab.name} rule (${rule}) on tint (${tint})`).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it("clears the same floors against the dark paper, where both are drawn away from the bar", () => {
+    // `rule` is the dark scheme's `primary.main` (`Google.tsx`), so it draws a lit segment's word
+    // and a picker's lit edge on the paper; `ink` names a tab on a rail chip there. Neither is on
+    // the tint at those sites, and a value solved against the tint alone can be the wrong side of
+    // the floor on the paper — 3:1 for a mark, 4.5 for type.
+    for (const tab of colouredTabs) {
+      const { rule, ink } = tab.darkBar;
+      expect(contrast(rule, PAPERS.dark), `${tab.name} rule (${rule}) on the dark paper`).toBeGreaterThanOrEqual(3);
+      expect(contrast(ink, PAPERS.dark), `${tab.name} ink (${ink}) on the dark paper`).toBeGreaterThanOrEqual(4.5);
     }
   });
 });

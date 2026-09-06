@@ -147,7 +147,14 @@ const getTheme = (tab: Tab) => {
       },
       dark: {
         palette: {
-          primary: { main: primaryColour },
+          // The bar's own `rule` rather than the primary that tint is mixed from. A primary is
+          // solved against the white paper: on the dark one Games' carries 3.6:1 and Shows' 3.4,
+          // enough for a band and short of what a lit segment's 12px word or a picker's lit edge
+          // needs, where `rule` is that same hue solved lighter and clears 5:1 on the paper
+          // (`DarkBar`, `tabs.ts`). The bar keeps the tint, through the `AppBar.darkBg` override
+          // below; a chart's single-group series keeps the light literal, `Barchart` reading
+          // `theme.palette` rather than `theme.vars`.
+          primary: { main: tab.darkBar?.rule ?? primaryColour },
           secondary: { main: secondaryColour },
           background: { default: "#14171a", paper: DARK_PAPER },
           text: { primary: DARK_TEXT, secondary: "#9aa4af" },

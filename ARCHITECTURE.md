@@ -786,14 +786,22 @@ value alone.
 `common/FilterDrawer` is two different trees on `usePhone`, not one tree at two sizes: from `sm` up a
 `Drawer` that stays out of the page's way, `variant="persistent"` so it never covers the chart it is
 narrowing; below it a modal `SwipeableDrawer` sheet (`disableSwipeToOpen`, `disableDiscovery` — the
-bottom edge of a phone is the home gesture's). One handle at every width opens either: `FilterChip`
-in the section rail's `trailing` slot, whose **word is the page's population** — "309 shows",
+bottom edge of a phone is the home gesture's). The sheet is the page's controls and not only its
+filters, since it is where the rail's tail goes at that width (§ Page architecture): a `SheetBar`
+titled "This page", then labelled rows — Count in, Years, Filters — then the categories, then a
+footer stating the population and the count that narrowed it (`narrowedTo`, `common/population.ts`)
+beside the Clear that undoes it. No Done: the bar's ✕, the backdrop and a swipe all close it, which
+is what every other layer does (§ Open, reveal, close). The desktop drawer draws the Years row too,
+below `md` alone, and never the measure, which the rail holds at every width the drawer is drawn at.
+Each has a handle in the rail: from `sm` up `FilterChip`,
+in the rail's `population` slot, whose **word is the page's population** — "309 shows",
 `stated(filtered.length, module.noun)` computed once in each tab's `Graphs` — with the badge for
 how many fields the reader has changed. The figure and the control that moved it are then one
 object, which is what lets every chart below stop restating the number, and the rail is pinned at
 every scroll position, where a floating button stands over whatever the page is showing and, at the
 bottom right of a phone, under the browser's own toolbar. It toggles rather than opens, the
-persistent drawer never being handed its `onClose` (§10). Both read `common/filterSheet.ts`, a store
+persistent drawer never being handed its `onClose` (§10). Below `sm` the handle is `PageChip`
+instead, which carries the badge and opens outright, the sheet answering to a backdrop and a swipe. Both read `common/filterSheet.ts`, a store
 outside React rather than a context: the chip lives in the rail, which a domain's `Graphs` renders,
 and the drawer is a sibling of the whole chart tree, so lifting the open flag to their nearest
 common ancestor would sit it above every chart and re-render all of them on an open the flag never
@@ -1437,19 +1445,35 @@ the chip list, whose ids have two holders — `Stats` the bands above the charts
 below — and which comes from the same test `Stats` makes about whether there is anything to lead
 with, so a chip never points at an anchor that is not on the page.
 
-The rail also carries the page's two whole-page readings, in an `actions` slot at its right end:
-the years every figure on the tab is scoped to and the unit they are counted in. Both belong on the
-one control surface reachable from anywhere — each narrows the vitals, the timeline, the charts and
+The rail also carries the page's whole-page readings, in named slots at its right end: `scope`, the
+years every figure on the tab is scoped to; `measure`, the unit they are counted in; and
+`population`, the chip stating what the filters leave (`FilterChip`, below). Each belongs on the
+one control surface reachable from anywhere — they narrow the vitals, the timeline, the charts and
 the library alike, and a control standing beside the cards it most visibly changes cannot be
-reached from the wall, which is where a reader notices the page is a subset. A second slot,
-`trailing`, carries the population chip (`FilterChip`, below) — all of them sit outside the
-scrolling chip row, which would carry them away. The chip row is sized at a basis of zero, so it
-takes what the controls leave and never a share of the shortfall, and overflows into its own
-scroll: a picker at three quarters of its width is a value with no room for its own caret, where a
-chip row is a list that scrolls by design. Past that the controls' own row scrolls too — a picker,
-three segments and the population chip want 440px of a phone's 358, and a rail that overflows its
-container puts the whole document on a sideways drag. `SegmentedControl` states the measures as
+reached from the wall, which is where a reader notices the page is a subset. Named slots rather
+than a node per end, because where each of the three stands is a rule this shell states once and
+five `Graphs` modules would otherwise each carry a copy of. All of them sit outside the scrolling
+chip row, which would carry them away. The chip row is sized at a basis of zero, so it takes what
+the controls leave and never a share of the shortfall, and overflows into its own scroll: a picker
+at three quarters of its width is a value with no room for its own caret, where a chip row is a
+list that scrolls by design. Past that the controls' own row scrolls too, a rail overflowing its
+container putting the whole document on a sideways drag. `SegmentedControl` states the measures as
 words, a Σ on a floating button being a legend nothing on the page teaches.
+
+**The chips own the row at the two widths where everything will not fit.** From `md` the tail is
+all three. Below `md` the scope leaves it — at 768 four tab chips, seven section chips, a picker,
+three segments and the population want about 950px of 720 — for a labelled row in the filter
+surface, through a `display` rule rather than the width read as a value, since the control is drawn
+in that surface at every width below `md` and one of the two copies is hidden either way. Below
+`sm` the measure and the population go with it and `pageChip` stands alone in their place: at 390
+the three want 440px of 358. `PageChip` (`common/FilterDrawer.tsx`) is the picker's own face
+reading the measure — the setting changed most often — with the filter badge on it, and it opens
+the page-controls sheet holding all three; the population reads in that sheet's footer. Four
+section chips of Shows' seven then stand in the 258px left, with the fifth cut at the fade, where
+the chips are a list that says by scrolling that there is more. That split is read as a value
+(`usePhone`) and not as a `display` rule: the controls it drops are live in the sheet at this
+width, and hiding them here would leave a second copy of each dispatching to the page state from a
+control nobody can see.
 
 `ScopeControl` (`common/SelectionComponents.tsx`) is the scope's picker, reading "All time",
 "In 2026" or "Up to 2019" through `scopeLabel`. Its menu holds the two scopes asked for by name —
@@ -1461,7 +1485,18 @@ everything, which is also why the scope is neither counted by the filter badge n
 Clear (§7): a control that says on its own face that it is on would otherwise be stated twice and
 undone in two places.
 
-The tab chips that lead the stuck rail are dropped entirely below `sm`, where the bottom navigation
+The tab chips that lead the stuck rail are each their tab's own icon in its own colour — the
+primary on the light paper, the bar's `ink` on the dark, through `tabInk` (`tabs.ts`), since the
+primary on the dark paper is the value that tab's tint was mixed from. Icons rather than words at
+every width they are drawn at: four names and a divider take a third of a tablet's rail where four
+glyphs take 136px, and the app bar's own strip carries the same icons beside its words, which is
+where a reader learns them. `RailChip`'s icon-only form is a circle — the label's padding and MUI's
+own offsets for a mark beside a word are dropped and the width follows the height through
+`aspect-ratio`, so the glyph is centred at whatever height the pointer gives a chip — and it is
+named by its `aria-label` with a tooltip carrying the same word for a pointer; a finger is told
+nothing, its press-and-hold being the browser's own.
+
+The chips are dropped entirely below `sm`, where the bottom navigation
 already holds all five tabs at every scroll position and a rail spending 300 of its 358px saying so
 again buys nothing; a rail's own chips still fill the rest. Under a coarse pointer every chip in the
 rail — a tab's, a section's — stands at the kit's coarse 32px rather than its own 24 (the theme's
@@ -1514,6 +1549,11 @@ but still fails the pointer one, so the menu stays. The same menu is guest mode'
 touch pointer, carrying a "Guest mode"/"Leave guest mode" item — the long press that reaches it
 elsewhere is a mouse gesture alone (§7, Guest mode), and without the item a finger would have no way
 in, or once in, no way out but a reload.
+
+Each tab in the strip carries its own icon beside its word (`iconPosition="start"`, so the strip
+keeps one row's height). The word is what the strip is for, and the glyph beside it is what teaches
+the mark the section rail names that tab by once the bar has scrolled away, and the bottom
+navigation names it by on a phone — one icon per tab, from `Tab.icon`, drawn in all three places.
 
 Below `sm` the tab strip itself is replaced by `BottomTabs`, fixed to the screen's bottom edge and
 reachable from any scroll position and a thumb, which no arrangement of the `position: static` app
@@ -1746,7 +1786,7 @@ key in ObjectExpression`; pulled out to a plain function taking the varying piec
   `sheetBarSx`, `dialogCardSx`, among others — the literal itself sits at module scope and the
   component stays compiled.
 
-The baseline is **255 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **257 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.
@@ -1905,7 +1945,16 @@ top-level `palette` rather than adding to it, so a value named on one side only 
 MUI's stock blue. `enableColorOnDark` stays off and each tab carries a `darkBar` (`tabs.ts`) — a 22%
 `tint` of its primary over the dark paper plus `rule` and `ink` siblings — read through
 `barColour(tab, scheme)`, the single answer for what the bar wears, so a surface painted to match it
-cannot drift. Two `theme-color` metas are emitted, one per scheme. Themes are cached in a `Map`
+cannot drift. Two `theme-color` metas are emitted, one per scheme.
+
+**The dark scheme's `primary.main` is that `rule`, not the primary.** A primary is solved against
+the white paper: on the dark one Games' carries 3.6:1 and Shows' 3.4, which is a full-strength
+band's floor and under what a lit segment's 12px word, a picker's lit edge or a filled chip's ground
+needs — where `rule` is the same hue solved lighter and clears 5:1 on that paper, held there by
+`tabs.test.ts`. The bar keeps the tint through `AppBar.darkBg`, and a chart's single-group series
+keeps the light literal either way: `Barchart` reads `theme.palette.primary.main`, which under
+`cssVariables: true` is the light scheme's value on both papers, which is why a primary is held to
+3:1 on both (`fillContract.test.ts`). Themes are cached in a `Map`
 keyed by tab id:
 building one walks both schemes, typography, shadows and the whole CSS-variable map, and a stable
 identity stops the MUI tree re-evaluating `sx` on navigation. `Google.tsx` also mounts

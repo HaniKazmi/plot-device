@@ -35,3 +35,15 @@ export const cut = (shown: number, total: number) =>
  * cut list is missing and the way to it are one thing, so they are one word.
  */
 export const all = (total: number) => `All ${format(total)}`;
+
+/**
+ * What a population is standing behind: "309 shows · 2 filters", or the figure alone where nothing
+ * narrows it.
+ *
+ * One sentence rather than a figure and a count seated separately, because the two are one claim —
+ * this is what is left, and this is how many choices left it — and the surface stating it also
+ * carries the Clear that undoes the second half. Singular at one, since "1 filters" beside a
+ * carefully formatted figure reads as a string built rather than a sentence written.
+ */
+export const narrowedTo = (population: string, activeCount: number) =>
+  activeCount > 0 ? `${population} · ${activeCount} ${activeCount === 1 ? "filter" : "filters"}` : population;

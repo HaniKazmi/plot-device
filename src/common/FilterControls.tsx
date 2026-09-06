@@ -1,6 +1,8 @@
 import type { SvgIconComponent } from "@mui/icons-material";
 import { FilterCategory, FilterDrawer, FilterToggle } from "./FilterDrawer";
-import type { FilterDispatchFor } from "./filterReducer";
+import type { YearNumber } from "./date";
+import type { FilterDispatchFor, PageDispatch, PageState } from "./filterReducer";
+import { MeasureControl, ScopeControl } from "./SelectionComponents";
 import { categoryValues, type FilterSchema } from "./filterSchema";
 import { useScheme } from "./useScheme";
 import type { Scheme } from "../utils/types";
@@ -114,6 +116,16 @@ const FilterCategories = <T, S>({
  *
  * Both type parameters are inferred from the schema, which is what keeps the state, the dispatch
  * and the data at the call site checked against the tab whose filters are being drawn.
+ *
+ * The page's own measure and years are drawn here too, at the widths the rail has no room for them
+ * (`SectionRail`). They are not filters, but they are page-wide readings and this is the surface a
+ * narrow screen offers them on — and they are built here rather than handed down as nodes, so a
+ * tab states its measures and its earliest year once instead of assembling the same two controls
+ * for the rail and for the drawer.
+ *
+ * Both fields are on `BaseFilterState`, which every tab's state extends, so they are read and set
+ * through the erasure a surface above a tab already uses (`PageState`/`PageDispatch`) rather than
+ * out of the generic `S` a schema is written against.
  */
 export const SchemaFilterDrawer = <T, S>({
   schema,
@@ -122,6 +134,9 @@ export const SchemaFilterDrawer = <T, S>({
   dispatch,
   data,
   activeCount,
+  population,
+  measures,
+  earliestYear,
   onReset,
 }: {
   schema: FilterSchema<T, S>;
@@ -130,13 +145,34 @@ export const SchemaFilterDrawer = <T, S>({
   dispatch: FilterDispatchFor<S>;
   data: readonly T[];
   activeCount: number;
+  population: string;
+  measures: readonly string[];
+  earliestYear: YearNumber;
   onReset: () => void;
 }) => {
   const scheme = useScheme();
+  const page = state as Omit<PageState, "filter">;
+  const pageDispatch = dispatch as PageDispatch;
 
   return (
     <FilterDrawer
       activeCount={activeCount}
+      population={population}
+      measure={
+        <MeasureControl
+          measures={measures}
+          value={page.measure}
+          dispatch={pageDispatch}
+        />
+      }
+      scope={
+        <ScopeControl
+          yearTo={page.yearTo}
+          yearType={page.yearType}
+          earliestYear={earliestYear}
+          dispatch={pageDispatch}
+        />
+      }
       onReset={onReset}
       toggles={
         <FilterToggles

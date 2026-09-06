@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { all, cut, stated } from "../../src/common/population";
+import { all, cut, narrowedTo, stated } from "../../src/common/population";
 import { format } from "../../src/utils/mathUtils";
 
 /**
@@ -40,5 +40,19 @@ describe("all", () => {
   it("words the whole list as the control that opens it", () => {
     expect(all(129)).toBe("All 129");
     expect(all(1539)).toBe(`All ${format(1539)}`);
+  });
+});
+
+describe("narrowedTo", () => {
+  it("seats the population beside the count of choices that made it", () => {
+    expect(narrowedTo(stated(190, "shows"), 2)).toBe("190 shows · 2 filters");
+  });
+
+  it("says one filter in the singular", () => {
+    expect(narrowedTo(stated(190, "shows"), 1)).toBe("190 shows · 1 filter");
+  });
+
+  it("states the population alone where nothing narrows it", () => {
+    expect(narrowedTo(stated(309, "shows"), 0)).toBe("309 shows");
   });
 });

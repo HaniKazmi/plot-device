@@ -1,6 +1,8 @@
 import { Box, Divider } from "@mui/material";
+import type { SvgIconComponent } from "@mui/icons-material";
 import Grid from "@mui/material/Grid";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { usePhone } from "./breakpoints";
 import { ChipRail, RailChip, type ChipRailItem } from "./ChipRail";
 import { BROWSER_TINT_VISIBLE } from "./chrome";
 import { CONTAIN_SIDEWAYS_SCROLL } from "./scrollbarSx";
@@ -153,6 +155,21 @@ const ACTIONS_SX = {
   "::-webkit-scrollbar": { display: "none" },
 } as const;
 
+/** The rail's last cell, which never gives up a pixel: the population chip, or the phone's own. */
+const TRAILING_SX = { flexShrink: 0, display: "flex" } as const;
+
+/**
+ * Where the year scope is drawn, which is the one part of the tail a tablet has no room for: at
+ * 768 a rail holding four tab chips, seven section chips, a picker, three segments and the
+ * population wants about 950px of 720. Below `md` the scope is a row in the page-controls surface
+ * instead, so the rail keeps the two readings a page is most often changed by.
+ *
+ * A `display` rule rather than the width the rail reads as a value, since the control is drawn in
+ * the filter surface at every width below `md` — one of the two is hidden either way, and hiding
+ * the rail's copy costs a mounted picker where hiding the sheet's would cost the same.
+ */
+const SCOPE_SX = { display: { xs: "none", md: "flex" } } as const;
+
 /**
  * The page's own table of contents, pinned under the app bar.
  *
@@ -167,37 +184,59 @@ const ACTIONS_SX = {
  * the chips would say it twice — so they are not rendered at all. Each chip carries its own
  * `jump`, so what a tab id means stays with the registry that owns it.
  *
- * `actions` and `trailing` are page-wide controls that have to stay reachable from anywhere on the
- * page — the years every figure below is scoped to, the measure they are counted in, and the
- * filters every chart is drawn through. They sit outside the scrolling row, at the end of the pinned bar, because a
- * control inside the row scrolls away with the chips and the whole point of putting them here is
- * that they do not. The row therefore gives up width to them rather than pushing them off:
- * `minWidth: 0` is what lets the chips overflow into their own scroll instead. Two slots rather
- * than one, because the filter control is the last thing on the bar wherever both are drawn.
+ * `scope`, `measure` and `population` are the page-wide controls, the readings that have to stay
+ * reachable from anywhere on the page — the years every figure below is scoped to, the unit they
+ * are counted in, and the filters every chart is drawn through. They sit outside the scrolling row,
+ * at the end of the pinned bar, because a control inside the row scrolls away with the chips and
+ * the whole point of putting them here is that they do not. The row gives up width to them rather
+ * than pushing them off: `minWidth: 0` is what lets the chips overflow into their own scroll
+ * instead. Three named slots rather than one node, because where each stands is a rule this shell
+ * states once — the population is the last thing on the bar, the scope is drawn from `md` and
+ * stands in the page-controls surface below it — where five pages handing over opaque nodes would
+ * each carry a copy of that rule.
+ *
+ * On a phone the three give the row up entirely and `pageChip` stands in their place: at 390px
+ * they want 440px of 358, and the chips are what the rail exists for and the only part of it that
+ * can degrade by scrolling. The chip states the measure — the setting changed most often — and
+ * opens the sheet holding all three.
  *
  * Below `sm` the tab chips are left out even while stuck: the bottom navigation holds all five
  * tabs at every scroll position, and a rail 358px wide would spend 300 of them saying it again.
+ * From `sm` up each is its tab's own icon in its own colour rather than its name: four words and a
+ * divider take a third of a tablet's rail, where four glyphs take 136px of it, and the app bar's
+ * own strip carries the same icons beside its words, which is where the glyphs are learnt.
  */
 export const SectionRail = (props: {
   sections: RailSection[];
-  tabs?: (RailSection & { jump: () => void })[];
-  actions?: ReactNode;
-  trailing?: ReactNode;
+  tabs?: (RailSection & { icon: SvgIconComponent; colour?: string; jump: () => void })[];
+  scope?: ReactNode;
+  measure?: ReactNode;
+  population?: ReactNode;
+  pageChip?: ReactNode;
 }) => {
   const active = useActiveSection(props.sections);
   const [railRef, stuck] = useStuck();
+  // Which tail the rail draws. A value rather than a `display` rule, because the controls it hides
+  // are mounted in the page-controls sheet at this width instead: drawn here and hidden, each
+  // would be a second live copy dispatching to the same page state from a control nobody can see.
+  const phone = usePhone();
 
   const tabChips = stuck && props.tabs && props.tabs.length > 0 && (
     // `contents` rather than a wrapper of its own: from `sm` up the chips and the divider stay the
     // scrolling row's own flex children, exactly as they are without this.
     <Box sx={{ display: { xs: "none", sm: "contents" } }}>
-      {props.tabs.map((tab) => (
-        <RailChip
-          key={tab.id}
-          label={tab.label}
-          onClick={tab.jump}
-        />
-      ))}
+      {props.tabs.map((tab) => {
+        const Icon = tab.icon;
+        return (
+          <RailChip
+            key={tab.id}
+            icon={<Icon />}
+            ariaLabel={tab.label}
+            colour={tab.colour}
+            onClick={tab.jump}
+          />
+        );
+      })}
       <Divider
         orientation="vertical"
         flexItem
@@ -258,19 +297,28 @@ export const SectionRail = (props: {
         // where a chip row is a list that scrolls by design.
         sx={{ flexGrow: 1, flexBasis: 0, minWidth: 0 }}
       />
-      {props.actions && (
-        // A row of its own, the slot holding more than one control: the scope and the measure are
-        // two page-wide readings side by side, and a block would stack them and stand the rail at
-        // twice its height.
-        //
-        // It scrolls rather than pushing the page wider. A picker, three segments and the
-        // population chip want 440px of a phone's 358, and a rail that overflows its own container
-        // puts the whole document on a sideways scroll — every drag on the page drifts it off
-        // centre. Shrinking here instead keeps the tail's own controls a flick apart at the end of
-        // the bar where they are pinned, and costs nothing at a width that fits them.
-        <Box sx={ACTIONS_SX}>{props.actions}</Box>
+      {phone ? (
+        props.pageChip && <Box sx={TRAILING_SX}>{props.pageChip}</Box>
+      ) : (
+        <>
+          {(props.scope || props.measure) && (
+            // A row of its own, the slot holding more than one control: the scope and the measure
+            // are two page-wide readings side by side, and a block would stack them and stand the
+            // rail at twice its height.
+            //
+            // It scrolls rather than pushing the page wider. A rail that overflows its own
+            // container puts the whole document on a sideways scroll — every drag on the page
+            // drifts it off centre. Shrinking here instead keeps the tail's own controls a flick
+            // apart at the end of the bar where they are pinned, and costs nothing at a width that
+            // fits them.
+            <Box sx={ACTIONS_SX}>
+              {props.scope && <Box sx={SCOPE_SX}>{props.scope}</Box>}
+              {props.measure}
+            </Box>
+          )}
+          {props.population && <Box sx={TRAILING_SX}>{props.population}</Box>}
+        </>
       )}
-      {props.trailing && <Box sx={{ flexShrink: 0, display: "flex" }}>{props.trailing}</Box>}
     </Box>
   );
 };

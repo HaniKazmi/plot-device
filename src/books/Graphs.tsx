@@ -13,7 +13,7 @@ import { SchemaFilterDrawer } from "../common/FilterControls";
 import { bookFilters } from "./filters";
 import { filterIcons } from "./filterIcons";
 import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
-import { FilterChip } from "../common/FilterDrawer";
+import { FilterChip, PageChip } from "../common/FilterDrawer";
 import { stated } from "../common/population";
 import { MeasureControl, ScopeControl } from "../common/SelectionComponents";
 import { useOtherTabs } from "../tabs";
@@ -71,6 +71,9 @@ const SuspenseBlock = ({
         dispatch={filterDispatch}
         data={unfilteredData}
         activeCount={activeCount(filterState)}
+        population={stated(filteredData.length, bookModule.noun)}
+        measures={bookModule.measures}
+        earliestYear={earliestYear(unfilteredData)}
         onReset={() => filterDispatch({ type: "resetFilters" })}
       />
     </BookEpochProvider>
@@ -154,24 +157,31 @@ const Graphs = memo(
         <SectionRail
           sections={bookSections(reading.length > 0, chartsLast)}
           tabs={tabs}
-          actions={
-            <>
-              <ScopeControl
-                yearTo={filterState.yearTo}
-                yearType={filterState.yearType}
-                earliestYear={earliestYear}
-                dispatch={filterDispatch}
-              />
-              <MeasureControl
-                measures={bookModule.measures}
-                value={filterState.measure}
-                dispatch={filterDispatch}
-              />
-            </>
+          scope={
+            <ScopeControl
+              label="Years"
+              yearTo={filterState.yearTo}
+              yearType={filterState.yearType}
+              earliestYear={earliestYear}
+              dispatch={filterDispatch}
+            />
           }
-          trailing={
+          measure={
+            <MeasureControl
+              measures={bookModule.measures}
+              value={filterState.measure}
+              dispatch={filterDispatch}
+            />
+          }
+          population={
             <FilterChip
               label={stated(data.length, bookModule.noun)}
+              activeCount={activeCount(filterState)}
+            />
+          }
+          pageChip={
+            <PageChip
+              measure={filterState.measure}
               activeCount={activeCount(filterState)}
             />
           }

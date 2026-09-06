@@ -1,4 +1,4 @@
-import { Box, Chip, useTheme, type SxProps, type Theme } from "@mui/material";
+import { Box, Chip, Tooltip, useTheme, type SxProps, type Theme } from "@mui/material";
 import type { ReactElement, ReactNode, Ref } from "react";
 import { ScrollFade } from "./ScrollFade";
 import { useScrollEdges } from "./useScrollEdges";
@@ -21,36 +21,76 @@ export interface ChipRailItem {
 const CHIP_SX = { flexShrink: 0 } as const;
 
 /**
- * One rail chip, exported so a caller can put chips of its own in the `leading` slot or beside the
- * rail's actions.
+ * A chip that is only its mark, drawn as a circle.
  *
- * `icon` with no `label` is a chip that is only its mark — the theme drops the empty label's
- * padding for exactly that — which is how a control with no room for a word joins the row.
+ * A chip's label padding and MUI's own icon offsets are spacing for a mark set beside a word, and
+ * left in they seat the glyph 4px left of centre in a pill 9px wider than it needs to be. The
+ * width follows the height through the ratio rather than a figure, so the circle is whatever the
+ * theme gives a small chip on this pointer — 24px, or 32 under a finger — without this file
+ * holding a second copy of either.
+ */
+const ICON_ONLY_SX = {
+  ...CHIP_SX,
+  aspectRatio: "1",
+  "& .MuiChip-icon": { marginInline: 0 },
+  "& .MuiChip-label": { paddingInline: 0 },
+} as const;
+
+/**
+ * One rail chip, exported so a caller can put chips of its own in the `leading` slot or beside the
+ * rail's own controls.
+ *
+ * `icon` with no `label` is a chip that is only its mark, which is how a control with no room for
+ * a word joins the row. Such a
+ * chip is named by `ariaLabel` alone, so it also carries a tooltip: the word is what a reader who
+ * has not learnt the glyph needs, and a pointer is the one that can ask for it without committing
+ * to the press. A finger is told nothing, its own press-and-hold belonging to the browser.
+ *
+ * `colour` is for a chip standing for something the app already speaks a colour for — a tab, in
+ * its own — and lands on the mark and the edge rather than on the ground: four filled chips in
+ * four hues read as four things chosen, where a filled chip in this row means the one section the
+ * reader is in.
  */
 export const RailChip = ({
   label,
   active,
   icon,
   ariaLabel,
+  colour,
   onClick,
 }: {
-  label: string;
+  label?: string;
   active?: boolean;
   icon?: ReactElement;
   ariaLabel?: string;
+  colour?: string;
   onClick: () => void;
-}) => (
-  <Chip
-    label={label}
-    aria-label={ariaLabel}
-    icon={icon}
-    size="small"
-    color={active ? "primary" : "default"}
-    variant={active ? "filled" : "outlined"}
-    onClick={onClick}
-    sx={CHIP_SX}
-  />
-);
+}) => {
+  const base = label === undefined ? ICON_ONLY_SX : CHIP_SX;
+  const chip = (
+    <Chip
+      label={label ?? ""}
+      aria-label={ariaLabel}
+      icon={icon}
+      size="small"
+      color={active ? "primary" : "default"}
+      variant={active ? "filled" : "outlined"}
+      onClick={onClick}
+      sx={colour ? { ...base, color: colour, borderColor: colour } : base}
+    />
+  );
+
+  return label === undefined && ariaLabel ? (
+    <Tooltip
+      title={ariaLabel}
+      disableTouchListener
+    >
+      {chip}
+    </Tooltip>
+  ) : (
+    chip
+  );
+};
 
 /**
  * A scrolling row of chips, one of which is current.
