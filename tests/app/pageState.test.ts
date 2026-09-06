@@ -65,12 +65,12 @@ describe("the page stores", () => {
     stop();
   });
 
-  it("notifies nobody for the year reading already held", () => {
+  it("notifies nobody for the scope already held", () => {
     let notified = 0;
     const stop = PAGE_STORES.vg.subscribe(() => notified++);
 
-    PAGE_STORES.vg.dispatch({ type: "yearType", yearType: "matching" });
-    PAGE_STORES.vg.dispatch({ type: "yearType", yearType: "matching" });
+    PAGE_STORES.vg.dispatch({ type: "scope", yearTo: CURRENT_YEAR, yearType: "matching" });
+    PAGE_STORES.vg.dispatch({ type: "scope", yearTo: CURRENT_YEAR, yearType: "matching" });
 
     expect(notified).toBe(1);
 
@@ -84,8 +84,7 @@ describe("what the badge counts and Clear clears", () => {
   it("counts a filter and not the scope beside it", () => {
     // The scope is a control of its own and lights itself, so a badge counting it would report a
     // choice made outside the surface the badge sits on.
-    PAGE_STORES.vg.dispatch({ type: "updateFilter", filter: "yearTo", value: lastYear });
-    PAGE_STORES.vg.dispatch({ type: "yearType", yearType: "matching" });
+    PAGE_STORES.vg.dispatch({ type: "scope", yearTo: lastYear, yearType: "matching" });
 
     expect(activeCount(vgPageState.get())).toBe(0);
 
@@ -98,8 +97,7 @@ describe("what the badge counts and Clear clears", () => {
     PAGE_STORES.vg.dispatch({ type: "updateFilter", filter: "endless", value: false });
     PAGE_STORES.vg.dispatch({ type: "updateFilter", filter: "franchise", value: ["Zelda"] });
     PAGE_STORES.vg.dispatch({ type: "measure", measure: "Hours" });
-    PAGE_STORES.vg.dispatch({ type: "updateFilter", filter: "yearTo", value: lastYear });
-    PAGE_STORES.vg.dispatch({ type: "yearType", yearType: "matching" });
+    PAGE_STORES.vg.dispatch({ type: "scope", yearTo: lastYear, yearType: "matching" });
 
     PAGE_STORES.vg.dispatch({ type: "resetFilters" });
     const cleared = vgPageState.get();

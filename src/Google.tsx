@@ -68,12 +68,8 @@ const NothingMatchesProvider = ({ children }: { children: ReactNode }) => {
         filtersActive,
         scope: scoped ? scopeLabel(state.yearTo, state.yearType, CURRENT_YEAR) : undefined,
         clearFilters: () => page?.store.dispatch({ type: "resetFilters" }),
-        // The two halves of the scope, as the picker's own "All time" sets them: the reading and
-        // the year it is read against, one being no answer without the other.
-        clearScope: () => {
-          page?.store.dispatch({ type: "updateFilter", filter: "yearTo", value: CURRENT_YEAR });
-          page?.store.dispatch({ type: "yearType", yearType: "upto" });
-        },
+        // The whole scope, exactly as the picker's own "All time" sets it.
+        clearScope: () => page?.store.dispatch({ type: "scope", yearTo: CURRENT_YEAR, yearType: "upto" }),
       }}
     >
       {children}
