@@ -3,17 +3,14 @@ import type { CardMediaImageProps, TypedCardMediaImage } from "./Card";
 import type { ArtworkShape } from "./cardArrangement";
 import { DrilldownDialog } from "./DrilldownDialog";
 import { StatList, type GridListLayout, type StatListBaseProps } from "./Stats";
-import { all } from "./population";
-import { CutButton } from "./SelectionComponents";
-import { useStackedCharts } from "./breakpoints";
 import { groupCaption, type DrilldownGroup } from "./statsData";
 
 /**
  * A strip of grouped cards that drills into a group: each card fronts its group with the group's
  * biggest item, and opening one lists that group's members fullscreen.
  *
- * The card owns everything that is the same on every tab — where the open handle stands at each
- * width, mounting the dialog only while a group is picked, and the key a drill-down card carries
+ * The card owns everything that is the same on every tab — the card being the group's own handle,
+ * mounting the dialog only while a group is picked, and the key a drill-down card carries
  * (the option prefixes it, so switching category remounts the grid rather than reusing cards under
  * a different grouping). What a domain supplies is what varies: its groups, how a group and a
  * member label themselves, which badge a member wears, the artwork and the colour its fronting
@@ -47,10 +44,6 @@ export const GroupedStatList = <T,>(props: {
 }) => {
   const { option, colourOf, MediaComponent, dialogSort, nameOf, dialogPictureWidth, shape } = props;
   const [dialogContent, setDialogContent] = useState<DrilldownGroup<T> | null>(null);
-  // Read once for the list rather than per card, and as a value because it decides which handle
-  // exists at all: the footer's control is not drawn where the strip's cards have no footer to put
-  // it in. The same width the cards themselves change layout at, so the two cannot disagree.
-  const narrow = useStackedCharts();
 
   const dialog = dialogContent ? (
     <DrilldownDialog
@@ -76,25 +69,13 @@ export const GroupedStatList = <T,>(props: {
         title={props.title}
         content={props.groups}
         collapsed={props.collapsed}
-        // The group's own cut, worded, at the end of the card's footer row. The figure says how
-        // much is behind it as well as being the way to it, where a chevron in a circle over the
-        // artwork says only "more" — in the glyph the card's own expand control means a different
-        // verb by — and covers the one thing a fronting picture is for.
-        actionComponent={
-          narrow
-            ? undefined
-            : (entry) => (
-                <CutButton
-                  label={all(entry.all.length)}
-                  onClick={() => setDialogContent(entry)}
-                />
-              )
-        }
-        // Below `md` the cards stand in a strip, where a 102px poster's footer is two fixed lines
-        // of caption with no room for a control beside them — so the picture takes the meaning it
-        // already carries: it fronts the group rather than being an item of it, and the whole card
-        // opens the group. Without this the drill-down is unreachable at that width.
-        onOpen={narrow ? setDialogContent : undefined}
+        // The whole card opens the group, at every width. The picture takes the meaning it already
+        // carries — it fronts the group rather than being an item of it — and the footer's own ›
+        // is the affordance, where a worded button in that footer stands the row a line taller than
+        // the plain `StatList` rows beside it and ends the pair of cards at different heights.
+        onOpen={setDialogContent}
+        // The card names the group it opens, not the member whose picture and words it wears.
+        openLabelOf={(entry) => `Open ${props.labelComponent(entry).flat().join(", ")}`}
         labelComponent={props.labelComponent}
         captionOf={(entry) => groupCaption(props.labelComponent(entry), entry.name)}
         MediaComponent={(cardProps) => (

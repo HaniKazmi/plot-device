@@ -27,7 +27,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { CalendarMonthOutlined } from "@mui/icons-material";
+import { CalendarMonthOutlined, ChevronRight } from "@mui/icons-material";
 import { cachedColour, extractColourFrom } from "../utils/colourUtils";
 import { ArtworkAccent, artworkPalette, SEAM_WIDTH, seamEdge, useArtworkPalette } from "./artworkPalette";
 import { HoverCardTooltip } from "./HoverCardTooltip";
@@ -77,12 +77,18 @@ export interface CardMediaImageProps {
    * What pressing the artwork does instead of opening this item's own card.
    *
    * A card whose picture stands for something larger than the item in it: a grouped list's card
-   * fronts its group with the group's biggest member, and where there is no room beside the words
-   * for the group's own handle — a strip card is a 102px poster under two lines of caption — the
-   * picture has to mean the group rather than the one item that happens to represent it. Given,
+   * fronts its group with the group's biggest member, so the picture means the group rather than
+   * the one item that happens to represent it, and the card is the group's own handle. Given,
    * the detail dialog is never opened and so never mounted.
    */
   onOpen?: () => void;
+  /**
+   * What the card is a handle for, where that is not the item whose artwork it shows: the
+   * accessible name of the whole press target. Without one the name is read off the picture's
+   * `alt` and the words under it, which between them name the group's biggest member — the one
+   * item pressing the card does not open.
+   */
+  openLabel?: string;
   sx?: SxProps<Theme>;
   /**
    * The card itself rather than the artwork inside it. A caller that lays the artwork and a panel
@@ -605,6 +611,7 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
               block where it is not. */}
           {mediaBand && <Box sx={FULL_WIDTH_NO_BASIS}>{mediaBand.node}</Box>}
           <CardActionArea
+            aria-label={props.openLabel}
             sx={mediaLayout === "aside" ? ASIDE_ACTION_AREA_SX : beside ? SHAPE_ASIDE_ACTION_AREA_SX : undefined}
           >
             {missing ? (
@@ -1501,17 +1508,18 @@ export const FooterComponent = ({
   divider,
   caption,
   captionText,
-  action,
+  chevron,
 }: {
   labels: string[][];
   divider?: boolean;
   /**
-   * A control at the end of the last row, for a card that stands for more than itself: a grouped
-   * card's own drill-down, worded as the cut it is. Here rather than over the artwork, because the
-   * picture is a representative of the group and a chip on it covers the one thing that says which
-   * group it is. Dropped from a strip card's caption, which has two fixed lines and no room.
+   * A › at the end of the last row, for a card whose press opens something other than the item in
+   * it: a grouped card fronts its group, and the whole card is the handle. The glyph is the only
+   * thing that says so — a worded button there stands a row taller than the plain footers beside
+   * it, and a chip over the artwork covers the one thing a fronting picture is for. A strip card's
+   * caption has two fixed lines and no room, and drops it.
    */
-  action?: ReactNode;
+  chevron?: boolean;
   /**
    * One line instead of the stack, for a card in a strip: the picture stands at a fixed height and
    * what is left is a single line of words. `stripCaption` decides which of the rows it is — never
@@ -1587,89 +1595,88 @@ export const FooterComponent = ({
         ...seamEdge(palette, beside),
       }}
     >
-      {labels.map((stacks, index) => (
-        <Stack
-          key={`stacks-${index}`}
-          direction="row"
-          divider={
-            divider && !beside ? (
-              <Divider
-                orientation="vertical"
-                flexItem
-                sx={{ borderColor: palette.line }}
-              />
-            ) : null
-          }
-          sx={{
-            // Beside, a row opens a line of prose; under the artwork it is spread across the card.
-            justifyContent: beside ? "flex-start" : stacks.length === 1 ? "center" : "space-between",
-            columnGap: beside ? 0.75 : 1,
-            // Under the artwork a row that does not fit breaks between its cells, never inside a
-            // date: each cell keeps its words together and the second takes a line of its own.
-            flexWrap: "wrap",
-            color: index < labels.length - 1 ? palette.muted : undefined,
-          }}
-        >
-          {stacks.map((val) => (
-            <Typography
-              key={val}
-              // A context row is set as a label and the closing row as the card's own line: the
-              // hero and the Now band already state a date as a kicker over the thing it dates,
-              // and a stat card is the same card smaller. Left at one size the two rows differ
-              // only in tone, which reads as one line dimmed rather than as two ranks.
-              variant={index < labels.length - 1 ? "caption" : "subtitle2"}
-              sx={[
-                index < labels.length - 1 ? LABEL_SX : { fontWeight: 600 },
-                beside
-                  ? {
-                      lineHeight: 1.3,
-                      overflowWrap: "break-word",
-                      minWidth: 0,
-                      display: "-webkit-box",
-                      WebkitBoxOrient: "vertical",
-                      WebkitLineClamp: BESIDE_LABEL_LINES,
-                      overflow: "hidden",
-                    }
-                  : {
-                      whiteSpace: "nowrap",
-                      // On a card under 210px — six posters across a 1,200px page — a date and a
-                      // "days in" at the caption's size and tracking are a line and a half; one
-                      // size down with half the tracking they are one line.
-                      ...(index < labels.length - 1 && {
-                        "@container (max-width: 210px)": { fontSize: 10, letterSpacing: "0.04em" },
-                      }),
-                    },
-              ]}
-            >
-              {val}
-            </Typography>
-          ))}
-          {/* On the closing row and at its end: the row is already spread across the card, so the
-              control lands against the edge opposite the figures — on its own line where the row
-              has already filled the width, which a genre's name and its figure do.
+      {labels.map((stacks, index) => {
+        const closing = chevron && index === labels.length - 1;
+        const row = (
+          <Stack
+            key={`stacks-${index}`}
+            direction="row"
+            divider={
+              divider && !beside ? (
+                <Divider
+                  orientation="vertical"
+                  flexItem
+                  sx={{ borderColor: palette.line }}
+                />
+              ) : null
+            }
+            sx={{
+              // Beside, a row opens a line of prose; under the artwork it is spread across the card.
+              justifyContent: beside ? "flex-start" : stacks.length === 1 ? "center" : "space-between",
+              columnGap: beside ? 0.75 : 1,
+              // Under the artwork a row that does not fit breaks between its cells, never inside a
+              // date: each cell keeps its words together and the second takes a line of its own.
+              flexWrap: "wrap",
+              color: index < labels.length - 1 ? palette.muted : undefined,
+              // The row takes the width the glyph leaves, so its cells still spread across the card.
+              ...(closing && { flex: "1 1 0", minWidth: 0 }),
+            }}
+          >
+            {stacks.map((val) => (
+              <Typography
+                key={val}
+                // A context row is set as a label and the closing row as the card's own line: the
+                // hero and the Now band already state a date as a kicker over the thing it dates,
+                // and a stat card is the same card smaller. Left at one size the two rows differ
+                // only in tone, which reads as one line dimmed rather than as two ranks.
+                variant={index < labels.length - 1 ? "caption" : "subtitle2"}
+                sx={[
+                  index < labels.length - 1 ? LABEL_SX : { fontWeight: 600 },
+                  beside
+                    ? {
+                        lineHeight: 1.3,
+                        overflowWrap: "break-word",
+                        minWidth: 0,
+                        display: "-webkit-box",
+                        WebkitBoxOrient: "vertical",
+                        WebkitLineClamp: BESIDE_LABEL_LINES,
+                        overflow: "hidden",
+                      }
+                    : {
+                        whiteSpace: "nowrap",
+                        // On a card under 210px — six posters across a 1,200px page — a date and a
+                        // "days in" at the caption's size and tracking are a line and a half; one
+                        // size down with half the tracking they are one line.
+                        ...(index < labels.length - 1 && {
+                          "@container (max-width: 210px)": { fontSize: 10, letterSpacing: "0.04em" },
+                        }),
+                      },
+                ]}
+              >
+                {val}
+              </Typography>
+            ))}
+          </Stack>
+        );
 
-              The tones are the footer's own, not the theme's. The ground here is a sampled colour,
-              and a control stating `background.paper` on it is a rectangle of the page's paper
-              inside a card the artwork has coloured — dark on a dark poster's footer, where only
-              its border would say it is there. Stated here rather than by the caller because only
-              the card knows its own ground. */}
-          {action && index === labels.length - 1 && (
-            <Box
-              sx={{
-                marginLeft: "auto",
-                "& .MuiButton-root": {
-                  color: palette.onGround,
-                  borderColor: palette.line,
-                  backgroundColor: palette.tile,
-                },
-                "& .MuiButton-endIcon": { color: palette.muted },
-              }}
-            >
-              {action}
-            </Box>
-          )}
-        </Stack>
-      ))}
+        // Beside the row rather than inside it. The row wraps between its cells, so a third item in
+        // it takes a line of its own wherever the name and the figure already fill the width —
+        // a second line on the long names alone, which is the uneven height the glyph is here to
+        // avoid. Outside, it sits within the closing line and the footer is a plain footer's height.
+        // The tone is the footer's own: the ground is a sampled colour, and a glyph stating the
+        // theme's muted ink can land invisible on it.
+        return closing ? (
+          <Box
+            key={`stacks-${index}`}
+            sx={{ display: "flex", alignItems: "center", columnGap: 0.5 }}
+          >
+            {row}
+            <ChevronRight sx={{ fontSize: 18, color: palette.muted, flexShrink: 0 }} />
+          </Box>
+        ) : (
+          row
+        );
+      })}
     </CardContent>
   );
 };

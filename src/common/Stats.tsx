@@ -364,10 +364,10 @@ export const StatsListGrid = <T,>(
     /** A strip card's caption where the labels' first row is not it — a grouped list's figure. */
     captionOf?: (t: T) => string[];
     chipComponent?: (t: T) => CardMediaImageProps["chip"];
-    /** A control at the end of a card's footer — see `FooterComponent`'s `action`. */
-    actionComponent?: (t: T) => ReactNode;
     /** What a card's artwork opens instead of the item's own card — see `CardMediaImageProps`. */
     onOpen?: (t: T) => void;
+    /** The accessible name of a card that opens something else — see `CardMediaImageProps`. */
+    openLabelOf?: (t: T) => string;
     shape?: ArtworkShape;
     /** A band along the top of each card, and its height — see `CardMediaImageProps.mediaBand`. */
     band?: MediaBand<T>;
@@ -383,7 +383,7 @@ export const StatsListGrid = <T,>(
 ) => {
   const { content, flexWrap, cardKey, labelComponent, captionOf, chipComponent, shape, band, divider, MediaComponent } =
     props;
-  const { actionComponent, onOpen } = props;
+  const { onOpen, openLabelOf } = props;
   // The row's own width, which only a sized row reads: a grid needs none, and the observer is
   // only attached to the element a sized row renders.
   const [rowRef, rowWidth] = useElementWidth<HTMLDivElement>();
@@ -409,8 +409,8 @@ export const StatsListGrid = <T,>(
       labels={labelComponent(entry)}
       captionText={captionOf?.(entry)}
       chip={chipComponent?.(entry)}
-      action={actionComponent?.(entry)}
       onOpen={onOpen && (() => onOpen(entry))}
+      openLabel={openLabelOf?.(entry)}
       cell={cell}
       shape={shape}
       band={band}
@@ -552,10 +552,10 @@ export interface StatListBaseProps<T> {
   captionOf?: (t: T) => string[];
   MediaComponent: TypedCardMediaImage<T>;
   chipComponent?: (t: T) => CardMediaImageProps["chip"];
-  /** See `StatsListGrid`: a control at the end of a card's footer. */
-  actionComponent?: (t: T) => ReactNode;
   /** See `StatsListGrid`: what a card's artwork opens instead of the item's own card. */
   onOpen?: (t: T) => void;
+  /** See `StatsListGrid`: the accessible name of a card that opens something else. */
+  openLabelOf?: (t: T) => string;
   shape?: ArtworkShape;
   /** See `StatsListGrid`: a band along the top of each card. */
   band?: MediaBand<T>;
@@ -633,8 +633,8 @@ export const StatList = <T,>(props: StatsListProps<T>) => {
             labelComponent={labelComponent}
             captionOf={props.captionOf}
             chipComponent={chipComponent}
-            actionComponent={props.actionComponent}
             onOpen={props.onOpen}
+            openLabelOf={props.openLabelOf}
             shape={props.shape}
             band={props.band}
             divider={props.divider}
@@ -757,8 +757,8 @@ const StatsListCard = <T,>({
   labels,
   captionText,
   chip,
-  action,
   onOpen,
+  openLabel,
   cell,
   shape,
   band,
@@ -769,8 +769,8 @@ const StatsListCard = <T,>({
   labels: string[][];
   captionText?: string[];
   chip?: CardMediaImageProps["chip"];
-  action?: ReactNode;
   onOpen?: () => void;
+  openLabel?: string;
   cell: CardCell;
   shape?: ArtworkShape;
   band?: MediaBand<T>;
@@ -788,6 +788,7 @@ const StatsListCard = <T,>({
         <MediaComponent
           item={item}
           onOpen={onOpen}
+          openLabel={openLabel}
           mediaBand={band && { node: band.render(item), height: band.height }}
           // The words go under the picture whatever shape it is. The arrangement rule seats a
           // poster's beside it, which on a card 82px wide is a column of two characters — and a
@@ -852,6 +853,7 @@ const StatsListCard = <T,>({
         sx={{ aspectRatio: shape && shapeToPinnedAspect(shape), flexShrink: 0 }}
         chip={chip}
         onOpen={onOpen}
+        openLabel={openLabel}
         // A dialog list can run to hundreds of cards; off-screen artwork loads as it scrolls
         // into view rather than all at once on open.
         lazy
@@ -860,7 +862,9 @@ const StatsListCard = <T,>({
           <FooterComponent
             labels={labels}
             divider={divider}
-            action={action}
+            // The glyph follows the handle rather than being asked for separately, so a card that
+            // opens something other than its own item cannot fail to say so.
+            chevron={onOpen !== undefined}
           />
         }
       />

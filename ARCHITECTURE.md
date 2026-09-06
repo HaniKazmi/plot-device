@@ -860,17 +860,20 @@ one without takes a palette colour offset by the option's index, so switching ca
 consistently. A domain supplies its option list, whose order feeds that offset, an icon per option,
 how to group, and its vocabularies.
 
-`common/GroupedStatList` is the strip of grouped cards that drills into a group. It owns where the
-open handle stands at each width and the drill-down's card keys, which the category prefixes so a
-change of grouping remounts the grid; from `md` up the handle is the worded cut at the end of the
-card's footer row (`FooterComponent`'s `action`, in the footer's own artwork tones), and below it,
-where the cards stand in a strip and a 102px poster's footer is two fixed lines of caption with no
-room beside them, **the whole card opens the group** (`CardMediaImageProps.onOpen`, which replaces
-the item's own detail dialog): the picture fronts the group rather than being an item of it, so the
-tap has one meaning. A chip over the artwork covers the one thing a fronting picture is for, and the
-strip drops it at that width, which leaves the drill-down unreachable. it sorts the picked group at open rather than every
-category on every render, and mounts `common/DrilldownDialog`, the fullscreen list itself, only
-while a group is picked. The franchise machinery is shared the same way: `common/franchiseIndex`
+`common/GroupedStatList` is the strip of grouped cards that drills into a group. It owns the
+drill-down's card keys, which the category prefixes so a change of grouping remounts the grid, and
+the rule that **the whole card opens the group, at every width** (`CardMediaImageProps.onOpen`,
+which replaces the item's own detail dialog): the picture fronts the group rather than being an item
+of it, so the press has one meaning. What says so is a › at the end of the footer's closing row
+(`FooterComponent`'s `chevron`, in the footer's own artwork tones), following the handle rather than
+asked for separately, so the two cannot disagree. It is a glyph and not a worded button because a
+button there stands the footer a row taller than the plain `StatList` beside it — the two cards
+sharing a `StatBand` row then end 30px apart — and it sits outside the row's own flex box, which wraps
+between its cells and would otherwise give a long group's name a second line the short names do not
+take. The card names what it opens (`openLabel`, "Open Fantasy, 116 games"), since its `alt` and its
+words between them name the group's biggest member — the one item pressing it does not open. It
+sorts the picked group at open rather than every category on every render, and mounts
+`common/DrilldownDialog`, the fullscreen list itself, only while a group is picked. The franchise machinery is shared the same way: `common/franchiseIndex`
 groups by whatever accessor a domain passes, and `common/franchiseContext`'s factory threads the
 index down to the card strips.
 
