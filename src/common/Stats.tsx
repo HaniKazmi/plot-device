@@ -40,10 +40,10 @@ import type { Colour } from "../utils/types";
 import { YearSelect } from "./YearSelect";
 import type { YearType } from "./filterReducer";
 import { CURRENT_YEAR, type YearNumber } from "./date";
-import { Close, CloseFullscreen, Fullscreen, Timer, Update } from "@mui/icons-material";
+import { Fullscreen, Timer, Update } from "@mui/icons-material";
 import { CutButton } from "./SelectionComponents";
 import { useDialogMount } from "./useDialogMount";
-import { stickySheetHeader } from "./fullscreenSheet";
+import { SheetBar } from "./SheetBar";
 
 export const StatCard = ({
   icon,
@@ -306,16 +306,24 @@ export const EXPANDED_CARDS = 500;
  * "All 1,539 ›" in place of the ⤢, so the figure and the way to the rest of it are one object and
  * the header stops stating "10 of 1,539" beside an icon that says nothing about how much is behind
  * it. Left off — a wall drawing everything, a gallery whose shelves all fit — the icon stands,
- * there being no figure to word. The dialog keeps the icon either way: what it offers is the way
- * out, and nothing is cut behind it.
+ * there being no figure to word.
+ *
+ * The dialog carries no control of its own: it opens with the `SheetBar` every layer wears, whose
+ * ✕ is the way out at every width. The bar names the card as well, which the content's own
+ * `SectionHeader` then states again directly below — the header cannot be dropped, since it is
+ * where the card's controls live, and a layer that does not name itself is the thing the bar
+ * exists to fix.
  */
 export const ExpandableCard = ({
   renderContent,
+  title,
   expandable: expandableProp,
   cutLabel,
   sx,
 }: {
   renderContent: (isDialog: boolean, toggle: ReactNode) => ReactNode;
+  /** What the layer is, for its bar. */
+  title: string;
   expandable?: boolean;
   /** The worded cut, from `common/population.ts`'s `all` — see above. */
   cutLabel?: string;
@@ -325,30 +333,28 @@ export const ExpandableCard = ({
   const expandable = expandableProp ?? true;
   const dialog = useDialogMount();
 
-  // The dialog always keeps a control, whatever `expandable` says: a caller whose content shrinks
-  // while it is open — a select box in the header switching to a category with fewer groups —
-  // would otherwise strand the reader with nothing to press. Below `sm` that control is the bar's
-  // ✕ instead, where the header's controls wrap to a row of their own and the way out lands
-  // halfway down the first screen.
-  const toggle = (isDialog: boolean) =>
-    !isDialog && cutLabel && expandable ? (
+  // The card's own control, and the dialog's nothing: the layer's bar carries the ✕ instead, which
+  // also answers for a caller whose content shrinks while it is open — a select switching to a
+  // category with fewer groups — where a control in the header would go with the content.
+  const toggle = expandable ? (
+    cutLabel ? (
       <CutButton
         label={cutLabel}
         onClick={dialog.show}
       />
-    ) : expandable || isDialog ? (
+    ) : (
       <IconButton
-        aria-label={isDialog ? "Close" : "Expand"}
-        onClick={() => (isDialog ? dialog.hide() : dialog.show())}
-        sx={isDialog ? DIALOG_TOGGLE_SX : undefined}
+        aria-label="Expand"
+        onClick={dialog.show}
       >
-        {isDialog ? <CloseFullscreen color="primary" /> : <Fullscreen />}
+        <Fullscreen />
       </IconButton>
-    ) : null;
+    )
+  ) : null;
 
   return (
     <Card sx={sx}>
-      {renderContent(false, toggle(false))}
+      {renderContent(false, toggle)}
       <Dialog
         open={dialog.open}
         fullScreen
@@ -358,40 +364,17 @@ export const ExpandableCard = ({
       >
         {dialog.mounted && (
           <>
-            {/* The way out, pinned. The bar carries no title: the content's own `SectionHeader`
-                states it directly below, and only the caller knows what it is. */}
-            <Box sx={SHEET_CLOSE_BAR_SX}>
-              <IconButton
-                aria-label="Close"
-                onClick={dialog.hide}
-              >
-                <Close color="primary" />
-              </IconButton>
-            </Box>
-            {renderContent(true, toggle(true))}
+            <SheetBar
+              title={title}
+              onClose={dialog.hide}
+            />
+            {renderContent(true, null)}
           </>
         )}
       </Dialog>
     </Card>
   );
 };
-
-/** The dialog's own expand control, which the sheet bar's ✕ stands in for below `sm`. */
-const DIALOG_TOGGLE_SX = { display: { xs: "none", sm: "inline-flex" } } as const;
-
-/**
- * The bar carrying that ✕. Built here rather than in the component: a width is a key computed from
- * the theme, and an object literal with a computed key is a shape the React Compiler cannot lower,
- * so written inline it would take `ExpandableCard` out of memoization with nothing to say so.
- */
-const SHEET_CLOSE_BAR_SX = (theme: Theme) => ({
-  display: "none",
-  [theme.breakpoints.down("sm")]: {
-    display: "flex",
-    justifyContent: "flex-end",
-    ...stickySheetHeader(theme),
-  },
-});
 
 /**
  * A strip of media cards, capped so a long list does not render in full.
@@ -647,6 +630,7 @@ export const StatList = <T,>(props: StatsListProps<T>) => {
       }}
     >
       <ExpandableCard
+        title={title}
         sx={{ height: "100%" }}
         // A floor, since a cap in rows holds at least a card a row; the header below drops the
         // toggle once it knows everything is already drawn.

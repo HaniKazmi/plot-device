@@ -110,12 +110,17 @@ const ActionRow = ({ children }: { children: ReactNode }) => {
  * for it is 40px of blank line with an icon at the far end. A card whose only action is its expand
  * toggle passes it — the caller's own test, rather than a measurement, since what the slot holds is
  * known before it is drawn.
+ *
+ * `titleAction` is the other end of that: a control that belongs beside the title however full the
+ * controls row gets. The folded chart's ⌄ is the one — a control row that scrolls can carry a
+ * setting past the edge, but not the way to the chart those settings are about.
  */
 export const SectionHeader = ({
   icon,
   title,
   count,
   action,
+  titleAction,
   compactActions,
 }: {
   icon?: ReactNode;
@@ -126,6 +131,8 @@ export const SectionHeader = ({
    */
   count?: string;
   action?: ReactNode;
+  /** A control pinned to the right of the title row, never carried into the scrolling action row. */
+  titleAction?: ReactNode;
   /** Whether the action slot holds no more than one icon button, which stays on the title row. */
   compactActions?: boolean;
 }) => (
@@ -141,7 +148,7 @@ export const SectionHeader = ({
         <Stack
           direction="row"
           spacing={1}
-          sx={{ alignItems: "baseline", flexWrap: "wrap" }}
+          sx={{ alignItems: "baseline", flexWrap: "wrap", flexGrow: 1, minWidth: 0 }}
         >
           <span>{title}</span>
           {count && (
@@ -153,6 +160,7 @@ export const SectionHeader = ({
             </Typography>
           )}
         </Stack>
+        {titleAction}
       </Stack>
     }
     slotProps={{ title: { variant: "h6", component: "div" } }}

@@ -4,7 +4,7 @@ import { BarChart } from "@mui/icons-material";
 import { SectionHeader } from "./SectionHeader";
 import { SegmentedControl } from "./SelectionComponents";
 import { segments } from "./segments";
-import { FoldedChart, Sparkline } from "./FoldedChart";
+import { FoldedChart, Sparkline, type FoldHeader } from "./FoldedChart";
 import { useStackedCharts } from "./breakpoints";
 import { Chart, Series, XAxis, YAxis, PlotOptions, Tooltip, Legend } from "../highcharts";
 import type { Year, YearMonth } from "./date";
@@ -93,24 +93,30 @@ const Barchart = ({
   // are given, so they keep it.
   const height = view === "Rank" ? `min(${full}, max(${RANK_MIN_HEIGHT}px, ${groups.length * RANK_LANE}px))` : full;
 
-  const header = (
+  // The split and the View appear with the chart: both are choices about a pivot that is not
+  // mounted while the card is folded, and the line the fold states is the Totals reading whatever
+  // they say.
+  const header = ({ shown, toggle }: FoldHeader) => (
     <SectionHeader
       icon={<BarChart />}
       title={title}
+      titleAction={toggle}
       action={
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{ alignItems: "center" }}
-        >
-          {controls}
-          <SegmentedControl
-            options={viewOptions}
-            value={view}
-            onChange={setView}
-            ariaLabel="View"
-          />
-        </Stack>
+        shown ? (
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{ alignItems: "center" }}
+          >
+            {controls}
+            <SegmentedControl
+              options={viewOptions}
+              value={view}
+              onChange={setView}
+              ariaLabel="View"
+            />
+          </Stack>
+        ) : undefined
       }
     />
   );
@@ -124,7 +130,9 @@ const Barchart = ({
   if (groups.length === 0) {
     return (
       <Card>
-        {header}
+        {/* Nothing is folded here: the card states why it is empty, which is shorter than the
+            summary a fold would draw and needs no chart behind it. */}
+        {header({ shown: true, toggle: null })}
         <CardContent>
           <Typography
             variant="body2"

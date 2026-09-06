@@ -393,6 +393,7 @@ const Bead = ({
       <HoverCardTooltip
         colour={colour}
         title={<LazyTooltip render={entry.hoverCard} />}
+        name={entry.label}
         placement="top"
       >
         <Box
@@ -591,6 +592,7 @@ const StripMark = ({ band, mark }: { band: StripBand<FranchiseEntry>; mark: Mark
       <HoverCardTooltip
         colour={colour}
         title={<LazyTooltip render={band.hoverCard} />}
+        name={band.label}
         placement="top"
       >
         {point ? (

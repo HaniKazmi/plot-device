@@ -384,10 +384,10 @@ Folded on a phone, the card states `firstRing` — the innermost ring, largest f
 `ProportionalBar` (`RingBar`) built through the Top lists' own `topNWithOther`, so wedges beyond the
 fifth become one "Other" segment. A grouping with a colour vocabulary keeps the wheel's own hex; one
 without falls back to a series colour by rank, which can disagree with Highcharts' own `colorByPoint`
-order — the names under the bar say which segment is which regardless. `FoldedChart` heads both
-states with the same header, so the three pickers stand above the preview too: at 390px the row
-asks for more room than the card holds, and scrolls under it (`SectionHeader`'s `ActionRow`, above)
-with the "Nest by" label intact rather than either wrapping the row or dropping the word.
+order — the names under the bar say which segment is which regardless. The three pickers appear with the wheel they re-nest, a folded
+card having nothing to nest: shown, the row asks for more room at 390px than the card holds and
+scrolls under the title (`SectionHeader`'s `ActionRow`, above) with the "Nest by" label intact
+rather than either wrapping the row or dropping the word.
 
 ### Timeline — `common/Timeline.tsx`
 
@@ -809,12 +809,13 @@ whole library. The measure and the year scope are not among those fields — eac
 own outside the drawer, stating on its own face that it is set, and a badge counting them would
 report a choice the surface it sits on cannot undo.
 
-`common/DrilldownDialog` and `ExpandableCard`'s own dialog (below) both take an `onClose`, so Escape
-and a backdrop press close them like any other dialog; the header button stays, since a fullscreen
-dialog covers the handle that opened it. Below `sm` `DrilldownDialog`'s header sticks to the top
-(`stickySheetHeader`) rather than scrolling with a grid five hundred cards deep, and swaps its
-arrows-in icon for a ✕ — the sheet's own word for leaving, where the arrows would read as "back to
-the card this came out of".
+`common/DrilldownDialog` and `ExpandableCard`'s own dialog (below) both open with the `SheetBar`
+every layer wears (§ The expanded card): the name of what was opened and a ✕, pinned at the top at
+every width, since a fullscreen dialog covers the handle that opened it and a grid five hundred
+cards deep leaves the reader nothing else to press. Both also take an `onClose`, so Escape and a
+backdrop press close them like any other dialog. Neither header carries a way out of its own: the
+drill-down states its group in the bar alone, and the expanded list keeps its `SectionHeader` for
+the controls that live in it, which costs one title stated twice.
 
 `common/TopList` exports `TopCategoryBand`, the row of "Top X" cards a tab opens on. The card owns
 what is the same everywhere: the category select, `topNWithOther`'s top-five-plus-Other reduction
@@ -1020,8 +1021,20 @@ a grabber, the item's own name and a ✕, 48px tall (`SHEET_BAR_HEIGHT`) — as 
 above the artwork on the artwork's own ground rather than the paper's, so the name and the way out
 survive the scroll a full-bleed picture invites. The name is stated at every scroll position rather
 than faded in, since a bar that fills in as you scroll reads as something loading rather than as
-chrome that was there from the start. `pinnedSheetTop` (`common/fullscreenSheet.ts`) is the sticky
-recipe every sheet bar in the app shares — this one, the filter sheet's, a hover card's — pinning at
+chrome that was there from the start.
+
+**`common/SheetBar.tsx` is that bar, and every layer in the app opens with it**: this one, the
+expanded list, the drill-down, the hover sheet and search's own input row. The reader's question at
+each is the same — what is this, and how do I leave — so a chrome per layer taught an answer per
+layer. The ✕ is that answer at every width: an arrows-in glyph in a dialog's header reads as "back
+to the card this came out of", which is a second verb for the one thing a layer does. It lives beside the sheet recipes rather than
+in `Card.tsx`, since `Card` mounts every hover card through `HoverCardTooltip` and a bar exported
+from there would close that import into a cycle. `sheetBarRow` (`common/fullscreenSheet.ts`) is the
+48px row itself and the ground is the caller's: the paper's under a layer over the page, the
+artwork's under an expanded card, the drawer's own — and not pinned at all — under a bottom sheet,
+which stands under no notch. The expanded card's is the one drawn below `sm` alone: from `sm` up
+that dialog is a window over the page, whose picture, backdrop and Escape are the ways out.
+`pinnedSheetTop` is the sticky half every top bar shares, pinning at
 the top with the notch paid for above the bar's own content; the dialog's `Paper` and `Card` both
 open their `overflow` to `visible` at this width, since either being anything else becomes the
 scrollport a sticky element measures itself against. The artwork below reads its own room off two
@@ -1217,16 +1230,14 @@ happens to end.
   gallery whose shelves all fit, a strip that scrolls sideways and already holds the whole list
   (`wrap={false}`). The figure and the way to the rest of it are then one object, where an icon
   beside a header reading "10 of 1,539" states the cut twice and says nothing about how much is
-  behind it. The dialog keeps the icon either way, what it offers being the way out. `useDialogMount`
+  behind it. The dialog carries no control of its own, its bar's ✕ being the way out. `useDialogMount`
   pairs `open` with a `mounted` flag lagging it until `onExited`, so the body survives the exit
   transition and is never built behind a closed dialog. `CardMediaImage` gates the whole `Dialog`,
   not just the body: an uncapped wall mounts one per item, and a closed `Dialog` still renders
   itself, its `Modal` and their hooks before returning null. The dialog takes an `onClose`, so
-  Escape and a backdrop press close it like any other dialog; the header keeps its own control
-  regardless, since a select switching to a category with fewer groups can shrink the content and
-  strand the reader with nothing to press. Below `sm` that control is a pinned bar's own ✕
-  (`stickySheetHeader`) rather than the header's icon, which wraps to its own row down there and
-  would put the way out halfway down the first screen.
+  Escape and a backdrop press close it like any other dialog, and the bar's ✕ stands at every
+  width — which also answers a caller whose content shrinks while it is open, a select switching to
+  a category with fewer groups leaving nothing in the header to press.
 - **`StatsListGrid`** owns the capped strip of media cards. `COLLAPSED_CARDS` and `EXPANDED_CARDS`
   (6, and 500 — effectively everything, so a drill-down shows a whole group) apply _here_: a caller
   pre-slicing its list would make either a no-op. A strip laid out differently passes its own figure
@@ -1303,9 +1314,18 @@ shadow outside it; the flip keeping a tall card on screen, with `altAxis` doing 
 of a sideways-scrolling chart; and a 500px width that is a ceiling rather than a size below it
 (`min(500px, 100vw - 16px)`), against a tooltip's own 300px default. A popper positions once, so the
 content is observed and asked to place it again on every size change: a card whose chunk or picture
-lands late otherwise grows from an anchor placed for something smaller, off the screen top. A finger
-gets a bottom sheet instead, opened by a tap rather than MUI's own 700ms press, interactive so the
-card inside can open the expanded card (a `disableInteractive` tooltip cannot), and mounted only
+lands late otherwise grows from an anchor placed for something smaller, off the screen top. The popper is interactive, so the pointer can cross the mat and reach the
+card, whose picture opens the item's expanded card: a hovered mark is a door to the same place a
+tapped one is, which is the one thing a mouse would otherwise be offered less of than a finger. `leaveDelay` is what makes the
+crossing possible — a tooltip closing on the anchor's own leave event is gone before the pointer
+arrives — and the open flag is held in the popper rather than left to MUI, because that dialog is a
+child of the tooltip's own content: its backdrop takes the pointer off the popper, and a popper
+closing there would unmount the card in the same frame it opened. `HoverCardHold`
+(`common/hoverCardHold.ts`) is what `CardMediaImage` says so through, a pair of no-ops for every
+card rendered anywhere else. A finger
+gets a bottom sheet instead, opened by a tap rather than MUI's own 700ms press, wearing the same
+`SheetBar` as every other layer where the mark knows its item's name and the grabber alone where it
+does not, and mounted only
 while open: `SwipeableDrawer` keeps touch listeners on the document for the life of every instance,
 and a franchise strip is hundreds of marks for the one tapped. It sits at the modal layer, above the
 dialog a bead inside an expanded card was opened from, and above that card in turn once the reader
@@ -1501,7 +1521,14 @@ beads and `TimelineBandBox`'s bands (above): a box sized for a coarse pointer al
 stated as a height so it cannot reach over a dense neighbour. `FoldedChart` (`common/FoldedChart.tsx`)
 is the general mechanism behind every folded chart above — five callers — a card that renders only
 its header, a one-line summary and a shape-of-the-data preview until the reader asks for the chart
-itself, past `usePhone` alone; from `sm` up it is the plain card it always was. The packed timeline
+itself, past `usePhone` alone; from `sm` up it is the plain card it always was. What asks for it is
+a ⌄ in the header, turned over to ⌃ once the chart is drawn, and the summary row answers the same
+press: those words and that picture are what a reader is looking at when they decide they want the
+chart. The ⌄ rides `SectionHeader`'s `titleAction` slot rather than its action row, since below `sm`
+that row scrolls and a setting may go past the edge where the way to the chart may not. `header` is
+a function of `{ shown, toggle }` for that reason and one more: a caller withholds its own live
+controls while folded, a split or a set of rings being a choice about a chart that is not mounted,
+and the line the fold states drawn from the same pivot whatever they say. The packed timeline
 alone never folds (above). `CONTAIN_SIDEWAYS_SCROLL` (`common/scrollbarSx.ts`) is the same fix
 against the browser's back gesture (above, Timeline), worn by every other horizontal scroller in the
 app — the charts, the strips, the chip rails, the sized card rows.
@@ -1692,7 +1719,7 @@ key in ObjectExpression`; pulled out to a plain function taking the varying piec
   `sheetBarSx`, `dialogCardSx`, among others — the literal itself sits at module scope and the
   component stays compiled.
 
-The baseline is **250 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **255 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.

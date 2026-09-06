@@ -34,6 +34,9 @@ import type { Scheme } from "../utils/types";
  */
 const STRIPS_SHOWN = 12;
 
+/** The section's name, stated by the card, by the dialog it opens and by that dialog's own bar. */
+const CROSSINGS_TITLE = "Franchises over time";
+
 /**
  * The horizontal inset a strip sits at inside its own card, which the shared axis has to match to
  * line up with the strips above it. One number, because the two are the same edge.
@@ -105,6 +108,7 @@ const Crossings = ({
 
   return (
     <ExpandableCard
+      title={CROSSINGS_TITLE}
       // The strips the collapsed card has no room for are the whole point of the dialog, so the
       // reading that draws every row of the union has nothing to expand into. Its own count is
       // gone with the rest: the chart is over the page's population, which the rail states.
@@ -115,7 +119,7 @@ const Crossings = ({
           <>
             <SectionHeader
               icon={<Hub />}
-              title="Franchises over time"
+              title={CROSSINGS_TITLE}
               action={toggle}
               compactActions
             />
@@ -134,27 +138,34 @@ const Crossings = ({
           </>
         ) : (
           <FoldedContent
-            header={
+            header={({ shown, toggle: reveal }) => (
               <SectionHeader
                 icon={<Hub />}
-                title="Franchises over time"
+                title={CROSSINGS_TITLE}
+                titleAction={reveal}
                 action={
                   <Stack
                     direction="row"
                     spacing={1}
                     sx={{ alignItems: "center" }}
                   >
-                    <SegmentedControl
-                      options={CROSSINGS_MODES}
-                      value={mode}
-                      onChange={setMode}
-                      ariaLabel="What the timeline draws"
-                    />
+                    {/* Which reading the stack draws is a choice about a stack that is not
+                        mounted while the card is folded; the cut stands either way, being the
+                        way to the franchises the card has no room for rather than a setting on
+                        the ones it does. */}
+                    {shown && (
+                      <SegmentedControl
+                        options={CROSSINGS_MODES}
+                        value={mode}
+                        onChange={setMode}
+                        ariaLabel="What the timeline draws"
+                      />
+                    )}
                     {toggle}
                   </Stack>
                 }
               />
-            }
+            )}
             // The strips are ordered by size, so the first one is the largest series the reader has
             // met — the fact the stack is opened for, and the one a phone can state without drawing
             // it.

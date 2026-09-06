@@ -43,13 +43,14 @@ const WatchTimeline = ({ data }: { data: Movie[] }) => {
   return (
     <Grid size={12}>
       <FoldedChart
-        header={
+        header={({ shown, toggle }) => (
           <SectionHeader
             icon={<TimelineIcon />}
             title="When films were watched"
-            action={controls}
+            titleAction={toggle}
+            action={shown ? controls : undefined}
           />
-        }
+        )}
         // The stack's own shape in words: how many years it draws and which of them is fullest.
         // A ribbon has no single figure to preview, every row being the same twelve months.
         fold={() => ({ summary: summarise(rows) })}

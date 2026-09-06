@@ -1,29 +1,19 @@
-import { Close, CloseFullscreen } from "@mui/icons-material";
-import { CardHeader, Dialog, IconButton, type Theme } from "@mui/material";
+import { Dialog } from "@mui/material";
 import type { ReactNode } from "react";
-import { stickySheetHeader } from "./fullscreenSheet";
+import { SheetBar } from "./SheetBar";
 import { EXPANDED_CARDS, StatsListGrid, type CardLayout } from "./Stats";
 import type { CardMediaImageProps, MediaBand, TypedCardMediaImage } from "./Card";
 import type { ArtworkShape } from "./cardArrangement";
 
-const CLOSE_ICON_SX = { display: { xs: "block", sm: "none" } } as const;
-const COLLAPSE_ICON_SX = { display: { xs: "none", sm: "block" } } as const;
-
 /**
- * The header, pinned on a phone. Built here rather than in the component: a width is a key
- * computed from the theme, and an object literal with a computed key is a shape the React Compiler
- * cannot lower, so written inline it would take the dialog out of memoization silently.
- */
-const HEADER_SX = (theme: Theme) => ({ [theme.breakpoints.down("sm")]: stickySheetHeader(theme) });
-
-/**
- * The fullscreen list a grouped card drills into: a header naming the group, and the group's
- * items as a capped card grid.
+ * The fullscreen list a grouped card drills into: a bar naming the group, and the group's items as
+ * a capped card grid.
  *
  * Mounting is the caller's: render it when a group is picked and `null` otherwise, so the grid
- * is never built behind a closed dialog. The header always carries a way out, since a fullscreen
- * dialog covers the handle that opened it; below `sm` that header sticks to the top of the screen,
- * a drill-down running five hundred cards deep.
+ * is never built behind a closed dialog. The name and the way out are the `SheetBar` every layer
+ * in the app opens with, pinned at every width — a fullscreen dialog covers the handle that opened
+ * it, and a drill-down runs five hundred cards deep, so the ✕ has to stay on screen from any
+ * scroll position. Nothing below the bar states the group, so the bar is where it is named.
  */
 export const DrilldownDialog = <T,>(
   props: {
@@ -39,7 +29,7 @@ export const DrilldownDialog = <T,>(
     divider?: boolean;
     MediaComponent: TypedCardMediaImage<T>;
     /**
-     * Something to say about the group before listing it, between the header and the grid — the
+     * Something to say about the group before listing it, between the bar and the grid — the
      * franchise view's facts and strip. Nothing, for a drill-down whose title says it all.
      */
     header?: ReactNode;
@@ -51,27 +41,9 @@ export const DrilldownDialog = <T,>(
     // Escape and a press outside leave the list, as every other dialog in the app answers to.
     onClose={props.onClose}
   >
-    <CardHeader
-      sx={HEADER_SX}
+    <SheetBar
       title={props.title}
-      action={
-        <IconButton
-          aria-label="Close"
-          onClick={props.onClose}
-        >
-          {/* Two icons rather than a width read in JS: the ✕ is the phone's word for leaving a
-              sheet, where the arrows say "back to the card this came out of". */}
-          <Close
-            color="primary"
-            sx={CLOSE_ICON_SX}
-          />
-          <CloseFullscreen
-            color="primary"
-            sx={COLLAPSE_ICON_SX}
-          />
-        </IconButton>
-      }
-      slotProps={{ title: { variant: "h6" } }}
+      onClose={props.onClose}
     />
     {props.header}
     <StatsListGrid

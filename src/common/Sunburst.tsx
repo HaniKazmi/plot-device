@@ -117,13 +117,16 @@ const Sunburst = <T, K extends string>({
 
   return (
     <FoldedChart
-      header={
+      header={({ shown, toggle }) => (
         <SectionHeader
           icon={<DonutLarge />}
           title={title}
-          action={controls}
+          titleAction={toggle}
+          // The three ring pickers appear with the wheel they re-nest: folded, the card draws its
+          // innermost ring in words whatever they say.
+          action={shown ? controls : undefined}
         />
-      }
+      )}
       // The innermost ring is what both halves of the fold read, so it is flattened out of the
       // hierarchy once here rather than by each of them.
       fold={() => {

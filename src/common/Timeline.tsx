@@ -671,6 +671,7 @@ const TimelineText = ({
       <HoverCardTooltip
         colour={event.colour}
         title={<LazyTooltip render={event.tooltip} />}
+        name={event.name}
         coarse={coarse}
       >
         <Box
@@ -697,6 +698,7 @@ const TimelineText = ({
         <HoverCardTooltip
           colour={event.colour}
           title={<LazyTooltip render={event.tooltip} />}
+          name={event.name}
           coarse={coarse}
         >
           <Box

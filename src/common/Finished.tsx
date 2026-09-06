@@ -421,6 +421,7 @@ const Finished = <U extends FinishedItem>({
     // would then stand still inside a box that never scrolls. Opened only where they are drawn —
     // the wall's own content stops well inside the card's corners, so there is nothing to clip.
     <ExpandableCard
+      title={title}
       sx={{ overflow: { xs: "visible", sm: "hidden" } }}
       renderContent={renderContent}
     />

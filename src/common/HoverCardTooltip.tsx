@@ -3,6 +3,9 @@ import type { Instance as PopperInstance } from "@popperjs/core";
 import { cloneElement, useRef, useState, type MouseEventHandler, type ReactElement, type ReactNode } from "react";
 import { useCoarsePointer } from "./useCoarsePointer";
 import { SheetGrabber } from "./SheetGrabber";
+import { SheetBar } from "./SheetBar";
+import { HoverCardHoldContext } from "./hoverCardHold";
+import { sheetBarRow } from "./fullscreenSheet";
 
 /**
  * The gap of the bar's own colour drawn around a hover card.
@@ -33,6 +36,21 @@ const WIDTH = 500;
 /** That width as a ceiling: the card, or the screen less a margin either side, whichever is smaller. */
 const CARD_WIDTH = `min(${WIDTH}px, calc(100vw - 16px))`;
 
+/**
+ * How long the pointer rests on a mark before its card opens, and how long the card outlives the
+ * pointer leaving it.
+ *
+ * The delay on the way in is what keeps a sweep across a packed row from opening a card per bar;
+ * the one on the way out is the crossing itself — the card sits a mat's width from its anchor, and
+ * a tooltip that closed on the leave event would be gone before the pointer arrived. Twelve pixels
+ * of mat and arrow is what has to be crossed, so the way out is short: their *difference* is how
+ * long two cards can stand at once, which a timeline row makes reachable by mounting one of these
+ * on its bar and another on the label beside it (§ Timeline). Thirty milliseconds of that is a
+ * couple of frames; a hundred is a visible pair of the same card.
+ */
+const ENTER_DELAY = 120;
+const LEAVE_DELAY = 150;
+
 /** How much of the screen a sheet may take before its own content scrolls inside it. */
 const SHEET_MAX_HEIGHT = "85dvh";
 
@@ -47,6 +65,12 @@ interface HoverCardProps {
   /** The bar's fill, which the mat and the arrow are drawn in. */
   colour: string;
   title: ReactNode;
+  /**
+   * What the card is about, for the sheet's own bar — every layer names itself and carries a ✕.
+   * A caller whose marks hold nothing but a tooltip node leaves it off and the sheet is the
+   * grabber alone: a bar stating nothing spends 48px of the screen saying so.
+   */
+  name?: string;
   placement?: TooltipProps["placement"];
   /**
    * Whether the reader is pointing with a finger, where a chart has already asked.
@@ -64,11 +88,11 @@ interface HoverCardProps {
  * How every chart in the app mounts an item's hover card.
  *
  * There is no hovering on a phone, so the same card is two surfaces. A pointer gets the popper
- * below; a finger gets a bottom sheet, opened by a tap rather than by MUI's 700ms press, sized to
- * the screen rather than to a stated width, and interactive — the card inside it opens the
- * expanded card, which a `disableInteractive` tooltip cannot be asked to do. The choice is made
- * here so that every chart's marks, beads and bars get it without knowing which surface they are
- * drawn on.
+ * below; a finger gets a bottom sheet, opened by a tap rather than by MUI's 700ms press and sized
+ * to the screen rather than to a stated width. Both are interactive, so the card inside either
+ * opens the item's expanded card: a hovered mark is a door to the same place a tapped one is. The
+ * choice is made here so that every chart's marks, beads and bars get it without knowing which
+ * surface they are drawn on.
  */
 export const HoverCardTooltip = (props: HoverCardProps) =>
   props.coarse === undefined ? (
@@ -101,7 +125,7 @@ const DetectedHoverCard = (props: HoverCardProps) =>
  * higher: two surfaces at one layer stack by portal order, which is the order they were opened in,
  * and the expanded card this sheet opens has to land above the sheet in turn.
  */
-const HoverCardSheet = ({ colour, title, children }: HoverCardProps) => {
+const HoverCardSheet = ({ colour, title, name, children }: HoverCardProps) => {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -128,8 +152,8 @@ const HoverCardSheet = ({ colour, title, children }: HoverCardProps) => {
                 borderTopStyle: "solid",
                 borderTopWidth: `${MAT}px`,
                 maxHeight: SHEET_MAX_HEIGHT,
-                // The room above the grabber, which draws only itself.
-                paddingTop: 1,
+                // The room above a grabber standing on its own, which the bar pays for itself.
+                paddingTop: name ? 0 : 1,
                 // The home indicator sits over the last few points of the screen, and the card's
                 // own figures run to the bottom of the sheet.
                 paddingBottom: "env(safe-area-inset-bottom)",
@@ -138,7 +162,19 @@ const HoverCardSheet = ({ colour, title, children }: HoverCardProps) => {
             },
           }}
         >
-          <SheetGrabber />
+          {/* The bar every layer wears, where the mark knows what it is about. It takes the row
+              alone rather than the pinned recipe: a sheet anchored to the bottom edge stands under
+              no notch, and the drawer's own paper is the ground beneath it. */}
+          {name ? (
+            <SheetBar
+              title={name}
+              grabber
+              onClose={() => setOpen(false)}
+              sx={sheetBarRow}
+            />
+          ) : (
+            <SheetGrabber />
+          )}
           {/* A phone gives the card the screen; a tablet held sideways would give it the whole
               width, where the card was drawn to be read at one. */}
           <Box sx={{ maxWidth: WIDTH, marginInline: "auto", padding: 1 }}>{title}</Box>
@@ -168,9 +204,18 @@ const HoverCardSheet = ({ colour, title, children }: HoverCardProps) => {
  * top of the screen for a mark near it. The content is observed for the life of the tooltip and the
  * popper asked to place it again on every change of size, so the flip and the overflow rules are
  * applied to the card as it is rather than as it opened.
+ *
+ * It is interactive, so the pointer can cross the mat and reach the card: the picture inside opens
+ * the item's expanded card, which is the door a finger already has through the sheet and the one
+ * a mouse would otherwise be offered less of. `leaveDelay` is what makes that crossing possible — a
+ * tooltip closing on the anchor's own leave event closes before the pointer arrives — and the open
+ * flag is held here rather than left to MUI so a card that has opened a dialog of its own can keep
+ * the popper mounted under it (`HoverCardHold`).
  */
 const HoverCardPopper = ({ colour, title, placement, children }: HoverCardProps) => {
   const popper = useRef<PopperInstance | null>(null);
+  const [hovered, setHovered] = useState(false);
+  const [held, setHeld] = useState(false);
   // A callback ref rather than an effect: the content exists only while the tooltip is open, and
   // this runs when it mounts and cleans up when it goes.
   const observe = (node: HTMLDivElement | null) => {
@@ -183,8 +228,18 @@ const HoverCardPopper = ({ colour, title, placement, children }: HoverCardProps)
   return (
     <Tooltip
       arrow
-      disableInteractive
-      title={<div ref={observe}>{title}</div>}
+      open={hovered || held}
+      onOpen={() => setHovered(true)}
+      onClose={() => setHovered(false)}
+      // Long enough that a pointer crossing a dense chart does not open a card per mark it passes,
+      // and long enough on the way out to reach the card across the mat.
+      enterDelay={ENTER_DELAY}
+      leaveDelay={LEAVE_DELAY}
+      title={
+        <HoverCardHoldContext.Provider value={{ hold: () => setHeld(true), release: () => setHeld(false) }}>
+          <div ref={observe}>{title}</div>
+        </HoverCardHoldContext.Provider>
+      }
       placement={placement}
       slotProps={{
         tooltip: {

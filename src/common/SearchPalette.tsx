@@ -64,9 +64,10 @@ const paperSx = (theme: Theme) => ({
 const CONTAINER_SX = { "& .MuiDialog-container": { alignItems: "flex-start" } } as const;
 
 /**
- * The input row: the whole width from `sm` up, and the phone's pinned sheet bar below it, where
- * the ✕ is the sheet's own word for leaving. A breakpoint key again, so a function at module
- * scope.
+ * The input row: the whole width from `sm` up, and the phone's own sheet bar below it — the box is
+ * what the sheet is about, so a bar above it stating the same thing would be two headers. Its ✕
+ * stands where every other layer's does, in the kit's own 28px box rather than pulled out to the
+ * paper's edge. A breakpoint key again, so a function at module scope.
  */
 const inputRowSx = (theme: Theme) => ({
   display: "flex",
@@ -321,7 +322,6 @@ export const SearchPalette = (props: {
           <IconButton
             aria-label="Close"
             onClick={onClose}
-            edge="end"
           >
             <Close />
           </IconButton>

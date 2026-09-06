@@ -118,6 +118,7 @@ const Gallery = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
   return (
     <>
       <ExpandableCard
+        title={`Shelves by ${title}`}
         expandable={groups.length > SHELVES_SHOWN}
         // The shelves left off, as the control that draws them. Expanded the card is capped again
         // at its own picture budget, so the header states that second cut as a figure — there

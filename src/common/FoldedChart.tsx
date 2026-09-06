@@ -1,15 +1,34 @@
-import { Box, Button, Card, CardContent, Stack, Typography } from "@mui/material";
+import { Box, ButtonBase, Card, CardContent, IconButton, Stack, Typography } from "@mui/material";
+import { ExpandMore } from "@mui/icons-material";
 import { useState, type ReactNode } from "react";
 import { usePhone } from "./breakpoints";
 
 /**
- * The disclosure keeps its width: it stands beside a summary line that runs to a sentence, and a
- * flex item gives up width before its neighbour wraps, so without this the word inside it breaks
- * before the words it is standing next to do. Its type, height and corner are the kit's, stated
- * on the small button in `Google.tsx`, so it reads as one more of the page's controls rather than
- * as the one call to action on it.
+ * The ⌄ that reveals the chart, turned over to ⌃ once it is drawn.
+ *
+ * One glyph rotated rather than two, so the control the reader presses is the same object before
+ * and after — a swap would read as a different button appearing where the last one was pressed.
  */
-const TOGGLE_SX = { flexShrink: 0 } as const;
+const CHEVRON_SX = { transition: "transform 150ms", transform: "rotate(180deg)" } as const;
+
+/**
+ * The fold row as a second way in.
+ *
+ * The summary and its picture are what a reader is looking at when they decide they want the
+ * chart, and the ⌄ is a 32px target at the far end of the card from them; the row answers the same
+ * press, so a thumb resting on the words does not have to travel. It is a `ButtonBase` for the
+ * press feedback alone — a `div` and out of the tab order, since the ⌄ in the header is the named
+ * control and a second stop for one action is a tab that reports nothing new. Laid out as the
+ * block it stands in rather than as a button: the centring and the type `ButtonBase` imposes are
+ * for a label, and this is a paragraph over a sparkline.
+ */
+const FOLD_ROW_SX = {
+  display: "block",
+  width: "100%",
+  textAlign: "left",
+  borderRadius: 1,
+  cursor: "pointer",
+} as const;
 
 /** How tall a preview stands: enough for a shape, short enough that it is not the chart. */
 const SPARK_HEIGHT = 44;
@@ -24,9 +43,27 @@ export interface Fold {
   preview?: ReactNode;
 }
 
+/** What a caller's header is told about the state it is heading. */
+export interface FoldHeader {
+  /**
+   * Whether the chart itself is on screen — always true from `sm` up, where nothing folds.
+   *
+   * A header's live controls are the caller's to withhold on this: a split, a view or a set of
+   * rings is a choice about a chart that is not mounted, and a folded card's one line is drawn
+   * from the same pivot whatever they say, so pressing one changes nothing the reader can see.
+   */
+  shown: boolean;
+  /** The ⌄ that reveals the chart, for the header's own control slot. Nothing from `sm` up. */
+  toggle: ReactNode;
+}
+
 interface FoldProps {
-  /** The card's own `SectionHeader`, controls and all — it heads both states. */
-  header: ReactNode;
+  /**
+   * The card's own `SectionHeader`, which heads both states — built from what the fold tells it,
+   * so the controls it carries and the ⌄ it ends with follow the state rather than being drawn
+   * over a chart that is not there.
+   */
+  header: (fold: FoldHeader) => ReactNode;
   /**
    * The line and the picture the fold stands on, as a thunk.
    *
@@ -74,41 +111,43 @@ export const FoldedContent = ({ header, fold, children }: FoldProps) => {
   if (!phone)
     return (
       <>
-        {header}
+        {header({ shown: true, toggle: null })}
         {children}
       </>
     );
 
   const { summary, preview } = fold();
+  const toggle = (
+    <IconButton
+      aria-label={shown ? "Hide chart" : "Show chart"}
+      aria-expanded={shown}
+      onClick={() => setShown(!shown)}
+    >
+      <ExpandMore sx={shown ? CHEVRON_SX : undefined} />
+    </IconButton>
+  );
 
   return (
     <>
-      {header}
+      {header({ shown, toggle })}
       {shown && children}
       <CardContent>
-        <Stack spacing={1}>
-          {!shown && preview}
-          <Stack
-            direction="row"
-            spacing={1}
-            sx={{ alignItems: "center", justifyContent: "space-between" }}
-          >
+        <ButtonBase
+          component="div"
+          tabIndex={-1}
+          onClick={() => setShown(!shown)}
+          sx={FOLD_ROW_SX}
+        >
+          <Stack spacing={1}>
+            {!shown && preview}
             <Typography
               variant="caption"
               sx={{ color: "text.secondary" }}
             >
               {summary}
             </Typography>
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={() => setShown(!shown)}
-              sx={TOGGLE_SX}
-            >
-              {shown ? "Hide chart" : "Show chart"}
-            </Button>
           </Stack>
-        </Stack>
+        </ButtonBase>
       </CardContent>
     </>
   );
