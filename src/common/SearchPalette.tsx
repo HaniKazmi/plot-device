@@ -282,9 +282,16 @@ export const SearchPalette = (props: {
   footer?: ReactNode;
   /** What ⌘↵ does to a hit that has a second action, for the keyboard line Find ends on. */
   chordHint?: string;
+  /**
+   * Whether the box is on screen, which is not the same question as whether it is open: a dialog
+   * renders its children all the way through the exit transition. A caller building its contents
+   * on `open` alone empties the box the reader is watching close — the hits go, and the line that
+   * says nothing was found takes their place for the length of the fade.
+   */
+  onDrawn: (drawn: boolean) => void;
 }) => {
   const { open, mode, onMode, focusRequest, onClose, query, onQueryChange, groups } = props;
-  const { loading, emptyState, placeholder, pageContent, footer, chordHint } = props;
+  const { loading, emptyState, placeholder, pageContent, footer, chordHint, onDrawn } = props;
   const phone = usePhone();
   const finding = mode === "find";
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
@@ -360,7 +367,10 @@ export const SearchPalette = (props: {
       fullScreen={phone}
       maxWidth={false}
       sx={CONTAINER_SX}
-      slotProps={{ paper: { sx: paperSx } }}
+      slotProps={{
+        paper: { sx: paperSx },
+        transition: { onEnter: () => onDrawn(true), onExited: () => onDrawn(false) },
+      }}
       aria-label="Search"
       // On the dialog as well as the input, so the arrows and ↵ answer wherever focus has landed.
       onKeyDown={onKeyDown}

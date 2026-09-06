@@ -338,6 +338,9 @@ export const SearchSurface = ({
   // reusing the instance, whose open flag is read once on mount.
   const [pickCount, setPickCount] = useState(0);
   const [recent, setRecent] = useState<string[]>(readRecent);
+  // Set by the box's own transition: true from the moment it has finished leaving the screen, so a
+  // close reached by Esc, the ✕ or a hit still fades out with its list under it.
+  const [exited, setExited] = useState(true);
   const tabs: TabEntry[] = useOtherTabs().map((tab) => ({ name: tab.label, secondary: [], size: 0, ...tab }));
   // The page the box is standing over: its own schema, store, measures and rows. Subscribed to
   // through the store the tab's charts read, so a filter set here is the filter they are drawn by.
@@ -447,6 +450,9 @@ export const SearchSurface = ({
   };
 
   const finding = mode === "find";
+  // On screen, which outlasts being open by the exit transition the dialog draws its children
+  // through. `open` alone is what the box animates on; this is what its contents are built for.
+  const drawn = open || !exited;
   const page = surface && { tabId: tab.id, categories: surface.schema.categories.map((category) => category.key) };
 
   // The surface is mounted for the life of the page once opened and subscribes to the store the
@@ -455,7 +461,7 @@ export const SearchSurface = ({
   // filtered population — are built behind that, or a chip pressed in the rail would pay for a
   // search nobody asked for.
   const found: PaletteGroup[] =
-    !open || !finding || !index
+    !drawn || !finding || !index
       ? []
       : deferredQuery.trim()
         ? searchUnion(index, deferredQuery, page).map((group) => ({
@@ -497,8 +503,9 @@ export const SearchSurface = ({
           )
         }
         chordHint="shelf"
+        onDrawn={(shown) => setExited(!shown)}
         footer={
-          !open || finding
+          !drawn || finding
             ? undefined
             : surface && (
                 <>
