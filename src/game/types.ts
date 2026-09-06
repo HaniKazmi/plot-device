@@ -35,7 +35,7 @@ export interface VideoGame {
   genre: string;
   /** How it is *played*, which is a games-only distinction and so keeps a closed union. */
   gameplay: Gameplay;
-  theme: string[];
+  themes: string[];
   certificate: Certificate;
   /**
    * Either precision, because the sheet holds both: a release is often recorded as a bare year,

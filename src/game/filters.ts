@@ -11,7 +11,7 @@ import { platformToColor, type Platform, type VideoGame } from "./types";
  * above every tab. A mode narrowing this page's charts alone would leave a hidden game on screen
  * through the franchise index and the union, which are built from the library.
  */
-export const guestFilter: Predicate<VideoGame> = (game) => !game.theme.includes("Adult");
+export const guestFilter: Predicate<VideoGame> = (game) => !game.themes.includes("Adult");
 
 /**
  * A game whose start date came off a platform that records one, rather than out of memory: the

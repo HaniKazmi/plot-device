@@ -23,11 +23,11 @@ export interface Show {
   type: Type;
   genre: string;
   /**
-   * The genres beyond the primary one. The sheet lists them in a single cell and never repeats
-   * `genre` among them, so the two together are the show's full set rather than an overlapping
-   * pair. Empty where the sheet says nothing, which is 23 of 308 shows.
+   * The sheet lists these in one cell and never repeats `genre` among them, so the two fields
+   * together are the show's full set rather than an overlapping pair. Empty where the sheet says
+   * nothing, which is 23 of 308 shows.
    */
-  genres: string[];
+  otherGenres: string[];
   network: string;
   certificate: Certificate;
   /** A show with no wider franchise carries its own name here, which 229 of 308 shows do. */

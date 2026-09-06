@@ -74,7 +74,7 @@ export const showRows = (show: Show, scheme: Scheme): LedgerRow[] => {
     { label: "Last Watched", value: `S${show.s.at(-1)!.s}E${show.s.at(-1)!.e}` },
     // The primary genre leads and the rest follow it, which is the order the sheet holds them in
     // and the order the charts group by.
-    { label: "Genre", value: [show.genre, ...show.genres].join(" · "), swatch: genreToColour(show.genre, scheme) },
+    { label: "Genre", value: [show.genre, ...show.otherGenres].join(" · "), swatch: genreToColour(show.genre, scheme) },
     { label: "Network", value: show.network, swatch: networkToColour(show, scheme) || undefined },
     { label: "BBFC", value: show.certificate, swatch: certificateToColour(show.certificate, scheme) },
   ];

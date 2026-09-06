@@ -69,7 +69,7 @@ describe("the localStorage round trip", () => {
     expect(severance.genre).toBe("Sci-Fi");
     // An array survives JSON as an array, but only if the replacer leaves it alone — the same
     // replacer that has to strip the season back-references two levels down.
-    expect(severance.genres).toEqual(["Drama", "Thriller"]);
+    expect(severance.otherGenres).toEqual(["Drama", "Thriller"]);
     expect(severance.network).toBe("Apple TV+");
     expect(severance.certificate).toBe("15");
     expect(severance.franchise).toBe("Severance");

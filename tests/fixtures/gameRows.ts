@@ -35,7 +35,7 @@ export const videoGame = (overrides: Partial<VideoGame> = {}): VideoGame =>
     franchise: "Zelda",
     genre: "Adventure",
     gameplay: "Action Adventure",
-    theme: ["Fantasy"],
+    themes: ["Fantasy"],
     certificate: "12",
     releaseDate: YearMonthDay.get(2017, 3, 3),
     format: "Physical",

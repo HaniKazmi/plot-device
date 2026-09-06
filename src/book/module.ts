@@ -18,7 +18,7 @@ const bookItems = (books: Book[]): OmniItem[] =>
     year: (book.endDate ?? book.startDate).year,
     hours: book.hours,
     genre: book.genre,
-    genres: [],
+    otherGenres: [],
     franchise: book.franchise,
     source: book,
   }));

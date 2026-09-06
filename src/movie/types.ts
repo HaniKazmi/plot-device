@@ -27,11 +27,11 @@ export interface Movie {
   minutes: number;
   genre: string;
   /**
-   * The genres beyond the primary one. The sheet lists them in a single cell and never repeats
-   * `genre` among them, so the two together are the film's full set rather than an overlapping
-   * pair. Empty where the sheet says nothing.
+   * The sheet lists these in one cell and never repeats `genre` among them, so the two fields
+   * together are the film's full set rather than an overlapping pair. Empty where the sheet says
+   * nothing.
    */
-  genres: string[];
+  otherGenres: string[];
   /** A film with no wider franchise carries its own name here. */
   franchise: string;
   director: string;

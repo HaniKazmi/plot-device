@@ -123,12 +123,12 @@ describe("what guest mode hides", () => {
   // The rule is applied to the library above the tab rather than through these filters, so it is
   // exercised as the predicate itself: the page's own filters never see an adult-themed game.
   it("keeps everything but a game themed adult", () => {
-    expect(guestFilter(videoGame({ theme: ["Adult", "Fantasy"] }))).toBe(false);
-    expect(guestFilter(videoGame({ theme: ["Fantasy"] }))).toBe(true);
+    expect(guestFilter(videoGame({ themes: ["Adult", "Fantasy"] }))).toBe(false);
+    expect(guestFilter(videoGame({ themes: ["Fantasy"] }))).toBe(true);
   });
 
   it("matches the theme exactly rather than by substring", () => {
-    expect(guestFilter(videoGame({ theme: ["Adulthood"] }))).toBe(true);
+    expect(guestFilter(videoGame({ themes: ["Adulthood"] }))).toBe(true);
   });
 });
 

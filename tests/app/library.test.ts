@@ -7,7 +7,7 @@ import { show } from "../fixtures/shows";
 import { videoGame } from "../fixtures/gameRows";
 
 describe("guest mode", () => {
-  const adult = videoGame({ theme: ["Adult"] });
+  const adult = videoGame({ themes: ["Adult"] });
   const anime = show({ type: "anime" });
   const animeFilm = movie({ anime: true });
   const full = library({

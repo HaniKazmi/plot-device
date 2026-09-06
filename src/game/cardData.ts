@@ -180,7 +180,7 @@ export const gameRows = (game: VideoGame, scheme: Scheme): LedgerRow[] => {
   // Themes get a line of their own rather than riding on either of the two above: they are the one
   // vocabulary here no chart on the tab colours, so a swatch would name a legend that does not
   // exist — and half of them read as genres, which would make the Gameplay line say two things.
-  const themes = joinParts(game.theme);
+  const themes = joinParts(game.themes);
   if (themes) rows.push({ label: "Themes", value: themes });
 
   rows.push({ label: "PEGI", value: game.certificate, swatch: certificateColour(game, scheme) });

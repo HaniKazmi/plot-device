@@ -63,8 +63,8 @@ export interface OmniItem {
    */
   hours: number;
   genre: string;
-  /** The genres beyond the primary one. Empty for a game or a book: those sheets record one. */
-  genres: string[];
+  /** Empty for a game or a book: those two sheets record a single genre and nothing beside it. */
+  otherGenres: string[];
   franchise: string;
   /**
    * Absent for a book: nothing certifies one. Every surface grouping on the certificate drops an

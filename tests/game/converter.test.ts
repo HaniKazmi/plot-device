@@ -46,11 +46,11 @@ describe("the Party status", () => {
 
 describe("field parsing", () => {
   it("splits a multi-line Theme cell into separate themes", () => {
-    expect(convertOne({ Theme: "Fantasy\nMedieval" }).theme).toEqual(["Fantasy", "Medieval"]);
+    expect(convertOne({ Theme: "Fantasy\nMedieval" }).themes).toEqual(["Fantasy", "Medieval"]);
   });
 
   it("yields a single-element array for a Theme with no newline", () => {
-    expect(convertOne({ Theme: "Fantasy" }).theme).toEqual(["Fantasy"]);
+    expect(convertOne({ Theme: "Fantasy" }).themes).toEqual(["Fantasy"]);
   });
 
   it("leaves hours undefined rather than NaN when the cell is blank", () => {

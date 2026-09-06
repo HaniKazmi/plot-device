@@ -83,15 +83,15 @@ describe("field parsing", () => {
   });
 
   it("splits the secondary genres on the comma the sheet separates them with", () => {
-    expect(convertOne({ Genres: "Drama, Mystery" }).genres).toEqual(["Drama", "Mystery"]);
+    expect(convertOne({ Genres: "Drama, Mystery" }).otherGenres).toEqual(["Drama", "Mystery"]);
     // Written both ways in the sheet, so the space cannot be part of the separator.
-    expect(convertOne({ Genres: "Drama,Mystery" }).genres).toEqual(["Drama", "Mystery"]);
+    expect(convertOne({ Genres: "Drama,Mystery" }).otherGenres).toEqual(["Drama", "Mystery"]);
   });
 
   it("gives a film with no secondary genres an empty list, not a list holding an empty string", () => {
     // Every reader counts or renders this list directly, and [""] shows up as a blank entry and
     // as a genre of its own in any tally.
-    expect(convertOne({ Genres: "" }).genres).toEqual([]);
+    expect(convertOne({ Genres: "" }).otherGenres).toEqual([]);
   });
 
   it("reads the cinema flag only from the literal string TRUE", () => {

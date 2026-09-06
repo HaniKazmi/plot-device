@@ -27,7 +27,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
         genre: readGenre(row.Genre, `Row ${sheetRow(index)}, "${row.Show}", Genre`),
         // Genres is the sheet's last column, and the API ends a row at its final filled cell, so
         // a show without it arrives with no key at all rather than an empty string.
-        genres: splitCell(row.Genres),
+        otherGenres: splitCell(row.Genres),
         network: row.Network,
         certificate: readCertificate(row.Rating, `Row ${sheetRow(index)}, "${row.Show}", Rating`),
         franchise: row.Franchise,

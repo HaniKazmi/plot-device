@@ -19,7 +19,7 @@ const movieItems = (movies: Movie[]): OmniItem[] =>
     year: movie.startDate.year,
     hours: movie.minutes / 60,
     genre: movie.genre,
-    genres: movie.genres,
+    otherGenres: movie.otherGenres,
     franchise: movie.franchise,
     certificate: movie.certificate,
     source: movie,

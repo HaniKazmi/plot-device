@@ -32,7 +32,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       // `minutes` is not optional on the model, so 0 is the value that keeps sums honest.
       minutes: Number.isNaN(minutes) ? 0 : minutes,
       genre,
-      genres: splitCell(row.Genres),
+      otherGenres: splitCell(row.Genres),
       franchise: row.Franchise,
       director: row.Director,
       artwork: row.Banner ?? "",

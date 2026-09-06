@@ -21,7 +21,7 @@ const gameItems = (games: VideoGame[]): OmniItem[] =>
     year: (game.endDate ?? game.startDate).year,
     hours: game.hours ?? 0,
     genre: game.genre,
-    genres: [],
+    otherGenres: [],
     franchise: game.franchise,
     certificate: game.certificate,
     source: game,

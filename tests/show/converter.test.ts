@@ -82,7 +82,7 @@ describe("flattening the sheet into nested shows", () => {
   });
 
   it("splits the secondary genres on the comma the sheet separates them with", () => {
-    const genres = (value: string) => jsonConverter([showRow({ Genres: value }), seasonRow()])[0].genres;
+    const genres = (value: string) => jsonConverter([showRow({ Genres: value }), seasonRow()])[0].otherGenres;
 
     expect(genres("Drama, Thriller")).toEqual(["Drama", "Thriller"]);
     // Written both ways in the sheet, so the space cannot be part of the separator.
@@ -93,8 +93,8 @@ describe("flattening the sheet into nested shows", () => {
     // Every reader counts or renders this list directly, and [""] shows up as a blank entry and
     // as a genre of its own in any tally. Genres is the sheet's last column, so a row can also
     // end before it and carry no key at all.
-    expect(jsonConverter([showRow({ Genres: "" }), seasonRow()])[0].genres).toEqual([]);
-    expect(jsonConverter([showRow({ Genres: undefined }), seasonRow()])[0].genres).toEqual([]);
+    expect(jsonConverter([showRow({ Genres: "" }), seasonRow()])[0].otherGenres).toEqual([]);
+    expect(jsonConverter([showRow({ Genres: undefined }), seasonRow()])[0].otherGenres).toEqual([]);
   });
 
   it("rejects a certificate the colour map could not paint, naming the row and the show", () => {

@@ -134,7 +134,7 @@ describe("flattening", () => {
     const parent = showWith([{ start: 2021, end: 2022 }, { start: 2024 }], {
       name: "Severance",
       genre: "Sci-Fi",
-      genres: ["Drama"],
+      otherGenres: ["Drama"],
       franchise: "Severance",
       certificate: "15",
     });
@@ -145,16 +145,16 @@ describe("flattening", () => {
     // card that wants to say "S2" reads it.
     expect(items.map((item) => item.name)).toEqual(["Severance", "Severance"]);
     expect(items[0].genre).toBe("Sci-Fi");
-    expect(items[0].genres).toEqual(["Drama"]);
+    expect(items[0].otherGenres).toEqual(["Drama"]);
     expect(items[0].franchise).toBe("Severance");
     expect(items[0].certificate).toBe("15");
     expect(items[0].source).toBe(parent.s[0]);
   });
 
   it("gives a game no secondary genres, because the sheet records themes rather than genres", () => {
-    const [item] = toOmniItems(library({ game: [videoGame({ theme: ["Fantasy"] })] }));
+    const [item] = toOmniItems(library({ game: [videoGame({ themes: ["Fantasy"] })] }));
 
-    expect(item.genres).toEqual([]);
+    expect(item.otherGenres).toEqual([]);
   });
 
   it("keeps the record each item came from, which is what lets a domain render its own card", () => {
@@ -364,7 +364,7 @@ describe("a book in the union", () => {
 
     expect(item.hours).toBe(1.5);
     expect(item.genre).toBe("Fantasy");
-    expect(item.genres).toEqual([]);
+    expect(item.otherGenres).toEqual([]);
     expect(item.franchise).toBe("Cosmere");
     // Nothing certifies a book; every certificate surface drops it rather than shelving a blank.
     expect(item.certificate).toBeUndefined();

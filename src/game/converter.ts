@@ -39,7 +39,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       gameplay: isGameplay(row.Gameplay)
         ? row.Gameplay
         : sheetError(`${where}, Gameplay`, `"${row.Gameplay ?? ""}" is not a gameplay style`),
-      theme: row.Theme.split("\n"),
+      themes: row.Theme.split("\n"),
       format: row.Format as Format,
       developer: row.Developer,
       publisher: row.Publisher,

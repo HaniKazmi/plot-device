@@ -26,7 +26,7 @@ const seasonItems = (shows: Show[]): OmniItem[] =>
       year: (season.endDate ?? season.startDate).year,
       hours: season.minutes / 60,
       genre: show.genre,
-      genres: show.genres,
+      otherGenres: show.otherGenres,
       franchise: show.franchise,
       certificate: show.certificate,
       source: season,
