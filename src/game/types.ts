@@ -24,6 +24,13 @@ export interface VideoGame {
   publisher: string;
   franchise: string;
   /**
+   * The series inside the franchise, or `""` where the game stands alone — blank rather than the
+   * game's own name, as `Book.series` is and unlike `franchise` above.
+   */
+  series: string;
+  /** Its place in `series`, absent for a standalone or an entry the sheet does not number. */
+  seriesNumber?: number;
+  /**
    * What the game is *about*, in the vocabulary Shows and Movies record — which is what lets a
    * game meet a film under one genre name on the Omnibus. Open rather than a union, matching
    * `Show.genre` and `Movie.genre`: the column is open-ended and the shared ramp answers

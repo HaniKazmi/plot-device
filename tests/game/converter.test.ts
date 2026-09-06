@@ -45,12 +45,32 @@ describe("the Party status", () => {
 });
 
 describe("field parsing", () => {
-  it("splits a multi-line Theme cell into separate themes", () => {
-    expect(convertOne({ Theme: "Fantasy\nMedieval" }).themes).toEqual(["Fantasy", "Medieval"]);
+  it("splits the Themes cell on the comma the sheet separates them with", () => {
+    expect(convertOne({ Themes: "Crime, Anime, Visual Novel" }).themes).toEqual(["Crime", "Anime", "Visual Novel"]);
+    expect(convertOne({ Themes: "Fantasy" }).themes).toEqual(["Fantasy"]);
   });
 
-  it("yields a single-element array for a Theme with no newline", () => {
-    expect(convertOne({ Theme: "Fantasy" }).themes).toEqual(["Fantasy"]);
+  it("gives a game with no theme an empty list, not a list holding an empty string", () => {
+    // 12 of 340 games carry no theme, and `[""]` would put a themeless game under a theme named
+    // by the empty string on every surface that groups by one.
+    expect(convertOne({ Themes: "" }).themes).toEqual([]);
+  });
+
+  it("rejects a missing Themes column rather than reading it as a game with no themes", () => {
+    // The two are the same value under `splitCell` and mean opposite things: 12 games honestly
+    // have none, but `Themes` sits ten columns before the last, so an absent key means the column
+    // itself is gone. `themes.includes("Adult")` is what guest mode hides on, so reading the
+    // second as the first puts every adult game back on screen without a word.
+    const row = gameRow();
+    delete row.Themes;
+
+    expect(() => jsonConverter([row])).toThrow('Row 2, "Breath of the Wild", Themes: the column is missing');
+  });
+
+  it("reads the series and its number, blank until the columns are filled in", () => {
+    expect(convertOne().series).toBe("");
+    expect(convertOne().seriesNumber).toBeUndefined();
+    expect(convertOne({ Series: "Zelda", "Series #": "17" }).seriesNumber).toBe(17);
   });
 
   it("leaves hours undefined rather than NaN when the cell is blank", () => {
@@ -97,13 +117,13 @@ describe("numDays", () => {
     // cell. Left to `daysTo` it passes silently, because that answers `undefined` across mixed
     // precision — except where the two share a year, which is the one case its string ordering
     // catches, and it reports the pair as transposed rather than as mixed.
-    expect(() => convertOne({ Game: "Zelda", "Start Date": "2007", "End Date": "2017-04-01" })).toThrow(
+    expect(() => convertOne({ Title: "Zelda", "Start Date": "2007", "End Date": "2017-04-01" })).toThrow(
       'Row 2, "Zelda", played 2007 to 2017-04-01: one date is a bare year and the other is not',
     );
-    expect(() => convertOne({ Game: "Zelda", "Start Date": "2020-01-15", "End Date": "2020" })).toThrow(
+    expect(() => convertOne({ Title: "Zelda", "Start Date": "2020-01-15", "End Date": "2020" })).toThrow(
       "one date is a bare year and the other is not",
     );
-    expect(() => convertOne({ Game: "Zelda", "Start Date": "2020-01-15", "End Date": "2021" })).toThrow(
+    expect(() => convertOne({ Title: "Zelda", "Start Date": "2020-01-15", "End Date": "2021" })).toThrow(
       "one date is a bare year and the other is not",
     );
   });
@@ -135,7 +155,7 @@ describe("genre and gameplay", () => {
   });
 
   it("rejects a misspelt gameplay, naming the row so the sheet can be fixed", () => {
-    expect(() => convertOne({ Game: "Zelda", Gameplay: "Role-Playing" })).toThrow(
+    expect(() => convertOne({ Title: "Zelda", Gameplay: "Role-Playing" })).toThrow(
       'Row 2, "Zelda", Gameplay: "Role-Playing" is not a gameplay style',
     );
   });
@@ -143,13 +163,13 @@ describe("genre and gameplay", () => {
   it("reports the missing genre on a row the sheet truncated, not the first date it cannot parse", () => {
     // Genre sits left of the date columns, so a row nobody finished is missing those too. Read in
     // sheet order the dates complain first, about a cell that is only a symptom.
-    expect(() => jsonConverter([{ Game: "Half", Platform: "PC" }])).toThrow('Row 2, "Half", Genre: no genre recorded');
+    expect(() => jsonConverter([{ Title: "Half", Platform: "PC" }])).toThrow('Row 2, "Half", Genre: no genre recorded');
   });
 
   it("rejects a blank genre the way it rejects a blank gameplay", () => {
     // The ramp answers the neutral for a genre it has no entry for, so a blank reaching a chart is
     // indistinguishable from a genre nobody has coloured yet. The row is only nameable here.
-    expect(() => convertOne({ Game: "Zelda", Genre: "" })).toThrow('Row 2, "Zelda", Genre: no genre recorded');
+    expect(() => convertOne({ Title: "Zelda", Genre: "" })).toThrow('Row 2, "Zelda", Genre: no genre recorded');
   });
 });
 
@@ -164,18 +184,18 @@ describe("bad rows", () => {
   });
 
   it("names the sheet row, the game and the column that failed", () => {
-    expect(() => convertOne({ Game: "Zelda", "Start Date": "" })).toThrow('Row 2, "Zelda", Start Date');
-    expect(() => convertOne({ Game: "Zelda", Release: "" })).toThrow('Row 2, "Zelda", Release');
+    expect(() => convertOne({ Title: "Zelda", "Start Date": "" })).toThrow('Row 2, "Zelda", Start Date');
+    expect(() => convertOne({ Title: "Zelda", "Release Date": "" })).toThrow('Row 2, "Zelda", Release');
   });
 
   it("counts sheet rows past the header, so the number matches what is on screen", () => {
-    const rows = [gameRow(), gameRow(), gameRow({ Game: "Broken", "Start Date": "" })];
+    const rows = [gameRow(), gameRow(), gameRow({ Title: "Broken", "Start Date": "" })];
 
     expect(() => jsonConverter(rows)).toThrow('Row 4, "Broken"');
   });
 
   it("names both dates when the pair is inverted", () => {
-    expect(() => convertOne({ Game: "Zelda", "Start Date": "2017-04-01", "End Date": "2017-03-03" })).toThrow(
+    expect(() => convertOne({ Title: "Zelda", "Start Date": "2017-04-01", "End Date": "2017-03-03" })).toThrow(
       'Row 2, "Zelda", played 2017-04-01 to 2017-03-03: Invalid comparison',
     );
   });
