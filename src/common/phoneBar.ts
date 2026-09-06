@@ -36,13 +36,17 @@ const tabsAskedStore = createStore(false);
  * Calls the five tabs back into the bar without moving the page, and is cleared by the reader's next
  * scroll: the alternative — going back to the top, where the tabs already are — costs a reader deep
  * in a library wall their position to answer a question about navigation.
+ *
+ * That next scroll is heard here, on a listener attached with the request and taken away by its own
+ * first event. The page's own crossing store (`chrome.ts`) cannot answer for it: that one fires
+ * only where the page crosses the app bar, so a reader who asked for the tabs a thousand pixels
+ * down and then read on would keep them for the rest of the visit. A `scroll` on an element does
+ * not reach `window`, so flicking the rail's chips sideways to reach a control leaves the tabs
+ * standing — which is the one gesture made while they are on screen.
  */
 export const askPhoneBarTabs = () => {
   tabsAskedStore.set(true);
-};
-
-export const dismissPhoneBarTabs = () => {
-  tabsAskedStore.set(false);
+  window.addEventListener("scroll", () => tabsAskedStore.set(false), { once: true, passive: true });
 };
 
 export const usePhoneBarTabsAsked = () => tabsAskedStore.useValue();

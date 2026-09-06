@@ -80,6 +80,10 @@ export const RailChip = ({
     <Chip
       label={label ?? ""}
       data-rail-chip={railId}
+      // Published so a row re-toning the kit onto a coloured bar (`barTone.ts`) can leave this chip
+      // alone: those are descendant rules and outrank the `sx` below, so a chip drawn in a colour
+      // of its own keeps it only where the row is told to skip it.
+      data-own-colour={colour === undefined ? undefined : ""}
       aria-label={ariaLabel}
       icon={icon}
       size="small"

@@ -1,12 +1,11 @@
 import { BottomNavigation, BottomNavigationAction, Box, Paper, type Theme } from "@mui/material";
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabs, { barColour, useCurrentTab } from "./tabs";
 import { usePhone } from "./common/breakpoints";
 import { useScheme } from "./common/useScheme";
 import { BOTTOM_TABS_CLEARANCE, BOTTOM_TABS_HEIGHT, useScrolledPastBar } from "./common/chrome";
 import { onBarSx } from "./common/barTone";
-import { dismissPhoneBarTabs, setPhoneBarSlot, usePhoneBarTabsAsked } from "./common/phoneBar";
+import { setPhoneBarSlot, usePhoneBarTabsAsked } from "./common/phoneBar";
 
 /**
  * How long a state takes to give way to the other, and the rule that turns it off.
@@ -72,7 +71,8 @@ const RAIL_ROW_SX = { gap: 1, paddingX: 2 } as const;
  * against the page ground — a lit chip is filled in the primary, invisible on a bar that *is* the
  * primary — so they are re-toned onto the bar through `onBarSx` (`common/barTone.ts`).
  *
- * Rendered at every width and hidden from `sm`, where the app bar's own strip is drawn instead.
+ * Drawn on a phone alone: from `sm` up the app bar's own strip holds the tabs and the rail pins
+ * under it.
  */
 export const BottomTabs = () => {
   const navigate = useNavigate();
@@ -97,17 +97,14 @@ export const BottomTabs = () => {
   // (`chrome.ts`), the one shared listener `BrowserTint` and the `theme-color` metas key their own
   // swap on too.
   const pastBar = useScrolledPastBar();
-  const atTop = !pastBar;
   const tabsAsked = usePhoneBarTabsAsked();
-  const tabsShown = atTop || tabsAsked;
+  const tabsShown = !pastBar || tabsAsked;
 
-  useEffect(() => {
-    // The reader's own scroll is what takes the called-back tabs away again. Only below the app
-    // bar and only on a phone: above it the tabs are the state anyway, and a desktop crossing the
-    // same offset — paid for by the one listener every caller shares — has no rail here to call
-    // back from.
-    if (phone && pastBar) dismissPhoneBarTabs();
-  }, [phone, pastBar]);
+  // Nothing at all from `sm` up, where the app bar's own strip holds the tabs and the rail pins
+  // under it: a bar hidden by a `display` rule still publishes the slot the page's rail portals
+  // into, which would leave that rail drawn into a bar nobody can see. After the hooks, which run
+  // whatever the width.
+  if (!phone) return null;
 
   return (
     <Paper
@@ -118,7 +115,6 @@ export const BottomTabs = () => {
         bottom: 0,
         left: 0,
         right: 0,
-        display: { sm: "none" },
         // Under a dialog and the app bar's own menus, over every page it covers.
         zIndex: (theme) => theme.zIndex.appBar,
         backgroundColor: ground,
@@ -131,12 +127,12 @@ export const BottomTabs = () => {
         // (`safeAreaGutters` states the rule for the surfaces that do have one).
         paddingLeft: "env(safe-area-inset-left)",
         paddingRight: "env(safe-area-inset-right)",
-        // The rule the rail state is separated from the page by, and the tabs' own coloured edge in
-        // the dark scheme. One at a time: the bar is either page furniture on the page's ground or a
-        // filled bar, and both edges at once would be a hairline under a coloured line.
-        // An inset shadow in both states rather than a border in one: a border is laid out, so the
-        // hairline would push the bar's own 56px row down by a pixel while the coloured rule, drawn
-        // inside, does not.
+        // The bar's own top edge, which is one line in either state: the dark scheme's coloured
+        // rule while the tabs are up, carrying the hue a 22% tint alone cannot, and a hairline
+        // divider while the rail is, where the row is chips and a picker rather than a filled
+        // strip of five. Both at once would be a hairline under a coloured line.
+        // An inset shadow rather than a border: a border is laid out, so it would push the bar's
+        // own 56px row down by a pixel where a shadow drawn inside does not.
         ...(tabsShown
           ? rule && dark && { boxShadow: `inset 0 3px 0 0 ${rule}` }
           : { boxShadow: (theme: Theme) => `inset 0 1px 0 0 ${theme.vars.palette.divider}` }),
@@ -193,7 +189,7 @@ export const BottomTabs = () => {
             tabs back — stays with the page, and this bar carries none of MUI's popper engine into
             the chunk every visitor evaluates before the first paint. */}
         <Box
-          sx={[swapSx(!tabsShown), RAIL_ROW_SX, onBarSx(dark)]}
+          sx={[swapSx(!tabsShown), RAIL_ROW_SX, onBarSx(dark, ground)]}
           ref={setPhoneBarSlot}
         />
       </Box>
