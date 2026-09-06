@@ -28,29 +28,11 @@ export const dataCacheKey = (domain: string, version: number) => `${domain}-data
  * Matched on the domain's own prefix rather than a list of past versions, so retiring a shape
  * means bumping one number and nothing here. The bare `<domain>-data-cache` is included because
  * it is the shape that predates versioning; a different domain's key shares no prefix and is left
- * alone, which is what keeps one tab's bump from emptying another's cache. `retired` is the one
- * thing that rule cannot express: a prefix nothing writes any more, and so nothing else can reach.
+ * alone, which is what keeps one tab's bump from emptying another's cache.
  */
-/**
- * Cache prefixes no key is written under any more, swept alongside the superseded versions.
- *
- * A key is `<domain>-data-cache-v<n>` and the prefix below is derived from the *active* key, so a
- * domain that is renamed strands everything the old name wrote: no prefix computed anywhere reaches
- * it, and no version bump can, since a bump only moves the `-v` suffix. `vg` became `game` with its
- * folder, leaving a whole games library — around 700 KB — in every existing profile under a name no
- * code can name. Drop an entry here once no profile can plausibly still hold one.
- */
-const RETIRED_PREFIXES = ["vg-data-cache"];
-
-export const supersededKeys = (
-  activeKey: string,
-  existing: readonly string[],
-  retired: readonly string[] = RETIRED_PREFIXES,
-) => {
+export const supersededKeys = (activeKey: string, existing: readonly string[]) => {
   const prefix = activeKey.slice(0, activeKey.lastIndexOf("-v"));
-  const superseded = (candidate: string) => candidate === prefix || candidate.startsWith(`${prefix}-v`);
-  const abandoned = (key: string) => retired.some((dead) => key === dead || key.startsWith(`${dead}-v`));
-  return existing.filter((key) => key !== activeKey && (superseded(key) || abandoned(key)));
+  return existing.filter((key) => key !== activeKey && (key === prefix || key.startsWith(`${prefix}-v`)));
 };
 
 const dropSupersededVersions = (activeKey: string) =>
