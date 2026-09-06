@@ -126,7 +126,7 @@ export const ShowHoverCard = <T extends Show | Season>({ item, title }: { item: 
       item={item}
       landscape
       extractColour
-      sx={hoverCardArtworkSx("portrait")}
+      sx={hoverCardArtworkSx("poster")}
       footerComponent={
         <CardPanel
           layout="beside"

@@ -51,17 +51,17 @@ export type FinishedDensity = "Compact" | "Large" | "Full";
 type GridColumns = Partial<Record<"xs" | "sm" | "md" | "lg" | "xl", number>>;
 
 /**
- * A artwork card's columns. Landscape artwork is the widest thing on the wall — 16:9 means a card's
+ * A banner card's columns. Landscape artwork is the widest thing on the wall — 16:9 means a card's
  * height is a ninth of its width times sixteen, so the column count alone decides how tall the
  * whole wall stands.
  *
  * `Compact` at `xl` is a fifth of the grid, about 220px of artwork, which is the width at which a
- * artwork still reads as the picture it is while a screen holds fifteen of them: a wall the reader
+ * banner still reads as the picture it is while a screen holds fifteen of them: a wall the reader
  * travels rather than a slideshow they page through. Four to a row at `md` and up — `Large` — puts
- * a artwork near 400px, a size that says one card at a time.
+ * a banner near 400px, a size that says one card at a time.
  *
  * Two to a row is the floor, and it is a phone's: at 390px each card is about 190px, where three to
- * a row is 95px and a artwork's own title, which is part of the artwork rather than type the card
+ * a row is 95px and a banner's own title, which is part of the artwork rather than type the card
  * sets, is no longer readable at all. `Large` gives a phone one card the full width, which is the
  * showcase reading of the same wall.
  *
@@ -75,10 +75,10 @@ const bannerColumns: Record<FinishedDensity, GridColumns> = {
 };
 
 /**
- * A poster or a cover's columns, one step denser than a artwork's at every width.
+ * A poster or a cover's columns, one step denser than a banner's at every width.
  *
- * Portrait artwork is two thirds as wide as it is tall against a artwork's sixteen ninths, so a
- * card of the same width stands two and a half times as tall — a wall of them at a artwork's column
+ * Portrait artwork is two thirds as wide as it is tall against a banner's sixteen ninths, so a
+ * card of the same width stands two and a half times as tall — a wall of them at a banner's column
  * count is a wall two and a half times as long. One more card to the row is what holds the two
  * walls to comparable heights, and a poster is still legible there: its title is set large on the
  * artwork precisely because a poster is read at a distance.

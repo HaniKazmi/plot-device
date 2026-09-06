@@ -117,7 +117,7 @@ export const GameHoverCard = ({ item }: { item: VideoGame }) => {
     <GameCardMediaImage
       item={item}
       extractColour
-      sx={hoverCardArtworkSx("landscape")}
+      sx={hoverCardArtworkSx("banner")}
       footerComponent={
         <CardPanel
           title={item.name}

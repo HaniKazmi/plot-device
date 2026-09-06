@@ -23,7 +23,7 @@ const MAT = 4;
  * The width a hover card opens at, whatever chart it was opened from.
  *
  * Stated rather than left to the content, because the content is a card whose own width is its
- * artwork's: a artwork would open at one width and a poster at another from the same row. Held here
+ * artwork's: a banner would open at one width and a poster at another from the same row. Held here
  * rather than at each chart for the same reason one shell draws the bars — a tooltip's default
  * ceiling is 300px, so a chart that forgets this opens a card two thirds the size of its neighbour's
  * and nothing about the card itself says why.

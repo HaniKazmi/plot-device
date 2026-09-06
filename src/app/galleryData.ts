@@ -108,7 +108,7 @@ export const galleryItems = (items: OmniItem[]): OmniItem[] => items.filter((ite
  * module.
  *
  * A season is the unit the union counts in everywhere else — it is the thing actually watched in a
- * year — but a wall of pictures draws one artwork per show, so a six-season show would stand on its
+ * year — but a wall of pictures draws one banner per show, so a six-season show would stand on its
  * genre shelf as six copies of the same artwork and crowd every other show off the strip. Each
  * medium answers with whatever collapses its own rewatches and rereads without joining two works
  * that merely share a title.

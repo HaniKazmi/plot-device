@@ -163,7 +163,7 @@ const ShowHero = ({ season }: { season: Season }) => {
     <Hero
       item={season}
       MediaComponent={ShowCardMediaImage}
-      shape="portrait"
+      shape="poster"
       // The episode in hand as well as the date: the title is the show's name, and nothing else
       // on the hero says which season it is on.
       kicker={`Last watched · S${season.s}E${season.e} · ${formatDate(season.show.lastWatchedDate!)}`}
@@ -364,7 +364,7 @@ const showStatusChip = (show: Show, scheme: Scheme) => ({ label: show.status, co
 // shape firmly rather than yielding to each file, which `common/Stats.tsx` explains at the site
 // that decides it.
 const showStatListSharedProps: Pick<StatListBaseProps<Show>, "shape" | "width"> & GridListLayout = {
-  shape: "portrait",
+  shape: "poster",
   width: [12, 12, 12],
   // Four to a row at `md`, six from `lg`: six posters at 900px are 133px each, where a card's date
   // and "days in" cannot share a footer line.

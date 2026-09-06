@@ -269,18 +269,18 @@ describe("finishedColumns", () => {
     });
   };
 
-  it("gives a artwork two to a row on a phone and five at the widest, compact", () => {
+  it("gives a banner two to a row on a phone and five at the widest, compact", () => {
     // Two is the floor: at 390px each card is about 190px, where three is 95px and the title
     // drawn into the artwork stops being readable.
     expect(resolved(finishedColumns(true, "Compact"))).toEqual([6, 4, 3, 12 / 5, 2]);
   });
 
-  it("gives a artwork the whole width on a phone and four to a row above, large", () => {
+  it("gives a banner the whole width on a phone and four to a row above, large", () => {
     expect(resolved(finishedColumns(true, "Large"))).toEqual([12, 6, 4, 4, 4]);
   });
 
-  it("steps a poster one card denser than a artwork at every width", () => {
-    // Portrait artwork is two thirds as wide as it is tall against a artwork's sixteen ninths, so
+  it("steps a poster one card denser than a banner at every width", () => {
+    // Portrait artwork is two thirds as wide as it is tall against a banner's sixteen ninths, so
     // one more to the row is what holds the two walls to comparable heights.
     for (const density of ["Compact", "Large"] as const) {
       const banners = resolved(finishedColumns(true, density));

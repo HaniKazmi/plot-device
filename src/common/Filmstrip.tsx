@@ -25,7 +25,7 @@ export const STRIP_GAP = 8;
 /**
  * A row of artwork at one height, scrolled rather than wrapped or cropped.
  *
- * Height is the only dimension the strip fixes. Width is each child's own, so a 16:9 artwork and a
+ * Height is the only dimension the strip fixes. Width is each child's own, so a 16:9 banner and a
  * 2:3 poster stand side by side at the same height in the shapes they were made in — the rule the
  * whole page follows for mixed media, and the reason this is a strip rather than a grid: a grid
  * cell has a width, and a width plus a height is a crop.

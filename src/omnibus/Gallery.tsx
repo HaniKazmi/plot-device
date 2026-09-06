@@ -242,7 +242,7 @@ const Shelf = ({
             // drill-down does. With no words beside or beneath it the card is arranged by nothing,
             // and the picture keeps the whole of the height the shelf gives it below the band.
             mediaBand={{ node: band.render(item), height: band.height }}
-            // The shelf fixes the height and each picture keeps its own width, so a artwork and a
+            // The shelf fixes the height and each picture keeps its own width, so a banner and a
             // poster stand at one height in the shapes they were made in.
             sx={{ height: FILMSTRIP_HEIGHT, width: "auto" }}
           />

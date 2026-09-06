@@ -131,7 +131,7 @@ describe("shelving", () => {
   });
 
   it("stands a show on a shelf once, however many seasons of it there are", () => {
-    // The wall draws one artwork per show, so a season each would be the same picture repeated
+    // The wall draws one banner per show, so a season each would be the same picture repeated
     // until it crowded every other show off the strip.
     const parent = show();
     parent.s = [

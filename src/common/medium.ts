@@ -259,7 +259,7 @@ export interface MediumModule<T, S = T, M extends string = string> extends PageM
   /** What the item is called on a card, where that is more than the name the union carries. */
   title(item: S): string;
   /**
-   * The work an item belongs to, which is what a shelf lists one picture of: a show is one artwork
+   * The work an item belongs to, which is what a shelf lists one picture of: a show is one banner
    * however many seasons it ran. Opaque, being a `Map` key and nothing else.
    */
   work(item: S): unknown;

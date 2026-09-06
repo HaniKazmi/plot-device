@@ -74,12 +74,12 @@ const writeRecent = (keys: string[]) => {
 };
 
 /**
- * The thumbnail at a hit's left: a artwork at the lead's full width, a poster or a cover standing
+ * The thumbnail at a hit's left: a banner at the lead's full width, a poster or a cover standing
  * tall inside it, and a tile in the medium's fill where the sheet holds no picture.
  */
 const Thumb = ({ item, scheme }: { item: OmniItem; scheme: Scheme }) => {
   const src = omniArtwork(item);
-  const tall = mediumToShape(item.medium) !== "landscape";
+  const tall = mediumToShape(item.medium) !== "banner";
   const size = tall ? { width: 24, height: 36 } : { width: LEAD_WIDTH, height: LEAD_HEIGHT };
   if (!src) {
     return (

@@ -148,7 +148,7 @@ const GameHero = ({ game }: { game: VideoGame }) => {
     <Hero
       item={game}
       MediaComponent={GameCardMediaImage}
-      shape="landscape"
+      shape="banner"
       kicker={`Currently playing · since ${formatDate(game.startDate)}`}
       title={game.name}
       subtitle={gameSubtitle(game, scheme)}
@@ -368,7 +368,7 @@ const optionIcons: Record<TopOption, ReactNode> = {
 };
 
 const gameStatListSharedProps: Pick<StatListBaseProps<VideoGame>, "shape" | "divider" | "width"> & GridListLayout = {
-  shape: "landscape",
+  shape: "banner",
   divider: true,
   width: [12, 12, 6],
   pictureWidth: [12, 4, 6],

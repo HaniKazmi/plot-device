@@ -10,7 +10,7 @@ import { mediumToShape } from "./types";
  * list exactly the way a domain builds a single-medium one — the artwork opens the domain's own
  * expanded dialog, strip and ledger included, rather than a second and poorer copy of it. The four
  * franchise indexes are provided above every tab, so those strips answer with the whole series. The
- * artwork's shape comes with the card too, so a artwork in a mixed row stacks its words and a poster
+ * artwork's shape comes with the card too, so a banner in a mixed row stacks its words and a poster
  * or a cover seats them beside without this adapter deciding anything.
  */
 const OmniCardMediaImage: TypedCardMediaImage<OmniItem> = ({ item, ...props }) => {

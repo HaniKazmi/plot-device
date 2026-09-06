@@ -121,10 +121,10 @@ export interface CardMediaImageProps {
   /**
    * The shape of the artwork, for a surface holding more than one of them: the card then reserves
    * that shape before the image loads and arranges itself by it — a poster takes its words in a
-   * column beside it, a artwork stacks them underneath.
+   * column beside it, a banner stacks them underneath.
    *
    * The Omnibus is the surface that needs it, because a mixed row is where a single arrangement
-   * fails: a artwork is four times as wide as it is tall, so words beside it get a sliver of a
+   * fails: a banner is four times as wide as it is tall, so words beside it get a sliver of a
    * column, while a poster is half as wide as it is tall, so the strip beneath it is a hundred
    * pixels across and clamps every title to three characters. A tab whose artwork is all one shape
    * has no such row and says nothing here, keeping the arrangement its own layout gives it.
@@ -137,12 +137,12 @@ export interface CardMediaImageProps {
    * row mixing banners with posters is as tall as its tallest card and the rest carry a strip of
    * their own ground. Given both dimensions, the card spends them the way the Now band does at its
    * own scale: a poster or a cover fills the height and takes its own width, and the column of
-   * words beside it is whatever the width leaves; a artwork fills the width at its ratio and keeps
+   * words beside it is whatever the width leaves; a banner fills the width at its ratio and keeps
    * a footer underneath. Every card is then one size, every picture whole, and the words are what
    * gives way. Needs `shape`, which is what says which of the two it is.
    *
    * The footer's height travels with the size because the caller is what draws the footer: this
-   * card subtracts it from the picture under a artwork and holds the footer to it, and knows
+   * card subtracts it from the picture under a banner and holds the footer to it, and knows
    * nothing else about what is in it.
    */
   rowSize?: { width: number; height: number; footerHeight: number };
@@ -172,7 +172,7 @@ export interface CardMediaImageProps {
 /**
  * The stacked `FooterComponent` at one line a row — its 10px insets, a caption line, a `subtitle2`
  * line and the seam. A list that sizes its cards and draws that footer states this as the
- * `footerHeight` of every `rowSize` it hands out, so the picture under a artwork is the card's
+ * `footerHeight` of every `rowSize` it hands out, so the picture under a banner is the card's
  * height less exactly that. Nothing here reads it: a caller drawing a taller footer states a
  * taller height.
  */
@@ -277,7 +277,7 @@ const SHAPE_ASIDE_MEDIA_SX = { height: "auto" } as const;
 const FULL_WIDTH_NO_BASIS = { width: 0, minWidth: "100%" } as const;
 
 /**
- * The footer under a artwork in a row of one card size: the height the row stated for it, every
+ * The footer under a banner in a row of one card size: the height the row stated for it, every
  * line held to one, so a long title is clipped to its line rather than wrapping the card past the
  * row.
  */
@@ -556,7 +556,7 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
     // The picture at one card size. Beside the words it takes the height and its own width — from
     // the reservation until the file arrives, from the file's ratio after. Under them it takes the
     // width and the height the band and footer leave, which is its own ratio's height exactly when
-    // the caller sized the row from it; a artwork is an exact shape, so both being stated crops
+    // the caller sized the row from it; a banner is an exact shape, so both being stated crops
     // nothing.
     ...(rowSize && shape
       ? [
@@ -587,7 +587,7 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
           // words wrapping under it at the height the picture was given.
           ...(mediaBand && beside ? [{ flexWrap: "wrap", alignContent: "flex-start" }] : []),
           // At one card size the words take what the picture leaves: beside a poster, the column
-          // is the width the picture did not need; under a artwork, the footer is a stated height
+          // is the width the picture did not need; under a banner, the footer is a stated height
           // and the picture is sized to what that leaves, so the two cannot disagree.
           ...(rowSize && shape
             ? [
@@ -917,7 +917,7 @@ export const CardPanel = ({
   /**
    * A stated height the panel's words have to fit, rather than one they set.
    *
-   * The Omnibus's Now band is the caller: every card there is one width, so the artwork card's
+   * The Omnibus's Now band is the caller: every card there is one width, so the banner card's
    * picture takes the height its width implies at 16:9 and the panel gets exactly what is left.
    * Given a budget the panel owns what follows from it — the words at the top and the figures at
    * the bottom, and a title that cannot wrap, because a second line would push the tile out of the
@@ -1264,12 +1264,12 @@ const BESIDE_TILE_FLOOR = 72;
  *
  * `hero` is the expanded card's, where a figure is the reason the card was opened. The default is
  * every strip and panel's. `compact` is for a panel working to a stated height rather than to its
- * own content — the Now band, whose three cards share one height and whose artwork card has only
+ * own content — the Now band, whose three cards share one height and whose banner card has only
  * what its picture leaves.
  *
  * The compact tile is the one with a height of its own, because it is the part of that budget that
  * has to be known before the words are laid out: at 48 a kicker, a title, a subtitle and a tile
- * come to exactly the 136 the band's artwork card has. The other two are the height their content
+ * come to exactly the 136 the band's banner card has. The other two are the height their content
  * makes them, which is what a panel sized by its own content wants.
  */
 const COMPACT_TILE_HEIGHT = 48;
@@ -1475,7 +1475,7 @@ export const LedgerList = ({ rows, columns }: { rows: LedgerRow[]; columns: { xs
  *
  * Beside a poster the same rows are read down a column instead of across a strip. A strip's width is
  * the whole card and a column's is what the artwork left, so the row that fits on one line under a
- * artwork is three or four words wide here — the names are given lines to wrap onto, and a ceiling
+ * banner is three or four words wide here — the names are given lines to wrap onto, and a ceiling
  * that stops one from outgrowing the picture it belongs to.
  */
 const BESIDE_LABEL_LINES = 3;
@@ -1609,7 +1609,7 @@ export const FooterComponent = ({
         // Basis zero and free to grow, so the column is exactly the card minus the artwork rather
         // than a share of it; the floor is what lets a long word wrap instead of setting the width.
         ...(beside ? { flex: "1 1 0", minWidth: 0, display: "flex", flexDirection: "column" } : { width: "100%" }),
-        // Centred against the artwork's height, which is what the card's height is. Under a artwork
+        // Centred against the artwork's height, which is what the card's height is. Under a banner
         // there is no spare height to place the rows in.
         ...(beside && { justifyContent: "center" }),
         backgroundColor: palette.ground,

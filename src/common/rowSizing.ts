@@ -2,7 +2,7 @@
  * How a row of one-size cards is solved against the width it actually has.
  *
  * `minWidth` is the narrowest a card may be; `heightFor` is the height a card of a given width
- * stands at, which the caller derives from whichever of its shapes cannot give — a artwork at 16:9
+ * stands at, which the caller derives from whichever of its shapes cannot give — a banner at 16:9
  * across the width, over its band and footer. Whether the figures include a border is the caller's
  * convention: the list shell states them inside its own and adds it.
  */
@@ -18,7 +18,7 @@ export interface RowSizing {
  * As many cards as fit at the minimum, then the row's width shared between them: a row wider than
  * a whole number of minimum-width cards would otherwise end in a strip of empty ground, growing to
  * nearly a card's width before one more fits. The words are what absorb the share — a poster's
- * column widens by it, a artwork's picture is a little taller — and `heightFor` is asked of the
+ * column widens by it, a banner's picture is a little taller — and `heightFor` is asked of the
  * shared width so every card in the row is still one size.
  *
  * With no width yet — the first render, before the row has been measured — a card is its minimum,

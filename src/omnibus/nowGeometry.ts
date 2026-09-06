@@ -17,7 +17,7 @@ const NOW_TEXT_WIDTH = 176;
  * The column a portrait cell keeps beside its picture on a phone, the date set down it as a
  * book's spine is.
  *
- * The phone's band is two cells to a row, each half the row less the gap. A artwork spans its cell
+ * The phone's band is two cells to a row, each half the row less the gap. A banner spans its cell
  * at 16:9 with the date on a line beneath; a poster or a cover stands beside this column at the
  * width the cell leaves it, so the picture's height follows the cell's width and a wider phone
  * gets a taller poster rather than ground beside one. A card that filled the row instead would be
@@ -41,20 +41,20 @@ export const NOW_SPINE_WIDTH = 36;
  *
  * - a poster card is a full-height poster — the height at the poster's own ratio — plus a text
  *   column, and that sum is the width;
- * - the artwork card is the same width spent the other way round: its picture spans the card, so the
+ * - the banner card is the same width spent the other way round: its picture spans the card, so the
  *   width fixes the picture's height at 16:9 and the panel gets whatever the row's height leaves;
  * - a cover card is a poster card whose picture is pinned on the height alone, because no two
  *   covers share a ratio: the column beside it is the width the picture left, and moves by the
  *   few pixels one cover differs from another rather than the picture being letterboxed to hide
  *   the difference.
  *
- * That leaves the artwork's panel a stated budget rather than a measured one, which is why its card
+ * That leaves the banner's panel a stated budget rather than a measured one, which is why its card
  * carries no subtitle and why its title cannot wrap: at this width the words have to fit 136px, and
  * a picture that gave way instead would be letterboxed inside a card the row had already sized.
  */
-const NOW_POSTER_ART_WIDTH = Math.round(NOW_HEIGHT * shapeRatioValues.portrait);
+const NOW_POSTER_ART_WIDTH = Math.round(NOW_HEIGHT * shapeRatioValues.poster);
 export const NOW_CARD_WIDTH = NOW_POSTER_ART_WIDTH + NOW_TEXT_WIDTH;
-const NOW_BANNER_ART_HEIGHT = Math.round(NOW_CARD_WIDTH / shapeRatioValues.landscape);
+const NOW_BANNER_ART_HEIGHT = Math.round(NOW_CARD_WIDTH / shapeRatioValues.banner);
 export const NOW_BANNER_TEXT_HEIGHT = NOW_HEIGHT - NOW_BANNER_ART_HEIGHT;
 
 /** One width and one height for every card, and the artwork size each shape takes from them. */
@@ -87,7 +87,7 @@ export const NOW_GAP = 8;
  * cropped and the cover a few percent narrower than 2:3 gives its spine those pixels.
  */
 export const nowPortraitHeight = (rowWidth: number): number =>
-  Math.round((Math.floor((rowWidth - NOW_GAP) / 2) - NOW_SPINE_WIDTH) / shapeRatioValues.portrait);
+  Math.round((Math.floor((rowWidth - NOW_GAP) / 2) - NOW_SPINE_WIDTH) / shapeRatioValues.poster);
 
 /**
  * The narrowest card the four-way share may produce.
@@ -108,7 +108,7 @@ const NOW_MIN_CARD_WIDTH = 366;
  * where the stated card does not fit the row a whole number of times.
  *
  * The share is the card width, and the rest follows it the way it follows the stated one: the
- * artwork's panel keeps its 136px budget exactly, because that budget is what its words were fitted
+ * banner's panel keeps its 136px budget exactly, because that budget is what its words were fitted
  * to; its picture at 16:9 across the narrower card is what gives the row its height, and the poster
  * and cover columns take that height and are narrower for it. Solved from the measured row rather
  * than from the container's own numbers, so a change to the theme's container moves the band with
@@ -121,9 +121,9 @@ const NOW_MIN_CARD_WIDTH = 366;
 const shareGeometry = (rowWidth: number, perRow: number): NowGeometry => {
   const cardWidth = Math.floor((rowWidth - (perRow - 1) * NOW_GAP) / perRow);
 
-  const bannerArtHeight = Math.round(cardWidth / shapeRatioValues.landscape);
+  const bannerArtHeight = Math.round(cardWidth / shapeRatioValues.banner);
   const height = bannerArtHeight + NOW_BANNER_TEXT_HEIGHT;
-  return { cardWidth, height, posterArtWidth: Math.round(height * shapeRatioValues.portrait), bannerArtHeight };
+  return { cardWidth, height, posterArtWidth: Math.round(height * shapeRatioValues.poster), bannerArtHeight };
 };
 
 /**
@@ -169,7 +169,7 @@ export const pairNowGeometry = (rowWidth: number): NowGeometry => {
  *
  * Four cards at the width above need 1,760px and the page's widest container gives the row 1,488,
  * so when there are four to seat the band is solved the other way round: the row's measured width
- * shared four ways is the card width, and the row's height follows from it. The artwork's panel
+ * shared four ways is the card width, and the row's height follows from it. The banner's panel
  * keeps its 136px budget exactly, because that budget is what its words were fitted to; its
  * picture at 16:9 across the narrower card is what gives the row its height, and the poster and
  * cover columns take that height and are narrower for it.
@@ -190,10 +190,10 @@ export const denseNowGeometry = (rowWidth: number): NowGeometry | undefined => {
  * What every panel in the band gives up so that 136 holds a kicker, a title, a subtitle and a
  * figure.
  *
- * The inset and the tile size are spent on all three cards rather than on the artwork alone. The row
+ * The inset and the tile size are spent on all three cards rather than on the banner alone. The row
  * is read across its figures — the tiles share a baseline and a size — so a tile shrunk on one card
- * and not the other two would trade the band's own consistency for the artwork's fit. At 8 above and
- * below, with a 48px compact tile, the artwork's kicker, title, subtitle and figure come to the
+ * and not the other two would trade the band's own consistency for the banner's fit. At 8 above and
+ * below, with a 48px compact tile, the banner's kicker, title, subtitle and figure come to the
  * budget exactly, and the poster cards carry the same tiles above the same edge.
  */
 export const NOW_PANEL_INSET = 1;

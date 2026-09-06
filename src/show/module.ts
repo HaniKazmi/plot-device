@@ -42,12 +42,12 @@ export const showModule: MediumModule<Show, Season, Measure> = {
   toOmniItems: seasonItems,
   entry: seasonEntry,
   span: seasonSpan,
-  // The sheets hold one artwork per show, so a season is drawn as its show.
+  // The sheets hold one banner per show, so a season is drawn as its show.
   artwork: (season) => season.show.artwork,
   // A strip of six cards all reading the same show name says nothing about what was watched.
   title: (season) => `${season.show.name} S${season.s}`,
   // The show itself, which is exact: every season of one show holds the same object. A wall draws
-  // one artwork per show, where keying on the season would stand a six-season show on a shelf as
+  // one banner per show, where keying on the season would stand a six-season show on a shelf as
   // six copies of the same artwork and crowd every other show off the strip.
   work: (season) => season.show,
   secondaryText: (season) => [season.show.network, ...season.show.s.map((each) => each.subtitle ?? "")],

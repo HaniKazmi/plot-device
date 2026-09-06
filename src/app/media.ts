@@ -69,7 +69,7 @@ export const moduleOf = (item: OmniItem): MediumModule<unknown, unknown> => MEDI
 
 /**
  * The artwork an item is shown as, which is its own tab's: a season is drawn as its show, since
- * the sheets hold one artwork per show and a season has no picture of its own.
+ * the sheets hold one banner per show and a season has no picture of its own.
  *
  * The browse surfaces are walls of pictures, so an item with none is not on them — the rule
  * `finishedItems` already applies to every domain's library grid.

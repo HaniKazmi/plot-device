@@ -656,7 +656,7 @@ const ROW_GAP = 8;
 /**
  * How tall a strip card's picture stands where the strip cannot solve it: before the row is
  * measured, and on a row mixing shapes, where no one width fills it a whole number of times. At
- * 120px a artwork is 213px across and a poster 82.
+ * 120px a banner is 213px across and a poster 82.
  */
 const STRIP_PICTURE_HEIGHT = 120;
 
@@ -697,14 +697,14 @@ type CardCell =
 /**
  * A grid's cell is its spans as stated. A sized row's is solved from what the caller stated —
  * the card inside its border, the picture's height at a width — with what this shell adds on top:
- * the band it draws over the picture, the one-line footer it draws under a artwork, and the
+ * the band it draws over the picture, the one-line footer it draws under a banner, and the
  * outlined border on each side. The row is solved on that outer size, which is what the card's
  * box takes; the card hands its media the inner one back.
  *
  * A strip answers before either of them and for both of them alike, since neither a column span nor
  * a solved row width means anything to a row that fixes a height and lets each shape take its own
  * width. What it states is the whole card: the band, the picture, the caption and the border, which
- * is what `Filmstrip` puts on every child so a artwork and a poster stand at one height.
+ * is what `Filmstrip` puts on every child so a banner and a poster stand at one height.
  */
 const cellOf = (
   layout: CardLayout,
@@ -803,7 +803,7 @@ const StatsListCard = <T,>({
             aspectRatio: shape && shapeToPinnedAspect(shape),
           }}
           // The corner badge is a fixed few dozen pixels of type, which reads as a badge over a
-          // artwork 213px wide at this height and as a covered picture over a poster 82px wide —
+          // banner 213px wide at this height and as a covered picture over a poster 82px wide —
           // wider than the card can hold, so the badge is clipped as well as covering what it is
           // a badge for. Landscape artwork keeps it; the rest state the same fact in the card the
           // picture opens.
@@ -834,7 +834,7 @@ const StatsListCard = <T,>({
       <MediaComponent
         item={item}
         // The card inside the border, which is what the row's size is spent on, and the footer
-        // this list draws under a artwork, which is what the picture's height is short by.
+        // this list draws under a banner, which is what the picture's height is short by.
         rowSize={
           rowSize && {
             width: rowSize.width - 2 * CARD_BORDER,

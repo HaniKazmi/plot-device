@@ -9,13 +9,13 @@ import { createContext, useContext } from "react";
  * their publishers at roughly 2:3 and vary by a few percent each. A layout that pins a poster's
  * declared ratio firmly therefore lets a cover take its own — see `shapeIsExact`.
  */
-export type ArtworkShape = "landscape" | "portrait" | "cover";
+export type ArtworkShape = "banner" | "poster" | "cover";
 
 /**
  * Where a card's words sit against its artwork: underneath it, or in a column beside it.
  *
  * Shape decides this wherever a card is one of many at a size it did not choose — a strip, a grid, a
- * band. The two shapes fail in opposite directions under a single arrangement: a artwork is four
+ * band. The two shapes fail in opposite directions under a single arrangement: a banner is four
  * times as wide as it is tall, so words beside it get a sliver of a column, while a poster is half
  * as wide as it is tall, so the strip beneath it is a hundred pixels across and clamps every title
  * to three characters. Arranging by shape gives each of them the axis it has room on, and a mixed
@@ -23,15 +23,15 @@ export type ArtworkShape = "landscape" | "portrait" | "cover";
  *
  * A caller that pins its own artwork size names the arrangement instead, because the reasoning above
  * is about a card whose width is imposed on it. The hero is the one such caller: it fixes the
- * artwork's height so a artwork cannot stand at nine sixteenths of the page, and at that height a
- * artwork is 533px against a card of well over a thousand — the width beside it is the only place the
+ * artwork's height so a banner cannot stand at nine sixteenths of the page, and at that height a
+ * banner is 533px against a card of well over a thousand — the width beside it is the only place the
  * panel can go without leaving two thirds of the card empty.
  */
 type CardArrangement = "stacked" | "beside";
 
 const shapeArrangements: Record<ArtworkShape, CardArrangement> = {
-  landscape: "stacked",
-  portrait: "beside",
+  banner: "stacked",
+  poster: "beside",
   cover: "beside",
 };
 
@@ -55,14 +55,14 @@ export const shapeToArrangement = (shape: ArtworkShape): CardArrangement => shap
  * beside it. Nothing is authored to a cover's ratio, so there is no canonical file to hold it to.
  */
 export const shapeRatioValues: Record<ArtworkShape, number> = {
-  landscape: 16 / 9,
-  portrait: 680 / 1000,
+  banner: 16 / 9,
+  poster: 680 / 1000,
   cover: 2 / 3,
 };
 
 const shapeRatios: Record<ArtworkShape, string> = {
-  landscape: "16 / 9",
-  portrait: "680 / 1000",
+  banner: "16 / 9",
+  poster: "680 / 1000",
   cover: "2 / 3",
 };
 
@@ -73,8 +73,8 @@ export const shapeToRatio = (shape: ArtworkShape): string => shapeRatios[shape];
  * to it. False only for covers, whose ratio is a reservation and never a size.
  */
 const shapeExact: Record<ArtworkShape, boolean> = {
-  landscape: true,
-  portrait: true,
+  banner: true,
+  poster: true,
   cover: false,
 };
 
@@ -99,8 +99,8 @@ export const shapeToPinnedAspect = (shape: ArtworkShape): string =>
  * the moment it is known, and this stands in only while there is none.
  */
 const shapeAspects: Record<ArtworkShape, string> = {
-  landscape: `auto ${shapeRatios.landscape}`,
-  portrait: `auto ${shapeRatios.portrait}`,
+  banner: `auto ${shapeRatios.banner}`,
+  poster: `auto ${shapeRatios.poster}`,
   cover: `auto ${shapeRatios.cover}`,
 };
 
@@ -144,7 +144,7 @@ const HOVER_CARD_ASIDE_ARTWORK_HEIGHT = 348;
  * where the same card seen again does not. Reserved at the ratio the artwork is drawn at, the card
  * is the same size before and after.
  *
- * A poster stands beside the words and so is pinned on its height; a artwork spans the card above
+ * A poster stands beside the words and so is pinned on its height; a banner spans the card above
  * them and takes its width. A cover stands like a poster but holds its ratio only until its file
  * has loaded: the reservation keeps the card the right size to within a few percent, and the
  * picture's real width then wins, so the card grows or shrinks by the few pixels a cover is off
@@ -157,4 +157,4 @@ export const hoverCardArtworkSx = (shape: ArtworkShape) =>
         height: HOVER_CARD_ASIDE_ARTWORK_HEIGHT,
         width: "auto",
       }
-    : { aspectRatio: shapeToRatio("landscape") };
+    : { aspectRatio: shapeToRatio("banner") };

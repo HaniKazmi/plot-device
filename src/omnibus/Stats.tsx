@@ -215,7 +215,7 @@ const Now = ({ now }: { now: NowElection }) => {
     <Box ref={rowRef}>
       <Box
         sx={{
-          // Two columns on a phone, each a artwork over a portrait: the game over the book, the
+          // Two columns on a phone, each a banner over a portrait: the game over the book, the
           // show over the film. Columns rather than rows because the two shapes stand at
           // different heights, 131px and 204 at 390, and only a column of one each comes out the
           // same height as its neighbour — 343 both — so no cell is padded, stretched or left
@@ -233,7 +233,7 @@ const Now = ({ now }: { now: NowElection }) => {
           // holds mixed artwork: an equal-thirds grid gives each card a width it did not ask for, and
           // the two shapes then reach that width at different heights. Sharing the height and letting
           // the widths differ is the same trade the other way round, and it is the one that leaves
-          // every picture whole — a poster card comes out near-square and a artwork card wider.
+          // every picture whole — a poster card comes out near-square and a banner card wider.
           flexWrap: { sm: "wrap" },
           // The gap between the row's cards, and between the phone's two columns: `gap` sets the
           // column gap of a multi-column box as it does a flex row's.
@@ -331,8 +331,8 @@ const NowItem = <T,>(props: {
           }}
           sx={{
             // Every picture is as wide as its column and as tall as its shape makes it at that
-            // width — a artwork across the cell at 16:9, a poster beside the spine — so a wider
-            // phone gets a taller picture rather than ground around one. A poster and a artwork
+            // width — a banner across the cell at 16:9, a poster beside the spine — so a wider
+            // phone gets a taller picture rather than ground around one. A poster and a banner
             // are authored to their ratios exactly, so holding them to it crops nothing; a cover
             // holds its own, no two of them sharing a ratio to be held to.
             //
@@ -381,14 +381,14 @@ const NowItem = <T,>(props: {
         // a share of a card whose width was imposed on it.
         mediaLayout={beside ? "aside" : undefined}
         cardSx={{
-          // A poster card is a row at every width; only a artwork card stacks, and it stacks always.
+          // A poster card is a row at every width; only a banner card stacks, and it stacks always.
           flexDirection: beside ? "row" : "column",
           width: "100%",
           // The poster card's artwork column is its picture's width, which is the width the row's
           // height gives a poster; the shared aside column states none, so each caller says what
           // its own wants.
           //
-          // The artwork card is a column whose picture is the part that gives: the words are the
+          // The banner card is a column whose picture is the part that gives: the words are the
           // height of their own lines plus the row's shared lower inset, and everything else in
           // the card belongs to the picture above. So the last tile lands one inset above the
           // card's lower edge — level with the tiles of the poster cards beside it, whose panels
@@ -433,7 +433,7 @@ const NowItem = <T,>(props: {
                       height: "100%",
                     }
                   : // The card's own width — `CardMedia`'s own rule for a media component — at
-                    // 16:9, so the artwork fills it edge to edge with nothing letterboxed and
+                    // 16:9, so the banner fills it edge to edge with nothing letterboxed and
                     // nothing cropped, at a height stated rather than left over from the words.
                     {
                       height: { sm: pair?.bannerArtHeight, md: wide?.bannerArtHeight },
@@ -452,11 +452,11 @@ const NowItem = <T,>(props: {
           <CardPanel
             // Held to a height its content did not choose, on every card in the band.
             statSize="compact"
-            // Only the artwork card works to a budget — the height its picture leaves it. The inset
+            // Only the banner card works to a budget — the height its picture leaves it. The inset
             // is every card's, since the row is read across the figures the panels end with.
             height={beside ? undefined : NOW_BANNER_TEXT_HEIGHT}
             inset={NOW_PANEL_INSET}
-            // Only the artwork card, whose panel is the card's full width: at 402px the date and the
+            // Only the banner card, whose panel is the card's full width: at 402px the date and the
             // platform share a line comfortably, and the line that saves is most of what the stated
             // height had spare. The poster panels are a 176px column, where the same two would wrap
             // to four lines and cost more than they saved.
@@ -492,14 +492,14 @@ const openFromCell: MouseEventHandler<HTMLElement> = (event) => {
 };
 
 /**
- * The date of a phone cell: a line under a artwork, a spine beside a poster.
+ * The date of a phone cell: a line under a banner, a spine beside a poster.
  *
  * Which of the two it is comes from the card's own arrangement, as every footer's does, so the
  * date and the picture cannot disagree about which way round the cell is. The spine sets its date
  * down the column as a book's spine does, because the column is 36px (`NOW_SPINE_WIDTH`) and a
  * date across it is four lines of two characters. It is a column at all, rather than a line
  * beneath the poster, because a line beneath costs the picture its height on a cell whose width
- * already fixes it, where the artwork's line beneath costs a artwork nothing it had.
+ * already fixes it, where the banner's line beneath costs a banner nothing it had.
  */
 const NowDate = ({ date }: { date: string }) => {
   const palette = useArtworkPalette();

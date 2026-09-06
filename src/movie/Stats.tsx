@@ -143,7 +143,7 @@ const MovieHero = ({ movie }: { movie: Movie }) => {
     <Hero
       item={movie}
       MediaComponent={MovieCardMediaImage}
-      shape="landscape"
+      shape="banner"
       kicker={`Latest watch · ${formatDate(movie.startDate)} · ${cinemaLabel(movie)}`}
       title={movie.name}
       // The genre wears the same swatch its ledger row and every genre wedge on the tab wear.
@@ -324,7 +324,7 @@ const movieScoreChip = (movie: Movie, scheme: Scheme) =>
 const movieStatListSharedProps: Pick<StatListBaseProps<Movie>, "shape" | "divider" | "width"> & GridListLayout = {
   // Banners, the shape the sheet's artwork is drawn at and the library grid shows it at — the
   // same layout the Games tab gives its own.
-  shape: "landscape",
+  shape: "banner",
   divider: true,
   width: [12, 12, 6],
   pictureWidth: [12, 4, 6],

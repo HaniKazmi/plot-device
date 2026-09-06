@@ -36,7 +36,7 @@ export const bookModule: MediumModule<Book, Book, Measure> = {
   entry: bookEntry,
   span: bookSpan,
   // The column is new to the sheet, and a book the sheet has not reached yet has no picture to
-  // stand on a wall — the same absence a game without a artwork already answers.
+  // stand on a wall — the same absence a game without a banner already answers.
   artwork: (book) => book.artwork || undefined,
   title: (book) => book.name,
   // Title and release, as a film's work is: a reread joins the first reading.
