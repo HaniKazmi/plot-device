@@ -1,5 +1,5 @@
 import { Box } from "@mui/material";
-import { RailChip } from "./ChipRail";
+import { RailChip } from "./RailChip";
 import { bucketLabel } from "./finishedData";
 import { MARKER_TOP, MARKER_Z, type ScrollMarkerState } from "./ScrollMarkerHook";
 import { NUMERIC_LABEL_SX, RAIL_CHIP_HEIGHT } from "./typography";

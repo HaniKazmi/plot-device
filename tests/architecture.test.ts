@@ -333,9 +333,9 @@ describe("the popper engine stays off the first paint", () => {
   // MUI's `Tooltip` mounts Popper, and Popper brings `@popperjs/core` with it: about 11 kB gzipped
   // of positioning engine, on the chunk the browser evaluates before it paints anything. Nothing
   // on a first paint hovers — the two surfaces that need it are a chart's hover card
-  // (`common/HoverCardTooltip.tsx`) and the rail's own chips (`common/ChipRail.tsx`), both inside a
-  // tab's lazy chunk — so an evaluated import of it anywhere `main.tsx` reaches is that engine paid
-  // for by every visitor, whether or not they ever hover anything.
+  // (`common/HoverCardTooltip.tsx`) and a timeline band naming its own span (`common/Card.tsx`),
+  // both inside a tab's lazy chunk — so an evaluated import of it anywhere `main.tsx` reaches is
+  // that engine paid for by every visitor, whether or not they ever hover anything.
   //
   // The closure crosses `tabs.ts` here, unlike every rule above: what the five entry components
   // drag in with them is precisely the question.
@@ -385,7 +385,7 @@ describe("the popper engine stays off the first paint", () => {
   });
 
   it("still reaches the two files that do import it, so the rule above is not vacuous", () => {
-    const importers = [join(SRC, "common", "HoverCardTooltip.tsx"), join(SRC, "common", "ChipRail.tsx")];
+    const importers = [join(SRC, "common", "HoverCardTooltip.tsx"), join(SRC, "common", "Card.tsx")];
 
     expect(importers.filter(importsMuiTooltip)).toEqual(importers);
   });

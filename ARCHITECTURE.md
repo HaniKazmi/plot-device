@@ -1570,20 +1570,23 @@ below it, 49px of a 720px screen given back to what the page is for. The swap is
 question the rail's own pin is, whether the app bar has left the screen (`APP_BAR_HEIGHT`,
 `chrome.ts`), read off `scrollY` rather than off an observed element: the rail is not drawn up there
 to observe, and a sentinel standing in for it would open a gap of its own in the page's spaced stack.
-The rail leads with a chip carrying the current tab's icon, which calls the tabs back **in place** —
-the alternative, scrolling to the top where they already are, costs a reader deep in a library wall
-their position to answer a question about navigation — and the reader's next scroll takes them away
-again, heard on a one-shot listener the request attaches for itself (`phoneBar.ts`), the crossing
+The bar draws its own leading chip, carrying the current tab's icon, which calls the tabs back **in
+place** — the alternative, scrolling to the top where they already are, costs a reader deep in a
+library wall their position to answer a question about navigation — and the reader's next scroll
+takes them away again, heard on a one-shot listener the request attaches for itself, the crossing
 store answering only where the page crosses the app bar and so leaving the tabs up for a reader who
-asked for them a thousand pixels down and read on. A press on the tab already open scrolls to the top anyway, `BottomNavigation` answering a
+asked for them a thousand pixels down and read on. The chip is the bar's rather than the rail's
+because it is about the bar and not about the page in it, and it is drawn in the bar's own ink like
+every chip beside it: the light bar _is_ the tab's colour, so a glyph in that colour is one nobody
+can see. A press on the tab already open scrolls to the top anyway, `BottomNavigation` answering a
 press on its selected action, so the way back exists without the chip having to be it.
 
 `SectionRail` renders that row through a portal into a slot the bar publishes on a module store
 (`common/phoneBar.ts`), rather than the bar building it: the two are on opposite sides of the tree —
 the bar above the outlet, the rail inside a tab's own lazy `Graphs` — and only the page knows what
-its sections are. It is also what keeps the chips' own machinery, a tooltip and with it MUI's popper,
-out of the chunk every visitor evaluates before the first paint, which
-`tests/architecture.test.ts` pins. `PHONE_SCROLL_MARGIN` is what an anchored section clears there:
+its sections are. The slot is a `display: contents` box, so what the page portals in are the bar
+row's own flex children beside the tab chip; `RailChip` is its own module (`common/RailChip.tsx`)
+so that the bar takes the chip and not the scrolling row, its fades and its edge observer with it. `PHONE_SCROLL_MARGIN` is what an anchored section clears there:
 8px, plus `env(safe-area-inset-top)` in the CSS form, since nothing is above it but the device's own
 inset. The wall's sticky `BucketHeading` takes that same CSS form, the notch included, being drawn
 on a phone alone;
@@ -1664,8 +1667,11 @@ alone, so the reader's own flick along the row is never taken back. `RailChip`'s
 circle — the label's padding and MUI's
 own offsets for a mark beside a word are dropped and the width follows the height through
 `aspect-ratio`, so the glyph is centred at whatever height the pointer gives a chip — and it is
-named by its `aria-label` with a tooltip carrying the same word for a pointer; a finger is told
-nothing, its press-and-hold being the browser's own.
+named by its `aria-label` and nothing else: a word appearing only under a pointer teaches nothing to
+the finger a rail is mostly read with, where the app bar's own strip pairs each glyph with its word.
+No chip anywhere carries a hover label, which is also what keeps MUI's `Tooltip` and the Popper
+engine behind it out of every chunk a rail is drawn in — `tests/architecture.test.ts` pins that the
+first paint never reaches it.
 
 The chips are dropped entirely below `sm`, where the bar's own leading chip calls the five tabs
 back into the row and a rail spending 300 of its 358px saying so again buys nothing; a rail's own
@@ -1738,10 +1744,10 @@ then holds are the kit's, solved against `background.default` — a lit chip is 
 and would be invisible on a bar that _is_ the primary — so `onBarSx` (`common/barTone.ts`) re-tones
 them onto the bar, the unlit in the bar's ink and the lit filled with it and worded in the bar's own
 colour, and the chip row's end fades resolve to the bar rather than to the page (`SectionRail`'s
-`phoneGround`). Those are descendant rules and outrank a child's own `sx`, so the one chip drawn in a
-colour of its own — the tab in hand, in that tab's ink — publishes `data-own-colour` and the dark
-sheet skips it, the tab inks being solved to read against the tint. Safari samples this bar
-for the bottom of its chrome, which is then the tab's colour at every scroll position.
+`phoneGround`). Every part of that row takes those tones, the bar's own leading chip
+included: those are descendant rules and outrank a child's own `sx`, and a chip that carved itself
+out of them would be drawn in the colour the light bar is painted in. Safari samples this bar for the bottom of its chrome, which is then the tab's colour at
+every scroll position.
 
 The top edge has no bar of its own to sample, so `BrowserTint.tsx` stands a strip there in the tab's
 own colour while the page is against the app bar, and is not drawn at all once scrolled past it, on
@@ -1985,7 +1991,7 @@ key in ObjectExpression`; pulled out to a plain function taking the varying piec
   `sheetBarSx`, `dialogCardSx`, among others — the literal itself sits at module scope and the
   component stays compiled.
 
-The baseline is **266 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **269 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.

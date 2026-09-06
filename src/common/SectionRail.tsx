@@ -4,7 +4,8 @@ import Grid from "@mui/material/Grid";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { usePhone } from "./breakpoints";
-import { ChipRail, RailChip, type ChipRailItem } from "./ChipRail";
+import { ChipRail, type ChipRailItem } from "./ChipRail";
+import { RailChip } from "./RailChip";
 import { BROWSER_TINT_VISIBLE } from "./chrome";
 import { usePhoneBarSlot } from "./phoneBar";
 import { QUIET_SIDEWAYS_SCROLL } from "./scrollbarSx";
@@ -203,8 +204,8 @@ const SCOPE_SX = { display: { xs: "none", md: "flex" } } as const;
  * Below `sm` the whole row is drawn inside the bar at the bottom of the screen instead
  * (`BottomTabs.tsx`, through `phoneBar.ts`): one bar rather than a pinned rail above the page and
  * the tabs below it, which is 49px of a 720px screen given back to what the page is for. The tab
- * chips are left out there — the bar's own leading chip calls the five tabs back into it, and a rail
- * 358px wide would spend 300 of them saying that again.
+ * chips are left out there — the bar draws its own leading chip, calling the five tabs back into
+ * it, and a rail 358px wide would spend 300 of them saying that again.
  * From `sm` up each is its tab's own icon in its own colour rather than its name: four words and a
  * divider take a third of a tablet's rail, where four glyphs take 136px of it, and the app bar's
  * own strip carries the same icons beside its words, which is where the glyphs are learnt.
@@ -216,14 +217,6 @@ export const SectionRail = (props: {
   measure?: ReactNode;
   population?: ReactNode;
   pageChip?: ReactNode;
-  /**
-   * The phone row's leading chip: the current tab, calling the five back into the bar this row is
-   * drawn in. It comes from the caller because only the registry knows what a tab is, and it is
-   * drawn here rather than by the bar itself so that the bar carries none of the chip's own
-   * machinery — a tooltip, and with it MUI's popper — into the chunk evaluated before the first
-   * paint.
-   */
-  tabChip?: ReactNode;
   /**
    * The ground the phone's bar draws this row on, which the chip row's end fades have to resolve
    * to: left to their default they fade into the page's own ground, a pale band over a bar that is
@@ -318,7 +311,6 @@ export const SectionRail = (props: {
       slot &&
       createPortal(
         <>
-          {props.tabChip}
           {chipRow}
           {tail}
         </>,

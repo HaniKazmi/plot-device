@@ -226,9 +226,8 @@ export const useCurrentTab = (): Tab => tabForPath(useLocation().pathname);
 export const tabForId = (id: string): Tab | undefined => Tabs.find((tab) => tab.id === id);
 
 /**
- * The colour a tab is named in away from its own page — the rail's chip for it, where four of them
- * stand side by side in a row of grey section chips, and the phone bar's own chip for the tab in
- * hand.
+ * The colour a tab is named in away from its own page: the rail's chip for it, where four of them
+ * stand side by side in a row of grey section chips.
  *
  * The primary on the light paper, as the bar is; the bar's `ink` on the dark, where the tint is a
  * fifth of the primary's strength and the primary itself is the value that tint was mixed from —
@@ -245,7 +244,7 @@ export const tabInk = (tab: Tab, scheme: Scheme): string | undefined =>
  *
  * The icon travels with the label because the chip draws the icon alone: four words plus a divider
  * take a third of a tablet's rail, where four glyphs in four colours take 136px and say the same
- * thing. The word stays as the chip's own accessible name and its tooltip.
+ * thing. The word stays as the chip's own accessible name.
  */
 export const otherTabs = (current: Tab, scheme: Scheme, tabs: readonly Tab[] = Tabs) =>
   tabs

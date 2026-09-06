@@ -1,6 +1,7 @@
-import { Box, Chip, Tooltip, useTheme, type SxProps, type Theme } from "@mui/material";
-import { useEffect, type ReactElement, type ReactNode, type Ref } from "react";
+import { Box, useTheme, type SxProps, type Theme } from "@mui/material";
+import { useEffect, type ReactNode, type Ref } from "react";
 import { railScrollTarget } from "./chipRailData";
+import { RailChip } from "./RailChip";
 import { ScrollFade } from "./ScrollFade";
 import { useScrollEdges } from "./useScrollEdges";
 import { QUIET_SIDEWAYS_SCROLL } from "./scrollbarSx";
@@ -9,102 +10,6 @@ export interface ChipRailItem {
   id: string;
   label: string;
 }
-
-/**
- * What every rail's chips are, beyond being chips.
- *
- * The height and the numeric type the kit gives a small chip are stated on the theme
- * (`Google.tsx`), so a rail's marks and any chip standing in for one cannot be drawn at two sizes.
- * What is left here is that a chip never shrinks: a flex item gives up width before it overflows,
- * so without this a narrow viewport ellipsises the labels instead of letting the row scroll, which
- * is the degradation that keeps the reading order and the first chip's edge.
- */
-const CHIP_SX = { flexShrink: 0 } as const;
-
-/**
- * A chip that is only its mark, drawn as a circle.
- *
- * A chip's label padding and MUI's own icon offsets are spacing for a mark set beside a word, and
- * left in they seat the glyph 4px left of centre in a pill 9px wider than it needs to be. The
- * width follows the height through the ratio rather than a figure, so the circle is whatever the
- * theme gives a small chip on this pointer — 24px, or 32 under a finger — without this file
- * holding a second copy of either.
- */
-const ICON_ONLY_SX = {
-  ...CHIP_SX,
-  aspectRatio: "1",
-  "& .MuiChip-icon": { marginInline: 0 },
-  "& .MuiChip-label": { paddingInline: 0 },
-} as const;
-
-/**
- * One rail chip, exported so a caller can put chips of its own in the `leading` slot or beside the
- * rail's own controls.
- *
- * `icon` with no `label` is a chip that is only its mark, which is how a control with no room for
- * a word joins the row. Such a
- * chip is named by `ariaLabel` alone, so it also carries a tooltip: the word is what a reader who
- * has not learnt the glyph needs, and a pointer is the one that can ask for it without committing
- * to the press. A finger is told nothing, its own press-and-hold belonging to the browser.
- *
- * `colour` is for a chip standing for something the app already speaks a colour for — a tab, in
- * its own — and lands on the mark and the edge rather than on the ground: four filled chips in
- * four hues read as four things chosen, where a filled chip in this row means the one section the
- * reader is in.
- */
-export const RailChip = ({
-  label,
-  active,
-  icon,
-  ariaLabel,
-  colour,
-  railId,
-  onClick,
-}: {
-  label?: string;
-  active?: boolean;
-  icon?: ReactElement;
-  ariaLabel?: string;
-  colour?: string;
-  /**
-   * What the chip stands for, published on the element so the row can find the lit one to scroll it
-   * into view. An attribute rather than an `id`, which the section chips share with the `Section`
-   * elements they scroll to: two nodes carrying one id leaves `getElementById` answering whichever
-   * the document reaches first.
-   */
-  railId?: string;
-  onClick: () => void;
-}) => {
-  const base = label === undefined ? ICON_ONLY_SX : CHIP_SX;
-  const chip = (
-    <Chip
-      label={label ?? ""}
-      data-rail-chip={railId}
-      // Published so a row re-toning the kit onto a coloured bar (`barTone.ts`) can leave this chip
-      // alone: those are descendant rules and outrank the `sx` below, so a chip drawn in a colour
-      // of its own keeps it only where the row is told to skip it.
-      data-own-colour={colour === undefined ? undefined : ""}
-      aria-label={ariaLabel}
-      icon={icon}
-      size="small"
-      color={active ? "primary" : "default"}
-      variant={active ? "filled" : "outlined"}
-      onClick={onClick}
-      sx={colour ? { ...base, color: colour, borderColor: colour } : base}
-    />
-  );
-
-  return label === undefined && ariaLabel ? (
-    <Tooltip
-      title={ariaLabel}
-      disableTouchListener
-    >
-      {chip}
-    </Tooltip>
-  ) : (
-    chip
-  );
-};
 
 /**
  * A scrolling row of chips, one of which is current.

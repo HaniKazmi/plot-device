@@ -1,11 +1,13 @@
 import { BottomNavigation, BottomNavigationAction, Box, Paper, type Theme } from "@mui/material";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Tabs, { barColour, useCurrentTab } from "./tabs";
 import { usePhone } from "./common/breakpoints";
+import { RailChip } from "./common/RailChip";
 import { useScheme } from "./common/useScheme";
 import { BOTTOM_TABS_CLEARANCE, BOTTOM_TABS_HEIGHT, useScrolledPastBar } from "./common/chrome";
 import { onBarSx } from "./common/barTone";
-import { setPhoneBarSlot, usePhoneBarTabsAsked } from "./common/phoneBar";
+import { setPhoneBarSlot } from "./common/phoneBar";
 
 /**
  * How long a state takes to give way to the other, and the rule that turns it off.
@@ -34,11 +36,17 @@ const swapSx = (shown: boolean) => ({
 const SWAP_BOX_SX = { display: "grid", height: `${BOTTOM_TABS_HEIGHT}px` } as const;
 
 /**
- * The row the page's rail draws itself into: its tab chip, its section chips and its page chip, in
- * the page's own gutter inside whatever the device reserves at the sides, so the leading chip stands
- * where the first card of every row above it does.
+ * The row the bar's own tab chip and the page's rail stand in, in the page's own gutter inside
+ * whatever the device reserves at the sides, so the leading chip stands where the first card of
+ * every row above it does.
  */
 const RAIL_ROW_SX = { gap: 1, paddingX: 2 } as const;
+
+/**
+ * The rail's own cell inside that row: no box of its own, so the chips and controls the page
+ * portals in are the row's flex children exactly as the tab chip beside them is.
+ */
+const SLOT_SX = { display: "contents" } as const;
 
 /**
  * The one bar at the bottom of a phone's screen, in either of the two states it swaps between.
@@ -56,8 +64,8 @@ const RAIL_ROW_SX = { gap: 1, paddingX: 2 } as const;
  * question the top rail's own pin is — whether the app bar has left the screen — so the rail appears
  * exactly where it would have pinned.
  *
- * The rail leads with a chip carrying the current tab's own icon, which calls the tabs back **in
- * place**, without moving the page: the alternative, scrolling to the top, is where the tabs already are, and on a
+ * The bar leads that row with a chip carrying the current tab's own icon, which calls the tabs back
+ * **in place**, without moving the page: the alternative, scrolling to the top, is where the tabs already are, and on a
  * library wall seventy thousand pixels deep it costs the reader their position to answer a question
  * about navigation. The next scroll takes the tabs away again. Tapping the tab already open there
  * scrolls to the top anyway (`BottomNavigation` answers a press on the selected action), so the
@@ -96,9 +104,21 @@ export const BottomTabs = () => {
   // several levels down the tree (`phoneBar.ts`). The offset itself comes from `useScrolledPastBar`
   // (`chrome.ts`), the one shared listener `BrowserTint` and the `theme-color` metas key their own
   // swap on too.
+  const CurrentIcon = currTab.icon;
   const pastBar = useScrolledPastBar();
-  const tabsAsked = usePhoneBarTabsAsked();
+  // Whether the reader has asked for the tabs back below the app bar. The bar draws the chip that
+  // asks, so this is its own state; it is cleared by the reader's next scroll, heard on a listener
+  // attached with the request and taken away by its own first event. The page's own crossing store
+  // (`chrome.ts`) cannot answer for it: that one fires only where the page crosses the app bar, so
+  // a reader who asked a thousand pixels down and then read on would keep the tabs for the rest of
+  // the visit. A `scroll` on an element does not reach `window`, so flicking the rail's chips
+  // sideways to reach a control leaves the tabs standing — the one gesture made while they are up.
+  const [tabsAsked, setTabsAsked] = useState(false);
   const tabsShown = !pastBar || tabsAsked;
+  const askTabs = () => {
+    setTabsAsked(true);
+    window.addEventListener("scroll", () => setTabsAsked(false), { once: true, passive: true });
+  };
 
   // Nothing at all from `sm` up, where the app bar's own strip holds the tabs and the rail pins
   // under it: a bar hidden by a `display` rule still publishes the slot the page's rail portals
@@ -185,13 +205,23 @@ export const BottomTabs = () => {
             );
           })}
         </BottomNavigation>
-        {/* The rail draws itself in here, so what a page's chips are — and the chip calling the
-            tabs back — stays with the page, and this bar carries none of MUI's popper engine into
-            the chunk every visitor evaluates before the first paint. */}
-        <Box
-          sx={[swapSx(!tabsShown), RAIL_ROW_SX, onBarSx(dark, ground)]}
-          ref={setPhoneBarSlot}
-        />
+        {/* The scrolled state: the bar's own chip for the tab in hand, and the page's rail drawn
+            in beside it, so what a page's chips are stays with the page. */}
+        <Box sx={[swapSx(!tabsShown), RAIL_ROW_SX, onBarSx(dark, ground)]}>
+          {/* The current tab's own glyph, calling the five back into the bar in place. In the bar's
+              ink like every other part of this row and not in the tab's own: the bar is already
+              painted in that colour on the light paper, where a chip drawn in it would be a glyph
+              nobody can see. */}
+          <RailChip
+            icon={<CurrentIcon />}
+            ariaLabel="Tabs"
+            onClick={askTabs}
+          />
+          <Box
+            sx={SLOT_SX}
+            ref={setPhoneBarSlot}
+          />
+        </Box>
       </Box>
     </Paper>
   );

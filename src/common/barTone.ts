@@ -15,10 +15,10 @@ import type { Theme } from "@mui/material";
  * paper's bar is the primary exactly, so the primary answers there; the dark scheme's is a 22% tint
  * of it, and the paper underneath is not the surface the word actually sits on.
  *
- * A chip carrying a colour of its own — the tab in hand, in that tab's own ink — keeps it on the
- * dark bar, where the tab inks are solved to be read against the tint. These are descendant rules
- * and outrank a child's own `sx`, so the exemption has to be stated here; on the light bar there is
- * nothing to exempt, a tab's own colour being the colour that bar is painted in.
+ * Every chip in the row takes that ink, the bar's own leading chip included: these are descendant
+ * rules and outrank a child's own `sx`, so a part wanting a colour of its own would have to stand
+ * outside the row — and on the light bar the tab colour it would want is the colour the bar is
+ * painted in.
  */
 export const onBarSx = (dark: boolean, ground?: string) => (theme: Theme) => {
   const inkChannel = dark ? theme.vars.palette.text.primaryChannel : theme.vars.palette.primary.contrastTextChannel;
@@ -28,10 +28,9 @@ export const onBarSx = (dark: boolean, ground?: string) => (theme: Theme) => {
   // A tab with no bar colour of its own leaves the bar on the paper, which is then the surface a
   // filled part's word stands on.
   const onInk = dark ? (ground ?? theme.vars.palette.background.paper) : theme.vars.palette.primary.main;
-  const chip = dark ? "& .MuiChip-root:not([data-own-colour])" : "& .MuiChip-root";
   return {
-    [chip]: { color: ink, borderColor: line, backgroundColor: "transparent" },
-    [`${chip} svg`]: { color: ink },
+    "& .MuiChip-root": { color: ink, borderColor: line, backgroundColor: "transparent" },
+    "& .MuiChip-root svg": { color: ink },
     "& .MuiChip-filled.MuiChip-colorPrimary": { backgroundColor: ink, color: onInk },
     "& .MuiButton-root": { color: ink, borderColor: line, backgroundColor: "transparent" },
     "& .MuiButton-root .MuiButton-endIcon": { color: ink },

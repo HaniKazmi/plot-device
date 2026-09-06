@@ -1,11 +1,9 @@
-import { RailChip } from "../common/ChipRail";
 import { FilterChip, PageChip } from "../common/PageHandles";
-import { askPhoneBarTabs } from "../common/phoneBar";
 import { stated } from "../common/population";
 import { SectionRail, type RailSection } from "../common/SectionRail";
 import { MeasureControl, ScopeControl } from "../common/SelectionComponents";
 import { useScheme } from "../common/useScheme";
-import { barColour, tabInk, useOtherTabs } from "../tabs";
+import { barColour, useOtherTabs } from "../tabs";
 import { usePage } from "./page";
 
 /**
@@ -33,7 +31,6 @@ export const PageRail = ({ sections, count }: { sections: RailSection[]; count: 
   const { tab, page, state, dispatch } = usePage();
   const tabs = useOtherTabs();
   const scheme = useScheme();
-  const TabIcon = tab.icon;
 
   return (
     <SectionRail
@@ -67,17 +64,6 @@ export const PageRail = ({ sections, count }: { sections: RailSection[]; count: 
             activeCount={page.store.activeCountOf(state)}
           />
         )
-      }
-      tabChip={
-        // The tab in hand, in the colour the rail names every tab by, standing where the other four
-        // do from `sm` up: a page's own chips lead the row there because the app bar above states
-        // the tab, and on a phone the bar the row is drawn in is the only thing that can.
-        <RailChip
-          icon={<TabIcon />}
-          ariaLabel="Tabs"
-          colour={tabInk(tab, scheme)}
-          onClick={askPhoneBarTabs}
-        />
       }
       pageChip={
         <PageChip

@@ -1,7 +1,7 @@
 import { FilterAlt } from "@mui/icons-material";
 import { Badge } from "@mui/material";
 import type { ReactElement } from "react";
-import { RailChip } from "./ChipRail";
+import { RailChip } from "./RailChip";
 import { openPage, useSearchState } from "./searchOpen";
 import { PickerButton } from "./SelectionComponents";
 
