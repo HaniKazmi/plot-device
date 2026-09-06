@@ -12,8 +12,7 @@ import { FranchiseContext, vgFranchise } from "./franchiseContext";
 import { franchiseIndex } from "../common/franchiseIndex";
 import { memo, useDeferredValue } from "react";
 import { Stack } from "@mui/material";
-import { usePhone } from "../common/breakpoints";
-import { ChartPair, ChartsAndLibrary, Section } from "../common/SectionRail";
+import { ChartPair, Section } from "../common/SectionRail";
 import { PageRail } from "../app/PageRail";
 import { VG_SECTIONS, vgSections } from "./sections";
 import { currentlyPlaying } from "./statsData";
@@ -45,55 +44,11 @@ const Graphs = memo(({ data, filterState }: { data: VideoGame[]; filterState: Fi
   // Answered once for the page: it decides both whether the hero is rendered and whether the
   // rail offers a chip pointing at it, and two derivations of one test are two that can differ.
   const playing = currentlyPlaying(data);
-  // The phone reads the library before the charts. One answer for the page and the rail alike:
-  // `ChartsAndLibrary` orders the two sections and `chartsLastOrder`, inside the sections list,
-  // orders the chips naming them.
-  const chartsLast = usePhone();
-
-  const charts = (
-    <Section
-      key={VG_SECTIONS.charts}
-      id={VG_SECTIONS.charts}
-    >
-      <ChartPair
-        left={
-          <Sunburst
-            data={deferredData}
-            measure={filterState.measure}
-          />
-        }
-        right={
-          <Barchart
-            data={deferredData}
-            measure={filterState.measure}
-            yearType={filterState.yearType}
-          />
-        }
-      />
-    </Section>
-  );
-
-  const library = (
-    <Section
-      key={VG_SECTIONS.library}
-      id={VG_SECTIONS.library}
-    >
-      <Finished
-        count={wallPopulation(data, vgModule.noun)}
-        MediaComponent={CardMediaImage}
-        title="All Games"
-        border={VG_BORDER}
-        data={data}
-        colour={(item) => companyToColor(item, scheme)}
-        landscape
-      />
-    </Section>
-  );
 
   return (
     <Stack spacing={2}>
       <PageRail
-        sections={vgSections(playing.length > 0, chartsLast)}
+        sections={vgSections(playing.length > 0)}
         count={data.length}
       />
       <Stats
@@ -106,11 +61,34 @@ const Graphs = memo(({ data, filterState }: { data: VideoGame[]; filterState: Fi
       <Section id={VG_SECTIONS.timeline}>
         <Timeline data={deferredData} />
       </Section>
-      <ChartsAndLibrary
-        charts={charts}
-        library={library}
-        chartsLast={chartsLast}
-      />
+      <Section id={VG_SECTIONS.charts}>
+        <ChartPair
+          left={
+            <Sunburst
+              data={deferredData}
+              measure={filterState.measure}
+            />
+          }
+          right={
+            <Barchart
+              data={deferredData}
+              measure={filterState.measure}
+              yearType={filterState.yearType}
+            />
+          }
+        />
+      </Section>
+      <Section id={VG_SECTIONS.library}>
+        <Finished
+          count={wallPopulation(data, vgModule.noun)}
+          MediaComponent={CardMediaImage}
+          title="All Games"
+          border={VG_BORDER}
+          data={data}
+          colour={(item) => companyToColor(item, scheme)}
+          landscape
+        />
+      </Section>
     </Stack>
   );
 });

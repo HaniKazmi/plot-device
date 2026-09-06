@@ -1,10 +1,9 @@
 import { Stack } from "@mui/material";
-import { usePhone } from "../common/breakpoints";
 import Finished from "../common/Finished";
 import Barchart from "./Barchart";
 import Sunburst from "./Sunburst";
 import Stats from "./Stats";
-import { ChartPair, ChartsAndLibrary, Section } from "../common/SectionRail";
+import { ChartPair, Section } from "../common/SectionRail";
 import { PageRail } from "../app/PageRail";
 import { SHOW_SECTIONS, showSections } from "./sections";
 import { currentlyWatching } from "./statsData";
@@ -47,54 +46,11 @@ const Graphs = memo(({ data, filterState }: { data: Show[]; filterState: FilterS
   // Answered once for the page: it decides both whether the "now" strip is rendered and whether
   // the rail offers a chip pointing at it, and two derivations of one test are two that can differ.
   const watching = currentlyWatching(data);
-  // The phone reads the library before the charts. One answer for the page and the rail alike:
-  // `ChartsAndLibrary` orders the two sections and `chartsLastOrder`, inside the sections list,
-  // orders the chips naming them.
-  const chartsLast = usePhone();
-
-  const charts = (
-    <Section
-      key={SHOW_SECTIONS.charts}
-      id={SHOW_SECTIONS.charts}
-    >
-      <ChartPair
-        left={
-          <Sunburst
-            data={deferredData}
-            measure={filterState.measure}
-          />
-        }
-        right={
-          <Barchart
-            data={deferredData}
-            measure={filterState.measure}
-            yearType={filterState.yearType}
-          />
-        }
-      />
-    </Section>
-  );
-
-  const library = (
-    <Section
-      key={SHOW_SECTIONS.library}
-      id={SHOW_SECTIONS.library}
-    >
-      <Finished
-        count={wallPopulation(data, showModule.noun)}
-        title="All Shows"
-        border={SHOW_BORDER}
-        data={data}
-        colour={(item) => statusToColour(item, scheme)}
-        MediaComponent={ShowCardMediaImage}
-      />
-    </Section>
-  );
 
   return (
     <Stack spacing={2}>
       <PageRail
-        sections={showSections(watching.length > 0, chartsLast)}
+        sections={showSections(watching.length > 0)}
         count={data.length}
       />
       <Stats
@@ -107,11 +63,33 @@ const Graphs = memo(({ data, filterState }: { data: Show[]; filterState: FilterS
       <Section id={SHOW_SECTIONS.timeline}>
         <Timeline data={deferredData} />
       </Section>
-      <ChartsAndLibrary
-        charts={charts}
-        library={library}
-        chartsLast={chartsLast}
-      />
+      <Section id={SHOW_SECTIONS.charts}>
+        <ChartPair
+          left={
+            <Sunburst
+              data={deferredData}
+              measure={filterState.measure}
+            />
+          }
+          right={
+            <Barchart
+              data={deferredData}
+              measure={filterState.measure}
+              yearType={filterState.yearType}
+            />
+          }
+        />
+      </Section>
+      <Section id={SHOW_SECTIONS.library}>
+        <Finished
+          count={wallPopulation(data, showModule.noun)}
+          title="All Shows"
+          border={SHOW_BORDER}
+          data={data}
+          colour={(item) => statusToColour(item, scheme)}
+          MediaComponent={ShowCardMediaImage}
+        />
+      </Section>
     </Stack>
   );
 });

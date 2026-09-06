@@ -1613,15 +1613,17 @@ small chip, behind `@media (pointer: coarse)` so a tablet with a mouse plugged i
 own height), which makes the rail 8 + 32 + 8 + 1 where a pointer gets 8 + 28 + 8 + 1; `SCROLL_MARGIN`
 clears the taller of the two by 23px.
 
-A page's charts and its library swap on a phone, library first — `ChartsAndLibrary` renders the two
-nodes in that order and `chartsLastOrder` (`common/sections.ts`) reorders the chip naming them, both
-driven off the one `usePhone` a `Graphs` module reads once. Both halves have to agree in the DOM and
-not only in CSS: `useActiveSection` lights the first of the rail's own list still inside the reading
-band, so a page painted in one order and a rail listing another lights the wrong chip from the first
-scroll, and a chart folded shut under `FoldedChart` mounting nothing at all rules out a `flex-order`
-swap that would still fetch and lay out the chart it hides. Only the `charts`/`library` pair moves —
-a tracked tab's packed timeline, drawn through its own `Section`, keeps its place in the list either
-way.
+A tracked tab's library closes its page at every width — the wall runs to hundreds of cards, so it
+is the section a reader scrolls into and stays in rather than one to glance past on the way to
+something else. The Omnibus reorders instead: its gallery is the other section built to be scrolled
+rather than read at a glance, so on a phone it moves after Franchises, the two longest sections on
+the page trading places so only one of them closes it — `omnibusSections` (`omnibus/sections.ts`)
+reorders the chip through `movedAfter` (`common/sections.ts`) on the same `usePhone` its `Graphs`
+module reads once to reorder the DOM. Both halves have to agree: `useActiveSection` lights the first
+of the rail's own list still inside the reading band, so a page painted in one order and a rail
+listing another lights the wrong chip from the first scroll, and a chart folded shut under
+`FoldedChart` mounting nothing at all rules out a `flex-order` swap that would still fetch and lay
+out the chart it hides.
 
 ### Phone and tablet
 

@@ -31,10 +31,10 @@ export const tabSections = <P extends string, K extends string>(
    * conditions and the always-present ones need no entry — the vitals band always stands, because
    * a total of zero is a true answer to how much.
    *
-   * `order` is for a page that runs its sections in a different order at some width — the phone,
-   * where the charts follow the library. The rail must be told, and told the same thing the page
-   * renders: `useActiveSection` finds the current section as the first of *its* list still in the
-   * band, so a rail whose order is not the DOM's lights the wrong chip from the first scroll.
+   * `order` is for a page that reorders a section at some width — the Omnibus, where the gallery
+   * follows the franchise section on a phone. The rail must be told, and told the same thing the
+   * page renders: `useActiveSection` finds the current section as the first of *its* list still in
+   * the band, so a rail whose order is not the DOM's lights the wrong chip from the first scroll.
    */
   const chips = (has: Partial<Record<K, boolean>> = {}, order: readonly K[] = keys) =>
     order.filter((key) => has[key] !== false).map((key) => ({ id: ids[key], label: labels.get(key)! }));
@@ -57,14 +57,3 @@ export const movedAfter = <K extends string>(keys: readonly K[], key: string, af
 
   return [...rest.slice(0, at + 1), moved, ...rest.slice(at + 1)];
 };
-
-/**
- * The phone's reading order for a tracked tab: its charts after its library.
- *
- * The four tabs name those two sections the same way and reorder them on the same test, so the
- * pair of keys is stated here rather than four times over — and the page renders its two nodes
- * through `ChartsAndLibrary` (`common/SectionRail.tsx`), which is the same fact about the DOM. A
- * page not holding both keys is left as it is, so this is safe to apply to any tab's list.
- */
-export const chartsLastOrder = <K extends string>(keys: readonly K[], chartsLast: boolean): K[] =>
-  chartsLast ? movedAfter(keys, "charts", "library") : [...keys];

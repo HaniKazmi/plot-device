@@ -1,6 +1,7 @@
 import { memo, useDeferredValue } from "react";
 import { CURRENT_PLAINDATE } from "../common/date";
 import { Card, CardContent, Stack } from "@mui/material";
+import { usePhone } from "../common/breakpoints";
 import { franchiseIndex } from "../common/franchiseIndex";
 import { Section } from "../common/SectionRail";
 import { PageRail } from "../app/PageRail";
@@ -88,18 +89,62 @@ const Graphs = memo(
     // offer a shelf with nothing on it.
     const shelved = galleryItems(deferredData);
     const finished = recentlyFinished(deferredData);
+    // The wall and the gallery are the two longest sections on the page, so only one of them can
+    // close it on a phone; the gallery moves after Franchises there (`omnibusSections` reorders
+    // the chip the same way).
+    const phone = usePhone();
+
+    const gallerySection = shelved.length > 0 && (
+      <Section
+        key={OMNIBUS_SECTIONS.gallery}
+        id={OMNIBUS_SECTIONS.gallery}
+      >
+        <Gallery
+          data={shelved}
+          measure={filterState.measure}
+        />
+      </Section>
+    );
+
+    const genresSection = bridge.length > 0 && (
+      <Section
+        key={OMNIBUS_SECTIONS.genres}
+        id={OMNIBUS_SECTIONS.genres}
+      >
+        <GenreBridge
+          items={deferredData}
+          measure={filterState.measure}
+        />
+      </Section>
+    );
+
+    const crossingsSection = crossed.found.length > 0 && (
+      <Section
+        key={OMNIBUS_SECTIONS.crossings}
+        id={OMNIBUS_SECTIONS.crossings}
+      >
+        <Crossings
+          crossings={crossed.found}
+          ticks={stripYearTicks(crossed.epoch, CURRENT_PLAINDATE)}
+          items={deferredData}
+        />
+      </Section>
+    );
 
     return (
       <Stack spacing={2}>
         <PageRail
-          sections={omnibusSections({
-            now: hasNow(now),
-            charts: deferredData.length > 0,
-            crossings: crossed.found.length > 0,
-            gallery: shelved.length > 0,
-            finished: finished.length > 0,
-            genres: bridge.length > 0,
-          })}
+          sections={omnibusSections(
+            {
+              now: hasNow(now),
+              charts: deferredData.length > 0,
+              crossings: crossed.found.length > 0,
+              gallery: shelved.length > 0,
+              finished: finished.length > 0,
+              genres: bridge.length > 0,
+            },
+            phone,
+          )}
           count={data.length}
         />
         {/* Every section below is gated on having something to draw, so a page the reader has
@@ -134,31 +179,7 @@ const Graphs = memo(
             />
           </Section>
         )}
-        {shelved.length > 0 && (
-          <Section id={OMNIBUS_SECTIONS.gallery}>
-            <Gallery
-              data={shelved}
-              measure={filterState.measure}
-            />
-          </Section>
-        )}
-        {bridge.length > 0 && (
-          <Section id={OMNIBUS_SECTIONS.genres}>
-            <GenreBridge
-              items={deferredData}
-              measure={filterState.measure}
-            />
-          </Section>
-        )}
-        {crossed.found.length > 0 && (
-          <Section id={OMNIBUS_SECTIONS.crossings}>
-            <Crossings
-              crossings={crossed.found}
-              ticks={stripYearTicks(crossed.epoch, CURRENT_PLAINDATE)}
-              items={deferredData}
-            />
-          </Section>
-        )}
+        {phone ? [genresSection, crossingsSection, gallerySection] : [gallerySection, genresSection, crossingsSection]}
       </Stack>
     );
   },
