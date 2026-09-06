@@ -36,7 +36,7 @@ The suite is pure logic in a `node` environment; `vitest.config.ts` stays separa
 - **No snapshots**, so a failure names the property that broke.
 - **Nothing asynchronous** — no timers, no promises, no `act()`.
 
-There are no DOM or component tests. `tests/architecture.test.ts` covers what a mount test would most likely catch: it parses the sources and enforces four rules: `common/` and `utils/` import no domain; a tracked domain (`vg/`, `show/`, `movie/`, `books/`) imports neither another domain nor `omnibus/`; every prototype-extension caller imports the module installing it; and no module but `main.tsx` reads a browser global at module scope.
+There are no DOM or component tests. `tests/architecture.test.ts` covers what a mount test would most likely catch: it parses the sources and enforces five rules: `common/` and `utils/` import no domain; a tracked domain (`vg/`, `show/`, `movie/`, `books/`) imports neither another domain nor `omnibus/`; every prototype-extension caller imports the module installing it; no module but `main.tsx` reads a browser global at module scope; and nothing `main.tsx` evaluates imports MUI's `Tooltip`, whose Popper engine is about 11 kB gzipped on a chunk every visit downloads before it paints.
 
 A test can pin behaviour that is wrong but deliberate, with a comment saying so — `assignPercents` (`utils/mathUtils.ts`) divides by an unguarded `total` and its test pins the non-finite percent. Leave such a test alone.
 
@@ -77,7 +77,7 @@ babel({
 }),
 ```
 
-Then `npx vite build 2>&1 | grep -E '^OK|^BAIL'`. Baseline is **263 compiled, 0 bailed** — any `BAIL` line is yours. The commonest cause is a destructured prop default, surfacing as `BuildHIR::lowerAssignment … got: AssignmentPattern`; a computed object key (`{ [theme.breakpoints.down("sm")]: {...} }`) surfaces as `BuildHIR::lowerExpression … CallExpression key in ObjectExpression` — pull the literal out to a plain function taking the varying pieces as arguments; a `MethodCall` bailout is a different failure, cleared by moving the computation out of the component. **Revert the logger afterwards.** Grepping the bundle for `useMemoCache` proves nothing instead — minification eats the name.
+Then `npx vite build 2>&1 | grep -E '^OK|^BAIL'`. Baseline is **266 compiled, 0 bailed** — any `BAIL` line is yours. The commonest cause is a destructured prop default, surfacing as `BuildHIR::lowerAssignment … got: AssignmentPattern`; a computed object key (`{ [theme.breakpoints.down("sm")]: {...} }`) surfaces as `BuildHIR::lowerExpression … CallExpression key in ObjectExpression` — pull the literal out to a plain function taking the varying pieces as arguments; a `MethodCall` bailout is a different failure, cleared by moving the computation out of the component. **Revert the logger afterwards.** Grepping the bundle for `useMemoCache` proves nothing instead — minification eats the name.
 
 ## Traps
 

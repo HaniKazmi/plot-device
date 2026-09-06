@@ -117,17 +117,19 @@ const importClosure = (entry: string): Set<string> => {
  * A closure over every reference would report a cycle through a file the running app never
  * evaluates in that order.
  *
- * `tabs.ts` is a boundary here for `importClosure`'s reason, and because the rule this feeds is
- * about the edge *into* it: crossing it would reach the whole app through five entry components.
+ * `tabs.ts` is a boundary here for `importClosure`'s reason, and because the rule about the registry
+ * is about the edge *into* it: crossing it would reach the whole app through five entry components.
+ * `crossTabs` walks through it instead, for the one question whose answer is exactly what those
+ * five entry components drag with them — what the browser evaluates before it paints anything.
  */
-const evaluatedClosure = (entry: string): Set<string> => {
+const evaluatedClosure = (entry: string, crossTabs = false): Set<string> => {
   const reached = new Set<string>();
   const pending = [entry];
   while (pending.length > 0) {
     const file = pending.pop()!;
     if (reached.has(file)) continue;
     reached.add(file);
-    if (/(^|\/)tabs\.tsx?$/.test(file)) continue;
+    if (!crossTabs && /(^|\/)tabs\.tsx?$/.test(file)) continue;
     moduleImports(file)
       .filter((entry) => entry.evaluated)
       .map((entry) => resolveSpecifier(file, entry.specifier))
@@ -320,6 +322,74 @@ describe("the registry never reaches back for a tab", () => {
     const modules = DOMAINS.flatMap(sourceFilesUnder).filter((file) => /(^|\/)module\.tsx?$/.test(file));
 
     expect(modules.length).toBe(4);
+  });
+});
+
+describe("the popper engine stays off the first paint", () => {
+  // MUI's `Tooltip` mounts Popper, and Popper brings `@popperjs/core` with it: about 11 kB gzipped
+  // of positioning engine, on the chunk the browser evaluates before it paints anything. Nothing
+  // on a first paint hovers — the two surfaces that need it are a chart's hover card
+  // (`common/HoverCardTooltip.tsx`) and the rail's own chips (`common/ChipRail.tsx`), both inside a
+  // tab's lazy chunk — so an evaluated import of it anywhere `main.tsx` reaches is that engine paid
+  // for by every visitor, whether or not they ever hover anything.
+  //
+  // The closure crosses `tabs.ts` here, unlike every rule above: what the five entry components
+  // drag in with them is precisely the question.
+  const MUI_TOOLTIP_PATH = "@mui/material/Tooltip";
+
+  /**
+   * Whether a file's own evaluated imports bring MUI's `Tooltip`, by either of its two names: the
+   * named export off the package, or its own deep path.
+   *
+   * Read off the syntax tree, so an `import type` statement and a `{ type Tooltip }` specifier are
+   * both seen for what they are — erased, and no module loaded. `TooltipProps` is a type and a
+   * different name, so the check is on the imported name and not on a substring of the line.
+   */
+  const importsMuiTooltip = (file: string): boolean => {
+    const parsed = ts.createSourceFile(
+      file,
+      readFileSync(file, "utf8"),
+      ts.ScriptTarget.ESNext,
+      true,
+      ts.ScriptKind.TSX,
+    );
+    let found = false;
+
+    const walk = (node: ts.Node) => {
+      if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier) && !node.importClause?.isTypeOnly) {
+        const specifier = node.moduleSpecifier.text;
+        if (specifier === MUI_TOOLTIP_PATH) found = true;
+        const named = node.importClause?.namedBindings;
+        if (specifier === "@mui/material" && named && ts.isNamedImports(named))
+          found ||= named.elements.some(
+            (element) => !element.isTypeOnly && (element.propertyName ?? element.name).text === "Tooltip",
+          );
+      }
+      ts.forEachChild(node, walk);
+    };
+
+    walk(parsed);
+    return found;
+  };
+
+  it("has no evaluated import of MUI's Tooltip anywhere main.tsx reaches", () => {
+    const offenders = [...evaluatedClosure(join(SRC, "main.tsx"), true)]
+      .filter(importsMuiTooltip)
+      .map((file) => file.replace(SRC, "src"));
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("still reaches the two files that do import it, so the rule above is not vacuous", () => {
+    const importers = [join(SRC, "common", "HoverCardTooltip.tsx"), join(SRC, "common", "ChipRail.tsx")];
+
+    expect(importers.filter(importsMuiTooltip)).toEqual(importers);
+  });
+
+  it("crosses tabs.ts, which is where the five entry components hang", () => {
+    const reached = evaluatedClosure(join(SRC, "main.tsx"), true);
+
+    expect(reached.has(join(SRC, "vg", "vg.tsx"))).toBe(true);
   });
 });
 
