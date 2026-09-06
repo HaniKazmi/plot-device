@@ -1627,8 +1627,8 @@ container putting the whole document on a sideways drag. `SegmentedControl` stat
 words, a Σ on a floating button being a legend nothing on the page teaches.
 
 **The chips own the row at the two widths where everything will not fit.** From `md` the tail is
-all three. Below `md` the scope leaves it — at 768 four tab chips, seven section chips, a picker,
-three segments and the population want about 950px of 720 — for the labelled row the box's own This
+all three. Below `md` the scope leaves it — at 768 five tab chips, seven section chips, a picker,
+three segments and the population want about 990px of 720 — for the labelled row the box's own This
 page mode draws (§ Search), through a `display` rule rather than the width read as a value, since
 that row is drawn at every width and one of the two copies is hidden either way. Below `sm` the
 measure and the population go with it and `pageChip` stands alone in their place: at 390 the three
@@ -1651,12 +1651,23 @@ everything, which is also why the scope is neither counted by the filter badge n
 Clear (§7): a control that says on its own face that it is on would otherwise be stated twice and
 undone in two places.
 
-The tab chips that lead the stuck rail are each their tab's own icon in its own colour — the
+The tab chips that lead the pinned rail from `sm` up are each their tab's own icon in its own colour — the
 primary on the light paper, the bar's `ink` on the dark, through `tabInk` (`tabs.ts`), since the
 primary on the dark paper is the value that tab's tint was mixed from. Icons rather than words at
-every width they are drawn at: four names and a divider take a third of a tablet's rail where four
-glyphs take 136px, and the app bar's own strip carries the same icons beside its words, which is
-where a reader learns them. Every `ChipRail` — this one, the timeline's years — keeps its lit chip
+every width they are drawn at: five names and a divider take half a tablet's rail where five glyphs
+take 172px, and the app bar's own strip carries the same icons beside its words, which is where a
+reader learns them. All five (`allTabs` and `useTabChips`, `tabs.ts`), and only once the app bar has
+scrolled away: what makes the row quicker than the app bar's own strip is that a hand reaches the
+third chip without reading the row, which a set sliding along by a chip wherever the current tab is
+left out cannot offer, and under the bar the five icons would restate the strip of five names a
+line above. The chip for the tab in hand is lit
+— filled in that tab's own colour rather than the theme's primary, which on that tab's own page is
+the same value and so would say least exactly where it is drawn — and answers a press by scrolling
+to the top and navigating nowhere, routing to the path already open pushing a second history entry
+for it, as the bottom bar's own selected action does. They stand beside the scrolling row rather than
+in it: at 768 a tab's seven sections overflow the row, and a rail that follows its lit chip would
+otherwise carry the tabs off the left as the page is read. `useOtherTabs` is those five less the one in hand, for the search box's "Go to" line, which
+offers places to go rather than positions to learn. Every `ChipRail` — this one, the timeline's years — keeps its lit chip
 in view: when the active id changes the row scrolls so that chip and a margin of its neighbours are
 inside it (`railScrollTarget`, `common/chipRailData.ts`), instantly under `prefers-reduced-motion`.
 A rail is a reading of where in the page the reader is, and on a phone the row holds four of a tab's
@@ -1731,8 +1742,8 @@ item a finger has no way in, and a mouse no way out but a reload.
 
 Each tab in the strip carries its own icon beside its word (`iconPosition="start"`, so the strip
 keeps one row's height). The word is what the strip is for, and the glyph beside it is what teaches
-the mark the section rail names that tab by once the bar has scrolled away, and the bottom
-navigation names it by on a phone — one icon per tab, from `Tab.icon`, drawn in all three places.
+the mark the pinned section rail names every tab by from `sm` up, and the bottom navigation names it by on
+a phone — one icon per tab, from `Tab.icon`, drawn in all three places.
 
 Below `sm` the tab strip itself is replaced by `BottomTabs`, fixed to the screen's bottom edge and
 reachable from any scroll position and a thumb, which no arrangement of the `position: static` app

@@ -226,8 +226,8 @@ export const useCurrentTab = (): Tab => tabForPath(useLocation().pathname);
 export const tabForId = (id: string): Tab | undefined => Tabs.find((tab) => tab.id === id);
 
 /**
- * The colour a tab is named in away from its own page: the rail's chip for it, where four of them
- * stand side by side in a row of grey section chips.
+ * The colour a tab is named in away from its own page: the rail's chip for it, where the five of
+ * them stand side by side in a row of grey section chips.
  *
  * The primary on the light paper, as the bar is; the bar's `ink` on the dark, where the tint is a
  * fifth of the primary's strength and the primary itself is the value that tint was mixed from —
@@ -238,18 +238,27 @@ export const tabInk = (tab: Tab, scheme: Scheme): string | undefined =>
   scheme === "dark" ? tab.darkBar?.ink : tab.primaryColour;
 
 /**
- * Every routed tab but the current one, as chips for the section rail — the jumps the rail can
- * offer once the app bar has scrolled away. The current tab is deliberately absent: it is where
- * the reader already is, and the rail offers movement, not orientation.
+ * Every routed tab as a chip for the section rail, in the array's own order, the one in hand
+ * marked `current`.
  *
- * The icon travels with the label because the chip draws the icon alone: four words plus a divider
- * take a third of a tablet's rail, where four glyphs in four colours take 136px and say the same
- * thing. The word stays as the chip's own accessible name.
+ * All five rather than the four a reader can go to: the chips are the same five glyphs in the same
+ * five places at every scroll position and on every tab, which is what a hand learns. Dropping the
+ * current one shifts the other four along by a chip on every navigation, so the position that
+ * meant Movies on one page means Books on the next, and the row would have to be read before it
+ * can be used.
+ *
+ * The icon travels with the label because the chip draws the icon alone: five words plus a divider
+ * take half a tablet's rail, where five glyphs in five colours say the same thing in a fifth of
+ * it. The word stays as the chip's own accessible name.
  */
-export const otherTabs = (current: Tab, scheme: Scheme, tabs: readonly Tab[] = Tabs) =>
-  tabs
-    .filter((tab) => tab !== current)
-    .map((tab) => ({ id: tab.id, label: tab.name, icon: tab.icon, colour: tabInk(tab, scheme) }));
+export const allTabs = (current: Tab, scheme: Scheme, tabs: readonly Tab[] = Tabs) =>
+  tabs.map((tab) => ({
+    id: tab.id,
+    label: tab.name,
+    icon: tab.icon,
+    colour: tabInk(tab, scheme),
+    current: tab === current,
+  }));
 
 /**
  * The rail's tab chips with their navigation and their colour attached here, where the
@@ -257,17 +266,28 @@ export const otherTabs = (current: Tab, scheme: Scheme, tabs: readonly Tab[] = T
  * an id means, and `common/` cannot import this module at all. A jump also starts at the top of
  * the target page: the reader is deep in this one, and a route change alone leaves the scroll
  * offset where it is.
+ *
+ * The chip for the tab in hand navigates nowhere and scrolls to the top, which is what the bottom
+ * bar's own selected action answers a press with: routing to the path already open pushes a second
+ * history entry for it, leaving a Back that appears to do nothing.
  */
-export const useOtherTabs = () => {
+export const useTabChips = () => {
   const navigate = useNavigate();
   const scheme = useScheme();
-  return otherTabs(useCurrentTab(), scheme).map((tab) => ({
+  return allTabs(useCurrentTab(), scheme).map((tab) => ({
     ...tab,
     jump: () => {
-      navigate(`/${tab.id}`);
+      if (!tab.current) navigate(`/${tab.id}`);
       window.scrollTo({ top: 0 });
     },
   }));
 };
+
+/**
+ * The same chips less the one in hand, for the search box's "Go to" line: that line is a list of
+ * places to go, where the rail's row is a fixed set of positions, so an entry for the page the box
+ * is already standing over is an answer that does nothing.
+ */
+export const useOtherTabs = () => useTabChips().filter((tab) => !tab.current);
 
 export default Tabs;

@@ -1,4 +1,4 @@
-import { Chip } from "@mui/material";
+import { Chip, type Theme } from "@mui/material";
 import type { ReactElement } from "react";
 
 /**
@@ -29,6 +29,31 @@ const ICON_ONLY_SX = {
 } as const;
 
 /**
+ * A chip drawn in something the app already speaks a colour for: the edge and the mark while it is
+ * not the one in hand, the ground itself once it is.
+ *
+ * The lit form is that colour rather than the theme's primary because the row holds a chip per tab
+ * and each is its own hue: lit in the primary, the current tab would be named in the colour of
+ * whichever tab is open rather than in its own, and on its own page those are the same value, so
+ * the chip would look right exactly where it says least.
+ *
+ * Built by a function rather than inline so the `getContrastText` call over the chosen colour is
+ * made once against a value the caller already holds. Hover pins the same ground: MUI's own
+ * `.MuiChip-clickable:hover` rule outweighs an `sx` class and would otherwise take a lit chip to
+ * the primary's hover tint. Suppressing a treatment rather than adding one, so it needs no
+ * `(hover: hover)` guard — there is nothing for a finger to leave behind.
+ */
+const chipColourSx = (colour: string, active: boolean) =>
+  active
+    ? {
+        backgroundColor: colour,
+        color: (theme: Theme) => theme.palette.getContrastText(colour),
+        "& .MuiChip-icon": { color: "inherit" },
+        "&.MuiChip-clickable:hover": { backgroundColor: colour },
+      }
+    : { color: colour, borderColor: colour };
+
+/**
  * One rail chip, exported so a caller can put chips of its own in the `leading` slot or beside the
  * rail's own controls.
  *
@@ -39,9 +64,9 @@ const ICON_ONLY_SX = {
  * MUI's `Tooltip`, and the Popper engine behind it, out of every chunk a rail is drawn in.
  *
  * `colour` is for a chip standing for something the app already speaks a colour for — a tab, in
- * its own — and lands on the mark and the edge rather than on the ground: four filled chips in
- * four hues read as four things chosen, where a filled chip in this row means the one section the
- * reader is in.
+ * its own. Unlit it lands on the mark and the edge rather than on the ground: a row of filled
+ * chips in five hues reads as five things chosen, where the ground here means the one of them the
+ * reader is on.
  */
 export const RailChip = ({
   label,
@@ -78,7 +103,7 @@ export const RailChip = ({
       color={active ? "primary" : "default"}
       variant={active ? "filled" : "outlined"}
       onClick={onClick}
-      sx={colour ? { ...base, color: colour, borderColor: colour } : base}
+      sx={colour ? { ...base, ...chipColourSx(colour, !!active) } : base}
     />
   );
 };

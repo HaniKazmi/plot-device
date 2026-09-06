@@ -3,7 +3,7 @@ import { stated } from "../common/population";
 import { SectionRail, type RailSection } from "../common/SectionRail";
 import { MeasureControl, ScopeControl } from "../common/SelectionComponents";
 import { useScheme } from "../common/useScheme";
-import { barColour, useOtherTabs } from "../tabs";
+import { barColour, useTabChips } from "../tabs";
 import { usePage } from "./page";
 
 /**
@@ -29,7 +29,7 @@ export const PageRail = ({ sections, count }: { sections: RailSection[]; count: 
   // nothing drawn either: the rail keeps its chips and offers no settings over a library that is
   // not here.
   const { tab, page, state, dispatch } = usePage();
-  const tabs = useOtherTabs();
+  const tabs = useTabChips();
   const scheme = useScheme();
 
   return (
