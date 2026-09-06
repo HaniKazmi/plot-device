@@ -1,5 +1,6 @@
 import { FilterAlt } from "@mui/icons-material";
 import { Badge } from "@mui/material";
+import type { ReactElement } from "react";
 import { RailChip } from "./ChipRail";
 import { openPage, useSearchState } from "./searchOpen";
 import { PickerButton } from "./SelectionComponents";
@@ -10,6 +11,23 @@ import { PickerButton } from "./SelectionComponents";
  * magnifier, which opens it in Find: one surface, two ways in, and which way in decides what the
  * box is for.
  */
+
+/**
+ * The dot on either handle: how many of the reader's own choices the page is holding.
+ *
+ * One wrapper for both, so the two handles cannot come to wear the badge in different colours or
+ * at different corners — they stand at the two ends of one rail, and on a tablet turned in the
+ * reader's hands the same page swaps one for the other. `Badge` draws nothing for a zero, which is
+ * the right answer for a page nobody has narrowed.
+ */
+const CountBadge = ({ activeCount, children }: { activeCount: number; children: ReactElement }) => (
+  <Badge
+    badgeContent={activeCount}
+    color="secondary"
+  >
+    {children}
+  </Badge>
+);
 
 /**
  * Where the page states how much of the library it is drawing, and the handle onto what set it.
@@ -26,10 +44,7 @@ import { PickerButton } from "./SelectionComponents";
  * instead, the figure reading in the box's own footer.
  */
 export const FilterChip = ({ label, activeCount }: { label: string; activeCount: number }) => (
-  <Badge
-    badgeContent={activeCount}
-    color="secondary"
-  >
+  <CountBadge activeCount={activeCount}>
     <RailChip
       label={label}
       icon={<FilterAlt />}
@@ -37,7 +52,7 @@ export const FilterChip = ({ label, activeCount }: { label: string; activeCount:
       active={activeCount > 0}
       onClick={openPage}
     />
-  </Badge>
+  </CountBadge>
 );
 
 /**
@@ -57,10 +72,7 @@ export const PageChip = ({ measure, activeCount }: { measure: string; activeCoun
   const { open, mode } = useSearchState();
 
   return (
-    <Badge
-      badgeContent={activeCount}
-      color="secondary"
-    >
+    <CountBadge activeCount={activeCount}>
       <PickerButton
         value={measure}
         // The word is the measure alone: a label beside it spends a fifth of the rail saying what
@@ -70,6 +82,6 @@ export const PageChip = ({ measure, activeCount }: { measure: string; activeCoun
         open={open && mode === "page"}
         onOpen={openPage}
       />
-    </Badge>
+    </CountBadge>
   );
 };

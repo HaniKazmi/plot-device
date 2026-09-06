@@ -5,7 +5,7 @@ import { ageRatingBand, isAgeRating, mediumToLabel, type Medium } from "../utils
 import { namesTheSameThing } from "../utils/stringUtils";
 import { eachMedium, MEDIA, moduleOf } from "./media";
 import type { Season } from "../show/types";
-import type { OmniItem } from "../common/medium";
+import { countByMedium, type OmniItem } from "../common/medium";
 import type { PageAction } from "../common/filterReducer";
 import { omniHours, type Library } from "./library";
 import { galleryGroups, galleryStripOrder, galleryWorks, workOf, type ShelfItem } from "./galleryData";
@@ -114,8 +114,6 @@ export const buildSearchIndex = (items: OmniItem[], library: Library): SearchInd
   const franchises = [...franchiseIndex(items, (item) => item.franchise).entries()]
     .filter(([franchise, members]) => isSeries(franchise, members))
     .map(([franchise, members]): FranchiseSearchEntry => {
-      const counts: Partial<Record<Medium, number>> = {};
-      for (const member of members) counts[member.medium] = (counts[member.medium] ?? 0) + 1;
       const years = members.map((member) => member.year);
       return {
         kind: "franchise",
@@ -124,7 +122,7 @@ export const buildSearchIndex = (items: OmniItem[], library: Library): SearchInd
         franchise,
         secondary: [],
         size: members.length,
-        counts,
+        counts: countByMedium(members),
         span: [Math.min(...years), Math.max(...years)],
       };
     });

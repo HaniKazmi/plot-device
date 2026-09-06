@@ -76,6 +76,20 @@ export interface OmniItem {
 }
 
 /**
+ * How many entries of each medium a set of rows holds, which is what every "which libraries is
+ * this in" line is drawn from — a franchise's hit in the search box, and the franchise view's own
+ * header above the same series.
+ *
+ * A medium with nothing in the rows is absent rather than held at zero, which is exactly what the
+ * row drawing it says nothing about.
+ */
+export const countByMedium = (items: readonly OmniItem[]): Partial<Record<Medium, number>> => {
+  const counts: Partial<Record<Medium, number>> = {};
+  for (const item of items) counts[item.medium] = (counts[item.medium] ?? 0) + 1;
+  return counts;
+};
+
+/**
  * When an entry ran, as every surface that places one on a scale reads it.
  *
  * Taken off `FranchiseEntry` rather than declared beside it, so a card's strip mark, a crossings

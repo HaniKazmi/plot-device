@@ -195,9 +195,9 @@ const BucketHeading = ({ label, count, isDialog }: { label: string; count: numbe
  * means. The key is the whole of it: a row of dots and words is a legend a reader can read the
  * wall by.
  *
- * Drawn where the wall is *not* sorted by that field: under that sort the wall groups itself by
- * the value and the marker rail already names each run, which is the same legend spread down the
- * page.
+ * Drawn under every sort the wall offers, since none of them is the border's own field: the wall
+ * orders by date, by franchise or by one of a domain's figures, and the marker rail names its runs
+ * by that order — so nothing else on the page ever spells this vocabulary out.
  */
 const BorderKey = ({ field, entries }: { field: string; entries: readonly { value: string; colour: string }[] }) => (
   <Stack
@@ -308,7 +308,7 @@ const Finished = <U extends FinishedItem>({
   const [sort, selectBox] = useSelectBox<string>(sortOptions, "Date", "Sort");
   // Derived here rather than inside `renderContent`, which is called for the card and again for
   // the dialog and on each of that dialog's own state changes: this walks the whole library.
-  const keyEntries = border && sort !== border.key ? borderEntries(data, border.valueOf, colour) : [];
+  const keyEntries = border ? borderEntries(data, border.valueOf, colour) : [];
   // The wall is what the page's height is, so this has to be the true answer on the first render:
   // read wrong, every card would mount at one density and remount at another, asking for each
   // picture twice over. `usePhone` is that answer, stated once for the app.

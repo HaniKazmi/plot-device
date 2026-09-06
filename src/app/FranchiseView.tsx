@@ -6,8 +6,8 @@ import { FranchiseStrip } from "../common/FranchiseStrip";
 import { useFranchiseUnion } from "../common/franchiseUnion";
 import { MUTED_FIGURE_SX, LABEL_SX } from "../common/typography";
 import { useScheme } from "../common/useScheme";
-import { franchiseToColour, MEDIA, mediumUnit, type Medium } from "../utils/types";
-import type { OmniItem } from "../common/medium";
+import { franchiseToColour, MEDIA, mediumUnit } from "../utils/types";
+import { countByMedium } from "../common/medium";
 import OmniCardMediaImage from "./CardMediaImage";
 import { MIXED_CARD_SIZING, workLabels } from "./cardData";
 import { MediaCounts } from "./MediaCounts";
@@ -18,13 +18,6 @@ import type { YearMonthDay } from "../common/date";
 
 /** The swatch beside the title, a size up from the inline one a ledger row wears. */
 const TITLE_SWATCH_SIZE = 14;
-
-/** How many entries of each medium a franchise's rows hold. */
-const countByMedium = (items: OmniItem[]): Partial<Record<Medium, number>> => {
-  const counts: Partial<Record<Medium, number>> = {};
-  for (const item of items) counts[item.medium] = (counts[item.medium] ?? 0) + 1;
-  return counts;
-};
 
 const Fact = ({ label, value }: { label: string; value: string }) => (
   <Box>
