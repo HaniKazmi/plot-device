@@ -2022,9 +2022,9 @@ in which of them they use, BBFC issuing a 15 where PEGI issues a 16 for one tier
 off the tier rather than the number. `isCertificate` lets a converter reject a bad cell while it
 still knows the row — though what actually keeps a board's own five values in its column is the
 sheet's dropdown, a converter only being able to report a cell already written. `certificateBand` names that tier rather
-than colouring it, and is what the colour is looked up by. `animeToColour` is one fill
-and an absence rather than a ramp: Shows and Movies both record the split and both group charts by
-it, so the rose means anime on either tab. Only the anime half is shared — the word for it is the
+than colouring it, and is what the colour is looked up by. `animeToColour` is a pair
+rather than a ramp: Shows and Movies both record the split and both group charts by it, so the rose
+means anime on either tab. Only the anime half is shared — the word for it is the
 `ANIME` constant, which is also what folds the two tabs' selects into one entry the box shelves —
 while each tab keeps its own word for the rest, a series that is not anime being a show and a film a
 film. That rest takes `NEUTRAL_FILL`, being an absence and not a second thing, which is also what
