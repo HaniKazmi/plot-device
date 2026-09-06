@@ -31,7 +31,7 @@ const readNumber = (value: string | undefined, where: string, parse: (value: str
 
 export const jsonConverter = (json: Record<string, string>[]): Book[] =>
   json.map((row, index) => {
-    const name = row["Book Name"];
+    const name = row.Title;
     const where = `Row ${sheetRow(index)}, "${name || "?"}"`;
     // Read before the columns below rather than in place among them: a row nobody has finished
     // is missing every cell from here rightwards, and "no genre recorded" says that where the
@@ -47,7 +47,7 @@ export const jsonConverter = (json: Record<string, string>[]): Book[] =>
     if (status === "Finished" && !endDate) sheetError(`${where}, End Date`, "a finished book has no end date");
     if (status === "Reading" && endDate) sheetError(`${where}, End Date`, "a book still being read has an end date");
     const score = parseInt(row.Score);
-    const seriesNumber = parseInt(row["# in Series"]);
+    const seriesNumber = parseInt(row["Series #"]);
 
     return {
       name,
@@ -72,15 +72,15 @@ export const jsonConverter = (json: Record<string, string>[]): Book[] =>
       // reads 0 for that book. `daysTo` throws on a pair the wrong way round, which is a sheet
       // error and so is named as one.
       numDays: endDate && describing(`${where}, End Date`, () => startDate.daysTo(endDate)),
-      pages: readNumber(row["Number of Pages"], `${where}, Number of Pages`, parseInt),
+      pages: readNumber(row.Pages, `${where}, Pages`, parseInt),
       // A book still being read may have no sessions logged yet, and the sheet estimates hours only
       // for finished books — so a blank there is honestly none so far, where on a finished book it
       // is a cell nobody filled.
       hours:
-        status === "Reading" && !row["Hours (est.)"]
+        status === "Reading" && !row.Hours
           ? 0
-          : readNumber(row["Hours (est.)"], `${where}, Hours (est.)`, parseFloat),
-      artwork: row.Banner ?? "",
+          : readNumber(row.Hours, `${where}, Hours`, parseFloat),
+      artwork: row.Artwork ?? "",
     };
   });
 

@@ -60,7 +60,7 @@ const bookEntries = (books: Book[], today: YearMonthDay): FranchiseEntry[] =>
  * The book's franchise across every medium it was met in, with this book as the subject; nothing
  * for a standalone. The union answers once all four libraries are here, and the tab's own index
  * answers until then. The strip places its beads by date, so a series read out of order is drawn
- * in the order it was read; `# in Series` is the drill-down's order, not the strip's.
+ * in the order it was read; `Series #` is the drill-down's order, not the strip's.
  */
 export const BookFranchiseStrip = ({ book, variant }: { book: Book; variant?: StripVariant }) => {
   const union = useFranchiseUnion(book.franchise);

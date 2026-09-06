@@ -7,7 +7,7 @@ const convertOne = (overrides: Record<string, string> = {}) => jsonConverter([bo
 
 describe("bad rows", () => {
   it("rejects an empty genre naming the row, rather than dropping it", () => {
-    expect(() => jsonConverter([bookRow({ "Book Name": "Draft", Genre: "" })])).toThrow(
+    expect(() => jsonConverter([bookRow({ Title: "Draft", Genre: "" })])).toThrow(
       'Row 2, "Draft", Genre: no genre recorded',
     );
   });
@@ -15,7 +15,7 @@ describe("bad rows", () => {
   it("rejects a row the sheet truncated before the Genre column", () => {
     // The API ends a row at its last filled cell, so a half-entered row carries no `Genre` key at
     // all. Testing the cell against "" answers `true` for that row and lets it through.
-    expect(() => jsonConverter([{ "Book Name": "Half", Author: "Someone" }])).toThrow(
+    expect(() => jsonConverter([{ Title: "Half", Author: "Someone" }])).toThrow(
       'Row 2, "Half", Genre: no genre recorded',
     );
   });
@@ -67,21 +67,21 @@ describe("bad rows", () => {
   it("reads a blank hours cell on a book still being read as none so far", () => {
     // The sheet estimates hours only for finished books, and a book just opened may have no
     // sessions logged; on a finished book the same blank is a cell nobody filled.
-    expect(convertOne({ Status: "Reading", "End Date": "", "Hours (est.)": "" }).hours).toBe(0);
-    expect(() => convertOne({ "Hours (est.)": "" })).toThrow('Hours (est.): "" is not a number');
+    expect(convertOne({ Status: "Reading", "End Date": "", Hours: "" }).hours).toBe(0);
+    expect(() => convertOne({ Hours: "" })).toThrow('Hours: "" is not a number');
   });
 
   it("rejects a page count or an hours figure that is not a number, since both are measures", () => {
     // A NaN in either column would blank every total taken over it, and a 0 would be a lie in the
     // sum: a book has pages, and the sheet estimates hours for every finished book.
-    expect(() => convertOne({ "Number of Pages": "" })).toThrow(
-      'Row 2, "Chasm City", Number of Pages: "" is not a number',
+    expect(() => convertOne({ Pages: "" })).toThrow(
+      'Row 2, "Chasm City", Pages: "" is not a number',
     );
-    expect(() => convertOne({ "Hours (est.)": "n/a" })).toThrow('Hours (est.): "n/a" is not a number');
+    expect(() => convertOne({ Hours: "n/a" })).toThrow('Hours: "n/a" is not a number');
   });
 
   it("numbers a row as the sheet does, counting the header", () => {
-    const rows = [bookRow({ "Book Name": "Fine" }), bookRow({ "Book Name": "Broken", "Start Date": "" })];
+    const rows = [bookRow({ Title: "Fine" }), bookRow({ Title: "Broken", "Start Date": "" })];
 
     expect(() => jsonConverter(rows)).toThrow('Row 3, "Broken"');
   });
@@ -97,7 +97,7 @@ describe("field parsing", () => {
   });
 
   it("leaves a book in progress without an end date or a day count", () => {
-    const book = convertOne({ Status: "Reading", "End Date": "", "Hours (est.)": "3.6" });
+    const book = convertOne({ Status: "Reading", "End Date": "", Hours: "3.6" });
 
     expect(book.status).toBe("Reading");
     expect(book.endDate).toBeUndefined();
@@ -117,7 +117,7 @@ describe("field parsing", () => {
   });
 
   it("reads pages as a whole number and hours as the sheet's decimal estimate", () => {
-    const book = convertOne({ "Number of Pages": "340", "Hours (est.)": "6.8" });
+    const book = convertOne({ Pages: "340", Hours: "6.8" });
 
     expect(book.pages).toBe(340);
     expect(book.hours).toBe(6.8);
@@ -126,12 +126,12 @@ describe("field parsing", () => {
   it("writes a standalone book's own name into franchise, the convention the other sheets follow", () => {
     // Every franchise shell treats a one-member group as an item naming itself, so a blank would be
     // a third convention for the same fact.
-    expect(convertOne({ "Book Name": "Project Hail Mary", Franchise: "" }).franchise).toBe("Project Hail Mary");
+    expect(convertOne({ Title: "Project Hail Mary", Franchise: "" }).franchise).toBe("Project Hail Mary");
     expect(convertOne({ Franchise: "Revelation Space" }).franchise).toBe("Revelation Space");
   });
 
   it("leaves a blank series blank and an unnumbered entry unnumbered", () => {
-    const book = convertOne({ Series: "", "# in Series": "" });
+    const book = convertOne({ Series: "", "Series #": "" });
 
     expect(book.series).toBe("");
     expect(book.seriesNumber).toBeUndefined();
@@ -144,11 +144,11 @@ describe("field parsing", () => {
     }
   });
 
-  it("carries a missing Banner column as an empty string rather than an absent field", () => {
-    // The column is new to the sheet; a row it has not reached yet has no picture to stand on a
-    // wall, which is the absence `finishedItems` already handles.
+  it("carries a missing Artwork column as an empty string rather than an absent field", () => {
+    // Artwork is the sheet's last column and the API ends a row at its last filled cell, so a row
+    // with no picture arrives with no key at all — the absence `finishedItems` already handles.
     const row = bookRow();
-    delete row.Banner;
+    delete row.Artwork;
 
     expect(jsonConverter([row])[0].artwork).toBe("");
   });
