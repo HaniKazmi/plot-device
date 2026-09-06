@@ -114,7 +114,8 @@ describe("certificateCategory", () => {
     certificate: string;
   }
   const rated = (certificate: string): Rated => ({ certificate });
-  const category = certificateCategory<Rated>(
+  const category = certificateCategory<Rated, { certificate: string[] }>(
+    "certificate",
     (item) => item.certificate,
     CERTIFICATES,
     (value, scheme) => certificateToColour(value as Certificate, scheme),

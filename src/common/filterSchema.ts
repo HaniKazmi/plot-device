@@ -112,6 +112,18 @@ export const present = <T>(values: readonly string[], data: readonly T[], valueO
 export const FRANCHISE_KEY = "franchise";
 
 /**
+ * The key a shared category is built on, checked against the state of the tab it is going into.
+ *
+ * Intersected with the literal so the helper still fixes the key — two tabs keying one vocabulary
+ * apart would be two entries in the box's index where the fold wants one — while `CategoryKey<S>`
+ * is what holds the tab to declaring the field. A helper stating the key inside itself has neither:
+ * `S` reaches `FilterCategory` only under `keyof` a mapped type, which TypeScript measures as
+ * independent, so the assignment a bare literal is caught by is not made at all and a state missing
+ * the field compiles into a filter that draws and never applies.
+ */
+type SharedKey<S, K extends string> = CategoryKey<S> & K;
+
+/**
  * The franchise select, which every tab offers on the same terms: the column each sheet writes a
  * series into, and — where the entry names no series — the item's own title, which
  * `franchiseOptions` erases so the list holds only what actually groups anything.
@@ -120,11 +132,10 @@ export const FRANCHISE_KEY = "franchise";
  * The state it names is the one field it needs, and a category is covariant in its key, so it sits
  * in any tab's schema whose own state holds a `franchise` list.
  */
-export const franchiseCategory = <T extends { franchise: string; name: string }>(): FilterCategory<
-  T,
-  { franchise: string[] }
-> => ({
-  key: FRANCHISE_KEY,
+export const franchiseCategory = <T extends { franchise: string; name: string }, S>(
+  key: SharedKey<S, typeof FRANCHISE_KEY>,
+): FilterCategory<T, S> => ({
+  key,
   label: "franchise",
   valueOf: (item) => item.franchise,
   options: (data) =>
@@ -153,18 +164,20 @@ export const franchiseCategory = <T extends { franchise: string; name: string }>
  * predicate was written.
  *
  * Only the marked half is `found`: a shelf of "Show" is the Shows tab, and of "Film" the Movies
- * tab. `otherwise` is each tab's own word for a row that is not anime, which is not "live action"
- * — the sheet claims no such thing — and `valueOf` is the tab's own labelling, so the chips and
- * the wedges cannot come to word one split two ways.
+ * tab. `group` is the tab's own two words in the order its charts band them, the unmarked one
+ * first — not "live action", the sheet claiming no such thing — and `valueOf` is the tab's own
+ * labelling, both taken from the domain so the chips, the wedges and the band cannot come to word
+ * one split three ways.
  */
-export const animeCategory = <T>(
+export const animeCategory = <T, S>(
+  key: SharedKey<S, "anime">,
   valueOf: (item: T) => string,
-  otherwise: string,
-): FilterCategory<T, { anime: string[] }> => ({
-  key: "anime",
+  group: readonly string[],
+): FilterCategory<T, S> => ({
+  key,
   label: "anime",
   valueOf,
-  options: (data) => present([otherwise, ANIME], data, valueOf),
+  options: (data) => present(group, data, valueOf),
   colourFor: animeToColour,
   found: [ANIME],
 });
@@ -180,12 +193,13 @@ export const animeCategory = <T>(
  * Filtered to what the rows actually carry, so a board's unused number is not a chip that narrows
  * to nothing.
  */
-export const certificateCategory = <T>(
+export const certificateCategory = <T, S>(
+  key: SharedKey<S, "certificate">,
   certificateOf: (item: T) => string,
   values: readonly string[],
   colourFor: (value: string, scheme: Scheme) => Colour,
-): FilterCategory<T, { certificate: string[] }> => ({
-  key: "certificate",
+): FilterCategory<T, S> => ({
+  key,
   label: "certificate",
   valueOf: certificateOf,
   options: (data) => present(values, data, certificateOf),

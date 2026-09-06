@@ -73,7 +73,18 @@ export const cinemaLabel = ({ cinema }: Movie) => (cinema ? "Cinema" : "Home");
  * constant and the box folds the two into one shelf on that string. The other half is "Film", the
  * word this tab counts in.
  */
-export const animeLabel = ({ anime }: { anime: boolean }) => (anime ? ANIME : "Film");
+const NOT_ANIME = "Film";
+
+export const animeLabel = ({ anime }: { anime: boolean }) => (anime ? ANIME : NOT_ANIME);
+
+/**
+ * The split's two words in the order every surface bands them, the unmarked half first.
+ *
+ * Stated once beside the labelling it has to agree with: the Vitals band matches this array against
+ * `animeLabel`'s output by string, and the filter's chips are the same pair, so a word changed in
+ * one place and not the other silently drops a bar and a chip rather than failing to compile.
+ */
+export const ANIME_GROUP = [NOT_ANIME, ANIME];
 
 /** Exhaustive over the two values `cinemaLabel` can answer, so both always have a fill. */
 const cinemaColours: Record<"Cinema" | "Home", Fill> = {

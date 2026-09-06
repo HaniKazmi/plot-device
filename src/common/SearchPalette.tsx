@@ -291,8 +291,8 @@ export const SearchPalette = (props: {
     inputRef.current?.blur();
   }, [open, finding, focusRequest]);
 
-  // Keyed by group as well as hit, since one entry can stand in two groups — a franchise both
-  // searched lately and met lately — and one flag must light one row.
+  // Keyed by group as well as hit, since one entry can stand in two groups — a franchise met
+  // lately and found again by name — and one flag must light one row.
   const flat = groups.flatMap((group) => group.hits.map((hit) => ({ ...hit, key: `${group.key}:${hit.key}` })));
   // Option ids are the row's place in the flat list, not its key: a key carries a franchise's own
   // name, and an IDREF with a space in it names nothing.

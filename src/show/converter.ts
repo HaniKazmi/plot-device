@@ -4,16 +4,16 @@ import { splitCell } from "../utils/stringUtils";
 import { type Season, type Show, type Status } from "./types";
 
 /**
- * Reads the show/anime cell. Guest mode hides anime (`filters.ts`), so a value that fails to say so
- * is a hidden show on screen rather than a wrong figure — the one cell here whose misreading costs
- * more than a chart, and the same reading the Movies sheet's own `Type` column carries.
- */
-/**
  * The sheet's own two values, lower case, checked here alone: the model carries the answer as a
  * boolean, so this vocabulary is what a mistyped cell is rejected against and nothing more.
  */
 const TYPES = ["show", "anime"] as const;
 
+/**
+ * Reads the show/anime cell. Guest mode hides anime (`filters.ts`), so a value that fails to say so
+ * is a hidden show on screen rather than a wrong figure — the one cell here whose misreading costs
+ * more than a chart, and the same reading the Movies sheet's own `Type` column carries.
+ */
 const readType = readChecked(TYPES, "a show type");
 import "../utils/arrayUtils";
 

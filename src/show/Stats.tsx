@@ -11,7 +11,7 @@ import {
   VerifiedUser,
   Whatshot,
 } from "@mui/icons-material";
-import { groupToColour, animeLabel, type Measure, type Season, type Show, type Status } from "./types";
+import { ANIME_GROUP, groupToColour, animeLabel, type Measure, type Season, type Show, type Status } from "./types";
 import {
   StatCard,
   StatList,
@@ -27,7 +27,7 @@ import { GroupedStatList } from "../common/GroupedStatList";
 import { Hero } from "../common/Hero";
 import ShowCardMediaImage, { ShowFranchiseStrip } from "./CardMediaImage";
 import { showSubtitle } from "./cardData";
-import { ANIME, animeToColour, statusToColour, type Scheme } from "../utils/types";
+import { animeToColour, statusToColour, type Scheme } from "../utils/types";
 import { useScheme } from "../common/useScheme";
 import { Stack } from "@mui/material";
 import type { ReactNode } from "react";
@@ -184,9 +184,9 @@ const Vitals = ({ data, measure }: { data: Show[]; measure: Measure }) => {
   const scheme = useScheme();
 
   const statusList: Status[] = ["Watching", "Up To Date", "Ended", "Cancelled", "Abandoned"];
-  // "Show" first, as the sheet's own order has it: the array is the bar order, and reversing it
-  // would reorder the band for no reason a reader could see.
-  const animeList = ["Show", ANIME];
+  // The domain's own pair, which is also what the filter's chips offer: the array is the bar order,
+  // and a word restated here could drift from `animeLabel` and drop a bar with nothing to say so.
+  const animeList = ANIME_GROUP;
   const measureFunc = (shows: Show[]) => measureOf(shows, measure);
 
   return (

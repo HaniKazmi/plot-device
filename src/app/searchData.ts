@@ -92,7 +92,7 @@ export interface PlacedAttribute extends AttributeEntry {
  * `name` is the value, so a run matched while ranking the attributes underlines at the same index
  * here.
  */
-export interface ShelfSearchEntry extends Searchable {
+interface ShelfSearchEntry extends Searchable {
   kind: "shelf";
   key: string;
   attribute: AttributeEntry;

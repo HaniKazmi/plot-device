@@ -69,7 +69,18 @@ export type Status = "Watching" | "Up To Date" | "Ended" | "Cancelled" | "Abando
  * rather than a shared word: a series that is not anime is a show, and the sheet claims nothing
  * more specific than that about it.
  */
-export const animeLabel = ({ anime }: { anime: boolean }) => (anime ? ANIME : "Show");
+const NOT_ANIME = "Show";
+
+export const animeLabel = ({ anime }: { anime: boolean }) => (anime ? ANIME : NOT_ANIME);
+
+/**
+ * The split's two words in the order every surface bands them, the unmarked half first.
+ *
+ * Stated once beside the labelling it has to agree with: the Vitals band matches this array against
+ * `animeLabel`'s output by string, and the filter's chips are the same pair, so a word changed in
+ * one place and not the other silently drops a bar and a chip rather than failing to compile.
+ */
+export const ANIME_GROUP = [NOT_ANIME, ANIME];
 
 export type ShowStringKeys = KeysMatching<Show, string>;
 

@@ -321,7 +321,7 @@ Two subtleties live in the serialisation boundary, and both are easy to break:
    the page's own error boundary (§10), so a throw here takes the app down and not just the page.
 
 Cache keys are versioned per domain — `dataCacheKey(domain, version)` yields `game-data-cache-v3`,
-`show-data-cache-v5`, `movie-data-cache-v4`, `book-data-cache-v2` — and `dropSupersededVersions`
+`show-data-cache-v6`, `movie-data-cache-v4`, `book-data-cache-v2` — and `dropSupersededVersions`
 clears earlier keys on first load, matched on the domain's prefix so one tab's bump cannot empty
 another's. Bump the version in the domain's `converter.ts` on any model-shape change, or returning
 visitors' cached objects lack the field until their next authorised fetch — indefinitely, for a
@@ -2002,10 +2002,11 @@ them; the long tail is 168 values in the games sheet alone, most a work naming i
 `tests/utils/fillContract.test.ts` pins it: a cross-media franchise resolves to one value through
 all four domains' `groupToColour`.
 
-Seven vocabularies live in `utils/types.ts` because more than one tab speaks them: the genre ramp,
+Eight vocabularies live in `utils/types.ts` because more than one tab speaks them: the genre ramp,
 `statusToColour`, `franchiseToColour`, `decadeToColour`, the score bands (`scoreBandToColour`, which
 Movies and Books both rate on), `certificateToColour` over the `Certificate` union three of the four
-domains record a certificate into, and `mediumFills` with `mediumToLabel`, `mediumToName` and
+domains record a certificate into, `animeToColour` over the split Shows and Movies both record, and
+`mediumFills` with `mediumToLabel`, `mediumToName` and
 `mediumUnit` — the only colour a mixed-media surface carries meaning in, re-exported by
 `app/types.ts`. Its hues are the home tabs' own, so `tabs.ts` constrains them; the closest pair
 is 16.8 dE. The light Books half is `#ab9219`, the brightest gold clearing 3:1 on white, not the
@@ -2021,7 +2022,7 @@ in which of them they use, BBFC issuing a 15 where PEGI issues a 16 for one tier
 off the tier rather than the number. `isCertificate` lets a converter reject a bad cell while it
 still knows the row — though what actually keeps a board's own five values in its column is the
 sheet's dropdown, a converter only being able to report a cell already written. `certificateBand` names that tier rather
-than colouring it, and is what the colour is looked up by. `animeToColour` is the eighth, one fill
+than colouring it, and is what the colour is looked up by. `animeToColour` is one fill
 and an absence rather than a ramp: Shows and Movies both record the split and both group charts by
 it, so the rose means anime on either tab. Only the anime half is shared — the word for it is the
 `ANIME` constant, which is also what folds the two tabs' selects into one entry the box shelves —
@@ -2261,7 +2262,7 @@ slice still in flight is skipped too, rather than swept against an empty list.
 Long-pressing the wordmark (`utils/useLongPress.ts`, 300 ms, over the pure `longPressReducer`) sets
 `guestMode`, which `Google.tsx` hands to `app/LibraryProvider`. `visibleLibrary` (`app/library.ts`)
 applies each medium's own `guestFilter`, exported from its `filterUtils.ts` and named by its
-`module.ts` — a game whose `theme` includes `"Adult"`, a show whose `type` is anime, a film carrying
+`module.ts` — a game whose `theme` includes `"Adult"`, a show the sheet marks anime, a film carrying
 the sheet's `anime` flag; nothing marks a book, so that rule keeps the whole library — and every tab,
 index and union reads the slice that comes back. It is applied to the data once rather than to each
 page's filters because the franchise index, the union and the search index are all built from the
@@ -2369,9 +2370,13 @@ nights in. As a category the same field states all three with the multi-select s
 category already has, wears the vocabulary's own colour on its chips, and is found and placed by the
 box like any other value. A toggle is then what it says it is: a page's own noise, an unscored film
 or a medium switched off, which nobody asks to see alone. A category built by a shared helper —
-`franchiseCategory`, `certificateCategory` — states its key inside that helper, so the compiler does
-not hold it to the tab's own state the way it holds a category written out inline: the field has to
-be added by hand, and a missing one is a filter that silently never applies. Nothing in
+`franchiseCategory`, `certificateCategory`, `animeCategory` — takes its key as a
+`CategoryKey<S> & "the key"`: the literal so the helper still fixes it, two tabs keying one
+vocabulary apart being two entries where the box's fold wants one, and `CategoryKey<S>` so the tab
+is held to declaring the field. Stated inside the helper instead, `S` reaches `FilterCategory` only
+under `keyof` a mapped type, which TypeScript measures as independent — so the check a bare literal
+gets is not made at all, and a state missing the field compiles into a filter that draws and never
+applies. Nothing in
 `common/filterReducer.ts`, `common/FilterControls.tsx` or any chart changes, and no starting value
 is written anywhere — every surface that offers filters draws whatever the schema holds, and the
 reducer seeds the new field from it. A rule that is not per-field, like Shows' seasonal year cutoff,

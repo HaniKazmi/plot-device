@@ -1,5 +1,5 @@
 import { categoryOptions } from "../common/filterOptions";
-import { franchiseCategory, type FilterSchema } from "../common/filterSchema";
+import { franchiseCategory, FRANCHISE_KEY, type FilterSchema } from "../common/filterSchema";
 import { genreToColour } from "../utils/types";
 import type { FilterState } from "./filterUtils";
 import { formatToColour, type Book } from "./types";
@@ -18,6 +18,6 @@ export const bookFilters: FilterSchema<Book, FilterState> = {
       // that selects nothing a reader can name.
       options: (data) => categoryOptions(data, (book) => book.series).filter(Boolean),
     },
-    franchiseCategory(),
+    franchiseCategory(FRANCHISE_KEY),
   ],
 };

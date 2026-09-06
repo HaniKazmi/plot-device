@@ -1,7 +1,13 @@
-import { animeCategory, certificateCategory, franchiseCategory, type FilterSchema } from "../common/filterSchema";
+import {
+  animeCategory,
+  certificateCategory,
+  franchiseCategory,
+  FRANCHISE_KEY,
+  type FilterSchema,
+} from "../common/filterSchema";
 import { CERTIFICATES, certificateToColour, genreToColour, type Certificate, type Predicate } from "../utils/types";
 import type { FilterState } from "./filterUtils";
-import { animeLabel, networkToColour, type Show } from "./types";
+import { ANIME_GROUP, animeLabel, networkToColour, type Show } from "./types";
 
 /**
  * What guest mode hides on this tab: anime, read off the same model field the anime select is
@@ -31,12 +37,13 @@ export const showFilters: FilterSchema<Show, FilterState> = {
       valueOf: (show) => show.network,
       colourFor: (value, scheme) => networkToColour({ network: value }, scheme) || undefined,
     },
-    animeCategory<Show>(animeLabel, "Show"),
-    certificateCategory<Show>(
+    animeCategory("anime", animeLabel, ANIME_GROUP),
+    certificateCategory(
+      "certificate",
       (show) => show.certificate,
       CERTIFICATES,
       (value, scheme) => certificateToColour(value as Certificate, scheme),
     ),
-    franchiseCategory(),
+    franchiseCategory(FRANCHISE_KEY),
   ],
 };

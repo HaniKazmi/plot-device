@@ -2,12 +2,13 @@ import {
   animeCategory,
   certificateCategory,
   franchiseCategory,
+  FRANCHISE_KEY,
   present,
   type FilterSchema,
 } from "../common/filterSchema";
 import { CERTIFICATES, certificateToColour, genreToColour, type Certificate, type Predicate } from "../utils/types";
 import type { FilterState } from "./filterUtils";
-import { animeLabel, cinemaLabel, cinemaToColour, type Movie } from "./types";
+import { ANIME_GROUP, animeLabel, cinemaLabel, cinemaToColour, type Movie } from "./types";
 
 /**
  * What guest mode hides on this tab: a film the sheet marks as anime, read off the same model field
@@ -26,7 +27,7 @@ export const movieFilters: FilterSchema<Movie, FilterState> = {
   toggles: [{ key: "unscored", label: "Unscored films", hides: (movie) => movie.score !== undefined }],
   categories: [
     { key: "genre", label: "genre", valueOf: (movie) => movie.genre, colourFor: genreToColour },
-    animeCategory<Movie>(animeLabel, "Film"),
+    animeCategory("anime", animeLabel, ANIME_GROUP),
     // Both halves are a thing to look for — an outing and a night in — so neither is held back from
     // the box, where the anime split keeps only its marked half. "watched" rather than "cinema",
     // which would name the row after one of the two values standing under it.
@@ -37,12 +38,13 @@ export const movieFilters: FilterSchema<Movie, FilterState> = {
       options: (data) => present(CINEMA_VALUES, data, cinemaLabel),
       colourFor: cinemaToColour,
     },
-    certificateCategory<Movie>(
+    certificateCategory(
+      "certificate",
       (movie) => movie.certificate,
       CERTIFICATES,
       (value, scheme) => certificateToColour(value as Certificate, scheme),
     ),
     { key: "director", label: "director", valueOf: (movie) => movie.director, searchable: true },
-    franchiseCategory(),
+    franchiseCategory(FRANCHISE_KEY),
   ],
 };
