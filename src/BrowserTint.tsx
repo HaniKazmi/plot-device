@@ -11,17 +11,19 @@ import { useScheme } from "./common/useScheme";
  * `theme-color` meta is still parsed and no longer read, and what is sampled is the
  * `background-color` of a qualifying fixed or sticky element, falling back to `body`. Left to that
  * fallback the answer is the paper, so the status bar reads as a band of blank page above a bar
- * that is anything but. The bottom edge is already a fixed full-width bar (`BottomTabs`), so only
- * the top needs stating — the colour that bar is sampled in follows its two states, the tab's own
- * while it holds the tabs and the page's ground once it holds the rail, which is the colour the
- * page at that edge actually is either way.
+ * that is anything but. The bottom edge is already a fixed full-width bar (`BottomTabs`), which
+ * wears the tab's colour at every scroll position and is sampled for the bottom of the chrome; only
+ * the top has nothing of its own up there to sample.
  *
- * Below `sm` this strip carries the same two states as the bar it sits above, on the same boundary
- * (`useScrolledPastBar`): the tab's colour while that bar holds the tabs, and the page's own ground
- * once it holds the rail instead. Left at the tab's colour throughout, a phone scrolled deep into a
- * library reads a coloured band at the very top of an otherwise plain page, naming a bar that
- * scrolled out of reach screens ago. From `sm` up the strip keeps the tab's colour at every scroll
- * position, unchanged here: the pinned rail beneath it is its own separate surface, not sampled.
+ * Below `sm` the strip is drawn while the app bar is still on screen and taken away past it, on the
+ * boundary that bar's own tabs/rail swap keys on (`useScrolledPastBar`). Left standing throughout,
+ * a phone scrolled deep into a library reads a coloured band at the very top of an otherwise plain
+ * page, naming a bar that scrolled out of reach screens ago; taken away, nothing at that edge is
+ * fixed and Safari draws its own translucent status bar over the page, which is a transparency a
+ * stated ground can only imitate. The `theme-color` metas (`Google.tsx`) answer for the browsers
+ * that do read one, stating the page's own ground there rather than leaving. From `sm` up the strip
+ * keeps the tab's colour at every scroll position: the pinned rail beneath it is its own separate
+ * surface, not sampled.
  *
  * What a strip has to be is measured rather than declared: an element that anything paints over is
  * never sampled, which is what the `zIndex` is for — the section rail pins opaque one below the app
@@ -56,8 +58,9 @@ export const BrowserTint = () => {
   const phone = usePhone();
   const past = useScrolledPastBar();
   const ground = barColour(currTab, scheme);
-  // Past the bar the strip is not drawn: with nothing fixed at the top and no `theme-color`
-  // stated, Safari draws its own translucent status bar over the page.
+  // Past the bar the strip is not drawn: with nothing fixed at the top to sample, Safari draws its
+  // own translucent status bar over the page — the meta stated there for the browsers that read one
+  // is not one Safari reads.
   if (!ground || (phone && past)) return null;
   const background = ground;
 

@@ -1568,7 +1568,9 @@ to observe, and a sentinel standing in for it would open a gap of its own in the
 The rail leads with a chip carrying the current tab's icon, which calls the tabs back **in place** —
 the alternative, scrolling to the top where they already are, costs a reader deep in a library wall
 their position to answer a question about navigation — and the reader's next scroll takes them away
-again. A press on the tab already open scrolls to the top anyway, `BottomNavigation` answering a
+again, heard on a one-shot listener the request attaches for itself (`phoneBar.ts`), the crossing
+store answering only where the page crosses the app bar and so leaving the tabs up for a reader who
+asked for them a thousand pixels down and read on. A press on the tab already open scrolls to the top anyway, `BottomNavigation` answering a
 press on its selected action, so the way back exists without the chip having to be it.
 
 `SectionRail` renders that row through a portal into a slot the bar publishes on a module store
@@ -1578,7 +1580,8 @@ its sections are. It is also what keeps the chips' own machinery, a tooltip and 
 out of the chunk every visitor evaluates before the first paint, which
 `tests/architecture.test.ts` pins. `PHONE_SCROLL_MARGIN` is what an anchored section clears there:
 8px, plus `env(safe-area-inset-top)` in the CSS form, since nothing is above it but the device's own
-inset. The wall's sticky `BucketHeading` takes the same figure, being drawn on a phone alone;
+inset. The wall's sticky `BucketHeading` takes that same CSS form, the notch included, being drawn
+on a phone alone;
 `MARKER_TOP` keeps the full margin, the pill and the jump rail it positions mounting from `sm` up.
 
 The same module holds the two arrangements a section is built from, page structure rather than
@@ -1728,18 +1731,24 @@ rail's own chips do. That is one of its two states (§ Page architecture): scrol
 the page's rail, still in the tab's colour so the bar reads as one thing either way; the chips it
 then holds are the kit's, solved against `background.default` — a lit chip is filled in the primary
 and would be invisible on a bar that _is_ the primary — so `onBarSx` (`common/barTone.ts`) re-tones
-them onto the bar, the unlit in the bar's ink and the lit filled with it, and the chip row's end fades
-resolve to the bar rather than to the page (`SectionRail`'s `phoneGround`). Safari samples this bar
+them onto the bar, the unlit in the bar's ink and the lit filled with it and worded in the bar's own
+colour, and the chip row's end fades resolve to the bar rather than to the page (`SectionRail`'s
+`phoneGround`). Those are descendant rules and outrank a child's own `sx`, so the one chip drawn in a
+colour of its own — the tab in hand, in that tab's ink — publishes `data-own-colour` and the dark
+sheet skips it, the tab inks being solved to read against the tint. Safari samples this bar
 for the bottom of its chrome, which is then the tab's colour at every scroll position.
 
 The top edge has no bar of its own to sample, so `BrowserTint.tsx` stands a strip there in the tab's
 own colour while the page is against the app bar, and is not drawn at all once scrolled past it, on
-the same `useScrolledPastBar` boundary (`common/chrome.ts`) `BottomTabs` reads for its own two states;
-the `theme-color` metas `Google.tsx` emits (§ Theming and routing) leave with it below `sm`. With
-nothing fixed at the top and no colour stated, Safari draws its own translucent status bar over the
-page, which a stated ground can only imitate. Left at the tab's colour throughout, a reader scrolled
-deep into a library sees a coloured band at the top of an otherwise plain page, naming a bar long
-since scrolled out of reach. `common/chrome.ts` states what the app's own furniture costs the page:
+the same `useScrolledPastBar` boundary (`common/chrome.ts`) `BottomTabs` reads for its own two states.
+With nothing fixed at the top to sample, Safari draws its own translucent status bar over the page,
+which a stated ground can only imitate; the `theme-color` metas `Google.tsx` emits (§ Theming and
+routing) stay, stating the page's own ground there for the browsers that still read one. Left at the
+tab's colour throughout, a reader scrolled deep into a library sees a coloured band at the top of an
+otherwise plain page, naming a bar long since scrolled out of reach. That boundary carries a dead
+band of eight pixels either side (`scrolledPastBar`), so a reader coming to rest against the app
+bar's own height does not have the strip, the bar and the metas flicker on every small movement of
+the thumb. `common/chrome.ts` states what the app's own furniture costs the page:
 `BOTTOM_TABS_HEIGHT` (56) and its `env(safe-area-inset-bottom)`-padded `BOTTOM_TABS_CLEARANCE`, which
 the page container and the data snackbar both stop short of, and `safeAreaGutters`, MUI's own
 `Container`/`Toolbar` gutters restated with the device's side insets added — a notched phone held
@@ -2136,7 +2145,10 @@ cannot drift. Two `theme-color` metas are emitted, one per scheme, each carrying
 colour above `sm` and, below it, swapping to the scheme's own page ground once the page has scrolled
 past the app bar — the same boundary and the same `useScrolledPastBar` (`common/chrome.ts`) the
 top-edge tint strip (`BrowserTint.tsx`, § Phone and tablet) and the bottom bar's own tabs/rail swap
-key on, so a device that still honours the meta agrees with what the sampled strip already shows.
+key on. Safari reads neither meta and samples the strip, which past the bar is not drawn; a browser
+that does read one — Android Chrome, and an installed app, whose manifest otherwise answers with the
+Omnibus's own purple whatever tab is open — lands on the ground the page at that edge actually
+paints.
 
 **The dark scheme's `primary.main` is that `rule`, not the primary.** A primary is solved against
 the white paper: on the dark one Games' carries 3.6:1 and Shows' 3.4, which is a full-strength

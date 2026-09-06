@@ -69,32 +69,50 @@ describe("chips in a stated order", () => {
 });
 
 describe("movedAfter", () => {
-  const keys = ["now", "vitals", "timeline", "charts", "library"] as const;
+  // The Omnibus's own sections, which is where a moved order is asked for: on a phone the gallery
+  // follows the franchises.
+  const keys = ["now", "vitals", "finished", "charts", "gallery", "genres", "crossings"] as const;
 
   it("lifts a key to sit directly after another", () => {
-    expect(movedAfter(keys, "charts", "library")).toEqual(["now", "vitals", "timeline", "library", "charts"]);
+    expect(movedAfter(keys, "gallery", "crossings")).toEqual([
+      "now",
+      "vitals",
+      "finished",
+      "charts",
+      "genres",
+      "crossings",
+      "gallery",
+    ]);
   });
 
   it("answers a permutation of what it was given, so no section is lost or drawn twice", () => {
-    expect([...movedAfter(keys, "charts", "library")].sort()).toEqual([...keys].sort());
+    expect([...movedAfter(keys, "gallery", "crossings")].sort()).toEqual([...keys].sort());
   });
 
   it("leaves the order alone where either key names nothing in it", () => {
-    expect(movedAfter(keys, "charts", "gallery" as (typeof keys)[number])).toEqual([...keys]);
-    expect(movedAfter(keys, "gallery" as (typeof keys)[number], "library")).toEqual([...keys]);
+    expect(movedAfter(keys, "gallery", "library" as (typeof keys)[number])).toEqual([...keys]);
+    expect(movedAfter(keys, "library" as (typeof keys)[number], "crossings")).toEqual([...keys]);
   });
 
   it("leaves the order alone where a key is asked to follow itself", () => {
-    expect(movedAfter(keys, "charts", "charts")).toEqual([...keys]);
+    expect(movedAfter(keys, "gallery", "gallery")).toEqual([...keys]);
   });
 
   it("moves a key backwards as readily as forwards, the target's own position deciding", () => {
-    expect(movedAfter(keys, "library", "now")).toEqual(["now", "library", "vitals", "timeline", "charts"]);
+    expect(movedAfter(keys, "crossings", "now")).toEqual([
+      "now",
+      "crossings",
+      "vitals",
+      "finished",
+      "charts",
+      "gallery",
+      "genres",
+    ]);
   });
 
   it("does not touch the array it is handed", () => {
     const original = [...keys];
-    movedAfter(keys, "charts", "library");
+    movedAfter(keys, "gallery", "crossings");
 
     expect([...keys]).toEqual(original);
   });

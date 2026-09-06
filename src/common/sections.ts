@@ -45,9 +45,13 @@ export const tabSections = <P extends string, K extends string>(
 /**
  * The same keys with one lifted to sit directly after another.
  *
- * One fact stated once for the four tabs that state it: on a phone a page's charts come after its
- * library. A key naming nothing in the list, or asked to follow itself, leaves the order as it is,
- * so a page whose section is conditional cannot be reordered into a list it is not in.
+ * What a page reordering a section at some width tells the rail: the Omnibus moves its gallery
+ * after the franchises on a phone, the two being the longest sections on the page and only one of
+ * them able to close it. The rail reads the current section as the first of *its* list still in the
+ * band, so the list and the DOM have to say the same thing, and stating the moved order by hand is
+ * stating the page's own arrangement twice. A key naming nothing in the list, or asked to follow
+ * itself, leaves the order as it is, so a page whose section is conditional cannot be reordered
+ * into a list it is not in.
  */
 export const movedAfter = <K extends string>(keys: readonly K[], key: string, after: string): K[] => {
   const moved = keys.find((each) => each === key);
