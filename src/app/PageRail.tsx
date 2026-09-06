@@ -5,7 +5,7 @@ import { stated } from "../common/population";
 import { SectionRail, type RailSection } from "../common/SectionRail";
 import { MeasureControl, ScopeControl } from "../common/SelectionComponents";
 import { useScheme } from "../common/useScheme";
-import { tabInk, useCurrentTab, useOtherTabs } from "../tabs";
+import { barColour, tabInk, useCurrentTab, useOtherTabs } from "../tabs";
 import { useLibrary } from "./library";
 import { pageOf, usePageState } from "./pageState";
 
@@ -41,6 +41,7 @@ export const PageRail = ({ sections, count }: { sections: RailSection[]; count: 
     <SectionRail
       sections={sections}
       tabs={tabs}
+      phoneGround={barColour(tab, scheme)}
       scope={
         page && (
           <ScopeControl

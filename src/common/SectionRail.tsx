@@ -220,6 +220,12 @@ export const SectionRail = (props: {
    * paint.
    */
   tabChip?: ReactNode;
+  /**
+   * The ground the phone's bar draws this row on, which the chip row's end fades have to resolve
+   * to: left to their default they fade into the page's own ground, a pale band over a bar that is
+   * the tab's colour.
+   */
+  phoneGround?: string;
 }) => {
   // Which tail the rail draws, and where the rail is drawn at all. A value rather than a `display`
   // rule, because the controls it hides are mounted in the box's This page mode at this width
@@ -258,6 +264,7 @@ export const SectionRail = (props: {
   const chipRow = (
     <ChipRail
       items={props.sections}
+      ground={phone ? props.phoneGround : undefined}
       activeId={active}
       leading={tabChips || undefined}
       onSelect={(id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })}

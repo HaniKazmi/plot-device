@@ -1725,19 +1725,21 @@ reachable from any scroll position and a thumb, which no arrangement of the `pos
 bar achieves; it wears the tab's own `barColour` as the app bar does, so the top and bottom of a
 phone name the same tab, and a tab change resets scroll (`window.scrollTo({ top: 0 })`) the way the
 rail's own chips do. That is one of its two states (§ Page architecture): scrolled, the same bar is
-the page's rail, on the page's own ground under a hairline rather than in the tab's colour, since the
-chips it then holds are the kit's and are solved against `background.default` — a lit chip is filled
-in the primary and would be invisible on a bar that _is_ the primary. The colour Safari samples for
-the bottom of its chrome follows that swap because it is taken straight from this bar (`BottomTabs.tsx`),
-which is the colour the page at that edge actually is either way.
+the page's rail, still in the tab's colour so the bar reads as one thing either way; the chips it
+then holds are the kit's, solved against `background.default` — a lit chip is filled in the primary
+and would be invisible on a bar that _is_ the primary — so `onBarSx` (`common/barTone.ts`) re-tones
+them onto the bar, the unlit in the bar's ink and the lit filled with it, and the chip row's end fades
+resolve to the bar rather than to the page (`SectionRail`'s `phoneGround`). Safari samples this bar
+for the bottom of its chrome, which is then the tab's colour at every scroll position.
 
 The top edge has no bar of its own to sample, so `BrowserTint.tsx` stands a strip there in the tab's
-own colour, and follows the same swap: the tab's colour while the page is against the app bar, the
-page's own ground once scrolled past it, on the same `useScrolledPastBar` boundary (`common/chrome.ts`)
-`BottomTabs` reads for its own two states. Left at the tab's colour throughout, a reader scrolled deep
-into a library sees a coloured band at the top of an otherwise plain page, naming a bar long since
-scrolled out of reach; the `theme-color` metas `Google.tsx` emits (§ Theming and routing) follow the
-same boundary below `sm`, for a device that still reads them. `common/chrome.ts` states what the app's own furniture costs the page:
+own colour while the page is against the app bar, and is not drawn at all once scrolled past it, on
+the same `useScrolledPastBar` boundary (`common/chrome.ts`) `BottomTabs` reads for its own two states;
+the `theme-color` metas `Google.tsx` emits (§ Theming and routing) leave with it below `sm`. With
+nothing fixed at the top and no colour stated, Safari draws its own translucent status bar over the
+page, which a stated ground can only imitate. Left at the tab's colour throughout, a reader scrolled
+deep into a library sees a coloured band at the top of an otherwise plain page, naming a bar long
+since scrolled out of reach. `common/chrome.ts` states what the app's own furniture costs the page:
 `BOTTOM_TABS_HEIGHT` (56) and its `env(safe-area-inset-bottom)`-padded `BOTTOM_TABS_CLEARANCE`, which
 the page container and the data snackbar both stop short of, and `safeAreaGutters`, MUI's own
 `Container`/`Toolbar` gutters restated with the device's side insets added — a notched phone held

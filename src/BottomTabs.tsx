@@ -5,6 +5,7 @@ import Tabs, { barColour, useCurrentTab } from "./tabs";
 import { usePhone } from "./common/breakpoints";
 import { useScheme } from "./common/useScheme";
 import { BOTTOM_TABS_CLEARANCE, BOTTOM_TABS_HEIGHT, useScrolledPastBar } from "./common/chrome";
+import { onBarSx } from "./common/barTone";
 import { dismissPhoneBarTabs, setPhoneBarSlot, usePhoneBarTabsAsked } from "./common/phoneBar";
 
 /**
@@ -66,10 +67,10 @@ const RAIL_ROW_SX = { gap: 1, paddingX: 2 } as const;
  * The tabs wear the tab's own bar colour (`barColour`, the single answer for that) so the top and
  * bottom edges of a phone say the same thing about which tab is open, and in the dark scheme the 3px
  * rule runs along the top edge as the app bar carries it along its bottom — the tint alone is a
- * fifth of the primary's strength and needs the line to carry the hue. The rail state stands on the
- * page's own ground instead, ruled off with a hairline: its chips are the kit's, which are solved
- * against `background.default` — a lit chip is filled in the primary, invisible on a bar that *is*
- * the primary, and the page chip's picker face reads the same way.
+ * fifth of the primary's strength and needs the line to carry the hue. The rail state keeps that
+ * colour, so the bar reads as one thing whichever way it is scrolled; its parts are the kit's, solved
+ * against the page ground — a lit chip is filled in the primary, invisible on a bar that *is* the
+ * primary — so they are re-toned onto the bar through `onBarSx` (`common/barTone.ts`).
  *
  * Rendered at every width and hidden from `sm`, where the app bar's own strip is drawn instead.
  */
@@ -99,7 +100,6 @@ export const BottomTabs = () => {
   const atTop = !pastBar;
   const tabsAsked = usePhoneBarTabsAsked();
   const tabsShown = atTop || tabsAsked;
-  console.log("DEBUG BottomTabs render", { pastBar, atTop, tabsAsked, tabsShown });
 
   useEffect(() => {
     // The reader's own scroll is what takes the called-back tabs away again. Only below the app
@@ -121,9 +121,7 @@ export const BottomTabs = () => {
         display: { sm: "none" },
         // Under a dialog and the app bar's own menus, over every page it covers.
         zIndex: (theme) => theme.zIndex.appBar,
-        backgroundColor: tabsShown ? ground : "background.default",
-        transition: `background-color ${SWAP_MS}ms ease`,
-        "@media (prefers-reduced-motion: reduce)": { transition: "none" },
+        backgroundColor: ground,
         // `border-box` from `CssBaseline`, so the safe area has to be added to the height rather
         // than taken out of the actions' own.
         height: BOTTOM_TABS_CLEARANCE,
@@ -195,7 +193,7 @@ export const BottomTabs = () => {
             tabs back — stays with the page, and this bar carries none of MUI's popper engine into
             the chunk every visitor evaluates before the first paint. */}
         <Box
-          sx={{ ...swapSx(!tabsShown), ...RAIL_ROW_SX }}
+          sx={[swapSx(!tabsShown), RAIL_ROW_SX, onBarSx(dark)]}
           ref={setPhoneBarSlot}
         />
       </Box>
