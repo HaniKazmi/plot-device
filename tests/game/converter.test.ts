@@ -185,7 +185,7 @@ describe("bad rows", () => {
 
   it("names the sheet row, the game and the column that failed", () => {
     expect(() => convertOne({ Title: "Zelda", "Start Date": "" })).toThrow('Row 2, "Zelda", Start Date');
-    expect(() => convertOne({ Title: "Zelda", "Release Date": "" })).toThrow('Row 2, "Zelda", Release');
+    expect(() => convertOne({ Title: "Zelda", "Release Date": "" })).toThrow('Row 2, "Zelda", Release Date');
   });
 
   it("counts sheet rows past the header, so the number matches what is on screen", () => {

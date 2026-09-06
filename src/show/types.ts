@@ -59,7 +59,9 @@ export interface Season {
 export type Status = "Watching" | "Up To Date" | "Ended" | "Cancelled" | "Abandoned";
 
 /** The sheet's own values, which are lower case. */
-export type Type = "show" | "anime";
+export const TYPES = ["show", "anime"] as const;
+
+export type Type = (typeof TYPES)[number];
 
 /** `Type` as a chart labels it — the sheet's values are lower case and a wedge should not be. */
 export const typeToName = (type: Type) => (type === "anime" ? "Anime" : "Show");

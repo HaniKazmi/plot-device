@@ -76,7 +76,7 @@ describe("field parsing", () => {
     expect(convertOne({ Score: "9" }).score).toBe(9);
   });
 
-  it("reads the runtime out of the sheet's own NNNmin form", () => {
+  it("reads the runtime as the plain count of minutes the column is headed with", () => {
     expect(convertOne({ "Runtime (min)": "116" }).minutes).toBe(116);
   });
 
@@ -111,32 +111,37 @@ describe("field parsing", () => {
     expect(convertOne({ "Other Genres": "" }).otherGenres).toEqual([]);
   });
 
-  it("reads the cinema flag only from the literal string TRUE", () => {
-    // The sheet writes nothing at all for the false case, so anything else is false rather than
-    // an error — including the lower-case spelling, which the sheet never produces.
+  it("reads how a film was seen from the two words the sheet states it in", () => {
     expect(convertOne({ Format: "Cinema" }).cinema).toBe(true);
     expect(convertOne({ Format: "Home" }).cinema).toBe(false);
   });
 
-  it("rejects a watch format outside the sheet's two words rather than reading it as Home", () => {
-    // The column was a flag written only in its true case, where a blank was the false case and
-    // there was nothing to reject. A worded column has no blank case, so a value outside the pair
-    // — or a header named wrongly here, which is every row at once — would be a library that
-    // silently claims no film was ever seen in a cinema.
-    expect(() => convertOne({ Format: "" })).toThrow('Row 2, "Arrival", Format: "" is neither Cinema nor Home');
-    expect(() => convertOne({ Format: "cinema" })).toThrow("is neither Cinema nor Home");
+  it("rejects a watch format outside those two rather than reading it as Home", () => {
+    // A worded column has no blank case, so a value outside the pair — or a header named wrongly
+    // in the converter, which is every row at once — would otherwise be a library silently
+    // claiming no film was ever seen in a cinema.
+    expect(() => convertOne({ Format: "" })).toThrow('Row 2, "Arrival", Format: "" is not a watch format');
+    expect(() => convertOne({ Format: "Streaming" })).toThrow("is not a watch format");
   });
 
-  it("reads the anime flag the same way as cinema: TRUE or blank, nothing else", () => {
+  it("reads whether a film is anime from the sheet's own two words", () => {
     expect(convertOne({ Type: "anime" }).anime).toBe(true);
     expect(convertOne({ Type: "film" }).anime).toBe(false);
   });
 
-  it("rejects a film type outside the sheet's two words, guest mode depending on it", () => {
-    // The one cell here whose misreading costs more than a wrong figure: guest mode hides anime,
-    // so a value that fails to say so puts a hidden film on screen.
-    expect(() => convertOne({ Type: "" })).toThrow('Row 2, "Arrival", Type: "" is neither film nor anime');
-    expect(() => convertOne({ Type: "Anime" })).toThrow("is neither film nor anime");
+  it("rejects a film type outside those two, guest mode depending on it", () => {
+    // The cell here whose misreading costs most: guest mode hides anime, so a value that fails to
+    // say so puts a hidden film on screen rather than a wrong figure.
+    expect(() => convertOne({ Type: "" })).toThrow('Row 2, "Arrival", Type: "" is not a film type');
+    expect(() => convertOne({ Type: "cartoon" })).toThrow("is not a film type");
+  });
+
+  it("takes a hand-typed cell's case and spacing as the same answer", () => {
+    // These columns sit behind a dropdown that suggests rather than enforces, so a row typed by
+    // hand is what they hold. Neither is a different answer from the one the dropdown offers, and
+    // rejecting them would empty the whole tab over a capital letter.
+    expect(convertOne({ Format: " cinema " }).cinema).toBe(true);
+    expect(convertOne({ Type: "Anime" }).anime).toBe(true);
   });
 
   it("carries the remaining columns through untouched", () => {

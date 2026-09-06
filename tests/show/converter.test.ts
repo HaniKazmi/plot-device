@@ -81,6 +81,20 @@ describe("flattening the sheet into nested shows", () => {
     expect(() => jsonConverter([showRow(), seasonRow({ Genre: "" })])).not.toThrow();
   });
 
+  it("rejects a type outside the sheet's two words, guest mode depending on it", () => {
+    // Guest mode hides anime (`show/filters.ts`), so a cell that fails to say a show is one puts a
+    // hidden show on screen — silently, where a wrong genre only mislabels a wedge.
+    expect(() => jsonConverter([showRow({ Type: "cartoon" }), seasonRow()])).toThrow(
+      'Row 2, "Severance", Type: "cartoon" is not a show type',
+    );
+  });
+
+  it("takes a hand-typed type cell's case and spacing as the same answer", () => {
+    const [show] = jsonConverter([showRow({ Type: " Anime " }), seasonRow()]);
+
+    expect(show.type).toBe("anime");
+  });
+
   it("splits the secondary genres on the comma the sheet separates them with", () => {
     const genres = (value: string) => jsonConverter([showRow({ "Other Genres": value }), seasonRow()])[0].otherGenres;
 
@@ -109,7 +123,7 @@ describe("flattening the sheet into nested shows", () => {
     expect(() => jsonConverter([showRow({ Certificate: "360h  00m" }), seasonRow()])).toThrow("not a certificate");
   });
 
-  it("accepts the BBFC numbers this sheet records, alongside the PEGI form games use", () => {
+  it("accepts the bare ages every tab now records", () => {
     const certificate = (value: string) => jsonConverter([showRow({ Certificate: value }), seasonRow()])[0].certificate;
 
     expect(certificate("3")).toBe("3");
@@ -121,8 +135,20 @@ describe("flattening the sheet into nested shows", () => {
 describe("rolling season totals up into the show", () => {
   const twoSeasons = () => [
     showRow(),
-    seasonRow({ Season: "1", Episodes: "9", "Start Date": "2022-02-18", "End Date": "2022-04-08", "Episode Length (min)": "45" }),
-    seasonRow({ Season: "2", Episodes: "10", "Start Date": "2025-01-17", "End Date": "2025-03-21", "Episode Length (min)": "50" }),
+    seasonRow({
+      Season: "1",
+      Episodes: "9",
+      "Start Date": "2022-02-18",
+      "End Date": "2022-04-08",
+      "Episode Length (min)": "45",
+    }),
+    seasonRow({
+      Season: "2",
+      Episodes: "10",
+      "Start Date": "2025-01-17",
+      "End Date": "2025-03-21",
+      "Episode Length (min)": "50",
+    }),
   ];
 
   it("sums episodes and minutes across seasons", () => {
@@ -222,7 +248,10 @@ describe("last watched, via the Seasons / Last Watched column on season rows", (
   it("ignores the cell on a season that has ended", () => {
     // The sheet maintains the cell for the season in progress; a value nobody clears on a
     // finished season must not elect an old watch as the current one.
-    const [show] = jsonConverter([showRow(), seasonRow({ "End Date": "2026-04-08", "Seasons / Last Watched": "2026-03-01" })]);
+    const [show] = jsonConverter([
+      showRow(),
+      seasonRow({ "End Date": "2026-04-08", "Seasons / Last Watched": "2026-03-01" }),
+    ]);
 
     expect(show.s[0].lastWatchedDate).toBeUndefined();
     expect(show.lastWatchedDate).toBeUndefined();
@@ -296,9 +325,9 @@ describe("date ordering assertions", () => {
 
 describe("bad rows", () => {
   it("names the row and column when a season date will not parse", () => {
-    expect(() => jsonConverter([showRow({ Title: "Severance" }), seasonRow({ Season: "1", "Start Date": "" })])).toThrow(
-      'Row 3, season 1 of "Severance", Start Date: Unkown Date Format',
-    );
+    expect(() =>
+      jsonConverter([showRow({ Title: "Severance" }), seasonRow({ Season: "1", "Start Date": "" })]),
+    ).toThrow('Row 3, season 1 of "Severance", Start Date: Unkown Date Format');
   });
 
   it("says so when a season row appears before any show", () => {

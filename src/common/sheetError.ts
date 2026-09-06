@@ -1,4 +1,4 @@
-import { isCertificate, type Certificate } from "../utils/types";
+import { CERTIFICATES } from "../utils/types";
 import { PlainDate, YearMonthDay } from "./date";
 
 /**
@@ -30,15 +30,31 @@ export const sheetError = (context: string, detail: string): never => {
 };
 
 /**
+ * A reader over a closed vocabulary, naming the row a bad cell came from.
+ *
+ * Every sheet has columns the model types as a union and the sheet types as free text. Cast
+ * straight across, a bad cell surfaces a long way from the row that carried it: a colour lookup
+ * answering `undefined` mid-render, or — worse, because nothing looks wrong — a filter quietly
+ * keeping a row it was meant to hide. Read through here, the row names itself.
+ *
+ * Matched on the folded value and answered with the vocabulary's own spelling, these columns being
+ * hand-typed behind a dropdown that only suggests: `Anime`, `anime ` and `anime` are one answer,
+ * and the one the model holds is the one the table declares.
+ */
+export const readChecked = <T extends string>(values: readonly T[], noun: string) => {
+  const spelling = new Map(values.map((value) => [value.toLowerCase(), value]));
+  return (value = "", where: string): T =>
+    spelling.get(value.trim().toLowerCase()) ?? sheetError(where, `"${value}" is not ${noun}`);
+};
+
+/**
  * Reads a certificate cell, rejecting one the colour map could not paint.
  *
- * The Games, Shows and Movies sheets record a certificate and feed it to `certificateToColour`, which
- * throws on a value it does not know. Left to reach that, the failure surfaces from inside a render and
- * names the value but not the row carrying it — so every converter reads the column through here
- * instead, while it still knows which row it is on.
+ * The Games, Shows and Movies sheets record a certificate and feed it to `certificateToColour`,
+ * which throws on a value it does not know. Left to reach that, the failure surfaces from inside a
+ * render and names the value but not the row carrying it.
  */
-export const readCertificate = (value = "", where: string): Certificate =>
-  isCertificate(value) ? value : sheetError(where, `"${value}" is not a certificate`);
+export const readCertificate = readChecked(CERTIFICATES, "a certificate");
 
 /**
  * Reads a genre cell, rejecting one nobody filled in.
@@ -62,7 +78,7 @@ export const readGenre = (value = "", where: string): string => value || sheetEr
  * day scale — where a bare year either compares as a shorter string and drops the row without a
  * word, or arrives as an offset of `NaN` naming no row at all. Rejected here, it names its own.
  */
-export const readFullDate = (value: string, where: string): YearMonthDay => {
+export const readFullDate = (value = "", where: string): YearMonthDay => {
   const parsed = describing(where, () => PlainDate.from(value));
   return parsed instanceof YearMonthDay ? parsed : sheetError(where, `"${value}" is a bare year, not a full date`);
 };

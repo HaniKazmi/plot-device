@@ -113,8 +113,8 @@ describe("certificateToColour", () => {
   });
 
   it("rejects a suffixed certificate, which no sheet writes", () => {
-    // Every tab records the bare age, so a suffix is a cell in a notation this library no longer
-    // holds rather than a certificate it can colour.
+    // Every tab records the bare age, so a suffix is a cell in a notation this library does not
+    // hold rather than a certificate it can colour.
     expect(isCertificate("16+")).toBe(false);
     expect(isCertificate("12+")).toBe(false);
     expect(isCertificate("15")).toBe(true);

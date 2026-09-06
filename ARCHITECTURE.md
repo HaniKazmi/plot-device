@@ -191,8 +191,8 @@ Converters do real modelling work, not just field renaming:
 - **`movie/`** reads both its dates as full ones, a blank runtime as `0` and a blank Score as
   `undefined`: `sum` accumulates with `+`, so one `NaN` blanks every hours total, where a score is
   honestly absent rather than zero. `cinema` and `anime` stay booleans on the model but are read from
-  worded cells and checked: the columns were flags written only in their true case, where a blank
-  _was_ the false case, and a worded column has no blank case — so anything outside the pair would
+  worded cells and checked: a flag column written only in its true case has a blank for its false
+  case and nothing to reject, where a worded column has none — so anything outside the pair would
   land silently as Home and non-anime, the second of which guest mode hides on.
 - **`book/`** holds every date to a full one and rejects a `Status` or `Format` outside its two small
   vocabularies, which `statusToColour` answers `undefined` for and the status band drops silently. It
@@ -976,7 +976,7 @@ each with its count in each medium: `buildAttributeIndex` (`app/searchData.ts`) 
 own schema over that medium's own rows, so the box can only offer a narrowing that tab's controls
 actually draw. Franchise is left out of it — a franchise is a _thing_ the box already answers with,
 and indexing it twice would list every series twice on one query. The certificate is grouped on
-`certificateBand`, the gallery's own rule, so `15` and `16+` are one hit; what it _sets_ is whichever
+`certificateBand`, the gallery's own rule, so `15` and `16` are one hit; what it _sets_ is whichever
 notations that tab's rows carry, which is why an entry keeps its values per medium.
 
 **An attribute hit knows which tabs carry its category, and ↵ does the nearest thing.**

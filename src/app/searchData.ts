@@ -49,7 +49,7 @@ export interface ItemSearchEntry extends Searchable {
  * here as well would put every series on one query twice.
  *
  * `values` is what the hit stands for on a tab, which is the value itself everywhere but certificate:
- * the two boards write one tier as `15` and as `16+`, so a hit on the tier has to set whichever of
+ * the two boards write one tier as `15` and as `16`, so a hit on the tier has to set whichever of
  * them that tab's own rows carry.
  */
 export interface AttributeEntry extends Searchable {

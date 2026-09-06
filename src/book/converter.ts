@@ -1,23 +1,15 @@
 import { dataCacheKey, type DataConfig } from "../common/useData";
-import { describing, readFullDate, readGenre, sheetError, sheetRow } from "../common/sheetError";
-import { isFormat, isStatus, type Book, type Format, type Status } from "./types";
+import { describing, readChecked, readFullDate, readGenre, sheetError, sheetRow } from "../common/sheetError";
+import { BOOK_STATUSES, FORMATS, type Book } from "./types";
 
 /**
- * Reads a status cell, rejecting one outside the two words this sheet uses.
- *
- * Checked here rather than cast, because `statusToColour` answers `undefined` off its union and
+ * Checked rather than cast, because `statusToColour` answers `undefined` off its union and
  * `TotalsBand` then drops the segment without a word — a book with a typo in its status would
- * simply vanish from the status band and from the hero's election.
+ * simply vanish from the status band and from the hero's election. A blank format is rejected on
+ * the same rule: a book was read in some form, so an empty cell is one nobody filled.
  */
-const readStatus = (value = "", where: string): Status =>
-  isStatus(value) ? value : sheetError(where, `"${value}" is not a status`);
-
-/**
- * Reads a format cell. A blank is rejected too: the column is new to the sheet, and a row it has
- * not reached yet is a row nobody finished rather than a book read in no format at all.
- */
-const readFormat = (value = "", where: string): Format =>
-  isFormat(value) ? value : sheetError(where, `"${value}" is not a format`);
+const readStatus = readChecked(BOOK_STATUSES, "a status");
+const readFormat = readChecked(FORMATS, "a format");
 
 /**
  * Reads a number the model requires. Both figures this reads are measures, so a `NaN` would blank

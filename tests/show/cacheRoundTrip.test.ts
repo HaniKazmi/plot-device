@@ -6,10 +6,22 @@ import { seasonRow, showRow } from "../fixtures/showRows";
 
 const rows = [
   showRow({ Title: "Severance" }),
-  seasonRow({ Season: "1", Episodes: "9", "Start Date": "2022-02-18", "End Date": "2022-04-08", "Episode Length (min)": "45" }),
+  seasonRow({
+    Season: "1",
+    Episodes: "9",
+    "Start Date": "2022-02-18",
+    "End Date": "2022-04-08",
+    "Episode Length (min)": "45",
+  }),
   seasonRow({ Season: "2", Episodes: "10", "Start Date": "2025-01-17", "End Date": "", "Episode Length (min)": "50" }),
   showRow({ Title: "Andor", Type: "anime" }),
-  seasonRow({ Season: "1", Episodes: "12", "Start Date": "2022-09-21", "End Date": "2022-11-23", "Episode Length (min)": "40" }),
+  seasonRow({
+    Season: "1",
+    Episodes: "12",
+    "Start Date": "2022-09-21",
+    "End Date": "2022-11-23",
+    "Episode Length (min)": "40",
+  }),
 ];
 
 /** Exactly what `useData` does across a reload: write with the replacer, read with the reviver. */

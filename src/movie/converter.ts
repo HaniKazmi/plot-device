@@ -1,34 +1,22 @@
 import { dataCacheKey, type DataConfig } from "../common/useData";
-import { readCertificate, readFullDate, readGenre, sheetError, sheetRow } from "../common/sheetError";
+import { readCertificate, readChecked, readFullDate, readGenre, sheetRow } from "../common/sheetError";
 import { splitCell } from "../utils/stringUtils";
 import type { Movie } from "./types";
 
 /**
- * Reads how a film was seen, as a boolean the model keeps: the sheet states the reading and the
- * app asks the question one way round.
+ * How a film was seen and what kind of film it is, as the sheet words them.
  *
- * Checked rather than compared. The column used to be a flag written only in its true case, where
- * a blank *was* the false case and there was nothing to reject; a worded column has no blank case,
- * so anything outside these two — a typo, or a header this converter names wrongly, which is every
- * row at once — would land silently as Home and be indistinguishable from a library of home
- * viewing.
+ * The model keeps both as booleans, the converter being the app's one translation layer — but the
+ * read is checked rather than compared. A flag column written only in its true case has a blank for
+ * its false case and nothing to reject; a worded column has no blank case, so anything outside the
+ * pair — a typo, or a header named wrongly here, which is every row at once — would land silently
+ * as Home and non-anime, indistinguishable from a library of home viewing with no anime in it.
+ *
+ * The anime one is the cell on this sheet whose misreading costs most: guest mode hides anime, so a
+ * value that fails to say so puts a hidden film on screen rather than a wrong figure.
  */
-const readCinema = (value = "", where: string): boolean => {
-  if (value === "Cinema") return true;
-  if (value === "Home") return false;
-  return sheetError(where, `"${value}" is neither Cinema nor Home`);
-};
-
-/**
- * Reads whether a film is anime, on the same reasoning — and this one matters more: guest mode
- * hides anime, so a value that silently fails to say so puts a hidden film on screen. It is the
- * only cell on this sheet whose misreading costs more than a wrong figure.
- */
-const readAnime = (value = "", where: string): boolean => {
-  if (value === "anime") return true;
-  if (value === "film") return false;
-  return sheetError(where, `"${value}" is neither film nor anime`);
-};
+const readWatchFormat = readChecked(["Cinema", "Home"] as const, "a watch format");
+const readFilmType = readChecked(["film", "anime"] as const, "a film type");
 
 export const jsonConverter = (json: Record<string, string>[]) => {
   return json.map((row, index) => {
@@ -67,8 +55,8 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       seriesNumber: Number.isNaN(seriesNumber) ? undefined : seriesNumber,
       director: row.Director,
       artwork: row.Artwork ?? "",
-      cinema: readCinema(row.Format, `${where}, Format`),
-      anime: readAnime(row.Type, `${where}, Type`),
+      cinema: readWatchFormat(row.Format, `${where}, Format`) === "Cinema",
+      anime: readFilmType(row.Type, `${where}, Type`) === "anime",
     } as Movie;
   });
 };

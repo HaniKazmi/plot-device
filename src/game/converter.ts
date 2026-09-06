@@ -1,17 +1,32 @@
 import { PlainDate } from "../common/date.ts";
 import { dataCacheKey, type DataConfig } from "../common/useData.ts";
-import { describing, readCertificate, readDatePair, readGenre, sheetError, sheetRow } from "../common/sheetError.ts";
+import {
+  describing,
+  readCertificate,
+  readChecked,
+  readDatePair,
+  readGenre,
+  sheetError,
+  sheetRow,
+} from "../common/sheetError.ts";
 import { splitCell } from "../utils/stringUtils";
-import { isGameplay, type Company, type Format, type Platform, type Status, type VideoGame } from "./types";
+import { GAMEPLAY, type Company, type Format, type Platform, type Status, type VideoGame } from "./types";
+
+/**
+ * Checked rather than cast: a blank or misspelt cell is a sheet error, and the row is only nameable
+ * here. Cast unchecked it reaches `gameplayToColour`, whose neutral fallback makes it look like a
+ * style awaiting a colour rather than a cell awaiting a value.
+ */
+const readGameplay = readChecked(GAMEPLAY, "a gameplay style");
 
 /**
  * Reads the themes cell, which the sheet lists in one cell as the Genres columns do.
  *
  * An absent key is rejected while a blank string is not: 12 of 340 games honestly carry no theme,
- * but `Themes` sits ten columns before the last one, so a row can only reach here without the key
- * if the column itself is missing — this converter naming the header wrongly. That distinction is
- * load-bearing, because `theme.includes("Adult")` is what guest mode hides on, and `splitCell`
- * would answer `[]` to both cases alike: every adult game back on screen, silently.
+ * and every column after `Themes` is one the sheet always fills, so a row can only arrive here
+ * without the key if the column itself is missing — this converter naming the header wrongly. That
+ * distinction is load-bearing, because `themes.includes("Adult")` is what guest mode hides on, and
+ * `splitCell` would answer `[]` to both cases alike: every adult game back on screen, silently.
  */
 const readThemes = (value: string | undefined, where: string): string[] =>
   value === undefined ? sheetError(where, "the column is missing") : splitCell(value);
@@ -50,12 +65,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       series: row.Series ?? "",
       seriesNumber: Number.isNaN(seriesNumber) ? undefined : seriesNumber,
       genre,
-      // Checked rather than cast: a blank or misspelt cell is a sheet error, and the row is only
-      // nameable here. Cast unchecked it reaches `gameplayToColour`, whose neutral fallback makes
-      // it look like a style awaiting a colour rather than a cell awaiting a value.
-      gameplay: isGameplay(row.Gameplay)
-        ? row.Gameplay
-        : sheetError(`${where}, Gameplay`, `"${row.Gameplay ?? ""}" is not a gameplay style`),
+      gameplay: readGameplay(row.Gameplay, `${where}, Gameplay`),
       themes: readThemes(row.Themes, `${where}, Themes`),
       format: row.Format as Format,
       developer: row.Developer,

@@ -1,8 +1,15 @@
-import { PlainDate, YearMonthDay } from "../common/date.ts";
+import type { YearMonthDay } from "../common/date.ts";
 import { dataCacheKey, type DataConfig } from "../common/useData.ts";
-import { describing, readCertificate, readFullDate, readGenre, sheetError, sheetRow } from "../common/sheetError.ts";
+import { readCertificate, readChecked, readFullDate, readGenre, sheetError, sheetRow } from "../common/sheetError.ts";
 import { splitCell } from "../utils/stringUtils";
-import type { Season, Show, Status, Type } from "./types";
+import { TYPES, type Season, type Show, type Status } from "./types";
+
+/**
+ * Reads the show/anime cell. Guest mode hides anime (`filters.ts`), so a value that fails to say so
+ * is a hidden show on screen rather than a wrong figure — the one cell here whose misreading costs
+ * more than a chart, and the same reading the Movies sheet's own `Type` column carries.
+ */
+const readType = readChecked(TYPES, "a show type");
 import "../utils/arrayUtils";
 
 // Season.show is a back-reference to its parent, so it has to be dropped before serialising
@@ -26,10 +33,10 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       show = {
         name: row.Title,
         status: row.Status as Status,
-        type: row.Type as Type,
+        type: readType(row.Type, `Row ${sheetRow(index)}, "${row.Title}", Type`),
         genre: readGenre(row.Genre, `Row ${sheetRow(index)}, "${row.Title}", Genre`),
-        // A show with none carries no key at all rather than an empty string, `splitCell`
-        // answering `[]` to both alike.
+        // A show with none carries an empty string, `Other Genres` sitting well before the last
+        // column; `splitCell` answers `[]` to that and to an absent key alike.
         otherGenres: splitCell(row["Other Genres"]),
         network: row.Network,
         certificate: readCertificate(row.Certificate, `Row ${sheetRow(index)}, "${row.Title}", Certificate`),
@@ -70,9 +77,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       // old watch as the current one.
       const watched = row["Seasons / Last Watched"];
       const lastWatchedDate =
-        watched && !endDate
-          ? describing(`${where}, Seasons / Last Watched`, () => PlainDate.from(watched) as YearMonthDay)
-          : undefined;
+        watched && !endDate ? readFullDate(watched, `${where}, Seasons / Last Watched`) : undefined;
 
       const season: Season = {
         s: parseFloat(row.Season),
