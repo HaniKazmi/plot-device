@@ -6,6 +6,7 @@ import type { MediumSpan } from "../common/medium";
 import type { ReactNode } from "react";
 import { certificateToColour, franchiseToColour, genreToColour, mediumFills, type Scheme } from "../utils/types";
 import { namesTheSameThing } from "../utils/stringUtils";
+import { lastWatchedSeason } from "./statsData";
 import { networkToColour, type Season, type Show } from "./types";
 import "../utils/arrayUtils";
 
@@ -67,11 +68,15 @@ export const showSubtitle = (show: Show, scheme: Scheme): PanelSubtitlePart[] =>
  * repeating it here would say it twice.
  */
 export const showRows = (show: Show, scheme: Scheme): LedgerRow[] => {
+  const lastWatched = lastWatchedSeason(show);
   const rows: LedgerRow[] = [
     { label: "Watched", value: formatDateRange(show.startDate, show.endDate) },
-    // The latest season's own number, not the array length — the converter drops pre-2006
-    // seasons, so a show with early seasons dropped holds fewer entries than its numbering.
-    { label: "Last Watched", value: `S${show.s.at(-1)!.s}E${show.s.at(-1)!.e}` },
+    // The season the hero would name for this show, not the last one listed: a show whose newest
+    // season the sheet has not dated yet was last watched in the one before it, and a ledger
+    // disagreeing with the hero above it about that is two answers to one question. Its own
+    // number, not its position — the converter drops pre-2006 seasons, so a show with early
+    // seasons dropped holds fewer entries than its numbering.
+    { label: "Last Watched", value: `S${lastWatched.s}E${lastWatched.e}` },
     // The primary genre leads and the rest follow it, which is the order the sheet holds them in
     // and the order the charts group by.
     { label: "Genre", value: [show.genre, ...show.otherGenres].join(" · "), swatch: genreToColour(show.genre, scheme) },

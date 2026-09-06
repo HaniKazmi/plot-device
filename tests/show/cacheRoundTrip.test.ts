@@ -13,7 +13,14 @@ const rows = [
     "End Date": "2022-04-08",
     "Episode Length (min)": "45",
   }),
-  seasonRow({ Season: "2", Episodes: "10", "Start Date": "2025-01-17", "End Date": "", "Episode Length (min)": "50" }),
+  seasonRow({
+    Season: "2",
+    Episodes: "10",
+    "Start Date": "2025-01-17",
+    "End Date": "",
+    "Episode Length (min)": "50",
+    "Seasons / Last Watched": "2025-03-02",
+  }),
   showRow({ Title: "Andor", Type: "anime" }),
   seasonRow({
     Season: "1",
@@ -60,6 +67,17 @@ describe("the localStorage round trip", () => {
 
     expect(severance.startDate).toBe(YearMonthDay.get(2022, 2, 18));
     expect(severance.s[0].endDate).toBe(YearMonthDay.get(2022, 4, 8));
+  });
+
+  it("revives a running season's last watch, the one value no sibling field carries", () => {
+    // A finished season's last watch is its own end date, so a copy that dropped the field would
+    // still be caught by the whole-object comparison above. A running season's comes from the
+    // sheet's own column and is the only date on the record that nothing else can reconstruct —
+    // lose it and the hero is elected among finished seasons alone.
+    const [severance] = roundTrip(jsonConverter(rows));
+
+    expect(severance.s[1].endDate).toBeUndefined();
+    expect(severance.s[1].lastWatchedDate).toBe(YearMonthDay.get(2025, 3, 2));
   });
 
   it("keeps an absent end date absent instead of reviving a null", () => {

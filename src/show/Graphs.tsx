@@ -6,7 +6,7 @@ import Stats from "./Stats";
 import { ChartPair, Section } from "../common/SectionRail";
 import { PageRail } from "../app/PageRail";
 import { SHOW_SECTIONS, showSections } from "./sections";
-import { currentlyWatching } from "./statsData";
+import { currentlyWatching, heroSeason } from "./statsData";
 import Timeline from "./Timeline";
 import { Show } from "./types";
 import { showModule } from "./module";
@@ -43,18 +43,24 @@ const Graphs = memo(({ data, filterState }: { data: Show[]; filterState: FilterS
   const scheme = useScheme();
 
   const deferredData = useDeferredValue(data, []);
-  // Answered once for the page: it decides both whether the "now" strip is rendered and whether
+  // Answered once for the page: between them they decide what the "now" section holds and whether
   // the rail offers a chip pointing at it, and two derivations of one test are two that can differ.
+  // The hero and the strip are separate questions — what was watched last, and what is in flight —
+  // so a page can hold either without the other.
   const watching = currentlyWatching(data);
+  const hero = heroSeason(data);
+  const hasNow = hero !== undefined || watching.length > 0;
 
   return (
     <Stack spacing={2}>
       <PageRail
-        sections={showSections(watching.length > 0)}
+        sections={showSections(hasNow)}
         count={data.length}
       />
       <Stats
         data={data}
+        hasNow={hasNow}
+        hero={hero}
         watching={watching}
         measure={filterState.measure}
         yearType={filterState.yearType}

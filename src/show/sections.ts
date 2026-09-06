@@ -16,7 +16,8 @@ export const SHOW_SECTIONS = ids;
 /**
  * The rail's chips for this page.
  *
- * "Now" is only rendered when a season is in progress, so whether it is there is passed in rather
- * than derived a second time — one test answered once cannot come apart from itself.
+ * "Now" is only rendered where there is a hero or something in flight, so whether it is there is
+ * passed in rather than derived a second time — one test answered once cannot come apart from
+ * itself.
  */
 export const showSections = (hasNow: boolean) => chips({ now: hasNow });

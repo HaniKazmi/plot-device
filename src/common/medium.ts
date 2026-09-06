@@ -128,10 +128,14 @@ export interface MediumLazy<S> {
   CardMediaImage(props: CardProps<S>): ReturnType<FunctionComponent>;
   HoverCard(props: { item: S }): ReturnType<FunctionComponent>;
   /**
-   * What this medium is on right now, by its own tab's election — the game in progress, the season
-   * the sheet's Last Watched column marks as current, the film watched most recently, the book in
-   * hand — and `undefined` where it has nothing in flight, which is a band one card shorter rather
+   * What this medium was last on, by its own tab's election — the game in progress, the season
+   * holding the last episode watched, the film watched most recently, the book in hand — and
+   * `undefined` where the medium can name nothing at all, which is a band one card shorter rather
    * than a card saying nothing.
+   *
+   * Two of the four answer with something finished: a film is over the day it is started, and a
+   * season's finale is a watch like any other, so Games and Books are the only two for which
+   * "nothing in flight" and "nothing to name" are the same question.
    *
    * The rows come in erased: a lookup across the four relates a module to no particular record,
    * which is the trade the union already makes. The pairing is the registry's own, a medium's

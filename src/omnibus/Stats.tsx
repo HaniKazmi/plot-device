@@ -63,7 +63,7 @@ const Stats = ({
 
   return (
     <Stack spacing={2}>
-      {/* Nothing in flight anywhere and there is no "now" to lead with. */}
+      {/* No medium able to name anything, and there is no "now" to lead with. */}
       {hasNow(now) && (
         <Section id={OMNIBUS_SECTIONS.now}>
           <Now now={now} />
@@ -140,8 +140,9 @@ const Stats = ({
  *
  * Each card is the domain's own: its artwork and the figures its own hero carries, so a game reads
  * in hours and days and a season in episodes and pace, painted on the ground its home tab's app
- * bar is painted. A medium with nothing in flight simply contributes no card, rather than a card
- * saying nothing.
+ * bar is painted. A medium that can name nothing simply contributes no card, rather than a card
+ * saying nothing — which for Shows and Movies means an empty library, both answering with the last
+ * thing finished where Games and Books answer only with something still open.
  */
 const Now = ({ now }: { now: NowElection }) => {
   const scheme = useScheme();

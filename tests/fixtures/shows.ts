@@ -30,6 +30,11 @@ export const show = (overrides: Partial<Show> = {}): Show => ({
  * A season of `parent`, numbered after whatever the parent already holds. The back-reference is
  * set here and not overridable, since a season pointing at a different show than the list it sits
  * in is a state the converter can never produce.
+ *
+ * The last watch is derived the way the converter derives it — the end date where there is one,
+ * the caller's own value otherwise — for the same reason: a finished season carrying no last watch
+ * is another record no sheet produces, and one every order over these fixtures files under
+ * "undated" where real rows sort by date.
  */
 export const season = (parent: Show, overrides: Partial<Omit<Season, "show">> = {}): Season => ({
   s: parent.s.length + 1,
@@ -38,6 +43,7 @@ export const season = (parent: Show, overrides: Partial<Omit<Season, "show">> = 
   episodeLength: 45,
   minutes: 405,
   ...overrides,
+  lastWatchedDate: overrides.endDate ?? overrides.lastWatchedDate,
   show: parent,
 });
 

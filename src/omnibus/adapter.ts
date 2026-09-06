@@ -37,14 +37,14 @@ export const recentlyFinished = (items: OmniItem[]): OmniItem[] =>
 /** Items of one medium, which is how every per-medium figure on the page is scoped. */
 export const ofMedium = (items: OmniItem[], medium: Medium) => items.filter((item) => item.medium === medium);
 
-/** What the band leads with, by medium; a medium with nothing in flight is absent rather than held. */
+/** What the band leads with, by medium; a medium that can name nothing is absent rather than held. */
 export type NowElection = Partial<Record<Medium, unknown>>;
 
 /**
- * What each medium is currently on, each by the election its own tab already makes: the game in
- * progress, the season the sheet's Last Watched column marks as current, the film watched most
- * recently and the book in hand. Nothing is invented here — the walk asks and the band renders the
- * cards it was given, so a card cannot disagree with the hero its home tab shows.
+ * What each medium was last on, each by the election its own tab already makes: the game in
+ * progress, the season holding the last episode watched, the film watched most recently and the
+ * book in hand. Nothing is invented here — the walk asks and the band renders the cards it was
+ * given, so a card cannot state an election its home tab does not make.
  *
  * The registry arrives as a parameter rather than being imported: the elections live behind the
  * chunk that draws the cards, and naming it here would put four `CardMediaImage`s in this pure
