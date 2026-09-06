@@ -62,6 +62,14 @@ describe("the localStorage round trip", () => {
     expect(severance.s[0].endDate).toBe(YearMonthDay.get(2022, 4, 8));
   });
 
+  it("revives a finished season's last watch, which the hero is elected on", () => {
+    // The field is named with "Date" in it, so the reviver converts it like any other; a copy
+    // that lost it would leave the hero elected among whatever the sheet's own column still marks.
+    const [severance] = roundTrip(jsonConverter(rows));
+
+    expect(severance.s[0].lastWatchedDate).toBe(YearMonthDay.get(2022, 4, 8));
+  });
+
   it("keeps an absent end date absent instead of reviving a null", () => {
     // JSON.stringify omits undefined-valued keys, so the reviver never sees the field. A null
     // would reach PlainDate.from and throw during the render that reads the cache.

@@ -2,19 +2,13 @@ import { CURRENT_PLAINDATE, formatDate } from "../common/date";
 import type { NowModule, NowPanel } from "../common/medium";
 import type { Scheme } from "../utils/types";
 import { showSubtitle } from "./cardData";
-import { currentlyWatching, heroSeason, showHeroStats } from "./statsData";
+import { heroSeason, showHeroStats } from "./statsData";
 import type { Season, Show } from "./types";
 
-/**
- * The season the sheet's Last Watched column marks as current, which is the tab's own hero: several
- * shows are always in flight, so the election is the sheet's answer rather than a date's.
- */
-const elect = (shows: Show[]) => heroSeason(currentlyWatching(shows));
-
 const nowPanel = (season: Season, scheme: Scheme): NowPanel => ({
-  // `heroSeason` elects among the seasons carrying a last-watched date, so the show has one.
-  kicker: formatDate(season.show.lastWatchedDate!),
-  date: formatDate(season.show.lastWatchedDate!),
+  // `heroSeason` elects on that date, so the season carries one.
+  kicker: formatDate(season.lastWatchedDate!),
+  date: formatDate(season.lastWatchedDate!),
   // The episode in hand, which the row has no title to carry: the poster names the show and cannot
   // say which season, let alone how far into it.
   title: `${season.show.name} S${season.s}`,
@@ -28,5 +22,11 @@ const nowPanel = (season: Season, scheme: Scheme): NowPanel => ({
  * This medium's Now band answers, stated as one typed pair so the election and the panel are
  * checked against the same record here, where `MediumLazy` erases it. Pure, so a test can run the
  * pair as the band runs it, without the card tree `module.lazy.ts` also carries.
+ *
+ * The election is the tab's own hero exactly, so the card and the page it stands for cannot name
+ * two different seasons. It reads the whole library rather than the page's rows, as every
+ * medium's card does. Every season the sheet dates is a candidate, so Shows contributes a card to
+ * almost any library — the band's "nothing in flight, no card" is a rule Movies already answers
+ * the same way, a film being finished the day it is started.
  */
-export const now: NowModule<Show, Season> = { elect, nowPanel };
+export const now: NowModule<Show, Season> = { elect: heroSeason, nowPanel };

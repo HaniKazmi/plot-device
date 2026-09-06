@@ -183,11 +183,13 @@ Converters do real modelling work, not just field renaming:
   hides on, so reading a missing column as "no themes" would put every adult game back on screen.
 - **`show/`** nests a flat sheet: a non-empty `Title` cell opens a show, the rows after it are its
   seasons — safe only because `Title` is column A, an absent key being `!== ""` as well. Seasons from `EARLIEST_SEASON_YEAR` (2005) or earlier are dropped as untrustworthy, and a
-  show left with none is rejected. Dates, episode and minute sums and `lastWatchedDate` — the latest
-  any season records, read from an unfinished season's `Seasons / Last Watched` cell, which carries
-  the season count on a show row instead —
-  roll up to the parent. A date-ordering mismatch is only a `console.error`; the `show` back-reference
-  makes the graph cyclic (§4).
+  show left with none is rejected. Dates and episode and minute sums roll up to the parent, and each
+  season is dated with a `lastWatchedDate` of its own: its end date once it has one — the day the
+  finale was watched — and otherwise the `Seasons / Last Watched` cell, a column carrying the season
+  count on a show row instead. The end date taking precedence is what keeps a cell nobody clears on a
+  finished row from electing an old watch as the current one, and it leaves one field the hero is
+  elected on rather than two the election would have to choose between. A date-ordering mismatch is
+  only a `console.error`; the `show` back-reference makes the graph cyclic (§4).
 - **`movie/`** reads both its dates as full ones, a blank runtime as `0` and a blank Score as
   `undefined`: `sum` accumulates with `+`, so one `NaN` blanks every hours total, where a score is
   honestly absent rather than zero. `cinema` and `anime` stay booleans on the model but are read from
@@ -274,7 +276,7 @@ Two subtleties live in the serialisation boundary, and both are easy to break:
    the page's own error boundary (§10), so a throw here takes the app down and not just the page.
 
 Cache keys are versioned per domain — `dataCacheKey(domain, version)` yields `game-data-cache-v3`,
-`show-data-cache-v4`, `movie-data-cache-v4`, `book-data-cache-v2` — and `dropSupersededVersions`
+`show-data-cache-v5`, `movie-data-cache-v4`, `book-data-cache-v2` — and `dropSupersededVersions`
 clears earlier keys on first load, matched on the domain's prefix so one tab's bump cannot empty
 another's. Bump the version in the domain's `converter.ts` on any model-shape change, or returning
 visitors' cached objects lack the field until their next authorised fetch — indefinitely, for a
@@ -548,12 +550,14 @@ tabs' own vocabulary rather than inventing a mixed-media one.
 
 **The Now band** (`omnibus/Stats.tsx`) is what no single tab can show: what each medium is currently
 on, side by side. `electNow` walks the registry rather than the four domains: each medium's
-`module.lazy.ts` holds its own election — `currentlyPlaying`, `heroSeason(currentlyWatching(...))`,
-`latestWatched`, `currentlyReading` — beside the `nowPanel` saying what that card states, so a card
+`module.lazy.ts` holds its own election — `currentlyPlaying`, `heroSeason`, `latestWatched`,
+`currentlyReading` — beside the `nowPanel` saying what that card states, so a card
 cannot disagree with the hero its home tab shows and the band dispatches on no medium anywhere. The
 walk takes the registry as a parameter, `adapter.ts` being a pure module that four card trees have
 no business in. `visible` keeps a medium switched off in the box's This page mode from being asked
-at all. A medium with nothing in flight contributes no card; with none in flight, no band. The
+at all. A medium with nothing in flight contributes no card; with none in flight, no band — a rule
+Shows and Movies answer by having nothing to be in flight, a film being finished the day it is
+started and a show's last watch being a date every finished season carries. The
 phone's cell order — the book under the game, the film under the show — is a list of media beside
 that walk rather than four literals in the tree.
 
@@ -1435,7 +1439,8 @@ closing row carries the figures at `subtitle2` semibold, the rows above the cont
 size reading as a line dimmed. Under the artwork a row's cells keep their words together and the
 row breaks between them, never inside a date, and the grid card is a size container so a caption
 row on a card under 210px — six posters across a 1,200px page — steps to 10px with half the
-tracking, where a date and a "days in" at the caption's own size are a line and a half. Shows'
+tracking, where a date and a "days in" — "days", on a season the sheet has closed — at the caption's
+own size are a line and a half. Shows'
 poster lists pack four to a row at `md` and six from `lg` (`pictureWidth` takes an optional fourth
 span) for the same reason: six at 900px are 133px each. The Omnibus's closing line is a name, which is why `omniLabels` states
 the date first.
@@ -1529,11 +1534,22 @@ Every tracked domain lays its page out by temperature: what is being played, wat
 then what the library is made of, then what can be explored, then the deep dives.
 
 All four tabs lead with a single item by a tie-break its data holds: Games the game in progress,
-Books the book in hand most recently begun, Movies the film watched most recently. Shows needs the
-sheet's help, several shows always being in flight — the current one is whatever the Status cell on
-an in-progress season row marks with a last-watched date, and until the sheet marks anything the page
-falls back to the currently-watching strip, the rest staying in a compact "Also Watching" strip under
-the hero.
+Books the book in hand most recently begun, Movies the film watched most recently. Shows leads with
+the season holding the last episode watched, which is the date the converter puts on every season
+(§3): a finale is a watch like any other, and a show is `Ended` by the time the page next draws it,
+so an election pinned to what is still in flight puts the season finished yesterday out of reach of
+the one surface meant to name it. Every season in the library is a candidate whatever its show's
+status. Day precision is all the sheet records, so two watched on one day are separated by the
+finished one leading — finishing something being the more notable of the two — and where the sheet
+dates no season at all the hero has no honest pick and the page shows the strip alone.
+
+Under it, "Currently Watching" is the latest season of every show the Status cell still marks, in
+that same order. A season that has ended stays: the cell marks a show whose next season is to come,
+and dropping it takes a show the reader is midway through a series of off the one strip that answers
+what is in flight. A season the sheet dates neither way sits after the dated ones, in the order the
+sheet lists their shows — a start date is not a tie-break, a season begun later not being one watched
+later. The hero and the strip answer different questions, so each stands on its own test and a page
+can hold either without the other.
 
 `Hero` (`common/Hero.tsx`) presents one item large through the domain's own `TypedCardMediaImage`:
 the artwork opens the same expanded dialog a thumbnail does, and the panel rides in as that card's

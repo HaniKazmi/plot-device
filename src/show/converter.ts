@@ -1,4 +1,3 @@
-import type { YearMonthDay } from "../common/date.ts";
 import { dataCacheKey, type DataConfig } from "../common/useData.ts";
 import { readCertificate, readChecked, readFullDate, readGenre, sheetError, sheetRow } from "../common/sheetError.ts";
 import { splitCell } from "../utils/stringUtils";
@@ -72,12 +71,14 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       // season row the date an episode was last watched. Only the season half is read here, the
       // show half being what `show.s.length` already answers.
       //
-      // Read only while the season has no end date: the sheet maintains the cell for the season in
-      // progress, and honouring it on a finished season would let a value nobody clears elect an
-      // old watch as the current one.
+      // A finished season is dated by its own end — the day the finale was watched — so the field
+      // answers "when was this season last watched" whatever state the season is in, and the hero
+      // needs no second rule for a season that has closed. The end date taking precedence is also
+      // what keeps a cell the sheet left behind on a finished row, which nobody clears, from
+      // electing an old watch as the current one.
       const watched = row["Seasons / Last Watched"];
       const lastWatchedDate =
-        watched && !endDate ? readFullDate(watched, `${where}, Seasons / Last Watched`) : undefined;
+        endDate ?? (watched ? readFullDate(watched, `${where}, Seasons / Last Watched`) : undefined);
 
       const season: Season = {
         s: parseFloat(row.Season),
@@ -116,13 +117,6 @@ export const jsonConverter = (json: Record<string, string>[]) => {
     show.endDate = show.s.at(-1)?.endDate;
     show.e = show.s.sum("e");
     show.minutes = show.s.sum("minutes");
-    // The latest any season records, not the last season's: a stale value on an old row must not
-    // beat a fresh one, wherever the sheet happens to carry it.
-    show.lastWatchedDate = show.s.reduce<YearMonthDay | undefined>(
-      (latest, season) =>
-        season.lastWatchedDate && (!latest || latest.lte(season.lastWatchedDate)) ? season.lastWatchedDate : latest,
-      undefined,
-    );
     if (show.endDate && show.startDate > show.endDate) {
       console.error(`Show "${show.name}": starts ${show.startDate} but ends ${show.endDate}`);
     }
@@ -139,9 +133,11 @@ export const jsonConverter = (json: Record<string, string>[]) => {
  * v3: a cached object written before `lastWatchedDate` carries none, and no hero is ever elected.
  * v4: a cached object written before this holds its picture under `banner`, so every card on
  * every surface draws the stand-in instead.
+ * v5: a cached object written before this dates only the season in progress, so every finished
+ * season carries no last watch and the hero elects among the handful the sheet's column marks.
  */
 export const showDataConfig: DataConfig<Show> = {
-  storageKey: dataCacheKey("show", 4),
+  storageKey: dataCacheKey("show", 5),
   converter: jsonConverter,
   reviver: reviveSeasonParents,
   replacer: dropSeasonParents,

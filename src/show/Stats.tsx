@@ -48,7 +48,6 @@ import { stated } from "../common/population";
 import {
   allTimeTotals,
   groupShowsBy,
-  heroSeason,
   measureOf,
   showHeroStats,
   minutesPerEpisode,
@@ -68,12 +67,14 @@ import "../utils/arrayUtils";
 
 const Stats = ({
   data,
+  hero,
   watching,
   measure,
   yearType,
   yearTo,
 }: {
   data: Show[];
+  hero?: Season;
   watching: Season[];
   measure: Measure;
   yearType: YearType;
@@ -81,13 +82,16 @@ const Stats = ({
 }) => {
   return (
     <Stack spacing={2}>
-      {/* The page's "now": the show the sheet's Last Watched column marks as current, promoted
-          the way the games tab promotes the game in progress, with the rest of the in-flight
-          shows in a compact strip below it. Until the sheet marks anything the hero has no
-          honest pick — several shows are always on the go — and the strip stands alone.
-          Nothing being watched and the section is not rendered at all. `watching` is computed
-          by `Graphs`, which decides on the same value whether the rail offers a chip here. */}
-      {watching.length > 0 && <Now watching={watching} />}
+      {/* The page's "now": the season holding the last episode watched, promoted the way the games
+          tab promotes the game in progress, with whatever is in flight in a compact strip below
+          it. Both are computed by `Graphs`, which decides on the same values whether the rail
+          offers a chip here; with neither the section is not rendered at all. */}
+      {(hero || watching.length > 0) && (
+        <Now
+          hero={hero}
+          watching={watching}
+        />
+      )}
       <Section id={SHOW_SECTIONS.vitals}>
         <StatBand>
           {/* The year controls in these cards filter the whole page, and a control's effects flow
@@ -131,23 +135,21 @@ const Stats = ({
   );
 };
 
-const Now = ({ watching }: { watching: Season[] }) => {
-  const hero = heroSeason(watching);
-
-  return (
-    <Section id={SHOW_SECTIONS.now}>
-      <Stack spacing={2}>
-        {hero && <ShowHero season={hero} />}
-        {/* The whole in-flight list, the hero's show included: the hero is a spotlight on the
-            strip, not a removal from it, so the strip stays the one complete answer to "what is
-            being watched". */}
+const Now = ({ hero, watching }: { hero?: Season; watching: Season[] }) => (
+  <Section id={SHOW_SECTIONS.now}>
+    <Stack spacing={2}>
+      {hero && <ShowHero season={hero} />}
+      {/* The two answer different questions — what was watched last, and what is in flight — and
+          may or may not name the same season, so each stands on its own test. The strip is the
+          whole in-flight list, the hero's own show included where it is one of them. */}
+      {watching.length > 0 && (
         <StatBand>
           <CurrentlyWatching watching={watching} />
         </StatBand>
-      </Stack>
-    </Section>
-  );
-};
+      )}
+    </Stack>
+  </Section>
+);
 
 /**
  * The franchise count comes from the index the tab already built for the card strips, so the
@@ -165,8 +167,9 @@ const ShowHero = ({ season }: { season: Season }) => {
       MediaComponent={ShowCardMediaImage}
       shape="poster"
       // The episode in hand as well as the date: the title is the show's name, and nothing else
-      // on the hero says which season it is on.
-      kicker={`Last watched · S${season.s}E${season.e} · ${formatDate(season.show.lastWatchedDate!)}`}
+      // on the hero says which season it is on. `heroSeason` elects on that date, so the season
+      // carries one.
+      kicker={`Last watched · S${season.s}E${season.e} · ${formatDate(season.lastWatchedDate!)}`}
       title={season.show.name}
       // The genre wears the same swatch its ledger row and every genre wedge on the tab wear.
       subtitle={showSubtitle(season.show, scheme)}
@@ -348,7 +351,8 @@ const CurrentlyWatching = ({ watching }: { watching: Season[] }) => {
       icon={<PlayArrow />}
       title="Currently Watching"
       content={watching}
-      // One badge saying exactly where you are, in the colour every chart paints "still going" in.
+      // One badge saying how far the show is through, in the colour every chart paints "still
+      // going" in — the season on a card that has ended is the one the reader is up to date on.
       chipComponent={(season) => ({ label: `S${season.s}E${season.e}`, colour: statusToColour(season.show, scheme) })}
       wrap={false}
       labelComponent={(season) => statsCardLabelWatching(season, CURRENT_PLAINDATE)}

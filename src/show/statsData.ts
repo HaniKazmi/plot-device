@@ -61,17 +61,30 @@ export const groupShowsBy = (data: Show[], key: ShowTopOption, measure: Measure)
   );
 
 /**
- * The honest progress figures for a season being watched: pace, never a fraction. The sheet
- * records episodes *watched* and knows nothing about how many have aired, so a "6 of 10" would
- * be a number the data does not contain.
+ * How long a season has been, or was, in hand — measured to its own end once it has one. Left
+ * running to today, a finished season's day count climbs and its pace falls for as long as the row
+ * is in the library.
+ *
+ * `daysSince` is what guards the comparison, and the guard is load-bearing here: a season whose
+ * start is after its end is only a `console.error` in the converter and survives into the model,
+ * where a bare `daysTo` throws from inside a render.
+ */
+export const daysWatching = (season: Season, today: YearMonthDay) =>
+  daysSince(season.startDate, season.endDate ?? today);
+
+/**
+ * The honest progress figures for a season: pace, never a fraction. The sheet records episodes
+ * *watched* and knows nothing about how many have aired, so a "6 of 10" would be a number the
+ * data does not contain.
  *
  * `today` is a parameter rather than read from the clock, so the figures are a function of the
- * data alone. Each figure is dropped where the sheet cannot support it: no runtime means no
- * hours, a start after `today` means no day count (`daysTo` throws backwards), and a pace over
+ * data alone — and it is only reached for a season still running, `daysWatching` measuring a
+ * finished one to its own end. Each figure is dropped where the sheet cannot support it: no
+ * runtime means no hours, a span the sheet typed backwards means no day count, and a pace over
  * less than a week is a projection rather than a rate.
  */
 export const watchingProgress = (season: Season, today: YearMonthDay) => {
-  const days = daysSince(season.startDate, today);
+  const days = daysWatching(season, today);
   return {
     episodes: season.e,
     hours: season.minutes ? seasonHours(season.minutes) : undefined,
@@ -153,18 +166,47 @@ export const minutesPerEpisode = (data: Show[]) => {
 };
 
 /**
- * The season the hero leads with: among everything being watched, the one whose show the sheet's
- * Last Watched column marks as most recent. Answers nothing when no watching show carries the
- * column — the sheet predates it, or nothing is marked yet — and the page then falls back to the
- * plain strip rather than promoting a show by a tie-break the data does not hold.
+ * Newest watch first, and a season the sheet dates neither way last — a season with no date behind
+ * it is not what a reader is in the middle of. A full tie compares equal, so the order the sheet
+ * lists its rows in survives one.
+ *
+ * Two watched the same day are separated by the finished one leading: finishing something is the
+ * more notable of two watches made on one day, and day precision is all the sheet records, so
+ * ties are as common as watching two shows in an evening.
  */
-export const heroSeason = (watching: Season[]) =>
-  watching
-    .filter((season) => season.show.lastWatchedDate)
+const byLastWatched = (a: Season, b: Season) => {
+  const aDate = a.lastWatchedDate;
+  const bDate = b.lastWatchedDate;
+  if (!aDate || !bDate) return aDate ? -1 : bDate ? 1 : 0;
+  if (aDate > bDate) return -1;
+  if (bDate > aDate) return 1;
+  if (!!a.endDate === !!b.endDate) return 0;
+  return a.endDate ? -1 : 1;
+};
+
+/**
+ * The season holding the last episode watched, which is the page's hero. Every season in the
+ * library is a candidate whatever its show's status: a show is Ended by the time the page next
+ * draws it, so pinning the election to what is still in flight puts the finale you watched
+ * yesterday out of reach of the one surface meant to name it.
+ *
+ * Answers nothing where the sheet dates no season at all — the column predates the rows and
+ * nothing has finished — and the page then falls back to the plain strip rather than promoting a
+ * season by a tie-break the data does not hold.
+ *
+ * A reduce rather than a sort: only the one season is wanted. Strictly `< 0`, so a full tie keeps
+ * the season the sheet lists first, which is the answer the strip's own stable sort gives.
+ */
+export const heroSeason = (data: Show[]) => {
+  const best = data
+    .flatMap((show) => show.s)
     .reduce<Season | undefined>(
-      (best, season) => (!best || best.show.lastWatchedDate!.lte(season.show.lastWatchedDate!) ? season : best),
+      (best, season) => (!best || byLastWatched(season, best) < 0 ? season : best),
       undefined,
     );
+
+  return best?.lastWatchedDate ? best : undefined;
+};
 
 /** Which of the optional figures a caller has room for. */
 interface ShowHeroStatOptions {
@@ -191,7 +233,8 @@ export const showHeroStats = (
   const { episodes, days, perWeek } = watchingProgress(season, today);
   const stats: { label: string; value: number | string }[] = [{ label: "Episodes", value: episodes }];
 
-  if (days !== undefined) stats.push({ label: "Days In", value: days });
+  // "In" only while the season is: on one that has ended the figure is a span the sheet closed.
+  if (days !== undefined) stats.push({ label: season.endDate ? "Days" : "Days In", value: days });
   if (perWeek !== undefined && (options?.pace ?? true)) stats.push({ label: "Eps / Week", value: perWeek });
   if (franchiseCount > 1) stats.push({ label: `${season.show.franchise} Shows`, value: franchiseCount });
 
@@ -202,7 +245,7 @@ export const showHeroStats = (
 export const statsCardLabelWatching = (season: Season, today: YearMonthDay) => {
   const { episodes, days, perWeek } = watchingProgress(season, today);
   return [
-    [formatDate(season.startDate), days !== undefined ? `${format(days)} days in` : ""],
+    [formatDate(season.startDate), days !== undefined ? `${format(days)} days${season.endDate ? "" : " in"}` : ""],
     [`${episodes} eps`, perWeek !== undefined ? `${perWeek}/wk` : ""],
   ];
 };
@@ -215,7 +258,12 @@ export const recentlyComplete = (data: Show[]) =>
     .sortByKey("endDate");
 
 /**
- * The in-progress season of every show still being watched.
+ * The latest season of every show still being watched, most recently watched first, and the
+ * seasons the sheet cannot date after them in the order it lists their shows.
+ *
+ * A season that has ended is kept: the Status cell marks a show whose next season is still to
+ * come, and dropping it takes a show the reader is midway through a series of off the one strip
+ * that answers what is in flight.
  *
  * A show marked Watching with no seasons is a spreadsheet error rather than something to
  * render around, so it throws — but says which show, since the alternative is a bare
@@ -225,8 +273,7 @@ export const currentlyWatching = (data: Show[]) =>
   data
     .filter((show) => show.status === "Watching")
     .map((show) => show.s.at(-1) ?? sheetError(`Show "${show.name}"`, "is marked Watching but has no seasons"))
-    .filter((season) => !season.endDate)
-    .sortByKey("startDate");
+    .toSorted(byLastWatched);
 
 // Dates are in the reader's voice and not the machine's, which is the same one the card behind
 // the thumbnail speaks.

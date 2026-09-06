@@ -413,10 +413,16 @@ describe("each medium's Now pair", () => {
     expect(gameNow.nowPanel(item!, "light").title).toBe("Tunic");
   });
 
-  it("names the season the sheet marks as current", () => {
-    const watching = show({ name: "Severance", lastWatchedDate: YearMonthDay.get(2026, 3, 4) });
-    watching.s.push(season(watching, { s: 2 }));
-    const item = showNow.elect([show({ status: "Ended" }), watching]);
+  it("names the season holding the last episode watched, whatever its show's status", () => {
+    const ended = show({ name: "Black Bird", status: "Ended" });
+    ended.s.push(
+      season(ended, { endDate: YearMonthDay.get(2025, 7, 9), lastWatchedDate: YearMonthDay.get(2025, 7, 9) }),
+    );
+
+    const watching = show({ name: "Severance" });
+    watching.s.push(season(watching, { s: 2, lastWatchedDate: YearMonthDay.get(2026, 3, 4) }));
+
+    const item = showNow.elect([ended, watching]);
 
     expect(item?.show).toBe(watching);
     expect(showNow.nowPanel(item!, "light").title).toBe("Severance S2");
