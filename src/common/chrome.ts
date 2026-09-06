@@ -3,12 +3,24 @@ import type { Theme } from "@mui/material";
 /**
  * The app's own furniture, in numbers the page has to make room for.
  *
- * Below `sm` the five tabs sit in a bar fixed to the bottom of the screen (`BottomTabs.tsx`), so
- * the page and anything else pinned down there — the data snackbar — have to stop short of it.
- * Stated here rather than beside the bar, because the bar is not a `common/` shell and the things
- * standing clear of it are: two copies of the number would be two that drift.
+ * Below `sm` one bar is fixed to the bottom of the screen (`BottomTabs.tsx`) — the five tabs at the
+ * top of the page, the page's own rail once it is scrolled — so the page and anything else pinned
+ * down there, the data snackbar, have to stop short of it. It is the same height in both states, so
+ * the clearance is one number and nothing below the fold moves as the bar swaps. Stated here rather
+ * than beside the bar, because the bar is not a `common/` shell and the things standing clear of it
+ * are: two copies of the number would be two that drift.
  */
 export const BOTTOM_TABS_HEIGHT = 56;
+
+/**
+ * The app bar's own height, which is how far the page scrolls before the bottom bar swaps its tabs
+ * for the rail: the bar is `position: static`, so this is exactly the offset at which it leaves the
+ * screen and the page has nothing else naming the tab it is on.
+ *
+ * MUI's own `Toolbar` minimum at `xs`, which is 48 in the landscape query alone — a phone turned
+ * sideways swaps 8px later than it could, and nothing reads differently in that gap.
+ */
+export const APP_BAR_HEIGHT = 56;
 
 /**
  * The bar plus whatever the device reserves under it: 34px on a phone with a home indicator, zero
@@ -52,7 +64,9 @@ export const safeAreaGutters = (theme: Theme) => ({
  * `BROWSER_TINT_HEIGHT` tall — a 3px strip is not sampled, the floor being nearer 12 — but only
  * `BROWSER_TINT_VISIBLE` of it need be on screen, so it hangs above the edge and shows the least it
  * can. That sliver is what the surface beneath has to make room for, the section rail being the one
- * that reaches the top edge.
+ * that reaches the top edge from `sm` up. Below that width nothing is pinned there and the strip
+ * stands over the page itself, which an anchored section is kept clear of by `PHONE_SCROLL_MARGIN`
+ * (`SectionRail.tsx`), the larger of the two figures.
  *
  * How little it can show is a device's answer and not a documented one, and five is the floor: at
  * four the status bar goes back to the paper, as it does at two. Every pixel of the sliver is one

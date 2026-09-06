@@ -2,9 +2,11 @@ import { Box, Divider } from "@mui/material";
 import type { SvgIconComponent } from "@mui/icons-material";
 import Grid from "@mui/material/Grid";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { usePhone } from "./breakpoints";
 import { ChipRail, RailChip, type ChipRailItem } from "./ChipRail";
 import { BROWSER_TINT_VISIBLE } from "./chrome";
+import { usePhoneBarSlot } from "./phoneBar";
 import { QUIET_SIDEWAYS_SCROLL } from "./scrollbarSx";
 
 /** A chip in the rail. The `id` matches the `Section` it scrolls to. */
@@ -18,7 +20,7 @@ export type RailSection = ChipRailItem;
 const PINNED_BIAS = BROWSER_TINT_VISIBLE + 2;
 
 /**
- * How far below the top of the viewport an anchored section comes to rest, in pixels.
+ * How far below the top of the viewport an anchored section comes to rest from `sm` up, in pixels.
  *
  * The rail is the only thing pinned above it — the AppBar is `position: static` and has scrolled
  * away by the time an anchor is used — so this is the rail's own height plus enough that the
@@ -29,20 +31,39 @@ const PINNED_BIAS = BROWSER_TINT_VISIBLE + 2;
  */
 export const SCROLL_MARGIN = 72;
 
-/** Where the observer calls a section current: from just under the rail to the upper third. */
-const ACTIVE_BAND = `-${SCROLL_MARGIN}px 0px -66% 0px`;
+/**
+ * The same figure below `sm`, where the rail is drawn in the bar at the bottom of the screen
+ * (`BottomTabs.tsx`) and nothing at all is pinned at the top: a section lands against the viewport's
+ * own edge, so all this buys is that its heading is not touching it.
+ */
+export const PHONE_SCROLL_MARGIN = 8;
+
+/**
+ * What a phone's anchored section clears, as CSS rather than a number.
+ *
+ * `viewport-fit=cover` lays the page out to the physical top of the screen, so on a device with a
+ * notch — a home-screen install, where the browser draws no chrome of its own above the page — the
+ * inset is what stands between a landed heading and the sensor housing. The observer's own band
+ * takes the plain figure: a few tens of pixels either way decide nothing about which section a
+ * reader is in, and `env()` cannot be read from a `rootMargin` at all.
+ */
+const PHONE_SCROLL_MARGIN_CSS = `calc(${PHONE_SCROLL_MARGIN}px + env(safe-area-inset-top))`;
+
+/** Where the observer calls a section current: from just under whatever is pinned to the upper third. */
+const activeBand = (top: number) => `-${top}px 0px -66% 0px`;
 
 /**
  * A band a rail chip can scroll to.
  *
  * The `scrollMarginTop` is the whole reason this is a component rather than a bare `id`: without
  * it the browser lands the section's top edge at the top of the viewport, which is underneath the
- * sticky rail, and the first thing the reader was sent to see is the thing they cannot see.
+ * sticky rail, and the first thing the reader was sent to see is the thing they cannot see. Below
+ * `sm` there is nothing pinned up there to clear, and the margin is the device's own inset instead.
  */
 export const Section = ({ id, children }: { id: string; children: ReactNode }) => (
   <Box
     id={id}
-    sx={{ scrollMarginTop: `${SCROLL_MARGIN}px` }}
+    sx={{ scrollMarginTop: { xs: PHONE_SCROLL_MARGIN_CSS, sm: `${SCROLL_MARGIN}px` } }}
   >
     {children}
   </Box>
@@ -175,8 +196,11 @@ const SCOPE_SX = { display: { xs: "none", md: "flex" } } as const;
  * can degrade by scrolling. The chip states the measure — the setting changed most often — and
  * opens the sheet holding all three.
  *
- * Below `sm` the tab chips are left out even while stuck: the bottom navigation holds all five
- * tabs at every scroll position, and a rail 358px wide would spend 300 of them saying it again.
+ * Below `sm` the whole row is drawn inside the bar at the bottom of the screen instead
+ * (`BottomTabs.tsx`, through `phoneBar.ts`): one bar rather than a pinned rail above the page and
+ * the tabs below it, which is 49px of a 720px screen given back to what the page is for. The tab
+ * chips are left out there — the bar's own leading chip calls the five tabs back into it, and a rail
+ * 358px wide would spend 300 of them saying that again.
  * From `sm` up each is its tab's own icon in its own colour rather than its name: four words and a
  * divider take a third of a tablet's rail, where four glyphs take 136px of it, and the app bar's
  * own strip carries the same icons beside its words, which is where the glyphs are learnt.
@@ -188,13 +212,24 @@ export const SectionRail = (props: {
   measure?: ReactNode;
   population?: ReactNode;
   pageChip?: ReactNode;
+  /**
+   * The phone row's leading chip: the current tab, calling the five back into the bar this row is
+   * drawn in. It comes from the caller because only the registry knows what a tab is, and it is
+   * drawn here rather than by the bar itself so that the bar carries none of the chip's own
+   * machinery — a tooltip, and with it MUI's popper — into the chunk evaluated before the first
+   * paint.
+   */
+  tabChip?: ReactNode;
 }) => {
-  const active = useActiveSection(props.sections);
-  const [railRef, stuck] = useStuck();
-  // Which tail the rail draws. A value rather than a `display` rule, because the controls it hides
-  // are mounted in the box's This page mode at this width instead: drawn here and hidden, each
-  // would be a second live copy dispatching to the same page state from a control nobody can see.
+  // Which tail the rail draws, and where the rail is drawn at all. A value rather than a `display`
+  // rule, because the controls it hides are mounted in the box's This page mode at this width
+  // instead: drawn here and hidden, each would be a second live copy dispatching to the same page
+  // state from a control nobody can see — and because below `sm` this is not a pinned bar of its
+  // own but a row inside the one at the bottom of the screen, which no CSS can say.
   const phone = usePhone();
+  const active = useActiveSection(props.sections, phone ? PHONE_SCROLL_MARGIN : SCROLL_MARGIN);
+  const [railRef, stuck] = useStuck(!phone);
+  const slot = usePhoneBarSlot();
 
   const tabChips = stuck && props.tabs && props.tabs.length > 0 && (
     // `contents` rather than a wrapper of its own: from `sm` up the chips and the divider stay the
@@ -219,6 +254,62 @@ export const SectionRail = (props: {
       />
     </Box>
   );
+
+  const chipRow = (
+    <ChipRail
+      items={props.sections}
+      activeId={active}
+      leading={tabChips || undefined}
+      onSelect={(id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })}
+      // Whatever the tail leaves, and never a share of the shortfall: at a basis of zero the row
+      // grows into the free space and has none of its own to give up, so a phone's rail spends
+      // its width on the controls first and the chips take what is left. Sized from its content
+      // instead, the two shrink in proportion and the controls are the half that cannot degrade
+      // — a picker at three quarters of its width is a value with no room for its own caret,
+      // where a chip row is a list that scrolls by design.
+      sx={{ flexGrow: 1, flexBasis: 0, minWidth: 0 }}
+    />
+  );
+
+  const tail = phone ? (
+    props.pageChip && <Box sx={TRAILING_SX}>{props.pageChip}</Box>
+  ) : (
+    <>
+      {(props.scope || props.measure) && (
+        // A row of its own, the slot holding more than one control: the scope and the measure
+        // are two page-wide readings side by side, and a block would stack them and stand the
+        // rail at twice its height.
+        //
+        // It scrolls rather than pushing the page wider. A rail that overflows its own
+        // container puts the whole document on a sideways scroll — every drag on the page
+        // drifts it off centre. Shrinking here instead keeps the tail's own controls a flick
+        // apart at the end of the bar where they are pinned, and costs nothing at a width that
+        // fits them.
+        <Box sx={ACTIONS_SX}>
+          {props.scope && <Box sx={SCOPE_SX}>{props.scope}</Box>}
+          {props.measure}
+        </Box>
+      )}
+      {props.population && <Box sx={TRAILING_SX}>{props.population}</Box>}
+    </>
+  );
+
+  // Below `sm` the row is the bottom bar's scrolled state rather than a bar of its own: the page
+  // gives back the 49px a second pinned strip would cost it, on the one screen where height is
+  // scarcest. It renders nothing until the bar has published its slot, and nothing at all where
+  // there is no bar — a rail drawn at the top as well would be the arrangement stated twice.
+  if (phone)
+    return (
+      slot &&
+      createPortal(
+        <>
+          {props.tabChip}
+          {chipRow}
+          {tail}
+        </>,
+        slot,
+      )
+    );
 
   return (
     <Box
@@ -259,41 +350,8 @@ export const SectionRail = (props: {
         gap: 1,
       })}
     >
-      <ChipRail
-        items={props.sections}
-        activeId={active}
-        leading={tabChips || undefined}
-        onSelect={(id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })}
-        // Whatever the tail leaves, and never a share of the shortfall: at a basis of zero the row
-        // grows into the free space and has none of its own to give up, so a phone's rail spends
-        // its width on the controls first and the chips take what is left. Sized from its content
-        // instead, the two shrink in proportion and the controls are the half that cannot degrade
-        // — a picker at three quarters of its width is a value with no room for its own caret,
-        // where a chip row is a list that scrolls by design.
-        sx={{ flexGrow: 1, flexBasis: 0, minWidth: 0 }}
-      />
-      {phone ? (
-        props.pageChip && <Box sx={TRAILING_SX}>{props.pageChip}</Box>
-      ) : (
-        <>
-          {(props.scope || props.measure) && (
-            // A row of its own, the slot holding more than one control: the scope and the measure
-            // are two page-wide readings side by side, and a block would stack them and stand the
-            // rail at twice its height.
-            //
-            // It scrolls rather than pushing the page wider. A rail that overflows its own
-            // container puts the whole document on a sideways scroll — every drag on the page
-            // drifts it off centre. Shrinking here instead keeps the tail's own controls a flick
-            // apart at the end of the bar where they are pinned, and costs nothing at a width that
-            // fits them.
-            <Box sx={ACTIONS_SX}>
-              {props.scope && <Box sx={SCOPE_SX}>{props.scope}</Box>}
-              {props.measure}
-            </Box>
-          )}
-          {props.population && <Box sx={TRAILING_SX}>{props.population}</Box>}
-        </>
-      )}
+      {chipRow}
+      {tail}
     </Box>
   );
 };
@@ -307,19 +365,22 @@ export const SectionRail = (props: {
  * sub-pixel layout leaves a fully visible rail fractionally short of ratio one and a comparison
  * against it pinned forever.
  */
-const useStuck = () => {
+const useStuck = (enabled: boolean) => {
   const railRef = useRef<HTMLDivElement>(null);
   const [stuck, setStuck] = useState(false);
 
+  // Keyed on whether there is a pinned rail at all: below `sm` the row is drawn in the bottom bar
+  // and this ref holds nothing, so a phone turned sideways past that width mounts the rail with an
+  // effect that has already run and would never observe it.
   useEffect(() => {
     const rail = railRef.current;
-    if (!rail) return;
+    if (!enabled || !rail) return;
     const observer = new IntersectionObserver(([entry]) => setStuck(entry.boundingClientRect.top < 0), {
       threshold: [1],
     });
     observer.observe(rail);
     return () => observer.disconnect();
-  }, []);
+  }, [enabled]);
 
   return [railRef, stuck] as const;
 };
@@ -331,7 +392,7 @@ const useStuck = () => {
  * the array is a new value every render and depending on it would tear down and rebuild the
  * observer on each one.
  */
-const useActiveSection = (sections: RailSection[]) => {
+const useActiveSection = (sections: RailSection[], topMargin: number) => {
   const [active, setActive] = useState<string | undefined>(undefined);
   const ids = sections.map((section) => section.id).join(",");
   /**
@@ -361,11 +422,11 @@ const useActiveSection = (sections: RailSection[]) => {
         const current = order.find((id) => intersecting.current.get(id));
         if (current) setActive(current);
       },
-      { rootMargin: ACTIVE_BAND },
+      { rootMargin: activeBand(topMargin) },
     );
     elements.forEach((element) => observer.observe(element));
     return () => observer.disconnect();
-  }, [ids]);
+  }, [ids, topMargin]);
 
   return active;
 };

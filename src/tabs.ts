@@ -216,14 +216,15 @@ export const useCurrentTab = (): Tab => tabForPath(useLocation().pathname);
 
 /**
  * The colour a tab is named in away from its own page — the rail's chip for it, where four of them
- * stand side by side in a row of grey section chips.
+ * stand side by side in a row of grey section chips, and the phone bar's own chip for the tab in
+ * hand.
  *
  * The primary on the light paper, as the bar is; the bar's `ink` on the dark, where the tint is a
  * fifth of the primary's strength and the primary itself is the value that tint was mixed from —
  * a mark drawn in it on the dark paper is the light bar's colour on the wrong ground. Both clear
  * 3:1 on the paper they are drawn on, which is what a glyph carrying a tab's identity needs.
  */
-const tabInk = (tab: Tab, scheme: Scheme): string | undefined =>
+export const tabInk = (tab: Tab, scheme: Scheme): string | undefined =>
   scheme === "dark" ? tab.darkBar?.ink : tab.primaryColour;
 
 /**

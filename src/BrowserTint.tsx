@@ -10,16 +10,19 @@ import { useScheme } from "./common/useScheme";
  * `theme-color` meta is still parsed and no longer read, and what is sampled is the
  * `background-color` of a qualifying fixed or sticky element, falling back to `body`. Left to that
  * fallback the answer is the paper, so the status bar reads as a band of blank page above a bar
- * that is anything but. `BottomTabs` already answers for the bottom edge, being a fixed full-width
- * bar in this colour, which is why only the top needs stating.
+ * that is anything but. The bottom edge is already a fixed full-width bar (`BottomTabs`), so only
+ * the top needs stating — the colour that bar is sampled in follows its two states, the tab's own
+ * while it holds the tabs and the page's ground once it holds the rail, which is the colour the
+ * page at that edge actually is either way.
  *
  * What a strip has to be is measured rather than declared: an element that anything paints over is
  * never sampled, which is what the `zIndex` is for — the section rail pins opaque one below the app
  * bar, and a strip beneath it would stop answering the moment the rail reached the top. A strip
  * standing 3px high is not sampled either, the floor being nearer 12, so it stands
  * `BROWSER_TINT_HEIGHT` and hangs above the edge, showing the `BROWSER_TINT_VISIBLE` sliver that
- * has to be on screen and no more — every pixel of it is one the section rail gives up out of its
- * own top padding (`chrome.ts`). `visibility: hidden` is not sampled at all, so there is no drawing
+ * has to be on screen and no more — from `sm` up every pixel of it is one the section rail gives up
+ * out of its own top padding (`chrome.ts`), and below that width it lies over the page, which keeps
+ * an anchored section clear of it by a larger margin. `visibility: hidden` is not sampled at all, so there is no drawing
  * it and hiding it.
  *
  * Under a coarse pointer alone, because the two platforms sample on different schedules and only

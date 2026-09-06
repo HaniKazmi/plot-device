@@ -1554,7 +1554,32 @@ already in the panel.
 the app bar — `position: static` and scrolling away, so the rail is the only thing an anchor has to
 clear. Chips scroll rather than link, the app being served under a `HashRouter` where an
 `href="#timeline"` reads as a route; `Section` exists rather than a bare `id` for its
-`scroll-margin-top`, without which the browser lands a section's top edge under the sticky rail.
+`scroll-margin-top`, without which the browser lands a section's top edge under the sticky rail —
+`SCROLL_MARGIN`, 72px, from `sm` up.
+
+**Below `sm` the rail is the bottom bar's scrolled state**, and nothing is pinned at the top of the
+page at all. The bar fixed to the bottom edge (`BottomTabs.tsx`) holds the five tabs while the page
+is against the app bar and the page's own rail once it has scrolled past it, cross-fading between the
+two at one height — so a phone pays for one bar rather than a pinned rail above the page and the tabs
+below it, 49px of a 720px screen given back to what the page is for. The swap is keyed on the same
+question the rail's own pin is, whether the app bar has left the screen (`APP_BAR_HEIGHT`,
+`chrome.ts`), read off `scrollY` rather than off an observed element: the rail is not drawn up there
+to observe, and a sentinel standing in for it would open a gap of its own in the page's spaced stack.
+The rail leads with a chip carrying the current tab's icon, which calls the tabs back **in place** —
+the alternative, scrolling to the top where they already are, costs a reader deep in a library wall
+their position to answer a question about navigation — and the reader's next scroll takes them away
+again. A press on the tab already open scrolls to the top anyway, `BottomNavigation` answering a
+press on its selected action, so the way back exists without the chip having to be it.
+
+`SectionRail` renders that row through a portal into a slot the bar publishes on a module store
+(`common/phoneBar.ts`), rather than the bar building it: the two are on opposite sides of the tree —
+the bar above the outlet, the rail inside a tab's own lazy `Graphs` — and only the page knows what
+its sections are. It is also what keeps the chips' own machinery, a tooltip and with it MUI's popper,
+out of the chunk every visitor evaluates before the first paint, which
+`tests/architecture.test.ts` pins. `PHONE_SCROLL_MARGIN` is what an anchored section clears there:
+8px, plus `env(safe-area-inset-top)` in the CSS form, since nothing is above it but the device's own
+inset. The wall's sticky `BucketHeading` takes the same figure, being drawn on a phone alone;
+`MARKER_TOP` keeps the full margin, the pill and the jump rail it positions mounting from `sm` up.
 
 The same module holds the two arrangements a section is built from, page structure rather than
 visualisation: `StatBand`, the stretched row of stat cards, taking children, and `ChartPair`, the
@@ -1626,9 +1651,9 @@ own offsets for a mark beside a word are dropped and the width follows the heigh
 named by its `aria-label` with a tooltip carrying the same word for a pointer; a finger is told
 nothing, its press-and-hold being the browser's own.
 
-The chips are dropped entirely below `sm`, where the bottom navigation
-already holds all five tabs at every scroll position and a rail spending 300 of its 358px saying so
-again buys nothing; a rail's own chips still fill the rest. Under a coarse pointer every chip in the
+The chips are dropped entirely below `sm`, where the bar's own leading chip calls the five tabs
+back into the row and a rail spending 300 of its 358px saying so again buys nothing; a rail's own
+chips still fill the rest. Under a coarse pointer every chip in the
 rail — a tab's, a section's — stands at the kit's coarse 32px rather than its own 24 (the theme's
 small chip, behind `@media (pointer: coarse)` so a tablet with a mouse plugged in gets the desktop's
 own height), which makes the rail 8 + 32 + 8 + 1 where a pointer gets 8 + 28 + 8 + 1; `SCROLL_MARGIN`
@@ -1691,7 +1716,12 @@ Below `sm` the tab strip itself is replaced by `BottomTabs`, fixed to the screen
 reachable from any scroll position and a thumb, which no arrangement of the `position: static` app
 bar achieves; it wears the tab's own `barColour` as the app bar does, so the top and bottom of a
 phone name the same tab, and a tab change resets scroll (`window.scrollTo({ top: 0 })`) the way the
-rail's own chips do. `common/chrome.ts` states what the app's own furniture costs the page:
+rail's own chips do. That is one of its two states (§ Page architecture): scrolled, the same bar is
+the page's rail, on the page's own ground under a hairline rather than in the tab's colour, since the
+chips it then holds are the kit's and are solved against `background.default` — a lit chip is filled
+in the primary and would be invisible on a bar that _is_ the primary. The colour Safari samples for
+the bottom of its chrome follows that swap, being taken from this bar (`BrowserTint.tsx`), and is the
+colour the page at that edge actually is either way. `common/chrome.ts` states what the app's own furniture costs the page:
 `BOTTOM_TABS_HEIGHT` (56) and its `env(safe-area-inset-bottom)`-padded `BOTTOM_TABS_CLEARANCE`, which
 the page container and the data snackbar both stop short of, and `safeAreaGutters`, MUI's own
 `Container`/`Toolbar` gutters restated with the device's side insets added — a notched phone held

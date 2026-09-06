@@ -4,7 +4,11 @@ import { orderedBuckets } from "./finishedData";
 import { scrollBehaviourFor } from "./timelineLayout";
 import { RAIL_CHIP_HEIGHT } from "./typography";
 
-/** Just clear of the rail, which is the only thing pinned above it. */
+/**
+ * Just clear of the rail, which is the only thing pinned above it — from `sm` up, the width the pill
+ * and the jump rail this positions are mounted at. Below it the wall indexes itself with sticky
+ * headings instead, which clear the phone's own smaller margin.
+ */
 export const MARKER_TOP = SCROLL_MARGIN + 8;
 
 /**
