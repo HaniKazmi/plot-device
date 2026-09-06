@@ -20,7 +20,7 @@ type AuthState = "live" | "authorising" | "stale" | "empty";
  * and a ready client — so neither present is the loading state and `revoke` present is the live
  * one, whatever the cache holds. Only then does the cache decide, and it decides on presence alone:
  * **whether a fetch of this session's own produced the copy is not part of the question.** A reader
- * who revokes mid-session, or a `values.get` that failed and cleared the token, leaves rows on
+ * who revokes mid-session, or a read that failed and cleared the token, leaves rows on
  * screen that this session did fetch and can no longer refresh, which is exactly what the strip is
  * for — read off `loaded` instead, both cases would answer `empty` and blank a page that is full.
  */

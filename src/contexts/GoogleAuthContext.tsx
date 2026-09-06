@@ -83,7 +83,7 @@ const GoogleAuthContext = createContext<GoogleAuthContextType | null>(null);
  * while it loads — and the client is not on the page yet when this file is first evaluated.
  */
 const fetchRange = rangeBatcher(async (spreadsheetId, ranges) => {
-  const response = await gapi.client.sheets.spreadsheets.values.batchGet({ spreadsheetId, ranges: [...ranges] });
+  const response = await gapi.client.sheets.spreadsheets.values.batchGet({ spreadsheetId, ranges });
   return (response.result.valueRanges ?? []).map((valueRange) => valueRange.values);
 });
 

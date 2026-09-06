@@ -109,6 +109,14 @@ export interface LibraryValue {
   items: OmniItem[] | undefined;
   loaded: Record<Medium, boolean>;
   error: Record<Medium, string | undefined>;
+  /** Reads all four sheets again, for a reader who wants what they say now. */
+  refresh: () => void;
+  /**
+   * Whether any sheet is being read: a medium that has neither landed nor failed, and a token to
+   * read it with. The second half is what keeps a reader who never authorised from reading as
+   * permanently loading, there being no request out for them at all.
+   */
+  reading: boolean;
 }
 
 export const LibraryContext = createContext<LibraryValue | undefined>(undefined);

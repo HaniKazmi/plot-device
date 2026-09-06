@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { createStore } from "./store";
 import { PlainDate } from "./date";
 import { useGoogleAuth } from "../contexts/GoogleAuthContext";
 import type { SheetTab } from "../tabs";
@@ -8,52 +7,6 @@ import type { SheetTab } from "../tabs";
 const storage = () => localStorage;
 
 const CACHE = new Map<string, unknown>();
-
-/**
- * How many times this session has been asked for fresh sheets, which every `useData` reads as the
- * signal to fetch again.
- *
- * A counter rather than a flag: what the hooks need is a value that *changes*, since the effect
- * re-runs on a new one and a flag set twice is one change. Held outside React because the four
- * hooks have no common ancestor short of the provider, and because the control that presses it
- * sits in the bar, above them.
- */
-const refreshes = createStore(0);
-
-/**
- * Drops this session's copies and re-reads every sheet.
- *
- * `CACHE` is what stops a fetch happening twice in a session, so clearing it is the whole of the
- * refresh — the hooks then find nothing and ask again. `IN_FLIGHT` is deliberately left alone: a
- * request already on the wire is one this refresh can join rather than duplicate, and it will
- * write the copy the hooks are about to look for.
- *
- * `localStorage` is left standing too. A refresh that emptied it would blank the next cold visit
- * for the window between it and the fetch that replaces it, which is the one thing that cache is
- * for.
- */
-export const refreshSheets = () => {
-  CACHE.clear();
-  refreshes.set(refreshes.get() + 1);
-};
-
-/**
- * How many sheets are being read right now, so a control can say a refresh is in progress.
- *
- * Counted rather than flagged, four hooks sharing one answer: the count also stays right where two
- * of them join one in-flight request, since each subscriber both opens and closes its own tally.
- *
- * This is a store and not component state on purpose. The tally is written from inside an effect,
- * where a `setState` would be a cascading render the compiler's rules reject outright — an external
- * system updated from an effect is exactly what an effect is for.
- */
-const reading = createStore(0);
-
-const openRead = () => reading.set(reading.get() + 1);
-const closeRead = () => reading.set(reading.get() - 1);
-
-/** Whether any sheet is being read, for the bar's refresh control. */
-export const useReadingSheets = () => reading.useValue() > 0;
 
 /**
  * A cache key that changes when the shape behind it does.
@@ -150,7 +103,7 @@ export const describeFailure = (cause: unknown): string => {
  *
  * `LibraryProvider` mounts one hook per key for the life of the page, but a remount while that
  * key's fetch is still outstanding — React StrictMode's mount/unmount/remount in development,
- * which every session hits — would otherwise issue a second `values.get` and convert, stringify
+ * which every session hits — would otherwise issue a second read and convert, stringify
  * and store the same library twice. Cleared once the promise settles, so a failed fetch is retried
  * by the next mount rather than replayed to it.
  */
@@ -190,7 +143,7 @@ export interface DataConfig<T> {
 const useData = <T>(
   { storageKey, converter, reviver, replacer }: DataConfig<T>,
   tab: SheetTab,
-): [T[] | undefined, boolean, string | undefined] => {
+): [T[] | undefined, boolean, string | undefined, () => void] => {
   /**
    * Whether this session has the sheet's own rows rather than a previous visit's copy.
    *
@@ -236,12 +189,9 @@ const useData = <T>(
 
   const { apiReady, fetchAndConvertSheet } = useGoogleAuth();
 
-  const refreshCount = refreshes.useValue();
-
   useEffect(() => {
     if (!apiReady || CACHE.has(storageKey)) return;
 
-    openRead();
     let pending = IN_FLIGHT.get(storageKey) as Promise<T[]> | undefined;
     if (!pending) {
       const started = fetchAndConvertSheet(tab, converter);
@@ -273,13 +223,32 @@ const useData = <T>(
       .catch((cause: unknown) => {
         console.error(cause);
         setError(describeFailure(cause));
-      })
-      // However it settled, this subscriber has stopped reading. Each one opens and closes its own
-      // tally, so two hooks joining a single in-flight request still leave the count balanced.
-      .finally(closeRead);
-  }, [apiReady, converter, storageKey, tab, fetchAndConvertSheet, replacer, refreshCount]);
+      });
+  }, [apiReady, converter, storageKey, tab, fetchAndConvertSheet, replacer, dataLoaded]);
 
-  return [data, dataLoaded, error];
+  /**
+   * Reads the sheet again, for a reader who wants what it says now.
+   *
+   * The whole of it is dropping this domain's cached copy and saying so: `dataLoaded` is in the
+   * effect's dependencies, so turning it back reruns the effect, which finds no copy and fetches.
+   * The cycle closes itself — the fetch sets the flag and writes the copy, so the rerun that follows
+   * takes the early return — and a failure leaves the flag false with nothing further changing, so
+   * nothing re-fires.
+   *
+   * Called from a press rather than from an effect, which is what lets it set state at all: a
+   * `setState` in an effect body is the cascading render the compiler's rules reject.
+   *
+   * `localStorage` is left standing. Emptying it would blank the next cold visit for the window
+   * before the replacement lands, which is the one thing that copy is for. `IN_FLIGHT` is left too:
+   * a request already on the wire is one this can join rather than duplicate.
+   */
+  const refetch = () => {
+    CACHE.delete(storageKey);
+    setDataLoaded(false);
+    setError(undefined);
+  };
+
+  return [data, dataLoaded, error, refetch];
 };
 
 export default useData;

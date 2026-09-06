@@ -1,5 +1,5 @@
 /** Sends one request for several ranges of one spreadsheet, answering a grid per range in order. */
-export type SendBatch = (spreadsheetId: string, ranges: readonly string[]) => Promise<(string[][] | undefined)[]>;
+type SendBatch = (spreadsheetId: string, ranges: string[]) => Promise<(string[][] | undefined)[]>;
 
 /**
  * A reader that collects every range asked for in one tick and fetches them together.
@@ -14,28 +14,30 @@ export type SendBatch = (spreadsheetId: string, ranges: readonly string[]) => Pr
  * alone still leaves in the same tick it asked in. A range asked for later, by a tab mounted after
  * the others or by a refresh, simply forms the next batch.
  *
+ * The timing is inferred rather than declared, which is worth stating because it fails soft: if
+ * effects ever stop flushing together the batch splits and the reads are slower, never wrong.
+ *
  * Keyed by spreadsheet, because a batch reads ranges of one file: a medium whose sheet lives in
  * another document batches with itself rather than not at all.
  */
 export const rangeBatcher = (send: SendBatch) => {
-  type Batch = { ranges: string[]; grids: Promise<(string[][] | undefined)[]> };
-  const forming = new Map<string, Batch>();
+  const forming = new Map<string, { ranges: string[]; grids: Promise<(string[][] | undefined)[]> }>();
 
   return (spreadsheetId: string, range: string): Promise<string[][]> => {
     let batch = forming.get(spreadsheetId);
     if (!batch) {
-      const opened: Batch = {
-        ranges: [],
-        // Reads `opened.ranges` when it runs rather than closing over a copy, so every range added
-        // between here and the microtask is in the request. The identity check keeps a settling
-        // batch from dropping a newer one, as `useData`'s own in-flight map does.
+      // The array the request is sent with rather than a copy of it, so every range pushed between
+      // here and the microtask is in the batch. Cleared before the send and not after, so the next
+      // ask opens the next batch rather than joining one already on the wire.
+      const ranges: string[] = [];
+      batch = {
+        ranges,
         grids: Promise.resolve().then(() => {
-          if (forming.get(spreadsheetId) === opened) forming.delete(spreadsheetId);
-          return send(spreadsheetId, opened.ranges);
+          forming.delete(spreadsheetId);
+          return send(spreadsheetId, ranges);
         }),
       };
-      forming.set(spreadsheetId, opened);
-      batch = opened;
+      forming.set(spreadsheetId, batch);
     }
 
     // The response holds one entry per requested range, in the order they were asked for, so a

@@ -19,7 +19,7 @@ import Tabs, { useCurrentTab } from "./tabs";
 import useLongPress from "./utils/useLongPress";
 import { useGoogleAuth } from "./contexts/GoogleAuthContext";
 import { useAuthState } from "./app/authState";
-import { refreshSheets, useReadingSheets } from "./common/useData";
+import { useLibrary } from "./app/library";
 import { safeAreaGutters } from "./common/chrome";
 import { openSearch } from "./common/searchOpen";
 import { AppIcon } from "./AppIcon";
@@ -129,7 +129,35 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
   const { onMouseDown, onMouseUp, onMouseLeave } = useLongPress(() => setGuestMode(true));
   const { authorise, revoke } = useGoogleAuth();
   const authState = useAuthState();
-  const reading = useReadingSheets();
+  const { refresh, reading } = useLibrary();
+
+  /**
+   * What the slot draws, as one value.
+   *
+   * `authState` partitions exhaustively, and the two answers are one question: with no token the
+   * way to bring the page up to date is to authorise, and with one it is to read again. A session
+   * holds its sheets for as long as it lasts, so without the second there is no way to re-read them
+   * but to reload the page — which an installed app offers no handle for at all.
+   */
+  const action =
+    authState === "live"
+      ? {
+          icon: <Refresh sx={reading ? SPINNING_SX : undefined} />,
+          label: reading ? "Refreshing" : "Refresh",
+          busy: reading,
+          onClick: refresh,
+          dot: false,
+        }
+      : {
+          icon: <Key />,
+          // Dimmed rather than absent while the scripts land, so the control does not appear under
+          // a thumb already on its way to the search beside it.
+          label: authState === "authorising" ? "Authorising" : "Authorise",
+          busy: authState === "authorising",
+          onClick: authorise,
+          // All a stale page is told: its rows are last visit's and one press refreshes them.
+          dot: authState === "stale",
+        };
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   // A tab with no `darkBar` (none currently exist) keeps the plain dark bar `Google.tsx` falls
   // back to, so nothing here draws a rule or an ink colour with nothing to derive them from.
@@ -246,83 +274,49 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
             })}
           </MuiTabs>
         </Box>
-        {/* The bar's one action, and only while there is something to authorise: live, nothing here
-            says so, since a page drawing this session's own data has already said it. The dot is
-            what tells the two remaining states apart — stale is a full page nothing on it would
-            otherwise mark as last visit's — and the strip below the bar carries the sentence.
+        {/* The bar's one slot for the state of the reader's data, in two forms: the square at
+            every width, and the worded pill from `md` up with a fine pointer. One descriptor
+            chosen above them rather than two branches drawing the pair each, so the responsive
+            rule, the badge and the disabled treatment have one home — the two states are the same
+            control at two answers to one question, and the tree should say so.
 
-            Dimmed rather than absent while the scripts land, so the key does not appear under a
-            thumb already on its way to the search beside it. */}
-        {/* Live, the slot the key would take carries a refresh instead. There is nothing to
-            authorise, and a session holds its sheets for as long as it lasts — so without this the
-            only way to re-read them is to reload the page, which an installed app gives no handle
-            for at all. Same slot, same two forms, so the bar keeps one action beside the search
-            however the session stands. */}
-        {authState === "live" && (
-          <>
-            <IconButton
-              color="inherit"
-              aria-label={reading ? "Refreshing…" : "Refresh"}
-              disabled={reading}
-              onClick={refreshSheets}
-              sx={{ ...KEY_ICON_SX, ...BAR_BUTTON_SX, ...DISABLED_BUTTON_SX }}
-            >
-              <Refresh sx={reading ? SPINNING_SX : undefined} />
-            </IconButton>
-            <Button
-              color="inherit"
-              startIcon={<Refresh sx={reading ? SPINNING_SX : undefined} />}
-              disabled={reading}
-              onClick={refreshSheets}
-              sx={{ ...KEY_WORD_SX, ...BAR_WORD_SX }}
-            >
-              {reading ? "Refreshing" : "Refresh"}
-            </Button>
-          </>
-        )}
-        {authState !== "live" && (
-          <>
-            {/* No hover label of any kind, native or MUI's: a word that appears only under a
-                pointer is not there for the finger this bar is mostly read with, and the key's
-                own `aria-label` is what a screen reader says either way, and it follows the state, since
-                below `md` a dimmed key is otherwise the only sign that the scripts are still
-                landing. From `md` on a mouse the worded form of the same control stands beside
-                it and spells the state out. */}
-            <Badge
-              color="secondary"
-              variant="dot"
-              overlap="circular"
-              invisible={authState !== "stale"}
-              sx={KEY_ICON_SX}
-            >
-              <IconButton
-                color="inherit"
-                aria-label={authState === "authorising" ? "Authorising…" : "Authorise"}
-                disabled={authState === "authorising"}
-                onClick={authorise}
-                sx={{ ...BAR_BUTTON_SX, ...DISABLED_BUTTON_SX }}
-              >
-                <Key />
-              </IconButton>
-            </Badge>
-            <Badge
-              color="secondary"
-              variant="dot"
-              invisible={authState !== "stale"}
-              sx={KEY_WORD_SX}
-            >
-              <Button
-                color="inherit"
-                startIcon={<Key />}
-                disabled={authState === "authorising"}
-                onClick={authorise}
-                sx={BAR_WORD_SX}
-              >
-                {authState === "authorising" ? "Authorising" : "Authorise"}
-              </Button>
-            </Badge>
-          </>
-        )}
+            No hover label of any kind, native or MUI's: a word that appears only under a pointer is
+            not there for the finger this bar is mostly read with. The `aria-label` follows the
+            state, since below `md` a dimmed control is otherwise the only sign of it; from `md` on
+            a mouse the worded form stands beside it and spells it out. */}
+        <Badge
+          color="secondary"
+          variant="dot"
+          overlap="circular"
+          invisible={!action.dot}
+          sx={KEY_ICON_SX}
+        >
+          <IconButton
+            color="inherit"
+            aria-label={action.busy ? `${action.label}…` : action.label}
+            disabled={action.busy}
+            onClick={action.onClick}
+            sx={{ ...BAR_BUTTON_SX, ...DISABLED_BUTTON_SX }}
+          >
+            {action.icon}
+          </IconButton>
+        </Badge>
+        <Badge
+          color="secondary"
+          variant="dot"
+          invisible={!action.dot}
+          sx={KEY_WORD_SX}
+        >
+          <Button
+            color="inherit"
+            startIcon={action.icon}
+            disabled={action.busy}
+            onClick={action.onClick}
+            sx={BAR_WORD_SX}
+          >
+            {action.label}
+          </Button>
+        </Badge>
         {/* At every width: below `sm` the bar is a wordmark, this and the ⋮, the tabs having gone to
             the bottom of the screen, so the box stands in the space the strip left. A button rather
             than a `BarAction`, which is text-only and, under a finger, a menu item — a search box

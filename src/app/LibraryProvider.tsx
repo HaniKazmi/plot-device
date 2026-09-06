@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from "react";
 import { bookModule } from "../book/module";
 import type { MediumModule } from "../common/medium";
 import useData from "../common/useData";
+import { useGoogleAuth } from "../contexts/GoogleAuthContext";
 import { movieModule } from "../movie/module";
 import { showModule } from "../show/module";
 import Tabs, { type SheetTab } from "../tabs";
@@ -39,20 +40,21 @@ const useSheet = <T,>(module: MediumModule<T, unknown>) => useData(module.data, 
  * what stops a second read; what it buys is that guest mode is applied once, the union is built
  * once, and a surface above the tabs can ask what the library holds.
  *
- * Every visit therefore pays four sheet reads, including a deep link straight to one tab: a card on
+ * Every visit therefore reads all four ranges, including a deep link straight to one tab: a card on
  * any tab draws its franchise across all four media, and the Omnibus — which a bare visit opens on
- * — needs all four anyway. The cost is a returning visitor's three extra reads behind a page that
- * has already painted from cache.
+ * — needs all four anyway. The cost is three ranges a returning visitor is not looking at, read in
+ * the same request as the one they are, behind a page that has already painted from cache.
  *
  * The four calls are written out rather than walked over the registry because a hook called in a
  * loop or a callback is a rules-of-hooks error. Each is typed for its own medium's records, which
  * is what makes the object below a `Partial<Library>` with nothing asserted into it.
  */
 export const LibraryProvider = ({ guestMode, children }: { guestMode: boolean; children: ReactNode }) => {
-  const [games, gamesLoaded, gamesError] = useSheet(gameModule);
-  const [shows, showsLoaded, showsError] = useSheet(showModule);
-  const [movies, moviesLoaded, moviesError] = useSheet(movieModule);
-  const [books, booksLoaded, booksError] = useSheet(bookModule);
+  const [games, gamesLoaded, gamesError, refetchGames] = useSheet(gameModule);
+  const [shows, showsLoaded, showsError, refetchShows] = useSheet(showModule);
+  const [movies, moviesLoaded, moviesError, refetchMovies] = useSheet(movieModule);
+  const [books, booksLoaded, booksError, refetchBooks] = useSheet(bookModule);
+  const { apiReady } = useGoogleAuth();
 
   const raw: Partial<Library> = { game: games, show: shows, movie: movies, book: books };
   const visible = visibleLibrary(raw, guestMode);
@@ -75,6 +77,20 @@ export const LibraryProvider = ({ guestMode, children }: { guestMode: boolean; c
     items,
     loaded: { game: gamesLoaded, show: showsLoaded, movie: moviesLoaded, book: booksLoaded },
     error: { game: gamesError, show: showsError, movie: moviesError, book: booksError },
+    // Written out for the reason the four `useSheet` calls are: a hook cannot be called in a loop,
+    // and each of these is typed for its own medium's records.
+    refresh: () => {
+      refetchGames();
+      refetchShows();
+      refetchMovies();
+      refetchBooks();
+    },
+    reading:
+      apiReady &&
+      ((!gamesLoaded && !gamesError) ||
+        (!showsLoaded && !showsError) ||
+        (!moviesLoaded && !moviesError) ||
+        (!booksLoaded && !booksError)),
   };
 
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>;

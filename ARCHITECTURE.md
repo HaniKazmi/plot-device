@@ -268,12 +268,19 @@ fetching" from "already fetched by the tab you came from". Once `apiReady` turns
 sharing one in-flight promise per `storageKey` so a second mount subscribes rather than issuing a
 second read; the entry clears on settle, so a failed fetch is retried by the next mount.
 
-`refreshSheets` is the way to ask again. It empties `CACHE` and bumps a counter every hook reads, so
-each finds nothing and fetches; `IN_FLIGHT` is left alone, a request already on the wire being one a
-refresh can join rather than duplicate, and `localStorage` is left standing, since a refresh that
-emptied it would blank the next cold visit for the window before its replacement lands. A separate
-tally counts the reads in progress — written from inside the effect, where a `setState` would be the
-cascading render the compiler's rules reject — and is what the bar's refresh control spins on.
+The fourth return value is the way to ask again. It drops that domain's cached copy and turns
+`dataLoaded` back, which is in the effect's own dependencies — so the effect reruns, finds no copy
+and fetches, and the cycle closes itself when the fetch writes one. Called from a press rather than
+an effect, which is what lets it set state at all. `localStorage` is left standing, since emptying
+it would blank the next cold visit for the window before the replacement lands, and `IN_FLIGHT` too:
+a request already on the wire is one a refresh joins rather than duplicates.
+
+`LibraryProvider` composes the four into `refresh` on `LibraryValue`, beside the `loaded` and `error`
+it already assembles, and derives `reading` from them — a token, and a medium that has neither
+landed nor failed. Both live there rather than in a module global because the bar is inside that
+provider, so there is a common ancestor and nothing to reach past. It also means `loaded` stops being
+a latch, and the refresh notice each tab already keeps fires on a refresh as it does on a first
+load.
 
 The third return value is what went wrong. A gapi rejection is the response object rather than an
 `Error`, so `describeFailure` reads `result.error.message` — the converter's own message, naming the
@@ -317,7 +324,7 @@ visitor who never authorises.
   yields a `NaN` expiry, which fails every validity test and discards the token on its next read.
 - **Readiness.** `apiReady = tokenSet && apiReadyToFetch` — a valid token _and_ an initialised gapi
   client, so consumers wait on one flag rather than two async loads.
-- **Failure handling.** A rejected `values.get` clears `tokenSet`, putting the key back in the bar,
+- **Failure handling.** A rejected read clears `tokenSet`, putting the key back in the bar,
   so mid-session expiry self-heals into a re-prompt. **Only the request is guarded**: a
   converter throw travels on to `useData` instead, since clearing the token would make a data fault
   look like an auth fault. A refusal — GIS delivers a dismissed consent popup to the callback a grant
@@ -332,7 +339,7 @@ presence rather than through separate booleans.
 `app/authState.ts` answers `live` · `authorising` · `stale` · `empty`: neither callback present is
 the loading state whatever the cache holds, `revoke` present is live, and only then does the cache
 decide — some library with a copy behind it is `stale`, none at all is `empty`. Presence alone, never
-`useData`'s `loaded`: a reader who revokes mid-session, and a failed `values.get` that cleared the
+`useData`'s `loaded`: a reader who revokes mid-session, and a failed read that cleared the
 token, both leave rows on screen this session did fetch and can no longer refresh, which is what the
 key's dot is for and what reading `loaded` would blank the page over. The auth context sits above the
 library provider and knows nothing about the cache, so the derivation is a hook below both — which
