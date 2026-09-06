@@ -1,5 +1,5 @@
 import type { Theme } from "@mui/material";
-import { useSyncExternalStore } from "react";
+import { createStore } from "./store";
 
 /**
  * The app's own furniture, in numbers the page has to make room for.
@@ -21,7 +21,28 @@ export const BOTTOM_TABS_HEIGHT = 56;
  * MUI's own `Toolbar` minimum at `xs`, which is 48 in the landscape query alone — a phone turned
  * sideways swaps 8px later than it could, and nothing reads differently in that gap.
  */
-export const APP_BAR_HEIGHT = 56;
+const APP_BAR_HEIGHT = 56;
+
+/**
+ * How far past the bar the page has to be before the answer changes, and how far back before it
+ * changes again.
+ *
+ * Three surfaces swap on this one boundary — the bottom bar's tabs for the page's rail, the tint
+ * strip at the top edge, and the two `theme-color` metas — so a reader who comes to rest with the
+ * page a pixel either side of the app bar's own height would otherwise have all three flicker on
+ * every small movement of the thumb, momentum scrolling and a rubber band at the top both crossing
+ * a bare threshold repeatedly. A band around it makes each crossing a deliberate one: the page has
+ * to travel 16px to change the answer back.
+ */
+const BAR_DEAD_BAND = 8;
+
+/**
+ * Whether the page is past the app bar, given where it is and the answer currently held: the
+ * threshold is asymmetric, so the state it is in decides which edge of the band it is tested
+ * against.
+ */
+export const scrolledPastBar = (scrollY: number, past: boolean): boolean =>
+  past ? scrollY > APP_BAR_HEIGHT - BAR_DEAD_BAND : scrollY > APP_BAR_HEIGHT + BAR_DEAD_BAND;
 
 /**
  * The bar plus whatever the device reserves under it: 34px on a phone with a home indicator, zero
@@ -85,48 +106,35 @@ export const BROWSER_TINT_VISIBLE = 5;
  * and nothing else at that edge still says which tab is open, so the top of the page can stop
  * wearing the tab's own colour and read as the page instead.
  *
- * One `scroll` listener at module scope, lazily attached on first use and fanned out to every
- * caller through `useSyncExternalStore` — the trade `useMatchMedia.ts` makes for a media query,
- * for the same reason: a caller asks per component instance, and minting a fresh listener each
- * would be one per caller rather than one for the page. `window` is reached from inside the getter
- * rather than at module scope, so importing this module does not require one.
+ * One `scroll` listener for the page, lazily attached on first use and fanned out to every caller
+ * through the shared store — the trade `useMatchMedia.ts` makes for a media query, for the same
+ * reason: a caller asks per component instance, and minting a fresh listener each would be one per
+ * caller rather than one for the page. `createStore` is what holds the value and the subscribers,
+ * so this file states only the listener and the threshold.
  */
-interface ScrollStore {
-  subscribe: (onChange: () => void) => () => void;
-  snapshot: () => boolean;
-}
+const pastBarStore = createStore(false);
 
-let scrollStore: ScrollStore | undefined;
+let listening = false;
 
-const getScrollStore = (): ScrollStore => {
-  if (scrollStore) return scrollStore;
+// A set to the value already held notifies nobody (`store.ts`), so a scroll that crosses neither
+// edge of the dead band costs no render in any caller.
+const readScroll = () => pastBarStore.set(scrolledPastBar(window.scrollY, pastBarStore.get()));
 
-  const listeners = new Set<() => void>();
-  let past = window.scrollY > APP_BAR_HEIGHT;
-  const read = () => {
-    const next = window.scrollY > APP_BAR_HEIGHT;
-    // A set to the value already held notifies nobody, so a scroll that crosses nothing costs no
-    // render in any caller.
-    if (next === past) return;
-    past = next;
-    listeners.forEach((listener) => listener());
-  };
-  window.addEventListener("scroll", read, { passive: true });
-
-  scrollStore = {
-    subscribe: (onChange) => {
-      listeners.add(onChange);
-      return () => {
-        listeners.delete(onChange);
-      };
-    },
-    snapshot: () => past,
-  };
-  return scrollStore;
+/**
+ * The listener, attached on the first caller's first render rather than on import: `window` is a
+ * browser global, and reaching for one while the module loads makes importing it throw where there
+ * is none. The first read runs in the same guard, so a page restored mid-scroll answers correctly
+ * on its first paint; it lands before anything has subscribed, so it notifies nobody.
+ */
+const listenToScroll = () => {
+  if (listening) return;
+  listening = true;
+  window.addEventListener("scroll", readScroll, { passive: true });
+  readScroll();
 };
 
 /** Live, re-rendering the caller the moment the page crosses the app bar in either direction. */
 export const useScrolledPastBar = () => {
-  const store = getScrollStore();
-  return useSyncExternalStore(store.subscribe, store.snapshot);
+  listenToScroll();
+  return pastBarStore.useValue();
 };

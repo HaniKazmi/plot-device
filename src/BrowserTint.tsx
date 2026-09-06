@@ -50,13 +50,6 @@ import { useScheme } from "./common/useScheme";
  * sampled anyway.
  */
 
-/**
- * How long the strip takes to cross from one colour to the other, matching `BottomTabs`' own
- * `SWAP_MS`: the two are opposite edges answering the same crossing, and one lagging the other
- * would read as two events instead of one.
- */
-const TINT_SWAP_MS = 160;
-
 export const BrowserTint = () => {
   const currTab = useCurrentTab();
   const scheme = useScheme();
@@ -84,9 +77,11 @@ export const BrowserTint = () => {
           // It lies across the top of the page, and a strip that answered a tap would take one
           // meant for whatever it covers.
           pointerEvents: "none",
+          // No transition on the colour: the strip is mounted while the tab's colour is what the
+          // top edge is, and taken away rather than recoloured once it is not, so the only changes
+          // left are a tab change and the scheme flipping at dusk, neither of which is a state of
+          // this element crossing to another.
           backgroundColor: background,
-          transition: `background-color ${TINT_SWAP_MS}ms ease`,
-          "@media (prefers-reduced-motion: reduce)": { transition: "none" },
         },
       })}
     />
