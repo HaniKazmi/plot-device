@@ -192,6 +192,13 @@ const attributeTitle = (entry: PlacedAttribute, matched: [number, number] | unde
  * The category's name leads the line except where it is blank, which is a toggle's entry: a
  * toggle's label *is* the value, so a lead there would repeat the title above it.
  */
+/**
+ * Whether the value is its own category's name — "Anime" under `anime` — where stating both is the
+ * one word twice. A split names its category after the half worth finding, so this is the split's
+ * own case rather than a general risk.
+ */
+const namesItsCategory = (entry: AttributeEntry) => entry.label.toLowerCase() === entry.value.toLowerCase();
+
 const attributeFacts = (entry: AttributeEntry, medium: Medium | undefined, scheme: Scheme) => (
   <MediaCounts
     counts={entry.counts}
@@ -201,14 +208,14 @@ const attributeFacts = (entry: AttributeEntry, medium: Medium | undefined, schem
     wordFor={(each, count) => stated(count, MEDIA_MODULES[each].noun)}
     scheme={scheme}
     lead={
-      entry.label ? (
+      namesItsCategory(entry) ? undefined : (
         <Box
           component="span"
           sx={{ textTransform: "capitalize" }}
         >
           {entry.label}
         </Box>
-      ) : undefined
+      )
     }
   />
 );
@@ -226,10 +233,6 @@ const firstMedium = (entry: AttributeEntry): Medium | undefined => (Object.keys(
  * acts through, so the chip in This page and the hit in Find cannot colour one value two ways;
  * absent where a category has no vocabulary, which is where a swatch would teach a legend no chart
  * honours.
- *
- * A shelf toggle is looked up beside the categories, and only one carrying `shelf`: the Omnibus's
- * own toggles are keyed by medium, so a category keyed `show` on some later tab would otherwise
- * take a medium switch's colour.
  */
 const attributeColour = (
   entry: AttributeEntry,
@@ -238,10 +241,8 @@ const attributeColour = (
   scheme: Scheme,
 ) => {
   const category = schema?.categories.find((candidate) => (candidate.key as string) === entry.category);
-  const toggle = schema?.toggles.find((candidate) => candidate.shelf && (candidate.key as string) === entry.category);
   const values = medium ? entry.values[medium] : undefined;
-  const value = values?.[0] ?? entry.value;
-  return (category ?? toggle)?.colourFor?.(value, scheme);
+  return category?.colourFor?.(values?.[0] ?? entry.value, scheme);
 };
 
 /** The schema an attribute's own vocabulary is declared in: its medium's, or the composing tab's. */

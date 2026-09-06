@@ -1,4 +1,5 @@
 import { rankHits, type Hit, type Searchable } from "../common/searchData";
+import { FRANCHISE_KEY } from "../common/filterSchema";
 import { franchiseIndex } from "../common/franchiseIndex";
 import { YearMonthDay, type Year } from "../common/date";
 import { certificateBand, isCertificate, mediumToLabel, type Medium } from "../utils/types";
@@ -63,15 +64,6 @@ export interface AttributeEntry extends Searchable {
   value: string;
   counts: Partial<Record<Medium, number>>;
   values: Partial<Record<Medium, string[]>>;
-  /**
-   * Whether a page can be narrowed *to* this value, which decides whether the entry is placed on
-   * the tabs holding it or only shelved.
-   *
-   * A category's value can: the tab sets it and keeps those rows alone. A toggle's cannot — its two
-   * states are "everything" and "these rows dropped", with none meaning "these rows alone" — so
-   * pressing a placed toggle hit would hide exactly what the reader pressed it to see.
-   */
-  narrows: boolean;
 }
 
 /**
@@ -182,16 +174,6 @@ export const buildSearchIndex = (items: OmniItem[], library: Library): SearchInd
 };
 
 /**
- * The category whose values this scan does not index, and why.
- *
- * The franchise column is mostly works naming themselves — 168 values in the games sheet alone —
- * and a scan of it would offer every standalone game as a series to narrow by. A franchise's own
- * narrowings come from the franchise index instead (`franchiseAttribute`), which drops those
- * through `isSeries`, so the set the box offers is the set that tab's own picker draws.
- */
-const NOT_AN_ATTRIBUTE = "franchise";
-
-/**
  * A franchise as a narrowing: the same value every tab's own `franchiseCategory` offers, in the
  * shape `attributePlacements` and `attributeAction` already read.
  *
@@ -202,16 +184,15 @@ const NOT_AN_ATTRIBUTE = "franchise";
  */
 const franchiseAttribute = (entry: FranchiseSearchEntry): AttributeEntry => ({
   kind: "attribute",
-  key: `attribute:${NOT_AN_ATTRIBUTE}:${entry.franchise}`,
-  category: NOT_AN_ATTRIBUTE,
-  label: NOT_AN_ATTRIBUTE,
+  key: `attribute:${FRANCHISE_KEY}:${entry.franchise}`,
+  category: FRANCHISE_KEY,
+  label: FRANCHISE_KEY,
   value: entry.franchise,
   name: entry.franchise,
   secondary: [],
   size: entry.size,
   counts: entry.counts,
   values: Object.fromEntries((Object.keys(entry.counts) as Medium[]).map((medium) => [medium, [entry.franchise]])),
-  narrows: true,
 });
 
 /**
@@ -234,18 +215,16 @@ const attributeValue = (category: string, cell: string): string =>
  * a medium answers `""` to is a hit nobody could name — and so is every category a tab's own
  * control surface would not draw, since the box offers exactly the narrowings the page holds.
  *
- * A toggle's entry is keyed on the toggle's own key and worded by its label, so two tabs marking
- * the same thing under the same word — anime, which Shows and Movies both record — fold into one
- * entry and one shelf. Its `label` is left empty, a toggle's own label being the value itself:
- * carried into the facts line it would repeat the title above it. It does not narrow (see
- * `AttributeEntry.narrows`).
+ * An entry is keyed on the category's own key and the value, so two tabs recording the same thing
+ * under the same word — anime, which Shows and Movies both split by — fold into one entry a single
+ * shelf opens and both tabs can be narrowed to.
  */
 export const buildAttributeIndex = (library: Library): AttributeEntry[] => {
   const found = new Map<string, AttributeEntry>();
 
   const record = (
     key: string,
-    fields: Pick<AttributeEntry, "category" | "label" | "value" | "narrows">,
+    fields: Pick<AttributeEntry, "category" | "label" | "value">,
     medium: Medium,
     cell: string,
   ) => {
@@ -268,30 +247,20 @@ export const buildAttributeIndex = (library: Library): AttributeEntry[] => {
 
   eachMedium((medium, module) => {
     for (const category of module.filters.categories) {
-      if (category.key === NOT_AN_ATTRIBUTE) continue;
+      // The values that category calls worth finding: all of them unless it says otherwise, which
+      // franchise does with none and a split with its marked half alone.
+      const found = category.found;
+      if (found?.length === 0) continue;
       for (const item of library[medium]) {
         const cell = category.valueOf(item);
         if (!cell) continue;
         const value = attributeValue(category.key, cell);
+        if (found && !found.includes(value)) continue;
         record(
           `attribute:${category.key}:${value}`,
-          { category: category.key, label: category.label, value, narrows: true },
+          { category: category.key, label: category.label, value },
           medium,
           cell,
-        );
-      }
-    }
-    for (const toggle of module.filters.toggles) {
-      if (!toggle.shelf) continue;
-      for (const item of library[medium]) {
-        // `hides` is what the page keeps while the toggle is off, so its negation is membership of
-        // the set the toggle names — all a shelf needs.
-        if (toggle.hides(item)) continue;
-        record(
-          `attribute:${toggle.key}:${toggle.label}`,
-          { category: toggle.key, label: "", value: toggle.label, narrows: false },
-          medium,
-          toggle.label,
         );
       }
     }
@@ -369,22 +338,13 @@ export const attributeAction = (entry: PlacedAttribute, held: readonly string[])
 const attributeItems = (library: Library, entry: AttributeEntry): OmniItem[] =>
   eachMedium((medium, module) => {
     const category = module.filters.categories.find((candidate) => (candidate.key as string) === entry.category);
-    if (category) {
-      return module.toOmniItems(
-        library[medium].filter((item) => {
-          const cell = category.valueOf(item);
-          return Boolean(cell) && attributeValue(entry.category, cell) === entry.value;
-        }),
-      );
-    }
-    // The toggle carrying the shelf, found the way the index found it: only one marked `shelf`,
-    // since the Omnibus keys its own switches by medium and a category named `show` on some later
-    // tab would otherwise collect a medium switch's rows.
-    const toggle = module.filters.toggles.find(
-      (candidate) => candidate.shelf && (candidate.key as string) === entry.category,
+    if (!category) return [];
+    return module.toOmniItems(
+      library[medium].filter((item) => {
+        const cell = category.valueOf(item);
+        return Boolean(cell) && attributeValue(entry.category, cell) === entry.value;
+      }),
     );
-    if (!toggle) return [];
-    return module.toOmniItems(library[medium].filter((item) => !toggle.hides(item)));
   }).flat();
 
 /**
@@ -448,9 +408,8 @@ const cutHits = <T>(hits: Hit<T>[], limit: number) => ({ hits: hits.slice(0, lim
  * carries a span of years a shelf row has nothing to put in, so one header would name two
  * destinations.
  *
- * The attributes are ranked once and read twice. Every one of them shelves; only the ones a page
- * can be held *to* are placed, which is what `narrows` says — and only where there is a page to
- * place them on.
+ * The attributes are ranked once and read twice — every one of them shelves, and every one is
+ * placed on the tabs that hold it, where there is a page to place them on at all.
  */
 export const searchUnion = (
   index: SearchIndex,
@@ -464,7 +423,7 @@ export const searchUnion = (
   // Attributes before franchises, and the cut after both: a genre matching a query exactly is a
   // better answer than a series matching it at a word start.
   const placeable: Hit<AttributeEntry>[] = [
-    ...attributes.filter(({ entry }) => entry.narrows),
+    ...attributes,
     ...franchises.hits.map(({ entry, matched }) => ({ entry: franchiseAttribute(entry), matched })),
   ];
   const placed = page

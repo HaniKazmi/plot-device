@@ -254,6 +254,69 @@ const SearchWithin = ({ label, value, onChange }: { label: string; value: string
 );
 
 /**
+ * How few values a category draws in its own row rather than behind a caret.
+ *
+ * A split is two chips and a caret hiding them costs a tap to reach a choice the row has the width
+ * to state outright — and the surface opens one category at a time, so it would cost the reader the
+ * genre list they had open as well. Three, so a vocabulary that has grown a value stays in place.
+ */
+const INLINE_VALUES = 3;
+
+/**
+ * A short category stated in one row: its name, then its values as chips.
+ *
+ * No caret and no clear of its own — every value is on screen, so pressing the lit chip off is the
+ * clear, where a hidden list needs a control saying what it holds and another to undo it.
+ */
+const InlineCategory = ({
+  label,
+  values,
+  counts,
+  selected,
+  colourFor,
+  dimmed,
+  onToggle,
+}: {
+  label: string;
+  values: readonly string[];
+  counts: Map<string, number>;
+  selected: readonly string[];
+  colourFor: ((value: string) => Colour | undefined) | undefined;
+  dimmed: boolean;
+  onToggle: (value: string) => void;
+}) => (
+  <Box
+    sx={{
+      display: "flex",
+      alignItems: "center",
+      gap: 1,
+      minHeight: 36,
+      paddingBottom: 1,
+      opacity: dimmed ? 0.4 : 1,
+    }}
+  >
+    <Typography
+      variant="caption"
+      sx={{ ...ROW_LABEL_SX, textTransform: "capitalize" }}
+    >
+      {label}
+    </Typography>
+    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, flexGrow: 1, minWidth: 0 }}>
+      {values.map((value) => (
+        <ValueChip
+          key={value}
+          value={value}
+          count={counts.get(value) ?? 0}
+          selected={selected.includes(value)}
+          colour={colourFor?.(value)}
+          onToggle={() => onToggle(value)}
+        />
+      ))}
+    </Box>
+  </Box>
+);
+
+/**
  * The values a category is offering: chips for a short vocabulary, the same chips over a field and
  * inside a scroller for a long one.
  *
@@ -405,10 +468,6 @@ export const SchemaPageControls = ({
                 key={toggle.key}
                 value={toggle.label}
                 selected={checked}
-                // A toggle naming a value the app already colours wears it, on the same terms a
-                // category's chip does: anime is a rose in every chart on two tabs and in the box's
-                // own hit, and a plain chip here would be the one place it is not.
-                colour={toggle.colourFor?.(toggle.label, scheme)}
                 onToggle={() => dispatch({ type: "updateFilter", filter: toggle.key, value: !checked })}
               />
             );
@@ -427,6 +486,26 @@ export const SchemaPageControls = ({
         // Read out before the closure: a category with no colour vocabulary passes the prop
         // undefined rather than a function answering undefined, so it keeps its plain chips.
         const colourFor = category.colourFor;
+        const swatch = colourFor && ((value: string) => colourFor(value, scheme));
+        const change = (value: string) =>
+          dispatch({ type: "updateFilter", filter: category.key, value: toggleValue(chosen, value) });
+
+        // A vocabulary short enough to state outright is stated: a caret over two chips hides a
+        // choice the row has room for, and opening it would shut whichever list the reader had.
+        if (values.length <= INLINE_VALUES && !category.searchable) {
+          return (
+            <InlineCategory
+              key={category.key}
+              label={category.label}
+              values={matching}
+              counts={counts}
+              selected={chosen}
+              colourFor={swatch}
+              dimmed={phrase.length > 0 && matching.length === 0}
+              onToggle={change}
+            />
+          );
+        }
 
         return (
           <Box key={category.key}>
@@ -449,10 +528,8 @@ export const SchemaPageControls = ({
                 values={matching}
                 counts={counts}
                 selected={chosen}
-                colourFor={colourFor && ((value: string) => colourFor(value, scheme))}
-                onToggle={(value) =>
-                  dispatch({ type: "updateFilter", filter: category.key, value: toggleValue(chosen, value) })
-                }
+                colourFor={swatch}
+                onToggle={change}
               />
             )}
           </Box>

@@ -133,8 +133,9 @@ describe.each(SCHEMES)("every fill clears 3:1 on the %s paper", (scheme) => {
 
   it("networks and the anime split", () => {
     for (const network of NETWORK_NAMES) check(`network ${network}`, networkToColour({ network }, scheme));
-    // Both halves once, the table being shared: Shows and Movies label the anime half identically
-    // and each keeps its own word for the rest, so two labels cover every value drawn.
+    // The marked half and its absence: Shows and Movies word anime identically and each keeps its
+    // own word for the rest, which all resolve to the neutral, so two labels cover every value
+    // drawn on either tab.
     for (const label of ["Anime", "Show"]) check(`anime ${label}`, animeToColour(label, scheme));
   });
 

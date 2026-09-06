@@ -498,18 +498,23 @@ export const franchiseToColour = ({ franchise }: { franchise: string }, scheme: 
 export const ANIME = "Anime";
 
 /**
- * Anime against everything else: the rose its fandom paints in, and a broadcast indigo for the
- * rest. Both meet the fill contract.
+ * Anime against everything else: the rose its fandom paints in, and the neutral for the rest.
  *
  * Shared here rather than kept on the Shows tab because Movies splits by the same distinction —
  * one hue means anime on either tab, and a tracked domain may not import another's vocabulary. The
  * word for the *other* half stays each tab's own, a show that is not anime being a show and a film
  * a film; only the anime half has to agree, and it is the half keyed on.
+ *
+ * That other half takes `NEUTRAL_FILL` because it is an absence rather than a second thing — the
+ * colour an off-table genre and a Top list's "Other" already wear — so the split reads as one
+ * thing against the rest. It also keeps the pair clear of Movies' own Cinema/Home blue, which the
+ * filter surface now draws three rows below it: a hue of its own there would be two blues 3.7 dE
+ * apart meaning different things on one screen.
  */
-const animeFills: [Fill, Fill] = [fill("#006bd1", "#1a82f2"), fill("#c42b91", "#de47a8")];
+const ANIME_FILL = fill("#c42b91", "#de47a8");
 
 export const animeToColour = (label: string, scheme: Scheme): Colour =>
-  pick(animeFills[label === ANIME ? 1 : 0], scheme);
+  pick(label === ANIME ? ANIME_FILL : NEUTRAL_FILL, scheme);
 
 export const scoreBands = ["9–10", "7–8", "5–6", "3–4", "1–2", "Unscored"] as const;
 

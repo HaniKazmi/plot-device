@@ -1028,12 +1028,13 @@ them before anything is typed, whichever the query names once something is. _Thi
 franchises. _Attributes_ are a genre, network, platform, author, director, certificate, decade or format,
 each with its count in each medium: `buildAttributeIndex` (`app/searchData.ts`) walks every medium's
 own schema over that medium's own rows, so the box can only offer a narrowing that tab's controls
-actually draw. It walks a medium's **toggles** too, where one is marked `shelf` — `hides` names a
-subset and `!hides(item)` is its membership test, which is all a shelf needs. Two carry it, Shows'
-and Movies' anime switches, keyed and worded alike so the two fold into one entry with a count in
-each: every other toggle names a page's own noise rather than a thing a reader looks for, and the
-Omnibus's medium switches would shelve a whole tab. Franchise is scanned from the franchise index
-rather than the column, which is mostly works naming themselves — 168 values in the games sheet
+actually draw. A category states which of its values are worth finding through `found`, defaulting
+to all of them: a split names its category after the half a reader looks for and offers only that
+half, since a shelf of "Show" on the Shows tab is the tab, and its hit would stand beside the Go-to
+chip of the same name saying nearly the opposite. Shows' and Movies' anime selects are keyed and
+worded alike — which is what the shared `animeCategory` is for — so the two fold into one entry with
+a count in each. Franchise states the empty list and is scanned from the franchise index instead,
+the column being mostly works naming themselves — 168 values in the games sheet
 alone. The certificate is grouped on
 `certificateBand`, the gallery's own rule, so `15` and `16` are one hit; what it _sets_ is whichever
 notations that tab's rows carry, which is why an entry keeps its values per medium.
@@ -1062,10 +1063,8 @@ index instead — and which of the two leads is how well each answered: `rankHit
 hit's rank, and a series named exactly stands above a genre found inside a word. The franchise
 takes a tie, its view saying more about a value than a shelf of works does. Ordered rather than
 merged into one ranked list, because the two open different layers and a franchise row carries a
-span of years a shelf row has nothing to put in, so one header would name two destinations. An
-entry from a toggle carries the shelf alone: a toggle's states are
-"everything" and "these rows dropped", with none meaning "these rows alone", so `narrows` is what
-keeps it out of the two placement groups.
+span of years a shelf row has nothing to put in, so one header would name two destinations. Every
+attribute reaches all three readings, a value the box can shelve being one a page can be held to.
 
 Matching (`common/searchData.ts`) folds text a character at a time — lowercased, accent dropped,
 punctuation a space — so the folded string is the raw string's length and a match found in one is
@@ -2022,11 +2021,15 @@ in which of them they use, BBFC issuing a 15 where PEGI issues a 16 for one tier
 off the tier rather than the number. `isCertificate` lets a converter reject a bad cell while it
 still knows the row — though what actually keeps a board's own five values in its column is the
 sheet's dropdown, a converter only being able to report a cell already written. `certificateBand` names that tier rather
-than colouring it, and is what the colour is looked up by. `animeToColour` is the eighth, a pair
-rather than a ramp: Shows and Movies both record the split and both group charts by it, so the rose
-means anime on either tab. Only the anime half is shared — the word for it is the `ANIME` constant,
-which is also what folds the two tabs' switches into one entry the box shelves — while each tab
-keeps its own word for the rest, a series that is not anime being a show and a film a film. Books
+than colouring it, and is what the colour is looked up by. `animeToColour` is the eighth, one fill
+and an absence rather than a ramp: Shows and Movies both record the split and both group charts by
+it, so the rose means anime on either tab. Only the anime half is shared — the word for it is the
+`ANIME` constant, which is also what folds the two tabs' selects into one entry the box shelves —
+while each tab keeps its own word for the rest, a series that is not anime being a show and a film a
+film. That rest takes `NEUTRAL_FILL`, being an absence and not a second thing, which is also what
+keeps it clear of the Cinema/Home pair the Movies filter surface now draws three rows below it: a
+hue of its own there was a blue 3.7 dE from the sofa's, two colours a reader cannot tell apart
+meaning different things on one screen. Books
 adds three formats at chroma 0.14,
 drawn only in a labelled band and the filter's chips; Movies adds the Cinema/Home pair and
 re-exports the score bands — valenced red through amber to green, Unscored on the neutral — under
@@ -2358,10 +2361,14 @@ level of inversion — `Sunburst` takes four callbacks, `Barchart` a data functi
 **Adding a filter.** Add a toggle or a category to the domain's `filters.ts` and the field it names
 to its `FilterState` (extending `BaseFilterState`). No glyph: the surface drawing these is a row of
 chips already reading the label, and a schema is reachable from the shell, so an icon named there
-would put four tabs' filter glyphs in the first bundle a visitor downloads. A toggle naming a set a
-reader goes looking for rather than a page's own noise takes `shelf`, which puts its value in the
-search index with a shelf and no narrowing (§6, Search), and a `colourFor` beside it where the app
-already speaks that value's colour — the chip, the hit's swatch and every wedge then being one hue. A category built by a shared helper —
+would put four tabs' filter glyphs in the first bundle a visitor downloads. **A two-valued split is
+a category and not a toggle**, however few values it has: a split has three readings — everything,
+one side, the other — where a toggle holds two of them and which two follows from how its predicate
+happens to be written, so Movies' old `home` switch could show the outings alone and never the
+nights in. As a category the same field states all three with the multi-select semantics every other
+category already has, wears the vocabulary's own colour on its chips, and is found and placed by the
+box like any other value. A toggle is then what it says it is: a page's own noise, an unscored film
+or a medium switched off, which nobody asks to see alone. A category built by a shared helper —
 `franchiseCategory`, `certificateCategory` — states its key inside that helper, so the compiler does
 not hold it to the tab's own state the way it holds a category written out inline: the field has to
 be added by hand, and a missing one is a filter that silently never applies. Nothing in

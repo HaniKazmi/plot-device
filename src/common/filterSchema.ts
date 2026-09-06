@@ -1,5 +1,13 @@
 import { categoryOptions, franchiseOptions } from "./filterOptions";
-import { franchiseToColour, type Colour, type KeysMatching, type Predicate, type Scheme } from "../utils/types";
+import {
+  ANIME,
+  animeToColour,
+  franchiseToColour,
+  type Colour,
+  type KeysMatching,
+  type Predicate,
+  type Scheme,
+} from "../utils/types";
 
 /**
  * A tab's own field holding a boolean, which is the only kind a toggle can name, and one holding a
@@ -35,6 +43,11 @@ export type CategoryKey<S> = KeysMatching<S, readonly string[]> & string;
  * every predicate's direction here — the name says what turning the toggle off does, not what the
  * function returns.
  *
+ * A toggle names a page's own noise — unconfirmed dates, unscored films, a medium switched off —
+ * and its two states are "everything" and "these rows dropped", with none meaning "these rows
+ * alone". A two-valued split is therefore a category and not a toggle however few values it has:
+ * three readings, and a toggle can hold two of them.
+ *
  * No icon: the surface drawing these is a row of chips reading the label, and an icon on a chip
  * a word already names is a picture standing for a word beside it. A schema is also reachable from
  * the shell, so an icon named here would put every tab's filter glyphs in the first bundle a
@@ -44,20 +57,6 @@ export interface FilterToggle<T, S> {
   key: ToggleKey<S>;
   label: string;
   hides(item: T): boolean;
-  /**
-   * Whether the rows this toggle names are a set worth opening on their own, which is what puts the
-   * value in the box's index and gives it a shelf.
-   *
-   * `hides` names a subset and `!hides(item)` is its membership test, which is all a shelf needs.
-   * Off by default: most toggles name a page's own noise — unconfirmed dates, unscored films —
-   * rather than a thing a reader goes looking for, and the Omnibus's medium switches would shelve
-   * a whole tab. A shelf is the only reading such a value gets: a toggle's states are "everything"
-   * and "these rows dropped", with none meaning "these rows alone", so narrowing a page *to* it is
-   * not something the control can express.
-   */
-  shelf?: boolean;
-  /** Its swatch, on the same terms a category's values take one. */
-  colourFor?(value: string, scheme: Scheme): Colour | undefined;
 }
 
 /**
@@ -84,7 +83,33 @@ export interface FilterCategory<T, S> {
   options?(data: readonly T[]): string[];
   colourFor?(value: string, scheme: Scheme): Colour | undefined;
   searchable?: boolean;
+  /**
+   * The values the box indexes as attributes, where only some of them are worth finding. Defaults
+   * to all of them: a genre, a network, an author is a thing a reader goes looking for.
+   *
+   * A split's unmarked half is not. "Show" on the Shows tab names the tab, so a shelf of it is the
+   * library less a few rows and its hit stands beside the Go-to chip for the tab of the same name
+   * saying nearly the opposite. Franchise states the empty list for a different reason: its values
+   * are found through the franchise index, which drops the standalone works that make up most of
+   * the column.
+   */
+  found?: readonly string[];
 }
+
+/**
+ * A stated vocabulary held to what the rows carry, in the order it was stated in.
+ *
+ * One pass rather than one per value: `categoryTally` scans the library for its counts already, and
+ * a category asking again per value turns the Omnibus's certificate row into six passes over the
+ * union for what one Set answers.
+ */
+export const present = <T>(values: readonly string[], data: readonly T[], valueOf: (item: T) => string): string[] => {
+  const seen = new Set(data.map(valueOf));
+  return values.filter((value) => seen.has(value));
+};
+
+/** The key every tab's franchise select is held on, and the one a franchise hit is placed by. */
+export const FRANCHISE_KEY = "franchise";
 
 /**
  * The franchise select, which every tab offers on the same terms: the column each sheet writes a
@@ -99,7 +124,7 @@ export const franchiseCategory = <T extends { franchise: string; name: string }>
   T,
   { franchise: string[] }
 > => ({
-  key: "franchise",
+  key: FRANCHISE_KEY,
   label: "franchise",
   valueOf: (item) => item.franchise,
   options: (data) =>
@@ -113,6 +138,35 @@ export const franchiseCategory = <T extends { franchise: string; name: string }>
   // which is the plain chip every other uncoloured value already wears.
   colourFor: (value, scheme) => franchiseToColour({ franchise: value }, scheme) || undefined,
   searchable: true,
+  // Found through the franchise index instead, which holds the column to the values that actually
+  // group something: a scan of it would offer every standalone work as a series to narrow by.
+  found: [],
+});
+
+/**
+ * The anime split, which Shows and Movies both record, both colour and both group charts by.
+ *
+ * Stated once because the box folds the two tabs' entries on the key and the word together: keyed
+ * or worded apart, "Anime" would be two hits holding one medium each instead of one shelf holding
+ * both. A category and not a toggle, so the page can be held to anime as well as cleared of it —
+ * a toggle offers two of a split's three readings and which two is an accident of how its
+ * predicate was written.
+ *
+ * Only the marked half is `found`: a shelf of "Show" is the Shows tab, and of "Film" the Movies
+ * tab. `otherwise` is each tab's own word for a row that is not anime, which is not "live action"
+ * — the sheet claims no such thing — and `valueOf` is the tab's own labelling, so the chips and
+ * the wedges cannot come to word one split two ways.
+ */
+export const animeCategory = <T>(
+  valueOf: (item: T) => string,
+  otherwise: string,
+): FilterCategory<T, { anime: string[] }> => ({
+  key: "anime",
+  label: "anime",
+  valueOf,
+  options: (data) => present([otherwise, ANIME], data, valueOf),
+  colourFor: animeToColour,
+  found: [ANIME],
 });
 
 /**
@@ -134,7 +188,7 @@ export const certificateCategory = <T>(
   key: "certificate",
   label: "certificate",
   valueOf: certificateOf,
-  options: (data) => values.filter((value) => data.some((item) => certificateOf(item) === value)),
+  options: (data) => present(values, data, certificateOf),
   colourFor,
 });
 

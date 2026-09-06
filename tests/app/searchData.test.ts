@@ -236,12 +236,12 @@ describe("buildAttributeIndex over a shelved toggle", () => {
     expect(anime[0].counts).toEqual({ show: 1, movie: 1 });
   });
 
-  it("shelves such an entry and never places it, a toggle having no state meaning these rows alone", () => {
-    const [anime] = buildAttributeIndex(animeLibrary()).filter((entry) => entry.category === "anime");
+  it("keeps the split's unmarked half out of the index, so no shelf stands for a whole tab", () => {
+    const values = buildAttributeIndex(animeLibrary())
+      .filter((entry) => entry.category === "anime")
+      .map((entry) => entry.value);
 
-    expect(anime.narrows).toBe(false);
-    // Its label is blank: a toggle's label is the value itself, and the facts line would repeat it.
-    expect(anime.label).toBe("");
+    expect(values).toEqual(["Anime"]);
   });
 
   it("leaves a toggle that names a page's own noise out of the index entirely", () => {

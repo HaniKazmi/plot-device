@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { CURRENT_YEAR, YearMonthDay, type YearNumber } from "../../src/common/date";
-import { guestFilter } from "../../src/movie/filters";
+import { guestFilter, movieFilters } from "../../src/movie/filters";
 import { filters, initialState, type FilterState } from "../../src/movie/filterUtils";
 import { movie } from "../fixtures/movies";
-import { movieFilters } from "../../src/movie/filters";
 
 const state = (overrides: Partial<FilterState> = {}): Omit<FilterState, "filter"> => ({
   ...initialState,
@@ -21,29 +20,41 @@ describe("the default state", () => {
 });
 
 describe("toggles", () => {
-  it("keeps only cinema films when the home switch is off", () => {
-    const keep = filters(state({ home: false }));
-
-    expect(keep(movie({ cinema: true }))).toBe(true);
-    expect(keep(movie({ cinema: false }))).toBe(false);
-  });
-
   it("keeps only scored films when the unscored switch is off", () => {
     const keep = filters(state({ unscored: false }));
 
     expect(keep(movie({ score: 8 }))).toBe(true);
     expect(keep(movie({ score: undefined }))).toBe(false);
   });
-
-  it("drops anime when the anime switch is off", () => {
-    const keep = filters(state({ anime: false }));
-
-    expect(keep(movie({ anime: true }))).toBe(false);
-    expect(keep(movie({ anime: false }))).toBe(true);
-  });
 });
 
 describe("categories", () => {
+  it("holds the page to either side of a split, or to neither", () => {
+    // Both splits, and both directions of each: the two readings a switch could not reach are
+    // "only anime" and "only the nights in".
+    expect(filters(state({ anime: ["Anime"] }))(movie({ anime: true }))).toBe(true);
+    expect(filters(state({ anime: ["Anime"] }))(movie({ anime: false }))).toBe(false);
+    expect(filters(state({ anime: ["Film"] }))(movie({ anime: true }))).toBe(false);
+
+    expect(filters(state({ cinema: ["Cinema"] }))(movie({ cinema: true }))).toBe(true);
+    expect(filters(state({ cinema: ["Cinema"] }))(movie({ cinema: false }))).toBe(false);
+    expect(filters(state({ cinema: ["Home"] }))(movie({ cinema: true }))).toBe(false);
+    expect(filters(state({ cinema: ["Home"] }))(movie({ cinema: false }))).toBe(true);
+
+    expect(filters(state({ cinema: [] }))(movie({ cinema: false }))).toBe(true);
+  });
+
+  it("puts both halves of the outing split in the box's index, where anime keeps only its own", () => {
+    // An outing and a night in are each a thing to go looking for, where "Film" on the Movies tab
+    // names the tab.
+    const cinema = movieFilters.categories.find((category) => category.key === "cinema")!;
+    const anime = movieFilters.categories.find((category) => category.key === "anime")!;
+
+    expect(cinema.found).toBeUndefined();
+    expect(cinema.options!([movie({ cinema: true }), movie({ cinema: false })])).toEqual(["Cinema", "Home"]);
+    expect(anime.found).toEqual(["Anime"]);
+  });
+
   it("filters by genre, director, franchise and certificate as inclusion lists", () => {
     expect(filters(state({ genre: ["Horror"] }))(movie({ genre: "Sci-Fi" }))).toBe(false);
     expect(filters(state({ genre: ["Horror"] }))(movie({ genre: "Horror" }))).toBe(true);
@@ -67,8 +78,8 @@ describe("what guest mode hides", () => {
     expect(guestFilter(movie({ anime: false }))).toBe(true);
   });
 
-  it("cannot be undone by the anime toggle, which only ever widens what the page draws", () => {
-    expect(filters(state({ anime: true }))(movie({ anime: true }))).toBe(true);
+  it("cannot be undone by the anime select, which narrows the library rather than widening it", () => {
+    expect(filters(state({ anime: ["Anime"] }))(movie({ anime: true }))).toBe(true);
   });
 });
 
@@ -96,10 +107,14 @@ describe("the year cutoff", () => {
 });
 
 describe("the schema the drawer and the box are both drawn from", () => {
-  it("offers three toggles and four categories, in the order they are laid out", () => {
-    expect(movieFilters.toggles.map((toggle) => toggle.key)).toEqual(["home", "unscored", "anime"]);
+  it("offers one toggle and six categories, in the order they are laid out", () => {
+    // Unscored films are a pile to be rid of; both splits are categories, each having a third
+    // reading a switch cannot hold.
+    expect(movieFilters.toggles.map((toggle) => toggle.key)).toEqual(["unscored"]);
     expect(movieFilters.categories.map((category) => category.key)).toEqual([
       "genre",
+      "anime",
+      "cinema",
       "certificate",
       "director",
       "franchise",
