@@ -300,10 +300,9 @@ the loading state whatever the cache holds, `revoke` present is live, and only t
 decide — some library with a copy behind it is `stale`, none at all is `empty`. Presence alone, never
 `useData`'s `loaded`: a reader who revokes mid-session, and a failed `values.get` that cleared the
 token, both leave rows on screen this session did fetch and can no longer refresh, which is what the
-strip is for and what reading `loaded` would blank the page over. The auth context sits above the
+key's dot is for and what reading `loaded` would blank the page over. The auth context sits above the
 library provider and knows nothing about the cache, so the derivation is a hook below both — which
-the bar, the strip and the page body are, `Google.tsx` mounting `LibraryProvider` above `NavBar` for
-it.
+the bar and the page body are, `Google.tsx` mounting `LibraryProvider` above `NavBar` for it.
 
 The bar draws one thing about all this: an authorise key beside the search button, at every width,
 and only where there is something to authorise — a dot on it while the page is stale, its word
@@ -311,13 +310,12 @@ beside it from `md` up with a fine pointer, and nothing at all when the session 
 else is behind the `⋮`, which is drawn at every width and pointer: the tab's Sheet, Revoke, and
 guest mode in both directions. One list and one surface, so nothing is reachable at one width and
 not another — an iPad held sideways clears every width test and still points with a finger, and a
-mouse at 1440 has no other way out of guest mode. `app/StaleStrip.tsx` carries the sentence the key
-cannot ("Showing cached data", the same callback, and a ✕ that dismisses for the sitting through
-`sessionStorage`), under the bar and flush against it; both are `position: static`, so the strip
-scrolls away with the bar and the section rail below still pins itself at the top of the viewport.
-`app/EmptyCard.tsx` is that strip grown to the page for the `empty` state, which `Google.tsx` renders
-in place of the `<Outlet>`: with no cache and no token there is no fetch to fail, so the snackbar has
-nothing to report and the card is the only thing that can say what to do.
+mouse at 1440 has no other way out of guest mode. The dot is all a stale page is told: the rows are
+last visit's and one press refreshes them, which a line of chrome under the bar states at the cost of
+a strip standing over every page for the whole sitting. `app/EmptyCard.tsx` is the exception, for the
+`empty` state, which `Google.tsx` renders in place of the `<Outlet>`: with no cache and no token
+there is no fetch to fail, so the snackbar has nothing to report and the card is the only thing that
+can say what to do.
 
 ## 6. Presentation subsystems
 

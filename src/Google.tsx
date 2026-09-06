@@ -19,7 +19,6 @@ import { LibraryProvider } from "./app/LibraryProvider.tsx";
 import { FranchiseUnionProvider } from "./app/franchiseUnion.tsx";
 import { SearchHost } from "./app/Search.tsx";
 import { useAuthState } from "./app/authState.ts";
-import { StaleStrip } from "./app/StaleStrip.tsx";
 import { useLibrary } from "./app/library.ts";
 import { pageCount, pageOf, usePageState } from "./app/pageState.ts";
 import { NothingMatchesContext } from "./common/nothingMatchesContext.ts";
@@ -89,9 +88,6 @@ const GoogleAuth = () => {
           guestMode={guestMode}
           setGuestMode={setGuestMode}
         />
-        {/* Under the bar and above everything the page states about itself, since what it says is
-            true of the whole page rather than of any one section of it. */}
-        <StaleStrip />
         <Container
           maxWidth={"xl"}
           // The bottom navigation is fixed, so it paints over whatever the page ends with unless the
