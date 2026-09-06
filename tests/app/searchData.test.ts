@@ -396,6 +396,28 @@ describe("searchUnion over attributes", () => {
     ]);
   });
 
+  it("leads with the layer readings where a shelf and a franchise both answer one query", () => {
+    // The order the box is built on: what the value *is* first — every fantasy work, and the
+    // series called Fantasy Quest — then what it does to a page, then the works themselves.
+    const fantasy = library({
+      game: [videoGame({ name: "Fantasy Quest II", franchise: "Fantasy Quest", genre: "Fantasy" })],
+      movie: [movie({ name: "Fantasy Quest: The Film", franchise: "Fantasy Quest", genre: "Fantasy" })],
+    });
+    const groups = searchUnion(buildSearchIndex(toOmniItems(fantasy), fantasy), "fantasy", {
+      tabId: "games",
+      categories: ["genre", "franchise"],
+    });
+
+    expect(groups.map((group) => group.key)).toEqual([
+      "shelf",
+      "franchise",
+      "filter-here",
+      "filter-there",
+      "game",
+      "movie",
+    ]);
+  });
+
   it("gives a franchise the two narrowings a genre gets, on the tabs recording it", () => {
     const groups = searchUnion(trekIndex(), "star trek", { tabId: "shows", categories: ["genre", "franchise"] });
     const here = groups.find((group) => group.key === "filter-here")!;
