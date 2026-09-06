@@ -37,7 +37,7 @@ import type {} from "@mui/material/themeCssVarsAugmentation";
  *
  * A component of its own because the state is read from a hook and `GoogleAuth` below mounts the
  * providers that answer it, so it is above them and cannot ask. Every other state renders the
- * outlet: a tab holding a cached copy paints it with the strip above saying so, and one still
+ * outlet: a tab holding a cached copy paints it with the key's own dot saying so, and one still
  * fetching paints what it has, which is what a cache-first page is for.
  */
 /**

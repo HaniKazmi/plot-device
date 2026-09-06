@@ -18,8 +18,8 @@ describe("movieSections", () => {
     expect(movieSections(false).map((section) => section.id)).not.toContain(MOVIE_SECTIONS.latest);
   });
 
-  it("keys the latest-watch anchor movie-latest whatever its chip reads", () => {
-    expect(movieSections(true).map((section) => section.id)).not.toContain("movie-now");
+  it("keys the latest-watch anchor movies-latest and never movies-now, whatever its chip reads", () => {
+    expect(movieSections(true).map((section) => section.id)).not.toContain("movies-now");
   });
 
   it("names every anchor under MOVIE_SECTIONS exactly once when everything is offered", () => {

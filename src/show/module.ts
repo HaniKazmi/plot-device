@@ -35,7 +35,7 @@ const seasonItems = (shows: Show[]): OmniItem[] =>
 
 export const showModule: MediumModule<Show, Season, Measure> = {
   medium: "show",
-  tabId: "show",
+  tabId: "shows",
   noun: "shows",
   data: showDataConfig,
   guestFilter,

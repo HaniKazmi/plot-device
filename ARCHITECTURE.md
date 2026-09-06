@@ -13,7 +13,7 @@ why they are shaped the way they are. For conventions see [AGENTS.md](./AGENTS.m
 │  (the whole  │ ◄─── token ───── │     Services      │
 │  application)│                  └───────────────────┘
 │              │
-│              │  sheets.values.get (read-only scope)
+│              │  sheets.values.batchGet (read-only scope)
 │              │ ───────────────► ┌───────────────────┐
 │              │ ◄── string[][] ── │ Google Sheets API │
 └──────┬───────┘                  └───────────────────┘
@@ -137,7 +137,7 @@ domain may import. `omnibus/` reads no sheet (§3), so it is the one domain with
 tabs.ts                    { spreadsheetId, range }
    │
    ▼
-GoogleAuthContext          gapi.client.sheets.spreadsheets.values.get
+GoogleAuthContext          values.batchGet, one request for all four ranges
    │                       → string[][]  (raw grid, header row first)
    ▼
 utils/arrayUtils           arrayToJson()
@@ -162,6 +162,28 @@ common/filterReducer       reducer composes predicates → data.filter(...)
 `fetchAndConvertSheet` runs the converter inside the fetch, so `useData` never sees a raw grid. Only
 `jsonConverter` knows a spreadsheet's column names, which is what makes a new data source cheap to
 add (§8).
+
+**The four reads are one request.** `common/rangeBatch.ts` collects every range asked for in a tick
+and sends them together, which is available because the four ranges are four tabs of one file: the
+provider mounts four hooks whose effects run in a single commit, so four separate reads would be
+four requests and four quota units for what one `batchGet` answers. The gain is quota rather than
+latency — the four were already concurrent against one host. The batch forms in a microtask, long
+enough for a commit's effects to have queued every range and short enough that a caller arriving
+alone still leaves in the tick it asked in; a range asked for later, by a tab mounted after the
+others or by a refresh, forms the next batch. It is keyed by spreadsheet, so a fifth medium in
+another document batches with itself rather than not at all.
+
+The response holds one entry per requested range in the order asked, which is what lets each caller
+read its own grid out by index — and is the whole of the coupling, so `fetchAndConvertSheet` keeps
+its signature and every caller, cache key and per-medium error is untouched. One range failing is
+the exception, and the cost is real: `batchGet` rejects the whole call, so all four media fail
+together and each reports the same message — a Games tab naming a Books range. The range string is
+a build-time constant, but it embeds a **sheet tab name** the spreadsheet's owner renames at will,
+so this is a failure somebody can cause, and the trade is that against a request nobody pays for
+four times. A grid that arrives empty is the other half: the batcher hands `undefined` up rather
+than an empty grid, and `fetchAndConvertSheet` rejects it outside its own token guard, since a
+converter reading no rows as a library with none would store that over the copy a cold visit paints
+from and report a successful refresh doing it.
 
 **A bad cell names its own row**, rather than surfacing later from a colour lookup or a chart offset
 that names none. `common/sheetError.ts` holds the vocabulary — `sheetRow`, `describing`, `sheetError`
@@ -251,14 +273,34 @@ the previous visit's copy. `dataLoaded` starts `true` on a `CACHE` hit, every en
 been written by a fetch this session made, so a caller waiting on four domains can tell "still
 fetching" from "already fetched by the tab you came from". Once `apiReady` turns true it fetches,
 sharing one in-flight promise per `storageKey` so a second mount subscribes rather than issuing a
-second `values.get`; the entry clears on settle, so a failed fetch is retried by the next mount.
+second read; the entry clears on settle, so a failed fetch is retried by the next mount.
+
+The fourth return value is the way to ask again. It drops that domain's cached copy and bumps a
+count of the reads asked for, which is in the effect's own dependencies — so the effect reruns,
+finds no copy and fetches. A count rather than the `dataLoaded` flag, because the effect reruns on a
+dependency that _changes_ and that flag is already false for a domain whose read failed: turned back
+there it is a same-value write, so the retry after a bad row — the one press this exists for —
+would issue no request while clearing the message saying why. `dataLoaded` and `error` are still
+turned back, being what the page says about itself while the read is out. Called from a press rather
+than an effect, which is what lets it set state at all. `localStorage` is left standing, since
+emptying it would blank the next cold visit for the window before the replacement lands, and
+`IN_FLIGHT` too: a request already on the wire is one a refresh joins rather than duplicates.
+
+`LibraryProvider` composes the four into `refresh` on `LibraryValue`, beside the `loaded` and `error`
+it already assembles, and derives `reading` from them — a token, and a medium that has neither
+landed nor failed. Both live there rather than in a module global because the bar is inside that
+provider, so there is a common ancestor and nothing to reach past. It also means `loaded` stops being
+a latch, and the refresh notice each tab already keeps fires on a refresh as it does on a first
+load.
 
 The third return value is what went wrong. A gapi rejection is the response object rather than an
 `Error`, so `describeFailure` reads `result.error.message` — the converter's own message, naming the
 row, item and column. `DataLoadedSnackbar` holds it until dismissed and leaves the stale copy
 standing: last week's data beside the row to fix beats an empty page. Its "Refresh Complete" fires
-only for a `false → true` turn it watches after mount, so a caller keeps it mounted at a stable
-position across that turn. Below `sm` it stands above the bottom tab bar (`BOTTOM_TABS_CLEARANCE`,
+for a `false → true` turn it watches after mount, so a caller keeps it mounted at a stable position
+across that turn. It watches the turn rather than latching on the first arrival: a refresh takes the
+flag false and true again, so a latch would answer a cold load and then stay silent for every
+re-read on the one tab the reader is standing on. Below `sm` it stands above the bottom tab bar (`BOTTOM_TABS_CLEARANCE`,
 § Phone and tablet) rather than under it, MUI's own default anchoring to an edge the tabs cover.
 
 Two subtleties live in the serialisation boundary, and both are easy to break:
@@ -295,7 +337,7 @@ visitor who never authorises.
   yields a `NaN` expiry, which fails every validity test and discards the token on its next read.
 - **Readiness.** `apiReady = tokenSet && apiReadyToFetch` — a valid token _and_ an initialised gapi
   client, so consumers wait on one flag rather than two async loads.
-- **Failure handling.** A rejected `values.get` clears `tokenSet`, putting the key back in the bar,
+- **Failure handling.** A rejected read clears `tokenSet`, putting the key back in the bar,
   so mid-session expiry self-heals into a re-prompt. **Only the request is guarded**: a
   converter throw travels on to `useData` instead, since clearing the token would make a data fault
   look like an auth fault. A refusal — GIS delivers a dismissed consent popup to the callback a grant
@@ -310,15 +352,20 @@ presence rather than through separate booleans.
 `app/authState.ts` answers `live` · `authorising` · `stale` · `empty`: neither callback present is
 the loading state whatever the cache holds, `revoke` present is live, and only then does the cache
 decide — some library with a copy behind it is `stale`, none at all is `empty`. Presence alone, never
-`useData`'s `loaded`: a reader who revokes mid-session, and a failed `values.get` that cleared the
+`useData`'s `loaded`: a reader who revokes mid-session, and a failed read that cleared the
 token, both leave rows on screen this session did fetch and can no longer refresh, which is what the
 key's dot is for and what reading `loaded` would blank the page over. The auth context sits above the
 library provider and knows nothing about the cache, so the derivation is a hook below both — which
 the bar and the page body are, `Google.tsx` mounting `LibraryProvider` above `NavBar` for it.
 
-The bar draws one thing about all this: an authorise key beside the search button, at every width,
-and only where there is something to authorise — a dot on it while the page is stale, its word
-beside it from `md` up with a fine pointer, and nothing at all when the session is live. Everything
+The bar draws one thing about all this, in one slot beside the search button at every width: an
+authorise key while there is something to authorise — a dot on it while the page is stale, its word
+beside it from `md` up with a fine pointer — and, once the session is live, a refresh in its place.
+The two are the same control at two states of one question, which is why they share a slot: a
+session holds its sheets for as long as it lasts, so without the second there is no way to re-read
+them but to reload the page, and an installed app offers no handle for that at all. It spins and
+disables itself while the read is in flight, that being the whole of the report — the rows do not
+blank, and a page of last visit's data is what stands until the new ones land. Everything
 else is behind the `⋮`, which is drawn at every width and pointer: the tab's Sheet, Revoke, and
 guest mode in both directions. One list and one surface, so nothing is reachable at one width and
 not another — an iPad held sideways clears every width test and still points with a finger, and a
@@ -2228,7 +2275,8 @@ there, and the bar answers for the library as a whole — and `FranchiseUnionPro
 
 Routing uses `HashRouter` because GitHub Pages cannot rewrite deep paths to `index.html`. The root
 route and the unmatched-path fallback are positional — `App.tsx` renders `Tabs[0].component` for the
-index and `tabForPath` falls back to `tabs[0]` — so a tab's place in the exported `Tabs` array decides
+index and for `*`, and `tabForPath` falls back to `tabs[0]` so the bar and theme agree with it — so a
+tab's place in the exported `Tabs` array decides
 what a bare `/` opens. Omnibus leads for that reason.
 
 ## 8. Extension points
@@ -2318,16 +2366,12 @@ Recorded so they are not mistaken for design:
   over an empty page, since the state cannot yet tell "nothing here" from "about to fetch". Once
   `live`, the sheet read runs behind the same empty page, and the Omnibus waits on all four sheets,
   so it waits longest.
-- **Every visit fetches all four sheets.** `app/LibraryProvider.tsx` mounts above the router, so any
+- **Every visit reads all four ranges.** `app/LibraryProvider.tsx` mounts above the router, so any
   tab has the cross-media union and the bar can say whether there is a library at all; a deep link
-  to `/vg` therefore pays three extra sheet reads and paints from cache until they land, where the
-  Omnibus — which a bare visit opens on — needs all four regardless. A deliberate trade, argued in
-  that provider's own comment. Now that the four ranges live in one spreadsheet, most of the cost is
-  addressable: `spreadsheets.values.batchGet` would fetch all four in one round trip where
-  `fetchAndConvertSheet` issues one `values.get` per tab. It is a transport change rather than a
-  schema one — `useData`'s per-key in-flight promise becomes one shared promise and per-medium
-  `loaded` collapses, though per-medium `error` has to stay, a converter throw being per-domain — so
-  it is left for its own change rather than folded into the migration that enabled it.
+  to `/games` therefore pays for three tabs it is not showing, where the Omnibus — which a bare visit
+  opens on — needs all four regardless. A deliberate trade, argued in that provider's own comment.
+  What it costs is now one request rather than four (§3), so what is left is the parsing: four
+  converters run over four grids on the main thread whichever tab was asked for.
 - **No DOM or component tests.** `tests/` covers pure logic — converters, filters, the reducer, the
   chart data transforms, the cache round trip — and stops there; AGENTS.md explains the trade. Nothing
   verifies that a chart renders.

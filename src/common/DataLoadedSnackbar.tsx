@@ -27,13 +27,23 @@ export const DataLoadedSnackbar = ({ open, error }: { open: boolean; error?: str
    * nothing, which is the truth — nothing arrived — where announcing it would put a refresh notice
    * on every navigation between tabs.
    *
+   * The turn is what is watched, rather than the first arrival since mounting. A refresh takes
+   * `open` false and true again, so a latch set by the first arrival — or captured at mount — is a
+   * component that answers a cold load and stays silent for every re-read after it, on the one tab
+   * the reader is standing on. Comparing against the previous value during the render that changes
+   * it is React's own way to hold state derived from a prop, and it re-arms by construction.
+   *
    * **The caller has to keep this component mounted across that turn**, at a stable position among
    * its siblings. Rendering it alone while data is missing and again inside the loaded tree
    * remounts it exactly when the value turns over, and the transition is then unobservable — the
    * fresh mount sees only `true`.
    */
-  const [openAtMount] = useState(open);
-  const [snackbarClosed, setSnackbarClosed] = useState(false);
+  const [previouslyOpen, setPreviouslyOpen] = useState(open);
+  const [announcing, setAnnouncing] = useState(false);
+  if (previouslyOpen !== open) {
+    setPreviouslyOpen(open);
+    if (open) setAnnouncing(true);
+  }
   /**
    * The message a reader has waved away, rather than a flag saying they waved one away. A refetch
    * after re-authorising, or the Omnibus's four sheets answering in turn, replaces one complaint
@@ -67,9 +77,9 @@ export const DataLoadedSnackbar = ({ open, error }: { open: boolean; error?: str
 
   return (
     <Snackbar
-      open={open && !openAtMount && !snackbarClosed}
+      open={announcing}
       autoHideDuration={1000}
-      onClose={() => setSnackbarClosed(true)}
+      onClose={() => setAnnouncing(false)}
       message="Refresh Complete"
       sx={SNACKBAR_SX}
     />

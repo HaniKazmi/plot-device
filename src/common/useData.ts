@@ -103,7 +103,7 @@ export const describeFailure = (cause: unknown): string => {
  *
  * `LibraryProvider` mounts one hook per key for the life of the page, but a remount while that
  * key's fetch is still outstanding — React StrictMode's mount/unmount/remount in development,
- * which every session hits — would otherwise issue a second `values.get` and convert, stringify
+ * which every session hits — would otherwise issue a second read and convert, stringify
  * and store the same library twice. Cleared once the promise settles, so a failed fetch is retried
  * by the next mount rather than replayed to it.
  */
@@ -143,7 +143,7 @@ export interface DataConfig<T> {
 const useData = <T>(
   { storageKey, converter, reviver, replacer }: DataConfig<T>,
   tab: SheetTab,
-): [T[] | undefined, boolean, string | undefined] => {
+): [T[] | undefined, boolean, string | undefined, () => void] => {
   /**
    * Whether this session has the sheet's own rows rather than a previous visit's copy.
    *
@@ -189,6 +189,17 @@ const useData = <T>(
 
   const { apiReady, fetchAndConvertSheet } = useGoogleAuth();
 
+  /**
+   * How many reads the reader has asked for, which is what `refetch` moves.
+   *
+   * A counter rather than a flag, because the effect re-runs on a dependency that *changes* and the
+   * states a flag could hold are already taken: `dataLoaded` is false for a domain whose read
+   * failed, so setting it false again is a same-value write React bails on, and the retry after a
+   * bad row — the one press this control exists for — would issue no request at all while clearing
+   * the error that says why.
+   */
+  const [reads, setReads] = useState(0);
+
   useEffect(() => {
     if (!apiReady || CACHE.has(storageKey)) return;
 
@@ -218,15 +229,46 @@ const useData = <T>(
         // already in storage.
         if (CACHE.has(storageKey)) return;
         CACHE.set(storageKey, data);
-        storage().setItem(storageKey, JSON.stringify(data, replacer));
+        try {
+          storage().setItem(storageKey, JSON.stringify(data, replacer));
+        } catch (cause) {
+          // Guarded separately from the fetch, whose `catch` this handler otherwise falls into: a
+          // full quota or a private window would then be reported through `describeFailure` as the
+          // sheet's own complaint, sending a reader to find a bad row in a spreadsheet that is
+          // fine. What it actually costs is the next cold visit its paint, which is nothing this
+          // read can act on and nothing worth interrupting for.
+          console.error(cause);
+        }
       })
       .catch((cause: unknown) => {
         console.error(cause);
         setError(describeFailure(cause));
       });
-  }, [apiReady, converter, storageKey, tab, fetchAndConvertSheet, replacer]);
+  }, [apiReady, converter, storageKey, tab, fetchAndConvertSheet, replacer, reads]);
 
-  return [data, dataLoaded, error];
+  /**
+   * Reads the sheet again, for a reader who wants what it says now.
+   *
+   * Dropping the cached copy is what makes the effect fetch rather than take its early return, and
+   * bumping `reads` is what makes it run at all — the two together, since neither alone re-reads.
+   * `dataLoaded` and `error` are turned back because they are what the page says about itself while
+   * the read is out; they signal nothing to the effect.
+   *
+   * Called from a press rather than from an effect, which is what lets it set state at all: a
+   * `setState` in an effect body is the cascading render the compiler's rules reject.
+   *
+   * `localStorage` is left standing. Emptying it would blank the next cold visit for the window
+   * before the replacement lands, which is the one thing that copy is for. `IN_FLIGHT` is left too:
+   * a request already on the wire is one this can join rather than duplicate.
+   */
+  const refetch = () => {
+    CACHE.delete(storageKey);
+    setDataLoaded(false);
+    setError(undefined);
+    setReads((n) => n + 1);
+  };
+
+  return [data, dataLoaded, error, refetch];
 };
 
 export default useData;

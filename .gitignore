@@ -22,3 +22,16 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# The local seeding harness: a whole library dumped to disk so the app can be driven with no token.
+# It is personal data in a public repository, and the hazard git can answer for is the accidental
+# commit — a `git add -A` with nothing here sweeps it into history, where a later force-push takes
+# it off the branch tips and leaves it fetchable by SHA. `.git/info/exclude` is the wrong place for
+# the same rule: it is per-machine, so it protects neither a clone nor a checkout whose exclude file
+# has been rewritten by something else.
+#
+# Matched by prefix rather than by the two names, since the build copies public/ verbatim with no
+# per-file opt-out: a seed-2.json dropped here while debugging is published by `npm run deploy`
+# exactly as the first one would have been. Better still is to keep the harness out of public/
+# altogether, under a directory the build never reads.
+public/seed*

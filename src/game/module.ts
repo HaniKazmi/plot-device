@@ -29,7 +29,7 @@ const gameItems = (games: VideoGame[]): OmniItem[] =>
 
 export const gameModule: MediumModule<VideoGame, VideoGame, Measure> = {
   medium: "game",
-  tabId: "vg",
+  tabId: "games",
   noun: "games",
   data: gameDataConfig,
   guestFilter,

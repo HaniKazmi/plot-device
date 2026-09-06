@@ -2,9 +2,11 @@ import { useEffect, type ReactNode } from "react";
 import { bookModule } from "../book/module";
 import type { MediumModule } from "../common/medium";
 import useData from "../common/useData";
+import { useGoogleAuth } from "../contexts/GoogleAuthContext";
 import { movieModule } from "../movie/module";
 import { showModule } from "../show/module";
 import Tabs, { type SheetTab } from "../tabs";
+import { MEDIA as MEDIA_ORDER } from "../utils/types";
 import { gameModule } from "../game/module";
 import { completeLibrary, LibraryContext, toOmniItems, visibleLibrary, type Library } from "./library";
 import { retainPageSelections } from "./pageState";
@@ -39,22 +41,25 @@ const useSheet = <T,>(module: MediumModule<T, unknown>) => useData(module.data, 
  * what stops a second read; what it buys is that guest mode is applied once, the union is built
  * once, and a surface above the tabs can ask what the library holds.
  *
- * Every visit therefore pays four sheet reads, including a deep link straight to one tab: a card on
+ * Every visit therefore reads all four ranges, including a deep link straight to one tab: a card on
  * any tab draws its franchise across all four media, and the Omnibus — which a bare visit opens on
- * — needs all four anyway. The cost is a returning visitor's three extra reads behind a page that
- * has already painted from cache.
+ * — needs all four anyway. The cost is three ranges a returning visitor is not looking at, read in
+ * the same request as the one they are, behind a page that has already painted from cache.
  *
  * The four calls are written out rather than walked over the registry because a hook called in a
  * loop or a callback is a rules-of-hooks error. Each is typed for its own medium's records, which
  * is what makes the object below a `Partial<Library>` with nothing asserted into it.
  */
 export const LibraryProvider = ({ guestMode, children }: { guestMode: boolean; children: ReactNode }) => {
-  const [games, gamesLoaded, gamesError] = useSheet(gameModule);
-  const [shows, showsLoaded, showsError] = useSheet(showModule);
-  const [movies, moviesLoaded, moviesError] = useSheet(movieModule);
-  const [books, booksLoaded, booksError] = useSheet(bookModule);
+  const [games, gamesLoaded, gamesError, refetchGames] = useSheet(gameModule);
+  const [shows, showsLoaded, showsError, refetchShows] = useSheet(showModule);
+  const [movies, moviesLoaded, moviesError, refetchMovies] = useSheet(movieModule);
+  const [books, booksLoaded, booksError, refetchBooks] = useSheet(bookModule);
+  const { apiReady } = useGoogleAuth();
 
   const raw: Partial<Library> = { game: games, show: shows, movie: movies, book: books };
+  const loaded = { game: gamesLoaded, show: showsLoaded, movie: moviesLoaded, book: booksLoaded };
+  const error = { game: gamesError, show: showsError, movie: moviesError, book: booksError };
   const visible = visibleLibrary(raw, guestMode);
   const whole = completeLibrary(visible);
   const items = whole && toOmniItems(whole);
@@ -73,8 +78,21 @@ export const LibraryProvider = ({ guestMode, children }: { guestMode: boolean; c
     visible,
     whole,
     items,
-    loaded: { game: gamesLoaded, show: showsLoaded, movie: moviesLoaded, book: booksLoaded },
-    error: { game: gamesError, show: showsError, movie: moviesError, book: booksError },
+    loaded,
+    error,
+    // Named one at a time because four separately-bound callbacks are not a collection to walk —
+    // a consequence of the `useSheet` calls above, where the rule against a hook in a loop is what
+    // writes them out. These are plain functions and could be looped over given an array to loop.
+    refresh: () => {
+      refetchGames();
+      refetchShows();
+      refetchMovies();
+      refetchBooks();
+    },
+    // A read is out wherever a medium has neither landed nor failed, which is a walk over the two
+    // records above rather than their eight parts again: destructured by hand, a fifth medium is
+    // silently absent from the answer and nothing fails to compile over it.
+    reading: apiReady && MEDIA_ORDER.some((medium) => !loaded[medium] && !error[medium]),
   };
 
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>;
