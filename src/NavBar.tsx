@@ -10,7 +10,6 @@ import {
   Tab as MuiTab,
   Tabs as MuiTabs,
   Toolbar,
-  Tooltip,
   Typography,
 } from "@mui/material";
 import { Key, MoreVert, Search } from "@mui/icons-material";
@@ -242,25 +241,35 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
             thumb already on its way to the search beside it. */}
         {authState !== "live" && (
           <>
-            <Tooltip title={authState === "authorising" ? "Authorising…" : "Authorise"}>
-              <Badge
-                color="secondary"
-                variant="dot"
-                overlap="circular"
-                invisible={authState !== "stale"}
-                sx={KEY_ICON_SX}
+            {/* The word is a native `title` rather than MUI's `Tooltip`, which is the app bar's
+                whole reason for reaching `@popperjs`: a hover label on one icon otherwise puts
+                Tooltip and the Popper engine — 31KB raw, 11KB gzipped — in the chunk every visit
+                preloads, where the charts that draw hundreds of hover cards pay for the same
+                engine once, lazily, in a chunk arriving after first paint. The two forms of the
+                key are one control, so the icon reads its word off the same state the worded form
+                spells out from `md` on a mouse.
+
+                It sits on the `Badge`'s own span rather than the button, since a disabled button
+                takes no pointer events and so shows no title — which is exactly the state
+                "Authorising…" names. */}
+            <Badge
+              color="secondary"
+              variant="dot"
+              overlap="circular"
+              invisible={authState !== "stale"}
+              title={authState === "authorising" ? "Authorising…" : "Authorise"}
+              sx={KEY_ICON_SX}
+            >
+              <IconButton
+                color="inherit"
+                aria-label="Authorise"
+                disabled={authState === "authorising"}
+                onClick={authorise}
+                sx={{ ...BAR_BUTTON_SX, ...DISABLED_BUTTON_SX }}
               >
-                <IconButton
-                  color="inherit"
-                  aria-label="Authorise"
-                  disabled={authState === "authorising"}
-                  onClick={authorise}
-                  sx={{ ...BAR_BUTTON_SX, ...DISABLED_BUTTON_SX }}
-                >
-                  <Key />
-                </IconButton>
-              </Badge>
-            </Tooltip>
+                <Key />
+              </IconButton>
+            </Badge>
             <Badge
               color="secondary"
               variant="dot"
