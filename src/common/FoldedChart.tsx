@@ -74,6 +74,12 @@ interface FoldProps {
    */
   fold: () => Fold;
   children: ReactNode;
+  /**
+   * Drawn in place of the fold and the chart alike, at every width, when the caller's own filters
+   * have left nothing to plot: a fold's summary and preview are built from the same data the chart
+   * is, and both read as claims about a library that answers none of them.
+   */
+  empty?: ReactNode;
 }
 
 /**
@@ -104,9 +110,19 @@ export const FoldedChart = (props: FoldProps) => (
  * phone and opens a dialog — the crossings — nests this inside that card rather than putting one
  * card's border and corners inside another's.
  */
-export const FoldedContent = ({ header, fold, children }: FoldProps) => {
+export const FoldedContent = ({ header, fold, children, empty }: FoldProps) => {
   const phone = usePhone();
   const [shown, setShown] = useState(false);
+
+  // Ahead of the phone check and unconditional on it: a folded card's fold row is itself a claim
+  // about the data, and drawing one over nothing would be a second empty state beside the message.
+  if (empty)
+    return (
+      <>
+        {header({ shown: true, toggle: null })}
+        <CardContent>{empty}</CardContent>
+      </>
+    );
 
   if (!phone)
     return (

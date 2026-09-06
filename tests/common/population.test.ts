@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { all, cut, narrowedTo, stated } from "../../src/common/population";
+import { all, cut, isFilteredEmpty, narrowedTo, stated } from "../../src/common/population";
 import { format } from "../../src/utils/mathUtils";
 
 /**
@@ -54,5 +54,19 @@ describe("narrowedTo", () => {
 
   it("states the population alone where nothing narrows it", () => {
     expect(narrowedTo(stated(309, "shows"), 0)).toBe("309 shows");
+  });
+});
+
+describe("isFilteredEmpty", () => {
+  it("is true only where a filter has left nothing", () => {
+    expect(isFilteredEmpty(0, 2)).toBe(true);
+  });
+
+  it("is false for an empty library with no filters set", () => {
+    expect(isFilteredEmpty(0, 0)).toBe(false);
+  });
+
+  it("is false wherever the count is not zero, however many filters are active", () => {
+    expect(isFilteredEmpty(1, 2)).toBe(false);
   });
 });

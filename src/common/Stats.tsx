@@ -377,6 +377,8 @@ export const StatsListGrid = <T,>(
      * those hold follows from the width it measures.
      */
     header?: (shown: number) => ReactNode;
+    /** Drawn instead of the cards when the caller's own filters left the list with nothing on it. */
+    empty?: ReactNode;
   } & GridLimit,
 ) => {
   const { content, flexWrap, cardKey, labelComponent, captionOf, chipComponent, shape, band, divider, MediaComponent } =
@@ -420,7 +422,9 @@ export const StatsListGrid = <T,>(
     <>
       {props.header?.(drawn.length)}
       <CardContent>
-        {"strip" in cell ? (
+        {content.length === 0 && props.empty ? (
+          props.empty
+        ) : "strip" in cell ? (
           // Measured for the same reason the sized row is: the strip's card count is solved from
           // the width it has, and a first frame at the stated height is not seen.
           <Box ref={rowRef}>
@@ -556,6 +560,8 @@ export interface StatListBaseProps<T> {
   band?: MediaBand<T>;
   divider?: boolean;
   wrap?: boolean;
+  /** Drawn instead of the cards when the caller's own filters left the list with nothing on it. */
+  empty?: ReactNode;
 }
 
 export type StatsListProps<T> = StatListBaseProps<T> & StatListLayout;
@@ -634,6 +640,7 @@ export const StatList = <T,>(props: StatsListProps<T>) => {
             band={props.band}
             divider={props.divider}
             MediaComponent={props.MediaComponent}
+            empty={props.empty}
             {...grid(isDialog)}
           />
         )}

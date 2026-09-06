@@ -269,6 +269,7 @@ const Finished = <U extends FinishedItem>({
   keyOf: keyOfProp,
   sorts: sortsProp,
   MediaComponent,
+  empty,
 }: {
   title: string;
   /** What the grid is over, in the caller's own words. Optional: a domain may have no noun yet. */
@@ -293,6 +294,8 @@ const Finished = <U extends FinishedItem>({
   /** Orders over the domain's own figures, offered after the two every wall has. */
   sorts?: readonly FinishedExtraSort<U>[];
   MediaComponent: TypedCardMediaImage<U>;
+  /** Drawn instead of the grid when the caller's own filters left the wall with nothing on it. */
+  empty?: ReactNode;
 }) => {
   // Applied after the pattern: a default inside it bails the component out of the React Compiler.
   const landscape = landscapeProp ?? false;
@@ -387,7 +390,9 @@ const Finished = <U extends FinishedItem>({
           />
         )}
         <CardContent>
-          {phone ? (
+          {recent.length === 0 && empty ? (
+            empty
+          ) : phone ? (
             <Stack spacing={1}>
               {/* The position as well as the label: a sort that returns to a bucket it has passed
                 opens a second run under the same heading, and two of them keyed alike would have
@@ -409,8 +414,12 @@ const Finished = <U extends FinishedItem>({
         </CardContent>
         {/* Two presentations of one derivation: the rail where the gutter and the viewport hold it,
           the pill everywhere else. Which one is the hook's answer, so they cannot both appear.
-          Neither is mounted on a phone, where the wall carries its own headings instead. */}
-        {!isDialog && !phone && (marker.rail ? <ScrollMarkerRail {...marker} /> : <ScrollMarker {...marker} />)}
+          Neither is mounted on a phone, where the wall carries its own headings instead. Nothing
+          on an empty wall to mark a position in. */}
+        {!isDialog &&
+          !phone &&
+          recent.length > 0 &&
+          (marker.rail ? <ScrollMarkerRail {...marker} /> : <ScrollMarker {...marker} />)}
       </Box>
     );
   };

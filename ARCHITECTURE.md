@@ -351,7 +351,12 @@ share of the values behind them. `Rank` ranks the measure `Totals` plots and kee
 figure, so the axis plots position while the hover card states the number. Clicking a column
 isolates that series and clicking again restores all, through Highcharts' plot-options event rather
 than React state, and an empty pivot is refused outright, Highcharts inventing an index axis and a
-series of its own from nothing.
+series of its own from nothing. Where the reader's own filters are what emptied it, the caller passes
+`empty` — `common/NothingMatches.tsx`, "Nothing matches these filters" and a Clear that dispatches
+`resetFilters` — in place of the "nothing to plot" line; a library with nothing in it and no filter
+to blame draws the plain line instead, since there is no choice to undo. `Sunburst`, the packed
+`Timeline`, `EventRibbon`'s callers, `Finished` and `StatList` take the same prop for the same
+reason, each drawing it in the body at a modest height rather than the chart's own `80vh`.
 
 `groupDate` sorts groups ascending so `reversedStacks` — on by default — puts the biggest at the
 foot of the stack, where a stack is read from, and the legend is reversed to match. Height is the
@@ -1276,13 +1281,19 @@ holding no more than one icon button stays on the title row, the caller saying s
 the noun each medium's module carries — `cut(shown, total)` — "10 of 1,539", or the whole figure
 where nothing is cut — and `all(total)` — "All 1,539", the worded cut a control wears. One module
 because the alternative is these three written out at twenty-odd call sites, each one `format` away
-from a library of 1,539 reading as "1539" beside a chart that reads "1,539".
+from a library of 1,539 reading as "1539" beside a chart that reads "1,539". `isFilteredEmpty(count,
+activeCount)` is the fourth: true only where a filter, not an empty library, is why a list holds
+nothing, which is what tells a chart's own "nothing to plot" line apart from
+`common/NothingMatches.tsx`'s "Nothing matches these filters" and its Clear.
 
 `common/Stats.tsx` exports what the domain `Stats.tsx` files assemble into a grid: `StatCard` and
 `StatSummary`; `YearVitalsPair`, all-time and in-year cards differing only in figures; `StatList`;
 `VitalsCard`, one card however many bands a domain stacks; `TotalsBand`, a proportional bar and
 wrapping legend over `common/statsData`'s `groupTotals`. Domains hold the arithmetic, shells the
-layout.
+layout. `StatList` takes the same `empty` prop the chart shells do, drawn by `StatsListGrid` in
+place of the card grid where the reader's own filters have left `content` empty; a domain's
+"Recently X" and name-sorted "Most X" lists pass it down from the page's own `Graphs`, since it is
+the whole page's filters and not a card's own further narrowing that the message answers for.
 
 `YearVitalsPair` is two plain cards and no control. The year scope is one page-wide reading, set in
 the rail (§ Page architecture), so the pair states the two readings side by side — "All time" or

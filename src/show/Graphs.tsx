@@ -7,7 +7,8 @@ import Sunburst from "./Sunburst";
 import Stats from "./Stats";
 import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
 import { FilterChip, PageChip } from "../common/PageHandles";
-import { stated } from "../common/population";
+import { isFilteredEmpty, stated } from "../common/population";
+import { NothingMatches } from "../common/NothingMatches";
 import { MeasureControl, ScopeControl } from "../common/SelectionComponents";
 import { useOtherTabs } from "../tabs";
 import { SHOW_SECTIONS, showSections } from "./sections";
@@ -74,6 +75,12 @@ const Graphs = memo(
     // `ChartsAndLibrary` orders the two sections and `chartsLastOrder`, inside the sections list,
     // orders the chips naming them.
     const chartsLast = usePhone();
+    // Built once for the whole page rather than per shell, off the same figures the rail's own
+    // chip states: a chart's further narrowing is not what the message answers for, only the
+    // reader's own filters.
+    const nothingMatches = isFilteredEmpty(data.length, activeCount(filterState)) ? (
+      <NothingMatches onClear={() => filterDispatch({ type: "resetFilters" })} />
+    ) : undefined;
 
     const charts = (
       <Section
@@ -85,6 +92,7 @@ const Graphs = memo(
             <Sunburst
               data={deferredData}
               measure={filterState.measure}
+              empty={nothingMatches}
             />
           }
           right={
@@ -92,6 +100,7 @@ const Graphs = memo(
               data={deferredData}
               measure={filterState.measure}
               yearType={filterState.yearType}
+              empty={nothingMatches}
             />
           }
         />
@@ -110,6 +119,7 @@ const Graphs = memo(
           data={data}
           colour={(item) => statusToColour(item, scheme)}
           MediaComponent={ShowCardMediaImage}
+          empty={nothingMatches}
         />
       </Section>
     );
@@ -154,9 +164,13 @@ const Graphs = memo(
           measure={filterState.measure}
           yearType={filterState.yearType}
           yearTo={filterState.yearTo}
+          empty={nothingMatches}
         />
         <Section id={SHOW_SECTIONS.timeline}>
-          <Timeline data={deferredData} />
+          <Timeline
+            data={deferredData}
+            empty={nothingMatches}
+          />
         </Section>
         <ChartsAndLibrary
           charts={charts}

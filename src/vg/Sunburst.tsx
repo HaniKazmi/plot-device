@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { groupToColour, videoGameOptions, VideoGameStringKeys, type Measure, type VideoGame } from "./types";
 import { releaseDecade } from "../utils/types";
 import type { KeysMatching } from "../utils/types";
@@ -9,7 +9,7 @@ import { useScheme } from "../common/useScheme";
 type OptionKeys = VideoGameStringKeys | KeysMatching<VideoGame, VideoGame["startDate"]> | "decade";
 const options: OptionKeys[] = [...videoGameOptions, "startDate", "decade"];
 
-const VgSunburst = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
+const VgSunburst = ({ data, measure, empty }: { data: VideoGame[]; measure: Measure; empty?: ReactNode }) => {
   const scheme = useScheme();
 
   const [controlStates, setControlStates] = useState<OptionKeys[]>(["company", "platform", "franchise"]);
@@ -19,6 +19,7 @@ const VgSunburst = ({ data, measure }: { data: VideoGame[]; measure: Measure }) 
       title={`Where the ${measure.toLowerCase()} went`}
       data={data}
       groups={controlStates}
+      empty={empty}
       options={{
         keyToVal: (game, key) => {
           // Release decade is a derivation rather than a field — "how much of this is retro?"

@@ -1,5 +1,6 @@
 import { Timeline as TimelineIcon } from "@mui/icons-material";
 import Grid from "@mui/material/Grid";
+import type { ReactNode } from "react";
 import { SectionHeader } from "../common/SectionHeader";
 import { EventRibbon } from "../common/EventRibbon";
 import { FoldedChart } from "../common/FoldedChart";
@@ -22,7 +23,7 @@ const RIBBON_TICKS = buildTicks(YearMonth.get(2001, 1), YearMonth.get(2001, 12),
 
 const colourOptions = ["genre", "rating", "cinema", "decade", "score"] as const;
 
-const WatchTimeline = ({ data }: { data: Movie[] }) => {
+const WatchTimeline = ({ data, empty }: { data: Movie[]; empty?: ReactNode }) => {
   const scheme = useScheme();
 
   const [colourBy, controls] = useSelectBox(colourOptions, "genre", "Colour");
@@ -54,6 +55,7 @@ const WatchTimeline = ({ data }: { data: Movie[] }) => {
         // The stack's own shape in words: how many years it draws and which of them is fullest.
         // A ribbon has no single figure to preview, every row being the same twelve months.
         fold={() => ({ summary: summarise(rows) })}
+        empty={empty}
       >
         <EventRibbon
           rows={rows}

@@ -1,5 +1,5 @@
 import { Timeline as TimelineIcon } from "@mui/icons-material";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { SectionHeader } from "../common/SectionHeader";
 import { SegmentedControl, type SegmentOption } from "../common/SelectionComponents";
 import { VideoGame, platformToColor } from "./types";
@@ -18,7 +18,7 @@ const PARTY_OPTIONS: readonly SegmentOption<PartyOption>[] = [
   { value: "without", label: "Without" },
 ];
 
-const VgTimeline = ({ data }: { data: VideoGame[] }) => {
+const VgTimeline = ({ data, empty }: { data: VideoGame[]; empty?: ReactNode }) => {
   const scheme = useScheme();
 
   // Opens on Without: the toggle is this chart's own, not one of the tab's filters, so a party game
@@ -39,7 +39,10 @@ const VgTimeline = ({ data }: { data: VideoGame[] }) => {
       end: (row.endDate as YearMonthDay | undefined) ?? CURRENT_PLAINDATE,
     }));
   return (
-    <Timeline data={gameData}>
+    <Timeline
+      data={gameData}
+      empty={empty}
+    >
       <SectionHeader
         icon={<TimelineIcon />}
         title="Every playthrough"

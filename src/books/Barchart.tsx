@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useSelectBox } from "../common/SelectBoxHook";
 import { groupToColour, type Book, type BookGroup, type Measure } from "./types";
 import Barchart from "../common/Barchart";
@@ -16,7 +17,17 @@ const options: Option[] = ["none", "genre", "author", "franchise", "series", "fo
  */
 const axisOptions = ["Read", "Released"] as const;
 
-const BookBarchart = ({ data, measure, yearType }: { data: Book[]; measure: Measure; yearType: YearType }) => {
+const BookBarchart = ({
+  data,
+  measure,
+  yearType,
+  empty,
+}: {
+  data: Book[];
+  measure: Measure;
+  yearType: YearType;
+  empty?: ReactNode;
+}) => {
   const scheme = useScheme();
 
   // Grouped by genre from the start — the one distinction this tab is about.
@@ -51,6 +62,7 @@ const BookBarchart = ({ data, measure, yearType }: { data: Book[]; measure: Meas
           {groupControls}
         </>
       }
+      empty={empty}
     />
   );
 };

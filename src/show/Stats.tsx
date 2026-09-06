@@ -72,12 +72,15 @@ const Stats = ({
   measure,
   yearType,
   yearTo,
+  empty,
 }: {
   data: Show[];
   watching: Season[];
   measure: Measure;
   yearType: YearType;
   yearTo: YearNumber;
+  /** Drawn by the lists this band builds straight from `data`, once the reader's filters empty it. */
+  empty?: ReactNode;
 }) => {
   return (
     <Stack spacing={2}>
@@ -123,8 +126,12 @@ const Stats = ({
           <MostWatched
             data={data}
             measure={measure}
+            empty={empty}
           />
-          <RecentlyComplete data={data} />
+          <RecentlyComplete
+            data={data}
+            empty={empty}
+          />
         </StatBand>
       </Section>
     </Stack>
@@ -257,7 +264,7 @@ const optionIcons: Record<ShowTopOption, ReactNode> = {
   rating: <VerifiedUser />,
 };
 
-const RecentlyComplete = ({ data }: { data: Show[] }) => {
+const RecentlyComplete = ({ data, empty }: { data: Show[]; empty?: ReactNode }) => {
   const scheme = useScheme();
 
   const recent = recentlyComplete(data);
@@ -268,13 +275,14 @@ const RecentlyComplete = ({ data }: { data: Show[] }) => {
       content={recent}
       chipComponent={({ show }) => showStatusChip(show, scheme)}
       labelComponent={statsCardLabelRecentlyComplete}
+      empty={empty}
     />
   );
 };
 
 const mostWatchedOptions = ["name", ...showTopOptions] as const;
 
-const MostWatched = ({ data, measure }: { data: Show[]; measure: Measure }) => {
+const MostWatched = ({ data, measure, empty }: { data: Show[]; measure: Measure; empty?: ReactNode }) => {
   const [option, controls] = useSelectBox(mostWatchedOptions, "name", "By");
 
   if (option === "name") {
@@ -282,6 +290,7 @@ const MostWatched = ({ data, measure }: { data: Show[]; measure: Measure }) => {
       <MostWatchedShows
         data={data}
         controls={controls}
+        empty={empty}
       />
     );
   }
@@ -295,7 +304,7 @@ const MostWatched = ({ data, measure }: { data: Show[]; measure: Measure }) => {
   );
 };
 
-const MostWatchedShows = ({ data, controls }: { data: Show[]; controls: ReactNode }) => {
+const MostWatchedShows = ({ data, controls, empty }: { data: Show[]; controls: ReactNode; empty?: ReactNode }) => {
   const most = data.filter((show) => show.minutes).sortByKey("minutes");
   return (
     <ShowsStatList
@@ -304,6 +313,7 @@ const MostWatchedShows = ({ data, controls }: { data: Show[]; controls: ReactNod
       title="Most Watched"
       content={most}
       labelComponent={statsCardLabelEpsHours}
+      empty={empty}
     />
   );
 };

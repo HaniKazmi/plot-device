@@ -1,5 +1,5 @@
 import { Timeline as TimelineIcon } from "@mui/icons-material";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { SectionHeader } from "../common/SectionHeader";
 import { SegmentedControl, type SegmentOption } from "../common/SelectionComponents";
 import { stated } from "../common/population";
@@ -18,7 +18,7 @@ const BARS: readonly SegmentOption<Bar>[] = [
   { value: "show", label: "Shows" },
 ];
 
-const ShowTimeline = ({ data }: { data: Show[] }) => {
+const ShowTimeline = ({ data, empty }: { data: Show[]; empty?: ReactNode }) => {
   const scheme = useScheme();
 
   const [bar, setBar] = useState<Bar>("season");
@@ -47,7 +47,10 @@ const ShowTimeline = ({ data }: { data: Show[] }) => {
   }));
 
   return (
-    <Timeline data={showData}>
+    <Timeline
+      data={showData}
+      empty={empty}
+    >
       <SectionHeader
         icon={<TimelineIcon />}
         title={groupData ? "Every show" : "Every season"}

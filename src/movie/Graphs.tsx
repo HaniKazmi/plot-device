@@ -10,7 +10,8 @@ import Barchart from "./Barchart";
 import WatchTimeline from "./WatchTimeline";
 import { ChartPair, ChartsAndLibrary, Section, SectionRail } from "../common/SectionRail";
 import { FilterChip, PageChip } from "../common/PageHandles";
-import { stated } from "../common/population";
+import { isFilteredEmpty, stated } from "../common/population";
+import { NothingMatches } from "../common/NothingMatches";
 import { MeasureControl, ScopeControl } from "../common/SelectionComponents";
 import { useOtherTabs } from "../tabs";
 import { MOVIE_SECTIONS, movieSections } from "./sections";
@@ -65,6 +66,12 @@ const Graphs = memo(
     // `ChartsAndLibrary` orders the two sections and `chartsLastOrder`, inside the sections list,
     // orders the chips naming them.
     const chartsLast = usePhone();
+    // Built once for the whole page rather than per shell, off the same figures the rail's own
+    // chip states: a chart's further narrowing is not what the message answers for, only the
+    // reader's own filters.
+    const nothingMatches = isFilteredEmpty(data.length, activeCount(filterState)) ? (
+      <NothingMatches onClear={() => filterDispatch({ type: "resetFilters" })} />
+    ) : undefined;
 
     const charts = (
       <Section
@@ -76,6 +83,7 @@ const Graphs = memo(
             <Sunburst
               data={deferredData}
               measure={filterState.measure}
+              empty={nothingMatches}
             />
           }
           right={
@@ -83,6 +91,7 @@ const Graphs = memo(
               data={deferredData}
               measure={filterState.measure}
               yearType={filterState.yearType}
+              empty={nothingMatches}
             />
           }
         />
@@ -107,6 +116,7 @@ const Graphs = memo(
           // Score is a wall order rather than a strip of its own: "what was best" is the same
           // library read in another order, and the wall is where a whole order can be read.
           sorts={MOVIE_SORTS}
+          empty={nothingMatches}
         />
       </Section>
     );
@@ -150,9 +160,13 @@ const Graphs = memo(
           measure={filterState.measure}
           yearType={filterState.yearType}
           yearTo={filterState.yearTo}
+          empty={nothingMatches}
         />
         <Section id={MOVIE_SECTIONS.timeline}>
-          <WatchTimeline data={deferredData} />
+          <WatchTimeline
+            data={deferredData}
+            empty={nothingMatches}
+          />
         </Section>
         <ChartsAndLibrary
           charts={charts}

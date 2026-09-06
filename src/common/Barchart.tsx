@@ -57,6 +57,7 @@ const Barchart = ({
   postAggregate,
   unit,
   controls,
+  empty,
 }: {
   title: string;
   data: (cumulative: boolean) => { name: string; date: YearMonth | Year; colour: Colour; value: number }[];
@@ -65,6 +66,8 @@ const Barchart = ({
   /** What one unit of the measure is called, for the line a folded chart states instead of itself. */
   unit: string;
   controls: ReactNode;
+  /** Drawn instead of the "nothing to plot" line when the caller's own filters left the pivot empty. */
+  empty?: ReactNode;
 }) => {
   const [view, setView] = useState<View>("Totals");
   const theme = useTheme();
@@ -134,12 +137,14 @@ const Barchart = ({
             summary a fold would draw and needs no chart behind it. */}
         {header({ shown: true, toggle: null })}
         <CardContent>
-          <Typography
-            variant="body2"
-            sx={{ color: "text.secondary" }}
-          >
-            Nothing to plot for the current selection.
-          </Typography>
+          {empty ?? (
+            <Typography
+              variant="body2"
+              sx={{ color: "text.secondary" }}
+            >
+              Nothing to plot for the current selection.
+            </Typography>
+          )}
         </CardContent>
       </Card>
     );

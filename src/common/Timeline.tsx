@@ -779,13 +779,23 @@ const TimeAxis = ({ ticks }: { ticks: TimelineTick[] }) => {
   );
 };
 
-const Timeline = ({ data, children }: { data: TimelineData[]; children?: ReactNode }) => {
+const Timeline = ({
+  data,
+  children,
+  empty,
+}: {
+  data: TimelineData[];
+  children?: ReactNode;
+  /**
+   * Drawn instead of the grid when the caller's own filters left nothing to pack — the packed
+   * timeline never folds, so this is the one state its plain `Card` has to draw for itself.
+   */
+  empty?: ReactNode;
+}) => {
   return (
     <Card>
       {children}
-      <CardContent>
-        <TimeLineChart timelineData={data} />
-      </CardContent>
+      <CardContent>{empty ?? <TimeLineChart timelineData={data} />}</CardContent>
     </Card>
   );
 };

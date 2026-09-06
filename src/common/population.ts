@@ -47,3 +47,13 @@ export const all = (total: number) => `All ${format(total)}`;
  */
 export const narrowedTo = (population: string, activeCount: number) =>
   activeCount > 0 ? `${population} · ${activeCount} ${activeCount === 1 ? "filter" : "filters"}` : population;
+
+/**
+ * Whether an empty list is the reader's own doing.
+ *
+ * A library with nothing in it draws no message and offers no Clear — there is no choice to undo.
+ * A library some filter has narrowed to zero is a different picture with the same shape, so the
+ * two are told apart by the one thing a chart cannot see for itself: whether the page holds any
+ * choices at all.
+ */
+export const isFilteredEmpty = (count: number, activeCount: number): boolean => count === 0 && activeCount > 0;
