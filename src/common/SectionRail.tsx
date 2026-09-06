@@ -204,10 +204,9 @@ const SCOPE_SX = { display: { xs: "none", md: "flex" } } as const;
  * opens the sheet holding all three.
  *
  * Below `sm` the whole row is drawn inside the bar at the bottom of the screen instead
- * (`BottomTabs.tsx`, through `phoneBar.ts`): one bar rather than a pinned rail above the page and
- * the tabs below it, which is 49px of a 720px screen given back to what the page is for. The tab
- * chips are left out there — the bar draws its own leading chip, calling the five tabs back into
- * it, and a rail 358px wide would spend 300 of them saying that again.
+ * (`BottomTabs.tsx`, through `phoneBar.ts`), where the thumb rests, with the five tabs standing
+ * above it. The tab chips are left out there — the bar's own tab row is a line away, and a rail
+ * 358px wide would spend 300 of them saying that again.
  * From `sm` up each is its tab's own icon in its own colour rather than its name: five words and a
  * divider take half a tablet's rail, where five glyphs take 172px of it, and the app bar's own
  * strip carries the same icons beside its words, which is where the glyphs are learnt.
@@ -308,10 +307,10 @@ export const SectionRail = (props: {
     </>
   );
 
-  // Below `sm` the row is the bottom bar's scrolled state rather than a bar of its own: the page
-  // gives back the 49px a second pinned strip would cost it, on the one screen where height is
-  // scarcest. It renders nothing until the bar has published its slot, and nothing at all where
-  // there is no bar — a rail drawn at the top as well would be the arrangement stated twice.
+  // Below `sm` the row is the bottom bar's own rail row rather than a bar of its own, at the edge
+  // the thumb rests on rather than the one the eye starts at. It renders nothing until the bar has
+  // published its slot, and nothing at all where there is no bar — a rail drawn at the top as well
+  // would be the arrangement stated twice.
   if (phone)
     return (
       slot &&

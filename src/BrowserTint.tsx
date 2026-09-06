@@ -15,8 +15,8 @@ import { useScheme } from "./common/useScheme";
  * wears the tab's colour at every scroll position and is sampled for the bottom of the chrome; only
  * the top has nothing of its own up there to sample.
  *
- * Below `sm` the strip is drawn while the app bar is still on screen and taken away past it, on the
- * boundary that bar's own tabs/rail swap keys on (`useScrolledPastBar`). Left standing throughout,
+ * Below `sm` the strip is drawn while the app bar is still on screen and taken away past it
+ * (`useScrolledPastBar`). Left standing throughout,
  * a phone scrolled deep into a library reads a coloured band at the very top of an otherwise plain
  * page, naming a bar that scrolled out of reach screens ago; taken away, nothing at that edge is
  * fixed and Safari draws its own translucent status bar over the page, which is a transparency a
