@@ -133,11 +133,12 @@ describe("what guest mode hides", () => {
 });
 
 describe("the schema the drawer and the box are both drawn from", () => {
-  it("offers three toggles and five categories, in the order they are laid out", () => {
+  it("offers three toggles and six categories, in the order they are laid out", () => {
     expect(gameFilters.toggles.map((toggle) => toggle.key)).toEqual(["endless", "unconfirmed", "pokemon"]);
     expect(gameFilters.categories.map((category) => category.key)).toEqual([
       "platform",
       "genre",
+      "certificate",
       "gameplay",
       "publisher",
       "franchise",

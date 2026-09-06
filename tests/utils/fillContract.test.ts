@@ -6,6 +6,7 @@ import {
   DECADE_NAMES,
   FRANCHISE_NAMES,
   GENRE_NAMES,
+  animeToColour,
   certificateBandToColour,
   certificateToColour,
   decadeToColour,
@@ -23,7 +24,7 @@ import {
   gameplayToColour,
   groupToColour as gameGroupToColour,
 } from "../../src/game/types";
-import { NETWORK_NAMES, groupToColour as showGroupToColour, networkToColour, typeToColour } from "../../src/show/types";
+import { NETWORK_NAMES, groupToColour as showGroupToColour, networkToColour } from "../../src/show/types";
 import {
   cinemaToColour,
   groupToColour as movieGroupToColour,
@@ -130,9 +131,12 @@ describe.each(SCHEMES)("every fill clears 3:1 on the %s paper", (scheme) => {
     }
   });
 
-  it("networks and show types", () => {
+  it("networks and the anime split", () => {
     for (const network of NETWORK_NAMES) check(`network ${network}`, networkToColour({ network }, scheme));
-    for (const type of ["show", "anime"] as const) check(`type ${type}`, typeToColour({ type }, scheme));
+    // The marked half and its absence: Shows and Movies word anime identically and each keeps its
+    // own word for the rest, which all resolve to the neutral, so two labels cover every value
+    // drawn on either tab.
+    for (const label of ["Anime", "Show"]) check(`anime ${label}`, animeToColour(label, scheme));
   });
 
   it("score bands and where a film was seen", () => {

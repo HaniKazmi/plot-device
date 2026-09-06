@@ -1,15 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { YearMonthDay } from "../../src/common/date";
-import {
-  groupToColour,
-  isShow,
-  networkToColour,
-  typeToColour,
-  typeToName,
-  type Season,
-  type Show,
-} from "../../src/show/types";
-import { certificateToColour, genreToColour, neutralFill } from "../../src/utils/types";
+import { animeLabel, groupToColour, isShow, networkToColour, type Season, type Show } from "../../src/show/types";
+import { animeToColour, certificateToColour, genreToColour, neutralFill } from "../../src/utils/types";
 import { show } from "../fixtures/shows";
 
 const season = (parent: Show): Season => ({
@@ -57,11 +49,12 @@ describe("groupToColour", () => {
     expect(groupToColour("genre", show({ genre: "Sci-Fi" }), "light")).not.toBe(neutralFill("light"));
   });
 
-  it("colours network and type through their own tables", () => {
+  it("colours network and the anime split through their own tables", () => {
     expect(groupToColour("network", show({ network: "Netflix" }), "light")).toBe(
       networkToColour({ network: "Netflix" }, "light"),
     );
-    expect(groupToColour("type", show({ type: "anime" }), "light")).toBe(typeToColour({ type: "anime" }, "light"));
+    // The pair Movies splits by too, held in `utils/types.ts` so one rose means anime on both tabs.
+    expect(groupToColour("anime", show({ anime: true }), "light")).toBe(animeToColour("Anime", "light"));
   });
 
   it("falls back to an empty string where no vocabulary exists", () => {
@@ -82,18 +75,16 @@ describe("networkToColour", () => {
   });
 });
 
-describe("typeToColour", () => {
-  it("separates the two types with two fills", () => {
-    expect(typeToColour({ type: "show" }, "light")).toMatch(/^#/);
-    expect(typeToColour({ type: "anime" }, "light")).toMatch(/^#/);
-    expect(typeToColour({ type: "show" }, "light")).not.toBe(typeToColour({ type: "anime" }, "light"));
+describe("animeLabel", () => {
+  it("words the boolean, sharing the anime half with Movies and keeping its own for the rest", () => {
+    // The anime half has to be the identical string on both tabs: the search box folds an
+    // attribute on its value, and one shelf holding shows and films exists only if they agree.
+    expect(animeLabel({ anime: true })).toBe("Anime");
+    expect(animeLabel({ anime: false })).toBe("Show");
   });
-});
 
-describe("typeToName", () => {
-  it("title-cases the sheet's lower-case values", () => {
-    // The sheet holds "show"/"anime"; a wedge or a legend entry should not.
-    expect(typeToName("show")).toBe("Show");
-    expect(typeToName("anime")).toBe("Anime");
+  it("separates the two with two fills", () => {
+    expect(animeToColour("Anime", "light")).toMatch(/^#/);
+    expect(animeToColour("Show", "light")).not.toBe(animeToColour("Anime", "light"));
   });
 });

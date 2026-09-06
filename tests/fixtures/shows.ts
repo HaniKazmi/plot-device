@@ -13,7 +13,7 @@ export const show = (overrides: Partial<Show> = {}): Show => ({
   name: "Severance",
   status: "Watching",
   startDate: YearMonthDay.get(2022, 2, 18),
-  type: "show",
+  anime: false,
   genre: "Sci-Fi",
   otherGenres: ["Drama", "Thriller"],
   network: "Apple TV+",

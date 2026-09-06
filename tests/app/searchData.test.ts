@@ -12,6 +12,7 @@ import {
   recentFranchises,
   searchUnion,
   unionEpoch,
+  type FranchiseSearchEntry,
   type PlacedAttribute,
 } from "../../src/app/searchData";
 import { workLabels } from "../../src/app/cardData";
@@ -103,10 +104,11 @@ describe("searchUnion", () => {
   });
 
   it("finds a book by its author", () => {
-    const [group] = searchUnion(trekIndex(), "reynolds");
+    // The author is a shelf as well as a way to the book, so the work's own group is the second.
+    const groups = searchUnion(trekIndex(), "reynolds");
 
-    expect(group.key).toBe("book");
-    expect(group.hits[0].entry.name).toBe("Chasm City");
+    expect(groups.map((group) => group.key)).toEqual(["shelf", "book"]);
+    expect(groups[1].hits[0].entry.name).toBe("Chasm City");
   });
 });
 
@@ -217,6 +219,49 @@ describe("buildAttributeIndex", () => {
   });
 });
 
+describe("buildAttributeIndex over a shelved toggle", () => {
+  const animeLibrary = () =>
+    library({
+      game: [videoGame({ name: "Star Trek: Resurgence", franchise: "Star Trek", hours: 11 })],
+      show: [showWithSeasons(3, { name: "Cowboy Bebop", franchise: "Cowboy Bebop", anime: true })],
+      movie: [movie({ name: "Akira", franchise: "Akira", anime: true })],
+      book: [book()],
+    });
+
+  it("folds the two tabs' anime switches into one entry, since both are keyed and worded alike", () => {
+    const anime = buildAttributeIndex(animeLibrary()).filter((entry) => entry.category === "anime");
+
+    expect(anime).toHaveLength(1);
+    expect(anime[0].value).toBe("Anime");
+    // Each tab's own rows: one show, not the three seasons the union flattens it to.
+    expect(anime[0].counts).toEqual({ show: 1, movie: 1 });
+  });
+
+  it("keeps the split's unmarked half out of the index, so no shelf stands for a whole tab", () => {
+    const values = buildAttributeIndex(animeLibrary())
+      .filter((entry) => entry.category === "anime")
+      .map((entry) => entry.value);
+
+    expect(values).toEqual(["Anime"]);
+  });
+
+  it("leaves a toggle that names a page's own noise out of the index entirely", () => {
+    const keys = buildAttributeIndex(animeLibrary()).map((entry) => entry.category);
+
+    expect(keys).not.toContain("unconfirmed");
+    expect(keys).not.toContain("unscored");
+    // The Omnibus keys its medium switches by medium; none is shelved, or a whole tab would be one.
+    expect(keys).not.toContain("game");
+  });
+
+  it("holds every row the shelved toggle names, across both media that record it", () => {
+    const [anime] = buildAttributeIndex(animeLibrary()).filter((entry) => entry.category === "anime");
+    const works = attributeWorks(animeLibrary(), anime, TODAY);
+
+    expect(works.map((work) => work.medium).toSorted()).toEqual(["movie", "show"]);
+  });
+});
+
 describe("attributePlacements and attributeAction", () => {
   const genre = () =>
     buildAttributeIndex(trekLibrary()).find((entry) => entry.category === "genre" && entry.value === "Sci-Fi")!;
@@ -282,6 +327,37 @@ describe("attributePlacements and attributeAction", () => {
       value: ["15", "16"],
     });
   });
+
+  it("sets each board's own number, one tier being written as a 15 here and a 16 there", () => {
+    // The two boards part in the middle: BBFC issues a 15 where PEGI issues a 16, and the sheets
+    // write whichever their own board does. One hit on the tier has to land as the number the tab
+    // it is pressed on actually holds, or it narrows that page to nothing.
+    const rated = library({
+      game: [videoGame({ name: "The Witcher 3", certificate: "16" })],
+      movie: [movie({ name: "Blade Runner", certificate: "15" })],
+    });
+    const tier = buildAttributeIndex(rated).find((entry) => entry.category === "certificate")!;
+
+    expect(tier.value).toBe("15/16");
+    const onGames = attributePlacements(tier, "games", ["certificate"])[0];
+    const onMovies = attributePlacements(tier, "movies", ["certificate"])[0];
+
+    expect(attributeAction(onGames, [])).toMatchObject({ filter: "certificate", value: ["16"] });
+    expect(attributeAction(onMovies, [])).toMatchObject({ filter: "certificate", value: ["15"] });
+  });
+
+  it("sets the band itself on the tab that is no medium, which has no board of its own", () => {
+    const rated = library({
+      game: [videoGame({ name: "The Witcher 3", certificate: "16" })],
+      movie: [movie({ name: "Blade Runner", certificate: "15" })],
+    });
+    const tier = buildAttributeIndex(rated).find((entry) => entry.category === "certificate")!;
+    const [placed] = attributePlacements(tier, "omnibus", ["certificate"]);
+
+    // Its own category groups on the band for the same reason the gallery's shelves do, so the
+    // band string is the value that page can actually be narrowed by.
+    expect(attributeAction(placed, [])).toMatchObject({ filter: "certificate", value: ["15/16"] });
+  });
 });
 
 describe("searchUnion over attributes", () => {
@@ -296,9 +372,162 @@ describe("searchUnion over attributes", () => {
     expect(there.hits.map((hit) => (hit.entry as PlacedAttribute).tab)).toEqual(["movies", "books"]);
   });
 
-  it("offers no attribute group at all where the box is standing over no page", () => {
-    // Nothing is named "Sci-Fi" in the four libraries, so without a page there is nothing to say.
-    expect(searchUnion(trekIndex(), "sci-fi")).toEqual([]);
+  it("shelves an attribute with no page to stand on, and places it nowhere", () => {
+    // A shelf is over the libraries recording the value and asks no tab anything, where a
+    // narrowing needs a page to narrow. Nothing in the four libraries is *named* "Sci-Fi", so the
+    // shelf is the whole answer.
+    const groups = searchUnion(trekIndex(), "sci-fi");
+
+    expect(groups.map((group) => group.key)).toEqual(["shelf"]);
+    expect(groups[0].hits[0].entry.name).toBe("Sci-Fi");
+  });
+
+  it("leads with the layer readings, then the narrowings, then the works", () => {
+    const groups = searchUnion(trekIndex(), "star", { tabId: "shows", categories: ["genre", "franchise"] });
+
+    // Nothing in this library is a "star" attribute, so the shelf group is absent and the
+    // franchise leads; its own narrowings follow, ahead of the works.
+    expect(groups.map((group) => group.key)).toEqual([
+      "franchise",
+      "filter-here",
+      "filter-there",
+      "game",
+      "show",
+      "movie",
+    ]);
+  });
+
+  it("puts the shelf above the franchise where the value is named exactly and the series is not", () => {
+    // Both layer readings answer, so which leads is how well each did: the genre is the query
+    // exactly, where Fantasy Quest holds it at a word start.
+    const fantasy = library({
+      game: [videoGame({ name: "Fantasy Quest II", franchise: "Fantasy Quest", genre: "Fantasy" })],
+      movie: [movie({ name: "Fantasy Quest: The Film", franchise: "Fantasy Quest", genre: "Fantasy" })],
+    });
+    const groups = searchUnion(buildSearchIndex(toOmniItems(fantasy), fantasy), "fantasy", {
+      tabId: "games",
+      categories: ["genre", "franchise"],
+    });
+
+    expect(groups.map((group) => group.key)).toEqual([
+      "shelf",
+      "franchise",
+      "filter-here",
+      "filter-there",
+      "game",
+      "movie",
+    ]);
+  });
+
+  it("puts the franchise above the shelf where it answers at least as well", () => {
+    // A series and a Books shelf can name one thing — Revelation Space is the franchise column
+    // and the series column both — so a tie is the common case rather than the odd one, and the
+    // franchise takes it: its view states the series' own facts and strip before listing it.
+    const reynolds = library({ book: [book(), book({ name: "Redemption Ark", seriesNumber: 3 })] });
+    const groups = searchUnion(buildSearchIndex(toOmniItems(reynolds), reynolds), "revelation space", {
+      tabId: "books",
+      categories: ["series", "franchise"],
+    });
+
+    // No `filter-there`: no other library here holds the value, and a page holding the category
+    // but none of the value gets no hit, that hit being one that empties the page it is pressed on.
+    expect(groups.map((group) => group.key)).toEqual(["franchise", "shelf", "filter-here", "book"]);
+  });
+
+  it("counts a franchise narrowing in the tab's own rows, where the Franchises row counts the union's", () => {
+    // The two figures answer different questions and the box shows them three rows apart: the
+    // Franchises row is worded in the union's unit — three seasons — and a narrowing in the tab's
+    // own noun, where a show is one show and pressing the hit leaves one row on the page.
+    const groups = searchUnion(trekIndex(), "star trek", { tabId: "shows", categories: ["genre", "franchise"] });
+    const here = groups.find((group) => group.key === "filter-here")!;
+    const franchise = groups.find((group) => group.key === "franchise")!;
+
+    expect((here.hits[0].entry as PlacedAttribute).counts).toEqual({ game: 1, show: 1, movie: 1 });
+    expect((franchise.hits[0].entry as FranchiseSearchEntry).counts).toEqual({ game: 1, show: 3, movie: 1 });
+  });
+
+  it("offers no narrowing on a tab whose own picker erases the franchise", () => {
+    // `isSeries` runs over the union, so a franchise crossing two media is a series even where one
+    // tab's only row names itself — and that tab's own `franchiseOptions` drops it. Placed there,
+    // the filter would be set with no chip offering or clearing it, and swept away silently by
+    // `retainPageSelections` on the next library landing.
+    const halo = library({
+      game: [videoGame({ name: "Halo", franchise: "Halo" })],
+      movie: [movie({ name: "Halo: The Movie", franchise: "Halo" })],
+    });
+    const groups = searchUnion(buildSearchIndex(toOmniItems(halo), halo), "halo", {
+      tabId: "movies",
+      categories: ["genre", "franchise"],
+    });
+    const placed = groups
+      .filter((group) => group.key === "filter-here" || group.key === "filter-there")
+      .flatMap((group) => group.hits.map((hit) => (hit.entry as PlacedAttribute).tab));
+
+    // Movies names the series; the lone Halo game names only itself, so Games offers no chip.
+    expect(placed).toEqual(["movies"]);
+  });
+
+  it("states how many values the shelf matched, not how many it showed", () => {
+    // The figure the header turns into "2 of 4" and the only thing saying there is more behind the
+    // row. Counted off the cut list instead it can never exceed the cut, so the leading group would
+    // say "2" beside a franchise group saying "2 of 4".
+    const noirs = library({
+      movie: ["Noir One", "Noir Two", "Noir Three", "Noir Four"].map((genre, index) =>
+        movie({ name: `Film ${index}`, franchise: `Noir ${index}`, genre }),
+      ),
+    });
+    const groups = searchUnion(buildSearchIndex(toOmniItems(noirs), noirs), "noir", undefined, 2);
+    const shelf = groups.find((group) => group.key === "shelf")!;
+
+    expect(shelf.hits).toHaveLength(2);
+    expect(shelf.total).toBe(4);
+  });
+
+  it("ranks a franchise against the attributes it is placed beside rather than after them", () => {
+    // One place to be narrowed by, and the franchise answers the query exactly where the genres
+    // hold it inside a word: concatenated, the five genres would fill the cut and the series a
+    // reader typed the name of would fall out of the group.
+    const noir = library({
+      movie: [
+        movie({ name: "Noir", franchise: "Noir", genre: "Anoir" }),
+        movie({ name: "Noir II", franchise: "Noir", genre: "Bnoir" }),
+        movie({ name: "Noir III", franchise: "Noir", genre: "Cnoir" }),
+      ],
+    });
+    const groups = searchUnion(buildSearchIndex(toOmniItems(noir), noir), "noir", {
+      tabId: "movies",
+      categories: ["genre", "franchise"],
+    });
+    const here = groups.find((group) => group.key === "filter-here")!;
+
+    expect((here.hits[0].entry as PlacedAttribute).category).toBe("franchise");
+  });
+
+  it("gives a franchise the two narrowings a genre gets, on the tabs recording it", () => {
+    const groups = searchUnion(trekIndex(), "star trek", { tabId: "shows", categories: ["genre", "franchise"] });
+    const here = groups.find((group) => group.key === "filter-here")!;
+    const there = groups.find((group) => group.key === "filter-there")!;
+
+    expect(here.hits.map((hit) => (hit.entry as PlacedAttribute).value)).toEqual(["Star Trek"]);
+    expect((here.hits[0].entry as PlacedAttribute).category).toBe("franchise");
+    expect(there.hits.map((hit) => (hit.entry as PlacedAttribute).tab)).toEqual(["games", "movies"]);
+  });
+
+  it("sets the franchise column on the tab a franchise narrowing was pressed on", () => {
+    const groups = searchUnion(trekIndex(), "star trek", { tabId: "shows", categories: ["franchise"] });
+    const [placed] = groups.find((group) => group.key === "filter-here")!.hits;
+
+    expect(attributeAction(placed.entry as PlacedAttribute, [])).toEqual({
+      type: "updateFilter",
+      filter: "franchise",
+      value: ["Star Trek"],
+    });
+  });
+
+  it("offers no franchise narrowing on a tab whose schema has no franchise category", () => {
+    const groups = searchUnion(trekIndex(), "star trek", { tabId: "shows", categories: ["genre"] });
+
+    expect(groups.some((group) => group.key === "filter-here")).toBe(false);
   });
 });
 

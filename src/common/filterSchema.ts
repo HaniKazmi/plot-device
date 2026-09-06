@@ -1,5 +1,13 @@
 import { categoryOptions, franchiseOptions } from "./filterOptions";
-import type { Colour, KeysMatching, Predicate, Scheme } from "../utils/types";
+import {
+  ANIME,
+  animeToColour,
+  franchiseToColour,
+  type Colour,
+  type KeysMatching,
+  type Predicate,
+  type Scheme,
+} from "../utils/types";
 
 /**
  * A tab's own field holding a boolean, which is the only kind a toggle can name, and one holding a
@@ -34,6 +42,11 @@ export type CategoryKey<S> = KeysMatching<S, readonly string[]> & string;
  * `hides` is applied **while the toggle is off** and answers true for an item that stays, which is
  * every predicate's direction here — the name says what turning the toggle off does, not what the
  * function returns.
+ *
+ * A toggle names a page's own noise — unconfirmed dates, unscored films, a medium switched off —
+ * and its two states are "everything" and "these rows dropped", with none meaning "these rows
+ * alone". A two-valued split is therefore a category and not a toggle however few values it has:
+ * three readings, and a toggle can hold two of them.
  *
  * No icon: the surface drawing these is a row of chips reading the label, and an icon on a chip
  * a word already names is a picture standing for a word beside it. A schema is also reachable from
@@ -70,7 +83,45 @@ export interface FilterCategory<T, S> {
   options?(data: readonly T[]): string[];
   colourFor?(value: string, scheme: Scheme): Colour | undefined;
   searchable?: boolean;
+  /**
+   * The values the box indexes as attributes, where only some of them are worth finding. Defaults
+   * to all of them: a genre, a network, an author is a thing a reader goes looking for.
+   *
+   * A split's unmarked half is not. "Show" on the Shows tab names the tab, so a shelf of it is the
+   * library less a few rows and its hit stands beside the Go-to chip for the tab of the same name
+   * saying nearly the opposite. Franchise states the empty list for a different reason: its values
+   * are found through the franchise index, which drops the standalone works that make up most of
+   * the column.
+   */
+  found?: readonly string[];
 }
+
+/**
+ * A stated vocabulary held to what the rows carry, in the order it was stated in.
+ *
+ * One pass rather than one per value: `categoryTally` scans the library for its counts already, and
+ * a category asking again per value turns the Omnibus's certificate row into six passes over the
+ * union for what one Set answers.
+ */
+export const present = <T>(values: readonly string[], data: readonly T[], valueOf: (item: T) => string): string[] => {
+  const seen = new Set(data.map(valueOf));
+  return values.filter((value) => seen.has(value));
+};
+
+/** The key every tab's franchise select is held on, and the one a franchise hit is placed by. */
+export const FRANCHISE_KEY = "franchise";
+
+/**
+ * The key a shared category is built on, checked against the state of the tab it is going into.
+ *
+ * Intersected with the literal so the helper still fixes the key — two tabs keying one vocabulary
+ * apart would be two entries in the box's index where the fold wants one — while `CategoryKey<S>`
+ * is what holds the tab to declaring the field. A helper stating the key inside itself has neither:
+ * `S` reaches `FilterCategory` only under `keyof` a mapped type, which TypeScript measures as
+ * independent, so the assignment a bare literal is caught by is not made at all and a state missing
+ * the field compiles into a filter that draws and never applies.
+ */
+type SharedKey<S, K extends string> = CategoryKey<S> & K;
 
 /**
  * The franchise select, which every tab offers on the same terms: the column each sheet writes a
@@ -81,11 +132,10 @@ export interface FilterCategory<T, S> {
  * The state it names is the one field it needs, and a category is covariant in its key, so it sits
  * in any tab's schema whose own state holds a `franchise` list.
  */
-export const franchiseCategory = <T extends { franchise: string; name: string }>(): FilterCategory<
-  T,
-  { franchise: string[] }
-> => ({
-  key: "franchise",
+export const franchiseCategory = <T extends { franchise: string; name: string }, S>(
+  key: SharedKey<S, typeof FRANCHISE_KEY>,
+): FilterCategory<T, S> => ({
+  key,
   label: "franchise",
   valueOf: (item) => item.franchise,
   options: (data) =>
@@ -94,7 +144,66 @@ export const franchiseCategory = <T extends { franchise: string; name: string }>
       (item) => item.franchise,
       (item) => item.name,
     ),
+  // The table `utils/types.ts` shares across the tabs, so a chip and the wedge, bead or shelf
+  // naming one series are one colour. Most of the column is a work naming itself and answers `""`,
+  // which is the plain chip every other uncoloured value already wears.
+  colourFor: (value, scheme) => franchiseToColour({ franchise: value }, scheme) || undefined,
   searchable: true,
+  // Found through the franchise index instead, which holds the column to the values that actually
+  // group something: a scan of it would offer every standalone work as a series to narrow by.
+  found: [],
+});
+
+/**
+ * The anime split, which Shows and Movies both record, both colour and both group charts by.
+ *
+ * Stated once because the box folds the two tabs' entries on the key and the word together: keyed
+ * or worded apart, "Anime" would be two hits holding one medium each instead of one shelf holding
+ * both. A category and not a toggle, so the page can be held to anime as well as cleared of it —
+ * a toggle offers two of a split's three readings and which two is an accident of how its
+ * predicate was written.
+ *
+ * Only the marked half is `found`: a shelf of "Show" is the Shows tab, and of "Film" the Movies
+ * tab. `group` is the tab's own two words in the order its charts band them, the unmarked one
+ * first — not "live action", the sheet claiming no such thing — and `valueOf` is the tab's own
+ * labelling, both taken from the domain so the chips, the wedges and the band cannot come to word
+ * one split three ways.
+ */
+export const animeCategory = <T, S>(
+  key: SharedKey<S, "anime">,
+  valueOf: (item: T) => string,
+  group: readonly string[],
+): FilterCategory<T, S> => ({
+  key,
+  label: "anime",
+  valueOf,
+  options: (data) => present(group, data, valueOf),
+  colourFor: animeToColour,
+  found: [ANIME],
+});
+
+/**
+ * The certificate select, which every tab recording one offers on the same terms. Nothing certifies
+ * a book, so the Books tab is the one that does not.
+ *
+ * `values` is the vocabulary that tab writes, in the order the boards print it, because
+ * `categoryOptions` sorts lexicographically and a ramp a string sort runs "12, 15, 18, 3, 7". It is
+ * the caller's rather than derived here: a medium tab offers the numbers its own sheet holds, and
+ * the composing tab the bands, those being the only notation a page over four boards can group by.
+ * Filtered to what the rows actually carry, so a board's unused number is not a chip that narrows
+ * to nothing.
+ */
+export const certificateCategory = <T, S>(
+  key: SharedKey<S, "certificate">,
+  certificateOf: (item: T) => string,
+  values: readonly string[],
+  colourFor: (value: string, scheme: Scheme) => Colour,
+): FilterCategory<T, S> => ({
+  key,
+  label: "certificate",
+  valueOf: certificateOf,
+  options: (data) => present(values, data, certificateOf),
+  colourFor,
 });
 
 /** Everything a tab offers as a filter, in the order the surface drawing it lays the controls out. */

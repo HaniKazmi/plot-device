@@ -28,6 +28,12 @@ describe("rankHits", () => {
     expect(rankHits([entry("Zelda")], "   ", 5)).toEqual({ hits: [], total: 0 });
   });
 
+  it("carries each hit's rank, so two lists ranked apart can be merged or ordered against each other", () => {
+    // What the box orders its shelf and franchise groups by, and merges its placements on.
+    expect(rankHits([entry("Star"), entry("Starfield")], "star", 5).hits.map((hit) => hit.rank)).toEqual([0, 1]);
+    expect(rankHits([entry("Zelda")], "star", 5).hits).toEqual([]);
+  });
+
   it("finds a name through its accent", () => {
     expect(names([entry("Pokémon")], "pokemon")).toEqual(["Pokémon"]);
   });

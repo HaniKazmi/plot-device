@@ -1,11 +1,18 @@
-import { franchiseCategory, type FilterSchema } from "../common/filterSchema";
-import { certificateToColour, genreToColour, type Certificate, type Predicate } from "../utils/types";
+import {
+  animeCategory,
+  certificateCategory,
+  franchiseCategory,
+  FRANCHISE_KEY,
+  present,
+  type FilterSchema,
+} from "../common/filterSchema";
+import { CERTIFICATES, certificateToColour, genreToColour, type Certificate, type Predicate } from "../utils/types";
 import type { FilterState } from "./filterUtils";
-import type { Movie } from "./types";
+import { ANIME_GROUP, animeLabel, cinemaLabel, cinemaToColour, type Movie } from "./types";
 
 /**
- * What guest mode hides on this tab: a film the sheet marks as anime, which is also what the anime
- * toggle drops — one rule for the two, so the mode and the toggle cannot hide by two definitions.
+ * What guest mode hides on this tab: a film the sheet marks as anime, read off the same model field
+ * the anime select is built over, so the mode and the control cannot hide by two definitions.
  *
  * Exported because the mode is applied to the library itself, above every tab: narrowing this
  * page's charts alone would leave a hidden film on screen through the franchise index and the
@@ -13,23 +20,31 @@ import type { Movie } from "./types";
  */
 export const guestFilter: Predicate<Movie> = (movie) => !movie.anime;
 
+/** The outing first, as the sheet's own column reads and as `cinemaToColour` ramps it. */
+const CINEMA_VALUES = ["Cinema", "Home"];
+
 export const movieFilters: FilterSchema<Movie, FilterState> = {
-  toggles: [
-    { key: "home", label: "Watched at home", hides: (movie) => movie.cinema },
-    { key: "unscored", label: "Unscored films", hides: (movie) => movie.score !== undefined },
-    // The toggle's rule is guest mode's own function and not a copy of it, so the two cannot come
-    // to hide by different definitions of what anime is.
-    { key: "anime", label: "Anime", hides: guestFilter },
-  ],
+  toggles: [{ key: "unscored", label: "Unscored films", hides: (movie) => movie.score !== undefined }],
   categories: [
     { key: "genre", label: "genre", valueOf: (movie) => movie.genre, colourFor: genreToColour },
+    animeCategory("anime", animeLabel, ANIME_GROUP),
+    // Both halves are a thing to look for — an outing and a night in — so neither is held back from
+    // the box, where the anime split keeps only its marked half. "watched" rather than "cinema",
+    // which would name the row after one of the two values standing under it.
     {
-      key: "certificate",
-      label: "certificate",
-      valueOf: (movie) => movie.certificate,
-      colourFor: (value, scheme) => certificateToColour(value as Certificate, scheme),
+      key: "cinema",
+      label: "watched",
+      valueOf: cinemaLabel,
+      options: (data) => present(CINEMA_VALUES, data, cinemaLabel),
+      colourFor: cinemaToColour,
     },
+    certificateCategory(
+      "certificate",
+      (movie) => movie.certificate,
+      CERTIFICATES,
+      (value, scheme) => certificateToColour(value as Certificate, scheme),
+    ),
     { key: "director", label: "director", valueOf: (movie) => movie.director, searchable: true },
-    franchiseCategory(),
+    franchiseCategory(FRANCHISE_KEY),
   ],
 };

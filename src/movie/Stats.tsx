@@ -1,4 +1,5 @@
 import {
+  Animation,
   Category,
   Grade,
   History,
@@ -231,6 +232,7 @@ const optionIcons: Record<MovieTopOption, ReactNode> = {
   certificate: <VerifiedUser />,
   decade: <History />,
   cinema: <Theaters />,
+  anime: <Animation />,
   score: <Grade />,
 };
 

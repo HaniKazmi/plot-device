@@ -1,4 +1,5 @@
 import { rankHits, type Hit, type Searchable } from "../common/searchData";
+import { categoryValues, FRANCHISE_KEY } from "../common/filterSchema";
 import { franchiseIndex } from "../common/franchiseIndex";
 import { YearMonthDay, type Year } from "../common/date";
 import { certificateBand, isCertificate, mediumToLabel, type Medium } from "../utils/types";
@@ -44,9 +45,9 @@ export interface ItemSearchEntry extends Searchable {
  * author, a director, a format, a certificate tier.
  *
  * The vocabulary is each tab's own schema, so the box cannot offer a narrowing that tab's own
- * control surface does not draw. Franchise is deliberately not among them: a franchise is a
- * *thing* the box already answers with, opening the view over the whole series, and indexing it
- * here as well would put every series on one query twice.
+ * control surface does not draw. Franchise is one of these too, but built from the franchise index
+ * rather than scanned out of the column (`franchiseAttribute`), the column being mostly works
+ * naming themselves.
  *
  * `values` is what the hit stands for on a tab, which is the value itself everywhere but certificate:
  * the two boards write one tier as `15` and as `16`, so a hit on the tier has to set whichever of
@@ -82,12 +83,46 @@ export interface PlacedAttribute extends AttributeEntry {
   here: boolean;
 }
 
-export type SearchEntry = FranchiseSearchEntry | ItemSearchEntry | PlacedAttribute;
+/**
+ * One attribute as the layer over the libraries that record it, which is a thing to open rather
+ * than a narrowing of a page.
+ *
+ * A wrapper rather than the entry itself, because `PlacedAttribute` extends `AttributeEntry` and
+ * the two share `kind`: handed a bare attribute the box could not tell a shelf from a narrowing.
+ * `name` is the value, so a run matched while ranking the attributes underlines at the same index
+ * here.
+ */
+interface ShelfSearchEntry extends Searchable {
+  kind: "shelf";
+  key: string;
+  attribute: AttributeEntry;
+}
+
+export type SearchEntry = FranchiseSearchEntry | ItemSearchEntry | PlacedAttribute | ShelfSearchEntry;
+
+const shelfEntry = (attribute: AttributeEntry): ShelfSearchEntry => ({
+  kind: "shelf",
+  key: `shelf:${attribute.key}`,
+  name: attribute.value,
+  secondary: [],
+  size: attribute.size,
+  attribute,
+});
 
 export interface SearchIndex {
   franchises: FranchiseSearchEntry[];
   items: ItemSearchEntry[];
   attributes: AttributeEntry[];
+  /**
+   * Per medium, how many of that tab's own rows each franchise its own picker offers holds.
+   *
+   * Two answers a franchise hit needs and the union cannot give. The counts are the tab's rows and
+   * not the union's items, where a show is one row and the seasons the union flattens it to are
+   * several; and the keys are `franchiseOptions`' own set, which drops a franchise every row of
+   * that tab names itself — so a hit is only placed where the tab it lands on can draw a chip for
+   * it, and a filter nothing offers or clears is not set.
+   */
+  franchiseRows: Partial<Record<Medium, Map<string, number>>>;
 }
 
 /**
@@ -110,6 +145,23 @@ const isSeries = (franchise: string, items: OmniItem[]) =>
  * its latest season is the item its hit opens: the show's card is about the show, with that
  * season as the one its strip rings.
  */
+const franchiseRowsByMedium = (library: Library): Partial<Record<Medium, Map<string, number>>> => {
+  const byMedium: Partial<Record<Medium, Map<string, number>>> = {};
+  eachMedium((medium, module) => {
+    const rows = library[medium];
+    const category = module.filters.categories.find((candidate) => (candidate.key as string) === FRANCHISE_KEY);
+    if (!rows || !category) return;
+    const offered = new Set(categoryValues(category, rows));
+    const counts = new Map<string, number>();
+    for (const row of rows) {
+      const franchise = category.valueOf(row);
+      if (offered.has(franchise)) counts.set(franchise, (counts.get(franchise) ?? 0) + 1);
+    }
+    byMedium[medium] = counts;
+  });
+  return byMedium;
+};
+
 export const buildSearchIndex = (items: OmniItem[], library: Library): SearchIndex => {
   const franchises = [...franchiseIndex(items, (item) => item.franchise).entries()]
     .filter(([franchise, members]) => isSeries(franchise, members))
@@ -145,17 +197,52 @@ export const buildSearchIndex = (items: OmniItem[], library: Library): SearchInd
     };
   });
 
-  return { franchises, items: workEntries, attributes: buildAttributeIndex(library) };
+  return {
+    franchises,
+    items: workEntries,
+    attributes: buildAttributeIndex(library),
+    franchiseRows: franchiseRowsByMedium(library),
+  };
 };
 
 /**
- * The category whose values the box does not index, and why.
+ * A franchise as a narrowing: the same value every tab's own `franchiseCategory` offers, in the
+ * shape `attributePlacements` and `attributeAction` already read.
  *
- * A franchise is a *thing* the box already answers with — a hit on one opens the view over the
- * whole series across the four media — so indexing it as a narrowing too would put every series on
- * a query twice, once to look at and once to filter by.
+ * Derived from a ranked franchise rather than scanned out of the column, so a franchise carries
+ * all three readings a genre does — the view over the whole series, this page narrowed to it, and
+ * another page narrowed to it — without the column's self-naming rows reaching any of them. Each
+ * medium's own value is the franchise itself, that column holding one notation.
+ *
+ * Its counts are `franchiseRows`, each tab's own rows, and not the ranked entry's, which are the
+ * union's: the facts line is worded in the tab's noun, so a show has to count once and not once a
+ * season. A medium absent from that map contributes nothing, which is what keeps a hit off a tab
+ * whose picker does not offer the value — with none of them offering it the entry has no counts at
+ * all, `attributePlacements` yields nothing, and the franchise keeps its view and no narrowings.
  */
-const NOT_AN_ATTRIBUTE = "franchise";
+const franchiseAttribute = (entry: FranchiseSearchEntry, rows: SearchIndex["franchiseRows"]): AttributeEntry => {
+  const counts: Partial<Record<Medium, number>> = {};
+  const values: Partial<Record<Medium, string[]>> = {};
+  for (const medium of media) {
+    const held = rows[medium]?.get(entry.franchise);
+    if (held === undefined) continue;
+    counts[medium] = held;
+    values[medium] = [entry.franchise];
+  }
+
+  return {
+    kind: "attribute",
+    key: `attribute:${FRANCHISE_KEY}:${entry.franchise}`,
+    category: FRANCHISE_KEY,
+    label: FRANCHISE_KEY,
+    value: entry.franchise,
+    name: entry.franchise,
+    secondary: [],
+    size: entry.size,
+    counts,
+    values,
+  };
+};
 
 /**
  * The value a category's cell is found under.
@@ -169,42 +256,61 @@ const attributeValue = (category: string, cell: string): string =>
   category === "certificate" && isCertificate(cell) ? certificateBand(cell) : cell;
 
 /**
- * What every tab can be narrowed by, with a count per medium: one entry per category value, over
- * each medium's own schema and its own rows.
+ * What the box can find, with a count per medium: one entry per category value, plus one per
+ * toggle that names a set worth opening, over each medium's own schema and its own rows.
  *
  * Built beside the work index and with it, since both are a pass over the libraries and a
  * keystroke should cost a scan of strings already assembled. A blank cell is skipped — a category
  * a medium answers `""` to is a hit nobody could name — and so is every category a tab's own
  * control surface would not draw, since the box offers exactly the narrowings the page holds.
+ *
+ * An entry is keyed on the category's own key and the value, so two tabs recording the same thing
+ * under the same word — anime, which Shows and Movies both split by — fold into one entry a single
+ * shelf opens and both tabs can be narrowed to.
  */
 export const buildAttributeIndex = (library: Library): AttributeEntry[] => {
   const found = new Map<string, AttributeEntry>();
 
+  const record = (
+    key: string,
+    fields: Pick<AttributeEntry, "category" | "label" | "value">,
+    medium: Medium,
+    cell: string,
+  ) => {
+    const entry = found.setIfAbsent(key, {
+      kind: "attribute" as const,
+      key,
+      ...fields,
+      name: fields.value,
+      secondary: [],
+      size: 0,
+      counts: {},
+      values: {},
+    });
+    entry.size += 1;
+    entry.counts[medium] = (entry.counts[medium] ?? 0) + 1;
+    const held: string[] = entry.values[medium] ?? [];
+    if (!held.includes(cell)) held.push(cell);
+    entry.values[medium] = held;
+  };
+
   eachMedium((medium, module) => {
     for (const category of module.filters.categories) {
-      if (category.key === NOT_AN_ATTRIBUTE) continue;
+      // The values that category calls worth finding: all of them unless it says otherwise, which
+      // franchise does with none and a split with its marked half alone.
+      const found = category.found;
+      if (found?.length === 0) continue;
       for (const item of library[medium]) {
         const cell = category.valueOf(item);
         if (!cell) continue;
         const value = attributeValue(category.key, cell);
-        const key = `attribute:${category.key}:${value}`;
-        const entry = found.setIfAbsent(key, {
-          kind: "attribute" as const,
-          key,
-          category: category.key,
-          label: category.label,
-          value,
-          name: value,
-          secondary: [],
-          size: 0,
-          counts: {},
-          values: {},
-        });
-        entry.size += 1;
-        entry.counts[medium] = (entry.counts[medium] ?? 0) + 1;
-        const held: string[] = entry.values[medium] ?? [];
-        if (!held.includes(cell)) held.push(cell);
-        entry.values[medium] = held;
+        if (found && !found.includes(value)) continue;
+        record(
+          `attribute:${category.key}:${value}`,
+          { category: category.key, label: category.label, value },
+          medium,
+          cell,
+        );
       }
     }
   });
@@ -275,8 +381,8 @@ export const attributeAction = (entry: PlacedAttribute, held: readonly string[])
  * Filtered on each medium's own records and then flattened, rather than over the union: a filter
  * category reads the record the *tab* holds, which for Shows is a show and not the season the
  * union counts in — a season carries no genre of its own. Narrowing first and flattening after is
- * also what makes the shelf exactly what the filter would keep, so a shelf reached by ⌘↵ cannot
- * show more than the ↵ beside it leaves on the page.
+ * also what makes the shelf exactly what the filter would keep, so a shelf cannot show more than
+ * the narrowing beside it leaves on the page.
  */
 const attributeItems = (library: Library, entry: AttributeEntry): OmniItem[] =>
   eachMedium((medium, module) => {
@@ -335,9 +441,24 @@ export const HITS_PER_GROUP = 5;
 const cutHits = <T>(hits: Hit<T>[], limit: number) => ({ hits: hits.slice(0, limit), total: hits.length });
 
 /**
- * The palette's answer to a query: franchises first, then each medium's works in the tabs' own
- * order, a group with nothing to say left out. Franchises lead because they are the one kind of
- * hit that answers with more than itself.
+ * The palette's answer to a query, in three tiers: what the value *is* — a shelf over every library
+ * recording it, and a franchise's own view — then what it does to a page, then the works
+ * themselves. A group with nothing to say is left out.
+ *
+ * The layer readings lead because they are the ones that answer with more than themselves, and
+ * because a phone's box shows about five rows: put third, a shelf falls under the fold on any query
+ * matching several values. It costs the page narrowing the first row, so ↵ and a soft keyboard's Go
+ * open the layer rather than filtering the page.
+ *
+ * Which of the two leads is how well each answered — a series named exactly stands above a genre
+ * found inside a word, and a genre named exactly above a series found the same way — with the
+ * franchise taking a tie, its view saying more about a value than a shelf of works does. Ordered
+ * rather than merged into one ranked list: the two open different layers, and a franchise row
+ * carries a span of years a shelf row has nothing to put in, so one header would name two
+ * destinations.
+ *
+ * The attributes are ranked once and read twice — every one of them shelves, and every one is
+ * placed on the tabs that hold it, where there is a page to place them on at all.
  */
 export const searchUnion = (
   index: SearchIndex,
@@ -346,16 +467,38 @@ export const searchUnion = (
   page?: { tabId: string; categories: readonly string[] },
   limit = HITS_PER_GROUP,
 ): SearchGroup[] => {
+  const attributes = rankHits(index.attributes, query, limit);
+  const franchises = rankHits(index.franchises, query, limit);
+  // Ranked against each other rather than concatenated: a genre matching a query exactly is a
+  // better answer than a series matching it at a word start, and the reverse holds as readily. The
+  // sort is stable, so an attribute keeps its place ahead of a franchise found equally well.
+  const placeable: Hit<AttributeEntry>[] = [
+    ...attributes.hits,
+    ...franchises.hits.map((hit) => ({ ...hit, entry: franchiseAttribute(hit.entry, index.franchiseRows) })),
+  ].toSorted((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity));
   const placed = page
-    ? rankHits(index.attributes, query, limit).hits.flatMap(({ entry, matched }) =>
-        attributePlacements(entry, page.tabId, page.categories).map((hit) => ({ entry: hit, matched })),
+    ? placeable.flatMap((hit) =>
+        attributePlacements(hit.entry, page.tabId, page.categories).map((entry) => ({ ...hit, entry })),
       )
     : [];
 
+  const shelf: SearchGroup = {
+    key: "shelf",
+    label: "Across the library",
+    // The rank's own total, not the cut list's: `rankHits` has already sliced these to `limit`, so
+    // counting them again would state a figure it had stopped counting at and the header would say
+    // "5" beside a franchise group saying "5 of 12".
+    hits: attributes.hits.map((hit) => ({ ...hit, entry: shelfEntry(hit.entry) })),
+    total: attributes.total,
+  };
+  const franchise: SearchGroup = { key: "franchise", label: "Franchises", ...franchises };
+
+  // Lower is the closer match, and an empty list answers `undefined`, which sorts behind every list
+  // something answered. The franchise takes a tie, its view saying more about a value than a shelf.
+  const franchiseLeads = (franchises.hits[0]?.rank ?? Infinity) <= (attributes.hits[0]?.rank ?? Infinity);
+
   const groups: SearchGroup[] = [
-    // The two lead: a query that names a genre is asking what the page can be narrowed to more
-    // often than it is asking for a work called Comedy, and the narrowing is the answer no other
-    // surface on the page offers from the keyboard.
+    ...(franchiseLeads ? [franchise, shelf] : [shelf, franchise]),
     {
       key: "filter-here",
       label: "Filter this page",
@@ -372,7 +515,6 @@ export const searchUnion = (
         limit,
       ),
     },
-    { key: "franchise", label: "Franchises", ...rankHits(index.franchises, query, limit) },
     ...media.map((medium) => ({
       key: medium,
       label: mediumToLabel(medium),
@@ -410,7 +552,7 @@ export const franchiseWorks = (items: OmniItem[], franchise: string, today: Year
 const worksOf = (items: OmniItem[], today: YearMonthDay): ShelfItem[] =>
   galleryStripOrder(galleryWorks(items, "franchise", today), "recent");
 
-/** The works an attribute holds, for the shelf ⌘↵ opens over all four libraries at once. */
+/** The works an attribute holds, for the shelf its own row opens over every library recording it. */
 export const attributeWorks = (library: Library, entry: AttributeEntry, today: YearMonthDay): ShelfItem[] =>
   worksOf(attributeItems(library, entry), today);
 

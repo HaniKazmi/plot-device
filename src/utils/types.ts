@@ -488,6 +488,37 @@ export const franchiseToColour = ({ franchise }: { franchise: string }, scheme: 
   return colour ? pick(colour, scheme) : ("" as Colour);
 };
 
+/**
+ * The word both sheets that record anime write it as.
+ *
+ * One constant rather than a literal on each tab, because the box folds an attribute on its value:
+ * a shelf holding every anime show *and* film exists only where the two labels are the same string,
+ * and two literals a rename can part would quietly become two shelves of one thing.
+ */
+export const ANIME = "Anime";
+
+/**
+ * Anime against everything else: the rose its fandom paints in, and a broadcast indigo for the
+ * rest. Both meet the fill contract.
+ *
+ * Shared here rather than kept on the Shows tab because Movies splits by the same distinction —
+ * one hue means anime on either tab, and a tracked domain may not import another's vocabulary. The
+ * word for the *other* half stays each tab's own, a show that is not anime being a show and a film
+ * a film; only the anime half has to agree, and it is the half keyed on.
+ *
+ * The indigo is 3.7 dE from Movies' own Home blue, the closest pair in any of these tables and
+ * inside the licence gameplay and genre take at 2.3: every surface drawing both names them, the
+ * chips under their own row labels and the Top band's bars in a ranked legend. Colour is the only
+ * carrier on neither. Swinging the hue violet-ward — `#4a5ae0`/`#7d8bff` — opens that to 12.6 and
+ * costs the reading, an indigo at that hue being a colour rather than the broadcast blue the
+ * ordinary half is named for.
+ */
+const ANIME_FILL = fill("#c42b91", "#de47a8");
+const NOT_ANIME_FILL = fill("#006bd1", "#1a82f2");
+
+export const animeToColour = (label: string, scheme: Scheme): Colour =>
+  pick(label === ANIME ? ANIME_FILL : NOT_ANIME_FILL, scheme);
+
 export const scoreBands = ["9–10", "7–8", "5–6", "3–4", "1–2", "Unscored"] as const;
 
 export type ScoreBand = (typeof scoreBands)[number];

@@ -5,12 +5,12 @@ import { createFilterReducer, type BaseFilterState, type FilterDispatchFor } fro
 import { movieFilters } from "./filters";
 
 export interface FilterState extends BaseFilterState<Movie, Measure> {
-  /** Off leaves only cinema visits — the outings, against the whole library. */
-  home: boolean;
+  /** Which of the outings and the nights in the page holds, empty being both. */
+  cinema: string[];
   /** Off leaves only scored films, so the score views stop counting films nobody rated. */
   unscored: boolean;
-  /** Whether anime counts — the analogue of the Pokémon switch on the games tab. */
-  anime: boolean;
+  /** Which side of the anime split the page holds, empty being both, as Shows reads it. */
+  anime: string[];
   genre: string[];
   director: string[];
   franchise: string[];

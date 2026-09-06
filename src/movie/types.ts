@@ -1,5 +1,7 @@
 import type { YearMonthDay } from "../common/date";
 import {
+  ANIME,
+  animeToColour,
   certificateToColour,
   decadeToColour,
   franchiseToColour,
@@ -59,9 +61,30 @@ export type Measure = "Films" | "Hours";
  * because those three live on no field; "score" here means the band, since a select box shows
  * these words and "scoreBand" is nobody's vocabulary.
  */
-export type MovieGroup = MovieStringKeys | "none" | "decade" | "cinema" | "score";
+// `anime` is named beside the string keys, being a boolean on the model as `cinema` is.
+export type MovieGroup = MovieStringKeys | "none" | "decade" | "cinema" | "score" | "anime";
 
 export const cinemaLabel = ({ cinema }: Movie) => (cinema ? "Cinema" : "Home");
+
+/**
+ * Anime, or this tab's own word for everything else.
+ *
+ * The anime half is `ANIME` and not a literal, since Shows labels its own split with the same
+ * constant and the box folds the two into one shelf on that string. The other half is "Film", the
+ * word this tab counts in.
+ */
+const NOT_ANIME = "Film";
+
+export const animeLabel = ({ anime }: { anime: boolean }) => (anime ? ANIME : NOT_ANIME);
+
+/**
+ * The split's two words in the order every surface bands them, the unmarked half first.
+ *
+ * Stated once beside the labelling it has to agree with: the Vitals band matches this array against
+ * `animeLabel`'s output by string, and the filter's chips are the same pair, so a word changed in
+ * one place and not the other silently drops a bar and a chip rather than failing to compile.
+ */
+export const ANIME_GROUP = [NOT_ANIME, ANIME];
 
 /** Exhaustive over the two values `cinemaLabel` can answer, so both always have a fill. */
 const cinemaColours: Record<"Cinema" | "Home", Fill> = {
@@ -91,6 +114,9 @@ export const groupToColour = (group: MovieGroup, movie: Movie, scheme: Scheme): 
       return certificateColour(movie, scheme);
     case "cinema":
       return cinemaToColour(cinemaLabel(movie), scheme);
+    case "anime":
+      // The pair Shows splits by too, so the rose means anime on either tab.
+      return animeToColour(animeLabel(movie), scheme);
     case "decade":
       return decadeToColour(releaseDecade(movie.releaseDate.year), scheme);
     case "score":

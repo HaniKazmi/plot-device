@@ -120,9 +120,9 @@ describe("the books switch", () => {
 });
 
 describe("the schema the drawer and the box are both drawn from", () => {
-  it("offers a switch per medium and the two vocabularies all four share", () => {
+  it("offers a switch per medium and the vocabularies more than one medium shares", () => {
     expect(omniFilters.toggles.map((toggle) => toggle.key)).toEqual([...media]);
-    expect(omniFilters.categories.map((category) => category.key)).toEqual(["genre", "franchise"]);
+    expect(omniFilters.categories.map((category) => category.key)).toEqual(["genre", "certificate", "franchise"]);
   });
 
   it("opens a search-within on the vocabularies this library holds hundreds of values in", () => {

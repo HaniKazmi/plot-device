@@ -1,6 +1,6 @@
 import { Year } from "../common/date";
-import { franchiseCategory, type FilterSchema } from "../common/filterSchema";
-import { genreToColour, type Predicate } from "../utils/types";
+import { certificateCategory, franchiseCategory, FRANCHISE_KEY, type FilterSchema } from "../common/filterSchema";
+import { CERTIFICATES, certificateToColour, genreToColour, type Certificate, type Predicate } from "../utils/types";
 import type { FilterState } from "./filterUtils";
 import { platformToColor, type Platform, type VideoGame } from "./types";
 
@@ -51,8 +51,14 @@ export const gameFilters: FilterSchema<VideoGame, FilterState> = {
       // so a chip and a wedge naming one genre are one colour.
       colourFor: genreToColour,
     },
+    certificateCategory(
+      "certificate",
+      (game) => game.certificate,
+      CERTIFICATES,
+      (value, scheme) => certificateToColour(value as Certificate, scheme),
+    ),
     { key: "gameplay", label: "gameplay", valueOf: (game) => game.gameplay },
     { key: "publisher", label: "publisher", valueOf: (game) => game.publisher, searchable: true },
-    franchiseCategory(),
+    franchiseCategory(FRANCHISE_KEY),
   ],
 };

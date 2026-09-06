@@ -77,7 +77,7 @@ babel({
 }),
 ```
 
-Then `npx vite build 2>&1 | grep -E '^OK|^BAIL'`. Baseline is **271 compiled, 0 bailed** — any `BAIL` line is yours. The commonest cause is a destructured prop default, surfacing as `BuildHIR::lowerAssignment … got: AssignmentPattern`; a computed object key (`{ [theme.breakpoints.down("sm")]: {...} }`) surfaces as `BuildHIR::lowerExpression … CallExpression key in ObjectExpression` — pull the literal out to a plain function taking the varying pieces as arguments; a `MethodCall` bailout is a different failure, cleared by moving the computation out of the component. **Revert the logger afterwards.** Grepping the bundle for `useMemoCache` proves nothing instead — minification eats the name.
+Then `npx vite build 2>&1 | grep -E '^OK|^BAIL'`. Baseline is **272 compiled, 0 bailed** — any `BAIL` line is yours. The commonest cause is a destructured prop default, surfacing as `BuildHIR::lowerAssignment … got: AssignmentPattern`; a computed object key (`{ [theme.breakpoints.down("sm")]: {...} }`) surfaces as `BuildHIR::lowerExpression … CallExpression key in ObjectExpression` — pull the literal out to a plain function taking the varying pieces as arguments; a `MethodCall` bailout is a different failure, cleared by moving the computation out of the component. **Revert the logger afterwards.** Grepping the bundle for `useMemoCache` proves nothing instead — minification eats the name.
 
 ## Traps
 
@@ -89,7 +89,7 @@ Ordered by how quietly they fail.
 - **The `/` shortcut opens the box unless focus is in a field.** `app/Search.tsx` listens on the document for ⌘K, Ctrl+K, ⌘⇧K and a bare `/`, and answers the slash only where the target is not an input, textarea, select or contenteditable. The box's own field is one of those four, so a slash typed into it stays a slash and never reopens the box. A new text field anywhere in the app is covered by that same test; a control that takes typed slashes without being one of those four is not, and a reader typing into it opens the box instead.
 - **Never write a bare `&:hover` on anything a finger can tap.** A touch screen has no leave event, so the last thing tapped keeps its hovered style — a lit border, a scaled-up bar — until another tap lands elsewhere, which reads as a selection nothing asked for. Wrap it in `@media (hover: hover)`, as `Google.tsx`'s card hover and `Timeline`'s `ROW_SX` do.
 - **Never add a field named `show` to a non-`show` domain.** `showDataConfig`'s replacer `dropSeasonParents` (`show/converter.ts`) strips that key on cache write.
-- **Cache keys are versioned — bump the version when the model's shape changes.** Each `converter.ts` passes its version to `dataCacheKey` (`common/useData.ts`): `game-data-cache-v3`, `show-data-cache-v5`, `movie-data-cache-v4`, `book-data-cache-v2`. Without a bump the new field is silently absent from a returning visitor's cache, on their browser alone.
+- **Cache keys are versioned — bump the version when the model's shape changes.** Each `converter.ts` passes its version to `dataCacheKey` (`common/useData.ts`): `game-data-cache-v3`, `show-data-cache-v6`, `movie-data-cache-v4`, `book-data-cache-v2`. Without a bump the new field is silently absent from a returning visitor's cache, on their browser alone.
 - **`PlainDate.from()` throws on partial dates.** It dispatches on length: 10 chars → `YearMonthDay`, 4 → `Year`, and `"2024-05"` throws — deliberately, to surface bad sheet data loudly.
 - **Colour lookups throw on unknown values** — `platformToShort` and `platformToColor` (`game/types.ts`), `certificateBand` and `certificateToColour` (`utils/types.ts`) — deliberately, to catch spreadsheet typos. The open-ended vocabularies are the exceptions: genre falls to `NEUTRAL_FILL`, franchise and `networkToColour` to `""`. Soften neither kind.
 - **Every colour lookup takes a `Scheme`.** A fill is a light/dark `Fill`, so `genreToColour(genre)` alone does not type-check: components read the paper from `useScheme()`, pure builders take it as a parameter. Never reach for `theme.palette.mode`, which gives the light literal on either paper.
@@ -131,7 +131,7 @@ Authentication notes that otherwise waste your time:
 
 ```js
 localStorage.setItem("game-data-cache-v3", JSON.stringify(games));
-localStorage.setItem("show-data-cache-v5", JSON.stringify(shows));
+localStorage.setItem("show-data-cache-v6", JSON.stringify(shows));
 localStorage.setItem("movie-data-cache-v4", JSON.stringify(movies));
 localStorage.setItem("book-data-cache-v2", JSON.stringify(books));
 ```

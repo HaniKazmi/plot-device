@@ -11,16 +11,7 @@ import {
   VerifiedUser,
   Whatshot,
 } from "@mui/icons-material";
-import {
-  groupToColour,
-  typeToColour,
-  typeToName,
-  type Measure,
-  type Season,
-  type Show,
-  type Status,
-  type Type,
-} from "./types";
+import { ANIME_GROUP, groupToColour, animeLabel, type Measure, type Season, type Show, type Status } from "./types";
 import {
   StatCard,
   StatList,
@@ -36,7 +27,7 @@ import { GroupedStatList } from "../common/GroupedStatList";
 import { Hero } from "../common/Hero";
 import ShowCardMediaImage, { ShowFranchiseStrip } from "./CardMediaImage";
 import { showSubtitle } from "./cardData";
-import { statusToColour, type Scheme } from "../utils/types";
+import { animeToColour, statusToColour, type Scheme } from "../utils/types";
 import { useScheme } from "../common/useScheme";
 import { Stack } from "@mui/material";
 import type { ReactNode } from "react";
@@ -193,7 +184,9 @@ const Vitals = ({ data, measure }: { data: Show[]; measure: Measure }) => {
   const scheme = useScheme();
 
   const statusList: Status[] = ["Watching", "Up To Date", "Ended", "Cancelled", "Abandoned"];
-  const typeList: Type[] = ["show", "anime"];
+  // The domain's own pair, which is also what the filter's chips offer: the array is the bar order,
+  // and a word restated here could drift from `animeLabel` and drop a bar with nothing to say so.
+  const animeList = ANIME_GROUP;
   const measureFunc = (shows: Show[]) => measureOf(shows, measure);
 
   return (
@@ -209,14 +202,13 @@ const Vitals = ({ data, measure }: { data: Show[]; measure: Measure }) => {
         measureLabel={measure}
       />
       <TotalsBand
-        title={"Type"}
+        title={"Anime"}
         icon={<Animation />}
         data={data}
         measureFunc={measureFunc}
-        group={typeList}
-        groupOf={(show) => show.type}
-        groupToColour={(ele: Type) => typeToColour({ type: ele }, scheme)}
-        groupToLabel={typeToName}
+        group={animeList}
+        groupOf={animeLabel}
+        groupToColour={(label: string) => animeToColour(label, scheme)}
         measureLabel={measure}
       />
     </VitalsCard>
@@ -258,7 +250,7 @@ const optionIcons: Record<ShowTopOption, ReactNode> = {
   genre: <Category />,
   network: <Tv />,
   franchise: <Stars />,
-  type: <Animation />,
+  anime: <Animation />,
   status: <TaskAlt />,
   certificate: <VerifiedUser />,
 };

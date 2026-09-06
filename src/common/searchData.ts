@@ -14,6 +14,17 @@ export interface Searchable {
 /** A ranked entry, with the run of its raw name the query matched where the name is what matched. */
 export interface Hit<T> {
   entry: T;
+  /**
+   * How well the entry answered: 0 an exact name, 1 a word start, up to 5 every word found
+   * somewhere. Carried on the hit rather than dropped at the cut, so two lists ranked apart can be
+   * merged or ordered against each other — which the box does with the values it shelves and the
+   * franchises it places beside them.
+   *
+   * Absent on a list nothing was matched against: the tabs offered before anything is typed, and
+   * the franchises met lately, which are shown because they are worth offering and not because
+   * they answered.
+   */
+  rank?: number;
   matched?: [start: number, end: number];
 }
 
@@ -139,7 +150,7 @@ const rankOf = <T extends Searchable>(
 const collator = new Intl.Collator();
 
 /**
- * The entries answering a query, best first, cut to `limit` with the count before the cut.
+ * The entries answering a query, best first, cut to `limit`, with the count before the cut.
  *
  * Rank first, then size, then name, so two franchises both starting with the phrase stand in size
  * order and a name is the last thing separating them. An empty query answers nothing: the palette
@@ -161,8 +172,5 @@ export const rankHits = <T extends Searchable>(
     .filter((hit) => hit !== undefined)
     .toSorted((a, b) => a.rank - b.rank || b.entry.size - a.entry.size || collator.compare(a.entry.name, b.entry.name));
 
-  return {
-    hits: ranked.slice(0, limit).map(({ entry, matched }) => (matched ? { entry, matched } : { entry })),
-    total: ranked.length,
-  };
+  return { hits: ranked.slice(0, limit), total: ranked.length };
 };

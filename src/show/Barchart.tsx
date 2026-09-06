@@ -1,19 +1,20 @@
 import { useSelectBox } from "../common/SelectBoxHook";
-import { groupToColour, typeToName, type Measure, type Season, type Show, type ShowStringKeys } from "./types";
+import { animeLabel, groupToColour, type Measure, type Season, type Show, type ShowStringKeys } from "./types";
 import Barchart from "../common/Barchart";
 import { useScheme } from "../common/useScheme";
 import type { YearType } from "../common/filterReducer";
 
-type Option = ShowStringKeys | "none";
+// `anime` is named beside the string keys, being a boolean on the model rather than a column.
+type Option = ShowStringKeys | "none" | "anime";
 
-const options: Option[] = ["none", "name", "status", "type", "genre", "network", "certificate", "franchise"];
+const options: Option[] = ["none", "name", "status", "anime", "genre", "network", "certificate", "franchise"];
 
 const optionToName = (season: Season, option: Option) => {
   switch (option) {
     case "none":
       return "";
-    case "type":
-      return typeToName(season.show.type);
+    case "anime":
+      return animeLabel(season.show);
     default:
       return season.show[option];
   }
