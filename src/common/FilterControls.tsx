@@ -106,13 +106,19 @@ const ValueChip = ({
 /**
  * A chip's own vocabulary colour: the fill itself once chosen, its edge alone while it is not.
  *
+ * The hover and focus states are restated rather than left to MUI, whose own rules on a filled chip
+ * name the theme's primary at a specificity a plain background cannot outrank — so a chosen chip
+ * would wear the tab's colour in place of its value's whenever a pointer sat on it, and on a touch
+ * screen would go on wearing it after the tap, there being no leave event to end the hover.
+ *
  * Built by a function rather than inline, so the `getContrastText` call over the chosen colour is
  * made once against a value the caller already holds.
  */
 const colourSx = (colour: Colour | undefined, selected: boolean) => {
   if (!colour) return undefined;
   if (!selected) return { borderColor: colour };
-  return { backgroundColor: colour, color: (theme: Theme) => theme.palette.getContrastText(colour) };
+  const chosen = { backgroundColor: colour, color: (theme: Theme) => theme.palette.getContrastText(colour) };
+  return { ...chosen, "&:hover, &.Mui-focusVisible": chosen };
 };
 
 /**
