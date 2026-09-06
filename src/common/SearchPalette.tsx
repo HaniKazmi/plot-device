@@ -13,9 +13,9 @@ import { cut } from "./population";
  * line of facts beneath, something to stand at its left — a thumbnail, a swatch — and what
  * choosing it does. The shell draws these and knows nothing about what any of them is.
  *
- * `secondary` is a second thing one hit can do — an attribute filtering the page under ↵ and
- * standing on the Omnibus's own shelf under ⌘↵ — taken as a word and a callback, so the shell
- * offers it without learning what a shelf is.
+ * One press and one meaning: a hit that answers a query two ways is two hits, so every reading the
+ * box offers is reachable by the pointer, the finger and ↵ alike rather than one of them being a
+ * chord a touch screen has no key for.
  */
 export interface PaletteHit {
   key: string;
@@ -25,7 +25,6 @@ export interface PaletteHit {
   lead?: ReactNode;
   trailing?: ReactNode;
   onOpen: () => void;
-  secondary?: { label: string; onOpen: () => void };
 }
 
 /**
@@ -240,8 +239,8 @@ const Title = ({ title, matched }: { title: string; matched?: [number, number] }
  * sheet in the app wears; `usePhone` is read as a value because the two are different trees rather
  * than one at two sizes. The caller owns the query, the groups and This page's own rows, so the
  * shell renders whatever it is handed and stays domain-blind; it owns the keyboard — ↑↓ through
- * every hit as one list, ↵ on the selected, ⌘↵ on its second action, ⇥ between the modes — so a
- * reader can type and press return without touching the pointer.
+ * every hit as one list, ↵ on the selected, ⇥ between the modes — so a reader can type and press
+ * return without touching the pointer.
  *
  * **The keyboard rises for Find and stays down for This page.** A phone's This page is lists to be
  * tapped, and a keyboard over them covers exactly what the reader opened the box to press — so the
@@ -267,8 +266,6 @@ export const SearchPalette = (props: {
   pageContent?: ReactNode;
   /** What stands on This page's last line: the population its settings have left, and Clear. */
   footer?: ReactNode;
-  /** What ⌘↵ does to a hit that has a second action, for the keyboard line Find ends on. */
-  chordHint?: string;
   /**
    * Whether the box is on screen, which is not the same question as whether it is open: a dialog
    * renders its children all the way through the exit transition. A caller building its contents
@@ -278,7 +275,7 @@ export const SearchPalette = (props: {
   onDrawn: (drawn: boolean) => void;
 }) => {
   const { open, mode, onMode, focusRequest, onClose, query, onQueryChange, groups } = props;
-  const { loading, emptyState, placeholder, pageContent, footer, chordHint, onDrawn } = props;
+  const { loading, emptyState, placeholder, pageContent, footer, onDrawn } = props;
   const phone = usePhone();
   const finding = mode === "find";
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
@@ -328,11 +325,7 @@ export const SearchPalette = (props: {
       move(-1);
     } else if (event.key === "Enter" && selected) {
       event.preventDefault();
-      // ⌘↵ takes a hit's second action where it has one, and its first where it does not: a chord
-      // that silently did nothing on four hits out of five would read as the box having missed it.
-      const chord = event.metaKey || event.ctrlKey;
-      if (chord && selected.secondary) selected.secondary.onOpen();
-      else openHit(selected);
+      openHit(selected);
     }
   };
 
@@ -534,21 +527,7 @@ export const SearchPalette = (props: {
                         </Typography>
                       )}
                     </Box>
-                    <Box sx={{ textAlign: "right" }}>
-                      {hit.trailing}
-                      {/* Offered on the lit row alone: a chord printed against every hit is a legend
-                        five lines long for a key that answers one of them. */}
-                      {hit.secondary && `${group.key}:${hit.key}` === selected?.key && (
-                        <Typography
-                          variant="caption"
-                          component="div"
-                          noWrap
-                          sx={{ color: "text.secondary" }}
-                        >
-                          ⌘↵ {hit.secondary.label}
-                        </Typography>
-                      )}
-                    </Box>
+                    <Box sx={{ textAlign: "right" }}>{hit.trailing}</Box>
                   </Box>
                 ))}
               </Box>
@@ -583,7 +562,7 @@ export const SearchPalette = (props: {
             flexShrink: 0,
           }}
         >
-          {finding ? <PaletteKeys chord={chordHint} /> : footer}
+          {finding ? <PaletteKeys /> : footer}
         </Stack>
       )}
     </Dialog>
@@ -591,7 +570,7 @@ export const SearchPalette = (props: {
 };
 
 /** The keys the box answers to, on the last line of Find wherever there is a keyboard to press. */
-const PaletteKeys = ({ chord }: { chord?: string }) => (
+const PaletteKeys = () => (
   <>
     <Typography
       variant="caption"
@@ -606,13 +585,5 @@ const PaletteKeys = ({ chord }: { chord?: string }) => (
     >
       <Key>↵</Key> open or filter
     </Typography>
-    {chord && (
-      <Typography
-        variant="caption"
-        sx={{ color: "text.secondary", display: "flex", gap: 0.5, alignItems: "center" }}
-      >
-        <Key>⌘↵</Key> {chord}
-      </Typography>
-    )}
   </>
 );

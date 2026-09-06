@@ -12,7 +12,7 @@ import { fieldsOf, type PageSchema } from "../common/filterSchema";
 import { rankHits, type Hit } from "../common/searchData";
 import { MUTED_FIGURE_SX } from "../common/typography";
 import { useScheme } from "../common/useScheme";
-import { franchiseToColour, mediumToColour, mediumToLabel, mediumUnit, type Scheme } from "../utils/types";
+import { franchiseToColour, mediumToColour, mediumToLabel, mediumUnit, type Medium, type Scheme } from "../utils/types";
 import type { OmniItem } from "../common/medium";
 import { MediaCounts, MediumDot } from "./MediaCounts";
 import { MEDIA as MEDIA_MODULES, omniArtwork } from "./media";
@@ -46,32 +46,6 @@ type Picked =
   | { kind: "franchise"; franchise: string }
   | { kind: "item"; item: OmniItem }
   | { kind: "shelf"; attribute: AttributeEntry };
-
-/** How many searches the palette remembers, and the key it keeps them under for the tab's life. */
-const RECENT_LIMIT = 6;
-const RECENT_KEY = "search-recent";
-
-/**
- * The keys of the hits chosen lately, newest first. `sessionStorage` rather than `localStorage`
- * because a search is a thing done in a sitting; read inside the initialiser and behind a guard,
- * since the storage is absent where the module is imported without a window.
- */
-const readRecent = (): string[] => {
-  try {
-    const held: unknown = JSON.parse(sessionStorage.getItem(RECENT_KEY) ?? "[]");
-    return Array.isArray(held) ? held.filter((key): key is string => typeof key === "string") : [];
-  } catch {
-    return [];
-  }
-};
-
-const writeRecent = (keys: string[]) => {
-  try {
-    sessionStorage.setItem(RECENT_KEY, JSON.stringify(keys));
-  } catch {
-    // Storage full or refused: the list is a convenience, and the palette works without it.
-  }
-};
 
 /**
  * The thumbnail at a hit's left: a banner at the lead's full width, a poster or a cover standing
@@ -194,10 +168,6 @@ const tabGroup = (tabs: TabEntry[], query: string, scheme: Scheme, close: () => 
   };
 };
 
-/** Where the hits' keys and entries meet, so a remembered key finds its entry again. */
-const entriesByKey = (index: SearchIndex): Map<string, SearchEntry> =>
-  new Map<string, SearchEntry>([...index.franchises, ...index.items].map((entry) => [entry.key, entry]));
-
 /**
  * What an attribute hit is called: the value alone on the tab being read, and the tab's own name
  * before it anywhere else — "Shows · Netflix" is a place, and the place is half of what it says.
@@ -216,39 +186,67 @@ const attributeTitle = (entry: PlacedAttribute, matched: [number, number] | unde
 
 /**
  * The line under an attribute hit: what the category is, and what it holds — on the tab the hit
- * acts on, or across every medium for a tab that is no medium.
+ * acts on, across every medium for a tab that is no medium, and across every medium recording it
+ * for a shelf, which stands on no tab at all.
+ *
+ * The category's name leads the line except where it is blank, which is a toggle's entry: a
+ * toggle's label *is* the value, so a lead there would repeat the title above it.
  */
-const attributeFacts = (entry: PlacedAttribute, scheme: Scheme) => (
+const attributeFacts = (entry: AttributeEntry, medium: Medium | undefined, scheme: Scheme) => (
   <MediaCounts
     counts={entry.counts}
-    media={entry.medium ? [entry.medium] : undefined}
+    media={medium ? [medium] : undefined}
     // The tab's own noun and not the union's unit: the count is that tab's rows, and a show is a
     // show there where the union counts the seasons inside it.
-    wordFor={(medium, count) => stated(count, MEDIA_MODULES[medium].noun)}
+    wordFor={(each, count) => stated(count, MEDIA_MODULES[each].noun)}
     scheme={scheme}
     lead={
-      <Box
-        component="span"
-        sx={{ textTransform: "capitalize" }}
-      >
-        {entry.label}
-      </Box>
+      entry.label ? (
+        <Box
+          component="span"
+          sx={{ textTransform: "capitalize" }}
+        >
+          {entry.label}
+        </Box>
+      ) : undefined
     }
   />
 );
 
 /**
- * The swatch an attribute wears, from the vocabulary its own tab already speaks for that field —
- * a genre, a platform, a network, a certificate. Asked of the schema the hit acts through, so the
- * chip in This page and the hit in Find cannot colour one value two ways; absent where a category
- * has no vocabulary, which is where a swatch would teach a legend no chart honours.
+ * The first medium recording a value, whose own schema is where that value's vocabulary is
+ * declared. `buildAttributeIndex` walks the media in the app's own order, so this is the earliest
+ * of them rather than whichever happened to be scanned first.
  */
-const attributeColour = (entry: PlacedAttribute, schema: PageSchema, scheme: Scheme) => {
-  const source = entry.medium ? MEDIA_MODULES[entry.medium].filters : schema;
-  const category = source.categories.find((candidate) => (candidate.key as string) === entry.category);
-  const values = entry.medium ? entry.values[entry.medium] : undefined;
-  return category?.colourFor?.(values?.[0] ?? entry.value, scheme);
+const firstMedium = (entry: AttributeEntry): Medium | undefined => (Object.keys(entry.counts) as Medium[])[0];
+
+/**
+ * The swatch an attribute wears, from the vocabulary the schema holding that category already
+ * speaks for the field — a genre, a platform, a network, a certificate. Asked of the schema the hit
+ * acts through, so the chip in This page and the hit in Find cannot colour one value two ways;
+ * absent where a category has no vocabulary, which is where a swatch would teach a legend no chart
+ * honours.
+ *
+ * A shelf toggle is looked up beside the categories, and only one carrying `shelf`: the Omnibus's
+ * own toggles are keyed by medium, so a category keyed `show` on some later tab would otherwise
+ * take a medium switch's colour.
+ */
+const attributeColour = (
+  entry: AttributeEntry,
+  schema: PageSchema | undefined,
+  medium: Medium | undefined,
+  scheme: Scheme,
+) => {
+  const category = schema?.categories.find((candidate) => (candidate.key as string) === entry.category);
+  const toggle = schema?.toggles.find((candidate) => candidate.shelf && (candidate.key as string) === entry.category);
+  const values = medium ? entry.values[medium] : undefined;
+  const value = values?.[0] ?? entry.value;
+  return (category ?? toggle)?.colourFor?.(value, scheme);
 };
+
+/** The schema an attribute's own vocabulary is declared in: its medium's, or the composing tab's. */
+const schemaOf = (medium: Medium | undefined, page: PageSchema | undefined) =>
+  medium ? MEDIA_MODULES[medium].filters : page;
 
 /**
  * The palette wired to the union: the index over its items, the groups a query answers, what
@@ -281,7 +279,6 @@ export const SearchSurface = ({
   // Counted so that picking the item whose card is still leaving remounts the card rather than
   // reusing the instance, whose open flag is read once on mount.
   const [pickCount, setPickCount] = useState(0);
-  const [recent, setRecent] = useState<string[]>(readRecent);
   // Set by the box's own transition: true from the moment it has finished leaving the screen, so a
   // close reached by Esc, the ✕ or a hit still fades out with its list under it.
   const [exited, setExited] = useState(true);
@@ -293,9 +290,6 @@ export const SearchSurface = ({
   const close = closeSearch;
 
   const choose = (entry: FranchiseSearchEntry | ItemSearchEntry) => {
-    const kept = [entry.key, ...recent.filter((key) => key !== entry.key)].slice(0, RECENT_LIMIT);
-    setRecent(kept);
-    writeRecent(kept);
     close();
     setPickCount(pickCount + 1);
     setPicked(
@@ -324,31 +318,56 @@ export const SearchSurface = ({
     }
   };
 
-  /** The same attribute across all four libraries, as the gallery's own drill-down draws a shelf. */
-  const openShelf = (entry: PlacedAttribute) => {
+  /** The same attribute across every library recording it, as the gallery's own drill-down draws a shelf. */
+  const openShelf = (entry: AttributeEntry) => {
     close();
     setPicked({ kind: "shelf", attribute: entry });
   };
 
+  /**
+   * What stands at an attribute row's left: the franchise's own lead where the category is the
+   * franchise, so a series wears one mark across all three of its readings — and the initial tile
+   * that lead falls back to, most of the column carrying no colour of its own.
+   */
+  const attributeLead = (entry: AttributeEntry, medium: Medium | undefined) => {
+    if (entry.category === "franchise") {
+      return (
+        <FranchiseLead
+          franchise={entry.value}
+          scheme={scheme}
+        />
+      );
+    }
+    const colour = attributeColour(entry, schemaOf(medium, surface?.schema), medium, scheme);
+    return colour ? (
+      <Swatch
+        colour={colour}
+        size={18}
+      />
+    ) : undefined;
+  };
+
   const toHit = ({ entry, matched }: Hit<SearchEntry>): PaletteHit => {
+    if (entry.kind === "shelf") {
+      const attribute = entry.attribute;
+      return {
+        key: entry.key,
+        title: attribute.value,
+        matched,
+        facts: attributeFacts(attribute, undefined, scheme),
+        lead: attributeLead(attribute, firstMedium(attribute)),
+        onOpen: () => openShelf(attribute),
+      };
+    }
     if (entry.kind === "attribute") {
       const named = attributeTitle(entry, matched);
-      const colour = surface && attributeColour(entry, surface.schema, scheme);
       return {
         key: entry.key,
         title: named.title,
         matched: named.matched,
-        facts: attributeFacts(entry, scheme),
-        lead: colour ? (
-          <Swatch
-            colour={colour}
-            size={18}
-          />
-        ) : undefined,
+        facts: attributeFacts(entry, entry.medium, scheme),
+        lead: attributeLead(entry, entry.medium),
         onOpen: () => applyAttribute(entry),
-        // The same value across all four libraries, which is the other question a genre asks and
-        // the one no tab's own filters can answer.
-        secondary: { label: "shelf", onOpen: () => openShelf(entry) },
       };
     }
     if (entry.kind === "franchise") {
@@ -412,7 +431,7 @@ export const SearchSurface = ({
             total: group.total,
             hits: group.hits.map(toHit),
           }))
-        : openingGroups(index, items ?? [], recent, toHit);
+        : openingGroups(index, items ?? [], toHit);
   // The tabs lead: a reader who typed a tab's name wants the page, and before anything is typed
   // they are the shortest way anywhere. Offered even while the libraries are still landing.
   const goTo = tabGroup(tabs, deferredQuery, scheme, close);
@@ -455,7 +474,6 @@ export const SearchSurface = ({
             </Typography>
           )
         }
-        chordHint="shelf"
         onDrawn={(shown) => setExited(!shown)}
         footer={
           !drawn || finding
@@ -528,44 +546,30 @@ export const SearchSurface = ({
 };
 
 /**
- * What the box offers before a letter is typed: the hits chosen lately, then the franchises met
- * most recently — the series the reader is in the middle of, which is the likeliest thing to be
- * looking for. Remembered keys whose entries have gone, a work hidden by guest mode since, are
- * dropped rather than shown as blanks.
+ * What the box offers before a letter is typed: the franchises met most recently — the series the
+ * reader is in the middle of, which is the likeliest thing to be looking for.
+ *
+ * A franchise the index no longer holds, one hidden by guest mode since, is dropped rather than
+ * shown as a blank.
  */
 const openingGroups = (
   index: SearchIndex,
   items: OmniItem[],
-  recent: string[],
   toHit: (hit: Hit<SearchEntry>) => PaletteHit,
 ): PaletteGroup[] => {
-  const byKey = entriesByKey(index);
-  const remembered = recent.map((key) => byKey.get(key)).filter((entry) => entry !== undefined);
+  const byKey = new Map(index.franchises.map((entry) => [entry.key, entry]));
   const lately = recentFranchises(items, CURRENT_PLAINDATE, HITS_PER_GROUP)
     .map((franchise) => byKey.get(`franchise:${franchise}`))
-    .filter((entry): entry is FranchiseSearchEntry => entry !== undefined);
+    .filter((entry) => entry !== undefined);
 
+  if (lately.length === 0) return [];
   return [
-    ...(remembered.length > 0
-      ? [
-          {
-            key: "recent",
-            label: "Recent searches",
-            total: remembered.length,
-            hits: remembered.map((entry) => toHit({ entry })),
-          },
-        ]
-      : []),
-    ...(lately.length > 0
-      ? [
-          {
-            key: "lately",
-            label: "Franchises met lately",
-            total: lately.length,
-            hits: lately.map((entry) => toHit({ entry })),
-          },
-        ]
-      : []),
+    {
+      key: "lately",
+      label: "Franchises met lately",
+      total: lately.length,
+      hits: lately.map((entry) => toHit({ entry })),
+    },
   ];
 };
 

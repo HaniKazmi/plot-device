@@ -1,5 +1,5 @@
 import { categoryOptions, franchiseOptions } from "./filterOptions";
-import type { Colour, KeysMatching, Predicate, Scheme } from "../utils/types";
+import { franchiseToColour, type Colour, type KeysMatching, type Predicate, type Scheme } from "../utils/types";
 
 /**
  * A tab's own field holding a boolean, which is the only kind a toggle can name, and one holding a
@@ -44,6 +44,20 @@ export interface FilterToggle<T, S> {
   key: ToggleKey<S>;
   label: string;
   hides(item: T): boolean;
+  /**
+   * Whether the rows this toggle names are a set worth opening on their own, which is what puts the
+   * value in the box's index and gives it a shelf.
+   *
+   * `hides` names a subset and `!hides(item)` is its membership test, which is all a shelf needs.
+   * Off by default: most toggles name a page's own noise — unconfirmed dates, unscored films —
+   * rather than a thing a reader goes looking for, and the Omnibus's medium switches would shelve
+   * a whole tab. A shelf is the only reading such a value gets: a toggle's states are "everything"
+   * and "these rows dropped", with none meaning "these rows alone", so narrowing a page *to* it is
+   * not something the control can express.
+   */
+  shelf?: boolean;
+  /** Its swatch, on the same terms a category's values take one. */
+  colourFor?(value: string, scheme: Scheme): Colour | undefined;
 }
 
 /**
@@ -94,6 +108,10 @@ export const franchiseCategory = <T extends { franchise: string; name: string }>
       (item) => item.franchise,
       (item) => item.name,
     ),
+  // The table `utils/types.ts` shares across the tabs, so a chip and the wedge, bead or shelf
+  // naming one series are one colour. Most of the column is a work naming itself and answers `""`,
+  // which is the plain chip every other uncoloured value already wears.
+  colourFor: (value, scheme) => franchiseToColour({ franchise: value }, scheme) || undefined,
   searchable: true,
 });
 

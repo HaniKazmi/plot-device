@@ -44,9 +44,9 @@ export interface ItemSearchEntry extends Searchable {
  * author, a director, a format, a certificate tier.
  *
  * The vocabulary is each tab's own schema, so the box cannot offer a narrowing that tab's own
- * control surface does not draw. Franchise is deliberately not among them: a franchise is a
- * *thing* the box already answers with, opening the view over the whole series, and indexing it
- * here as well would put every series on one query twice.
+ * control surface does not draw. Franchise is one of these too, but built from the franchise index
+ * rather than scanned out of the column (`franchiseAttribute`), the column being mostly works
+ * naming themselves.
  *
  * `values` is what the hit stands for on a tab, which is the value itself everywhere but certificate:
  * the two boards write one tier as `15` and as `16`, so a hit on the tier has to set whichever of
@@ -63,6 +63,15 @@ export interface AttributeEntry extends Searchable {
   value: string;
   counts: Partial<Record<Medium, number>>;
   values: Partial<Record<Medium, string[]>>;
+  /**
+   * Whether a page can be narrowed *to* this value, which decides whether the entry is placed on
+   * the tabs holding it or only shelved.
+   *
+   * A category's value can: the tab sets it and keeps those rows alone. A toggle's cannot — its two
+   * states are "everything" and "these rows dropped", with none meaning "these rows alone" — so
+   * pressing a placed toggle hit would hide exactly what the reader pressed it to see.
+   */
+  narrows: boolean;
 }
 
 /**
@@ -82,7 +91,31 @@ export interface PlacedAttribute extends AttributeEntry {
   here: boolean;
 }
 
-export type SearchEntry = FranchiseSearchEntry | ItemSearchEntry | PlacedAttribute;
+/**
+ * One attribute as the layer over the libraries that record it, which is a thing to open rather
+ * than a narrowing of a page.
+ *
+ * A wrapper rather than the entry itself, because `PlacedAttribute` extends `AttributeEntry` and
+ * the two share `kind`: handed a bare attribute the box could not tell a shelf from a narrowing.
+ * `name` is the value, so a run matched while ranking the attributes underlines at the same index
+ * here.
+ */
+export interface ShelfSearchEntry extends Searchable {
+  kind: "shelf";
+  key: string;
+  attribute: AttributeEntry;
+}
+
+export type SearchEntry = FranchiseSearchEntry | ItemSearchEntry | PlacedAttribute | ShelfSearchEntry;
+
+const shelfEntry = (attribute: AttributeEntry): ShelfSearchEntry => ({
+  kind: "shelf",
+  key: `shelf:${attribute.key}`,
+  name: attribute.value,
+  secondary: [],
+  size: attribute.size,
+  attribute,
+});
 
 export interface SearchIndex {
   franchises: FranchiseSearchEntry[];
@@ -149,13 +182,37 @@ export const buildSearchIndex = (items: OmniItem[], library: Library): SearchInd
 };
 
 /**
- * The category whose values the box does not index, and why.
+ * The category whose values this scan does not index, and why.
  *
- * A franchise is a *thing* the box already answers with — a hit on one opens the view over the
- * whole series across the four media — so indexing it as a narrowing too would put every series on
- * a query twice, once to look at and once to filter by.
+ * The franchise column is mostly works naming themselves — 168 values in the games sheet alone —
+ * and a scan of it would offer every standalone game as a series to narrow by. A franchise's own
+ * narrowings come from the franchise index instead (`franchiseAttribute`), which drops those
+ * through `isSeries`, so the set the box offers is the set that tab's own picker draws.
  */
 const NOT_AN_ATTRIBUTE = "franchise";
+
+/**
+ * A franchise as a narrowing: the same value every tab's own `franchiseCategory` offers, in the
+ * shape `attributePlacements` and `attributeAction` already read.
+ *
+ * Derived from a ranked franchise rather than scanned out of the column, so a franchise carries
+ * all three readings a genre does — the view over the whole series, this page narrowed to it, and
+ * another page narrowed to it — without the column's self-naming rows reaching any of them. Each
+ * medium's own value is the franchise itself, that column holding one notation.
+ */
+const franchiseAttribute = (entry: FranchiseSearchEntry): AttributeEntry => ({
+  kind: "attribute",
+  key: `attribute:${NOT_AN_ATTRIBUTE}:${entry.franchise}`,
+  category: NOT_AN_ATTRIBUTE,
+  label: NOT_AN_ATTRIBUTE,
+  value: entry.franchise,
+  name: entry.franchise,
+  secondary: [],
+  size: entry.size,
+  counts: entry.counts,
+  values: Object.fromEntries((Object.keys(entry.counts) as Medium[]).map((medium) => [medium, [entry.franchise]])),
+  narrows: true,
+});
 
 /**
  * The value a category's cell is found under.
@@ -199,6 +256,7 @@ export const buildAttributeIndex = (library: Library): AttributeEntry[] => {
           size: 0,
           counts: {},
           values: {},
+          narrows: true,
         });
         entry.size += 1;
         entry.counts[medium] = (entry.counts[medium] ?? 0) + 1;
@@ -275,8 +333,8 @@ export const attributeAction = (entry: PlacedAttribute, held: readonly string[])
  * Filtered on each medium's own records and then flattened, rather than over the union: a filter
  * category reads the record the *tab* holds, which for Shows is a show and not the season the
  * union counts in — a season carries no genre of its own. Narrowing first and flattening after is
- * also what makes the shelf exactly what the filter would keep, so a shelf reached by ⌘↵ cannot
- * show more than the ↵ beside it leaves on the page.
+ * also what makes the shelf exactly what the filter would keep, so a shelf cannot show more than
+ * the narrowing beside it leaves on the page.
  */
 const attributeItems = (library: Library, entry: AttributeEntry): OmniItem[] =>
   eachMedium((medium, module) => {
@@ -335,9 +393,18 @@ export const HITS_PER_GROUP = 5;
 const cutHits = <T>(hits: Hit<T>[], limit: number) => ({ hits: hits.slice(0, limit), total: hits.length });
 
 /**
- * The palette's answer to a query: franchises first, then each medium's works in the tabs' own
- * order, a group with nothing to say left out. Franchises lead because they are the one kind of
- * hit that answers with more than itself.
+ * The palette's answer to a query, in three tiers: what the value *is* — a shelf over every library
+ * recording it, and a franchise's own view — then what it does to a page, then the works
+ * themselves. A group with nothing to say is left out.
+ *
+ * The layer readings lead because they are the ones that answer with more than themselves, and
+ * because a phone's box shows about five rows: put third, a shelf falls under the fold on any query
+ * matching several values. It costs the page narrowing the first row, so ↵ and a soft keyboard's Go
+ * open the layer rather than filtering the page.
+ *
+ * The attributes are ranked once and read twice. Every one of them shelves; only the ones a page
+ * can be held *to* are placed, which is what `narrows` says — and only where there is a page to
+ * place them on.
  */
 export const searchUnion = (
   index: SearchIndex,
@@ -346,16 +413,30 @@ export const searchUnion = (
   page?: { tabId: string; categories: readonly string[] },
   limit = HITS_PER_GROUP,
 ): SearchGroup[] => {
+  const attributes = rankHits(index.attributes, query, limit).hits;
+  const franchises = rankHits(index.franchises, query, limit);
+  // Attributes before franchises, and the cut after both: a genre matching a query exactly is a
+  // better answer than a series matching it at a word start.
+  const placeable: Hit<AttributeEntry>[] = [
+    ...attributes.filter(({ entry }) => entry.narrows),
+    ...franchises.hits.map(({ entry, matched }) => ({ entry: franchiseAttribute(entry), matched })),
+  ];
   const placed = page
-    ? rankHits(index.attributes, query, limit).hits.flatMap(({ entry, matched }) =>
+    ? placeable.flatMap(({ entry, matched }) =>
         attributePlacements(entry, page.tabId, page.categories).map((hit) => ({ entry: hit, matched })),
       )
     : [];
 
   const groups: SearchGroup[] = [
-    // The two lead: a query that names a genre is asking what the page can be narrowed to more
-    // often than it is asking for a work called Comedy, and the narrowing is the answer no other
-    // surface on the page offers from the keyboard.
+    {
+      key: "shelf",
+      label: "Across the library",
+      ...cutHits(
+        attributes.map(({ entry, matched }) => ({ entry: shelfEntry(entry), matched })),
+        limit,
+      ),
+    },
+    { key: "franchise", label: "Franchises", ...franchises },
     {
       key: "filter-here",
       label: "Filter this page",
@@ -372,7 +453,6 @@ export const searchUnion = (
         limit,
       ),
     },
-    { key: "franchise", label: "Franchises", ...rankHits(index.franchises, query, limit) },
     ...media.map((medium) => ({
       key: medium,
       label: mediumToLabel(medium),
@@ -410,7 +490,7 @@ export const franchiseWorks = (items: OmniItem[], franchise: string, today: Year
 const worksOf = (items: OmniItem[], today: YearMonthDay): ShelfItem[] =>
   galleryStripOrder(galleryWorks(items, "franchise", today), "recent");
 
-/** The works an attribute holds, for the shelf ⌘↵ opens over all four libraries at once. */
+/** The works an attribute holds, for the shelf its own row opens over every library recording it. */
 export const attributeWorks = (library: Library, entry: AttributeEntry, today: YearMonthDay): ShelfItem[] =>
   worksOf(attributeItems(library, entry), today);
 

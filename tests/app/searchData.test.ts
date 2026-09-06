@@ -103,10 +103,11 @@ describe("searchUnion", () => {
   });
 
   it("finds a book by its author", () => {
-    const [group] = searchUnion(trekIndex(), "reynolds");
+    // The author is a shelf as well as a way to the book, so the work's own group is the second.
+    const groups = searchUnion(trekIndex(), "reynolds");
 
-    expect(group.key).toBe("book");
-    expect(group.hits[0].entry.name).toBe("Chasm City");
+    expect(groups.map((group) => group.key)).toEqual(["shelf", "book"]);
+    expect(groups[1].hits[0].entry.name).toBe("Chasm City");
   });
 });
 
@@ -296,9 +297,56 @@ describe("searchUnion over attributes", () => {
     expect(there.hits.map((hit) => (hit.entry as PlacedAttribute).tab)).toEqual(["movies", "books"]);
   });
 
-  it("offers no attribute group at all where the box is standing over no page", () => {
-    // Nothing is named "Sci-Fi" in the four libraries, so without a page there is nothing to say.
-    expect(searchUnion(trekIndex(), "sci-fi")).toEqual([]);
+  it("shelves an attribute with no page to stand on, and places it nowhere", () => {
+    // A shelf is over the libraries recording the value and asks no tab anything, where a
+    // narrowing needs a page to narrow. Nothing in the four libraries is *named* "Sci-Fi", so the
+    // shelf is the whole answer.
+    const groups = searchUnion(trekIndex(), "sci-fi");
+
+    expect(groups.map((group) => group.key)).toEqual(["shelf"]);
+    expect(groups[0].hits[0].entry.name).toBe("Sci-Fi");
+  });
+
+  it("leads with the layer readings, then the narrowings, then the works", () => {
+    const groups = searchUnion(trekIndex(), "star", { tabId: "shows", categories: ["genre", "franchise"] });
+
+    // Nothing in this library is a "star" attribute, so the shelf group is absent and the
+    // franchise leads; its own narrowings follow, ahead of the works.
+    expect(groups.map((group) => group.key)).toEqual([
+      "franchise",
+      "filter-here",
+      "filter-there",
+      "game",
+      "show",
+      "movie",
+    ]);
+  });
+
+  it("gives a franchise the two narrowings a genre gets, on the tabs recording it", () => {
+    const groups = searchUnion(trekIndex(), "star trek", { tabId: "shows", categories: ["genre", "franchise"] });
+    const here = groups.find((group) => group.key === "filter-here")!;
+    const there = groups.find((group) => group.key === "filter-there")!;
+
+    expect(here.hits.map((hit) => (hit.entry as PlacedAttribute).value)).toEqual(["Star Trek"]);
+    expect(here.hits[0].entry.category).toBe("franchise");
+    expect(there.hits.map((hit) => (hit.entry as PlacedAttribute).tab)).toEqual(["games", "movies"]);
+  });
+
+  it("sets the franchise column on the tab a franchise narrowing was pressed on", () => {
+    const groups = searchUnion(trekIndex(), "star trek", { tabId: "shows", categories: ["franchise"] });
+    const [placed] = groups.find((group) => group.key === "filter-here")!.hits;
+
+    expect(attributeAction(placed.entry as PlacedAttribute, [])).toEqual({
+      type: "updateFilter",
+      filter: "franchise",
+      value: ["Star Trek"],
+    });
+  });
+
+  it("offers no franchise narrowing on a tab whose schema has no franchise category", () => {
+    const groups = searchUnion(trekIndex(), "star trek", { tabId: "shows", categories: ["genre"] });
+
+    expect(groups.some((group) => group.key === "filter-here")).toBe(false);
   });
 });
 
