@@ -441,6 +441,13 @@ const cutHits = <T>(hits: Hit<T>[], limit: number) => ({ hits: hits.slice(0, lim
  * matching several values. It costs the page narrowing the first row, so ↵ and a soft keyboard's Go
  * open the layer rather than filtering the page.
  *
+ * Which of the two leads is how well each answered — a series named exactly stands above a genre
+ * found inside a word, and a genre named exactly above a series found the same way — with the
+ * franchise taking a tie, its view saying more about a value than a shelf of works does. Ordered
+ * rather than merged into one ranked list: the two open different layers, and a franchise row
+ * carries a span of years a shelf row has nothing to put in, so one header would name two
+ * destinations.
+ *
  * The attributes are ranked once and read twice. Every one of them shelves; only the ones a page
  * can be held *to* are placed, which is what `narrows` says — and only where there is a page to
  * place them on.
@@ -452,8 +459,8 @@ export const searchUnion = (
   page?: { tabId: string; categories: readonly string[] },
   limit = HITS_PER_GROUP,
 ): SearchGroup[] => {
-  const attributes = rankHits(index.attributes, query, limit).hits;
-  const franchises = rankHits(index.franchises, query, limit);
+  const { best: attributeRank, hits: attributes } = rankHits(index.attributes, query, limit);
+  const { best: franchiseRank, ...franchises } = rankHits(index.franchises, query, limit);
   // Attributes before franchises, and the cut after both: a genre matching a query exactly is a
   // better answer than a series matching it at a word start.
   const placeable: Hit<AttributeEntry>[] = [
@@ -466,16 +473,18 @@ export const searchUnion = (
       )
     : [];
 
+  const shelf: SearchGroup = {
+    key: "shelf",
+    label: "Across the library",
+    ...cutHits(
+      attributes.map(({ entry, matched }) => ({ entry: shelfEntry(entry), matched })),
+      limit,
+    ),
+  };
+  const franchise: SearchGroup = { key: "franchise", label: "Franchises", ...franchises };
+
   const groups: SearchGroup[] = [
-    {
-      key: "shelf",
-      label: "Across the library",
-      ...cutHits(
-        attributes.map(({ entry, matched }) => ({ entry: shelfEntry(entry), matched })),
-        limit,
-      ),
-    },
-    { key: "franchise", label: "Franchises", ...franchises },
+    ...(franchiseRank <= attributeRank ? [franchise, shelf] : [shelf, franchise]),
     {
       key: "filter-here",
       label: "Filter this page",

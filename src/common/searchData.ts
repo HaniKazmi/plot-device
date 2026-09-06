@@ -138,22 +138,30 @@ const rankOf = <T extends Searchable>(
 /** Ties within a rank fall to the larger entry, then to the name the reader's locale sorts first. */
 const collator = new Intl.Collator();
 
+/** The rank of a list nothing answered, so it sorts behind every list something did. */
+const NO_RANK = Infinity;
+
 /**
- * The entries answering a query, best first, cut to `limit` with the count before the cut.
+ * The entries answering a query, best first, cut to `limit`, with the count before the cut and the
+ * rank the first of them was found at.
  *
  * Rank first, then size, then name, so two franchises both starting with the phrase stand in size
  * order and a name is the last thing separating them. An empty query answers nothing: the palette
  * has its own idea of what to show before anything is typed. The entries come back as given, so a
  * caller reads its own fields off them and a franchise's raw name — the key every index here is
  * held on — travels through unfolded.
+ *
+ * `best` is what lets two separately ranked lists be ordered against each other without merging
+ * them into one — the box's shelf and franchise groups, which open different layers and so keep
+ * their own headers. It is `hits[0]`'s rank, and lower is the closer match.
  */
 export const rankHits = <T extends Searchable>(
   entries: readonly T[],
   query: string,
   limit: number,
-): { hits: Hit<T>[]; total: number } => {
+): { hits: Hit<T>[]; total: number; best: number } => {
   const phrase = foldText(query);
-  if (!phrase) return { hits: [], total: 0 };
+  if (!phrase) return { hits: [], total: 0, best: NO_RANK };
   const words = phrase.split(" ");
 
   const ranked = entries
@@ -164,5 +172,6 @@ export const rankHits = <T extends Searchable>(
   return {
     hits: ranked.slice(0, limit).map(({ entry, matched }) => (matched ? { entry, matched } : { entry })),
     total: ranked.length,
+    best: ranked[0]?.rank ?? NO_RANK,
   };
 };

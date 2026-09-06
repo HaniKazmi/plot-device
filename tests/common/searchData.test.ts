@@ -25,7 +25,15 @@ describe("foldText", () => {
 
 describe("rankHits", () => {
   it("answers nothing to an empty query", () => {
-    expect(rankHits([entry("Zelda")], "   ", 5)).toEqual({ hits: [], total: 0 });
+    expect(rankHits([entry("Zelda")], "   ", 5)).toEqual({ hits: [], total: 0, best: Infinity });
+  });
+
+  it("states its first hit's rank, so two lists ranked apart can be ordered against each other", () => {
+    // What the box orders its shelf and franchise groups by, each of them a list of its own.
+    expect(rankHits([entry("Star"), entry("Starfield")], "star", 5).best).toBe(0);
+    expect(rankHits([entry("Starfield")], "star", 5).best).toBe(1);
+    // Nothing answered, so it sorts behind every list something did.
+    expect(rankHits([entry("Zelda")], "star", 5).best).toBe(Infinity);
   });
 
   it("finds a name through its accent", () => {

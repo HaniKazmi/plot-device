@@ -1055,7 +1055,15 @@ library rather than for the media. It stands above the narrowings because a phon
 five rows and a reading put third falls under the fold on any query matching several values; the
 cost is that ↵ and a soft keyboard's Go open the layer rather than filtering the page. A hit answers
 one press and one press only — a chord would be a reading a touch screen has no key for, and the
-lit row would advertise it. An entry from a toggle carries the shelf alone: a toggle's states are
+lit row would advertise it. It stands beside the franchise view, which is the same reading of the
+one value the shelf cannot hold — the franchise column being mostly works naming themselves, so
+`buildAttributeIndex` skips it and `franchiseAttribute` derives the narrowings from the ranked
+index instead — and which of the two leads is how well each answered: `rankHits` states its first
+hit's rank, and a series named exactly stands above a genre found inside a word. The franchise
+takes a tie, its view saying more about a value than a shelf of works does. Ordered rather than
+merged into one ranked list, because the two open different layers and a franchise row carries a
+span of years a shelf row has nothing to put in, so one header would name two destinations. An
+entry from a toggle carries the shelf alone: a toggle's states are
 "everything" and "these rows dropped", with none meaning "these rows alone", so `narrows` is what
 keeps it out of the two placement groups.
 

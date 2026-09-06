@@ -396,9 +396,9 @@ describe("searchUnion over attributes", () => {
     ]);
   });
 
-  it("leads with the layer readings where a shelf and a franchise both answer one query", () => {
-    // The order the box is built on: what the value *is* first — every fantasy work, and the
-    // series called Fantasy Quest — then what it does to a page, then the works themselves.
+  it("puts the shelf above the franchise where the value is named exactly and the series is not", () => {
+    // Both layer readings answer, so which leads is how well each did: the genre is the query
+    // exactly, where Fantasy Quest holds it at a word start.
     const fantasy = library({
       game: [videoGame({ name: "Fantasy Quest II", franchise: "Fantasy Quest", genre: "Fantasy" })],
       movie: [movie({ name: "Fantasy Quest: The Film", franchise: "Fantasy Quest", genre: "Fantasy" })],
@@ -416,6 +416,21 @@ describe("searchUnion over attributes", () => {
       "game",
       "movie",
     ]);
+  });
+
+  it("puts the franchise above the shelf where it answers at least as well", () => {
+    // A series and a Books shelf can name one thing — Revelation Space is the franchise column
+    // and the series column both — so a tie is the common case rather than the odd one, and the
+    // franchise takes it: its view states the series' own facts and strip before listing it.
+    const reynolds = library({ book: [book(), book({ name: "Redemption Ark", seriesNumber: 3 })] });
+    const groups = searchUnion(buildSearchIndex(toOmniItems(reynolds), reynolds), "revelation space", {
+      tabId: "books",
+      categories: ["series", "franchise"],
+    });
+
+    // No `filter-there`: no other library here holds the value, and a page holding the category
+    // but none of the value gets no hit, that hit being one that empties the page it is pressed on.
+    expect(groups.map((group) => group.key)).toEqual(["franchise", "shelf", "filter-here", "book"]);
   });
 
   it("gives a franchise the two narrowings a genre gets, on the tabs recording it", () => {
