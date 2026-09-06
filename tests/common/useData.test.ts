@@ -148,9 +148,9 @@ describe("describeFailure", () => {
   });
 
   it("prefers the body's message over the status line, which names the sheet's own reason", () => {
-    const rejection = { result: { error: { message: "Unable to parse range: Games List!A:Z" } }, status: 400 };
+    const rejection = { result: { error: { message: "Unable to parse range: Games!A:Z" } }, status: 400 };
 
-    expect(describeFailure(rejection)).toBe("Unable to parse range: Games List!A:Z");
+    expect(describeFailure(rejection)).toBe("Unable to parse range: Games!A:Z");
   });
 
   it("states a cause with no shape of its own as it stands", () => {
