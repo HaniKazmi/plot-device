@@ -81,16 +81,16 @@ export const nowPortraitHeight = (rowWidth: number): number =>
   Math.round((Math.floor((rowWidth - NOW_GAP) / 2) - NOW_SPINE_WIDTH) / shapeRatioValues.portrait);
 
 /**
- * The narrowest card a share may produce.
+ * The narrowest card the four-way share may produce.
  *
  * The column beside a poster is what the floor is really about: at 366 it is 133px, which is as
  * narrow as a date, a two-line title and two tiles read well in, and the column is the card's width
  * less the poster the row's height gives it — so every pixel off the card comes off the words
  * twice over. At 296 the column is 90px and the title has three characters a line.
  *
- * The four-way share's floor, where a card under it answers nothing and the band falls back to two
- * cards a row (`Now`). The pair keeps the row at a narrower card and spends the poster instead
- * (`NOW_PAIR_MIN_CARD_WIDTH`), a tablet's row having nowhere else to fall back to.
+ * A card under it answers nothing and the band seats two to a row instead (`Now`), which is a real
+ * fallback: the pair of the same row is twice this card's width. The pair itself carries no floor,
+ * having nothing narrower to fall back to — see `pairNowGeometry`.
  */
 const NOW_MIN_CARD_WIDTH = 366;
 
@@ -106,27 +106,16 @@ const NOW_MIN_CARD_WIDTH = 366;
  * it rather than past it.
  *
  * One solver for both shares, since a row shared two ways and a row shared four ways differ only in
- * how many cards and how many gaps come out of it, and each states its own floor.
+ * how many cards and how many gaps come out of it; what each does with a share too narrow to draw
+ * is its own.
  */
-const shareGeometry = (rowWidth: number, perRow: number, minCardWidth: number): NowGeometry | undefined => {
+const shareGeometry = (rowWidth: number, perRow: number): NowGeometry => {
   const cardWidth = Math.floor((rowWidth - (perRow - 1) * NOW_GAP) / perRow);
-  if (cardWidth < minCardWidth) return undefined;
 
   const bannerArtHeight = Math.round(cardWidth / shapeRatioValues.landscape);
   const height = bannerArtHeight + NOW_BANNER_TEXT_HEIGHT;
   return { cardWidth, height, posterArtWidth: Math.round(height * shapeRatioValues.portrait), bannerArtHeight };
 };
-
-/**
- * The narrowest card the pair is drawn at, and so the row it opens on: two of a 648px row.
- *
- * Below it the band stands the cards at their stated width and they wrap one to a row. The figure
- * is where the poster clamp below has taken a fifth of the picture: at 320 the row stands 316 and
- * the poster beside its 133px column is 187 wide, 275 tall, against the 215 by 316 the row would
- * give it — a picture over a quarter shorter than its card reads as a thumbnail, not the card's
- * artwork.
- */
-const NOW_PAIR_MIN_CARD_WIDTH = 320;
 
 /**
  * The words beside a poster, the narrowest a date, a two-line title and two tiles read well in:
@@ -137,26 +126,31 @@ const NOW_PAIR_MIN_CARD_WIDTH = 320;
 const NOW_POSTER_COLUMN = 133;
 
 /**
- * The band two cards to a row, which is what a tablet draws.
+ * The band two cards to a row, which is what every width between the phone and the four-way share
+ * draws.
  *
- * The stated card is 434, so two of them fit no page between the phone and `md`, and one leaves half
- * the band empty. Sharing the row in two is the same answer the four-way share gives a wide desktop,
- * with one difference: the four-way share refuses a row under its floor, where this one keeps the
- * row and spends the poster instead. A 768 tablet's row is 720, the pair 356, and a poster at the
- * row's height would leave its words 128px — under the 133 column — so the poster is held to the
- * column's remainder, 223 wide and 328 tall in a 336px row, the card's own ground showing under it.
- * Refusing the pair there would stand four full-size cards in a column on the most common tablet,
- * a band twice as tall, for five pixels of column.
+ * **Two to a row is unconditional, and the card is never wider than half the row.** A card wider
+ * than its share can only stand one to a row, so refusing the share hands the band four rows of a
+ * card the reader never asked to be that big: at a 558px row the stated card is 434 and the band
+ * runs 1,544px, against the 590 the same row's pair costs. There is no narrower arrangement above
+ * `sm` to fall back to, so the share is taken whatever it comes to and the poster is what gives.
  *
+ * The stated card is the ceiling rather than a rung on the way down: from a 876px row the share
+ * reaches it and the band is the stated geometry exactly, which is what the `md` cap
+ * (`2 * NOW_CARD_WIDTH + NOW_GAP`) holds the four-card row to.
+ *
+ * The poster is held to the column's remainder wherever the row's height would draw it wider — a
+ * 768 tablet's row is 720, the pair 356, and a poster at the row's height would leave its words
+ * 128px, so it stands 223 wide and 328 tall in a 336px row with the card's own ground under it.
  * The clamp never crops: the picture keeps its ratio and stands shorter than the row, as a poster
  * beside the phone's hero does. From a 740px row the natural width is inside the column and the
  * clamp does nothing.
  *
  * @see denseNowGeometry
  */
-export const pairNowGeometry = (rowWidth: number): NowGeometry | undefined => {
-  const share = shareGeometry(rowWidth, 2, NOW_PAIR_MIN_CARD_WIDTH);
-  if (!share) return undefined;
+export const pairNowGeometry = (rowWidth: number): NowGeometry => {
+  const share = shareGeometry(rowWidth, 2);
+  if (share.cardWidth >= NOW_CARD_WIDTH) return NOW_GEOMETRY;
 
   return { ...share, posterArtWidth: Math.min(share.posterArtWidth, share.cardWidth - NOW_POSTER_COLUMN) };
 };
@@ -178,8 +172,10 @@ export const pairNowGeometry = (rowWidth: number): NowGeometry | undefined => {
  * container's own numbers, so a change to the theme's container moves the band with it rather than
  * past it.
  */
-export const denseNowGeometry = (rowWidth: number): NowGeometry | undefined =>
-  shareGeometry(rowWidth, 4, NOW_MIN_CARD_WIDTH);
+export const denseNowGeometry = (rowWidth: number): NowGeometry | undefined => {
+  const share = shareGeometry(rowWidth, 4);
+  return share.cardWidth < NOW_MIN_CARD_WIDTH ? undefined : share;
+};
 
 /**
  * What every panel in the band gives up so that 136 holds a kicker, a title, a subtitle and a

@@ -35,7 +35,6 @@ import {
   NOW_BANNER_TEXT_HEIGHT,
   NOW_CARD_WIDTH,
   NOW_GAP,
-  NOW_GEOMETRY,
   NOW_PANEL_INSET,
   NOW_SPINE_WIDTH,
   nowPortraitHeight,
@@ -170,27 +169,32 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
   // any card, so the band measures it and solves the four-way share from it; where the share
   // falls under its floor the cards keep their usual size, two and two.
   const [rowRef, rowWidth] = useElementWidth<HTMLDivElement>();
-  const geometry = (dense && rowWidth !== undefined && denseNowGeometry(rowWidth)) || NOW_GEOMETRY;
-  const oneRow = geometry !== NOW_GEOMETRY;
-  // The band two to a row, which is the arrangement between a phone and the desktop: the stated
-  // card is wider than half a tablet's page, so this width is solved from the row as the four-way
-  // share is. Only one of the two ever applies, the other being written under a breakpoint the
-  // reader is not at. Under the share's own floor the stated card stands in, as it does for the
-  // four-way share: two of those do not fit the row either, so the cards wrap to one apiece and
-  // the band is a column of full-size cards rather than a row of two whose words cannot be read.
-  const pair = rowWidth === undefined ? undefined : (pairNowGeometry(rowWidth) ?? NOW_GEOMETRY);
+  const oneRow = dense && rowWidth ? denseNowGeometry(rowWidth) : undefined;
+  // The band two to a row, which is every width from `sm` up but the one-row band: the share is
+  // taken whatever the row comes to, so no card is ever wider than half the row it stands in — a
+  // card that is can only stand one to a row, and four rows of a stated card is a band three times
+  // the height of the same row's pair. It reaches the stated card of its own accord from a 876px
+  // row, so the widths above have one geometry and not two.
+  //
+  // A row measured at zero has not been measured in any useful sense — an ancestor with nothing
+  // laid out yet answers that — so it takes the unmeasured half-share below rather than a share of
+  // nothing.
+  const pair = rowWidth ? pairNowGeometry(rowWidth) : undefined;
+  // The wider breakpoint's geometry: the four-way share where there is one, and otherwise the pair
+  // again, which already governs every width the one-row band does not claim.
+  const wide = oneRow ?? pair;
 
   // The portrait row's one height, once the row has been measured; until then each picture
   // stands at its own ratio for the frame before.
-  const portraitHeight = phone && rowWidth !== undefined ? nowPortraitHeight(rowWidth) : undefined;
+  const portraitHeight = phone && rowWidth ? nowPortraitHeight(rowWidth) : undefined;
   const game = now.game && (
     <NowItem
       key="game"
       item={now.game}
       medium="game"
       phone={phone}
-      geometry={geometry}
       pair={pair}
+      wide={wide}
       MediaComponent={VgCardMediaImage}
       tab={VideoGamesTab}
       kicker={`Since ${formatDate(now.game.startDate)}`}
@@ -213,8 +217,8 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
       medium="show"
       phone={phone}
       portraitHeight={portraitHeight}
-      geometry={geometry}
       pair={pair}
+      wide={wide}
       MediaComponent={ShowCardMediaImage}
       tab={ShowsTab}
       kicker={formatDate(now.show.show.lastWatchedDate!)}
@@ -234,8 +238,8 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
       item={now.movie}
       medium="movie"
       phone={phone}
-      geometry={geometry}
       pair={pair}
+      wide={wide}
       MediaComponent={MovieCardMediaImage}
       tab={MoviesTab}
       kicker={formatDate(now.movie.startDate)}
@@ -252,8 +256,8 @@ const Now = ({ now }: { now: ReturnType<typeof electNow> }) => {
       medium="book"
       phone={phone}
       portraitHeight={portraitHeight}
-      geometry={geometry}
       pair={pair}
+      wide={wide}
       MediaComponent={BookCardMediaImage}
       tab={BooksTab}
       kicker={`Since ${formatDate(now.book.startDate)}`}
@@ -347,16 +351,19 @@ const NowItem = <T,>(props: {
   phone: boolean;
   /** The phone's portrait row's height, which a poster or a cover is held to once the row is measured. */
   portraitHeight?: number;
-  /** The band's one size, from `md` up. */
-  geometry: NowGeometry;
-  /** The same, shared two to a row, until the row has been measured. */
+  /**
+   * The row shared two ways, which is what a card stands at from `sm`. Undefined until the row has
+   * been measured, where the card takes half the row through the stated share below instead.
+   */
   pair: NowGeometry | undefined;
+  /** The same from `md`, where a band with all four in flight shares its row four ways instead. */
+  wide: NowGeometry | undefined;
 }) => {
   const scheme = useScheme();
 
   const shape = mediumToShape(props.medium);
   const beside = shapeToArrangement(shape) === "beside";
-  const geometry = props.geometry;
+  const wide = props.wide;
   const pair = props.pair;
   const ground = barColour(props.tab, scheme);
 
@@ -429,14 +436,15 @@ const NowItem = <T,>(props: {
     <Box
       sx={{
         flex: "0 0 auto",
-        // One width for every card in the band, which each shape then spends its own way. Two to a
-        // row until there is width for the stated card, where the share is solved from the row and
-        // stands in as half of it for the frame before the row has been measured.
-        width: { sm: pair?.cardWidth ?? `calc(50% - ${NOW_GAP / 2}px)`, md: geometry.cardWidth },
+        // One width for every card in the band, which each shape then spends its own way: the row
+        // shared two ways, and four ways at `md` where a band with all four in flight fits them on
+        // one row. Half the row exactly for the frame before the row has been measured, which is
+        // the share's own answer to within a gap and never a card the row cannot hold two of.
+        width: { sm: pair?.cardWidth ?? `calc(50% - ${NOW_GAP / 2}px)`, md: wide?.cardWidth },
         maxWidth: "100%",
         // A floor and not a fixed height, so a title that runs to another line grows the row rather
         // than being clipped by it; the cards stretch together, so they still share one height.
-        minHeight: { sm: pair?.height, md: geometry.height },
+        minHeight: { sm: pair?.height, md: wide?.height },
         display: "flex",
       }}
     >
@@ -499,14 +507,14 @@ const NowItem = <T,>(props: {
                     // Width rather than height, because the column beside it does not stretch:
                     // a percentage height against it resolves to nothing.
                     {
-                      width: { sm: pair?.posterArtWidth, md: geometry.posterArtWidth },
+                      width: { sm: pair?.posterArtWidth, md: wide?.posterArtWidth },
                       height: "100%",
                     }
                   : // The card's own width — `CardMedia`'s own rule for a media component — at
                     // 16:9, so the banner fills it edge to edge with nothing letterboxed and
                     // nothing cropped, at a height stated rather than left over from the words.
                     {
-                      height: { sm: pair?.bannerArtHeight, md: geometry.bannerArtHeight },
+                      height: { sm: pair?.bannerArtHeight, md: wide?.bannerArtHeight },
                     }),
               }
             : {
@@ -515,7 +523,7 @@ const NowItem = <T,>(props: {
                 // pixels wider or narrower, uncropped and unletterboxed, and the text column beside
                 // it gives up or gains those pixels.
                 width: "auto",
-                height: { sm: pair?.height, md: geometry.height },
+                height: { sm: pair?.height, md: wide?.height },
               }),
         }}
         footerComponent={

@@ -594,9 +594,11 @@ carry; the platform, the genre and the figures are one tap away on the expanded 
 whole cell opens (`openFromCell`): a finger on the spine does what a finger on the picture does,
 and Enter on the focused picture — which lands on the action area and not on the picture the card
 opens from — is forwarded the same way. A medium with nothing in flight leaves its column a cell
-short, and the columns then differ by that cell's height. Between `sm` and `md` the cards return
-two to a row, the share solved from the measured width as the four-way one is (`pairNowGeometry`),
-since the stated 434px card is wider than half a tablet's page.
+short, and the columns then differ by that cell's height. From `sm` up the cards stand two to a row, the share solved
+from the measured width as the four-way one is (`pairNowGeometry`) and capped at the stated card,
+which it reaches from a 876px row. The share is unconditional: a card wider than half its row can
+only stand one to a row, so refusing a narrow share would hand a 558px row four rows of the stated
+card, 1,544px against the 590 the same row's pair costs.
 
 **Mixed rows are one card size, the Now band's rule at strip scale.** A list lays its cards out one
 of two ways (`CardLayout` in `common/Stats.tsx`): a grid at stated column spans, or a sized row.
