@@ -116,6 +116,32 @@ const colourSx = (colour: Colour | undefined, selected: boolean) => {
 };
 
 /**
+ * The last page's tallies, held against the schema and the rows they were built from.
+ *
+ * Every category is a scan of the whole library, and the surface they are drawn on is rebuilt on
+ * every letter typed into its own field: the React Compiler's scope for them is the scope the
+ * controls are built in, and that one depends on the query, so a library of fifteen vocabularies
+ * would be fifteen passes over every row per keystroke. Cached against the two things the answer
+ * is a function of, it is one pass per category per library instead.
+ *
+ * One slot, because one page's controls are drawn at a time — the box holds the tab the reader is
+ * on — so a second would only hold the tab they left. A `data` array is the library's own slice
+ * and keeps its identity until a sheet lands, which is exactly when the figures change.
+ */
+let lastTallies: { schema: PageSchema; data: readonly unknown[]; tallies: CategoryTally[] } | undefined;
+
+type CategoryTally = ReturnType<typeof categoryTally>;
+
+/** Every category's vocabulary and figures, one scan of the library apiece. */
+const categoryTallies = (schema: PageSchema, data: readonly unknown[]): CategoryTally[] => {
+  if (lastTallies && lastTallies.schema === schema && lastTallies.data === data) return lastTallies.tallies;
+
+  const tallies = schema.categories.map((category) => categoryTally(category, data));
+  lastTallies = { schema, data, tallies };
+  return tallies;
+};
+
+/**
  * A category's own row: what it is, what is chosen, and a caret saying it opens.
  *
  * The summary is the chosen values joined, or "Any" where nothing is — and, on a searchable
@@ -351,11 +377,7 @@ export const SchemaPageControls = ({
   const fields = fieldsOf(state);
   const phrase = foldText(query);
 
-  // A pass over the whole library per category, hoisted out of the map below so a chip pressed or
-  // a letter typed rebuilds no list: computed inside it, each of a library's fifteen vocabularies
-  // would be part of a value the state and the query are dependencies of. The values and their
-  // figures come off the one pass, the chips stating both.
-  const tallies = schema.categories.map((category) => categoryTally(category, data));
+  const tallies = categoryTallies(schema, data);
 
   return (
     <Box sx={{ paddingX: 2, paddingY: 1 }}>

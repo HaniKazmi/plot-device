@@ -349,16 +349,20 @@ share of the values behind them. `Rank` ranks the measure `Totals` plots and kee
 figure, so the axis plots position while the hover card states the number. Clicking a column
 isolates that series and clicking again restores all, through Highcharts' plot-options event rather
 than React state, and an empty pivot is refused outright, Highcharts inventing an index axis and a
-series of its own from nothing. Where the reader's own filters are what emptied it, it draws
-`common/NothingMatches.tsx` — "Nothing matches these filters" and a Clear — in place of the
-"nothing to plot" line; a library with nothing in it and no filter to blame draws the plain line
+series of its own from nothing. Where the reader's own settings are what emptied it, it draws
+`common/NothingMatches.tsx` — what emptied the page, and that setting's own way back — in place of
+the "nothing to plot" line; a library with nothing in it and nothing to blame draws the plain line
 instead, since there is no choice to undo. `Sunburst`, the packed `Timeline`, `FoldedChart`,
 `Finished` and `StatList` answer the same way for the same reason, each drawing it in the body at a
 modest height rather than the chart's own `80vh`.
 
 **Which of the two it is, is the page's answer and not the chart's.** `common/nothingMatchesContext.ts`
-carries `{ active, clear }`: whether the page's own filters have left it with no rows at all, and
-the dispatch that undoes them. `Google.tsx` provides it once above the outlet, from the current
+carries whether the page's own settings have left it with no rows at all, which of the two did it —
+a filter, the year scope, or both — and the dispatch that undoes each. The message names the one
+that emptied the page and offers exactly its way back: "Nothing matches these filters · Clear
+filters", or "Nothing in 2019 · Show all time", the scope stated in the words its own picker wears.
+A reader told the filters emptied a page holding none has been sent to look for a control that is
+not lit. `Google.tsx` provides it once above the outlet, from the current
 tab's page module — one pass of that page's own predicate over its library per filter change, the
 same figure the box's footer states — and every shell asks it at the empty branch it already has.
 Handed down instead, it is a prop threaded through sixteen domain wrappers that never look at it,
@@ -589,9 +593,9 @@ of run, and the ground already says which medium's date it is; `NowDate` reads t
 arrangement for which edge it stands on, as every footer does, so the cell passes `shape`. A column
 that narrow holds a date and not a word, and the date is the one fact of the four a picture cannot
 carry; the platform, the genre and the figures are one tap away on the expanded card, which the
-whole cell opens (`openFromCell`): a finger on the spine does what a finger on the picture does,
-and Enter on the focused picture — which lands on the action area and not on the picture the card
-opens from — is forwarded the same way. A medium with nothing in flight leaves its column a cell
+whole cell opens (`openFromCell`): a finger on the spine does what a finger on the picture does. A
+press inside the card's own action area is left alone, that button carrying the card's press itself
+and answering the keyboard with it. A medium with nothing in flight leaves its column a cell
 short, and the columns then differ by that cell's height. From `sm` up the cards stand two to a row, the share solved
 from the measured width as the four-way one is (`pairNowGeometry`) and capped at the stated card,
 which it reaches from a 876px row. The share is unconditional: a card wider than half its row can
@@ -864,9 +868,13 @@ how to group, and its vocabularies.
 drill-down's card keys, which the category prefixes so a change of grouping remounts the grid, and
 the rule that **the whole card opens the group, at every width** (`CardMediaImageProps.onOpen`,
 which replaces the item's own detail dialog): the picture fronts the group rather than being an item
-of it, so the press has one meaning. What says so is a › at the end of the footer's closing row
-(`FooterComponent`'s `chevron`, in the footer's own artwork tones), following the handle rather than
-asked for separately, so the two cannot disagree. It is a glyph and not a worded button because a
+of it, so the press has one meaning — and the press is the card's own action area, a button, so
+Enter on the focused card opens the group where a handler on the picture inside it would answer the
+pointer alone. What says so is a › at the end of the footer's closing row (`FooterComponent`'s
+`chevron`, in the footer's own artwork tones), following the handle rather than asked for
+separately, so the two cannot disagree; on a phone's strip card, whose footer is a caption of two
+fixed lines, it rides the closing line — the figure, and the shorter of the two, so the date above
+keeps the card's full width. It is a glyph and not a worded button because a
 button there stands the footer a row taller than the plain `StatList` beside it — the two cards
 sharing a `StatBand` row then end 30px apart — and it sits outside the row's own flex box, which wraps
 between its cells and would otherwise give a long group's name a second line the short names do not
@@ -921,11 +929,20 @@ rather than narrowings of it, then the toggles as chips, then one row per catego
 **expands in place** into its values as chips with counts, so a value is a tap and never a portalled
 menu item a thumb has to aim at; a `searchable` category — the authors, directors, publishers and
 series a library holds hundreds of — opens a field and a scroller instead, two hundred chips being
-no list anyone scans. A category with a colour vocabulary keeps its swatch on the chip, so a chip
-and a wedge naming one value are one colour. The footer states `narrowedTo(population, activeCount)`
-beside the Clear that undoes the second half. With something typed, the same rows narrow: a category
-shows the values matching the query and one matching none is dimmed and stays shut, so the single
-field narrows the lists as well as the libraries.
+no list anyone scans; there the values chosen lead the list whatever is typed into that field, since
+a phrase names what the reader is looking for and not what they have already picked, and the chips
+are the only place a choice is shown or taken back. A category with a colour vocabulary keeps its
+swatch on the chip, so a chip and a wedge naming one value are one colour, and a category holding a
+selection ends its row in a clear of its own — the footer's Clear undoes every category at once,
+where taking one back otherwise means opening it and pressing each lit chip off. Both halves of a
+category, its vocabulary and the figure inside each chip, come off one scan of the library apiece
+(`categoryTally`), cached against the schema and rows they were built from: the surface is rebuilt
+on every letter typed, and the compiler's scope for anything in it depends on that query, so a
+library of fifteen vocabularies would otherwise be fifteen passes over every row per keystroke. The
+footer states `narrowedTo(population, activeCount)` beside the Clear that undoes the second half.
+With something typed, the same rows narrow: a category shows the values matching the query and one
+matching none is dimmed and stays shut, so the single field narrows the lists as well as the
+libraries.
 
 Which tab that is comes from `app/pageState.ts`'s `pageOf(tabId, library)`, the one file in `app/`
 that may name the composing tab: it answers with that tab's schema, its store, its measures, the
@@ -1171,9 +1188,10 @@ being grouped by something else, so the wall draws it as a key under its header:
 then a swatch and a word per value present. Naming the field alone tells a reader the colours mean
 something without telling them what any of them means. Both halves of an entry come off the same
 item, so the swatch and the word cannot disagree; a value whose colour lookup answers nothing is
-left out, the card wearing no border for it either. The key is dropped where the wall is sorted by
-that field — the wall then groups itself by the value and the marker names each run, which is the
-same legend spread down the page — and ordered numeric-aware, one of the four vocabularies being a
+left out, the card wearing no border for it either. It is drawn under every sort the wall offers,
+none of which is the border's own field — the wall orders by date, by franchise or by one of a
+domain's own figures, and the marker names its runs by that order — and ordered numeric-aware, one
+of the four vocabularies being a
 certificate ramp a string sort runs "12, 15, 18, 3, 7". The header's own count is `wallPopulation`
 (`common/finishedData.ts`): what the wall is over, stated only where the wall is _shorter_ than the
 page, which it is wherever the sheet holds a row with no artwork — the card is the picture, so an
@@ -1302,11 +1320,14 @@ holding no more than one icon button stays on the title row, the caller saying s
 the noun each medium's module carries — `cut(shown, total)` — "10 of 1,539", or the whole figure
 where nothing is cut — and `all(total)` — "All 1,539", the worded cut a control wears. One module
 because the alternative is these three written out at twenty-odd call sites, each one `format` away
-from a library of 1,539 reading as "1539" beside a chart that reads "1,539". `isFilteredEmpty(count,
-activeCount)` is the fourth: true only where a filter, not an empty library, is why a page holds
-nothing, which is what tells a chart's own "nothing to plot" line apart from
-`common/NothingMatches.tsx`'s "Nothing matches these filters" and its Clear. It is asked of the
-page once, above the outlet, and reaches the shells through `common/nothingMatchesContext.ts` (§6).
+from a library of 1,539 reading as "1539" beside a chart that reads "1,539". `isNarrowedEmpty(count,
+filtersActive, scoped)` is the fourth: true only where a setting the reader made, and not an empty
+library, is why a page holds nothing, which is what tells a chart's own "nothing to plot" line apart
+from `common/NothingMatches.tsx` and its way back. Both settings count — the year scope narrows a
+page exactly as a filter does, and a page scoped to a year its library has nothing in would
+otherwise draw a blank canvas with nothing anywhere saying why — and each is asked separately,
+because the message offers the setting's own undo. It is asked of the page once, above the outlet,
+and reaches the shells through `common/nothingMatchesContext.ts` (§6).
 
 `common/Stats.tsx` exports what the domain `Stats.tsx` files assemble into a grid: `StatCard` and
 `StatSummary`; `YearVitalsPair`, all-time and in-year cards differing only in figures; `StatList`;
@@ -1902,7 +1923,7 @@ key in ObjectExpression`; pulled out to a plain function taking the varying piec
   `sheetBarSx`, `dialogCardSx`, among others — the literal itself sits at module scope and the
   component stays compiled.
 
-The baseline is **266 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **265 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.
