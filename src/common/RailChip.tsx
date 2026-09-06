@@ -1,5 +1,6 @@
 import { Chip, type Theme } from "@mui/material";
 import type { ReactElement } from "react";
+import { COARSE_CONTROL_HEIGHT, RAIL_CHIP_HEIGHT } from "./typography";
 
 /**
  * What every rail's chips are, beyond being chips.
@@ -17,13 +18,15 @@ const CHIP_SX = { flexShrink: 0 } as const;
  *
  * A chip's label padding and MUI's own icon offsets are spacing for a mark set beside a word, and
  * left in they seat the glyph 4px left of centre in a pill 9px wider than it needs to be. The
- * width follows the height through the ratio rather than a figure, so the circle is whatever the
- * theme gives a small chip on this pointer — 24px, or 32 under a finger — without this file
- * holding a second copy of either.
+ * width is stated as the height the theme gives a small chip on this pointer, rather than left to
+ * `aspect-ratio: 1`: WebKit sizes a flex container's intrinsic width before a ratio-derived width
+ * is resolved, so a row of ratio-sized chips is laid out as if each were the width of its padding
+ * alone and the sibling after the row is placed over its last three chips.
  */
 const ICON_ONLY_SX = {
   ...CHIP_SX,
-  aspectRatio: "1",
+  width: RAIL_CHIP_HEIGHT,
+  "@media (pointer: coarse)": { width: COARSE_CONTROL_HEIGHT },
   "& .MuiChip-icon": { marginInline: 0 },
   "& .MuiChip-label": { paddingInline: 0 },
 } as const;
