@@ -202,9 +202,9 @@ export const scrollBehaviourFor = (distance: number, viewport: number): ScrollBe
  * the day that item finished, and the next may start the same day. Splitting a handoff across
  * rows would say both were going at once.
  *
- * `items` must already be in start order — a row's last item is then also its latest-ending,
- * which is what lets one date per row stand for the whole of it. Returns a row index per item,
- * in the order given.
+ * `items` must already be in start order, shortest first where two share a start — a row's last
+ * item is then also its latest-ending, which is what lets one date per row stand for the whole of
+ * it. Returns a row index per item, in the order given.
  */
 export const assignRows = <T extends { start: YearMonthDay; end: YearMonthDay }>(items: readonly T[]) => {
   /** The day each row's last item ends, from which the row is free again. */
@@ -222,11 +222,29 @@ export const assignRows = <T extends { start: YearMonthDay; end: YearMonthDay }>
 };
 
 /**
+ * Start order, and the shorter item first where two start on the same day.
+ *
+ * A row is free again from the day its last item ends, so an item begun and finished in one day
+ * hands the row straight on to something else begun that day — but only if it is placed first.
+ * Left to the order the source happens to be in, a longer item takes the row, holds it past that
+ * day, and the single-day one is pushed to a row of its own: three books out of 450 open a second
+ * row on the Books timeline that way, each of them read in a day alongside a longer read begun the
+ * same morning.
+ *
+ * Earliest-ending first is also what the greedy packing wants generally — it frees each row as
+ * soon as it can — so this can only lower the row count, never raise it.
+ */
+const byStartThenShortest = (a: TimelineData, b: TimelineData) => {
+  const start = a.start.toString().localeCompare(b.start.toString());
+  return start !== 0 ? start : a.end.toString().localeCompare(b.end.toString());
+};
+
+/**
  * The packed rows, plus the highest row index used (-1 when there is no data). Links each item to
  * its row neighbours on the way through, which is what the label step measures its gaps against.
  */
 export const packRows = (timelineData: TimelineData[]) => {
-  const sortedData = timelineData.sortByKey("start", true);
+  const sortedData = timelineData.toSorted(byStartThenShortest);
   const rows = assignRows(sortedData);
 
   // The last event placed in each row.
