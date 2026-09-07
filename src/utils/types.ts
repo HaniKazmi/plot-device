@@ -557,3 +557,62 @@ const scoreBandColours: Record<ScoreBand, Fill> = {
 };
 
 export const scoreBandToColour = (band: ScoreBand, scheme: Scheme): Colour => pick(scoreBandColours[band], scheme);
+
+/**
+ * How a work was obtained and taken in, over the two sheets that record it.
+ *
+ * Shared here rather than kept on either tab because Games and Books write the same column and two
+ * of its values mean one thing on both — a disc and a paperback are each Physical, a storefront
+ * download and a Kindle purchase are each a file on a screen — and a tracked domain may not import
+ * another's vocabulary. `Digital` and `eBook` are one entry under two words for that reason, as
+ * the status table folds Playing, Watching and Reading into one state; each sheet keeps its own
+ * word, and the fill is what they agree on.
+ *
+ * The three the Books sheet colours carry the sheet's own hues. Its conditional formatting paints
+ * Physical `#f6dccf`, eBook `#cfe4f8` and Audiobook `#eedcf2` — hues 48, 247 and 320 at a wash's
+ * chroma — and at 0.140 and the brightest lightness clearing 3:1 on white those are the terracotta,
+ * screen blue and violet below. The Games sheet colours none of its own column, so the other three
+ * are placed in the arc those three leave open: a green, and a red and a teal held a lightness
+ * step deeper. The step is what six values need — 60° of hue at one lightness is about 11 dE,
+ * where a pair on one chart wants 15 — and it is also why Pirated is the red rather than a second
+ * warm value beside Physical, and Web Serial the teal rather than a second blue beside eBook: two
+ * blues told apart by lightness alone read as one blue however far apart they measure, which is
+ * the pair PC and Steam already cost the platform table.
+ *
+ * The closest pair a reader sees at once is 15.8 dE, Physical against Pirated on the white paper,
+ * and 15.9, eBook against Audiobook on the dark; nothing anywhere in the table is closer than
+ * 15.2. Web Serial carries 0.09 chroma against the others' 0.14 because that is all sRGB holds at
+ * its hue and lightness, not a choice.
+ */
+export const FORMAT_NAMES = [
+  "Physical",
+  "Digital",
+  "eBook",
+  "Audiobook",
+  "Subscription",
+  "Pirated",
+  "Web Serial",
+] as const;
+
+export type FormatName = (typeof FORMAT_NAMES)[number];
+
+/** A file on a screen, whichever of the two sheets' words for it a row is written with. */
+const SCREEN_FILL = fill("#4898e6", "#63b0fc");
+
+const formatColours: Record<FormatName, Fill> = {
+  Physical: fill("#de7949", "#f28c5c"),
+  Digital: SCREEN_FILL,
+  eBook: SCREEN_FILL,
+  Audiobook: fill("#bf7bcf", "#d28ce1"),
+  Subscription: fill("#3ea863", "#5dc47e"),
+  Pirated: fill("#b54d73", "#c85e83"),
+  "Web Serial": fill("#007e7f", "#00999b"),
+};
+
+/**
+ * Falls to the neutral rather than throwing, unlike the tables a converter checks a cell against:
+ * `game/converter.ts` casts its Format cell unchecked, so a word off this table reaches here from
+ * a real row.
+ */
+export const formatToColour = (format: string, scheme: Scheme): Colour =>
+  pick(formatColours[format as FormatName] ?? NEUTRAL_FILL, scheme);

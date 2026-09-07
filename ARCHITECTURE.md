@@ -2043,10 +2043,11 @@ them; the long tail is 168 values in the games sheet alone, most a work naming i
 `tests/utils/fillContract.test.ts` pins it: a cross-media franchise resolves to one value through
 all four domains' `groupToColour`.
 
-Eight vocabularies live in `utils/types.ts` because more than one tab speaks them: the genre ramp,
+Nine vocabularies live in `utils/types.ts` because more than one tab speaks them: the genre ramp,
 `statusToColour`, `franchiseToColour`, `decadeToColour`, the score bands (`scoreBandToColour`, which
 Movies and Books both rate on), `certificateToColour` over the `Certificate` union three of the four
-domains record a certificate into, `animeToColour` over the split Shows and Movies both record, and
+domains record a certificate into, `animeToColour` over the split Shows and Movies both record,
+`formatToColour` over the Format column Games and Books both write, and
 `mediumFills` with `mediumToLabel`, `mediumToName` and
 `mediumUnit` — the only colour a mixed-media surface carries meaning in, re-exported by
 `app/types.ts`. Its hues are the home tabs' own, so `tabs.ts` constrains them; the closest pair
@@ -2071,9 +2072,29 @@ while each tab keeps its own word for the rest, a series that is not anime being
 film. That rest takes `NEUTRAL_FILL`, being an absence and not a second thing, which is also what
 keeps it clear of the Cinema/Home pair the Movies filter surface now draws three rows below it: a
 hue of its own there was a blue 3.7 dE from the sofa's, two colours a reader cannot tell apart
-meaning different things on one screen. Books
-adds three formats at chroma 0.14,
-drawn only in a labelled band and the filter's chips; Movies adds the Cinema/Home pair and
+meaning different things on one screen.
+
+`formatToColour` is the newest of the nine and the one an equivalence is keyed on rather than a
+word. Games and Books both write a Format column, and two of its values mean one thing on both — a
+disc and a paperback are each `Physical`, a storefront download and a Kindle purchase are each a
+file on a screen — so `Digital` and `eBook` are one entry under two words, as the status table
+folds Playing, Watching and Reading into one state. The three the Books sheet's own conditional
+formatting paints carry that sheet's hues, held to chroma 0.14 and to the brightest lightness
+clearing 3:1 on white: `#f6dccf`, `#cfe4f8` and `#eedcf2` are hues 48, 247 and 320, which become
+the terracotta, screen blue and violet the tab already drew. The Games sheet colours none of its
+column, so `Subscription`, `Pirated` and `Web Serial` are placed in the arc those three leave
+open — a green, and a red and a teal a lightness step deeper, since 60° of hue at one lightness is
+about 11 dE where a pair on one chart wants 15. That step is also why Pirated is the red rather
+than a second warm value beside Physical, and Web Serial the teal rather than a second blue beside
+eBook: two blues told apart by lightness alone read as one blue however far apart they measure,
+which is the pair PC and Steam already cost the platform table. The closest pair a reader sees at
+once is 15.8 dE and nothing in the table is closer than 15.2. It falls to the neutral off-table
+rather than throwing, `game/converter.ts` casting its Format cell unchecked. Books draws it in a
+labelled band, its filter chips and its ledger; Games in the Top Format card, a sunburst ring and a
+barchart split, where the column was drawn in palette colours by option index before — which is
+what made a Physical game and a physical book two colours.
+
+Movies adds the Cinema/Home pair and
 re-exports the score bands — valenced red through amber to green, Unscored on the neutral — under
 its own name. Shows colours networks as brand-derived fills with `""` off-table, the column gaining
 a streamer whenever one launches, keyed on the string the **sheet** writes: `HBO`, though the brand

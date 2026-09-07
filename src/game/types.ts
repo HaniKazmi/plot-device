@@ -4,6 +4,7 @@ import {
   certificateToColour,
   decadeToColour,
   fill,
+  formatToColour,
   franchiseToColour,
   genreToColour,
   pick,
@@ -12,6 +13,7 @@ import {
   type Certificate,
   type Colour,
   type Fill,
+  type FormatName,
   type KeysMatching,
   type Scheme,
 } from "../utils/types";
@@ -78,7 +80,15 @@ export const videoGameOptions: readonly VideoGameStringKeys[] = [
   "name",
 ];
 
-export type Format = "Physical" | "Digital" | "Pirated" | "Subscription";
+/**
+ * The four of the shared format vocabulary (`utils/types.ts`) this sheet's column holds, listed
+ * and checked against it rather than written as a bare union: the colour is looked up by the word,
+ * so a value the shared table has no entry for draws the neutral with nothing to say it has been
+ * missed — and Physical is only one colour on both tabs while both lists name it the same way.
+ */
+export const FORMATS = ["Physical", "Digital", "Pirated", "Subscription"] as const satisfies readonly FormatName[];
+
+export type Format = (typeof FORMATS)[number];
 export type Status = "Playing" | "Endless" | "Abandoned" | "Beat" | "Backlog" | "Next";
 export type Company = "PlayStation" | "Nintendo" | "PC" | "iOS" | "Xbox";
 export type Platform = `${Company}${string}`;
@@ -288,6 +298,10 @@ export const groupToColour = (group: keyof VideoGame | "none" | "decade", game: 
       return certificateColour(game, scheme);
     case "gameplay":
       return gameplayToColour(game, scheme);
+    case "format":
+      // The table `utils/types.ts` shares with the Books tab, which records the same column: one
+      // terracotta means Physical on either, and this tab's Digital wears what a Books eBook does.
+      return formatToColour(game.format, scheme);
     case "genre":
       return genreToColour(game.genre, scheme);
     case "franchise":

@@ -1,17 +1,15 @@
 import type { YearMonthDay } from "../common/date";
 import {
   decadeToColour,
-  fill,
+  formatToColour,
   franchiseToColour,
   genreToColour,
-  NEUTRAL_FILL,
-  pick,
   releaseDecade,
   scoreBand,
   scoreBandToColour,
   statusToColour,
   type Colour,
-  type Fill,
+  type FormatName,
   type KeysMatching,
   type Scheme,
 } from "../utils/types";
@@ -28,11 +26,15 @@ export type Status = (typeof BOOK_STATUSES)[number];
 export const isStatus = (value: string): value is Status => (BOOK_STATUSES as readonly string[]).includes(value);
 
 /**
- * How a book was read. The sheet's scope today is Kindle purchases, so every row says eBook; the
- * other two are what the sheet's own notes say is excluded "for now", and a vocabulary that
- * already holds them is what lets a physical book arrive as a row rather than as a code change.
+ * How a book was read, and the four words the converter accepts in that cell.
+ *
+ * A subset of the shared `FORMAT_NAMES` (`utils/types.ts`), which spans the Games column too: this
+ * is what a *book* can be, so the converter rejects a row calling one Pirated where it still knows
+ * which row that is. Web Serial is the one of the four the sheet's own dropdown does not yet
+ * offer — 413 rows are Physical, 67 eBook and 2 Audiobook — and a vocabulary already holding it is
+ * what lets the first serialised read arrive as a row rather than as a code change.
  */
-export const FORMATS = ["eBook", "Audiobook", "Physical"] as const;
+export const FORMATS = ["eBook", "Audiobook", "Physical", "Web Serial"] as const satisfies readonly FormatName[];
 
 export type Format = (typeof FORMATS)[number];
 
@@ -91,20 +93,12 @@ export type Measure = "Books" | "Pages" | "Hours";
 export type BookGroup = BookStringKeys | "none" | "decade" | "score";
 
 /**
- * One hue per format, placed at chroma 0.14 and solved to the fill contract on each paper: a
- * screen blue for eBook, a violet for Audiobook, a warm terracotta for Physical. Each pair is
- * over 15 dE from the others on its own paper except eBook and Audiobook on the dark, at 15.9 —
- * and every segment of the one band that draws them is labelled. The terracotta sits 13–14 from
- * the tab's own gold, which is the app bar and never a peer of a band segment.
+ * The format table is `utils/types.ts`' own, because the Games sheet writes the same column: a
+ * paperback and a disc are both Physical and wear one terracotta, and an eBook and a storefront
+ * download are one screen blue under each sheet's own word for it. Re-exported so this tab's
+ * filter chips, ledger swatch and format band read it where they read every other book colour.
  */
-const formatColours: Record<Format, Fill> = {
-  eBook: fill("#4898e6", "#63b0fc"),
-  Audiobook: fill("#bf7bcf", "#d28ce1"),
-  Physical: fill("#de7949", "#f28c5c"),
-};
-
-export const formatToColour = (format: string, scheme: Scheme): Colour =>
-  pick(formatColours[format as Format] ?? NEUTRAL_FILL, scheme);
+export { formatToColour } from "../utils/types";
 
 export const groupToColour = (group: BookGroup, book: Book, scheme: Scheme): Colour => {
   switch (group) {

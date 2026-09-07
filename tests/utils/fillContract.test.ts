@@ -4,12 +4,14 @@ import {
   CERTIFICATES,
   COLOURABLE_STATUSES,
   DECADE_NAMES,
+  FORMAT_NAMES,
   FRANCHISE_NAMES,
   GENRE_NAMES,
   animeToColour,
   certificateBandToColour,
   certificateToColour,
   decadeToColour,
+  formatToColour,
   franchiseToColour,
   genreToColour,
   neutralFill,
@@ -32,7 +34,7 @@ import {
   scoreBandToColour,
 } from "../../src/movie/types";
 import { media, mediumToColour } from "../../src/app/types";
-import { FORMATS, formatToColour, groupToColour as bookGroupToColour } from "../../src/book/types";
+import { groupToColour as bookGroupToColour } from "../../src/book/types";
 import Tabs from "../../src/tabs";
 import { PAPERS, contrast, liveGenres } from "../fixtures/colour";
 import { videoGame } from "../fixtures/gameRows";
@@ -144,8 +146,8 @@ describe.each(SCHEMES)("every fill clears 3:1 on the %s paper", (scheme) => {
     for (const label of ["Cinema", "Home"]) check(`seen in ${label}`, cinemaToColour(label, scheme));
   });
 
-  it("how a book was read", () => {
-    for (const format of FORMATS) check(`format ${format}`, formatToColour(format, scheme));
+  it("how a work was obtained, over both the sheets recording it", () => {
+    for (const format of FORMAT_NAMES) check(`format ${format}`, formatToColour(format, scheme));
   });
 
   it("media, the one vocabulary the Omnibus teaches", () => {
@@ -172,6 +174,39 @@ describe("one franchise, one colour, every tab", () => {
       expect(fromMovies, `${franchise} on ${scheme}`).toBe(fromGames);
       expect(fromBooks, `${franchise} on ${scheme}`).toBe(fromGames);
     }
+  });
+});
+
+/**
+ * What the shared format table is for, and the half of it a per-domain copy would silently break:
+ * the two words the Games and Books sheets both mean the same thing by.
+ *
+ * Physical is one word on both columns and one colour. `Digital` and `eBook` are two words for one
+ * thing — a file on a screen — so the pin is that they resolve to the same fill rather than to
+ * near neighbours, which is what two tables solved apart would give.
+ */
+describe("one format, one colour, both the tabs recording it", () => {
+  it.each(SCHEMES)("draws Physical the same on Games and Books, on the %s paper", (scheme) => {
+    const fromGames = gameGroupToColour("format", videoGame({ format: "Physical" }), scheme);
+
+    expect(fromGames).not.toBe("");
+    expect(fromGames).toBe(bookGroupToColour("format", book({ format: "Physical" }), scheme));
+  });
+
+  it.each(SCHEMES)("draws a Games Digital as a Books eBook, on the %s paper", (scheme) => {
+    const fromGames = gameGroupToColour("format", videoGame({ format: "Digital" }), scheme);
+
+    expect(fromGames).not.toBe("");
+    expect(fromGames).toBe(bookGroupToColour("format", book({ format: "eBook" }), scheme));
+  });
+
+  it.each(SCHEMES)("keeps every other format apart from those two, on the %s paper", (scheme) => {
+    const drawn = FORMAT_NAMES.map((format) => formatToColour(format, scheme));
+
+    // Seven words, six colours: the Digital/eBook pair is the only one that may repeat.
+    expect(new Set(drawn).size).toBe(FORMAT_NAMES.length - 1);
+    // And none of them is the neutral, which is what an off-table word answers with.
+    expect(drawn).not.toContain(neutralFill(scheme));
   });
 });
 

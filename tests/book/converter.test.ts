@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { YearMonthDay } from "../../src/common/date";
 import { bookDataConfig, jsonConverter } from "../../src/book/converter";
+import { FORMATS } from "../../src/book/types";
 import { bookRow } from "../fixtures/bookRows";
 
 const convertOne = (overrides: Record<string, string> = {}) => jsonConverter([bookRow(overrides)])[0];
@@ -137,7 +138,9 @@ describe("field parsing", () => {
   });
 
   it("accepts every format the vocabulary names", () => {
-    for (const format of ["eBook", "Audiobook", "Physical"]) {
+    // The vocabulary's own list, so a format added to it is fed through the converter without
+    // anyone remembering this case — which a literal restating three of the four would not do.
+    for (const format of FORMATS) {
       expect(convertOne({ Format: format }).format).toBe(format);
     }
   });
