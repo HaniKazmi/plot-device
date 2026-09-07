@@ -44,7 +44,7 @@ import {
 } from "./cardArrangement";
 import { shortYear } from "./date";
 import { useDialogMount } from "./useDialogMount";
-import { useCardAutoOpen } from "./cardAutoOpen";
+import { CardAutoOpenContext, NOT_AUTO_OPEN, useCardAutoOpen } from "./cardAutoOpen";
 import { dimSx, LABEL_SX } from "./typography";
 import { FADE_Z } from "./ScrollFade";
 import Grid from "@mui/material/Grid";
@@ -575,202 +575,208 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
   ];
 
   return (
-    <ArtworkAccent.Provider value={chrome}>
-      <Card
-        variant="elevation"
-        // The array form rather than a spread: `SxProps` is also legally a function or an array,
-        // neither of which survives being spread into an object literal.
-        sx={[
-          {
-            height: "100%",
-            position: "relative",
-            backgroundColor: palette.ground,
-            display: landscape || beside ? "flex" : undefined,
-            color: palette.onGround,
-          },
-          // The band spans the whole card, picture and words alike: it is the card's first child,
-          // and on a card laid out as a row it takes a line of its own, with the row of picture and
-          // words wrapping under it at the height the picture was given.
-          ...(mediaBand && beside ? [{ flexWrap: "wrap", alignContent: "flex-start" }] : []),
-          // At one card size the words take what the picture leaves: beside a poster, the column
-          // is the width the picture did not need; under a banner, the footer is a stated height
-          // and the picture is sized to what that leaves, so the two cannot disagree.
-          ...(rowSize && shape
-            ? [
-                beside
-                  ? { "& > .MuiCardActionArea-root": { width: "auto" } }
-                  : { "& > .MuiCardContent-root": rowFooterSx(rowSize.footerHeight) },
-              ]
-            : []),
-          ...(Array.isArray(cardSx) ? cardSx : [cardSx]),
-        ]}
-      >
-        {/* The card's own two halves and nothing else. Context crosses a portal, so a provider
+    // The auto-open signal stops at the card that takes it. Everything below is a card in its own
+    // right — the marks on the franchise strip inside the expanded dialog, the members of a group
+    // — and each would read the same signal and open itself on top of the layer just opened.
+    <CardAutoOpenContext.Provider value={NOT_AUTO_OPEN}>
+      <ArtworkAccent.Provider value={chrome}>
+        <Card
+          variant="elevation"
+          // The array form rather than a spread: `SxProps` is also legally a function or an array,
+          // neither of which survives being spread into an object literal.
+          sx={[
+            {
+              height: "100%",
+              position: "relative",
+              backgroundColor: palette.ground,
+              display: landscape || beside ? "flex" : undefined,
+              color: palette.onGround,
+            },
+            // The band spans the whole card, picture and words alike: it is the card's first child,
+            // and on a card laid out as a row it takes a line of its own, with the row of picture and
+            // words wrapping under it at the height the picture was given.
+            ...(mediaBand && beside ? [{ flexWrap: "wrap", alignContent: "flex-start" }] : []),
+            // At one card size the words take what the picture leaves: beside a poster, the column
+            // is the width the picture did not need; under a banner, the footer is a stated height
+            // and the picture is sized to what that leaves, so the two cannot disagree.
+            ...(rowSize && shape
+              ? [
+                  beside
+                    ? { "& > .MuiCardActionArea-root": { width: "auto" } }
+                    : { "& > .MuiCardContent-root": rowFooterSx(rowSize.footerHeight) },
+                ]
+              : []),
+            ...(Array.isArray(cardSx) ? cardSx : [cardSx]),
+          ]}
+        >
+          {/* The card's own two halves and nothing else. Context crosses a portal, so a provider
             wrapping the dialog below would hand the expanded card the arrangement of the thumbnail
             it was opened from — a detail tree laid out beside a poster that is not there. The
             dialog draws its own full-width artwork and takes the default. */}
-        <CardArrangementProvider value={beside ? "beside" : "stacked"}>
-          {/* The whole card's width: a line of its own where the card is a row, the top of the
+          <CardArrangementProvider value={beside ? "beside" : "stacked"}>
+            {/* The whole card's width: a line of its own where the card is a row, the top of the
               block where it is not. */}
-          {mediaBand && <Box sx={FULL_WIDTH_NO_BASIS}>{mediaBand.node}</Box>}
-          {/* The press is the action area's own, not the picture's inside it. The area is a
+            {mediaBand && <Box sx={FULL_WIDTH_NO_BASIS}>{mediaBand.node}</Box>}
+            {/* The press is the action area's own, not the picture's inside it. The area is a
               button, and a button's Enter fires the button — never a click on some element within
               it — so a handler on the image is a card openable by the pointer alone, which is
               every card on the page for a reader on the keyboard. */}
-          <CardActionArea
-            aria-label={props.openLabel}
-            onClick={() => {
-              if (onOpen) return onOpen();
-              // The detail dialog is themed from this colour, so it is worth reading even for a card
-              // that did not ask for one.
-              readColour(imgRef.current);
-              openDetail();
-            }}
-            sx={mediaLayout === "aside" ? ASIDE_ACTION_AREA_SX : beside ? SHAPE_ASIDE_ACTION_AREA_SX : undefined}
-          >
-            {missing ? (
-              /* The picture's own box, filled and named. It carries `mediaSx` exactly as the image
+            <CardActionArea
+              aria-label={props.openLabel}
+              onClick={() => {
+                if (onOpen) return onOpen();
+                // The detail dialog is themed from this colour, so it is worth reading even for a card
+                // that did not ask for one.
+                readColour(imgRef.current);
+                openDetail();
+              }}
+              sx={mediaLayout === "aside" ? ASIDE_ACTION_AREA_SX : beside ? SHAPE_ASIDE_ACTION_AREA_SX : undefined}
+            >
+              {missing ? (
+                /* The picture's own box, filled and named. It carries `mediaSx` exactly as the image
                  does, so it stands where the picture would have and holds the same reservation —
                  `auto <ratio>` resolves to the ratio on an element with no natural size of its
                  own, which is what keeps a wall of these the height the offsets are measured
                  against. A span, because the card's action area is a button and only phrasing
                  content is legal inside one — which the image it stands in for is and a div is
                  not. */
-              <ArtworkStandIn
-                alt={alt}
-                palette={palette}
-                component="span"
-                sx={mediaSx}
-              />
-            ) : (
-              <CardMedia
-                height={"100%"}
-                component="img"
-                crossOrigin="anonymous"
-                src={image}
-                alt={alt}
-                loading={lazy ? "lazy" : undefined}
-                // WebKit decodes on the main thread as it paints, and a wall's artwork arrives
-                // while the reader is scrolling it — the frames a synchronous decode costs are
-                // exactly the ones the scroll needed.
-                decoding="async"
-                ref={imgRef}
-                onLoad={(el) => readImage(el.currentTarget, image, extractColour && !colour, setRatio, setExtracted)}
-                onError={() => setFailedImage(image)}
-                sx={mediaSx}
-              />
-            )}
-            {chip && (
-              <Chip
-                sx={{
-                  position: "absolute",
-                  top: 0,
-                  right: 0,
-                  margin: 1,
-                  opacity: 0.8,
-                  backgroundColor: chip.colour ?? "primary.main",
-                  color: (theme) => theme.palette.getContrastText(chip.colour ?? colour ?? theme.palette.primary.main),
-                }}
-                label={chip.label}
-                icon={chip.icon}
-                onClick={chip.onClick}
-                variant={chip.variant || "filled"}
-                size="small"
-              />
-            )}
-          </CardActionArea>
-          {footerComponent}
-        </CardArrangementProvider>
-        {/* The whole `Dialog` is what this card gates on `mounted`, not just the body inside it.
+                <ArtworkStandIn
+                  alt={alt}
+                  palette={palette}
+                  component="span"
+                  sx={mediaSx}
+                />
+              ) : (
+                <CardMedia
+                  height={"100%"}
+                  component="img"
+                  crossOrigin="anonymous"
+                  src={image}
+                  alt={alt}
+                  loading={lazy ? "lazy" : undefined}
+                  // WebKit decodes on the main thread as it paints, and a wall's artwork arrives
+                  // while the reader is scrolling it — the frames a synchronous decode costs are
+                  // exactly the ones the scroll needed.
+                  decoding="async"
+                  ref={imgRef}
+                  onLoad={(el) => readImage(el.currentTarget, image, extractColour && !colour, setRatio, setExtracted)}
+                  onError={() => setFailedImage(image)}
+                  sx={mediaSx}
+                />
+              )}
+              {chip && (
+                <Chip
+                  sx={{
+                    position: "absolute",
+                    top: 0,
+                    right: 0,
+                    margin: 1,
+                    opacity: 0.8,
+                    backgroundColor: chip.colour ?? "primary.main",
+                    color: (theme) =>
+                      theme.palette.getContrastText(chip.colour ?? colour ?? theme.palette.primary.main),
+                  }}
+                  label={chip.label}
+                  icon={chip.icon}
+                  onClick={chip.onClick}
+                  variant={chip.variant || "filled"}
+                  size="small"
+                />
+              )}
+            </CardActionArea>
+            {footerComponent}
+          </CardArrangementProvider>
+          {/* The whole `Dialog` is what this card gates on `mounted`, not just the body inside it.
             MUI's `Modal` returns null for a closed dialog, but only after `Dialog` and `Modal`
             have rendered and their hooks and effect have run, and this card is the one an uncapped
             wall renders per item: a thousand of them is a thousand component instances
             re-evaluated on every render of the wall, all of them closed. */}
-        {detail.mounted && (
-          <Dialog
-            open={detail.open}
-            onClose={detail.hide}
-            maxWidth={false}
-            scroll="body"
-            slots={{ transition: Grow }}
-            slotProps={{
-              paper: { sx: DIALOG_PAPER_SX },
-              transition: {
-                onExited: () => {
-                  detail.onExited();
-                  hoverHold.release();
-                  onDetailClosed?.();
-                  autoOpen.onClosed();
+          {detail.mounted && (
+            <Dialog
+              open={detail.open}
+              onClose={detail.hide}
+              maxWidth={false}
+              scroll="body"
+              slots={{ transition: Grow }}
+              slotProps={{
+                paper: { sx: DIALOG_PAPER_SX },
+                transition: {
+                  onExited: () => {
+                    detail.onExited();
+                    hoverHold.release();
+                    onDetailClosed?.();
+                    autoOpen.onClosed();
+                  },
                 },
-              },
-            }}
-          >
-            <ArtworkAccent.Provider value={colour}>
-              <Card
-                variant="elevation"
-                sx={dialogCardSx(dialogPalette)}
-              >
-                <SheetBar
-                  title={alt}
-                  grabber
-                  grabberColour={dialogPalette.muted}
-                  sx={sheetBarSx(dialogPalette)}
-                  onClose={detail.hide}
-                />
-                <Box
-                  onClick={detail.hide}
-                  sx={{
-                    position: "relative",
-                  }}
+              }}
+            >
+              <ArtworkAccent.Provider value={colour}>
+                <Card
+                  variant="elevation"
+                  sx={dialogCardSx(dialogPalette)}
                 >
-                  {missing ? (
-                    /* The same stand-in the thumbnail draws, at the dialog's scale, rather than
-                       the browser's broken-image glyph with no words at all. */
-                    <ArtworkStandIn
-                      alt={alt}
-                      palette={dialogPalette}
-                      size="dialog"
-                    />
-                  ) : (
-                    <CardMedia
-                      component="img"
-                      crossOrigin="anonymous"
-                      sx={dialogImageSx(ratio)}
-                      src={image}
-                      alt={alt}
-                      loading="lazy"
-                      onClick={detail.hide}
-                      onError={() => setFailedImage(image)}
-                    />
-                  )}
-                </Box>
-                <Box
-                  sx={{
-                    display: "flex",
-                    // The same line every other surface draws where it meets the artwork it was
-                    // sampled from. A gradient fading the image into the ground joins them instead,
-                    // which reads as the artwork running out rather than as one card in two parts —
-                    // and spends the bottom tenth of every image to do it. The dialog's own
-                    // palette, as every other surface in it: a seam in the thumbnail's contrast
-                    // tone on the artwork's ground can be white on light or black on dark.
-                    borderTop: dialogPalette.seam,
-                  }}
-                >
+                  <SheetBar
+                    title={alt}
+                    grabber
+                    grabberColour={dialogPalette.muted}
+                    sx={sheetBarSx(dialogPalette)}
+                    onClose={detail.hide}
+                  />
                   <Box
+                    onClick={detail.hide}
                     sx={{
-                      flexGrow: "1",
-                      width: "0px",
+                      position: "relative",
                     }}
                   >
-                    {detailComponent?.()}
+                    {missing ? (
+                      /* The same stand-in the thumbnail draws, at the dialog's scale, rather than
+                       the browser's broken-image glyph with no words at all. */
+                      <ArtworkStandIn
+                        alt={alt}
+                        palette={dialogPalette}
+                        size="dialog"
+                      />
+                    ) : (
+                      <CardMedia
+                        component="img"
+                        crossOrigin="anonymous"
+                        sx={dialogImageSx(ratio)}
+                        src={image}
+                        alt={alt}
+                        loading="lazy"
+                        onClick={detail.hide}
+                        onError={() => setFailedImage(image)}
+                      />
+                    )}
                   </Box>
-                </Box>
-              </Card>
-            </ArtworkAccent.Provider>
-          </Dialog>
-        )}
-      </Card>
-    </ArtworkAccent.Provider>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      // The same line every other surface draws where it meets the artwork it was
+                      // sampled from. A gradient fading the image into the ground joins them instead,
+                      // which reads as the artwork running out rather than as one card in two parts —
+                      // and spends the bottom tenth of every image to do it. The dialog's own
+                      // palette, as every other surface in it: a seam in the thumbnail's contrast
+                      // tone on the artwork's ground can be white on light or black on dark.
+                      borderTop: dialogPalette.seam,
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        flexGrow: "1",
+                        width: "0px",
+                      }}
+                    >
+                      {detailComponent?.()}
+                    </Box>
+                  </Box>
+                </Card>
+              </ArtworkAccent.Provider>
+            </Dialog>
+          )}
+        </Card>
+      </ArtworkAccent.Provider>
+    </CardAutoOpenContext.Provider>
   );
 };
 

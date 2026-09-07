@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { PanelStat, PanelSubtitlePart } from "../common/Card";
 import { DrilldownDialog } from "../common/DrilldownDialog";
 import { CURRENT_PLAINDATE, formatDateRange } from "../common/date";
-import { useCardAutoOpen } from "../common/cardAutoOpen";
+import { CardAutoOpenContext, NOT_AUTO_OPEN, useCardAutoOpen } from "../common/cardAutoOpen";
 import { useHoverCardHold } from "../common/hoverCardHold";
 import { stated } from "../common/population";
 import { useScheme } from "../common/useScheme";
@@ -113,7 +113,9 @@ export const BookSeriesHoverCard = ({ span }: { span: SeriesSpan }) => {
   };
 
   return (
-    <>
+    // The signal stops here: it opened this series, and the books inside the shelf below are cards
+    // of their own that would each read it and open themselves on top of the list.
+    <CardAutoOpenContext.Provider value={NOT_AUTO_OPEN}>
       <BookPanelCard
         item={span.lead}
         title={span.name}
@@ -141,6 +143,6 @@ export const BookSeriesHoverCard = ({ span }: { span: SeriesSpan }) => {
           {...bookDrilldownProps}
         />
       )}
-    </>
+    </CardAutoOpenContext.Provider>
   );
 };

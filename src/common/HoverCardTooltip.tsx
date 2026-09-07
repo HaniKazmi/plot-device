@@ -255,8 +255,12 @@ const HoverCardPopper = ({ colour, title, placement, transparent, suppressed, ch
       onClose={() => setHovered(false)}
       // Long enough that a pointer crossing a dense chart does not open a card per mark it passes,
       // and long enough on the way out to reach the card across the mat.
+      //
+      // A card that ignores the pointer cannot be reached, so it holds the way out at nothing: the
+      // delay would only keep the last card up while the next one opens, and a chart packs its
+      // marks close enough that a scan then trails several cards at once.
       enterDelay={ENTER_DELAY}
-      leaveDelay={LEAVE_DELAY}
+      leaveDelay={transparent ? 0 : LEAVE_DELAY}
       title={
         <HoverCardHoldContext.Provider
           value={{ hold: () => setHeld((n) => n + 1), release: () => setHeld((n) => Math.max(0, n - 1)) }}

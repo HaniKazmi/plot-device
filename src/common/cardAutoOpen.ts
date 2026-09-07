@@ -20,9 +20,17 @@ export interface CardAutoOpen {
   onClosed: () => void;
 }
 
-const NOT_AUTO: CardAutoOpen = { auto: false, onClosed: () => {} };
+/**
+ * What every card below the one that took the signal sees.
+ *
+ * The signal reaches a card through the tree, so without this it reaches everything that card
+ * draws as well — a card standing for a group opens the group, and every card in the group then
+ * reads the same signal and opens itself, which is a shelf under a stack of its own members. A
+ * card consuming the signal hands this down in its place.
+ */
+export const NOT_AUTO_OPEN: CardAutoOpen = { auto: false, onClosed: () => {} };
 
-export const CardAutoOpenContext = createContext<CardAutoOpen>(NOT_AUTO);
+export const CardAutoOpenContext = createContext<CardAutoOpen>(NOT_AUTO_OPEN);
 
 /** For a card that can open a layer: see above. The default is every card drawn anywhere else. */
 export const useCardAutoOpen = () => useContext(CardAutoOpenContext);
