@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  categoryRuns,
   categoryTally,
   categoryValues,
   certificateCategory,
+  namedSelection,
   schemaPredicates,
   type FilterCategory,
   type FilterSchema,
@@ -106,6 +108,82 @@ describe("a category's tally", () => {
 
     expect(values).toEqual(["Action"]);
     expect(counts.get("Drama")).toBe(2);
+  });
+});
+
+describe("a category's runs", () => {
+  const platforms = ["Nintendo DS", "Nintendo Switch", "PC", "PlayStation 4", "PlayStation 5", "Xbox 360"];
+  const counts = new Map([
+    ["Nintendo DS", 55],
+    ["Nintendo Switch", 24],
+    ["PC", 69],
+    ["PlayStation 4", 44],
+    ["PlayStation 5", 46],
+    ["Xbox 360", 2],
+  ]);
+  const company = { label: "company", of: (platform: string) => platform.split(" ")[0] };
+
+  it("gives a category with no level one run holding every value, so the surface draws both alike", () => {
+    expect(categoryRuns(platforms, counts, undefined)).toEqual([{ values: platforms }]);
+  });
+
+  it("gives a run per group holding more than one value, in the order the values arrive", () => {
+    const runs = categoryRuns(platforms, counts, company);
+
+    expect(runs.slice(0, 2)).toEqual([
+      { group: "Nintendo", values: ["Nintendo DS", "Nintendo Switch"], count: 79 },
+      { group: "PlayStation", values: ["PlayStation 4", "PlayStation 5"], count: 90 },
+    ]);
+  });
+
+  it("leaves a group of one as its value, since a parent there selects the child beside it", () => {
+    expect(categoryRuns(platforms, counts, company).at(-1)).toEqual({ values: ["PC", "Xbox 360"] });
+  });
+
+  it("trails every loose value on one line rather than each where its own group fell", () => {
+    // PC arrives between the two Nintendo platforms and PlayStation's, so a run standing where its
+    // first value fell would put a line of one chip between two full ones.
+    expect(categoryRuns(platforms, counts, company).map((run) => run.group)).toEqual([
+      "Nintendo",
+      "PlayStation",
+      undefined,
+    ]);
+  });
+
+  it("draws no trailing line where every value groups with another", () => {
+    const grouped = ["Nintendo DS", "Nintendo Switch"];
+    expect(categoryRuns(grouped, counts, company)).toEqual([{ group: "Nintendo", values: grouped, count: 79 }]);
+  });
+});
+
+describe("a selection named as shortly as it is true", () => {
+  const runs = [
+    { group: "Nintendo", values: ["Nintendo DS", "Nintendo Switch"], count: 79 },
+    { group: "PlayStation", values: ["PlayStation 4", "PlayStation 5"], count: 90 },
+    { values: ["PC"] },
+  ];
+
+  it("names a group whose whole membership is chosen, which is the one chip that chose it", () => {
+    expect(namedSelection(["Nintendo DS", "Nintendo Switch"], runs)).toEqual(["Nintendo"]);
+  });
+
+  it("names the values themselves where only part of a group is chosen", () => {
+    expect(namedSelection(["Nintendo DS"], runs)).toEqual(["Nintendo DS"]);
+  });
+
+  it("keeps a value chosen outside any folded group, after the groups it does fold", () => {
+    expect(namedSelection(["PlayStation 4", "Nintendo DS", "Nintendo Switch", "PC"], runs)).toEqual([
+      "Nintendo",
+      "PlayStation 4",
+      "PC",
+    ]);
+  });
+
+  it("leaves an ungrouped category's selection exactly as it was chosen", () => {
+    expect(namedSelection(["Drama", "Action"], [{ values: ["Drama", "Action", "Sci-Fi"] }])).toEqual([
+      "Drama",
+      "Action",
+    ]);
   });
 });
 

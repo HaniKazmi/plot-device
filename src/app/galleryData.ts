@@ -1,4 +1,5 @@
 import { groupByCategory, realFranchisesOnly, type DrilldownGroup } from "../common/statsData";
+import { franchiseIndex } from "../common/franchiseIndex";
 import type { PlainDate, Year, YearMonthDay } from "../common/date";
 import {
   certificateBandToColour,
@@ -12,6 +13,7 @@ import {
 } from "../utils/types";
 import { moduleOf, omniArtwork } from "./media";
 import { measureOf } from "./library";
+import { namesTheSameThing } from "../utils/stringUtils";
 import type { OmniItem } from "../common/medium";
 import type { Measure } from "./types";
 import "../utils/arrayUtils";
@@ -114,6 +116,47 @@ export const galleryItems = (items: OmniItem[]): OmniItem[] => items.filter((ite
  * that merely share a title.
  */
 export const workOf = (item: OmniItem): unknown => moduleOf(item).work(item.source);
+
+/**
+ * Whether a franchise group is a series at all, rather than a work naming itself.
+ *
+ * Every sheet writes a standalone work's own name into its franchise column, so a group whose
+ * entries all repeat the name usually has no series behind it — 636 franchise values are 214 series
+ * by that clause alone — and offering the rest would put every standalone work in the library on a
+ * franchise list a second time. The test is on the group and never on the entry: the founding work
+ * of a real series keeps naming itself, "Dune" sitting in Dune and "Alien" in Alien, and dropping
+ * such an entry would take the first film of nearly every series out of a lane its own tab draws it
+ * in.
+ *
+ * The exception is the adaptation. A novel and the film made of it are two works under one name,
+ * which is the crossing a cross-media reading exists for, and read as one work naming itself it is
+ * hidden outright: eleven groups here pass on this clause alone, among them Project Hail Mary,
+ * Ready Player One, Good Omens and War of the Worlds. Counted in works and not entries, so a
+ * five-season show naming itself is one work and still not a series.
+ *
+ * What it cannot tell apart is two unrelated works sharing a title — a game called Euphoria beside
+ * the show, one of the eleven — which read here as a series across two media. The franchise column
+ * is the only thing any of these surfaces has to group on, and the gallery's own shelves already
+ * collapse that pair the same way.
+ */
+export const isSeries = (franchise: string, items: OmniItem[]): boolean =>
+  items.some((item) => !namesTheSameThing(franchise, item.name)) || new Set(items.map(workOf)).size > 1;
+
+/**
+ * Every franchise the library knows to be a series, which is what a tab's own franchise picker
+ * offers of the values its rows carry (`franchiseOptions`).
+ *
+ * Asked of the union, because whether a franchise groups anything is a question about the library
+ * and not about one tab of it: the single Twilight film is named "Twilight", so Movies alone reads
+ * it as a work naming itself while the four books say otherwise. One set for the pickers, the
+ * crossings and the box, so a value the strips draw as a series is one a page can be narrowed to.
+ */
+export const seriesFranchises = (items: OmniItem[]): ReadonlySet<string> =>
+  new Set(
+    [...franchiseIndex(items, (item) => item.franchise).entries()]
+      .filter(([franchise, members]) => isSeries(franchise, members))
+      .map(([franchise]) => franchise),
+  );
 
 /**
  * A work as it stands on a shelf: the union's own item, plus when the reader was last in it.

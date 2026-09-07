@@ -1,16 +1,23 @@
 import { rankHits, type Hit, type Searchable } from "../common/searchData";
-import { categoryValues, FRANCHISE_KEY } from "../common/filterSchema";
+import {
+  categoryTally,
+  FRANCHISE_KEY,
+  groupHolds,
+  selectedPredicates,
+  type CategoryContext,
+  type PageSchema,
+} from "../common/filterSchema";
 import { franchiseIndex } from "../common/franchiseIndex";
 import { YearMonthDay, type Year } from "../common/date";
-import { certificateBand, isCertificate, mediumToLabel, type Medium } from "../utils/types";
-import { namesTheSameThing } from "../utils/stringUtils";
-import { eachMedium, MEDIA, moduleOf } from "./media";
+import { mediumToLabel, type Medium } from "../utils/types";
+import { eachMedium, moduleOf } from "./media";
 import type { Season } from "../show/types";
 import { countByMedium, type OmniItem } from "../common/medium";
 import type { PageAction } from "../common/filterReducer";
 import { omniHours, type Library } from "./library";
-import { galleryGroups, galleryStripOrder, galleryWorks, workOf, type ShelfItem } from "./galleryData";
+import { galleryGroups, galleryStripOrder, galleryWorks, isSeries, workOf, type ShelfItem } from "./galleryData";
 import { media } from "./types";
+import { PAGE_MODULES, type PageRows } from "./pageState";
 import "../utils/arrayUtils";
 import "../utils/mapUtils";
 
@@ -22,8 +29,20 @@ export interface FranchiseSearchEntry extends Searchable {
   kind: "franchise";
   key: string;
   franchise: string;
+  /**
+   * How the works divide between the media: the breakdown of `works` and not of `size`, so the
+   * dots beside a series and the cut at the end of its row are one figure said two ways.
+   */
   counts: Partial<Record<Medium, number>>;
   span: [first: number, last: number];
+  /**
+   * How many works the view lists, which is what its own reading is worded by.
+   *
+   * Not `size`, which counts the union's entries — a season each, as the strip's caption does and
+   * as the ranker breaks ties on. A reading says what pressing it shows, and the view collapses a
+   * show to one card, so a franchise of three seasons and a film states three and not four.
+   */
+  works: number;
 }
 
 /**
@@ -62,77 +81,101 @@ export interface AttributeEntry extends Searchable {
   label: string;
   /** The value as the hit states it: a certificate band, or the cell as written. */
   value: string;
-  counts: Partial<Record<Medium, number>>;
-  values: Partial<Record<Medium, string[]>>;
+  /**
+   * The level this entry stands for, where it stands for one — the `FilterGroup`'s own label, so a
+   * company entry says it is a company rather than leaving a reader to infer it from a `label`
+   * differing from its category's. It is what the swatch is looked up through, and what the sweep
+   * holding a group of one to its value tests.
+   */
+  level?: string;
+  /**
+   * How many of each tab's own rows hold the value, by tab id, in the order the tabs are walked.
+   *
+   * By tab and not by medium, because a page is what a narrowing acts on and the composing tab is
+   * a page with filters like any other. It is also why the figures are not one scale: the Shows
+   * tab counts shows where the composing tab counts the seasons its own union flattens them to,
+   * which is exactly the population each press leaves behind.
+   */
+  counts: Record<string, number>;
+  values: Record<string, string[]>;
 }
 
 /**
- * An attribute on one particular tab, which is what a hit actually is: the same genre reads as
- * "filter this page" where the reader is and as "Shows · Comedy" where they are not.
+ * An attribute on one particular tab, which is what a hit actually is: "Shows · Comedy" names a
+ * page and a narrowing of it together.
  *
- * A clone per tab rather than a tab carried beside the hit, so the box's flat list, its keys and
- * its keyboard stay one shape. The clone is made after ranking, whose fold cache is keyed on the
- * entries the ranker was handed.
+ * A clone per tab rather than a tab carried beside the hit, so a reading knows the whole of what
+ * pressing it does. The clone is made after ranking, whose fold cache is keyed on the entries the
+ * ranker was handed.
  */
 export interface PlacedAttribute extends AttributeEntry {
-  /** The tab the hit acts on. */
+  /** The tab the hit acts on, which is what `counts` and `values` are then read at. */
   tab: string;
-  /** Its medium, absent for the tab that is no medium — whose values are the union's own. */
-  medium?: Medium;
-  /** Whether that tab is the one being read, which is what ↵ does something different for. */
-  here: boolean;
 }
 
 /**
- * One attribute as the layer over the libraries that record it, which is a thing to open rather
- * than a narrowing of a page.
+ * One value the box found, with every reading of it: the layer it opens, the page it narrows, and
+ * each tab it can be carried to.
  *
- * A wrapper rather than the entry itself, because `PlacedAttribute` extends `AttributeEntry` and
- * the two share `kind`: handed a bare attribute the box could not tell a shelf from a narrowing.
- * `name` is the value, so a run matched while ranking the attributes underlines at the same index
- * here.
+ * One entry rather than one per reading, because the readings differ only in what pressing them
+ * does — the name, the mark and the counts are the same value said again. Stated once with its
+ * readings beneath it, a genre recorded in four libraries is a line and a strip of about 105px,
+ * where six rows under three headers are 444 on a list area of 500 and a phone's 416.
+ *
+ * `franchise` is the series behind the value where there is one: what its layer reading opens, and
+ * where the years beside its name come from. An attribute has neither, and opens a shelf over
+ * every library recording it instead.
  */
-interface ShelfSearchEntry extends Searchable {
-  kind: "shelf";
+export interface ValueSearchEntry {
+  kind: "value";
   key: string;
   attribute: AttributeEntry;
+  franchise?: FranchiseSearchEntry;
+  /** The tab being read first, as `attributePlacements` orders them. */
+  placements: PlacedAttribute[];
 }
 
-export type SearchEntry = FranchiseSearchEntry | ItemSearchEntry | PlacedAttribute | ShelfSearchEntry;
+/**
+ * A category as something a reader can name: "genre", "gameplay", "director".
+ *
+ * The values themselves are already in the index, so this holds none of them — what it is for is
+ * to be *found*, and pressing it holds the box to its category rather than opening anything.
+ * `name` is the category's own label, which is the whole of what it matches on, and `size` is how
+ * many values it holds, which is what a tie between two named categories falls to.
+ */
+export interface CategorySearchEntry extends Searchable {
+  key: string;
+  /** The schema field its values are held on, which is what scoping the box names. */
+  category: string;
+}
 
-const shelfEntry = (attribute: AttributeEntry): ShelfSearchEntry => ({
-  kind: "shelf",
-  key: `shelf:${attribute.key}`,
-  name: attribute.value,
-  secondary: [],
-  size: attribute.size,
-  attribute,
-});
+export type SearchEntry = ItemSearchEntry | ValueSearchEntry;
 
 export interface SearchIndex {
   franchises: FranchiseSearchEntry[];
   items: ItemSearchEntry[];
   attributes: AttributeEntry[];
+  /** The categories those attributes belong to, as things a query can name. */
+  categories: CategorySearchEntry[];
   /**
-   * Per medium, how many of that tab's own rows each franchise its own picker offers holds.
-   *
-   * Two answers a franchise hit needs and the union cannot give. The counts are the tab's rows and
-   * not the union's items, where a show is one row and the seasons the union flattens it to are
-   * several; and the keys are `franchiseOptions`' own set, which drops a franchise every row of
-   * that tab names itself — so a hit is only placed where the tab it lands on can draw a chip for
-   * it, and a filter nothing offers or clears is not set.
+   * What a page's own pickers cannot answer from their rows — the franchises this library knows to
+   * be series. Held here because the surface drawing a page's filters needs it too, and a second
+   * walk is a second answer; held as the whole `CategoryContext` rather than the set inside it, so
+   * what that surface passes down is one object with an owner rather than a literal minted per
+   * render, which is what the tally cache below it is keyed on.
    */
-  franchiseRows: Partial<Record<Medium, Map<string, number>>>;
+  context: CategoryContext;
+  /**
+   * Per tab, how many of that tab's own rows each franchise its own picker offers holds.
+   *
+   * Two answers a franchise hit needs and the ranked entry cannot give. The counts are the tab's
+   * rows and not the union's items, where a show is one row and the seasons the union flattens it
+   * to are several; and the keys are that tab's own picker's set, asked with the same
+   * `seriesFranchises` the entries above were filtered by — so a chip is drawn exactly where the
+   * page it lands on offers the value, and the filter it sets is one that page can clear.
+   */
+  franchiseRows: Record<string, Map<string, number>>;
 }
-
-/**
- * Whether a franchise group is a series at all: the crossings' rule. Every sheet writes a
- * standalone work's own name into its franchise column, so a group in which every entry repeats
- * the name has no series behind it, and offering it as a franchise would put every standalone work
- * in the library on the list twice.
- */
-const isSeries = (franchise: string, items: OmniItem[]) =>
-  items.some((item) => !namesTheSameThing(franchise, item.name));
 
 /**
  * The palette's index over the union. Built once per library rather than per keystroke, since the
@@ -145,28 +188,53 @@ const isSeries = (franchise: string, items: OmniItem[]) =>
  * its latest season is the item its hit opens: the show's card is about the show, with that
  * season as the one its strip rings.
  */
-const franchiseRowsByMedium = (library: Library): Partial<Record<Medium, Map<string, number>>> => {
-  const byMedium: Partial<Record<Medium, Map<string, number>>> = {};
-  eachMedium((medium, module) => {
-    const rows = library[medium];
-    const category = module.filters.categories.find((candidate) => (candidate.key as string) === FRANCHISE_KEY);
-    if (!rows || !category) return;
-    const offered = new Set(categoryValues(category, rows));
-    const counts = new Map<string, number>();
-    for (const row of rows) {
-      const franchise = category.valueOf(row);
-      if (offered.has(franchise)) counts.set(franchise, (counts.get(franchise) ?? 0) + 1);
-    }
-    byMedium[medium] = counts;
-  });
-  return byMedium;
+const franchiseRowsByTab = (pages: PageRows, context: CategoryContext): Record<string, Map<string, number>> => {
+  const byTab: Record<string, Map<string, number>> = {};
+  for (const [tab, page] of Object.entries(PAGE_MODULES)) {
+    const rows = page.rows(pages);
+    const category = categoryOf(page.filters, FRANCHISE_KEY);
+    if (!rows || !category) continue;
+    // Through the picker rather than against the series set directly, so a rule added to
+    // `franchiseOptions` reaches the counts as well as the chips, and in one pass rather than two:
+    // `categoryTally` is the vocabulary and its figures off a single scan, which is the whole
+    // reason it exists beside `categoryValues`.
+    const { values, counts } = categoryTally(category, rows, context);
+    byTab[tab] = new Map(values.map((franchise) => [franchise, counts.get(franchise) ?? 0]));
+  }
+  return byTab;
 };
 
+/**
+ * The last index built, against the two arrays it was built from.
+ *
+ * The surface holding it is re-rendered by its own field, by `useDeferredValue`'s second pass and
+ * by every press on the page's filter store, so the call site is reached several times per
+ * keystroke — where what it walks is the whole union five times over and cannot change between
+ * them. One slot, because one library is indexed at a time: `items` and the visible library turn
+ * over together when a sheet lands, and the entry they replace is one nothing can ask for again.
+ */
+let lastIndex: { items: OmniItem[]; library: Library; index: SearchIndex } | undefined;
+
 export const buildSearchIndex = (items: OmniItem[], library: Library): SearchIndex => {
+  if (lastIndex && lastIndex.items === items && lastIndex.library === library) return lastIndex.index;
+
+  const index = indexOver(items, library);
+  lastIndex = { items, library, index };
+  return index;
+};
+
+const indexOver = (items: OmniItem[], library: Library): SearchIndex => {
+  // The two halves every page's rows come out of, which is all the per-tab walks below need: the
+  // four visible slices, and the union the composing tab filters.
+  const pages: PageRows = { visible: library, items };
   const franchises = [...franchiseIndex(items, (item) => item.franchise).entries()]
     .filter(([franchise, members]) => isSeries(franchise, members))
     .map(([franchise, members]): FranchiseSearchEntry => {
       const years = members.map((member) => member.year);
+      // One member per work, which is what the view lists: the total and the breakdown come off
+      // that one map, so a series cannot state four works and three media adding to five.
+      const byWork = new Map<unknown, OmniItem>();
+      for (const member of members) byWork.setIfAbsent(workOf(member), member);
       return {
         kind: "franchise",
         key: `franchise:${franchise}`,
@@ -174,8 +242,9 @@ export const buildSearchIndex = (items: OmniItem[], library: Library): SearchInd
         franchise,
         secondary: [],
         size: members.length,
-        counts: countByMedium(members),
+        counts: countByMedium([...byWork.values()]),
         span: [Math.min(...years), Math.max(...years)],
+        works: byWork.size,
       };
     });
 
@@ -197,11 +266,20 @@ export const buildSearchIndex = (items: OmniItem[], library: Library): SearchInd
     };
   });
 
+  const attributes = buildAttributeIndex(pages);
+  // The one thing a tab's own franchise picker cannot answer from its rows, and no walk of its
+  // own: `franchises` is already `isSeries` over this union, so the set is those entries' names.
+  // One value and not two readings of one rule, which is what the pickers, the strips and the box
+  // all narrow by.
+  const context: CategoryContext = { series: new Set(franchises.map((entry) => entry.franchise)) };
+
   return {
     franchises,
     items: workEntries,
-    attributes: buildAttributeIndex(library),
-    franchiseRows: franchiseRowsByMedium(library),
+    attributes,
+    context,
+    categories: buildCategoryIndex(attributes, franchises),
+    franchiseRows: franchiseRowsByTab(pages, context),
   };
 };
 
@@ -215,19 +293,19 @@ export const buildSearchIndex = (items: OmniItem[], library: Library): SearchInd
  * medium's own value is the franchise itself, that column holding one notation.
  *
  * Its counts are `franchiseRows`, each tab's own rows, and not the ranked entry's, which are the
- * union's: the facts line is worded in the tab's noun, so a show has to count once and not once a
- * season. A medium absent from that map contributes nothing, which is what keeps a hit off a tab
+ * union's: a chip is worded in the tab's own noun, so a show has to count once and not once a
+ * season. A tab absent from that map contributes nothing, which is what keeps a hit off a page
  * whose picker does not offer the value — with none of them offering it the entry has no counts at
  * all, `attributePlacements` yields nothing, and the franchise keeps its view and no narrowings.
  */
 const franchiseAttribute = (entry: FranchiseSearchEntry, rows: SearchIndex["franchiseRows"]): AttributeEntry => {
-  const counts: Partial<Record<Medium, number>> = {};
-  const values: Partial<Record<Medium, string[]>> = {};
-  for (const medium of media) {
-    const held = rows[medium]?.get(entry.franchise);
+  const counts: Record<string, number> = {};
+  const values: Record<string, string[]> = {};
+  for (const tab of Object.keys(PAGE_MODULES)) {
+    const held = rows[tab]?.get(entry.franchise);
     if (held === undefined) continue;
-    counts[medium] = held;
-    values[medium] = [entry.franchise];
+    counts[tab] = held;
+    values[tab] = [entry.franchise];
   }
 
   return {
@@ -245,36 +323,29 @@ const franchiseAttribute = (entry: FranchiseSearchEntry, rows: SearchIndex["fran
 };
 
 /**
- * The value a category's cell is found under.
+ * What the box can find, with a count per tab: one entry per category value, plus one per
+ * toggle that names a set worth opening, over each tab's own schema and its own rows.
  *
- * The certificate is the one category whose values differ by tab: BBFC issues a 15 where PEGI
- * issues a 16, for one tier under two numbers. Grouped on the band, one hit filters each tab to
- * whichever number that tab's own rows carry — the rule the gallery's certificate shelves already
- * group by.
- */
-const attributeValue = (category: string, cell: string): string =>
-  category === "certificate" && isCertificate(cell) ? certificateBand(cell) : cell;
-
-/**
- * What the box can find, with a count per medium: one entry per category value, plus one per
- * toggle that names a set worth opening, over each medium's own schema and its own rows.
+ * Walked by tab and not by medium, because a narrowing acts on a page and the composing tab is a
+ * page with filters like any other — walked by medium it could only ever be narrowed from the tab
+ * the reader was already standing on, which is a box that says something different on every tab.
  *
  * Built beside the work index and with it, since both are a pass over the libraries and a
  * keystroke should cost a scan of strings already assembled. A blank cell is skipped — a category
- * a medium answers `""` to is a hit nobody could name — and so is every category a tab's own
+ * a page answers `""` to is a hit nobody could name — and so is every category a tab's own
  * control surface would not draw, since the box offers exactly the narrowings the page holds.
  *
  * An entry is keyed on the category's own key and the value, so two tabs recording the same thing
  * under the same word — anime, which Shows and Movies both split by — fold into one entry a single
  * shelf opens and both tabs can be narrowed to.
  */
-export const buildAttributeIndex = (library: Library): AttributeEntry[] => {
+export const buildAttributeIndex = (pages: PageRows): AttributeEntry[] => {
   const found = new Map<string, AttributeEntry>();
 
   const record = (
     key: string,
-    fields: Pick<AttributeEntry, "category" | "label" | "value">,
-    medium: Medium,
+    fields: Pick<AttributeEntry, "category" | "label" | "value" | "level">,
+    tab: string,
     cell: string,
   ) => {
     const entry = found.setIfAbsent(key, {
@@ -287,87 +358,156 @@ export const buildAttributeIndex = (library: Library): AttributeEntry[] => {
       counts: {},
       values: {},
     });
-    entry.size += 1;
-    entry.counts[medium] = (entry.counts[medium] ?? 0) + 1;
-    const held: string[] = entry.values[medium] ?? [];
+    entry.counts[tab] = (entry.counts[tab] ?? 0) + 1;
+    const held: string[] = entry.values[tab] ?? [];
     if (!held.includes(cell)) held.push(cell);
-    entry.values[medium] = held;
+    entry.values[tab] = held;
   };
 
-  eachMedium((medium, module) => {
-    for (const category of module.filters.categories) {
+  for (const [tab, page] of Object.entries(PAGE_MODULES)) {
+    const rows = page.rows(pages);
+    if (!rows) continue;
+    for (const category of page.filters.categories) {
       // The values that category calls worth finding: all of them unless it says otherwise, which
       // franchise does with none and a split with its marked half alone.
       const found = category.found;
       if (found?.length === 0) continue;
-      for (const item of library[medium]) {
+      for (const item of rows) {
         const cell = category.valueOf(item);
         if (!cell) continue;
-        const value = attributeValue(category.key, cell);
+        const value = category.foundAs?.(cell) ?? cell;
         if (found && !found.includes(value)) continue;
         record(
           `attribute:${category.key}:${value}`,
           { category: category.key, label: category.label, value },
-          medium,
+          tab,
           cell,
         );
+        // The level above the values, where the category has one, so "Nintendo" is a hit setting
+        // the seven platforms under it — the same narrowing its own parent chip makes, since both
+        // readers write the category's own flat list. Keyed under the level's name and not the
+        // value's, a group being free to share a name with one of its children.
+        const level = category.group;
+        if (level) {
+          const group = level.of(value);
+          record(
+            `attribute:${category.key}:${level.label}:${group}`,
+            { category: category.key, label: level.label, value: group, level: level.label },
+            tab,
+            cell,
+          );
+        }
       }
     }
-  });
+  }
 
-  return [...found.values()];
+  // What the layer opens is the four libraries' own rows, which is exactly what `attributeItems`
+  // gathers — so the composing tab's count, which reads those same works again in the union's
+  // unit, is a figure a chip states and never part of the size the shelf is worded by. Derived
+  // from the counts rather than accumulated beside them, one total being one total.
+  for (const entry of found.values())
+    entry.size = Object.entries(entry.counts)
+      .filter(([tab]) => PAGE_MODULES[tab]?.medium)
+      .map(([, count]) => count)
+      .sum();
+
+  // A group of one is its value, through the rule the control surface draws its runs by: PC, iOS
+  // and Xbox each hold a single platform, and an entry for one is the same rows under a second
+  // name, ranked beside the first and filtering to exactly what it filters to.
+  return [...found.values()].filter((entry) => !entry.level || groupHolds(Object.values(entry.values).flat()));
+};
+
+/** One category of a tab's schema by the field it names, the key erased as every reader holds it. */
+const categoryOf = (schema: PageSchema, key: string) =>
+  schema.categories.find((candidate) => (candidate.key as string) === key);
+
+/**
+ * Whether an entry is one of its category's values rather than the level above them.
+ *
+ * A company stands for a set of platforms and is not one, so it is neither counted as a value nor
+ * listed as one — asked separately in the two places, a category could state 15 over 17 rows.
+ */
+const isValue = (entry: AttributeEntry) => !entry.level;
+
+/**
+ * The categories the index holds values for, as entries a query can name.
+ *
+ * Derived from the attribute index rather than walked out of the schemas a second time, so what a
+ * category says it holds and what scoping it lists are one array: a count arrived at separately is
+ * a count that can disagree with the rows under it.
+ *
+ * A level is skipped. A company stands for a set of the category's values rather than being one of
+ * them, so counting it would state 17 platforms over the 15 the scope lists — the first thing a
+ * reader notices. Franchise is added from its own index, its values being deliberately absent from
+ * the attribute one (`found: []`).
+ *
+ * A category of one findable value is that value, through the rule the filter chips group by:
+ * Shows' and Movies' anime split offers a single word, so its category row and its value row would
+ * be the same row twice.
+ */
+const buildCategoryIndex = (
+  attributes: AttributeEntry[],
+  franchises: FranchiseSearchEntry[],
+): CategorySearchEntry[] => {
+  const held = new Map<string, { label: string; values: string[] }>();
+  for (const entry of attributes.filter(isValue)) {
+    held.setIfAbsent(entry.category, { label: entry.label, values: [] }).values.push(entry.value);
+  }
+  if (franchises.length > 0) {
+    held.set(FRANCHISE_KEY, { label: FRANCHISE_KEY, values: franchises.map((entry) => entry.franchise) });
+  }
+
+  return [...held]
+    .filter(([, category]) => groupHolds(category.values))
+    .map(([key, category]) => ({
+      key: `category:${key}`,
+      category: key,
+      name: category.label,
+      secondary: [],
+      size: category.values.length,
+    }));
 };
 
 /**
- * Every tab an attribute hit can be taken to, the one being read first.
+ * The values one category holds, as the box lists them once a reader has named it.
  *
- * The current tab leads because ↵ does the nearest thing: on a tab holding the category the hit
- * narrows the page the reader is already looking at, and on one that does not it is a place — "the
- * Shows tab, filtered to Netflix" — which is a jump and not a narrowing. Whether the current tab
- * holds it is asked of that tab's own schema by the caller, since the composing tab is a page with
- * filters and no medium, and its categories are not in the per-medium index.
+ * Franchise reads its own index and every other category the attribute one, less the levels —
+ * exactly the set `buildCategoryIndex` counted, so the header's figure and the rows beneath it
+ * cannot come apart.
  */
-export const attributePlacements = (
-  entry: AttributeEntry,
-  currentTabId: string,
-  currentCategories: readonly string[],
-): PlacedAttribute[] => {
-  const currentMedium = media.find((medium) => MEDIA[medium].tabId === currentTabId);
-  // The media holding the value, which is exactly the media the index counted rows for: `counts`
-  // gains a key on the first row found and the walk is in the order the app says the media.
-  const tabs = Object.keys(entry.counts) as Medium[];
-  // Held rather than only offered: a page whose schema has the category but whose rows hold none
-  // of this value would narrow to nothing, which is a hit that empties the page it was pressed on.
-  // The composing tab holds whatever any medium does.
-  const holdsIt = currentMedium ? tabs.includes(currentMedium) : tabs.length > 0;
-  const here: PlacedAttribute[] =
-    currentCategories.includes(entry.category) && holdsIt
-      ? [{ ...entry, key: `${entry.key}:${currentTabId}`, tab: currentTabId, medium: currentMedium, here: true }]
-      : [];
+const scopeValues = (index: SearchIndex, category: string): (AttributeEntry | FranchiseSearchEntry)[] =>
+  category === FRANCHISE_KEY
+    ? index.franchises
+    : index.attributes.filter(isValue).filter((entry) => entry.category === category);
 
-  const elsewhere = tabs
-    .filter((medium) => MEDIA[medium].tabId !== currentTabId)
-    .map((medium): PlacedAttribute => ({
-      ...entry,
-      key: `${entry.key}:${MEDIA[medium].tabId}`,
-      tab: MEDIA[medium].tabId,
-      medium,
-      here: false,
-    }));
-
-  return [...here, ...elsewhere];
-};
+/**
+ * Every tab an attribute hit narrows, in one fixed order whichever tab the reader is standing on.
+ *
+ * The tab in hand is one of them and not a reading of its own: a strip whose chips move about as
+ * the reader changes tabs is one they have to re-read each time, where five chips in one order are
+ * five places, one of which happens to be here. Which of them that is, is a comparison the press
+ * makes and nothing the strip says.
+ *
+ * The counts are the placements: a tab gains a key on the first row found holding the value, so a
+ * page whose schema has the category but whose rows hold none of it is absent — that press being
+ * one that empties the page it was made on. The order is the order the index walked the tabs.
+ */
+export const attributePlacements = (entry: AttributeEntry): PlacedAttribute[] =>
+  Object.keys(entry.counts).map((tab): PlacedAttribute => ({ ...entry, tab }));
 
 /**
  * What a hit sets on its own tab: the values it stands for there, added to whatever that tab
  * already holds.
  *
  * Added rather than replacing, because a reader narrowing to two genres in a row means both — the
- * same thing a second chip pressed in This page means. A tab that is no medium has no notation of
- * its own to expand into and takes the value as stated.
+ * same thing a second chip pressed in This page means. The cells are the ones that tab's own rows
+ * carry, which the index recorded in the same pass that counted them — a certificate tier setting
+ * whichever of `15` and `16` this page is written in. `values` is keyed on a plain string, so the
+ * type promises a list for a tab this entry was never placed on; the value itself is what a caller
+ * naming its own tab falls back to, rather than a press that throws inside its own handler.
  */
 export const attributeAction = (entry: PlacedAttribute, held: readonly string[]): PageAction => {
-  const values = (entry.medium && entry.values[entry.medium]) ?? [entry.value];
+  const values = entry.values[entry.tab] ?? [entry.value];
   return {
     type: "updateFilter",
     filter: entry.category,
@@ -383,17 +523,22 @@ export const attributeAction = (entry: PlacedAttribute, held: readonly string[])
  * union counts in — a season carries no genre of its own. Narrowing first and flattening after is
  * also what makes the shelf exactly what the filter would keep, so a shelf cannot show more than
  * the narrowing beside it leaves on the page.
+ *
+ * Held to the cells the entry *sets* on that medium, through the very predicate that tab's own
+ * picker would filter by, so the shelf and the narrowing beside it cannot answer with different
+ * rows. Read the other way — the cell put back through the category's own fold and compared to its
+ * name — an entry whose name is no cell shelves nothing: a company stands for its platforms and
+ * matches none of them.
  */
 const attributeItems = (library: Library, entry: AttributeEntry): OmniItem[] =>
   eachMedium((medium, module) => {
     const category = module.filters.categories.find((candidate) => (candidate.key as string) === entry.category);
-    if (!category) return [];
-    return module.toOmniItems(
-      library[medium].filter((item) => {
-        const cell = category.valueOf(item);
-        return Boolean(cell) && attributeValue(entry.category, cell) === entry.value;
-      }),
-    );
+    const values = entry.values[module.tabId];
+    if (!category || !values) return [];
+    // A recorded medium always pushed a cell, so the list is never the empty selection that
+    // `selectedPredicates` answers with no predicate at all.
+    const [matches] = selectedPredicates(values, category.valueOf);
+    return module.toOmniItems(library[medium].filter(matches));
   }).flat();
 
 /**
@@ -430,90 +575,95 @@ export interface SearchGroup {
 }
 
 /** How many hits a group shows before the rest are stated as a count. */
-export const HITS_PER_GROUP = 5;
+const HITS_PER_GROUP = 5;
 
 /**
- * A group's hits cut to what it shows, with the count before the cut — `rankHits`' own answer, for
- * a list already ranked and then expanded. One genre becomes a hit per tab that holds the
- * category, so the cut has to fall after the expansion or a group would state a total it had
- * already stopped counting at.
+ * How many values draw their readings without being asked.
+ *
+ * One value or two is the common case and arrives open, so a finger never pays a tap for nothing.
+ * Past that only the value the reader is on draws its strip: four values' worth of chips is most
+ * of the list before a single work is reached, and a query vague enough to match that many is one
+ * the reader is still scanning. At `Infinity` every value draws its strip always, which is the
+ * layout without this rule at all.
  */
-const cutHits = <T>(hits: Hit<T>[], limit: number) => ({ hits: hits.slice(0, limit), total: hits.length });
+export const OPEN_STRIP_LIMIT = 2;
 
 /**
- * The palette's answer to a query, in three tiers: what the value *is* — a shelf over every library
- * recording it, and a franchise's own view — then what it does to a page, then the works
- * themselves. A group with nothing to say is left out.
+ * How many of a scoped category's values are drawn.
  *
- * The layer readings lead because they are the ones that answer with more than themselves, and
- * because a phone's box shows about five rows: put third, a shelf falls under the fold on any query
- * matching several values. It costs the page narrowing the first row, so ↵ and a soft keyboard's Go
- * open the layer rather than filtering the page.
+ * Every vocabulary a reader can scan is whole inside it, and the cut bites only on the six past
+ * sixty — the split `FilterCategory.searchable` is measured against, counted there rather than a
+ * second time here. Those six are the ones the scope's own argument says you type into rather than
+ * scroll, and 218 rows is that phone book drawn out rather than described: about eleven elements
+ * apiece, which is a render the reader waits through to reach a list nobody reads to the end of.
  *
- * Which of the two leads is how well each answered — a series named exactly stands above a genre
- * found inside a word, and a genre named exactly above a series found the same way — with the
- * franchise taking a tie, its view saying more about a value than a shelf of works does. Ordered
- * rather than merged into one ranked list: the two open different layers, and a franchise row
- * carries a span of years a shelf row has nothing to put in, so one header would name two
- * destinations.
- *
- * The attributes are ranked once and read twice — every one of them shelves, and every one is
- * placed on the tabs that hold it, where there is a page to place them on at all.
+ * The header states the cut through `cut`, as every other group does, so what is held back says so
+ * in the app's own sentence and the field beneath it is the way to the rest.
  */
-export const searchUnion = (
-  index: SearchIndex,
-  query: string,
-  /** Which tab the box is standing over, and what its own schema can narrow by. */
-  page?: { tabId: string; categories: readonly string[] },
-  limit = HITS_PER_GROUP,
-): SearchGroup[] => {
+export const SCOPE_ROWS = 50;
+
+/**
+ * One ranked value with its readings worked out, keeping the rank the merge is ordered on and the
+ * run of the name the query matched — which indexes the value either way, `franchiseAttribute`
+ * naming its entry after the franchise the ranker matched.
+ */
+const valueHit = (index: SearchIndex, hit: Hit<AttributeEntry | FranchiseSearchEntry>): Hit<ValueSearchEntry> => {
+  // A franchise is lifted to the narrowing shape here rather than by each caller: three groups are
+  // built over these two indexes, and a rule stated once per group is a rule three ways to get
+  // wrong. It is also what the callers' own comments claim — that a value reached one way and the
+  // same value reached another are one thing on screen — which only construction can promise.
+  const franchise = hit.entry.kind === "franchise" ? hit.entry : undefined;
+  const attribute = franchise ? franchiseAttribute(franchise, index.franchiseRows) : (hit.entry as AttributeEntry);
+  return {
+    rank: hit.rank,
+    matched: hit.matched,
+    entry: {
+      kind: "value",
+      key: `value:${attribute.key}`,
+      attribute,
+      franchise,
+      placements: attributePlacements(attribute),
+    },
+  };
+};
+
+/**
+ * The palette's answer to a query: the values it matched, then the works themselves. A group with
+ * nothing to say is left out.
+ *
+ * The values lead because a value answers with more than itself — the whole library holding it,
+ * the page narrowed to it, the tab it lives on — where a work is one card. They are one group and
+ * not one per reading: a genre and the four tabs recording it are one thing said five ways, so the
+ * box states the value once and hangs the readings under it.
+ *
+ * Franchises and attributes are ranked apart, since they are two indexes, and merged into one list
+ * rather than concatenated: a genre matching a query exactly is a better answer than a series
+ * matching it at a word start, and the reverse holds as readily. Each is ranked over its whole
+ * index and the merge cut afterwards — cutting each half first would state a total it had stopped
+ * counting at, and would drop attributes the group had room for on a query franchises answered
+ * better. Franchises lead the merge and the sort is stable, so a franchise takes a tie: its view
+ * says more about a value than a shelf of works does.
+ */
+export const searchUnion = (index: SearchIndex, query: string, limit = HITS_PER_GROUP): SearchGroup[] => {
   const attributes = rankHits(index.attributes, query, limit);
   const franchises = rankHits(index.franchises, query, limit);
-  // Ranked against each other rather than concatenated: a genre matching a query exactly is a
-  // better answer than a series matching it at a word start, and the reverse holds as readily. The
-  // sort is stable, so an attribute keeps its place ahead of a franchise found equally well.
-  const placeable: Hit<AttributeEntry>[] = [
-    ...attributes.hits,
-    ...franchises.hits.map((hit) => ({ ...hit, entry: franchiseAttribute(hit.entry, index.franchiseRows) })),
-  ].toSorted((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity));
-  const placed = page
-    ? placeable.flatMap((hit) =>
-        attributePlacements(hit.entry, page.tabId, page.categories).map((entry) => ({ ...hit, entry })),
-      )
-    : [];
 
-  const shelf: SearchGroup = {
-    key: "shelf",
-    label: "Across the library",
-    // The rank's own total, not the cut list's: `rankHits` has already sliced these to `limit`, so
-    // counting them again would state a figure it had stopped counting at and the header would say
-    // "5" beside a franchise group saying "5 of 12".
-    hits: attributes.hits.map((hit) => ({ ...hit, entry: shelfEntry(hit.entry) })),
-    total: attributes.total,
-  };
-  const franchise: SearchGroup = { key: "franchise", label: "Franchises", ...franchises };
-
-  // Lower is the closer match, and an empty list answers `undefined`, which sorts behind every list
-  // something answered. The franchise takes a tie, its view saying more about a value than a shelf.
-  const franchiseLeads = (franchises.hits[0]?.rank ?? Infinity) <= (attributes.hits[0]?.rank ?? Infinity);
+  // Merged rather than concatenated, then cut, and only the survivors have their readings worked
+  // out: a hit in the merged top N has fewer than N ahead of it and so fewer than N from its own
+  // half, which is what lets each half be cut at the same figure first. The totals are still the
+  // whole indexes', `rankHits` counting what it matched before its own cut, so the merged group
+  // states what it is showing five of rather than a figure it stopped counting at.
+  const ranked = [...franchises.hits, ...attributes.hits]
+    .toSorted((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity))
+    .slice(0, limit);
+  const values = ranked.map((hit) => valueHit(index, hit));
 
   const groups: SearchGroup[] = [
-    ...(franchiseLeads ? [franchise, shelf] : [shelf, franchise]),
     {
-      key: "filter-here",
-      label: "Filter this page",
-      ...cutHits(
-        placed.filter((hit) => hit.entry.here),
-        limit,
-      ),
-    },
-    {
-      key: "filter-there",
-      label: "Go to, filtered",
-      ...cutHits(
-        placed.filter((hit) => !hit.entry.here),
-        limit,
-      ),
+      key: "values",
+      label: "Genres, tags and series",
+      hits: values,
+      total: franchises.total + attributes.total,
     },
     ...media.map((medium) => ({
       key: medium,
@@ -586,6 +736,78 @@ export const recentFranchises = (items: OmniItem[], today: YearMonthDay, limit: 
   galleryGroups(items, "franchise", "Items", "recent", today)
     .slice(0, limit)
     .map((shelf) => shelf.name);
+
+/**
+ * One category's values, which is what Find lists once the reader has named it.
+ *
+ * Ranked where something is typed and biggest first where nothing is: `rankHits` answers an empty
+ * phrase with nothing at all, and a scope opened on a blank field is a browse rather than a query.
+ * Cut at `SCOPE_ROWS` either way, which is far above `HITS_PER_GROUP`: this is a vocabulary the
+ * reader asked to see rather than a ranked answer with more behind it, and every vocabulary short
+ * enough to scan comes back whole.
+ *
+ * The rows are the value rows a query already answers with, through `valueHit`, so a genre reached
+ * by scoping Genre and the same genre reached by typing its name are one thing on screen.
+ */
+export const searchScope = (index: SearchIndex, category: string, query: string): SearchGroup[] => {
+  const held = index.categories.find((entry) => entry.category === category);
+  if (!held) return [];
+
+  const values = scopeValues(index, category);
+  const ranked = query.trim() ? rankHits(values, query, SCOPE_ROWS) : undefined;
+  const hits =
+    ranked?.hits ??
+    values
+      .toSorted((a, b) => b.size - a.size)
+      .slice(0, SCOPE_ROWS)
+      .map((entry) => ({ entry }));
+
+  // `total` is what was matched rather than what the vocabulary holds, as every other group's is:
+  // the header reads `cut(shown, total)`, so a scope of 218 narrowed to one director saying
+  // "1 of 218" claims 217 answers are held back that no scrolling produces. With nothing typed the
+  // two are the same figure. A group with nothing in it goes, on the rule `searchUnion` ends with —
+  // a header stating "0" above the line saying nothing was found is the box answering twice.
+  return hits.length === 0
+    ? []
+    : [
+        {
+          key: "scope",
+          label: held.name,
+          total: ranked?.total ?? values.length,
+          hits: hits.map((hit) => valueHit(index, hit)),
+        },
+      ];
+};
+
+/**
+ * Those franchises as the values they are, which is what the box offers before a letter is typed.
+ *
+ * The same shape a typed query answers with: a franchise offered here and the same franchise found
+ * by name are one thing, and drawn two ways they read as two — a row that opens the view in one
+ * place and a value with three readings in the other. Nothing is ranked, these being shown because
+ * they are worth offering rather than because they answered, so the hits carry no rank and no
+ * matched run.
+ *
+ * A franchise the index no longer holds — one hidden by guest mode since — is dropped rather than
+ * shown as a blank, and with none left there is no group: a list of groups rather than one, so the
+ * box draws what it offers and what a query answers with through one mapping.
+ */
+export const recentValues = (index: SearchIndex, items: OmniItem[], today: YearMonthDay): SearchGroup[] => {
+  const byName = new Map(index.franchises.map((entry) => [entry.franchise, entry]));
+  const lately = recentFranchises(items, today, HITS_PER_GROUP)
+    .map((franchise) => byName.get(franchise))
+    .filter((entry) => entry !== undefined);
+
+  if (lately.length === 0) return [];
+  return [
+    {
+      key: "lately",
+      label: "Franchises met lately",
+      total: lately.length,
+      hits: lately.map((entry) => valueHit(index, { entry })),
+    },
+  ];
+};
 
 /**
  * Where a franchise's context bar opens: the first of January of the earliest year anything in

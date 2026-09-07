@@ -1,5 +1,5 @@
 import { Search } from "@mui/icons-material";
-import { Box, Dialog, InputBase, Stack, Typography, type Theme } from "@mui/material";
+import { Box, Chip, Dialog, InputBase, Stack, Typography, type Theme } from "@mui/material";
 import {
   useEffect,
   useRef,
@@ -13,27 +13,84 @@ import { usePhone } from "./breakpoints";
 import { SheetBar } from "./SheetBar";
 import { SegmentedControl, type SegmentOption } from "./SelectionComponents";
 import type { SearchMode } from "./searchOpen";
-import { focusRingSx, LABEL_SX, MUTED_FIGURE_SX } from "./typography";
+import { COARSE_CONTROL_HEIGHT, focusRingSx, LABEL_SX, MUTED_FIGURE_SX } from "./typography";
 import { cut } from "./population";
 
 /**
- * One thing the palette can offer: what it is called, the run of that name the query matched, a
- * line of facts beneath, something to stand at its left — a thumbnail, a swatch — and what
- * choosing it does. The shell draws these and knows nothing about what any of them is.
+ * One thing a value can be pressed for: the layer it opens, the page it narrows, the tab it takes
+ * the reader to. The wording and the figure are the caller’s and `lead` is whatever mark it wants
+ * beside them, so the shell never learns what a medium is.
  *
- * One press and one meaning: a hit that answers a query two ways is two hits, so every reading the
- * box offers is reachable by the pointer, the finger and ↵ alike rather than one of them being a
- * chord a touch screen has no key for.
+ * The first is the layer — the whole of the value — and stands at the end of the value’s own line
+ * whether or not the strip is down; the rest are the narrowings, and are the strip. That split is
+ * structural rather than a stated line number: the reading that leaves the reader where they are
+ * cannot end up beside the ones that move them however wide a value’s name runs, and an open value
+ * is two lines rather than three.
  */
-export interface PaletteHit {
+export interface PaletteReading {
+  key: string;
+  label: string;
+  /** What it holds, already formatted — absent where the reading has no honest figure to give. */
+  count?: string;
+  lead?: ReactNode;
+  onOpen: () => void;
+}
+
+interface PaletteHitBase {
   key: string;
   title: string;
   matched?: [start: number, end: number];
-  facts?: ReactNode;
   lead?: ReactNode;
   trailing?: ReactNode;
-  onOpen: () => void;
 }
+
+/**
+ * One hit a line: what it is called, a line of facts beneath, something at its left — a thumbnail,
+ * a swatch — and what choosing it does.
+ */
+interface PaletteRowHit extends PaletteHitBase {
+  facts?: ReactNode;
+  onOpen: () => void;
+  readings?: undefined;
+}
+
+/**
+ * One value with every reading of it beneath, each of them a press of its own.
+ *
+ * The value is stated once and its readings stand under it, rather than the value being redrawn
+ * once per reading: a genre answers a shelf, a narrowing of the page and a jump into each tab
+ * recording it, which is six rows of one name and one line of facts where this is a name and a
+ * strip.
+ */
+interface PaletteValueHit extends PaletteHitBase {
+  /** What kind of value it is, beside the name rather than under it: a category, or its media. */
+  category?: ReactNode;
+  /**
+   * What the row states in place of its readings, drawn only while they are not.
+   *
+   * A value's counts belong in one place at a time: beside its name where the strip is shut, and
+   * inside the chips where it is open, since a value stating "4 games" above a "Games 4" chip is
+   * one fact said twice. The caller says what; the row says when.
+   */
+  summary?: ReactNode;
+  /**
+   * The readings, the first of them the layer: the whole of the value, which is what ↵ and a soft
+   * keyboard's Go open. It stands at the end of the value's own line at every state, so a row that
+   * states a figure never makes the reader open a strip to press what they were already looking
+   * at — and an open value is two lines rather than three, the strip holding the narrowings alone.
+   */
+  readings: PaletteReading[];
+}
+
+/**
+ * One press and one meaning: a reading that answers a query two ways is two presses, so everything
+ * the box offers is reachable by the pointer, the finger and the keyboard alike rather than one of
+ * them being a chord a touch screen has no key for.
+ *
+ * A union rather than one hit with optional readings, so a row is never handed a strip it cannot
+ * draw and a value never a single press that would bypass its own.
+ */
+export type PaletteHit = PaletteRowHit | PaletteValueHit;
 
 /**
  * A run of hits under one label, with how many the label stands for beyond the ones shown.
@@ -49,6 +106,14 @@ export interface PaletteGroup {
   total: number;
   hits: PaletteHit[];
   layout?: "rows" | "chips";
+  /**
+   * Whether every value in the group draws its strip, or only the one the reader is on.
+   *
+   * The caller’s answer, since how many values a query matched is the caller’s own figure: one or
+   * two arrive open, so a finger never pays a tap for nothing, and past that a wall of chips is
+   * most of the list before a single work is reached.
+   */
+  alwaysOpen?: boolean;
 }
 
 /**
@@ -76,6 +141,26 @@ const paperSx = (theme: Theme) => ({
 });
 
 const CONTAINER_SX = { "& .MuiDialog-container": { alignItems: "flex-start" } } as const;
+
+/**
+ * What the box is held to, standing in the field ahead of the caret.
+ *
+ * In the field rather than above it, because it narrows what the field does: a word typed here
+ * searches inside the category, and a chip anywhere else would read as a filter on results the
+ * field had already found. It is the kit's own small chip, so the coarse target its ✕ grows under a
+ * finger — the height, the corner and the label's own padding — comes from the theme rather than
+ * from here, where a copy would state one third of it.
+ */
+const ScopeChip = ({ label, onClear }: { label: string; onClear: () => void }) => (
+  <Chip
+    size="small"
+    color="primary"
+    label={label}
+    onDelete={onClear}
+    aria-label={`Leave ${label}`}
+    sx={{ flex: "none", fontWeight: 600 }}
+  />
+);
 
 /**
  * The input row, under the mode segment at every width. A breakpoint key again, so a function at
@@ -106,36 +191,93 @@ const inModeSwitchReach = (target: EventTarget | null) =>
   target instanceof HTMLElement && (target.dataset.searchInput !== undefined || target.closest("[data-search-mode]"));
 
 /**
- * A row, lit by keyboard or pointer through one `selected` flag rather than a hover style of its
- * own: the arrow keys and the pointer would otherwise light two rows at once, and a tap has no
- * leave event to unlight one. The pointer moving onto a row selects it, which is the hover.
+ * The line the arrows move between, and the only thing carrying the lit state.
+ *
+ * A row holding one press *is* that press; a value's row holds its name and its whole strip. The
+ * light has to be on what contains them rather than on either, or a value with its readings open
+ * would be lit along its title alone. Lit by keyboard and pointer through one flag rather than a
+ * hover style of its own: the two would otherwise light two rows at once, and a tap has no leave
+ * event to unlight one. The pointer moving onto a row selects it, which is the hover.
  */
-const hitSx = (theme: Theme) => ({
-  display: "grid",
-  gridTemplateColumns: `${LEAD_WIDTH}px minmax(0, 1fr) auto`,
-  gap: 1.5,
-  alignItems: "center",
+const ROW_SX = {
+  borderLeft: "3px solid transparent",
+  '&[aria-selected="true"]': {
+    backgroundColor: "action.selected",
+    borderLeftColor: "primary.main",
+  },
+} as const;
+
+/**
+ * What every press surface in the list has in common: a button stripped back to the row it draws,
+ * with its focus ring inside its own edge — a row spans the box, so a ring outside it has nowhere
+ * to be drawn.
+ */
+const pressSx = (theme: Theme) => ({
   width: "100%",
   paddingX: 2,
-  paddingY: 1,
   border: 0,
-  borderLeft: "3px solid transparent",
   background: "none",
   color: "inherit",
   font: "inherit",
   textAlign: "left",
   cursor: "pointer",
-  '&[aria-selected="true"]': {
-    backgroundColor: "action.selected",
-    borderLeftColor: "primary.main",
-  },
-  // Inside the row's own edge: a row spans the box, so a ring outside it has nowhere to be drawn.
   ...focusRingSx(theme, -2),
+});
+const hitSx = (theme: Theme) => ({
+  ...pressSx(theme),
+  display: "grid",
+  gridTemplateColumns: `${LEAD_WIDTH}px minmax(0, 1fr) auto`,
+  gap: 1.5,
+  alignItems: "center",
+  paddingY: 1,
 });
 
 /**
- * A chip, lit by the same flag a row is. It carries the option role and the selection colour a
- * row does, so the keyboard walks through it as through any other hit.
+ * A value's own line: its mark, its name, what kind of value it is, and — for a series — the years
+ * it ran. One line rather than the two a hit takes, the counts having moved into the readings
+ * below, where each of them is also the press that acts on it.
+ */
+const valueSx = (theme: Theme) => ({
+  ...pressSx(theme),
+  display: "flex",
+  alignItems: "center",
+  gap: 1,
+  paddingTop: 1,
+  paddingBottom: 0.5,
+  // What the end beside it leaves: a chip a finger has to aim at cannot shrink, where a name has
+  // an ellipsis to give.
+  width: "auto",
+  flex: 1,
+  minWidth: 0,
+});
+
+/** The value's line: the name's own press, and the presses standing at its end while the strip is down. */
+const VALUE_LINE_SX = { display: "flex", alignItems: "center", minWidth: 0 } as const;
+
+/**
+ * That end: how much of the value each medium holds, then the layer as the cut it is — the cut
+ * last, being the press of the two and the row's own way in. Outside the name's button, a button
+ * inside a button being no button.
+ */
+const SHUT_ROW_END_SX = { display: "flex", alignItems: "center", gap: 1, flex: "none", paddingRight: 2 } as const;
+
+/** A series' run, which stands with the category rather than among the figures counting it. */
+const TRAILING_SX = { flex: "none", display: "inline-flex", alignItems: "center" } as const;
+
+/** The strip: the narrowings alone, the layer standing at the end of the line above them. */
+const STRIP_SX = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 0.75,
+  alignItems: "center",
+  paddingX: 2,
+  paddingBottom: 1.25,
+} as const;
+
+/**
+ * A chip: the kit's own, at 28px under a pointer and the coarse 32 under a finger, where the type
+ * stays put and only the target grows. Lit by `data-active`, which is the cell the keyboard is on
+ * inside the row it has selected — a second mark, since the row's own light says which value.
  */
 const chipSx = (theme: Theme) => ({
   display: "inline-flex",
@@ -151,9 +293,13 @@ const chipSx = (theme: Theme) => ({
   font: "inherit",
   fontSize: 13,
   fontWeight: 500,
+  whiteSpace: "nowrap",
   cursor: "pointer",
   "& svg": { fontSize: 18 },
-  '&[aria-selected="true"]': {
+  // The corner follows the height, or a chip grown for a finger is a rounded rectangle beside the
+  // kit's own, which the theme rounds to half its height in this same query.
+  "@media (pointer: coarse)": { height: COARSE_CONTROL_HEIGHT, borderRadius: COARSE_CONTROL_HEIGHT / 2 },
+  '&[data-active="true"]': {
     backgroundColor: "action.selected",
     borderColor: "primary.main",
   },
@@ -170,6 +316,9 @@ const KEY_SX = {
   color: "text.secondary",
 } as const;
 
+/** A key hint: the glyph and what it does, on one baseline. */
+const HINT_SX = { color: "text.secondary", display: "flex", gap: 0.5, alignItems: "center" } as const;
+
 const Key = ({ children }: { children: string }) => (
   <Box
     component="kbd"
@@ -179,21 +328,164 @@ const Key = ({ children }: { children: string }) => (
   </Box>
 );
 
-/** Scrolls the selected row into view. */
+/**
+ * Whether an arrow is the box's to take. A modified one is the field's — ⇧← extends a selection,
+ * ⌥← and ⌘← jump a word and a line — and the box has nothing to answer any of them with.
+ */
+const plainArrow = (event: KeyboardEvent) => !event.shiftKey && !event.altKey && !event.metaKey && !event.ctrlKey;
+
+/**
+ * Scrolls what the keys moved to into view: the live cell where there is one, and otherwise the
+ * selected row.
+ *
+ * The cell first because a chips group is a single row holding a dozen presses — ←→ walk inside it
+ * without changing which row is selected, and a dozen chips wrap to several lines, so revealing the
+ * row would leave the chip walked to sitting below the fold on the line it wrapped onto.
+ */
 const revealSelected = (list: HTMLElement | null) => {
-  const row = list?.querySelector('[aria-selected="true"]');
-  if (row) row.scrollIntoView({ block: "nearest" });
+  const target = list?.querySelector('[data-active="true"]') ?? list?.querySelector('[aria-selected="true"]');
+  if (target) target.scrollIntoView({ block: "nearest" });
 };
 
-/** Where a remembered key stands in the flat list, or the first row where it stands nowhere. */
-const indexOfKey = (hits: PaletteHit[], key: string | null) =>
+/** One press the keyboard can reach: a whole hit, or one reading inside a value's strip. */
+interface Cell {
+  key: string;
+  onOpen: () => void;
+}
+
+/** One line the arrows move between, and everything pressable along it. */
+interface Row {
+  key: string;
+  cells: Cell[];
+}
+
+/** Where a remembered key stands, or the first entry where it stands nowhere. */
+const indexOfKey = (list: readonly { key: string }[], key: string | null) =>
   Math.max(
     0,
-    hits.findIndex((hit) => hit.key === key),
+    list.findIndex((entry) => entry.key === key),
   );
 
-/** Opens a hit; shared by the key handler and the rows. */
-const openHit = (hit: PaletteHit) => hit.onOpen();
+/** What a hit does where the shell has no reading of its own to open. */
+const pressOf = (hit: PaletteHit) => (hit.readings ? hit.readings[0].onOpen : hit.onOpen);
+
+/** Where a hit's own row stands, which is a group and a hit: one entry can stand in two groups. */
+const rowKeyOf = (group: PaletteGroup, hit: PaletteHit) => `${group.key}:${hit.key}`;
+
+/**
+ * Where one reading stands, which is its row and itself. One construction, since the cells the
+ * keys walk and the cells that are drawn are built apart and an id built two ways is an
+ * `aria-activedescendant` naming nothing.
+ */
+const readingKeyOf = (rowKey: string, reading: PaletteReading) => `${rowKey}:${reading.key}`;
+
+/**
+ * Whether a value draws its strip: it has narrowings to draw, and either the group asked it of
+ * every row or the reader is on this one.
+ *
+ * The strip is the readings past the first, so a value carrying only its layer has nothing to
+ * reveal and stays shut: opened, it would take the counts off its own line to make room for an
+ * empty row. Asked here by both the cells the keys walk and the cells that are drawn, since a row
+ * whose cell list and whose chips disagree points `aria-activedescendant` at an id no element
+ * wears.
+ */
+const stripOpen = (group: PaletteGroup, hit: PaletteValueHit, rowKey: string, openKey: string | null) =>
+  hit.readings.length > 1 && (group.alwaysOpen === true || rowKey === openKey);
+
+/**
+ * The lines the arrows move between, and the presses along each.
+ *
+ * A chips group is one line however many chips it holds: they already stand on one row, so ↓
+ * stepping rightwards across them reads as the wrong key. Everything else is a line per hit — one
+ * press for a work, and for a value the readings its row is actually drawing: the whole strip where
+ * it is open and the layer alone where it is shut, which is what keeps ←→ to presses on screen.
+ *
+ * Keyed by group as well as hit, since one entry can stand in two groups — a franchise met lately
+ * and found again by name — and one flag must light one row.
+ */
+const rowsOfGroup = (group: PaletteGroup, openKey: string | null): Row[] => {
+  if (group.layout === "chips") {
+    return [{ key: group.key, cells: group.hits.map((hit) => ({ key: rowKeyOf(group, hit), onOpen: pressOf(hit) })) }];
+  }
+  return group.hits.map((hit) => {
+    const key = rowKeyOf(group, hit);
+    if (!hit.readings) return { key, cells: [{ key, onOpen: hit.onOpen }] };
+    const drawn = stripOpen(group, hit, key, openKey) ? hit.readings : hit.readings.slice(0, 1);
+    return { key, cells: drawn.map((reading) => ({ key: readingKeyOf(key, reading), onOpen: reading.onOpen })) };
+  });
+};
+
+/**
+ * A group drawn as chips: the tabs to go to, and the vocabularies to browse.
+ *
+ * Wrapped rather than scrolled, so every chip is on screen at once. The twelve categories come to
+ * about 1,050px of run, which is two lines in the 620px dialog and four at 390 — more height than a
+ * scroller costs, and worth it: the row is what teaches that a category can be named at all, and a
+ * name a reader has to scroll sideways to find teaches nobody. It is also what keeps ←→ honest,
+ * every cell being somewhere the list can already reveal.
+ *
+ * The label sits outside the row, a grid row holding anything but its own cells being no row.
+ */
+const ChipsGroup = ({
+  group,
+  selected,
+  cellProps,
+  onSelect,
+  pointerMoved,
+}: {
+  group: PaletteGroup;
+  /** Whether the keys are on this row, which is what a grid row states about itself. */
+  selected: boolean;
+  cellProps: (cell: string) => { id: string | undefined; "data-active": string | undefined };
+  onSelect: (rowKey: string, cell: string) => void;
+  pointerMoved: (event: MouseEvent) => boolean;
+}) => (
+  <Box
+    role="rowgroup"
+    aria-label={group.label}
+    sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1, paddingX: 2, paddingY: 1 }}
+  >
+    <Typography
+      variant="caption"
+      sx={{ ...LABEL_SX, color: "text.secondary" }}
+    >
+      {group.label}
+    </Typography>
+    <Stack
+      role="row"
+      aria-selected={selected}
+      direction="row"
+      spacing={1}
+      useFlexGap
+      sx={{ flexWrap: "wrap", alignItems: "center" }}
+    >
+      {group.hits.map((hit) => {
+        const cell = rowKeyOf(group, hit);
+        return (
+          <Box
+            key={hit.key}
+            component="button"
+            type="button"
+            role="gridcell"
+            tabIndex={-1}
+            {...cellProps(cell)}
+            onMouseMove={(event) => {
+              if (pointerMoved(event)) onSelect(group.key, cell);
+            }}
+            onClick={pressOf(hit)}
+            sx={chipSx}
+          >
+            {hit.lead}
+            <Title
+              title={hit.title}
+              matched={hit.matched}
+            />
+          </Box>
+        );
+      })}
+    </Stack>
+  </Box>
+);
 
 /**
  * Puts the caret in the box once the dialog has opened, with the previous query selected so the
@@ -215,12 +507,18 @@ const focusSoon = (inputRef: RefObject<HTMLInputElement | null>) => {
   return () => clearTimeout(timer);
 };
 
-/** A hit's name with the matched run underlined in the accent, so the eye lands where the query did. */
+/**
+ * A hit's name with the matched run underlined in the accent, so the eye lands where the query did.
+ *
+ * One element and never a fragment, matched or not: a chip is an `inline-flex` with a gap between
+ * its lead and its label, and three loose nodes are three flex items — which puts that gap inside
+ * the word, "Gameplay" reading as "Gam eplay" on exactly the chips the underline is drawn for.
+ */
 const Title = ({ title, matched }: { title: string; matched?: [number, number] }) => {
-  if (!matched) return <>{title}</>;
+  if (!matched) return <span>{title}</span>;
   const [start, end] = matched;
   return (
-    <>
+    <span>
       {title.slice(0, start)}
       <Box
         component="mark"
@@ -236,7 +534,7 @@ const Title = ({ title, matched }: { title: string; matched?: [number, number] }
         {title.slice(start, end)}
       </Box>
       {title.slice(end)}
-    </>
+    </span>
   );
 };
 
@@ -270,6 +568,13 @@ export const SearchPalette = (props: {
   /** What stands under the box before a query answers anything: nothing typed, or nothing found. */
   emptyState: ReactNode;
   placeholder: string;
+  /**
+   * The category Find is held to, where the reader has named one: its own word, and the way out.
+   *
+   * A label and a callback rather than the category itself, so the shell stays as blind to what a
+   * category is as it is to what a hit opens.
+   */
+  scope?: { label: string; onClear: () => void };
   /** The current page's own settings and filters, drawn in place of the groups in `page` mode. */
   pageContent?: ReactNode;
   /** What stands on This page's last line: the population its settings have left, and Clear. */
@@ -282,13 +587,16 @@ export const SearchPalette = (props: {
    */
   onDrawn: (drawn: boolean) => void;
 }) => {
-  const { open, mode, onMode, focusRequest, onClose, query, onQueryChange, groups } = props;
+  const { open, mode, onMode, focusRequest, onClose, query, onQueryChange, groups, scope } = props;
   const { loading, emptyState, placeholder, pageContent, footer, onDrawn } = props;
   const phone = usePhone();
   const finding = mode === "find";
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [cellKey, setCellKey] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const pointerAt = useRef<{ x: number; y: number } | null>(null);
+  /** Whether the live selection was reached by a key, which is the only kind the list scrolls for. */
+  const byKeyboard = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -300,19 +608,40 @@ export const SearchPalette = (props: {
     inputRef.current?.blur();
   }, [open, finding, focusRequest]);
 
-  // Keyed by group as well as hit, since one entry can stand in two groups — a franchise met
-  // lately and found again by name — and one flag must light one row.
-  const flat = groups.flatMap((group) => group.hits.map((hit) => ({ ...hit, key: `${group.key}:${hit.key}` })));
-  // Option ids are the row's place in the flat list, not its key: a key carries a franchise's own
-  // name, and an IDREF with a space in it names nothing.
-  const flatIndex = new Map(flat.map((hit, index) => [hit.key, index]));
-  const selectedIndex = indexOfKey(flat, selectedKey);
-  const selected = flat.at(selectedIndex);
+  // Twice over the same list, because what a value's row *holds* depends on whether it is the
+  // selected one while what the rows are *called* does not. The first pass settles that, the
+  // second builds the cells against it — one definition of the row list either way, where a
+  // separate keys-only walk is a second statement of the same rule free to fall out of step, and
+  // an `aria-activedescendant` pointing at an id no element wears is what that costs.
+  const rowKeys = groups.flatMap((group) => rowsOfGroup(group, null)).map((row) => row.key);
+  const openKey = rowKeys.find((key) => key === selectedKey) ?? rowKeys[0] ?? null;
+  const rows = groups.flatMap((group) => rowsOfGroup(group, openKey));
+  // Cell ids are a place rather than a key: a key carries a franchise's own name, and an IDREF
+  // with a space in it names nothing. Built once, so the id a cell wears and the id the input
+  // points at are the same string rather than two constructions of it.
+  const cellId = new Map(
+    rows.flatMap((row, rowIndex) => row.cells.map((cell, index) => [cell.key, `search-cell-${rowIndex}-${index}`])),
+  );
+  // The lit row and the row the arrows step from are one row, resolved once: read apart they are
+  // two fallbacks for one question, and a strip then opens on a row the keys are not standing on.
+  const selectedIndex = rowKeys.indexOf(openKey ?? "");
+  const selectedRow = rows[selectedIndex];
+  const cells = selectedRow?.cells ?? [];
+  // Held by key and resolved against the row in hand, so arriving at another row falls back to its
+  // first reading rather than to whatever index the last row had reached.
+  const cellIndex = indexOfKey(cells, cellKey);
+  const active = cells.at(cellIndex);
 
-  // The row the keys moved to is brought into view; a pointer's own selection is already there.
+  // What the *keys* moved to is brought into view. A pointer's own selection is already under the
+  // pointer, and revealing it is worse than useless: hovering a collapsed value mounts its strip,
+  // which makes the live cell a node that did not exist a frame earlier, and scrolling that into
+  // view slides another row under a stationary cursor, which selects it, which scrolls again. The
+  // cell is in the dependencies as well as the row, since ←→ move within a row without leaving it.
   useEffect(() => {
+    if (!byKeyboard.current) return;
+    byKeyboard.current = false;
     revealSelected(listRef.current);
-  }, [selectedIndex]);
+  }, [selectedIndex, active?.key]);
 
   /**
    * Whether the pointer actually moved, which is what a row's own selection is allowed to follow.
@@ -331,10 +660,140 @@ export const SearchPalette = (props: {
   };
 
   const move = (step: number) => {
-    if (flat.length === 0) return;
-    const next = (selectedIndex + step + flat.length) % flat.length;
-    setSelectedKey(flat[next].key);
+    if (rows.length === 0) return;
+    byKeyboard.current = true;
+    // `openKey` names a row whenever there is one, so the index is only ever -1 on an empty list.
+    const next = (selectedIndex + step + rows.length) % rows.length;
+    setSelectedKey(rows[next].key);
   };
+
+  /**
+   * Along the row the reader is on, and only where it holds more than one press.
+   *
+   * Where it holds one, ←→ stay the caret's. The box's field is the one place in the app a reader
+   * types, so taking the arrows from it everywhere would leave a typo mid-query reachable by the
+   * pointer alone; on a value's row, where the arrows have readings to walk, that is the trade the
+   * strip is worth.
+   */
+  const moveCell = (step: number) => {
+    // Nothing until the reader has picked a row. `indexOfKey` answers the first row for a key that
+    // stands nowhere, so the box opens with a row selected that nobody navigated to — and the first
+    // of them is a chips group, one row holding a cell per tab. Read off the held key instead, so
+    // the arrows are the caret's until ↑↓ or a pointer has said otherwise.
+    if (selectedKey === null || cells.length < 2) return false;
+    byKeyboard.current = true;
+    const next = (cellIndex + step + cells.length) % cells.length;
+    setCellKey(cells[next].key);
+    return true;
+  };
+
+  /**
+   * Both at once, from the inner element.
+   *
+   * `mousemove` bubbles, and `pointerMoved` answers only the first caller of a given move — so a
+   * chip that set the cell alone would leave the row's own handler reading the position it had
+   * just written and declining to select the row the chip stands in.
+   */
+  const selectCell = (rowKey: string, cell: string) => {
+    setSelectedKey(rowKey);
+    setCellKey(cell);
+  };
+
+  /** Where a cell stands, as the id the input points at and the mark saying it is the live one. */
+  const cellProps = (cell: string) => ({
+    id: cellId.get(cell),
+    "data-active": cell === active?.key ? "true" : undefined,
+  });
+
+  /** One reading as a press: the same chip whether it stands in the strip or beside a shut row. */
+  const readingCell = (reading: PaletteReading, rowKey: string) => {
+    const cell = readingKeyOf(rowKey, reading);
+    return (
+      <Box
+        key={reading.key}
+        component="button"
+        type="button"
+        role="gridcell"
+        tabIndex={-1}
+        {...cellProps(cell)}
+        onMouseMove={(event) => {
+          if (pointerMoved(event)) selectCell(rowKey, cell);
+        }}
+        onClick={reading.onOpen}
+        sx={chipSx}
+      >
+        {reading.lead}
+        {reading.label}
+        {reading.count !== undefined && (
+          <Box
+            component="span"
+            sx={MUTED_FIGURE_SX}
+          >
+            {reading.count}
+          </Box>
+        )}
+      </Box>
+    );
+  };
+
+  /**
+   * A value: its own line, and the strip of readings beneath where the strip is drawn at all.
+   *
+   * The title line is the row's header rather than a cell — the keyboard's presses are the
+   * readings, and a title that were one would give the strip's first chip a second id. Pressed, it
+   * does what the row's state says: on a value already showing its readings it opens the first of
+   * them, which is what a pointer always means, having selected the row by moving onto it; on a
+   * collapsed one it reveals them, which is a finger's first tap and the tap that rule costs.
+   */
+  const valueBlock = (hit: PaletteValueHit, rowKey: string, open: boolean) => (
+    <>
+      <Box sx={VALUE_LINE_SX}>
+        <Box
+          component="button"
+          type="button"
+          role="rowheader"
+          tabIndex={-1}
+          onClick={() => (open ? hit.readings[0].onOpen() : setSelectedKey(rowKey))}
+          sx={valueSx}
+        >
+          {hit.lead}
+          <Typography
+            variant="body2"
+            noWrap
+            sx={{ fontWeight: 600 }}
+          >
+            <Title
+              title={hit.title}
+              matched={hit.matched}
+            />
+          </Typography>
+          {hit.category && (
+            <Typography
+              variant="caption"
+              noWrap
+              component="span"
+              sx={{ color: "text.secondary", minWidth: 0 }}
+            >
+              {hit.category}
+            </Typography>
+          )}
+          {/* Beside what kind of value it is rather than out at the end, a series' run being the
+              same sort of fact: what the thing is, before any figure counting it. It does not
+              shrink — a date reads as a date whole or not at all, where a name has an ellipsis. */}
+          {hit.trailing && <Box sx={TRAILING_SX}>{hit.trailing}</Box>}
+        </Box>
+        {/* The layer stands at the same place whether or not the strip is down: a row that states
+            a figure and gives no way to it makes the reader open a strip to press what they were
+            already looking at, and a chip that moves when the row opens is one to find again. The
+            counts step aside for it, each chip carrying its own. */}
+        <Box sx={SHUT_ROW_END_SX}>
+          {!open && hit.summary}
+          {readingCell(hit.readings[0], rowKey)}
+        </Box>
+      </Box>
+      {open && <Box sx={STRIP_SX}>{hit.readings.slice(1).map((reading) => readingCell(reading, rowKey))}</Box>}
+    </>
+  );
 
   const onKeyDown = (event: KeyboardEvent) => {
     // ⇥ where the box owns it: the input and the segment. Everywhere else it belongs to the focus
@@ -348,9 +807,16 @@ export const SearchPalette = (props: {
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
       move(-1);
-    } else if (event.key === "Enter" && selected) {
+    } else if (event.key === "ArrowRight" && plainArrow(event)) {
+      if (moveCell(1)) event.preventDefault();
+    } else if (event.key === "ArrowLeft" && plainArrow(event)) {
+      if (moveCell(-1)) event.preventDefault();
+    } else if (event.key === "Enter" && active) {
       event.preventDefault();
-      openHit(selected);
+      active.onOpen();
+    } else if (event.key === "Backspace" && scope && !query) {
+      // The chip-in-a-field idiom: with nothing left to delete, the next ⌫ takes the chip.
+      scope.onClear();
     }
   };
 
@@ -368,7 +834,10 @@ export const SearchPalette = (props: {
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      // Escape leaves the scope before it leaves the box, so the way out is one key pressed twice
+      // rather than two keys to learn. Read off MUI's own reason: a backdrop press means close,
+      // whatever the box is held to. The bar's ✕ closes outright for the same reason.
+      onClose={(_event, reason) => (reason === "escapeKeyDown" && scope ? scope.onClear() : onClose())}
       fullScreen={phone}
       maxWidth={false}
       sx={CONTAINER_SX}
@@ -392,6 +861,12 @@ export const SearchPalette = (props: {
       )}
       <Box sx={inputRowSx}>
         <Search color="action" />
+        {scope && (
+          <ScopeChip
+            label={scope.label}
+            onClear={scope.onClear}
+          />
+        )}
         <InputBase
           // Asked for in Find alone, so a phone opening This page does not raise the keyboard over
           // the lists it opened to show. The effect above asks again once the trap has settled.
@@ -406,7 +881,7 @@ export const SearchPalette = (props: {
             // What ⌘K reads to tell a press inside the box from one anywhere else, since the label
             // above says which mode the box is in rather than which element this is.
             "data-search-input": "",
-            "aria-activedescendant": selected ? `search-hit-${selectedIndex}` : undefined,
+            "aria-activedescendant": active && cellId.get(active.key),
             autoCapitalize: "off",
             autoCorrect: "off",
             spellCheck: false,
@@ -442,7 +917,7 @@ export const SearchPalette = (props: {
       ) : (
         <Box
           ref={listRef}
-          role="listbox"
+          role="grid"
           aria-label="Results"
           sx={{ overflowY: "auto", flexGrow: 1, paddingY: 0.5 }}
         >
@@ -450,53 +925,23 @@ export const SearchPalette = (props: {
             the libraries land — the tabs — is on screen exactly when the keys can reach it. */}
           {groups.map((group) =>
             group.layout === "chips" ? (
-              <Stack
+              <ChipsGroup
                 key={group.key}
-                role="group"
-                aria-label={group.label}
-                direction="row"
-                spacing={1}
-                useFlexGap
-                sx={{ flexWrap: "wrap", alignItems: "center", paddingX: 2, paddingY: 1 }}
-              >
-                <Typography
-                  variant="caption"
-                  sx={{ ...LABEL_SX, color: "text.secondary", marginRight: 0.5 }}
-                >
-                  {group.label}
-                </Typography>
-                {group.hits.map((hit) => (
-                  <Box
-                    key={hit.key}
-                    component="button"
-                    type="button"
-                    role="option"
-                    id={`search-hit-${flatIndex.get(`${group.key}:${hit.key}`)}`}
-                    aria-selected={`${group.key}:${hit.key}` === selected?.key}
-                    tabIndex={-1}
-                    onMouseMove={(event) => {
-                      if (pointerMoved(event) && `${group.key}:${hit.key}` !== selected?.key)
-                        setSelectedKey(`${group.key}:${hit.key}`);
-                    }}
-                    onClick={hit.onOpen}
-                    sx={chipSx}
-                  >
-                    {hit.lead}
-                    <Title
-                      title={hit.title}
-                      matched={hit.matched}
-                    />
-                  </Box>
-                ))}
-              </Stack>
+                group={group}
+                selected={openKey === group.key}
+                cellProps={cellProps}
+                onSelect={selectCell}
+                pointerMoved={pointerMoved}
+              />
             ) : (
               <Box
                 key={group.key}
-                role="group"
+                role="rowgroup"
                 aria-label={group.label}
                 sx={{ paddingBottom: 0.5 }}
               >
                 <Stack
+                  role="presentation"
                   direction="row"
                   sx={{ justifyContent: "space-between", paddingX: 2, paddingY: 0.75 }}
                 >
@@ -513,50 +958,62 @@ export const SearchPalette = (props: {
                     {cut(group.hits.length, group.total)}
                   </Typography>
                 </Stack>
-                {group.hits.map((hit) => (
-                  <Box
-                    key={hit.key}
-                    component="button"
-                    type="button"
-                    role="option"
-                    id={`search-hit-${flatIndex.get(`${group.key}:${hit.key}`)}`}
-                    aria-selected={`${group.key}:${hit.key}` === selected?.key}
-                    tabIndex={-1}
-                    onMouseMove={(event) => {
-                      if (pointerMoved(event) && `${group.key}:${hit.key}` !== selected?.key)
-                        setSelectedKey(`${group.key}:${hit.key}`);
-                    }}
-                    onClick={hit.onOpen}
-                    sx={hitSx}
-                  >
-                    <Box sx={{ width: LEAD_WIDTH, height: LEAD_HEIGHT, display: "grid", placeItems: "center" }}>
-                      {hit.lead}
-                    </Box>
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography
-                        variant="body2"
-                        noWrap
-                        sx={{ fontWeight: 500 }}
-                      >
-                        <Title
-                          title={hit.title}
-                          matched={hit.matched}
-                        />
-                      </Typography>
-                      {hit.facts && (
-                        <Typography
-                          variant="caption"
-                          noWrap
-                          component="div"
-                          sx={{ color: "text.secondary" }}
+                {group.hits.map((hit) => {
+                  const rowKey = rowKeyOf(group, hit);
+                  const lit = rowKey === openKey;
+                  return (
+                    <Box
+                      key={hit.key}
+                      role="row"
+                      aria-selected={lit}
+                      sx={ROW_SX}
+                      onMouseMove={(event) => {
+                        if (pointerMoved(event)) setSelectedKey(rowKey);
+                      }}
+                    >
+                      {hit.readings ? (
+                        valueBlock(hit, rowKey, stripOpen(group, hit, rowKey, openKey))
+                      ) : (
+                        <Box
+                          component="button"
+                          type="button"
+                          role="gridcell"
+                          tabIndex={-1}
+                          {...cellProps(rowKey)}
+                          onClick={hit.onOpen}
+                          sx={hitSx}
                         >
-                          {hit.facts}
-                        </Typography>
+                          <Box sx={{ width: LEAD_WIDTH, height: LEAD_HEIGHT, display: "grid", placeItems: "center" }}>
+                            {hit.lead}
+                          </Box>
+                          <Box sx={{ minWidth: 0 }}>
+                            <Typography
+                              variant="body2"
+                              noWrap
+                              sx={{ fontWeight: 500 }}
+                            >
+                              <Title
+                                title={hit.title}
+                                matched={hit.matched}
+                              />
+                            </Typography>
+                            {hit.facts && (
+                              <Typography
+                                variant="caption"
+                                noWrap
+                                component="div"
+                                sx={{ color: "text.secondary" }}
+                              >
+                                {hit.facts}
+                              </Typography>
+                            )}
+                          </Box>
+                          <Box sx={{ textAlign: "right" }}>{hit.trailing}</Box>
+                        </Box>
                       )}
                     </Box>
-                    <Box sx={{ textAlign: "right" }}>{hit.trailing}</Box>
-                  </Box>
-                ))}
+                  );
+                })}
               </Box>
             ),
           )}
@@ -568,7 +1025,7 @@ export const SearchPalette = (props: {
               Loading the libraries…
             </Typography>
           ) : (
-            flat.length === 0 && emptyState
+            rows.length === 0 && emptyState
           )}
         </Box>
       )}
@@ -589,28 +1046,48 @@ export const SearchPalette = (props: {
             flexShrink: 0,
           }}
         >
-          {finding ? <PaletteKeys /> : footer}
+          {finding ? <PaletteKeys scope={scope?.label} /> : footer}
         </Stack>
       )}
     </Dialog>
   );
 };
 
-/** The keys the box answers to, on the last line of Find wherever there is a keyboard to press. */
-const PaletteKeys = () => (
+/**
+ * The keys the box answers to, on the last line of Find wherever there is a keyboard to press.
+ *
+ * Under a scope the last of them names the way out by the category it leaves, since ⌫ on an empty
+ * field is the one key here whose meaning a reader cannot guess from what is on screen.
+ */
+const PaletteKeys = ({ scope }: { scope?: string }) => (
   <>
     <Typography
       variant="caption"
-      sx={{ color: "text.secondary", display: "flex", gap: 0.5, alignItems: "center" }}
+      sx={HINT_SX}
     >
       <Key>↑</Key>
       <Key>↓</Key> move
     </Typography>
     <Typography
       variant="caption"
-      sx={{ color: "text.secondary", display: "flex", gap: 0.5, alignItems: "center" }}
+      sx={HINT_SX}
     >
-      <Key>↵</Key> open or filter
+      <Key>←</Key>
+      <Key>→</Key> reading
     </Typography>
+    <Typography
+      variant="caption"
+      sx={HINT_SX}
+    >
+      <Key>↵</Key> open
+    </Typography>
+    {scope && (
+      <Typography
+        variant="caption"
+        sx={HINT_SX}
+      >
+        <Key>⌫</Key> leave {scope}
+      </Typography>
+    )}
   </>
 );

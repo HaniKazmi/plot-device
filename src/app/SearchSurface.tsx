@@ -5,16 +5,26 @@ import { Swatch } from "../common/Card";
 import { CURRENT_PLAINDATE } from "../common/date";
 import { DrilldownDialog } from "../common/DrilldownDialog";
 import { SchemaPageControls } from "../common/FilterControls";
-import { narrowedTo, stated } from "../common/population";
-import { LEAD_HEIGHT, LEAD_WIDTH, SearchPalette, type PaletteGroup, type PaletteHit } from "../common/SearchPalette";
-import { closeSearch, setSearchMode, type SearchMode } from "../common/searchOpen";
-import { fieldsOf, type PageSchema } from "../common/filterSchema";
-import { rankHits, type Hit } from "../common/searchData";
+import { all, narrowedTo, stated } from "../common/population";
+import { keyLabel } from "../utils/stringUtils";
+import {
+  LEAD_HEIGHT,
+  LEAD_WIDTH,
+  SearchPalette,
+  type PaletteGroup,
+  type PaletteHit,
+  type PaletteReading,
+} from "../common/SearchPalette";
+import { closeSearch, setSearchMode, setSearchScope, type SearchMode } from "../common/searchOpen";
+import { fieldsOf, type CategoryContext } from "../common/filterSchema";
+import { FRANCHISE_KEY } from "../common/filterSchema";
+import { rankHits, type Hit, type Searchable } from "../common/searchData";
 import { MUTED_FIGURE_SX } from "../common/typography";
+import { format } from "../utils/mathUtils";
 import { useScheme } from "../common/useScheme";
-import { franchiseToColour, mediumToColour, mediumToLabel, mediumUnit, type Medium, type Scheme } from "../utils/types";
+import { franchiseToColour, mediumToColour, type Colour, type Medium, type Scheme } from "../utils/types";
 import type { OmniItem } from "../common/medium";
-import { MediaCounts, MediumDot } from "./MediaCounts";
+import { Dot, MediumDot } from "./MediaCounts";
 import { MEDIA as MEDIA_MODULES, omniArtwork } from "./media";
 import OmniCardMediaImage from "./CardMediaImage";
 import { MIXED_CARD_SIZING, workLabels } from "./cardData";
@@ -22,24 +32,26 @@ import { FranchiseView } from "./FranchiseView";
 import { useLibrary, type Library } from "./library";
 import { mediumBand } from "./mediumBand";
 import { usePage } from "./page";
-import { PAGE_STORES, pageCount } from "./pageState";
+import { PAGE_MODULES, PAGE_STORES, pageCount } from "./pageState";
 import {
   attributeAction,
   attributeWorks,
   buildSearchIndex,
-  HITS_PER_GROUP,
-  recentFranchises,
+  OPEN_STRIP_LIMIT,
+  recentValues,
+  searchScope,
   searchUnion,
   unionEpoch,
   type AttributeEntry,
   type FranchiseSearchEntry,
   type ItemSearchEntry,
   type PlacedAttribute,
+  type CategorySearchEntry,
   type SearchEntry,
-  type SearchIndex,
+  type SearchGroup,
 } from "./searchData";
-import { mediumToShape } from "./types";
-import { tabForId, useOtherTabs } from "../tabs";
+import { media, mediumToShape } from "./types";
+import Tabs, { tabForId, tabInk, useOtherTabs } from "../tabs";
 
 /** What a chosen hit opens: a whole franchise, one work's own expanded card, or an attribute's shelf. */
 type Picked =
@@ -76,42 +88,52 @@ const Thumb = ({ item, scheme }: { item: OmniItem; scheme: Scheme }) => {
   );
 };
 
-/** A franchise's swatch where the table holds one; its initial on a tile where it does not. */
-const FranchiseLead = ({ franchise, scheme }: { franchise: string; scheme: Scheme }) => {
-  const colour = franchiseToColour({ franchise }, scheme);
-  if (colour) {
-    return (
+/** The box a value's mark stands in, whichever kind it is, so every name starts at one edge. */
+const VALUE_LEAD_SIZE = 24;
+
+/**
+ * A value's mark: its own colour where the field has a vocabulary the app already speaks, and its
+ * initial on a tile where it has none.
+ *
+ * Every value carries one, rather than only the coloured ones, because a group holds both — a genre
+ * beside a director — and a row without a mark starts its name where the marked rows start their
+ * mark. Both stand in one box for the same reason: a swatch reads at 18px and a letter needs 24,
+ * and left at their own widths the two kinds of row indent differently. The tile says no more than
+ * "a value", which is what a field with no vocabulary has to say.
+ */
+const ValueLead = ({ value, colour }: { value: string; colour: Colour | undefined }) => (
+  <Box
+    sx={{
+      width: VALUE_LEAD_SIZE,
+      height: VALUE_LEAD_SIZE,
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center",
+    }}
+  >
+    {colour ? (
       <Swatch
         colour={colour}
         size={18}
       />
-    );
-  }
-  return (
-    <Box
-      sx={{
-        width: 24,
-        height: 24,
-        borderRadius: 0.75,
-        display: "grid",
-        placeItems: "center",
-        backgroundColor: "action.selected",
-        fontSize: 12,
-        fontWeight: 700,
-        color: "text.secondary",
-      }}
-    >
-      {franchise.trim().charAt(0).toUpperCase()}
-    </Box>
-  );
-};
-
-const franchiseFacts = (entry: FranchiseSearchEntry, scheme: Scheme) => (
-  <MediaCounts
-    counts={entry.counts}
-    wordFor={mediumUnit}
-    scheme={scheme}
-  />
+    ) : (
+      <Box
+        sx={{
+          width: "100%",
+          height: "100%",
+          borderRadius: 0.75,
+          display: "grid",
+          placeItems: "center",
+          backgroundColor: "action.selected",
+          fontSize: 12,
+          fontWeight: 700,
+          color: "text.secondary",
+        }}
+      >
+        {value.trim().charAt(0).toUpperCase()}
+      </Box>
+    )}
+  </Box>
 );
 
 const yearLabel = (text: string) => (
@@ -135,63 +157,76 @@ interface TabEntry {
 }
 
 /**
- * The other tabs as a group of hits, for a reader switching pages from the keyboard: every tab
- * before anything is typed, and whichever the query names once something is. The current tab is
- * absent, as it is from the rail — the box offers movement, not orientation. Nothing is
- * remembered about a jump, since the tab strip already says where the reader is.
+ * A row of chips over one small index: everything before anything is typed, whichever the query
+ * names once something is, and nothing at all where it names none — the row going rather than
+ * standing empty.
+ *
+ * Both rows the box opens with are this. Stated once because it is one rule about what a chip row
+ * *is*, and a third row would otherwise state it a third time; what each caller keeps is only how
+ * its own entry becomes a chip.
  */
-const tabGroup = (tabs: TabEntry[], query: string, scheme: Scheme, close: () => void): PaletteGroup | undefined => {
-  const hits: Hit<TabEntry>[] = query.trim()
-    ? rankHits(tabs, query, tabs.length).hits
-    : tabs.map((entry) => ({ entry }));
+const chipsGroup = <T extends Searchable>(
+  key: string,
+  label: string,
+  entries: readonly T[],
+  query: string,
+  toChip: (hit: Hit<T>) => PaletteHit,
+): PaletteGroup | undefined => {
+  const hits: Hit<T>[] = query.trim()
+    ? rankHits(entries, query, entries.length).hits
+    : entries.map((entry) => ({ entry }));
   if (hits.length === 0) return undefined;
-  return {
-    key: "tabs",
-    label: "Go to",
-    total: hits.length,
-    layout: "chips",
-    hits: hits.map(({ entry, matched }) => {
-      const tab = tabForId(entry.id);
-      const Icon = tab?.icon;
-      const colour = scheme === "dark" ? tab?.darkBar?.ink : tab?.primaryColour;
-      return {
-        key: entry.id,
-        title: entry.name,
-        matched,
-        lead: Icon && <Icon sx={{ color: colour ?? "text.secondary" }} />,
-        onOpen: () => {
-          close();
-          entry.jump();
-        },
-      };
-    }),
-  };
+  return { key, label, total: hits.length, layout: "chips", hits: hits.map(toChip) };
 };
 
 /**
- * What an attribute hit is called: the value alone on the tab being read, and the tab's own name
- * before it anywhere else — "Shows · Netflix" is a place, and the place is half of what it says.
+ * The vocabularies the box can be held to, as a line of chips beside the tabs' own.
  *
- * The matched run is moved along by the prefix, since the ranker found it in the value and the box
- * underlines it on the title as drawn.
+ * Typing a category's name is the one thing in the box nobody can guess at: a work, a franchise and
+ * a genre all answer their own names, where "genre" answers nothing until it is a hit of its own, so
+ * a reader who never types the word never learns the mode exists. Offered outright before anything
+ * is typed, all of them in the order the schemas declare them — the composing layer has no better
+ * claim than the app's own about which vocabulary a reader wants, and the Go-to line above it
+ * offers every tab on exactly that reasoning.
+ *
+ * Narrowed in place once something is typed, exactly as the tabs are: a category named is a chip
+ * that stays where the reader last saw it and every other one falling away, which reads as the row
+ * answering. Drawn as rows in a section of their own instead, the same names arrive in a second
+ * place with the row above them still holding the full set — one thing said twice, and the answer
+ * in the half the reader was not looking at.
+ *
+ * No lead, unlike the tabs, whose glyph is what the section rail names them by everywhere else. A
+ * category has no mark of its own, and the initial on a tile a value falls back to would be a
+ * letter repeating the word beside it.
  */
-const attributeTitle = (entry: PlacedAttribute, matched: [number, number] | undefined) => {
-  if (entry.here) return { title: entry.value, matched };
-  const prefix = `${mediumToLabel(entry.medium!)} · `;
-  return {
-    title: `${prefix}${entry.value}`,
-    matched: matched && ([matched[0] + prefix.length, matched[1] + prefix.length] as [number, number]),
-  };
-};
+const categoryGroup = (categories: CategorySearchEntry[], query: string, scopeTo: (category: string) => void) =>
+  chipsGroup("browse", "Browse by", categories, query, ({ entry, matched }) => ({
+    key: entry.key,
+    // Sentence case through the wording every picker in the app is read by, which is
+    // length-preserving on a one-word label — so the run the ranker matched underlines at its own
+    // index in it.
+    title: keyLabel(entry.name),
+    matched,
+    onOpen: () => scopeTo(entry.category),
+  }));
 
-/**
- * The line under an attribute hit: what the category is, and what it holds — on the tab the hit
- * acts on, across every medium for a tab that is no medium, and across every medium recording it
- * for a shelf, which stands on no tab at all.
- *
- * The category's name leads the line except where it is blank, which is a toggle's entry: a
- * toggle's label *is* the value, so a lead there would repeat the title above it.
- */
+const tabGroup = (tabs: TabEntry[], query: string, scheme: Scheme, close: () => void) =>
+  chipsGroup("tabs", "Go to", tabs, query, ({ entry, matched }) => {
+    const tab = tabForId(entry.id);
+    const Icon = tab?.icon;
+    const colour = scheme === "dark" ? tab?.darkBar?.ink : tab?.primaryColour;
+    return {
+      key: entry.id,
+      title: entry.name,
+      matched,
+      lead: Icon && <Icon sx={{ color: colour ?? "text.secondary" }} />,
+      onOpen: () => {
+        close();
+        entry.jump();
+      },
+    };
+  });
+
 /**
  * Whether the value is its own category's name — "Anime" under `anime` — where stating both is the
  * one word twice. A split names its category after the half worth finding, so this is the split's
@@ -199,33 +234,91 @@ const attributeTitle = (entry: PlacedAttribute, matched: [number, number] | unde
  */
 const namesItsCategory = (entry: AttributeEntry) => entry.label.toLowerCase() === entry.value.toLowerCase();
 
-const attributeFacts = (entry: AttributeEntry, medium: Medium | undefined, scheme: Scheme) => (
-  <MediaCounts
-    counts={entry.counts}
-    media={medium ? [medium] : undefined}
-    // The tab's own noun and not the union's unit: the count is that tab's rows, and a show is a
-    // show there where the union counts the seasons inside it.
-    wordFor={(each, count) => stated(count, MEDIA_MODULES[each].noun)}
-    scheme={scheme}
-    lead={
-      namesItsCategory(entry) ? undefined : (
-        <Box
-          component="span"
-          sx={{ textTransform: "capitalize" }}
-        >
-          {entry.label}
-        </Box>
-      )
-    }
-  />
-);
+/**
+ * The first tab recording a value, whose own schema is where that value's vocabulary is declared.
+ * `buildAttributeIndex` walks the tabs in the app's own order, so this is the earliest of them
+ * rather than whichever happened to be scanned first.
+ */
+const firstTab = (entry: AttributeEntry): string | undefined => Object.keys(entry.counts)[0];
+
+/** Where a tab stands in the app's own order, which is the one every other list of tabs reads in. */
+const TAB_ORDER = new Map(Tabs.map((tab, index) => [tab.id, index]));
+const tabAt = (tab: string) => TAB_ORDER.get(tab) ?? TAB_ORDER.size;
 
 /**
- * The first medium recording a value, whose own schema is where that value's vocabulary is
- * declared. `buildAttributeIndex` walks the media in the app's own order, so this is the earliest
- * of them rather than whichever happened to be scanned first.
+ * A tab's own mark. A medium's is the fill it is drawn in everywhere, which is the same dot the
+ * summary above the strip states; the composing tab has no library and so no fill, and takes the
+ * colour that tab is named in away from its own page. `tabInk` and not `barColour`: the bar's
+ * colour on the dark paper is a 22% tint mixed *over* that paper, which a mark drawn in it sits on
+ * at 1.25:1, where the ink it pairs with clears 7:1.
  */
-const firstMedium = (entry: AttributeEntry): Medium | undefined => (Object.keys(entry.counts) as Medium[])[0];
+const TabDot = ({ tab, scheme }: { tab: string; scheme: Scheme }) => {
+  const medium = PAGE_MODULES[tab]?.medium;
+  const held = tabForId(tab);
+  return medium ? (
+    <MediumDot
+      medium={medium}
+      scheme={scheme}
+    />
+  ) : (
+    <Dot colour={held && (tabInk(held, scheme) as Colour | undefined)} />
+  );
+};
+
+/**
+ * What a value states while its readings are shut: how much of it each medium holds.
+ *
+ * Glyphs and not words. The readings spell a tab out ("Shows 75") because a chip is a press and
+ * has to say what pressing it does; a line already carrying a mark, a name, a category and the
+ * layer's own cut has room for four figures but not for four nouns, and the fill is what names a
+ * medium wherever the app is too narrow for its word — the crossings' lanes and the genre
+ * bridge's segments both.
+ *
+ * The media alone, where the strip beneath draws a chip per tab: the composing tab reads those
+ * same works through the union, so a fifth dot here would count every one of them twice.
+ *
+ * A breakdown of one medium is nothing to break down — a gameplay value is Games and only Games,
+ * and its dot states the figure the cut beside it already carries. Two are a comparison.
+ */
+const MediumCounts = ({ counts, scheme }: { counts: Partial<Record<Medium, number>>; scheme: Scheme }) => {
+  const held = media.filter((medium) => counts[medium]);
+  if (held.length < 2) return null;
+  return (
+    <Stack
+      direction="row"
+      spacing={1}
+      // The breakdown asks for about 140px beside a name, a category and — on a franchise — its
+      // years, which a 358px row spends on the name instead. Dropped on the row itself rather than
+      // on each figure inside it, or the phone keeps an empty box and the gap either side of it.
+      // The cut at the row's end stays at every width and opens the strip, so what a phone drops it
+      // can still ask for.
+      sx={{ alignItems: "center", flex: "none", display: { xs: "none", sm: "flex" } }}
+    >
+      {held.map((medium) => (
+        <Typography
+          key={medium}
+          variant="caption"
+          component="span"
+          sx={{ ...MUTED_FIGURE_SX, display: "inline-flex", alignItems: "center" }}
+        >
+          <MediumDot
+            medium={medium}
+            scheme={scheme}
+          />
+          {format(counts[medium] ?? 0)}
+        </Typography>
+      ))}
+    </Stack>
+  );
+};
+
+/**
+ * An attribute's rows per medium: the shelf's own figure broken down, its per-tab counts read back
+ * as media. The composing tab is left out, reading those same rows through the union — counted, the
+ * dots would add to twice what the cut beside them states.
+ */
+const mediumCounts = (entry: AttributeEntry): Partial<Record<Medium, number>> =>
+  Object.fromEntries(media.map((medium) => [medium, entry.counts[MEDIA_MODULES[medium].tabId]]));
 
 /**
  * The swatch an attribute wears, from the vocabulary the schema holding that category already
@@ -234,20 +327,13 @@ const firstMedium = (entry: AttributeEntry): Medium | undefined => (Object.keys(
  * absent where a category has no vocabulary, which is where a swatch would teach a legend no chart
  * honours.
  */
-const attributeColour = (
-  entry: AttributeEntry,
-  schema: PageSchema | undefined,
-  medium: Medium | undefined,
-  scheme: Scheme,
-) => {
+const attributeColour = (entry: AttributeEntry, tab: string | undefined, scheme: Scheme) => {
+  const schema = tab === undefined ? undefined : PAGE_MODULES[tab]?.filters;
   const category = schema?.categories.find((candidate) => (candidate.key as string) === entry.category);
-  const values = medium ? entry.values[medium] : undefined;
-  return category?.colourFor?.(values?.[0] ?? entry.value, scheme);
-};
+  if (entry.level) return category?.group?.colourFor?.(entry.value, scheme);
 
-/** The schema an attribute's own vocabulary is declared in: its medium's, or the composing tab's. */
-const schemaOf = (medium: Medium | undefined, page: PageSchema | undefined) =>
-  medium ? MEDIA_MODULES[medium].filters : page;
+  return category?.colourFor?.((tab && entry.values[tab]?.[0]) ?? entry.value, scheme);
+};
 
 /**
  * The palette wired to the union: the index over its items, the groups a query answers, what
@@ -262,16 +348,25 @@ export const SearchSurface = ({
   open,
   mode,
   focusRequest,
+  scope,
 }: {
   open: boolean;
   mode: SearchMode;
   focusRequest: number;
+  scope: string | null;
 }) => {
   const scheme = useScheme();
   const navigate = useNavigate();
   const library = useLibrary();
   const items = library.items;
   const index = items && library.whole ? buildSearchIndex(items, library.whole) : undefined;
+  // What a page's franchise picker cannot answer from its own rows, off the index that already
+  // holds it: a second walk of the union here is a second answer to the question the strips, the
+  // pickers and the box are meant to share. Taken whole rather than rebuilt around its one member,
+  // so what the tally cache below is keyed on is an object with an owner and not a literal minted
+  // per render. Absent until the union is, and a picker then falls back to its own rows, which is
+  // the narrower list.
+  const categoryContext: CategoryContext | undefined = index?.context;
   const [query, setQuery] = useState("");
   // The scan runs on the settled text: a keystroke lands in the box at once and the groups follow
   // at lower priority, so a fast typist is never held behind the previous letter's scan.
@@ -313,7 +408,9 @@ export const SearchSurface = ({
     const held = fieldsOf(store.get())[entry.category] as readonly string[];
     store.dispatch(attributeAction(entry, held ?? []));
     close();
-    if (!entry.here) {
+    // Which chip is the page already open is a comparison made here and nothing the strip says:
+    // the five stand in one order on every tab, so pressing one is a place to be either way.
+    if (entry.tab !== tab.id) {
       navigate(`/${entry.tab}`);
       window.scrollTo({ top: 0 });
     }
@@ -326,65 +423,84 @@ export const SearchSurface = ({
   };
 
   /**
-   * What stands at an attribute row's left: the franchise's own lead where the category is the
-   * franchise, so a series wears one mark across all three of its readings — and the initial tile
-   * that lead falls back to, most of the column carrying no colour of its own.
+   * What stands at a value's left: the colour the schema holding that category already speaks for
+   * the field, and the initial tile where it speaks none. A franchise is asked of its own table
+   * rather than of a schema, so a series wears one mark across every reading of it.
    */
-  const attributeLead = (entry: AttributeEntry, medium: Medium | undefined) => {
-    if (entry.category === "franchise") {
-      return (
-        <FranchiseLead
-          franchise={entry.value}
-          scheme={scheme}
-        />
-      );
-    }
-    const colour = attributeColour(entry, schemaOf(medium, surface?.schema), medium, scheme);
-    return colour ? (
-      <Swatch
+  const attributeLead = (entry: AttributeEntry, tab: string | undefined) => {
+    const colour =
+      entry.category === FRANCHISE_KEY
+        ? franchiseToColour({ franchise: entry.value }, scheme) || undefined
+        : attributeColour(entry, tab, scheme);
+    return (
+      <ValueLead
+        value={entry.value}
         colour={colour}
-        size={18}
       />
-    ) : undefined;
+    );
   };
 
   const toHit = ({ entry, matched }: Hit<SearchEntry>): PaletteHit => {
-    if (entry.kind === "shelf") {
+    if (entry.kind === "value") {
       const attribute = entry.attribute;
+      const franchise = entry.franchise;
+      const readings: PaletteReading[] = [
+        // The layer reading: the franchise's own view where the value is one, and otherwise the
+        // shelf over every library recording it. One slot and one wording, both being the whole of
+        // the value rather than a page held to it, and both leaving the reader where they are —
+        // worded by what each will list, which for a franchise is the works its view collapses to
+        // and not the union entries behind them.
+        franchise
+          ? { key: "view", label: `${all(franchise.works)} ›`, onOpen: () => choose(franchise) }
+          : { key: "shelf", label: `${all(attribute.size)} ›`, onOpen: () => openShelf(attribute) },
+        // One chip per tab holding the value, each named by that tab and counted in that tab's own
+        // rows — the page the press leaves behind. The tab in hand is among them rather than
+        // worded apart: a strip whose chips change with the tab is one a reader has to read again
+        // on every page, where five in one order are five places, one of which happens to be here.
+        //
+        // That order is the app's own, which the bar, the rail and the Go-to line above all read
+        // in: the index walks its pages by medium and appends the composing tab, and a reader who
+        // has learned one order should not meet a second inside the same box.
+        ...entry.placements
+          .toSorted((a, b) => tabAt(a.tab) - tabAt(b.tab))
+          .map((placed): PaletteReading => ({
+            key: placed.tab,
+            label: tabForId(placed.tab)?.name ?? placed.tab,
+            count: format(placed.counts[placed.tab]),
+            lead: (
+              <TabDot
+                tab={placed.tab}
+                scheme={scheme}
+              />
+            ),
+            onOpen: () => applyAttribute(placed),
+          })),
+      ];
       return {
         key: entry.key,
         title: attribute.value,
         matched,
-        facts: attributeFacts(attribute, undefined, scheme),
-        lead: attributeLead(attribute, firstMedium(attribute)),
-        onOpen: () => openShelf(attribute),
-      };
-    }
-    if (entry.kind === "attribute") {
-      const named = attributeTitle(entry, matched);
-      return {
-        key: entry.key,
-        title: named.title,
-        matched: named.matched,
-        facts: attributeFacts(entry, entry.medium, scheme),
-        lead: attributeLead(entry, entry.medium),
-        onOpen: () => applyAttribute(entry),
-      };
-    }
-    if (entry.kind === "franchise") {
-      return {
-        key: entry.key,
-        title: entry.franchise,
-        matched,
-        facts: franchiseFacts(entry, scheme),
-        lead: (
-          <FranchiseLead
-            franchise={entry.franchise}
+        // What kind of value it is — "Genre", "Director", "Franchise" — and never its counts,
+        // which the readings beneath already carry: a franchise stating "4 games" here beside a
+        // "Games 4" chip is one fact said twice, and a franchise then reads differently
+        // from every other value the box finds.
+        category: namesItsCategory(attribute) ? undefined : (
+          <Box
+            component="span"
+            sx={{ textTransform: "capitalize" }}
+          >
+            {attribute.label}
+          </Box>
+        ),
+        trailing: franchise && spanLabel(franchise.span),
+        lead: attributeLead(attribute, firstTab(attribute)),
+        summary: (
+          <MediumCounts
+            counts={franchise ? franchise.counts : mediumCounts(attribute)}
             scheme={scheme}
           />
         ),
-        trailing: spanLabel(entry.span),
-        onOpen: () => choose(entry),
+        readings,
       };
     }
     return {
@@ -415,28 +531,53 @@ export const SearchSurface = ({
   // On screen, which outlasts being open by the exit transition the dialog draws its children
   // through. `open` alone is what the box animates on; this is what its contents are built for.
   const drawn = open || !exited;
-  const page = surface && { tabId: tab.id, categories: surface.schema.categories.map((category) => category.key) };
 
   // The surface is mounted for the life of the page once opened and subscribes to the store the
   // tab's own charts are drawn from, so it re-renders on every filter set anywhere. Both of the
   // answers only a drawn box shows — the scan across the four libraries, and the page's own
   // filtered population — are built behind that, or a chip pressed in the rail would pay for a
   // search nobody asked for.
+  const paletteGroup = (group: SearchGroup): PaletteGroup => ({
+    key: group.key,
+    label: group.label,
+    total: group.total,
+    hits: group.hits.map(toHit),
+    // The strip rule is the box's own rather than the shell's: `OPEN_STRIP_LIMIT` is what the two
+    // layouts are switched between, and it belongs beside the readings it opens. The franchises
+    // offered before a letter is typed are five and so stay shut, which their own line can afford
+    // now that it carries the counts: what a strip adds there is a press, not a fact.
+    alwaysOpen: group.hits.length <= OPEN_STRIP_LIMIT,
+  });
+  // The category the box is held to, resolved once and asked by everything below: the chip's word,
+  // the two chip rows it suppresses and the values it lists are then one category rather than three
+  // readings of one field. A scope naming a category the index no longer holds — a library narrowed
+  // by guest mode since — is no scope at all, so the box comes back rather than emptying under a
+  // word nothing can clear.
+  const scoped = (scope && index?.categories.find((entry) => entry.category === scope)) || undefined;
   const found: PaletteGroup[] =
     !drawn || !finding || !index
       ? []
-      : deferredQuery.trim()
-        ? searchUnion(index, deferredQuery, page).map((group) => ({
-            key: group.key,
-            label: group.label,
-            total: group.total,
-            hits: group.hits.map(toHit),
-          }))
-        : openingGroups(index, items ?? [], toHit);
+      : (scoped
+          ? searchScope(index, scoped.category, deferredQuery)
+          : deferredQuery.trim()
+            ? searchUnion(index, deferredQuery)
+            : recentValues(index, items ?? [], CURRENT_PLAINDATE)
+        ).map(paletteGroup);
   // The tabs lead: a reader who typed a tab's name wants the page, and before anything is typed
-  // they are the shortest way anywhere. Offered even while the libraries are still landing.
-  const goTo = tabGroup(tabs, deferredQuery, scheme, close);
-  const groups = finding ? (goTo ? [goTo, ...found] : found) : [];
+  // they are the shortest way anywhere. Offered even while the libraries are still landing — but
+  // not inside a scope, where the reader asked for one category's values and a line of places to go
+  // is the one thing on the list that is not one of them. The vocabularies go with them.
+  const goTo = scoped ? undefined : tabGroup(tabs, deferredQuery, scheme, close);
+  // The query named the category, so inside it that query matches nothing: the field is handed back
+  // empty for the vocabulary it now narrows. A chip is only visible once the query matches its own
+  // name, and a category's name is never one of its values, so leaving the query would empty the
+  // list every time the row is used as intended.
+  const scopeTo = (category: string) => {
+    setQuery("");
+    setSearchScope(category);
+  };
+  const browse = scoped || !index ? undefined : categoryGroup(index.categories, deferredQuery, scopeTo);
+  const groups = finding ? [goTo, browse, ...found].filter((group) => group !== undefined) : [];
 
   return (
     <>
@@ -448,9 +589,19 @@ export const SearchSurface = ({
         onClose={close}
         query={query}
         onQueryChange={setQuery}
+        scope={scoped && { label: keyLabel(scoped.name), onClear: () => setSearchScope(null) }}
         groups={groups}
         loading={finding && !index}
-        placeholder={finding ? "Search games, shows, films, books and franchises" : "Narrow these lists…"}
+        placeholder={
+          // Unworded inside a scope: the chip beside the field already names the category, where a
+          // placeholder pluralising the label itself reads "Narrow these watcheds…" on the one whose
+          // label is a participle.
+          scoped
+            ? "Narrow these values…"
+            : finding
+              ? "Search games, shows, films, books and franchises"
+              : "Narrow these lists…"
+        }
         pageContent={
           surface ? (
             <SchemaPageControls
@@ -458,6 +609,7 @@ export const SearchSurface = ({
               state={pageState}
               dispatch={surface.store.dispatch}
               data={surface.data}
+              context={categoryContext}
               measures={surface.measures}
               earliestYear={surface.earliestYear}
               query={deferredQuery}
@@ -544,34 +696,6 @@ export const SearchSurface = ({
       )}
     </>
   );
-};
-
-/**
- * What the box offers before a letter is typed: the franchises met most recently — the series the
- * reader is in the middle of, which is the likeliest thing to be looking for.
- *
- * A franchise the index no longer holds, one hidden by guest mode since, is dropped rather than
- * shown as a blank.
- */
-const openingGroups = (
-  index: SearchIndex,
-  items: OmniItem[],
-  toHit: (hit: Hit<SearchEntry>) => PaletteHit,
-): PaletteGroup[] => {
-  const byKey = new Map(index.franchises.map((entry) => [entry.key, entry]));
-  const lately = recentFranchises(items, CURRENT_PLAINDATE, HITS_PER_GROUP)
-    .map((franchise) => byKey.get(`franchise:${franchise}`))
-    .filter((entry) => entry !== undefined);
-
-  if (lately.length === 0) return [];
-  return [
-    {
-      key: "lately",
-      label: "Franchises met lately",
-      total: lately.length,
-      hits: lately.map((entry) => toHit({ entry })),
-    },
-  ];
 };
 
 /**

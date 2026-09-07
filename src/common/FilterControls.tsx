@@ -4,12 +4,22 @@ import { useState, type ReactNode } from "react";
 import type { YearNumber } from "./date";
 import type { PageDispatch, PageState } from "./filterReducer";
 import { MeasureControl, ScopeControl } from "./SelectionComponents";
-import { categoryTally, fieldsOf, type PageSchema } from "./filterSchema";
+import {
+  categoryRuns,
+  categoryTally,
+  fieldsOf,
+  namedSelection,
+  runIsWhole,
+  type CategoryContext,
+  type CategoryRun,
+  type FilterGroup,
+  type PageSchema,
+} from "./filterSchema";
 import { foldText } from "./searchData";
 import { focusRingSx, MUTED_FIGURE_SX } from "./typography";
 import { useScheme } from "./useScheme";
 import { format } from "../utils/mathUtils";
-import type { Colour } from "../utils/types";
+import type { Colour, Scheme } from "../utils/types";
 
 /**
  * Everything a page is drawn through, as the rows the box's This page mode holds: the unit its
@@ -134,16 +144,28 @@ const colourSx = (colour: Colour | undefined, selected: boolean) => {
  * on — so a second would only hold the tab they left. A `data` array is the library's own slice
  * and keeps its identity until a sheet lands, which is exactly when the figures change.
  */
-let lastTallies: { schema: PageSchema; data: readonly unknown[]; tallies: CategoryTally[] } | undefined;
+let lastTallies:
+  | { schema: PageSchema; data: readonly unknown[]; context: CategoryContext | undefined; tallies: CategoryTally[] }
+  | undefined;
 
 type CategoryTally = ReturnType<typeof categoryTally>;
 
-/** Every category's vocabulary and figures, one scan of the library apiece. */
-const categoryTallies = (schema: PageSchema, data: readonly unknown[]): CategoryTally[] => {
-  if (lastTallies && lastTallies.schema === schema && lastTallies.data === data) return lastTallies.tallies;
+/**
+ * Every category's vocabulary and figures, one scan of the library apiece.
+ *
+ * The context is part of the key as the rows are: it decides which franchises the picker lists, so
+ * a set arriving with the fourth sheet has to rebuild the lists it widens.
+ */
+const categoryTallies = (
+  schema: PageSchema,
+  data: readonly unknown[],
+  context: CategoryContext | undefined,
+): CategoryTally[] => {
+  if (lastTallies && lastTallies.schema === schema && lastTallies.data === data && lastTallies.context === context)
+    return lastTallies.tallies;
 
-  const tallies = schema.categories.map((category) => categoryTally(category, data));
-  lastTallies = { schema, data, tallies };
+  const tallies = schema.categories.map((category) => categoryTally(category, data, context));
+  lastTallies = { schema, data, context, tallies };
   return tallies;
 };
 
@@ -269,6 +291,78 @@ const SearchWithin = ({ label, value, onChange }: { label: string; value: string
 const INLINE_VALUES = 3;
 
 /**
+ * A category's chips, one line per run.
+ *
+ * Where the category has a level (`FilterGroup`), each group holding more than one value leads its
+ * own line with a parent chip wearing that group's colour and the sum of its children: pressing it
+ * chooses all of them, pressing it lit takes all of them back. The children then name themselves
+ * without their parent's word — fifteen platforms reading "Nintendo" seven times over being the row
+ * this level exists to make readable — and draw no swatch of their own, a company colour repeated
+ * down a run saying that the colour means the platform.
+ *
+ * The parent is lit only where every child the rows still hold is chosen. Widening the year scope
+ * onto a platform the page had none of therefore unlights it: right, in that there is now something
+ * under Nintendo the reader has not picked, and worth knowing, in that nothing they pressed moved.
+ *
+ * A category with no level is one run of everything, so this draws both without asking which it has.
+ */
+const ChipRuns = ({
+  values,
+  shown,
+  group,
+  counts,
+  selected,
+  colourFor,
+  scheme,
+  onToggle,
+  onToggleGroup,
+}: {
+  values: readonly string[];
+  /** Which of them to draw; the whole vocabulary is what the runs are built from either way. */
+  shown: readonly string[];
+  group: FilterGroup | undefined;
+  counts: Map<string, number>;
+  selected: readonly string[];
+  colourFor: ((value: string) => Colour | undefined) | undefined;
+  scheme: Scheme;
+  onToggle: (value: string) => void;
+  onToggleGroup: (values: readonly string[], choose: boolean) => void;
+}) => (
+  <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
+    {categoryRuns(values, counts, group, shown).map((run) => {
+      const parent = run.group;
+      const whole = runIsWhole(run, selected);
+      return (
+        <Box
+          key={parent ?? ""}
+          sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}
+        >
+          {parent !== undefined && (
+            <ValueChip
+              value={parent}
+              count={run.count}
+              selected={whole}
+              colour={group?.colourFor?.(parent, scheme)}
+              onToggle={() => onToggleGroup(run.values, !whole)}
+            />
+          )}
+          {(run.shown ?? run.values).map((value) => (
+            <ValueChip
+              key={value}
+              value={parent === undefined ? value : (group?.labelFor?.(value) ?? value)}
+              count={counts.get(value) ?? 0}
+              selected={selected.includes(value)}
+              colour={parent === undefined ? colourFor?.(value) : undefined}
+              onToggle={() => onToggle(value)}
+            />
+          ))}
+        </Box>
+      );
+    })}
+  </Box>
+);
+
+/**
  * A short category stated in one row: its name, then its values as chips.
  *
  * No caret and no clear of its own — every value is on screen, so pressing the lit chip off is the
@@ -277,19 +371,27 @@ const INLINE_VALUES = 3;
 const InlineCategory = ({
   label,
   values,
+  shown,
+  group,
   counts,
   selected,
   colourFor,
+  scheme,
   dimmed,
   onToggle,
+  onToggleGroup,
 }: {
   label: string;
   values: readonly string[];
+  shown: readonly string[];
+  group: FilterGroup | undefined;
   counts: Map<string, number>;
   selected: readonly string[];
   colourFor: ((value: string) => Colour | undefined) | undefined;
+  scheme: Scheme;
   dimmed: boolean;
   onToggle: (value: string) => void;
+  onToggleGroup: (values: readonly string[], choose: boolean) => void;
 }) => (
   <Box
     sx={{
@@ -307,17 +409,18 @@ const InlineCategory = ({
     >
       {label}
     </Typography>
-    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, flexGrow: 1, minWidth: 0 }}>
-      {values.map((value) => (
-        <ValueChip
-          key={value}
-          value={value}
-          count={counts.get(value) ?? 0}
-          selected={selected.includes(value)}
-          colour={colourFor?.(value)}
-          onToggle={() => onToggle(value)}
-        />
-      ))}
+    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+      <ChipRuns
+        values={values}
+        shown={shown}
+        group={group}
+        counts={counts}
+        selected={selected}
+        colourFor={colourFor}
+        scheme={scheme}
+        onToggle={onToggle}
+        onToggleGroup={onToggleGroup}
+      />
     </Box>
   </Box>
 );
@@ -334,18 +437,26 @@ const CategoryValues = ({
   label,
   searchable,
   values,
+  shown: offered,
+  group,
   counts,
   selected,
   colourFor,
+  scheme,
   onToggle,
+  onToggleGroup,
 }: {
   label: string;
   searchable: boolean;
   values: readonly string[];
+  shown: readonly string[];
+  group: FilterGroup | undefined;
   counts: Map<string, number>;
   selected: readonly string[];
   colourFor: ((value: string) => Colour | undefined) | undefined;
+  scheme: Scheme;
   onToggle: (value: string) => void;
+  onToggleGroup: (values: readonly string[], choose: boolean) => void;
 }) => {
   const [within, setWithin] = useState("");
   const phrase = foldText(within);
@@ -357,22 +468,23 @@ const CategoryValues = ({
   // on every press.
   const shown =
     searchable && phrase
-      ? [...selected, ...values.filter((value) => !selected.includes(value) && foldText(value).includes(phrase))]
-      : values;
+      ? [...selected, ...offered.filter((value) => !selected.includes(value) && foldText(value).includes(phrase))]
+      : offered;
 
+  // The runs are built over the whole vocabulary and only their chips are cut, so a phrase leaving
+  // two of a company's platforms on screen does not make its parent whole.
   const chips = (
-    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
-      {shown.map((value) => (
-        <ValueChip
-          key={value}
-          value={value}
-          count={counts.get(value) ?? 0}
-          selected={selected.includes(value)}
-          colour={colourFor?.(value)}
-          onToggle={() => onToggle(value)}
-        />
-      ))}
-    </Box>
+    <ChipRuns
+      values={values}
+      shown={shown}
+      group={group}
+      counts={counts}
+      selected={selected}
+      colourFor={colourFor}
+      scheme={scheme}
+      onToggle={onToggle}
+      onToggleGroup={onToggleGroup}
+    />
   );
 
   if (!searchable) return <Box sx={{ paddingBottom: 1 }}>{chips}</Box>;
@@ -393,8 +505,13 @@ const CategoryValues = ({
 };
 
 /** What a category's row says it holds: the chosen values, or how much there is to choose from. */
-const summaryOf = (chosen: readonly string[], total: number, searchable: boolean) => {
-  if (chosen.length > 0) return chosen.join(", ");
+const summaryOf = (
+  chosen: readonly string[],
+  runs: () => readonly CategoryRun[],
+  total: number,
+  searchable: boolean,
+) => {
+  if (chosen.length > 0) return namedSelection(chosen, runs()).join(", ");
   return searchable ? `Any · ${format(total)}, with a search` : "Any";
 };
 
@@ -429,6 +546,7 @@ export const SchemaPageControls = ({
   state,
   dispatch,
   data,
+  context,
   measures,
   earliestYear,
   query,
@@ -437,6 +555,8 @@ export const SchemaPageControls = ({
   state: PageState;
   dispatch: PageDispatch;
   data: readonly unknown[];
+  /** What a vocabulary needs that this page's rows cannot say — absent until the library is whole. */
+  context?: CategoryContext;
   measures: readonly string[];
   earliestYear: YearNumber;
   query: string;
@@ -446,7 +566,7 @@ export const SchemaPageControls = ({
   const fields = fieldsOf(state);
   const phrase = foldText(query);
 
-  const tallies = categoryTallies(schema, data);
+  const tallies = categoryTallies(schema, data, context);
 
   return (
     <Box sx={{ paddingX: 2, paddingY: 1 }}>
@@ -495,6 +615,17 @@ export const SchemaPageControls = ({
         const swatch = colourFor && ((value: string) => colourFor(value, scheme));
         const change = (value: string) =>
           dispatch({ type: "updateFilter", filter: category.key, value: toggleValue(chosen, value) });
+        // A group is a way of pressing its children, so it adds to and takes from the same flat
+        // list: nothing below this reads the level, and a selection made through a parent is
+        // indistinguishable from the same values pressed one at a time.
+        const changeGroup = (values: readonly string[], choose: boolean) =>
+          dispatch({
+            type: "updateFilter",
+            filter: category.key,
+            value: choose
+              ? [...chosen, ...values.filter((value) => !chosen.includes(value))]
+              : chosen.filter((value) => !values.includes(value)),
+          });
 
         // A vocabulary short enough to state outright is stated: a caret over two chips hides a
         // choice the row has room for, and opening it would shut whichever list the reader had.
@@ -503,12 +634,16 @@ export const SchemaPageControls = ({
             <InlineCategory
               key={category.key}
               label={category.label}
-              values={matching}
+              values={values}
+              shown={matching}
+              group={category.group}
               counts={counts}
               selected={chosen}
               colourFor={swatch}
+              scheme={scheme}
               dimmed={phrase.length > 0 && matching.length === 0}
               onToggle={change}
+              onToggleGroup={changeGroup}
             />
           );
         }
@@ -517,7 +652,12 @@ export const SchemaPageControls = ({
           <Box key={category.key}>
             <CategoryRow
               label={category.label}
-              summary={summaryOf(chosen, values.length, Boolean(category.searchable))}
+              summary={summaryOf(
+                chosen,
+                () => categoryRuns(values, counts, category.group),
+                values.length,
+                Boolean(category.searchable),
+              )}
               chosen={chosen.length > 0}
               open={open}
               dimmed={phrase.length > 0 && matching.length === 0}
@@ -531,11 +671,15 @@ export const SchemaPageControls = ({
                 key={phrase}
                 label={category.label}
                 searchable={Boolean(category.searchable)}
-                values={matching}
+                values={values}
+                shown={matching}
+                group={category.group}
                 counts={counts}
                 selected={chosen}
                 colourFor={swatch}
+                scheme={scheme}
                 onToggle={change}
+                onToggleGroup={changeGroup}
               />
             )}
           </Box>

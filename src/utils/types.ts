@@ -414,18 +414,19 @@ export const decadeToColour = (decade: string, scheme: Scheme): Colour =>
  * the fill contract on `NEUTRAL_FILL` demands of the half being drawn. A brand already inside the
  * band on both papers therefore carries one value twice — Mario, Marvel and Zelda all do.
  *
- * Eight entries relax the floor on the **white paper alone**, keeping the full 3:1 on the dark one.
+ * Seven entries relax the floor on the **white paper alone**, keeping the full 3:1 on the dark one.
  * The relief is what the contract allows where colour is not carrying the meaning by itself, and
  * this is that case: the sunburst labels its franchise ring, every Top Franchise row is named
  * beside its swatch, and a gallery shelf carries its franchise as a heading. Witcher, Uncharted,
  * Assassin's Creed and Tales need only 2.2:1 and then carry their brand hex exactly on both
- * papers. Pokémon, Warcraft, Star Wars and Star Trek are the four whose identity *is* their
- * brightness, and they go to 1.8 — a yellow held to 3:1 on white is not a yellow but a brown-gold,
- * which is 20.8 dE from what Pokémon actually looks like and 26.0 from Star Wars.
+ * papers. Pokémon, Warcraft and Star Wars are the three whose identity *is* their brightness, and
+ * they go to 1.8 — a yellow held to 3:1 on white is not a yellow but a brown-gold, which is 20.8 dE
+ * from what Pokémon actually looks like and 26.0 from Star Wars.
  *
  * What the clamp costs is separation between brands that already share a hue, and this table is
  * where that lands hardest. Mario, Marvel, Xenoblade, Fate, Mass Effect, Yakuza and Harry Potter
- * are seven reds; Final Fantasy, Ace Attorney, Civilization, DC, Disney and Doctor Who six blues.
+ * are seven reds; Final Fantasy, Ace Attorney, Civilization, DC, Disney, Doctor Who and Star Trek
+ * seven blues.
  * The set is scoped so those never crowd one chart: a Top Franchise bar draws five groups from one
  * sheet, and the reds and blues are spread across the three. Marvel beside Harry Potter on the
  * Movies bar is the closest pair anywhere at 10.7 dE on the dark paper, and the row labels are
@@ -463,7 +464,12 @@ const franchiseColours: Record<string, Fill> = {
   "Star Wars": fill("#d7c200", "#f8e102"),
   "Harry Potter": fill("#7e0f0b", "#b5483c"),
   DC: fill("#0576f3", "#0476f2"),
-  "Star Trek": fill("#e2be00", "#ffd700"),
+  // A Starfleet blue rather than the LCARS gold its own logos also use: Star Wars holds that gold,
+  // and the two sat 6.9 dE apart on the white paper — one colour on the two franchises a reader is
+  // likeliest to meet side by side. The blue is 129.5 from Star Wars and its nearest neighbour is
+  // Civilization at 9.0 on the white paper and 10.3 on the dark, both Games franchises and both
+  // named beside their swatch wherever they are drawn.
+  "Star Trek": fill("#0b5fa5", "#2f8ed4"),
   // Shows
   "Doctor Who": fill("#0b4573", "#3f74a6"),
   "Breaking Bad": fill("#00892b", "#01892b"),

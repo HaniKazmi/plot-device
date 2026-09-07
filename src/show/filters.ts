@@ -36,6 +36,9 @@ export const showFilters: FilterSchema<Show, FilterState> = {
       label: "network",
       valueOf: (show) => show.network,
       colourFor: (value, scheme) => networkToColour({ network: value }, scheme) || undefined,
+      // 77 of them, the column gaining a streamer whenever one launches — the size at which a
+      // reader picks by typing rather than by scanning, as the publishers and directors do.
+      searchable: true,
     },
     animeCategory("anime", animeLabel, ANIME_GROUP),
     certificateCategory(

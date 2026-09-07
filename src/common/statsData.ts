@@ -73,9 +73,17 @@ export const groupByCategory = <T>(
 };
 
 /**
- * The franchise rule for `groupByCategory`: the column repeats a standalone item's own name, so a
- * one-member group is an item naming itself, not a series — while a series' first entry genuinely
- * shares the franchise's name and must stay in it.
+ * The franchise rule for `groupByCategory`, and a rule about the surface rather than about what a
+ * series is: a shelf or a bar drawn over one member is a picture of that member under a second
+ * name, whichever way it got its own.
+ *
+ * It is deliberately not the identity test — `isSeries` (`app/galleryData.ts`), which the box and
+ * the crossings share. The two ask different questions and their answers cross: a lone *Halo 3*
+ * filed under Halo is a real series by that test and still has no shelf worth drawing here, while a
+ * standalone film logged twice under its own name is two rows to this rule and one self-named work
+ * to that one. Which way round depends on the caller — the gallery hands this already-collapsed
+ * works, where Movies and Shows hand it raw rows. A `common/` module cannot reach the union
+ * `isSeries` counts works over in any case.
  */
 export const realFranchisesOnly = <T>(items: T[]) => items.length > 1;
 
