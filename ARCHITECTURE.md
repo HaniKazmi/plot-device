@@ -2081,8 +2081,8 @@ file on a screen — so `Digital` and `eBook` are one entry under two words, as 
 folds Playing, Watching and Reading into one state. The three the Books sheet's own conditional
 formatting paints carry that sheet's hues, held to chroma 0.14 and to the brightest lightness
 clearing 3:1 on white: `#f6dccf`, `#cfe4f8` and `#eedcf2` are hues 48, 247 and 320, which become
-the terracotta, screen blue and violet the tab already drew. The Games sheet colours none of its
-column, so `Subscription`, `Pirated` and `Web Serial` are placed in the arc those three leave
+the terracotta, screen blue and violet the tab already drew. The Games column had no colouring of
+its own, so `Subscription`, `Pirated` and `Web Serial` are placed in the arc those three leave
 open — a green, and a red and a teal a lightness step deeper, since 60° of hue at one lightness is
 about 11 dE where a pair on one chart wants 15. That step is also why Pirated is the red rather
 than a second warm value beside Physical, and Web Serial the teal rather than a second blue beside
@@ -2092,7 +2092,10 @@ once is 15.8 dE and nothing in the table is closer than 15.2. It falls to the ne
 rather than throwing, `game/converter.ts` casting its Format cell unchecked. Books draws it in a
 labelled band, its filter chips and its ledger; Games in the Top Format card, a sunburst ring and a
 barchart split, where the column was drawn in palette colours by option index before — which is
-what made a Physical game and a physical book two colours.
+what made a Physical game and a physical book two colours. The sheet follows this table rather
+than the other way round for the three it did not already hold: both Format columns wear these six
+hues as cell washes at the Books column's own lightness, so the Games cells for Physical and
+Digital are the Books cell colours exactly.
 
 Movies adds the Cinema/Home pair and
 re-exports the score bands — valenced red through amber to green, Unscored on the neutral — under

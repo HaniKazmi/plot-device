@@ -571,9 +571,11 @@ export const scoreBandToColour = (band: ScoreBand, scheme: Scheme): Colour => pi
  * The three the Books sheet colours carry the sheet's own hues. Its conditional formatting paints
  * Physical `#f6dccf`, eBook `#cfe4f8` and Audiobook `#eedcf2` — hues 48, 247 and 320 at a wash's
  * chroma — and at 0.140 and the brightest lightness clearing 3:1 on white those are the terracotta,
- * screen blue and violet below. The Games sheet colours none of its own column, so the other three
+ * screen blue and violet below. The Games column had no colouring of its own, so the other three
  * are placed in the arc those three leave open: a green, and a red and a teal held a lightness
- * step deeper. The step is what six values need — 60° of hue at one lightness is about 11 dE,
+ * step deeper. The sheet now follows this table rather than the other way round — both columns
+ * wear these six hues as washes at the Books column's own lightness, which is why Physical and
+ * Digital there are the Books cell colours exactly. The step is what six values need — 60° of hue at one lightness is about 11 dE,
  * where a pair on one chart wants 15 — and it is also why Pirated is the red rather than a second
  * warm value beside Physical, and Web Serial the teal rather than a second blue beside eBook: two
  * blues told apart by lightness alone read as one blue however far apart they measure, which is
