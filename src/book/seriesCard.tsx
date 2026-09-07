@@ -86,17 +86,17 @@ const seriesStats = (span: SeriesSpan): PanelStat[] => {
 export const BookSeriesHoverCard = ({ span }: { span: SeriesSpan }) => {
   const scheme = useScheme();
   const hold = useHoverCardHold();
-  // A series card is the one here that owns a layer of its own, so `CardMediaImage` leaves the
-  // auto-open to it: mounted for the layer alone, what should open is the series, not the book
-  // whose cover fronts it.
-  const autoOpen = useCardAutoOpen();
-  const [listed, setListed] = useState(autoOpen.auto);
-
   // Whether the sheet named a series, not how much of one has been read: a reader one book into a
   // five-book series still has a span titled with the series, so a card that took its book count
   // for the answer would open that one book's own dialog under the series' name. A standalone is
   // the book, and `CardMediaImage`'s own dialog is the honest thing to open for it.
   const series = span.lead.series !== "";
+
+  // Which layer this card owns, and so which one a press out of the chart should open. Only a
+  // series has one of its own; a standalone leaves the signal to the card below, which opens the
+  // book — the same answer `onOpen` gives the pointer.
+  const autoOpen = useCardAutoOpen();
+  const [listed, setListed] = useState(autoOpen.auto && series);
 
   // `onOpen` returns before `CardMediaImage` reaches its own hold, so a dialog opened through it
   // from inside a hover card's popper is unmounted with that popper the moment the pointer leaves
@@ -113,9 +113,7 @@ export const BookSeriesHoverCard = ({ span }: { span: SeriesSpan }) => {
   };
 
   return (
-    // The signal stops here: it opened this series, and the books inside the shelf below are cards
-    // of their own that would each read it and open themselves on top of the list.
-    <CardAutoOpenContext.Provider value={NOT_AUTO_OPEN}>
+    <>
       <BookPanelCard
         item={span.lead}
         title={span.name}
@@ -128,21 +126,26 @@ export const BookSeriesHoverCard = ({ span }: { span: SeriesSpan }) => {
         openLabel={series ? `Open ${span.name}, ${stated(span.books.length, "books")}` : undefined}
       />
       {listed && (
-        <DrilldownDialog
-          title={span.name}
-          onClose={close}
-          // The order and the cards the Most Read band's own series drill-down uses, so a series
-          // opened from the timeline reads as the same series opened from there. It lists the whole
-          // series, the page's filters included: the bar stands for the series, and a list that
-          // answered for less would not be the thing the bar was pressed to see.
-          content={span.books.toSorted(bySeriesThenStart)}
-          cardKey={bookKey}
-          labelComponent={statsCardLabelFinished}
-          chipComponent={(book) => bookScoreChip(book, scheme)}
-          MediaComponent={BookCardMediaImage}
-          {...bookDrilldownProps}
-        />
+        // The signal stops at the shelf: its books are cards of their own, and each would read the
+        // same signal and open itself on top of the list. It does not stop above, because a
+        // standalone's own cover is what should take it.
+        <CardAutoOpenContext.Provider value={NOT_AUTO_OPEN}>
+          <DrilldownDialog
+            title={span.name}
+            onClose={close}
+            // The order and the cards the Most Read band's own series drill-down uses, so a series
+            // opened from the timeline reads as the same series opened from there. It lists the whole
+            // series, the page's filters included: the bar stands for the series, and a list that
+            // answered for less would not be the thing the bar was pressed to see.
+            content={span.books.toSorted(bySeriesThenStart)}
+            cardKey={bookKey}
+            labelComponent={statsCardLabelFinished}
+            chipComponent={(book) => bookScoreChip(book, scheme)}
+            MediaComponent={BookCardMediaImage}
+            {...bookDrilldownProps}
+          />
+        </CardAutoOpenContext.Provider>
       )}
-    </CardAutoOpenContext.Provider>
+    </>
   );
 };

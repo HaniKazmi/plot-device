@@ -1,6 +1,14 @@
 import { Box, SwipeableDrawer, Tooltip, type TooltipProps } from "@mui/material";
 import type { Instance as PopperInstance } from "@popperjs/core";
-import { cloneElement, useRef, useState, type MouseEventHandler, type ReactElement, type ReactNode } from "react";
+import {
+  cloneElement,
+  useRef,
+  useState,
+  type MouseEvent,
+  type MouseEventHandler,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import { useCoarsePointer } from "./useCoarsePointer";
 import { SheetGrabber } from "./SheetGrabber";
 import { SheetBar } from "./SheetBar";
@@ -59,7 +67,9 @@ const SHEET_MAX_HEIGHT = "85dvh";
  * belongs to.
  *
  * The child is cloned with an `onClick` under a coarse pointer, so it must be an element that
- * takes one — every caller passes a `Box`, and none of them carries a click of its own.
+ * takes one — every caller passes a `Box`. A child carrying a click of its own keeps it on a fine
+ * pointer and loses it to the sheet on a coarse one, which is the right way round: the timeline's
+ * marks open their item on a click, and a tap there should open the sheet the finger came for.
  */
 interface HoverCardProps {
   /** The bar's fill, which the mat and the arrow are drawn in. */
@@ -82,15 +92,6 @@ interface HoverCardProps {
    * for this owes the reader another way in to the item, which the timeline gives its marks.
    */
   transparent?: boolean;
-  /**
-   * Whether to keep the card shut altogether.
-   *
-   * A chart that opens an item's own layer from the mark rather than from the card has two of that
-   * card for a moment — the one under the pointer, and the one it mounted to do the opening. The
-   * layer is what the reader asked for, so the hovered one stands down while it is up rather than
-   * floating over it.
-   */
-  suppressed?: boolean;
   /**
    * Whether the reader is pointing with a finger, where a chart has already asked.
    *
@@ -231,19 +232,24 @@ const HoverCardSheet = ({ colour, title, name, children }: HoverCardProps) => {
  * flag is held here rather than left to MUI so a card that has opened a dialog of its own can keep
  * the popper mounted under it (`HoverCardHold`).
  */
-const HoverCardPopper = ({ colour, title, placement, transparent, suppressed, children }: HoverCardProps) => {
+/**
+ * The popper's own style, as one of three shared objects rather than a fresh literal.
+ *
+ * `styleFunctionSx` returns early on a missing `sx` and does the whole breakpoint walk on an empty
+ * object, so a literal built per render costs every closed tooltip in the app that walk — the
+ * strips and their hundreds of beads included, none of which asks for either rule. Hoisted, each
+ * distinct pair is also one emotion class rather than one per tooltip.
+ */
+const HIDDEN_SX = { visibility: "hidden" } as const;
+const TRANSPARENT_SX = { pointerEvents: "none" } as const;
+const HIDDEN_TRANSPARENT_SX = { ...HIDDEN_SX, ...TRANSPARENT_SX } as const;
+
+const popperSx = (hidden: boolean, transparent: boolean) =>
+  hidden ? (transparent ? HIDDEN_TRANSPARENT_SX : HIDDEN_SX) : transparent ? TRANSPARENT_SX : undefined;
+
+const HoverCardPopper = ({ colour, title, placement, transparent, children }: HoverCardProps) => {
   const popper = useRef<PopperInstance | null>(null);
   const [hovered, setHovered] = useState(false);
-  /**
-   * A layer standing over the chart takes the pointer with it, so the mark under it never gets the
-   * leave event that would close its card: the reader moves away, dismisses the layer, and the card
-   * it was opened from comes back on its own with the pointer nowhere near.
-   *
-   * Where the pointer went cannot be known while a modal is up, so the hover is dropped along with
-   * the card rather than held for a mark the reader may long since have left. Moving back onto one
-   * opens it again, which is the whole of what a hover card promises.
-   */
-  if (suppressed && hovered) setHovered(false);
   // A count rather than a flag: layers nest — a drill-down opened from a card holds the popper,
   // and every card inside that drill-down holds it again while its own dialog is up. Released as a
   // flag, the innermost card's close would clear the outermost hold and unmount the whole stack.
@@ -260,7 +266,7 @@ const HoverCardPopper = ({ colour, title, placement, transparent, suppressed, ch
   return (
     <Tooltip
       arrow
-      open={!suppressed && (hovered || held > 0)}
+      open={hovered || held > 0}
       onOpen={() => setHovered(true)}
       onClose={() => setHovered(false)}
       // Long enough that a pointer crossing a dense chart does not open a card per mark it passes,
@@ -299,10 +305,7 @@ const HoverCardPopper = ({ colour, title, placement, transparent, suppressed, ch
           // popper sits at the tooltip level, above every modal — so it would paint across the
           // dialog it just opened, which on a fullscreen one covers the list the reader pressed
           // for. It stays mounted, because that is what the hold is for; it just stops being seen.
-          sx: {
-            ...(held > 0 && !hovered ? { visibility: "hidden" } : undefined),
-            ...(transparent ? { pointerEvents: "none" } : undefined),
-          },
+          sx: popperSx(held > 0 && !hovered, transparent ?? false),
           modifiers: [
             { name: "flip", options: { fallbackPlacements: ["top", "bottom"] } },
             { name: "preventOverflow", options: { altAxis: true, padding: 8 } },
@@ -310,7 +313,20 @@ const HoverCardPopper = ({ colour, title, placement, transparent, suppressed, ch
         },
       }}
     >
-      {children}
+      {transparent
+        ? // A card that ignores the pointer has handed the press to its mark, so that press is also
+          // the card's way out. A layer opened from the mark covers the chart and swallows the
+          // pointer, so the mark never gets the leave event that would close it — left standing, the
+          // card floats over the layer and is still there when the layer is dismissed, with the
+          // pointer long since somewhere else. Only the pressed mark's own card can be open at that
+          // moment, so it is the only one that has to be told.
+          cloneElement(children, {
+            onClick: (event: MouseEvent<HTMLElement>) => {
+              setHovered(false);
+              children.props.onClick?.(event);
+            },
+          })
+        : children}
     </Tooltip>
   );
 };

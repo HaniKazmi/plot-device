@@ -608,7 +608,6 @@ const TimelineGrid = ({
             event={event}
             coarse={coarse}
             onOpen={setOpened}
-            suppressed={opened !== null}
           />
         ))}
       </svg>
@@ -653,15 +652,12 @@ const TimelineText = ({
   event,
   coarse,
   onOpen,
-  suppressed,
 }: {
   event: PlacedTimelineData;
   /** Read once for the chart, since a bar's two triggers cannot disagree about it. */
   coarse: boolean;
   /** The mark's own press, where the card cannot take one: see `TimelineGrid`. */
   onOpen: (event: PlacedTimelineData) => void;
-  /** Whether a layer pressed out of this chart is standing over it: see `HoverCardTooltip`. */
-  suppressed: boolean;
 }) => {
   const theme = useTheme();
   const layoutInfo = event.layout;
@@ -674,6 +670,16 @@ const TimelineText = ({
   const y = event.rowNumber * ROW_HEIGHT + SVG_PADDING + "px";
   const foreignObjectX = pct(event.labelXPercent);
   const totalTextContainerWidth = pct(event.labelWidthPercent);
+
+  // The bar and its label are two triggers for one row, and the file's own rule is that they cannot
+  // disagree about it — so what they are given is written once rather than twice.
+  const hoverCard = {
+    colour: event.colour,
+    title: <LazyTooltip render={event.tooltip} />,
+    name: event.name,
+    coarse,
+    transparent: true,
+  };
 
   const leftPadding = layoutInfo.placement === "right" ? `${layoutInfo.barPx + LABEL_PADDING}px` : `${LABEL_PADDING}px`;
   const rightPadding = layoutInfo.placement === "left" ? `${layoutInfo.barPx + LABEL_PADDING}px` : `${LABEL_PADDING}px`;
@@ -731,14 +737,7 @@ const TimelineText = ({
           aimed at an item aims at the bar, not at the words next to it. Two triggers rather than
           one on the row group: the group's box spans the whole gap the label is allowed to use, so
           a card anchored on it would open a chart's width away from the item it describes. */}
-      <HoverCardTooltip
-        colour={event.colour}
-        title={<LazyTooltip render={event.tooltip} />}
-        name={event.name}
-        coarse={coarse}
-        transparent={!coarse}
-        suppressed={suppressed}
-      >
+      <HoverCardTooltip {...hoverCard}>
         <Box
           component="rect"
           onClick={open}
@@ -761,14 +760,7 @@ const TimelineText = ({
         overflow="hidden"
         pointerEvents="none"
       >
-        <HoverCardTooltip
-          colour={event.colour}
-          title={<LazyTooltip render={event.tooltip} />}
-          name={event.name}
-          coarse={coarse}
-          transparent={!coarse}
-          suppressed={suppressed}
-        >
+        <HoverCardTooltip {...hoverCard}>
           <Box
             sx={LABEL_SX}
             style={labelStyle}
