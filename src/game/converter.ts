@@ -10,7 +10,7 @@ import {
   sheetRow,
 } from "../common/sheetError.ts";
 import { splitCell } from "../utils/stringUtils";
-import { GAMEPLAY, type Company, type Format, type Platform, type Status, type VideoGame } from "./types";
+import { GAMEPLAY, platformCompany, type Format, type Platform, type Status, type VideoGame } from "./types";
 
 /**
  * Checked rather than cast: a blank or misspelt cell is a sheet error, and the row is only nameable
@@ -60,7 +60,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
     return {
       name: row.Title,
       platform: row.Platform as Platform,
-      company: row.Platform.split(" ")[0] as Company,
+      company: platformCompany(row.Platform),
       franchise: row.Franchise,
       series: row.Series ?? "",
       seriesNumber: Number.isNaN(seriesNumber) ? undefined : seriesNumber,

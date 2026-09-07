@@ -1,6 +1,6 @@
 import { CURRENT_YEAR, YearMonthDay } from "../common/date";
 import { buildStrip, type StripBand, type StripSpan } from "../common/timelineStripData";
-import { namesTheSameThing } from "../utils/stringUtils";
+import { isSeries } from "../app/galleryData";
 import { moduleOf } from "../app/media";
 import type { OmniItem } from "../common/medium";
 import { media, type Medium } from "../app/types";
@@ -64,12 +64,13 @@ export const crossingSpan = (item: OmniItem, key: string, today: YearMonthDay): 
  * lane its own tab draws it in, which is the one disagreement a page composing three tabs cannot
  * afford.
  *
- * `namesTheSameThing` therefore drops a whole group rather than an entry: a franchise where *every*
- * entry repeats the franchise name is a work naming itself rather than a series, and holds no
- * structure for a lane to draw. It is the one test a group has to pass and it is what carries the
- * section — the 588 franchise values the first three sheets hold between them are 169 series by it. What
- * it costs is the lone adaptation, a film and a game under one name, which nothing the sheets
- * record tells apart from a title that happens to appear twice.
+ * `isSeries` therefore drops a whole group rather than an entry, and it is the one test a group has
+ * to pass: it is what carries the section, holding the 636 franchise values the four sheets write
+ * between them to the 225 that have a series behind them. The lone adaptation is the exception it
+ * makes — a novel and the film of it are two works under one name, which is the crossing this
+ * section is for, and eleven of the 225 are drawn on that clause alone. That rule is
+ * `app/galleryData.ts`'s, the same one the box's own franchise index reads, so the strips and the
+ * values the box finds cannot disagree about what a franchise is.
  *
  * The `epoch` is answered here rather than taken from the caller, and it is the earliest *start*
  * among the entries actually drawn. An item's attribution year is the year it ended, so a scale
@@ -85,7 +86,7 @@ export const crossings = (items: OmniItem[], today: YearMonthDay): { found: Cros
   }, new Map<string, OmniItem[]>());
 
   const groups = [...byFranchise.entries()]
-    .filter(([franchise, group]) => group.some((item) => !namesTheSameThing(franchise, item.name)))
+    .filter(([franchise, group]) => isSeries(franchise, group))
     .map(([franchise, group]) => ({ franchise, entries: group.length, lanes: crossingLanes(group, today) }));
 
   // Floored to the January of that year, because `stripYearTicks` measures its gridlines from the

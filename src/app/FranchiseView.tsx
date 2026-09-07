@@ -102,7 +102,6 @@ export const FranchiseView = ({
               counts={countByMedium(own)}
               wordFor={mediumUnit}
               scheme={scheme}
-              band
             />
             <Stack
               direction="row"

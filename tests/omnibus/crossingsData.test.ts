@@ -7,6 +7,7 @@ import { book } from "../fixtures/books";
 import { library } from "../fixtures/library";
 import { movie } from "../fixtures/movies";
 import { season, show } from "../fixtures/shows";
+import type { Show } from "../../src/show/types";
 import { videoGame } from "../fixtures/gameRows";
 
 const TODAY = YearMonthDay.get(2025, 12, 31);
@@ -18,6 +19,12 @@ const showWith = (name: string, franchise: string, start: number) => {
 };
 
 const found = (items: OmniItem[]) => crossings(items, TODAY).found;
+
+/** A show carrying `count` seasons, the fixture's own `showWithSeasonsIn` fixing the name it needs. */
+const seasonsOf = (parent: Show, count: number): Show => {
+  parent.s = Array.from({ length: count }, (_, index) => season(parent, { s: index + 1 }));
+  return parent;
+};
 
 describe("which franchises get a strip", () => {
   it("keeps a franchise the reader met in more than one medium", () => {
@@ -71,17 +78,35 @@ describe("which franchises get a strip", () => {
     expect(result[0].bands.filter((band) => band.item.medium === "movie")).toHaveLength(2);
   });
 
-  it("drops a group in which every entry only repeats the franchise name", () => {
-    // No entry anywhere in the group names a wider series, so the group is a title repeated rather
-    // than a franchise. This is the one test a group has to pass, and it is what holds the section
-    // to series: most franchise cells in the sheets are a work naming itself.
+  it("drops a group whose one work only repeats the franchise name", () => {
+    // Nothing in the group names a wider series and there is only the one work, so the cell is a
+    // title repeated rather than a franchise. This is the one test a group has to pass, and it is
+    // what holds the section to series: most franchise cells in the sheets are a work naming itself.
+    const result = found(toOmniItems(library({ game: [videoGame({ name: "Arrival", franchise: "Arrival" })] })));
+
+    expect(result).toEqual([]);
+  });
+
+  it("keeps a group of one name across two works, an adaptation being the crossing this draws", () => {
+    // A novel and the film made of it are two works under one name — the shape Project Hail Mary,
+    // Ready Player One and Good Omens all take. Read as one work naming itself, the section would
+    // hide exactly the crossings it exists for.
     const result = found(
       toOmniItems(
         library({
-          game: [videoGame({ name: "Arrival", franchise: "Arrival" })],
-          movie: [movie({ name: "Arrival", franchise: "Arrival" })],
+          book: [book({ name: "Project Hail Mary", franchise: "Project Hail Mary" })],
+          movie: [movie({ name: "Project Hail Mary", franchise: "Project Hail Mary" })],
         }),
       ),
+    );
+
+    expect(result.map((crossing) => crossing.franchise)).toEqual(["Project Hail Mary"]);
+    expect(result[0].media).toEqual(["movie", "book"]);
+  });
+
+  it("counts works and not entries, so a show naming itself is still one work and still dropped", () => {
+    const result = found(
+      toOmniItems(library({ show: [seasonsOf(show({ name: "Arrival", franchise: "Arrival" }), 3)] })),
     );
 
     expect(result).toEqual([]);

@@ -132,10 +132,12 @@ describe("the schema the drawer and the box are both drawn from", () => {
   });
 
   it("opens a search-within on the vocabularies this library holds hundreds of values in", () => {
-    // A reader picks a franchise or a person by typing; a genre or a format by scanning a list
-    // short enough to read. The flag is what tells the two apart, and the search box's This page
-    // mode reads it, offering a long category as a list to search rather than one to scan.
+    // A reader picks a franchise, a person or a network by typing; a genre or a format by scanning
+    // a list short enough to read. The flag is what tells the two apart, and the search box's This
+    // page mode reads it, offering a long category as a list to search rather than one to scan.
+    // The column gains a streamer whenever one launches, and stands at 77 against genre's 10.
     expect(showFilters.categories.filter((category) => category.searchable).map((category) => category.key)).toEqual([
+      "network",
       "franchise",
     ]);
   });

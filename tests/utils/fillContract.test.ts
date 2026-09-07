@@ -67,11 +67,10 @@ const FLOOR = 3;
 
 /** Franchises whose light half takes the contract's relief, and the floor each is held to. */
 const LIGHT_RELIEF: Record<string, number> = {
-  // The four whose brand *is* a bright yellow or gold; 1.8 still reads as that on both papers.
+  // The three whose brand *is* a bright yellow or gold; 1.8 still reads as that on both papers.
   Pokémon: 1.8,
   Warcraft: 1.8,
   "Star Wars": 1.8,
-  "Star Trek": 1.8,
   // These four carry their brand hex exactly once the floor is 2.2.
   Witcher: 2.2,
   Uncharted: 2.2,

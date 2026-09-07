@@ -790,9 +790,17 @@ never works out where a medium's rows begin. Reaching a second medium is not ask
 that cliff hiding the largest series on the page — thirty seasons of Doctor Who behind the absence
 of a Doctor Who game. The twelve biggest are drawn in the card (`STRIPS_SHOWN`), the rest behind its
 own worded cut. A franchise groups on the raw franchise column, as `movieFranchise`/`showFranchise` do, so a
-series' founding entry keeps naming itself as its own tab draws it; `namesTheSameThing` drops a group
-where _every_ entry repeats the name, that group having no series structure to draw a lane for. That
-one test holds the section to series: 588 franchise values are 169 series by it. A film is a point
+series' founding entry keeps naming itself as its own tab draws it; `isSeries` (`app/galleryData.ts`)
+drops a group where _every_ entry repeats the name **and** the group is one work, that group having
+no series structure to draw a lane for. That one test holds the section to series: 636 franchise
+values are 225 series by it. The second half of it is the adaptation — a novel and the film made of
+it are two works under one name, and read as one work naming itself the crossing this section exists
+to draw is the one thing hidden; eleven of the 225 are here on that clause alone, Project Hail Mary
+and War of the Worlds among them. Counted in works and not entries, so a five-season show naming
+itself is one work and no series. What it cannot tell apart is two unrelated works sharing a title,
+a game called Euphoria beside the show, the franchise column being all any of these surfaces has to
+group on. The box's own franchise index reads the same rule, so the strips and the values a query
+finds cannot disagree about what a franchise is. A film is a point
 (`start === end`), floored to the strip's minimum band width; a bare-year game date draws its whole
 year, marked `precise: false`, rather than the share `game/cardData.ts` estimates from the whole
 library for a single game's strip. The `epoch` is the earliest _start_ drawn, floored to that year's
@@ -1017,7 +1025,7 @@ of its own.
 ("Count in") and the year scope ("Years") first and ruled off, being readings of the whole page
 rather than narrowings of it, then the toggles as chips, then one row per category. A category
 **expands in place** into its values as chips with counts, so a value is a tap and never a portalled
-menu item a thumb has to aim at; a `searchable` category — the authors, directors, publishers and
+menu item a thumb has to aim at; a `searchable` category — the authors, directors, publishers, networks and
 series a library holds hundreds of — opens a field and a scroller instead, two hundred chips being
 no list anyone scans; there the values chosen lead the list whatever is typed into that field, since
 a phrase names what the reader is looking for and not what they have already picked, and the chips
@@ -1034,6 +1042,36 @@ With something typed, the same rows narrow: a category shows the values matching
 matching none is dimmed and stays shut, so the single field narrows the lists as well as the
 libraries.
 
+**A vocabulary with a level above it says so in its chips.** A `FilterCategory` may carry a
+`FilterGroup` — a label, the group each value belongs to, that group's own colour and how a value
+names itself under it — and `categoryRuns` cuts the values into the lines they are drawn on: one
+line per group holding more than one value, led by a parent chip wearing the group's colour and the
+sum of its children, then everything left over on one final line. Pressing the parent chooses all of
+its children and pressing it lit takes all of them back, writing the category's own flat list: the
+level is a way of pressing several values at once and never a value of its own, so the reducer, the
+sweep, the predicate and the badge see exactly what they saw before, and a selection made through a
+parent is indistinguishable from the same chips pressed one at a time. Games is the caller — fifteen
+platforms are five companies, and "all my Nintendo games" is what a reader means where seven chips
+pressed in a row is what the surface offered, with nothing on it saying they belong together. The
+company already leads that tab everywhere else: it is what the barchart splits by, what the sunburst
+nests on first and what the library wall's border draws.
+
+Three rules keep the level from restating what the values already say. **A group of one is its
+value** — three of the five companies here hold a single platform, so PC, iOS and Xbox stand loose,
+a parent above one child being that child said twice; the loose values trail on one line rather than
+each standing where its own group fell, or the three would take a line apiece between two full ones.
+**A grouped child draws no swatch**, the fifteen platforms resolving through five company fills, so
+one repeated down a run would say the colour means the platform. And **a child names itself without
+its parent's word**, through the group's own `labelFor` — the short form a card's corner chip already
+wears, so a Nintendo run reads DS, Wii, GBA rather than the company seven times. A value standing
+loose keeps its whole name, nothing beside it carrying the half a short form drops. The closed row
+folds the same way (`namedSelection`): a group whose whole membership is chosen reads as its own
+name, so a reader who pressed one chip sees one word rather than the seven consoles behind it. Both
+the parent's lit face and that fold are read over the values the _rows_ still hold, so widening the
+year scope onto a platform the page had none of unlights the parent — right, in that there is now
+something under Nintendo the reader has not picked, and worth knowing, in that nothing they pressed
+moved.
+
 Which tab that is comes from `app/pageState.ts`'s `pageOf(tabId, library)`, the one file in `app/`
 that may name the composing tab: it answers with that tab's schema, its store, its measures, the
 noun its population is counted in, the rows its lists are built from and the floor its year picker
@@ -1044,9 +1082,10 @@ composing folder that a domain module reaching for would cycle, so `PAGE_MODULES
 that accessor: a medium's visible slice, the union for the composing tab. `pageCount` states the population through the same composed predicate
 the charts are drawn by, so the box's footer and the rail's chip cannot arrive at two figures.
 
-**Three kinds of hit.** _Places_ are the other tabs, offered as a "Go to" line of chips — all of
-them before anything is typed, whichever the query names once something is. _Things_ are works and
-franchises. _Attributes_ are a genre, network, platform, author, director, certificate, decade or format,
+**Four kinds of hit.** _Places_ are the other tabs, offered as a "Go to" line of chips — all of
+them before anything is typed, whichever the query names once something is. _Things_ are works, and
+the franchises the box offers before a letter is typed. _Categories_ are the vocabularies those
+values belong to, named rather than found (below). _Values_ are a genre, network, platform, author, director, certificate, decade or format,
 each with its count in each medium: `buildAttributeIndex` (`app/searchData.ts`) walks every medium's
 own schema over that medium's own rows, so the box can only offer a narrowing that tab's controls
 actually draw. A category states which of its values are worth finding through `found`, defaulting
@@ -1058,46 +1097,166 @@ a count in each. Franchise states the empty list and is scanned from the franchi
 the column being mostly works naming themselves — 168 values in the games sheet
 alone. The certificate is grouped on
 `certificateBand`, the gallery's own rule, so `15` and `16` are one hit; what it _sets_ is whichever
-notations that tab's rows carry, which is why an entry keeps its values per medium.
+notations that tab's rows carry, which is why an entry keeps its values per medium. A category
+carrying a level is indexed at both, so "Nintendo" is a hit setting the seven platforms under it —
+the same narrowing its own parent chip makes, since both readers write the category's own flat list
+and `attributeAction` already sets a list. The group entry is filed under the category it narrows
+and keyed under the level's name rather than the value's, a company being free to share a name with
+one of its children, and one holding a single value is dropped on the surface's own rule: PC's group
+is the same rows under a second name, ranked beside the first and filtering to exactly what it
+filters to. Its swatch is the level's own `colourFor`, asked for by name: a company is no cell any row
+carries, so `platformToColor("Nintendo")` throws, and the group declaring its own table is the whole
+reason `FilterGroup.colourFor` exists. That is a different route from the certificate band's, which
+_is_ a set of cells and takes its colour from the first of them — two rules, and an entry says which
+it is through `level`.
 
-**An attribute hit knows which tabs carry its category, and ↵ does the nearest thing.**
-`attributePlacements` expands one entry into a hit per tab, the tab being read first: on a tab whose
-schema holds the category _and_ whose rows hold the value it stands under "Filter this page" and ↵
-narrows the page in place; on any other it stands under "Go to, filtered" as "Shows · Netflix", and
-↵ sets the filter on that tab's own module-scope store and navigates — which is what lets a filter
-be set on a page before that page has ever been mounted. A page holding the category but none of the
-value gets no hit at all, that hit being one that empties the page it was pressed on.
-`attributeAction` adds to whatever the target already holds rather than replacing it, the same thing
-a second chip pressed in This page means.
+**A value is stated once, and its readings stand under it.** A genre answers three questions — the
+whole library holding it, this page narrowed to it, and each tab that records it — which is one name
+and one line of counts said up to six times. `searchUnion` builds one `ValueSearchEntry` per value
+instead, holding the attribute, the series behind it where there is one, and the placements; the box
+draws it as a line and a strip of chips, each chip its own press. Six readings come to about 105px
+where six rows under three headers come to 444, on a list area of about 500 — and a phone's, with
+the keyboard up, is 416, which one value stated that way does not fit inside.
 
-**The third reading is a row of its own, and it leads.** "Across the library" opens the value as a
-`DrilldownDialog` over the gallery's own collapsed works, across every library recording it — which
-is one library where only one records it, an author or a platform, and why it is worded for the
-library rather than for the media. It stands above the narrowings because a phone's box shows about
-five rows and a reading put third falls under the fold on any query matching several values; the
-cost is that ↵ and a soft keyboard's Go open the layer rather than filtering the page. A hit answers
-one press and one press only — a chord would be a reading a touch screen has no key for, and the
-lit row would advertise it. It stands beside the franchise view, which is the same reading of the
-one value the shelf cannot hold — the franchise column being mostly works naming themselves, so
-`buildAttributeIndex` skips it and `franchiseAttribute` derives the narrowings from the ranked
-index instead — and which of the two leads is how well each answered: `rankHits` states its first
-hit's rank, and a series named exactly stands above a genre found inside a word. The franchise
-takes a tie, its view saying more about a value than a shelf of works does. Ordered rather than
-merged into one ranked list, because the two open different layers and a franchise row carries a
-span of years a shelf row has nothing to put in, so one header would name two destinations. Every
-attribute reaches all three readings, a value the box can shelve being one a page can be held to.
+The strip's two lines are stated rather than left to wrap (`PaletteReading.line`): the first holds
+the readings that leave the reader where they are — the layer, and the narrowing of this page — and
+the second the ones that carry them to another tab, which is a boundary a wrap would put wherever
+the widest value happened to push it. The layer chip is `all()` worded as the app's own cut ("All 78
+›") whichever the value is, counted by **what pressing it will list**: an attribute's own rows for a
+shelf, and for a franchise the works its view collapses to (`FranchiseSearchEntry.works`) rather
+than the union entries behind them, a show being one card there and its seasons several here.
+
+A value's own line carries its mark, its name and the category it belongs to — "Genre", "Director",
+"Franchise" — and its counts only while the readings beneath are shut, since a value stating "4
+games" above a "Games 4" chip is one fact said twice. Collapsed it wears them as glyphs rather than
+words: a dot per medium in that medium's own fill with its figure beside it, then the whole in the
+line's own ink, which is the figure the layer reading states so the line and the chip cannot
+disagree about how much there is. A chip spells the medium out because a press has to say what
+pressing it does; a line already carrying a mark, a name and a category has room for four figures
+and not for four nouns, and the fill is what names a medium wherever the app is too narrow for its
+word. The breakdown wants about 140px of a 358px row, so below `sm` the total stands alone and the
+strip is one press away. Only a franchise carries a trailing figure, the years it ran, which is a
+fact no attribute has. Every value wears a mark, not only the ones with a colour: a group
+holds a genre beside a director, and a row without one starts its name where the marked rows start
+their mark, so a field with no vocabulary takes an initial on a tile instead.
+
+`attributePlacements` supplies those chips, the tab being read first: on a tab whose schema holds
+the category _and_ whose rows hold the value it reads "Filter this page" and narrows the page in
+place; on any other it is that tab's name and count, and pressing it sets the filter on that tab's
+own module-scope store and navigates — which is what lets a filter be set on a page before that page
+has ever been mounted. The narrowing of the page being read carries a figure only where that tab is
+a medium: the composing tab counts a show once where the union it filters counts the seasons inside
+it, so a count there would disagree with the population the press leaves behind. A page holding the
+category but none of the value gets no chip at all, that press being one that empties the page it
+was made on. `attributeAction` adds to whatever the target already holds rather than replacing it,
+the same thing a second chip pressed in This page means.
+
+**Past two values, only the one the reader is on draws its strip** (`OPEN_STRIP_LIMIT`). One value
+or two is the common case and arrives open, so a finger never pays a tap for nothing; a vaguer query
+— "action" is four values, the genre and two of Games' own gameplay values and a publisher — would
+otherwise spend the whole list on chips before a single work. Collapsed, a value is its line alone
+and the strip appears when the row is selected, which a pointer does by moving onto it and a finger
+by tapping: the title line's own press opens the first reading where the strip is already drawn and
+reveals it where it is not, so a finger pays one extra tap on a vague query and none on a plain one.
+At `Infinity` every value draws its strip always.
+
+**The layer reading leads, and it is the first chip.** It opens an attribute as a `DrilldownDialog`
+over the gallery's own collapsed works, across every library recording it — which is one library
+where only one records it, an author or a platform, and why it is worded for the library rather than
+for the media. It leads because ↵ and a soft keyboard's Go should open the layer, at the cost of the
+narrowing being second. A franchise's own view is that same slot rather than a row of its own: the
+franchise column being mostly works naming themselves, `buildAttributeIndex` skips it and
+`franchiseAttribute` derives the narrowings from the ranked index instead. What that index holds is
+the crossings' own `isSeries`, so a series the strips draw is a series the box finds — which is what
+puts a novel and the film of it on the list under the one name they share. `recentValues` builds
+the franchises offered before a letter is typed the same way, so a franchise offered there and the
+same franchise found by name are one thing on screen as well as in the index. The two indexes are
+ranked apart, being two, and merged into one list rather than concatenated — a genre matching a
+query exactly is a better answer than a series matching it at a word start, and the reverse holds as
+readily — each over its whole index with the merge cut afterwards, since cutting each half first
+would state a total it had stopped counting at. Series lead the merge and the sort is stable, so a
+series takes a tie, its view saying more about a value than a shelf of works does.
+
+**The list is a grid, and ←→ is the second axis.** A row of pressable chips inside a row is not a
+listbox option, so the shell is `role="grid"`: a row per hit, a cell per reading, the row carrying
+the lit state and the active cell the id the input points at. ↑↓ move between rows, ↵ opens the
+active cell, and ←→ move along the row — **but only where the row holds more than one press**. The
+box's field is the one place in the app a reader types, so on a work's row the arrows stay the
+caret's; on a value's row, where they have readings to walk, that is the trade the strip is worth.
+The "Go to" chips are one row for the same reason, ↓ stepping rightwards across a line of chips
+reading as the wrong key. No chord anywhere: every reading is a chip a finger can tap.
 
 Matching (`common/searchData.ts`) folds text a character at a time — lowercased, accent dropped,
 punctuation a space — so the folded string is the raw string's length and a match found in one is
-underlined at the same index in the other. A go-to hit's title carries the tab's name before the
-value, so its matched run is moved along by that prefix or the underline lands on the wrong word.
-Rank is exact name, then a word start of the name, then of the second-rank text (an author, a
+underlined at the same index in the other. `franchiseAttribute` names its entry after the franchise
+the ranker matched, so a series' run indexes its value exactly as a genre's does and one underline
+rule covers both. Rank is exact name, then a word start of the name, then of the second-rank text (an author, a
 director, a developer and platform, a network and season subtitles), then any substring of either,
 then every word of the query found somewhere; ties fall to size and then name. The entries come back
 as given, so the raw franchise string — the key every index is held on — travels through unfolded.
 The whole index is built once per library from the union the library provider hands every tab
 (`useLibrary().items`) and the four libraries behind it, so guest mode is applied before anything is
 indexed and a hidden item is absent from the index as it is from the union.
+
+**The vocabularies are offered as a "Browse by" line of chips**, beside the tabs' own "Go to".
+Typing a category's name is the one thing in the box nobody can guess at — a work, a franchise and
+a genre all answer their own names, where "genre" answers nothing until it is a hit of its own — so
+a reader who never types the word never learns the mode is there. All of them before anything is
+typed, in the order the schemas declare them, on the same reasoning the Go-to line offers every tab.
+
+**It narrows in place as the tabs do**, rather than answering in a section of its own: a category
+named is a chip that stays where the reader last saw it with every other one falling away, which
+reads as the row answering. Drawn as rows below instead, the same names arrive in a second place
+while the row above still holds the full set — one thing said twice, with the answer in the half
+the reader was not looking at. That is also why a bare substring is offered here where a section of
+rows could not afford one: "at" inside platform, certificate and format is three chips of a row
+already on screen, where three rows would bury the values a reader was actually after.
+
+Both chip groups are drawn by `ChipsGroup`, which wraps rather than scrolls. The twelve categories
+come to about 1,050px of run — two lines in the 620px dialog, four at 390 — which is more height
+than a scroller costs and worth it twice over: the row is what teaches that a category can be named
+at all, and a name a reader has to scroll sideways to find teaches nobody; and every cell stays
+somewhere `revealSelected` can bring into view, which is what keeps ←→ honest. That reveal asks for
+the live _cell_ before the selected row, since a chips group is one row holding a dozen presses and
+the arrows move inside it without leaving it.
+
+**Naming a category holds the box to it.** "genre" is not a value anywhere, so the box answered it
+with nothing; `buildCategoryIndex` gives each category an entry of its own — its label is the whole
+of what it matches on and its `size` is how many values it holds — and pressing one sets a `scope`
+on the search store rather than opening a layer. The list becomes that category's values through
+`searchScope`, biggest first and cut at `SCOPE_ROWS` (50), and the field the reader already typed
+into now narrows them. Every vocabulary short enough to scan comes back whole — platform's 15 is
+the longest — so the cut bites only on the six the scope's own field exists for, where 218 rows is
+the phone book drawn out rather than described and the header states what it held back. Every row is the `valueHit` a query answers with, so a genre reached by scoping Genre and the
+same genre reached by typing its name are one thing on screen, and `OPEN_STRIP_LIMIT` still holds —
+past two values only the row the reader is on draws its readings, which is what keeps twelve rows
+scannable.
+
+One shape rather than a list, because the vocabularies are two populations with nothing in between:
+format 3, certificate 5, genre 12, gameplay 14 and platform 15 against series 64, author 65, network
+77, publisher 92, director 218 and franchise 225. A list answers the first group and is a phone book
+for the second, where typing inside the scope answers both — which is exactly what `searchable`
+already means on the filter surface, reached from Find for the first time.
+
+Four rules keep it from crowding anything. A category is **named and not fuzzily found**: only ranks
+0 and 1 — the whole label, or a word start of it — so "at" does not put format, platform,
+certificate and gameplay above the values a reader was after, while "action" still leads with the
+Action genre, no category being called that. A **level is neither counted nor listed**, a company
+standing for a set of the category's values rather than being one, or the header would state 15 over
+17 rows. A **category of one findable value is that value**, through the same `groupHolds` the filter
+chips group by — the anime split offers a single word, so its category row and its value row would
+be one narrowing under two names. And **franchise scopes off the franchise index**, its values being
+deliberately absent from the attribute one, so the 225 series are reachable with no vocabulary
+special-cased anywhere else.
+
+The scope lapses on `closeSearch` and on any change of mode, which are already the one place each of
+those happens: This page has its own idea of which category is open, and a chip surviving a reopened
+box is a constraint with nothing on screen saying where it came from. It survives a second ⌘K, which
+asks for the caret and not for a way out. The three ways out are the chip's own ✕, ⌫ on an empty
+field — the chip-in-a-field idiom — and Escape, which clears the scope before it closes the box, so
+the way out is one key pressed twice rather than two keys to learn. Escape is read off MUI's own
+`onClose` reason rather than off the key handler, whose ordering against the `Modal`'s internal
+listener is not ours to fix; a backdrop press means close whatever the box is held to.
 
 A franchise hit opens `app/FranchiseView.tsx`: the gallery's franchise drill-down with a header
 saying what the franchise is before listing it — its media counted, four facts, and the franchise
@@ -1108,7 +1267,8 @@ its shelves, which drop a franchise of one work. A work hit mounts the item's ow
 the thumbnail loads and samples the colour the dialog is themed from, and unmounts it on
 `onDetailClosed`; `OmniCardMediaImage` dispatches by medium, so a hit reached through search shows
 exactly what the same artwork shows anywhere. Before anything is typed, the box offers the
-franchises met most recently — the series the reader is in the middle of.
+franchises met most recently — the series the reader is in the middle of — as the same value blocks
+a query answers with.
 
 ### Franchise strip — `common/FranchiseStrip.tsx`
 
@@ -2005,9 +2165,9 @@ apart to 32.1.
 Fixed colours are the other half: each domain's `types.ts` maps platforms, genres, franchises and
 ratings, `utils/types.ts` the cross-domain ones. Brand tables hold hue and chroma and move lightness
 only as far as the half being drawn demands, so a brand inside the band on both papers carries one
-value twice — Mario, Marvel, Zelda. Eight franchises relax the floor on the **white paper alone**,
+value twice — Mario, Marvel, Zelda. Seven franchises relax the floor on the **white paper alone**,
 keeping the full 3:1 on the dark: Witcher, Uncharted, Assassin's Creed and Tales at 2.2:1, carrying
-their brand hex exactly, and Pokémon, Warcraft, Star Wars and Star Trek at 1.8, their identity being
+their brand hex exactly, and Pokémon, Warcraft and Star Wars at 1.8, their identity being
 their brightness — a yellow at 3:1 on white is a brown-gold, 20.8 dE from Pokémon. The contract
 allows that where colour is not the only carrier, and each is named beside its swatch. It costs
 separation between brands sharing a hue — seven reds, six blues — so the set is scoped to keep those
@@ -2178,7 +2338,7 @@ key in ObjectExpression`; pulled out to a plain function taking the varying piec
   `sheetBarSx`, `dialogCardSx`, among others — the literal itself sits at module scope and the
   component stays compiled.
 
-The baseline is **272 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **279 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.
@@ -2442,7 +2602,11 @@ applies. Nothing in
 `common/filterReducer.ts`, `common/FilterControls.tsx` or any chart changes, and no starting value
 is written anywhere — every surface that offers filters draws whatever the schema holds, and the
 reducer seeds the new field from it. A rule that is not per-field, like Shows' seasonal year cutoff,
-is that tab's own `yearRule`, passed to `createFilterReducer` in `filterUtils.ts`.
+is that tab's own `yearRule`, passed to `createFilterReducer` in `filterUtils.ts`. **A vocabulary
+whose values already belong to something takes a `group`** rather than a second category beside it:
+a company select next to a platform select is two rows the reader has to keep in agreement, and a
+narrowing that means one thing said twice in the state — where a level is one row, one field, and
+one entry in the box for each of the two questions.
 
 ## 9. Repository layout beyond `src/`
 

@@ -200,6 +200,26 @@ const platformShortNames: Record<Platform, string> = {
 };
 
 /**
+ * The company a platform belongs to, which is its first word — the whole of what `Platform` states
+ * as a type, and the split the converter, the colour lookup and the filter's own level all read.
+ *
+ * Stated here rather than at each of them, since a second copy of the split is a second answer to
+ * what a platform's company is, and the `as` cast is the one place the type contract is taken on
+ * trust: a `Themes`-style guard belongs in the converter, which still has the row to name.
+ */
+export const platformCompany = (platform: string): Company => platform.split(" ")[0] as Company;
+
+/**
+ * A platform's own short name — the word its corner chip already wears, and what a filter chip
+ * standing in a run under its company reads.
+ *
+ * Answers the platform itself off the table rather than throwing, unlike the two lookups below: a
+ * caller here is naming a value, not colouring one, and a platform the sheet has just gained is
+ * better drawn by its whole name than not drawn at all.
+ */
+export const platformShortName = (platform: string): string => platformShortNames[platform as Platform] ?? platform;
+
+/**
  * A platform's colour is its company's, which is the first word of the platform string — the
  * same split `converter.ts` derives `company` with.
  *
@@ -209,7 +229,7 @@ const platformShortNames: Record<Platform, string> = {
  */
 export const platformToColor = (platform: Platform | { platform: Platform }, scheme: Scheme) => {
   const value = typeof platform === "object" ? platform.platform : platform;
-  const colour = platformShortNames[value] && companyToColor({ company: value.split(" ")[0] as Company }, scheme);
+  const colour = platformShortNames[value] && companyToColor({ company: platformCompany(value) }, scheme);
   if (!colour) throw new Error("Unknown platform: " + value);
   return colour;
 };

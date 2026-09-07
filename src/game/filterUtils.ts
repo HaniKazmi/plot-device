@@ -1,4 +1,4 @@
-import { Platform, VideoGame } from "./types";
+import { Format, Platform, VideoGame } from "./types";
 import { CURRENT_YEAR } from "../common/date";
 import {
   createFilterReducer,
@@ -18,6 +18,7 @@ export interface FilterState extends BaseFilterState<VideoGame, Measure> {
   unconfirmed: boolean;
   franchise: string[];
   platform: Platform[];
+  format: Format[];
   gameplay: string[];
   genre: string[];
   publisher: string[];

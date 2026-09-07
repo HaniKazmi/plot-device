@@ -1,6 +1,8 @@
 import { categoryOptions, franchiseOptions } from "./filterOptions";
 import {
   ANIME,
+  certificateBand,
+  isCertificate,
   animeToColour,
   franchiseToColour,
   type Colour,
@@ -8,6 +10,8 @@ import {
   type Predicate,
   type Scheme,
 } from "../utils/types";
+import "../utils/arrayUtils";
+import "../utils/mapUtils";
 
 /**
  * A tab's own field holding a boolean, which is the only kind a toggle can name, and one holding a
@@ -60,6 +64,39 @@ export interface FilterToggle<T, S> {
 }
 
 /**
+ * A second level over a category's values, where the vocabulary has one.
+ *
+ * Fifteen platforms are five companies, and "all my Nintendo games" is the narrowing a reader
+ * actually means — seven chips pressed in a row otherwise, with nothing on the surface saying they
+ * belong together. The level is a way of selecting several values at once and never a value of its
+ * own: the state stays the category's own flat list, so the reducer, the sweep, the predicate and
+ * the badge all see exactly what they saw before.
+ *
+ * **A group of one is its value.** Three of the five companies here hold a single platform, so a
+ * parent above one child is that child said twice — every reader of this level draws such a value
+ * loose and indexes nothing for the group.
+ */
+export interface FilterGroup {
+  /** What the level is called — "company", where the values are platforms. */
+  label: string;
+  /** The group a value belongs to. */
+  of(value: string): string;
+  /**
+   * The group's own colour, where the app speaks one. The parent carries the vocabulary for its
+   * whole run, so a grouped child draws no swatch: fifteen platforms wear five company colours, and
+   * a chip repeating its parent's fill five times says the colour means the platform.
+   */
+  colourFor?(group: string, scheme: Scheme): Colour | undefined;
+  /**
+   * How a value names itself under its parent, where its own name repeats the group's: a run led by
+   * a Nintendo chip reads DS, Wii, GBA, and the app's own short form is what a corner chip on a card
+   * already says. Applied to grouped children alone — a value standing loose keeps its whole name,
+   * since nothing beside it carries the half a short form drops.
+   */
+  labelFor?(value: string): string;
+}
+
+/**
  * One multi-select over a category's values.
  *
  * `options` defaults to the distinct values across the data; a category states its own only where
@@ -69,7 +106,9 @@ export interface FilterToggle<T, S> {
  * would teach a legend no chart honours.
  *
  * `searchable` says the vocabulary is long enough that a reader picks from it by typing rather
- * than by scanning — the people and series a library holds hundreds of.
+ * than by scanning — the people, networks and series a library holds hundreds of. The library
+ * splits cleanly on it: format 4, certificate 5, genre 12, gameplay 14 and platform 15 against
+ * series 64, author 65, network 77, publisher 92, director 218 and franchise 225.
  *
  * Every accessor is a method rather than a property, which is what lets a `FilterSchema<Show, …>`
  * sit in a record whose element type names no domain: TypeScript checks a method's parameters
@@ -94,6 +133,18 @@ export interface FilterCategory<T, S> {
    * the column.
    */
   found?: readonly string[];
+  /**
+   * The value a cell is found under, where the two differ; the cell itself by default.
+   *
+   * The certificate is the one vocabulary this is true of: BBFC issues a 15 where PEGI issues a 16,
+   * one tier under two numbers, so a single hit narrows each tab to whichever notation that tab's
+   * own rows carry. Stated beside the category's options and its colours rather than in the index,
+   * so nothing there knows a particular category by name and a second vocabulary that folds brings
+   * its own rule with it.
+   */
+  foundAs?(cell: string): string;
+  /** The level above the values, where the vocabulary has one. */
+  group?: FilterGroup;
 }
 
 /**
@@ -204,6 +255,11 @@ export const certificateCategory = <T, S>(
   valueOf: certificateOf,
   options: (data) => present(values, data, certificateOf),
   colourFor,
+  // The band and not the cell, which is the gallery's own rule: grouping on the number would shelve
+  // a PEGI 16 game apart from the BBFC 15 film it sits at the same age as. A cell outside the union
+  // is left as itself — a converter rejects one while it still knows the row, and a value that
+  // reached this far is better found under its own name than under a band it has no claim to.
+  foundAs: (cell) => (isCertificate(cell) ? certificateBand(cell) : cell),
 });
 
 /** Everything a tab offers as a filter, in the order the surface drawing it lays the controls out. */
@@ -253,6 +309,103 @@ export const categoryTally = <T, S>(
   }
 
   return { values: category.options ? category.options(data) : [...counts.keys()].toSorted(), counts };
+};
+
+/** A line of a category's chips: a parent and the values it selects, or the values grouping nothing. */
+export interface CategoryRun {
+  /** The parent, absent on the run of values that stand alone. */
+  group?: string;
+  values: string[];
+  /** The values to draw, where fewer are shown than the run holds; all of them otherwise. */
+  shown?: string[];
+  /** What pressing the parent selects, the sum of the children it holds — absent where there is no parent. */
+  count?: number;
+}
+
+/**
+ * **A group of one is its value**, which is the whole of what makes a level worth drawing.
+ *
+ * Three of the five companies here hold a single platform: a parent above one child selects exactly
+ * the chip beside it, and its colour and its count both restate what that chip already says. The
+ * control surface leaves such a value loose and the box indexes no entry for it, and this is the one
+ * statement of the rule both read — counted over distinct values, since the box gathers a group's
+ * children across the media recording them and one platform can be recorded by two.
+ */
+export const groupHolds = (values: readonly string[]): boolean => new Set(values).size > 1;
+
+/**
+ * Whether a run's whole membership is chosen, which is what lights its parent chip and what the
+ * closed row folds to the group's own name. One test, so the chip and the row cannot disagree about
+ * whether a company is held.
+ *
+ * Read over the values the *rows* still carry rather than the vocabulary's: widening the year scope
+ * onto a platform the page had none of unlights the parent, which is right — there is now something
+ * under Nintendo the reader has not picked — and worth knowing, nothing they pressed having moved.
+ */
+export const runIsWhole = (run: CategoryRun, chosen: readonly string[]): boolean =>
+  run.group !== undefined && run.values.every((value) => chosen.includes(value));
+
+/**
+ * A category's values cut into the lines its chips are drawn on: one line per group holding more
+ * than one value, in the order the values arrive, and then everything left over as one final line.
+ *
+ * Groups lead and the loose values trail rather than each run standing where its first value fell.
+ * Three of the five companies here hold a single platform, so interleaved, PC, iOS and Xbox would
+ * each take a line between two full ones — four lines to say what one says.
+ *
+ * `groupHolds` is what leaves those three loose, and a category with no level answers one run of
+ * everything, so the surface draws the two kinds the same way rather than branching on which it has.
+ */
+export const categoryRuns = (
+  values: readonly string[],
+  counts: ReadonlyMap<string, number>,
+  group: FilterGroup | undefined,
+  /**
+   * Which of them to draw, where a surface is showing fewer than the category holds.
+   *
+   * A run's membership is the whole vocabulary and its drawn chips are this — the two differ while
+   * a phrase narrows the list, and reading a run off the narrowed set makes a parent whole because
+   * the values it is missing are the ones off screen.
+   */
+  shown: readonly string[] = values,
+): CategoryRun[] => {
+  if (!group) return [{ values: [...values] }];
+
+  const members = new Map<string, string[]>();
+  for (const value of values) members.setIfAbsent(group.of(value), []).push(value);
+
+  const runs: CategoryRun[] = [];
+  const loose: string[] = [];
+  for (const [name, held] of members) {
+    if (groupHolds(held)) runs.push({ group: name, values: held, count: held.map((v) => counts.get(v) ?? 0).sum() });
+    else loose.push(...held);
+  }
+
+  const all = loose.length > 0 ? [...runs, { values: loose }] : runs;
+  if (shown === values) return all;
+
+  // Narrowed for drawing alone: a run keeps the values it holds, so `runIsWhole` still asks about
+  // the company, and only its chips are cut. A run with nothing left to draw goes.
+  const visible = new Set(shown);
+  return all
+    .map((run) => ({ ...run, shown: run.values.filter((value) => visible.has(value)) }))
+    .filter((run) => run.shown!.length > 0);
+};
+
+/**
+ * The chosen values as the shortest true list of them: a group whose whole membership is chosen
+ * reads as its own name.
+ *
+ * A reader who pressed one chip has to see one word in the row that chip closes behind — a closed
+ * platform row naming seven consoles where a parent was pressed reads as a surface that did
+ * something other than what was asked, and the seven then take the line the row has for one.
+ *
+ * Folded through `runIsWhole`, the same test the parent chip lights on.
+ */
+export const namedSelection = (chosen: readonly string[], runs: readonly CategoryRun[]): string[] => {
+  const whole = runs.filter((run) => runIsWhole(run, chosen));
+  const folded = new Set(whole.flatMap((run) => run.values));
+  return [...whole.map((run) => run.group!), ...chosen.filter((value) => !folded.has(value))];
 };
 
 /**

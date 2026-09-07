@@ -48,7 +48,7 @@ const inSearchBox = (target: EventTarget | null) =>
  * whatever a hit opened — and never before, so a visitor who never searches pays only the prefetch.
  */
 export const SearchHost = () => {
-  const { open, mode, request } = useSearchState();
+  const { open, mode, request, scope } = useSearchState();
 
   useEffect(() => {
     void loadSurface().catch(() => {});
@@ -85,6 +85,7 @@ export const SearchHost = () => {
         open={open}
         mode={mode}
         focusRequest={request}
+        scope={scope}
       />
     </Suspense>
   );
