@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { PanelStat, PanelSubtitlePart } from "../common/Card";
 import { DrilldownDialog } from "../common/DrilldownDialog";
 import { CURRENT_PLAINDATE, formatDateRange } from "../common/date";
+import { useCardAutoOpen } from "../common/cardAutoOpen";
 import { useHoverCardHold } from "../common/hoverCardHold";
 import { stated } from "../common/population";
 import { useScheme } from "../common/useScheme";
@@ -85,7 +86,11 @@ const seriesStats = (span: SeriesSpan): PanelStat[] => {
 export const BookSeriesHoverCard = ({ span }: { span: SeriesSpan }) => {
   const scheme = useScheme();
   const hold = useHoverCardHold();
-  const [listed, setListed] = useState(false);
+  // A series card is the one here that owns a layer of its own, so `CardMediaImage` leaves the
+  // auto-open to it: mounted for the layer alone, what should open is the series, not the book
+  // whose cover fronts it.
+  const autoOpen = useCardAutoOpen();
+  const [listed, setListed] = useState(autoOpen.auto);
 
   // Whether the sheet named a series, not how much of one has been read: a reader one book into a
   // five-book series still has a span titled with the series, so a card that took its book count
@@ -104,6 +109,7 @@ export const BookSeriesHoverCard = ({ span }: { span: SeriesSpan }) => {
   const close = () => {
     setListed(false);
     hold.release();
+    autoOpen.onClosed();
   };
 
   return (

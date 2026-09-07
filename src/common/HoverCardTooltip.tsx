@@ -73,6 +73,16 @@ interface HoverCardProps {
   name?: string;
   placement?: TooltipProps["placement"];
   /**
+   * Whether the card should ignore the pointer.
+   *
+   * A packed timeline stacks its marks a row apart and the card is 500px wide, so a card opened
+   * over one row covers the several below it: a reader running down the chart hits the card
+   * instead of the next mark, and the card is about the row they have already left. Ignoring the
+   * pointer lets the scan carry on through it — at the cost of the crossing, so a caller asking
+   * for this owes the reader another way in to the item, which the timeline gives its marks.
+   */
+  transparent?: boolean;
+  /**
    * Whether the reader is pointing with a finger, where a chart has already asked.
    *
    * The answer is one media query for a whole chart, and a chart is hundreds of marks — the full
@@ -212,7 +222,7 @@ const HoverCardSheet = ({ colour, title, name, children }: HoverCardProps) => {
  * flag is held here rather than left to MUI so a card that has opened a dialog of its own can keep
  * the popper mounted under it (`HoverCardHold`).
  */
-const HoverCardPopper = ({ colour, title, placement, children }: HoverCardProps) => {
+const HoverCardPopper = ({ colour, title, placement, transparent, children }: HoverCardProps) => {
   const popper = useRef<PopperInstance | null>(null);
   const [hovered, setHovered] = useState(false);
   // A count rather than a flag: layers nest — a drill-down opened from a card holds the popper,
@@ -266,7 +276,10 @@ const HoverCardPopper = ({ colour, title, placement, children }: HoverCardProps)
           // popper sits at the tooltip level, above every modal — so it would paint across the
           // dialog it just opened, which on a fullscreen one covers the list the reader pressed
           // for. It stays mounted, because that is what the hold is for; it just stops being seen.
-          sx: held > 0 && !hovered ? { visibility: "hidden" } : undefined,
+          sx: {
+            ...(held > 0 && !hovered ? { visibility: "hidden" } : undefined),
+            ...(transparent ? { pointerEvents: "none" } : undefined),
+          },
           modifiers: [
             { name: "flip", options: { fallbackPlacements: ["top", "bottom"] } },
             { name: "preventOverflow", options: { altAxis: true, padding: 8 } },

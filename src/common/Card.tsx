@@ -44,6 +44,7 @@ import {
 } from "./cardArrangement";
 import { shortYear } from "./date";
 import { useDialogMount } from "./useDialogMount";
+import { useCardAutoOpen } from "./cardAutoOpen";
 import { dimSx, LABEL_SX } from "./typography";
 import { FADE_Z } from "./ScrollFade";
 import Grid from "@mui/material/Grid";
@@ -462,7 +463,12 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
     shape !== undefined &&
     shapeToArrangement(shape) === "beside" &&
     footerComponent !== undefined;
-  const detail = useDialogMount(props.openOnMount ?? false);
+  // A card mounted for its layer alone opens that layer at once. Held to cards that own their own
+  // dialog: one given `onOpen` stands for something larger than the item in it, and opening the
+  // item's dialog here would be the very substitution `onOpen` exists to prevent — such a card
+  // reads the same context and opens its own layer instead.
+  const autoOpen = useCardAutoOpen();
+  const detail = useDialogMount(props.openOnMount ?? (autoOpen.auto && !props.onOpen));
   const hoverHold = useHoverCardHold();
   /**
    * Opening the expanded card, and holding open whatever this card was drawn inside.
@@ -694,6 +700,7 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
                   detail.onExited();
                   hoverHold.release();
                   onDetailClosed?.();
+                  autoOpen.onClosed();
                 },
               },
             }}

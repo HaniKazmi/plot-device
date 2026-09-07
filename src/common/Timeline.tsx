@@ -3,6 +3,7 @@ import { type ReactNode, useState } from "react";
 import { shortYear, type YearMonthDay } from "./date";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 import { ChipRail } from "./ChipRail";
+import { CardAutoOpenContext } from "./cardAutoOpen";
 import { HoverCardTooltip } from "./HoverCardTooltip";
 import { useCoarsePointer } from "./useCoarsePointer";
 import { LazyTooltip } from "./LazyTooltip";
@@ -123,7 +124,9 @@ const scrollSx = (theme: Theme) => ({
 const BAR_SX = {
   transformBox: "fill-box",
   transformOrigin: "center",
-  "@media (pointer: coarse)": { cursor: "pointer" },
+  // A press on a mark opens the item, whatever is pointing at it: a finger has the sheet, and a
+  // mouse has this, since the card it hovers ignores the pointer so the rows behind stay reachable.
+  cursor: "pointer",
 } as const;
 
 /**
@@ -156,6 +159,8 @@ const ROW_SX = {
  */
 const LABEL_SX = {
   pointerEvents: "auto",
+  // The label is the only thing hittable on a row whose bar is a sliver, so it opens the item too.
+  cursor: "pointer",
   textOverflow: "ellipsis",
   overflow: "hidden",
   whiteSpace: "nowrap",
@@ -576,6 +581,9 @@ const TimelineGrid = ({
    * grid that is not laid out yet, not a grid nought pixels wide.
    */
   const [gridRef, measuredGrid] = useElementWidth<SVGSVGElement>();
+  // The mark pressed, held only while its layer is up. The card cannot take the press itself: it
+  // ignores the pointer here, so a reader can run down the rows through it.
+  const [opened, setOpened] = useState<PlacedTimelineData | null>(null);
   const gridPx = measuredGrid || window.innerWidth * GRID_VIEWPORTS;
   // The font the labels are actually set in, which is what makes the canvas answer the width the
   // DOM would: the family off the theme, the size and weight `LABEL_SX` states.
@@ -583,37 +591,77 @@ const TimelineGrid = ({
   const placed = placeLabels(data, startDate, endDate, totalDays, gridPx, labelFont);
 
   return (
-    <svg
-      ref={gridRef}
-      height={totalHeight}
-      width="100%"
-    >
-      <TimelineBackground
-        ticks={ticks}
-        markers={markers}
+    <>
+      <svg
+        ref={gridRef}
         height={totalHeight}
-      />
-      {placed.map((event) => (
-        <TimelineText
-          key={event.key}
-          event={event}
-          coarse={coarse}
+        width="100%"
+      >
+        <TimelineBackground
+          ticks={ticks}
+          markers={markers}
+          height={totalHeight}
         />
-      ))}
-    </svg>
+        {placed.map((event) => (
+          <TimelineText
+            key={event.key}
+            event={event}
+            coarse={coarse}
+            onOpen={setOpened}
+          />
+        ))}
+      </svg>
+      {opened && (
+        <Box
+          aria-hidden
+          sx={OPENED_HOST_SX}
+        >
+          <CardAutoOpenContext.Provider value={{ auto: true, onClosed: () => setOpened(null) }}>
+            <LazyTooltip
+              key={opened.key}
+              render={opened.tooltip}
+            />
+          </CardAutoOpenContext.Provider>
+        </Box>
+      )}
+    </>
   );
 };
+
+/**
+ * The card a pressed mark opens, mounted for its layer and nothing else.
+ *
+ * The chart holds a thunk that renders the domain's hover card and knows nothing of the item
+ * inside it, so it mounts that card out of sight and asks it to open whatever layer it owns — the
+ * item's expanded card, or the drill-down a card standing for a group opens instead.
+ *
+ * Fixed at a pixel rather than `display: none`, so the thumbnail still loads and samples the colour
+ * the dialog is themed from; hidden from assistive technology and the pointer, since the layer it
+ * opens is what is on screen. The same shape the search palette opens a hit's card through.
+ */
+const OPENED_HOST_SX = {
+  position: "fixed",
+  width: 1,
+  height: 1,
+  overflow: "hidden",
+  opacity: 0,
+  pointerEvents: "none",
+} as const;
 
 const TimelineText = ({
   event,
   coarse,
+  onOpen,
 }: {
   event: PlacedTimelineData;
   /** Read once for the chart, since a bar's two triggers cannot disagree about it. */
   coarse: boolean;
+  /** The mark's own press, where the card cannot take one: see `TimelineGrid`. */
+  onOpen: (event: PlacedTimelineData) => void;
 }) => {
   const theme = useTheme();
   const layoutInfo = event.layout;
+  const open = () => onOpen(event);
 
   // The coordinate space is solved once for the chart, in `placeLabels`, and read here: the bar's
   // own offset and width, and the label's box spanning to the row's neighbours either side.
@@ -684,9 +732,11 @@ const TimelineText = ({
         title={<LazyTooltip render={event.tooltip} />}
         name={event.name}
         coarse={coarse}
+        transparent={!coarse}
       >
         <Box
           component="rect"
+          onClick={open}
           width={width}
           height={BAR_HEIGHT}
           fill={event.colour}
@@ -711,10 +761,12 @@ const TimelineText = ({
           title={<LazyTooltip render={event.tooltip} />}
           name={event.name}
           coarse={coarse}
+          transparent={!coarse}
         >
           <Box
             sx={LABEL_SX}
             style={labelStyle}
+            onClick={open}
           >
             {event.name}
           </Box>
