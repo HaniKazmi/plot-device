@@ -1,6 +1,14 @@
 import { Box, SwipeableDrawer, Tooltip, type TooltipProps } from "@mui/material";
 import type { Instance as PopperInstance } from "@popperjs/core";
-import { cloneElement, useRef, useState, type MouseEventHandler, type ReactElement, type ReactNode } from "react";
+import {
+  cloneElement,
+  useRef,
+  useState,
+  type MouseEvent,
+  type MouseEventHandler,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import { useCoarsePointer } from "./useCoarsePointer";
 import { SheetGrabber } from "./SheetGrabber";
 import { SheetBar } from "./SheetBar";
@@ -44,9 +52,11 @@ const CARD_WIDTH = `min(${WIDTH}px, calc(100vw - 16px))`;
  * the one on the way out is the crossing itself — the card sits a mat's width from its anchor, and
  * a tooltip that closed on the leave event would be gone before the pointer arrived. Twelve pixels
  * of mat and arrow is what has to be crossed, so the way out is short: their *difference* is how
- * long two cards can stand at once, which a timeline row makes reachable by mounting one of these
- * on its bar and another on the label beside it (§ Timeline). Thirty milliseconds of that is a
- * couple of frames; a hundred is a visible pair of the same card.
+ * long two cards can stand at once, which a row mounting one of these on its bar and another on
+ * the label beside it makes reachable. Thirty milliseconds of that is a couple of frames; a
+ * hundred is a visible pair of the same card. A `transparent` card holds the way out at nothing
+ * instead: nothing can cross to it, and a pointer running through it would otherwise trail a card
+ * per mark it passed.
  */
 const ENTER_DELAY = 120;
 const LEAVE_DELAY = 150;
@@ -58,8 +68,12 @@ const SHEET_MAX_HEIGHT = "85dvh";
  * What a hover card is anchored on: an element the reader can reach, and the fill of the mark it
  * belongs to.
  *
- * The child is cloned with an `onClick` under a coarse pointer, so it must be an element that
- * takes one — every caller passes a `Box`, and none of them carries a click of its own.
+ * The child is cloned with an `onClick` — by the sheet under a coarse pointer, and by a
+ * `transparent` popper under a fine one — so it must be an element that takes one: every caller
+ * passes a `Box`. A child carrying a click of its own keeps it on a fine pointer, composed with the
+ * card's own, and loses it to the sheet on a coarse one, which is the right way round: the
+ * timeline's marks open their item on a click, and a tap there should open the sheet the finger
+ * came for.
  */
 interface HoverCardProps {
   /** The bar's fill, which the mat and the arrow are drawn in. */
@@ -73,6 +87,16 @@ interface HoverCardProps {
   name?: string;
   placement?: TooltipProps["placement"];
   /**
+   * Whether the card should ignore the pointer.
+   *
+   * A packed timeline stacks its marks a row apart and the card is 500px wide, so a card opened
+   * over one row covers the several below it: a reader running down the chart hits the card
+   * instead of the next mark, and the card is about the row they have already left. Ignoring the
+   * pointer lets the scan carry on through it — at the cost of the crossing, so a caller asking
+   * for this owes the reader another way in to the item, which the timeline gives its marks.
+   */
+  transparent?: boolean;
+  /**
    * Whether the reader is pointing with a finger, where a chart has already asked.
    *
    * The answer is one media query for a whole chart, and a chart is hundreds of marks — the full
@@ -81,7 +105,7 @@ interface HoverCardProps {
    * omits it and is served by the hook.
    */
   coarse?: boolean;
-  children: ReactElement<{ onClick?: MouseEventHandler<HTMLElement> }>;
+  children: ReactElement<{ onClick?: MouseEventHandler<HTMLElement>; onMouseOver?: MouseEventHandler<HTMLElement> }>;
 }
 
 /**
@@ -185,6 +209,21 @@ const HoverCardSheet = ({ colour, title, name, children }: HoverCardProps) => {
 };
 
 /**
+ * The popper's own style, as one of three shared objects rather than a fresh literal.
+ *
+ * `styleFunctionSx` returns early on a missing `sx` and does the whole breakpoint walk on an empty
+ * object, so a literal built per render costs every closed tooltip in the app that walk — the
+ * strips and their hundreds of beads included, none of which asks for either rule. Hoisted, each
+ * distinct pair is also one emotion class rather than one per tooltip.
+ */
+const HIDDEN_SX = { visibility: "hidden" } as const;
+const TRANSPARENT_SX = { pointerEvents: "none" } as const;
+const HIDDEN_TRANSPARENT_SX = { ...HIDDEN_SX, ...TRANSPARENT_SX } as const;
+
+const popperSx = (hidden: boolean, transparent: boolean) =>
+  hidden ? (transparent ? HIDDEN_TRANSPARENT_SX : HIDDEN_SX) : transparent ? TRANSPARENT_SX : undefined;
+
+/**
  * The hover card as a popper, for a reader who can hover.
  *
  * The mat is what ties the card to the bar it came from: the card is drawn on the bar's colour and
@@ -205,16 +244,33 @@ const HoverCardSheet = ({ colour, title, name, children }: HoverCardProps) => {
  * popper asked to place it again on every change of size, so the flip and the overflow rules are
  * applied to the card as it is rather than as it opened.
  *
- * It is interactive, so the pointer can cross the mat and reach the card: the picture inside opens
- * the item's expanded card, which is the door a finger already has through the sheet and the one
- * a mouse would otherwise be offered less of. `leaveDelay` is what makes that crossing possible — a
+ * It is interactive unless the caller asks for `transparent`, so the pointer can cross the mat and
+ * reach the card: the picture inside opens the item's expanded card, which is the door a finger
+ * already has through the sheet and the one a mouse would otherwise be offered less of. A
+ * transparent card gives that door back through its mark instead, since the crossing is what it
+ * trades away. `leaveDelay` is what makes that crossing possible — a
  * tooltip closing on the anchor's own leave event closes before the pointer arrives — and the open
  * flag is held here rather than left to MUI so a card that has opened a dialog of its own can keep
  * the popper mounted under it (`HoverCardHold`).
  */
-const HoverCardPopper = ({ colour, title, placement, children }: HoverCardProps) => {
+const HoverCardPopper = ({ colour, title, placement, transparent, children }: HoverCardProps) => {
   const popper = useRef<PopperInstance | null>(null);
   const [hovered, setHovered] = useState(false);
+  /**
+   * Whether a press has put this card away, until the pointer next arrives at the mark.
+   *
+   * MUI arms its enter timer when the pointer reaches a mark and clears it only when the pointer
+   * leaves, never on a click, and the timer holds the callbacks of the render that armed it — so a
+   * press inside `ENTER_DELAY` is followed by a stale `onOpen`, and a guard read there is reading
+   * the state as it stood before the press. `open` is a prop of the current render, which no timer
+   * holds a copy of, so the latch is read there and the card is refused rather than never opened.
+   *
+   * The mark's own `mouseover` is what lets it go, that being the one event saying the pointer has
+   * genuinely arrived. Released on the leave instead, it would still be held when the reader comes
+   * back: a layer opened from the mark swallows the pointer, so no leave arrives while it is up,
+   * and the mark would open its card once and never again.
+   */
+  const [pressed, setPressed] = useState(false);
   // A count rather than a flag: layers nest — a drill-down opened from a card holds the popper,
   // and every card inside that drill-down holds it again while its own dialog is up. Released as a
   // flag, the innermost card's close would clear the outermost hold and unmount the whole stack.
@@ -228,16 +284,27 @@ const HoverCardPopper = ({ colour, title, placement, children }: HoverCardProps)
     return () => observer.disconnect();
   };
 
+  const showing = hovered && !pressed;
+
   return (
     <Tooltip
       arrow
-      open={hovered || held > 0}
+      open={showing || held > 0}
       onOpen={() => setHovered(true)}
       onClose={() => setHovered(false)}
       // Long enough that a pointer crossing a dense chart does not open a card per mark it passes,
       // and long enough on the way out to reach the card across the mat.
+      //
+      // A card that ignores the pointer cannot be reached, so it holds the way out at nothing: the
+      // delay would only keep the last card up while the next one opens, and a chart packs its
+      // marks close enough that a scan then trails several cards at once.
       enterDelay={ENTER_DELAY}
-      leaveDelay={LEAVE_DELAY}
+      // Stated as well as `enterDelay`, because MUI holds a hysteresis flag shared by every tooltip
+      // in the app and reads this one instead for 800ms after any of them closes — and its own
+      // default is no delay at all. Left out, a pointer run down a chart opens a card per mark it
+      // crosses, each of them fetching artwork and reading a colour off it.
+      enterNextDelay={ENTER_DELAY}
+      leaveDelay={transparent ? 0 : LEAVE_DELAY}
       title={
         <HoverCardHoldContext.Provider
           value={{ hold: () => setHeld((n) => n + 1), release: () => setHeld((n) => Math.max(0, n - 1)) }}
@@ -266,7 +333,7 @@ const HoverCardPopper = ({ colour, title, placement, children }: HoverCardProps)
           // popper sits at the tooltip level, above every modal — so it would paint across the
           // dialog it just opened, which on a fullscreen one covers the list the reader pressed
           // for. It stays mounted, because that is what the hold is for; it just stops being seen.
-          sx: held > 0 && !hovered ? { visibility: "hidden" } : undefined,
+          sx: popperSx(held > 0 && !showing, transparent ?? false),
           modifiers: [
             { name: "flip", options: { fallbackPlacements: ["top", "bottom"] } },
             { name: "preventOverflow", options: { altAxis: true, padding: 8 } },
@@ -274,7 +341,38 @@ const HoverCardPopper = ({ colour, title, placement, children }: HoverCardProps)
         },
       }}
     >
-      {children}
+      {transparent
+        ? // A card that ignores the pointer has handed the press to its mark, so that press is also
+          // the card's way out. A layer opened from the mark covers the chart and swallows the
+          // pointer, so the mark never gets the leave event that would close it — left standing, the
+          // card floats over the layer and is still there when the layer is dismissed, with the
+          // pointer long since somewhere else. Only the pressed mark's own card can be open at that
+          // moment, so it is the only one that has to be told.
+          cloneElement(children, {
+            onClick: (event: MouseEvent<HTMLElement>) => {
+              setPressed(true);
+              setHovered(false);
+              children.props.onClick?.(event);
+            },
+            // MUI composes its own handler ahead of this one, so by the time the latch is let go
+            // the enter timer this arrival arms is already the one that will find it gone.
+            //
+            // The hover the press refused goes with it. MUI declines to call `onClose` while
+            // `open` is false, so a mark still under a latch is still holding that refused hover,
+            // and letting the latch go alone would show its card the instant the pointer touched
+            // the mark. Cleared together, the timer this arrival arms is what
+            // opens it, at the delay every other card opens at. Only under a latch: MUI arms that
+            // timer again for every nested element the pointer crosses inside the child, and a
+            // card closed and reopened at each of them is a flicker.
+            onMouseOver: (event: MouseEvent<HTMLElement>) => {
+              if (pressed) {
+                setPressed(false);
+                setHovered(false);
+              }
+              children.props.onMouseOver?.(event);
+            },
+          })
+        : children}
     </Tooltip>
   );
 };

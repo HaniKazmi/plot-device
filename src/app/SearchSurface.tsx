@@ -531,7 +531,7 @@ export const SearchSurface = ({
            assistive technology and the pointer, since the dialog is what is on screen. */
         <Box
           aria-hidden
-          sx={{ position: "fixed", width: 1, height: 1, overflow: "hidden", opacity: 0, pointerEvents: "none" }}
+          sx={{ position: "fixed", width: "1px", height: "1px", overflow: "hidden", opacity: 0, pointerEvents: "none" }}
         >
           <OmniCardMediaImage
             key={`${pickCount}:${picked.item.key}`}

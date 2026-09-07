@@ -3,6 +3,7 @@ import { type ReactNode, useState } from "react";
 import { shortYear, type YearMonthDay } from "./date";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 import { ChipRail } from "./ChipRail";
+import { CardAutoOpenContext } from "./cardAutoOpen";
 import { HoverCardTooltip } from "./HoverCardTooltip";
 import { useCoarsePointer } from "./useCoarsePointer";
 import { LazyTooltip } from "./LazyTooltip";
@@ -123,7 +124,9 @@ const scrollSx = (theme: Theme) => ({
 const BAR_SX = {
   transformBox: "fill-box",
   transformOrigin: "center",
-  "@media (pointer: coarse)": { cursor: "pointer" },
+  // A press on a mark opens the item, whatever is pointing at it: a finger has the sheet, and a
+  // mouse has this, since the card it hovers ignores the pointer so the rows behind stay reachable.
+  cursor: "pointer",
 } as const;
 
 /**
@@ -156,6 +159,8 @@ const ROW_SX = {
  */
 const LABEL_SX = {
   pointerEvents: "auto",
+  // The label is the only thing hittable on a row whose bar is a sliver, so it opens the item too.
+  cursor: "pointer",
   textOverflow: "ellipsis",
   overflow: "hidden",
   whiteSpace: "nowrap",
@@ -576,6 +581,10 @@ const TimelineGrid = ({
    * grid that is not laid out yet, not a grid nought pixels wide.
    */
   const [gridRef, measuredGrid] = useElementWidth<SVGSVGElement>();
+  // The mark pressed, held only while its layer is up. The card cannot take the press itself: it
+  // ignores the pointer here, so a reader can run down the rows through it.
+  const [opened, setOpened] = useState<{ event: PlacedTimelineData; press: number } | null>(null);
+  const press = (event: PlacedTimelineData) => setOpened((last) => ({ event, press: (last?.press ?? 0) + 1 }));
   const gridPx = measuredGrid || window.innerWidth * GRID_VIEWPORTS;
   // The font the labels are actually set in, which is what makes the canvas answer the width the
   // DOM would: the family off the theme, the size and weight `LABEL_SX` states.
@@ -583,37 +592,82 @@ const TimelineGrid = ({
   const placed = placeLabels(data, startDate, endDate, totalDays, gridPx, labelFont);
 
   return (
-    <svg
-      ref={gridRef}
-      height={totalHeight}
-      width="100%"
-    >
-      <TimelineBackground
-        ticks={ticks}
-        markers={markers}
+    <>
+      <svg
+        ref={gridRef}
         height={totalHeight}
-      />
-      {placed.map((event) => (
-        <TimelineText
-          key={event.key}
-          event={event}
-          coarse={coarse}
+        width="100%"
+      >
+        <TimelineBackground
+          ticks={ticks}
+          markers={markers}
+          height={totalHeight}
         />
-      ))}
-    </svg>
+        {placed.map((event) => (
+          <TimelineText
+            key={event.key}
+            event={event}
+            coarse={coarse}
+            onOpen={press}
+          />
+        ))}
+      </svg>
+      {opened && (
+        <Box
+          aria-hidden
+          sx={OPENED_HOST_SX}
+        >
+          <CardAutoOpenContext.Provider value={{ auto: true, onClosed: () => setOpened(null) }}>
+            {/* Keyed on the press and not the mark alone: a card whose layer has closed keeps the
+                state it closed with, so a second press on the same mark would reconcile with it and
+                open nothing. */}
+            <LazyTooltip
+              key={`${opened.press}:${opened.event.key}`}
+              render={opened.event.tooltip}
+            />
+          </CardAutoOpenContext.Provider>
+        </Box>
+      )}
+    </>
   );
 };
+
+/**
+ * The card a pressed mark opens, mounted for its layer and nothing else.
+ *
+ * The chart holds a thunk that renders the domain's hover card and knows nothing of the item
+ * inside it, so it mounts that card out of sight and asks it to open whatever layer it owns — the
+ * item's expanded card, or the drill-down a card standing for a group opens instead.
+ *
+ * Fixed at a pixel rather than `display: none`, so the thumbnail still loads and samples the colour
+ * the dialog is themed from; hidden from assistive technology and the pointer, since the layer it
+ * opens is what is on screen. The same shape the search palette opens a hit's card through.
+ */
+const OPENED_HOST_SX = {
+  position: "fixed",
+  // Stated in pixels: `sx` reads a bare 1 as a fraction and hands back 100%, which is a card laid
+  // out and decoded at the size of the screen for as long as the layer above it stands.
+  width: "1px",
+  height: "1px",
+  overflow: "hidden",
+  opacity: 0,
+  pointerEvents: "none",
+} as const;
 
 const TimelineText = ({
   event,
   coarse,
+  onOpen,
 }: {
   event: PlacedTimelineData;
   /** Read once for the chart, since a bar's two triggers cannot disagree about it. */
   coarse: boolean;
+  /** The mark's own press, where the card cannot take one: see `TimelineGrid`. */
+  onOpen: (event: PlacedTimelineData) => void;
 }) => {
   const theme = useTheme();
   const layoutInfo = event.layout;
+  const open = () => onOpen(event);
 
   // The coordinate space is solved once for the chart, in `placeLabels`, and read here: the bar's
   // own offset and width, and the label's box spanning to the row's neighbours either side.
@@ -622,6 +676,16 @@ const TimelineText = ({
   const y = event.rowNumber * ROW_HEIGHT + SVG_PADDING + "px";
   const foreignObjectX = pct(event.labelXPercent);
   const totalTextContainerWidth = pct(event.labelWidthPercent);
+
+  // The bar and its label are two triggers for one row, and the file's own rule is that they cannot
+  // disagree about it — so what they are given is written once rather than twice.
+  const hoverCard = {
+    colour: event.colour,
+    title: <LazyTooltip render={event.tooltip} />,
+    name: event.name,
+    coarse,
+    transparent: true,
+  };
 
   const leftPadding = layoutInfo.placement === "right" ? `${layoutInfo.barPx + LABEL_PADDING}px` : `${LABEL_PADDING}px`;
   const rightPadding = layoutInfo.placement === "left" ? `${layoutInfo.barPx + LABEL_PADDING}px` : `${LABEL_PADDING}px`;
@@ -679,14 +743,10 @@ const TimelineText = ({
           aimed at an item aims at the bar, not at the words next to it. Two triggers rather than
           one on the row group: the group's box spans the whole gap the label is allowed to use, so
           a card anchored on it would open a chart's width away from the item it describes. */}
-      <HoverCardTooltip
-        colour={event.colour}
-        title={<LazyTooltip render={event.tooltip} />}
-        name={event.name}
-        coarse={coarse}
-      >
+      <HoverCardTooltip {...hoverCard}>
         <Box
           component="rect"
+          onClick={open}
           width={width}
           height={BAR_HEIGHT}
           fill={event.colour}
@@ -706,15 +766,11 @@ const TimelineText = ({
         overflow="hidden"
         pointerEvents="none"
       >
-        <HoverCardTooltip
-          colour={event.colour}
-          title={<LazyTooltip render={event.tooltip} />}
-          name={event.name}
-          coarse={coarse}
-        >
+        <HoverCardTooltip {...hoverCard}>
           <Box
             sx={LABEL_SX}
             style={labelStyle}
+            onClick={open}
           >
             {event.name}
           </Box>
