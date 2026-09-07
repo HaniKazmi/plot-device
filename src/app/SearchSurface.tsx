@@ -29,7 +29,6 @@ import { MEDIA as MEDIA_MODULES, omniArtwork } from "./media";
 import OmniCardMediaImage from "./CardMediaImage";
 import { MIXED_CARD_SIZING, workLabels } from "./cardData";
 import { FranchiseView } from "./FranchiseView";
-import { seriesFranchises } from "./galleryData";
 import { useLibrary, type Library } from "./library";
 import { mediumBand } from "./mediumBand";
 import { usePage } from "./page";
@@ -248,7 +247,7 @@ const firstTab = (entry: AttributeEntry): string | undefined => Object.keys(entr
  * having no library of its own and so no fill.
  */
 const TabDot = ({ tab, scheme }: { tab: string; scheme: Scheme }) => {
-  const medium = media.find((candidate) => MEDIA_MODULES[candidate].tabId === tab);
+  const medium = PAGE_MODULES[tab]?.medium;
   const held = tabForId(tab);
   return medium ? (
     <MediumDot
@@ -306,13 +305,6 @@ const MediumCounts = ({ counts, scheme }: { counts: Partial<Record<Medium, numbe
 };
 
 /**
- * The swatch an attribute wears, from the vocabulary the schema holding that category already
- * speaks for the field — a genre, a platform, a network, a certificate. Asked of the schema the hit
- * acts through, so the chip in This page and the hit in Find cannot colour one value two ways;
- * absent where a category has no vocabulary, which is where a swatch would teach a legend no chart
- * honours.
- */
-/**
  * An attribute's rows per medium: the shelf's own figure broken down, its per-tab counts read back
  * as media. The composing tab is left out, reading those same rows through the union — counted, the
  * dots would add to twice what the cut beside them states.
@@ -320,6 +312,13 @@ const MediumCounts = ({ counts, scheme }: { counts: Partial<Record<Medium, numbe
 const mediumCounts = (entry: AttributeEntry): Partial<Record<Medium, number>> =>
   Object.fromEntries(media.map((medium) => [medium, entry.counts[MEDIA_MODULES[medium].tabId]]));
 
+/**
+ * The swatch an attribute wears, from the vocabulary the schema holding that category already
+ * speaks for the field — a genre, a platform, a network, a certificate. Asked of the schema the hit
+ * acts through, so the chip in This page and the hit in Find cannot colour one value two ways;
+ * absent where a category has no vocabulary, which is where a swatch would teach a legend no chart
+ * honours.
+ */
 const attributeColour = (entry: AttributeEntry, tab: string | undefined, scheme: Scheme) => {
   const schema = tab === undefined ? undefined : PAGE_MODULES[tab]?.filters;
   const category = schema?.categories.find((candidate) => (candidate.key as string) === entry.category);
@@ -353,10 +352,11 @@ export const SearchSurface = ({
   const library = useLibrary();
   const items = library.items;
   const index = items && library.whole ? buildSearchIndex(items, library.whole) : undefined;
-  // What a page's franchise picker cannot answer from its own rows. Held beside the index rather
-  // than inside it, since This page draws whether or not a query has been typed, and absent until
-  // the union is — a picker then falls back to its own rows, which is the narrower list.
-  const categoryContext: CategoryContext | undefined = items && { series: seriesFranchises(items) };
+  // What a page's franchise picker cannot answer from its own rows, off the index that already
+  // holds it: a second walk of the union here is a second answer to the question the strips, the
+  // pickers and the box are meant to share. Absent until the union is, and a picker then falls
+  // back to its own rows, which is the narrower list.
+  const categoryContext: CategoryContext | undefined = index && { series: index.series };
   const [query, setQuery] = useState("");
   // The scan runs on the settled text: a keystroke lands in the box at once and the groups follow
   // at lower priority, so a fast typist is never held behind the previous letter's scan.
@@ -450,7 +450,7 @@ export const SearchSurface = ({
         ...entry.placements.map((placed): PaletteReading => ({
           key: placed.tab,
           label: tabForId(placed.tab)?.name ?? placed.tab,
-          count: format(placed.count),
+          count: format(placed.counts[placed.tab]),
           lead: (
             <TabDot
               tab={placed.tab}

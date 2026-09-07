@@ -7,6 +7,7 @@ import type { PageModule } from "../common/medium";
 import { omniPageModule } from "../omnibus/pageModule";
 import type { LibraryValue } from "./library";
 import { eachMedium } from "./media";
+import type { Medium } from "../utils/types";
 
 /**
  * The two halves of the library a page's own rows come out of: each medium's visible slice, and
@@ -21,7 +22,18 @@ export type PageRows = Pick<LibraryValue, "visible" | "items">;
  * `MediumModule` cannot say so, `library` being a shape in this folder and a domain module reaching
  * for it a cycle.
  */
-type PageEntry = PageModule & { rows(library: PageRows): readonly unknown[] | undefined };
+type PageEntry = PageModule & {
+  rows(library: PageRows): readonly unknown[] | undefined;
+  /**
+   * The medium whose tab this is, absent for the composing tab, which is a page and no medium.
+   *
+   * Declared rather than derived: `eachMedium` holds it while it builds the entry below, where a
+   * reader asking later has only a tab id and has to search the registry back for it. It is the
+   * one thing telling a library's own tab from the tab over all four, which is a question the
+   * union's counts, the shelf's own size and a chip's dot each have to ask.
+   */
+  medium?: Medium;
+};
 
 /**
  * Every tab as a page, by tab id.
@@ -41,6 +53,7 @@ export const PAGE_MODULES: Record<string, PageEntry> = Object.fromEntries([
     module.tabId,
     // The pairing is the registry's own: the slice is held under exactly the key the module was
     // looked up by, so the rows a page draws are the rows its own filters were written against.
+    // `medium` rides in on the spread, `MediumModule` carrying it.
     { ...module, rows: (library) => library.visible[medium] },
   ]),
   [omniPageModule.tabId, { ...omniPageModule, rows: (library: PageRows) => library.items }],
@@ -63,14 +76,14 @@ const retainSelections = (
   store: PageStore,
   schema: PageSchema,
   data: readonly unknown[],
-  context: CategoryContext | undefined,
+  context: () => CategoryContext | undefined,
 ) => {
   const fields = fieldsOf(store.get());
 
   for (const category of schema.categories) {
     const held = fields[category.key] as readonly string[] | undefined;
     if (!held?.length) continue;
-    store.dispatch({ type: "retain", category: category.key, values: categoryValues(category, data, context) });
+    store.dispatch({ type: "retain", category: category.key, values: categoryValues(category, data, context()) });
   }
 };
 
@@ -89,12 +102,21 @@ const retainSelections = (
  * `undefined` until all four have landed, so the context is left off rather than passed empty and
  * each picker falls back to its own rows. That fallback is the narrower list, so nothing a page
  * legitimately held before the fourth sheet is swept once it arrives.
+ *
+ * Built behind that same skip and at most once for the five pages: it is a walk of the whole union,
+ * and this runs on every sheet landing where the common case is a reader who has selected nothing
+ * anywhere and no category ever asks for it.
  */
 export const retainPageSelections = (library: PageRows) => {
-  const context = library.items && { series: seriesFranchises(library.items) };
+  let context: CategoryContext | undefined;
+  const contextOf = () => {
+    if (!context && library.items) context = { series: seriesFranchises(library.items) };
+    return context;
+  };
+
   for (const page of Object.values(PAGE_MODULES)) {
     const rows = page.rows(library);
-    if (rows) retainSelections(page.pageState, page.filters, rows, context);
+    if (rows) retainSelections(page.pageState, page.filters, rows, contextOf);
   }
 };
 

@@ -1,39 +1,25 @@
 import { rankHits, type Hit, type Searchable } from "../common/searchData";
 import {
-  categoryValues,
+  categoryTally,
   FRANCHISE_KEY,
   groupHolds,
   selectedPredicates,
   type CategoryContext,
+  type PageSchema,
 } from "../common/filterSchema";
 import { franchiseIndex } from "../common/franchiseIndex";
 import { YearMonthDay, type Year } from "../common/date";
 import { mediumToLabel, type Medium } from "../utils/types";
-import { eachMedium, MEDIA, moduleOf } from "./media";
+import { eachMedium, moduleOf } from "./media";
 import type { Season } from "../show/types";
 import { countByMedium, type OmniItem } from "../common/medium";
 import type { PageAction } from "../common/filterReducer";
 import { omniHours, type Library } from "./library";
-import {
-  galleryGroups,
-  galleryStripOrder,
-  galleryWorks,
-  isSeries,
-  seriesFranchises,
-  workOf,
-  type ShelfItem,
-} from "./galleryData";
+import { galleryGroups, galleryStripOrder, galleryWorks, isSeries, workOf, type ShelfItem } from "./galleryData";
 import { media } from "./types";
 import { PAGE_MODULES, type PageRows } from "./pageState";
 import "../utils/arrayUtils";
 import "../utils/mapUtils";
-
-/**
- * The tabs a shelf is gathered from: the four media, whose own rows are what `attributeItems`
- * walks. The composing tab reads those same rows through the union, so a value counted there too
- * would state every shelf at twice the size it opens at.
- */
-const SHELF_TABS = new Set(media.map((medium) => MEDIA[medium].tabId));
 
 /**
  * A franchise as the palette can find it: the raw column value, which is the key every index
@@ -123,10 +109,8 @@ export interface AttributeEntry extends Searchable {
  * ranker was handed.
  */
 export interface PlacedAttribute extends AttributeEntry {
-  /** The tab the hit acts on. */
+  /** The tab the hit acts on, which is what `counts` and `values` are then read at. */
   tab: string;
-  /** That tab's own rows holding the value, which is the population the press leaves behind. */
-  count: number;
 }
 
 /**
@@ -174,6 +158,12 @@ export interface SearchIndex {
   /** The categories those attributes belong to, as things a query can name. */
   categories: CategorySearchEntry[];
   /**
+   * The franchises this library knows to be series, which is what every tab's own franchise picker
+   * offers of the values its rows carry. Held here because the surface drawing a page's filters
+   * needs it too, and a second walk is a second answer.
+   */
+  series: ReadonlySet<string>;
+  /**
    * Per tab, how many of that tab's own rows each franchise its own picker offers holds.
    *
    * Two answers a franchise hit needs and the ranked entry cannot give. The counts are the tab's
@@ -200,15 +190,14 @@ const franchiseRowsByTab = (pages: PageRows, context: CategoryContext): Record<s
   const byTab: Record<string, Map<string, number>> = {};
   for (const [tab, page] of Object.entries(PAGE_MODULES)) {
     const rows = page.rows(pages);
-    const category = page.filters.categories.find((candidate) => (candidate.key as string) === FRANCHISE_KEY);
+    const category = categoryOf(page.filters, FRANCHISE_KEY);
     if (!rows || !category) continue;
-    const offered = new Set(categoryValues(category, rows, context));
-    const counts = new Map<string, number>();
-    for (const row of rows) {
-      const franchise = category.valueOf(row);
-      if (offered.has(franchise)) counts.set(franchise, (counts.get(franchise) ?? 0) + 1);
-    }
-    byTab[tab] = counts;
+    // Through the picker rather than against the series set directly, so a rule added to
+    // `franchiseOptions` reaches the counts as well as the chips, and in one pass rather than two:
+    // `categoryTally` is the vocabulary and its figures off a single scan, which is the whole
+    // reason it exists beside `categoryValues`.
+    const { values, counts } = categoryTally(category, rows, context);
+    byTab[tab] = new Map(values.map((franchise) => [franchise, counts.get(franchise) ?? 0]));
   }
   return byTab;
 };
@@ -217,10 +206,6 @@ export const buildSearchIndex = (items: OmniItem[], library: Library): SearchInd
   // The two halves every page's rows come out of, which is all the per-tab walks below need: the
   // four visible slices, and the union the composing tab filters.
   const pages: PageRows = { visible: library, items };
-  // The one thing a tab's own franchise picker cannot answer from its rows. Built here from the
-  // same union the entries below are, so the series the box finds and the series a page can be
-  // narrowed to are one set rather than two readings of one rule.
-  const context: CategoryContext = { series: seriesFranchises(items) };
   const franchises = [...franchiseIndex(items, (item) => item.franchise).entries()]
     .filter(([franchise, members]) => isSeries(franchise, members))
     .map(([franchise, members]): FranchiseSearchEntry => {
@@ -261,13 +246,19 @@ export const buildSearchIndex = (items: OmniItem[], library: Library): SearchInd
   });
 
   const attributes = buildAttributeIndex(pages);
+  // The one thing a tab's own franchise picker cannot answer from its rows, and no walk of its
+  // own: `franchises` is already `isSeries` over this union, so the set is those entries' names.
+  // One value and not two readings of one rule, which is what the pickers, the strips and the box
+  // all narrow by.
+  const series = new Set(franchises.map((entry) => entry.franchise));
 
   return {
     franchises,
     items: workEntries,
     attributes,
+    series,
     categories: buildCategoryIndex(attributes, franchises),
-    franchiseRows: franchiseRowsByTab(pages, context),
+    franchiseRows: franchiseRowsByTab(pages, { series }),
   };
 };
 
@@ -346,10 +337,6 @@ export const buildAttributeIndex = (pages: PageRows): AttributeEntry[] => {
       counts: {},
       values: {},
     });
-    // What the layer opens is the four libraries' own rows, which is exactly what `attributeItems`
-    // gathers — so the composing tab's pass, counting those same works again in the union's unit,
-    // adds to the counts a chip states and not to the figure the shelf is worded by.
-    if (SHELF_TABS.has(tab)) entry.size += 1;
     entry.counts[tab] = (entry.counts[tab] ?? 0) + 1;
     const held: string[] = entry.values[tab] ?? [];
     if (!held.includes(cell)) held.push(cell);
@@ -393,11 +380,25 @@ export const buildAttributeIndex = (pages: PageRows): AttributeEntry[] => {
     }
   }
 
+  // What the layer opens is the four libraries' own rows, which is exactly what `attributeItems`
+  // gathers — so the composing tab's count, which reads those same works again in the union's
+  // unit, is a figure a chip states and never part of the size the shelf is worded by. Derived
+  // from the counts rather than accumulated beside them, one total being one total.
+  for (const entry of found.values())
+    entry.size = Object.entries(entry.counts)
+      .filter(([tab]) => PAGE_MODULES[tab].medium)
+      .map(([, count]) => count)
+      .sum();
+
   // A group of one is its value, through the rule the control surface draws its runs by: PC, iOS
   // and Xbox each hold a single platform, and an entry for one is the same rows under a second
   // name, ranked beside the first and filtering to exactly what it filters to.
   return [...found.values()].filter((entry) => !entry.level || groupHolds(Object.values(entry.values).flat()));
 };
+
+/** One category of a tab's schema by the field it names, the key erased as every reader holds it. */
+const categoryOf = (schema: PageSchema, key: string) =>
+  schema.categories.find((candidate) => (candidate.key as string) === key);
 
 /**
  * Whether an entry is one of its category's values rather than the level above them.
@@ -471,7 +472,7 @@ const scopeValues = (index: SearchIndex, category: string): (AttributeEntry | Fr
  * one that empties the page it was made on. The order is the order the index walked the tabs.
  */
 export const attributePlacements = (entry: AttributeEntry): PlacedAttribute[] =>
-  Object.entries(entry.counts).map(([tab, count]): PlacedAttribute => ({ ...entry, tab, count }));
+  Object.keys(entry.counts).map((tab): PlacedAttribute => ({ ...entry, tab }));
 
 /**
  * What a hit sets on its own tab: the values it stands for there, added to whatever that tab

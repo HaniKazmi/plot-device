@@ -362,7 +362,7 @@ describe("attributePlacements and attributeAction", () => {
 
   it("counts a placement in that tab's own rows, which is the population the press leaves behind", () => {
     const placed = attributePlacements(genre());
-    const on = (tab: string) => placed.find((hit) => hit.tab === tab)!.count;
+    const on = (tab: string) => placed.find((hit) => hit.tab === tab)!.counts[tab];
 
     // One show on the Shows tab, against the three seasons the composing tab's union flattens it
     // to — plus that tab's film and book, which count once either way.
@@ -600,7 +600,7 @@ describe("searchUnion over values", () => {
 
   it("counts a series on each tab in that tab's own rows, so no chip states the union's figure", () => {
     const [value] = valuesOf(searchUnion(trekIndex(), "star trek"));
-    const on = (tab: string) => value.placements.find((placed) => placed.tab === tab)!.count;
+    const on = (tab: string) => value.placements.find((placed) => placed.tab === tab)!.counts[tab];
 
     // One Star Trek show on the Shows tab; five entries on the composing tab, whose union counts
     // the three seasons inside it beside the game and the film.

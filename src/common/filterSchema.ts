@@ -175,6 +175,19 @@ export const FRANCHISE_KEY = "franchise";
 type SharedKey<S, K extends string> = CategoryKey<S> & K;
 
 /**
+ * What a category's vocabulary needs that its own rows cannot say.
+ *
+ * Declared here and filled in `app/`, as `OmniItem` and `FranchiseEntry` are: a tab holds one
+ * library and some questions about a value are questions about all four. The whole bag is what a
+ * caller omits — absent means the union has not landed and each picker falls back to its own rows,
+ * where a present bag missing its one member would be a third state nothing intends.
+ */
+export interface CategoryContext {
+  /** The franchises the whole library knows to be series, by `isSeries` — see `franchiseOptions`. */
+  series: ReadonlySet<string>;
+}
+
+/**
  * The franchise select, which every tab offers on the same terms: the column each sheet writes a
  * series into, and — where the entry names no series — the item's own title, which
  * `franchiseOptions` erases so the list holds only what actually groups anything. Which those are
@@ -185,19 +198,6 @@ type SharedKey<S, K extends string> = CategoryKey<S> & K;
  * The state it names is the one field it needs, and a category is covariant in its key, so it sits
  * in any tab's schema whose own state holds a `franchise` list.
  */
-/**
- * What a category's vocabulary needs that its own rows cannot say.
- *
- * Declared here and filled in `app/`, as `OmniItem` and `FranchiseEntry` are: a tab holds one
- * library and some questions about a value are questions about all four. Every member is optional
- * and every caller may omit the whole of it, so a surface that cannot answer yet falls back to the
- * per-tab reading rather than to an empty vocabulary.
- */
-export interface CategoryContext {
-  /** The franchises the whole library knows to be series, by `isSeries` — see `franchiseOptions`. */
-  series?: ReadonlySet<string>;
-}
-
 export const franchiseCategory = <T extends { franchise: string; name: string }, S>(
   key: SharedKey<S, typeof FRANCHISE_KEY>,
 ): FilterCategory<T, S> => ({

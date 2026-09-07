@@ -372,9 +372,12 @@ const pressOf = (hit: PaletteHit) => (hit.readings ? hit.readings[0].onOpen : hi
 /** Where a hit's own row stands, which is a group and a hit: one entry can stand in two groups. */
 const rowKeyOf = (group: PaletteGroup, hit: PaletteHit) => `${group.key}:${hit.key}`;
 
-/** The rows a group draws, by key alone — which is what resolving the selection needs and all it does. */
-const rowKeysOf = (group: PaletteGroup) =>
-  group.layout === "chips" ? [group.key] : group.hits.map((hit) => rowKeyOf(group, hit));
+/**
+ * Where one reading stands, which is its row and itself. One construction, since the cells the
+ * keys walk and the cells that are drawn are built apart and an id built two ways is an
+ * `aria-activedescendant` naming nothing.
+ */
+const readingKeyOf = (rowKey: string, reading: PaletteReading) => `${rowKey}:${reading.key}`;
 
 /**
  * Whether a value draws its strip: it has narrowings to draw, and either the group asked it of
@@ -408,7 +411,7 @@ const rowsOfGroup = (group: PaletteGroup, openKey: string | null): Row[] => {
     const key = rowKeyOf(group, hit);
     if (!hit.readings) return { key, cells: [{ key, onOpen: hit.onOpen }] };
     const drawn = stripOpen(group, hit, key, openKey) ? hit.readings : hit.readings.slice(0, 1);
-    return { key, cells: drawn.map((reading) => ({ key: `${key}:${reading.key}`, onOpen: reading.onOpen })) };
+    return { key, cells: drawn.map((reading) => ({ key: readingKeyOf(key, reading), onOpen: reading.onOpen })) };
   });
 };
 
@@ -457,7 +460,7 @@ const ChipsGroup = ({
       sx={{ flexWrap: "wrap", alignItems: "center" }}
     >
       {group.hits.map((hit) => {
-        const cell = `${group.key}:${hit.key}`;
+        const cell = rowKeyOf(group, hit);
         return (
           <Box
             key={hit.key}
@@ -605,10 +608,12 @@ export const SearchPalette = (props: {
     inputRef.current?.blur();
   }, [open, finding, focusRequest]);
 
-  // The keys first, then the rows: what a value's row holds depends on whether it is the selected
-  // one, and the selection falls back to the first row whenever the held key names none. Resolved
-  // off the keys alone — which no selection changes — so the answer is settled before it is read.
-  const rowKeys = groups.flatMap(rowKeysOf);
+  // Twice over the same list, because what a value's row *holds* depends on whether it is the
+  // selected one while what the rows are *called* does not. The first pass settles that, the
+  // second builds the cells against it — one definition of the row list either way, where a
+  // separate keys-only walk is a second statement of the same rule free to fall out of step, and
+  // an `aria-activedescendant` pointing at an id no element wears is what that costs.
+  const rowKeys = groups.flatMap((group) => rowsOfGroup(group, null)).map((row) => row.key);
   const openKey = rowKeys.find((key) => key === selectedKey) ?? rowKeys[0] ?? null;
   const rows = groups.flatMap((group) => rowsOfGroup(group, openKey));
   // Cell ids are a place rather than a key: a key carries a franchise's own name, and an IDREF
@@ -617,8 +622,10 @@ export const SearchPalette = (props: {
   const cellId = new Map(
     rows.flatMap((row, rowIndex) => row.cells.map((cell, index) => [cell.key, `search-cell-${rowIndex}-${index}`])),
   );
-  const selectedIndex = indexOfKey(rows, selectedKey);
-  const selectedRow = rows.at(selectedIndex);
+  // The lit row and the row the arrows step from are one row, resolved once: read apart they are
+  // two fallbacks for one question, and a strip then opens on a row the keys are not standing on.
+  const selectedIndex = rowKeys.indexOf(openKey ?? "");
+  const selectedRow = rows[selectedIndex];
   const cells = selectedRow?.cells ?? [];
   // Held by key and resolved against the row in hand, so arriving at another row falls back to its
   // first reading rather than to whatever index the last row had reached.
@@ -655,6 +662,7 @@ export const SearchPalette = (props: {
   const move = (step: number) => {
     if (rows.length === 0) return;
     byKeyboard.current = true;
+    // `openKey` names a row whenever there is one, so the index is only ever -1 on an empty list.
     const next = (selectedIndex + step + rows.length) % rows.length;
     setSelectedKey(rows[next].key);
   };
@@ -708,7 +716,7 @@ export const SearchPalette = (props: {
    */
   /** One reading as a press: the same chip whether it stands in the strip or beside a shut row. */
   const readingCell = (reading: PaletteReading, rowKey: string) => {
-    const cell = `${rowKey}:${reading.key}`;
+    const cell = readingKeyOf(rowKey, reading);
     return (
       <Box
         key={reading.key}
@@ -920,7 +928,7 @@ export const SearchPalette = (props: {
               <ChipsGroup
                 key={group.key}
                 group={group}
-                selected={selectedRow?.key === group.key}
+                selected={openKey === group.key}
                 cellProps={cellProps}
                 onSelect={selectCell}
                 pointerMoved={pointerMoved}
