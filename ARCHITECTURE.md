@@ -561,7 +561,25 @@ no cheaper a reading than the chart itself.
 
 The hover card that names a bar reaches it two ways: through the label, which already re-enables
 its own pointer events, and through the bar's own `rect`, so a finger aimed at the item and not at a
-label sitting in the gap beside it still lands on something. `useCoarsePointer` is read once per
+label sitting in the gap beside it still lands on something.
+
+Both take the press as well, because the card here does not. Marks stand a row apart and the card is
+500px wide, so a card opened over one row covers the several below it: a reader running the pointer
+down the chart hits the card instead of the next mark, and the card is about the row they have
+already left. It asks for `transparent` and ignores the pointer, which costs the crossing — the way
+a mouse otherwise reaches the picture inside and through it the item's own layer — so the mark gives
+that back on a click. The chart holds a thunk that renders the domain's hover card and knows nothing
+of the item inside it, so it mounts that card off-screen and asks it to open whatever layer it owns
+(`common/cardAutoOpen.ts`): a book's expanded card, or the drill-down a card standing for a group
+opens instead, which is how a series bar on the Books timeline opens the series rather than the book
+whose cover fronts it. The host is the shape the search palette opens a hit's card through, keyed on
+the press so the same mark pressed twice mounts a fresh card rather than reconciling with the one
+whose layer has already closed. The signal stops at the card that takes it, or every card that one
+draws — the members of the shelf it opens, the marks on the franchise strip inside an expanded
+card — reads the same signal and opens itself on top.
+
+A finger is untouched: the sheet installs its own press over the mark's, which is the right way
+round, since a tap is asking for the sheet rather than for the layer beneath it. `useCoarsePointer` is read once per
 chart in `TimelineGrid` and passed down as `coarse`, rather than mounted per mark — a few hundred
 marks would otherwise be a few hundred subscriptions answering one question that cannot differ
 between them (§ Phone and tablet). The row's own `&:hover` scale sits behind `(hover: hover)`, as
@@ -1555,7 +1573,12 @@ lands late otherwise grows from an anchor placed for something smaller, off the 
 card, whose picture opens the item's expanded card: a hovered mark is a door to the same place a
 tapped one is, which is the one thing a mouse would otherwise be offered less of than a finger. `leaveDelay` is what makes the
 crossing possible — a tooltip closing on the anchor's own leave event is gone before the pointer
-arrives — and the open flag is held in the popper rather than left to MUI, because that dialog is a
+arrives. A caller whose marks stand a row apart asks for `transparent` instead and trades the
+crossing away: the card ignores the pointer, so a reader running down the chart reaches the marks
+beneath it rather than the card about the row they have left, and the mark takes the press in the
+card's place (§ Timeline). `enterNextDelay` is stated alongside `enterDelay` for that reader —
+MUI holds a hysteresis flag shared by every tooltip in the app and reads the second one for 800ms
+after any of them closes, and its own default is no delay at all — and the open flag is held in the popper rather than left to MUI, because that dialog is a
 child of the tooltip's own content: its backdrop takes the pointer off the popper, and a popper
 closing there would unmount the card in the same frame it opened. `HoverCardHold`
 (`common/hoverCardHold.ts`) is what `CardMediaImage` says so through, a pair of no-ops for every

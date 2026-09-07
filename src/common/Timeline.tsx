@@ -583,7 +583,8 @@ const TimelineGrid = ({
   const [gridRef, measuredGrid] = useElementWidth<SVGSVGElement>();
   // The mark pressed, held only while its layer is up. The card cannot take the press itself: it
   // ignores the pointer here, so a reader can run down the rows through it.
-  const [opened, setOpened] = useState<PlacedTimelineData | null>(null);
+  const [opened, setOpened] = useState<{ event: PlacedTimelineData; press: number } | null>(null);
+  const press = (event: PlacedTimelineData) => setOpened((last) => ({ event, press: (last?.press ?? 0) + 1 }));
   const gridPx = measuredGrid || window.innerWidth * GRID_VIEWPORTS;
   // The font the labels are actually set in, which is what makes the canvas answer the width the
   // DOM would: the family off the theme, the size and weight `LABEL_SX` states.
@@ -607,7 +608,7 @@ const TimelineGrid = ({
             key={event.key}
             event={event}
             coarse={coarse}
-            onOpen={setOpened}
+            onOpen={press}
           />
         ))}
       </svg>
@@ -617,9 +618,12 @@ const TimelineGrid = ({
           sx={OPENED_HOST_SX}
         >
           <CardAutoOpenContext.Provider value={{ auto: true, onClosed: () => setOpened(null) }}>
+            {/* Keyed on the press and not the mark alone: a card whose layer has closed keeps the
+                state it closed with, so a second press on the same mark would reconcile with it and
+                open nothing. */}
             <LazyTooltip
-              key={opened.key}
-              render={opened.tooltip}
+              key={`${opened.press}:${opened.event.key}`}
+              render={opened.event.tooltip}
             />
           </CardAutoOpenContext.Provider>
         </Box>
@@ -641,8 +645,10 @@ const TimelineGrid = ({
  */
 const OPENED_HOST_SX = {
   position: "fixed",
-  width: 1,
-  height: 1,
+  // Stated in pixels: `sx` reads a bare 1 as a fraction and hands back 100%, which is a card laid
+  // out and decoded at the size of the screen for as long as the layer above it stands.
+  width: "1px",
+  height: "1px",
   overflow: "hidden",
   opacity: 0,
   pointerEvents: "none",
