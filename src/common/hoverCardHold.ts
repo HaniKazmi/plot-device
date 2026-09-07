@@ -9,6 +9,10 @@ import { createContext, useContext } from "react";
  * and vanish in the same frame. So the card being opened says so, and the popper stays open until
  * the dialog has finished leaving. The default is a pair of no-ops, since every card outside a
  * popper — a wall's, a strip's, a sheet's — renders its dialog under nothing that can close.
+ *
+ * Holds nest and are counted, not flagged: a drill-down opened from a hover card holds the popper
+ * for as long as it stands, and every card inside that drill-down holds it again while its own
+ * dialog is up. Counted, the outer layer survives the inner one closing.
  */
 interface HoverCardHold {
   hold: () => void;

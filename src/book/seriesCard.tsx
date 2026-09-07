@@ -7,7 +7,7 @@ import { stated } from "../common/population";
 import { useScheme } from "../common/useScheme";
 import { genreToColour, type Scheme } from "../utils/types";
 import BookCardMediaImage, { BookPanelCard } from "./CardMediaImage";
-import { bookScoreChip, bookStatListSharedProps, bySeriesThenStart } from "./drilldown";
+import { bookDrilldownProps, bookScoreChip, bySeriesThenStart } from "./drilldown";
 import { bookKey, daysReading, statsCardLabelFinished, type SeriesSpan } from "./statsData";
 import "../utils/arrayUtils";
 
@@ -40,10 +40,10 @@ const seriesSubtitle = (span: SeriesSpan, scheme: Scheme): PanelSubtitlePart[] =
 /**
  * The figures under a series bar.
  *
- * A span holding one book is a book and not a series — a quarter of the library is drawn that way,
- * every book the sheet named no series for — so it states what the book's own card states. "1
- * Books" is a tile carrying nothing, and it displaces the score and the days in hand, which are
- * facts about the read the reader is actually looking at.
+ * A span holding one book states what the book's own card states: "1 Books" is a tile carrying
+ * nothing, and it displaces the score and the days in hand, which are facts about the read the
+ * reader is actually looking at. Two readers of this branch — the 24 of 401 books the sheet named
+ * no series for, and a series only one book into.
  *
  * Hours are summed raw and kept to a decimal, as the sheet records them: `bookTotals` floors for
  * the vitals cards, where a fraction of an hour across a library is noise, but on one span it is
@@ -87,10 +87,11 @@ export const BookSeriesHoverCard = ({ span }: { span: SeriesSpan }) => {
   const hold = useHoverCardHold();
   const [listed, setListed] = useState(false);
 
-  // A span of one book opens that book's own card, which `CardMediaImage` gives it for nothing and
-  // which is honest here: the span and the book are the same thing. Past one, the picture stands
-  // for the whole series, so it opens the series instead — and `onOpen` is what says so.
-  const many = span.books.length > 1;
+  // Whether the sheet named a series, not how much of one has been read: a reader one book into a
+  // five-book series still has a span titled with the series, so a card that took its book count
+  // for the answer would open that one book's own dialog under the series' name. A standalone is
+  // the book, and `CardMediaImage`'s own dialog is the honest thing to open for it.
+  const series = span.lead.series !== "";
 
   // `onOpen` returns before `CardMediaImage` reaches its own hold, so a dialog opened through it
   // from inside a hover card's popper is unmounted with that popper the moment the pointer leaves
@@ -113,23 +114,25 @@ export const BookSeriesHoverCard = ({ span }: { span: SeriesSpan }) => {
         subtitle={seriesSubtitle(span, scheme)}
         dateRange={formatDateRange(span.lead.startDate, span.end)}
         stats={seriesStats(span)}
-        onOpen={many ? open : undefined}
+        onOpen={series ? open : undefined}
         // What the press opens, since the card's own picture and words name the book fronting the
         // series rather than the series — the one thing pressing it does not open.
-        openLabel={many ? `Open ${span.name}, ${stated(span.books.length, "books")}` : undefined}
+        openLabel={series ? `Open ${span.name}, ${stated(span.books.length, "books")}` : undefined}
       />
       {listed && (
         <DrilldownDialog
           title={span.name}
           onClose={close}
-          // The order and the card the Most Read band's own series drill-down uses: a series
-          // opened from the timeline reads as the same series opened from there.
+          // The order and the cards the Most Read band's own series drill-down uses, so a series
+          // opened from the timeline reads as the same series opened from there. It lists the whole
+          // series, the page's filters included: the bar stands for the series, and a list that
+          // answered for less would not be the thing the bar was pressed to see.
           content={span.books.toSorted(bySeriesThenStart)}
           cardKey={bookKey}
           labelComponent={statsCardLabelFinished}
           chipComponent={(book) => bookScoreChip(book, scheme)}
           MediaComponent={BookCardMediaImage}
-          {...bookStatListSharedProps}
+          {...bookDrilldownProps}
         />
       )}
     </>

@@ -244,15 +244,18 @@ describe("seriesSpans", () => {
   it("leaves a series still running where any book in it is open, however many have ended", () => {
     // The shape the converter builds for a book in hand: `Reading` with neither an end nor a day
     // count, which it rejects a row for carrying together with `Finished`.
+    // Begun between the two finished reads, so it is neither the last to start nor the last in
+    // the sheet's order: a span reading the end off its final book would miss that it is open.
     const open = book({
       name: "Redemption Ark",
       series: "Revelation Space",
       status: "Reading",
+      startDate: YearMonthDay.get(2025, 4, 2),
       endDate: undefined,
       numDays: undefined,
     });
 
-    expect(seriesSpans([first, second, open])[0].end).toBeUndefined();
+    expect(seriesSpans([first, open, second])[0].end).toBeUndefined();
   });
 
   it("keeps a standalone as its own span, under its own name", () => {
@@ -260,7 +263,7 @@ describe("seriesSpans", () => {
     const spans = seriesSpans([first, second, alone]);
 
     expect(spans.map((span) => span.name).sort()).toEqual(["Piranesi", "Revelation Space"]);
-    const standalone = spans.find((span) => span.name === "Piranesi")!;
+    const [standalone] = spans.filter((span) => span.name === "Piranesi");
     expect(standalone.books).toEqual([alone]);
     expect(standalone.lead.startDate).toBe(alone.startDate);
   });
@@ -273,12 +276,22 @@ describe("seriesSpans", () => {
   });
 
   it("keys a standalone's reread apart from the read before it, as a second span", () => {
-    const read = book({ name: "Piranesi", series: "", startDate: YearMonthDay.get(2023, 4, 1) });
-    const reread = book({ name: "Piranesi", series: "", startDate: YearMonthDay.get(2026, 4, 1) });
+    const read = book({
+      name: "Piranesi",
+      series: "",
+      startDate: YearMonthDay.get(2023, 4, 1),
+      endDate: YearMonthDay.get(2023, 4, 14),
+    });
+    const reread = book({
+      name: "Piranesi",
+      series: "",
+      startDate: YearMonthDay.get(2026, 4, 1),
+      endDate: YearMonthDay.get(2026, 4, 12),
+    });
     const spans = seriesSpans([read, reread]);
 
     expect(spans).toHaveLength(2);
-    expect(new Set(spans.map((span) => span.key)).size).toBe(2);
+    expect(spans.map((span) => span.lead.startDate)).toEqual([read.startDate, reread.startDate]);
   });
 
   // The deliberate half of the rule above, pinned because it reads as an oversight: a book that

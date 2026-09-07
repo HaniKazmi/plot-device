@@ -566,9 +566,12 @@ every bare hover rule here does: a tap has no leave event, so the last bar touch
 otherwise stay scaled up until another tap lands elsewhere, reading as a selection the chart never
 made.
 
-Two details are load-bearing. The label `Box` sets `lineHeight` to `BAR_HEIGHT`, being `position:
-fixed` with no `top` and so centred by its own line box alone: a bar height changed without it puts
-every label off-centre. And the hover step on a bar is instant — a CSS transition there is created
+Two details are load-bearing. The label `Box` sets `lineHeight` to `BAR_HEIGHT`, sitting in flow
+with no `top` and so centred by its own line box alone: a bar height changed without it puts every
+label off-centre. It is offset along the row by a margin rather than positioned, because an SVG
+`foreignObject` establishes a viewport that Chrome resolves a `position: fixed` descendant against
+and WebKit does not — positioned, every label paints at its offset from the browser window's own
+edge and stays there as the chart is scrolled. And the hover step on a bar is instant — a CSS transition there is created
 but its clock never advances, the tooltip opening re-rendering the row and restarting it every
 frame.
 

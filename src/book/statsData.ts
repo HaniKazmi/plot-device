@@ -209,7 +209,7 @@ export interface SeriesSpan {
  * maximum for the full timeline's grid and states why a `PlainDate` is reduced rather than
  * `Math.max`ed.
  */
-const lastEnd = (books: Book[]): YearMonthDay | undefined => {
+export const lastEnd = (books: Book[]): YearMonthDay | undefined => {
   let last: YearMonthDay | undefined;
   for (const { endDate } of books) {
     if (endDate === undefined) return undefined;

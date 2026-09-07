@@ -41,3 +41,17 @@ export const bookStatListSharedProps: Pick<StatListBaseProps<Book>, "shape" | "d
   pictureWidth: [6, 4, 4],
   dialogPictureWidth: [6, 3, 2],
 };
+
+/**
+ * The same cards as a fullscreen list, for a surface that opens `DrilldownDialog` itself.
+ *
+ * `DrilldownDialog` reads one `pictureWidth`, where `StatList` reads a second for its dialog, so a
+ * caller handing it the strip's spans lays the drilled list out at the collapsed card's size. The
+ * translation `GroupedStatList` does at its own call site is written once here instead, and the
+ * shape is stated rather than spread from the list's, which carries fields the dialog would take
+ * the wrong way round.
+ */
+export const bookDrilldownProps = {
+  shape: bookStatListSharedProps.shape,
+  pictureWidth: bookStatListSharedProps.dialogPictureWidth,
+} as const;

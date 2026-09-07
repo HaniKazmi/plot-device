@@ -79,6 +79,8 @@ const Graphs = memo(({ data, library, filterState }: { data: Book[]; library: Bo
         <Timeline
           data={deferredData}
           library={library}
+          yearType={filterState.yearType}
+          yearTo={filterState.yearTo}
         />
       </Section>
       <Section id={BOOK_SECTIONS.charts}>
