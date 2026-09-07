@@ -608,6 +608,7 @@ const TimelineGrid = ({
             event={event}
             coarse={coarse}
             onOpen={setOpened}
+            suppressed={opened !== null}
           />
         ))}
       </svg>
@@ -652,12 +653,15 @@ const TimelineText = ({
   event,
   coarse,
   onOpen,
+  suppressed,
 }: {
   event: PlacedTimelineData;
   /** Read once for the chart, since a bar's two triggers cannot disagree about it. */
   coarse: boolean;
   /** The mark's own press, where the card cannot take one: see `TimelineGrid`. */
   onOpen: (event: PlacedTimelineData) => void;
+  /** Whether a layer pressed out of this chart is standing over it: see `HoverCardTooltip`. */
+  suppressed: boolean;
 }) => {
   const theme = useTheme();
   const layoutInfo = event.layout;
@@ -733,6 +737,7 @@ const TimelineText = ({
         name={event.name}
         coarse={coarse}
         transparent={!coarse}
+        suppressed={suppressed}
       >
         <Box
           component="rect"
@@ -762,6 +767,7 @@ const TimelineText = ({
           name={event.name}
           coarse={coarse}
           transparent={!coarse}
+          suppressed={suppressed}
         >
           <Box
             sx={LABEL_SX}

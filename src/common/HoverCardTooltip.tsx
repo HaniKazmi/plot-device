@@ -83,6 +83,15 @@ interface HoverCardProps {
    */
   transparent?: boolean;
   /**
+   * Whether to keep the card shut altogether.
+   *
+   * A chart that opens an item's own layer from the mark rather than from the card has two of that
+   * card for a moment — the one under the pointer, and the one it mounted to do the opening. The
+   * layer is what the reader asked for, so the hovered one stands down while it is up rather than
+   * floating over it.
+   */
+  suppressed?: boolean;
+  /**
    * Whether the reader is pointing with a finger, where a chart has already asked.
    *
    * The answer is one media query for a whole chart, and a chart is hundreds of marks — the full
@@ -222,7 +231,7 @@ const HoverCardSheet = ({ colour, title, name, children }: HoverCardProps) => {
  * flag is held here rather than left to MUI so a card that has opened a dialog of its own can keep
  * the popper mounted under it (`HoverCardHold`).
  */
-const HoverCardPopper = ({ colour, title, placement, transparent, children }: HoverCardProps) => {
+const HoverCardPopper = ({ colour, title, placement, transparent, suppressed, children }: HoverCardProps) => {
   const popper = useRef<PopperInstance | null>(null);
   const [hovered, setHovered] = useState(false);
   // A count rather than a flag: layers nest — a drill-down opened from a card holds the popper,
@@ -241,7 +250,7 @@ const HoverCardPopper = ({ colour, title, placement, transparent, children }: Ho
   return (
     <Tooltip
       arrow
-      open={hovered || held > 0}
+      open={!suppressed && (hovered || held > 0)}
       onOpen={() => setHovered(true)}
       onClose={() => setHovered(false)}
       // Long enough that a pointer crossing a dense chart does not open a card per mark it passes,
