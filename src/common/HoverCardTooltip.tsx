@@ -234,6 +234,16 @@ const HoverCardSheet = ({ colour, title, name, children }: HoverCardProps) => {
 const HoverCardPopper = ({ colour, title, placement, transparent, suppressed, children }: HoverCardProps) => {
   const popper = useRef<PopperInstance | null>(null);
   const [hovered, setHovered] = useState(false);
+  /**
+   * A layer standing over the chart takes the pointer with it, so the mark under it never gets the
+   * leave event that would close its card: the reader moves away, dismisses the layer, and the card
+   * it was opened from comes back on its own with the pointer nowhere near.
+   *
+   * Where the pointer went cannot be known while a modal is up, so the hover is dropped along with
+   * the card rather than held for a mark the reader may long since have left. Moving back onto one
+   * opens it again, which is the whole of what a hover card promises.
+   */
+  if (suppressed && hovered) setHovered(false);
   // A count rather than a flag: layers nest — a drill-down opened from a card holds the popper,
   // and every card inside that drill-down holds it again while its own dialog is up. Released as a
   // flag, the innermost card's close would clear the outermost hold and unmount the whole stack.
