@@ -119,7 +119,7 @@ export interface FilterCategory<T, S> {
   key: CategoryKey<S>;
   label: string;
   valueOf(item: T): string;
-  options?(data: readonly T[]): string[];
+  options?(data: readonly T[], context?: CategoryContext): string[];
   colourFor?(value: string, scheme: Scheme): Colour | undefined;
   searchable?: boolean;
   /**
@@ -177,23 +177,39 @@ type SharedKey<S, K extends string> = CategoryKey<S> & K;
 /**
  * The franchise select, which every tab offers on the same terms: the column each sheet writes a
  * series into, and — where the entry names no series — the item's own title, which
- * `franchiseOptions` erases so the list holds only what actually groups anything.
+ * `franchiseOptions` erases so the list holds only what actually groups anything. Which those are
+ * is the library's answer and not this tab's, so it reads `context.series` where the caller has
+ * one: a tab holding a single entry of a series otherwise erases it.
  *
  * Stated once rather than per tab, so the five cannot disagree about what belongs on that list.
  * The state it names is the one field it needs, and a category is covariant in its key, so it sits
  * in any tab's schema whose own state holds a `franchise` list.
  */
+/**
+ * What a category's vocabulary needs that its own rows cannot say.
+ *
+ * Declared here and filled in `app/`, as `OmniItem` and `FranchiseEntry` are: a tab holds one
+ * library and some questions about a value are questions about all four. Every member is optional
+ * and every caller may omit the whole of it, so a surface that cannot answer yet falls back to the
+ * per-tab reading rather than to an empty vocabulary.
+ */
+export interface CategoryContext {
+  /** The franchises the whole library knows to be series, by `isSeries` — see `franchiseOptions`. */
+  series?: ReadonlySet<string>;
+}
+
 export const franchiseCategory = <T extends { franchise: string; name: string }, S>(
   key: SharedKey<S, typeof FRANCHISE_KEY>,
 ): FilterCategory<T, S> => ({
   key,
   label: "franchise",
   valueOf: (item) => item.franchise,
-  options: (data) =>
+  options: (data, context) =>
     franchiseOptions(
       data,
       (item) => item.franchise,
       (item) => item.name,
+      context?.series,
     ),
   // The table `utils/types.ts` shares across the tabs, so a chip and the wedge, bead or shelf
   // naming one series are one colour. Most of the column is a work naming itself and answers `""`,
@@ -286,8 +302,12 @@ export type PageSchema = FilterSchema<unknown, never>;
  * and the index of what can be found by attribute cannot offer two different vocabularies for one
  * category.
  */
-export const categoryValues = <T, S>(category: FilterCategory<T, S>, data: readonly T[]): string[] =>
-  category.options ? category.options(data) : categoryOptions(data, (item) => category.valueOf(item));
+export const categoryValues = <T, S>(
+  category: FilterCategory<T, S>,
+  data: readonly T[],
+  context?: CategoryContext,
+): string[] =>
+  category.options ? category.options(data, context) : categoryOptions(data, (item) => category.valueOf(item));
 
 /**
  * The same values with how many rows each of them holds, in one pass over the library.
@@ -301,6 +321,7 @@ export const categoryValues = <T, S>(category: FilterCategory<T, S>, data: reado
 export const categoryTally = <T, S>(
   category: FilterCategory<T, S>,
   data: readonly T[],
+  context?: CategoryContext,
 ): { values: string[]; counts: Map<string, number> } => {
   const counts = new Map<string, number>();
   for (const item of data) {
@@ -308,7 +329,7 @@ export const categoryTally = <T, S>(
     counts.set(value, (counts.get(value) ?? 0) + 1);
   }
 
-  return { values: category.options ? category.options(data) : [...counts.keys()].toSorted(), counts };
+  return { values: category.options ? category.options(data, context) : [...counts.keys()].toSorted(), counts };
 };
 
 /** A line of a category's chips: a parent and the values it selects, or the values grouping nothing. */

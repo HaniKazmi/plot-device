@@ -16,7 +16,7 @@ import {
   type PaletteReading,
 } from "../common/SearchPalette";
 import { closeSearch, setSearchMode, setSearchScope, type SearchMode } from "../common/searchOpen";
-import { fieldsOf } from "../common/filterSchema";
+import { fieldsOf, type CategoryContext } from "../common/filterSchema";
 import { FRANCHISE_KEY } from "../common/filterSchema";
 import { rankHits, type Hit, type Searchable } from "../common/searchData";
 import { MUTED_FIGURE_SX } from "../common/typography";
@@ -29,6 +29,7 @@ import { MEDIA as MEDIA_MODULES, omniArtwork } from "./media";
 import OmniCardMediaImage from "./CardMediaImage";
 import { MIXED_CARD_SIZING, workLabels } from "./cardData";
 import { FranchiseView } from "./FranchiseView";
+import { seriesFranchises } from "./galleryData";
 import { useLibrary, type Library } from "./library";
 import { mediumBand } from "./mediumBand";
 import { usePage } from "./page";
@@ -352,6 +353,10 @@ export const SearchSurface = ({
   const library = useLibrary();
   const items = library.items;
   const index = items && library.whole ? buildSearchIndex(items, library.whole) : undefined;
+  // What a page's franchise picker cannot answer from its own rows. Held beside the index rather
+  // than inside it, since This page draws whether or not a query has been typed, and absent until
+  // the union is — a picker then falls back to its own rows, which is the narrower list.
+  const categoryContext: CategoryContext | undefined = items && { series: seriesFranchises(items) };
   const [query, setQuery] = useState("");
   // The scan runs on the settled text: a keystroke lands in the box at once and the groups follow
   // at lower priority, so a fast typist is never held behind the previous letter's scan.
@@ -588,6 +593,7 @@ export const SearchSurface = ({
               state={pageState}
               dispatch={surface.store.dispatch}
               data={surface.data}
+              context={categoryContext}
               measures={surface.measures}
               earliestYear={surface.earliestYear}
               query={deferredQuery}

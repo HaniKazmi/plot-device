@@ -1164,12 +1164,27 @@ itself, so the box said something different there than anywhere else. Its count 
 Shows tab counts shows where the union counts the seasons inside them — and its pass over those same
 rows is left out of the figure the layer is worded by, `SHELF_TABS` holding that to the four
 libraries `attributeItems` actually gathers. A page holding the category but none of the value gets
-no chip at all, that press being one that empties the page it was made on, and neither does one
-whose own picker erases the value: a franchise every row of a tab names itself is dropped by that
-tab's `franchiseOptions`, so a chip there would set a filter nothing offers or clears.
-`attributeAction` adds to whatever the target already holds rather than replacing it — the same
-thing a second chip pressed in This page means — writing the cells that tab's own rows carry, which
-the index recorded in the pass that counted them.
+no chip at all, that press being one that empties the page it was made on. `attributeAction` adds to
+whatever the target already holds rather than replacing it — the same thing a second chip pressed in
+This page means — writing the cells that tab's own rows carry, which the index recorded in the pass
+that counted them.
+
+**Whether a franchise is a series is the library's answer, not one tab's.** `franchiseOptions` erases
+a value repeating its own item's title, which within a single library is what a standalone work
+looks like — and is wrong for a tab holding one entry of a series that lives across several. The
+single Twilight film is named "Twilight", so Movies alone reads it as a work naming itself while the
+four books say otherwise; Code Geass is that shape the other way round, one self-naming show beside
+a film; and an adaptation is hidden on every tab at once, a novel and the film of it being two works
+under one name. So every picker asks `seriesFranchises` (`app/galleryData.ts`) — `isSeries` over the
+union, the rule the crossings and the box's own index already read — intersected with what its own
+rows carry. One set, so a value the strips draw as a series is one a page can be narrowed to, and
+the chip the box offers and the chip that page's own filter surface draws come off one list.
+`common/filterSchema.ts` declares the shape it arrives in (`CategoryContext`) and `app/` fills it,
+as `OmniItem` and `FranchiseEntry` are. It is optional at every call: the union is `undefined` until
+all four sheets land, and the per-tab reading is the narrower of the two — a name differing on this
+tab differs in the library as well — so a picker that cannot ask yet offers a subset rather than a
+wrong set, and `retainPageSelections` cannot sweep away a selection the fourth sheet was about to
+justify.
 
 **Past two values, only the one the reader is on draws its strip** (`OPEN_STRIP_LIMIT`). One value
 or two is the common case and arrives open, so a finger never pays a tap for nothing; a vaguer query

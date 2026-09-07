@@ -522,20 +522,29 @@ describe("searchUnion over values", () => {
     expect(value.franchise?.works).toBe(3);
   });
 
-  it("offers no narrowing on a tab whose own picker erases the franchise", () => {
-    // `isSeries` runs over the union, so a franchise crossing two media is a series even where one
-    // tab's only row names itself — and that tab's own `franchiseOptions` drops it. Placed there,
-    // the filter would be set with no chip offering or clearing it, and swept away silently by
-    // `retainPageSelections` on the next library landing.
+  it("narrows a tab holding one self-naming row of a series the library knows", () => {
+    // The lone Halo game names itself, so that tab's own rows read it as a standalone work — and
+    // the film is what makes it a series. Every picker asks `seriesFranchises` of the union, so
+    // the chip here and the chip the Games filter surface draws come off one list.
     const halo = library({
       game: [videoGame({ name: "Halo", franchise: "Halo" })],
       movie: [movie({ name: "Halo: The Movie", franchise: "Halo" })],
     });
     const [value] = valuesOf(searchUnion(buildSearchIndex(toOmniItems(halo), halo), "halo"));
 
-    // Movies names the series; the lone Halo game names only itself, so Games offers no chip. The
-    // composing tab does, its own picker reading a union that holds the film as well as the game.
-    expect(value.placements.map((placed) => placed.tab)).toEqual(["movies", "omnibus"]);
+    expect(value.placements.map((placed) => placed.tab)).toEqual(["games", "movies", "omnibus"]);
+  });
+
+  it("narrows both tabs of an adaptation, whose every entry names itself", () => {
+    // A novel and the film of it are two works under one name — the crossing the cross-media
+    // reading exists for, and the one shape a per-tab picker hides on every tab at once.
+    const weir = library({
+      book: [book({ name: "Project Hail Mary", franchise: "Project Hail Mary" })],
+      movie: [movie({ name: "Project Hail Mary", franchise: "Project Hail Mary" })],
+    });
+    const [value] = valuesOf(searchUnion(buildSearchIndex(toOmniItems(weir), weir), "project hail mary"));
+
+    expect(value.placements.map((placed) => placed.tab)).toEqual(["movies", "books", "omnibus"]);
   });
 
   it("states how many values the query matched, not how many it showed", () => {

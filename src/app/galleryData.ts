@@ -1,4 +1,5 @@
 import { groupByCategory, realFranchisesOnly, type DrilldownGroup } from "../common/statsData";
+import { franchiseIndex } from "../common/franchiseIndex";
 import type { PlainDate, Year, YearMonthDay } from "../common/date";
 import {
   certificateBandToColour,
@@ -140,6 +141,22 @@ export const workOf = (item: OmniItem): unknown => moduleOf(item).work(item.sour
  */
 export const isSeries = (franchise: string, items: OmniItem[]): boolean =>
   items.some((item) => !namesTheSameThing(franchise, item.name)) || new Set(items.map(workOf)).size > 1;
+
+/**
+ * Every franchise the library knows to be a series, which is what a tab's own franchise picker
+ * offers of the values its rows carry (`franchiseOptions`).
+ *
+ * Asked of the union, because whether a franchise groups anything is a question about the library
+ * and not about one tab of it: the single Twilight film is named "Twilight", so Movies alone reads
+ * it as a work naming itself while the four books say otherwise. One set for the pickers, the
+ * crossings and the box, so a value the strips draw as a series is one a page can be narrowed to.
+ */
+export const seriesFranchises = (items: OmniItem[]): ReadonlySet<string> =>
+  new Set(
+    [...franchiseIndex(items, (item) => item.franchise).entries()]
+      .filter(([franchise, members]) => isSeries(franchise, members))
+      .map(([franchise]) => franchise),
+  );
 
 /**
  * A work as it stands on a shelf: the union's own item, plus when the reader was last in it.

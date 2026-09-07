@@ -10,6 +10,7 @@ import {
   fieldsOf,
   namedSelection,
   runIsWhole,
+  type CategoryContext,
   type CategoryRun,
   type FilterGroup,
   type PageSchema,
@@ -143,16 +144,28 @@ const colourSx = (colour: Colour | undefined, selected: boolean) => {
  * on — so a second would only hold the tab they left. A `data` array is the library's own slice
  * and keeps its identity until a sheet lands, which is exactly when the figures change.
  */
-let lastTallies: { schema: PageSchema; data: readonly unknown[]; tallies: CategoryTally[] } | undefined;
+let lastTallies:
+  | { schema: PageSchema; data: readonly unknown[]; context: CategoryContext | undefined; tallies: CategoryTally[] }
+  | undefined;
 
 type CategoryTally = ReturnType<typeof categoryTally>;
 
-/** Every category's vocabulary and figures, one scan of the library apiece. */
-const categoryTallies = (schema: PageSchema, data: readonly unknown[]): CategoryTally[] => {
-  if (lastTallies && lastTallies.schema === schema && lastTallies.data === data) return lastTallies.tallies;
+/**
+ * Every category's vocabulary and figures, one scan of the library apiece.
+ *
+ * The context is part of the key as the rows are: it decides which franchises the picker lists, so
+ * a set arriving with the fourth sheet has to rebuild the lists it widens.
+ */
+const categoryTallies = (
+  schema: PageSchema,
+  data: readonly unknown[],
+  context: CategoryContext | undefined,
+): CategoryTally[] => {
+  if (lastTallies && lastTallies.schema === schema && lastTallies.data === data && lastTallies.context === context)
+    return lastTallies.tallies;
 
-  const tallies = schema.categories.map((category) => categoryTally(category, data));
-  lastTallies = { schema, data, tallies };
+  const tallies = schema.categories.map((category) => categoryTally(category, data, context));
+  lastTallies = { schema, data, context, tallies };
   return tallies;
 };
 
@@ -533,6 +546,7 @@ export const SchemaPageControls = ({
   state,
   dispatch,
   data,
+  context,
   measures,
   earliestYear,
   query,
@@ -541,6 +555,8 @@ export const SchemaPageControls = ({
   state: PageState;
   dispatch: PageDispatch;
   data: readonly unknown[];
+  /** What a vocabulary needs that this page's rows cannot say — absent until the library is whole. */
+  context?: CategoryContext;
   measures: readonly string[];
   earliestYear: YearNumber;
   query: string;
@@ -550,7 +566,7 @@ export const SchemaPageControls = ({
   const fields = fieldsOf(state);
   const phrase = foldText(query);
 
-  const tallies = categoryTallies(schema, data);
+  const tallies = categoryTallies(schema, data, context);
 
   return (
     <Box sx={{ paddingX: 2, paddingY: 1 }}>

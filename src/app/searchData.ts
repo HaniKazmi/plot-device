@@ -1,5 +1,11 @@
 import { rankHits, type Hit, type Searchable } from "../common/searchData";
-import { categoryValues, FRANCHISE_KEY, groupHolds, selectedPredicates } from "../common/filterSchema";
+import {
+  categoryValues,
+  FRANCHISE_KEY,
+  groupHolds,
+  selectedPredicates,
+  type CategoryContext,
+} from "../common/filterSchema";
 import { franchiseIndex } from "../common/franchiseIndex";
 import { YearMonthDay, type Year } from "../common/date";
 import { mediumToLabel, type Medium } from "../utils/types";
@@ -8,7 +14,15 @@ import type { Season } from "../show/types";
 import { countByMedium, type OmniItem } from "../common/medium";
 import type { PageAction } from "../common/filterReducer";
 import { omniHours, type Library } from "./library";
-import { galleryGroups, galleryStripOrder, galleryWorks, isSeries, workOf, type ShelfItem } from "./galleryData";
+import {
+  galleryGroups,
+  galleryStripOrder,
+  galleryWorks,
+  isSeries,
+  seriesFranchises,
+  workOf,
+  type ShelfItem,
+} from "./galleryData";
 import { media } from "./types";
 import { PAGE_MODULES, type PageRows } from "./pageState";
 import "../utils/arrayUtils";
@@ -164,9 +178,9 @@ export interface SearchIndex {
    *
    * Two answers a franchise hit needs and the ranked entry cannot give. The counts are the tab's
    * rows and not the union's items, where a show is one row and the seasons the union flattens it
-   * to are several; and the keys are `franchiseOptions`' own set, which drops a franchise every
-   * row of that tab names itself — so a hit is only placed where the tab it lands on can draw a
-   * chip for it, and a filter nothing offers or clears is not set.
+   * to are several; and the keys are that tab's own picker's set, asked with the same
+   * `seriesFranchises` the entries above were filtered by — so a chip is drawn exactly where the
+   * page it lands on offers the value, and the filter it sets is one that page can clear.
    */
   franchiseRows: Record<string, Map<string, number>>;
 }
@@ -182,13 +196,13 @@ export interface SearchIndex {
  * its latest season is the item its hit opens: the show's card is about the show, with that
  * season as the one its strip rings.
  */
-const franchiseRowsByTab = (pages: PageRows): Record<string, Map<string, number>> => {
+const franchiseRowsByTab = (pages: PageRows, context: CategoryContext): Record<string, Map<string, number>> => {
   const byTab: Record<string, Map<string, number>> = {};
   for (const [tab, page] of Object.entries(PAGE_MODULES)) {
     const rows = page.rows(pages);
     const category = page.filters.categories.find((candidate) => (candidate.key as string) === FRANCHISE_KEY);
     if (!rows || !category) continue;
-    const offered = new Set(categoryValues(category, rows));
+    const offered = new Set(categoryValues(category, rows, context));
     const counts = new Map<string, number>();
     for (const row of rows) {
       const franchise = category.valueOf(row);
@@ -203,6 +217,10 @@ export const buildSearchIndex = (items: OmniItem[], library: Library): SearchInd
   // The two halves every page's rows come out of, which is all the per-tab walks below need: the
   // four visible slices, and the union the composing tab filters.
   const pages: PageRows = { visible: library, items };
+  // The one thing a tab's own franchise picker cannot answer from its rows. Built here from the
+  // same union the entries below are, so the series the box finds and the series a page can be
+  // narrowed to are one set rather than two readings of one rule.
+  const context: CategoryContext = { series: seriesFranchises(items) };
   const franchises = [...franchiseIndex(items, (item) => item.franchise).entries()]
     .filter(([franchise, members]) => isSeries(franchise, members))
     .map(([franchise, members]): FranchiseSearchEntry => {
@@ -249,7 +267,7 @@ export const buildSearchIndex = (items: OmniItem[], library: Library): SearchInd
     items: workEntries,
     attributes,
     categories: buildCategoryIndex(attributes, franchises),
-    franchiseRows: franchiseRowsByTab(pages),
+    franchiseRows: franchiseRowsByTab(pages, context),
   };
 };
 
