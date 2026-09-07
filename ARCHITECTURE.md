@@ -1576,7 +1576,17 @@ crossing possible — a tooltip closing on the anchor's own leave event is gone 
 arrives. A caller whose marks stand a row apart asks for `transparent` instead and trades the
 crossing away: the card ignores the pointer, so a reader running down the chart reaches the marks
 beneath it rather than the card about the row they have left, and the mark takes the press in the
-card's place (§ Timeline). `enterNextDelay` is stated alongside `enterDelay` for that reader —
+card's place (§ Timeline). That press puts the card away as well as opening the layer, and it is
+latched rather than timed: MUI arms its enter timer when the pointer arrives at a mark and clears
+it only when the pointer leaves, never on a click, and the timer holds the callbacks of the render
+that armed it — so a press inside `enterDelay` is followed by a stale `onOpen`, and a guard read
+there is reading the state as it stood before the press. The latch is read where `open` is
+computed, which no timer holds a copy of. The mark's own `mouseover` is what lets it go, that being
+the one event saying the pointer has genuinely arrived: a layer opened from a mark swallows the
+pointer, so no leave arrives while it stands, and a latch waiting for one opens that mark's card
+once and never again. The hover the press refused goes with it — MUI declines to call `onClose`
+while `open` is false, so the mark is still holding it, and letting the latch go alone would show
+that card the instant the pointer touched the mark. `enterNextDelay` is stated alongside `enterDelay` for that reader —
 MUI holds a hysteresis flag shared by every tooltip in the app and reads the second one for 800ms
 after any of them closes, and its own default is no delay at all — and the open flag is held in the popper rather than left to MUI, because that dialog is a
 child of the tooltip's own content: its backdrop takes the pointer off the popper, and a popper

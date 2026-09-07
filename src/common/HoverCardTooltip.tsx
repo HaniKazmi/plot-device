@@ -105,7 +105,7 @@ interface HoverCardProps {
    * omits it and is served by the hook.
    */
   coarse?: boolean;
-  children: ReactElement<{ onClick?: MouseEventHandler<HTMLElement> }>;
+  children: ReactElement<{ onClick?: MouseEventHandler<HTMLElement>; onMouseOver?: MouseEventHandler<HTMLElement> }>;
 }
 
 /**
@@ -257,18 +257,20 @@ const HoverCardPopper = ({ colour, title, placement, transparent, children }: Ho
   const popper = useRef<PopperInstance | null>(null);
   const [hovered, setHovered] = useState(false);
   /**
-   * When the press that opened a layer last put this card away.
+   * Whether a press has put this card away, until the pointer next arrives at the mark.
    *
-   * A moment rather than a flag, because both the thing it has to stop and the thing it must not
-   * stop arrive the same way. MUI arms its enter timer on the pointer reaching the mark and clears
-   * it only on the pointer leaving, never on a click, so a press inside `ENTER_DELAY` is followed
-   * by that timer opening the card anyway — over the layer the press just opened, and with no leave
-   * to come while a modal holds the pointer. A flag held until the next leave would stop it, and
-   * would still be held when the reader comes back to the mark afterwards, because that leave never
-   * arrives either: the mark would never open its card again. The timer can only fire within
-   * `ENTER_DELAY` of the press that armed it, so the moment tells the two apart.
+   * MUI arms its enter timer when the pointer reaches a mark and clears it only when the pointer
+   * leaves, never on a click, and the timer holds the callbacks of the render that armed it — so a
+   * press inside `ENTER_DELAY` is followed by a stale `onOpen`, and a guard read there is reading
+   * the state as it stood before the press. `open` is a prop of the current render, which no timer
+   * holds a copy of, so the latch is read there and the card is refused rather than never opened.
+   *
+   * The mark's own `mouseover` is what lets it go, that being the one event saying the pointer has
+   * genuinely arrived. Released on the leave instead, it would still be held when the reader comes
+   * back: a layer opened from the mark swallows the pointer, so no leave arrives while it is up,
+   * and the mark would open its card once and never again.
    */
-  const pressedAt = useRef(0);
+  const [pressed, setPressed] = useState(false);
   // A count rather than a flag: layers nest — a drill-down opened from a card holds the popper,
   // and every card inside that drill-down holds it again while its own dialog is up. Released as a
   // flag, the innermost card's close would clear the outermost hold and unmount the whole stack.
@@ -282,13 +284,13 @@ const HoverCardPopper = ({ colour, title, placement, transparent, children }: Ho
     return () => observer.disconnect();
   };
 
+  const showing = hovered && !pressed;
+
   return (
     <Tooltip
       arrow
-      open={hovered || held > 0}
-      onOpen={() => {
-        if (Date.now() - pressedAt.current > ENTER_DELAY) setHovered(true);
-      }}
+      open={showing || held > 0}
+      onOpen={() => setHovered(true)}
       onClose={() => setHovered(false)}
       // Long enough that a pointer crossing a dense chart does not open a card per mark it passes,
       // and long enough on the way out to reach the card across the mat.
@@ -331,7 +333,7 @@ const HoverCardPopper = ({ colour, title, placement, transparent, children }: Ho
           // popper sits at the tooltip level, above every modal — so it would paint across the
           // dialog it just opened, which on a fullscreen one covers the list the reader pressed
           // for. It stays mounted, because that is what the hold is for; it just stops being seen.
-          sx: popperSx(held > 0 && !hovered, transparent ?? false),
+          sx: popperSx(held > 0 && !showing, transparent ?? false),
           modifiers: [
             { name: "flip", options: { fallbackPlacements: ["top", "bottom"] } },
             { name: "preventOverflow", options: { altAxis: true, padding: 8 } },
@@ -348,9 +350,26 @@ const HoverCardPopper = ({ colour, title, placement, transparent, children }: Ho
           // moment, so it is the only one that has to be told.
           cloneElement(children, {
             onClick: (event: MouseEvent<HTMLElement>) => {
-              pressedAt.current = Date.now();
+              setPressed(true);
               setHovered(false);
               children.props.onClick?.(event);
+            },
+            // MUI composes its own handler ahead of this one, so by the time the latch is let go
+            // the enter timer this arrival arms is already the one that will find it gone.
+            //
+            // The hover the press refused goes with it. MUI declines to call `onClose` while
+            // `open` is false, so a mark still under a latch is still holding that refused hover,
+            // and letting the latch go alone would show its card the instant the pointer touched
+            // the mark. Cleared together, the timer this arrival arms is what
+            // opens it, at the delay every other card opens at. Only under a latch: MUI arms that
+            // timer again for every nested element the pointer crosses inside the child, and a
+            // card closed and reopened at each of them is a flicker.
+            onMouseOver: (event: MouseEvent<HTMLElement>) => {
+              if (pressed) {
+                setPressed(false);
+                setHovered(false);
+              }
+              children.props.onMouseOver?.(event);
             },
           })
         : children}
