@@ -52,6 +52,9 @@ const trekLibrary = () =>
 
 const trek = () => toOmniItems(trekLibrary());
 
+/** A library as the pages read it: each tab's own rows are its visible slice, or the union over them. */
+const pages = (held: ReturnType<typeof library>) => ({ visible: held, items: toOmniItems(held) });
+
 /** The whole index, over one library and the union built from it. */
 const trekIndex = () => buildSearchIndex(trek(), trekLibrary());
 
@@ -79,7 +82,9 @@ describe("buildSearchIndex", () => {
     // entries whose names differ. Nothing here names itself.
     expect(franchises.map((entry) => entry.franchise).toSorted()).toEqual(["Revelation Space", "Star Trek"]);
     const startrek = franchises.find((entry) => entry.franchise === "Star Trek")!;
-    expect(startrek.counts).toEqual({ game: 1, show: 3, movie: 1 });
+    // Its works per medium, which is the breakdown of `works` and not of `size`: one show, not the
+    // three seasons its strip counts, so the dots beside a series add to the cut at its row's end.
+    expect(startrek.counts).toEqual({ game: 1, show: 1, movie: 1 });
     expect(startrek.size).toBe(5);
   });
 
@@ -215,28 +220,36 @@ describe("the palette before anything is typed", () => {
 });
 
 describe("buildAttributeIndex", () => {
-  it("counts a category's values per medium, and names every tab whose schema holds the category", () => {
-    const entries = buildAttributeIndex(trekLibrary());
+  it("counts a category's values in each tab's own rows, naming every tab that holds one", () => {
+    const entries = buildAttributeIndex(pages(trekLibrary()));
     const sciFi = entries.find((entry) => entry.category === "genre" && entry.value === "Sci-Fi")!;
 
-    // The show, the film and the book are Sci-Fi; the game is Adventure.
-    // Counted in each tab's own rows: one show, not the three seasons the union flattens it to.
-    expect(sciFi.counts).toEqual({ show: 1, movie: 1, book: 1 });
+    // The show, the film and the book are Sci-Fi; the game is Adventure. Each tab counts its own
+    // rows: one show on Shows, against the three seasons the composing tab's union flattens it to.
+    expect(sciFi.counts).toEqual({ shows: 1, movies: 1, books: 1, omnibus: 5 });
     // The tabs a hit can be taken to are read off those counts, so they are the tabs holding a row
     // of it and not every tab whose schema has a genre: Games would otherwise offer a page filtered
-    // to nothing. They come in the order the app says the media, which is the order the walk takes.
-    expect(Object.keys(sciFi.counts)).toEqual(["show", "movie", "book"]);
+    // to nothing. They come in the order the walk takes the tabs, the composing one last.
+    expect(Object.keys(sciFi.counts)).toEqual(["shows", "movies", "books", "omnibus"]);
+  });
+
+  it("leaves the composing tab's pass out of the figure a shelf is worded by", () => {
+    const sciFi = buildAttributeIndex(pages(trekLibrary())).find((entry) => entry.value === "Sci-Fi")!;
+
+    // What the layer opens is the four libraries' own rows, which is what `attributeWorks` gathers.
+    // Counted over five tabs it would state every value at twice the size it opens at.
+    expect(sciFi.size).toBe(3);
   });
 
   it("offers a category only the tabs that hold it, counted on the medium that answers", () => {
-    const platform = buildAttributeIndex(trekLibrary()).find((entry) => entry.category === "platform")!;
+    const platform = buildAttributeIndex(pages(trekLibrary())).find((entry) => entry.category === "platform")!;
 
     expect(platform.value).toBe("Nintendo Switch");
-    expect(Object.keys(platform.counts)).toEqual(["game"]);
+    expect(Object.keys(platform.counts)).toEqual(["games"]);
   });
 
   it("leaves the franchise column out: a franchise is a thing the box already answers with", () => {
-    expect(buildAttributeIndex(trekLibrary()).some((entry) => entry.category === "franchise")).toBe(false);
+    expect(buildAttributeIndex(pages(trekLibrary())).some((entry) => entry.category === "franchise")).toBe(false);
   });
 
   it("indexes the level above a category's values, so a company is a hit setting its platforms", () => {
@@ -246,21 +259,21 @@ describe("buildAttributeIndex", () => {
         videoGame({ name: "Pokémon Platinum", platform: "Nintendo DS" }),
       ],
     });
-    const company = buildAttributeIndex(consoles).find((entry) => entry.label === "company")!;
+    const company = buildAttributeIndex(pages(consoles)).find((entry) => entry.label === "company")!;
 
     expect(company.value).toBe("Nintendo");
     // Filed under the category it narrows, not under its own level: a hit is placed and applied by
     // the field a page's schema holds, and the level is only how the values were reached.
     expect(company.category).toBe("platform");
-    expect(company.counts.game).toBe(2);
+    expect(company.counts.games).toBe(2);
     // What ↵ sets: the platforms under it, which is what its own parent chip selects.
-    expect(company.values.game).toEqual(["Nintendo Switch", "Nintendo DS"]);
+    expect(company.values.games).toEqual(["Nintendo Switch", "Nintendo DS"]);
   });
 
   it("indexes no group holding one value, that entry being the same rows under a second name", () => {
     const one = library({ game: [videoGame({ name: "Tears of the Kingdom", platform: "Nintendo Switch" })] });
 
-    expect(buildAttributeIndex(one).some((entry) => entry.label === "company")).toBe(false);
+    expect(buildAttributeIndex(pages(one)).some((entry) => entry.label === "company")).toBe(false);
   });
 
   it("keys a group apart from a value of the same name, a company being free to share one", () => {
@@ -273,22 +286,24 @@ describe("buildAttributeIndex", () => {
     });
     // PC is its own company and its own platform, and the group is pruned as one of a single
     // value — so what is left counts the one PC game and not that game twice.
-    const [platform] = buildAttributeIndex(pc).filter((entry) => entry.value === "PC");
+    const [platform] = buildAttributeIndex(pages(pc)).filter((entry) => entry.value === "PC");
 
     expect(platform.label).toBe("platform");
-    expect(platform.counts.game).toBe(1);
+    expect(platform.counts.games).toBe(1);
   });
 
   it("groups a certificate on its band, so the two boards' names for one tier are one hit", () => {
     const rated = library({
       movie: [movie({ name: "Blade Runner", certificate: "15" }), movie({ name: "Akira", certificate: "16" })],
     });
-    const tiers = buildAttributeIndex(rated).filter((entry) => entry.category === "certificate");
+    const tiers = buildAttributeIndex(pages(rated)).filter((entry) => entry.category === "certificate");
 
     expect(tiers.map((entry) => entry.value)).toEqual(["15/16"]);
-    expect(tiers[0].counts.movie).toBe(2);
+    expect(tiers[0].counts.movies).toBe(2);
     // What the hit sets on the Movies tab: both notations, since the sheet holds each of them.
-    expect(tiers[0].values.movie).toEqual(["15", "16"]);
+    expect(tiers[0].values.movies).toEqual(["15", "16"]);
+    // The composing tab groups on the band itself, so what it sets there is the band string.
+    expect(tiers[0].values.omnibus).toEqual(["15/16"]);
   });
 });
 
@@ -302,16 +317,16 @@ describe("buildAttributeIndex over a shelved toggle", () => {
     });
 
   it("folds the two tabs' anime switches into one entry, since both are keyed and worded alike", () => {
-    const anime = buildAttributeIndex(animeLibrary()).filter((entry) => entry.category === "anime");
+    const anime = buildAttributeIndex(pages(animeLibrary())).filter((entry) => entry.category === "anime");
 
     expect(anime).toHaveLength(1);
     expect(anime[0].value).toBe("Anime");
-    // Each tab's own rows: one show, not the three seasons the union flattens it to.
-    expect(anime[0].counts).toEqual({ show: 1, movie: 1 });
+    // Each tab's own rows, and only the two: the composing tab records no anime split.
+    expect(anime[0].counts).toEqual({ shows: 1, movies: 1 });
   });
 
   it("keeps the split's unmarked half out of the index, so no shelf stands for a whole tab", () => {
-    const values = buildAttributeIndex(animeLibrary())
+    const values = buildAttributeIndex(pages(animeLibrary()))
       .filter((entry) => entry.category === "anime")
       .map((entry) => entry.value);
 
@@ -319,7 +334,7 @@ describe("buildAttributeIndex over a shelved toggle", () => {
   });
 
   it("leaves a toggle that names a page's own noise out of the index entirely", () => {
-    const keys = buildAttributeIndex(animeLibrary()).map((entry) => entry.category);
+    const keys = buildAttributeIndex(pages(animeLibrary())).map((entry) => entry.category);
 
     expect(keys).not.toContain("unconfirmed");
     expect(keys).not.toContain("unscored");
@@ -328,7 +343,7 @@ describe("buildAttributeIndex over a shelved toggle", () => {
   });
 
   it("holds every row the shelved toggle names, across both media that record it", () => {
-    const [anime] = buildAttributeIndex(animeLibrary()).filter((entry) => entry.category === "anime");
+    const [anime] = buildAttributeIndex(pages(animeLibrary())).filter((entry) => entry.category === "anime");
     const works = attributeWorks(animeLibrary(), anime, TODAY);
 
     expect(works.map((work) => work.medium).toSorted()).toEqual(["movie", "show"]);
@@ -337,34 +352,39 @@ describe("buildAttributeIndex over a shelved toggle", () => {
 
 describe("attributePlacements and attributeAction", () => {
   const genre = () =>
-    buildAttributeIndex(trekLibrary()).find((entry) => entry.category === "genre" && entry.value === "Sci-Fi")!;
+    buildAttributeIndex(pages(trekLibrary())).find((entry) => entry.category === "genre" && entry.value === "Sci-Fi")!;
 
-  it("puts the tab being read first, as the one a hit filters rather than travels to", () => {
-    const placed = attributePlacements(genre(), "shows", ["genre", "network"]);
-
-    expect(placed[0]).toMatchObject({ tab: "shows", here: true });
-    expect(placed.slice(1).map((hit) => hit.tab)).toEqual(["movies", "books"]);
-    expect(placed.slice(1).every((hit) => !hit.here)).toBe(true);
+  it("names every tab holding the value, in one order whichever tab the reader is standing on", () => {
+    // The composing tab among them: it is a page with a genre filter like any other, and a strip
+    // whose chips change with the tab is one a reader has to read again on every page.
+    expect(attributePlacements(genre()).map((hit) => hit.tab)).toEqual(["shows", "movies", "books", "omnibus"]);
   });
 
-  it("offers no hit on a page holding the category but none of the value, which would empty it", () => {
+  it("counts a placement in that tab's own rows, which is the population the press leaves behind", () => {
+    const placed = attributePlacements(genre());
+    const on = (tab: string) => placed.find((hit) => hit.tab === tab)!.count;
+
+    // One show on the Shows tab, against the three seasons the composing tab's union flattens it
+    // to — plus that tab's film and book, which count once either way.
+    expect(on("shows")).toBe(1);
+    expect(on("omnibus")).toBe(5);
+  });
+
+  it("offers no chip on a page holding the category but none of the value, which would empty it", () => {
     // Games can be narrowed by genre, and no game in this library is Sci-Fi.
-    const placed = attributePlacements(genre(), "games", ["genre", "platform"]);
-
-    expect(placed.every((hit) => !hit.here)).toBe(true);
+    expect(attributePlacements(genre()).some((hit) => hit.tab === "games")).toBe(false);
   });
 
-  it("offers no hit on the page being read where that page cannot be narrowed by the category", () => {
-    const platform = buildAttributeIndex(trekLibrary()).find((entry) => entry.category === "platform")!;
-    const placed = attributePlacements(platform, "shows", ["genre", "network", "type", "franchise"]);
+  it("offers no chip on a page that cannot be narrowed by the category at all", () => {
+    const platform = buildAttributeIndex(pages(trekLibrary())).find((entry) => entry.category === "platform")!;
 
-    expect(placed.map((hit) => ({ tab: hit.tab, here: hit.here }))).toEqual([{ tab: "games", here: false }]);
+    // Only Games records a platform, the composing tab included.
+    expect(attributePlacements(platform).map((hit) => hit.tab)).toEqual(["games"]);
   });
 
-  it("places a hit on a tab that is no medium, whose own values are the ones it states", () => {
-    const [placed] = attributePlacements(genre(), "omnibus", ["genre", "franchise"]);
+  it("sets the value as the composing tab writes it, that page having a notation of its own", () => {
+    const placed = attributePlacements(genre()).find((hit) => hit.tab === "omnibus")!;
 
-    expect(placed).toMatchObject({ tab: "omnibus", here: true, medium: undefined });
     expect(attributeAction(placed, [])).toEqual({
       type: "updateFilter",
       filter: "genre",
@@ -373,7 +393,7 @@ describe("attributePlacements and attributeAction", () => {
   });
 
   it("adds to whatever that tab already holds, and adds nothing it holds already", () => {
-    const [placed] = attributePlacements(genre(), "shows", ["genre"]);
+    const [placed] = attributePlacements(genre());
 
     expect(attributeAction(placed, ["Horror"])).toEqual({
       type: "updateFilter",
@@ -391,8 +411,8 @@ describe("attributePlacements and attributeAction", () => {
     const rated = library({
       movie: [movie({ name: "Blade Runner", certificate: "15" }), movie({ name: "Akira", certificate: "16" })],
     });
-    const tier = buildAttributeIndex(rated).find((entry) => entry.category === "certificate")!;
-    const [placed] = attributePlacements(tier, "movies", ["genre", "certificate"]);
+    const tier = buildAttributeIndex(pages(rated)).find((entry) => entry.category === "certificate")!;
+    const [placed] = attributePlacements(tier);
 
     expect(attributeAction(placed, [])).toEqual({
       type: "updateFilter",
@@ -409,11 +429,12 @@ describe("attributePlacements and attributeAction", () => {
       game: [videoGame({ name: "The Witcher 3", certificate: "16" })],
       movie: [movie({ name: "Blade Runner", certificate: "15" })],
     });
-    const tier = buildAttributeIndex(rated).find((entry) => entry.category === "certificate")!;
+    const tier = buildAttributeIndex(pages(rated)).find((entry) => entry.category === "certificate")!;
 
     expect(tier.value).toBe("15/16");
-    const onGames = attributePlacements(tier, "games", ["certificate"])[0];
-    const onMovies = attributePlacements(tier, "movies", ["certificate"])[0];
+    const placed = attributePlacements(tier);
+    const onGames = placed.find((hit) => hit.tab === "games")!;
+    const onMovies = placed.find((hit) => hit.tab === "movies")!;
 
     expect(attributeAction(onGames, [])).toMatchObject({ filter: "certificate", value: ["16"] });
     expect(attributeAction(onMovies, [])).toMatchObject({ filter: "certificate", value: ["15"] });
@@ -424,8 +445,8 @@ describe("attributePlacements and attributeAction", () => {
       game: [videoGame({ name: "The Witcher 3", certificate: "16" })],
       movie: [movie({ name: "Blade Runner", certificate: "15" })],
     });
-    const tier = buildAttributeIndex(rated).find((entry) => entry.category === "certificate")!;
-    const [placed] = attributePlacements(tier, "omnibus", ["certificate"]);
+    const tier = buildAttributeIndex(pages(rated)).find((entry) => entry.category === "certificate")!;
+    const placed = attributePlacements(tier).find((hit) => hit.tab === "omnibus")!;
 
     // Its own category groups on the band for the same reason the gallery's shelves do, so the
     // band string is the value that page can actually be narrowed by.
@@ -434,29 +455,25 @@ describe("attributePlacements and attributeAction", () => {
 });
 
 describe("searchUnion over values", () => {
-  it("puts the page being read first among a value's narrowings, then the pages it travels to", () => {
-    const [value] = valuesOf(searchUnion(trekIndex(), "sci-fi", { tabId: "shows", categories: ["genre", "network"] }));
+  it("hangs a chip per tab holding the value under it, in one order on every tab", () => {
+    const [value] = valuesOf(searchUnion(trekIndex(), "sci-fi"));
 
     expect(value.attribute.value).toBe("Sci-Fi");
-    // The tab being read leads and is the one narrowed in place; the rest are places to go.
-    expect(value.placements.map((placed) => placed.tab)).toEqual(["shows", "movies", "books"]);
-    expect(value.placements.map((placed) => placed.here)).toEqual([true, false, false]);
+    expect(value.placements.map((placed) => placed.tab)).toEqual(["shows", "movies", "books", "omnibus"]);
   });
 
-  it("keeps a value with no page to narrow, which still has a layer to open", () => {
-    // The layer reading is over the libraries recording the value and asks no tab anything, where
-    // a narrowing needs a page to narrow. Nothing in the four libraries is *named* "Sci-Fi", so
-    // the value and its one reading are the whole answer.
+  it("answers a query no work matches with the value alone, which is an answer of its own", () => {
+    // Nothing in the four libraries is *named* "Sci-Fi", so the value and its readings are the
+    // whole answer: the layer over every library recording it, and a chip per page it narrows.
     const groups = searchUnion(trekIndex(), "sci-fi");
     const [value] = valuesOf(groups);
 
     expect(groups.map((group) => group.key)).toEqual(["values"]);
     expect(value.attribute.value).toBe("Sci-Fi");
-    expect(value.placements).toEqual([]);
   });
 
   it("leads with the values, then the works", () => {
-    const groups = searchUnion(trekIndex(), "star", { tabId: "shows", categories: ["genre", "franchise"] });
+    const groups = searchUnion(trekIndex(), "star");
 
     expect(groups.map((group) => group.key)).toEqual(["values", "game", "show", "movie"]);
   });
@@ -465,7 +482,7 @@ describe("searchUnion over values", () => {
     // A series opens its own view — its facts and its strip before the works — where an attribute
     // opens a shelf of works alone, so the two are told apart by whether an entry stands behind
     // the value rather than by which list it came from.
-    const values = valuesOf(searchUnion(trekIndex(), "star trek", { tabId: "shows", categories: ["genre"] }));
+    const values = valuesOf(searchUnion(trekIndex(), "star trek"));
 
     expect(values[0].franchise?.franchise).toBe("Star Trek");
     expect(values[0].attribute.category).toBe("franchise");
@@ -478,12 +495,7 @@ describe("searchUnion over values", () => {
       game: [videoGame({ name: "Fantasy Quest II", franchise: "Fantasy Quest", genre: "Fantasy" })],
       movie: [movie({ name: "Fantasy Quest: The Film", franchise: "Fantasy Quest", genre: "Fantasy" })],
     });
-    const values = valuesOf(
-      searchUnion(buildSearchIndex(toOmniItems(fantasy), fantasy), "fantasy", {
-        tabId: "games",
-        categories: ["genre", "franchise"],
-      }),
-    );
+    const values = valuesOf(searchUnion(buildSearchIndex(toOmniItems(fantasy), fantasy), "fantasy"));
 
     expect(values.map((value) => value.attribute.value)).toEqual(["Fantasy", "Fantasy Quest"]);
     expect(values[0].franchise).toBeUndefined();
@@ -494,26 +506,20 @@ describe("searchUnion over values", () => {
     // column and the series column both — so a tie is the common case rather than the odd one, and
     // the series takes it: its view states the series' own facts and strip before listing it.
     const reynolds = library({ book: [book(), book({ name: "Redemption Ark", seriesNumber: 3 })] });
-    const values = valuesOf(
-      searchUnion(buildSearchIndex(toOmniItems(reynolds), reynolds), "revelation space", {
-        tabId: "books",
-        categories: ["series", "franchise"],
-      }),
-    );
+    const values = valuesOf(searchUnion(buildSearchIndex(toOmniItems(reynolds), reynolds), "revelation space"));
 
     expect(values.map((value) => value.franchise !== undefined)).toEqual([true, false]);
   });
 
-  it("counts a value's narrowings in the tab's own rows, where the series counts the union's", () => {
-    // The two figures answer different questions and the box states them on one line apiece: the
-    // value's own line is worded in the union's unit — three seasons — and each reading in the
-    // tab's own noun, where a show is one show and pressing it leaves one row on the page.
-    const [value] = valuesOf(
-      searchUnion(trekIndex(), "star trek", { tabId: "shows", categories: ["genre", "franchise"] }),
-    );
+  it("counts a chip in the tab's own rows, where the dots beside the name count the works", () => {
+    // The two figures answer different questions and the box states each where it is used: a chip
+    // says what pressing it leaves on that page, and the dots break down the cut at the row's end,
+    // which lists works — so the composing tab's 5 seasons are a chip and never a dot.
+    const [value] = valuesOf(searchUnion(trekIndex(), "star trek"));
 
-    expect(value.placements[0].counts).toEqual({ game: 1, show: 1, movie: 1 });
-    expect(value.franchise?.counts).toEqual({ game: 1, show: 3, movie: 1 });
+    expect(value.placements[0].counts).toEqual({ games: 1, shows: 1, movies: 1, omnibus: 5 });
+    expect(value.franchise?.counts).toEqual({ game: 1, show: 1, movie: 1 });
+    expect(value.franchise?.works).toBe(3);
   });
 
   it("offers no narrowing on a tab whose own picker erases the franchise", () => {
@@ -525,15 +531,11 @@ describe("searchUnion over values", () => {
       game: [videoGame({ name: "Halo", franchise: "Halo" })],
       movie: [movie({ name: "Halo: The Movie", franchise: "Halo" })],
     });
-    const [value] = valuesOf(
-      searchUnion(buildSearchIndex(toOmniItems(halo), halo), "halo", {
-        tabId: "movies",
-        categories: ["genre", "franchise"],
-      }),
-    );
+    const [value] = valuesOf(searchUnion(buildSearchIndex(toOmniItems(halo), halo), "halo"));
 
-    // Movies names the series; the lone Halo game names only itself, so Games offers no chip.
-    expect(value.placements.map((placed) => placed.tab)).toEqual(["movies"]);
+    // Movies names the series; the lone Halo game names only itself, so Games offers no chip. The
+    // composing tab does, its own picker reading a union that holds the film as well as the game.
+    expect(value.placements.map((placed) => placed.tab)).toEqual(["movies", "omnibus"]);
   });
 
   it("states how many values the query matched, not how many it showed", () => {
@@ -546,7 +548,7 @@ describe("searchUnion over values", () => {
         movie({ name: `Film ${index}`, franchise: `Noir ${index}`, genre }),
       ),
     });
-    const groups = searchUnion(buildSearchIndex(toOmniItems(noirs), noirs), "noir", undefined, 2);
+    const groups = searchUnion(buildSearchIndex(toOmniItems(noirs), noirs), "noir", 2);
     const values = groups.find((group) => group.key === "values")!;
 
     // Four genres and four series, of which two are shown.
@@ -565,28 +567,20 @@ describe("searchUnion over values", () => {
         movie({ name: "Noir III", franchise: "Noir", genre: "Cnoir" }),
       ],
     });
-    const values = valuesOf(
-      searchUnion(buildSearchIndex(toOmniItems(noir), noir), "noir", {
-        tabId: "movies",
-        categories: ["genre", "franchise"],
-      }),
-    );
+    const values = valuesOf(searchUnion(buildSearchIndex(toOmniItems(noir), noir), "noir"));
 
     expect(values[0].attribute.category).toBe("franchise");
   });
 
-  it("gives a series the two narrowings a genre gets, on the tabs recording it", () => {
-    const [value] = valuesOf(
-      searchUnion(trekIndex(), "star trek", { tabId: "shows", categories: ["genre", "franchise"] }),
-    );
+  it("gives a series the narrowings a genre gets, on every tab whose picker offers it", () => {
+    const [value] = valuesOf(searchUnion(trekIndex(), "star trek"));
 
     expect(value.attribute.category).toBe("franchise");
-    expect(value.placements.map((placed) => placed.tab)).toEqual(["shows", "games", "movies"]);
-    expect(value.placements.map((placed) => placed.here)).toEqual([true, false, false]);
+    expect(value.placements.map((placed) => placed.tab)).toEqual(["games", "shows", "movies", "omnibus"]);
   });
 
   it("sets the franchise column on the tab a narrowing was pressed on", () => {
-    const [value] = valuesOf(searchUnion(trekIndex(), "star trek", { tabId: "shows", categories: ["franchise"] }));
+    const [value] = valuesOf(searchUnion(trekIndex(), "star trek"));
 
     expect(attributeAction(value.placements[0], [])).toEqual({
       type: "updateFilter",
@@ -595,10 +589,14 @@ describe("searchUnion over values", () => {
     });
   });
 
-  it("offers no narrowing of the page being read where its schema has no franchise category", () => {
-    const [value] = valuesOf(searchUnion(trekIndex(), "star trek", { tabId: "shows", categories: ["genre"] }));
+  it("counts a series on each tab in that tab's own rows, so no chip states the union's figure", () => {
+    const [value] = valuesOf(searchUnion(trekIndex(), "star trek"));
+    const on = (tab: string) => value.placements.find((placed) => placed.tab === tab)!.count;
 
-    expect(value.placements.some((placed) => placed.here)).toBe(false);
+    // One Star Trek show on the Shows tab; five entries on the composing tab, whose union counts
+    // the three seasons inside it beside the game and the film.
+    expect(on("shows")).toBe(1);
+    expect(on("omnibus")).toBe(5);
   });
 });
 
@@ -746,7 +744,7 @@ describe("searchScope", () => {
 
 describe("attributeWorks", () => {
   it("collapses the whole union's rows carrying one attribute into a card apiece", () => {
-    const sciFi = buildAttributeIndex(trekLibrary()).find(
+    const sciFi = buildAttributeIndex(pages(trekLibrary())).find(
       (entry) => entry.category === "genre" && entry.value === "Sci-Fi",
     )!;
     const works = attributeWorks(trekLibrary(), sciFi, TODAY);
@@ -763,7 +761,7 @@ describe("attributeWorks", () => {
         videoGame({ name: "Half-Life", platform: "PC" }),
       ],
     });
-    const company = buildAttributeIndex(consoles).find((entry) => entry.label === "company")!;
+    const company = buildAttributeIndex(pages(consoles)).find((entry) => entry.label === "company")!;
 
     // Read the other way — the cell put back through the value rule and compared to "Nintendo" —
     // this shelves nothing, a company being no platform any row carries.

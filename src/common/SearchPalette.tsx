@@ -21,9 +21,11 @@ import { cut } from "./population";
  * the reader to. The wording and the figure are the caller’s and `lead` is whatever mark it wants
  * beside them, so the shell never learns what a medium is.
  *
- * `line` is which of the strip’s two rows it stands on, stated rather than left to wrap: the first
- * holds the readings that leave the reader where they are, the second the ones that move them, and
- * a wrap would put that boundary wherever the widest value happened to push it.
+ * The first is the layer — the whole of the value — and stands at the end of the value’s own line
+ * whether or not the strip is down; the rest are the narrowings, and are the strip. That split is
+ * structural rather than a stated line number: the reading that leaves the reader where they are
+ * cannot end up beside the ones that move them however wide a value’s name runs, and an open value
+ * is two lines rather than three.
  */
 export interface PaletteReading {
   key: string;
@@ -31,7 +33,6 @@ export interface PaletteReading {
   /** What it holds, already formatted — absent where the reading has no honest figure to give. */
   count?: string;
   lead?: ReactNode;
-  line: 1 | 2;
   onOpen: () => void;
 }
 
@@ -72,6 +73,12 @@ interface PaletteValueHit extends PaletteHitBase {
    * one fact said twice. The caller says what; the row says when.
    */
   summary?: ReactNode;
+  /**
+   * The readings, the first of them the layer: the whole of the value, which is what ↵ and a soft
+   * keyboard's Go open. It stands at the end of the value's own line at every state, so a row that
+   * states a figure never makes the reader open a strip to press what they were already looking
+   * at — and an open value is two lines rather than three, the strip holding the narrowings alone.
+   */
   readings: PaletteReading[];
 }
 
@@ -237,12 +244,35 @@ const valueSx = (theme: Theme) => ({
   gap: 1,
   paddingTop: 1,
   paddingBottom: 0.5,
+  // What the end beside it leaves: a chip a finger has to aim at cannot shrink, where a name has
+  // an ellipsis to give.
+  width: "auto",
+  flex: 1,
+  minWidth: 0,
 });
 
-/** The strip: two stated lines, not one that wraps (see `PaletteReading.line`). */
-const STRIP_SX = { display: "flex", flexDirection: "column", gap: 0.75, paddingX: 2, paddingBottom: 1.25 } as const;
+/** The value's line: the name's own press, and the presses standing at its end while the strip is down. */
+const VALUE_LINE_SX = { display: "flex", alignItems: "center", minWidth: 0 } as const;
 
-const STRIP_LINE_SX = { display: "flex", flexWrap: "wrap", gap: 0.75, alignItems: "center" } as const;
+/**
+ * That end: how much of the value each medium holds, then the layer as the cut it is — the cut
+ * last, being the press of the two and the row's own way in. Outside the name's button, a button
+ * inside a button being no button.
+ */
+const SHUT_ROW_END_SX = { display: "flex", alignItems: "center", gap: 1, flex: "none", paddingRight: 2 } as const;
+
+/** A series' run, which stands with the category rather than among the figures counting it. */
+const TRAILING_SX = { flex: "none", display: "inline-flex", alignItems: "center" } as const;
+
+/** The strip: the narrowings alone, the layer standing at the end of the line above them. */
+const STRIP_SX = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 0.75,
+  alignItems: "center",
+  paddingX: 2,
+  paddingBottom: 1.25,
+} as const;
 
 /**
  * A chip: the kit's own, at 28px under a pointer and the coarse 32 under a finger, where the type
@@ -339,30 +369,46 @@ const indexOfKey = (list: readonly { key: string }[], key: string | null) =>
 /** What a hit does where the shell has no reading of its own to open. */
 const pressOf = (hit: PaletteHit) => (hit.readings ? hit.readings[0].onOpen : hit.onOpen);
 
+/** Where a hit's own row stands, which is a group and a hit: one entry can stand in two groups. */
+const rowKeyOf = (group: PaletteGroup, hit: PaletteHit) => `${group.key}:${hit.key}`;
+
+/** The rows a group draws, by key alone — which is what resolving the selection needs and all it does. */
+const rowKeysOf = (group: PaletteGroup) =>
+  group.layout === "chips" ? [group.key] : group.hits.map((hit) => rowKeyOf(group, hit));
+
+/**
+ * Whether a value draws its strip: it has narrowings to draw, and either the group asked it of
+ * every row or the reader is on this one.
+ *
+ * A value nothing can be narrowed by never opens — a series every tab's own picker erases has its
+ * layer and nothing else, and revealing an empty strip would take the counts off its line to make
+ * room for nothing. Asked here by both the cells the keys walk and the cells that are drawn, since
+ * a row whose cell list and whose chips disagree points `aria-activedescendant` at an id no element
+ * wears.
+ */
+const stripOpen = (group: PaletteGroup, hit: PaletteValueHit, rowKey: string, openKey: string | null) =>
+  hit.readings.length > 1 && (group.alwaysOpen === true || rowKey === openKey);
+
 /**
  * The lines the arrows move between, and the presses along each.
  *
  * A chips group is one line however many chips it holds: they already stand on one row, so ↓
  * stepping rightwards across them reads as the wrong key. Everything else is a line per hit — one
- * press for a work, one per reading for a value.
+ * press for a work, and for a value the readings its row is actually drawing: the whole strip where
+ * it is open and the layer alone where it is shut, which is what keeps ←→ to presses on screen.
  *
  * Keyed by group as well as hit, since one entry can stand in two groups — a franchise met lately
  * and found again by name — and one flag must light one row.
  */
-const rowsOfGroup = (group: PaletteGroup): Row[] => {
+const rowsOfGroup = (group: PaletteGroup, openKey: string | null): Row[] => {
   if (group.layout === "chips") {
-    return [
-      { key: group.key, cells: group.hits.map((hit) => ({ key: `${group.key}:${hit.key}`, onOpen: pressOf(hit) })) },
-    ];
+    return [{ key: group.key, cells: group.hits.map((hit) => ({ key: rowKeyOf(group, hit), onOpen: pressOf(hit) })) }];
   }
   return group.hits.map((hit) => {
-    const key = `${group.key}:${hit.key}`;
-    return {
-      key,
-      cells: hit.readings
-        ? hit.readings.map((reading) => ({ key: `${key}:${reading.key}`, onOpen: reading.onOpen }))
-        : [{ key, onOpen: hit.onOpen }],
-    };
+    const key = rowKeyOf(group, hit);
+    if (!hit.readings) return { key, cells: [{ key, onOpen: hit.onOpen }] };
+    const drawn = stripOpen(group, hit, key, openKey) ? hit.readings : hit.readings.slice(0, 1);
+    return { key, cells: drawn.map((reading) => ({ key: `${key}:${reading.key}`, onOpen: reading.onOpen })) };
   });
 };
 
@@ -559,7 +605,12 @@ export const SearchPalette = (props: {
     inputRef.current?.blur();
   }, [open, finding, focusRequest]);
 
-  const rows = groups.flatMap(rowsOfGroup);
+  // The keys first, then the rows: what a value's row holds depends on whether it is the selected
+  // one, and the selection falls back to the first row whenever the held key names none. Resolved
+  // off the keys alone — which no selection changes — so the answer is settled before it is read.
+  const rowKeys = groups.flatMap(rowKeysOf);
+  const openKey = rowKeys.find((key) => key === selectedKey) ?? rowKeys[0] ?? null;
+  const rows = groups.flatMap((group) => rowsOfGroup(group, openKey));
   // Cell ids are a place rather than a key: a key carries a franchise's own name, and an IDREF
   // with a space in it names nothing. Built once, so the id a cell wears and the id the input
   // points at are the same string rather than two constructions of it.
@@ -655,89 +706,84 @@ export const SearchPalette = (props: {
    * them, which is what a pointer always means, having selected the row by moving onto it; on a
    * collapsed one it reveals them, which is a finger's first tap and the tap that rule costs.
    */
-  const valueBlock = (hit: PaletteValueHit, rowKey: string, open: boolean) => (
-    <>
+  /** One reading as a press: the same chip whether it stands in the strip or beside a shut row. */
+  const readingCell = (reading: PaletteReading, rowKey: string) => {
+    const cell = `${rowKey}:${reading.key}`;
+    return (
       <Box
+        key={reading.key}
         component="button"
         type="button"
-        role="rowheader"
+        role="gridcell"
         tabIndex={-1}
-        onClick={() => (open ? hit.readings[0].onOpen() : setSelectedKey(rowKey))}
-        sx={valueSx}
+        {...cellProps(cell)}
+        onMouseMove={(event) => {
+          if (pointerMoved(event)) selectCell(rowKey, cell);
+        }}
+        onClick={reading.onOpen}
+        sx={chipSx}
       >
-        {hit.lead}
-        <Typography
-          variant="body2"
-          noWrap
-          sx={{ fontWeight: 600 }}
-        >
-          <Title
-            title={hit.title}
-            matched={hit.matched}
-          />
-        </Typography>
-        {hit.category && (
-          <Typography
-            variant="caption"
-            noWrap
+        {reading.lead}
+        {reading.label}
+        {reading.count !== undefined && (
+          <Box
             component="span"
-            sx={{ color: "text.secondary", minWidth: 0 }}
+            sx={MUTED_FIGURE_SX}
           >
-            {hit.category}
-          </Typography>
+            {reading.count}
+          </Box>
         )}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, marginLeft: "auto", paddingLeft: 1 }}>
+      </Box>
+    );
+  };
+
+  const valueBlock = (hit: PaletteValueHit, rowKey: string, open: boolean) => (
+    <>
+      <Box sx={VALUE_LINE_SX}>
+        <Box
+          component="button"
+          type="button"
+          role="rowheader"
+          tabIndex={-1}
+          onClick={() => (open ? hit.readings[0].onOpen() : setSelectedKey(rowKey))}
+          sx={valueSx}
+        >
+          {hit.lead}
+          <Typography
+            variant="body2"
+            noWrap
+            sx={{ fontWeight: 600 }}
+          >
+            <Title
+              title={hit.title}
+              matched={hit.matched}
+            />
+          </Typography>
+          {hit.category && (
+            <Typography
+              variant="caption"
+              noWrap
+              component="span"
+              sx={{ color: "text.secondary", minWidth: 0 }}
+            >
+              {hit.category}
+            </Typography>
+          )}
+          {/* Beside what kind of value it is rather than out at the end, a series' run being the
+              same sort of fact: what the thing is, before any figure counting it. It does not
+              shrink — a date reads as a date whole or not at all, where a name has an ellipsis. */}
+          {hit.trailing && <Box sx={TRAILING_SX}>{hit.trailing}</Box>}
+        </Box>
+        {/* The layer stands at the same place whether or not the strip is down: a row that states
+            a figure and gives no way to it makes the reader open a strip to press what they were
+            already looking at, and a chip that moves when the row opens is one to find again. The
+            counts step aside for it, each chip carrying its own. */}
+        <Box sx={SHUT_ROW_END_SX}>
           {!open && hit.summary}
-          {hit.trailing}
+          {readingCell(hit.readings[0], rowKey)}
         </Box>
       </Box>
-      {open && (
-        <Box sx={STRIP_SX}>
-          {/* The lines the readings actually claim, so widening `PaletteReading.line` cannot leave a
-              line silently undrawn. */}
-          {[...new Set(hit.readings.map((reading) => reading.line))]
-            .toSorted((a, b) => a - b)
-            .map((line) => {
-              const along = hit.readings.filter((reading) => reading.line === line);
-              return (
-                <Box
-                  key={line}
-                  sx={STRIP_LINE_SX}
-                >
-                  {along.map((reading) => {
-                    const cell = `${rowKey}:${reading.key}`;
-                    return (
-                      <Box
-                        key={reading.key}
-                        component="button"
-                        type="button"
-                        role="gridcell"
-                        tabIndex={-1}
-                        {...cellProps(cell)}
-                        onMouseMove={(event) => {
-                          if (pointerMoved(event)) selectCell(rowKey, cell);
-                        }}
-                        onClick={reading.onOpen}
-                        sx={chipSx}
-                      >
-                        {reading.lead}
-                        {reading.label}
-                        {reading.count !== undefined && (
-                          <Box
-                            component="span"
-                            sx={MUTED_FIGURE_SX}
-                          >
-                            {reading.count}
-                          </Box>
-                        )}
-                      </Box>
-                    );
-                  })}
-                </Box>
-              );
-            })}
-        </Box>
-      )}
+      {open && <Box sx={STRIP_SX}>{hit.readings.slice(1).map((reading) => readingCell(reading, rowKey))}</Box>}
     </>
   );
 
@@ -905,8 +951,8 @@ export const SearchPalette = (props: {
                   </Typography>
                 </Stack>
                 {group.hits.map((hit) => {
-                  const rowKey = `${group.key}:${hit.key}`;
-                  const lit = rowKey === selectedRow?.key;
+                  const rowKey = rowKeyOf(group, hit);
+                  const lit = rowKey === openKey;
                   return (
                     <Box
                       key={hit.key}
@@ -918,7 +964,7 @@ export const SearchPalette = (props: {
                       }}
                     >
                       {hit.readings ? (
-                        valueBlock(hit, rowKey, group.alwaysOpen === true || lit)
+                        valueBlock(hit, rowKey, stripOpen(group, hit, rowKey, openKey))
                       ) : (
                         <Box
                           component="button"

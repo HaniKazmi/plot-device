@@ -10,8 +10,16 @@ import type { PageAction } from "../common/filterReducer";
 import { omniHours, type Library } from "./library";
 import { galleryGroups, galleryStripOrder, galleryWorks, isSeries, workOf, type ShelfItem } from "./galleryData";
 import { media } from "./types";
+import { PAGE_MODULES, type PageRows } from "./pageState";
 import "../utils/arrayUtils";
 import "../utils/mapUtils";
+
+/**
+ * The tabs a shelf is gathered from: the four media, whose own rows are what `attributeItems`
+ * walks. The composing tab reads those same rows through the union, so a value counted there too
+ * would state every shelf at twice the size it opens at.
+ */
+const SHELF_TABS = new Set(media.map((medium) => MEDIA[medium].tabId));
 
 /**
  * A franchise as the palette can find it: the raw column value, which is the key every index
@@ -21,6 +29,10 @@ export interface FranchiseSearchEntry extends Searchable {
   kind: "franchise";
   key: string;
   franchise: string;
+  /**
+   * How the works divide between the media: the breakdown of `works` and not of `size`, so the
+   * dots beside a series and the cut at the end of its row are one figure said two ways.
+   */
   counts: Partial<Record<Medium, number>>;
   span: [first: number, last: number];
   /**
@@ -76,13 +88,21 @@ export interface AttributeEntry extends Searchable {
    * holding a group of one to its value tests.
    */
   level?: string;
-  counts: Partial<Record<Medium, number>>;
-  values: Partial<Record<Medium, string[]>>;
+  /**
+   * How many of each tab's own rows hold the value, by tab id, in the order the tabs are walked.
+   *
+   * By tab and not by medium, because a page is what a narrowing acts on and the composing tab is
+   * a page with filters like any other. It is also why the figures are not one scale: the Shows
+   * tab counts shows where the composing tab counts the seasons its own union flattens them to,
+   * which is exactly the population each press leaves behind.
+   */
+  counts: Record<string, number>;
+  values: Record<string, string[]>;
 }
 
 /**
- * An attribute on one particular tab, which is what a hit actually is: the same genre reads as
- * "filter this page" where the reader is and as "Shows · Comedy" where they are not.
+ * An attribute on one particular tab, which is what a hit actually is: "Shows · Comedy" names a
+ * page and a narrowing of it together.
  *
  * A clone per tab rather than a tab carried beside the hit, so a reading knows the whole of what
  * pressing it does. The clone is made after ranking, whose fold cache is keyed on the entries the
@@ -91,10 +111,8 @@ export interface AttributeEntry extends Searchable {
 export interface PlacedAttribute extends AttributeEntry {
   /** The tab the hit acts on. */
   tab: string;
-  /** Its medium, absent for the tab that is no medium — whose values are the union's own. */
-  medium?: Medium;
-  /** Whether that tab is the one being read, which is what ↵ does something different for. */
-  here: boolean;
+  /** That tab's own rows holding the value, which is the population the press leaves behind. */
+  count: number;
 }
 
 /**
@@ -142,15 +160,15 @@ export interface SearchIndex {
   /** The categories those attributes belong to, as things a query can name. */
   categories: CategorySearchEntry[];
   /**
-   * Per medium, how many of that tab's own rows each franchise its own picker offers holds.
+   * Per tab, how many of that tab's own rows each franchise its own picker offers holds.
    *
-   * Two answers a franchise hit needs and the union cannot give. The counts are the tab's rows and
-   * not the union's items, where a show is one row and the seasons the union flattens it to are
-   * several; and the keys are `franchiseOptions`' own set, which drops a franchise every row of
-   * that tab names itself — so a hit is only placed where the tab it lands on can draw a chip for
-   * it, and a filter nothing offers or clears is not set.
+   * Two answers a franchise hit needs and the ranked entry cannot give. The counts are the tab's
+   * rows and not the union's items, where a show is one row and the seasons the union flattens it
+   * to are several; and the keys are `franchiseOptions`' own set, which drops a franchise every
+   * row of that tab names itself — so a hit is only placed where the tab it lands on can draw a
+   * chip for it, and a filter nothing offers or clears is not set.
    */
-  franchiseRows: Partial<Record<Medium, Map<string, number>>>;
+  franchiseRows: Record<string, Map<string, number>>;
 }
 
 /**
@@ -164,28 +182,35 @@ export interface SearchIndex {
  * its latest season is the item its hit opens: the show's card is about the show, with that
  * season as the one its strip rings.
  */
-const franchiseRowsByMedium = (library: Library): Partial<Record<Medium, Map<string, number>>> => {
-  const byMedium: Partial<Record<Medium, Map<string, number>>> = {};
-  eachMedium((medium, module) => {
-    const rows = library[medium];
-    const category = module.filters.categories.find((candidate) => (candidate.key as string) === FRANCHISE_KEY);
-    if (!rows || !category) return;
+const franchiseRowsByTab = (pages: PageRows): Record<string, Map<string, number>> => {
+  const byTab: Record<string, Map<string, number>> = {};
+  for (const [tab, page] of Object.entries(PAGE_MODULES)) {
+    const rows = page.rows(pages);
+    const category = page.filters.categories.find((candidate) => (candidate.key as string) === FRANCHISE_KEY);
+    if (!rows || !category) continue;
     const offered = new Set(categoryValues(category, rows));
     const counts = new Map<string, number>();
     for (const row of rows) {
       const franchise = category.valueOf(row);
       if (offered.has(franchise)) counts.set(franchise, (counts.get(franchise) ?? 0) + 1);
     }
-    byMedium[medium] = counts;
-  });
-  return byMedium;
+    byTab[tab] = counts;
+  }
+  return byTab;
 };
 
 export const buildSearchIndex = (items: OmniItem[], library: Library): SearchIndex => {
+  // The two halves every page's rows come out of, which is all the per-tab walks below need: the
+  // four visible slices, and the union the composing tab filters.
+  const pages: PageRows = { visible: library, items };
   const franchises = [...franchiseIndex(items, (item) => item.franchise).entries()]
     .filter(([franchise, members]) => isSeries(franchise, members))
     .map(([franchise, members]): FranchiseSearchEntry => {
       const years = members.map((member) => member.year);
+      // One member per work, which is what the view lists: the total and the breakdown come off
+      // that one map, so a series cannot state four works and three media adding to five.
+      const byWork = new Map<unknown, OmniItem>();
+      for (const member of members) byWork.setIfAbsent(workOf(member), member);
       return {
         kind: "franchise",
         key: `franchise:${franchise}`,
@@ -193,9 +218,9 @@ export const buildSearchIndex = (items: OmniItem[], library: Library): SearchInd
         franchise,
         secondary: [],
         size: members.length,
-        counts: countByMedium(members),
+        counts: countByMedium([...byWork.values()]),
         span: [Math.min(...years), Math.max(...years)],
-        works: new Set(members.map(workOf)).size,
+        works: byWork.size,
       };
     });
 
@@ -217,14 +242,14 @@ export const buildSearchIndex = (items: OmniItem[], library: Library): SearchInd
     };
   });
 
-  const attributes = buildAttributeIndex(library);
+  const attributes = buildAttributeIndex(pages);
 
   return {
     franchises,
     items: workEntries,
     attributes,
     categories: buildCategoryIndex(attributes, franchises),
-    franchiseRows: franchiseRowsByMedium(library),
+    franchiseRows: franchiseRowsByTab(pages),
   };
 };
 
@@ -238,19 +263,19 @@ export const buildSearchIndex = (items: OmniItem[], library: Library): SearchInd
  * medium's own value is the franchise itself, that column holding one notation.
  *
  * Its counts are `franchiseRows`, each tab's own rows, and not the ranked entry's, which are the
- * union's: the facts line is worded in the tab's noun, so a show has to count once and not once a
- * season. A medium absent from that map contributes nothing, which is what keeps a hit off a tab
+ * union's: a chip is worded in the tab's own noun, so a show has to count once and not once a
+ * season. A tab absent from that map contributes nothing, which is what keeps a hit off a page
  * whose picker does not offer the value — with none of them offering it the entry has no counts at
  * all, `attributePlacements` yields nothing, and the franchise keeps its view and no narrowings.
  */
 const franchiseAttribute = (entry: FranchiseSearchEntry, rows: SearchIndex["franchiseRows"]): AttributeEntry => {
-  const counts: Partial<Record<Medium, number>> = {};
-  const values: Partial<Record<Medium, string[]>> = {};
-  for (const medium of media) {
-    const held = rows[medium]?.get(entry.franchise);
+  const counts: Record<string, number> = {};
+  const values: Record<string, string[]> = {};
+  for (const tab of Object.keys(PAGE_MODULES)) {
+    const held = rows[tab]?.get(entry.franchise);
     if (held === undefined) continue;
-    counts[medium] = held;
-    values[medium] = [entry.franchise];
+    counts[tab] = held;
+    values[tab] = [entry.franchise];
   }
 
   return {
@@ -268,25 +293,29 @@ const franchiseAttribute = (entry: FranchiseSearchEntry, rows: SearchIndex["fran
 };
 
 /**
- * What the box can find, with a count per medium: one entry per category value, plus one per
- * toggle that names a set worth opening, over each medium's own schema and its own rows.
+ * What the box can find, with a count per tab: one entry per category value, plus one per
+ * toggle that names a set worth opening, over each tab's own schema and its own rows.
+ *
+ * Walked by tab and not by medium, because a narrowing acts on a page and the composing tab is a
+ * page with filters like any other — walked by medium it could only ever be narrowed from the tab
+ * the reader was already standing on, which is a box that says something different on every tab.
  *
  * Built beside the work index and with it, since both are a pass over the libraries and a
  * keystroke should cost a scan of strings already assembled. A blank cell is skipped — a category
- * a medium answers `""` to is a hit nobody could name — and so is every category a tab's own
+ * a page answers `""` to is a hit nobody could name — and so is every category a tab's own
  * control surface would not draw, since the box offers exactly the narrowings the page holds.
  *
  * An entry is keyed on the category's own key and the value, so two tabs recording the same thing
  * under the same word — anime, which Shows and Movies both split by — fold into one entry a single
  * shelf opens and both tabs can be narrowed to.
  */
-export const buildAttributeIndex = (library: Library): AttributeEntry[] => {
+export const buildAttributeIndex = (pages: PageRows): AttributeEntry[] => {
   const found = new Map<string, AttributeEntry>();
 
   const record = (
     key: string,
     fields: Pick<AttributeEntry, "category" | "label" | "value" | "level">,
-    medium: Medium,
+    tab: string,
     cell: string,
   ) => {
     const entry = found.setIfAbsent(key, {
@@ -299,20 +328,25 @@ export const buildAttributeIndex = (library: Library): AttributeEntry[] => {
       counts: {},
       values: {},
     });
-    entry.size += 1;
-    entry.counts[medium] = (entry.counts[medium] ?? 0) + 1;
-    const held: string[] = entry.values[medium] ?? [];
+    // What the layer opens is the four libraries' own rows, which is exactly what `attributeItems`
+    // gathers — so the composing tab's pass, counting those same works again in the union's unit,
+    // adds to the counts a chip states and not to the figure the shelf is worded by.
+    if (SHELF_TABS.has(tab)) entry.size += 1;
+    entry.counts[tab] = (entry.counts[tab] ?? 0) + 1;
+    const held: string[] = entry.values[tab] ?? [];
     if (!held.includes(cell)) held.push(cell);
-    entry.values[medium] = held;
+    entry.values[tab] = held;
   };
 
-  eachMedium((medium, module) => {
-    for (const category of module.filters.categories) {
+  for (const [tab, page] of Object.entries(PAGE_MODULES)) {
+    const rows = page.rows(pages);
+    if (!rows) continue;
+    for (const category of page.filters.categories) {
       // The values that category calls worth finding: all of them unless it says otherwise, which
       // franchise does with none and a split with its marked half alone.
       const found = category.found;
       if (found?.length === 0) continue;
-      for (const item of library[medium]) {
+      for (const item of rows) {
         const cell = category.valueOf(item);
         if (!cell) continue;
         const value = category.foundAs?.(cell) ?? cell;
@@ -320,7 +354,7 @@ export const buildAttributeIndex = (library: Library): AttributeEntry[] => {
         record(
           `attribute:${category.key}:${value}`,
           { category: category.key, label: category.label, value },
-          medium,
+          tab,
           cell,
         );
         // The level above the values, where the category has one, so "Nintendo" is a hit setting
@@ -333,13 +367,13 @@ export const buildAttributeIndex = (library: Library): AttributeEntry[] => {
           record(
             `attribute:${category.key}:${level.label}:${group}`,
             { category: category.key, label: level.label, value: group, level: level.label },
-            medium,
+            tab,
             cell,
           );
         }
       }
     }
-  });
+  }
 
   // A group of one is its value, through the rule the control surface draws its runs by: PC, iOS
   // and Xbox each hold a single platform, and an entry for one is the same rows under a second
@@ -407,49 +441,31 @@ const scopeValues = (index: SearchIndex, category: string): (AttributeEntry | Fr
     : index.attributes.filter(isValue).filter((entry) => entry.category === category);
 
 /**
- * Every tab an attribute hit can be taken to, the one being read first.
+ * Every tab an attribute hit narrows, in one fixed order whichever tab the reader is standing on.
  *
- * The current tab leads because ↵ does the nearest thing: on a tab holding the category the hit
- * narrows the page the reader is already looking at, and on one that does not it is a place — "the
- * Shows tab, filtered to Netflix" — which is a jump and not a narrowing. Whether the current tab
- * holds it is asked of that tab's own schema by the caller, since the composing tab is a page with
- * filters and no medium, and its categories are not in the per-medium index.
+ * The tab in hand is one of them and not a reading of its own: a strip whose chips move about as
+ * the reader changes tabs is one they have to re-read each time, where five chips in one order are
+ * five places, one of which happens to be here. Which of them that is, is a comparison the press
+ * makes and nothing the strip says.
+ *
+ * The counts are the placements: a tab gains a key on the first row found holding the value, so a
+ * page whose schema has the category but whose rows hold none of it is absent — that press being
+ * one that empties the page it was made on. The order is the order the index walked the tabs.
  */
-export const attributePlacements = (
-  entry: AttributeEntry,
-  currentTabId: string,
-  currentCategories: readonly string[],
-): PlacedAttribute[] => {
-  const currentMedium = media.find((medium) => MEDIA[medium].tabId === currentTabId);
-  // The media holding the value, which is exactly the media the index counted rows for: `counts`
-  // gains a key on the first row found and the walk is in the order the app says the media.
-  const tabs = Object.keys(entry.counts) as Medium[];
-  // Held rather than only offered: a page whose schema has the category but whose rows hold none
-  // of this value would narrow to nothing, which is a hit that empties the page it was pressed on.
-  // The composing tab holds whatever any medium does.
-  const holdsIt = currentMedium ? tabs.includes(currentMedium) : tabs.length > 0;
-  const here: PlacedAttribute[] =
-    currentCategories.includes(entry.category) && holdsIt
-      ? [{ ...entry, tab: currentTabId, medium: currentMedium, here: true }]
-      : [];
-
-  const elsewhere = tabs
-    .filter((medium) => MEDIA[medium].tabId !== currentTabId)
-    .map((medium): PlacedAttribute => ({ ...entry, tab: MEDIA[medium].tabId, medium, here: false }));
-
-  return [...here, ...elsewhere];
-};
+export const attributePlacements = (entry: AttributeEntry): PlacedAttribute[] =>
+  Object.entries(entry.counts).map(([tab, count]): PlacedAttribute => ({ ...entry, tab, count }));
 
 /**
  * What a hit sets on its own tab: the values it stands for there, added to whatever that tab
  * already holds.
  *
  * Added rather than replacing, because a reader narrowing to two genres in a row means both — the
- * same thing a second chip pressed in This page means. A tab that is no medium has no notation of
- * its own to expand into and takes the value as stated.
+ * same thing a second chip pressed in This page means. The cells are the ones that tab's own rows
+ * carry, which the index recorded in the same pass that counted them — so a placement always has
+ * a list here, and a certificate tier sets whichever of `15` and `16` this page is written in.
  */
 export const attributeAction = (entry: PlacedAttribute, held: readonly string[]): PageAction => {
-  const values = (entry.medium && entry.values[entry.medium]) ?? [entry.value];
+  const values = entry.values[entry.tab];
   return {
     type: "updateFilter",
     filter: entry.category,
@@ -475,7 +491,7 @@ export const attributeAction = (entry: PlacedAttribute, held: readonly string[])
 const attributeItems = (library: Library, entry: AttributeEntry): OmniItem[] =>
   eachMedium((medium, module) => {
     const category = module.filters.categories.find((candidate) => (candidate.key as string) === entry.category);
-    const values = entry.values[medium];
+    const values = entry.values[module.tabId];
     if (!category || !values) return [];
     // A recorded medium always pushed a cell, so the list is never the empty selection that
     // `selectedPredicates` answers with no predicate at all.
@@ -544,22 +560,12 @@ export const OPEN_STRIP_LIMIT = 2;
  */
 export const SCOPE_ROWS = 50;
 
-/** Which tab the box is standing over, and what its own schema can narrow by. */
-export interface PageOver {
-  tabId: string;
-  categories: readonly string[];
-}
-
 /**
  * One ranked value with its readings worked out, keeping the rank the merge is ordered on and the
  * run of the name the query matched — which indexes the value either way, `franchiseAttribute`
  * naming its entry after the franchise the ranker matched.
  */
-const valueHit = (
-  index: SearchIndex,
-  hit: Hit<AttributeEntry | FranchiseSearchEntry>,
-  page: PageOver | undefined,
-): Hit<ValueSearchEntry> => {
+const valueHit = (index: SearchIndex, hit: Hit<AttributeEntry | FranchiseSearchEntry>): Hit<ValueSearchEntry> => {
   // A franchise is lifted to the narrowing shape here rather than by each caller: three groups are
   // built over these two indexes, and a rule stated once per group is a rule three ways to get
   // wrong. It is also what the callers' own comments claim — that a value reached one way and the
@@ -574,7 +580,7 @@ const valueHit = (
       key: `value:${attribute.key}`,
       attribute,
       franchise,
-      placements: page ? attributePlacements(attribute, page.tabId, page.categories) : [],
+      placements: attributePlacements(attribute),
     },
   };
 };
@@ -596,12 +602,7 @@ const valueHit = (
  * better. Franchises lead the merge and the sort is stable, so a franchise takes a tie: its view
  * says more about a value than a shelf of works does.
  */
-export const searchUnion = (
-  index: SearchIndex,
-  query: string,
-  page?: PageOver,
-  limit = HITS_PER_GROUP,
-): SearchGroup[] => {
+export const searchUnion = (index: SearchIndex, query: string, limit = HITS_PER_GROUP): SearchGroup[] => {
   const attributes = rankHits(index.attributes, query, limit);
   const franchises = rankHits(index.franchises, query, limit);
 
@@ -613,7 +614,7 @@ export const searchUnion = (
   const ranked = [...franchises.hits, ...attributes.hits]
     .toSorted((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity))
     .slice(0, limit);
-  const values = ranked.map((hit) => valueHit(index, hit, page));
+  const values = ranked.map((hit) => valueHit(index, hit));
 
   const groups: SearchGroup[] = [
     {
@@ -706,7 +707,7 @@ export const recentFranchises = (items: OmniItem[], today: YearMonthDay, limit: 
  * The rows are the value rows a query already answers with, through `valueHit`, so a genre reached
  * by scoping Genre and the same genre reached by typing its name are one thing on screen.
  */
-export const searchScope = (index: SearchIndex, category: string, query: string, page?: PageOver): SearchGroup[] => {
+export const searchScope = (index: SearchIndex, category: string, query: string): SearchGroup[] => {
   const held = index.categories.find((entry) => entry.category === category);
   if (!held) return [];
 
@@ -731,7 +732,7 @@ export const searchScope = (index: SearchIndex, category: string, query: string,
           key: "scope",
           label: held.name,
           total: ranked?.total ?? values.length,
-          hits: hits.map((hit) => valueHit(index, hit, page)),
+          hits: hits.map((hit) => valueHit(index, hit)),
         },
       ];
 };
@@ -749,12 +750,7 @@ export const searchScope = (index: SearchIndex, category: string, query: string,
  * shown as a blank, and with none left there is no group: a list of groups rather than one, so the
  * box draws what it offers and what a query answers with through one mapping.
  */
-export const recentValues = (
-  index: SearchIndex,
-  items: OmniItem[],
-  today: YearMonthDay,
-  page: PageOver | undefined,
-): SearchGroup[] => {
+export const recentValues = (index: SearchIndex, items: OmniItem[], today: YearMonthDay): SearchGroup[] => {
   const byName = new Map(index.franchises.map((entry) => [entry.franchise, entry]));
   const lately = recentFranchises(items, today, HITS_PER_GROUP)
     .map((franchise) => byName.get(franchise))
@@ -766,7 +762,7 @@ export const recentValues = (
       key: "lately",
       label: "Franchises met lately",
       total: lately.length,
-      hits: lately.map((entry) => valueHit(index, { entry }, page)),
+      hits: lately.map((entry) => valueHit(index, { entry })),
     },
   ];
 };

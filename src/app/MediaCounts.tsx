@@ -1,5 +1,5 @@
 import { Box, Stack, Typography } from "@mui/material";
-import type { Scheme } from "../utils/types";
+import type { Colour, Scheme } from "../utils/types";
 import { MEDIA, mediumToColour, type Medium } from "../utils/types";
 
 /**
@@ -10,6 +10,15 @@ import { MEDIA, mediumToColour, type Medium } from "../utils/types";
  * surface rather than one colour meaning one medium everywhere.
  */
 export const MediumDot = ({ medium, scheme }: { medium: Medium; scheme: Scheme }) => (
+  <Dot colour={mediumToColour(medium, scheme)} />
+);
+
+/**
+ * The dot itself, for a library the app names by a colour that is not a medium's fill — the
+ * composing tab, which has none. One component, so a dot standing beside a medium's is the same
+ * mark at the same size rather than a second one drawn to match.
+ */
+export const Dot = ({ colour }: { colour: Colour | undefined }) => (
   <Box
     component="span"
     sx={{
@@ -17,7 +26,7 @@ export const MediumDot = ({ medium, scheme }: { medium: Medium; scheme: Scheme }
       width: 8,
       height: 8,
       borderRadius: "50%",
-      backgroundColor: mediumToColour(medium, scheme),
+      backgroundColor: colour,
       marginRight: 0.75,
       verticalAlign: "0.05em",
       flexShrink: 0,

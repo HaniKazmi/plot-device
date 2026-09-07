@@ -1118,38 +1118,58 @@ draws it as a line and a strip of chips, each chip its own press. Six readings c
 where six rows under three headers come to 444, on a list area of about 500 — and a phone's, with
 the keyboard up, is 416, which one value stated that way does not fit inside.
 
-The strip's two lines are stated rather than left to wrap (`PaletteReading.line`): the first holds
-the readings that leave the reader where they are — the layer, and the narrowing of this page — and
-the second the ones that carry them to another tab, which is a boundary a wrap would put wherever
-the widest value happened to push it. The layer chip is `all()` worded as the app's own cut ("All 78
-›") whichever the value is, counted by **what pressing it will list**: an attribute's own rows for a
-shelf, and for a franchise the works its view collapses to (`FranchiseSearchEntry.works`) rather
-than the union entries behind them, a show being one card there and its seasons several here.
+**The layer stands at the end of the value's own line, at every state.** It is the first reading and
+the row's own way in: a row that states a figure and gives no way to press it makes the reader open
+a strip to reach what they were already looking at, and a chip that moves when the row opens is one
+to find again. That also holds an open value to two lines rather than three — its own, and the
+narrowings beneath — and it puts the boundary between "stays here" and "goes somewhere" in the
+structure rather than in a stated line number a wrap could move. The chip is `all()` worded as the
+app's own cut ("All 78 ›") whichever the value is, counted by **what pressing it will list**: an
+attribute's own rows for a shelf, and for a franchise the works its view collapses to
+(`FranchiseSearchEntry.works`) rather than the union entries behind them, a show being one card
+there and its seasons several here. A value nothing can be narrowed by never opens at all — a series
+every tab's own picker erases has its layer and nothing else, and revealing an empty strip would
+take the counts off its line to make room for nothing.
 
-A value's own line carries its mark, its name and the category it belongs to — "Genre", "Director",
-"Franchise" — and its counts only while the readings beneath are shut, since a value stating "4
-games" above a "Games 4" chip is one fact said twice. Collapsed it wears them as glyphs rather than
-words: a dot per medium in that medium's own fill with its figure beside it, then the whole in the
-line's own ink, which is the figure the layer reading states so the line and the chip cannot
-disagree about how much there is. A chip spells the medium out because a press has to say what
-pressing it does; a line already carrying a mark, a name and a category has room for four figures
-and not for four nouns, and the fill is what names a medium wherever the app is too narrow for its
-word. The breakdown wants about 140px of a 358px row, so below `sm` the total stands alone and the
-strip is one press away. Only a franchise carries a trailing figure, the years it ran, which is a
-fact no attribute has. Every value wears a mark, not only the ones with a colour: a group
-holds a genre beside a director, and a row without one starts its name where the marked rows start
-their mark, so a field with no vocabulary takes an initial on a tile instead.
+A value's own line carries its mark, its name, the category it belongs to — "Genre", "Director",
+"Franchise" — and, for a series, the years it ran, which stands beside the category rather than out
+among the figures: what the thing is, before anything counting it, and a fact no attribute has. Then
+its counts, drawn only while the readings beneath are shut, since a value stating "4 games" above a
+"Games 4" chip is one fact said twice. Collapsed it wears them as glyphs rather than words: a dot
+per medium in that medium's own fill with its figure beside it, which is **the breakdown of the cut
+at the end of the line** — an attribute's rows per medium adding to the shelf's own size, and a
+series' works per medium adding to the works its view lists, so the dots and the cut cannot disagree
+about how much there is. A breakdown of one medium is dropped, a gameplay value being Games and only
+Games and its dot the figure the cut already carries; two are a comparison. A chip spells the medium
+out because a press has to say what pressing it does; a line already carrying a mark, a name, a
+category and a cut has room for four figures and not for four nouns, and the fill is what names a
+medium wherever the app is too narrow for its word. The breakdown wants about 140px of a 358px row,
+so below `sm` the cut stands alone and the strip is one press away. Every value wears a mark, not
+only the ones with a colour: a group holds a genre beside a director, and a row without one starts
+its name where the marked rows start their mark, so a field with no vocabulary takes an initial on a
+tile instead.
 
-`attributePlacements` supplies those chips, the tab being read first: on a tab whose schema holds
-the category _and_ whose rows hold the value it reads "Filter this page" and narrows the page in
-place; on any other it is that tab's name and count, and pressing it sets the filter on that tab's
-own module-scope store and navigates — which is what lets a filter be set on a page before that page
-has ever been mounted. The narrowing of the page being read carries a figure only where that tab is
-a medium: the composing tab counts a show once where the union it filters counts the seasons inside
-it, so a count there would disagree with the population the press leaves behind. A page holding the
-category but none of the value gets no chip at all, that press being one that empties the page it
-was made on. `attributeAction` adds to whatever the target already holds rather than replacing it,
-the same thing a second chip pressed in This page means.
+**`attributePlacements` supplies those chips: one per tab holding the value, in one fixed order
+whichever tab the reader is on.** Each is named by its tab and counted in that tab's own rows — the
+page the press leaves behind — and pressing it sets the filter on that tab's own module-scope store
+and, where that is not the page in hand, navigates, which is what lets a filter be set on a page
+before that page has ever been mounted. Whether a chip is the page already open is a comparison the
+press makes and nothing the strip says: five chips in one order are five places, one of which
+happens to be here, where a strip that words the current tab apart and moves it to the front is one
+the reader has to read again on every page.
+
+The composing tab is one of the five for the same reason, which is what the index being keyed **by
+tab and not by medium** is for: walked by medium it could only ever be narrowed from the Omnibus
+itself, so the box said something different there than anywhere else. Its count is its own — the
+Shows tab counts shows where the union counts the seasons inside them — and its pass over those same
+rows is left out of the figure the layer is worded by, `SHELF_TABS` holding that to the four
+libraries `attributeItems` actually gathers. A page holding the category but none of the value gets
+no chip at all, that press being one that empties the page it was made on, and neither does one
+whose own picker erases the value: a franchise every row of a tab names itself is dropped by that
+tab's `franchiseOptions`, so a chip there would set a filter nothing offers or clears.
+`attributeAction` adds to whatever the target already holds rather than replacing it — the same
+thing a second chip pressed in This page means — writing the cells that tab's own rows carry, which
+the index recorded in the pass that counted them.
 
 **Past two values, only the one the reader is on draws its strip** (`OPEN_STRIP_LIMIT`). One value
 or two is the common case and arrives open, so a finger never pays a tap for nothing; a vaguer query
@@ -2338,7 +2358,7 @@ key in ObjectExpression`; pulled out to a plain function taking the varying piec
   `sheetBarSx`, `dialogCardSx`, among others — the literal itself sits at module scope and the
   component stays compiled.
 
-The baseline is **279 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **281 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.
