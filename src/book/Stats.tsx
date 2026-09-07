@@ -20,7 +20,6 @@ import {
   TotalsBand,
   VitalsCard,
   YearVitalsPair,
-  type GridListLayout,
   type StatListBaseProps,
 } from "../common/Stats";
 import { TopCategoryBand } from "../common/TopList";
@@ -32,8 +31,9 @@ import type { YearType } from "../common/filterReducer";
 import { useSelectBox } from "../common/SelectBoxHook";
 import { stated } from "../common/population";
 import { groupsOnce, type DrilldownGroup } from "../common/statsData";
-import { genreToColour, scoreBand, scoreBandToColour, scoreBands, type Scheme } from "../utils/types";
+import { genreToColour, scoreBand, scoreBandToColour, scoreBands } from "../utils/types";
 import { bookSubtitle } from "./cardData";
+import { bookScoreChip, bookStatListSharedProps, bySeriesThenStart } from "./drilldown";
 import BookCardMediaImage, { BookFranchiseStrip } from "./CardMediaImage";
 import { BOOK_SECTIONS } from "./sections";
 import { FORMATS, formatToColour, groupToColour, type Book, type Measure } from "./types";
@@ -337,37 +337,6 @@ const MostReadCategory = ({
       {...bookStatListSharedProps}
     />
   );
-};
-
-/**
- * Each series together and in its own order, then everything by start date: a group that holds
- * two numbered series — an author's, a franchise's — reads one series through before the next
- * rather than interleaving their firsts, seconds and thirds. Standalones sort after the series,
- * since the empty series name sorts before every real one only under an ascending compare, and a
- * numbered entry before an unnumbered one because `Infinity` stands in for a number.
- */
-const bySeriesThenStart = (a: Book, b: Book) => {
-  if (a.series !== b.series) return a.series === "" ? 1 : b.series === "" ? -1 : a.series.localeCompare(b.series);
-  const byNumber = (a.seriesNumber ?? Infinity) - (b.seriesNumber ?? Infinity);
-  if (byNumber) return byNumber;
-  return a.startDate === b.startDate ? 0 : a.startDate.lte(b.startDate) ? -1 : 1;
-};
-
-/** The corner badge: the book's score, wearing its band's fill. Unscored books carry none. */
-const bookScoreChip = (book: Book, scheme: Scheme) =>
-  book.score !== undefined
-    ? { label: String(book.score), colour: scoreBandToColour(scoreBand(book.score), scheme) }
-    : undefined;
-
-const bookStatListSharedProps: Pick<StatListBaseProps<Book>, "shape" | "divider" | "width"> & GridListLayout = {
-  // Covers, not banners — the cards keep the shape the library grid shows them at.
-  shape: "cover",
-  divider: true,
-  // Two cards to the band, each half the row at `md`, and three covers to a row inside it, so the
-  // shell's six is two full rows and each cover stands near the size the wall draws it at.
-  width: [12, 12, 6],
-  pictureWidth: [6, 4, 4],
-  dialogPictureWidth: [6, 3, 2],
 };
 
 const BookStatList = (

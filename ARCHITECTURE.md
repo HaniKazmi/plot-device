@@ -569,9 +569,12 @@ every bare hover rule here does: a tap has no leave event, so the last bar touch
 otherwise stay scaled up until another tap lands elsewhere, reading as a selection the chart never
 made.
 
-Two details are load-bearing. The label `Box` sets `lineHeight` to `BAR_HEIGHT`, being `position:
-fixed` with no `top` and so centred by its own line box alone: a bar height changed without it puts
-every label off-centre. And the hover step on a bar is instant — a CSS transition there is created
+Two details are load-bearing. The label `Box` sets `lineHeight` to `BAR_HEIGHT`, sitting in flow
+with no `top` and so centred by its own line box alone: a bar height changed without it puts every
+label off-centre. It is offset along the row by a margin rather than positioned, because an SVG
+`foreignObject` establishes a viewport that Chrome resolves a `position: fixed` descendant against
+and WebKit does not — positioned, every label paints at its offset from the browser window's own
+edge and stays there as the chart is scrolled. And the hover step on a bar is instant — a CSS transition there is created
 but its clock never advances, the tooltip opening re-rendering the row and restarting it every
 frame.
 
@@ -873,8 +876,8 @@ card's own footer the footer restates its colours from the artwork palette — a
 
 `SegmentedControl` is a small closed set of named states, and every surface offering one uses it:
 the barchart's four views, the gallery's shelf order, the wall's density, the Shows timeline's
-Seasons · Shows, the Games timeline's With party · Without, and each tab's measure in the section
-rail — the last through `MeasureControl`,
+Seasons · Shows, the Books timeline's Books · Series, the Games timeline's With party · Without,
+and each tab's measure in the section rail — the last through `MeasureControl`,
 which owns the wiring to the filter reducer once for the five tabs. Values that are already their
 own words become options through `common/segments.ts`. Words rather than icons, an icon being a
 legend nothing on the page teaches. A press on the lit segment is ignored rather than clearing it.
@@ -1395,7 +1398,12 @@ avatar slot, which centres against the whole header. **A header states a figure 
 differs from the page's population**, which the section rail's own chip states once
 (`common/population.ts`, below): the Shows timeline says "792 seasons" because a bar per season is
 a population nothing else on the tab counts, and says nothing under Shows, where a bar per show is
-the page's own; the four chart shells state nothing at all. It arrives worded, a `common/` shell
+the page's own; the four chart shells state nothing at all. The Books timeline states one under
+both its readings for the same test — a bar per book differs from the page by that chart's own
+future-start floor, and a bar per series is a figure nothing else on the tab counts. That second
+one counts a book the sheet named no series for as a series of itself, which is what the chart
+draws it as, where the Series filter and the Most Read band both drop a blank: 88 against their
+64, one library and two readings of the word. It arrives worded, a `common/` shell
 not knowing it counts games. Below `sm` the controls take their own row, negative margins and all: a
 title and four controls otherwise divide 375px and the title wraps to a word a line. That row is
 `ActionRow`, a horizontal scroller rather than a wrap — the rail's own `ScrollFade` and

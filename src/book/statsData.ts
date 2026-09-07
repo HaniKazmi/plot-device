@@ -4,6 +4,7 @@ import { releaseDecade, scoreBand } from "../utils/types";
 import { earliestYear as earliestYearOf, groupByCategory, realFranchisesOnly } from "../common/statsData";
 import type { Book, BookGroup, Measure } from "./types";
 import "../utils/arrayUtils";
+import "../utils/mapUtils";
 
 /**
  * The categories the Top list offers, in the order its select box shows them.
@@ -162,6 +163,88 @@ export const bookHeroStats = (book: Book, today: YearMonthDay, variant: "hero" |
   }
 
   return stats;
+};
+
+/**
+ * One bar on the timeline read as a series: the books collapsed into it and the span they cover.
+ *
+ * The span is the outer hull of the group — first start to last end, gaps included — so a series
+ * read in two sittings years apart is one bar and not two.
+ *
+ * A book the sheet named no series for is its own series, under its own name — the rule the
+ * franchise column already follows, where a book with no wider franchise carries its own title.
+ * The model keeps `series` blank for one so a ledger row does not say the title twice; a grouping
+ * needs every book in a group, and dropping the ones outside a series would take 24 of 401 books
+ * off a chart the reader only asked to regroup.
+ */
+export interface SeriesSpan {
+  /**
+   * What tells this bar from every other. The series name where there is one, and otherwise the
+   * standalone's own `bookKey` — the grouping key itself, so two bars cannot share it however the
+   * sheet words a title.
+   */
+  key: string;
+  /** The series the sheet names, or the book's own title where it belongs to none. */
+  name: string;
+  /** The books under this bar, earliest read first. */
+  books: Book[];
+  /** Absent while any book here is still open, which is what leaves the series still running. */
+  end?: YearMonthDay;
+  /**
+   * The book the bar is drawn from: the span opens on its start, its genre colours the bar, and
+   * its cover fronts the card behind it. The earliest read, so all three belong to the book that
+   * opens the span.
+   *
+   * The start is read off this book rather than stored beside it, so a change to which book fronts
+   * a span cannot leave the bar starting where the old one did — the two would still both look
+   * authoritative, and nothing would fail to compile.
+   */
+  lead: Book;
+}
+
+/**
+ * The latest end across a set of books, and nothing at all where one of them is still open: a
+ * reader three books into five has a series still running, which is what an open book's own bar
+ * already says. That early exit is the whole of what this adds to `latestEnd`, which takes the
+ * maximum for the full timeline's grid and states why a `PlainDate` is reduced rather than
+ * `Math.max`ed.
+ */
+export const lastEnd = (books: Book[]): YearMonthDay | undefined => {
+  let last: YearMonthDay | undefined;
+  for (const { endDate } of books) {
+    if (endDate === undefined) return undefined;
+    if (last === undefined || endDate > last) last = endDate;
+  }
+  return last;
+};
+
+/**
+ * Every book as a span, with the books of one series combined into a single one and a book
+ * belonging to none standing as a series of itself.
+ *
+ * The order is the sheet's own, since the timeline packs by start date and reorders whatever it
+ * is handed.
+ */
+export const seriesSpans = (data: Book[]): SeriesSpan[] => {
+  const groups = new Map<string, Book[]>();
+
+  // A book with no series carries `""`, so it is keyed on its own row rather than pooled with
+  // every other book the sheet named no series for; `bookKey` separates a standalone's reread
+  // from the read before it.
+  //
+  // A book that does name a series is keyed on that name alone, so every read of the series —
+  // a reread included — is one span from the first start to the last end. That is the reading
+  // this chart wants: a series is one thing whatever order and however many sittings it was read
+  // in. It costs a span that covers the gap between two bursts, which holds a packing row for the
+  // whole stretch, and a `books` count that counts reads rather than distinct titles.
+  for (const book of data) groups.setIfAbsent(book.series || bookKey(book), []).push(book);
+
+  return [...groups.entries()].map(([key, books]) => {
+    const read = books.sortByKey("startDate", true);
+    const lead = read[0];
+
+    return { key, name: lead.series || lead.name, books: read, end: lastEnd(read), lead };
+  });
 };
 
 /**

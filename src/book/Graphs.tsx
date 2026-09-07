@@ -47,13 +47,14 @@ const SuspenseBlock = ({
     <BookEpochProvider value={bookEpoch(unfilteredData)}>
       <Graphs
         data={filteredData}
+        library={unfilteredData}
         filterState={filterState}
       />
     </BookEpochProvider>
   </FranchiseContext.Provider>
 );
 
-const Graphs = memo(({ data, filterState }: { data: Book[]; filterState: FilterState }) => {
+const Graphs = memo(({ data, library, filterState }: { data: Book[]; library: Book[]; filterState: FilterState }) => {
   const scheme = useScheme();
 
   const deferredData = useDeferredValue(data, []);
@@ -75,7 +76,12 @@ const Graphs = memo(({ data, filterState }: { data: Book[]; filterState: FilterS
         yearTo={filterState.yearTo}
       />
       <Section id={BOOK_SECTIONS.timeline}>
-        <Timeline data={deferredData} />
+        <Timeline
+          data={deferredData}
+          library={library}
+          yearType={filterState.yearType}
+          yearTo={filterState.yearTo}
+        />
       </Section>
       <Section id={BOOK_SECTIONS.charts}>
         <ChartPair

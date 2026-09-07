@@ -215,7 +215,10 @@ const HoverCardSheet = ({ colour, title, name, children }: HoverCardProps) => {
 const HoverCardPopper = ({ colour, title, placement, children }: HoverCardProps) => {
   const popper = useRef<PopperInstance | null>(null);
   const [hovered, setHovered] = useState(false);
-  const [held, setHeld] = useState(false);
+  // A count rather than a flag: layers nest — a drill-down opened from a card holds the popper,
+  // and every card inside that drill-down holds it again while its own dialog is up. Released as a
+  // flag, the innermost card's close would clear the outermost hold and unmount the whole stack.
+  const [held, setHeld] = useState(0);
   // A callback ref rather than an effect: the content exists only while the tooltip is open, and
   // this runs when it mounts and cleans up when it goes.
   const observe = (node: HTMLDivElement | null) => {
@@ -228,7 +231,7 @@ const HoverCardPopper = ({ colour, title, placement, children }: HoverCardProps)
   return (
     <Tooltip
       arrow
-      open={hovered || held}
+      open={hovered || held > 0}
       onOpen={() => setHovered(true)}
       onClose={() => setHovered(false)}
       // Long enough that a pointer crossing a dense chart does not open a card per mark it passes,
@@ -236,7 +239,9 @@ const HoverCardPopper = ({ colour, title, placement, children }: HoverCardProps)
       enterDelay={ENTER_DELAY}
       leaveDelay={LEAVE_DELAY}
       title={
-        <HoverCardHoldContext.Provider value={{ hold: () => setHeld(true), release: () => setHeld(false) }}>
+        <HoverCardHoldContext.Provider
+          value={{ hold: () => setHeld((n) => n + 1), release: () => setHeld((n) => Math.max(0, n - 1)) }}
+        >
           <div ref={observe}>{title}</div>
         </HoverCardHoldContext.Provider>
       }
@@ -257,6 +262,11 @@ const HoverCardPopper = ({ colour, title, placement, children }: HoverCardProps)
         arrow: { sx: { color: colour } },
         popper: {
           popperRef: popper,
+          // Held open but not hovered means a layer the card opened is standing over it, and the
+          // popper sits at the tooltip level, above every modal — so it would paint across the
+          // dialog it just opened, which on a fullscreen one covers the list the reader pressed
+          // for. It stays mounted, because that is what the hold is for; it just stops being seen.
+          sx: held > 0 && !hovered ? { visibility: "hidden" } : undefined,
           modifiers: [
             { name: "flip", options: { fallbackPlacements: ["top", "bottom"] } },
             { name: "preventOverflow", options: { altAxis: true, padding: 8 } },
