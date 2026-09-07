@@ -1127,9 +1127,9 @@ structure rather than in a stated line number a wrap could move. The chip is `al
 app's own cut ("All 78 ›") whichever the value is, counted by **what pressing it will list**: an
 attribute's own rows for a shelf, and for a franchise the works its view collapses to
 (`FranchiseSearchEntry.works`) rather than the union entries behind them, a show being one card
-there and its seasons several here. A value nothing can be narrowed by never opens at all — a series
-every tab's own picker erases has its layer and nothing else, and revealing an empty strip would
-take the counts off its line to make room for nothing.
+there and its seasons several here. The strip is the readings past that first one, so a value
+carrying only its layer stays shut: opened, it would take the counts off its own line to make room
+for an empty row.
 
 A value's own line carries its mark, its name, the category it belongs to — "Genre", "Director",
 "Franchise" — and, for a series, the years it ran, which stands beside the category rather than out
@@ -1160,10 +1160,10 @@ the reader has to read again on every page.
 
 The composing tab is one of the five for the same reason, which is what the index being keyed **by
 tab and not by medium** is for: walked by medium it could only ever be narrowed from the Omnibus
-itself, so the box said something different there than anywhere else. Its count is its own — the
+itself, which is a box that says something different there from anywhere else. Its count is its own — the
 Shows tab counts shows where the union counts the seasons inside them — and its pass over those same
-rows is left out of the figure the layer is worded by, `SHELF_TABS` holding that to the four
-libraries `attributeItems` actually gathers. A page holding the category but none of the value gets
+rows is left out of the figure the layer is worded by: `size` is derived after the walk from the
+counts of the tabs that carry a medium, which is the four libraries `attributeItems` gathers. A page holding the category but none of the value gets
 no chip at all, that press being one that empties the page it was made on. `attributeAction` adds to
 whatever the target already holds rather than replacing it — the same thing a second chip pressed in
 This page means — writing the cells that tab's own rows carry, which the index recorded in the pass

@@ -383,10 +383,10 @@ const readingKeyOf = (rowKey: string, reading: PaletteReading) => `${rowKey}:${r
  * Whether a value draws its strip: it has narrowings to draw, and either the group asked it of
  * every row or the reader is on this one.
  *
- * A value nothing can be narrowed by never opens — a series every tab's own picker erases has its
- * layer and nothing else, and revealing an empty strip would take the counts off its line to make
- * room for nothing. Asked here by both the cells the keys walk and the cells that are drawn, since
- * a row whose cell list and whose chips disagree points `aria-activedescendant` at an id no element
+ * The strip is the readings past the first, so a value carrying only its layer has nothing to
+ * reveal and stays shut: opened, it would take the counts off its own line to make room for an
+ * empty row. Asked here by both the cells the keys walk and the cells that are drawn, since a row
+ * whose cell list and whose chips disagree points `aria-activedescendant` at an id no element
  * wears.
  */
 const stripOpen = (group: PaletteGroup, hit: PaletteValueHit, rowKey: string, openKey: string | null) =>
@@ -705,15 +705,6 @@ export const SearchPalette = (props: {
     "data-active": cell === active?.key ? "true" : undefined,
   });
 
-  /**
-   * A value: its own line, and the strip of readings beneath where the strip is drawn at all.
-   *
-   * The title line is the row's header rather than a cell — the keyboard's presses are the
-   * readings, and a title that were one would give the strip's first chip a second id. Pressed, it
-   * does what the row's state says: on a value already showing its readings it opens the first of
-   * them, which is what a pointer always means, having selected the row by moving onto it; on a
-   * collapsed one it reveals them, which is a finger's first tap and the tap that rule costs.
-   */
   /** One reading as a press: the same chip whether it stands in the strip or beside a shut row. */
   const readingCell = (reading: PaletteReading, rowKey: string) => {
     const cell = readingKeyOf(rowKey, reading);
@@ -745,6 +736,15 @@ export const SearchPalette = (props: {
     );
   };
 
+  /**
+   * A value: its own line, and the strip of readings beneath where the strip is drawn at all.
+   *
+   * The title line is the row's header rather than a cell — the keyboard's presses are the
+   * readings, and a title that were one would give the strip's first chip a second id. Pressed, it
+   * does what the row's state says: on a value already showing its readings it opens the first of
+   * them, which is what a pointer always means, having selected the row by moving onto it; on a
+   * collapsed one it reveals them, which is a finger's first tap and the tap that rule costs.
+   */
   const valueBlock = (hit: PaletteValueHit, rowKey: string, open: boolean) => (
     <>
       <Box sx={VALUE_LINE_SX}>

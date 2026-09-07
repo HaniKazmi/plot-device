@@ -158,11 +158,13 @@ export interface SearchIndex {
   /** The categories those attributes belong to, as things a query can name. */
   categories: CategorySearchEntry[];
   /**
-   * The franchises this library knows to be series, which is what every tab's own franchise picker
-   * offers of the values its rows carry. Held here because the surface drawing a page's filters
-   * needs it too, and a second walk is a second answer.
+   * What a page's own pickers cannot answer from their rows — the franchises this library knows to
+   * be series. Held here because the surface drawing a page's filters needs it too, and a second
+   * walk is a second answer; held as the whole `CategoryContext` rather than the set inside it, so
+   * what that surface passes down is one object with an owner rather than a literal minted per
+   * render, which is what the tally cache below it is keyed on.
    */
-  series: ReadonlySet<string>;
+  context: CategoryContext;
   /**
    * Per tab, how many of that tab's own rows each franchise its own picker offers holds.
    *
@@ -202,7 +204,26 @@ const franchiseRowsByTab = (pages: PageRows, context: CategoryContext): Record<s
   return byTab;
 };
 
+/**
+ * The last index built, against the two arrays it was built from.
+ *
+ * The surface holding it is re-rendered by its own field, by `useDeferredValue`'s second pass and
+ * by every press on the page's filter store, so the call site is reached several times per
+ * keystroke — where what it walks is the whole union five times over and cannot change between
+ * them. One slot, because one library is indexed at a time: `items` and the visible library turn
+ * over together when a sheet lands, and the entry they replace is one nothing can ask for again.
+ */
+let lastIndex: { items: OmniItem[]; library: Library; index: SearchIndex } | undefined;
+
 export const buildSearchIndex = (items: OmniItem[], library: Library): SearchIndex => {
+  if (lastIndex && lastIndex.items === items && lastIndex.library === library) return lastIndex.index;
+
+  const index = indexOver(items, library);
+  lastIndex = { items, library, index };
+  return index;
+};
+
+const indexOver = (items: OmniItem[], library: Library): SearchIndex => {
   // The two halves every page's rows come out of, which is all the per-tab walks below need: the
   // four visible slices, and the union the composing tab filters.
   const pages: PageRows = { visible: library, items };
@@ -250,15 +271,15 @@ export const buildSearchIndex = (items: OmniItem[], library: Library): SearchInd
   // own: `franchises` is already `isSeries` over this union, so the set is those entries' names.
   // One value and not two readings of one rule, which is what the pickers, the strips and the box
   // all narrow by.
-  const series = new Set(franchises.map((entry) => entry.franchise));
+  const context: CategoryContext = { series: new Set(franchises.map((entry) => entry.franchise)) };
 
   return {
     franchises,
     items: workEntries,
     attributes,
-    series,
+    context,
     categories: buildCategoryIndex(attributes, franchises),
-    franchiseRows: franchiseRowsByTab(pages, { series }),
+    franchiseRows: franchiseRowsByTab(pages, context),
   };
 };
 
@@ -386,7 +407,7 @@ export const buildAttributeIndex = (pages: PageRows): AttributeEntry[] => {
   // from the counts rather than accumulated beside them, one total being one total.
   for (const entry of found.values())
     entry.size = Object.entries(entry.counts)
-      .filter(([tab]) => PAGE_MODULES[tab].medium)
+      .filter(([tab]) => PAGE_MODULES[tab]?.medium)
       .map(([, count]) => count)
       .sum();
 
@@ -480,11 +501,13 @@ export const attributePlacements = (entry: AttributeEntry): PlacedAttribute[] =>
  *
  * Added rather than replacing, because a reader narrowing to two genres in a row means both — the
  * same thing a second chip pressed in This page means. The cells are the ones that tab's own rows
- * carry, which the index recorded in the same pass that counted them — so a placement always has
- * a list here, and a certificate tier sets whichever of `15` and `16` this page is written in.
+ * carry, which the index recorded in the same pass that counted them — a certificate tier setting
+ * whichever of `15` and `16` this page is written in. `values` is keyed on a plain string, so the
+ * type promises a list for a tab this entry was never placed on; the value itself is what a caller
+ * naming its own tab falls back to, rather than a press that throws inside its own handler.
  */
 export const attributeAction = (entry: PlacedAttribute, held: readonly string[]): PageAction => {
-  const values = entry.values[entry.tab];
+  const values = entry.values[entry.tab] ?? [entry.value];
   return {
     type: "updateFilter",
     filter: entry.category,

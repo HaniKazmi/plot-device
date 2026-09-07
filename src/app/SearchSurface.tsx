@@ -51,7 +51,7 @@ import {
   type SearchGroup,
 } from "./searchData";
 import { media, mediumToShape } from "./types";
-import { barColour, tabForId, useOtherTabs } from "../tabs";
+import Tabs, { tabForId, tabInk, useOtherTabs } from "../tabs";
 
 /** What a chosen hit opens: a whole franchise, one work's own expanded card, or an attribute's shelf. */
 type Picked =
@@ -241,10 +241,16 @@ const namesItsCategory = (entry: AttributeEntry) => entry.label.toLowerCase() ==
  */
 const firstTab = (entry: AttributeEntry): string | undefined => Object.keys(entry.counts)[0];
 
+/** Where a tab stands in the app's own order, which is the one every other list of tabs reads in. */
+const TAB_ORDER = new Map(Tabs.map((tab, index) => [tab.id, index]));
+const tabAt = (tab: string) => TAB_ORDER.get(tab) ?? TAB_ORDER.size;
+
 /**
  * A tab's own mark. A medium's is the fill it is drawn in everywhere, which is the same dot the
- * summary above the strip states, and the composing tab's is the colour its bar wears — that tab
- * having no library of its own and so no fill.
+ * summary above the strip states; the composing tab has no library and so no fill, and takes the
+ * colour that tab is named in away from its own page. `tabInk` and not `barColour`: the bar's
+ * colour on the dark paper is a 22% tint mixed *over* that paper, which a mark drawn in it sits on
+ * at 1.25:1, where the ink it pairs with clears 7:1.
  */
 const TabDot = ({ tab, scheme }: { tab: string; scheme: Scheme }) => {
   const medium = PAGE_MODULES[tab]?.medium;
@@ -255,7 +261,7 @@ const TabDot = ({ tab, scheme }: { tab: string; scheme: Scheme }) => {
       scheme={scheme}
     />
   ) : (
-    <Dot colour={held && barColour(held, scheme)} />
+    <Dot colour={held && (tabInk(held, scheme) as Colour | undefined)} />
   );
 };
 
@@ -281,17 +287,19 @@ const MediumCounts = ({ counts, scheme }: { counts: Partial<Record<Medium, numbe
     <Stack
       direction="row"
       spacing={1}
-      sx={{ alignItems: "center", flex: "none" }}
+      // The breakdown asks for about 140px beside a name, a category and — on a franchise — its
+      // years, which a 358px row spends on the name instead. Dropped on the row itself rather than
+      // on each figure inside it, or the phone keeps an empty box and the gap either side of it.
+      // The cut at the row's end stays at every width and opens the strip, so what a phone drops it
+      // can still ask for.
+      sx={{ alignItems: "center", flex: "none", display: { xs: "none", sm: "flex" } }}
     >
       {held.map((medium) => (
         <Typography
           key={medium}
           variant="caption"
           component="span"
-          // The breakdown asks for about 140px beside a name, a category and — on a franchise — its
-          // years, which a 358px row spends on the name instead. The cut at the row's end stays at
-          // every width and opens the strip, so what a phone drops it can still ask for.
-          sx={{ ...MUTED_FIGURE_SX, display: { xs: "none", sm: "inline-flex" }, alignItems: "center" }}
+          sx={{ ...MUTED_FIGURE_SX, display: "inline-flex", alignItems: "center" }}
         >
           <MediumDot
             medium={medium}
@@ -354,9 +362,11 @@ export const SearchSurface = ({
   const index = items && library.whole ? buildSearchIndex(items, library.whole) : undefined;
   // What a page's franchise picker cannot answer from its own rows, off the index that already
   // holds it: a second walk of the union here is a second answer to the question the strips, the
-  // pickers and the box are meant to share. Absent until the union is, and a picker then falls
-  // back to its own rows, which is the narrower list.
-  const categoryContext: CategoryContext | undefined = index && { series: index.series };
+  // pickers and the box are meant to share. Taken whole rather than rebuilt around its one member,
+  // so what the tally cache below is keyed on is an object with an owner and not a literal minted
+  // per render. Absent until the union is, and a picker then falls back to its own rows, which is
+  // the narrower list.
+  const categoryContext: CategoryContext | undefined = index?.context;
   const [query, setQuery] = useState("");
   // The scan runs on the settled text: a keystroke lands in the box at once and the groups follow
   // at lower priority, so a fast typist is never held behind the previous letter's scan.
@@ -447,18 +457,24 @@ export const SearchSurface = ({
         // rows — the page the press leaves behind. The tab in hand is among them rather than
         // worded apart: a strip whose chips change with the tab is one a reader has to read again
         // on every page, where five in one order are five places, one of which happens to be here.
-        ...entry.placements.map((placed): PaletteReading => ({
-          key: placed.tab,
-          label: tabForId(placed.tab)?.name ?? placed.tab,
-          count: format(placed.counts[placed.tab]),
-          lead: (
-            <TabDot
-              tab={placed.tab}
-              scheme={scheme}
-            />
-          ),
-          onOpen: () => applyAttribute(placed),
-        })),
+        //
+        // That order is the app's own, which the bar, the rail and the Go-to line above all read
+        // in: the index walks its pages by medium and appends the composing tab, and a reader who
+        // has learned one order should not meet a second inside the same box.
+        ...entry.placements
+          .toSorted((a, b) => tabAt(a.tab) - tabAt(b.tab))
+          .map((placed): PaletteReading => ({
+            key: placed.tab,
+            label: tabForId(placed.tab)?.name ?? placed.tab,
+            count: format(placed.counts[placed.tab]),
+            lead: (
+              <TabDot
+                tab={placed.tab}
+                scheme={scheme}
+              />
+            ),
+            onOpen: () => applyAttribute(placed),
+          })),
       ];
       return {
         key: entry.key,
