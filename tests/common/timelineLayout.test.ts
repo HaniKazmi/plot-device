@@ -69,6 +69,24 @@ describe("packRows", () => {
     expect(maxRow).toBe(0);
   });
 
+  // A read begun and finished in one day frees its row that same day, so something begun the same
+  // morning hands off into it. Placed after the longer item instead, it has nowhere to go and opens
+  // a row of its own — which is a whole second lane on a chart whose shape is its density.
+  it("hands a row from a single-day item to a longer one begun the same day, whichever order they arrive in", () => {
+    const oneDay = item("a", [2024, 1, 1], [2024, 1, 1]);
+    const longer = item("b", [2024, 1, 1], [2024, 1, 9]);
+
+    for (const given of [
+      [oneDay, longer],
+      [longer, oneDay],
+    ]) {
+      const [rows, maxRow] = packRows(given);
+
+      expect(maxRow).toBe(0);
+      expect(rows.map((r) => r.name)).toEqual(["a", "b"]);
+    }
+  });
+
   it("opens a new row for an item that overlaps the one before it", () => {
     const [rows, maxRow] = packRows([item("a", [2024, 1, 1], [2024, 6, 1]), item("b", [2024, 3, 1], [2024, 4, 1])]);
 
