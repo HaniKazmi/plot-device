@@ -1853,13 +1853,27 @@ status. Day precision is all the sheet records, so two watched on one day are se
 finished one leading — finishing something being the more notable of the two — and where the sheet
 dates no season at all the hero has no honest pick and the page shows the strip alone.
 
-Under it, "Currently Watching" is the latest season of every show the Status cell still marks, in
-that same order. A season that has ended stays: the cell marks a show whose next season is to come,
-and dropping it takes a show the reader is midway through a series of off the one strip that answers
-what is in flight. A season the sheet dates neither way sits after the dated ones, in the order the
-sheet lists their shows — a start date is not a tie-break, a season begun later not being one watched
-later. The hero and the strip answer different questions, so each stands on its own test and a page
-can hold either without the other.
+Under it, "Currently Watching" is every season the sheet has left open — no End Date — in that same
+order, and "Recently Watched" further down the page is every season it has closed. One column
+decides both, so the two are complements: every season stands in exactly one and none in both. The
+Status cell is consulted by neither, the two answering different questions — a status is what the
+reader has decided about a show's _future_, where an End Date is whether _this season_ is still in
+hand. A show marked `Watching` between seasons therefore has nothing in flight and stands under
+Recently Watched, its next season being a fact about the show that the status band and the wall's
+own border already carry; and a season left open under any other status appears in the strip, where
+the card's status chip is the one mark on the page saying the sheet has left a row hanging. The list
+is per season and not per show, so a show with two rows open contributes two cards.
+
+One comparator orders both, on the one date the model holds: a finished season is dated by its own
+end, so ordering that half by the last watch _is_ ordering it by end date, and the two lists are a
+single reading of the library cut in two rather than two orders free to drift. The hero is the head
+of that same reading taken over all of it, which is what lets the Omnibus band's Shows card name a
+season from either list — it elects on the one date, and prefers the finished season where an open
+one was watched the same day, finishing something being the more notable of two watches at the day
+precision the sheet records. A season the sheet dates neither way sits after the dated ones, in the
+order the sheet lists their shows — a start date is not a tie-break, a season begun later not being
+one watched later. The hero and the strip answer different questions, so each stands on its own test
+and a page can hold either without the other.
 
 `Hero` (`common/Hero.tsx`) presents one item large through the domain's own `TypedCardMediaImage`:
 the artwork opens the same expanded dialog a thumbnail does, and the panel rides in as that card's

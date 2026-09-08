@@ -11,10 +11,10 @@ import {
   measureOf,
   minutesPerEpisode,
   perShowAverages,
-  recentlyComplete,
+  recentlyWatched,
   seasonsInYear,
   statsCardLabelEpsHours,
-  statsCardLabelRecentlyComplete,
+  statsCardLabelRecentlyWatched,
   statsCardLabelWatching,
   watchingProgress,
   yearlyAverages,
@@ -181,7 +181,7 @@ describe("perShowAverages", () => {
   });
 });
 
-describe("recentlyComplete", () => {
+describe("recentlyWatched", () => {
   it("returns finished seasons newest first", () => {
     const data = [
       withSeasons(
@@ -191,68 +191,71 @@ describe("recentlyComplete", () => {
       ),
     ];
 
-    expect(recentlyComplete(data).map((s) => s.s)).toEqual([2, 1]);
+    expect(recentlyWatched(data).map((s) => s.s)).toEqual([2, 1]);
   });
 
   it("omits seasons still airing", () => {
     const data = [withSeasons({}, { s: 1, endDate: undefined }, { s: 2, endDate: YearMonthDay.get(2025, 3, 21) })];
 
-    expect(recentlyComplete(data).map((s) => s.s)).toEqual([2]);
+    expect(recentlyWatched(data).map((s) => s.s)).toEqual([2]);
   });
 
   it("returns every finished season, leaving the cap to the card that renders them", () => {
     const data = [withSeasons({}, ...Array.from({ length: 25 }, (_, i) => ({ s: i })))];
 
-    expect(recentlyComplete(data)).toHaveLength(25);
+    expect(recentlyWatched(data)).toHaveLength(25);
   });
 });
 
 describe("currentlyWatching", () => {
-  it("returns the latest season of each show still being watched", () => {
+  it("returns the seasons the sheet has left open", () => {
     const data = [
       withSeasons(
-        { status: "Watching" },
+        {},
         { s: 1, endDate: YearMonthDay.get(2022, 4, 8) },
-        { s: 2, endDate: undefined },
+        { s: 2, endDate: undefined, lastWatchedDate: YearMonthDay.get(2026, 8, 28) },
       ),
     ];
 
     expect(currentlyWatching(data).map((s) => s.s)).toEqual([2]);
   });
 
-  it("ignores shows that are not being watched", () => {
-    const data = [withSeasons({ status: "Ended" }, { s: 1, endDate: undefined })];
+  it("drops a show marked Watching whose latest season has closed", () => {
+    // A status is what the reader has decided about the show's future; it says nothing about
+    // whether a season is in hand, and a closed season is in hand no longer.
+    const data = [withSeasons({ status: "Watching" }, { s: 1, endDate: YearMonthDay.get(2022, 4, 8) })];
 
     expect(currentlyWatching(data)).toEqual([]);
   });
 
-  it("keeps a watched show whose latest season has ended, its next being still to come", () => {
-    const data = [withSeasons({ status: "Watching" }, { s: 1, endDate: YearMonthDay.get(2022, 4, 8) })];
+  it("keeps an open season whatever its show's status says", () => {
+    // The End Date column is the whole test. A season left open under a status saying the show is
+    // done with is a row the sheet has not closed, and the strip is where that is visible.
+    const data = [
+      withSeasons({ status: "Ended" }, { s: 1, endDate: undefined, lastWatchedDate: YearMonthDay.get(2026, 8, 1) }),
+    ];
 
-    expect(currentlyWatching(data).map((s) => s.s)).toEqual([1]);
+    expect(currentlyWatching(data).map((s) => s.show.status)).toEqual(["Ended"]);
+  });
+
+  it("returns both seasons where one show has two open at once", () => {
+    // Per season and not per show: the list is what is in hand, and two rows the sheet has left
+    // open are two things in hand.
+    const data = [
+      withSeasons(
+        {},
+        { s: 1, endDate: undefined, lastWatchedDate: YearMonthDay.get(2026, 8, 1) },
+        { s: 2, endDate: undefined, lastWatchedDate: YearMonthDay.get(2026, 8, 28) },
+      ),
+    ];
+
+    expect(currentlyWatching(data).map((s) => s.s)).toEqual([2, 1]);
   });
 
   it("orders by the season's own last watch, newest first", () => {
     const data = [
-      withSeasons(
-        { name: "Andor", status: "Watching" },
-        { s: 1, endDate: undefined, lastWatchedDate: YearMonthDay.get(2026, 8, 1) },
-      ),
-      withSeasons({ status: "Watching" }, { s: 1, endDate: undefined, lastWatchedDate: YearMonthDay.get(2026, 8, 28) }),
-    ];
-
-    expect(currentlyWatching(data).map((s) => s.show.name)).toEqual(["Severance", "Andor"]);
-  });
-
-  it("takes a finished season at its end date, which is what the converter dates it by", () => {
-    // Only the end date is set, as a sheet row sets it: the last watch is derived from it, here as
-    // in the converter, so this orders on the linkage rather than on a value handed to the fixture.
-    const data = [
-      withSeasons(
-        { name: "Andor", status: "Watching" },
-        { s: 1, endDate: undefined, lastWatchedDate: YearMonthDay.get(2026, 8, 1) },
-      ),
-      withSeasons({ status: "Watching" }, { s: 1, endDate: YearMonthDay.get(2026, 8, 28) }),
+      withSeasons({ name: "Andor" }, { s: 1, endDate: undefined, lastWatchedDate: YearMonthDay.get(2026, 8, 1) }),
+      withSeasons({}, { s: 1, endDate: undefined, lastWatchedDate: YearMonthDay.get(2026, 8, 28) }),
     ];
 
     expect(currentlyWatching(data).map((s) => s.show.name)).toEqual(["Severance", "Andor"]);
@@ -260,8 +263,8 @@ describe("currentlyWatching", () => {
 
   it("puts a season the sheet dates neither way after every dated one, however old that date is", () => {
     const data = [
-      withSeasons({ name: "One Piece", status: "Watching" }, { s: 1, endDate: undefined }),
-      withSeasons({ status: "Watching" }, { s: 1, endDate: undefined, lastWatchedDate: YearMonthDay.get(2020, 1, 1) }),
+      withSeasons({ name: "One Piece" }, { s: 1, endDate: undefined }),
+      withSeasons({}, { s: 1, endDate: undefined, lastWatchedDate: YearMonthDay.get(2020, 1, 1) }),
     ];
 
     expect(currentlyWatching(data).map((s) => s.show.name)).toEqual(["Severance", "One Piece"]);
@@ -272,27 +275,37 @@ describe("currentlyWatching", () => {
     // way round the sort happened to reach them. Start dates are not a tie-break: a season begun
     // later is not one watched later.
     const data = [
-      withSeasons(
-        { name: "One Piece", status: "Watching" },
-        { s: 1, startDate: YearMonthDay.get(2022, 1, 1), endDate: undefined },
-      ),
-      withSeasons({ status: "Watching" }, { s: 1, startDate: YearMonthDay.get(2025, 1, 1), endDate: undefined }),
+      withSeasons({ name: "One Piece" }, { s: 1, startDate: YearMonthDay.get(2022, 1, 1), endDate: undefined }),
+      withSeasons({}, { s: 1, startDate: YearMonthDay.get(2025, 1, 1), endDate: undefined }),
     ];
 
     expect(currentlyWatching(data).map((s) => s.show.name)).toEqual(["One Piece", "Severance"]);
     expect(currentlyWatching(data.toReversed()).map((s) => s.show.name)).toEqual(["Severance", "One Piece"]);
   });
 
-  it("throws by name when a watched show has no seasons at all", () => {
-    // A spreadsheet error rather than something to render around, so it stays a hard failure —
-    // but names the show instead of failing somewhere inside the card grid.
-    expect(() => currentlyWatching([show({ name: "Lost", status: "Watching" })])).toThrow(
-      'Show "Lost": is marked Watching but has no seasons',
-    );
-  });
-
   it("returns nothing for empty data", () => {
     expect(currentlyWatching([])).toEqual([]);
+  });
+
+  it("partitions the library with recentlyWatched, every season in exactly one", () => {
+    // The two lists are read as one answer — what is in hand, and what has closed — so a season
+    // reaching both would be counted twice and one reaching neither would be off the page.
+    const data = [
+      withSeasons(
+        {},
+        { s: 1, endDate: YearMonthDay.get(2022, 4, 8) },
+        { s: 2, endDate: undefined, lastWatchedDate: YearMonthDay.get(2026, 8, 28) },
+      ),
+      withSeasons({ name: "Andor", status: "Ended" }, { s: 1, endDate: undefined }, { s: 2, endDate: undefined }),
+      withSeasons({ name: "Veep", status: "Cancelled" }, { s: 1, endDate: YearMonthDay.get(2019, 5, 12) }),
+    ];
+    const seasons = data.flatMap((show) => show.s);
+
+    const open = currentlyWatching(data);
+    const closed = recentlyWatched(data);
+
+    expect(seasons.filter((season) => open.includes(season) !== closed.includes(season))).toHaveLength(seasons.length);
+    expect(open.length + closed.length).toBe(seasons.length);
   });
 });
 
@@ -302,19 +315,19 @@ describe("statsCardLabel", () => {
     // asked to translate between them on the same screen.
     const parent = show();
 
-    expect(statsCardLabelRecentlyComplete(season(parent, { endDate: YearMonthDay.get(2022, 4, 8) }))[0][1]).toBe(
+    expect(statsCardLabelRecentlyWatched(season(parent, { endDate: YearMonthDay.get(2022, 4, 8) }))[0][1]).toBe(
       "8 Apr 2022",
     );
   });
 
   it("leaves the date blank rather than printing nothing-in-particular when a season is unfinished", () => {
-    expect(statsCardLabelRecentlyComplete(season(show(), { endDate: undefined }))[0][1]).toBe("");
+    expect(statsCardLabelRecentlyWatched(season(show(), { endDate: undefined }))[0][1]).toBe("");
   });
 
   it("floors the hours instead of rounding them, the same way every other hours figure on the tab does", () => {
     // 455 minutes is seven full hours and 35 minutes, not eight.
     const parent = show();
-    expect(statsCardLabelRecentlyComplete(season(parent, { minutes: 455 }))[1][1]).toBe("7 Hours");
+    expect(statsCardLabelRecentlyWatched(season(parent, { minutes: 455 }))[1][1]).toBe("7 Hours");
   });
 });
 
@@ -509,18 +522,6 @@ describe("statsCardLabelWatching", () => {
     ]);
   });
 
-  it("drops the 'in' once a season has ended, the figure then being a span the sheet closed", () => {
-    const today = YearMonthDay.get(2026, 1, 1);
-    const s = season(show(), {
-      startDate: YearMonthDay.get(2022, 1, 1),
-      endDate: YearMonthDay.get(2022, 1, 28),
-      e: 14,
-      minutes: 0,
-    });
-
-    expect(statsCardLabelWatching(s, today)[0]).toEqual(["1 Jan 2022", "28 days"]);
-  });
-
   it("leaves the days-in cell blank when the season has not started yet", () => {
     const today = YearMonthDay.get(2022, 1, 1);
     const notYetStarted = season(show(), { startDate: YearMonthDay.get(2022, 4, 1), endDate: undefined });
@@ -619,6 +620,30 @@ describe("heroSeason", () => {
 
   it("elects nobody for an empty library", () => {
     expect(heroSeason([])).toBeUndefined();
+  });
+
+  it("elects out of the two lists, from whichever holds the newest watch", () => {
+    // The Omnibus band leads with this election, so it has to be able to name a season the page
+    // shows as in hand or one it shows as finished — the head of the same order both lists are
+    // cut from, and never a season neither of them holds.
+    const open = watchingShow("Severance", { cell: YearMonthDay.get(2026, 8, 28) });
+    const closed = endedShow("Black Bird", YearMonthDay.get(2026, 8, 1));
+
+    expect(currentlyWatching([open, closed])).toContain(heroSeason([open, closed]));
+    expect(recentlyWatched([open, closed])[0]).not.toBe(heroSeason([open, closed]));
+
+    const laterFinale = endedShow("Black Bird", YearMonthDay.get(2026, 9, 4));
+
+    expect(recentlyWatched([open, laterFinale])).toContain(heroSeason([open, laterFinale]));
+  });
+
+  it("favours the finished season where both lists hold the same newest date", () => {
+    const day = YearMonthDay.get(2026, 9, 6);
+    const open = watchingShow("Malcolm in the Middle", { cell: day });
+    const closed = endedShow("Black Bird", day);
+
+    expect(heroSeason([open, closed])).toBe(recentlyWatched([open, closed])[0]);
+    expect(heroSeason([closed, open])).toBe(recentlyWatched([closed, open])[0]);
   });
 });
 

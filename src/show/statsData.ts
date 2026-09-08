@@ -1,5 +1,4 @@
 import { daysSince, formatDate, type YearMonthDay, type YearNumber } from "../common/date";
-import { sheetError } from "../common/sheetError";
 import { format } from "../utils/mathUtils";
 import { animeLabel, type Measure, type Season, type Show } from "./types";
 import { earliestYear as earliestYearOf, groupByCategory, realFranchisesOnly } from "../common/statsData";
@@ -173,7 +172,11 @@ export const minutesPerEpisode = (data: Show[]) => {
  *
  * Two watched the same day are separated by the finished one leading: finishing something is the
  * more notable of two watches made on one day, and day precision is all the sheet records, so
- * ties are as common as watching two shows in an evening.
+ * ties are as common as watching two shows in an evening. That clause only ever decides anything
+ * where the two kinds meet, which is a `newestWatched` election — the hero, over the whole library,
+ * and `lastWatchedSeason`, over one show's own seasons: inside either of the lists below every
+ * season answers the closed test the same way, so the pair falls through to the sheet's own order
+ * there.
  */
 const byLastWatched = (a: Season, b: Season) => {
   const aDate = a.lastWatchedDate;
@@ -262,39 +265,54 @@ export const showHeroStats = (
 export const statsCardLabelWatching = (season: Season, today: YearMonthDay) => {
   const { episodes, days, perWeek } = watchingProgress(season, today);
   return [
-    [formatDate(season.startDate), days !== undefined ? `${format(days)} days${season.endDate ? "" : " in"}` : ""],
+    // "In", unqualified: every season this labels is one the sheet has left open, so the count is
+    // a span still running rather than one it closed.
+    [formatDate(season.startDate), days !== undefined ? `${format(days)} days in` : ""],
     [`${episodes} eps`, perWeek !== undefined ? `${perWeek}/wk` : ""],
   ];
 };
 
-/** Every finished season, newest first. How many of them fit is the card's decision. */
-export const recentlyComplete = (data: Show[]) =>
+/**
+ * Every season the sheet has closed, newest first by the day it closed. How many of them fit is
+ * the card's decision.
+ *
+ * Ordered through `byLastWatched` like the open half, which here *is* ordering by end date: the
+ * converter dates a finished season by its own end, so the two fields hold one value on every
+ * season in this list. One comparator over one field is what keeps the two lists and the hero
+ * above them from disagreeing about when a season was last watched.
+ */
+export const recentlyWatched = (data: Show[]) =>
   data
     .flatMap((show) => show.s)
     .filter((season) => season.endDate)
-    .sortByKey("endDate");
+    .toSorted(byLastWatched);
 
 /**
- * The latest season of every show still being watched, most recently watched first, and the
- * seasons the sheet cannot date after them in the order it lists their shows.
+ * Every season the sheet has left open, most recently watched first, and the seasons it cannot
+ * date after them in the order it lists their shows.
  *
- * A season that has ended is kept: the Status cell marks a show whose next season is still to
- * come, and dropping it takes a show the reader is midway through a series of off the one strip
- * that answers what is in flight.
+ * The End Date column is the whole test and the Status cell is not consulted, the two answering
+ * different questions: a status is what the reader has decided about a show's *future*, where a
+ * season without an end date is what is in hand *now*. So a show marked Watching whose latest
+ * season has closed has nothing in flight and stands under `recentlyWatched` instead — its next
+ * season being still to come is a fact about the show, which the status band and the wall's own
+ * border already carry — and a season left open under any other status appears here, where the
+ * card's status chip is the one mark on the page saying the sheet has a row still hanging.
  *
- * A show marked Watching with no seasons is a spreadsheet error rather than something to
- * render around, so it throws — but says which show, since the alternative is a bare
- * "cannot read properties of undefined" from somewhere in the card grid.
+ * The two lists are complements: one column decides both, so every season stands in exactly one
+ * and none in both, and one comparator orders them, so they are one reading of the library cut in
+ * two rather than two orders that could drift. The hero is the head of that same reading taken
+ * over all of it, which is how the Omnibus band names a season from either list.
  */
 export const currentlyWatching = (data: Show[]) =>
   data
-    .filter((show) => show.status === "Watching")
-    .map((show) => show.s.at(-1) ?? sheetError(`Show "${show.name}"`, "is marked Watching but has no seasons"))
+    .flatMap((show) => show.s)
+    .filter((season) => !season.endDate)
     .toSorted(byLastWatched);
 
 // Dates are in the reader's voice and not the machine's, which is the same one the card behind
 // the thumbnail speaks.
-export const statsCardLabelRecentlyComplete = (season: Season) => [
+export const statsCardLabelRecentlyWatched = (season: Season) => [
   [`S${season.s}`, season.endDate ? formatDate(season.endDate) : ""],
   [`${season.e} Eps`, `${format(seasonHours(season.minutes))} Hours`],
 ];
