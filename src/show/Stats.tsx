@@ -43,11 +43,11 @@ import {
   showHeroStats,
   minutesPerEpisode,
   perShowAverages,
-  recentlyComplete,
+  recentlyWatched,
   seasonsInYear,
   showTopOptions,
   statsCardLabelEpsHours,
-  statsCardLabelRecentlyComplete,
+  statsCardLabelRecentlyWatched,
   statsCardLabelWatching,
   yearlyAverages,
   type ShowTopOption,
@@ -122,7 +122,7 @@ const Stats = ({
             data={data}
             measure={measure}
           />
-          <RecentlyComplete data={data} />
+          <RecentlyWatched data={data} />
         </StatBand>
       </Section>
     </Stack>
@@ -133,9 +133,10 @@ const Now = ({ hero, watching }: { hero?: Season; watching: Season[] }) => (
   <Section id={SHOW_SECTIONS.now}>
     <Stack spacing={2}>
       {hero && <ShowHero season={hero} />}
-      {/* The two answer different questions — what was watched last, and what is in flight — and
-          may or may not name the same season, so each stands on its own test. The strip is the
-          whole in-flight list, the hero's own show included where it is one of them. */}
+      {/* The two answer different questions — what was watched last, and what is still open — and
+          may or may not name the same season, so each stands on its own test. The strip is every
+          open season, the hero's own included where the sheet has left it open; a hero the sheet
+          has closed is not in it, though an open season of that same show still is. */}
       {watching.length > 0 && (
         <StatBand>
           <CurrentlyWatching watching={watching} />
@@ -255,17 +256,17 @@ const optionIcons: Record<ShowTopOption, ReactNode> = {
   certificate: <VerifiedUser />,
 };
 
-const RecentlyComplete = ({ data }: { data: Show[] }) => {
+const RecentlyWatched = ({ data }: { data: Show[] }) => {
   const scheme = useScheme();
 
-  const recent = recentlyComplete(data);
+  const recent = recentlyWatched(data);
   return (
     <ShowStatList
       icon={<History />}
       title="Recently Watched"
       content={recent}
       chipComponent={({ show }) => showStatusChip(show, scheme)}
-      labelComponent={statsCardLabelRecentlyComplete}
+      labelComponent={statsCardLabelRecentlyWatched}
     />
   );
 };
@@ -346,8 +347,10 @@ const CurrentlyWatching = ({ watching }: { watching: Season[] }) => {
       icon={<PlayArrow />}
       title="Currently Watching"
       content={watching}
-      // One badge saying how far the show is through, in the colour every chart paints "still
-      // going" in — the season on a card that has ended is the one the reader is up to date on.
+      // One badge saying how far into the show this season is, in the colour every chart paints
+      // its status in. It reads "still going" on almost every card here, and that is the point of
+      // drawing it: a season the sheet has left open under a status saying the show is done with
+      // is a row nothing else on the page marks.
       chipComponent={(season) => ({ label: `S${season.s}E${season.e}`, colour: statusToColour(season.show, scheme) })}
       wrap={false}
       labelComponent={(season) => statsCardLabelWatching(season, CURRENT_PLAINDATE)}
