@@ -653,7 +653,15 @@ export const searchUnion = (index: SearchIndex, query: string, limit = HITS_PER_
   // half, which is what lets each half be cut at the same figure first. The totals are still the
   // whole indexes', `rankHits` counting what it matched before its own cut, so the merged group
   // states what it is showing five of rather than a figure it stopped counting at.
-  const ranked = [...franchises.hits, ...attributes.hits]
+  // One name, one row. A book series is written in its Series column and its Franchise column
+  // both, and 47 of the 73 series hold one string in each, so the attribute the first indexes
+  // would stand beside the franchise the second draws as a second "Animorphs" differing only in
+  // its category word. The franchise leads the merge and its view says more, so a value the
+  // franchise index already answers by that exact name yields to it. A level — "Nintendo" over
+  // seven platforms — is no value and is left alone.
+  const named = new Set(franchises.hits.map((hit) => hit.entry.franchise));
+  const attributeHits = attributes.hits.filter((hit) => hit.entry.level !== undefined || !named.has(hit.entry.value));
+  const ranked = [...franchises.hits, ...attributeHits]
     .toSorted((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity))
     .slice(0, limit);
   const values = ranked.map((hit) => valueHit(index, hit));
@@ -663,7 +671,7 @@ export const searchUnion = (index: SearchIndex, query: string, limit = HITS_PER_
       key: "values",
       label: "Genres, tags and series",
       hits: values,
-      total: franchises.total + attributes.total,
+      total: franchises.total + attributes.total - (attributes.hits.length - attributeHits.length),
     },
     ...media.map((medium) => ({
       key: medium,

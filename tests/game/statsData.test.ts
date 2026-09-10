@@ -33,12 +33,12 @@ describe("earliestYear", () => {
 describe("groupGamesBy", () => {
   it("counts games per category, most-played first", () => {
     const data = [
-      videoGame({ franchise: "Zelda", hours: 10 }),
-      videoGame({ franchise: "Mario", hours: 5 }),
-      videoGame({ franchise: "Mario", hours: 5 }),
+      videoGame({ publisher: "Zelda", hours: 10 }),
+      videoGame({ publisher: "Mario", hours: 5 }),
+      videoGame({ publisher: "Mario", hours: 5 }),
     ];
 
-    expect(groupGamesBy(data, "franchise", "Games").map((g) => [g.name, g.count])).toEqual([
+    expect(groupGamesBy(data, "publisher", "Games").map((g) => [g.name, g.count])).toEqual([
       ["Mario", 2],
       ["Zelda", 1],
     ]);
@@ -46,12 +46,12 @@ describe("groupGamesBy", () => {
 
   it("sums hours instead of counting when the measure is Hours", () => {
     const data = [
-      videoGame({ franchise: "Zelda", hours: 10 }),
-      videoGame({ franchise: "Mario", hours: 5 }),
-      videoGame({ franchise: "Mario", hours: 3 }),
+      videoGame({ publisher: "Zelda", hours: 10 }),
+      videoGame({ publisher: "Mario", hours: 5 }),
+      videoGame({ publisher: "Mario", hours: 3 }),
     ];
 
-    expect(groupGamesBy(data, "franchise", "Hours").map((g) => [g.name, g.count])).toEqual([
+    expect(groupGamesBy(data, "publisher", "Hours").map((g) => [g.name, g.count])).toEqual([
       ["Zelda", 10],
       ["Mario", 8],
     ]);
@@ -60,61 +60,75 @@ describe("groupGamesBy", () => {
   it("only counts games that are both finished and time-tracked", () => {
     // An in-progress or untimed game has no meaningful playtime to attribute.
     const data = [
-      videoGame({ franchise: "Zelda", hours: 10 }),
-      videoGame({ franchise: "Unfinished", endDate: undefined }),
-      videoGame({ franchise: "Untimed", hours: undefined }),
+      videoGame({ publisher: "Zelda", hours: 10 }),
+      videoGame({ publisher: "Unfinished", endDate: undefined }),
+      videoGame({ publisher: "Untimed", hours: undefined }),
     ];
 
-    expect(groupGamesBy(data, "franchise", "Games").map((g) => g.name)).toEqual(["Zelda"]);
+    expect(groupGamesBy(data, "publisher", "Games").map((g) => g.name)).toEqual(["Zelda"]);
   });
 
   it("names each group's top game by hours", () => {
     const data = [
-      videoGame({ name: "small", franchise: "Zelda", hours: 5 }),
-      videoGame({ name: "big", franchise: "Zelda", hours: 50 }),
+      videoGame({ name: "small", publisher: "Zelda", hours: 5 }),
+      videoGame({ name: "big", publisher: "Zelda", hours: 50 }),
     ];
 
-    expect(groupGamesBy(data, "franchise", "Games")[0].top.name).toBe("big");
+    expect(groupGamesBy(data, "publisher", "Games")[0].top.name).toBe("big");
   });
 
   it("keeps every member of the group alongside the top one", () => {
-    const data = [videoGame({ franchise: "Zelda" }), videoGame({ franchise: "Zelda" })];
+    const data = [videoGame({ publisher: "Zelda" }), videoGame({ publisher: "Zelda" })];
 
-    expect(groupGamesBy(data, "franchise", "Games")[0].all).toHaveLength(2);
+    expect(groupGamesBy(data, "publisher", "Games")[0].all).toHaveLength(2);
   });
 
   it("leaves out games with no value for the category", () => {
     // Object.groupBy stringifies its key, so without this these would collect under the
     // literal string "undefined" and render as a category of that name.
-    const data = [videoGame({ franchise: "Zelda" }), videoGame({ franchise: undefined as unknown as string })];
+    const data = [videoGame({ publisher: "Zelda" }), videoGame({ publisher: undefined as unknown as string })];
 
-    expect(groupGamesBy(data, "franchise", "Games").map((g) => g.name)).toEqual(["Zelda"]);
+    expect(groupGamesBy(data, "publisher", "Games").map((g) => g.name)).toEqual(["Zelda"]);
   });
 
   it("leaves out games whose category is an empty string", () => {
-    const data = [videoGame({ franchise: "Zelda" }), videoGame({ franchise: "" })];
+    const data = [videoGame({ publisher: "Zelda" }), videoGame({ publisher: "" })];
 
-    expect(groupGamesBy(data, "franchise", "Games").map((g) => g.name)).toEqual(["Zelda"]);
+    expect(groupGamesBy(data, "publisher", "Games").map((g) => g.name)).toEqual(["Zelda"]);
   });
 
   it("returns nothing for an empty dataset", () => {
-    expect(groupGamesBy([], "franchise", "Games")).toEqual([]);
+    expect(groupGamesBy([], "publisher", "Games")).toEqual([]);
+  });
+
+  it("drops a franchise of one game under the franchise key, as the other three tabs do", () => {
+    // The column is mostly works naming themselves — 52 of the 168 franchise values in the games
+    // sheet — and a Top Franchise card listing every standalone game as a franchise of one is what
+    // the shared rule exists to stop; grouped on any other key a group of one stands.
+    const data = [
+      videoGame({ name: "Braid", franchise: "Braid", publisher: "Number None" }),
+      videoGame({ franchise: "Zelda" }),
+      videoGame({ franchise: "Zelda" }),
+    ];
+
+    expect(groupGamesBy(data, "franchise", "Games").map((g) => g.name)).toEqual(["Zelda"]);
+    expect(groupGamesBy(data, "publisher", "Games").map((g) => g.name)).toContain("Number None");
   });
 });
 
 describe("topNWithOther", () => {
   const many = (count: number) =>
-    Array.from({ length: count }, (_, i) => videoGame({ franchise: `F${i}`, hours: count - i }));
+    Array.from({ length: count }, (_, i) => videoGame({ publisher: `F${i}`, hours: count - i }));
 
   it("keeps every category when there are no more than the limit", () => {
-    const result = topNWithOther(groupGamesBy(many(5), "franchise", "Hours"));
+    const result = topNWithOther(groupGamesBy(many(5), "publisher", "Hours"));
 
     expect(result).toHaveLength(5);
     expect(result.some((r) => r.name === "Other")).toBe(false);
   });
 
   it("collapses everything past the limit into one Other bucket", () => {
-    const result = topNWithOther(groupGamesBy(many(8), "franchise", "Hours"));
+    const result = topNWithOther(groupGamesBy(many(8), "publisher", "Hours"));
 
     expect(result.map((r) => r.name)).toEqual(["F0", "F1", "F2", "F3", "F4", "Other"]);
     // F5 + F6 + F7 by hours.
@@ -122,14 +136,14 @@ describe("topNWithOther", () => {
   });
 
   it("gives Other no top game, because it stands for several categories", () => {
-    const result = topNWithOther(groupGamesBy(many(8), "franchise", "Hours"));
+    const result = topNWithOther(groupGamesBy(many(8), "publisher", "Hours"));
 
     expect(result.at(-1)!.top).toBeUndefined();
     expect(result[0].top).toBeDefined();
   });
 
   it("honours a caller-supplied limit", () => {
-    expect(topNWithOther(groupGamesBy(many(8), "franchise", "Hours"), 2).map((r) => r.name)).toEqual([
+    expect(topNWithOther(groupGamesBy(many(8), "publisher", "Hours"), 2).map((r) => r.name)).toEqual([
       "F0",
       "F1",
       "Other",
@@ -139,19 +153,19 @@ describe("topNWithOther", () => {
   it("fills the bar exactly, because the percentages are scoped to the rows shown", () => {
     // Unlike groupTotals, nothing is left out here — Other accounts for the remainder — so the
     // first entry absorbs only rounding.
-    const result = topNWithOther(groupGamesBy(many(8), "franchise", "Hours"));
+    const result = topNWithOther(groupGamesBy(many(8), "publisher", "Hours"));
 
     expect(result.reduce((a, b) => a + b.percent, 0)).toBeCloseTo(100, 10);
   });
 
   it("inherits groupGamesBy's exclusion of games with no category", () => {
     const data = [
-      videoGame({ franchise: "Zelda" }),
-      videoGame({ franchise: "" }),
-      videoGame({ franchise: undefined as unknown as string }),
+      videoGame({ publisher: "Zelda" }),
+      videoGame({ publisher: "" }),
+      videoGame({ publisher: undefined as unknown as string }),
     ];
 
-    expect(topNWithOther(groupGamesBy(data, "franchise", "Games")).map((r) => r.name)).toEqual(["Zelda"]);
+    expect(topNWithOther(groupGamesBy(data, "publisher", "Games")).map((r) => r.name)).toEqual(["Zelda"]);
   });
 });
 
@@ -281,13 +295,13 @@ describe("heroStats", () => {
   it("counts the days the game has been in progress, both ends included", () => {
     // The inclusive count `numDays` and the Days To Beat card already use, so a game shows the
     // same span before and after it is finished.
-    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: undefined, franchise: "" });
+    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: undefined, publisher: "" });
 
     expect(heroStats(game, [game], today)).toEqual([{ label: "Days In", value: 11 }]);
   });
 
   it("reports the hours the sheet has logged against a game still being played", () => {
-    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: 12, franchise: "" });
+    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: 12, publisher: "" });
 
     expect(heroStats(game, [game], today)).toContainEqual({ label: "Hours", value: 12 });
   });
@@ -295,13 +309,13 @@ describe("heroStats", () => {
   it("leaves the hours out rather than reporting zero for a game with none logged", () => {
     // The sheet only fills hours in for some in-progress games, and a tile reading 0 asserts
     // that none have been played rather than that none have been recorded.
-    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: 0, franchise: "" });
+    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: 0, publisher: "" });
 
     expect(heroStats(game, [game], today).map((stat) => stat.label)).toEqual(["Days In"]);
   });
 
   it("places the game in its series once the series has more than one game", () => {
-    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: undefined, franchise: "Zelda" });
+    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: undefined, publisher: "Zelda" });
 
     expect(heroStats(game, [game, videoGame(), videoGame()], today)).toContainEqual({
       label: "Zelda Games",
@@ -310,21 +324,21 @@ describe("heroStats", () => {
   });
 
   it("says nothing about a series holding only this game", () => {
-    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: undefined, franchise: "Zelda" });
+    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: undefined, publisher: "Zelda" });
 
     expect(heroStats(game, [game], today).map((stat) => stat.label)).toEqual(["Days In"]);
   });
 
   it("skips the day count for a game the sheet recorded as a bare year", () => {
     // `daysTo` refuses to answer across a year-only date rather than inventing a day for it.
-    const game = videoGame({ startDate: Year.get(2024), hours: 5, franchise: "" });
+    const game = videoGame({ startDate: Year.get(2024), hours: 5, publisher: "" });
 
     expect(heroStats(game, [game], today).map((stat) => stat.label)).toEqual(["Hours"]);
   });
 
   it("skips the day count rather than throwing on a start date in the future", () => {
     // `daysTo` throws on a backwards comparison, which a mistyped sheet row can produce.
-    const game = videoGame({ startDate: YearMonthDay.get(2025, 1, 1), hours: 5, franchise: "" });
+    const game = videoGame({ startDate: YearMonthDay.get(2025, 1, 1), hours: 5, publisher: "" });
 
     expect(heroStats(game, [game], today).map((stat) => stat.label)).toEqual(["Hours"]);
   });

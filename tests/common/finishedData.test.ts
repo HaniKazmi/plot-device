@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { CURRENT_YEAR, Year, YearMonthDay } from "../../src/common/date";
 import {
+  bucketFor,
   bucketGroups,
   bucketLabel,
-  finishedBucket,
   finishedColumns,
   finishedCount,
   wallPopulation,
@@ -11,6 +11,7 @@ import {
   finishedKey,
   orderedBuckets,
   type FinishedExtraSort,
+  type FinishedItem,
 } from "../../src/common/finishedData";
 
 const item = (name: string, artwork: string | undefined, year?: number) => ({
@@ -132,7 +133,11 @@ describe("wallPopulation", () => {
   });
 });
 
-describe("finishedBucket", () => {
+/** One item's bucket, the sort resolved per call: the wall resolves it once and reads every card from that. */
+const finishedBucket = <U extends FinishedItem>(item: U, sort: string, extras: readonly FinishedExtraSort<U>[] = []) =>
+  bucketFor(sort, extras)(item);
+
+describe("bucketFor", () => {
   it("reads a year off the date under the date sort", () => {
     expect(finishedBucket(item("Zelda", "a.jpg", 2023), "Date")).toBe("2023");
   });

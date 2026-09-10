@@ -4,7 +4,8 @@ import { MEDIA, franchiseToColour, mediumToColour, mediumUnit, pick, type Medium
 import { useArtworkPalette, type artworkPalette } from "./artworkPalette";
 
 type Palette = ReturnType<typeof artworkPalette>;
-import { FADED_ENDS, INLINE_SWATCH_SIZE, Swatch, TimelineScale } from "./Card";
+import { INLINE_SWATCH_SIZE, Swatch } from "./Swatch";
+import { FADED_ENDS, TimelineScale } from "./TimelineBand";
 import { SegmentedControl, type SegmentOption } from "./SelectionComponents";
 import { shortYear, type YearMonthDay } from "./date";
 import type { FranchiseEntry } from "./franchiseUnion";
@@ -121,8 +122,11 @@ export const FranchiseStrip = (props: {
   };
   const window = stripWindow(ordered);
   // The order reading needs no range: the beads are the order, and the years beneath say when.
-  const range =
-    mode === "order" ? undefined : `${window.from.year} – ${window.to.year >= today.year ? "today" : window.to.year}`;
+  // The range states the entries' own last year and not the window's, which is held open to three
+  // years past the first: a series begun in 2024 and finished in 2025 is drawn to 2026 and did not
+  // run "to today".
+  const lastYear = Math.max(...ordered.map((entry) => entry.end.year));
+  const range = mode === "order" ? undefined : `${window.from.year} – ${lastYear >= today.year ? "today" : lastYear}`;
 
   return (
     <Box

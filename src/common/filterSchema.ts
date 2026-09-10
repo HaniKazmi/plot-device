@@ -452,7 +452,10 @@ export const selectedPredicates = <T>(selected: readonly string[], valueOf: (ite
  *
  * The state is indexed through `fieldsOf`, a schema naming a field by string alone.
  */
-export const schemaPredicates = <T, S>(schema: FilterSchema<T, S>, state: Omit<S, "filter">): Predicate<T>[] => {
+export const schemaPredicates = <T, S>(
+  schema: FilterSchema<T, S>,
+  state: Omit<S, "filter" | "filterUpTo">,
+): Predicate<T>[] => {
   const fields = fieldsOf(state);
 
   return [

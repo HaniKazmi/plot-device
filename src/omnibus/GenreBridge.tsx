@@ -1,7 +1,9 @@
-import { useState } from "react";
 import { CardContent, Stack, Typography } from "@mui/material";
+import { NothingToPlot } from "../common/NothingMatches";
+import { useHoverDim } from "../common/hoverDim";
 import { Category } from "@mui/icons-material";
-import { INLINE_SWATCH_SIZE, ProportionalBar, Swatch } from "../common/Card";
+import { ProportionalBar } from "../common/ProportionalBar";
+import { INLINE_SWATCH_SIZE, Swatch } from "../common/Swatch";
 import { FoldedChart } from "../common/FoldedChart";
 import { LABEL_SX, MUTED_FIGURE_SX } from "../common/typography";
 import { format } from "../utils/mathUtils";
@@ -59,7 +61,7 @@ const rowColour = (name: string, key: BridgeKey, scheme: Scheme): Colour | undef
 const GenreBridge = ({ items, measure }: { items: OmniItem[]; measure: Measure }) => {
   const scheme = useScheme();
 
-  const [hovered, setHovered] = useState<string | null>(null);
+  const [hovered, setHovered] = useHoverDim();
   // Genre is what the section opens on, the composition the union most plainly has; the rest are
   // the same question asked of when an item was met and what it was certified.
   const [key, keySelect] = useSelectBox(BRIDGE_KEYS, "genre", "Rows");
@@ -72,6 +74,10 @@ const GenreBridge = ({ items, measure }: { items: OmniItem[]; measure: Measure }
       icon={<Category />}
       title={`${KEY_NOUN[key]} by medium`}
       count={stated(rows.length, KEY_NOUN[key].toLowerCase())}
+      // The section is gated on the grouping it opens with, and the reader's own pick can empty
+      // what that gate let through: nothing certifies a book, so a page holding books alone has
+      // genres to bridge and no certificates.
+      blank={rows.length === 0 ? <NothingToPlot /> : undefined}
       // The picker chooses what a row is and the swatches key the bars: both are about a stack
       // that is not drawn until the card is opened, and the fold's own line names its leading row
       // in words.

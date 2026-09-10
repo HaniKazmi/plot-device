@@ -3,7 +3,7 @@ import { DonutLarge } from "@mui/icons-material";
 import { Fragment, useLayoutEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 import { Chart, highchartsColors, SunburstSeries } from "../highcharts";
-import { ProportionalBar } from "./Card";
+import { ProportionalBar } from "./ProportionalBar";
 import { FoldedChart } from "./FoldedChart";
 import { SelectBox } from "./SelectionComponents";
 import { useScheme } from "./useScheme";
@@ -36,6 +36,16 @@ const PREVIEW_WEDGES = 5;
  * Lives outside the component because the React Compiler cannot compile a function
  * containing `this`, and Highcharts binds the chart to `this` on its render event.
  */
+/**
+ * The tooltip's line, Highcharts' own `<b>{point.name}</b>: {point.value}` with the value printed
+ * through the caller's `displayValue`. At module scope because Highcharts binds the point to
+ * `this`, which opts a component out of the React Compiler.
+ */
+const wedgeFormatter = (displayValue: (value: number) => number) =>
+  function (this: { name: string; value?: number }) {
+    return `<b>${this.name}</b>: ${format(displayValue(this.value ?? 0))}<br/>`;
+  };
+
 const dimLeafRing = (leafLevel: number) =>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function (this: any) {
@@ -63,6 +73,16 @@ const Sunburst = <T, K extends string>({
     getCount: (item: T) => number | undefined;
     getColor: (item: T, firstGroup: K) => Colour | undefined;
     getLeafName: (item: T) => string;
+    /**
+     * How a wedge's summed value is printed, in its tooltip and in the folded card's line: a floor
+     * for hours, so the wheel states the figure the vitals band and the barchart state for the same
+     * rows. Applied to the printed figure and never to the node: Highcharts sizes a parent arc by
+     * its own value wherever that exceeds its children's sum, so a floor on every node leaves each
+     * parent a sliver wider than the wedges inside it — a 10% hole around three 6.75-hour seasons.
+     * A caller flooring per row instead keeps the geometry and loses a partial hour on every row,
+     * 551 hours against 733 over 366 films. Rounded to the whole where a caller states nothing.
+     */
+    displayValue?: (value: number) => number;
   };
 }) => {
   const theme = useTheme();
@@ -79,6 +99,7 @@ const Sunburst = <T, K extends string>({
   const [rebuilds, setRebuilds] = useState(0);
 
   const generatedData = generateSunburstData(data, groups, options);
+  const displayValue = options.displayValue ?? Math.round;
   // One ring per group, plus the leaf ring of individual items.
   const leafLevel = groups.length + 1;
   /**
@@ -125,7 +146,7 @@ const Sunburst = <T, K extends string>({
       // hierarchy once here rather than by each of them.
       fold={() => {
         const ring = firstRing(generatedData);
-        return { summary: ringSummary(ring), preview: <RingBar ring={ring} /> };
+        return { summary: ringSummary(ring, displayValue), preview: <RingBar ring={ring} /> };
       }}
     >
       <CardContent>
@@ -150,6 +171,7 @@ const Sunburst = <T, K extends string>({
               allowTraversingTree: true,
               rootId: root.id,
               name: "All",
+              tooltip: { pointFormatter: wedgeFormatter(displayValue) },
               events: {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 setRootNode: (event: any) => {
@@ -183,10 +205,10 @@ const Sunburst = <T, K extends string>({
  * The innermost ring named and counted, largest first — what the wheel says before a reader drills
  * anywhere. Worded here rather than in `sunburstData` because `format` reads the machine's locale.
  */
-const ringSummary = (ring: SunburstEntry[]) =>
+const ringSummary = (ring: SunburstEntry[], displayValue: (value: number) => number) =>
   ring
     .slice(0, PREVIEW_WEDGES)
-    .map((entry) => `${entry.name} ${format(Math.round(entry.value))}`)
+    .map((entry) => `${entry.name} ${format(displayValue(entry.value))}`)
     .join(" · ");
 
 /**

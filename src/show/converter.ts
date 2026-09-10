@@ -69,9 +69,17 @@ export const jsonConverter = (json: Record<string, string>[]) => {
         console.error(`${where}: episode count "${row.Episodes}" is not a number, counting it as 0`);
       }
 
+      const e = Number.isNaN(episodes) ? 0 : episodes;
+
       const length = row["Episode Length (min)"];
       const episodeLength = length ? parseInt(length) : undefined;
-      const e = Number.isNaN(episodes) ? 0 : episodes;
+      if (episodeLength === undefined && e > 0) {
+        // Reported for the same reason a bad episode count is: the season's minutes are then 0,
+        // and every hours figure on the tab and the union is short by its episodes with nothing
+        // on screen saying so — an open season a runtime has not been entered for yet is the
+        // common case.
+        console.error(`${where}: no episode length, counting its ${e} episodes as 0 minutes`);
+      }
 
       // One column carries two facts by row kind: the season count on a show row, and on a
       // season row the date an episode was last watched. Only the season half is read here, the
@@ -94,7 +102,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
         subtitle: row.Subtitle.trim() || undefined,
         startDate,
         endDate,
-        episodeLength: episodeLength as number,
+        episodeLength,
         minutes: episodeLength ? episodeLength * e : 0,
         lastWatchedDate,
         show: show as Show,

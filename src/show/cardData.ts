@@ -85,8 +85,10 @@ export const showRows = (show: Show, scheme: Scheme): LedgerRow[] => {
   ];
 
   // The runtime of the most recent season's episodes — where the seasons disagree, the latest is
-  // the one a reader deciding whether to start tonight is asking about.
-  const episodeLength = show.s.at(-1)!.episodeLength;
+  // the one a reader deciding whether to start tonight is asking about. The latest *with* a
+  // runtime: an open season the sheet has no length for yet is exactly the one the hero names,
+  // and its card would otherwise lose the row its three earlier seasons all carry.
+  const episodeLength = show.s.findLast((season) => season.episodeLength)?.episodeLength;
   if (episodeLength) rows.push({ label: "Episode", value: `${episodeLength} min` });
 
   // A show with no wider franchise carries its own name in the column, so the row appears only

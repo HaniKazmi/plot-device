@@ -46,10 +46,12 @@ import type { FilterState } from "./filterUtils";
 const SuspenseBlock = ({
   library,
   filteredData,
+  upToData,
   filterState,
 }: {
   library: Library;
   filteredData: OmniItem[];
+  upToData: OmniItem[];
   filterState: FilterState;
 }) => (
   <GameFranchiseContext.Provider value={franchiseIndex(library.game, gameFranchise)}>
@@ -60,6 +62,7 @@ const SuspenseBlock = ({
             <Graphs
               library={library}
               data={filteredData}
+              upTo={upToData}
               filterState={filterState}
             />
           </BookEpochProvider>
@@ -70,7 +73,17 @@ const SuspenseBlock = ({
 );
 
 const Graphs = memo(
-  ({ library, data, filterState }: { library: Library; data: OmniItem[]; filterState: FilterState }) => {
+  ({
+    library,
+    data,
+    upTo,
+    filterState,
+  }: {
+    library: Library;
+    data: OmniItem[];
+    upTo: OmniItem[];
+    filterState: FilterState;
+  }) => {
     // The charts and the browse surfaces re-render at lower priority, so a filter toggle answers
     // at once on a page composing four libraries; the bands above them read the fresh array, the
     // way every other tab splits the two.
@@ -161,6 +174,7 @@ const Graphs = memo(
         )}
         <Stats
           data={data}
+          upTo={upTo}
           now={now}
           crossings={crossed.found}
           measure={filterState.measure}

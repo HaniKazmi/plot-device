@@ -36,8 +36,10 @@ const BookSunburst = ({ data, measure }: { data: Book[]; measure: Measure }) => 
           }
         },
         // Hours are the sheet's decimal estimates and are passed exactly: the shell sums them, and
-        // flooring per book would erase every read under an hour from the chart.
+        // flooring per book would erase every read under an hour from the chart. The printed sum
+        // is floored, as the vitals band floors its own.
         getCount: ({ hours, pages }) => (measure === "Hours" ? hours || undefined : measure === "Pages" ? pages : 1),
+        displayValue: measure === "Hours" ? Math.floor : undefined,
         getColor: (book, firstGroup) =>
           firstGroup === "startDate" ? undefined : groupToColour(firstGroup, book, scheme) || undefined,
         getLeafName: (book) => book.name,

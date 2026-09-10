@@ -56,12 +56,15 @@ import { useScheme } from "../common/useScheme";
 
 const Stats = ({
   data,
+  upTo,
   reading,
   measure,
   yearType,
   yearTo,
 }: {
   data: Book[];
+  /** The rows up to the scope's year whatever its reading, for the cards titled that way. */
+  upTo: Book[];
   /** Every book in progress, most recently started first. Computed by `Graphs`, which also
       decides on it whether the rail offers a chip pointing at the hero below. */
   reading: Book[];
@@ -83,18 +86,21 @@ const Stats = ({
       )}
       <Section id={BOOK_SECTIONS.vitals}>
         <StatBand>
-          {/* The year controls in these cards filter the whole page, and a control's effects flow
-            down the page, never up — so the cards come before the bands they redraw. */}
+          {/* The first card and the average beside it count `upTo` rather than `data`: the scope
+              read as a ceiling, which is what a card titled "All time" or "Up to 2019" states
+              under either reading — fed the "In 2026" rows, it would restate the in-year figures
+              under the wrong words. The in-year card narrows `data`, which under that reading is
+              already the year. */}
           <YearVitalsPair
             yearTo={yearTo}
             yearType={yearType}
-            allTime={bookTotals(data)}
+            allTime={bookTotals(upTo)}
             inYear={booksInYear(data, yearTo)}
           />
           <StatSummary
             icon={<ShowChart />}
             title="Yearly Average"
-            stats={yearlyAverages(data)}
+            stats={yearlyAverages(upTo)}
           />
           <BookAverage data={data} />
           <Vitals

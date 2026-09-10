@@ -1,5 +1,5 @@
 import { Box, CardContent, Stack, Typography, type Theme } from "@mui/material";
-import { TimelineBandBox, type TimelineBand } from "./Card";
+import { TimelineBandBox, type TimelineBand } from "./TimelineBand";
 import type { TimelineTick } from "./timelineLayout";
 import { MUTED_FIGURE_SX } from "./typography";
 

@@ -235,6 +235,22 @@ describe("season fields", () => {
     expect(error).toHaveBeenCalledWith(expect.stringContaining('season 1 of "Severance"'));
     expect(error).toHaveBeenCalledWith(expect.stringContaining("counting it as 0"));
   });
+
+  it("counts a season with episodes and no runtime as 0 minutes, and says which row it was", () => {
+    // An open season the sheet has no length for yet is the common case, and its episodes are
+    // then absent from every hours figure on the tab with nothing on screen saying so.
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const [show] = jsonConverter([
+      showRow({ Title: "Ted Lasso" }),
+      seasonRow({ Season: "4", Episodes: "6", "Episode Length (min)": "" }),
+    ]);
+
+    expect(show.s[0].episodeLength).toBeUndefined();
+    expect(show.s[0].minutes).toBe(0);
+    expect(error).toHaveBeenCalledWith(expect.stringContaining('season 4 of "Ted Lasso"'));
+    expect(error).toHaveBeenCalledWith(expect.stringContaining("no episode length"));
+  });
 });
 
 describe("last watched, per season", () => {

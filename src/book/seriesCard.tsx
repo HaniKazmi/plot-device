@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { roundHours } from "./types";
 import type { PanelStat, PanelSubtitlePart } from "../common/Card";
 import { DrilldownDialog } from "../common/DrilldownDialog";
 import { CURRENT_PLAINDATE, formatDateRange } from "../common/date";
@@ -60,7 +61,7 @@ const seriesStats = (span: SeriesSpan): PanelStat[] => {
     ];
   }
 
-  const hours = Math.round(span.books.sum("hours") * 10) / 10;
+  const hours = roundHours(span.books.sum("hours"));
 
   return [
     { value: span.books.length, label: "Books" },

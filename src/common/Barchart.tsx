@@ -1,4 +1,5 @@
-import { CardContent, Stack, Typography, useTheme } from "@mui/material";
+import { CardContent, Stack, useTheme } from "@mui/material";
+import { NothingToPlot } from "./NothingMatches";
 import { type ReactNode, useState } from "react";
 import { BarChart } from "@mui/icons-material";
 import { SegmentedControl } from "./SelectionComponents";
@@ -119,16 +120,7 @@ const Barchart = ({
       // section gate cannot answer this, because a grouping the caller offers can empty the pivot
       // after the gate has decided there is something to say — which is why the guard is here,
       // where the pivot is built.
-      blank={
-        groups.length === 0 ? (
-          <Typography
-            variant="body2"
-            sx={{ color: "text.secondary" }}
-          >
-            Nothing to plot for the current selection.
-          </Typography>
-        ) : undefined
-      }
+      blank={groups.length === 0 ? <NothingToPlot /> : undefined}
       fold={() => {
         // The Totals reading, which is what a folded card's line and sparkline describe whatever
         // the View: the only view whose cells are the measure itself rather than a percentage of a

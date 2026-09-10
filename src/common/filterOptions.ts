@@ -38,7 +38,3 @@ export const franchiseOptions = <T>(
     const holds = series ? series.has(franchise) : !namesTheSameThing(franchise, nameOf(item));
     return holds ? franchise : "";
   }).filter(Boolean);
-
-/** MUI hands a multi-select either an array or a comma-joined string, depending on the event. */
-export const toValueArray = (value: string | readonly string[]): string[] =>
-  typeof value === "string" ? value.split(",") : [...value];

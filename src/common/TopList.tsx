@@ -1,8 +1,10 @@
 import { Card, CardContent, Stack, Typography } from "@mui/material";
+import { useHoverDim } from "./hoverDim";
 import Grid from "@mui/material/Grid";
 import { capitalize } from "@mui/material/utils";
-import { useState, type ReactNode } from "react";
-import { ProportionalBar, Swatch } from "./Card";
+import type { ReactNode } from "react";
+import { ProportionalBar } from "./ProportionalBar";
+import { Swatch } from "./Swatch";
 import { SectionHeader } from "./SectionHeader";
 import { dimSx } from "./typography";
 import { useSelectBox } from "./SelectBoxHook";
@@ -42,7 +44,7 @@ const TopListCard = <O extends string, T>(props: TopListCardProps<O, T>) => {
 
   const [option, controls] = useSelectBox(options, props.defaultOption);
   const colorOffset = options.indexOf(option) * 3;
-  const [hovered, setHovered] = useState<string | null>(null);
+  const [hovered, setHovered] = useHoverDim();
 
   const most = topNWithOther(groups(option));
 

@@ -1,5 +1,5 @@
 import { Box, Stack, Typography } from "@mui/material";
-import { Swatch } from "../common/Card";
+import { Swatch } from "../common/Swatch";
 import { CURRENT_PLAINDATE, formatDate } from "../common/date";
 import { DrilldownDialog } from "../common/DrilldownDialog";
 import { FranchiseStrip } from "../common/FranchiseStrip";

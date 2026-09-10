@@ -12,20 +12,20 @@ import {
   Typography,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
+import { useHoverDim } from "./hoverDim";
 import { format } from "../utils/mathUtils";
 import { all, stated } from "./population";
 import { groupTotals } from "./statsData";
 import {
   FooterComponent,
-  INLINE_SWATCH_SIZE,
-  ProportionalBar,
   ROW_FOOTER_HEIGHT,
   STRIP_CAPTION_HEIGHT,
-  Swatch,
   type CardMediaImageProps,
   type MediaBand,
   type TypedCardMediaImage,
 } from "./Card";
+import { ProportionalBar } from "./ProportionalBar";
+import { INLINE_SWATCH_SIZE, Swatch } from "./Swatch";
 import { dimSx, LABEL_SX, MUTED_FIGURE_SX } from "./typography";
 import { NothingMatches } from "./NothingMatches";
 import { useNothingMatches } from "./nothingMatchesContext";
@@ -36,7 +36,7 @@ import { Filmstrip, STRIP_GAP } from "./Filmstrip";
 import { useElementWidth } from "./useElementWidth";
 import { CONTAIN_SIDEWAYS_SCROLL } from "./scrollbarSx";
 import { useStackedCharts } from "./breakpoints";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { Colour } from "../utils/types";
 import { scopeLabel } from "./scope";
 import type { YearType } from "./filterReducer";
@@ -940,7 +940,7 @@ export const TotalsBand = <T extends string, U>(props: {
   const totals = groupTotals(data, group, groupOf, measureFunc ?? countOf, groupToColour);
   // Held per band rather than per card: a card stacks several bands, and hovering one group of a
   // library should not fade the band answering a different question.
-  const [hovered, setHovered] = useState<string | null>(null);
+  const [hovered, setHovered] = useHoverDim();
 
   return (
     <Stack spacing={1}>

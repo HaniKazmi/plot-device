@@ -116,14 +116,6 @@ export const GAMEPLAY = [
 
 export type Gameplay = (typeof GAMEPLAY)[number];
 
-/**
- * Whether a sheet cell holds a gameplay style, so the converter can reject a blank or misspelt one
- * where it still knows the row. Without it the cell is cast unchecked and the first sign of trouble
- * is a wedge quietly wearing the neutral, which reads as a style with no colour yet rather than as
- * a cell nobody filled in.
- */
-export const isGameplay = (value: string): value is Gameplay => (GAMEPLAY as readonly string[]).includes(value);
-
 export type Measure = "Hours" | "Games";
 
 /**

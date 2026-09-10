@@ -1,11 +1,11 @@
 import { CURRENT_YEAR, YearMonthDay } from "../common/date";
 import { buildStrip, type StripBand, type StripSpan } from "../common/timelineStripData";
 import { isSeries } from "../app/galleryData";
+import { franchiseIndex } from "../common/franchiseIndex";
 import { moduleOf } from "../app/media";
 import type { OmniItem } from "../common/medium";
 import { media, type Medium } from "../app/types";
 import "../utils/arrayUtils";
-import "../utils/mapUtils";
 
 /** One entry of a franchise on the strip, with the item behind it for the hover card. */
 interface CrossingSpan extends StripSpan {
@@ -80,10 +80,7 @@ export const crossingSpan = (item: OmniItem, key: string, today: YearMonthDay): 
  * are not drawn at the same width.
  */
 export const crossings = (items: OmniItem[], today: YearMonthDay): { found: Crossing[]; epoch: YearMonthDay } => {
-  const byFranchise = items.reduce((index, item) => {
-    if (item.franchise) index.setIfAbsent(item.franchise, []).push(item);
-    return index;
-  }, new Map<string, OmniItem[]>());
+  const byFranchise = franchiseIndex(items, (item) => item.franchise);
 
   const groups = [...byFranchise.entries()]
     .filter(([franchise, group]) => isSeries(franchise, group))

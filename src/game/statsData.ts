@@ -1,6 +1,6 @@
 import { daysSince, formatDate, type YearMonthDay, type YearNumber } from "../common/date";
 import { format } from "../utils/mathUtils";
-import { earliestYear as earliestYearOf, groupByCategory } from "../common/statsData";
+import { earliestYear as earliestYearOf, groupByCategory, realFranchisesOnly } from "../common/statsData";
 import { platformToShort, type Measure, type VideoGame, type VideoGameStringKeys } from "./types";
 import "../utils/arrayUtils";
 
@@ -36,6 +36,7 @@ export const groupGamesBy = (data: VideoGame[], key: VideoGameStringKeys, measur
     (game) => game[key],
     (games) => (measure === "Hours" ? games.sum("hours") : games.length),
     (games) => games.reduce((best, game) => (game.hours! > best.hours! ? game : best)),
+    key === "franchise" ? realFranchisesOnly : undefined,
   );
 
 /**

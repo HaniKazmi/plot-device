@@ -1,14 +1,6 @@
-import { tabSections } from "../common/sections";
+import { trackedTabSections } from "../common/sections";
 
-const { ids, chips } = tabSections("books", [
-  { key: "now", label: "Now" },
-  { key: "vitals", label: "Vitals" },
-  { key: "top", label: "Top" },
-  { key: "explore", label: "Explore" },
-  { key: "timeline", label: "Timeline" },
-  { key: "charts", label: "Charts" },
-  { key: "library", label: "Library" },
-]);
+const { ids, chips } = trackedTabSections("books");
 
 /** The anchors the page's sticky rail scrolls to, in the order the page runs. */
 export const BOOK_SECTIONS = ids;

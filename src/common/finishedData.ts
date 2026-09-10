@@ -255,13 +255,6 @@ export const bucketFor = <U extends FinishedItem>(
   };
 };
 
-/** One item's bucket; a wall resolves the sort once through `bucketFor` and reads every card from that. */
-export const finishedBucket = <U extends FinishedItem>(
-  item: U,
-  sort: string,
-  extras: readonly FinishedExtraSort<U>[] = [],
-): string | null => bucketFor(sort, extras)(item);
-
 /**
  * The buckets a wall contains, each at its first appearance and in the order the wall presents
  * them — years descending under the date sort, initials ascending under the franchise sort.

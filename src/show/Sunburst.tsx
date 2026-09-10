@@ -33,8 +33,10 @@ const ShowSunburst = ({ data, measure }: { data: Show[]; measure: Measure }) => 
               return String(season.show[key as keyof Show]);
           }
         },
-        getCount: ({ minutes, e }) =>
-          measure === "Hours" ? minutes && Math.floor(minutes / 60) : measure === "Seasons" ? 1 : e,
+        // Exact hours per season, so the wheel's geometry is the sum; the figure is floored where it
+        // is printed, the way every other hours figure on the tab floors its sum.
+        getCount: ({ minutes, e }) => (measure === "Hours" ? minutes / 60 : measure === "Seasons" ? 1 : e),
+        displayValue: measure === "Hours" ? Math.floor : undefined,
         getColor: ({ show }, firstGroup) => groupToColour(firstGroup, show, scheme) || undefined,
         getLeafName: ({ show, s }) => `${show.name} - S${s}`,
       }}

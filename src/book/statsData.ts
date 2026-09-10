@@ -2,7 +2,7 @@ import { daysSince, formatDate, type YearMonthDay, type YearNumber } from "../co
 import { format } from "../utils/mathUtils";
 import { releaseDecade, scoreBand } from "../utils/types";
 import { earliestYear as earliestYearOf, groupByCategory, realFranchisesOnly } from "../common/statsData";
-import type { Book, BookGroup, Measure } from "./types";
+import { roundHours, type Book, type BookGroup, type Measure } from "./types";
 import "../utils/arrayUtils";
 import "../utils/mapUtils";
 
@@ -148,13 +148,16 @@ export const bookHeroStats = (book: Book, today: YearMonthDay, variant: "hero" |
   const daysTile = days !== undefined ? [{ label: book.endDate ? "Days" : "Days In", value: days }] : [];
 
   if (variant === "card") {
-    return [book.hours ? { label: "Hours", value: book.hours } : { label: "Pages", value: book.pages }, ...daysTile];
+    return [
+      book.hours ? { label: "Hours", value: roundHours(book.hours) } : { label: "Pages", value: book.pages },
+      ...daysTile,
+    ];
   }
 
   const stats: { label: string; value: number | string }[] = [];
 
   if (book.score !== undefined) stats.push({ label: "Score", value: `${book.score}/10` });
-  if (book.hours) stats.push({ label: "Hours", value: book.hours });
+  if (book.hours) stats.push({ label: "Hours", value: roundHours(book.hours) });
   stats.push(...daysTile);
   stats.push({ label: "Pages", value: book.pages });
 
@@ -275,4 +278,7 @@ export const statsCardLabelFinished = (book: Book) => [
   [`${format(book.pages)} pages`],
 ];
 
-export const statsCardLabelPages = (book: Book) => [[`${format(book.pages)} pages`], [`${format(book.hours)} hours`]];
+export const statsCardLabelPages = (book: Book) => [
+  [`${format(book.pages)} pages`],
+  [`${format(roundHours(book.hours))} hours`],
+];

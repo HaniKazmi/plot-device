@@ -59,3 +59,19 @@ export const NothingMatches = () => {
     </Stack>
   );
 };
+
+/**
+ * What a chart states where a control of its own, and not the page, has left it nothing to draw:
+ * the games timeline's floor under a scope before it, the union timeline with only bare-year
+ * spans to place, a bridge grouped on a field none of its rows carry. The page around it still
+ * has rows, so `NothingMatches` and its way back would send the reader to a control that is not
+ * lit; the line says only that this chart has nothing, and its own controls stand above it.
+ */
+export const NothingToPlot = () => (
+  <Typography
+    variant="body2"
+    sx={{ color: "text.secondary" }}
+  >
+    Nothing to plot for the current selection.
+  </Typography>
+);

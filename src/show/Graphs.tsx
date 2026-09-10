@@ -24,22 +24,25 @@ const SHOW_BORDER = { key: "status", valueOf: (show: Show) => show.status };
 
 const SuspenseBlock = ({
   filteredData,
+  upToData,
   unfilteredData,
   filterState,
 }: {
   filteredData: Show[];
+  upToData: Show[];
   unfilteredData: Show[];
   filterState: FilterState;
 }) => (
   <FranchiseContext.Provider value={franchiseIndex(unfilteredData, showFranchise)}>
     <Graphs
       data={filteredData}
+      upTo={upToData}
       filterState={filterState}
     />
   </FranchiseContext.Provider>
 );
 
-const Graphs = memo(({ data, filterState }: { data: Show[]; filterState: FilterState }) => {
+const Graphs = memo(({ data, upTo, filterState }: { data: Show[]; upTo: Show[]; filterState: FilterState }) => {
   const scheme = useScheme();
 
   const deferredData = useDeferredValue(data, []);
@@ -59,6 +62,7 @@ const Graphs = memo(({ data, filterState }: { data: Show[]; filterState: FilterS
       />
       <Stats
         data={data}
+        upTo={upTo}
         hasNow={hasNow}
         hero={hero}
         watching={watching}

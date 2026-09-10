@@ -501,14 +501,16 @@ describe("searchUnion over values", () => {
     expect(values[0].franchise).toBeUndefined();
   });
 
-  it("puts the series above the attribute where it answers at least as well", () => {
-    // A series and a Books series column can name one thing — Revelation Space is the franchise
-    // column and the series column both — so a tie is the common case rather than the odd one, and
-    // the series takes it: its view states the series' own facts and strip before listing it.
+  it("folds a series-column value into the franchise of the same name", () => {
+    // A book series is written in its Series column and its Franchise column both, and 47 of the
+    // 73 series in the sheet hold one string in each — Revelation Space among them — so the two
+    // indexes would otherwise answer one name with two rows differing only in their category word.
+    // The franchise's view states the series' own facts and strip before listing it, so it is the
+    // row that stands.
     const reynolds = library({ book: [book(), book({ name: "Redemption Ark", seriesNumber: 3 })] });
     const values = valuesOf(searchUnion(buildSearchIndex(toOmniItems(reynolds), reynolds), "revelation space"));
 
-    expect(values.map((value) => value.franchise !== undefined)).toEqual([true, false]);
+    expect(values.map((value) => value.franchise !== undefined)).toEqual([true]);
   });
 
   it("counts a chip in the tab's own rows, where the dots beside the name count the works", () => {
