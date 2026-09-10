@@ -340,10 +340,15 @@ visitor who never authorises.
   yields a `NaN` expiry, which fails every validity test and discards the token on its next read.
 - **Readiness.** `apiReady = tokenSet && apiReadyToFetch` — a valid token _and_ an initialised gapi
   client, so consumers wait on one flag rather than two async loads.
-- **Failure handling.** A rejected read clears `tokenSet`, putting the key back in the bar,
-  so mid-session expiry self-heals into a re-prompt. **Only the request is guarded**: a
-  converter throw travels on to `useData` instead, since clearing the token would make a data fault
-  look like an auth fault. A refusal — GIS delivers a dismissed consent popup to the callback a grant
+- **Failure handling.** A read the server turns away — a 401 or 403 — clears `tokenSet`, putting
+  the key back in the bar, so mid-session expiry self-heals into a re-prompt; a request that never
+  reached the server, a phone between networks, leaves the token standing and reports the sheets
+  as unreachable. The token is also re-read before every request and on every resume —
+  `visibilitychange` and `pageshow` — since it lasts an hour and `tokenSet` is written at the
+  grant: an installed app put away and picked up the next day would otherwise offer a refresh that
+  fails in the server's own words, where the key with its dot is what it needs. **Only the request
+  is guarded**: a converter throw travels on to `useData` instead, since clearing the token would
+  make a data fault look like an auth fault. A refusal — GIS delivers a dismissed consent popup to the callback a grant
   arrives on, carrying `error` and no `access_token` — is rejected by `isGrant` (`contexts/token.ts`)
   before it can leave the app reporting itself authorised on a credential-less token.
 

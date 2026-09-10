@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   expiryFor,
   isGrant,
+  isRefusal,
   isTokenValid,
   parseTokenWrapper,
   type Token,
@@ -94,5 +95,21 @@ describe("expiryFor", () => {
 
   it("parses a lifetime with trailing text, because parseInt stops at the first non-digit", () => {
     expect(expiryFor(token("3600s"), NOW)).toBe(NOW + 3_600_000);
+  });
+});
+
+describe("isRefusal", () => {
+  it("is the server turning the token away, and nothing else", () => {
+    expect(isRefusal({ status: 401 })).toBe(true);
+    expect(isRefusal({ status: 403 })).toBe(true);
+  });
+
+  it("is not a request that never reached the server, whose token is still good", () => {
+    // A phone between networks rejects with no status at all; clearing the token for that sends
+    // the reader to the key for nothing.
+    expect(isRefusal({ result: false, status: null })).toBe(false);
+    expect(isRefusal({ status: 503 })).toBe(false);
+    expect(isRefusal(new Error("Failed to fetch"))).toBe(false);
+    expect(isRefusal(undefined)).toBe(false);
   });
 });

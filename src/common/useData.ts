@@ -86,13 +86,21 @@ export const describeFailure = (cause: unknown): string => {
 
   if (typeof cause === "object" && cause !== null) {
     const response = cause as { result?: { error?: { message?: unknown } }; status?: unknown; statusText?: unknown };
+    // A turned-away token is worded by what to press, not by the credential the server names:
+    // "Request had invalid authentication credentials" sends a reader to look for a setting.
+    if (response.status === 401) return "Authorisation has expired: press the key to authorise again.";
+
     const message = response.result?.error?.message;
     if (typeof message === "string" && message) return message;
 
-    const status = typeof response.status === "number" ? String(response.status) : undefined;
+    const status = typeof response.status === "number" && response.status > 0 ? String(response.status) : undefined;
     const statusText = typeof response.statusText === "string" && response.statusText ? response.statusText : undefined;
     const line = [status, statusText].filter(Boolean).join(" ");
     if (line) return `Sheet request failed: ${line}`;
+
+    // A rejection carrying no status and no words is one that never reached the server: gapi
+    // answers a request that failed on the wire with a body of nothing and a `null` status.
+    return "The sheets could not be reached: check the connection and refresh.";
   }
 
   return String(cause);

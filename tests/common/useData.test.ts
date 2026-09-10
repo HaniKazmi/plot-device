@@ -127,6 +127,23 @@ describe("describeFailure", () => {
     expect(describeFailure({ statusText: "Gateway Timeout" })).toBe("Sheet request failed: Gateway Timeout");
   });
 
+  it("words a turned-away token by the control that fixes it, whatever the server said", () => {
+    const rejection = {
+      status: 401,
+      result: { error: { message: "Request had invalid authentication credentials." } },
+    };
+
+    expect(describeFailure(rejection)).toBe("Authorisation has expired: press the key to authorise again.");
+  });
+
+  it("reads a rejection with no status and no words as the server never being reached", () => {
+    // gapi answers a request that failed on the wire with a body of nothing and a null status,
+    // which read as a status line is "[object Object]".
+    expect(describeFailure({ result: false, body: "", status: null, statusText: null })).toBe(
+      "The sheets could not be reached: check the connection and refresh.",
+    );
+  });
+
   it("prefers the body's message over the status line, which names the sheet's own reason", () => {
     const rejection = { result: { error: { message: "Unable to parse range: Games!A:Z" } }, status: 400 };
 

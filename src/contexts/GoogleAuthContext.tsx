@@ -7,7 +7,15 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import type { SheetTab } from "../tabs.ts";
 import { arrayToJson } from "../utils/arrayUtils.ts";
 import { rangeBatcher } from "../common/rangeBatch.ts";
-import { expiryFor, isGrant, isTokenValid, parseTokenWrapper, type Token, type TokenWrapper } from "./token.ts";
+import {
+  expiryFor,
+  isGrant,
+  isRefusal,
+  isTokenValid,
+  parseTokenWrapper,
+  type Token,
+  type TokenWrapper,
+} from "./token.ts";
 
 export const gapi_script = "https://apis.google.com/js/api.js";
 export const g_script = "https://accounts.google.com/gsi/client";
@@ -33,6 +41,19 @@ const getValidToken = (): Token | undefined => {
   storage().removeItem(storageKey);
   return undefined;
 };
+
+/**
+ * Forgets the token everywhere it is held: the storage it was granted into and the client that
+ * would send it. The caller turns `tokenSet` off beside this, which is what puts the key back in
+ * the bar; a client still holding the token would send an expired one on the next read.
+ */
+const clearStoredToken = () => {
+  storage().removeItem(storageKey);
+  if (typeof gapi !== "undefined" && gapi.client) gapi.client.setToken(null);
+};
+
+/** What a read reports where the token has run out before it could be sent. */
+const EXPIRED = "Authorisation has expired, so the sheets were not read: press the key to authorise again.";
 
 const appendScript = (src: string) => {
   const script = document.createElement("script");
@@ -139,11 +160,33 @@ export const GoogleAuthProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [gapiScriptLoaded]);
 
+  /**
+   * Reads the token again whenever the page comes back. A token lasts an hour and `tokenSet` is
+   * written at the grant, so an installed app put away and picked up the next day still says the
+   * session is live, offers a refresh, and sends a token the server turns away. Read on
+   * `visibilitychange` and on `pageshow` — a page restored from the back-forward cache fires the
+   * second and runs no effect again — the bar offers the key with its dot the moment the reader
+   * is looking at it.
+   */
+  useEffect(() => {
+    const check = () => {
+      if (document.visibilityState !== "visible" || getValidToken()) return;
+      clearStoredToken();
+      setTokenSet(false);
+    };
+    document.addEventListener("visibilitychange", check);
+    window.addEventListener("pageshow", check);
+    return () => {
+      document.removeEventListener("visibilitychange", check);
+      window.removeEventListener("pageshow", check);
+    };
+  }, []);
+
   const authorise = !tokenSet && tokenClient ? () => tokenClient.requestAccessToken() : undefined;
 
   const revoke = apiReady
     ? () => {
-        storage().removeItem(storageKey);
+        clearStoredToken();
         setTokenSet(false);
       }
     : undefined;
@@ -156,12 +199,27 @@ export const GoogleAuthProvider = ({ children }: { children: ReactNode }) => {
     // not, and clearing the token for that turns a data fault into an apparent auth fault: the
     // NavBar falls back to "Authorise", every other tab loses its session too, and authorising
     // again refetches the same bad cell and clears it again, with nothing on screen to say why.
+    // Checked before the request rather than learnt from its refusal: a tab left open across the
+    // hour has had no resume to re-read the token on, and the refusal's own words name a
+    // credential where the reader needs to be told which control to press.
+    if (!getValidToken()) {
+      clearStoredToken();
+      setTokenSet(false);
+      throw new Error(EXPIRED);
+    }
+
     let grid;
     try {
       grid = await fetchRange(spreadsheetId, range);
     } catch (error) {
       console.error(error);
-      setTokenSet(false);
+      // Only a refusal ends the session. A request that never reached the server — a phone
+      // between networks — leaves the token standing and the rows on screen the reader's own;
+      // cleared for it, the reader is sent to the key to authorise again for nothing.
+      if (isRefusal(error)) {
+        clearStoredToken();
+        setTokenSet(false);
+      }
       throw error;
     }
 
