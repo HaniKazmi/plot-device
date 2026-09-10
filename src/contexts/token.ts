@@ -42,3 +42,14 @@ export const isGrant = (token: Token) => !token.error && !!token.access_token;
  * token is discarded on the next read rather than at the point it was issued.
  */
 export const expiryFor = (token: Token, now: number) => now + parseInt(token.expires_in) * 1000;
+
+/**
+ * Whether a rejected read means the session is over: the server answered and turned the token
+ * away. A request that never reached it — a phone between networks, a resolver that timed out —
+ * rejects with no status at all, and clearing the token for that sends a reader to the key to
+ * authorise again for nothing while the rows on screen are still theirs.
+ */
+export const isRefusal = (error: unknown): boolean => {
+  const status = (error as { status?: unknown } | null)?.status;
+  return status === 401 || status === 403;
+};
