@@ -66,12 +66,15 @@ import "../utils/arrayUtils";
 
 const Stats = ({
   data,
+  upTo,
   playing,
   measure,
   yearType,
   yearTo,
 }: {
   data: VideoGame[];
+  /** The rows up to the scope's year whatever its reading, for the cards titled that way. */
+  upTo: VideoGame[];
   /** Every game in progress, most recently started first. Computed by `Graphs`, which also
       decides on it whether the rail offers a chip pointing at the hero below. */
   playing: VideoGame[];
@@ -89,22 +92,19 @@ const Stats = ({
       )}
       <Section id={GAME_SECTIONS.vitals}>
         <StatBand>
-          {/* The year controls in these cards filter the whole page, and a control's effects flow
-              down the page, never up — so the cards come before the bands they redraw. */}
+          {/* The first card and the average beside it count `upTo` rather than `data`: the scope
+              read as a ceiling, which is what a card titled "All time" or "Up to 2019" states
+              under either reading — fed the "In 2026" rows, it would restate the in-year figures
+              under the wrong words. The in-year card narrows `data`, which under that reading is
+              already the year. */}
           <YearVitalsPair
             yearTo={yearTo}
             yearType={yearType}
-            allTime={gamesAndHours(data)}
+            allTime={gamesAndHours(upTo)}
             inYear={gamesAndHours(data.filter((game) => game.startDate.year === yearTo))}
           />
-          <Averages
-            data={data}
-            yearType={yearType}
-          />
-          <AveragesPerGame
-            data={data}
-            yearType={yearType}
-          />
+          <Averages data={upTo} />
+          <AveragesPerGame data={data} />
           <Vitals
             data={data}
             measure={measure}
@@ -203,8 +203,7 @@ const Vitals = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
   );
 };
 
-const Averages = ({ data, yearType }: { data: VideoGame[]; yearType: YearType }) => {
-  if (yearType == "matching") return;
+const Averages = ({ data }: { data: VideoGame[] }) => {
   const { games, hours } = yearlyAverages(data);
 
   return (
@@ -219,16 +218,11 @@ const Averages = ({ data, yearType }: { data: VideoGame[]; yearType: YearType })
   );
 };
 
-const AveragesPerGame = ({ data, yearType }: { data: VideoGame[]; yearType: YearType }) => {
+const AveragesPerGame = ({ data }: { data: VideoGame[] }) => {
   const { hours, days } = perGameAverages(data);
 
   return (
     <StatCard
-      // The band is two cards to a row on a phone, and this is the card that decides whether it
-      // divides evenly: `Averages` renders nothing under "In {year}", leaving this one alone on
-      // the second row beside an empty half. It spans the row there instead, which is the span it
-      // would have if the band held it alone. `md` and up divides by "grow" and needs no help.
-      span={yearType === "matching" ? { xs: 12, sm: 12 } : undefined}
       icon={<AutoGraph />}
       title="Game Average"
       content={[

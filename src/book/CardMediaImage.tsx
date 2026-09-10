@@ -7,7 +7,7 @@ import {
   type PanelStat,
   type PanelSubtitlePart,
 } from "../common/Card";
-import type { Book } from "./types";
+import { roundHours, type Book } from "./types";
 import { scoreBand, scoreBandToColour, type Scheme } from "../utils/types";
 import { CURRENT_PLAINDATE, type YearMonthDay } from "../common/date";
 import { hoverCardArtworkSx } from "../common/cardArrangement";
@@ -31,7 +31,7 @@ const bookStats = (book: Book, scheme: Scheme): CardStat[] => {
       ? [{ label: "Score", value: `${book.score}/10`, colour: scoreBandToColour(scoreBand(book.score), scheme) }]
       : []),
     { label: "Pages", value: book.pages },
-    ...(book.hours ? [{ label: "Hours", value: book.hours }] : []),
+    ...(book.hours ? [{ label: "Hours", value: roundHours(book.hours) }] : []),
     ...(days !== undefined ? [{ label: book.endDate ? "Days" : "Days In", value: days }] : []),
   ];
 };

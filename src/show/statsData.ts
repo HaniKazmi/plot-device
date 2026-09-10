@@ -135,12 +135,15 @@ export const yearlyAverages = (data: Show[]) => {
     );
 
   const totals = Object.values(grouped);
+  // Over no active year the average is 0 rather than NaN: a page narrowed to seasons with no
+  // runtime logged still draws the card.
+  const years = totals.length || 1;
   return {
-    seasons: Math.floor(totals.sum("seasons") / totals.length),
-    episodes: Math.floor(totals.sum("episodes") / totals.length),
+    seasons: Math.floor(totals.sum("seasons") / years),
+    episodes: Math.floor(totals.sum("episodes") / years),
     // Minutes are averaged first and converted second, so this is the floor of the average
     // hours rather than the average of per-year floored hours.
-    hours: Math.floor(totals.sum("minutes") / totals.length / 60),
+    hours: Math.floor(totals.sum("minutes") / years / 60),
   };
 };
 

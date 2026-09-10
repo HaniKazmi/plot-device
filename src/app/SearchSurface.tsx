@@ -1,7 +1,7 @@
 import { Box, Button, Stack, Typography } from "@mui/material";
 import { useDeferredValue, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Swatch } from "../common/Card";
+import { Swatch } from "../common/Swatch";
 import { CURRENT_PLAINDATE } from "../common/date";
 import { DrilldownDialog } from "../common/DrilldownDialog";
 import { SchemaPageControls } from "../common/FilterControls";

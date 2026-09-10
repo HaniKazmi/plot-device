@@ -36,10 +36,12 @@ const BOOK_BORDER = { key: "genre", valueOf: (book: Book) => book.genre };
 
 const SuspenseBlock = ({
   filteredData,
+  upToData,
   unfilteredData,
   filterState,
 }: {
   filteredData: Book[];
+  upToData: Book[];
   unfilteredData: Book[];
   filterState: FilterState;
 }) => (
@@ -47,6 +49,7 @@ const SuspenseBlock = ({
     <BookEpochProvider value={bookEpoch(unfilteredData)}>
       <Graphs
         data={filteredData}
+        upTo={upToData}
         library={unfilteredData}
         filterState={filterState}
       />
@@ -54,74 +57,77 @@ const SuspenseBlock = ({
   </FranchiseContext.Provider>
 );
 
-const Graphs = memo(({ data, library, filterState }: { data: Book[]; library: Book[]; filterState: FilterState }) => {
-  const scheme = useScheme();
+const Graphs = memo(
+  ({ data, upTo, library, filterState }: { data: Book[]; upTo: Book[]; library: Book[]; filterState: FilterState }) => {
+    const scheme = useScheme();
 
-  const deferredData = useDeferredValue(data, []);
-  // Answered once for the page: it decides both whether the hero is rendered and whether the
-  // rail offers a chip pointing at it, and two derivations of one test are two that can differ.
-  const reading = currentlyReading(data);
+    const deferredData = useDeferredValue(data, []);
+    // Answered once for the page: it decides both whether the hero is rendered and whether the
+    // rail offers a chip pointing at it, and two derivations of one test are two that can differ.
+    const reading = currentlyReading(data);
 
-  return (
-    <Stack spacing={2}>
-      <PageRail
-        sections={bookSections(reading.length > 0)}
-        count={data.length}
-      />
-      <Stats
-        data={data}
-        reading={reading}
-        measure={filterState.measure}
-        yearType={filterState.yearType}
-        yearTo={filterState.yearTo}
-      />
-      <Section id={BOOK_SECTIONS.timeline}>
-        <Timeline
-          data={deferredData}
-          library={library}
+    return (
+      <Stack spacing={2}>
+        <PageRail
+          sections={bookSections(reading.length > 0)}
+          count={data.length}
+        />
+        <Stats
+          data={data}
+          upTo={upTo}
+          reading={reading}
+          measure={filterState.measure}
           yearType={filterState.yearType}
           yearTo={filterState.yearTo}
         />
-      </Section>
-      <Section id={BOOK_SECTIONS.charts}>
-        <ChartPair
-          left={
-            <Sunburst
-              data={deferredData}
-              measure={filterState.measure}
-            />
-          }
-          right={
-            <Barchart
-              data={deferredData}
-              measure={filterState.measure}
-              yearType={filterState.yearType}
-            />
-          }
-        />
-      </Section>
-      <Section id={BOOK_SECTIONS.library}>
-        <Finished
-          count={wallPopulation(data, bookModule.noun)}
-          title="All Books"
-          border={BOOK_BORDER}
-          data={data}
-          // Genre for the border: the ramp answers the neutral off its table and never throws, so
-          // it cannot take a wall of hundreds of cards down on one unfamiliar value.
-          colour={(item) => genreToColour(item.genre, scheme)}
-          // Score and pages are wall orders rather than strips of their own: "what was best"
-          // and "what was longest" are the same library read in another order, and the wall is
-          // where a whole order can be read.
-          sorts={BOOK_SORTS}
-          // A reread is a second row with the title and release year of the first, so the wall's
-          // own key — the two together — would name both cards alike.
-          keyOf={bookKey}
-          MediaComponent={BookCardMediaImage}
-        />
-      </Section>
-    </Stack>
-  );
-});
+        <Section id={BOOK_SECTIONS.timeline}>
+          <Timeline
+            data={deferredData}
+            library={library}
+            yearType={filterState.yearType}
+            yearTo={filterState.yearTo}
+          />
+        </Section>
+        <Section id={BOOK_SECTIONS.charts}>
+          <ChartPair
+            left={
+              <Sunburst
+                data={deferredData}
+                measure={filterState.measure}
+              />
+            }
+            right={
+              <Barchart
+                data={deferredData}
+                measure={filterState.measure}
+                yearType={filterState.yearType}
+              />
+            }
+          />
+        </Section>
+        <Section id={BOOK_SECTIONS.library}>
+          <Finished
+            count={wallPopulation(data, bookModule.noun)}
+            title="All Books"
+            border={BOOK_BORDER}
+            data={data}
+            // Genre for the border: the ramp answers the neutral off its table and never throws, so
+            // it cannot take a wall of hundreds of cards down on one unfamiliar value.
+            colour={(item) => genreToColour(item.genre, scheme)}
+            // Score and pages are wall orders rather than strips of their own: "what was best"
+            // and "what was longest" are the same library read in another order, and the wall is
+            // where a whole order can be read.
+            sorts={BOOK_SORTS}
+            // A reread is a second row with the title and release year of the first, so the wall's
+            // own key — the two together — would name both cards alike.
+            keyOf={bookKey}
+            MediaComponent={BookCardMediaImage}
+          />
+        </Section>
+      </Stack>
+    );
+  },
+);
 
 Graphs.displayName = "Graphs";
 

@@ -1,8 +1,10 @@
 import { Box, CardContent, Stack, useTheme, Typography } from "@mui/material";
+import { NothingToPlot } from "../common/NothingMatches";
 import { useState } from "react";
 import Grid from "@mui/material/Grid";
 import { Hub } from "@mui/icons-material";
-import { Swatch, TimelineAxis, TimelineCard, INLINE_SWATCH_SIZE, type TimelineBand } from "../common/Card";
+import { INLINE_SWATCH_SIZE, Swatch } from "../common/Swatch";
+import { TimelineAxis, TimelineCard, type TimelineBand } from "../common/TimelineBand";
 import { FranchiseName } from "../common/FranchiseStrip";
 import { LazyTooltip } from "../common/LazyTooltip";
 import { SectionHeader } from "../common/SectionHeader";
@@ -163,7 +165,10 @@ const Crossings = ({
           >
             {everything ? (
               <CardContent>
-                <TimeLineChart timelineData={rows} />
+                {/* Every bare-year span is left out of this reading, so a year of games alone can
+                    have strips to draw and no rows at all; the chart itself draws nothing for an
+                    empty list. */}
+                {rows.length > 0 ? <TimeLineChart timelineData={rows} /> : <NothingToPlot />}
               </CardContent>
             ) : (
               <CrossingsStack

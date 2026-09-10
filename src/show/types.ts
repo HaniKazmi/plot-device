@@ -46,7 +46,8 @@ export interface Season {
   subtitle?: string;
   startDate: YearMonthDay;
   endDate?: YearMonthDay;
-  episodeLength: number;
+  /** Absent where the sheet has no runtime for the season yet, in which case `minutes` is 0. */
+  episodeLength?: number;
   minutes: number;
   /**
    * When an episode of this season was last watched: its own end date once it has finished, and
@@ -93,12 +94,14 @@ export const isShow = (arg: Show | Season): arg is Show => "name" in arg;
  * franchise brands: hue and chroma are the brand's, and only lightness moves, as far as the fill
  * contract on `NEUTRAL_FILL` demands of each half.
  *
- * The table covers the networks a reader would recognise as brands, verified against their current
- * identities: HBO is a graphite because that is what its 2025 rebrand made it, and NBC is here
- * because it is the second-largest network on this tab. The long tail — the sheet
- * holds seventy-odd distinct values, most of them anime studios with a handful of shows each —
- * deliberately has none: a vocabulary nobody can learn teaches nothing, and the charts' palette
- * fallback separates them fine.
+ * The table covers the broadcasters a reader would recognise as brands, verified against their
+ * current identities: HBO is a graphite because that is what its 2025 rebrand made it. The long
+ * tail — the sheet holds seventy-odd distinct values, most of them anime studios with a handful of
+ * shows each — has none: a vocabulary nobody can learn teaches nothing, and the charts' palette
+ * fallback separates them fine. That rule leaves Madhouse, at 15 shows the tab's joint second
+ * largest network, in a palette colour beside eleven branded ones, and FX, Starz and The CW at 5
+ * shows each uncoloured where CBS, Fox and AMC at the same size are not; an entry costs a brand
+ * hex that clears the fill contract on both papers.
  */
 const networkColours: Record<string, Fill> = {
   Netflix: fill("#e50914", "#e50914"),

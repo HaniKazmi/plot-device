@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { movedAfter, tabSections } from "../../src/common/sections";
+import { movedAfter, tabSections, trackedTabSections } from "../../src/common/sections";
 
 const build = () =>
   tabSections("tab", [
@@ -115,5 +115,32 @@ describe("movedAfter", () => {
     movedAfter(keys, "gallery", "crossings");
 
     expect([...keys]).toEqual(original);
+  });
+});
+
+describe("trackedTabSections", () => {
+  it("runs every tracked tab's page in one order: Now, Vitals, Top, Explore, Timeline, Charts, Library", () => {
+    const { ids, chips } = trackedTabSections("games");
+
+    expect(chips().map((chip) => chip.label)).toEqual([
+      "Now",
+      "Vitals",
+      "Top",
+      "Explore",
+      "Timeline",
+      "Charts",
+      "Library",
+    ]);
+    expect(ids.now).toBe("games-now");
+    expect(ids.library).toBe("games-library");
+  });
+
+  it("lets a tab name its first anchor, the chip reading Now regardless", () => {
+    // A film is watched rather than in progress, so Movies keys the anchor `latest`.
+    const { ids, chips } = trackedTabSections("movies", "latest");
+
+    expect(ids.latest).toBe("movies-latest");
+    expect(chips({ latest: false }).map((chip) => chip.label)).not.toContain("Now");
+    expect(chips()[0]).toEqual({ id: "movies-latest", label: "Now" });
   });
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { YearMonthDay } from "../../src/common/date";
-import { seasonSpans, showSubtitle, spanKey } from "../../src/show/cardData";
+import { seasonSpans, showRows, showSubtitle, spanKey } from "../../src/show/cardData";
 import { genreToColour } from "../../src/utils/types";
 import { season, show } from "../fixtures/shows";
 
@@ -58,5 +58,27 @@ describe("showSubtitle", () => {
     // Reading the swatch back through the same lookup the ledger uses is what keeps the two from
     // drifting apart, rather than pinning a literal hex that only one of them still matches.
     expect(showSubtitle(parent, "dark")[1].swatch).toBe(genreToColour("Horror", "dark"));
+  });
+});
+
+describe("showRows", () => {
+  it("reads the Episode row off the latest season with a runtime, not the latest listed", () => {
+    // The season the hero names is the open one, and an open season the sheet has no length for
+    // yet would otherwise cost the card the row its earlier seasons all carry.
+    const parent = show();
+    parent.s = [
+      season(parent, { episodeLength: 31, endDate: YearMonthDay.get(2022, 4, 8) }),
+      season(parent, { episodeLength: 56, endDate: YearMonthDay.get(2023, 4, 8) }),
+      season(parent, { episodeLength: undefined, minutes: 0 }),
+    ];
+
+    expect(showRows(parent, "light").find((row) => row.label === "Episode")?.value).toBe("56 min");
+  });
+
+  it("drops the Episode row where no season carries a runtime", () => {
+    const parent = show();
+    parent.s = [season(parent, { episodeLength: undefined, minutes: 0 })];
+
+    expect(showRows(parent, "light").some((row) => row.label === "Episode")).toBe(false);
   });
 });

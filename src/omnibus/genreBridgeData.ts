@@ -1,9 +1,9 @@
 import { assignPercents } from "../utils/mathUtils";
 import { CERTIFICATE_BANDS, certificateBand, releaseDecade } from "../utils/types";
 import type { OmniItem } from "../common/medium";
+import { franchiseIndex } from "../common/franchiseIndex";
 import { media, type Measure, type Medium } from "../app/types";
 import "../utils/arrayUtils";
-import "../utils/mapUtils";
 
 /** One medium's slice of a row, in the page's measure. */
 interface GenreBridgeSegment {
@@ -93,11 +93,9 @@ export const genreBridge = (
   key: BridgeKey = "genre",
   measure: Measure = "Hours",
 ): GenreBridgeRow[] => {
-  const byGenre = items.reduce((index, item) => {
-    const name = bridgeValue(item, key);
-    if (name) index.setIfAbsent(name, []).push(item);
-    return index;
-  }, new Map<string, OmniItem[]>());
+  // The franchise index's grouping under another accessor: a row is every item answering one
+  // value, and an item answering none — a book asked for its certificate — belongs to no row.
+  const byGenre = franchiseIndex(items, (item) => bridgeValue(item, key));
 
   return (
     [...byGenre.entries()]

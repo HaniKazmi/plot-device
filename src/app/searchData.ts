@@ -166,6 +166,13 @@ export interface SearchIndex {
    */
   context: CategoryContext;
   /**
+   * The categories whose value, where it equals the item's own franchise, is the franchise said
+   * twice (`FilterCategory.namesFranchise`) — the keys a value hit is folded into the franchise's
+   * row under, and only those: an author sharing a name with a franchise elsewhere is a different
+   * narrowing over different rows.
+   */
+  folded: ReadonlySet<string>;
+  /**
    * Per tab, how many of that tab's own rows each franchise its own picker offers holds.
    *
    * Two answers a franchise hit needs and the ranked entry cannot give. The counts are the tab's
@@ -278,6 +285,11 @@ const indexOver = (items: OmniItem[], library: Library): SearchIndex => {
     items: workEntries,
     attributes,
     context,
+    folded: new Set(
+      Object.values(PAGE_MODULES).flatMap((page) =>
+        page.filters.categories.filter((category) => category.namesFranchise).map((category) => category.key),
+      ),
+    ),
     categories: buildCategoryIndex(attributes, franchises),
     franchiseRows: franchiseRowsByTab(pages, context),
   };
@@ -645,15 +657,28 @@ const valueHit = (index: SearchIndex, hit: Hit<AttributeEntry | FranchiseSearchE
  * says more about a value than a shelf of works does.
  */
 export const searchUnion = (index: SearchIndex, query: string, limit = HITS_PER_GROUP): SearchGroup[] => {
-  const attributes = rankHits(index.attributes, query, limit);
-  const franchises = rankHits(index.franchises, query, limit);
+  // Both halves ranked whole and cut after the fold below, so the total the group is worded by
+  // counts the folded rows once rather than twice.
+  const attributes = rankHits(index.attributes, query, Infinity);
+  const franchises = rankHits(index.franchises, query, Infinity);
 
   // Merged rather than concatenated, then cut, and only the survivors have their readings worked
   // out: a hit in the merged top N has fewer than N ahead of it and so fewer than N from its own
   // half, which is what lets each half be cut at the same figure first. The totals are still the
   // whole indexes', `rankHits` counting what it matched before its own cut, so the merged group
   // states what it is showing five of rather than a figure it stopped counting at.
-  const ranked = [...franchises.hits, ...attributes.hits]
+  // One name, one row, for the one category that says so. A book series is written in its Series
+  // column and its Franchise column both, and 47 of the 73 series hold one string in each, so the
+  // attribute the first indexes would stand beside the franchise the second draws as a second
+  // "Animorphs" differing only in its category word. The franchise leads the merge and its view
+  // says more, so a series value the franchise index answers by that exact name yields to it. Only
+  // a category declaring `namesFranchise` folds: an author sharing a name with a franchise elsewhere
+  // — Stephen King's novels beside the films — is a different narrowing over different rows.
+  const named = new Set(franchises.hits.map((hit) => hit.entry.franchise));
+  const attributeHits = attributes.hits.filter(
+    (hit) => !(index.folded.has(hit.entry.category) && hit.entry.level === undefined && named.has(hit.entry.value)),
+  );
+  const ranked = [...franchises.hits, ...attributeHits]
     .toSorted((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity))
     .slice(0, limit);
   const values = ranked.map((hit) => valueHit(index, hit));
@@ -663,7 +688,7 @@ export const searchUnion = (index: SearchIndex, query: string, limit = HITS_PER_
       key: "values",
       label: "Genres, tags and series",
       hits: values,
-      total: franchises.total + attributes.total,
+      total: franchises.hits.length + attributeHits.length,
     },
     ...media.map((medium) => ({
       key: medium,

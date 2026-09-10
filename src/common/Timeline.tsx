@@ -9,7 +9,7 @@ import { useCoarsePointer } from "./useCoarsePointer";
 import { LazyTooltip } from "./LazyTooltip";
 import { ScrollFade } from "./ScrollFade";
 import { CONTAIN_SIDEWAYS_SCROLL, scrollbarSx } from "./scrollbarSx";
-import { NothingMatches } from "./NothingMatches";
+import { NothingMatches, NothingToPlot } from "./NothingMatches";
 import { useNothingMatches } from "./nothingMatchesContext";
 import { useOpenAtLatest } from "./useOpenAtLatest";
 import { useScrollEdges } from "./useScrollEdges";
@@ -848,14 +848,17 @@ const TimeAxis = ({ ticks }: { ticks: TimelineTick[] }) => {
 
 const Timeline = ({ data, children }: { data: TimelineData[]; children?: ReactNode }) => {
   // The packed timeline never folds, so this plain `Card` is the one state it has to draw for
-  // itself: a grid with no rows in it says nothing about why there are none.
+  // itself: a grid with no rows in it says nothing about why there are none. Which of the two
+  // lines it draws is the page's answer: the page emptied says so and offers the way back, and a
+  // chart emptied by a floor of its own — the games timeline's, under a scope before it — states
+  // that it has nothing while the page around it still has rows.
   const { active } = useNothingMatches();
 
   return (
     <Card>
       {children}
       <CardContent>
-        {data.length === 0 && active ? <NothingMatches /> : <TimeLineChart timelineData={data} />}
+        {data.length > 0 ? <TimeLineChart timelineData={data} /> : active ? <NothingMatches /> : <NothingToPlot />}
       </CardContent>
     </Card>
   );

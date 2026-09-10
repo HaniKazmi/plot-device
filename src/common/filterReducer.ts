@@ -18,6 +18,15 @@ export interface BaseFilterState<T, M extends string> {
   yearType: YearType;
   yearTo: YearNumber;
   filter: Predicate<T>;
+  /**
+   * The same filters with the scope read as a ceiling whatever its reading: everything up to
+   * `yearTo`, or the whole library once that year is the current one. The vitals band's first card
+   * is titled "All time" or "Up to 2019" under either reading, and a card so titled fed the rows
+   * "In 2026" left restates the in-year figures under the wrong words; this is the slice that card
+   * and the yearly average beside it count. Under the "upto" reading it *is* `filter`, by identity,
+   * so a consumer keyed on either predicate re-filters once per change and not twice.
+   */
+  filterUpTo: Predicate<T>;
 }
 
 type FilterAction<S, K extends keyof S = keyof S> =
@@ -62,6 +71,17 @@ export type PageAction =
   | { type: "scope"; yearTo: YearNumber; yearType: YearType };
 
 export type PageDispatch = Dispatch<PageAction>;
+
+/**
+ * The rows the vitals band's first card counts, beside the filtered ones an entry already holds:
+ * the same array where the two predicates are one, which they are under the "upto" reading, and a
+ * second pass otherwise.
+ */
+export const upToSlice = <T>(
+  data: T[],
+  filtered: T[],
+  state: Pick<BaseFilterState<T, string>, "filter" | "filterUpTo">,
+): T[] => (state.filterUpTo === state.filter ? filtered : data.filter(state.filterUpTo));
 
 /**
  * A tab's page state, held outside React so that a surface above the tab can read and set it.
@@ -133,7 +153,7 @@ export type YearRule<T> = (state: YearState) => Predicate<T>[];
  * badge on the filter surface for a choice made outside it — and offer Clear as a second way to
  * undo something that already says on its own face that it is on.
  */
-const UNCOUNTED_FIELDS = new Set(["measure", "filter", "yearTo", "yearType"]);
+const UNCOUNTED_FIELDS = new Set(["measure", "filter", "filterUpTo", "yearTo", "yearType"]);
 
 /** Element-wise, because a multi-select builds a new array for every change including a clear. */
 const sameValue = (a: unknown, b: unknown): boolean =>
@@ -195,7 +215,7 @@ export const createFilterReducer = <T, M extends string, S extends BaseFilterSta
    * to compile — where a fixed shape would let it start `undefined` and be read as a filter that
    * hides everything on first paint.
    */
-  initial: Omit<S, "filter" | ToggleKey<S> | CategoryKey<S>>;
+  initial: Omit<S, "filter" | "filterUpTo" | ToggleKey<S> | CategoryKey<S>>;
   /**
    * The year an item counts towards, which is the one part of the shared cutoff that varies by
    * model — a start date on three of the four sheets, an attribution on the union.
@@ -204,6 +224,8 @@ export const createFilterReducer = <T, M extends string, S extends BaseFilterSta
   /** A whole rule in place of that reading, where a tab's scope asks something else of its model. */
   yearRule?: YearRule<T>;
 }) => {
+  type Values = Omit<S, "filter" | "filterUpTo">;
+
   const scope: YearRule<T> = yearRule ?? ((state) => yearPredicates(state, yearOf));
 
   const initialValues = {
@@ -213,21 +235,32 @@ export const createFilterReducer = <T, M extends string, S extends BaseFilterSta
     // Keys and their fields are checked against each other where the schema is written; built back
     // into a state object they are strings again, which is a lookup TypeScript cannot reduce, so
     // the merge of the two halves is asserted rather than derived.
-  } as Omit<S, "filter">;
+  } as Values;
 
   /**
    * The tab's predicate: every per-field rule the schema states, and then the year scope, which
    * belongs to no field and is a reading of the whole page rather than a narrowing of it.
    */
-  const filters = (state: Omit<S, "filter">): Predicate<T> => {
+  const compose =
+    (predicates: Predicate<T>[]): Predicate<T> =>
+    (item: T) =>
+      predicates.every((predicate) => predicate(item));
+
+  const filters = (state: Values): Predicate<T> =>
     // `S` extends the base state, so the scope's two fields are on it; `Omit` over a generic is a
     // lookup TypeScript defers, so it cannot see that here.
-    const predicates = [...schemaPredicates(schema, state), ...scope(state as unknown as YearState)];
+    compose([...schemaPredicates(schema, state), ...scope(state as unknown as YearState)]);
 
-    return (item: T) => predicates.every((predicate) => predicate(item));
+  const withFilter = (state: Values): S => {
+    // The schema's predicates read no year field, so they are built once and the two readings of
+    // the scope are composed over them.
+    const fields = schemaPredicates(schema, state);
+    const year = state as unknown as YearState;
+    const filter = compose([...fields, ...scope(year)]);
+    const filterUpTo =
+      year.yearType === "upto" ? filter : compose([...fields, ...scope({ ...year, yearType: "upto" })]);
+    return { ...state, filter, filterUpTo } as S;
   };
-
-  const withFilter = (state: Omit<S, "filter">): S => ({ ...state, filter: filters(state) }) as S;
 
   const initialState = withFilter(initialValues);
 

@@ -36,6 +36,7 @@ import {
 
 const Stats = ({
   data,
+  upTo,
   now,
   crossings,
   measure,
@@ -43,6 +44,8 @@ const Stats = ({
   yearTo,
 }: {
   data: OmniItem[];
+  /** The rows up to the scope's year whatever its reading, for the card titled that way. */
+  upTo: OmniItem[];
   /** Computed by `Graphs`, which decides on the same value whether the rail offers a Now chip. */
   now: NowElection;
   /** The same list the Crossings section draws, so the count and the strips cannot disagree. */
@@ -53,7 +56,7 @@ const Stats = ({
 }) => {
   const scheme = useScheme();
 
-  const totals = unionTotals(data);
+  const totals = unionTotals(upTo);
   const inYear = unionTotals(data.filter((item) => item.year === yearTo));
   // Whether more than one medium survived the filters, which is what the composition band below
   // has to have something to say about: a proportional bar over one group is a full bar stating
@@ -71,8 +74,10 @@ const Stats = ({
       )}
       <Section id={OMNIBUS_SECTIONS.vitals}>
         <StatBand>
-          {/* The year controls in these cards filter the whole page, and a control's effects flow
-              down the page, never up — so the cards come before the band they redraw. */}
+          {/* The first card counts `upTo` rather than `data`: the scope read as a ceiling, which
+              is what a card titled "All time" or "Up to 2019" states under either reading — fed
+              the "In 2026" rows, it would restate the in-year figures under the wrong words. The
+              in-year card narrows `data`, which under that reading is already the year. */}
           <YearVitalsPair
             yearTo={yearTo}
             yearType={yearType}

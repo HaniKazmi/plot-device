@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { printedHours } from "../utils/mathUtils";
 import { groupToColour, type Measure, type Movie, type MovieGroup } from "./types";
 import Sunburst, { SunBurstControls } from "../common/Sunburst";
 import { movieGroupValue } from "./statsData";
@@ -34,9 +35,10 @@ const MovieSunburst = ({ data, measure }: { data: Movie[]; measure: Measure }) =
               return movieGroupValue(movie, key) || movie.name;
           }
         },
-        // Floored per film rather than post-aggregated because the shell has no `postAggregate`;
-        // the shows tab counts the same way, and one convention beats two.
-        getCount: ({ minutes }) => (measure === "Hours" ? minutes && Math.floor(minutes / 60) : 1),
+        // Exact hours per film, so the wheel's geometry is the sum; the figure is floored where it
+        // is printed, as the barchart and the vitals band floor their sums, except under an hour.
+        getCount: ({ minutes }) => (measure === "Hours" ? minutes / 60 : 1),
+        displayValue: measure === "Hours" ? printedHours : undefined,
         getColor: (movie, firstGroup) =>
           firstGroup === "startDate" ? undefined : groupToColour(firstGroup, movie, scheme) || undefined,
         getLeafName: (movie) => movie.name,

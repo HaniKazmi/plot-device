@@ -432,11 +432,16 @@ export const decadeToColour = (decade: string, scheme: Scheme): Colour =>
  * Movies bar is the closest pair anywhere at 10.7 dE on the dark paper, and the row labels are
  * load-bearing for it.
  *
- * The table covers what a tab's collapsed Top Franchise card and the gallery's shelves actually
- * draw, plus every cross-media franchise among them. The long tail — 168 franchise values in the
- * games sheet alone, most of them a work naming itself — deliberately has none, the same rule
- * `networkToColour` follows: a vocabulary nobody can learn teaches nothing, and `""` hands the
- * choice to Highcharts.
+ * The table holds the brands with a colour of their own to reproduce, and stops there: the long
+ * tail — 168 franchise values in the games sheet alone, most of them a work naming itself — has
+ * none, the same rule `networkToColour` follows, since a vocabulary nobody can learn teaches
+ * nothing, and `""` hands the choice to the palette. What that leaves uncoloured is real: 47 of
+ * the 60 franchises met in more than one medium have no entry, Wheel of Time, Song of Ice and
+ * Fire and Lord of the Rings among them, and the Books tab's whole Top Franchise card — Animorphs,
+ * Discworld, Darren Shan, Famous Five — draws in palette colours by rank. A franchise without an
+ * entry therefore wears a different colour on each tab that draws it, which the shared table
+ * exists to prevent for the ones it names; an entry costs a brand hex and a place in the hue
+ * spread above.
  */
 const franchiseColours: Record<string, Fill> = {
   // Games

@@ -143,6 +143,13 @@ export interface FilterCategory<T, S> {
    * its own rule with it.
    */
   foundAs?(cell: string): string;
+  /**
+   * Whether a value equal to the item's own franchise is that franchise said twice: a book's
+   * Series column, which holds one string with the Franchise column on 47 of 73 series. Find folds
+   * such a hit into the franchise's own row, which says more; a series with a wider franchise —
+   * Mistborn under Cosmere — keeps its row.
+   */
+  namesFranchise?: boolean;
   /** The level above the values, where the vocabulary has one. */
   group?: FilterGroup;
 }
@@ -452,7 +459,10 @@ export const selectedPredicates = <T>(selected: readonly string[], valueOf: (ite
  *
  * The state is indexed through `fieldsOf`, a schema naming a field by string alone.
  */
-export const schemaPredicates = <T, S>(schema: FilterSchema<T, S>, state: Omit<S, "filter">): Predicate<T>[] => {
+export const schemaPredicates = <T, S>(
+  schema: FilterSchema<T, S>,
+  state: Omit<S, "filter" | "filterUpTo">,
+): Predicate<T>[] => {
   const fields = fieldsOf(state);
 
   return [

@@ -23,75 +23,81 @@ const VG_BORDER = { key: "company", valueOf: (game: VideoGame) => game.company }
 
 const SuspenseBlock = ({
   filteredData,
+  upToData,
   unfilteredData,
   filterState,
 }: {
   filteredData: VideoGame[];
+  upToData: VideoGame[];
   unfilteredData: VideoGame[];
   filterState: FilterState;
 }) => (
   <FranchiseContext.Provider value={franchiseIndex(unfilteredData, gameFranchise)}>
     <Graphs
       data={filteredData}
+      upTo={upToData}
       filterState={filterState}
     />
   </FranchiseContext.Provider>
 );
 
-const Graphs = memo(({ data, filterState }: { data: VideoGame[]; filterState: FilterState }) => {
-  const scheme = useScheme();
-  const deferredData = useDeferredValue(data, []);
-  // Answered once for the page: it decides both whether the hero is rendered and whether the
-  // rail offers a chip pointing at it, and two derivations of one test are two that can differ.
-  const playing = currentlyPlaying(data);
+const Graphs = memo(
+  ({ data, upTo, filterState }: { data: VideoGame[]; upTo: VideoGame[]; filterState: FilterState }) => {
+    const scheme = useScheme();
+    const deferredData = useDeferredValue(data, []);
+    // Answered once for the page: it decides both whether the hero is rendered and whether the
+    // rail offers a chip pointing at it, and two derivations of one test are two that can differ.
+    const playing = currentlyPlaying(data);
 
-  return (
-    <Stack spacing={2}>
-      <PageRail
-        sections={gameSections(playing.length > 0)}
-        count={data.length}
-      />
-      <Stats
-        data={data}
-        playing={playing}
-        yearType={filterState.yearType}
-        yearTo={filterState.yearTo}
-        measure={filterState.measure}
-      />
-      <Section id={GAME_SECTIONS.timeline}>
-        <Timeline data={deferredData} />
-      </Section>
-      <Section id={GAME_SECTIONS.charts}>
-        <ChartPair
-          left={
-            <Sunburst
-              data={deferredData}
-              measure={filterState.measure}
-            />
-          }
-          right={
-            <Barchart
-              data={deferredData}
-              measure={filterState.measure}
-              yearType={filterState.yearType}
-            />
-          }
+    return (
+      <Stack spacing={2}>
+        <PageRail
+          sections={gameSections(playing.length > 0)}
+          count={data.length}
         />
-      </Section>
-      <Section id={GAME_SECTIONS.library}>
-        <Finished
-          count={wallPopulation(data, gameModule.noun)}
-          MediaComponent={CardMediaImage}
-          title="All Games"
-          border={VG_BORDER}
+        <Stats
           data={data}
-          colour={(item) => companyToColor(item, scheme)}
-          landscape
+          upTo={upTo}
+          playing={playing}
+          yearType={filterState.yearType}
+          yearTo={filterState.yearTo}
+          measure={filterState.measure}
         />
-      </Section>
-    </Stack>
-  );
-});
+        <Section id={GAME_SECTIONS.timeline}>
+          <Timeline data={deferredData} />
+        </Section>
+        <Section id={GAME_SECTIONS.charts}>
+          <ChartPair
+            left={
+              <Sunburst
+                data={deferredData}
+                measure={filterState.measure}
+              />
+            }
+            right={
+              <Barchart
+                data={deferredData}
+                measure={filterState.measure}
+                yearType={filterState.yearType}
+              />
+            }
+          />
+        </Section>
+        <Section id={GAME_SECTIONS.library}>
+          <Finished
+            count={wallPopulation(data, gameModule.noun)}
+            MediaComponent={CardMediaImage}
+            title="All Games"
+            border={VG_BORDER}
+            data={data}
+            colour={(item) => companyToColor(item, scheme)}
+            landscape
+          />
+        </Section>
+      </Stack>
+    );
+  },
+);
 
 Graphs.displayName = "Graphs";
 

@@ -1,6 +1,6 @@
 # Architecture
 
-Plot Device is a client-only React SPA (~23,000 lines of TypeScript) that turns personal tracking
+Plot Device is a client-only React SPA (~32,000 lines of TypeScript) that turns personal tracking
 spreadsheets into interactive dashboards. This document explains how the pieces fit together and
 why they are shaped the way they are. For conventions see [AGENTS.md](./AGENTS.md); for setup,
 [README.md](./README.md).
@@ -199,8 +199,8 @@ Converters do real modelling work, not just field renaming:
 
 - **`game/`** derives `company` from the platform string, folds a `"Party"` status into
   `status: "Endless"` plus a `party` boolean, splits `Themes` through `splitCell`, computes `numDays`
-  from the date pair, and checks `Gameplay` through `isGameplay` rather than casting it past
-  `gameplayToColour`'s neutral. The themes read rejects an _absent_ column while allowing a blank
+  from the date pair, and checks `Gameplay` against the `GAMEPLAY` vocabulary through `readChecked`
+  rather than casting it past `gameplayToColour`'s neutral. The themes read rejects an _absent_ column while allowing a blank
   cell: 12 of 340 games honestly carry no theme, and `themes.includes("Adult")` is what guest mode
   hides on, so reading a missing column as "no themes" would put every adult game back on screen.
 - **`show/`** nests a flat sheet: a non-empty `Title` cell opens a show, the rows after it are its
@@ -213,8 +213,10 @@ Converters do real modelling work, not just field renaming:
   elected on rather than two the election would have to choose between. Its `Type` cell is checked
   against the sheet's own two words and stored as `anime`, a boolean: the column records one split
   and nothing else, so a vocabulary on the model would be two values standing for one question. A
-  date-ordering mismatch is
-  only a `console.error`; the `show` back-reference makes the graph cyclic (§4).
+  date-ordering mismatch is only a `console.error`, and so is a season with episodes and no
+  runtime, which is counted as 0 minutes: an open season the sheet has no length for yet is the
+  common case, and every hours figure is short by its episodes with nothing on screen saying so.
+  The `show` back-reference makes the graph cyclic (§4).
 - **`movie/`** reads both its dates as full ones, a blank runtime as `0` and a blank Score as
   `undefined`: `sum` accumulates with `+`, so one `NaN` blanks every hours total, where a score is
   honestly absent rather than zero. `cinema` and `anime` stay booleans on the model but are read from
@@ -460,7 +462,13 @@ builds path-style ids (`"-Nintendo-Switch-Zelda"`) and accumulates values into a
 grouping order fully dynamic: the caller passes `groups: K[]` and `SunBurstControls` renders one
 picker per level joined by `›`, "Nest by" the first picker's own `label` rather than a caption
 beside the row, humanised through `keyLabel` (`utils/stringUtils.ts`). Domain meaning enters through
-four callbacks: `keyToVal`, `getCount`, `getColor`, `getLeafName`. `ringOptions` takes a chosen key
+four callbacks: `keyToVal`, `getCount`, `getColor`, `getLeafName`, and an optional `displayValue`
+for how a wedge's sum is printed — Shows, Movies and Books pass exact hours per row and print the
+figure through `printedHours`, floored as the vitals band and the barchart floor theirs and to one
+decimal under an hour, where a floor would state 0 for a wedge the wheel still draws.
+Flooring per row instead loses a partial hour on every one, 551 hours against 733 over 366 films;
+flooring the node itself opens a gap around every parent, since Highcharts sizes a parent arc by
+its own value wherever that exceeds its children's sum. `ringOptions` takes a chosen key
 out of the other menus, a key held twice dividing every wedge into one child of the same name,
 unless that would leave a menu holding only the value it shows.
 
@@ -768,7 +776,7 @@ select picks what a row is (`BRIDGE_KEYS`): genre, which the section opens on, o
 or certificate tier, the vocabularies the gallery already shelves by, each row wearing the swatch
 that vocabulary has elsewhere on the page and a year its decade's. Franchise is not offered, for the
 By year chart's reason. Genres run biggest first; years and decades newest first; certificates
-youngest first through the shared `AGE_BANDS`, the order the boards print them in, so the bridge
+youngest first through the shared `CERTIFICATE_BANDS`, the order the boards print them in, so the bridge
 cannot order the tiers differently from the colour ramp. A book carries no certificate and drops
 out of that view, as it does off the certificate shelves. Only the primary genre counts, since two media
 carry secondaries. A row held by one medium is a solid bar rather than held back until a second
@@ -777,7 +785,10 @@ that a single abstract film would admit at full size — and the bar states the 
 was hiding. A row whose every entry logged nothing is dropped; a medium contributing nothing gets no
 segment, because `assignPercents` floors every slice at half a percent and a visible slice of
 nothing is a claim the data does not make. The hover dim is one piece of state for the whole card,
-turning a stack of bars into a comparison read down the column, and is optional on both
+held through `useHoverDim` (`common/hoverDim.ts`) as every proportional bar's is: the dim is driven
+from mouse events, which a tap fires without the leave that would clear it, so the hook answers no
+name at all where the reader cannot hover. It turns a stack of bars into a comparison read down the
+column, and is optional on both
 `ProportionalBar` and a row for the same reason: folded on a phone, the card states its leading row
 by name, figure and media count, drawing that one row as the fold's preview, with nothing to dim it
 against.
@@ -1210,7 +1221,12 @@ ranked apart, being two, and merged into one list rather than concatenated — a
 query exactly is a better answer than a series matching it at a word start, and the reverse holds as
 readily — each over its whole index with the merge cut afterwards, since cutting each half first
 would state a total it had stopped counting at. Series lead the merge and the sort is stable, so a
-series takes a tie, its view saying more about a value than a shelf of works does.
+series takes a tie, its view saying more about a value than a shelf of works does — and a series
+value the franchise index answers by that exact name yields to it altogether, a book series being
+written in its Series column and its Franchise column both, and 47 of the 73 holding one string in
+each. Only a category declaring `namesFranchise` folds that way: an author sharing a name with a
+franchise elsewhere is a different narrowing over different rows, and the franchise's own row may
+not reach Books at all.
 
 **The list is a grid, and ←→ is the second axis.** A row of pressable chips inside a row is not a
 listbox option, so the shell is `role="grid"`: a row per hit, a cell per reading, the row carrying
@@ -1398,7 +1414,7 @@ the year gridlines come from that module's `buildTicks` for the same reason. `bu
 elapsed before a date — so a tick and a band opening on the same day land on the same percent, and
 their width from `percentOfSpan`.
 
-`TimelineCard` in `common/Card.tsx` is the renderer the crossings stack uses, taking bands and ticks
+`TimelineCard` in `common/TimelineBand.tsx` is the renderer the crossings stack uses, taking bands and ticks
 rather than nodes: the shell owns the coordinate space, so a caller reads `startPercent` and
 `widthPercent` and never asks how they were arrived at, and orientation lives there — percentages
 know nothing about which axis they will be drawn on. The card's own strip uses the same arithmetic
@@ -1433,8 +1449,7 @@ nothing else, a swatch with no vocabulary behind it teaching a legend no chart h
 Both shells take plain `{ label, value, … }` arrays, so `common/` never learns what a PEGI certificate
 is: the four domain `CardMediaImage.tsx` files build them and choose the omissions, a tile reading
 zero because the sheet recorded nothing saying something false. `LedgerList` is exported for a
-surface that seats those rows itself, and `DetailCard`, the uniform tile, for a domain with too few
-facts for the split to buy anything.
+surface that seats those rows itself.
 
 Below `sm` the dialog is a sheet: the card stands at a minimum `100svh` and carries a `SheetBar` —
 a grabber, the item's own name and a ✕, 48px tall (`SHEET_BAR_HEIGHT`) — as its first child, sticky
@@ -1450,8 +1465,9 @@ the same thing is two headers. The reader's question at
 each is the same — what is this, and how do I leave — so a chrome per layer taught an answer per
 layer. The ✕ is that answer at every width: an arrows-in glyph in a dialog's header reads as "back
 to the card this came out of", which is a second verb for the one thing a layer does. It lives beside the sheet recipes rather than
-in `Card.tsx`, since `Card` mounts every hover card through `HoverCardTooltip` and a bar exported
-from there would close that import into a cycle. `sheetBarRow` (`common/fullscreenSheet.ts`) is the
+in `Card.tsx`, since `HoverCardTooltip` wears it on its bottom sheet and the timeline band
+(`common/TimelineBand.tsx`) mounts its card through that tooltip, so a bar exported from the card
+layer would close that import into a cycle. `sheetBarRow` (`common/fullscreenSheet.ts`) is the
 48px row itself and the ground is the caller's: the paper's under a layer over the page, the
 artwork's under an expanded card, and the sheet's own — not pinned at all — under a bottom sheet,
 which stands under no notch. The expanded card's is the one drawn below `sm` alone: from `sm` up
@@ -1654,7 +1670,11 @@ the whole page's filters and not a card's own further narrowing that the message
 the rail (§ Page architecture), so the pair states the two readings side by side — "All time" or
 "Up to 2019", and "In 2026" — and the one the page is filtered to wears `StatCard`'s `scoped` rule:
 the tab's primary as an inset three-pixel line along the card's top edge, inset so a lit card
-cannot stand a pixel taller than the one stretched beside it. Both titles come from `scopeLabel`
+cannot stand a pixel taller than the one stretched beside it. The first card and the yearly average
+beside it count the rows the reducer's `filterUpTo` keeps — the same filters with the scope read as
+a ceiling whatever its reading, which each entry component passes down as `upToData` beside the
+filtered rows — since a card titled "All time" fed the "In 2026" rows restates the in-year figures
+under the wrong words, and an average over one year is that year said twice. Both titles come from `scopeLabel`
 (`common/scope.ts`), the words the rail's own picker reads, so a control and the card it lights
 cannot word one scope two ways. Marked on the card as well as on the control because the pair is
 the one place the two readings stand together, and the lit figure is the one a reader carries down
@@ -1798,7 +1818,7 @@ taps through, since two surfaces at one layer stack by the order they opened in.
 for the card treatment on either surface; a band whose tooltip only names its span keeps the plain
 one.
 
-Each domain exports the **hover card** its charts show — `VgHoverCard`, `ShowHoverCard`,
+Each domain exports the **hover card** its charts show — `GameHoverCard`, `ShowHoverCard`,
 `MovieHoverCard`, `BookHoverCard` — beside its `CardMediaImage`, and the Omnibus dispatches to the
 same four by medium, so a hovered bar shows the same card wherever it is hovered.
 
@@ -1941,7 +1961,8 @@ The same module holds the two arrangements a section is built from, page structu
 visualisation: `StatBand`, the stretched row of stat cards, taking children, and `ChartPair`, the
 md-split standing a sunburst beside a barchart, taking a `left` and a `right` — one spacing rule
 rather than eight sites across two domains. Each domain's `sections.ts` owns the id map and builds
-the chip list, whose ids have two holders — `Stats` the bands above the charts, `Graphs` everything
+the chip list — the four tracked tabs' through `trackedTabSections`, one list of seven under each
+tab's own prefix, Movies naming its first anchor `latest` — whose ids have two holders — `Stats` the bands above the charts, `Graphs` everything
 below — and which comes from the same test `Stats` makes about whether there is anything to lead
 with, so a chip never points at an anchor that is not on the page.
 
@@ -2342,9 +2363,10 @@ the source data is calendar-precision and sometimes only a year (an old game log
 imprecise date it wants instead of reaching for a subclass. `daysTo` compares those ends — a bare year
 is a prefix of every date inside it, so comparing values directly reads 1 January as later than its
 own year — and throws only on a genuinely transposed pair. It answers `undefined` when either side is
-year-only, so durations degrade rather than fabricate precision; where a chart cannot degrade, half
-the games carrying a bare year, `game/cardData.ts` shares each year between the games naming it, in
-release order, and marks the spans `precise: false`.
+year-only, so durations degrade rather than fabricate precision. Half the games carry a bare year,
+so `gameSpan` (`game/cardData.ts`) spans the whole year and marks it `precise: false`: a strip
+dissolves such a span under a mask that says so, and the packed timeline leaves it out, a packed row
+having no way to mark a bar as an estimate.
 
 ### Prototype augmentation
 
@@ -2387,7 +2409,7 @@ key in ObjectExpression`; pulled out to a plain function taking the varying piec
   `sheetBarSx`, `dialogCardSx`, among others — the literal itself sits at module scope and the
   component stays compiled.
 
-The baseline is **281 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **282 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.
@@ -2456,8 +2478,10 @@ population is counted in, its rows and the floor its year picker offers. A surfa
 _the current_ tab asks `usePage()` (`app/page.ts`) for all four at once — the tab, that page, its
 state and its dispatch — rather than repeating the tab-then-library-then-state-then-module lookup
 the rail, the box and the shell's empty-state provider each need: three copies of one order are
-three that can pair a state with another tab's module. It is the one file in `app/` outside the
-provider that names `tabs.ts`, which is safe because nothing the registry reaches imports it.
+three that can pair a state with another tab's module. It is one of the four files in `app/` that
+name `tabs.ts` — the provider, the rail and the search surface are the others, each named in
+`tests/architecture.test.ts` — and safe as an eager import because nothing the registry reaches
+imports it.
 
 The measure action _sets_ rather than advances, the control being a segment per measure: a press
 names its own state, so setting the measure already held answers the same object and costs no render.
@@ -2612,7 +2636,9 @@ a hook cannot be called in a loop, so `LibraryProvider` writes its four `useShee
 names each medium once more in `raw`, `loaded` and `error`. `Library` itself is keyed by medium
 over `app/records.ts`'s `LibraryRecord`, so the type and every walk over it —
 `visibleLibrary`, `completeLibrary`, `toOmniItems` — take the fifth medium from the `Medium` union
-without an edit. Four lines in one file, all of which fail to compile if any is missed.
+without an edit. Four lines in one file, all of which fail to compile if any is missed — `raw`
+included, whose type makes every key required and only the value optional, where a `Partial` would
+let the slice be left out and the union never build.
 
 The entry mapper is the piece the domain's own card strip calls too (through `CardMediaImage.tsx`),
 so a tab's index and the cross-media union cannot draw one item two ways.

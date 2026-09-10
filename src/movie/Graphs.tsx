@@ -24,22 +24,25 @@ const MOVIE_BORDER = { key: "certificate", valueOf: (film: Movie) => film.certif
 
 const SuspenseBlock = ({
   filteredData,
+  upToData,
   unfilteredData,
   filterState,
 }: {
   filteredData: Movie[];
+  upToData: Movie[];
   unfilteredData: Movie[];
   filterState: FilterState;
 }) => (
   <FranchiseContext.Provider value={franchiseIndex(unfilteredData, movieFranchise)}>
     <Graphs
       data={filteredData}
+      upTo={upToData}
       filterState={filterState}
     />
   </FranchiseContext.Provider>
 );
 
-const Graphs = memo(({ data, filterState }: { data: Movie[]; filterState: FilterState }) => {
+const Graphs = memo(({ data, upTo, filterState }: { data: Movie[]; upTo: Movie[]; filterState: FilterState }) => {
   const scheme = useScheme();
 
   const deferredData = useDeferredValue(data, []);
@@ -52,6 +55,7 @@ const Graphs = memo(({ data, filterState }: { data: Movie[]; filterState: Filter
       />
       <Stats
         data={data}
+        upTo={upTo}
         measure={filterState.measure}
         yearType={filterState.yearType}
         yearTo={filterState.yearTo}

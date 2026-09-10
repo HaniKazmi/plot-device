@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { categoryOptions, franchiseOptions, toValueArray } from "../../src/common/filterOptions";
+import { categoryOptions, franchiseOptions } from "../../src/common/filterOptions";
 
 describe("franchiseOptions", () => {
   const films = [
@@ -52,15 +52,5 @@ describe("categoryOptions", () => {
     const data = [{ nested: { network: "HBO" } }, { nested: { network: "BBC" } }];
 
     expect(categoryOptions(data, (item) => item.nested.network)).toEqual(["BBC", "HBO"]);
-  });
-});
-
-describe("toValueArray", () => {
-  it("splits MUI's comma-joined string form", () => {
-    expect(toValueArray("a,b")).toEqual(["a", "b"]);
-  });
-
-  it("passes an array form through as an array", () => {
-    expect(toValueArray(["a", "b"])).toEqual(["a", "b"]);
   });
 });

@@ -1,13 +1,18 @@
 import { Suspense, useEffect, type ComponentType } from "react";
 import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
-import type { FilterDispatchFor } from "../common/filterReducer";
+import { upToSlice, type FilterDispatchFor } from "../common/filterReducer";
 import type { Medium, Predicate } from "../utils/types";
 import { useLibrary } from "./library";
 import type { LibraryRecord } from "./records";
 
-/** What every tab's `Graphs` takes: its own rows, filtered and whole, and the state that narrowed them. */
+/**
+ * What every tab's `Graphs` takes: its own rows filtered, the same rows with the scope read as a
+ * ceiling (`filterUpTo`, for the vitals band's "All time" card), the whole slice, and the state
+ * that narrowed them.
+ */
 interface TabGraphsProps<T, S> {
   filteredData: T[];
+  upToData: T[];
   unfilteredData: T[];
   filterState: S;
 }
@@ -49,7 +54,10 @@ const usePrefetchGraphs = (loadGraphs: () => Promise<unknown>) =>
  * the slice the shell fetched, the state that narrows it and the charts drawn over it — so a page
  * cannot be built from one medium's library and another's filters.
  */
-export const createTabEntry = <M extends Medium, S extends { filter: Predicate<LibraryRecord[M]> }>({
+export const createTabEntry = <
+  M extends Medium,
+  S extends { filter: Predicate<LibraryRecord[M]>; filterUpTo: Predicate<LibraryRecord[M]> },
+>({
   medium,
   loadGraphs,
   Graphs,
@@ -83,12 +91,15 @@ export const createTabEntry = <M extends Medium, S extends { filter: Predicate<L
       />
     );
 
+    const filteredData = data?.filter(filterState.filter);
+
     return (
       <>
-        {data && (
+        {data && filteredData && (
           <Suspense>
             <Graphs
-              filteredData={data.filter(filterState.filter)}
+              filteredData={filteredData}
+              upToData={upToSlice(data, filteredData, filterState)}
               unfilteredData={data}
               filterState={filterState}
             />

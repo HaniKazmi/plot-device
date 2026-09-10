@@ -502,13 +502,40 @@ describe("searchUnion over values", () => {
   });
 
   it("puts the series above the attribute where it answers at least as well", () => {
-    // A series and a Books series column can name one thing — Revelation Space is the franchise
-    // column and the series column both — so a tie is the common case rather than the odd one, and
-    // the series takes it: its view states the series' own facts and strip before listing it.
+    // A rank tie is the common case rather than the odd one, and the series takes it: its view
+    // states the series' own facts and strip before listing it. "re" is a word start of both the
+    // franchise and the author's surname, and the two are different names, so both rows stand.
+    const reynolds = library({ book: [book(), book({ name: "Redemption Ark", seriesNumber: 3 })] });
+    const values = valuesOf(searchUnion(buildSearchIndex(toOmniItems(reynolds), reynolds), "re"));
+
+    expect(values.map((value) => [value.attribute.value, value.franchise !== undefined])).toEqual([
+      ["Revelation Space", true],
+      ["Alastair Reynolds", false],
+    ]);
+  });
+
+  it("keeps an author's row where only the name is shared with a franchise", () => {
+    // The fold is the series column's alone: an author named like a franchise elsewhere is a
+    // different narrowing over different rows, and the franchise's placements may not reach Books.
+    const king = library({
+      book: [book({ name: "It", author: "Stephen King", series: "", franchise: "It" })],
+      movie: [movie({ name: "It", franchise: "Stephen King" }), movie({ name: "Carrie", franchise: "Stephen King" })],
+    });
+    const values = valuesOf(searchUnion(buildSearchIndex(toOmniItems(king), king), "stephen king"));
+
+    expect(values.map((value) => value.attribute.category)).toEqual(["franchise", "author"]);
+  });
+
+  it("folds a series-column value into the franchise of the same name", () => {
+    // A book series is written in its Series column and its Franchise column both, and 47 of the
+    // 73 series in the sheet hold one string in each — Revelation Space among them — so the two
+    // indexes would otherwise answer one name with two rows differing only in their category word.
+    // The franchise's view states the series' own facts and strip before listing it, so it is the
+    // row that stands.
     const reynolds = library({ book: [book(), book({ name: "Redemption Ark", seriesNumber: 3 })] });
     const values = valuesOf(searchUnion(buildSearchIndex(toOmniItems(reynolds), reynolds), "revelation space"));
 
-    expect(values.map((value) => value.franchise !== undefined)).toEqual([true, false]);
+    expect(values.map((value) => value.franchise !== undefined)).toEqual([true]);
   });
 
   it("counts a chip in the tab's own rows, where the dots beside the name count the works", () => {

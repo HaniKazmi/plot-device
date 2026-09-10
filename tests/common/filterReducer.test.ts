@@ -100,6 +100,32 @@ describe("the reducer rebuilds the composed predicate", () => {
     expect(scoped.filter).not.toBe(initialState.filter);
   });
 
+  it("keeps a ceiling reading of the scope beside the exact one", () => {
+    // The vitals band's first card is titled "All time" or "Up to 2019" under either reading, so it
+    // counts the rows the ceiling keeps: under "In 2026" that is the whole library, and under "In
+    // 2019" everything up to it, where `filter` alone holds the one year.
+    const earlier = videoGame({ startDate: YearMonthDay.get(2017, 3, 3) });
+    const matching = reducer(initialState, { type: "scope", yearTo: CURRENT_YEAR, yearType: "matching" });
+
+    expect(matching.filter(earlier)).toBe(false);
+    expect(matching.filterUpTo(earlier)).toBe(true);
+    expect(matching.filterUpTo).not.toBe(matching.filter);
+
+    const inYear = reducer(initialState, { type: "scope", yearTo: 2019 as YearNumber, yearType: "matching" });
+
+    expect(inYear.filterUpTo(earlier)).toBe(true);
+    expect(inYear.filterUpTo(videoGame({ startDate: YearMonthDay.get(2021, 3, 3) }))).toBe(false);
+  });
+
+  it("makes the ceiling reading the one predicate, by identity, under the ceiling itself", () => {
+    // A consumer keyed on either predicate then re-filters once per change and not twice.
+    expect(initialState.filterUpTo).toBe(initialState.filter);
+
+    const scoped = reducer(initialState, { type: "scope", yearTo: 2019 as YearNumber, yearType: "upto" });
+
+    expect(scoped.filterUpTo).toBe(scoped.filter);
+  });
+
   it("answers the same state object for the scope already held", () => {
     // The control has a state per reading, so picking the lit one has to cost neither a render
     // nor a fresh pass over the whole library.

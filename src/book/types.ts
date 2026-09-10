@@ -70,6 +70,8 @@ export interface Book {
    * Hours spent reading, as the sheet's own estimate: the logged sessions where Kindle recorded
    * them, and pages over the reader's measured rate where it did not. Decimal, and kept so — a
    * novella read in ninety minutes is one and a half hours, and flooring it would erase it.
+   * Printed through `roundHours`: the sheet's figure carries five decimals, and "166.595" is a
+   * tile stating a precision no estimate has.
    */
   hours: number;
   /** A full URL to the cover, as the other three sheets' Artwork columns hold their own. */
@@ -123,3 +125,6 @@ export const groupToColour = (group: BookGroup, book: Book, scheme: Scheme): Col
       return "" as Colour;
   }
 };
+
+/** An hours estimate as it is printed: one decimal, the sheet's own figure carrying five. */
+export const roundHours = (hours: number) => Math.round(hours * 10) / 10;

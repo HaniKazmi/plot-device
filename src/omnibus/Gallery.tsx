@@ -1,7 +1,7 @@
 import { PhotoLibrary } from "@mui/icons-material";
 import { CardContent, Stack, Typography } from "@mui/material";
 import { useState } from "react";
-import { INLINE_SWATCH_SIZE, Swatch } from "../common/Card";
+import { INLINE_SWATCH_SIZE, Swatch } from "../common/Swatch";
 import { CURRENT_PLAINDATE } from "../common/date";
 import { DrilldownDialog } from "../common/DrilldownDialog";
 import { FILMSTRIP_HEIGHT, Filmstrip } from "../common/Filmstrip";

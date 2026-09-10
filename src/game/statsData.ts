@@ -1,6 +1,6 @@
 import { daysSince, formatDate, type YearMonthDay, type YearNumber } from "../common/date";
 import { format } from "../utils/mathUtils";
-import { earliestYear as earliestYearOf, groupByCategory } from "../common/statsData";
+import { earliestYear as earliestYearOf, groupByCategory, realFranchisesOnly } from "../common/statsData";
 import { platformToShort, type Measure, type VideoGame, type VideoGameStringKeys } from "./types";
 import "../utils/arrayUtils";
 
@@ -36,6 +36,7 @@ export const groupGamesBy = (data: VideoGame[], key: VideoGameStringKeys, measur
     (game) => game[key],
     (games) => (measure === "Hours" ? games.sum("hours") : games.length),
     (games) => games.reduce((best, game) => (game.hours! > best.hours! ? game : best)),
+    key === "franchise" ? realFranchisesOnly : undefined,
   );
 
 /**
@@ -67,9 +68,12 @@ export const yearlyAverages = (data: VideoGame[]) => {
   }, {});
 
   const totals = Object.values(grouped);
+  // Over no active year the average is 0 rather than NaN: a page narrowed to games with no hours
+  // logged still draws the card.
+  const years = totals.length || 1;
   return {
-    games: parseFloat((totals.sum("games") / totals.length).toFixed(2)),
-    hours: parseFloat((totals.sum("hours") / totals.length).toFixed(2)),
+    games: parseFloat((totals.sum("games") / years).toFixed(2)),
+    hours: parseFloat((totals.sum("hours") / years).toFixed(2)),
   };
 };
 

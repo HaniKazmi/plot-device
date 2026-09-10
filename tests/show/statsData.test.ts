@@ -142,8 +142,8 @@ describe("yearlyAverages", () => {
     expect(yearlyAverages(data).hours).toBe(1);
   });
 
-  it("yields NaN for empty data, because the year count is the divisor", () => {
-    expect(yearlyAverages([]).seasons).toBeNaN();
+  it("averages to 0 over no active year, so the card draws a figure and not NaN", () => {
+    expect(yearlyAverages([]).seasons).toBe(0);
   });
 });
 

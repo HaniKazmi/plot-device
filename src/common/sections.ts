@@ -61,3 +61,26 @@ export const movedAfter = <K extends string>(keys: readonly K[], key: string, af
 
   return [...rest.slice(0, at + 1), moved, ...rest.slice(at + 1)];
 };
+
+/**
+ * The sections every tracked tab's page runs in, in the order it runs them: what is being played,
+ * watched or read now, then what the library is made of, then what can be explored, then the deep
+ * dives, the wall closing the page at every width.
+ *
+ * One list rather than four, because the four tabs are one page architecture and a section added
+ * to it — or "Explore" reworded — is otherwise a four-file edit that nothing fails over when one
+ * of them drifts. The one thing a tab varies is what its first anchor is called: Movies names its
+ * `latest`, a film being watched rather than in progress, and the chip reads "Now" regardless.
+ */
+export type TrackedSectionKey = "vitals" | "top" | "explore" | "timeline" | "charts" | "library";
+
+export const trackedTabSections = <P extends string, N extends string = "now">(prefix: P, nowKey: N = "now" as N) =>
+  tabSections<P, N | TrackedSectionKey>(prefix, [
+    { key: nowKey, label: "Now" },
+    { key: "vitals", label: "Vitals" },
+    { key: "top", label: "Top" },
+    { key: "explore", label: "Explore" },
+    { key: "timeline", label: "Timeline" },
+    { key: "charts", label: "Charts" },
+    { key: "library", label: "Library" },
+  ]);

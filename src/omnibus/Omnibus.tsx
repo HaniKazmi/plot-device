@@ -2,6 +2,8 @@ import { lazy, Suspense, useEffect } from "react";
 import { useLibrary } from "../app/library";
 import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
 import { useFilterReducer } from "./filterUtils";
+import { upToSlice } from "../common/filterReducer";
+import { media } from "../app/types";
 
 /**
  * The one `import()` of the charts, at module scope: the React Compiler cannot lower an import
@@ -66,18 +68,23 @@ const Omnibus = () => {
   // remount that sees only the second half of the turn.
   const notice = (
     <DataLoadedSnackbar
-      open={loaded.game && loaded.show && loaded.movie && loaded.book}
-      error={error.game ?? error.show ?? error.movie ?? error.book}
+      // Walked rather than written out: destructured by hand, a fifth medium is silently absent
+      // from both answers and nothing fails to compile over it.
+      open={media.every((medium) => loaded[medium])}
+      error={media.map((medium) => error[medium]).find((message) => message !== undefined)}
     />
   );
 
+  const filteredData = data?.filter(filterState.filter);
+
   return (
     <>
-      {library && data && (
+      {library && data && filteredData && (
         <Suspense>
           <Graphs
             library={library}
-            filteredData={data.filter(filterState.filter)}
+            filteredData={filteredData}
+            upToData={upToSlice(data, filteredData, filterState)}
             filterState={filterState}
           />
         </Suspense>

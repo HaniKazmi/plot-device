@@ -801,10 +801,10 @@ export const SearchPalette = (props: {
     if (event.key === "Tab" && !event.altKey && inModeSwitchReach(event.target)) {
       event.preventDefault();
       onMode(finding ? "page" : "find");
-    } else if (event.key === "ArrowDown") {
+    } else if (event.key === "ArrowDown" && rows.length > 0) {
       event.preventDefault();
       move(1);
-    } else if (event.key === "ArrowUp") {
+    } else if (event.key === "ArrowUp" && rows.length > 0) {
       event.preventDefault();
       move(-1);
     } else if (event.key === "ArrowRight" && plainArrow(event)) {

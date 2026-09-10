@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from "react";
 import { bookModule } from "../book/module";
 import type { MediumModule } from "../common/medium";
+import type { Medium } from "../utils/types";
 import useData from "../common/useData";
 import { useGoogleAuth } from "../contexts/GoogleAuthContext";
 import { movieModule } from "../movie/module";
@@ -48,7 +49,10 @@ const useSheet = <T,>(module: MediumModule<T, unknown>) => useData(module.data, 
  *
  * The four calls are written out rather than walked over the registry because a hook called in a
  * loop or a callback is a rules-of-hooks error. Each is typed for its own medium's records, which
- * is what makes the object below a `Partial<Library>` with nothing asserted into it.
+ * is what makes the object below assignable with nothing asserted into it. Its type makes every
+ * key required and only the value optional — `Partial<Library>` would let a fifth medium's slice
+ * be left out and compile, where `completeLibrary` then answers `undefined` for good and the union
+ * never builds, while `loaded` reports that sheet arrived.
  */
 export const LibraryProvider = ({ guestMode, children }: { guestMode: boolean; children: ReactNode }) => {
   const [games, gamesLoaded, gamesError, refetchGames] = useSheet(gameModule);
@@ -57,7 +61,7 @@ export const LibraryProvider = ({ guestMode, children }: { guestMode: boolean; c
   const [books, booksLoaded, booksError, refetchBooks] = useSheet(bookModule);
   const { apiReady } = useGoogleAuth();
 
-  const raw: Partial<Library> = { game: games, show: shows, movie: movies, book: books };
+  const raw: { [M in Medium]: Library[M] | undefined } = { game: games, show: shows, movie: movies, book: books };
   const loaded = { game: gamesLoaded, show: showsLoaded, movie: moviesLoaded, book: booksLoaded };
   const error = { game: gamesError, show: showsError, movie: moviesError, book: booksError };
   const visible = visibleLibrary(raw, guestMode);
