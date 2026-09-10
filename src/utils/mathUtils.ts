@@ -1,3 +1,10 @@
+/**
+ * An hours figure as a chart prints it: floored, as every hours total on a tab is, except under an
+ * hour, where a floor erases a figure the chart still draws — a 48-minute season is a wedge stating
+ * 0. One decimal there, so the words and the geometry agree.
+ */
+export const printedHours = (hours: number) => (hours < 1 ? Math.round(hours * 10) / 10 : Math.floor(hours));
+
 export const format = new Intl.NumberFormat().format;
 
 /**

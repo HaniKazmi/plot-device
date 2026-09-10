@@ -14,6 +14,7 @@ export const bookFilters: FilterSchema<Book, FilterState> = {
       key: "series",
       label: "series",
       valueOf: (book) => book.series,
+      namesFranchise: true,
       // The default keeps `""`, and a standalone book answers it: six blank chips would be one
       // that selects nothing a reader can name.
       options: (data) => categoryOptions(data, (book) => book.series).filter(Boolean),

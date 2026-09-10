@@ -73,6 +73,17 @@ export type PageAction =
 export type PageDispatch = Dispatch<PageAction>;
 
 /**
+ * The rows the vitals band's first card counts, beside the filtered ones an entry already holds:
+ * the same array where the two predicates are one, which they are under the "upto" reading, and a
+ * second pass otherwise.
+ */
+export const upToSlice = <T>(
+  data: T[],
+  filtered: T[],
+  state: Pick<BaseFilterState<T, string>, "filter" | "filterUpTo">,
+): T[] => (state.filterUpTo === state.filter ? filtered : data.filter(state.filterUpTo));
+
+/**
  * A tab's page state, held outside React so that a surface above the tab can read and set it.
  *
  * Every member is a method rather than a property: `set` and `dispatch` take the state and the
@@ -230,18 +241,24 @@ export const createFilterReducer = <T, M extends string, S extends BaseFilterSta
    * The tab's predicate: every per-field rule the schema states, and then the year scope, which
    * belongs to no field and is a reading of the whole page rather than a narrowing of it.
    */
-  const filters = (state: Values): Predicate<T> => {
+  const compose =
+    (predicates: Predicate<T>[]): Predicate<T> =>
+    (item: T) =>
+      predicates.every((predicate) => predicate(item));
+
+  const filters = (state: Values): Predicate<T> =>
     // `S` extends the base state, so the scope's two fields are on it; `Omit` over a generic is a
     // lookup TypeScript defers, so it cannot see that here.
-    const predicates = [...schemaPredicates(schema, state), ...scope(state as unknown as YearState)];
-
-    return (item: T) => predicates.every((predicate) => predicate(item));
-  };
+    compose([...schemaPredicates(schema, state), ...scope(state as unknown as YearState)]);
 
   const withFilter = (state: Values): S => {
-    const filter = filters(state);
+    // The schema's predicates read no year field, so they are built once and the two readings of
+    // the scope are composed over them.
+    const fields = schemaPredicates(schema, state);
+    const year = state as unknown as YearState;
+    const filter = compose([...fields, ...scope(year)]);
     const filterUpTo =
-      (state as unknown as YearState).yearType === "upto" ? filter : filters({ ...state, yearType: "upto" });
+      year.yearType === "upto" ? filter : compose([...fields, ...scope({ ...year, yearType: "upto" })]);
     return { ...state, filter, filterUpTo } as S;
   };
 

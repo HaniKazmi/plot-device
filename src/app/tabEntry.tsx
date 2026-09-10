@@ -1,6 +1,6 @@
 import { Suspense, useEffect, type ComponentType } from "react";
 import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
-import type { FilterDispatchFor } from "../common/filterReducer";
+import { upToSlice, type FilterDispatchFor } from "../common/filterReducer";
 import type { Medium, Predicate } from "../utils/types";
 import { useLibrary } from "./library";
 import type { LibraryRecord } from "./records";
@@ -99,10 +99,7 @@ export const createTabEntry = <
           <Suspense>
             <Graphs
               filteredData={filteredData}
-              // The same array under the "upto" reading, where the two predicates are one.
-              upToData={
-                filterState.filterUpTo === filterState.filter ? filteredData : data.filter(filterState.filterUpTo)
-              }
+              upToData={upToSlice(data, filteredData, filterState)}
               unfilteredData={data}
               filterState={filterState}
             />

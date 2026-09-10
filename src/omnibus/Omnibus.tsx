@@ -2,7 +2,8 @@ import { lazy, Suspense, useEffect } from "react";
 import { useLibrary } from "../app/library";
 import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
 import { useFilterReducer } from "./filterUtils";
-import { MEDIA as MEDIA_ORDER } from "../utils/types";
+import { upToSlice } from "../common/filterReducer";
+import { media } from "../app/types";
 
 /**
  * The one `import()` of the charts, at module scope: the React Compiler cannot lower an import
@@ -69,8 +70,8 @@ const Omnibus = () => {
     <DataLoadedSnackbar
       // Walked rather than written out: destructured by hand, a fifth medium is silently absent
       // from both answers and nothing fails to compile over it.
-      open={MEDIA_ORDER.every((medium) => loaded[medium])}
-      error={MEDIA_ORDER.map((medium) => error[medium]).find((message) => message !== undefined)}
+      open={media.every((medium) => loaded[medium])}
+      error={media.map((medium) => error[medium]).find((message) => message !== undefined)}
     />
   );
 
@@ -83,9 +84,7 @@ const Omnibus = () => {
           <Graphs
             library={library}
             filteredData={filteredData}
-            upToData={
-              filterState.filterUpTo === filterState.filter ? filteredData : data.filter(filterState.filterUpTo)
-            }
+            upToData={upToSlice(data, filteredData, filterState)}
             filterState={filterState}
           />
         </Suspense>

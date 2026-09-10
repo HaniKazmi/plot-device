@@ -223,10 +223,10 @@ describe("yearlyAverages", () => {
     expect(yearlyAverages(data).hours).toBe(16.67);
   });
 
-  it("yields NaN for empty data, because the year count is the divisor", () => {
-    // Nothing guards the division, and the NaN reaches format() in the stat card.
-    expect(yearlyAverages([]).games).toBeNaN();
-    expect(yearlyAverages([]).hours).toBeNaN();
+  it("averages to 0 over no active year, so a page narrowed to untimed games draws a figure", () => {
+    // The year count is the divisor, and a NaN would reach format() in the stat card.
+    expect(yearlyAverages([]).games).toBe(0);
+    expect(yearlyAverages([videoGame({ hours: undefined })]).hours).toBe(0);
   });
 });
 
@@ -295,13 +295,13 @@ describe("heroStats", () => {
   it("counts the days the game has been in progress, both ends included", () => {
     // The inclusive count `numDays` and the Days To Beat card already use, so a game shows the
     // same span before and after it is finished.
-    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: undefined, publisher: "" });
+    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: undefined, franchise: "" });
 
     expect(heroStats(game, [game], today)).toEqual([{ label: "Days In", value: 11 }]);
   });
 
   it("reports the hours the sheet has logged against a game still being played", () => {
-    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: 12, publisher: "" });
+    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: 12, franchise: "" });
 
     expect(heroStats(game, [game], today)).toContainEqual({ label: "Hours", value: 12 });
   });
@@ -309,13 +309,13 @@ describe("heroStats", () => {
   it("leaves the hours out rather than reporting zero for a game with none logged", () => {
     // The sheet only fills hours in for some in-progress games, and a tile reading 0 asserts
     // that none have been played rather than that none have been recorded.
-    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: 0, publisher: "" });
+    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: 0, franchise: "" });
 
     expect(heroStats(game, [game], today).map((stat) => stat.label)).toEqual(["Days In"]);
   });
 
   it("places the game in its series once the series has more than one game", () => {
-    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: undefined, publisher: "Zelda" });
+    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: undefined, franchise: "Zelda" });
 
     expect(heroStats(game, [game, videoGame(), videoGame()], today)).toContainEqual({
       label: "Zelda Games",
@@ -324,21 +324,21 @@ describe("heroStats", () => {
   });
 
   it("says nothing about a series holding only this game", () => {
-    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: undefined, publisher: "Zelda" });
+    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: undefined, franchise: "Zelda" });
 
     expect(heroStats(game, [game], today).map((stat) => stat.label)).toEqual(["Days In"]);
   });
 
   it("skips the day count for a game the sheet recorded as a bare year", () => {
     // `daysTo` refuses to answer across a year-only date rather than inventing a day for it.
-    const game = videoGame({ startDate: Year.get(2024), hours: 5, publisher: "" });
+    const game = videoGame({ startDate: Year.get(2024), hours: 5, franchise: "" });
 
     expect(heroStats(game, [game], today).map((stat) => stat.label)).toEqual(["Hours"]);
   });
 
   it("skips the day count rather than throwing on a start date in the future", () => {
     // `daysTo` throws on a backwards comparison, which a mistyped sheet row can produce.
-    const game = videoGame({ startDate: YearMonthDay.get(2025, 1, 1), hours: 5, publisher: "" });
+    const game = videoGame({ startDate: YearMonthDay.get(2025, 1, 1), hours: 5, franchise: "" });
 
     expect(heroStats(game, [game], today).map((stat) => stat.label)).toEqual(["Hours"]);
   });

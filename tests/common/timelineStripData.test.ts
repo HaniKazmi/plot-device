@@ -242,6 +242,7 @@ describe("stripWindow", () => {
 
     expect(window.from).toBe(YearMonthDay.get(2018, 1, 1));
     expect(window.to).toBe(YearMonthDay.get(2022, 12, 31));
+    expect(window.lastYear).toBe(2022);
   });
 
   it("holds a short franchise open to three years so a fortnight is not the whole card", () => {
@@ -249,6 +250,8 @@ describe("stripWindow", () => {
 
     expect(window.from).toBe(YearMonthDay.get(2020, 1, 1));
     expect(window.to).toBe(YearMonthDay.get(2022, 12, 31));
+    // The caption states the entries' own last year, not the one the window is held open to.
+    expect(window.lastYear).toBe(2020);
   });
 
   it("is a scale buildStrip can place bands on, with a tick at every January inside it", () => {

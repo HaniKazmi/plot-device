@@ -71,8 +71,10 @@ export const jsonConverter = (json: Record<string, string>[]) => {
 
       const e = Number.isNaN(episodes) ? 0 : episodes;
 
-      const length = row["Episode Length (min)"];
-      const episodeLength = length ? parseInt(length) : undefined;
+      const length = parseInt(row["Episode Length (min)"]);
+      // A blank cell and an unreadable one are one case: no runtime, so `undefined` on the model
+      // rather than the `NaN` a garbled cell parses to, which the type does not admit.
+      const episodeLength = Number.isNaN(length) ? undefined : length;
       if (episodeLength === undefined && e > 0) {
         // Reported for the same reason a bad episode count is: the season's minutes are then 0,
         // and every hours figure on the tab and the union is short by its episodes with nothing

@@ -765,65 +765,6 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
   );
 };
 
-export const DetailCard = ({ label, value }: { label: string; value: string | ReactNode }) => {
-  const palette = useArtworkPalette();
-
-  if (!value) return null;
-  return (
-    <Grid
-      size={{
-        xs: 6,
-        md: 3,
-      }}
-    >
-      {/* Elevated, against the theme's outlined default: the outlined variant draws a `divider`
-          hairline, a neutral grey laid over whatever ground the artwork turned out to be. A wash
-          of the card's own contrast colour instead, so a tile lifts off a pale sample as readily
-          as off a dark one — a raised edge alone all but disappears against a light ground. */}
-      <Card
-        variant="elevation"
-        sx={{
-          height: "100%",
-          background: palette.tile,
-          // A `Paper` paints `text.primary` of its own, which is the theme's colour and not the
-          // one the dialog's card derived from its artwork. Unset lets that contrast colour reach
-          // the tile, so the type turns over with the ground rather than against it.
-          color: "unset",
-        }}
-      >
-        <CardContent
-          sx={{
-            ":last-child": { paddingBottom: 2 },
-            height: "100%",
-          }}
-        >
-          <Stack
-            direction={"column"}
-            sx={{
-              height: "100%",
-              justifyContent: "space-between",
-            }}
-          >
-            <Typography
-              align="center"
-              variant="body1"
-            >
-              {value}
-            </Typography>
-            <Typography
-              align="center"
-              variant="caption"
-              sx={{ color: palette.muted }}
-            >
-              {label}
-            </Typography>
-          </Stack>
-        </CardContent>
-      </Card>
-    </Grid>
-  );
-};
-
 /**
  * A figure and what it counts, as a panel carries them: a headline number over its label.
  */

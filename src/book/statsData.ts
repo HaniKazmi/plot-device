@@ -110,7 +110,7 @@ export const perBookAverages = (data: Book[]) => {
   const count = finished.length;
   return {
     pages: count ? Math.round(finished.sum("pages") / count) : 0,
-    hours: count ? Math.round((finished.sum("hours") / count) * 10) / 10 : 0,
+    hours: count ? roundHours(finished.sum("hours") / count) : 0,
     days: count ? Math.round(finished.sum("numDays") / count) : 0,
   };
 };

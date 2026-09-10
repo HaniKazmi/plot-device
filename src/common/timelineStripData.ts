@@ -117,6 +117,8 @@ const MIN_WINDOW_YEARS = 3;
 export interface StripWindow {
   from: YearMonthDay;
   to: YearMonthDay;
+  /** The last year an entry ends in, which `to` is held open past on a short franchise. */
+  lastYear: number;
 }
 
 /**
@@ -134,7 +136,7 @@ export const stripWindow = (spans: readonly StripSpan[]): StripWindow => {
   const firstYear = Math.min(...spans.map((span) => span.start.year));
   const lastYear = Math.max(...spans.map((span) => span.end.year));
   const toYear = Math.max(lastYear, firstYear + MIN_WINDOW_YEARS - 1);
-  return { from: YearMonthDay.get(firstYear, 1, 1), to: YearMonthDay.get(toYear, 12, 31) };
+  return { from: YearMonthDay.get(firstYear, 1, 1), to: YearMonthDay.get(toYear, 12, 31), lastYear };
 };
 
 /**

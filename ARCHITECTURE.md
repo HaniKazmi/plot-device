@@ -463,8 +463,9 @@ grouping order fully dynamic: the caller passes `groups: K[]` and `SunBurstContr
 picker per level joined by `›`, "Nest by" the first picker's own `label` rather than a caption
 beside the row, humanised through `keyLabel` (`utils/stringUtils.ts`). Domain meaning enters through
 four callbacks: `keyToVal`, `getCount`, `getColor`, `getLeafName`, and an optional `displayValue`
-for how a wedge's sum is printed — Shows and Movies pass exact hours per row and floor the printed
-figure, so the wheel states what the vitals band and the barchart state for the same rows.
+for how a wedge's sum is printed — Shows, Movies and Books pass exact hours per row and print the
+figure through `printedHours`, floored as the vitals band and the barchart floor theirs and to one
+decimal under an hour, where a floor would state 0 for a wedge the wheel still draws.
 Flooring per row instead loses a partial hour on every one, 551 hours against 733 over 366 films;
 flooring the node itself opens a gap around every parent, since Highcharts sizes a parent arc by
 its own value wherever that exceeds its children's sum. `ringOptions` takes a chosen key
@@ -1220,9 +1221,12 @@ ranked apart, being two, and merged into one list rather than concatenated — a
 query exactly is a better answer than a series matching it at a word start, and the reverse holds as
 readily — each over its whole index with the merge cut afterwards, since cutting each half first
 would state a total it had stopped counting at. Series lead the merge and the sort is stable, so a
-series takes a tie, its view saying more about a value than a shelf of works does — and a value the
-franchise index answers by that exact name yields to it altogether, a book series being written in
-its Series column and its Franchise column both, and 47 of the 73 holding one string in each.
+series takes a tie, its view saying more about a value than a shelf of works does — and a series
+value the franchise index answers by that exact name yields to it altogether, a book series being
+written in its Series column and its Franchise column both, and 47 of the 73 holding one string in
+each. Only a category declaring `namesFranchise` folds that way: an author sharing a name with a
+franchise elsewhere is a different narrowing over different rows, and the franchise's own row may
+not reach Books at all.
 
 **The list is a grid, and ←→ is the second axis.** A row of pressable chips inside a row is not a
 listbox option, so the shell is `role="grid"`: a row per hit, a cell per reading, the row carrying
@@ -2405,7 +2409,7 @@ key in ObjectExpression`; pulled out to a plain function taking the varying piec
   `sheetBarSx`, `dialogCardSx`, among others — the literal itself sits at module scope and the
   component stays compiled.
 
-The baseline is **283 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **282 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.

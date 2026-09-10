@@ -5,8 +5,6 @@ import type { ReactNode } from "react";
 import type { LedgerRow, PanelSubtitlePart } from "../common/Card";
 import { franchiseToColour, genreToColour, mediumFills, type Scheme } from "../utils/types";
 import { companyToAccent, gameplayToColour, platformToColor, certificateColour, type VideoGame } from "./types";
-import "../utils/arrayUtils";
-import "../utils/mapUtils";
 
 /**
  * What makes one span distinct. Name and platform alone collide on a replay, which would stack two

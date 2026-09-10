@@ -74,11 +74,10 @@ const Stats = ({
       )}
       <Section id={OMNIBUS_SECTIONS.vitals}>
         <StatBand>
-          {/* The first card and the average beside it count `upTo` rather than `data`: the scope
-              read as a ceiling, which is what a card titled "All time" or "Up to 2019" states
-              under either reading — fed the "In 2026" rows, it would restate the in-year figures
-              under the wrong words. The in-year card narrows `data`, which under that reading is
-              already the year. */}
+          {/* The first card counts `upTo` rather than `data`: the scope read as a ceiling, which
+              is what a card titled "All time" or "Up to 2019" states under either reading — fed
+              the "In 2026" rows, it would restate the in-year figures under the wrong words. The
+              in-year card narrows `data`, which under that reading is already the year. */}
           <YearVitalsPair
             yearTo={yearTo}
             yearType={yearType}

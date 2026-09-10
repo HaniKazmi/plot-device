@@ -251,6 +251,18 @@ describe("season fields", () => {
     expect(error).toHaveBeenCalledWith(expect.stringContaining('season 4 of "Ted Lasso"'));
     expect(error).toHaveBeenCalledWith(expect.stringContaining("no episode length"));
   });
+
+  it("reads an unreadable runtime cell as no runtime, reported the same way", () => {
+    // `parseInt` answers NaN for "TBD", which the model's type does not admit and a strict test
+    // for a blank would miss, leaving the season's episodes out of every hours figure unreported.
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const [show] = jsonConverter([showRow(), seasonRow({ Episodes: "10", "Episode Length (min)": "TBD" })]);
+
+    expect(show.s[0].episodeLength).toBeUndefined();
+    expect(show.s[0].minutes).toBe(0);
+    expect(error).toHaveBeenCalledWith(expect.stringContaining("no episode length"));
+  });
 });
 
 describe("last watched, per season", () => {

@@ -27,9 +27,10 @@ import { SheetGrabber } from "./SheetGrabber";
  * anything but `visible` becomes the scrollport a sticky element measures against, and a box that
  * never scrolls parks the bar at the top of a card several screens tall.
  *
- * It lives beside the sheet recipes rather than in `Card.tsx` so the hover card can wear it: `Card`
- * mounts every chart's hover card through `HoverCardTooltip`, and a bar exported from there would
- * close that import into a cycle.
+ * It lives beside the sheet recipes rather than in the card layer so the hover card can wear it:
+ * `HoverCardTooltip` wears it on its bottom sheet and the timeline band (`TimelineBand.tsx`) mounts
+ * its card through that tooltip, so a bar exported from the card layer would close that import
+ * into a cycle.
  */
 export const SheetBar = (props: {
   title: ReactNode;

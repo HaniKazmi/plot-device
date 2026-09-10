@@ -125,8 +125,8 @@ export const FranchiseStrip = (props: {
   // The range states the entries' own last year and not the window's, which is held open to three
   // years past the first: a series begun in 2024 and finished in 2025 is drawn to 2026 and did not
   // run "to today".
-  const lastYear = Math.max(...ordered.map((entry) => entry.end.year));
-  const range = mode === "order" ? undefined : `${window.from.year} – ${lastYear >= today.year ? "today" : lastYear}`;
+  const range =
+    mode === "order" ? undefined : `${window.from.year} – ${window.lastYear >= today.year ? "today" : window.lastYear}`;
 
   return (
     <Box

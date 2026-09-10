@@ -32,11 +32,6 @@ const CHART_HEIGHT = {
 const PREVIEW_WEDGES = 5;
 
 /**
- * Fades the outermost ring so leaf items read as detail rather than structure.
- * Lives outside the component because the React Compiler cannot compile a function
- * containing `this`, and Highcharts binds the chart to `this` on its render event.
- */
-/**
  * The tooltip's line, Highcharts' own `<b>{point.name}</b>: {point.value}` with the value printed
  * through the caller's `displayValue`. At module scope because Highcharts binds the point to
  * `this`, which opts a component out of the React Compiler.
@@ -46,6 +41,11 @@ const wedgeFormatter = (displayValue: (value: number) => number) =>
     return `<b>${this.name}</b>: ${format(displayValue(this.value ?? 0))}<br/>`;
   };
 
+/**
+ * Fades the outermost ring so leaf items read as detail rather than structure.
+ * Lives outside the component because the React Compiler cannot compile a function
+ * containing `this`, and Highcharts binds the chart to `this` on its render event.
+ */
 const dimLeafRing = (leafLevel: number) =>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function (this: any) {
@@ -74,9 +74,10 @@ const Sunburst = <T, K extends string>({
     getColor: (item: T, firstGroup: K) => Colour | undefined;
     getLeafName: (item: T) => string;
     /**
-     * How a wedge's summed value is printed, in its tooltip and in the folded card's line: a floor
-     * for hours, so the wheel states the figure the vitals band and the barchart state for the same
-     * rows. Applied to the printed figure and never to the node: Highcharts sizes a parent arc by
+     * How a wedge's summed value is printed, in its tooltip and in the folded card's line:
+     * `printedHours` for hours, so the wheel states the figure the vitals band and the barchart
+     * state for the same rows, and a wedge under an hour — which the wheel still draws — states
+     * a decimal rather than 0. Applied to the printed figure and never to the node: Highcharts sizes a parent arc by
      * its own value wherever that exceeds its children's sum, so a floor on every node leaves each
      * parent a sliver wider than the wedges inside it — a 10% hole around three 6.75-hour seasons.
      * A caller flooring per row instead keeps the geometry and loses a partial hour on every row,

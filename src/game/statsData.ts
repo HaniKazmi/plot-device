@@ -68,9 +68,12 @@ export const yearlyAverages = (data: VideoGame[]) => {
   }, {});
 
   const totals = Object.values(grouped);
+  // Over no active year the average is 0 rather than NaN: a page narrowed to games with no hours
+  // logged still draws the card.
+  const years = totals.length || 1;
   return {
-    games: parseFloat((totals.sum("games") / totals.length).toFixed(2)),
-    hours: parseFloat((totals.sum("hours") / totals.length).toFixed(2)),
+    games: parseFloat((totals.sum("games") / years).toFixed(2)),
+    hours: parseFloat((totals.sum("hours") / years).toFixed(2)),
   };
 };
 

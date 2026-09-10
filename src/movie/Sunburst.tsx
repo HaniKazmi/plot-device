@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { printedHours } from "../utils/mathUtils";
 import { groupToColour, type Measure, type Movie, type MovieGroup } from "./types";
 import Sunburst, { SunBurstControls } from "../common/Sunburst";
 import { movieGroupValue } from "./statsData";
@@ -35,9 +36,9 @@ const MovieSunburst = ({ data, measure }: { data: Movie[]; measure: Measure }) =
           }
         },
         // Exact hours per film, so the wheel's geometry is the sum; the figure is floored where it
-        // is printed, as the barchart and the vitals band floor their sums.
+        // is printed, as the barchart and the vitals band floor their sums, except under an hour.
         getCount: ({ minutes }) => (measure === "Hours" ? minutes / 60 : 1),
-        displayValue: measure === "Hours" ? Math.floor : undefined,
+        displayValue: measure === "Hours" ? printedHours : undefined,
         getColor: (movie, firstGroup) =>
           firstGroup === "startDate" ? undefined : groupToColour(firstGroup, movie, scheme) || undefined,
         getLeafName: (movie) => movie.name,

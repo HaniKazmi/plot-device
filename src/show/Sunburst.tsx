@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { printedHours } from "../utils/mathUtils";
 import type { KeysMatching } from "../utils/types";
 import { animeLabel, groupToColour, type Measure, type Show } from "./types";
 import Sunburst, { SunBurstControls } from "../common/Sunburst";
@@ -34,9 +35,10 @@ const ShowSunburst = ({ data, measure }: { data: Show[]; measure: Measure }) => 
           }
         },
         // Exact hours per season, so the wheel's geometry is the sum; the figure is floored where it
-        // is printed, the way every other hours figure on the tab floors its sum.
+        // is printed, the way every other hours figure on the tab floors its sum, except under an
+        // hour, where a floor would state 0 for a wedge the chart draws.
         getCount: ({ minutes, e }) => (measure === "Hours" ? minutes / 60 : measure === "Seasons" ? 1 : e),
-        displayValue: measure === "Hours" ? Math.floor : undefined,
+        displayValue: measure === "Hours" ? printedHours : undefined,
         getColor: ({ show }, firstGroup) => groupToColour(firstGroup, show, scheme) || undefined,
         getLeafName: ({ show, s }) => `${show.name} - S${s}`,
       }}

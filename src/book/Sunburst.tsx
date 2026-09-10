@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { printedHours } from "../utils/mathUtils";
 import { groupToColour, type Book, type BookGroup, type Measure } from "./types";
 import Sunburst, { SunBurstControls } from "../common/Sunburst";
 import { bookGroupValue } from "./statsData";
@@ -37,9 +38,9 @@ const BookSunburst = ({ data, measure }: { data: Book[]; measure: Measure }) => 
         },
         // Hours are the sheet's decimal estimates and are passed exactly: the shell sums them, and
         // flooring per book would erase every read under an hour from the chart. The printed sum
-        // is floored, as the vitals band floors its own.
+        // is floored, as the vitals band floors its own, except under an hour.
         getCount: ({ hours, pages }) => (measure === "Hours" ? hours || undefined : measure === "Pages" ? pages : 1),
-        displayValue: measure === "Hours" ? Math.floor : undefined,
+        displayValue: measure === "Hours" ? printedHours : undefined,
         getColor: (book, firstGroup) =>
           firstGroup === "startDate" ? undefined : groupToColour(firstGroup, book, scheme) || undefined,
         getLeafName: (book) => book.name,
