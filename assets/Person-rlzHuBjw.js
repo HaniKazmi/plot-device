@@ -1,0 +1,2 @@
+import{Jr as e,ki as t}from"./scope-DyEBdkfw.js";var n=t(),r=e((0,n.jsx)(`path`,{d:`M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z`}),`Grade`),i=e((0,n.jsx)(`path`,{d:`M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4m0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4`}),`Person`);export{r as n,i as t};
+//# sourceMappingURL=Person-rlzHuBjw.js.map
