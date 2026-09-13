@@ -5,19 +5,63 @@
   "schedule": ["* 0-6 * * 0"],
   "description": [
     "Weekly, because a personal dashboard has no cadence to keep up with, and each run costs a full tsc, lint, test and vite build. Batching a week of bumps into one wake-up keeps the queue readable.",
-    "Nothing automerges: a merge to master deploys to plot.hani.fyi in the same CI run, so an automerged bump is a production deploy with nobody looking. The suite is pure logic and there are no DOM or component tests, so a green run says the bundle builds and the arithmetic holds — not that a chart still renders."
+    "Nothing automerges: a merge to master deploys to plot.hani.fyi in the same CI run, so an automerged bump is a production deploy with nobody looking. The suite is pure logic and there are no DOM or component tests, so a green run says the bundle builds and the arithmetic holds — not that a chart still renders.",
+    "Every npm dependency belongs to one of three groups below, so a week of bumps arrives as a PR or three rather than one per package; a dependency added without a place here gets a PR of its own until it is given one. The runtime and tooling groups take minor and patch updates alone. A major is a migration and gets a PR of its own, where grouped it would wait on whichever other major in its group fails; config:recommended's monorepo presets still keep a family's major together."
   ],
   "automerge": false,
   "packageRules": [
     {
-      "description": "vite.config.ts strips this package's series autoloaders by regex against its compiled output, matching a literal `const seriesModuleLoaders = {...}`. A replace that finds nothing returns the code unchanged, so a release reshaping that declaration leaves the plugin doing nothing and the autoloaders back in the bundle — a silent size regression rather than a build failure. A bump here wants `npm run analyze` read against the committed analyze.json. Ungrouped so that check has one PR to happen in.",
-      "matchPackageNames": ["@highcharts/react"],
-      "groupName": "highcharts"
+      "description": "What ships to the browser. CI builds the bundle but mounts nothing, so every package here has the same check before merging — open the site and look — and one look covers them all. React's two @types packages are here because they describe the React that ships. @highcharts/react wants one more check when it moves: vite.config.ts strips its series autoloaders by regex against its compiled output, matching a literal `const seriesModuleLoaders = {...}`, and a replace that finds nothing returns the code unchanged, so a release reshaping that declaration puts the autoloaders back in the bundle — a silent size regression rather than a build failure. A PR moving it wants `npm run analyze` read against the committed analyze.json.",
+      "matchPackageNames": [
+        "react",
+        "react-dom",
+        "@types/react",
+        "@types/react-dom",
+        "@mui/material",
+        "@mui/icons-material",
+        "@emotion/react",
+        "@emotion/styled",
+        "react-router-dom",
+        "fast-average-color",
+        "@highcharts/react"
+      ],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "runtime dependencies"
     },
     {
-      "description": "One thing in two packages: eslint-plugin-react-hooks@7's recommended config is the React Compiler's own rule set, so a gap between them changes which violations get reported without changing which exist. A compiler bump also moves the bailout count, and nothing in CI can see a bailout — `this` and `??=` compile fine and quietly lose memoization. The check is the logger procedure in AGENTS.md, run by hand, so both move in one PR and one pass covers them.",
-      "matchPackageNames": ["babel-plugin-react-compiler", "eslint-plugin-react-hooks"],
+      "description": "The React Compiler and everything that decides what it compiles. eslint-plugin-react-hooks@7's recommended config is the compiler's own rule set, so a gap between the two changes which violations get reported without changing which exist. A compiler bump moves the bailout count, and nothing in CI can see a bailout — `this` and `??=` compile fine and quietly lose memoization. The other three decide which modules reach the compiler at all: @vitejs/plugin-react's reactCompilerPreset hands it only code its defaultCodeFilter matches (a capitalised name, a `use` hook, `memo` or `forwardRef`), @rolldown/plugin-babel runs babel only on the files its default include and exclude admit, and @babel/core is the transform the compiler runs inside. A release that moves either filter changes the compiled count just as silently. The check is the logger procedure in AGENTS.md, run by hand, so all five move in one PR and one pass covers them.",
+      "matchPackageNames": [
+        "babel-plugin-react-compiler",
+        "eslint-plugin-react-hooks",
+        "@vitejs/plugin-react",
+        "@rolldown/plugin-babel",
+        "@babel/core"
+      ],
       "groupName": "react compiler"
+    },
+    {
+      "description": "Everything that builds, checks, deploys or measures the bundle without shipping in it. CI's tsc, lint, test and build steps exercise most of it, so a green run is most of the check. What it misses: eslint fails only on an error, so a release that adds a warning prints it under a green check — read the lint step's output; prettier never runs in CI, so run `npm run format` on this branch and push whatever it changes; gh-pages first runs in the deploy after a merge, cloning the repo into node_modules/.cache and pushing from there (ci.yml), so a release that changes how it clones or authenticates fails that deploy and leaves the site on its previous build; and source-map-explorer runs only by hand, under `npm run analyze`. typescript's `<7` ceiling is a rule of its own: set on this one, it would hold every package here at 7 or above — eslint, vite, globals, typescript-eslint — where it is, with nothing on the dashboard saying why.",
+      "matchPackageNames": [
+        "vite",
+        "vitest",
+        "typescript",
+        "typescript-eslint",
+        "eslint",
+        "@eslint/js",
+        "eslint-plugin-react-refresh",
+        "globals",
+        "prettier",
+        "@types/chrome",
+        "@types/gapi",
+        "@types/gapi.client",
+        "@types/gapi.client.sheets",
+        "@types/google.accounts",
+        "@types/node",
+        "gh-pages",
+        "source-map-explorer"
+      ],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "dev tooling"
     },
     {
       "description": "TypeScript 7 is the native port, and no typescript-eslint release supports it yet: 8.68 declares `typescript: >=4.8.4 <6.1.0`, and TypeScript's 6.x line ends at 6.0.3, so that ceiling is exactly every 6 there will be. eslint is what the mismatch breaks, which is not where an upgrade PR is read. A version ceiling rather than a blanket ban on majors, so 6.x fixes keep arriving and lifting the bound stays a deliberate act once typescript-eslint admits 7 — at which point the two want moving together.",
