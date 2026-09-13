@@ -17,30 +17,11 @@ describe("dataCacheKey", () => {
 describe("supersededKeys", () => {
   const stored = ["show-data-cache", "show-data-cache-v1", "show-data-cache-v2", "movie-data-cache-v2", "theme"];
 
-  it("collects the earlier versions of the same domain", () => {
+  it("collects the earlier versions of the same domain and nothing else", () => {
     expect(supersededKeys("show-data-cache-v2", stored)).toEqual(["show-data-cache", "show-data-cache-v1"]);
   });
 
-  it("includes the unversioned key, which is the shape that predates versioning", () => {
-    expect(supersededKeys("show-data-cache-v1", ["show-data-cache"])).toEqual(["show-data-cache"]);
-  });
-
-  it("leaves the active key alone", () => {
-    expect(supersededKeys("show-data-cache-v2", stored)).not.toContain("show-data-cache-v2");
-  });
-
-  it("leaves another domain's cache alone", () => {
-    // One tab bumping its version must not empty the tabs beside it, which would cost every
-    // other domain its offline paint for no reason.
-    expect(supersededKeys("show-data-cache-v2", stored)).not.toContain("movie-data-cache-v2");
-  });
-
-  it("leaves unrelated keys alone", () => {
-    expect(supersededKeys("show-data-cache-v2", stored)).not.toContain("theme");
-  });
-
   it("does not treat a domain whose name extends another as superseded", () => {
-    // "show" is a prefix of "showcase", and matching on the bare string would collect it.
     expect(supersededKeys("show-data-cache-v2", ["showcase-data-cache-v1"])).toEqual([]);
   });
 });
@@ -105,49 +86,15 @@ describe("describeFailure", () => {
   });
 
   it("states the Sheets API's own complaint, which a rejection carries instead of an Error", () => {
-    // A gapi rejection is the response object itself, so the message the reader needs is nested
-    // rather than on a `message` property, and stringifying the whole thing yields nothing.
-    const rejection = {
-      result: { error: { code: 403, message: "The caller does not have permission" } },
-      status: 403,
-      statusText: "Forbidden",
-    };
+    const rejection = { result: { error: { code: 403, message: "The caller does not have permission" } }, status: 403 };
 
     expect(describeFailure(rejection)).toBe("The caller does not have permission");
   });
 
-  it("falls back to the status line for a refusal that carries no body", () => {
-    expect(describeFailure({ status: 503, statusText: "Service Unavailable" })).toBe(
-      "Sheet request failed: 503 Service Unavailable",
-    );
-  });
-
-  it("uses whichever half of the status line the response has", () => {
-    expect(describeFailure({ status: 500 })).toBe("Sheet request failed: 500");
-    expect(describeFailure({ statusText: "Gateway Timeout" })).toBe("Sheet request failed: Gateway Timeout");
-  });
-
-  it("words a turned-away token by the control that fixes it, whatever the server said", () => {
-    const rejection = {
-      status: 401,
-      result: { error: { message: "Request had invalid authentication credentials." } },
-    };
-
-    expect(describeFailure(rejection)).toBe("Authorisation has expired: press the key to authorise again.");
-  });
-
-  it("reads a rejection with no status and no words as the server never being reached", () => {
-    // gapi answers a request that failed on the wire with a body of nothing and a null status,
-    // which read as a status line is "[object Object]".
+  it("reads a rejection with no words as the server never being reached", () => {
     expect(describeFailure({ result: false, body: "", status: null, statusText: null })).toBe(
       "The sheets could not be reached: check the connection and refresh.",
     );
-  });
-
-  it("prefers the body's message over the status line, which names the sheet's own reason", () => {
-    const rejection = { result: { error: { message: "Unable to parse range: Games!A:Z" } }, status: 400 };
-
-    expect(describeFailure(rejection)).toBe("Unable to parse range: Games!A:Z");
   });
 
   it("states a cause with no shape of its own as it stands", () => {

@@ -177,14 +177,14 @@ describe("rolling season totals up into the show", () => {
     expect(show.endDate).toBeUndefined();
   });
 
-  it("depends on sheet order, taking the first row rather than the earliest date", () => {
-    const [show] = jsonConverter([
-      showRow(),
-      seasonRow({ Season: "2", "Start Date": "2025-01-17", "End Date": "2025-03-21" }),
-      seasonRow({ Season: "1", "Start Date": "2022-02-18", "End Date": "2022-04-08" }),
-    ]);
-
-    expect(show.startDate).toBe(YearMonthDay.get(2025, 1, 17));
+  it("rejects seasons listed out of sheet order, whose first and last rows date the show backwards", () => {
+    expect(() =>
+      jsonConverter([
+        showRow({ Title: "Severance" }),
+        seasonRow({ Season: "2", "Start Date": "2025-01-17", "End Date": "2025-03-21" }),
+        seasonRow({ Season: "1", "Start Date": "2022-02-18", "End Date": "2022-04-08" }),
+      ]),
+    ).toThrow('Show "Severance": starts 2025-01-17 but ends 2022-04-08');
   });
 });
 
@@ -223,24 +223,15 @@ describe("season fields", () => {
     expect(show.s[0].subtitle).toBe("Water");
   });
 
-  it("counts an unparseable episode cell as 0 and says which row it was", () => {
-    // Left as NaN it would propagate through the show's episode total and every statistic
-    // derived from it, blanking numbers nowhere near the row at fault.
-    const error = vi.spyOn(console, "error").mockImplementation(() => {});
-
-    const [show] = jsonConverter([showRow({ Title: "Severance" }), seasonRow({ Season: "1", Episodes: "" })]);
-
-    expect(show.s[0].e).toBe(0);
-    expect(show.e).toBe(0);
-    expect(error).toHaveBeenCalledWith(expect.stringContaining('season 1 of "Severance"'));
-    expect(error).toHaveBeenCalledWith(expect.stringContaining("counting it as 0"));
+  it("rejects an unparseable episode cell by row", () => {
+    // Counted as zero it lies in every sum; left as NaN it blanks numbers nowhere near the row.
+    expect(() => jsonConverter([showRow({ Title: "Severance" }), seasonRow({ Season: "1", Episodes: "" })])).toThrow(
+      'season 1 of "Severance", Episodes',
+    );
   });
 
-  it("counts a season with episodes and no runtime as 0 minutes, and says which row it was", () => {
-    // An open season the sheet has no length for yet is the common case, and its episodes are
-    // then absent from every hours figure on the tab with nothing on screen saying so.
-    const error = vi.spyOn(console, "error").mockImplementation(() => {});
-
+  it("counts a season with episodes and no runtime as 0 minutes without complaint", () => {
+    // An open season the sheet has no length for yet is the common case.
     const [show] = jsonConverter([
       showRow({ Title: "Ted Lasso" }),
       seasonRow({ Season: "4", Episodes: "6", "Episode Length (min)": "" }),
@@ -248,20 +239,14 @@ describe("season fields", () => {
 
     expect(show.s[0].episodeLength).toBeUndefined();
     expect(show.s[0].minutes).toBe(0);
-    expect(error).toHaveBeenCalledWith(expect.stringContaining('season 4 of "Ted Lasso"'));
-    expect(error).toHaveBeenCalledWith(expect.stringContaining("no episode length"));
   });
 
-  it("reads an unreadable runtime cell as no runtime, reported the same way", () => {
-    // `parseInt` answers NaN for "TBD", which the model's type does not admit and a strict test
-    // for a blank would miss, leaving the season's episodes out of every hours figure unreported.
-    const error = vi.spyOn(console, "error").mockImplementation(() => {});
-
+  it("reads an unreadable runtime cell as no runtime", () => {
+    // `parseInt` answers NaN for "TBD", which the model's type does not admit.
     const [show] = jsonConverter([showRow(), seasonRow({ Episodes: "10", "Episode Length (min)": "TBD" })]);
 
     expect(show.s[0].episodeLength).toBeUndefined();
     expect(show.s[0].minutes).toBe(0);
-    expect(error).toHaveBeenCalledWith(expect.stringContaining("no episode length"));
   });
 });
 
@@ -330,26 +315,17 @@ describe("the 2005 cutoff", () => {
 });
 
 describe("date ordering assertions", () => {
-  it("reports an inverted date pair with both dates, and keeps the season", () => {
-    // Logging does not alter control flow, so the bad row still enters the dataset — unlike
-    // game/, where an inverted pair throws out of the converter.
-    const error = vi.spyOn(console, "error").mockImplementation(() => {});
-
-    const [show] = jsonConverter([
-      showRow({ Title: "Severance" }),
-      seasonRow({ Season: "1", "Start Date": "2022-04-08", "End Date": "2022-02-18" }),
-    ]);
-
-    expect(error).toHaveBeenCalledWith(expect.stringContaining("starts 2022-04-08 but ends 2022-02-18"));
-    expect(show.s).toHaveLength(1);
+  it("rejects an inverted date pair by row, naming both dates", () => {
+    expect(() =>
+      jsonConverter([
+        showRow({ Title: "Severance" }),
+        seasonRow({ Season: "1", "Start Date": "2022-04-08", "End Date": "2022-02-18" }),
+      ]),
+    ).toThrow('season 1 of "Severance": starts 2022-04-08 but ends 2022-02-18');
   });
 
-  it("stays quiet for a correctly ordered run", () => {
-    const error = vi.spyOn(console, "error").mockImplementation(() => {});
-
-    jsonConverter([showRow(), seasonRow()]);
-
-    expect(error).not.toHaveBeenCalled();
+  it("accepts a correctly ordered run", () => {
+    expect(() => jsonConverter([showRow(), seasonRow()])).not.toThrow();
   });
 });
 

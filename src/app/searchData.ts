@@ -202,9 +202,7 @@ const franchiseRowsByTab = (pages: PageRows, context: CategoryContext): Record<s
     const category = categoryOf(page.filters, FRANCHISE_KEY);
     if (!rows || !category) continue;
     // Through the picker rather than against the series set directly, so a rule added to
-    // `franchiseOptions` reaches the counts as well as the chips, and in one pass rather than two:
-    // `categoryTally` is the vocabulary and its figures off a single scan, which is the whole
-    // reason it exists beside `categoryValues`.
+    // `franchiseOptions` reaches the counts as well as the chips.
     const { values, counts } = categoryTally(category, rows, context);
     byTab[tab] = new Map(values.map((franchise) => [franchise, counts.get(franchise) ?? 0]));
   }

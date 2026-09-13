@@ -1,6 +1,6 @@
 /**
- * The band renderer every proportional strip is drawn by: a positioned band, the year gridlines
- * and labels it is read against, and the card the crossings stack seats a strip in.
+ * The band renderer every proportional strip is drawn by: a positioned band, and the gridlines
+ * and labels it is read against.
  *
  * It is the one part of the card layer that needs MUI's `Tooltip`, a band naming its span being
  * the app's only hover label. That Popper engine is about 11 kB gzipped, and
@@ -8,14 +8,10 @@
  * renderer stands apart from the card shell, and a shell wanting a swatch or a proportional bar
  * takes it from `./Swatch` or `./ProportionalBar` without pulling the Popper in behind it.
  */
-import { Box, Card, CardContent, Theme, Tooltip, Typography } from "@mui/material";
-import Grid from "@mui/material/Grid";
+import { Box, Tooltip, Typography } from "@mui/material";
 import type { MouseEventHandler, ReactElement, ReactNode } from "react";
-import { useArtworkPalette } from "./artworkPalette";
 import { HoverCardTooltip } from "./HoverCardTooltip";
 import { TOUCH_TARGET_SX, touchTargetSx } from "./touchTarget";
-import { shortYear } from "./date";
-import { FADE_Z } from "./ScrollFade";
 import type { TimelineTick } from "./timelineLayout";
 import type { StripBand, StripSpan } from "./timelineStripData";
 
@@ -36,182 +32,68 @@ export type TimelineBand = Omit<StripBand<StripSpan>, "start" | "end"> & {
   imprecise?: boolean;
 };
 
-const STRIP_HEIGHT = 3;
-
 /**
- * The inset the card holds its strip at, in spacing steps.
- *
- * One number because two things are measured from it: the padding that puts the track there, and
- * the offset a sticky caption rests at, which has to be the same edge or the name and the bands it
- * labels disagree the moment the reader scrolls.
+ * A gridline per tick, so a band can be read against a date without hovering it. Lines only:
+ * shading alternate years the way the full timeline does works there because the chart is
+ * hundreds of pixels tall; on a strip this short the filled years read as bars and compete with
+ * the bands they exist to measure. The colour is the caller's, a strip on an artwork ground
+ * taking its palette's line where a ribbon on the paper takes the divider; `opacityOf` lets a
+ * ribbon step its month lines back from its quarters.
  */
-const STRIP_PADDING = 1;
-
-/**
- * A proportional strip of tracked spans against a fixed scale — the seasons of a show, the games
- * in a franchise.
- *
- * Bands are positioned rather than chained, so the shell owns the whole coordinate space and a
- * caller cannot couple to it: everything here reads `startPercent` and `widthPercent` off
- * `buildStrip` and never asks how they were arrived at.
- */
-export const TimelineCard = (props: {
-  bands: TimelineBand[];
-  laneCount: number;
+export const TimelineScale = ({
+  ticks,
+  colour,
+  opacityOf,
+}: {
   ticks: TimelineTick[];
-  caption?: ReactNode;
-  /**
-   * One strip of a stack that scrolls sideways on a scale they share, rather than a card standing
-   * on its own.
-   *
-   * Three things follow from that and all three are the shell's to do, because all three are about
-   * markup only this component renders. The years are stated once beneath the stack, not per strip
-   * — twelve identical label rows is the axis repeated, not twelve axes, which is what
-   * `TimelineAxis` is exported for. The card stops clipping, because a caption cannot be sticky
-   * inside a box that hides its overflow. And the caption pins at the strip's own inset, so a name
-   * stays readable while its own track travels under it and stays in the column its bands are
-   * drawn in — above the fade there, since a name is not part of the track running out of the card.
-   *
-   * Read off `props` rather than defaulted in the pattern: a destructured default is an assignment
-   * the React Compiler cannot lower, and it bails the whole component out of memoization.
-   */
-  inStack?: boolean;
-}) => {
-  const { bands, laneCount, ticks, caption } = props;
-  const inStack = props.inStack ?? false;
-  const palette = useArtworkPalette();
+  colour: string;
+  opacityOf?: (tick: TimelineTick) => number;
+}) => (
+  // Full-height boxes would otherwise be the topmost hit target across the whole strip.
+  <Box sx={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+    {ticks.map((tick) => (
+      <Box
+        key={tick.percent}
+        sx={{ position: "absolute", top: 0, bottom: 0, width: "1px", backgroundColor: colour }}
+        style={{ left: `${tick.percent}%`, opacity: opacityOf?.(tick) }}
+      />
+    ))}
+  </Box>
+);
 
-  return (
-    <Grid size={12}>
-      <Card
-        variant="elevation"
-        sx={{ height: "100%", background: "unset", color: "unset", ...(inStack && { overflow: "visible" }) }}
+/**
+ * The labels a strip is read against, one per tick handed in, positioned as percentages of its
+ * own width so it lines up with whatever stands above it at the same inset. A year label is
+ * centred on its line; a month label starts at it, the line being the month's opening edge, so a
+ * centred label would name the gap between two lines.
+ */
+export const TimelineAxis = ({
+  ticks,
+  labelOf,
+  align,
+}: {
+  ticks: TimelineTick[];
+  labelOf: (tick: TimelineTick) => string;
+  align: "centre" | "start";
+}) => (
+  <Box sx={{ position: "relative", height: 14 }}>
+    {ticks.map((tick) => (
+      <Typography
+        key={tick.percent}
+        variant="caption"
+        sx={{
+          position: "absolute",
+          fontSize: 10,
+          lineHeight: "14px",
+          opacity: 0.6,
+          userSelect: "none",
+          ...(align === "centre" ? { transform: "translateX(-50%)" } : { paddingLeft: 0.5 }),
+        }}
+        style={{ left: `${tick.percent}%` }}
       >
-        <CardContent
-          sx={{
-            ":last-child": { paddingBottom: STRIP_PADDING },
-            height: "100%",
-            padding: STRIP_PADDING,
-            paddingTop: 0,
-          }}
-        >
-          {caption && (
-            <Typography
-              variant="caption"
-              // One line, whatever the name in it turned out to be: a caption that wraps pushes
-              // the strip down by its own height, and the strip is what the card is measuring.
-              noWrap
-              sx={{
-                display: "block",
-                opacity: 0.7,
-                paddingBottom: 0.5,
-                ...(inStack && {
-                  position: "sticky",
-                  // The strip's own inset, not the scroller's edge: a sticky offset is measured
-                  // from the scrollport, so a zero here rests the name where it belongs and then
-                  // steps a padding's width left of every band it labels as soon as the reader
-                  // scrolls. Spelled through `spacing` because `left` takes a raw length, where the
-                  // padding above it is read as a spacing step.
-                  left: (theme: Theme) => theme.spacing(STRIP_PADDING),
-                  width: "fit-content",
-                  maxWidth: "100%",
-                  zIndex: FADE_Z + 1,
-                }),
-              }}
-            >
-              {caption}
-            </Typography>
-          )}
-          <Box
-            sx={{
-              position: "relative",
-              height: (theme) => theme.spacing(STRIP_HEIGHT),
-              borderRadius: 1,
-              overflow: "hidden",
-              // The empty track and the gridlines are drawn on the card's ground, so they are taken
-              // from it. The theme's own tokens are mixed for the theme's background, which is not
-              // what a strip on an extracted artwork colour is sitting on.
-              backgroundColor: palette.tile,
-            }}
-          >
-            <TimelineScale ticks={ticks} />
-            {bands.map((band) => (
-              <TimelineBandBox
-                {...band}
-                laneCount={laneCount}
-                key={band.key}
-              />
-            ))}
-          </Box>
-          {!inStack && <TimelineAxis ticks={ticks} />}
-        </CardContent>
-      </Card>
-    </Grid>
-  );
-};
-
-/**
- * A gridline per year, so a band can be read against a date without hovering it.
- *
- * Lines only. Shading alternate years the way the full timeline does works there because the
- * chart is hundreds of pixels tall; on a strip this short the filled years read as bars and
- * compete with the bands they exist to measure — most of all on a card whose ground is an
- * extracted artwork colour, where they pick that colour up.
- */
-export const TimelineScale = ({ ticks }: { ticks: TimelineTick[] }) => {
-  const palette = useArtworkPalette();
-
-  return (
-    // Full-height boxes would otherwise be the topmost hit target across the whole strip.
-    <Box sx={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
-      {ticks.map((tick) => (
-        <Box
-          key={tick.year}
-          sx={{
-            position: "absolute",
-            top: 0,
-            bottom: 0,
-            left: `${tick.percent}%`,
-            width: "1px",
-            backgroundColor: palette.line,
-          }}
-        />
-      ))}
-    </Box>
-  );
-};
-
-/** Sparse enough that the labels do not collide at card width, and land on round years. */
-const LABEL_EVERY_YEARS = 5;
-
-/**
- * The year labels a strip is read against.
- *
- * Exported so a stack of strips sharing one scale can state them once beneath itself rather than
- * once per strip. It positions its labels as percentages of its own width, so it lines up with the
- * strips above wherever it is placed at their inset.
- */
-export const TimelineAxis = ({ ticks }: { ticks: TimelineTick[] }) => (
-  <Box sx={{ position: "relative", height: 14, marginTop: 0.25 }}>
-    {ticks
-      .filter((tick) => tick.year % LABEL_EVERY_YEARS === 0)
-      .map((tick) => (
-        <Typography
-          key={tick.year}
-          variant="caption"
-          sx={{
-            position: "absolute",
-            left: `${tick.percent}%`,
-            transform: "translateX(-50%)",
-            fontSize: 10,
-            lineHeight: "14px",
-            opacity: 0.6,
-            userSelect: "none",
-          }}
-        >
-          {shortYear(tick.year)}
-        </Typography>
-      ))}
+        {labelOf(tick)}
+      </Typography>
+    ))}
   </Box>
 );
 

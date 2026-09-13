@@ -83,15 +83,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
   });
 };
 
-/**
- * The cache this converter's output is read back from, shared by the Games tab and by Omnibus so
- * a version bump cannot land at one of them alone.
- *
- * v2: a cached object written before this carries the *gameplay* vocabulary under `genre` and no
- * `gameplay` at all, so every genre surface would colour a gameplay value against the shared ramp.
- * v3: a cached object written before this holds its picture under `banner`, so every card on
- * every surface draws the stand-in instead.
- */
+/** Bump the version on any change to the model's shape, or a returning visitor's cache lacks the field. */
 export const gameDataConfig: DataConfig<VideoGame> = {
   storageKey: dataCacheKey("game", 3),
   converter: jsonConverter,

@@ -189,7 +189,7 @@ export class YearMonthDay extends PlainDate {
 
   static currentDate() {
     const date = new Date();
-    return new YearMonthDay(date.getFullYear() as YearNumber, date.getMonth() + 1, date.getDate());
+    return YearMonthDay.get(date.getFullYear(), date.getMonth() + 1, date.getDate());
   }
 
   private constructor(
@@ -276,8 +276,7 @@ const nextMonth = (year: YearNumber, month: number): [YearNumber, number] =>
  */
 export const formatDateRange = (start: YearMonthDay | Year, end?: YearMonthDay | Year) => {
   if (!end) return `${describeDate(start)} – present`;
-  // Interning is bypassed by `currentDate`, so identity is not a safe test for the same day.
-  if (start.toString() === end.toString()) return describeDate(start);
+  if (start === end) return describeDate(start);
 
   const sameYear = start.year === end.year;
   return `${describeDate(start, !sameYear)} – ${describeDate(end)}`;

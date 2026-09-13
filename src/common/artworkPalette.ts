@@ -13,48 +13,7 @@ const MUTED_ALPHA = 0.72;
 const SEAM_ALPHA = 0.22;
 const TILE_ALPHA = 0.1;
 
-/**
- * Every palette built so far, by the two things one is derived from.
- *
- * The recipe is a pure function of the accent and the theme, and one card asks it nine times over —
- * the image, the panel, each tile, each ledger row, the strip — while a drill-down mounts five
- * hundred cards. Each miss costs a `getContrastText` and three `alpha` calls, every one of them
- * parsing a colour string.
- *
- * Keyed on the theme first, and weakly: `Google.tsx` holds one theme per tab for the life of the
- * page, so the outer entry is bounded by the number of tabs and goes when a theme does. That the
- * theme is the whole of the rest of the key is what `cssVariables: true` buys — `theme.vars` values
- * are `var()` references, so a scheme flip turns over in CSS and not here.
- */
-const PALETTES = new WeakMap<Theme, Map<string, ReturnType<typeof buildPalette>>>();
-
-/**
- * The key an accent-less palette is held under.
- *
- * Not `""`, which is a value an accent can actually take: colour lookups answer the empty string
- * off their tables, and `buildPalette` reads that as a ground while treating it as absent
- * everywhere else — an internally inconsistent palette. Keyed alike, one such call would serve it
- * to every uncoloured card in the theme for the life of the page.
- */
-const NO_ACCENT = Symbol.for("artworkPalette.none").toString();
-
-export const artworkPalette = (accent: Colour | undefined, theme: Theme) => {
-  let byAccent = PALETTES.get(theme);
-  if (!byAccent) {
-    byAccent = new Map<string, ReturnType<typeof buildPalette>>();
-    PALETTES.set(theme, byAccent);
-  }
-
-  // Not `setIfAbsent`, which takes the value rather than a way of making one: it would build the
-  // palette on every call and then throw it away on a hit, which is the whole cost being avoided.
-  const key = accent || NO_ACCENT;
-  const built = byAccent.get(key);
-  if (built) return built;
-
-  const palette = buildPalette(accent || undefined, theme);
-  byAccent.set(key, palette);
-  return palette;
-};
+export const artworkPalette = (accent: Colour | undefined, theme: Theme) => buildPalette(accent || undefined, theme);
 
 /**
  * One hue in three tones, derived from a colour sampled off artwork. Every surface that carries a

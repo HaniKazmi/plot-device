@@ -18,25 +18,6 @@ export interface DrilldownGroup<T> extends TopGroup<T> {
 }
 
 /**
- * A grouping answered once per option, for a page that asks the same one of the same data more
- * than once — the vitals band orders its genre segments by the grouping the Top card also draws,
- * and the Most Read card opens on the author grouping beside it. Each is a pass over the whole
- * library, so the second asking reads the first's answer. Built once per render's data and
- * measure, so a filter change starts it over.
- */
-export const groupsOnce = <O, T>(group: (option: O) => DrilldownGroup<T>[]) => {
-  const held = new Map<O, DrilldownGroup<T>[]>();
-  return (option: O) => {
-    let groups = held.get(option);
-    if (groups === undefined) {
-      groups = group(option);
-      held.set(option, groups);
-    }
-    return groups;
-  };
-};
-
-/**
  * Groups items by whatever `valueOf` answers, ordered by the measure, largest first.
  *
  * The four things that vary between tabs are all accessors: the group a row belongs to (skipped

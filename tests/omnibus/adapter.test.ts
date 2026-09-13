@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CURRENT_YEAR, YearMonthDay, Year, type YearNumber } from "../../src/common/date";
-import { electNow, hasNow, ofMedium, omniTitle, recentlyFinished, unionTotals } from "../../src/omnibus/adapter";
+import { electNow, hasNow, omniTitle, recentlyFinished, unionTotals } from "../../src/omnibus/adapter";
 import type { MediumLazy } from "../../src/common/medium";
 import { MEDIA as MEDIA_ORDER, type Medium } from "../../src/utils/types";
 import { earliestYear } from "../../src/omnibus/filterUtils";
@@ -118,8 +118,8 @@ describe("hours normalisation", () => {
     ];
     const items = toOmniItems(library({ movie: movies, show: shows }));
 
-    expect(omniHours(ofMedium(items, "movie"))).toBe(movieMeasureOf(movies, "Hours"));
-    expect(omniHours(ofMedium(items, "show"))).toBe(showMeasureOf(shows, "Hours"));
+    expect(omniHours(items.filter((item) => item.medium === "movie"))).toBe(movieMeasureOf(movies, "Hours"));
+    expect(omniHours(items.filter((item) => item.medium === "show"))).toBe(showMeasureOf(shows, "Hours"));
   });
 
   it("counts an item as one under the Items measure, whatever it cost in hours", () => {

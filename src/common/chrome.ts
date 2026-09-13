@@ -115,10 +115,9 @@ export const BROWSER_TINT_VISIBLE = 5;
  * wearing the tab's own colour and read as the page instead.
  *
  * One `scroll` listener for the page, lazily attached on first use and fanned out to every caller
- * through the shared store — the trade `useMatchMedia.ts` makes for a media query, for the same
- * reason: a caller asks per component instance, and minting a fresh listener each would be one per
- * caller rather than one for the page. `createStore` is what holds the value and the subscribers,
- * so this file states only the listener and the threshold.
+ * through the shared store: a caller asks per component instance, and a scroll listener each would
+ * be one per caller rather than one for the page. `createStore` is what holds the value and the
+ * subscribers, so this file states only the listener and the threshold.
  */
 const pastBarStore = createStore(false);
 

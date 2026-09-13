@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { MEDIA, mediaModules } from "../../src/app/media";
+import { MEDIA } from "../../src/app/media";
+import type { MediumModule } from "../../src/common/medium";
 import { toOmniItems } from "../../src/app/library";
 import Tabs from "../../src/tabs";
 import { MEDIA as MEDIA_ORDER, type Medium } from "../../src/utils/types";
+
+const mediaModules: readonly MediumModule<unknown, unknown>[] = MEDIA_ORDER.map((medium) => MEDIA[medium]);
 import { book } from "../fixtures/books";
 import { library } from "../fixtures/library";
 import { movie } from "../fixtures/movies";

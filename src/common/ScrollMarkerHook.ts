@@ -61,44 +61,13 @@ const CHIP_GAP = 6;
  */
 const CHIP_SLOT = RAIL_CHIP_HEIGHT + CHIP_GAP;
 
-/** How long the settle loop leaves between measurements, which is long enough for a decoded image to land. */
-const SETTLE_STEP = 90;
-
 /**
- * How many corrective scrolls a jump is allowed. A wall whose images are still arriving can be
- * chased indefinitely, and a rail that never stops moving the page is worse than one that lands
- * close and leaves the reader in control.
- *
- * Only a scroll this loop actually issues is spent against it. A tick that finds the page still
- * moving costs nothing, because images streaming in keep the position twitching for many ticks
- * and counting those would spend the whole allowance before a single correction is made.
+ * How far a card's top may sit from `MARKER_TOP` and still count as the row the marker stands on.
+ * A jump lands a card at that offset to within the browser's own rounding, and the first bucket's
+ * card is the top of the grid itself, so a strict test hides the rail on exactly the position
+ * pressing its first chip lands at.
  */
-const SETTLE_LIMIT = 10;
-
-/** How long a jump may keep correcting for, whatever it is doing, in milliseconds. */
-const SETTLE_DEADLINE = 2000;
-
-/** How many ticks the loop waits for a moving page before measuring it anyway. */
-const SETTLE_WAITS = 6;
-
-/** How far out a landing may be and still count as arrived, in pixels. */
-const SETTLE_SLACK = 2;
-
-/**
- * What the reader doing the scrolling themselves looks like.
- *
- * Interference is detected from input and never from the page having moved: content loading above
- * the viewport makes the browser's scroll anchoring adjust the offset to hold the view still, so
- * drift is the very reflow this loop exists to correct rather than evidence of anyone.
- *
- * `mousedown` is here for the scrollbar, which moves the page without any of the other three. It
- * cannot catch the click that starts a jump, since these are attached during that click's own
- * `click` handler, by which point its `mousedown` has already been and gone.
- */
-const INPUT_EVENTS = ["wheel", "touchmove", "keydown", "mousedown"] as const;
-
-/** The keys that scroll a page, and so the ones that mean the reader has taken it back. */
-const SCROLL_KEYS = new Set(["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " ", "Spacebar"]);
+const LANDING_SLACK = 2;
 
 export type ScrollMarkerState = {
   /** What the topmost visible row is, or `null` when it has no short form. */
@@ -142,22 +111,14 @@ export const useScrollMarker = (
   const [centred, setCentred] = useState(false);
   const [buckets, setBuckets] = useState<string[]>([]);
   const [railHeight, setRailHeight] = useState(0);
-  /** Which jump is allowed to move the page, so a settling one stops the moment it is superseded. */
-  const jump = useRef(0);
   /**
    * The wall's cards in document order, queried once per commit rather than per scroll event.
    *
    * A scroll or a resize moves the page without changing which cards are on it: only a new sort,
    * new data or a mount rewrites them, and each of those lands as a re-run of the effect below,
-   * which is where this is refilled. A card that leaves the document between two of those re-runs
-   * is what `jumpTo`'s `isConnected` check answers for.
+   * which is where this is refilled.
    */
   const wall = useRef<HTMLElement[]>([]);
-
-  // A settle loop outlives the click that started it by up to a second, and it scrolls the window
-  // rather than anything it owns — an unmounted wall correcting towards a card that has gone would
-  // move a page it is no longer on.
-  useEffect(() => () => void (jump.current += 1), []);
 
   // `sort` and `items` are dependencies because either one rewrites the buckets in the DOM without
   // moving the page — a new sort, or a fetch replacing the cached data under a reader already
@@ -180,14 +141,11 @@ export const useScrollMarker = (
       // between the section arriving and the wall arriving. Measuring the wall instead means the
       // marker appears exactly when there is a row for it to name.
       //
-      // The landing counts as arrived, which is why the test carries the settle loop's own slack:
-      // a jump parks its card's top within `SETTLE_SLACK` of `MARKER_TOP`, and the first bucket's
-      // card is the top of the grid itself, so a strict test below that offset hides the rail on
-      // exactly the position pressing its first chip lands at.
+      // The landing counts as arrived, which is what `LANDING_SLACK` allows for.
       const reading =
         rect.top < READING_LINE &&
         rect.bottom > window.innerHeight / 2 &&
-        cards.getBoundingClientRect().top <= MARKER_TOP + SETTLE_SLACK;
+        cards.getBoundingClientRect().top <= MARKER_TOP + LANDING_SLACK;
       setVisible(reading);
       if (!reading) return;
 
@@ -243,12 +201,10 @@ export const useScrollMarker = (
    * Cards are walked rather than selected by attribute, so a bucket's label never has to be a
    * valid CSS string — it is whatever the domain's items yield.
    *
-   * The offset a single measurement gives is not where the card will be. Grid artwork is `loading
-   *="lazy"` and carries no reserved height, so a card is nearly flat until its image decodes and
-   * takes its own aspect ratio: scrolling into a region makes its images load, the wall grows
-   * under the scroll, and the card that was targeted ends up a viewport or more below the landing
-   * — clicking '19 from the 2010s arrives in 2021. The offset is only trustworthy once layout has
-   * stopped moving, which is what the settle loop below re-measures towards.
+   * One scroll and no correction afterwards. The grid reserves every card's height before its
+   * artwork arrives (`Finished`'s `aspectRatio`), so the offset measured here is the offset the
+   * card keeps; what a landing can still be off by is a cover a few percent from 2:3 or a footer
+   * that wraps, a row at most, on Books alone.
    */
   const jumpTo = (target: string) => {
     const first = wall.current.find((card) => card.dataset.bucket === target);
@@ -256,63 +212,6 @@ export const useScrollMarker = (
 
     const top = window.scrollY + first.getBoundingClientRect().top - MARKER_TOP;
     window.scrollTo({ top, behavior: scrollBehaviourFor(top - window.scrollY, window.innerHeight) });
-
-    // Only the newest jump owns the page: a second chip clicked while the first is still settling
-    // would otherwise have two loops correcting towards different cards.
-    jump.current += 1;
-    const token = jump.current;
-
-    let seen: number | undefined = undefined;
-    let waits = 0;
-    let corrections = 0;
-    const expires = Date.now() + SETTLE_DEADLINE;
-
-    const stop = () => INPUT_EVENTS.forEach((name) => window.removeEventListener(name, taken));
-    // The reader reaching for the page ends the jump wherever it has got to, rather than the two
-    // of them taking turns at the scroll offset.
-    const taken = (event: Event) => {
-      if (event.type === "keydown" && !SCROLL_KEYS.has((event as KeyboardEvent).key)) return;
-      jump.current += 1;
-      stop();
-    };
-    INPUT_EVENTS.forEach((name) => window.addEventListener(name, taken, { passive: true }));
-
-    const tick = () => {
-      if (jump.current !== token) return stop();
-      if (Date.now() > expires) return stop();
-      // A re-render that drops the target — a refetch or a filter — detaches the node, whose rect
-      // then reads all-zero and turns every remaining tick into the same −MARKER_TOP correction. A
-      // reorder keeps the node, since the wrappers are keyed by name.
-      if (!first.isConnected) return stop();
-
-      const now = window.scrollY;
-      // A moving page is worth waiting out — a smooth scroll runs for many frames — but only for
-      // so long: anchoring nudges the offset on every image that lands, so a wall still streaming
-      // artwork never comes to a complete stop and waiting for one would spend the whole deadline
-      // without a single correction. Measuring a page that is still drifting slightly costs
-      // nothing, because the next round corrects whatever the drift left behind.
-      if (seen === undefined || Math.abs(now - seen) > SETTLE_SLACK) {
-        seen = now;
-        if (waits < SETTLE_WAITS) {
-          waits += 1;
-          window.setTimeout(tick, SETTLE_STEP);
-          return;
-        }
-      }
-      waits = 0;
-
-      const off = first.getBoundingClientRect().top - MARKER_TOP;
-      if (Math.abs(off) <= SETTLE_SLACK || corrections >= SETTLE_LIMIT) return stop();
-
-      corrections += 1;
-      seen = undefined;
-      // Instant however the jump itself was made: a correction is the same landing arriving at its
-      // real offset, and animating it would read as a second jump the reader did not ask for.
-      window.scrollTo({ top: now + off, behavior: "auto" });
-      window.setTimeout(tick, SETTLE_STEP);
-    };
-
-    window.setTimeout(tick, SETTLE_STEP);
   };
 
   // A rail is an index down the page edge, so it needs both the gutter the pill is centred in and

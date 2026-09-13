@@ -6,7 +6,6 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 // statement form is erased per file, which is what a bundler transpiling one file at a time reads.
 import type { SheetTab } from "../tabs.ts";
 import { arrayToJson } from "../utils/arrayUtils.ts";
-import { rangeBatcher } from "../common/rangeBatch.ts";
 import {
   expiryFor,
   isGrant,
@@ -94,19 +93,16 @@ interface GoogleAuthContextType {
 const GoogleAuthContext = createContext<GoogleAuthContextType | null>(null);
 
 /**
- * The one reader every sheet fetch goes through, batching the ranges asked for in one tick.
- *
- * At module scope rather than per provider: a batch forms and closes inside a single microtask, so
- * a provider that remounted mid-tick would otherwise open a second batch beside the first and turn
- * one request back into two.
- *
- * `gapi` is read inside the send rather than captured, since a module must name no browser global
- * while it loads — and the client is not on the page yet when this file is first evaluated.
+ * One `values.get` per range, the four running concurrently over one connection. A single
+ * `batchGet` of the four ranges measures slower on this data, not faster — a median of 598 ms
+ * against 369 ms for the four in parallel, with the first grid landing at 308 ms (2026-09-11) — and
+ * it fails all four media together whenever one range is renamed. `gapi` is read inside the call
+ * rather than captured, since a module must name no browser global while it loads.
  */
-const fetchRange = rangeBatcher(async (spreadsheetId, ranges) => {
-  const response = await gapi.client.sheets.spreadsheets.values.batchGet({ spreadsheetId, ranges });
-  return (response.result.valueRanges ?? []).map((valueRange) => valueRange.values);
-});
+const fetchRange = async (spreadsheetId: string, range: string) => {
+  const response = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId, range });
+  return response.result.values;
+};
 
 export const GoogleAuthProvider = ({ children }: { children: ReactNode }) => {
   const [tokenSet, setTokenSet] = useState(() => !!getValidToken());

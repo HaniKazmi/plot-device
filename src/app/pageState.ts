@@ -1,8 +1,7 @@
 import { useSyncExternalStore } from "react";
 import type { YearNumber } from "../common/date";
 import type { PageDispatch, PageState, PageStore } from "../common/filterReducer";
-import { categoryValues, fieldsOf, type CategoryContext, type PageSchema } from "../common/filterSchema";
-import { seriesFranchises } from "./galleryData";
+import type { PageSchema } from "../common/filterSchema";
 import type { PageModule } from "../common/medium";
 import { omniPageModule } from "../omnibus/pageModule";
 import type { LibraryValue } from "./library";
@@ -11,8 +10,7 @@ import type { Medium } from "../utils/types";
 
 /**
  * The two halves of the library a page's own rows come out of: each medium's visible slice, and
- * the union across all four. Taken as the pair rather than the whole value, so the sweep that runs
- * whenever a sheet lands can be called before the provider has built the value it hands down.
+ * the union across all four.
  */
 export type PageRows = Pick<LibraryValue, "visible" | "items">;
 
@@ -65,59 +63,14 @@ export const PAGE_STORES: Record<string, PageStore> = Object.fromEntries(
 );
 
 /**
- * One page's selections held to the vocabulary its own controls are drawing.
- *
- * A category holding nothing is skipped before its options are asked for: `categoryValues` is a
- * pass over the whole library per category, and this runs for all five tabs each time a sheet
- * lands, where the common case is a reader who has selected nothing anywhere. Nothing held is
- * nothing to drop, so the skip changes no answer.
+ * Every tab's filters cleared at once, for the one change that narrows the library under a held
+ * selection: guest mode switched on. A category's options are computed over the visible library,
+ * so a franchise chosen before the switch could otherwise stay selected with no chip left offering
+ * or clearing it, and the page would narrow to nothing for a reason the reader cannot see. Leaving
+ * guest mode widens the library, so nothing held then needs clearing.
  */
-const retainSelections = (
-  store: PageStore,
-  schema: PageSchema,
-  data: readonly unknown[],
-  context: () => CategoryContext | undefined,
-) => {
-  const fields = fieldsOf(store.get());
-
-  for (const category of schema.categories) {
-    const held = fields[category.key] as readonly string[] | undefined;
-    if (!held?.length) continue;
-    store.dispatch({ type: "retain", category: category.key, values: categoryValues(category, data, context()) });
-  }
-};
-
-/**
- * Every tab's multi-selects held to the values its own library still offers.
- *
- * A category's options are computed over the visible library, so guest mode switched on under a
- * chosen franchise leaves that franchise selected in the store while the select no longer lists it:
- * the page narrows to nothing and there is no chip anywhere to take the choice back. Swept per tab
- * against exactly the rows that tab's own controls draw their lists from, which is what each page
- * answers `rows` with.
- *
- * A slice still in flight is skipped rather than swept against nothing: on a cold cache a library
- * is absent until its sheet lands, and an empty list would clear every selection the reader made.
- * The series set is the same case one level up — it is the union's answer, and the union is
- * `undefined` until all four have landed, so the context is left off rather than passed empty and
- * each picker falls back to its own rows. That fallback is the narrower list, so nothing a page
- * legitimately held before the fourth sheet is swept once it arrives.
- *
- * Built behind that same skip and at most once for the five pages: it is a walk of the whole union,
- * and this runs on every sheet landing where the common case is a reader who has selected nothing
- * anywhere and no category ever asks for it.
- */
-export const retainPageSelections = (library: PageRows) => {
-  let context: CategoryContext | undefined;
-  const contextOf = () => {
-    if (!context && library.items) context = { series: seriesFranchises(library.items) };
-    return context;
-  };
-
-  for (const page of Object.values(PAGE_MODULES)) {
-    const rows = page.rows(library);
-    if (rows) retainSelections(page.pageState, page.filters, rows, contextOf);
-  }
+export const resetPageFilters = () => {
+  for (const store of Object.values(PAGE_STORES)) store.dispatch({ type: "resetFilters" });
 };
 
 /**

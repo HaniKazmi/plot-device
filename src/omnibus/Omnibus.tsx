@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
 import { useLibrary } from "../app/library";
-import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
+import { SheetErrorSnackbar } from "../common/SheetErrorSnackbar";
 import { useFilterReducer } from "./filterUtils";
 import { upToSlice } from "../common/filterReducer";
 import { media } from "../app/types";
@@ -53,26 +53,16 @@ const Omnibus = () => {
   usePrefetchGraphs();
   // The library and the union it was flattened from, both answered above: one is defined exactly
   // when the other is, so the page has a single test for whether all four sheets are here.
-  const { whole: library, items: data, loaded, error } = useLibrary();
+  const { whole: library, items: data, error } = useLibrary();
 
   const [filterState] = useFilterReducer();
 
   // The first sheet to complain, not all of them: each message names a row in a different
   // spreadsheet, and four at once would say the page is broken four times over where the
-  // reader can only go and fix one of them at a time.
-  //
-  // This is the tab that needs it most — one bad row in any of the four empties the whole page,
-  // and the medium it came from is the first thing to know — so its position among these siblings
-  // is fixed whether or not the charts are there. The refresh notice depends on that: all four
-  // are announced at once, when the last of them turns up, and a remount at that moment is a
-  // remount that sees only the second half of the turn.
+  // reader can only go and fix one of them at a time. Walked rather than written out, so a fifth
+  // medium cannot be silently absent from the answer.
   const notice = (
-    <DataLoadedSnackbar
-      // Walked rather than written out: destructured by hand, a fifth medium is silently absent
-      // from both answers and nothing fails to compile over it.
-      open={media.every((medium) => loaded[medium])}
-      error={media.map((medium) => error[medium]).find((message) => message !== undefined)}
-    />
+    <SheetErrorSnackbar error={media.map((medium) => error[medium]).find((message) => message !== undefined)} />
   );
 
   const filteredData = data?.filter(filterState.filter);

@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { bookModule } from "../book/module";
 import type { MediumModule } from "../common/medium";
 import type { Medium } from "../utils/types";
@@ -10,7 +10,6 @@ import Tabs, { type SheetTab } from "../tabs";
 import { MEDIA as MEDIA_ORDER } from "../utils/types";
 import { gameModule } from "../game/module";
 import { completeLibrary, LibraryContext, toOmniItems, visibleLibrary, type Library } from "./library";
-import { retainPageSelections } from "./pageState";
 
 /**
  * The tab a module names, which is the sheet `useData` reads.
@@ -67,15 +66,6 @@ export const LibraryProvider = ({ guestMode, children }: { guestMode: boolean; c
   const visible = visibleLibrary(raw, guestMode);
   const whole = completeLibrary(visible);
   const items = whole && toOmniItems(whole);
-
-  // Every tab's selects are drawn from the library this provider hands down, so a selection made
-  // against a wider library has to be held to the narrower one: guest mode switched on under a
-  // chosen franchise otherwise leaves that choice in the tab's store with no control still offering
-  // it, and the page reads as empty for no reason a reader can see or undo. Run from an effect
-  // because it writes to stores every tab subscribes to.
-  useEffect(() => {
-    retainPageSelections({ visible, items });
-  }, [visible, items]);
 
   const value = {
     raw,

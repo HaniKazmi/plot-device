@@ -1,10 +1,13 @@
-import { Box, CardContent, Stack, useTheme, Typography } from "@mui/material";
+import { Box, Card, CardContent, Stack, useTheme, Typography, type Theme } from "@mui/material";
 import { NothingToPlot } from "../common/NothingMatches";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Grid from "@mui/material/Grid";
 import { Hub } from "@mui/icons-material";
 import { INLINE_SWATCH_SIZE, Swatch } from "../common/Swatch";
-import { TimelineAxis, TimelineCard, type TimelineBand } from "../common/TimelineBand";
+import { TimelineAxis, TimelineBandBox, TimelineScale, type TimelineBand } from "../common/TimelineBand";
+import { useArtworkPalette } from "../common/artworkPalette";
+import { FADE_Z } from "../common/ScrollFade";
+import { shortYear } from "../common/date";
 import { FranchiseName } from "../common/FranchiseStrip";
 import { LazyTooltip } from "../common/LazyTooltip";
 import { SectionHeader } from "../common/SectionHeader";
@@ -44,6 +47,86 @@ const CROSSINGS_TITLE = "Franchises over time";
  * line up with the strips above it. One number, because the two are the same edge.
  */
 const STRIP_INSET = 1;
+const STRIP_HEIGHT = 3;
+/** Sparse enough that the year labels do not collide at card width, and land on round years. */
+const LABEL_EVERY_YEARS = 5;
+
+/**
+ * One strip of the stack: its franchise's name pinned at the strip's own inset, and its bands on
+ * a track over the shared gridlines. The card stops clipping because a caption cannot be sticky
+ * inside a box that hides its overflow, and the caption pins at the strip's inset rather than the
+ * scroller's edge — a sticky offset is measured from the scrollport, so a zero rests the name
+ * where it belongs and then steps a padding's width left of every band it labels as soon as the
+ * reader scrolls. The years are stated once beneath the stack rather than under every strip.
+ */
+const CrossingStrip = ({
+  bands,
+  laneCount,
+  ticks,
+  caption,
+}: {
+  bands: TimelineBand[];
+  laneCount: number;
+  ticks: TimelineTick[];
+  caption: ReactNode;
+}) => {
+  const palette = useArtworkPalette();
+
+  return (
+    <Grid size={12}>
+      <Card
+        variant="elevation"
+        sx={{ height: "100%", background: "unset", color: "unset", overflow: "visible" }}
+      >
+        <CardContent
+          sx={{ ":last-child": { paddingBottom: STRIP_INSET }, height: "100%", padding: STRIP_INSET, paddingTop: 0 }}
+        >
+          <Typography
+            variant="caption"
+            // One line, whatever the name in it turned out to be: a caption that wraps pushes the
+            // strip down by its own height, and the strip is what the card is measuring.
+            noWrap
+            sx={{
+              display: "block",
+              opacity: 0.7,
+              paddingBottom: 0.5,
+              position: "sticky",
+              left: (theme: Theme) => theme.spacing(STRIP_INSET),
+              width: "fit-content",
+              maxWidth: "100%",
+              zIndex: FADE_Z + 1,
+            }}
+          >
+            {caption}
+          </Typography>
+          <Box
+            sx={{
+              position: "relative",
+              height: (theme) => theme.spacing(STRIP_HEIGHT),
+              borderRadius: 1,
+              overflow: "hidden",
+              // The empty track and the gridlines are drawn on the card's ground, so they are
+              // taken from it rather than from tokens mixed for the theme's own background.
+              backgroundColor: palette.tile,
+            }}
+          >
+            <TimelineScale
+              ticks={ticks}
+              colour={palette.line}
+            />
+            {bands.map((band) => (
+              <TimelineBandBox
+                {...band}
+                laneCount={laneCount}
+                key={band.key}
+              />
+            ))}
+          </Box>
+        </CardContent>
+      </Card>
+    </Grid>
+  );
+};
 
 /**
  * How much wider than its container the stack is drawn, and scrolled across.
@@ -233,19 +316,22 @@ const CrossingsStack = ({ crossings, ticks }: { crossings: Crossing[]; ticks: Ti
               // showing different decades, which is the one thing a shared scale exists to stop.
             >
               {crossings.map((crossing) => (
-                <TimelineCard
+                <CrossingStrip
                   key={crossing.franchise}
                   bands={crossing.bands.map((band) => toBand(band, scheme))}
                   laneCount={crossing.laneCount}
                   ticks={ticks}
-                  inStack
                   caption={<CrossingCaption crossing={crossing} />}
                 />
               ))}
             </Grid>
             {/* At the strips' own inset, so a year label stands under the gridline it names. */}
-            <Box sx={{ paddingX: STRIP_INSET }}>
-              <TimelineAxis ticks={ticks} />
+            <Box sx={{ paddingX: STRIP_INSET, marginTop: 0.25 }}>
+              <TimelineAxis
+                ticks={ticks.filter((tick) => tick.year % LABEL_EVERY_YEARS === 0)}
+                labelOf={(tick) => shortYear(tick.year)}
+                align="centre"
+              />
             </Box>
           </Box>
         </Box>

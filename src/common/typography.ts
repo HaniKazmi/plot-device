@@ -140,3 +140,19 @@ export const primaryWash = (theme: Theme, strength: number) =>
 export const focusRingSx = (theme: Theme, offset = 2) => ({
   "&:focus-visible": { outline: `2px solid ${theme.vars.palette.primary.main}`, outlineOffset: offset },
 });
+
+/**
+ * What a worded control — a segment, a picker's button — is: the kit's type, height, inset,
+ * corner, its coarse-pointer height and the focus ring, stated once for `Google.tsx` to spread
+ * into each part's override. A stated height rather than symmetrical padding, since
+ * `theme.typography.button`'s own line height puts a 12px word at 21px and padding sized for the
+ * word makes the control 31; a minimum, so a segment holding an icon grows to it.
+ */
+export const kitControlSx = (theme: Theme) => ({
+  ...CONTROL_TYPE_SX,
+  minHeight: CONTROL_HEIGHT,
+  padding: "0 10px",
+  borderRadius: CONTROL_RADIUS,
+  "@media (pointer: coarse)": { minHeight: COARSE_CONTROL_HEIGHT },
+  ...focusRingSx(theme),
+});

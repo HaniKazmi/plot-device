@@ -73,36 +73,16 @@ export const parseCachedItems = <T>(raw: string, reviver?: (items: T[]) => void)
 };
 
 /**
- * What to put on screen for a failed fetch.
- *
- * A gapi rejection is not an `Error` but the response itself — `{ result: { error: { message,
- * code } }, status, statusText, body }` — so handing it to `String` yields `[object Object]`,
- * which tells a reader nothing about which sheet refused them or why. The Sheets API's own message
- * is the most specific thing available and names the reason; the status line is the fallback for a
- * refusal that carries no body at all.
+ * What to put on screen for a failed fetch. A gapi rejection is the response itself rather than
+ * an `Error`, so its message sits under `result.error`; handed to `String` it reads
+ * `[object Object]`. A rejection with neither is one that never reached the server.
  */
 export const describeFailure = (cause: unknown): string => {
   if (cause instanceof Error) return cause.message;
-
-  if (typeof cause === "object" && cause !== null) {
-    const response = cause as { result?: { error?: { message?: unknown } }; status?: unknown; statusText?: unknown };
-    // A turned-away token is worded by what to press, not by the credential the server names:
-    // "Request had invalid authentication credentials" sends a reader to look for a setting.
-    if (response.status === 401) return "Authorisation has expired: press the key to authorise again.";
-
-    const message = response.result?.error?.message;
-    if (typeof message === "string" && message) return message;
-
-    const status = typeof response.status === "number" && response.status > 0 ? String(response.status) : undefined;
-    const statusText = typeof response.statusText === "string" && response.statusText ? response.statusText : undefined;
-    const line = [status, statusText].filter(Boolean).join(" ");
-    if (line) return `Sheet request failed: ${line}`;
-
-    // A rejection carrying no status and no words is one that never reached the server: gapi
-    // answers a request that failed on the wire with a body of nothing and a `null` status.
+  const message = (cause as { result?: { error?: { message?: unknown } } } | null)?.result?.error?.message;
+  if (typeof message === "string" && message) return message;
+  if (typeof cause === "object" && cause !== null)
     return "The sheets could not be reached: check the connection and refresh.";
-  }
-
   return String(cause);
 };
 
@@ -121,9 +101,8 @@ const IN_FLIGHT = new Map<string, Promise<unknown>>();
  * Everything about a domain's cached shape, as one value the domain owns.
  *
  * The version, the converter and any replacer/reviver pair are a matched set — a cache written by
- * one converter is only readable by the reviver that matches it — and the Omnibus tab mounts the
- * same three domains the home tabs do. Passing them as separate arguments at two call sites is
- * what lets a version bump land at one of them.
+ * one converter is only readable by the reviver that matches it — so they travel as one value the
+ * converter's own file owns, and a version bump lands in exactly one place.
  *
  * A config must be a module-scope constant: the fetch effect depends on it, and a fresh object per
  * render would refire the fetch on every one.
@@ -157,11 +136,7 @@ const useData = <T>(
    *
    * A hit on `CACHE` counts: that map is only ever written by a fetch in this session, so its
    * contents are as fresh as anything a fetch of our own would produce. Reporting it as unloaded
-   * is what leaves a caller waiting on several domains — the Omnibus mounts three — unable to tell
-   * "still fetching" from "already fetched by the tab you came from", which never resolves.
-   *
-   * It says nothing about whether the arrival is worth announcing; `DataLoadedSnackbar` decides
-   * that from whether it saw the value turn over.
+   * would leave the bar's refresh spinning for a sheet that has already landed.
    */
   const [dataLoaded, setDataLoaded] = useState(() => CACHE.has(storageKey));
   /**

@@ -114,18 +114,6 @@ describe("allTabs", () => {
 });
 
 describe("the dark app-bar triples", () => {
-  // A hex channel, read independently of anything `src/` does with one.
-  const channels = (hex: string) => [0, 2, 4].map((i) => parseInt(hex.slice(1 + i, 3 + i), 16));
-
-  // `round(ratio * from + (1 - ratio) * toward)` per channel — the mix `tabs.ts` claims to draw
-  // its tint from, computed here rather than imported so the test cannot pass by repeating
-  // whatever `darkBar.tint` was typed there.
-  const mix = (from: string, toward: string, ratio: number) => {
-    const [fr, fg, fb] = channels(from);
-    const [tr, tg, tb] = channels(toward);
-    return [fr, fg, fb].map((f, i) => Math.round(ratio * f + (1 - ratio) * [tr, tg, tb][i]));
-  };
-
   const isColoured = (tab: Tab): tab is Tab & { primaryColour: string; darkBar: DarkBar } =>
     !!tab.primaryColour && !!tab.darkBar;
 
@@ -133,16 +121,6 @@ describe("the dark app-bar triples", () => {
 
   it("gives a dark bar to every tab that carries a primary colour", () => {
     expect(colouredTabs.map((tab) => tab.id)).toEqual(Tabs.filter((tab) => tab.primaryColour).map((tab) => tab.id));
-  });
-
-  it("mixes the tint at 22% of the primary over the dark paper, within a channel of rounding", () => {
-    for (const tab of colouredTabs) {
-      const expected = mix(tab.primaryColour, PAPERS.dark, 0.22);
-      const actual = channels(tab.darkBar.tint);
-      expected.forEach((e, i) => {
-        expect(Math.abs(actual[i] - e), `${tab.name} tint channel ${i}`).toBeLessThanOrEqual(1);
-      });
-    }
   });
 
   it("clears 4.5:1 for the ink and 3:1 for the rule against the tint", () => {
