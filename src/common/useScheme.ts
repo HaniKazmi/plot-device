@@ -1,5 +1,5 @@
+import { useMediaQuery } from "@mui/material";
 import type { Scheme } from "../utils/types";
-import { useMatchMedia } from "./useMatchMedia";
 
 /** The query the app is actually painted through, so a fill and its paper cannot disagree. */
 const PREFERS_DARK = "(prefers-color-scheme: dark)";
@@ -15,8 +15,8 @@ const PREFERS_DARK = "(prefers-color-scheme: dark)";
  * — every fill on the page would then take the half meant for the other paper, on every render,
  * with nothing on screen to correct it.
  *
- * Through `useMatchMedia`, which is what re-renders a chart when the reader's system flips at dusk.
- * Without the subscription nothing would: the CSS variables turn over inside the browser, where
- * React cannot see them.
+ * The subscription is what re-renders a chart when the reader's system flips at dusk; the CSS
+ * variables turn over inside the browser, where React cannot see them. `noSsr` as in
+ * `breakpoints.ts`: the first render answers the real query.
  */
-export const useScheme = (): Scheme => (useMatchMedia(PREFERS_DARK) ? "dark" : "light");
+export const useScheme = (): Scheme => (useMediaQuery(PREFERS_DARK, { noSsr: true }) ? "dark" : "light");

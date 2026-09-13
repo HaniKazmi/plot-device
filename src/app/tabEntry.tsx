@@ -1,5 +1,5 @@
 import { Suspense, useEffect, type ComponentType } from "react";
-import { DataLoadedSnackbar } from "../common/DataLoadedSnackbar";
+import { SheetErrorSnackbar } from "../common/SheetErrorSnackbar";
 import { upToSlice, type FilterDispatchFor } from "../common/filterReducer";
 import type { Medium, Predicate } from "../utils/types";
 import { useLibrary } from "./library";
@@ -73,7 +73,7 @@ export const createTabEntry = <
     // The tab's own slice of the one library the shell fetched, with guest mode already applied:
     // the mode hides content rather than narrowing a view, so it belongs to the data every surface
     // here reads and not to this page's filters.
-    const { visible, loaded, error } = useLibrary();
+    const { visible, error } = useLibrary();
     const data = visible[medium];
     const [filterState] = useFilterReducer();
 
@@ -84,12 +84,7 @@ export const createTabEntry = <
     // Its position among these siblings is fixed for the whole life of the tab, which is what the
     // refresh notice needs: it reports the turn from no data to data, and a remount at that moment
     // is a remount that sees only the second half of it.
-    const notice = (
-      <DataLoadedSnackbar
-        open={loaded[medium]}
-        error={error[medium]}
-      />
-    );
+    const notice = <SheetErrorSnackbar error={error[medium]} />;
 
     const filteredData = data?.filter(filterState.filter);
 

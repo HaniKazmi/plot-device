@@ -73,12 +73,7 @@ export const jsonConverter = (json: Record<string, string>[]): Book[] =>
     };
   });
 
-/**
- * The cache this converter's output is read back from, shared by the Books tab and by Omnibus so
- * a version bump cannot land at one of them alone.
- * v2: a cached object written before this holds its picture under `banner`, so every card on
- * every surface draws the stand-in instead.
- */
+/** Bump the version on any change to the model's shape, or a returning visitor's cache lacks the field. */
 export const bookDataConfig: DataConfig<Book> = {
   storageKey: dataCacheKey("book", 2),
   converter: jsonConverter,

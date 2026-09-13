@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMatchMedia } from "./useMatchMedia";
+import { useMediaQuery } from "@mui/material";
 
 const CAN_HOVER = "(hover: hover)";
 
@@ -17,6 +17,6 @@ const CAN_HOVER = "(hover: hover)";
  */
 export const useHoverDim = () => {
   const [hovered, setHovered] = useState<string | null>(null);
-  const canHover = useMatchMedia(CAN_HOVER);
+  const canHover = useMediaQuery(CAN_HOVER, { noSsr: true });
   return [canHover ? hovered : null, setHovered] as const;
 };

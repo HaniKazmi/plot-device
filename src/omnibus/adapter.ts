@@ -34,9 +34,6 @@ export const omniTitle = (item: OmniItem): string => moduleOf(item).title(item.s
 export const recentlyFinished = (items: OmniItem[]): OmniItem[] =>
   items.filter((item) => item.closeDate).sortByKey("closeDate");
 
-/** Items of one medium, which is how every per-medium figure on the page is scoped. */
-export const ofMedium = (items: OmniItem[], medium: Medium) => items.filter((item) => item.medium === medium);
-
 /** What the band leads with, by medium; a medium that can name nothing is absent rather than held. */
 export type NowElection = Partial<Record<Medium, unknown>>;
 

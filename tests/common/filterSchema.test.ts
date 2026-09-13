@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   categoryRuns,
   categoryTally,
-  categoryValues,
   certificateCategory,
   namedSelection,
   schemaPredicates,
@@ -74,25 +73,17 @@ describe("a toggle and a category together", () => {
   });
 });
 
-describe("the values a category offers", () => {
+describe("a category's tally", () => {
   const data = [row({ kind: "Drama" }), row({ kind: "Action" }), row({ kind: "Drama" })];
 
-  it("falls to the distinct values in the data where the category states none", () => {
-    expect(categoryValues(schema.categories[0], data)).toEqual(["Action", "Drama"]);
+  it("falls to the distinct values in the data, sorted, where the category states none", () => {
+    expect(categoryTally(schema.categories[0], data).values).toEqual(["Action", "Drama"]);
   });
 
   it("takes the category's own list where it states one", () => {
     const listed: FilterCategory<Row, State> = { ...schema.categories[0], options: () => ["Only this"] };
 
-    expect(categoryValues(listed, data)).toEqual(["Only this"]);
-  });
-});
-
-describe("a category's tally", () => {
-  const data = [row({ kind: "Drama" }), row({ kind: "Action" }), row({ kind: "Drama" })];
-
-  it("offers the same vocabulary the values alone do, so a chip and an index cannot differ", () => {
-    expect(categoryTally(schema.categories[0], data).values).toEqual(categoryValues(schema.categories[0], data));
+    expect(categoryTally(listed, data).values).toEqual(["Only this"]);
   });
 
   it("counts the rows each value holds", () => {

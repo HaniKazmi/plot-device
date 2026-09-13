@@ -13,7 +13,7 @@ why they are shaped the way they are. For conventions see [AGENTS.md](./AGENTS.m
 │  (the whole  │ ◄─── token ───── │     Services      │
 │  application)│                  └───────────────────┘
 │              │
-│              │  sheets.values.batchGet (read-only scope)
+│              │  sheets.values.get ×4 (read-only scope)
 │              │ ───────────────► ┌───────────────────┐
 │              │ ◄── string[][] ── │ Google Sheets API │
 └──────┬───────┘                  └───────────────────┘
@@ -137,7 +137,7 @@ domain may import. `omnibus/` reads no sheet (§3), so it is the one domain with
 tabs.ts                    { spreadsheetId, range }
    │
    ▼
-GoogleAuthContext          values.batchGet, one request for all four ranges
+GoogleAuthContext          values.get, one request per range, the four concurrent
    │                       → string[][]  (raw grid, header row first)
    ▼
 utils/arrayUtils           arrayToJson()
@@ -163,27 +163,16 @@ common/filterReducer       reducer composes predicates → data.filter(...)
 `jsonConverter` knows a spreadsheet's column names, which is what makes a new data source cheap to
 add (§8).
 
-**The four reads are one request.** `common/rangeBatch.ts` collects every range asked for in a tick
-and sends them together, which is available because the four ranges are four tabs of one file: the
-provider mounts four hooks whose effects run in a single commit, so four separate reads would be
-four requests and four quota units for what one `batchGet` answers. The gain is quota rather than
-latency — the four were already concurrent against one host. The batch forms in a microtask, long
-enough for a commit's effects to have queued every range and short enough that a caller arriving
-alone still leaves in the tick it asked in; a range asked for later, by a tab mounted after the
-others or by a refresh, forms the next batch. It is keyed by spreadsheet, so a fifth medium in
-another document batches with itself rather than not at all.
-
-The response holds one entry per requested range in the order asked, which is what lets each caller
-read its own grid out by index — and is the whole of the coupling, so `fetchAndConvertSheet` keeps
-its signature and every caller, cache key and per-medium error is untouched. One range failing is
-the exception, and the cost is real: `batchGet` rejects the whole call, so all four media fail
-together and each reports the same message — a Games tab naming a Books range. The range string is
-a build-time constant, but it embeds a **sheet tab name** the spreadsheet's owner renames at will,
-so this is a failure somebody can cause, and the trade is that against a request nobody pays for
-four times. A grid that arrives empty is the other half: the batcher hands `undefined` up rather
-than an empty grid, and `fetchAndConvertSheet` rejects it outside its own token guard, since a
-converter reading no rows as a library with none would store that over the copy a cold visit paints
-from and report a successful refresh doing it.
+**The four reads are four concurrent `values.get` calls, not one `batchGet`.** The provider mounts
+four hooks whose effects run in one commit, so the four requests leave together over one
+connection. Batching them into a single `batchGet` measures slower on this data, not faster: a
+median of 598 ms for the batch against 369 ms for the four in parallel, the first grid landing at
+308 ms (2026-09-11), because every converter then waits for the largest range before any can
+start. Separate reads also fail separately: a range string embeds a **sheet tab name** the
+spreadsheet's owner renames at will, and one renamed tab then empties one medium rather than all
+four. A grid that arrives empty is `undefined` on the response, and `fetchAndConvertSheet` rejects
+it outside its own token guard, since a converter reading no rows as a library with none would
+store that over the copy a cold visit paints from and report a successful refresh doing it.
 
 **A bad cell names its own row**, rather than surfacing later from a colour lookup or a chart offset
 that names none. `common/sheetError.ts` holds the vocabulary — `sheetRow`, `describing`, `sheetError`
@@ -213,9 +202,9 @@ Converters do real modelling work, not just field renaming:
   elected on rather than two the election would have to choose between. Its `Type` cell is checked
   against the sheet's own two words and stored as `anime`, a boolean: the column records one split
   and nothing else, so a vocabulary on the model would be two values standing for one question. A
-  date-ordering mismatch is only a `console.error`, and so is a season with episodes and no
-  runtime, which is counted as 0 minutes: an open season the sheet has no length for yet is the
-  common case, and every hours figure is short by its episodes with nothing on screen saying so.
+  season with episodes and no runtime is counted as 0 minutes without complaint, an open season the
+  sheet has no length for yet being the common case; an inverted date pair, a non-numeric episode
+  count or seasons listed out of order are rejected by row, as the other converters reject theirs.
   The `show` back-reference makes the graph cyclic (§4).
 - **`movie/`** reads both its dates as full ones, a blank runtime as `0` and a blank Score as
   `undefined`: `sum` accumulates with `+`, so one `NaN` blanks every hours total, where a score is
@@ -254,9 +243,8 @@ a hidden item back on screen through a card strip. Both are `Partial`, the sheet
 time, so a tab whose own sheet is here paints from it rather than waiting on the other three.
 `items` is the union, present only once all four libraries are (`completeLibrary`) and built once,
 since two flattenings of one library are two chances to disagree about which rows guest mode hides.
-`loaded` and `error` stay per medium, so **each tab keeps its own `DataLoadedSnackbar`**: a Books
-converter error belongs on Books, and the Games tab's "Refresh Complete" must not wait on three
-other sheets. The Omnibus reads all four, and the first error of the four (§4).
+`loaded` and `error` stay per medium, so **each tab keeps its own `SheetErrorSnackbar`**: a Books
+converter error belongs on Books. The Omnibus reads all four, and the first error of the four (§4).
 
 Omnibus runs no pipeline of its own, and neither does any tab: `app/library.ts` flattens the four
 through the registry, each medium's arm supplied by its own `module.ts` (§2) — which is why `Show[]`
@@ -295,18 +283,15 @@ emptying it would blank the next cold visit for the window before the replacemen
 it already assembles, and derives `reading` from them — a token, and a medium that has neither
 landed nor failed. Both live there rather than in a module global because the bar is inside that
 provider, so there is a common ancestor and nothing to reach past. It also means `loaded` stops being
-a latch, and the refresh notice each tab already keeps fires on a refresh as it does on a first
-load.
+a latch: it turns false while a refresh is out and true when it lands.
 
 The third return value is what went wrong. A gapi rejection is the response object rather than an
 `Error`, so `describeFailure` reads `result.error.message` — the converter's own message, naming the
-row, item and column. `DataLoadedSnackbar` holds it until dismissed and leaves the stale copy
-standing: last week's data beside the row to fix beats an empty page. Its "Refresh Complete" fires
-for a `false → true` turn it watches after mount, so a caller keeps it mounted at a stable position
-across that turn. It watches the turn rather than latching on the first arrival: a refresh takes the
-flag false and true again, so a latch would answer a cold load and then stay silent for every
-re-read on the one tab the reader is standing on. Below `sm` it stands above the bottom tab bar (`BOTTOM_TABS_CLEARANCE`,
-§ Phone and tablet) rather than under it, MUI's own default anchoring to an edge the tabs cover.
+row, item and column. `SheetErrorSnackbar` holds it until dismissed and leaves the stale copy
+standing: last week's data beside the row to fix beats an empty page. A read that succeeds is not
+announced: the bar's refresh spins for as long as the read is out, which is the whole of the report.
+Below `sm` the notice stands above the bottom tab bar (`BOTTOM_TABS_CLEARANCE`, § Phone and tablet)
+rather than under it, MUI's own default anchoring to an edge the tabs cover.
 
 Two subtleties live in the serialisation boundary, and both are easy to break:
 
@@ -851,7 +836,7 @@ mounted with the folded card it would find no scroller on that one run and open 
 oldest end of a scale whose whole point is the newest.
 
 Every strip is handed one tick array, built once by `Graphs`, so the section states its years once
-beneath the stack — `TimelineCard` takes `inStack` and `TimelineAxis` is exported for it. A
+beneath the stack through `TimelineAxis` rather than under each `CrossingStrip`. A
 per-strip axis on a shared scale is one row of labels drawn twelve times, a quarter of the section's
 height restating a scale that cannot vary. The stack is drawn at three times its container's width
 in one scroller: a quarter of a century across one screen gives a year about fifty pixels, and
@@ -1199,8 +1184,7 @@ the chip the box offers and the chip that page's own filter surface draws come o
 as `OmniItem` and `FranchiseEntry` are. It is optional at every call: the union is `undefined` until
 all four sheets land, and the per-tab reading is the narrower of the two — a name differing on this
 tab differs in the library as well — so a picker that cannot ask yet offers a subset rather than a
-wrong set, and `retainPageSelections` cannot sweep away a selection the fourth sheet was about to
-justify.
+wrong set.
 
 **Past two values, only the one the reader is on draws its strip** (`OPEN_STRIP_LIMIT`). One value
 or two is the common case and arrives open, so a finger never pays a tap for nothing; a vaguer query
@@ -1419,14 +1403,16 @@ the year gridlines come from that module's `buildTicks` for the same reason. `bu
 elapsed before a date — so a tick and a band opening on the same day land on the same percent, and
 their width from `percentOfSpan`.
 
-`TimelineCard` in `common/TimelineBand.tsx` is the renderer the crossings stack uses, taking bands and ticks
-rather than nodes: the shell owns the coordinate space, so a caller reads `startPercent` and
-`widthPercent` and never asks how they were arrived at, and orientation lives there — percentages
-know nothing about which axis they will be drawn on. The card's own strip uses the same arithmetic
+`TimelineBandBox` in `common/TimelineBand.tsx` is the band the crossings stack and the Movies ribbon
+draw, taking a positioned band rather than nodes: the shell owns the coordinate space, so a caller
+reads `startPercent` and `widthPercent` and never asks how they were arrived at. `TimelineScale`
+and `TimelineAxis` beside it are the one set of gridlines and labels every strip is read against —
+the crossings' years, the ribbon's months and the franchise strip's window — a caller passing the
+ticks it wants labelled and the colour its ground takes. The card's own strip uses the same arithmetic
 with its own marks: a fixed lane pitch, a dot for a point and a ring for the subject, none of which
 a stack of twelve strips on one scroller has room for.
 
-Every band `TimelineCard` and `EventRibbon` draw is a `TimelineBandBox`, which carries the same
+Every band the crossings stack and `EventRibbon` draw is a `TimelineBandBox`, which carries the same
 lane-aware hit box the franchise strip's own marks do: the full 24px reach on a single-lane track, a
 percentage of the band's own box on a multi-lane one, computed against the lane's padding so it
 follows a strip of any height without the box knowing what that height is — emotion mints a class
@@ -1555,7 +1541,7 @@ The reading test that shows the pill or rail carries a third clause: `rect.top <
 rect.bottom > innerHeight / 2` alone would light the pill over a section's own header during the gap
 between the section arriving and the wall's first row reaching the marker offset — true of any width
 whose gutter falls under `MIN_GUTTER` (72px), which is every width on a phone. Requiring the grid's
-own top to have reached `MARKER_TOP` (with the settle loop's own slack) asks the marker's real
+own top to have reached `MARKER_TOP` (within the browser's own rounding) asks the marker's real
 question instead: not "is the section visible" but "is there a row here to name". Compact's grid also
 drops the row's stretch alignment: a card ends where its own picture does (`alignSelf: "flex-start"`)
 rather than at the row's height, since only a cover is ever short of it and a stretched cover reads as
@@ -1591,29 +1577,20 @@ instant beyond, where the animation would only be a wait.
 is `loading="lazy"` and an unloaded image has no height: 322 games stand at about 7,000 pixels
 against 33,000 loaded, and scrolling into a region is what loads it, so a jump far down the sort
 asks for an offset short by all the artwork below and lands clamped at the document's bottom, a
-decade short of the chip clicked. `Finished` reserves the shape on the grid's media through
-`shapeToAspect`, the figure `cardArrangement` declares, and the leading `auto` that helper prefixes
-keeps it a reservation rather than a crop. The stat strips reserve firmly through `shapeToRatio`,
-since cards side by side must not differ in width by the few pixels an artwork is off its shape;
-only a cover, whose ratio no file holds exactly, takes the `auto` form. The hero and timeline
-tooltips are untouched; the Omnibus reserves on every card from its artwork's shape (§6).
+decade short of the chip clicked. A landscape wall — Games, Movies — pins 16:9 outright through
+`shapeToRatio` and crops a file that is not, `object-fit: cover`, since the wall reads as one grid
+only while every card in a row is one height. A portrait wall holds covers as well as posters and
+no cover is any exact ratio, so there `Finished` reserves through `shapeToAspect`, whose leading
+`auto` keeps the figure a reservation the file's own shape replaces once it is known. The stat
+strips reserve firmly through `shapeToRatio` for the same reason the landscape wall does; only a
+cover takes the `auto` form. The hero and timeline tooltips are untouched; the Omnibus reserves on
+every card from its artwork's shape (§6).
 
-What is left is a card's own rounding, absorbed by a bounded settle loop: it re-measures the
-target's rect on a 90ms cadence and issues instant corrective scrolls until the card's top is within
-two pixels of the marker offset — instant however the jump was made, a correction being that landing
-at its real offset rather than a second jump. Ten corrective scrolls, a two-second deadline and a
-token a newer jump takes bound it; a detached target ends it too, its rect all-zero. Only a scroll
-the loop issues is spent against the count, or images streaming in would exhaust the allowance
-before the first correction, and the wait for a still page is capped at six ticks for the same
-reason: scroll anchoring nudges the offset on every image landing above the viewport, and a drifting
-page is worth measuring, the next round correcting what the drift left.
-
-**Interference is read from input, never from the page having moved.** Anchoring adjusts `scrollY`
-precisely to compensate for the growth this loop corrects, so reading drift as a reader taking the
-page back would abort on exactly the condition the loop is for. `wheel`, `touchmove`, a scrolling
-`keydown` and `mousedown` end a jump — the last for the scrollbar, which moves the page without any
-of the other three — attached for the settle window only and removed on every exit. None catches the
-click that starts a jump, going on during that click's own `click` handler.
+What is left after the reservation is a card's own rounding, and on Books a cover a few percent off
+the 2:3 the grid reserves or a footer that wraps, so a deep jump there can land a row from the chip
+pressed. The jump is one `scrollTo` and no correction afterwards: a loop re-measuring and
+re-scrolling until the card sits at its offset costs global input listeners to tell the reader
+taking the page back from the page growing under them, and buys a row at most.
 
 A bucket boundary falls mid-row for most buckets, so the row a jump lands at the top opens with the
 previous bucket's spill and ends in the one clicked, and the marker reads that row's _last_ card,
@@ -2094,11 +2071,9 @@ root that did hydrate, one hook giving one answer rather than two depending whic
 `useCoarsePointer` answers a different question — how precisely the reader
 can aim, not how wide the screen is: a hover card is a popper on a mouse and a bottom sheet on a
 finger, different trees again. A hit target or a hover treatment that is only a rule stays in `sx` as
-`@media (pointer: coarse)` and costs no subscription. All three, plus `useScheme`, share one
-mechanism, `common/useMatchMedia.ts`: one `MediaQueryList` and one native listener per distinct query
-string, held at module scope and fanned out through `useSyncExternalStore`, because a caller asks per
-component instance and a chart is hundreds of them — a fresh `matchMedia()` and a fresh listener per
-instance would be that many of both minted on every render.
+`@media (pointer: coarse)` and costs no subscription. All three, plus `useScheme`, are MUI's
+`useMediaQuery` with `noSsr: true`, one `MediaQueryList` per component instance; a chart is
+hundreds of instances, and that many native listeners is not a cost any browser shows.
 
 **Chrome.** `NavBar` keeps three targets at every width — the authorise key while there is something
 to authorise, search, and the `⋮` — and everything else the session can do is in that menu, drawn at
@@ -2212,9 +2187,8 @@ Every lookup takes a `Scheme`, read by `common/useScheme.ts` from
 `Google.tsx` builds the theme with `cssVariables: true` and no `colorSchemeSelector`, so MUI emits
 the dark palette inside that same media query, but its `mode` is separate state restored from a
 `mui-mode` key in `localStorage`, and anything writing one parts the two, every fill taking the half
-meant for the other paper. The subscription goes through `common/useMatchMedia.ts` (§6, Phone and
-tablet) — one `MediaQueryList` shared by every caller of a query rather than one per component
-instance — which is what re-renders a chart when the system flips at dusk.
+meant for the other paper. The subscription is MUI's `useMediaQuery` (§6, Phone and tablet), which
+is what re-renders a chart when the system flips at dusk.
 `tests/utils/fillContract.test.ts` asserts the floor over every table
 against its own WCAG implementation, so it cannot pass by agreeing with a bug in `src/`.
 
@@ -2414,7 +2388,7 @@ key in ObjectExpression`; pulled out to a plain function taking the varying piec
   `sheetBarSx`, `dialogCardSx`, among others — the literal itself sits at module scope and the
   component stays compiled.
 
-The baseline is **282 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **280 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.
@@ -2545,17 +2519,13 @@ own picker and lights it (§6); `UNCOUNTED_FIELDS` leaves `yearTo` and `yearType
 filter surface holds and Clear leaves a reader counting hours up to 2019 exactly where they were.
 The two vitals cards mirror that state without setting it.
 
-**A selection is held to the vocabulary its own control draws.** A category's options are computed
-over the _visible_ library, so guest mode switched on under a chosen franchise would leave that
-franchise selected in the store with no chip anywhere offering or clearing it, and every chart on
-the page narrowed to nothing for a reason the reader cannot see. `LibraryProvider` sweeps each tab's
-selects against exactly the rows that tab's own controls list from — which is what each page module
-answers with — through `retainPageSelections` (`app/pageState.ts`, the one file there that names the
-composing tab). The `retain` action answers the same state object where nothing is
-dropped, so the sweep costs no render on the runs that change nothing; a category holding nothing is
-skipped before its options are computed, since a pass over the whole library per category, for five
-tabs, on every sheet landing, is what the common case of nothing selected would otherwise cost. A
-slice still in flight is skipped too, rather than swept against an empty list.
+**Entering guest mode clears every tab's filters.** A category's options are computed over the
+_visible_ library, so guest mode switched on under a chosen franchise would leave that franchise
+selected in the store with no chip anywhere offering or clearing it, and every chart on the page
+narrowed to nothing for a reason the reader cannot see. `Google.tsx` dispatches `resetFilters` to
+all five stores (`resetPageFilters`, `app/pageState.ts`) as the mode turns on; turning it off widens
+the library, so nothing held then needs clearing. A sheet landing mid-session replaces rows rather
+than hiding a class of them, and a value it drops is one the reader can still see is gone.
 
 ### Guest mode
 
@@ -2726,8 +2696,8 @@ Recorded so they are not mistaken for design:
   tab has the cross-media union and the bar can say whether there is a library at all; a deep link
   to `/games` therefore pays for three tabs it is not showing, where the Omnibus — which a bare visit
   opens on — needs all four regardless. A deliberate trade, argued in that provider's own comment.
-  What it costs is now one request rather than four (§3), so what is left is the parsing: four
-  converters run over four grids on the main thread whichever tab was asked for.
+  What it costs is four concurrent requests and the parsing: four converters run over four grids on
+  the main thread whichever tab was asked for.
 - **No DOM or component tests.** `tests/` covers pure logic — converters, filters, the reducer, the
   chart data transforms, the cache round trip — and stops there; AGENTS.md explains the trade. Nothing
   verifies that a chart renders.

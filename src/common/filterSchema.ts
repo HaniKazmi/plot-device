@@ -1,4 +1,4 @@
-import { categoryOptions, franchiseOptions } from "./filterOptions";
+import { franchiseOptions } from "./filterOptions";
 import {
   ANIME,
   certificateBand,
@@ -69,8 +69,8 @@ export interface FilterToggle<T, S> {
  * Fifteen platforms are five companies, and "all my Nintendo games" is the narrowing a reader
  * actually means — seven chips pressed in a row otherwise, with nothing on the surface saying they
  * belong together. The level is a way of selecting several values at once and never a value of its
- * own: the state stays the category's own flat list, so the reducer, the sweep, the predicate and
- * the badge all see exactly what they saw before.
+ * own: the state stays the category's own flat list, so the reducer, the predicate and the badge
+ * all see exactly what they saw before.
  *
  * **A group of one is its value.** Three of the five companies here hold a single platform, so a
  * parent above one child is that child said twice — every reader of this level draws such a value
@@ -304,26 +304,11 @@ export interface FilterSchema<T, S> {
 export type PageSchema = FilterSchema<unknown, never>;
 
 /**
- * The values a category's control offers: its own list where it states one, and otherwise every
- * distinct value in the data. Asked here rather than at each reader, so the box that filters a page
- * and the index of what can be found by attribute cannot offer two different vocabularies for one
- * category.
- */
-export const categoryValues = <T, S>(
-  category: FilterCategory<T, S>,
-  data: readonly T[],
-  context?: CategoryContext,
-): string[] =>
-  category.options ? category.options(data, context) : categoryOptions(data, (item) => category.valueOf(item));
-
-/**
- * The same values with how many rows each of them holds, in one pass over the library.
- *
- * The control drawing a category states the figure inside each chip, so it needs both halves, and
- * a library of fifteen vocabularies is fifteen scans of every row — paid again on each render that
- * cannot be memoised past. Where the category states no list of its own the values are the tally's
- * own keys sorted as `categoryOptions` sorts them, which is the same distinct set by the same rule,
- * so the box and the search index still offer one vocabulary.
+ * The values a category's control offers, with how many rows each of them holds, in one pass over
+ * the library: its own list where it states one, and otherwise every distinct value in the data,
+ * sorted as a category's own `options` sort theirs. Asked here rather than at each reader, so the box that
+ * filters a page and the index of what can be found by attribute cannot offer two vocabularies for
+ * one category.
  */
 export const categoryTally = <T, S>(
   category: FilterCategory<T, S>,

@@ -497,7 +497,10 @@ const WindowedStrip = ({
   return (
     <Box>
       <Box sx={{ position: "relative", height: laneCount * LANE_PITCH }}>
-        <TimelineScale ticks={ticks} />
+        <TimelineScale
+          ticks={ticks}
+          colour={palette.line}
+        />
         {bands.map((band) => (
           <StripMark
             key={band.key}

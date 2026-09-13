@@ -1,4 +1,4 @@
-import { useMatchMedia } from "./useMatchMedia";
+import { useMediaQuery } from "@mui/material";
 
 /**
  * The primary pointer, which is what decides whether hovering is a thing the reader can do.
@@ -17,7 +17,6 @@ const COARSE = "(pointer: coarse)";
  * cursor — belongs in `sx` as `@media (pointer: coarse)` instead, where it costs no subscription
  * and no render.
  *
- * Through `useMatchMedia` for the subscription: a tablet with a mouse plugged in changes the answer
- * while the page is open, and nothing else would re-render the charts.
+ * Subscribed, so a tablet with a mouse plugged in changes the answer while the page is open.
  */
-export const useCoarsePointer = () => useMatchMedia(COARSE);
+export const useCoarsePointer = () => useMediaQuery(COARSE, { noSsr: true });

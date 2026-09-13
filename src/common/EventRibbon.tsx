@@ -1,5 +1,5 @@
 import { Box, CardContent, Stack, Typography, type Theme } from "@mui/material";
-import { TimelineBandBox, type TimelineBand } from "./TimelineBand";
+import { TimelineAxis, TimelineBandBox, TimelineScale, type TimelineBand } from "./TimelineBand";
 import type { TimelineTick } from "./timelineLayout";
 import { MUTED_FIGURE_SX } from "./typography";
 
@@ -66,7 +66,11 @@ export const EventRibbon = ({ rows, ticks }: { rows: RibbonRow[]; ticks: Timelin
                 backgroundColor: "action.hover",
               }}
             >
-              <RibbonScale ticks={ticks} />
+              <TimelineScale
+                ticks={ticks}
+                colour="divider"
+                opacityOf={(tick) => (tick.level === "month" ? 0.5 : 1)}
+              />
               {row.bands.map((band) => (
                 <TimelineBandBox
                   {...band}
@@ -86,55 +90,18 @@ export const EventRibbon = ({ rows, ticks }: { rows: RibbonRow[]; ticks: Timelin
   );
 };
 
-/** Month gridlines, the quarter ones a step stronger so the eye has something to count by. */
-const RibbonScale = ({ ticks }: { ticks: TimelineTick[] }) => (
-  // Full-height boxes would otherwise be the topmost hit target across the whole track.
-  <Box sx={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
-    {ticks.map((tick) => (
-      <Box
-        key={tick.monthLabel}
-        sx={GRIDLINE_SX}
-        style={{ left: `${tick.percent}%`, opacity: tick.level === "month" ? 0.5 : 1 }}
-      />
-    ))}
-  </Box>
-);
-
-/** The form every gridline shares; where one stands and how strongly is the tick's own, in `style`. */
-const GRIDLINE_SX = {
-  position: "absolute",
-  top: 0,
-  bottom: 0,
-  width: "1px",
-  backgroundColor: "divider",
-} as const;
-
 const RibbonAxis = ({ ticks }: { ticks: TimelineTick[] }) => (
   <Stack
     direction="row"
     spacing={1}
   >
     <Box sx={GUTTER_SX} />
-    <Box sx={{ position: "relative", flexGrow: 1, height: 14 }}>
-      {ticks.map((tick) => (
-        <Typography
-          key={tick.monthLabel}
-          variant="caption"
-          sx={{
-            position: "absolute",
-            left: `${tick.percent}%`,
-            fontSize: 10,
-            lineHeight: "14px",
-            opacity: 0.6,
-            userSelect: "none",
-            // Labels sit at the month's start rather than centred on it: the line above is the
-            // month's opening edge, and a centred label would name the gap between two lines.
-            paddingLeft: 0.5,
-          }}
-        >
-          {tick.monthLabel}
-        </Typography>
-      ))}
+    <Box sx={{ flexGrow: 1 }}>
+      <TimelineAxis
+        ticks={ticks}
+        labelOf={(tick) => tick.monthLabel}
+        align="start"
+      />
     </Box>
   </Stack>
 );

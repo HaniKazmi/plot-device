@@ -15,8 +15,8 @@ import Omnibus from "./omnibus/Omnibus";
  * (`Google.tsx`) and MUI would otherwise paint the bar as plain paper — leaving the 2px secondary
  * indicator as the only thing that says which of five tabs is open.
  *
- * `tint` is a 22% mix of `primaryColour` over that paper, `#1d2126`
- * (`round(0.22 * primary + 0.78 * paper)` per channel): the primary at full strength on dark
+ * `tint` is a 22% mix of `primaryColour` over that paper, `#1d2126`, computed by `tint()` below:
+ * the primary at full strength on dark
  * paper is the light bar's own treatment redrawn on the wrong ground, where a fifth of it is
  * what still carries the hue without losing the scheme. `rule` and `ink` are lighter siblings of
  * the primary at the same hue, solved against `tint` rather than against the paper — `ink` clears
@@ -33,6 +33,29 @@ export interface DarkBar {
   rule: string;
   ink: string;
 }
+
+export const DARK_PAPER = "#1d2126";
+const TINT_STRENGTH = 0.22;
+
+/** `round(0.22 * primary + 0.78 * paper)` per channel: the bar's ground in the dark scheme. */
+const tint = (primary: string): string => {
+  const channel = (hex: string, i: number) => parseInt(hex.slice(1 + 2 * i, 3 + 2 * i), 16);
+  const mixed = [0, 1, 2].map((i) =>
+    Math.round(TINT_STRENGTH * channel(primary, i) + (1 - TINT_STRENGTH) * channel(DARK_PAPER, i)),
+  );
+  return `#${mixed.map((value) => value.toString(16).padStart(2, "0")).join("")}`;
+};
+
+/**
+ * A tab's colours: the two the light scheme is built from, and the dark bar's triple with its
+ * tint derived from the primary rather than typed beside it. `rule` and `ink` are solved by hand
+ * against the tint and the paper (`tests/tabs.test.ts` holds them to their floors).
+ */
+const colours = (primary: string, secondary: string, rule: string, ink: string) => ({
+  primaryColour: primary,
+  secondaryColour: secondary,
+  darkBar: { tint: tint(primary), rule, ink },
+});
 
 /**
  * The colour a tab's app bar wears in a scheme: the primary on the light paper, the tint on the
@@ -100,9 +123,7 @@ export const GamesTab: SheetTab = {
   range: "Games!A:Z",
   component: VideoGames,
   icon: SportsEsports,
-  primaryColour: "#d019ca",
-  secondaryColour: "#14bb7c",
-  darkBar: { tint: "#441f4a", rule: "#ea4be4", ink: "#f07aeb" },
+  ...colours("#d019ca", "#14bb7c", "#ea4be4", "#f07aeb"),
 };
 
 export const ShowsTab: SheetTab = {
@@ -112,9 +133,7 @@ export const ShowsTab: SheetTab = {
   range: "Shows!A:Z",
   component: Shows,
   icon: Tv,
-  primaryColour: "#127d9c",
-  secondaryColour: "#fe799b",
-  darkBar: { tint: "#1b3540", rule: "#3fb3d3", ink: "#6cc7e0" },
+  ...colours("#127d9c", "#fe799b", "#3fb3d3", "#6cc7e0"),
 };
 
 export const MoviesTab: SheetTab = {
@@ -124,9 +143,7 @@ export const MoviesTab: SheetTab = {
   range: "Movies!A:Z",
   component: Movies,
   icon: Theaters,
-  primaryColour: "#de4412",
-  secondaryColour: "#499dfe",
-  darkBar: { tint: "#472922", rule: "#ff7043", ink: "#ff8f6b" },
+  ...colours("#de4412", "#499dfe", "#ff7043", "#ff8f6b"),
 };
 
 /**
@@ -145,9 +162,7 @@ export const BooksTab: SheetTab = {
   range: "Books!A:Z",
   component: Books,
   icon: MenuBook,
-  primaryColour: "#958112",
-  secondaryColour: "#ca82fe",
-  darkBar: { tint: "#373622", rule: "#c7b143", ink: "#d6c45a" },
+  ...colours("#958112", "#ca82fe", "#c7b143", "#d6c45a"),
 };
 
 /**
@@ -199,9 +214,7 @@ export const OmnibusTab: Tab = {
   name: "Omnibus",
   component: Omnibus,
   icon: GridView,
-  primaryColour: "#7553ff",
-  secondaryColour: "#ef9716",
-  darkBar: { tint: "#302c56", rule: "#9d86ff", ink: "#b3a2ff" },
+  ...colours("#7553ff", "#ef9716", "#9d86ff", "#b3a2ff"),
 };
 
 /**

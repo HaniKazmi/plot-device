@@ -30,7 +30,6 @@ import { CURRENT_PLAINDATE, formatDate, type YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
 import { useSelectBox } from "../common/SelectBoxHook";
 import { stated } from "../common/population";
-import { groupsOnce, type DrilldownGroup } from "../common/statsData";
 import { genreToColour, scoreBand, scoreBandToColour, scoreBands } from "../utils/types";
 import { bookSubtitle } from "./cardData";
 import { bookScoreChip, bookStatListSharedProps, bySeriesThenStart } from "./drilldown";
@@ -53,6 +52,7 @@ import {
 } from "./statsData";
 import "../utils/arrayUtils";
 import { useScheme } from "../common/useScheme";
+import type { DrilldownGroup } from "../common/statsData";
 
 const Stats = ({
   data,
@@ -72,10 +72,6 @@ const Stats = ({
   yearType: YearType;
   yearTo: YearNumber;
 }) => {
-  // One grouping per category for the page: the vitals band, the Top card and Most Read all ask
-  // for genre or author, and each grouping is a pass over the library.
-  const groupsBy = groupsOnce((option: BookTopOption) => groupBooksBy(data, option, measure));
-
   return (
     <Stack spacing={2}>
       {/* No book in hand and there is no "now" to lead with. */}
@@ -106,14 +102,14 @@ const Stats = ({
           <Vitals
             data={data}
             measure={measure}
-            genreGroups={groupsBy("genre")}
+            genreGroups={groupBooksBy(data, "genre", measure)}
           />
         </StatBand>
       </Section>
       <Section id={BOOK_SECTIONS.top}>
         <StatBand>
           <TopCategories
-            groupsBy={groupsBy}
+            data={data}
             measure={measure}
           />
         </StatBand>
@@ -123,7 +119,6 @@ const Stats = ({
           <RecentlyFinished data={data} />
           <MostRead
             data={data}
-            groupsBy={groupsBy}
             measure={measure}
           />
         </StatBand>
@@ -228,10 +223,7 @@ const BookAverage = ({ data }: { data: Book[] }) => {
   );
 };
 
-/** The groupings of the page's data under its measure, one per option asked for. */
-type GroupsBy = (option: BookTopOption) => DrilldownGroup<Book>[];
-
-const TopCategories = ({ groupsBy, measure }: { groupsBy: GroupsBy; measure: Measure }) => {
+const TopCategories = ({ data, measure }: { data: Book[]; measure: Measure }) => {
   const scheme = useScheme();
 
   return (
@@ -239,7 +231,7 @@ const TopCategories = ({ groupsBy, measure }: { groupsBy: GroupsBy; measure: Mea
       defaults={["genre", "author", "franchise"]}
       options={bookTopOptions}
       icons={optionIcons}
-      groups={groupsBy}
+      groups={(option) => groupBooksBy(data, option, measure)}
       colourOf={(option, top: Book) => groupToColour(option, top, scheme)}
       measureLabel={measure}
     />
@@ -273,7 +265,7 @@ const RecentlyFinished = ({ data }: { data: Book[] }) => (
 
 const bookMostReadOptions = ["name", ...bookTopOptions] as const;
 
-const MostRead = ({ data, groupsBy, measure }: { data: Book[]; groupsBy: GroupsBy; measure: Measure }) => {
+const MostRead = ({ data, measure }: { data: Book[]; measure: Measure }) => {
   const [option, controls] = useSelectBox(bookMostReadOptions, "author", "By");
 
   if (option === "name") {
@@ -286,7 +278,7 @@ const MostRead = ({ data, groupsBy, measure }: { data: Book[]; groupsBy: GroupsB
   }
   return (
     <MostReadCategory
-      groupsBy={groupsBy}
+      data={data}
       measure={measure}
       controls={controls}
       category={option}
@@ -308,12 +300,12 @@ const MostReadBooks = ({ data, controls }: { data: Book[]; controls: ReactNode }
 };
 
 const MostReadCategory = ({
-  groupsBy,
+  data,
   measure,
   category,
   controls,
 }: {
-  groupsBy: GroupsBy;
+  data: Book[];
   measure: Measure;
   category: BookTopOption;
   controls: ReactNode;
@@ -326,7 +318,7 @@ const MostReadCategory = ({
       controls={controls}
       title="Most Read"
       option={category}
-      groups={groupsBy(category)}
+      groups={groupBooksBy(data, category, measure)}
       // Name and figure on one row, as the other three tabs write theirs: the card's words stand
       // beside its cover, where a row wraps, so under a narrow column the two fall onto their own
       // lines anyway. It is also the row a strip caption is taken from, and a shelf that drops the

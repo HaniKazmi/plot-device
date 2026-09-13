@@ -38,7 +38,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       releaseDate: readFullDate(row["Release Date"], `${where}, Release Date`),
       // The model types this as a full date and every surface reading it needs the day:
       // `watchTimelineData` compares it as a string, so a bare year falls outside the range it is
-      // in and drops off the ribbon without a word, and `MovieTimelineCard` places it as NaN.
+      // in and drops off the ribbon without a word, and the ribbon's band places it as NaN.
       startDate: readFullDate(row["Watch Date"], `${where}, Watch Date`),
       certificate: readCertificate(row.Certificate, `${where}, Certificate`),
       // A film nobody scored is left out rather than counted as NaN, which would propagate
@@ -61,15 +61,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
   });
 };
 
-/**
- * The cache this converter's output is read back from, shared by the Movies tab and by Omnibus so
- * a version bump cannot land at one of them alone.
- *
- * v3: a cached object written before `anime` reads as false for every film, and guest mode then
- * hides nothing.
- * v4: a cached object written before this holds its picture under `banner`, so every card on
- * every surface draws the stand-in instead.
- */
+/** Bump the version on any change to the model's shape, or a returning visitor's cache lacks the field. */
 export const movieDataConfig: DataConfig<Movie> = {
   storageKey: dataCacheKey("movie", 4),
   converter: jsonConverter,

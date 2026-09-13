@@ -9,8 +9,8 @@ import {
   COARSE_CONTROL_HEIGHT,
   CONTROL_HEIGHT,
   CONTROL_RADIUS,
-  CONTROL_TYPE_SX,
   focusRingSx,
+  kitControlSx,
   NUMERIC_LABEL_SX,
   primaryWash,
 } from "./common/typography";
@@ -21,14 +21,14 @@ import { FranchiseUnionProvider } from "./app/franchiseUnion.tsx";
 import { SearchHost } from "./app/Search.tsx";
 import { useAuthState } from "./app/authState.ts";
 import { usePage } from "./app/page.ts";
-import { pageCount } from "./app/pageState.ts";
+import { pageCount, resetPageFilters } from "./app/pageState.ts";
 import { NothingMatchesContext } from "./common/nothingMatchesContext.ts";
 import { isNarrowedEmpty } from "./common/population.ts";
 import { isAllTime, scopeLabel } from "./common/scope.ts";
 import { CURRENT_YEAR } from "./common/date.ts";
 import { EmptyCard } from "./app/EmptyCard.tsx";
 import { ErrorBoundary } from "./common/ErrorBoundary.tsx";
-import { barColour, useCurrentTab } from "./tabs.ts";
+import { barColour, DARK_PAPER, useCurrentTab } from "./tabs.ts";
 import type { Tab } from "./tabs.ts";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 
@@ -99,6 +99,12 @@ const PageContent = () =>
 
 const GoogleAuth = () => {
   const [guestMode, setGuestMode] = useState(false);
+  // Entering guest mode narrows every library under whatever each tab holds selected, and a value
+  // the narrowed library no longer offers has no chip left to clear it — so the filters go with it.
+  const switchGuestMode = (on: boolean) => {
+    if (on) resetPageFilters();
+    setGuestMode(on);
+  };
 
   return (
     <GoogleAuthProvider>
@@ -108,7 +114,7 @@ const GoogleAuth = () => {
       <LibraryProvider guestMode={guestMode}>
         <NavBar
           guestMode={guestMode}
-          setGuestMode={setGuestMode}
+          setGuestMode={switchGuestMode}
         />
         <Container
           maxWidth={"xl"}
@@ -209,7 +215,6 @@ const { palette: defaultPalette } = createTheme();
 // and `Graphs`' dark `theme-color` meta all read the same two literals rather than three copies
 // that could drift.
 const DARK_TEXT = "#e8eaed";
-const DARK_PAPER = "#1d2126";
 
 // The two schemes' own page ground, named once so `getTheme`'s palette and the scrolled-past
 // `theme-color` metas cannot drift onto a value that is not what the page at that edge paints.
@@ -356,14 +361,7 @@ const getTheme = (tab: Tab) => {
       MuiToggleButton: {
         styleOverrides: {
           root: ({ theme }) => ({
-            ...CONTROL_TYPE_SX,
-            minHeight: CONTROL_HEIGHT,
-            // A stated height rather than symmetrical padding: `theme.typography.button`'s own
-            // line height puts a 12px word at 21px, so padding sized for the word makes the
-            // control 31. A minimum instead of a height, so a segment holding an icon rather
-            // than a word grows to it instead of overflowing.
-            padding: "0 10px",
-            borderRadius: CONTROL_RADIUS,
+            ...kitControlSx(theme),
             color: theme.vars.palette.text.primary,
             backgroundColor: theme.vars.palette.background.paper,
             // Reset before the hover is stated, because MUI's own rule sits outside any pointer
@@ -380,8 +378,6 @@ const getTheme = (tab: Tab) => {
               "&:hover": { backgroundColor: primaryWash(theme, 0.08) },
               "&.Mui-selected:hover": { backgroundColor: primaryWash(theme, 0.24) },
             },
-            "@media (pointer: coarse)": { minHeight: COARSE_CONTROL_HEIGHT },
-            ...focusRingSx(theme),
           }),
         },
       },
@@ -445,17 +441,12 @@ const getTheme = (tab: Tab) => {
       MuiButton: {
         styleOverrides: {
           sizeSmall: ({ theme }) => ({
-            ...CONTROL_TYPE_SX,
+            ...kitControlSx(theme),
             // A word carrying an action, against the segments' plain labels beside it.
             fontWeight: 600,
-            minHeight: CONTROL_HEIGHT,
             // MUI's own floor is 64px, which pads "Date" out to twice its width in a header
             // where the controls are read as a row.
             minWidth: 0,
-            padding: "0 10px",
-            borderRadius: CONTROL_RADIUS,
-            "@media (pointer: coarse)": { minHeight: COARSE_CONTROL_HEIGHT },
-            ...focusRingSx(theme),
           }),
         },
       },

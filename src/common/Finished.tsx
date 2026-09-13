@@ -26,7 +26,7 @@ import {
   type FinishedItem,
 } from "./finishedData";
 import { withAlpha } from "../utils/colourUtils";
-import { shapeToAspect } from "./cardArrangement";
+import { shapeToAspect, shapeToRatio } from "./cardArrangement";
 import { PHONE_SCROLL_MARGIN_CSS } from "./SectionRail";
 import { SHEET_HEADER_BOTTOM } from "./fullscreenSheet";
 import { LABEL_SX, MUTED_FIGURE_SX, NUMERIC_LABEL_SX } from "./typography";
@@ -131,13 +131,18 @@ const FinishedGrid = <U extends FinishedItem>({
                * measured a moment ago is already wrong; a jump far down the sort asks for an offset
                * the document does not yet have and lands clamped at its bottom instead.
                *
-               * `shapeToAspect` prefixes the ratio with `auto`, which is what keeps this a
-               * reservation rather than a crop: the artwork's own shape wins the moment it is
-               * known, and the declared figure stands in only while there is none. What is left to
-               * settle after one lands is a card's own rounding rather than a card's height,
-               * because every file is authored to the shape it declares.
+               * A landscape wall pins 16:9 outright and crops a file that is not: a banner a few
+               * pixels off its shape would otherwise stand its row a few pixels taller or shorter
+               * than its neighbours, and the wall reads as one grid only while every card is one
+               * height. A portrait wall holds covers as well as posters, and no cover is any exact
+               * ratio, so there `shapeToAspect`'s leading `auto` keeps the figure a reservation the
+               * file's own shape replaces once it is known.
                */
-              sx={{ aspectRatio: shapeToAspect(landscape ? "banner" : "poster") }}
+              sx={
+                landscape
+                  ? { aspectRatio: shapeToRatio("banner"), objectFit: "cover" }
+                  : { aspectRatio: shapeToAspect("poster") }
+              }
             />
           </Card>
         </Grid>

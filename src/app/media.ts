@@ -51,13 +51,6 @@ export const eachMedium = <R>(
 ): R[] => MEDIA_ORDER.map((medium) => visit(medium, MEDIA[medium]));
 
 /**
- * The same four as a flat list, for the walks that ask a module nothing about its records — a tab
- * id, a store, the noun a population is counted in. Erased, since there is nothing here to pair
- * the module with.
- */
-export const mediaModules: readonly MediumModule<unknown, unknown>[] = MEDIA_ORDER.map((medium) => MEDIA[medium]);
-
-/**
  * The module an item of the union belongs to.
  *
  * Erased, and the one place that is: an `OmniItem` carries its own record as `source: object`, so

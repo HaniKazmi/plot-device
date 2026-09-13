@@ -62,26 +62,17 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       const startDate = readFullDate(row["Start Date"], `${where}, Start Date`);
       const endDate = row["End Date"] ? readFullDate(row["End Date"], `${where}, End Date`) : undefined;
 
-      const episodes = parseInt(row.Episodes);
-      if (Number.isNaN(episodes)) {
-        // Counted as zero rather than left as NaN, which would propagate through the show's
-        // episode total and every statistic derived from it, blanking numbers far from here.
-        console.error(`${where}: episode count "${row.Episodes}" is not a number, counting it as 0`);
-      }
-
-      const e = Number.isNaN(episodes) ? 0 : episodes;
+      // Rejected rather than counted as zero: a NaN would propagate through the show's episode
+      // total and every statistic derived from it, and a zero lies in every sum.
+      const e = parseInt(row.Episodes);
+      if (Number.isNaN(e)) sheetError(`${where}, Episodes`, `"${row.Episodes}" is not a number`);
 
       const length = parseInt(row["Episode Length (min)"]);
       // A blank cell and an unreadable one are one case: no runtime, so `undefined` on the model
       // rather than the `NaN` a garbled cell parses to, which the type does not admit.
+      // An open season the sheet has no length for yet is the common case, so it is not reported:
+      // its episodes count for 0 minutes until the cell is filled.
       const episodeLength = Number.isNaN(length) ? undefined : length;
-      if (episodeLength === undefined && e > 0) {
-        // Reported for the same reason a bad episode count is: the season's minutes are then 0,
-        // and every hours figure on the tab and the union is short by its episodes with nothing
-        // on screen saying so — an open season a runtime has not been entered for yet is the
-        // common case.
-        console.error(`${where}: no episode length, counting its ${e} episodes as 0 minutes`);
-      }
 
       // One column carries two facts by row kind: the season count on a show row, and on a
       // season row the date an episode was last watched. Only the season half is read here, the
@@ -113,9 +104,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       if (startDate.year > EARLIEST_SEASON_YEAR) {
         show.s!.push(season);
       }
-      if (endDate && startDate > endDate) {
-        console.error(`${where}: starts ${startDate} but ends ${endDate}`);
-      }
+      if (endDate && startDate > endDate) sheetError(where, `starts ${startDate} but ends ${endDate}`);
     }
 
     return show;
@@ -134,7 +123,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
     show.e = show.s.sum("e");
     show.minutes = show.s.sum("minutes");
     if (show.endDate && show.startDate > show.endDate) {
-      console.error(`Show "${show.name}": starts ${show.startDate} but ends ${show.endDate}`);
+      sheetError(`Show "${show.name}"`, `starts ${show.startDate} but ends ${show.endDate}`);
     }
   });
 
@@ -142,17 +131,9 @@ export const jsonConverter = (json: Record<string, string>[]) => {
 };
 
 /**
- * The cache this converter's output is read back from, shared by the Shows tab and by Omnibus.
- * The replacer/reviver pair travels with it: a cache written without the parent pointers is only
- * readable by the reviver that puts them back, and neither half means anything alone.
- *
- * v3: a cached object written before `lastWatchedDate` carries none, and no hero is ever elected.
- * v4: a cached object written before this holds its picture under `banner`, so every card on
- * every surface draws the stand-in instead.
- * v5: a cached object written before this dates only the season in progress, so every finished
- * season carries no last watch and the hero elects among the handful the sheet's column marks.
- * v6: a cached object written before this carries `type` and no `anime`, so every show reads as
- * not anime — guest mode and the toggle stop hiding anything, and the anime split draws one bar.
+ * Bump the version on any change to the model's shape, or a returning visitor's cache lacks the
+ * field. The replacer/reviver pair travels with it: a cache written without the parent pointers is
+ * only readable by the reviver that puts them back.
  */
 export const showDataConfig: DataConfig<Show> = {
   storageKey: dataCacheKey("show", 6),
