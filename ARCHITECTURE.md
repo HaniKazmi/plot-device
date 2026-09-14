@@ -193,8 +193,8 @@ Converters do real modelling work, not just field renaming:
   cell: 12 of 340 games honestly carry no theme, and `themes.includes("Adult")` is what guest mode
   hides on, so reading a missing column as "no themes" would put every adult game back on screen.
 - **`show/`** nests a flat sheet: a non-empty `Title` cell opens a show, the rows after it are its
-  seasons — safe only because `Title` is column A, an absent key being `!== ""` as well. Seasons from `EARLIEST_SEASON_YEAR` (2005) or earlier are dropped as untrustworthy, and a
-  show left with none is rejected. Dates and episode and minute sums roll up to the parent, and each
+  seasons — safe only because `Title` is column A, an absent key being `!== ""` as well. Every
+  dated season is kept whatever its year, and a show with no season rows is rejected. Dates and episode and minute sums roll up to the parent, and each
   season is dated with a `lastWatchedDate` of its own: its end date once it has one — the day the
   finale was watched — and otherwise the `Seasons / Last Watched` cell, a column carrying the season
   count on a show row instead. The end date taking precedence is what keeps a cell nobody clears on a

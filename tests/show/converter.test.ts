@@ -289,28 +289,26 @@ describe("last watched, per season", () => {
   });
 });
 
-describe("the 2005 cutoff", () => {
-  it("drops a season that started in or before 2005 while keeping later ones", () => {
+describe("a show with no seasons", () => {
+  it("keeps a season however early it started, and rolls the show's start up from it", () => {
+    // No year floor: a season the sheet dates is a season watched, and a show whose every season
+    // predates some cutoff would otherwise be a row the sheet holds and the converter rejects.
     const [show] = jsonConverter([
       showRow(),
       seasonRow({ Season: "1", "Start Date": "2004-01-01", "End Date": "2004-06-01" }),
       seasonRow({ Season: "2", "Start Date": "2022-02-18", "End Date": "2022-04-08" }),
     ]);
 
-    expect(show.s.map((s) => s.s)).toEqual([2]);
-  });
-
-  it("throws by name when every season of a show falls before the cutoff", () => {
-    // The cutoff gates the season push but not the show creation, so the show reaches the
-    // rollup with nothing to summarise. That stays a hard failure — the sheet is wrong — but
-    // it names the show rather than dereferencing undefined somewhere downstream.
-    expect(() =>
-      jsonConverter([showRow({ Title: "Lost" }), seasonRow({ "Start Date": "2004-01-01", "End Date": "2004-06-01" })]),
-    ).toThrow('Show "Lost": has no seasons starting after 2005');
+    expect(show.s.map((s) => s.s)).toEqual([1, 2]);
+    expect(show.startDate).toBe(YearMonthDay.get(2004, 1, 1));
   });
 
   it("throws by name when a show has no season rows at all", () => {
-    expect(() => jsonConverter([showRow({ Title: "Lost" })])).toThrow('Show "Lost"');
+    // The show reaches the rollup with nothing to summarise, so it names itself rather than
+    // dereferencing undefined somewhere downstream.
+    expect(() => jsonConverter([showRow({ Title: "Lost" })])).toThrow(
+      'Show "Lost": has no seasons, so there is nothing to summarise',
+    );
   });
 });
 
