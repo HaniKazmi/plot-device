@@ -27,7 +27,9 @@ const GameTimeline = ({ data }: { data: VideoGame[] }) => {
 
   const gameData: TimelineData[] = data
     .filter(({ party }) => partyOption === "with" || !party)
-    .filter(({ startDate }) => startDate instanceof YearMonthDay && startDate.year > 2014)
+    // A game logged with a bare year is left off rather than drawn as a year-long solid bar: a
+    // packed row has no way to mark a bar as an estimate, where the card strip dissolves one.
+    .filter(({ startDate }) => startDate instanceof YearMonthDay)
     .map((row) => ({
       // The strip's own identity for a game, which already carries the platform and the start date
       // because a replay and a cross-platform second copy both repeat the title exactly.
@@ -43,8 +45,8 @@ const GameTimeline = ({ data }: { data: VideoGame[] }) => {
       <SectionHeader
         icon={<TimelineIcon />}
         title="Every playthrough"
-        // The bars actually drawn, which the Party control and the chart's own 2015 floor both
-        // narrow — so the figure answers for the picture rather than for the tab's filters.
+        // The bars actually drawn, which the Party control and the bare-year rule both narrow —
+        // so the figure answers for the picture rather than for the tab's filters.
         count={stated(gameData.length, "games")}
         action={
           <SegmentedControl
