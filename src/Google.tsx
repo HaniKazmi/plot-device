@@ -2,9 +2,7 @@ import { Container, createTheme, CssBaseline, ThemeProvider } from "@mui/materia
 import { useState, type ReactNode } from "react";
 import NavBar from "./NavBar";
 import { BottomTabs } from "./BottomTabs";
-import { BrowserTint } from "./BrowserTint";
-import { BOTTOM_TABS_CLEARANCE, safeAreaGutters, useScrolledPastBar } from "./common/chrome";
-import { usePhone } from "./common/breakpoints";
+import { BOTTOM_TABS_CLEARANCE, safeAreaGutters } from "./common/chrome";
 import {
   COARSE_CONTROL_HEIGHT,
   CONTROL_HEIGHT,
@@ -139,50 +137,8 @@ const GoogleAuth = () => {
           </FranchiseUnionProvider>
         </Container>
         <BottomTabs />
-        <BrowserTint />
       </LibraryProvider>
     </GoogleAuthProvider>
-  );
-};
-
-/**
- * The two `theme-color` metas, in a component of its own nested inside the `ThemeProvider` below:
- * `usePhone` reads a breakpoint off the nearest theme in context, which is the one `Graphs` is
- * itself in the middle of providing — called from `Graphs`' own body the hook would find no theme
- * above it at all, this being the outermost `ThemeProvider` in the tree.
- */
-const ThemeColorMetas = ({
-  theme,
-  darkThemeColour,
-}: {
-  theme: ReturnType<typeof getTheme>;
-  darkThemeColour: string;
-}) => {
-  const phone = usePhone();
-  // Below `sm`, once the page has scrolled past the app bar, the two metas state the page's own
-  // ground: nothing at the top of the screen still says which tab is open, so the status bar over
-  // it should read as the page it is above. Safari answers none of this — it samples the strip
-  // `BrowserTint` draws and, past the bar, there is none, so it falls to its own translucent bar —
-  // but a browser that does honour the meta lands on the ground the page actually paints rather
-  // than on a tab colour scrolled out of reach. Stated rather than dropped, because a meta removed
-  // is a meta the installed app answers from its manifest instead, which names the Omnibus's purple
-  // whatever tab is open.
-  const scrolledPastBar = useScrolledPastBar();
-  const onPage = phone && scrolledPastBar;
-
-  return (
-    <>
-      <meta
-        name="theme-color"
-        content={onPage ? LIGHT_PAGE_GROUND : theme.palette.primary.main}
-        media="(prefers-color-scheme: light)"
-      />
-      <meta
-        name="theme-color"
-        content={onPage ? DARK_PAGE_GROUND : darkThemeColour}
-        media="(prefers-color-scheme: dark)"
-      />
-    </>
   );
 };
 
@@ -198,9 +154,20 @@ const Graphs = () => {
       theme={theme}
       noSsr
     >
-      <ThemeColorMetas
-        theme={theme}
-        darkThemeColour={darkThemeColour}
+      {/* One `theme-color` meta per scheme, each the tab's own bar colour: what a browser that
+          reads one — Android Chrome, an installed app — paints its chrome in, where the manifest's
+          own `theme_color` would name the Omnibus's purple whatever tab is open. Safari reads
+          neither and samples the document instead, which the `CssBaseline` override below paints
+          in the same colour. */}
+      <meta
+        name="theme-color"
+        content={theme.palette.primary.main}
+        media="(prefers-color-scheme: light)"
+      />
+      <meta
+        name="theme-color"
+        content={darkThemeColour}
+        media="(prefers-color-scheme: dark)"
       />
       <CssBaseline />
       <GoogleAuth />
@@ -211,15 +178,9 @@ const Graphs = () => {
 // MUI's stock palette, read once for the two fallback colours rather than rebuilt per call.
 const { palette: defaultPalette } = createTheme();
 
-// The dark scheme's own text and paper, named once so `getTheme`'s palette, its `AppBar` fallback
-// and `Graphs`' dark `theme-color` meta all read the same two literals rather than three copies
-// that could drift.
+// The dark scheme's own text, named once so `getTheme`'s palette and its `AppBar` fallback read
+// one literal rather than two copies that could drift.
 const DARK_TEXT = "#e8eaed";
-
-// The two schemes' own page ground, named once so `getTheme`'s palette and the scrolled-past
-// `theme-color` metas cannot drift onto a value that is not what the page at that edge paints.
-const LIGHT_PAGE_GROUND = "#f6f7f9";
-const DARK_PAGE_GROUND = "#14171a";
 
 // Themes are cached per tab: building one walks both colour schemes, typography, shadows and
 // the whole CSS-variable map, and a stable identity also stops the MUI tree re-evaluating `sx`
@@ -246,7 +207,7 @@ const getTheme = (tab: Tab) => {
         palette: {
           primary: { main: primaryColour },
           secondary: { main: secondaryColour },
-          background: { default: LIGHT_PAGE_GROUND, paper: "#ffffff" },
+          background: { default: "#f6f7f9", paper: "#ffffff" },
           text: { primary: "#1b1f24", secondary: "#6a737d" },
           divider: "#e1e4e8",
         },
@@ -262,7 +223,7 @@ const getTheme = (tab: Tab) => {
           // `theme.palette` rather than `theme.vars`.
           primary: { main: tab.darkBar?.rule ?? primaryColour },
           secondary: { main: secondaryColour },
-          background: { default: DARK_PAGE_GROUND, paper: DARK_PAPER },
+          background: { default: "#14171a", paper: DARK_PAPER },
           text: { primary: DARK_TEXT, secondary: "#9aa4af" },
           divider: "#2c3238",
           // Left unset, `AppBar.darkBg`/`darkColor` default to `background.paper`/`text.primary` —
@@ -292,23 +253,16 @@ const getTheme = (tab: Tab) => {
           // The app answers a tap with the card it opens, which is a stronger acknowledgement
           // than a flash. Inherited, so the body is the only place it has to be said.
           body: { WebkitTapHighlightColor: "transparent" },
-          // What shows past the page's ends when a phone rubber-bands, and what Safari extends
-          // under its status bar: the tab's own bar colour while the page is against the app bar,
-          // so a pull past the top opens no band of paper between the status bar and the bar, and
-          // the page's ground once scrolled past it (`data-past-bar`, set by `BrowserTint.tsx` on
-          // the boundary the tint strip already keys on), where the bar colour would tint the
-          // status bar over a page that has scrolled the bar away. Both `html` and `body`, since
-          // Safari reads the body's and paints nothing above the document's edge, so a bar
-          // reaching up past it shows nothing. At every width: a desktop Safari rubber-bands too,
-          // and the app bar is what stands at the top there as well. The dark half is stated
-          // under the same media query MUI emits the dark palette in, there being no
-          // `colorSchemeSelector`.
+          // What shows past the page's ends when a phone rubber-bands, and what Safari samples
+          // for its status bar and extends under it: the tab's own bar colour, at every scroll
+          // position. Both `html` and `body`, since Safari reads the body's and paints nothing
+          // above the document's edge, so a bar reaching up past it shows nothing. At every
+          // width: a desktop Safari rubber-bands too, and the app bar is what stands at the top
+          // there as well. The dark half is stated under the same media query MUI emits the dark
+          // palette in, there being no `colorSchemeSelector`.
           "html, body": {
             backgroundColor: barColour(tab, "light"),
             "@media (prefers-color-scheme: dark)": { backgroundColor: barColour(tab, "dark") ?? DARK_PAPER },
-          },
-          "html[data-past-bar], html[data-past-bar] body": {
-            backgroundColor: theme.vars.palette.background.default,
           },
           // The page's ground moves onto the app's own root, the body having given it up: the
           // root is what the page is drawn in, and it stands at least a screen tall so a short

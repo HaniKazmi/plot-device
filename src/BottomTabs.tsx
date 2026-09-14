@@ -42,8 +42,7 @@ const TABS_UP_NEAR_TOP = 64;
  * the gesture that says the reader is done with this one. Folding them on the way down gives that
  * reading the tab row's 56px, on the screen where height is scarcest, without a second tap to get
  * them back. Held as component state on the bar's own listener rather than in a shared store: the
- * bar is the only surface that reads the direction, where the crossing of the app bar
- * (`useScrolledPastBar`) is read by three.
+ * bar is the only surface that reads the direction.
  */
 const useTabsUp = () => {
   const [up, setUp] = useState(true);
