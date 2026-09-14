@@ -422,7 +422,7 @@ same figure the box's footer states — and every shell asks it at the empty bra
 Handed down instead, it is a prop threaded through sixteen domain wrappers that never look at it,
 and a shell added later is silently the one that says nothing. Asked at the shell's own empty
 branch rather than in place of it, a chart emptied by a control of its own — the games timeline's
-2015 floor, a grouping that yields no rings — still states that in its own words while the page
+Party switch, a grouping that yields no rings — still states that in its own words while the page
 around it has rows. The Omnibus gates each of its sections on having something to draw, so it draws
 the message itself where they would stand.
 
