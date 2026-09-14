@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { usePhone } from "./breakpoints";
 import { ChipRail, type ChipRailItem } from "./ChipRail";
 import { RailChip } from "./RailChip";
-import { beginOwnScroll, BROWSER_TINT_VISIBLE } from "./chrome";
+import { beginOwnScroll } from "./chrome";
 import { usePhoneBarSlot } from "./phoneBar";
 import { QUIET_SIDEWAYS_SCROLL } from "./scrollbarSx";
 
@@ -15,10 +15,9 @@ export type RailSection = ChipRailItem;
 
 /**
  * How far off centre a pinned rail's chips sit before its padding answers for it, in pixels: the
- * tint strip covering the top edge, the one pixel the sticky offset clips above, and the one pixel
- * of rule below.
+ * one pixel the sticky offset clips above, and the one pixel of rule below.
  */
-const PINNED_BIAS = BROWSER_TINT_VISIBLE + 2;
+const PINNED_BIAS = 2;
 
 /**
  * How far below the top of the viewport an anchored section comes to rest from `sm` up, in pixels.
@@ -346,21 +345,14 @@ export const SectionRail = (props: {
         borderBottom: 1,
         borderColor: "divider",
         paddingY: 1,
-        // Pinned, three things push the chips off centre, all the same way: the strip Safari
-        // samples to colour the status bar stands in front of the rail's top `BROWSER_TINT_VISIBLE`
-        // pixels (`chrome.ts`), the sticky offset above clips one more, and the rule along the
-        // bottom edge adds one under. Half of that bias moved from the bottom padding to the top
-        // puts the chips back in the middle of what is actually on screen.
-        //
-        // Moved rather than added, so the rail stands the same height pinned or not and nothing
-        // below it shifts as it pins; solved from the constant rather than stated, so raising the
-        // sliver cannot leave the rail balanced for the old one. Asked for under a coarse pointer
-        // alone, which is where the strip is drawn at all.
+        // Pinned, two things push the chips off centre the same way: the sticky offset above clips
+        // one pixel, and the rule along the bottom edge adds one under. Half of that bias moved
+        // from the bottom padding to the top puts the chips back in the middle of what is actually
+        // on screen. Moved rather than added, so the rail stands the same height pinned or not and
+        // nothing below it shifts as it pins.
         ...(stuck && {
-          "@media (pointer: coarse)": {
-            paddingTop: `calc(${theme.spacing(1)} + ${PINNED_BIAS / 2}px)`,
-            paddingBottom: `calc(${theme.spacing(1)} - ${PINNED_BIAS / 2}px)`,
-          },
+          paddingTop: `calc(${theme.spacing(1)} + ${PINNED_BIAS / 2}px)`,
+          paddingBottom: `calc(${theme.spacing(1)} - ${PINNED_BIAS / 2}px)`,
         }),
         display: "flex",
         alignItems: "center",

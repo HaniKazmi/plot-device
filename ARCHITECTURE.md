@@ -2106,17 +2106,7 @@ that carved itself out of them would be drawn in the colour the light bar is pai
 samples this bar for the bottom of its chrome, which is then the tab's colour at every scroll
 position.
 
-The top edge has no bar of its own to sample, so `BrowserTint.tsx` stands a strip there in the tab's
-own colour while the page is against the app bar, and is not drawn at all once scrolled past it, on
-the `useScrolledPastBar` boundary (`common/chrome.ts`).
-With nothing fixed at the top to sample, Safari draws its own translucent status bar over the page,
-which a stated ground can only imitate; the `theme-color` metas `Google.tsx` emits (§ Theming and
-routing) stay, stating the page's own ground there for the browsers that still read one. Left at the
-tab's colour throughout, a reader scrolled deep into a library sees a coloured band at the top of an
-otherwise plain page, naming a bar long since scrolled out of reach. That boundary carries a dead
-band of eight pixels either side (`scrolledPastBar`), so a reader coming to rest against the app
-bar's own height does not have the strip, the bar and the metas flicker on every small movement of
-the thumb. `common/chrome.ts` states what the app's own furniture costs the page:
+`common/chrome.ts` states what the app's own furniture costs the page:
 `BOTTOM_TABS_HEIGHT` (56) and its `env(safe-area-inset-bottom)`-padded `BOTTOM_TABS_CLEARANCE`, which
 the page container and the data snackbar both stop short of, and `safeAreaGutters`, MUI's own
 `Container`/`Toolbar` gutters restated with the device's side insets added — a notched phone held
@@ -2127,13 +2117,15 @@ colour a phone's status bar wears before any tab-specific theme has painted. `Go
 `MuiCssBaseline` override turns off the grey tap flash on `body`: it is drawn at a tap target's own
 box, which on a chart is a whole row group behind a bar a few pixels wide, and every tap here already
 answers with the card it opens. The same override paints the document — `html` and `body`, Safari reading
-the body's — in the tab's bar colour while the page is against the app bar, at every width, and in the
-page's ground once past it, on a `data-past-bar` attribute `BrowserTint.tsx` sets from the boundary
-its strip already keys on; the page's own ground moves onto `#root`. Safari extends that background
-past the page's ends and under its status bar, so a pull past the top shows the bar's colour where a
-band of paper would otherwise open between the status bar and the app bar, and a page scrolled past
-the bar keeps a status bar over its own ground rather than one tinted in a bar that is gone. A bar
-reaching above the document's edge shows nothing there: Safari paints nothing past it.
+the body's — in the tab's bar colour at every width and every scroll position, the page's own ground
+moving onto `#root`. Safari derives its status bar from the page rather than from a `theme-color`
+meta — on iOS 26 the metas alone leave it the paper and the painted document colours it (checked
+on a phone, 2026-09-14) — sampling the document where nothing fixed stands at the top edge, and
+extends that background
+past the page's ends and under the bar: so the top of a phone's chrome names the tab as the bottom
+bar does, and a pull past the top shows the bar's colour where a band of paper would otherwise open
+between the status bar and the app bar. A bar reaching above the document's edge shows nothing
+there: Safari paints nothing past it.
 
 **The mark.** `public/favicon.svg` is the phone's Now band as four blocks — a banner over a cover
 beside a poster over a banner, each in its medium's fill, the two columns level as the band's own
@@ -2556,12 +2548,10 @@ MUI's stock blue. `enableColorOnDark` stays off and each tab carries a `darkBar`
 `tint` of its primary over the dark paper plus `rule` and `ink` siblings — read through
 `barColour(tab, scheme)`, the single answer for what the bar wears, so a surface painted to match it
 cannot drift. Two `theme-color` metas are emitted, one per scheme, each carrying the tab's own bar
-colour above `sm` and, below it, swapping to the scheme's own page ground once the page has scrolled
-past the app bar — the same boundary and the same `useScrolledPastBar` (`common/chrome.ts`) the
-top-edge tint strip (`BrowserTint.tsx`, § Phone and tablet) keys on. Safari reads neither meta and samples the strip, which past the bar is not drawn; a browser
-that does read one — Android Chrome, and an installed app, whose manifest otherwise answers with the
-Omnibus's own purple whatever tab is open — lands on the ground the page at that edge actually
-paints.
+colour. Safari reads neither and samples the document, which the `CssBaseline` override paints in
+that same colour (§ Phone and tablet); a browser that does read one — Android Chrome, and an
+installed app, whose manifest otherwise answers with the Omnibus's own purple whatever tab is open
+— lands on the colour the bar actually wears.
 
 **The dark scheme's `primary.main` is that `rule`, not the primary.** A primary is solved against
 the white paper: on the dark one Games' carries 3.6:1 and Shows' 3.4, which is a full-strength
