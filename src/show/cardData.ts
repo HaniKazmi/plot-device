@@ -74,8 +74,8 @@ export const showRows = (show: Show, scheme: Scheme): LedgerRow[] => {
     // The season the hero would name for this show, not the last one listed: a show whose newest
     // season the sheet has not dated yet was last watched in the one before it, and a ledger
     // disagreeing with the hero above it about that is two answers to one question. Its own
-    // number, not its position — the converter drops pre-2006 seasons, so a show with early
-    // seasons dropped holds fewer entries than its numbering.
+    // number, not its position — the sheet lists only the seasons watched, so a show picked up at
+    // S5 holds fewer entries than its numbering.
     { label: "Last Watched", value: `S${lastWatched.s}E${lastWatched.e}` },
     // The primary genre leads and the rest follow it, which is the order the sheet holds them in
     // and the order the charts group by.

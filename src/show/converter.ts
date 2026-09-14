@@ -22,9 +22,6 @@ import "../utils/arrayUtils";
 export const dropSeasonParents = (key: string, value: unknown) => (key === "show" ? undefined : value);
 export const reviveSeasonParents = (shows: Show[]) => shows.forEach((show) => show.s.forEach((s) => (s.show = show)));
 
-/** Seasons that started this early are dropped; the data before it is not trustworthy. */
-const EARLIEST_SEASON_YEAR = 2005;
-
 const describeSeason = (row: Record<string, string>, show: Partial<Show>, index: number) =>
   `Row ${sheetRow(index)}, season ${row.Season || "?"} of "${show.name ?? "?"}"`;
 
@@ -101,9 +98,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
         show: show as Show,
       };
 
-      if (startDate.year > EARLIEST_SEASON_YEAR) {
-        show.s!.push(season);
-      }
+      show.s!.push(season);
       if (endDate && startDate > endDate) sheetError(where, `starts ${startDate} but ends ${endDate}`);
     }
 
@@ -112,10 +107,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
 
   showData.forEach((show) => {
     if (show.s.length === 0) {
-      sheetError(
-        `Show "${show.name}"`,
-        `has no seasons starting after ${EARLIEST_SEASON_YEAR}, so there is nothing to summarise`,
-      );
+      sheetError(`Show "${show.name}"`, "has no seasons, so there is nothing to summarise");
     }
 
     show.startDate = show.s[0].startDate;
