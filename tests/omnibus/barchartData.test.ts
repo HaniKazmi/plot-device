@@ -3,7 +3,7 @@ import { Year, YearMonthDay } from "../../src/common/date";
 import { toOmniItems } from "../../src/app/library";
 import { omniBarchartRows } from "../../src/omnibus/barchartData";
 import { mediumToColour } from "../../src/app/types";
-import { certificateToColour, genreToColour } from "../../src/utils/types";
+import { certificateToColour, genreToColour, styleToColour } from "../../src/utils/types";
 import { book } from "../fixtures/books";
 import { library } from "../fixtures/library";
 import { movie } from "../fixtures/movies";
@@ -115,6 +115,18 @@ describe("omniBarchartRows", () => {
     expect(rows[0].colour).toBe(certificateToColour("15", "light"));
   });
 
+  it("splits by style across the three media recording one, in the vocabulary they share", () => {
+    const rows = omniBarchartRows(
+      toOmniItems(library({ game: [videoGame({ style: "Anime" })], movie: [movie({ style: "Anime" })] })),
+      "Items",
+      "style",
+      "light",
+    );
+
+    expect(rows.map((row) => row.name)).toEqual(["Anime", "Anime"]);
+    expect(rows[0].colour).toBe(styleToColour("Anime", "light"));
+  });
+
   it("drops a row whose split column is empty rather than opening a nameless series", () => {
     // The legend and the tooltip both render "" as a blank, so an unnamed series is a colour with
     // nothing saying what it is.
@@ -131,7 +143,7 @@ describe("omniBarchartRows", () => {
 });
 
 describe("books in the pivot", () => {
-  it("counts a book under its medium and its genre, and drops it from the certificate split", () => {
+  it("counts a book under its medium and its genre, and drops it from the certificate and style splits", () => {
     const items = toOmniItems(library({ book: [book({ genre: "Fantasy", hours: 6.5 })] }));
 
     const byMedium = omniBarchartRows(items, "Hours", "medium", "light");
@@ -142,5 +154,7 @@ describe("books in the pivot", () => {
     expect(omniBarchartRows(items, "Items", "genre", "light")[0].name).toBe("Fantasy");
     // No certificate to split on, so no series is opened for it: the header counts drawn rows.
     expect(omniBarchartRows(items, "Items", "certificate", "light")).toEqual([]);
+    // Nor a style, a book having no picture to have one.
+    expect(omniBarchartRows(items, "Items", "style", "light")).toEqual([]);
   });
 });

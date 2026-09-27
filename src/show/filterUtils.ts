@@ -12,11 +12,8 @@ import { showFilters } from "./filters";
 export interface FilterState extends BaseFilterState<Show, Measure> {
   /** Whether Abandoned shows count — the pile that drags every average when it is in the picture. */
   abandoned: boolean;
-  /**
-   * Which side of the anime split the page holds, empty being both. A select rather than a switch:
-   * the single largest sub-population is one a reader asks to see as often as to be rid of.
-   */
-  anime: string[];
+  /** Which styles the page holds, empty being all three. */
+  style: string[];
   genre: string[];
   network: string[];
   franchise: string[];

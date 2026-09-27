@@ -500,35 +500,66 @@ export const franchiseToColour = ({ franchise }: { franchise: string }, scheme: 
 };
 
 /**
- * The word both sheets that record anime write it as.
+ * How a work looks, which the Games, Shows and Movies sheets each record in a Style column of these
+ * three words. Books have none, a book having no picture to have a style.
  *
- * One constant rather than a literal on each tab, because the box folds an attribute on its value:
- * a shelf holding every anime show *and* film exists only where the two labels are the same string,
- * and two literals a rename can part would quietly become two shelves of one thing.
+ * The rule is by form and not by country: the anime idiom is Anime; a picture that presents as the
+ * real world, photographed or rendered — every live-action show and film, and a photoreal game — is
+ * Realistic; everything else, cartoons and cel-shading and pixel art and abstract systems games, is
+ * Stylised. Three values rather than an anime flag because a flag says nothing about the rest, and
+ * on Games the rest is two thirds of the library split between two readings nobody would group
+ * together. "Live action" is not a value: it names how a picture was made rather than how it looks,
+ * and means nothing on Games, where Realistic is the word that covers a photographed series and a
+ * rendered one alike.
+ *
+ * One vocabulary across the three sheets, because the box folds an attribute on its key and its
+ * value together: "Anime" is one entry holding every anime game, show and film only while the three
+ * tabs write the same word under the same key, and each tab's chips, wedges and bars wear one fill
+ * per word for the same reason. The converters check each cell against this list, so a word off it
+ * is a sheet error naming its row rather than a value reaching a chart.
  */
-export const ANIME = "Anime";
+export const STYLES = ["Anime", "Realistic", "Stylised"] as const;
+export type Style = (typeof STYLES)[number];
 
 /**
- * Anime against everything else: the rose its fandom paints in, and a broadcast indigo for the
- * rest. Both meet the fill contract.
- *
- * Shared here rather than kept on the Shows tab because Movies splits by the same distinction —
- * one hue means anime on either tab, and a tracked domain may not import another's vocabulary. The
- * word for the *other* half stays each tab's own, a show that is not anime being a show and a film
- * a film; only the anime half has to agree, and it is the half keyed on.
- *
- * The indigo is 3.7 dE from Movies' own Home blue, the closest pair in any of these tables and
- * inside the licence gameplay and genre take at 2.3: every surface drawing both names them, the
- * chips under their own row labels and the Top band's bars in a ranked legend. Colour is the only
- * carrier on neither. Swinging the hue violet-ward — `#4a5ae0`/`#7d8bff` — opens that to 12.6 and
- * costs the reading, an indigo at that hue being a colour rather than the broadcast blue the
- * ordinary half is named for.
+ * The style guest mode hides on Shows and Movies, named once so the two guest rules cannot come to
+ * hide by two spellings.
  */
-const ANIME_FILL = fill("#c42b91", "#de47a8");
-const NOT_ANIME_FILL = fill("#006bd1", "#1a82f2");
+export const ANIME: Style = "Anime";
 
-export const animeToColour = (label: string, scheme: Scheme): Colour =>
-  pick(label === ANIME ? ANIME_FILL : NOT_ANIME_FILL, scheme);
+/**
+ * Anime takes the rose its fandom paints in; Realistic a broadcast indigo, the colour of a screen
+ * showing the world; Stylised a cel-shaded green. Every value meets the fill contract.
+ *
+ * The green is placed where the other two and the Movies tab's own Cinema/Home pair leave room.
+ * Gold is not that room: Cinema owns it, on the one tab where the style chips stand three rows from
+ * the cinema chips, and an amber clearing 3:1 on white lands 5–9 dE (CIEDE2000) from Cinema's. The green sits at
+ * least 37.8 (CIEDE2000) and 18.8 (OKLab ×100) from rose, indigo, Home and Cinema on either paper.
+ * Its closest neighbour on a shared card is the Shows Vitals card's Ended green in the Status band
+ * above it, 18.8 and 14.0 on the dark paper — each band carrying its own labelled legend, as the
+ * rose does beside that band's Abandoned. The nearest it comes on any one screen is the Games
+ * filter surface's Subscription chip two rows up, 10.7–10.9 (CIEDE2000) away, where every chip is worded.
+ *
+ * The indigo is 3.7 dE (CIEDE2000) from Movies' own Home blue, the closest pair in any of these
+ * tables and inside the licence gameplay and genre take at 2.3: every surface drawing both names
+ * them, the chips under their own row labels and the Top band's bars in a ranked legend. Colour is
+ * the only carrier on neither. Swinging the hue violet-ward — `#4a5ae0`/`#7d8bff` — opens that to
+ * 12.6 and costs the reading, an indigo at that hue being a colour rather than the broadcast blue
+ * Realistic is drawn in.
+ */
+const styleColours: Record<Style, Fill> = {
+  Anime: fill("#c42b91", "#de47a8"),
+  Realistic: fill("#006bd1", "#1a82f2"),
+  Stylised: fill("#31a005", "#4dba30"),
+};
+
+export const styleToColour = (style: string, scheme: Scheme): Colour => {
+  const colour = styleColours[style as Style];
+  // Throws rather than falling back: the vocabulary is closed and checked at conversion, so a word
+  // reaching here off the table is a bug worth surfacing, as a certificate's is.
+  if (!colour) throw new Error("Unknown style: " + style);
+  return pick(colour, scheme);
+};
 
 export const scoreBands = ["9–10", "7–8", "5–6", "3–4", "1–2", "Unscored"] as const;
 

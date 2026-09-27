@@ -24,6 +24,7 @@ const gameItems = (games: VideoGame[]): OmniItem[] =>
     otherGenres: [],
     franchise: game.franchise,
     certificate: game.certificate,
+    style: game.style,
     source: game,
   }));
 

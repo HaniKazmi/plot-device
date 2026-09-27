@@ -10,12 +10,14 @@ import {
   pick,
   releaseDecade,
   statusToColour,
+  styleToColour,
   type Certificate,
   type Colour,
   type Fill,
   type FormatName,
   type KeysMatching,
   type Scheme,
+  type Style,
 } from "../utils/types";
 
 export interface VideoGame {
@@ -45,6 +47,8 @@ export interface VideoGame {
   /** How it is *played*, which is a games-only distinction and so keeps a closed union. */
   gameplay: Gameplay;
   themes: string[];
+  /** How the game looks, in the vocabulary Shows and Movies share (`STYLES`). */
+  style: Style;
   certificate: Certificate;
   /**
    * Either precision, because the sheet holds both: a release is often recorded as a bare year,
@@ -69,6 +73,7 @@ export type VideoGameStringKeys = KeysMatching<VideoGame, string>;
 export const videoGameOptions: readonly VideoGameStringKeys[] = [
   "gameplay",
   "genre",
+  "style",
   "company",
   "platform",
   "status",
@@ -316,6 +321,9 @@ export const groupToColour = (group: keyof VideoGame | "none" | "decade", game: 
       return formatToColour(game.format, scheme);
     case "genre":
       return genreToColour(game.genre, scheme);
+    case "style":
+      // The vocabulary Shows and Movies share, so the rose means anime on every tab.
+      return styleToColour(game.style, scheme);
     case "franchise":
       return franchiseToColour(game, scheme);
     default:

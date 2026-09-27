@@ -46,7 +46,7 @@ describe("the Party status", () => {
 
 describe("field parsing", () => {
   it("splits the Themes cell on the comma the sheet separates them with", () => {
-    expect(convertOne({ Themes: "Crime, Anime, Visual Novel" }).themes).toEqual(["Crime", "Anime", "Visual Novel"]);
+    expect(convertOne({ Themes: "Crime, Mystery, Visual Novel" }).themes).toEqual(["Crime", "Mystery", "Visual Novel"]);
     expect(convertOne({ Themes: "Fantasy" }).themes).toEqual(["Fantasy"]);
   });
 
@@ -173,6 +173,21 @@ describe("genre and gameplay", () => {
   });
 });
 
+describe("style", () => {
+  it("reads the shared three words, in their declared spelling whatever the cell's case", () => {
+    expect(convertOne({ Style: "Anime" }).style).toBe("Anime");
+    expect(convertOne({ Style: "realistic " }).style).toBe("Realistic");
+    expect(convertOne().style).toBe("Stylised");
+  });
+
+  it("rejects a blank or unknown style, naming the row", () => {
+    // Checked as the other two sheets check theirs: the box folds "Anime" across the three tabs on
+    // the word, so a cell off the list is a game missing from that shelf with nothing to say so.
+    expect(() => convertOne({ Title: "Zelda", Style: "" })).toThrow('Row 2, "Zelda", Style: "" is not a style');
+    expect(() => convertOne({ Style: "Cel-shaded" })).toThrow("is not a style");
+  });
+});
+
 describe("bad rows", () => {
   it("throws on a blank start date instead of dropping the row", () => {
     // Unlike movie/, this converter filters nothing, so a trailing blank row reaches here.
@@ -203,7 +218,7 @@ describe("bad rows", () => {
 
 describe("the cache config", () => {
   it("keys the cache on the domain and a version, so a shape change can bump it", () => {
-    expect(gameDataConfig.storageKey).toBe("game-data-cache-v3");
+    expect(gameDataConfig.storageKey).toBe("game-data-cache-v4");
     expect(gameDataConfig.converter).toBe(jsonConverter);
   });
 });

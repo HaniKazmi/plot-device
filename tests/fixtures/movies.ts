@@ -23,6 +23,6 @@ export const movie = (overrides: Partial<Movie> = {}): Movie => ({
   director: "Denis Villeneuve",
   artwork: "arrival.jpg",
   cinema: true,
-  anime: false,
+  style: "Realistic",
   ...overrides,
 });

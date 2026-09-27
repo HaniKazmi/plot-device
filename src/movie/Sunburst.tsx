@@ -30,7 +30,7 @@ const MovieSunburst = ({ data, measure }: { data: Movie[]; measure: Measure }) =
             case "name":
               return movie.name;
             default:
-              // The derived keys — decade, cinema, anime, score — share one definition with the Top
+              // The derived keys — decade, cinema, score — share one definition with the Top
               // band and the drill-down, so a film cannot land in different buckets per chart.
               return movieGroupValue(movie, key) || movie.name;
           }
@@ -60,7 +60,7 @@ const options: OptionKeys[] = [
   "franchise",
   "certificate",
   "cinema",
-  "anime",
+  "style",
   "score",
   "director",
   "startDate",

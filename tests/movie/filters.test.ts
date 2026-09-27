@@ -15,7 +15,7 @@ describe("the default state", () => {
 
     expect(keep(movie({ cinema: false }))).toBe(true);
     expect(keep(movie({ score: undefined }))).toBe(true);
-    expect(keep(movie({ anime: true }))).toBe(true);
+    expect(keep(movie({ style: "Anime" }))).toBe(true);
   });
 });
 
@@ -29,12 +29,11 @@ describe("toggles", () => {
 });
 
 describe("categories", () => {
-  it("holds the page to either side of a split, or to neither", () => {
-    // Both splits, and both directions of each: the two readings a switch could not reach are
-    // "only anime" and "only the nights in".
-    expect(filters(state({ anime: ["Anime"] }))(movie({ anime: true }))).toBe(true);
-    expect(filters(state({ anime: ["Anime"] }))(movie({ anime: false }))).toBe(false);
-    expect(filters(state({ anime: ["Film"] }))(movie({ anime: true }))).toBe(false);
+  it("holds the page to any set of styles, or to either side of the outing split, or to neither", () => {
+    // Both directions of the split: the reading a switch could not reach is "only the nights in".
+    expect(filters(state({ style: ["Anime"] }))(movie({ style: "Anime" }))).toBe(true);
+    expect(filters(state({ style: ["Anime"] }))(movie({ style: "Realistic" }))).toBe(false);
+    expect(filters(state({ style: ["Realistic", "Stylised"] }))(movie({ style: "Anime" }))).toBe(false);
 
     expect(filters(state({ cinema: ["Cinema"] }))(movie({ cinema: true }))).toBe(true);
     expect(filters(state({ cinema: ["Cinema"] }))(movie({ cinema: false }))).toBe(false);
@@ -44,15 +43,14 @@ describe("categories", () => {
     expect(filters(state({ cinema: [] }))(movie({ cinema: false }))).toBe(true);
   });
 
-  it("puts both halves of the outing split in the box's index, where anime keeps only its own", () => {
-    // An outing and a night in are each a thing to go looking for, where "Film" on the Movies tab
-    // names the tab.
+  it("puts both halves of the outing split and every style in the box's index", () => {
+    // An outing and a night in are each a thing to go looking for, as each of the three styles is.
     const cinema = movieFilters.categories.find((category) => category.key === "cinema")!;
-    const anime = movieFilters.categories.find((category) => category.key === "anime")!;
+    const style = movieFilters.categories.find((category) => category.key === "style")!;
 
     expect(cinema.found).toBeUndefined();
     expect(cinema.options!([movie({ cinema: true }), movie({ cinema: false })])).toEqual(["Cinema", "Home"]);
-    expect(anime.found).toEqual(["Anime"]);
+    expect(style.found).toBeUndefined();
   });
 
   it("filters by genre, director, franchise and certificate as inclusion lists", () => {
@@ -71,15 +69,16 @@ describe("categories", () => {
 });
 
 describe("what guest mode hides", () => {
-  // Applied to the library above the tab, so it is exercised as the predicate itself; the anime
-  // toggle below drops the same films, one rule serving both.
-  it("keeps everything but a film the sheet marks as anime", () => {
-    expect(guestFilter(movie({ anime: true }))).toBe(false);
-    expect(guestFilter(movie({ anime: false }))).toBe(true);
+  // Applied to the library above the tab, so it is exercised as the predicate itself; the style
+  // select reads the same field, one reading serving both.
+  it("keeps everything but a film the sheet styles as anime", () => {
+    expect(guestFilter(movie({ style: "Anime" }))).toBe(false);
+    expect(guestFilter(movie({ style: "Realistic" }))).toBe(true);
+    expect(guestFilter(movie({ style: "Stylised" }))).toBe(true);
   });
 
-  it("cannot be undone by the anime select, which narrows the library rather than widening it", () => {
-    expect(filters(state({ anime: ["Anime"] }))(movie({ anime: true }))).toBe(true);
+  it("cannot be undone by the style select, which narrows the library rather than widening it", () => {
+    expect(filters(state({ style: ["Anime"] }))(movie({ style: "Anime" }))).toBe(true);
   });
 });
 
@@ -108,12 +107,12 @@ describe("the year cutoff", () => {
 
 describe("the schema the drawer and the box are both drawn from", () => {
   it("offers one toggle and six categories, in the order they are laid out", () => {
-    // Unscored films are a pile to be rid of; both splits are categories, each having a third
-    // reading a switch cannot hold.
+    // Unscored films are a pile to be rid of; the style and the outing split are categories, a
+    // switch holding two of either's readings at most.
     expect(movieFilters.toggles.map((toggle) => toggle.key)).toEqual(["unscored"]);
     expect(movieFilters.categories.map((category) => category.key)).toEqual([
       "genre",
-      "anime",
+      "style",
       "cinema",
       "certificate",
       "director",

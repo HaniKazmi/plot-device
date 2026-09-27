@@ -228,9 +228,9 @@ const tabGroup = (tabs: TabEntry[], query: string, scheme: Scheme, close: () => 
   });
 
 /**
- * Whether the value is its own category's name — "Anime" under `anime` — where stating both is the
- * one word twice. A split names its category after the half worth finding, so this is the split's
- * own case rather than a general risk.
+ * Whether the value is its own category's name, where stating both is the one word twice. A guard
+ * rather than a case any schema holds: a category is named for what its values are, so the
+ * two meet only where a vocabulary is named after one of its own words.
  */
 const namesItsCategory = (entry: AttributeEntry) => entry.label.toLowerCase() === entry.value.toLowerCase();
 

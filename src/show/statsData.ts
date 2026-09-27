@@ -1,6 +1,6 @@
 import { daysSince, formatDate, type YearMonthDay, type YearNumber } from "../common/date";
 import { format } from "../utils/mathUtils";
-import { animeLabel, type Measure, type Season, type Show } from "./types";
+import { type Measure, type Season, type Show } from "./types";
 import { earliestYear as earliestYearOf, groupByCategory, realFranchisesOnly } from "../common/statsData";
 import "../utils/arrayUtils";
 
@@ -19,18 +19,9 @@ export const earliestYear = (data: readonly Show[]): YearNumber => earliestYearO
  * The order is load-bearing beyond presentation: `TopList` turns a category's index into a
  * Highcharts palette offset, so reordering this recolours those charts.
  */
-export const showTopOptions = ["genre", "network", "franchise", "anime", "status", "certificate"] as const;
+export const showTopOptions = ["genre", "network", "franchise", "style", "status", "certificate"] as const;
 
 export type ShowTopOption = (typeof showTopOptions)[number];
-
-/**
- * A grouping's value for one show, worded the way a card should read it — the anime split is a
- * boolean on the model and answers through `animeLabel`.
- */
-const showGroupValue = (show: Show, key: ShowTopOption): string => {
-  if (key === "anime") return animeLabel(show);
-  return show[key];
-};
 
 /** Minutes as whole hours — the one floor every hours figure on this tab shares. */
 export const seasonHours = (minutes: number) => Math.floor(minutes / 60);
@@ -53,7 +44,7 @@ export const measureOf = (shows: Show[], measure: Measure) => {
 export const groupShowsBy = (data: Show[], key: ShowTopOption, measure: Measure) =>
   groupByCategory(
     data,
-    (show) => showGroupValue(show, key),
+    (show) => show[key],
     (shows) => measureOf(shows, measure),
     (shows) => shows.reduce((best, show) => (show.minutes > best.minutes ? show : best)),
     key === "franchise" ? realFranchisesOnly : undefined,

@@ -413,14 +413,14 @@ describe("groupShowsBy", () => {
     expect(groupShowsBy(data, "franchise", "Shows")[0]).toMatchObject({ name: "Star Wars", count: 2 });
   });
 
-  it("words the anime split through animeLabel, the boolean being no label of its own", () => {
-    const data = [show({ anime: true }), show({ name: "Andor", anime: false })];
+  it("groups by style under the shared vocabulary's own words", () => {
+    const data = [show({ style: "Anime" }), show({ name: "Andor", style: "Realistic" })];
 
     expect(
-      groupShowsBy(data, "anime", "Shows")
+      groupShowsBy(data, "style", "Shows")
         .map((g) => g.name)
         .toSorted(),
-    ).toEqual(["Anime", "Show"]);
+    ).toEqual(["Anime", "Realistic"]);
   });
 });
 

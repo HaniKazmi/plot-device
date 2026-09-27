@@ -1,5 +1,5 @@
 import { Year } from "../common/date";
-import type { Colour, Scheme } from "../utils/types";
+import { styleToColour, type Colour, type Scheme } from "../utils/types";
 import type { OmniItem } from "../common/medium";
 import { galleryColour, galleryValue } from "../app/galleryData";
 import { mediumToColour, mediumToLabel, type Measure } from "../app/types";
@@ -14,12 +14,15 @@ import { mediumToColour, mediumToLabel, type Measure } from "../app/types";
  * happened. Three series is also too few for two of the shell's four views to say anything — a
  * bump chart of three lines reports that games led most years, which the totals already showed.
  *
+ * Style is the one split the gallery does not shelve by, so it is read off the item rather than
+ * through `galleryValue`; a book has none, and drops out of it as it does out of the certificate.
+ *
  * Franchise is not offered. It is the fourth thing the gallery groups on, and it answers with 115
  * series — a legend longer than the chart and a colour vocabulary the app does not hold for it.
  * Decade is not offered either: a decade is derived from the year, so plotting it against the year
  * draws each series into exactly one run of columns and nothing crosses.
  */
-export const BARCHART_SPLITS = ["medium", "genre", "certificate"] as const;
+export const BARCHART_SPLITS = ["medium", "genre", "certificate", "style"] as const;
 
 type BarchartSplit = (typeof BARCHART_SPLITS)[number];
 
@@ -28,11 +31,15 @@ type BarchartSplit = (typeof BARCHART_SPLITS)[number];
  *
  * Genre and certificate are asked of `galleryValue`, which is what the shelves group on: the chart
  * and the gallery then cannot come to disagree about what a genre is or which certificates are one
- * tier, and a change to the banding reaches both. Medium is this chart's alone — the gallery has no
- * shelf for it, since every shelf there already mixes all three.
+ * tier, and a change to the banding reaches both. Medium and style are this chart's alone — the
+ * gallery has no shelf for either. A book carries no style and answers `""`, as it does for the
+ * certificate.
  */
-const splitName = (item: OmniItem, split: BarchartSplit): string =>
-  split === "medium" ? mediumToLabel(item.medium) : galleryValue(item, split);
+const splitName = (item: OmniItem, split: BarchartSplit): string => {
+  if (split === "medium") return mediumToLabel(item.medium);
+  if (split === "style") return item.style ?? "";
+  return galleryValue(item, split);
+};
 
 /**
  * The fill that series is drawn in.
@@ -45,12 +52,14 @@ const splitName = (item: OmniItem, split: BarchartSplit): string =>
  * with — one uncoloured series against eleven, rather than a crash on a genre it has not been
  * given yet.
  */
-const splitColour = (item: OmniItem, split: BarchartSplit, name: string, scheme: Scheme): Colour =>
-  split === "medium"
-    ? mediumToColour(item.medium, scheme)
-    : // Never undefined for these two: `galleryColour` answers that only for a franchise, which is
-      // the one grouping this chart does not offer.
-      (galleryColour(name, split, scheme) as Colour);
+const splitColour = (item: OmniItem, split: BarchartSplit, name: string, scheme: Scheme): Colour => {
+  if (split === "medium") return mediumToColour(item.medium, scheme);
+  // The vocabulary the three tabs recording a style share, so the rose means anime here as there.
+  if (split === "style") return styleToColour(name, scheme);
+  // Never undefined for these two: `galleryColour` answers that only for a franchise, which is the
+  // one grouping this chart does not offer.
+  return galleryColour(name, split, scheme) as Colour;
+};
 
 /**
  * The union as the barchart pivot wants it: one row per item, keyed by the chosen series and by
@@ -74,7 +83,8 @@ export const omniBarchartRows = (
     // A row with no value in the split column would open a series named "", which the legend and
     // the tooltip both render as a blank. Every book answers the certificate split with one — no
     // certificate exists for it — and is dropped from that split rather than drawn under a blank
-    // legend entry; the header counts the rows drawn, so it says so.
+    // legend entry, and from the style split for the same reason; the header counts the rows drawn,
+    // so it says so.
     .filter(({ name }) => name)
     .map(({ item, name }) => ({
       name,

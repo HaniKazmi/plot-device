@@ -21,6 +21,7 @@ export interface FilterState extends BaseFilterState<VideoGame, Measure> {
   format: Format[];
   gameplay: string[];
   genre: string[];
+  style: string[];
   publisher: string[];
   certificate: Certificate[];
 }

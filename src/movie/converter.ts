@@ -1,22 +1,25 @@
 import { dataCacheKey, type DataConfig } from "../common/useData";
 import { readCertificate, readChecked, readFullDate, readGenre, sheetRow } from "../common/sheetError";
 import { splitCell } from "../utils/stringUtils";
+import { STYLES } from "../utils/types";
 import type { Movie } from "./types";
 
 /**
- * How a film was seen and what kind of film it is, as the sheet words them.
+ * How a film was seen, as the sheet words it.
  *
- * The model keeps both as booleans, the converter being the app's one translation layer — but the
+ * The model keeps it as a boolean, the converter being the app's one translation layer — but the
  * read is checked rather than compared. A flag column written only in its true case has a blank for
  * its false case and nothing to reject; a worded column has no blank case, so anything outside the
  * pair — a typo, or a header named wrongly here, which is every row at once — would land silently
- * as Home and non-anime, indistinguishable from a library of home viewing with no anime in it.
- *
- * The anime one is the cell on this sheet whose misreading costs most: guest mode hides anime, so a
- * value that fails to say so puts a hidden film on screen rather than a wrong figure.
+ * as Home, indistinguishable from a library of home viewing.
  */
 const readWatchFormat = readChecked(["Cinema", "Home"] as const, "a watch format");
-const readFilmType = readChecked(["film", "anime"] as const, "a film type");
+
+/**
+ * The cell on this sheet whose misreading costs most: guest mode hides anime, so a value that fails
+ * to say so puts a hidden film on screen rather than a wrong figure.
+ */
+const readStyle = readChecked(STYLES, "a style");
 
 export const jsonConverter = (json: Record<string, string>[]) => {
   return json.map((row, index) => {
@@ -56,13 +59,13 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       director: row.Director,
       artwork: row.Artwork ?? "",
       cinema: readWatchFormat(row.Format, `${where}, Format`) === "Cinema",
-      anime: readFilmType(row.Type, `${where}, Type`) === "anime",
+      style: readStyle(row.Style, `${where}, Style`),
     } as Movie;
   });
 };
 
 /** Bump the version on any change to the model's shape, or a returning visitor's cache lacks the field. */
 export const movieDataConfig: DataConfig<Movie> = {
-  storageKey: dataCacheKey("movie", 4),
+  storageKey: dataCacheKey("movie", 5),
   converter: jsonConverter,
 };

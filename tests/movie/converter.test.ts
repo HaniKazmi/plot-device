@@ -124,16 +124,17 @@ describe("field parsing", () => {
     expect(() => convertOne({ Format: "Streaming" })).toThrow("is not a watch format");
   });
 
-  it("reads whether a film is anime from the sheet's own two words", () => {
-    expect(convertOne({ Type: "anime" }).anime).toBe(true);
-    expect(convertOne({ Type: "film" }).anime).toBe(false);
+  it("reads a film's style from the shared three words", () => {
+    expect(convertOne({ Style: "Anime" }).style).toBe("Anime");
+    expect(convertOne({ Style: "Realistic" }).style).toBe("Realistic");
+    expect(convertOne({ Style: "Stylised" }).style).toBe("Stylised");
   });
 
-  it("rejects a film type outside those two, guest mode depending on it", () => {
+  it("rejects a style outside those three, guest mode depending on it", () => {
     // The cell here whose misreading costs most: guest mode hides anime, so a value that fails to
     // say so puts a hidden film on screen rather than a wrong figure.
-    expect(() => convertOne({ Type: "" })).toThrow('Row 2, "Arrival", Type: "" is not a film type');
-    expect(() => convertOne({ Type: "cartoon" })).toThrow("is not a film type");
+    expect(() => convertOne({ Style: "" })).toThrow('Row 2, "Arrival", Style: "" is not a style');
+    expect(() => convertOne({ Style: "Live action" })).toThrow("is not a style");
   });
 
   it("takes a hand-typed cell's case and spacing as the same answer", () => {
@@ -141,7 +142,7 @@ describe("field parsing", () => {
     // hand is what they hold. Neither is a different answer from the one the dropdown offers, and
     // rejecting them would empty the whole tab over a capital letter.
     expect(convertOne({ Format: " cinema " }).cinema).toBe(true);
-    expect(convertOne({ Type: "Anime" }).anime).toBe(true);
+    expect(convertOne({ Style: " stylised" }).style).toBe("Stylised");
   });
 
   it("carries the remaining columns through untouched", () => {
@@ -157,7 +158,7 @@ describe("field parsing", () => {
 
 describe("the cache config", () => {
   it("keys the cache on the domain and a version, so a shape change can bump it", () => {
-    expect(movieDataConfig.storageKey).toBe("movie-data-cache-v4");
+    expect(movieDataConfig.storageKey).toBe("movie-data-cache-v5");
     expect(movieDataConfig.converter).toBe(jsonConverter);
   });
 });

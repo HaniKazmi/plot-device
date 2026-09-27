@@ -1,6 +1,7 @@
 import {
   Album,
   AutoGraph,
+  Brush,
   Business,
   Category,
   Code,
@@ -359,6 +360,7 @@ const optionIcons: Record<TopOption, ReactNode> = {
   status: <TaskAlt />,
   gameplay: <SportsEsports />,
   genre: <Category />,
+  style: <Brush />,
 };
 
 const gameStatListSharedProps: Pick<StatListBaseProps<VideoGame>, "shape" | "divider" | "width"> & GridListLayout = {

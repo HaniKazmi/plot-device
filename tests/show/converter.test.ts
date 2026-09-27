@@ -40,7 +40,7 @@ describe("flattening the sheet into nested shows", () => {
   it("carries the show-level columns through as the sheet holds them", () => {
     const [show] = jsonConverter([showRow(), seasonRow()]);
 
-    expect(show.anime).toBe(false);
+    expect(show.style).toBe("Realistic");
     expect(show.genre).toBe("Sci-Fi");
     expect(show.network).toBe("Apple TV+");
     expect(show.certificate).toBe("15");
@@ -81,18 +81,24 @@ describe("flattening the sheet into nested shows", () => {
     expect(() => jsonConverter([showRow(), seasonRow({ Genre: "" })])).not.toThrow();
   });
 
-  it("rejects a type outside the sheet's two words, guest mode depending on it", () => {
+  it("rejects a style outside the shared three, guest mode depending on it", () => {
     // Guest mode hides anime (`show/filters.ts`), so a cell that fails to say a show is one puts a
     // hidden show on screen — silently, where a wrong genre only mislabels a wedge.
-    expect(() => jsonConverter([showRow({ Type: "cartoon" }), seasonRow()])).toThrow(
-      'Row 2, "Severance", Type: "cartoon" is not a show type',
+    expect(() => jsonConverter([showRow({ Style: "cartoon" }), seasonRow()])).toThrow(
+      'Row 2, "Severance", Style: "cartoon" is not a style',
     );
+    expect(() => jsonConverter([showRow({ Style: "" }), seasonRow()])).toThrow("is not a style");
   });
 
-  it("takes a hand-typed type cell's case and spacing as the same answer", () => {
-    const [show] = jsonConverter([showRow({ Type: " Anime " }), seasonRow()]);
+  it("takes a hand-typed style cell's case and spacing as the same answer", () => {
+    const [show] = jsonConverter([showRow({ Style: " anime " }), seasonRow()]);
 
-    expect(show.anime).toBe(true);
+    // The declared spelling, which is the word every surface and the box's fold key on.
+    expect(show.style).toBe("Anime");
+  });
+
+  it("reads the style off the show row alone, its season rows leaving the cell blank", () => {
+    expect(() => jsonConverter([showRow({ Style: "Stylised" }), seasonRow({ Style: "" })])).not.toThrow();
   });
 
   it("splits the secondary genres on the comma the sheet separates them with", () => {
@@ -341,7 +347,7 @@ describe("bad rows", () => {
 
 describe("the cache config", () => {
   it("keys the cache on the domain and a version, so a shape change can bump it", () => {
-    expect(showDataConfig.storageKey).toBe("show-data-cache-v6");
+    expect(showDataConfig.storageKey).toBe("show-data-cache-v7");
     expect(showDataConfig.converter).toBe(jsonConverter);
     expect(showDataConfig.replacer).toBe(dropSeasonParents);
     expect(showDataConfig.reviver).toBe(reviveSeasonParents);

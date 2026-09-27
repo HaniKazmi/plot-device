@@ -1,9 +1,9 @@
 import { franchiseOptions } from "./filterOptions";
 import {
-  ANIME,
+  STYLES,
   certificateBand,
   isCertificate,
-  animeToColour,
+  styleToColour,
   franchiseToColour,
   type Colour,
   type KeysMatching,
@@ -126,11 +126,10 @@ export interface FilterCategory<T, S> {
    * The values the box indexes as attributes, where only some of them are worth finding. Defaults
    * to all of them: a genre, a network, an author is a thing a reader goes looking for.
    *
-   * A split's unmarked half is not. "Show" on the Shows tab names the tab, so a shelf of it is the
-   * library less a few rows and its hit stands beside the Go-to chip for the tab of the same name
-   * saying nearly the opposite. Franchise states the empty list for a different reason: its values
-   * are found through the franchise index, which drops the standalone works that make up most of
-   * the column.
+   * A value standing for nearly the whole of its own tab is not: a shelf of it is the library less
+   * a few rows, and its hit would stand beside the Go-to chip for that tab saying nearly the same
+   * thing. Franchise states the empty list for a different reason: its values are found through the
+   * franchise index, which drops the standalone works that make up most of the column.
    */
   found?: readonly string[];
   /**
@@ -229,31 +228,24 @@ export const franchiseCategory = <T extends { franchise: string; name: string },
 });
 
 /**
- * The anime split, which Shows and Movies both record, both colour and both group charts by.
+ * The style select, which Games, Shows and Movies all record, colour and group charts by.
  *
- * Stated once because the box folds the two tabs' entries on the key and the word together: keyed
- * or worded apart, "Anime" would be two hits holding one medium each instead of one shelf holding
- * both. A category and not a toggle, so the page can be held to anime as well as cleared of it —
- * a toggle offers two of a split's three readings and which two is an accident of how its
- * predicate was written.
- *
- * Only the marked half is `found`: a shelf of "Show" is the Shows tab, and of "Film" the Movies
- * tab. `group` is the tab's own two words in the order its charts band them, the unmarked one
- * first — not "live action", the sheet claiming no such thing — and `valueOf` is the tab's own
- * labelling, both taken from the domain so the chips, the wedges and the band cannot come to word
- * one split three ways.
+ * Stated once because the box folds the tabs' entries on the key and the word together: keyed or
+ * worded apart, "Anime" would be three hits holding one medium each instead of one shelf holding
+ * all three. Every value is found, each of the three being something a reader looks for across the
+ * library. `valueOf` is the caller's, the composing tab reading an optional field a book leaves
+ * empty; the options are the shared vocabulary in its own order, held to what the rows carry, so a
+ * book's blank is never a chip.
  */
-export const animeCategory = <T, S>(
-  key: SharedKey<S, "anime">,
+export const styleCategory = <T, S>(
+  key: SharedKey<S, "style">,
   valueOf: (item: T) => string,
-  group: readonly string[],
 ): FilterCategory<T, S> => ({
   key,
-  label: "anime",
+  label: "style",
   valueOf,
-  options: (data) => present(group, data, valueOf),
-  colourFor: animeToColour,
-  found: [ANIME],
+  options: (data) => present(STYLES, data, valueOf),
+  colourFor: styleToColour,
 });
 
 /**

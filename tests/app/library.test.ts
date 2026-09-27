@@ -8,10 +8,11 @@ import { videoGame } from "../fixtures/gameRows";
 
 describe("guest mode", () => {
   const adult = videoGame({ themes: ["Adult"] });
-  const anime = show({ anime: true });
-  const animeFilm = movie({ anime: true });
+  const animeGame = videoGame({ name: "Persona 5", style: "Anime" });
+  const anime = show({ style: "Anime" });
+  const animeFilm = movie({ style: "Anime" });
   const full = library({
-    game: [videoGame(), adult],
+    game: [videoGame(), adult, animeGame],
     show: [show(), anime],
     movie: [movie(), animeFilm],
     book: [book()],
@@ -21,6 +22,8 @@ describe("guest mode", () => {
     const visible = visibleLibrary(full, true);
 
     expect(visible.game).not.toContain(adult);
+    // The Games rule is the Adult theme and nothing else, so an anime-styled game stays on screen.
+    expect(visible.game).toContain(animeGame);
     expect(visible.show).not.toContain(anime);
     expect(visible.movie).not.toContain(animeFilm);
     // Nothing on the Books sheet marks a book, so that rule keeps the whole library.

@@ -22,6 +22,7 @@ const movieItems = (movies: Movie[]): OmniItem[] =>
     otherGenres: movie.otherGenres,
     franchise: movie.franchise,
     certificate: movie.certificate,
+    style: movie.style,
     source: movie,
   }));
 

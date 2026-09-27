@@ -119,10 +119,34 @@ describe("the books switch", () => {
   });
 });
 
+describe("the style category", () => {
+  it("narrows the union to a style, a book having none and so dropping off it", () => {
+    const [read] = toOmniItems({ game: [], show: [], movie: [], book: [book()] });
+    const keep = filters(state({ style: ["Stylised"] }));
+
+    // The default game is Stylised and the default film Realistic.
+    expect(keep(game)).toBe(true);
+    expect(keep(film)).toBe(false);
+    expect(keep(read)).toBe(false);
+  });
+
+  it("offers only the styles the rows carry, never a book's blank", () => {
+    const style = omniFilters.categories.find((category) => category.key === "style")!;
+    const [read] = toOmniItems({ game: [], show: [], movie: [], book: [book()] });
+
+    expect(style.options!([game, film, read])).toEqual(["Realistic", "Stylised"]);
+  });
+});
+
 describe("the schema the drawer and the box are both drawn from", () => {
   it("offers a switch per medium and the vocabularies more than one medium shares", () => {
     expect(omniFilters.toggles.map((toggle) => toggle.key)).toEqual([...media]);
-    expect(omniFilters.categories.map((category) => category.key)).toEqual(["genre", "certificate", "franchise"]);
+    expect(omniFilters.categories.map((category) => category.key)).toEqual([
+      "genre",
+      "certificate",
+      "style",
+      "franchise",
+    ]);
   });
 
   it("opens a search-within on the vocabularies this library holds hundreds of values in", () => {

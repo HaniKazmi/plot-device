@@ -1,5 +1,5 @@
 import { assignPercents } from "../utils/mathUtils";
-import { CERTIFICATE_BANDS, certificateBand, releaseDecade } from "../utils/types";
+import { CERTIFICATE_BANDS, STYLES, certificateBand, releaseDecade } from "../utils/types";
 import type { OmniItem } from "../common/medium";
 import { franchiseIndex } from "../common/franchiseIndex";
 import { media, type Measure, type Medium } from "../app/types";
@@ -15,14 +15,19 @@ interface GenreBridgeSegment {
 /**
  * What a row of the bridge is keyed on: the vocabularies the gallery already shelves the union by,
  * less franchise — a hundred and sixty-nine rows of bars is a table, not a chart — plus the year,
- * which the decade coarsens. Every one is a field all four media record; a book answers the
- * certificate with nothing, and a row keyed on nothing is not drawn.
+ * which the decade coarsens, and the style. A book answers the certificate and the style with
+ * nothing, and a row keyed on nothing is not drawn. Style is the one key whose rows are a split
+ * of three: how much of the anime, the realistic and the stylised is games rather than screen is
+ * the composition question no home tab can ask, each holding one medium.
  */
-export const BRIDGE_KEYS = ["genre", "year", "decade", "certificate"] as const;
+export const BRIDGE_KEYS = ["genre", "year", "decade", "certificate", "style"] as const;
 
 export type BridgeKey = (typeof BRIDGE_KEYS)[number];
 
-/** How a row is named under each key: a genre as the sheet writes it, a certificate by its tier. */
+/**
+ * How a row is named under each key: a genre or a style as the sheet writes it, a certificate by
+ * its tier.
+ */
 export const bridgeValue = (item: OmniItem, key: BridgeKey): string => {
   switch (key) {
     case "genre":
@@ -33,6 +38,8 @@ export const bridgeValue = (item: OmniItem, key: BridgeKey): string => {
       return releaseDecade(item.year);
     case "certificate":
       return item.certificate ? certificateBand(item.certificate) : "";
+    case "style":
+      return item.style ?? "";
   }
 };
 
@@ -72,7 +79,8 @@ export interface GenreBridgeRow {
  * How a key's rows run. Biggest first is the reading a composition invites, and is what genres
  * take; a vocabulary with an order of its own keeps it, since a year or a certificate read out of
  * that order is not the thing it names — years and decades newest first, the order every list on
- * the page states time in, and certificates youngest first, the order the boards print them in.
+ * the page states time in, certificates youngest first, the order the boards print them in, and
+ * styles in the order `STYLES` declares, the order every style band and chip row on the page uses.
  */
 const rowOrder = (
   key: BridgeKey,
@@ -85,6 +93,8 @@ const rowOrder = (
       return (a, b) => (a.name < b.name ? 1 : a.name > b.name ? -1 : 0);
     case "certificate":
       return (a, b) => CERTIFICATE_BANDS.indexOf(a.name) - CERTIFICATE_BANDS.indexOf(b.name);
+    case "style":
+      return (a, b) => (STYLES as readonly string[]).indexOf(a.name) - (STYLES as readonly string[]).indexOf(b.name);
   }
 };
 

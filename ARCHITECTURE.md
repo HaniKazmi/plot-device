@@ -178,9 +178,9 @@ store that over the copy a cold visit paints from and report a successful refres
 that names none. `common/sheetError.ts` holds the vocabulary — `sheetRow`, `describing`, `sheetError`
 — and four readers over it: `readCertificate` rejects a certificate outside `Certificate`, `readGenre` a
 blank, `readFullDate` a bare year where the model claims a day, and `readDatePair` a span logged at
-two precisions. Two more sit in the converters that need them: Movies checks its `Format` and `Type`
-cells against the two words each holds, and Games rejects an absent `Themes` column while allowing a
-blank cell. `readGenre` defaults its argument, since the API ends a row at its last filled cell
+two precisions. More sit in the converters that need them: Games, Shows and Movies check their
+`Style` cell against the shared `STYLES` through `readChecked`, Movies its `Format` cell against the
+two words it holds, and Games rejects an absent `Themes` column while allowing a blank cell. `readGenre` defaults its argument, since the API ends a row at its last filled cell
 and a half-entered row carries no `Genre` key; genre is also read before the dates to its right, so
 such a row names its missing genre rather than a date.
 
@@ -189,7 +189,8 @@ Converters do real modelling work, not just field renaming:
 - **`game/`** derives `company` from the platform string, folds a `"Party"` status into
   `status: "Endless"` plus a `party` boolean, splits `Themes` through `splitCell`, computes `numDays`
   from the date pair, and checks `Gameplay` against the `GAMEPLAY` vocabulary through `readChecked`
-  rather than casting it past `gameplayToColour`'s neutral. The themes read rejects an _absent_ column while allowing a blank
+  rather than casting it past `gameplayToColour`'s neutral, and `Style` against `STYLES` the same
+  way. The themes read rejects an _absent_ column while allowing a blank
   cell: 12 of 340 games honestly carry no theme, and `themes.includes("Adult")` is what guest mode
   hides on, so reading a missing column as "no themes" would put every adult game back on screen.
 - **`show/`** nests a flat sheet: a non-empty `Title` cell opens a show, the rows after it are its
@@ -199,19 +200,20 @@ Converters do real modelling work, not just field renaming:
   finale was watched — and otherwise the `Seasons / Last Watched` cell, a column carrying the season
   count on a show row instead. The end date taking precedence is what keeps a cell nobody clears on a
   finished row from electing an old watch as the current one, and it leaves one field the hero is
-  elected on rather than two the election would have to choose between. Its `Type` cell is checked
-  against the sheet's own two words and stored as `anime`, a boolean: the column records one split
-  and nothing else, so a vocabulary on the model would be two values standing for one question. A
+  elected on rather than two the election would have to choose between. Its `Style` cell is read
+  on the show row alone, a season inheriting its show's, and checked against `STYLES`, the one
+  cell here whose misreading hides or shows a show under guest mode. A
   season with episodes and no runtime is counted as 0 minutes without complaint, an open season the
   sheet has no length for yet being the common case; an inverted date pair, a non-numeric episode
   count or seasons listed out of order are rejected by row, as the other converters reject theirs.
   The `show` back-reference makes the graph cyclic (§4).
 - **`movie/`** reads both its dates as full ones, a blank runtime as `0` and a blank Score as
   `undefined`: `sum` accumulates with `+`, so one `NaN` blanks every hours total, where a score is
-  honestly absent rather than zero. `cinema` and `anime` stay booleans on the model but are read from
-  worded cells and checked: a flag column written only in its true case has a blank for its false
-  case and nothing to reject, where a worded column has none — so anything outside the pair would
-  land silently as Home and non-anime, the second of which guest mode hides on.
+  honestly absent rather than zero. `cinema` stays a boolean on the model but is read from a worded
+  cell and checked: a flag column written only in its true case has a blank for its false case and
+  nothing to reject, where a worded column has none — so anything outside the pair would land
+  silently as Home. `Style` is checked against `STYLES` for the sharper reason that guest mode hides
+  on it.
 - **`book/`** holds every date to a full one and rejects a `Status` or `Format` outside its two small
   vocabularies, which `statusToColour` answers `undefined` for and the status band drops silently. It
   requires status and end date to agree, and rejects a non-numeric page or hour count: a `NaN` blanks
@@ -248,9 +250,9 @@ converter error belongs on Books. The Omnibus reads all four, and the first erro
 
 Omnibus runs no pipeline of its own, and neither does any tab: `app/library.ts` flattens the four
 through the registry, each medium's arm supplied by its own `module.ts` (§2) — which is why `Show[]`
-flattens at the season, the unit actually watched, carrying the show's name, genre, franchise and
-certificate onto each. A book has no certificate, so `OmniItem.certificate` is optional and every surface
-grouping on it drops books.
+flattens at the season, the unit actually watched, carrying the show's name, genre, franchise,
+certificate and style onto each. A book has neither a certificate nor a style, so `OmniItem.certificate`
+and `OmniItem.style` are optional and every surface grouping on either drops books.
 
 ## 4. Caching and hydration
 
@@ -307,8 +309,8 @@ Two subtleties live in the serialisation boundary, and both are easy to break:
    the domain's reviver running in the same guard — the hook is called from `LibraryProvider`, above
    the page's own error boundary (§10), so a throw here takes the app down and not just the page.
 
-Cache keys are versioned per domain — `dataCacheKey(domain, version)` yields `game-data-cache-v3`,
-`show-data-cache-v6`, `movie-data-cache-v4`, `book-data-cache-v2` — and `dropSupersededVersions`
+Cache keys are versioned per domain — `dataCacheKey(domain, version)` yields `game-data-cache-v4`,
+`show-data-cache-v7`, `movie-data-cache-v5`, `book-data-cache-v2` — and `dropSupersededVersions`
 clears earlier keys on first load, matched on the domain's prefix so one tab's bump cannot empty
 another's. Bump the version in the domain's `converter.ts` on any model-shape change, or returning
 visitors' cached objects lack the field until their next authorised fetch — indefinitely, for a
@@ -718,16 +720,17 @@ way out, states the cut its own 500-card cap still makes as a figure. The librar
 (`common/Finished`) is not reached from the union; see §10.
 
 **By year** (`omnibus/Barchart.tsx`, `omnibus/barchartData.ts`) is the union on a time axis, split
-by medium, genre or certificate. Medium is what the page opens on, but four series is a bar in a few
+by medium, genre, certificate or style. Medium is what the page opens on, but four series is a bar in a few
 pieces and a bump chart of four flat lines, where a dozen genres or five certificates is the shape
 Share and Rank were built for. Franchise is not offered — 115 series and a legend longer than the
 chart — nor decade, derived from the year and so putting each series in one run of columns with
 nothing crossing. Genre and certificate are asked of `galleryValue` and coloured through
 `galleryColour`, so chart and shelves cannot disagree about what a genre is or which certificates
-are one tier. The date is a whole year in every view including Cumulative: an item's
+are one tier. Style is the chart's own, the gallery not shelving by it, and is read off the item and
+coloured through `styleToColour`. The date is a whole year in every view including Cumulative: an item's
 year is an attribution, and only a film's is a date the sheet holds. A row whose split column is
-empty is dropped rather than opening a series named `""` — every book answers the certificate split
-that way — and the header counts the rows drawn.
+empty is dropped rather than opening a series named `""` — every book answers the certificate and
+style splits that way — and the header counts the rows drawn.
 
 **The gallery** (`omnibus/Gallery.tsx`, `app/galleryData.ts`) shelves the union by genre,
 franchise, certificate or decade, each shelf a `common/Filmstrip` with a drill-down behind the worded cut
@@ -763,12 +766,15 @@ question of the union: one proportional bar per row, split by how it divides bet
 media, counted in the rail's measure — under Hours a genre reads as mostly games wherever the games
 are long, under Items every entry weighs the same, and the rail is where the reader asks which. A
 select picks what a row is (`BRIDGE_KEYS`): genre, which the section opens on, or the year, decade
-or certificate tier, the vocabularies the gallery already shelves by, each row wearing the swatch
-that vocabulary has elsewhere on the page and a year its decade's. Franchise is not offered, for the
-By year chart's reason. Genres run biggest first; years and decades newest first; certificates
-youngest first through the shared `CERTIFICATE_BANDS`, the order the boards print them in, so the bridge
-cannot order the tiers differently from the colour ramp. A book carries no certificate and drops
-out of that view, as it does off the certificate shelves. Only the primary genre counts, since two media
+or certificate tier, the vocabularies the gallery already shelves by, or the style — three rows,
+and the one composition question no home tab can ask, each holding a single medium: how much of
+the anime, or the stylised, is games rather than screen. Each row wears the swatch its vocabulary
+has elsewhere on the page, a year its decade's and a style its band's. Franchise is not offered,
+for the By year chart's reason. Genres run biggest first; years and decades newest first;
+certificates youngest first through the shared `CERTIFICATE_BANDS`, the order the boards print
+them in, so the bridge cannot order the tiers differently from the colour ramp; styles in `STYLES`
+order, as every style band runs. A book carries no certificate and no style and drops out of both
+views, as it does off the certificate shelves. Only the primary genre counts, since two media
 carry secondaries. A row held by one medium is a solid bar rather than held back until a second
 arrives — requiring the crossing puts a cliff in the section, Abstract being 136 hours of games
 that a single abstract film would admit at full size — and the bar states the confinement the cliff
@@ -1086,15 +1092,15 @@ the charts are drawn by, so the box's footer and the rail's chip cannot arrive a
 **Four kinds of hit.** _Places_ are the other tabs, offered as a "Go to" line of chips — all of
 them before anything is typed, whichever the query names once something is. _Things_ are works, and
 the franchises the box offers before a letter is typed. _Categories_ are the vocabularies those
-values belong to, named rather than found (below). _Values_ are a genre, network, platform, author, director, certificate, decade or format,
+values belong to, named rather than found (below). _Values_ are a genre, network, platform, author, director, certificate, style, decade or format,
 each with its count in each medium: `buildAttributeIndex` (`app/searchData.ts`) walks every medium's
 own schema over that medium's own rows, so the box can only offer a narrowing that tab's controls
 actually draw. A category states which of its values are worth finding through `found`, defaulting
-to all of them: a split names its category after the half a reader looks for and offers only that
-half, since a shelf of "Show" on the Shows tab is the tab, and its hit would stand beside the Go-to
-chip of the same name saying nearly the opposite. Shows' and Movies' anime selects are keyed and
-worded alike — which is what the shared `animeCategory` is for — so the two fold into one entry with
-a count in each. Franchise states the empty list and is scanned from the franchise index instead,
+to all of them: a value standing for nearly the whole of its own tab is a shelf that is the library
+less a few rows, and its hit would stand beside the Go-to chip for that tab saying nearly the same
+thing. The style selects on Games, Shows, Movies and the Omnibus are keyed and worded alike — which
+is what the shared `styleCategory` is for — so "Anime" is one entry with a count in each, every one
+of the three styles found. Franchise states the empty list and is scanned from the franchise index instead,
 the column being mostly works naming themselves — 168 values in the games sheet
 alone. The certificate is grouped on
 `certificateBand`, the gallery's own rule, so `15` and `16` are one hit; what it _sets_ is whichever
@@ -1252,8 +1258,8 @@ the reader was not looking at. That is also why a bare substring is offered here
 rows could not afford one: "at" inside platform, certificate and format is three chips of a row
 already on screen, where three rows would bury the values a reader was actually after.
 
-Both chip groups are drawn by `ChipsGroup`, which wraps rather than scrolls. The twelve categories
-come to about 1,050px of run — two lines in the 620px dialog, four at 390 — which is more height
+Both chip groups are drawn by `ChipsGroup`, which wraps rather than scrolls. The thirteen categories
+come to about 1,110px of run — two lines in the 620px dialog, four at 390 — which is more height
 than a scroller costs and worth it twice over: the row is what teaches that a category can be named
 at all, and a name a reader has to scroll sideways to find teaches nobody; and every cell stays
 somewhere `revealSelected` can bring into view, which is what keeps ←→ honest. That reveal asks for
@@ -1273,7 +1279,7 @@ past two values only the row the reader is on draws its readings, which is what 
 scannable.
 
 One shape rather than a list, because the vocabularies are two populations with nothing in between:
-format 3, certificate 5, genre 12, gameplay 14 and platform 15 against series 64, author 65, network
+format 3, style 3, certificate 5, genre 12, gameplay 14 and platform 15 against series 64, author 65, network
 77, publisher 92, director 218 and franchise 225. A list answers the first group and is a phone book
 for the second, where typing inside the scope answers both — which is exactly what `searchable`
 already means on the filter surface, reached from Find for the first time.
@@ -1284,8 +1290,9 @@ certificate and gameplay above the values a reader was after, while "action" sti
 Action genre, no category being called that. A **level is neither counted nor listed**, a company
 standing for a set of the category's values rather than being one, or the header would state 15 over
 17 rows. A **category of one findable value is that value**, through the same `groupHolds` the filter
-chips group by — the anime split offers a single word, so its category row and its value row would
-be one narrowing under two names. And **franchise scopes off the franchise index**, its values being
+chips group by — a vocabulary whose rows hold a single word, as the Movies outing split does for a
+library seen only in cinemas, would otherwise stand as a category row and a value row that are one
+narrowing under two names. And **franchise scopes off the franchise index**, its values being
 deliberately absent from the attribute one, so the 225 series are reachable with no vocabulary
 special-cased anywhere else.
 
@@ -2247,7 +2254,7 @@ all four domains' `groupToColour`.
 Nine vocabularies live in `utils/types.ts` because more than one tab speaks them: the genre ramp,
 `statusToColour`, `franchiseToColour`, `decadeToColour`, the score bands (`scoreBandToColour`, which
 Movies and Books both rate on), `certificateToColour` over the `Certificate` union three of the four
-domains record a certificate into, `animeToColour` over the split Shows and Movies both record,
+domains record a certificate into, `styleToColour` over the Style column Games, Shows and Movies all write,
 `formatToColour` over the Format column Games and Books both write, and
 `mediumFills` with `mediumToLabel`, `mediumToName` and
 `mediumUnit` — the only colour a mixed-media surface carries meaning in, re-exported by
@@ -2265,18 +2272,24 @@ in which of them they use, BBFC issuing a 15 where PEGI issues a 16 for one tier
 off the tier rather than the number. `isCertificate` lets a converter reject a bad cell while it
 still knows the row — though what actually keeps a board's own five values in its column is the
 sheet's dropdown, a converter only being able to report a cell already written. `certificateBand` names that tier rather
-than colouring it, and is what the colour is looked up by. `animeToColour` is a pair
-rather than a ramp: Shows and Movies both record the split and both group charts by it, so the rose
-means anime on either tab. Only the anime half is shared — the word for it is the
-`ANIME` constant, which is also what folds the two tabs' selects into one entry the box shelves —
-while each tab keeps its own word for the rest, a series that is not anime being a show and a film a
-film. That rest takes `NEUTRAL_FILL`, being an absence and not a second thing, which is also what
-keeps it clear of the Cinema/Home pair the Movies filter surface now draws three rows below it: a
-hue of its own there was a blue 3.7 dE from the sofa's, two colours a reader cannot tell apart
-meaning different things on one screen.
+than colouring it, and is what the colour is looked up by.
 
-`formatToColour` is the newest of the nine and the one an equivalence is keyed on rather than a
-word. Games and Books both write a Format column, and two of its values mean one thing on both — a
+`styleToColour` is three categories rather than a ramp, over the closed `STYLES` vocabulary —
+`Anime`, `Realistic`, `Stylised` — which the three sheets recording a picture write in one Style
+column each, and it throws off the table as the certificate lookup does, the converters having
+checked every cell. The rule is by form and not by country: the anime idiom is Anime, a picture
+presenting as the real world, photographed or rendered, is Realistic, and everything else —
+cartoons, cel-shading, pixel art, abstract systems games — is Stylised. "Live action" is no value,
+naming how a picture was made rather than how it looks and meaning nothing on Games. One word per
+value across the three tabs is what folds each tab's select into one entry the box shelves, and one
+fill per word is what makes the rose mean anime on every chart. Anime takes that rose, Realistic a
+broadcast indigo and Stylised a cel-shaded green (`#31a005`/`#4dba30`). Gold is the obvious gap and
+not an open one: the Movies filter surface draws the Cinema/Home pair three rows below the style
+chips, and an amber clearing 3:1 on white lands 5–9 dE (CIEDE2000) from Cinema's marquee gold, where
+the green sits at least 37.8 from rose, indigo, Home and Cinema. The indigo is 3.7 dE from the
+sofa's blue, the closest pair in any table, allowed because both rows word their chips.
+
+`formatToColour` is the one of the nine an equivalence is keyed on rather than a word. Games and Books both write a Format column, and two of its values mean one thing on both — a
 disc and a paperback are each `Physical`, a storefront download and a Kindle purchase are each a
 file on a screen — so `Digital` and `eBook` are one entry under two words, as the status table
 folds Playing, Watching and Reading into one state. The three the Books sheet's own conditional
@@ -2524,8 +2537,8 @@ than hiding a class of them, and a value it drops is one the reader can still se
 Long-pressing the wordmark (`utils/useLongPress.ts`, 300 ms, over the pure `longPressReducer`) sets
 `guestMode`, which `Google.tsx` hands to `app/LibraryProvider`. `visibleLibrary` (`app/library.ts`)
 applies each medium's own `guestFilter`, exported from its `filterUtils.ts` and named by its
-`module.ts` — a game whose `theme` includes `"Adult"`, a show the sheet marks anime, a film carrying
-the sheet's `anime` flag; nothing marks a book, so that rule keeps the whole library — and every tab,
+`module.ts` — a game whose `theme` includes `"Adult"`, a show or a film whose `style` is `ANIME`,
+the one constant both rules read; nothing marks a book, so that rule keeps the whole library — and every tab,
 index and union reads the slice that comes back. It is applied to the data once rather than to each
 page's filters because the franchise index, the union and the search index are all built from the
 library: a mode narrowing one page's charts would put a hidden item straight back on screen through
@@ -2632,7 +2645,7 @@ nights in. As a category the same field states all three with the multi-select s
 category already has, wears the vocabulary's own colour on its chips, and is found and placed by the
 box like any other value. A toggle is then what it says it is: a page's own noise, an unscored film
 or a medium switched off, which nobody asks to see alone. A category built by a shared helper —
-`franchiseCategory`, `certificateCategory`, `animeCategory` — takes its key as a
+`franchiseCategory`, `certificateCategory`, `styleCategory` — takes its key as a
 `CategoryKey<S> & "the key"`: the literal so the helper still fixes it, two tabs keying one
 vocabulary apart being two entries where the box's fold wants one, and `CategoryKey<S>` so the tab
 is held to declaring the field. Stated inside the helper instead, `S` reaches `FilterCategory` only

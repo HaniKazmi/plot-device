@@ -307,30 +307,34 @@ describe("buildAttributeIndex", () => {
   });
 });
 
-describe("buildAttributeIndex over a shelved toggle", () => {
+describe("buildAttributeIndex over the shared style", () => {
   const animeLibrary = () =>
     library({
-      game: [videoGame({ name: "Star Trek: Resurgence", franchise: "Star Trek", hours: 11 })],
-      show: [showWithSeasons(3, { name: "Cowboy Bebop", franchise: "Cowboy Bebop", anime: true })],
-      movie: [movie({ name: "Akira", franchise: "Akira", anime: true })],
+      game: [videoGame({ name: "Persona 5", franchise: "Persona", style: "Anime" })],
+      show: [showWithSeasons(3, { name: "Cowboy Bebop", franchise: "Cowboy Bebop", style: "Anime" })],
+      movie: [movie({ name: "Akira", franchise: "Akira", style: "Anime" })],
       book: [book()],
     });
 
-  it("folds the two tabs' anime switches into one entry, since both are keyed and worded alike", () => {
-    const anime = buildAttributeIndex(pages(animeLibrary())).filter((entry) => entry.category === "anime");
+  it("folds the three tabs' style selects into one entry, since all are keyed and worded alike", () => {
+    const anime = buildAttributeIndex(pages(animeLibrary())).filter((entry) => entry.category === "style");
 
     expect(anime).toHaveLength(1);
     expect(anime[0].value).toBe("Anime");
-    // Each tab's own rows, and only the two: the composing tab records no anime split.
-    expect(anime[0].counts).toEqual({ shows: 1, movies: 1 });
+    // Each tab's own rows — a show counted once, the union counting its three seasons — and the
+    // composing tab beside them, which carries the style through.
+    expect(anime[0].counts).toEqual({ games: 1, shows: 1, movies: 1, omnibus: 5 });
+    // The layer is worded by the four libraries' rows alone, never the union's second pass.
+    expect(anime[0].size).toBe(3);
   });
 
-  it("keeps the split's unmarked half out of the index, so no shelf stands for a whole tab", () => {
-    const values = buildAttributeIndex(pages(animeLibrary()))
-      .filter((entry) => entry.category === "anime")
-      .map((entry) => entry.value);
+  it("indexes every style the rows carry, each being something a reader looks for", () => {
+    const values = buildAttributeIndex(pages(trekLibrary()))
+      .filter((entry) => entry.category === "style")
+      .map((entry) => entry.value)
+      .toSorted();
 
-    expect(values).toEqual(["Anime"]);
+    expect(values).toEqual(["Realistic", "Stylised"]);
   });
 
   it("leaves a toggle that names a page's own noise out of the index entirely", () => {
@@ -342,11 +346,11 @@ describe("buildAttributeIndex over a shelved toggle", () => {
     expect(keys).not.toContain("game");
   });
 
-  it("holds every row the shelved toggle names, across both media that record it", () => {
-    const [anime] = buildAttributeIndex(pages(animeLibrary())).filter((entry) => entry.category === "anime");
+  it("holds every row the style names, across the three media that record it", () => {
+    const [anime] = buildAttributeIndex(pages(animeLibrary())).filter((entry) => entry.category === "style");
     const works = attributeWorks(animeLibrary(), anime, TODAY);
 
-    expect(works.map((work) => work.medium).toSorted()).toEqual(["movie", "show"]);
+    expect(works.map((work) => work.medium).toSorted()).toEqual(["game", "movie", "show"]);
   });
 });
 
@@ -668,9 +672,13 @@ describe("the categories a query can name", () => {
   });
 
   it("drops a category of one findable value, that row and its value's being the same row twice", () => {
-    // The anime split offers its marked half alone, so naming the category and naming the value
-    // would put one narrowing on the list under two names.
-    expect(index().categories.map((entry) => entry.category)).not.toContain("anime");
+    // Every film here was seen in a cinema, so the outing split holds one word: naming the category
+    // and naming the value would put one narrowing on the list under two names.
+    const categories = index().categories.map((entry) => entry.category);
+
+    expect(categories).not.toContain("cinema");
+    // Style holds two words across this library, Stylised from the game and Realistic from the rest.
+    expect(categories).toContain("style");
   });
 
   it("counts the franchise category off the franchise index, its values being absent from the other", () => {

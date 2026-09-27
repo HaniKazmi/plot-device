@@ -7,7 +7,7 @@ import {
   FORMAT_NAMES,
   FRANCHISE_NAMES,
   GENRE_NAMES,
-  animeToColour,
+  STYLES,
   certificateBandToColour,
   certificateToColour,
   decadeToColour,
@@ -17,6 +17,7 @@ import {
   neutralFill,
   releaseDecade,
   statusToColour,
+  styleToColour,
   type Scheme,
 } from "../../src/utils/types";
 import {
@@ -132,12 +133,12 @@ describe.each(SCHEMES)("every fill clears 3:1 on the %s paper", (scheme) => {
     }
   });
 
-  it("networks and the anime split", () => {
+  it("networks", () => {
     for (const network of NETWORK_NAMES) check(`network ${network}`, networkToColour({ network }, scheme));
-    // The marked half and its absence: Shows and Movies word anime identically and each keeps its
-    // own word for the rest, which all resolve to the neutral, so two labels cover every value
-    // drawn on either tab.
-    for (const label of ["Anime", "Show"]) check(`anime ${label}`, animeToColour(label, scheme));
+  });
+
+  it("styles, the one vocabulary Games, Shows and Movies all record", () => {
+    for (const style of STYLES) check(`style ${style}`, styleToColour(style, scheme));
   });
 
   it("score bands and where a film was seen", () => {
@@ -172,6 +173,21 @@ describe("one franchise, one colour, every tab", () => {
       expect(fromShows, `${franchise} on ${scheme}`).toBe(fromGames);
       expect(fromMovies, `${franchise} on ${scheme}`).toBe(fromGames);
       expect(fromBooks, `${franchise} on ${scheme}`).toBe(fromGames);
+    }
+  });
+});
+
+/**
+ * The property the shared style table exists for: a style is one colour on each of the three tabs
+ * recording it, so the rose means anime whichever chart it is drawn on.
+ */
+describe("one style, one colour, every tab recording it", () => {
+  it.each(STYLES)("draws %s the same on Games, Shows and Movies", (style) => {
+    for (const scheme of SCHEMES) {
+      const fromGames = gameGroupToColour("style", videoGame({ style }), scheme);
+
+      expect(showGroupToColour("style", show({ style }), scheme), `${style} on ${scheme}`).toBe(fromGames);
+      expect(movieGroupToColour("style", movie({ style }), scheme), `${style} on ${scheme}`).toBe(fromGames);
     }
   });
 });

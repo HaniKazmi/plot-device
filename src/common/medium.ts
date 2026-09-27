@@ -5,7 +5,7 @@ import type { PageStore } from "./filterReducer";
 import type { PageSchema } from "./filterSchema";
 import type { FranchiseEntry } from "./franchiseUnion";
 import type { DataConfig } from "./useData";
-import type { Certificate, Medium, Scheme } from "../utils/types";
+import type { Certificate, Medium, Scheme, Style } from "../utils/types";
 
 /**
  * One thing watched, played or read, in the vocabulary the four media share.
@@ -72,6 +72,11 @@ export interface OmniItem {
    * records, stated here rather than answered with a certificate nobody issued.
    */
   certificate?: Certificate;
+  /**
+   * Absent for a book, as `certificate` is: a book has no picture to have a style. Every surface
+   * grouping on the style drops an item with none rather than shelving it under a blank.
+   */
+  style?: Style;
   source: object;
 }
 

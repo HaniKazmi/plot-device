@@ -10,6 +10,7 @@ import {
   sheetRow,
 } from "../common/sheetError.ts";
 import { splitCell } from "../utils/stringUtils";
+import { STYLES } from "../utils/types";
 import { GAMEPLAY, platformCompany, type Format, type Platform, type Status, type VideoGame } from "./types";
 
 /**
@@ -18,6 +19,9 @@ import { GAMEPLAY, platformCompany, type Format, type Platform, type Status, typ
  * style awaiting a colour rather than a cell awaiting a value.
  */
 const readGameplay = readChecked(GAMEPLAY, "a gameplay style");
+
+/** Checked for the same reason, against the vocabulary Shows and Movies share. */
+const readStyle = readChecked(STYLES, "a style");
 
 /**
  * Reads the themes cell, which the sheet lists in one cell as the Genres columns do.
@@ -67,6 +71,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       genre,
       gameplay: readGameplay(row.Gameplay, `${where}, Gameplay`),
       themes: readThemes(row.Themes, `${where}, Themes`),
+      style: readStyle(row.Style, `${where}, Style`),
       format: row.Format as Format,
       developer: row.Developer,
       publisher: row.Publisher,
@@ -85,6 +90,6 @@ export const jsonConverter = (json: Record<string, string>[]) => {
 
 /** Bump the version on any change to the model's shape, or a returning visitor's cache lacks the field. */
 export const gameDataConfig: DataConfig<VideoGame> = {
-  storageKey: dataCacheKey("game", 3),
+  storageKey: dataCacheKey("game", 4),
   converter: jsonConverter,
 };

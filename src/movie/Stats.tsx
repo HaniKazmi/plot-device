@@ -1,5 +1,5 @@
 import {
-  Animation,
+  Brush,
   Category,
   Grade,
   History,
@@ -238,7 +238,7 @@ const optionIcons: Record<MovieTopOption, ReactNode> = {
   certificate: <VerifiedUser />,
   decade: <History />,
   cinema: <Theaters />,
-  anime: <Animation />,
+  style: <Brush />,
   score: <Grade />,
 };
 

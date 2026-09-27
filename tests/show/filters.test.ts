@@ -13,7 +13,7 @@ describe("the default state", () => {
   it("is a no-op: every toggle is permissive, the year ceiling is the current year, guest mode is off", () => {
     const keep = filters(state());
 
-    expect(keep(show({ anime: true }))).toBe(true);
+    expect(keep(show({ style: "Anime" }))).toBe(true);
     expect(keep(show({ status: "Abandoned" }))).toBe(true);
     expect(keep(showWithSeasonsIn(2008))).toBe(true);
   });
@@ -29,32 +29,33 @@ describe("toggles", () => {
 });
 
 describe("categories", () => {
-  it("holds the page to either side of the anime split, or to neither", () => {
-    // The three readings a split has, which is why it is a select and not a switch: a toggle can
-    // state two of them and which two follows from how its predicate happens to be written.
-    expect(filters(state({ anime: [] }))(show({ anime: true }))).toBe(true);
-    expect(filters(state({ anime: [] }))(show({ anime: false }))).toBe(true);
+  it("holds the page to any set of styles, or to none", () => {
+    expect(filters(state({ style: [] }))(show({ style: "Anime" }))).toBe(true);
+    expect(filters(state({ style: [] }))(show({ style: "Stylised" }))).toBe(true);
 
-    expect(filters(state({ anime: ["Anime"] }))(show({ anime: true }))).toBe(true);
-    expect(filters(state({ anime: ["Anime"] }))(show({ anime: false }))).toBe(false);
+    expect(filters(state({ style: ["Anime"] }))(show({ style: "Anime" }))).toBe(true);
+    expect(filters(state({ style: ["Anime"] }))(show({ style: "Realistic" }))).toBe(false);
 
-    expect(filters(state({ anime: ["Show"] }))(show({ anime: true }))).toBe(false);
-    expect(filters(state({ anime: ["Show"] }))(show({ anime: false }))).toBe(true);
+    expect(filters(state({ style: ["Realistic", "Stylised"] }))(show({ style: "Anime" }))).toBe(false);
+    expect(filters(state({ style: ["Realistic", "Stylised"] }))(show({ style: "Stylised" }))).toBe(true);
   });
 
-  it("offers the split's own two words, the unmarked one first, and only those the rows carry", () => {
-    const anime = showFilters.categories.find((category) => category.key === "anime")!;
+  it("offers the shared vocabulary in its own order, and only the words the rows carry", () => {
+    const style = showFilters.categories.find((category) => category.key === "style")!;
 
-    expect(anime.options!([show({ anime: false }), show({ anime: true })])).toEqual(["Show", "Anime"]);
-    expect(anime.options!([show({ anime: false })])).toEqual(["Show"]);
+    expect(style.options!([show({ style: "Stylised" }), show({ style: "Anime" }), show()])).toEqual([
+      "Anime",
+      "Realistic",
+      "Stylised",
+    ]);
+    expect(style.options!([show({ style: "Stylised" })])).toEqual(["Stylised"]);
   });
 
-  it("puts only the marked half of the split in the box's index", () => {
-    // A shelf of "Show" on the Shows tab is the tab, and its hit would stand beside the Go-to chip
-    // for the tab of the same name saying nearly the opposite.
-    const anime = showFilters.categories.find((category) => category.key === "anime")!;
+  it("puts every style in the box's index", () => {
+    // Each of the three is something a reader looks for across the library.
+    const style = showFilters.categories.find((category) => category.key === "style")!;
 
-    expect(anime.found).toEqual(["Anime"]);
+    expect(style.found).toBeUndefined();
   });
 
   it("matches the primary genre only, so the filter and the charts agree about what a genre holds", () => {
@@ -76,17 +77,18 @@ describe("categories", () => {
 });
 
 describe("what guest mode hides", () => {
-  // Applied to the library above the tab, so it is exercised as the predicate itself; the anime
-  // toggle below drops the same shows, one rule serving both.
+  // Applied to the library above the tab, so it is exercised as the predicate itself; the style
+  // select reads the same field, one reading serving both.
   it("keeps everything but anime, which is what the mode means on this tab", () => {
-    expect(guestFilter(show({ anime: true }))).toBe(false);
-    expect(guestFilter(show({ anime: false }))).toBe(true);
+    expect(guestFilter(show({ style: "Anime" }))).toBe(false);
+    expect(guestFilter(show({ style: "Realistic" }))).toBe(true);
+    expect(guestFilter(show({ style: "Stylised" }))).toBe(true);
   });
 
-  it("cannot be undone by the anime select, which narrows the library rather than widening it", () => {
+  it("cannot be undone by the style select, which narrows the library rather than widening it", () => {
     // Asking for anime alone admits it back into the charts; in guest mode there is none in the
     // library for it to admit.
-    expect(filters(state({ anime: ["Anime"] }))(show({ anime: true }))).toBe(true);
+    expect(filters(state({ style: ["Anime"] }))(show({ style: "Anime" }))).toBe(true);
   });
 });
 
@@ -119,13 +121,13 @@ describe("the year cutoff", () => {
 
 describe("the schema the drawer and the box are both drawn from", () => {
   it("offers one toggle and five categories, in the order they are laid out", () => {
-    // The one toggle names a pile to be rid of; the split is a category, having a third reading a
-    // switch cannot hold.
+    // The one toggle names a pile to be rid of; style is a category, a switch holding two of its
+    // readings at most.
     expect(showFilters.toggles.map((toggle) => toggle.key)).toEqual(["abandoned"]);
     expect(showFilters.categories.map((category) => category.key)).toEqual([
       "genre",
       "network",
-      "anime",
+      "style",
       "certificate",
       "franchise",
     ]);

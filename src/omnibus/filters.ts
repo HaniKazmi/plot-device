@@ -1,4 +1,10 @@
-import { certificateCategory, franchiseCategory, FRANCHISE_KEY, type FilterSchema } from "../common/filterSchema";
+import {
+  certificateCategory,
+  franchiseCategory,
+  FRANCHISE_KEY,
+  styleCategory,
+  type FilterSchema,
+} from "../common/filterSchema";
 import { CERTIFICATE_BANDS, certificateBandToColour, genreToColour, mediumToLabel } from "../utils/types";
 import type { OmniItem } from "../common/medium";
 import type { FilterState } from "./filterUtils";
@@ -16,8 +22,9 @@ import { galleryValue } from "../app/galleryData";
  *
  * Genre and franchise are the vocabularies all four media share, and both are derived from the
  * union rather than from any one sheet — the entries appearing in more than one of them are the
- * point of offering the filter here at all. The certificate is the third and is not shared by all
- * four: nothing certifies a book, so a book answers `""` and drops off that row.
+ * point of offering the filter here at all. The certificate and the style are not shared by all
+ * four: nothing certifies a book and a book has no picture to have a style, so a book answers `""`
+ * to both and drops off those rows.
  */
 export const omniFilters: FilterSchema<OmniItem, FilterState> = {
   toggles: media.map((medium) => ({
@@ -45,6 +52,9 @@ export const omniFilters: FilterSchema<OmniItem, FilterState> = {
       CERTIFICATE_BANDS,
       certificateBandToColour,
     ),
+    // Under the key the three tabs recording a style use, so "Anime" is one entry in the box with a
+    // placement here beside theirs.
+    styleCategory("style", (item) => item.style ?? ""),
     franchiseCategory(FRANCHISE_KEY),
   ],
 };
