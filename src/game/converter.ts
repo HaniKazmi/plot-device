@@ -6,11 +6,11 @@ import {
   readChecked,
   readDatePair,
   readGenre,
+  readStyle,
   sheetError,
   sheetRow,
 } from "../common/sheetError.ts";
 import { splitCell } from "../utils/stringUtils";
-import { STYLES } from "../utils/types";
 import { GAMEPLAY, platformCompany, type Format, type Platform, type Status, type VideoGame } from "./types";
 
 /**
@@ -19,9 +19,6 @@ import { GAMEPLAY, platformCompany, type Format, type Platform, type Status, typ
  * style awaiting a colour rather than a cell awaiting a value.
  */
 const readGameplay = readChecked(GAMEPLAY, "a gameplay style");
-
-/** Checked for the same reason, against the vocabulary Shows and Movies share. */
-const readStyle = readChecked(STYLES, "a style");
 
 /**
  * Reads the themes cell, which the sheet lists in one cell as the Genres columns do.

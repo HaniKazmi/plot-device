@@ -53,8 +53,9 @@ export const omniFilters: FilterSchema<OmniItem, FilterState> = {
       certificateBandToColour,
     ),
     // Under the key the three tabs recording a style use, so "Anime" is one entry in the box with a
-    // placement here beside theirs.
-    styleCategory("style", (item) => item.style ?? ""),
+    // placement here beside theirs, and through `galleryValue` so the filter, the By year chart and
+    // the genre bridge read a style one way.
+    styleCategory("style", (item) => galleryValue(item, "style")),
     franchiseCategory(FRANCHISE_KEY),
   ],
 };

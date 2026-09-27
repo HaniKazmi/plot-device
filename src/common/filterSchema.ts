@@ -123,13 +123,11 @@ export interface FilterCategory<T, S> {
   colourFor?(value: string, scheme: Scheme): Colour | undefined;
   searchable?: boolean;
   /**
-   * The values the box indexes as attributes, where only some of them are worth finding. Defaults
-   * to all of them: a genre, a network, an author is a thing a reader goes looking for.
+   * The values the box indexes as attributes. Defaults to all of them: a genre, a network, an
+   * author is a thing a reader goes looking for.
    *
-   * A value standing for nearly the whole of its own tab is not: a shelf of it is the library less
-   * a few rows, and its hit would stand beside the Go-to chip for that tab saying nearly the same
-   * thing. Franchise states the empty list for a different reason: its values are found through the
-   * franchise index, which drops the standalone works that make up most of the column.
+   * An empty list indexes none. Franchise states it: its values are found through the franchise
+   * index, which drops the standalone works that make up most of the column.
    */
   found?: readonly string[];
   /**

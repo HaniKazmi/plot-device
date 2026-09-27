@@ -176,11 +176,11 @@ store that over the copy a cold visit paints from and report a successful refres
 
 **A bad cell names its own row**, rather than surfacing later from a colour lookup or a chart offset
 that names none. `common/sheetError.ts` holds the vocabulary — `sheetRow`, `describing`, `sheetError`
-— and four readers over it: `readCertificate` rejects a certificate outside `Certificate`, `readGenre` a
-blank, `readFullDate` a bare year where the model claims a day, and `readDatePair` a span logged at
-two precisions. More sit in the converters that need them: Games, Shows and Movies check their
-`Style` cell against the shared `STYLES` through `readChecked`, Movies its `Format` cell against the
-two words it holds, and Games rejects an absent `Themes` column while allowing a blank cell. `readGenre` defaults its argument, since the API ends a row at its last filled cell
+— and five readers over it: `readCertificate` rejects a certificate outside `Certificate`,
+`readStyle` a style outside the `STYLES` Games, Shows and Movies share, `readGenre` a blank,
+`readFullDate` a bare year where the model claims a day, and `readDatePair` a span logged at two
+precisions. Two more sit in the converters that need them: Movies checks its `Format` cell against
+the two words it holds, and Games rejects an absent `Themes` column while allowing a blank cell. `readGenre` defaults its argument, since the API ends a row at its last filled cell
 and a half-entered row carries no `Genre` key; genre is also read before the dates to its right, so
 such a row names its missing genre rather than a date.
 
@@ -189,8 +189,8 @@ Converters do real modelling work, not just field renaming:
 - **`game/`** derives `company` from the platform string, folds a `"Party"` status into
   `status: "Endless"` plus a `party` boolean, splits `Themes` through `splitCell`, computes `numDays`
   from the date pair, and checks `Gameplay` against the `GAMEPLAY` vocabulary through `readChecked`
-  rather than casting it past `gameplayToColour`'s neutral, and `Style` against `STYLES` the same
-  way. The themes read rejects an _absent_ column while allowing a blank
+  rather than casting it past `gameplayToColour`'s neutral, and `Style` through `readStyle`. The
+  themes read rejects an _absent_ column while allowing a blank
   cell: 12 of 340 games honestly carry no theme, and `themes.includes("Adult")` is what guest mode
   hides on, so reading a missing column as "no themes" would put every adult game back on screen.
 - **`show/`** nests a flat sheet: a non-empty `Title` cell opens a show, the rows after it are its
@@ -724,10 +724,10 @@ by medium, genre, certificate or style. Medium is what the page opens on, but fo
 pieces and a bump chart of four flat lines, where a dozen genres or five certificates is the shape
 Share and Rank were built for. Franchise is not offered — 115 series and a legend longer than the
 chart — nor decade, derived from the year and so putting each series in one run of columns with
-nothing crossing. Genre and certificate are asked of `galleryValue` and coloured through
+nothing crossing. Every split but the medium is asked of `galleryValue` and coloured through
 `galleryColour`, so chart and shelves cannot disagree about what a genre is or which certificates
-are one tier. Style is the chart's own, the gallery not shelving by it, and is read off the item and
-coloured through `styleToColour`. The date is a whole year in every view including Cumulative: an item's
+are one tier; style is one of the keys those two answer (`UnionKey`) without being a shelf the
+gallery offers. The date is a whole year in every view including Cumulative: an item's
 year is an attribution, and only a film's is a date the sheet holds. A row whose split column is
 empty is dropped rather than opening a series named `""` — every book answers the certificate and
 style splits that way — and the header counts the rows drawn.
@@ -1096,12 +1096,10 @@ values belong to, named rather than found (below). _Values_ are a genre, network
 each with its count in each medium: `buildAttributeIndex` (`app/searchData.ts`) walks every medium's
 own schema over that medium's own rows, so the box can only offer a narrowing that tab's controls
 actually draw. A category states which of its values are worth finding through `found`, defaulting
-to all of them: a value standing for nearly the whole of its own tab is a shelf that is the library
-less a few rows, and its hit would stand beside the Go-to chip for that tab saying nearly the same
-thing. The style selects on Games, Shows, Movies and the Omnibus are keyed and worded alike — which
-is what the shared `styleCategory` is for — so "Anime" is one entry with a count in each, every one
-of the three styles found. Franchise states the empty list and is scanned from the franchise index instead,
-the column being mostly works naming themselves — 168 values in the games sheet
+to all of them. The style selects on Games, Shows, Movies and the Omnibus are keyed and worded
+alike — which is what the shared `styleCategory` is for — so "Anime" is one entry with a count in
+each, every one of the three styles found. Franchise states the empty list, indexing none, and is
+scanned from the franchise index instead, the column being mostly works naming themselves — 168 values in the games sheet
 alone. The certificate is grouped on
 `certificateBand`, the gallery's own rule, so `15` and `16` are one hit; what it _sets_ is whichever
 notations that tab's rows carry, which is why an entry keeps its values per medium. A category
@@ -2537,8 +2535,9 @@ than hiding a class of them, and a value it drops is one the reader can still se
 Long-pressing the wordmark (`utils/useLongPress.ts`, 300 ms, over the pure `longPressReducer`) sets
 `guestMode`, which `Google.tsx` hands to `app/LibraryProvider`. `visibleLibrary` (`app/library.ts`)
 applies each medium's own `guestFilter`, exported from its `filterUtils.ts` and named by its
-`module.ts` — a game whose `theme` includes `"Adult"`, a show or a film whose `style` is `ANIME`,
-the one constant both rules read; nothing marks a book, so that rule keeps the whole library — and every tab,
+`module.ts` — a game whose `theme` includes `"Adult"`, a show or a film whose `style` is `"Anime"`,
+a word the `Style` union holds both rules to; nothing marks a book, so that rule keeps the whole
+library — and every tab,
 index and union reads the slice that comes back. It is applied to the data once rather than to each
 page's filters because the franchise index, the union and the search index are all built from the
 library: a mode narrowing one page's charts would put a hidden item straight back on screen through

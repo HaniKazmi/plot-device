@@ -1,7 +1,6 @@
 import { dataCacheKey, type DataConfig } from "../common/useData";
-import { readCertificate, readChecked, readFullDate, readGenre, sheetRow } from "../common/sheetError";
+import { readCertificate, readChecked, readFullDate, readGenre, readStyle, sheetRow } from "../common/sheetError";
 import { splitCell } from "../utils/stringUtils";
-import { STYLES } from "../utils/types";
 import type { Movie } from "./types";
 
 /**
@@ -14,12 +13,6 @@ import type { Movie } from "./types";
  * as Home, indistinguishable from a library of home viewing.
  */
 const readWatchFormat = readChecked(["Cinema", "Home"] as const, "a watch format");
-
-/**
- * The cell on this sheet whose misreading costs most: guest mode hides anime, so a value that fails
- * to say so puts a hidden film on screen rather than a wrong figure.
- */
-const readStyle = readChecked(STYLES, "a style");
 
 export const jsonConverter = (json: Record<string, string>[]) => {
   return json.map((row, index) => {

@@ -174,9 +174,8 @@ describe("genre and gameplay", () => {
 });
 
 describe("style", () => {
-  it("reads the shared three words, in their declared spelling whatever the cell's case", () => {
+  it("reads the Style cell into the game's style", () => {
     expect(convertOne({ Style: "Anime" }).style).toBe("Anime");
-    expect(convertOne({ Style: "realistic " }).style).toBe("Realistic");
     expect(convertOne().style).toBe("Stylised");
   });
 

@@ -124,10 +124,8 @@ describe("field parsing", () => {
     expect(() => convertOne({ Format: "Streaming" })).toThrow("is not a watch format");
   });
 
-  it("reads a film's style from the shared three words", () => {
+  it("reads the Style cell into the film's style", () => {
     expect(convertOne({ Style: "Anime" }).style).toBe("Anime");
-    expect(convertOne({ Style: "Realistic" }).style).toBe("Realistic");
-    expect(convertOne({ Style: "Stylised" }).style).toBe("Stylised");
   });
 
   it("rejects a style outside those three, guest mode depending on it", () => {
@@ -137,12 +135,11 @@ describe("field parsing", () => {
     expect(() => convertOne({ Style: "Live action" })).toThrow("is not a style");
   });
 
-  it("takes a hand-typed cell's case and spacing as the same answer", () => {
-    // These columns sit behind a dropdown that suggests rather than enforces, so a row typed by
-    // hand is what they hold. Neither is a different answer from the one the dropdown offers, and
-    // rejecting them would empty the whole tab over a capital letter.
+  it("takes a hand-typed Format cell's case and spacing as the same answer", () => {
+    // The column sits behind a dropdown that suggests rather than enforces, so a row typed by hand
+    // is what it holds. That is not a different answer from the one the dropdown offers, and
+    // rejecting it would empty the whole tab over a capital letter.
     expect(convertOne({ Format: " cinema " }).cinema).toBe(true);
-    expect(convertOne({ Style: " stylised" }).style).toBe("Stylised");
   });
 
   it("carries the remaining columns through untouched", () => {

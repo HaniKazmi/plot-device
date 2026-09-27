@@ -5,6 +5,7 @@ import {
   certificateToColour,
   genreToColour,
   isCertificate,
+  isStyle,
   neutralFill,
   statusToColour,
   STYLES,
@@ -129,6 +130,18 @@ describe("certificateToColour", () => {
     // render the wrong badge in silence.
     expect(() => certificateToColour("PG" as Certificate, "light")).toThrow("Unknown certificate: PG");
     expect(() => certificateToColour("21" as Certificate, "light")).toThrow("Unknown certificate: 21");
+  });
+});
+
+describe("isStyle", () => {
+  it("holds every word of the vocabulary and nothing else", () => {
+    expect(STYLES.every(isStyle)).toBe(true);
+    expect(isStyle("Live action")).toBe(false);
+    expect(isStyle("")).toBe(false);
+  });
+
+  it("matches the declared spelling alone, the converter having already folded the cell to it", () => {
+    expect(isStyle("anime")).toBe(false);
   });
 });
 

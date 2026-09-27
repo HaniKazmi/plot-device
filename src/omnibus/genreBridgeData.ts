@@ -1,6 +1,7 @@
 import { assignPercents } from "../utils/mathUtils";
-import { CERTIFICATE_BANDS, STYLES, certificateBand, releaseDecade } from "../utils/types";
+import { CERTIFICATE_BANDS, STYLES, releaseDecade } from "../utils/types";
 import type { OmniItem } from "../common/medium";
+import { galleryValue } from "../app/galleryData";
 import { franchiseIndex } from "../common/franchiseIndex";
 import { media, type Measure, type Medium } from "../app/types";
 import "../utils/arrayUtils";
@@ -15,10 +16,8 @@ interface GenreBridgeSegment {
 /**
  * What a row of the bridge is keyed on: the vocabularies the gallery already shelves the union by,
  * less franchise — a hundred and sixty-nine rows of bars is a table, not a chart — plus the year,
- * which the decade coarsens, and the style. A book answers the certificate and the style with
- * nothing, and a row keyed on nothing is not drawn. Style is the one key whose rows are a split
- * of three: how much of the anime, the realistic and the stylised is games rather than screen is
- * the composition question no home tab can ask, each holding one medium.
+ * which the decade coarsens, and the style, a union field read through `galleryValue`. A book
+ * answers the certificate and the style with nothing, and a row keyed on nothing is not drawn.
  */
 export const BRIDGE_KEYS = ["genre", "year", "decade", "certificate", "style"] as const;
 
@@ -37,9 +36,8 @@ export const bridgeValue = (item: OmniItem, key: BridgeKey): string => {
     case "decade":
       return releaseDecade(item.year);
     case "certificate":
-      return item.certificate ? certificateBand(item.certificate) : "";
     case "style":
-      return item.style ?? "";
+      return galleryValue(item, key);
   }
 };
 
@@ -51,6 +49,9 @@ export interface GenreBridgeRow {
   /** In the page's medium order, and only the media that actually logged hours here. */
   segments: GenreBridgeSegment[];
 }
+
+/** Where a style stands in `STYLES`, asked of the row's name, which the type holds as a plain string. */
+const styleRank = (name: string) => (STYLES as readonly string[]).indexOf(name);
 
 /**
  * Where a genre is watched or played, as each medium's share of it in the page's measure.
@@ -94,7 +95,7 @@ const rowOrder = (
     case "certificate":
       return (a, b) => CERTIFICATE_BANDS.indexOf(a.name) - CERTIFICATE_BANDS.indexOf(b.name);
     case "style":
-      return (a, b) => (STYLES as readonly string[]).indexOf(a.name) - (STYLES as readonly string[]).indexOf(b.name);
+      return (a, b) => styleRank(a.name) - styleRank(b.name);
   }
 };
 

@@ -6,14 +6,7 @@ import {
   styleCategory,
   type FilterSchema,
 } from "../common/filterSchema";
-import {
-  ANIME,
-  CERTIFICATES,
-  certificateToColour,
-  genreToColour,
-  type Certificate,
-  type Predicate,
-} from "../utils/types";
+import { CERTIFICATES, certificateToColour, genreToColour, type Certificate, type Predicate } from "../utils/types";
 import type { FilterState } from "./filterUtils";
 import { cinemaLabel, cinemaToColour, type Movie } from "./types";
 
@@ -25,7 +18,7 @@ import { cinemaLabel, cinemaToColour, type Movie } from "./types";
  * page's charts alone would leave a hidden film on screen through the franchise index and the
  * union, which are built from the library.
  */
-export const guestFilter: Predicate<Movie> = (movie) => movie.style !== ANIME;
+export const guestFilter: Predicate<Movie> = (movie) => movie.style !== "Anime";
 
 /** The outing first, as the sheet's own column reads and as `cinemaToColour` ramps it. */
 const CINEMA_VALUES = ["Cinema", "Home"];

@@ -521,11 +521,7 @@ export const franchiseToColour = ({ franchise }: { franchise: string }, scheme: 
 export const STYLES = ["Anime", "Realistic", "Stylised"] as const;
 export type Style = (typeof STYLES)[number];
 
-/**
- * The style guest mode hides on Shows and Movies, named once so the two guest rules cannot come to
- * hide by two spellings.
- */
-export const ANIME: Style = "Anime";
+export const isStyle = (value: string): value is Style => (STYLES as readonly string[]).includes(value);
 
 /**
  * Anime takes the rose its fandom paints in; Realistic a broadcast indigo, the colour of a screen
@@ -554,11 +550,10 @@ const styleColours: Record<Style, Fill> = {
 };
 
 export const styleToColour = (style: string, scheme: Scheme): Colour => {
-  const colour = styleColours[style as Style];
   // Throws rather than falling back: the vocabulary is closed and checked at conversion, so a word
   // reaching here off the table is a bug worth surfacing, as a certificate's is.
-  if (!colour) throw new Error("Unknown style: " + style);
-  return pick(colour, scheme);
+  if (!isStyle(style)) throw new Error("Unknown style: " + style);
+  return pick(styleColours[style], scheme);
 };
 
 export const scoreBands = ["9–10", "7–8", "5–6", "3–4", "1–2", "Unscored"] as const;

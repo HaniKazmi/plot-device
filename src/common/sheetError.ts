@@ -1,4 +1,4 @@
-import { CERTIFICATES } from "../utils/types";
+import { CERTIFICATES, STYLES } from "../utils/types";
 import { PlainDate, YearMonthDay } from "./date";
 
 /**
@@ -55,6 +55,15 @@ export const readChecked = <T extends string>(values: readonly T[], noun: string
  * render and names the value but not the row carrying it.
  */
 export const readCertificate = readChecked(CERTIFICATES, "a certificate");
+
+/**
+ * Reads a Style cell against the vocabulary Games, Shows and Movies share.
+ *
+ * Guest mode hides anime on Shows and Movies, so a cell that fails to say so puts a hidden item on
+ * screen rather than a wrong figure. One reader for the three sheets, so a word one of them accepts
+ * is a word all of them accept.
+ */
+export const readStyle = readChecked(STYLES, "a style");
 
 /**
  * Reads a genre cell, rejecting one nobody filled in.

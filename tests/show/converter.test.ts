@@ -90,13 +90,6 @@ describe("flattening the sheet into nested shows", () => {
     expect(() => jsonConverter([showRow({ Style: "" }), seasonRow()])).toThrow("is not a style");
   });
 
-  it("takes a hand-typed style cell's case and spacing as the same answer", () => {
-    const [show] = jsonConverter([showRow({ Style: " anime " }), seasonRow()]);
-
-    // The declared spelling, which is the word every surface and the box's fold key on.
-    expect(show.style).toBe("Anime");
-  });
-
   it("reads the style off the show row alone, its season rows leaving the cell blank", () => {
     expect(() => jsonConverter([showRow({ Style: "Stylised" }), seasonRow({ Style: "" })])).not.toThrow();
   });

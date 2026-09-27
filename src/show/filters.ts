@@ -5,14 +5,7 @@ import {
   styleCategory,
   type FilterSchema,
 } from "../common/filterSchema";
-import {
-  ANIME,
-  CERTIFICATES,
-  certificateToColour,
-  genreToColour,
-  type Certificate,
-  type Predicate,
-} from "../utils/types";
+import { CERTIFICATES, certificateToColour, genreToColour, type Certificate, type Predicate } from "../utils/types";
 import type { FilterState } from "./filterUtils";
 import { networkToColour, type Show } from "./types";
 
@@ -24,7 +17,7 @@ import { networkToColour, type Show } from "./types";
  * page's charts alone would leave a hidden show on screen through the franchise index and the
  * union, which are built from the library.
  */
-export const guestFilter: Predicate<Show> = (show) => show.style !== ANIME;
+export const guestFilter: Predicate<Show> = (show) => show.style !== "Anime";
 
 export const showFilters: FilterSchema<Show, FilterState> = {
   toggles: [{ key: "abandoned", label: "Abandoned shows", hides: (show) => show.status !== "Abandoned" }],

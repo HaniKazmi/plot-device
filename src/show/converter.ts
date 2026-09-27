@@ -1,15 +1,7 @@
 import { dataCacheKey, type DataConfig } from "../common/useData.ts";
-import { readCertificate, readChecked, readFullDate, readGenre, sheetError, sheetRow } from "../common/sheetError.ts";
+import { readCertificate, readFullDate, readGenre, readStyle, sheetError, sheetRow } from "../common/sheetError.ts";
 import { splitCell } from "../utils/stringUtils";
-import { STYLES } from "../utils/types";
 import { type Season, type Show, type Status } from "./types";
-
-/**
- * Reads the Style cell. Guest mode hides anime (`filters.ts`), so a value that fails to say so is a
- * hidden show on screen rather than a wrong figure — the one cell here whose misreading costs more
- * than a chart. Only a show row carries one; a season inherits its show's.
- */
-const readStyle = readChecked(STYLES, "a style");
 import "../utils/arrayUtils";
 
 // Season.show is a back-reference to its parent, so it has to be dropped before serialising
@@ -30,6 +22,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       show = {
         name: row.Title,
         status: row.Status as Status,
+        // Only a show row carries a style; a season inherits its show's.
         style: readStyle(row.Style, `Row ${sheetRow(index)}, "${row.Title}", Style`),
         genre: readGenre(row.Genre, `Row ${sheetRow(index)}, "${row.Title}", Genre`),
         // A show with none carries an empty string, `Other Genres` sitting well before the last
