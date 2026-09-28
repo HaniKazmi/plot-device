@@ -50,7 +50,8 @@ export const jsonConverter = (json: Record<string, string>[]) => {
     const releaseDate = describing(`${where}, Release Date`, () => PlainDate.from(row["Release Date"]));
 
     // Throws when the pair is inverted, which is the point — but say which pair.
-    const numDays = describing(`${where}, played ${startDate} to ${endDate}`, () => startDate.daysTo(endDate));
+    const numDays =
+      endDate && describing(`${where}, played ${startDate} to ${endDate}`, () => startDate.daysTo(endDate));
 
     const seriesNumber = parseInt(row["Series #"]);
 
@@ -80,13 +81,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
   });
 };
 
-/**
- * Bump the version on any change to the model's shape, or a returning visitor's cache lacks the field.
- *
- * Version 5 is the one on which every played date is a full date: the model admits nothing else
- * and every reader assumes one, so a cached copy holding a bare year would paint the page from
- * `useData`'s initialiser and throw in the first chart before any fetch could replace it.
- */
+/** Bump the version on any change to the model's shape, or a returning visitor's cache lacks the field. */
 export const gameDataConfig: DataConfig<VideoGame> = {
   storageKey: dataCacheKey("game", 5),
   converter: jsonConverter,

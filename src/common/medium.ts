@@ -99,6 +99,15 @@ export const countByMedium = (items: readonly OmniItem[]): Partial<Record<Medium
  */
 export type MediumSpan = Pick<FranchiseEntry, "start" | "end">;
 
+/** When an entry with a start and an optional end ran: to its end, or to today while it is open. */
+export const spanUntil = (
+  item: { startDate: YearMonthDay; endDate?: YearMonthDay },
+  today: YearMonthDay,
+): MediumSpan => ({
+  start: item.startDate,
+  end: item.endDate ?? today,
+});
+
 /** The props a card takes once its list has chosen the item, which is all a dispatcher forwards. */
 type CardProps<S> = Omit<CardMediaImageProps, "image" | "alt" | "detailComponent"> & { item: S };
 

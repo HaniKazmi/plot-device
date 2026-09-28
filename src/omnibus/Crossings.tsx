@@ -1,5 +1,4 @@
 import { Box, Card, CardContent, Stack, useTheme, Typography, type Theme } from "@mui/material";
-import { NothingToPlot } from "../common/NothingMatches";
 import { useState, type ReactNode } from "react";
 import Grid from "@mui/material/Grid";
 import { Hub } from "@mui/icons-material";
@@ -248,8 +247,7 @@ const Crossings = ({
           >
             {everything ? (
               <CardContent>
-                {/* The chart itself draws nothing for an empty list. */}
-                {rows.length > 0 ? <TimeLineChart timelineData={rows} /> : <NothingToPlot />}
+                <TimeLineChart timelineData={rows} />
               </CardContent>
             ) : (
               <CrossingsStack

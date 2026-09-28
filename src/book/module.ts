@@ -1,5 +1,5 @@
-import type { MediumModule, OmniItem } from "../common/medium";
-import { bookEntry, bookSpan } from "./cardData";
+import { spanUntil, type MediumModule, type OmniItem } from "../common/medium";
+import { bookEntry } from "./cardData";
 import { bookDataConfig } from "./converter";
 import { bookFilters } from "./filters";
 import { pageState } from "./filterUtils";
@@ -34,7 +34,7 @@ export const bookModule: MediumModule<Book, Book, Measure> = {
   guestFilter: () => true,
   toOmniItems: bookItems,
   entry: bookEntry,
-  span: bookSpan,
+  span: spanUntil,
   // The column is new to the sheet, and a book the sheet has not reached yet has no picture to
   // stand on a wall — the same absence a game without a banner already answers.
   artwork: (book) => book.artwork || undefined,

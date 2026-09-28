@@ -142,13 +142,6 @@ describe("bucketFor", () => {
     expect(finishedBucket(item("Zelda", "a.jpg", 2023), "Date")).toBe("2023");
   });
 
-  it("gives a year-only date the same year a full date gives", () => {
-    const yearOnly = { name: "Old", artwork: "a.jpg", franchise: "", startDate: Year.get(2007) };
-
-    expect(finishedBucket(yearOnly, "Date")).toBe("2007");
-    expect(finishedBucket(item("New", "a.jpg", 2007), "Date")).toBe("2007");
-  });
-
   it("has no bucket for an undated item, which is one the date sort puts first", () => {
     expect(finishedBucket(item("Undated", "a.jpg"), "Date")).toBeNull();
   });

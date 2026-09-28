@@ -490,7 +490,7 @@ const WindowedStrip = ({
   // window itself reaches past either end.
   const scaleFrom = window.from.lte(epoch) ? window.from : epoch;
   const scaleTo = today.lte(window.to) ? window.to : today;
-  const scaleDays = scaleFrom.daysTo(scaleTo)!;
+  const scaleDays = scaleFrom.daysTo(scaleTo);
   const bracketLeft = percentAtDate(scaleFrom, window.from, scaleDays);
   const bracketWidth = percentOfSpan(window.from, window.to.lte(scaleTo) ? window.to : scaleTo, scaleDays);
 

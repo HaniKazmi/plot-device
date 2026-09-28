@@ -52,7 +52,7 @@ const MIN_BAND_PERCENT = 0.5;
  * cosmetic problem. One that straddles the epoch keeps the part that fits.
  */
 export const buildStrip = <T extends StripSpan>(spans: T[], epoch: YearMonthDay, today: YearMonthDay) => {
-  const totalDays = epoch.daysTo(today)!;
+  const totalDays = epoch.daysTo(today);
 
   // Clamped before packing, so a lane answers for what is actually drawn in it — and because
   // `daysTo` throws on a backwards comparison. Clamping only ever raises a start to the epoch, so
@@ -166,6 +166,6 @@ export const beadsPerRow = (count: number, width: number, minPitch: number) =>
  * of a month or every tick sits however far the two origins differ — both are 1 January.
  */
 export const stripYearTicks = (epoch: YearMonthDay, today: YearMonthDay): TimelineTick[] =>
-  buildTicks(epoch.toYearMonth(), today.toYearMonth(), epoch.daysTo(today)!).filter(
+  buildTicks(epoch.toYearMonth(), today.toYearMonth(), epoch.daysTo(today)).filter(
     (tick) => tick.level === "year" && tick.year > epoch.year,
   );

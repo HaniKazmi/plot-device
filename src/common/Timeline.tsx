@@ -345,7 +345,7 @@ export const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }
 
   const earliestStart = positionedTimelineData[0].start.startOfMonth();
   const gridEnd = latestEnd(positionedTimelineData)!;
-  const totalDays = earliestStart.daysTo(gridEnd)!;
+  const totalDays = earliestStart.daysTo(gridEnd);
 
   // Walked once and handed to both consumers, so a gridline and the tick label beneath it are the
   // same number rather than two derivations that agree by luck.
@@ -850,8 +850,8 @@ const Timeline = ({ data, children }: { data: TimelineData[]; children?: ReactNo
   // The packed timeline never folds, so this plain `Card` is the one state it has to draw for
   // itself: a grid with no rows in it says nothing about why there are none. Which of the two
   // lines it draws is the page's answer: the page emptied says so and offers the way back, and a
-  // chart emptied by a rule of its own states that it has nothing while the page around it still
-  // has rows.
+  // chart emptied by a rule of its own — the Books timeline drawing only reads that have begun —
+  // states that it has nothing while the page around it still has rows.
   const { active } = useNothingMatches();
 
   return (

@@ -2339,13 +2339,9 @@ inventing a day.
 - **Dispatch by length.** Ten characters gives a `YearMonthDay`, four a `Year`, anything else throws,
   so a partial `"2024-05"` is a loud failure.
 
-`firstDay()`/`lastDay()` give the range a value denotes, so a consumer states which end of an
-imprecise date it wants instead of reaching for a subclass. `daysTo` compares those ends — a bare year
-is a prefix of every date inside it, so comparing values directly reads 1 January as later than its
-own year — and throws only on a genuinely transposed pair. It answers `undefined` when either side is
-year-only, so durations degrade rather than fabricate precision. No sheet records a span at that
-precision: every converter holds its played, watched and read dates to full ones through
-`readFullDate`, so the `Year` a tracked model carries is a barchart column and never a span's end.
+`Year` and `YearMonth` are what a barchart column is, and a game's release may be a bare year;
+every span a sheet records is held to full dates through `readFullDate`, so `daysTo` lives on
+`YearMonthDay` alone and throws only on a transposed pair.
 
 ### Prototype augmentation
 

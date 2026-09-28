@@ -1,6 +1,6 @@
 import { YearMonthDay, formatDate, formatDateRange } from "../common/date";
 import type { FranchiseEntry } from "../common/franchiseUnion";
-import type { MediumSpan } from "../common/medium";
+import { spanUntil } from "../common/medium";
 import type { ReactNode } from "react";
 import type { LedgerRow, PanelSubtitlePart } from "../common/Card";
 import { franchiseToColour, genreToColour, mediumFills, type Scheme } from "../utils/types";
@@ -89,15 +89,6 @@ export const gameRows = (game: VideoGame, scheme: Scheme): LedgerRow[] => {
 };
 
 /**
- * When a game ran, for any scale that places it: a card's franchise strip, a crossings lane, a
- * packed row. The converter holds both dates to full ones; a game still being played runs to today.
- */
-export const gameSpan = (game: VideoGame, today: YearMonthDay): MediumSpan => ({
-  start: game.startDate,
-  end: game.endDate ?? today,
-});
-
-/**
  * A game in a franchise strip's vocabulary. One mapper for the tab's own index and the union, so
  * the two cannot draw the same game two ways.
  */
@@ -108,6 +99,6 @@ export const gameEntry = (game: VideoGame, today: YearMonthDay, hoverCard: () =>
   medium: "game",
   fill: mediumFills.game,
   label: game.name,
-  ...gameSpan(game, today),
+  ...spanUntil(game, today),
   hoverCard,
 });

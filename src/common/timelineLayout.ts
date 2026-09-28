@@ -1,5 +1,6 @@
 import type { Colour } from "../utils/types";
 import type { YearMonth, YearMonthDay } from "./date";
+import { latestOf } from "./date";
 import "../utils/arrayUtils";
 
 export interface TimelineData {
@@ -44,7 +45,7 @@ export interface PositionedTimelineData extends TimelineData {
  * shrinks the span, which is how a bar leaves a gap before the next one.
  */
 export const percentOfSpan = (start: YearMonthDay, end: YearMonthDay, totalDays: number, padding: number = 0) =>
-  ((start.daysTo(end)! + padding) / totalDays) * 100;
+  ((start.daysTo(end) + padding) / totalDays) * 100;
 
 /**
  * Where a date sits on the grid: the days elapsed *before* it, as a percentage of the whole.
@@ -282,10 +283,7 @@ export const packRows = (timelineData: TimelineData[]) => {
  * would take the maximum of a list of `NaN`.
  */
 export const latestEnd = (items: readonly { end: YearMonthDay }[]): YearMonthDay | undefined =>
-  items.reduce<YearMonthDay | undefined>(
-    (latest, item) => (!latest || item.end > latest ? item.end : latest),
-    undefined,
-  );
+  items.length ? latestOf(items, (item) => item.end) : undefined;
 
 export type Placement = "center" | "right" | "left" | "span";
 

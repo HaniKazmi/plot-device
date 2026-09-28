@@ -132,7 +132,7 @@ export const statsCardLabelEndDateHours = (game: VideoGame) => [
   [game.endDate ? formatDate(game.endDate) : "", `${format(game.hours!)} Hours`],
 ];
 
-export const statsCardLabelStartDate = (game: VideoGame) => [[game.startDate ? formatDate(game.startDate) : ""]];
+export const statsCardLabelStartDate = (game: VideoGame) => [[formatDate(game.startDate)]];
 
 export const platformToShortChip = (game: VideoGame) => {
   const [label, colour] = platformToShort(game);

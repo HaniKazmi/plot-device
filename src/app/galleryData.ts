@@ -1,6 +1,7 @@
 import { groupByCategory, realFranchisesOnly, type DrilldownGroup } from "../common/statsData";
 import { franchiseIndex } from "../common/franchiseIndex";
-import type { YearMonthDay } from "../common/date";
+import { latestOf, type YearMonthDay } from "../common/date";
+import { byDate } from "../common/finishedData";
 import {
   certificateBandToColour,
   certificateBand,
@@ -254,6 +255,9 @@ export const galleryGroups = (
     // pick, because the two agree only while the strip is ordered by size.
     .map((group) => {
       const all = galleryStripOrder(group.all, sort);
+      // A shelf's date is the latest `metDate` among its works, not the latest close: a close read
+      // here would be each work's representative's, and a representative is the biggest entry
+      // rather than the last one.
       return { ...group, all, top: all[0], metDate: latestOf(all, (item) => item.metDate) };
     })
     // Re-sorted rather than left as `groupByCategory` ordered it, so the one rule that decides the
@@ -270,8 +274,7 @@ export const galleryStripOrder = (items: ShelfItem[], sort: GallerySort): ShelfI
   items.toSorted(sort === "recent" ? byLatestMet : (a, b) => b.hours - a.hours);
 
 /** Newest first. */
-const byLatestMet = <T extends { metDate: YearMonthDay }>(a: T, b: T) =>
-  a.metDate < b.metDate ? 1 : a.metDate > b.metDate ? -1 : 0;
+const byLatestMet = <T extends { metDate: YearMonthDay }>(a: T, b: T) => byDate(b.metDate, a.metDate);
 
 /**
  * Biggest first, subtracted rather than compared through `sortByKey`.
@@ -290,14 +293,3 @@ const byMeasure = (a: { count: number }, b: { count: number }) => b.count - a.co
  */
 const galleryTop = <T extends OmniItem>(items: T[]): T =>
   items.reduce((best, item) => (item.hours > best.hours ? item : best));
-
-/**
- * The last of a set of dates, read in one pass rather than by sorting to look at the front.
- *
- * The date is reached through an accessor because the two callers ask different fields: a work's
- * own is the latest close among the entries collapsed into it, while a shelf's is the latest
- * `metDate` among its works — reading a close date there would take each work's *representative's*
- * close, and a representative is the biggest entry rather than the last one.
- */
-const latestOf = <T>(items: T[], dateOf: (item: T) => YearMonthDay): YearMonthDay =>
-  items.reduce((latest, item) => (dateOf(item) > latest ? dateOf(item) : latest), dateOf(items[0]));

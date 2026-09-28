@@ -22,14 +22,15 @@ export const omniTimeline = (
   scheme: Scheme,
   hoverCard: (item: OmniItem) => () => ReactNode,
 ): TimelineData[] =>
-  items
-    .map((item) => ({ item, span: crossingSpan(item, item.key, today) }))
-    .map(({ item, span }) => ({
+  items.map((item) => {
+    const { start, end } = crossingSpan(item, item.key, today);
+    return {
       // The union's key already tells a replay from its first run and a season from its show.
       key: `${item.medium}-${item.key}`,
       name: omniTitle(item),
       tooltip: hoverCard(item),
       colour: mediumToColour(item.medium, scheme),
-      start: span.start,
-      end: span.end,
-    }));
+      start,
+      end,
+    };
+  });

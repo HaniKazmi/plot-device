@@ -8,7 +8,7 @@ import {
   type PageSchema,
 } from "../common/filterSchema";
 import { franchiseIndex } from "../common/franchiseIndex";
-import { YearMonthDay } from "../common/date";
+import { YearMonthDay, latestOf } from "../common/date";
 import { mediumToLabel, type Medium } from "../utils/types";
 import { eachMedium, moduleOf } from "./media";
 import type { Season } from "../show/types";
@@ -738,14 +738,9 @@ export const attributeWorks = (library: Library, entry: AttributeEntry, today: Y
  */
 export const franchiseFacts = (items: OmniItem[]) => {
   const open = items.some((item) => !item.closeDate);
-  const closes = items.map((item) => item.closeDate).filter((date) => date !== undefined);
-  const last = closes.reduce<YearMonthDay | undefined>(
-    (latest, date) => (latest === undefined || date > latest ? date : latest),
-    undefined,
-  );
   return {
     firstYear: Math.min(...items.map((item) => item.year)),
-    last: open ? undefined : last,
+    last: open ? undefined : latestOf(items, (item) => item.closeDate!),
     hours: omniHours(items),
     media: new Set(items.map((item) => item.medium)).size,
   };

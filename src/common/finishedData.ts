@@ -1,10 +1,10 @@
-import { PlainDate, shortYear, type Year, type YearMonthDay } from "./date";
+import { PlainDate, YearMonthDay, shortYear, type Year } from "./date";
 import { stated } from "./population";
 import "../utils/arrayUtils";
 
 export type FinishedItem = {
   artwork?: string;
-  startDate?: YearMonthDay | Year;
+  startDate?: YearMonthDay;
   /** Optional because only some domains date the work itself; see `finishedKey`. */
   releaseDate?: YearMonthDay | Year;
   franchise: string;
@@ -129,10 +129,10 @@ const franchiseKey = (item: FinishedItem) => item.franchise.trim() || item.name;
  * Two dates in calendar order, with an undated item last.
  *
  * Compared rather than subtracted: `PlainDate.valueOf` answers the zero-padded ISO form, so `<`
- * orders a bare `Year` against a full date correctly and `daysTo` — which is undefined across
- * mixed precision and throws on an inverted pair — cannot be used to order anything.
+ * orders a bare `Year` against a full date correctly, where `daysTo` throws on an inverted pair
+ * and cannot order anything.
  */
-const byDate = (a?: PlainDate, b?: PlainDate) => {
+export const byDate = (a?: PlainDate, b?: PlainDate) => {
   if (a === b) return 0;
   if (!a) return 1;
   if (!b) return -1;
@@ -228,9 +228,7 @@ export const wallPopulation = (data: readonly FinishedItem[], noun: string): str
  *
  * The value read is the one `finishedItems` orders by — the franchise sort's leading key, through
  * the same `franchiseKey` the comparator uses, so the marker and the wall cannot come to disagree
- * about which field is in play or about how a blank cell answers. The year comes from `firstDay()`
- * rather than a `year` field, which only the concrete subclasses carry, so a bare `Year` and a full
- * date answer alike.
+ * about which field is in play or about how a blank cell answers.
  *
  * `null` is a real answer and not a fallback: a value kind with no short form has none, and an
  * item with no date is one the date sort places first, so the topmost card on screen can be one.
@@ -248,8 +246,8 @@ export const bucketFor = <U extends FinishedItem>(
     };
   }
   return (item) => {
-    const value: PlainDate | string | undefined = sort === "Date" ? item.startDate : franchiseKey(item);
-    if (value instanceof PlainDate) return String(value.firstDay().year);
+    const value = sort === "Date" ? item.startDate : franchiseKey(item);
+    if (value instanceof YearMonthDay) return String(value.year);
     if (typeof value === "string") return value.charAt(0).toUpperCase() || null;
     return null;
   };
