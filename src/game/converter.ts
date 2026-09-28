@@ -1,4 +1,3 @@
-import { PlainDate } from "../common/date.ts";
 import { dataCacheKey, type DataConfig } from "../common/useData.ts";
 import {
   describing,
@@ -43,11 +42,11 @@ export const jsonConverter = (json: Record<string, string>[]) => {
     // The same ordering the Movies converter keeps, and for the same reason.
     const genre = readGenre(row.Genre, `${where}, Genre`);
 
-    // Held to full dates, as the other three sheets' spans are: the model places a game on a day
-    // scale and counts its days, and a bare year reaching either would be a bar drawn at a guess.
+    // Held to full dates, as the other three sheets' dates are: the model places a game on a day
+    // scale and counts its days, and a bare year reaching either end would be a bar drawn at a guess.
     const startDate = readFullDate(row["Start Date"], `${where}, Start Date`);
     const endDate = row["End Date"] ? readFullDate(row["End Date"], `${where}, End Date`) : undefined;
-    const releaseDate = describing(`${where}, Release Date`, () => PlainDate.from(row["Release Date"]));
+    const releaseDate = readFullDate(row["Release Date"], `${where}, Release Date`);
 
     // Throws when the pair is inverted, which is the point — but say which pair.
     const numDays =

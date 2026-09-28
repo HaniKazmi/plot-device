@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { daysSince, shortYear, YearMonthDay } from "../../src/common/date";
+import { daysSince, latestOf, shortYear, YearMonthDay } from "../../src/common/date";
 
 describe("shortYear", () => {
   it("gives a year as a narrow scale labels one, with a typographic apostrophe", () => {
@@ -34,5 +34,21 @@ describe("daysSince", () => {
 
   it("answers nothing for a start after today, where daysTo would throw", () => {
     expect(daysSince(YearMonthDay.get(2027, 1, 1), YearMonthDay.get(2026, 9, 2))).toBeUndefined();
+  });
+});
+
+describe("latestOf", () => {
+  it("is the latest of the dates the items answer, wherever it sits in the list", () => {
+    const items = [
+      { at: YearMonthDay.get(2024, 3, 1) },
+      { at: YearMonthDay.get(2026, 1, 9) },
+      { at: YearMonthDay.get(2025, 6, 1) },
+    ];
+
+    expect(latestOf(items, (item) => item.at)).toBe(YearMonthDay.get(2026, 1, 9));
+  });
+
+  it("is the only item's date for a list of one", () => {
+    expect(latestOf([{ at: YearMonthDay.get(2024, 3, 1) }], (item) => item.at)).toBe(YearMonthDay.get(2024, 3, 1));
   });
 });

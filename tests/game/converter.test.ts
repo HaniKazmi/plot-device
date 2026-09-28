@@ -180,6 +180,9 @@ describe("bad rows", () => {
   it("names the sheet row, the game and the column that failed", () => {
     expect(() => convertOne({ Title: "Zelda", "Start Date": "" })).toThrow('Row 2, "Zelda", Start Date');
     expect(() => convertOne({ Title: "Zelda", "Release Date": "" })).toThrow('Row 2, "Zelda", Release Date');
+    expect(() => convertOne({ Title: "Zelda", "Release Date": "2007" })).toThrow(
+      'Row 2, "Zelda", Release Date: "2007" is a bare year, not a full date',
+    );
   });
 
   it("counts sheet rows past the header, so the number matches what is on screen", () => {

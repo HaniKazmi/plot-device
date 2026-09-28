@@ -1,4 +1,4 @@
-import type { Year, YearMonthDay } from "../common/date";
+import type { YearMonthDay } from "../common/date";
 import {
   NEUTRAL_FILL,
   certificateToColour,
@@ -50,14 +50,7 @@ export interface VideoGame {
   /** How the game looks, in the vocabulary Shows and Movies share (`STYLES`). */
   style: Style;
   certificate: Certificate;
-  /**
-   * Either precision, because the sheet holds both: a release is often recorded as a bare year,
-   * and `PlainDate.from` answers a `Year` for one. Narrowing this to `YearMonthDay` states
-   * something the converter does not produce, and a reader who believes it reaches for `daysTo`
-   * against a full date — which throws where the two share a year, since the longer string
-   * compares greater and the ordering guard reads that as a transposition.
-   */
-  releaseDate: YearMonthDay | Year;
+  releaseDate: YearMonthDay;
   format: Format;
   status: Status;
   hours?: number;

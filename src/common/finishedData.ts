@@ -1,4 +1,4 @@
-import { PlainDate, YearMonthDay, shortYear, type Year } from "./date";
+import { PlainDate, YearMonthDay, shortYear } from "./date";
 import { stated } from "./population";
 import "../utils/arrayUtils";
 
@@ -6,7 +6,7 @@ export type FinishedItem = {
   artwork?: string;
   startDate?: YearMonthDay;
   /** Optional because only some domains date the work itself; see `finishedKey`. */
-  releaseDate?: YearMonthDay | Year;
+  releaseDate?: YearMonthDay;
   franchise: string;
   name: string;
 };
@@ -129,8 +129,7 @@ const franchiseKey = (item: FinishedItem) => item.franchise.trim() || item.name;
  * Two dates in calendar order, with an undated item last.
  *
  * Compared rather than subtracted: `PlainDate.valueOf` answers the zero-padded ISO form, so `<`
- * orders a bare `Year` against a full date correctly, where `daysTo` throws on an inverted pair
- * and cannot order anything.
+ * orders any two dates, where `daysTo` throws on an inverted pair and cannot order anything.
  */
 export const byDate = (a?: PlainDate, b?: PlainDate) => {
   if (a === b) return 0;

@@ -187,8 +187,8 @@ such a row names its missing genre rather than a date.
 Converters do real modelling work, not just field renaming:
 
 - **`game/`** derives `company` from the platform string, checks `Status` against its own
-  vocabulary, splits `Themes` through `splitCell`, holds both played dates to full ones through
-  `readFullDate` and counts `numDays` between them, and checks `Gameplay` against the `GAMEPLAY`
+  vocabulary, splits `Themes` through `splitCell`, holds its release and both played dates to full
+  ones through `readFullDate` and counts `numDays` between them, and checks `Gameplay` against the `GAMEPLAY`
   vocabulary through `readChecked` rather than casting it past `gameplayToColour`'s neutral, and
   `Style` through `readStyle`. The themes read rejects an _absent_ column while allowing a blank
   cell: 12 of 340 games honestly carry no theme, and `themes.includes("Adult")` is what guest mode
@@ -2339,9 +2339,9 @@ inventing a day.
 - **Dispatch by length.** Ten characters gives a `YearMonthDay`, four a `Year`, anything else throws,
   so a partial `"2024-05"` is a loud failure.
 
-`Year` and `YearMonth` are what a barchart column is, and a game's release may be a bare year;
-every span a sheet records is held to full dates through `readFullDate`, so `daysTo` lives on
-`YearMonthDay` alone and throws only on a transposed pair.
+`Year` and `YearMonth` are what a barchart column is; every date a sheet records is held to a full
+one through `readFullDate`, so `daysTo` lives on `YearMonthDay` alone and throws only on a
+transposed pair.
 
 ### Prototype augmentation
 

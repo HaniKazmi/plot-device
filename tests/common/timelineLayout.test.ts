@@ -62,6 +62,15 @@ describe("assignRows", () => {
 });
 
 describe("packRows", () => {
+  it("leaves off an item whose start is after its end, which a start typed ahead of today produces", () => {
+    // An open item runs to today, so a future start arrives as a bar the wrong way round, and
+    // measuring it would throw.
+    const [rows, maxRow] = packRows([item("a", [2024, 1, 1], [2024, 2, 1]), item("b", [2030, 1, 1], [2026, 9, 28])]);
+
+    expect(rows.map((r) => r.name)).toEqual(["a"]);
+    expect(maxRow).toBe(0);
+  });
+
   it("keeps non-overlapping items on one row, so the chart stays shallow", () => {
     const [rows, maxRow] = packRows([item("a", [2024, 1, 1], [2024, 2, 1]), item("b", [2024, 3, 1], [2024, 4, 1])]);
 

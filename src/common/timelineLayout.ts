@@ -245,7 +245,10 @@ const byStartThenShortest = (a: TimelineData, b: TimelineData) => {
  * its row neighbours on the way through, which is what the label step measures its gaps against.
  */
 export const packRows = (timelineData: TimelineData[]) => {
-  const sortedData = timelineData.toSorted(byStartThenShortest);
+  // A start after its own end has nothing to draw: an open item runs to today, so a start typed
+  // ahead of today is that shape, and `daysTo` throws on it once the bar is measured. Left off
+  // here rather than by each caller, so a new timeline cannot forget the rule.
+  const sortedData = timelineData.filter((row) => row.start.lte(row.end)).toSorted(byStartThenShortest);
   const rows = assignRows(sortedData);
 
   // The last event placed in each row.

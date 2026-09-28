@@ -734,13 +734,14 @@ export const attributeWorks = (library: Library, entry: AttributeEntry, today: Y
 /**
  * What a franchise view states above its works: when it began, when it was last touched, how long
  * it has taken, and how many media it reaches. The last date is `undefined` while any row of it is
- * still open, which the view states as now.
+ * still open, which the view states as now, and for no rows at all, which the view can be handed
+ * while the union is still loading.
  */
 export const franchiseFacts = (items: OmniItem[]) => {
-  const open = items.some((item) => !item.closeDate);
+  const closed = items.length > 0 && items.every((item) => item.closeDate);
   return {
     firstYear: Math.min(...items.map((item) => item.year)),
-    last: open ? undefined : latestOf(items, (item) => item.closeDate!),
+    last: closed ? latestOf(items, (item) => item.closeDate!) : undefined,
     hours: omniHours(items),
     media: new Set(items.map((item) => item.medium)).size,
   };

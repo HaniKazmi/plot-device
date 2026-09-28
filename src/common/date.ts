@@ -238,11 +238,10 @@ export const formatDateRange = (start: YearMonthDay, end?: YearMonthDay) => {
 };
 
 /**
- * One date the way a reader says one — "6 Sep 2023", or just the year where that is all the
- * source recorded. The single-ended half of `formatDateRange`, for a line that already says which
- * end of something it is quoting.
+ * One date the way a reader says one — "6 Sep 2023". The single-ended half of `formatDateRange`,
+ * for a line that already says which end of something it is quoting.
  */
-export const formatDate = (date: YearMonthDay | Year) => describeDate(date);
+export const formatDate = (date: YearMonthDay) => describeDate(date);
 
 /**
  * A year as a scale labels one — "’24".
@@ -254,10 +253,8 @@ export const formatDate = (date: YearMonthDay | Year) => describeDate(date);
  */
 export const shortYear = (year: number) => `’${(year % 100).toString().padStart(2, "0")}`;
 
-const describeDate = (date: YearMonthDay | Year, withYear = true) =>
-  date instanceof YearMonthDay
-    ? `${date.day} ${date.toYearMonth().monthString()}${withYear ? ` ${date.year}` : ""}`
-    : `${date.year}`;
+const describeDate = (date: YearMonthDay, withYear = true) =>
+  `${date.day} ${date.toYearMonth().monthString()}${withYear ? ` ${date.year}` : ""}`;
 
 export const CURRENT_PLAINDATE = YearMonthDay.currentDate();
 

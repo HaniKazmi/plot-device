@@ -235,11 +235,7 @@ const AveragesPerGame = ({ data }: { data: VideoGame[] }) => {
 };
 
 const RecentlyComplete = ({ data }: { data: VideoGame[] }) => {
-  const recent = data
-    // An Endless game's end date is when play stopped, which is not a finish.
-    .filter(({ status }) => status !== "Endless")
-    .filter((a) => a.hours && a.endDate)
-    .sortByKey("endDate");
+  const recent = data.filter((a) => a.hours && a.endDate).sortByKey("endDate");
   return (
     <GameStatList
       icon={<History />}
