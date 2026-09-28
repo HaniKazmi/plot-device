@@ -8,7 +8,7 @@ import {
   type PageSchema,
 } from "../common/filterSchema";
 import { franchiseIndex } from "../common/franchiseIndex";
-import { YearMonthDay, type Year } from "../common/date";
+import { YearMonthDay, latestOf } from "../common/date";
 import { mediumToLabel, type Medium } from "../utils/types";
 import { eachMedium, moduleOf } from "./media";
 import type { Season } from "../show/types";
@@ -734,20 +734,14 @@ export const attributeWorks = (library: Library, entry: AttributeEntry, today: Y
 /**
  * What a franchise view states above its works: when it began, when it was last touched, how long
  * it has taken, and how many media it reaches. The last date is `undefined` while any row of it is
- * still open, which the view states as now.
+ * still open, which the view states as now, and for no rows at all, which the view can be handed
+ * while the union is still loading.
  */
 export const franchiseFacts = (items: OmniItem[]) => {
-  const open = items.some((item) => !item.closeDate);
-  const closes = items.map((item) => item.closeDate).filter((date) => date !== undefined);
-  // Compared at the end of the range each value denotes, as the gallery's own recency is: a bare
-  // year runs to its 31 December, where its string sorts before any day inside it.
-  const last = closes.reduce<YearMonthDay | Year | undefined>(
-    (latest, date) => (latest === undefined || date.lastDay() > latest.lastDay() ? date : latest),
-    undefined,
-  );
+  const closed = items.length > 0 && items.every((item) => item.closeDate);
   return {
     firstYear: Math.min(...items.map((item) => item.year)),
-    last: open ? undefined : last,
+    last: closed ? latestOf(items, (item) => item.closeDate!) : undefined,
     hours: omniHours(items),
     media: new Set(items.map((item) => item.medium)).size,
   };

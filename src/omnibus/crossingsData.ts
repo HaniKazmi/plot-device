@@ -10,8 +10,6 @@ import "../utils/arrayUtils";
 /** One entry of a franchise on the strip, with the item behind it for the hover card. */
 interface CrossingSpan extends StripSpan {
   item: OmniItem;
-  /** False where the sheet recorded a year and no month, so the band's edges are not dates. */
-  precise: boolean;
 }
 
 /**
@@ -37,9 +35,7 @@ export interface Crossing {
  * so a crossings lane and a franchise bead cannot disagree about when an entry ran.
  *
  * A film is a point: `start === end`, which `buildStrip` floors to its minimum band width, and
- * films seen days apart tile clear of one another inside a lane rather than stacking. A game
- * logged with a bare year is the one imprecise case, drawn with dissolved edges so it does not
- * read as a date.
+ * films seen days apart tile clear of one another inside a lane rather than stacking.
  */
 export const crossingSpan = (item: OmniItem, key: string, today: YearMonthDay): CrossingSpan => ({
   key,

@@ -1,5 +1,5 @@
-import type { MediumModule, OmniItem } from "../common/medium";
-import { gameEntry, gameKey, gameSpan } from "./cardData";
+import { spanUntil, type MediumModule, type OmniItem } from "../common/medium";
+import { gameEntry, gameKey } from "./cardData";
 import { gameDataConfig } from "./converter";
 import { guestFilter, gameFilters } from "./filters";
 import { earliestYear as earliestYearOf } from "../common/statsData";
@@ -36,7 +36,7 @@ export const gameModule: MediumModule<VideoGame, VideoGame, Measure> = {
   guestFilter,
   toOmniItems: gameItems,
   entry: gameEntry,
-  span: gameSpan,
+  span: spanUntil,
   artwork: (game) => game.artwork,
   title: (game) => game.name,
   /** A game is already one row per work, so the row itself is the work. */

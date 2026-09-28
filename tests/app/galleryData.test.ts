@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CURRENT_PLAINDATE, Year, YearMonthDay } from "../../src/common/date";
+import { CURRENT_PLAINDATE, YearMonthDay } from "../../src/common/date";
 import { toOmniItems } from "../../src/app/library";
 import {
   GALLERY_CATEGORIES,
@@ -296,29 +296,6 @@ describe("ordering the shelves", () => {
 
     expect(shelf.all.map((item) => item.name)).toEqual(["Epic", "Unlogged"]);
     expect(shelf.top.name).toBe("Epic");
-  });
-
-  it("weighs a bare year at its end, which is the last the item could have been met", () => {
-    // A `Year` orders as that year's 1 January against a full date, so read at face value a game
-    // logged as a bare year loses to every dated day inside it — and roughly half the games carry
-    // one, which is what makes the two ends of an imprecise date different answers.
-    const [shelf] = galleryGroups(
-      toOmniItems(
-        library({
-          game: [
-            videoGame({ name: "Dated", genre: "Shooter", hours: 10, endDate: YearMonthDay.get(2024, 3, 1) }),
-            videoGame({ name: "Year only", genre: "Shooter", hours: 10, endDate: Year.get(2024) }),
-          ],
-        }),
-      ),
-      "genre",
-      "Hours",
-      "recent",
-      TODAY,
-    );
-
-    expect(shelf.all.map((item) => item.name)).toEqual(["Year only", "Dated"]);
-    expect(shelf.metDate.toString()).toBe("2024");
   });
 
   it("leaves a show standing on each decade it was met in, whichever sort is on", () => {

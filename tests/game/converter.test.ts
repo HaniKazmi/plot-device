@@ -22,25 +22,15 @@ describe("company", () => {
   });
 });
 
-describe("the Party status", () => {
-  it('folds "Party" into Endless plus a flag, because Party is not a Status', () => {
-    const game = convertOne({ Status: "Party" });
-
-    expect(game.status).toBe("Endless");
-    expect(game.party).toBe(true);
+describe("the status", () => {
+  it("rejects a status outside the vocabulary, naming the row, rather than casting it past the colour table", () => {
+    expect(() => convertOne({ Title: "Zelda", Status: "Party" })).toThrow(
+      'Row 2, "Zelda", Status: "Party" is not a status',
+    );
   });
 
-  it("leaves every other status alone with the flag off", () => {
-    const game = convertOne({ Status: "Beat" });
-
-    expect(game.status).toBe("Beat");
-    expect(game.party).toBe(false);
-  });
-
-  it("makes party games invisible to an Endless filter, since they are now Endless", () => {
-    const [party, endless] = jsonConverter([gameRow({ Status: "Party" }), gameRow({ Status: "Endless" })]);
-
-    expect(party.status).toBe(endless.status);
+  it("answers the vocabulary's own spelling", () => {
+    expect(convertOne({ Status: "endless" }).status).toBe("Endless");
   });
 });
 
@@ -108,28 +98,18 @@ describe("numDays", () => {
     expect(convertOne({ "Start Date": "2016-12-31", "End Date": "2017-01-01" }).numDays).toBe(2);
   });
 
-  it("is undefined when both ends are year-only, rather than inventing a precision", () => {
-    expect(convertOne({ "Start Date": "2007", "End Date": "2009" }).numDays).toBeUndefined();
-  });
-
-  it("rejects a pair with one bare year and one full date, in either order", () => {
-    // A played-on pair is recorded at one precision or the other; one of each is a half-filled
-    // cell. Left to `daysTo` it passes silently, because that answers `undefined` across mixed
-    // precision — except where the two share a year, which is the one case its string ordering
-    // catches, and it reports the pair as transposed rather than as mixed.
-    expect(() => convertOne({ Title: "Zelda", "Start Date": "2007", "End Date": "2017-04-01" })).toThrow(
-      'Row 2, "Zelda", played 2007 to 2017-04-01: one date is a bare year and the other is not',
+  it("rejects a bare year at either end, naming the cell, since the model places a game on a day", () => {
+    // Cast through instead, a `Year` reaches a chart placing it on a day scale, where it compares
+    // as a shorter string and drops the row with nothing said.
+    expect(() => convertOne({ Title: "Zelda", "Start Date": "2007", "End Date": "2007-04-01" })).toThrow(
+      'Row 2, "Zelda", Start Date: "2007" is a bare year, not a full date',
     );
     expect(() => convertOne({ Title: "Zelda", "Start Date": "2020-01-15", "End Date": "2020" })).toThrow(
-      "one date is a bare year and the other is not",
+      'Row 2, "Zelda", End Date: "2020" is a bare year, not a full date',
     );
-    expect(() => convertOne({ Title: "Zelda", "Start Date": "2020-01-15", "End Date": "2021" })).toThrow(
-      "one date is a bare year and the other is not",
+    expect(() => convertOne({ Title: "Zelda", "Start Date": "2007", "End Date": "" })).toThrow(
+      'Row 2, "Zelda", Start Date: "2007" is a bare year, not a full date',
     );
-  });
-
-  it("leaves an in-progress game alone, where there is no end date to agree with", () => {
-    expect(convertOne({ "Start Date": "2007", "End Date": "" }).numDays).toBeUndefined();
   });
 
   it("throws when the end date precedes the start date", () => {
@@ -193,13 +173,16 @@ describe("bad rows", () => {
     expect(() => convertOne({ "Start Date": "" })).toThrow("Unkown Date Format");
   });
 
-  it("throws on a partial date, because only full dates and bare years parse", () => {
+  it("throws on a partial date", () => {
     expect(() => convertOne({ "Start Date": "2017-03" })).toThrow("Unkown Date Format");
   });
 
   it("names the sheet row, the game and the column that failed", () => {
     expect(() => convertOne({ Title: "Zelda", "Start Date": "" })).toThrow('Row 2, "Zelda", Start Date');
     expect(() => convertOne({ Title: "Zelda", "Release Date": "" })).toThrow('Row 2, "Zelda", Release Date');
+    expect(() => convertOne({ Title: "Zelda", "Release Date": "2007" })).toThrow(
+      'Row 2, "Zelda", Release Date: "2007" is a bare year, not a full date',
+    );
   });
 
   it("counts sheet rows past the header, so the number matches what is on screen", () => {
@@ -217,7 +200,7 @@ describe("bad rows", () => {
 
 describe("the cache config", () => {
   it("keys the cache on the domain and a version, so a shape change can bump it", () => {
-    expect(gameDataConfig.storageKey).toBe("game-data-cache-v4");
+    expect(gameDataConfig.storageKey).toBe("game-data-cache-v5");
     expect(gameDataConfig.converter).toBe(jsonConverter);
   });
 });

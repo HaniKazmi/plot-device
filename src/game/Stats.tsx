@@ -235,10 +235,7 @@ const AveragesPerGame = ({ data }: { data: VideoGame[] }) => {
 };
 
 const RecentlyComplete = ({ data }: { data: VideoGame[] }) => {
-  const recent = data
-    .filter(({ party }) => !party)
-    .filter((a) => a.hours && a.endDate)
-    .sortByKey("endDate");
+  const recent = data.filter((a) => a.hours && a.endDate).sortByKey("endDate");
   return (
     <GameStatList
       icon={<History />}

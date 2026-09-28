@@ -2,7 +2,6 @@ import { useSelectBox } from "../common/SelectBoxHook";
 import { groupToColour, videoGameOptions, type Measure, type VideoGame, type VideoGameStringKeys } from "./types";
 import Barchart from "../common/Barchart";
 import { useScheme } from "../common/useScheme";
-import { Year } from "../common/date";
 import { releaseDecade } from "../utils/types";
 import type { YearType } from "./filterUtils";
 
@@ -18,12 +17,7 @@ const GameBarchart = ({ data, measure, yearType }: { data: VideoGame[]; measure:
       if (!value) return [];
 
       return {
-        date:
-          cumulative || yearType === "matching"
-            ? game.startDate instanceof Year
-              ? game.startDate.firstDay().toYearMonth()
-              : game.startDate.toYearMonth()
-            : game.startDate.toYear(),
+        date: cumulative || yearType === "matching" ? game.startDate.toYearMonth() : game.startDate.toYear(),
         colour: groupToColour(group, game, scheme),
         name: group === "none" ? "" : group === "decade" ? releaseDecade(game.releaseDate.year) : game[group],
         value,

@@ -1,5 +1,4 @@
 import { Box, Card, CardContent, Stack, useTheme, Typography, type Theme } from "@mui/material";
-import { NothingToPlot } from "../common/NothingMatches";
 import { useState, type ReactNode } from "react";
 import Grid from "@mui/material/Grid";
 import { Hub } from "@mui/icons-material";
@@ -248,10 +247,7 @@ const Crossings = ({
           >
             {everything ? (
               <CardContent>
-                {/* Every bare-year span is left out of this reading, so a year of games alone can
-                    have strips to draw and no rows at all; the chart itself draws nothing for an
-                    empty list. */}
-                {rows.length > 0 ? <TimeLineChart timelineData={rows} /> : <NothingToPlot />}
+                <TimeLineChart timelineData={rows} />
               </CardContent>
             ) : (
               <CrossingsStack
@@ -379,7 +375,6 @@ const toBand = (band: Crossing["bands"][number], scheme: Scheme): TimelineBand =
   widthPercent: band.widthPercent,
   lane: band.lane,
   colour: mediumToColour(band.item.medium, scheme),
-  imprecise: !band.precise,
   hoverCard: true,
   tooltip: <LazyTooltip render={() => <OmniHoverCard item={band.item} />} />,
 });

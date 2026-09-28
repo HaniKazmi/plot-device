@@ -1,4 +1,4 @@
-import type { Year, YearMonthDay } from "../common/date";
+import type { YearMonthDay } from "../common/date";
 import {
   NEUTRAL_FILL,
   certificateToColour,
@@ -50,22 +50,15 @@ export interface VideoGame {
   /** How the game looks, in the vocabulary Shows and Movies share (`STYLES`). */
   style: Style;
   certificate: Certificate;
-  /**
-   * Either precision, because the sheet holds both: a release is often recorded as a bare year,
-   * and `PlainDate.from` answers a `Year` for one. Narrowing this to `YearMonthDay` states
-   * something the converter does not produce, and a reader who believes it reaches for `daysTo`
-   * against a full date — which throws where the two share a year, since the longer string
-   * compares greater and the ordering guard reads that as a transposition.
-   */
-  releaseDate: YearMonthDay | Year;
+  releaseDate: YearMonthDay;
   format: Format;
   status: Status;
-  party?: boolean;
   hours?: number;
   numDays?: number;
   artwork?: string;
-  startDate: YearMonthDay | Year;
-  endDate?: YearMonthDay | Year;
+  /** Full dates both, so every scale places a game on a day and every duration is a count of days. */
+  startDate: YearMonthDay;
+  endDate?: YearMonthDay;
 }
 
 export type VideoGameStringKeys = KeysMatching<VideoGame, string>;
@@ -94,7 +87,13 @@ export const videoGameOptions: readonly VideoGameStringKeys[] = [
 export const FORMATS = ["Physical", "Digital", "Pirated", "Subscription"] as const satisfies readonly FormatName[];
 
 export type Format = (typeof FORMATS)[number];
-export type Status = "Playing" | "Endless" | "Abandoned" | "Beat" | "Backlog" | "Next";
+/**
+ * Listed so the converter can check a cell against it while it still knows the row: `statusToColour`
+ * answers `undefined` off its table and the status band drops such a row silently.
+ */
+export const STATUSES = ["Playing", "Endless", "Abandoned", "Beat", "Backlog", "Next"] as const;
+
+export type Status = (typeof STATUSES)[number];
 export type Company = "PlayStation" | "Nintendo" | "PC" | "iOS" | "Xbox";
 export type Platform = `${Company}${string}`;
 /**

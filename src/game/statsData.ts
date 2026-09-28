@@ -93,8 +93,8 @@ export const currentlyPlaying = (data: VideoGame[]) =>
  * number in two places waiting to disagree.
  *
  * Every tile is conditional on the sheet holding what it reports. An in-progress game may have no
- * hours logged yet, a game logged with a bare year cannot be counted days into, and a game with
- * no siblings has no series to be placed in — and a tile reading zero says something false in all
+ * hours logged yet, a start typed ahead of today has no days to count, and a game with no
+ * siblings has no series to be placed in — and a tile reading zero says something false in all
  * three cases where saying nothing says the truth.
  *
  * `franchise` is the game's siblings including itself, which is what `franchiseIndex` already
@@ -106,8 +106,7 @@ export const heroStats = (game: VideoGame, franchise: VideoGame[], today: YearMo
 
   if (game.hours) stats.push({ label: "Hours", value: game.hours });
 
-  // Nothing across a year-only date, which is the same answer as for a start typed ahead of
-  // today: there is no day count to show.
+  // Nothing for a start typed ahead of today: there is no day count to show.
   const days = daysSince(game.startDate, today);
   if (days !== undefined) stats.push({ label: "Days In", value: days });
 
@@ -133,7 +132,7 @@ export const statsCardLabelEndDateHours = (game: VideoGame) => [
   [game.endDate ? formatDate(game.endDate) : "", `${format(game.hours!)} Hours`],
 ];
 
-export const statsCardLabelStartDate = (game: VideoGame) => [[game.startDate ? formatDate(game.startDate) : ""]];
+export const statsCardLabelStartDate = (game: VideoGame) => [[formatDate(game.startDate)]];
 
 export const platformToShortChip = (game: VideoGame) => {
   const [label, colour] = platformToShort(game);

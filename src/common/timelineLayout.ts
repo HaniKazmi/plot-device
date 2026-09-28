@@ -1,5 +1,6 @@
 import type { Colour } from "../utils/types";
 import type { YearMonth, YearMonthDay } from "./date";
+import { latestOf } from "./date";
 import "../utils/arrayUtils";
 
 export interface TimelineData {
@@ -44,7 +45,7 @@ export interface PositionedTimelineData extends TimelineData {
  * shrinks the span, which is how a bar leaves a gap before the next one.
  */
 export const percentOfSpan = (start: YearMonthDay, end: YearMonthDay, totalDays: number, padding: number = 0) =>
-  ((start.daysTo(end)! + padding) / totalDays) * 100;
+  ((start.daysTo(end) + padding) / totalDays) * 100;
 
 /**
  * Where a date sits on the grid: the days elapsed *before* it, as a percentage of the whole.
@@ -244,7 +245,10 @@ const byStartThenShortest = (a: TimelineData, b: TimelineData) => {
  * its row neighbours on the way through, which is what the label step measures its gaps against.
  */
 export const packRows = (timelineData: TimelineData[]) => {
-  const sortedData = timelineData.toSorted(byStartThenShortest);
+  // A start after its own end has nothing to draw: an open item runs to today, so a start typed
+  // ahead of today is that shape, and `daysTo` throws on it once the bar is measured. Left off
+  // here rather than by each caller, so a new timeline cannot forget the rule.
+  const sortedData = timelineData.filter((row) => row.start.lte(row.end)).toSorted(byStartThenShortest);
   const rows = assignRows(sortedData);
 
   // The last event placed in each row.
@@ -282,10 +286,7 @@ export const packRows = (timelineData: TimelineData[]) => {
  * would take the maximum of a list of `NaN`.
  */
 export const latestEnd = (items: readonly { end: YearMonthDay }[]): YearMonthDay | undefined =>
-  items.reduce<YearMonthDay | undefined>(
-    (latest, item) => (!latest || item.end > latest ? item.end : latest),
-    undefined,
-  );
+  items.length ? latestOf(items, (item) => item.end) : undefined;
 
 export type Placement = "center" | "right" | "left" | "span";
 

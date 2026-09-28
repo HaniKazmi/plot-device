@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CURRENT_YEAR, Year, YearMonthDay } from "../../src/common/date";
+import { CURRENT_YEAR, YearMonthDay } from "../../src/common/date";
 import {
   bucketFor,
   bucketGroups,
@@ -142,13 +142,6 @@ describe("bucketFor", () => {
     expect(finishedBucket(item("Zelda", "a.jpg", 2023), "Date")).toBe("2023");
   });
 
-  it("gives a year-only date the same year a full date gives", () => {
-    const yearOnly = { name: "Old", artwork: "a.jpg", franchise: "", startDate: Year.get(2007) };
-
-    expect(finishedBucket(yearOnly, "Date")).toBe("2007");
-    expect(finishedBucket(item("New", "a.jpg", 2007), "Date")).toBe("2007");
-  });
-
   it("has no bucket for an undated item, which is one the date sort puts first", () => {
     expect(finishedBucket(item("Undated", "a.jpg"), "Date")).toBeNull();
   });
@@ -250,9 +243,14 @@ describe("finishedKey", () => {
     expect(finishedKey({ name: "Severance", artwork: "a.jpg", franchise: "" })).toBe("Severance");
   });
 
-  it("reads a year-only release date, which games record", () => {
+  it("keys on the release year, whichever day of it the sheet records", () => {
     expect(
-      finishedKey({ name: "Ocarina of Time", artwork: "a.jpg", franchise: "Zelda", releaseDate: Year.get(1998) }),
+      finishedKey({
+        name: "Ocarina of Time",
+        artwork: "a.jpg",
+        franchise: "Zelda",
+        releaseDate: YearMonthDay.get(1998, 11, 21),
+      }),
     ).toBe("Ocarina of Time (1998)");
   });
 });

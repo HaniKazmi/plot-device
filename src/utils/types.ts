@@ -264,8 +264,7 @@ export const certificateToColour = (certificate: Certificate, scheme: Scheme): C
  * `Endless` and `Up To Date` are separate states rather than one. Up To Date is a show you are
  * current on that is still running — you are waiting on the source, which is as alive as a status
  * gets short of watching it, and it keeps the blue. Endless is a game with no completion state at
- * all; `game/converter.ts` folds a Party game into it, and nothing about it was ever going to be
- * beaten. It takes a yellow-green beside Beat/Ended, as the second way a thing can be done with —
+ * all, which nothing about was ever going to be beaten. It takes a yellow-green beside Beat/Ended, as the second way a thing can be done with —
  * there was never an end to reach rather than one you got to — a step above Beat because a game
  * with no end is still one you might open again.
  *

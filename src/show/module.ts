@@ -1,5 +1,5 @@
-import type { MediumModule, OmniItem } from "../common/medium";
-import { seasonEntry, seasonKey, seasonSpan } from "./cardData";
+import { spanUntil, type MediumModule, type OmniItem } from "../common/medium";
+import { seasonEntry, seasonKey } from "./cardData";
 import { showDataConfig } from "./converter";
 import { guestFilter, showFilters } from "./filters";
 import { pageState } from "./filterUtils";
@@ -42,7 +42,7 @@ export const showModule: MediumModule<Show, Season, Measure> = {
   guestFilter,
   toOmniItems: seasonItems,
   entry: seasonEntry,
-  span: seasonSpan,
+  span: spanUntil,
   // The sheets hold one banner per show, so a season is drawn as its show.
   artwork: (season) => season.show.artwork,
   // A strip of six cards all reading the same show name says nothing about what was watched.

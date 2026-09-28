@@ -1,6 +1,6 @@
 import type { LedgerRow, PanelSubtitlePart } from "../common/Card";
 import type { FranchiseEntry } from "../common/franchiseUnion";
-import type { MediumSpan } from "../common/medium";
+import { spanUntil } from "../common/medium";
 import type { ReactNode } from "react";
 import { formatDate, formatDateRange, type YearMonthDay } from "../common/date";
 import { franchiseToColour, genreToColour, mediumFills, statusToColour, type Scheme } from "../utils/types";
@@ -58,16 +58,6 @@ export const bookRows = (book: Book, scheme: Scheme): LedgerRow[] => {
 };
 
 /**
- * When a book was read, for any scale that places it. The converter holds a book's dates to full
- * ones at both ends, so a book is always precise; the book in hand runs to today.
- */
-export const bookSpan = (book: Book, today: YearMonthDay): MediumSpan => ({
-  start: book.startDate,
-  end: book.endDate ?? today,
-  precise: true,
-});
-
-/**
  * A book in a franchise strip's vocabulary. One mapper for the tab's own index and the union.
  */
 export const bookEntry = (book: Book, today: YearMonthDay, hoverCard: () => ReactNode): FranchiseEntry => ({
@@ -77,6 +67,6 @@ export const bookEntry = (book: Book, today: YearMonthDay, hoverCard: () => Reac
   medium: "book",
   fill: mediumFills.book,
   label: book.name,
-  ...bookSpan(book, today),
+  ...spanUntil(book, today),
   hoverCard,
 });

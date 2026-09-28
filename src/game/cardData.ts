@@ -1,6 +1,6 @@
-import { Year, YearMonthDay, formatDate, formatDateRange } from "../common/date";
+import { YearMonthDay, formatDate, formatDateRange } from "../common/date";
 import type { FranchiseEntry } from "../common/franchiseUnion";
-import type { MediumSpan } from "../common/medium";
+import { spanUntil } from "../common/medium";
 import type { ReactNode } from "react";
 import type { LedgerRow, PanelSubtitlePart } from "../common/Card";
 import { franchiseToColour, genreToColour, mediumFills, type Scheme } from "../utils/types";
@@ -89,25 +89,6 @@ export const gameRows = (game: VideoGame, scheme: Scheme): LedgerRow[] => {
 };
 
 /**
- * When a game ran, for any scale that places it: a card's franchise strip, a crossings lane, a
- * packed row.
- *
- * Half the collection predates the habit of logging days and carries a bare year, so what to do
- * with those is not an edge case. A year-only date spans its whole year with imprecise edges: the
- * strips dissolve such a span under a mask that says so, and the packed timeline leaves it out
- * (`game/Timeline.tsx`), a packed row having no way to mark a bar as an estimate. Sharing a year
- * out between the games naming it, in release order, would put each on a plausible slot — a game
- * cannot be played before it exists — but it needs the whole library to divide the year between
- * and reads as a date the sheet never held.
- */
-export const gameSpan = (game: VideoGame, today: YearMonthDay): MediumSpan => ({
-  start: game.startDate.firstDay(),
-  // Still being played, whatever precision the start carries.
-  end: game.endDate ? game.endDate.lastDay() : today,
-  precise: !(game.startDate instanceof Year) && !(game.endDate instanceof Year),
-});
-
-/**
  * A game in a franchise strip's vocabulary. One mapper for the tab's own index and the union, so
  * the two cannot draw the same game two ways.
  */
@@ -118,6 +99,6 @@ export const gameEntry = (game: VideoGame, today: YearMonthDay, hoverCard: () =>
   medium: "game",
   fill: mediumFills.game,
   label: game.name,
-  ...gameSpan(game, today),
+  ...spanUntil(game, today),
   hoverCard,
 });

@@ -40,9 +40,8 @@ const MIN_BAND_PERCENT = 0.5;
  *
  * Lanes are what makes an overlap readable rather than merely correct. A band drawn over another
  * hides it completely, and the topmost element takes the pointer, so the buried span cannot even
- * be hovered for its dates. That is not a rare case: a year-only date resolves to the first of
- * January, so every entry a sheet records with no month stacks exactly on its same-year
- * neighbours.
+ * be hovered for its dates. That is not a rare case: a franchise routinely holds two entries
+ * running at once, a show's season beside the game or the book met during it.
  *
  * Only a genuine overlap opens one, though. Bands that merely abut — a season finished the day
  * the next was started, a game handed over to its sequel — stay in the lane they were in and are
@@ -53,7 +52,7 @@ const MIN_BAND_PERCENT = 0.5;
  * cosmetic problem. One that straddles the epoch keeps the part that fits.
  */
 export const buildStrip = <T extends StripSpan>(spans: T[], epoch: YearMonthDay, today: YearMonthDay) => {
-  const totalDays = epoch.daysTo(today)!;
+  const totalDays = epoch.daysTo(today);
 
   // Clamped before packing, so a lane answers for what is actually drawn in it — and because
   // `daysTo` throws on a backwards comparison. Clamping only ever raises a start to the epoch, so
@@ -167,6 +166,6 @@ export const beadsPerRow = (count: number, width: number, minPitch: number) =>
  * of a month or every tick sits however far the two origins differ — both are 1 January.
  */
 export const stripYearTicks = (epoch: YearMonthDay, today: YearMonthDay): TimelineTick[] =>
-  buildTicks(epoch.toYearMonth(), today.toYearMonth(), epoch.daysTo(today)!).filter(
+  buildTicks(epoch.toYearMonth(), today.toYearMonth(), epoch.daysTo(today)).filter(
     (tick) => tick.level === "year" && tick.year > epoch.year,
   );

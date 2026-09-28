@@ -14,59 +14,11 @@ export abstract class PlainDate {
     }
   }
 
-  daysTo(end?: PlainDate) {
-    if (!end) {
-      return undefined;
-    }
-
-    // Compared at the ends of the ranges the two values denote, not as themselves. `valueOf`
-    // answers the zero-padded ISO form, so a bare year is a prefix of every date inside it and
-    // sorts before all of them — which reads a January 1st as later than the year containing it
-    // and reports an inversion that is not there. Asking whether the start's earliest day falls
-    // after the end's latest is the same question at any precision, and it is only ever true when
-    // the pair is genuinely transposed.
-    if (this.firstDay() > end.lastDay()) {
-      throw new Error("Invalid comparison");
-    }
-
-    if (!(this instanceof YearMonthDay && end instanceof YearMonthDay)) {
-      return undefined;
-    }
-
-    let daysToStart = this.day - 1;
-    for (let i = 1; i < this.month; i++) {
-      daysToStart += monthToDays(i, this.year);
-    }
-
-    let daysToEnd = end.day;
-
-    for (let i = this.year; i < end.year; i++) {
-      daysToEnd += i % 4 === 0 ? 366 : 365;
-    }
-
-    for (let i = 1; i < end.month; i++) {
-      daysToEnd += monthToDays(i, end.year);
-    }
-
-    return daysToEnd - daysToStart;
-  }
-
   lte(date: PlainDate) {
     return this.toString() <= date.toString();
   }
 
   abstract increment(): this;
-
-  /**
-   * The first and last day this value can mean. A `Year` denotes a whole year and a `YearMonth` a
-   * whole month, so the two differ for them and coincide for a `YearMonthDay`.
-   *
-   * This is how a consumer states which end of an imprecise date it wants, rather than reaching
-   * for a subclass and picking one by accident.
-   */
-  abstract firstDay(): YearMonthDay;
-
-  abstract lastDay(): YearMonthDay;
 
   iterateToDate(endDate: PlainDate): this[] {
     const array: this[] = [];
@@ -112,14 +64,6 @@ export class Year extends PlainDate {
   toYear() {
     return this;
   }
-
-  firstDay() {
-    return YearMonthDay.get(this.year, 1, 1);
-  }
-
-  lastDay() {
-    return YearMonthDay.get(this.year, 12, 31);
-  }
 }
 
 export class YearMonth extends PlainDate {
@@ -164,14 +108,6 @@ export class YearMonth extends PlainDate {
   startOfMonth() {
     return YearMonthDay.get(this.year, this.month, 1);
   }
-
-  firstDay() {
-    return this.startOfMonth();
-  }
-
-  lastDay() {
-    return YearMonthDay.get(this.year, this.month, monthToDays(this.month, this.year));
-  }
 }
 
 export class YearMonthDay extends PlainDate {
@@ -215,6 +151,33 @@ export class YearMonthDay extends PlainDate {
     return Year.get(this.year);
   }
 
+  /**
+   * The days from this date up to and including `end`, both counted. Throws on an inverted pair,
+   * which is a sheet cell worth stopping for rather than a negative figure to draw.
+   */
+  daysTo(end: YearMonthDay): number {
+    if (this > end) {
+      throw new Error("Invalid comparison");
+    }
+
+    let daysToStart = this.day - 1;
+    for (let i = 1; i < this.month; i++) {
+      daysToStart += monthToDays(i, this.year);
+    }
+
+    let daysToEnd = end.day;
+
+    for (let i = this.year; i < end.year; i++) {
+      daysToEnd += i % 4 === 0 ? 366 : 365;
+    }
+
+    for (let i = 1; i < end.month; i++) {
+      daysToEnd += monthToDays(i, end.year);
+    }
+
+    return daysToEnd - daysToStart;
+  }
+
   toYearMonth() {
     return YearMonth.get(this.year, this.month);
   }
@@ -235,14 +198,6 @@ export class YearMonthDay extends PlainDate {
 
     const [newYear, newMonth] = nextMonth(this.year, this.month);
     return YearMonthDay.get(newYear, newMonth, 1) as this;
-  }
-
-  firstDay() {
-    return this;
-  }
-
-  lastDay() {
-    return this;
   }
 
   startOfMonth() {
@@ -268,13 +223,13 @@ const nextMonth = (year: YearNumber, month: number): [YearNumber, number] =>
 
 /**
  * A range the way a reader says one — "6 Sep – 20 Oct 2023", with the year given once when both
- * ends share it, and dropped to just the year where that is all the source recorded.
+ * ends share it.
  *
  * `PlainDate.toString` is the machine form: it sorts, round-trips through storage and never
  * argues about a locale. This is the other job, and keeping the two apart is what stops either
  * being bent towards the other.
  */
-export const formatDateRange = (start: YearMonthDay | Year, end?: YearMonthDay | Year) => {
+export const formatDateRange = (start: YearMonthDay, end?: YearMonthDay) => {
   if (!end) return `${describeDate(start)} – present`;
   if (start === end) return describeDate(start);
 
@@ -283,11 +238,10 @@ export const formatDateRange = (start: YearMonthDay | Year, end?: YearMonthDay |
 };
 
 /**
- * One date the way a reader says one — "6 Sep 2023", or just the year where that is all the
- * source recorded. The single-ended half of `formatDateRange`, for a line that already says which
- * end of something it is quoting.
+ * One date the way a reader says one — "6 Sep 2023". The single-ended half of `formatDateRange`,
+ * for a line that already says which end of something it is quoting.
  */
-export const formatDate = (date: YearMonthDay | Year) => describeDate(date);
+export const formatDate = (date: YearMonthDay) => describeDate(date);
 
 /**
  * A year as a scale labels one — "’24".
@@ -299,23 +253,28 @@ export const formatDate = (date: YearMonthDay | Year) => describeDate(date);
  */
 export const shortYear = (year: number) => `’${(year % 100).toString().padStart(2, "0")}`;
 
-const describeDate = (date: YearMonthDay | Year, withYear = true) =>
-  date instanceof YearMonthDay
-    ? `${date.day} ${date.toYearMonth().monthString()}${withYear ? ` ${date.year}` : ""}`
-    : `${date.year}`;
+const describeDate = (date: YearMonthDay, withYear = true) =>
+  `${date.day} ${date.toYearMonth().monthString()}${withYear ? ` ${date.year}` : ""}`;
 
 export const CURRENT_PLAINDATE = YearMonthDay.currentDate();
 
 export const CURRENT_YEAR = CURRENT_PLAINDATE.year;
 
 /**
- * The days from `start` up to and including `today`, or nothing where `start` is after it or is
- * a bare year.
+ * The days from `start` up to and including `today`, or nothing where `start` is after it.
  *
  * `daysTo` throws rather than answering backwards, and a start typed ahead of today is a sheet
- * cell rather than a crash: the honest figure is no day count at all, which is also what `daysTo`
- * answers across a year-only start. One home for that rule, since every domain with something in
- * progress counts the days it has been so far.
+ * cell rather than a crash: the honest figure is no day count at all. One home for that rule,
+ * since every domain with something in progress counts the days it has been so far.
  */
-export const daysSince = (start: PlainDate, today: YearMonthDay): number | undefined =>
+export const daysSince = (start: YearMonthDay, today: YearMonthDay): number | undefined =>
   start.lte(today) ? start.daysTo(today) : undefined;
+
+/**
+ * The latest of the dates the items answer, for a list holding at least one.
+ *
+ * Reduced rather than `Math.max`ed: `PlainDate.valueOf` answers a string, so the numeric form
+ * would take the maximum of a list of `NaN`.
+ */
+export const latestOf = <T>(items: readonly T[], dateOf: (item: T) => YearMonthDay): YearMonthDay =>
+  items.reduce((latest, item) => (dateOf(item) > latest ? dateOf(item) : latest), dateOf(items[0]));

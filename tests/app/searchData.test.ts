@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Year, YearMonthDay } from "../../src/common/date";
+import { YearMonthDay } from "../../src/common/date";
 import { toOmniItems } from "../../src/app/library";
 import { rankHits } from "../../src/common/searchData";
 import {
@@ -186,17 +186,6 @@ describe("franchiseWorks and franchiseFacts", () => {
     expect(Number.isInteger(facts.hours)).toBe(true);
   });
 
-  it("takes the last close at the end of the range it denotes, so a bare year outlasts a day inside it", () => {
-    const items = toOmniItems(
-      library({
-        game: [videoGame({ franchise: "Trek", startDate: Year.get(2010), endDate: Year.get(2010) })],
-        movie: [movie({ franchise: "Trek", startDate: YearMonthDay.get(2010, 1, 5) })],
-      }),
-    );
-
-    expect(franchiseFacts(items).last).toBe(Year.get(2010));
-  });
-
   it("leaves the last date open while any row of the franchise is", () => {
     const items = toOmniItems(
       library({
@@ -340,7 +329,7 @@ describe("buildAttributeIndex over the shared style", () => {
   it("leaves a toggle that names a page's own noise out of the index entirely", () => {
     const keys = buildAttributeIndex(pages(animeLibrary())).map((entry) => entry.category);
 
-    expect(keys).not.toContain("unconfirmed");
+    expect(keys).not.toContain("endless");
     expect(keys).not.toContain("unscored");
     // The Omnibus keys its medium switches by medium; none is shelved, or a whole tab would be one.
     expect(keys).not.toContain("game");

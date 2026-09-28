@@ -26,8 +26,6 @@ export interface FranchiseEntry {
   label: string;
   start: YearMonthDay;
   end: YearMonthDay;
-  /** False where the sheet recorded a year and no month, so the span's edges are not dates. */
-  precise: boolean;
   /** The entry's own hover card, built only when the pointer arrives. */
   hoverCard: () => ReactNode;
 }

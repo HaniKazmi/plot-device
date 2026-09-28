@@ -176,21 +176,21 @@ store that over the copy a cold visit paints from and report a successful refres
 
 **A bad cell names its own row**, rather than surfacing later from a colour lookup or a chart offset
 that names none. `common/sheetError.ts` holds the vocabulary — `sheetRow`, `describing`, `sheetError`
-— and five readers over it: `readCertificate` rejects a certificate outside `Certificate`,
-`readStyle` a style outside the `STYLES` Games, Shows and Movies share, `readGenre` a blank,
-`readFullDate` a bare year where the model claims a day, and `readDatePair` a span logged at two
-precisions. Two more sit in the converters that need them: Movies checks its `Format` cell against
-the two words it holds, and Games rejects an absent `Themes` column while allowing a blank cell. `readGenre` defaults its argument, since the API ends a row at its last filled cell
+— and four readers over it: `readCertificate` rejects a certificate outside `Certificate`,
+`readStyle` a style outside the `STYLES` Games, Shows and Movies share, `readGenre` a blank, and
+`readFullDate` a bare year where the model claims a day, which every sheet's spans do. Two more
+sit in the converters that need them: Movies checks its `Format` cell against the two words it
+holds, and Games rejects an absent `Themes` column while allowing a blank cell. `readGenre` defaults its argument, since the API ends a row at its last filled cell
 and a half-entered row carries no `Genre` key; genre is also read before the dates to its right, so
 such a row names its missing genre rather than a date.
 
 Converters do real modelling work, not just field renaming:
 
-- **`game/`** derives `company` from the platform string, folds a `"Party"` status into
-  `status: "Endless"` plus a `party` boolean, splits `Themes` through `splitCell`, computes `numDays`
-  from the date pair, and checks `Gameplay` against the `GAMEPLAY` vocabulary through `readChecked`
-  rather than casting it past `gameplayToColour`'s neutral, and `Style` through `readStyle`. The
-  themes read rejects an _absent_ column while allowing a blank
+- **`game/`** derives `company` from the platform string, checks `Status` against its own
+  vocabulary, splits `Themes` through `splitCell`, holds its release and both played dates to full
+  ones through `readFullDate` and counts `numDays` between them, and checks `Gameplay` against the `GAMEPLAY`
+  vocabulary through `readChecked` rather than casting it past `gameplayToColour`'s neutral, and
+  `Style` through `readStyle`. The themes read rejects an _absent_ column while allowing a blank
   cell: 12 of 340 games honestly carry no theme, and `themes.includes("Adult")` is what guest mode
   hides on, so reading a missing column as "no themes" would put every adult game back on screen.
 - **`show/`** nests a flat sheet: a non-empty `Title` cell opens a show, the rows after it are its
@@ -309,7 +309,7 @@ Two subtleties live in the serialisation boundary, and both are easy to break:
    the domain's reviver running in the same guard — the hook is called from `LibraryProvider`, above
    the page's own error boundary (§10), so a throw here takes the app down and not just the page.
 
-Cache keys are versioned per domain — `dataCacheKey(domain, version)` yields `game-data-cache-v4`,
+Cache keys are versioned per domain — `dataCacheKey(domain, version)` yields `game-data-cache-v5`,
 `show-data-cache-v7`, `movie-data-cache-v5`, `book-data-cache-v2` — and `dropSupersededVersions`
 clears earlier keys on first load, matched on the domain's prefix so one tab's bump cannot empty
 another's. Bump the version in the domain's `converter.ts` on any model-shape change, or returning
@@ -423,8 +423,8 @@ tab's page module — one pass of that page's own predicate over its library per
 same figure the box's footer states — and every shell asks it at the empty branch it already has.
 Handed down instead, it is a prop threaded through sixteen domain wrappers that never look at it,
 and a shell added later is silently the one that says nothing. Asked at the shell's own empty
-branch rather than in place of it, a chart emptied by a control of its own — the games timeline's
-Party switch, a grouping that yields no rings — still states that in its own words while the page
+branch rather than in place of it, a chart emptied by a control of its own — a grouping that
+yields no rings — still states that in its own words while the page
 around it has rows. The Omnibus gates each of its sections on having something to draw, so it draws
 the message itself where they would stand.
 
@@ -808,9 +808,8 @@ itself is one work and no series. What it cannot tell apart is two unrelated wor
 a game called Euphoria beside the show, the franchise column being all any of these surfaces has to
 group on. The box's own franchise index reads the same rule, so the strips and the values a query
 finds cannot disagree about what a franchise is. A film is a point
-(`start === end`), floored to the strip's minimum band width; a bare-year game date draws its whole
-year, marked `precise: false`, rather than the share `game/cardData.ts` estimates from the whole
-library for a single game's strip. The `epoch` is the earliest _start_ drawn, floored to that year's
+(`start === end`), floored to the strip's minimum band width. The `epoch` is the earliest _start_
+drawn, floored to that year's
 1 January: an attribution year is the year an item ended, so a scale opened on it clamps every
 earlier start against the left edge, and a mid-month epoch puts every year line off by the
 difference.
@@ -826,9 +825,7 @@ states. On a phone the card folds inside itself (`FoldedContent`, the fold witho
 The header's Franchises · All switch trades the strips for the packed timeline the Games, Shows
 and Books tabs draw one medium at a time, over the whole union: `omnibus/timelineData.ts` maps
 each item to a row through the crossings' own `crossingSpan`, so the two readings cannot disagree
-about when an entry ran, coloured by medium and hovering to the same dispatcher. A game logged
-with a bare year is left out rather than drawn as a year-long solid bar — the strips dissolve such
-a span under a mask that says so, where a packed row has no way to mark one as an estimate. That
+about when an entry ran, coloured by medium and hovering to the same dispatcher. That
 reading draws every row it has, so the card offers no expansion under it. The rows are built only
 while that reading is chosen, and the
 choice lasts the visit. `TimeLineChart` is exported from `common/Timeline.tsx` for it, the chart
@@ -909,7 +906,7 @@ card's own footer the footer restates its colours from the artwork palette — a
 
 `SegmentedControl` is a small closed set of named states, and every surface offering one uses it:
 the barchart's four views, the gallery's shelf order, the wall's density, the Shows timeline's
-Seasons · Shows, the Books timeline's Books · Series, the Games timeline's With party · Without,
+Seasons · Shows, the Books timeline's Books · Series,
 and each tab's measure in the section rail — the last through `MeasureControl`,
 which owns the wiring to the filter reducer once for the five tabs. Values that are already their
 own words become options through `common/segments.ts`. Words rather than icons, an icon being a
@@ -1341,8 +1338,8 @@ drawing the gridlines and `yearLabelEvery` thinning the labels to every second o
 window grows. Lanes open only where entries genuinely overlap, never per medium — which medium a
 mark belongs to is its fill — at a fixed 16px pitch, so the strip grows to hold its lanes and no
 band shrinks to fit. A film is a point (`start === end`) drawn as a dot, a bar floored to a
-percentage of the width being a different number of pixels on every card; an imprecise span
-dissolves at both ends under a mask. The chosen reading is held at module scope, so it carries from
+percentage of the width being a different number of pixels on every card. The chosen reading is
+held at module scope, so it carries from
 card to card for the life of the page.
 
 Both readings stand in a well: a wash of the card's own ground edged in its hairline, so the strip
@@ -1371,8 +1368,8 @@ box is the full 24; a Time-reading mark's is the 16px lane pitch it stands in, s
 would reach into the lane below and answer for both marks at once.
 
 The entries come from one index across the four libraries. `common/franchiseUnion.ts` declares the
-`FranchiseEntry` shape — key, subject, franchise, medium, fill, label, span, `precise` and a
-hover-card thunk — and the context; `app/franchiseUnionData.ts` builds it, mapping each
+`FranchiseEntry` shape — key, subject, franchise, medium, fill, label, span and a hover-card
+thunk — and the context; `app/franchiseUnionData.ts` builds it, mapping each
 `OmniItem` through its own domain's `gameEntry`, `seasonEntry`, `movieEntry` or `bookEntry`, so the
 union and a tab's own index cannot draw one item two ways. A tracked domain may not import another
 and `common/` may import none, so the build sits in `app/`, beside its provider
@@ -2329,8 +2326,9 @@ accent on that module's context, the card being the only thing that knows its ow
 ### `PlainDate` instead of `Date`
 
 `common/date.ts` defines an abstract `PlainDate` over `Year`, `YearMonth` and `YearMonthDay`, because
-the source data is calendar-precision and sometimes only a year (an old game logged as `2007`), which
-`Date` cannot represent without inventing a day and a timezone.
+the source data is calendar-precision, which `Date` cannot represent without inventing a time and a
+timezone, and a barchart column is a whole year or month, which `Year` and `YearMonth` state without
+inventing a day.
 
 - **Interning.** Private constructors plus a static cache make identical dates reference-equal, so a
   `Map` keyed by date works — `Barchart`'s pivot relies on it.
@@ -2341,14 +2339,9 @@ the source data is calendar-precision and sometimes only a year (an old game log
 - **Dispatch by length.** Ten characters gives a `YearMonthDay`, four a `Year`, anything else throws,
   so a partial `"2024-05"` is a loud failure.
 
-`firstDay()`/`lastDay()` give the range a value denotes, so a consumer states which end of an
-imprecise date it wants instead of reaching for a subclass. `daysTo` compares those ends — a bare year
-is a prefix of every date inside it, so comparing values directly reads 1 January as later than its
-own year — and throws only on a genuinely transposed pair. It answers `undefined` when either side is
-year-only, so durations degrade rather than fabricate precision. Half the games carry a bare year,
-so `gameSpan` (`game/cardData.ts`) spans the whole year and marks it `precise: false`: a strip
-dissolves such a span under a mask that says so, and the packed timeline leaves it out, a packed row
-having no way to mark a bar as an estimate.
+`Year` and `YearMonth` are what a barchart column is; every date a sheet records is held to a full
+one through `readFullDate`, so `daysTo` lives on `YearMonthDay` alone and throws only on a
+transposed pair.
 
 ### Prototype augmentation
 

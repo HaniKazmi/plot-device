@@ -18,7 +18,7 @@ import { useFranchiseGames } from "./franchiseContext";
 
 /**
  * The figures the card leads with. Each is conditional on the sheet holding it: an in-progress
- * game may have no hours logged, and a game logged with a bare year cannot be counted days into.
+ * game may have no hours logged and has no end to count days to.
  *
  * Zero is unrecorded rather than a measurement in both, which is why the test is truthiness: a
  * tile reading zero hours says the game was played for none, where saying nothing says the truth.

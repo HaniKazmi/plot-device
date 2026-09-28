@@ -28,8 +28,6 @@ export type TimelineBand = Omit<StripBand<StripSpan>, "start" | "end"> & {
   hoverCard?: boolean;
   /** Context rather than the subject of the card, drawn dimmer. */
   muted?: boolean;
-  /** The span is an estimate, drawn so its edges do not read as dates. */
-  imprecise?: boolean;
 };
 
 /**
@@ -96,8 +94,6 @@ export const TimelineAxis = ({
     ))}
   </Box>
 );
-
-export const FADED_ENDS = "linear-gradient(to right, transparent, #000 25%, #000 75%, transparent)";
 
 /** Of the lane, so lanes stay visibly separate whatever the strip is divided into. */
 const LANE_PADDING = 0.08;
@@ -177,17 +173,6 @@ const BAND_SX = {
  */
 const LANE_TOUCH_SX = touchTargetSx(`${100 / (1 - 2 * LANE_PADDING)}%`);
 
-/**
- * An estimated span dissolves at both ends rather than stopping at one, because a hard edge is a
- * date and this band does not have one. Square-cut too, so the rounded caps stay the mark of a
- * span the sheet actually pinned down.
- */
-const IMPRECISE_BAND_SX = {
-  maskImage: FADED_ENDS,
-  WebkitMaskImage: FADED_ENDS,
-  borderRadius: 0,
-} as const;
-
 /** Context rather than subject, on a strip where one band is the card's own. */
 const MUTED_BAND_SX = { opacity: 0.6 } as const;
 
@@ -211,7 +196,6 @@ export const TimelineBandBox = ({
   tooltip,
   hoverCard,
   muted,
-  imprecise,
   frameless,
 }: TimelineBand & { laneCount: number; frameless?: boolean }) => {
   const laneHeight = 100 / laneCount;
@@ -228,11 +212,9 @@ export const TimelineBandBox = ({
       hoverCard={hoverCard}
     >
       <Box
-        // Later entries win, so the imprecise band's square cut lands over the rounded default.
         sx={[
           BAND_SX,
           laneCount > 1 ? LANE_TOUCH_SX : TOUCH_TARGET_SX,
-          !!imprecise && IMPRECISE_BAND_SX,
           !!muted && MUTED_BAND_SX,
           !muted && !frameless && RINGED_BAND_SX,
         ]}

@@ -47,7 +47,7 @@ export type CategoryKey<S> = KeysMatching<S, readonly string[]> & string;
  * every predicate's direction here — the name says what turning the toggle off does, not what the
  * function returns.
  *
- * A toggle names a page's own noise — unconfirmed dates, unscored films, a medium switched off —
+ * A toggle names a page's own noise — endless games, unscored films, a medium switched off —
  * and its two states are "everything" and "these rows dropped", with none meaning "these rows
  * alone". A two-valued split is therefore a category and not a toggle however few values it has:
  * three readings, and a toggle can hold two of them.
