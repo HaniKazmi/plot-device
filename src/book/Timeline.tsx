@@ -36,8 +36,7 @@ const toBar = (data: Omit<TimelineData, "end"> & { end?: YearMonthDay }): Timeli
 
 /**
  * Every read as a packed span, the chart Games draws for playthroughs: a book is begun and
- * finished days to years apart, which is what makes it a bar rather than a mark on a ribbon. The
- * converter holds every date to a full one, so there is no year-only floor to apply here.
+ * finished days to years apart, which is what makes it a bar rather than a mark on a ribbon.
  */
 const BookTimeline = ({
   data,

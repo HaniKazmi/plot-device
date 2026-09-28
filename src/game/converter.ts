@@ -4,14 +4,14 @@ import {
   describing,
   readCertificate,
   readChecked,
-  readDatePair,
+  readFullDate,
   readGenre,
   readStyle,
   sheetError,
   sheetRow,
 } from "../common/sheetError.ts";
 import { splitCell } from "../utils/stringUtils";
-import { GAMEPLAY, platformCompany, type Format, type Platform, type Status, type VideoGame } from "./types";
+import { GAMEPLAY, STATUSES, platformCompany, type Format, type Platform, type VideoGame } from "./types";
 
 /**
  * Checked rather than cast: a blank or misspelt cell is a sheet error, and the row is only nameable
@@ -19,6 +19,7 @@ import { GAMEPLAY, platformCompany, type Format, type Platform, type Status, typ
  * style awaiting a colour rather than a cell awaiting a value.
  */
 const readGameplay = readChecked(GAMEPLAY, "a gameplay style");
+const readStatus = readChecked(STATUSES, "a status");
 
 /**
  * Reads the themes cell, which the sheet lists in one cell as the Genres columns do.
@@ -42,21 +43,16 @@ export const jsonConverter = (json: Record<string, string>[]) => {
     // The same ordering the Movies converter keeps, and for the same reason.
     const genre = readGenre(row.Genre, `${where}, Genre`);
 
-    const startDate = describing(`${where}, Start Date`, () => PlainDate.from(row["Start Date"]));
-    const endDate = row["End Date"]
-      ? describing(`${where}, End Date`, () => PlainDate.from(row["End Date"]))
-      : undefined;
+    // Held to full dates, as the other three sheets' spans are: the model places a game on a day
+    // scale and counts its days, and a bare year reaching either would be a bar drawn at a guess.
+    const startDate = readFullDate(row["Start Date"], `${where}, Start Date`);
+    const endDate = row["End Date"] ? readFullDate(row["End Date"], `${where}, End Date`) : undefined;
     const releaseDate = describing(`${where}, Release Date`, () => PlainDate.from(row["Release Date"]));
-
-    readDatePair(startDate, endDate, `${where}, played ${startDate} to ${endDate}`);
 
     // Throws when the pair is inverted, which is the point — but say which pair.
     const numDays = describing(`${where}, played ${startDate} to ${endDate}`, () => startDate.daysTo(endDate));
 
     const seriesNumber = parseInt(row["Series #"]);
-
-    const party = row.Status === "Party";
-    const status = party ? "Endless" : (row.Status as Status);
 
     return {
       name: row.Title,
@@ -73,8 +69,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       developer: row.Developer,
       publisher: row.Publisher,
       certificate: readCertificate(row.Certificate, `${where}, Certificate`),
-      status: status,
-      party: party,
+      status: readStatus(row.Status, `${where}, Status`),
       startDate: startDate,
       endDate: endDate,
       releaseDate: releaseDate,
@@ -85,8 +80,14 @@ export const jsonConverter = (json: Record<string, string>[]) => {
   });
 };
 
-/** Bump the version on any change to the model's shape, or a returning visitor's cache lacks the field. */
+/**
+ * Bump the version on any change to the model's shape, or a returning visitor's cache lacks the field.
+ *
+ * Version 5 is the one on which every played date is a full date: the model admits nothing else
+ * and every reader assumes one, so a cached copy holding a bare year would paint the page from
+ * `useData`'s initialiser and throw in the first chart before any fetch could replace it.
+ */
 export const gameDataConfig: DataConfig<VideoGame> = {
-  storageKey: dataCacheKey("game", 4),
+  storageKey: dataCacheKey("game", 5),
   converter: jsonConverter,
 };

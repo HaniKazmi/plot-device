@@ -1,4 +1,3 @@
-import { Year } from "../common/date";
 import {
   certificateCategory,
   franchiseCategory,
@@ -36,27 +35,9 @@ import {
  */
 export const guestFilter: Predicate<VideoGame> = (game) => !game.themes.includes("Adult");
 
-/**
- * A game whose start date came off a platform that records one, rather than out of memory: the
- * five consoles that report a first-played date, and PC only where the sheet holds a full date
- * from 2015 on. A console game logged as a bare year is kept — the platform still says when it was
- * played; a PC one is not, that column being where the guesses are.
- *
- * Named rather than written into the schema inline: it is the one toggle here whose rule is a
- * paragraph, and a paragraph inside a list of one-line predicates hides the other two.
- */
-const datesConfirmed: Predicate<VideoGame> = (game) => {
-  if (game.platform === "PC") return !(game.startDate instanceof Year) && game.startDate.year >= 2015;
-
-  return ["Nintendo Switch", "Nintendo Switch 2", "Nintendo 3DS", "PlayStation 4", "PlayStation 5"].includes(
-    game.platform,
-  );
-};
-
 export const gameFilters: FilterSchema<VideoGame, FilterState> = {
   toggles: [
     { key: "endless", label: "Endless games", hides: (game) => game.status !== "Endless" },
-    { key: "unconfirmed", label: "Unconfirmed dates", hides: datesConfirmed },
     { key: "pokemon", label: "Pokémon", hides: (game) => game.franchise !== "Pokémon" },
   ],
   categories: [

@@ -1,6 +1,6 @@
 import type { FunctionComponent, ReactNode } from "react";
 import type { CardMediaImageProps, PanelStat, PanelSubtitlePart } from "./Card";
-import type { Year, YearMonthDay, YearNumber } from "./date";
+import type { YearMonthDay, YearNumber } from "./date";
 import type { PageStore } from "./filterReducer";
 import type { PageSchema } from "./filterSchema";
 import type { FranchiseEntry } from "./franchiseUnion";
@@ -36,8 +36,8 @@ export interface OmniItem {
    * Built from the tuple its own domain already treats as unique — a game's title, platform and
    * start; a show's name and season number; a film's title and watch date — because no field the
    * union shares is one. Every season of a show carries its show's name, a film watched twice is
-   * two rows with one title, and a game's close can be a bare year, so two copies of one title on
-   * two platforms finished in that year answer identically on medium, name and close together.
+   * two rows with one title, and two copies of one game on two platforms can close on one day, so
+   * medium, name and close together are not one either.
    */
   key: string;
   /** A season answers with its show's name; which season it is stays on `source`. */
@@ -45,12 +45,8 @@ export interface OmniItem {
   /**
    * When it finished, absent while it is still going. A film has no separate close — being
    * watched is the whole of it — so its watch date is also its close.
-   *
-   * The two concrete kinds all four sheets record, rather than a bare `PlainDate`: a card states
-   * this date in the reader's own form, and `formatDate` takes the kinds that have one. A
-   * `YearMonth` has no such form and no sheet holds one.
    */
-  closeDate?: YearMonthDay | Year;
+  closeDate?: YearMonthDay;
   /**
    * The year it counts towards: the year it ended, or the year it started where it has not.
    * Always answerable, since every record in all four sheets carries a start.
@@ -101,7 +97,7 @@ export const countByMedium = (items: readonly OmniItem[]): Partial<Record<Medium
  * lane and a packed row are three drawings of one answer: a domain builds its entry from its span,
  * and a chart that wants only the dates asks for the span alone.
  */
-export type MediumSpan = Pick<FranchiseEntry, "start" | "end" | "precise">;
+export type MediumSpan = Pick<FranchiseEntry, "start" | "end">;
 
 /** The props a card takes once its list has chosen the item, which is all a dispatcher forwards. */
 type CardProps<S> = Omit<CardMediaImageProps, "image" | "alt" | "detailComponent"> & { item: S };

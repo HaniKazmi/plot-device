@@ -5,7 +5,7 @@ import { useArtworkPalette, type artworkPalette } from "./artworkPalette";
 
 type Palette = ReturnType<typeof artworkPalette>;
 import { INLINE_SWATCH_SIZE, Swatch } from "./Swatch";
-import { FADED_ENDS, TimelineScale } from "./TimelineBand";
+import { TimelineScale } from "./TimelineBand";
 import { SegmentedControl, type SegmentOption } from "./SelectionComponents";
 import { shortYear, type YearMonthDay } from "./date";
 import type { FranchiseEntry } from "./franchiseUnion";
@@ -609,7 +609,7 @@ const StripMark = ({ band, mark }: { band: StripBand<FranchiseEntry>; mark: Mark
           />
         ) : (
           <Box
-            sx={[MARK_SX, SPAN_SX, mark === "none" && SIBLING_SX, !band.precise && IMPRECISE_SX]}
+            sx={[MARK_SX, SPAN_SX, mark === "none" && SIBLING_SX]}
             style={{
               left: `${band.startPercent}%`,
               width: `${band.widthPercent}%`,
@@ -640,12 +640,5 @@ const MARK_SX = {
 /** A point is a dot centred on its own date, so it is pulled back by half its width. */
 const POINT_SX = { width: POINT, height: POINT, borderRadius: "50%", transform: "translateX(-50%)" } as const;
 
-/** A span keeps its width from the scale and takes rounded caps as the mark of a pinned-down date. */
+/** A span keeps its width from the scale, with rounded caps. */
 const SPAN_SX = { height: BAND_HEIGHT, borderRadius: 0.5 } as const;
-
-/**
- * An estimated span dissolves at both ends rather than stopping at one, because a hard edge is a
- * date and this band does not have one. Square-cut too, so the rounded caps stay the mark of a
- * span the sheet actually pinned down.
- */
-const IMPRECISE_SX = { maskImage: FADED_ENDS, WebkitMaskImage: FADED_ENDS, borderRadius: 0 } as const;

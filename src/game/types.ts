@@ -60,12 +60,12 @@ export interface VideoGame {
   releaseDate: YearMonthDay | Year;
   format: Format;
   status: Status;
-  party?: boolean;
   hours?: number;
   numDays?: number;
   artwork?: string;
-  startDate: YearMonthDay | Year;
-  endDate?: YearMonthDay | Year;
+  /** Full dates both, so every scale places a game on a day and every duration is a count of days. */
+  startDate: YearMonthDay;
+  endDate?: YearMonthDay;
 }
 
 export type VideoGameStringKeys = KeysMatching<VideoGame, string>;
@@ -94,7 +94,13 @@ export const videoGameOptions: readonly VideoGameStringKeys[] = [
 export const FORMATS = ["Physical", "Digital", "Pirated", "Subscription"] as const satisfies readonly FormatName[];
 
 export type Format = (typeof FORMATS)[number];
-export type Status = "Playing" | "Endless" | "Abandoned" | "Beat" | "Backlog" | "Next";
+/**
+ * Listed so the converter can check a cell against it while it still knows the row: `statusToColour`
+ * answers `undefined` off its table and the status band drops such a row silently.
+ */
+export const STATUSES = ["Playing", "Endless", "Abandoned", "Beat", "Backlog", "Next"] as const;
+
+export type Status = (typeof STATUSES)[number];
 export type Company = "PlayStation" | "Nintendo" | "PC" | "iOS" | "Xbox";
 export type Platform = `${Company}${string}`;
 /**

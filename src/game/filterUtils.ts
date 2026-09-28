@@ -15,7 +15,6 @@ export type { YearType };
 export interface FilterState extends BaseFilterState<VideoGame, Measure> {
   endless: boolean;
   pokemon: boolean;
-  unconfirmed: boolean;
   franchise: string[];
   platform: Platform[];
   format: Format[];

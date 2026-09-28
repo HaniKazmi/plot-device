@@ -1,6 +1,6 @@
 import { groupByCategory, realFranchisesOnly, type DrilldownGroup } from "../common/statsData";
 import { franchiseIndex } from "../common/franchiseIndex";
-import type { PlainDate, Year, YearMonthDay } from "../common/date";
+import type { YearMonthDay } from "../common/date";
 import {
   certificateBandToColour,
   certificateBand,
@@ -185,7 +185,7 @@ export const seriesFranchises = (items: OmniItem[]): ReadonlySet<string> =>
  * decade and leave the earlier shelf empty.
  */
 export interface ShelfItem extends OmniItem {
-  metDate: YearMonthDay | Year;
+  metDate: YearMonthDay;
 }
 
 /**
@@ -262,26 +262,16 @@ export const galleryGroups = (
 
 /** A shelf, and when anything standing on it was last met. */
 export interface Shelf extends DrilldownGroup<ShelfItem> {
-  metDate: PlainDate;
+  metDate: YearMonthDay;
 }
 
 /** A shelf's own order, which is the order its fronting card claims. */
 export const galleryStripOrder = (items: ShelfItem[], sort: GallerySort): ShelfItem[] =>
   items.toSorted(sort === "recent" ? byLatestMet : (a, b) => b.hours - a.hours);
 
-/**
- * Newest first, on the end of the range each date denotes.
- *
- * `PlainDate` orders by its ISO string, where a shorter string sorts before the longer ones it
- * prefixes — so a bare `Year` reads as that year's 1 January and loses to every dated day inside
- * it. Roughly half the games carry a bare year, which makes the two ends of one genuinely
- * different answers, and the end is the one a question about what was met *last* asks for.
- */
-const byLatestMet = <T extends { metDate: PlainDate }>(a: T, b: T) => {
-  const left = a.metDate.lastDay();
-  const right = b.metDate.lastDay();
-  return left < right ? 1 : left > right ? -1 : 0;
-};
+/** Newest first. */
+const byLatestMet = <T extends { metDate: YearMonthDay }>(a: T, b: T) =>
+  a.metDate < b.metDate ? 1 : a.metDate > b.metDate ? -1 : 0;
 
 /**
  * Biggest first, subtracted rather than compared through `sortByKey`.
@@ -308,11 +298,6 @@ const galleryTop = <T extends OmniItem>(items: T[]): T =>
  * own is the latest close among the entries collapsed into it, while a shelf's is the latest
  * `metDate` among its works — reading a close date there would take each work's *representative's*
  * close, and a representative is the biggest entry rather than the last one.
- *
- * Dates are weighed by `lastDay`, on the same rule `byLatestMet` follows and for the same reason:
- * `PlainDate` orders by its ISO string, where a bare `Year` sorts as its 1 January, which is the
- * wrong end of that year to ask a maximum for. The value kept is the date itself rather than its
- * last day, so a shelf reports the precision its sheet actually holds.
  */
-const latestOf = <T, D extends PlainDate>(items: T[], dateOf: (item: T) => D): D =>
-  items.reduce((latest, item) => (dateOf(item).lastDay() > latest.lastDay() ? dateOf(item) : latest), dateOf(items[0]));
+const latestOf = <T>(items: T[], dateOf: (item: T) => YearMonthDay): YearMonthDay =>
+  items.reduce((latest, item) => (dateOf(item) > latest ? dateOf(item) : latest), dateOf(items[0]));

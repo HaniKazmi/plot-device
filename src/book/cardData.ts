@@ -58,13 +58,11 @@ export const bookRows = (book: Book, scheme: Scheme): LedgerRow[] => {
 };
 
 /**
- * When a book was read, for any scale that places it. The converter holds a book's dates to full
- * ones at both ends, so a book is always precise; the book in hand runs to today.
+ * When a book was read, for any scale that places it; the book in hand runs to today.
  */
 export const bookSpan = (book: Book, today: YearMonthDay): MediumSpan => ({
   start: book.startDate,
   end: book.endDate ?? today,
-  precise: true,
 });
 
 /**

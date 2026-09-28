@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CURRENT_YEAR, Year, YearMonthDay, type YearNumber } from "../../src/common/date";
+import { CURRENT_YEAR, YearMonthDay, type YearNumber } from "../../src/common/date";
 import { guestFilter } from "../../src/game/filters";
 import { filters, initialState, type FilterState } from "../../src/game/filterUtils";
 import { videoGame } from "../fixtures/gameRows";
@@ -28,41 +28,9 @@ describe("the boolean toggles are inclusive", () => {
     expect(filters(state({ endless: false }))(videoGame({ status: "Beat" }))).toBe(true);
   });
 
-  it("also hides party games when Endless is off, because they were folded into Endless", () => {
-    const party = videoGame({ status: "Endless", party: true });
-
-    expect(filters(state({ endless: false }))(party)).toBe(false);
-  });
-
   it("hides the Pokémon franchise by exact accented name", () => {
     expect(filters(state({ pokemon: false }))(videoGame({ franchise: "Pokémon" }))).toBe(false);
     expect(filters(state({ pokemon: false }))(videoGame({ franchise: "Pokemon" }))).toBe(true);
-  });
-});
-
-describe("the unconfirmed-playtime filter", () => {
-  const keep = filters(state({ unconfirmed: false }));
-
-  it("keeps the platforms that report playtime themselves", () => {
-    const trusted = ["Nintendo Switch", "Nintendo Switch 2", "Nintendo 3DS", "PlayStation 4", "PlayStation 5"] as const;
-
-    for (const platform of trusted) {
-      expect(keep(videoGame({ platform }))).toBe(true);
-    }
-  });
-
-  it("drops older consoles, which never tracked hours", () => {
-    expect(keep(videoGame({ platform: "Nintendo Wii" }))).toBe(false);
-    expect(keep(videoGame({ platform: "Xbox 360" }))).toBe(false);
-  });
-
-  it("keeps PC only from 2015, when the logging became trustworthy", () => {
-    expect(keep(videoGame({ platform: "PC", startDate: YearMonthDay.get(2015, 1, 1) }))).toBe(true);
-    expect(keep(videoGame({ platform: "PC", startDate: YearMonthDay.get(2014, 12, 31) }))).toBe(false);
-  });
-
-  it("drops a PC game logged with only a year, since the cutoff cannot be checked", () => {
-    expect(keep(videoGame({ platform: "PC", startDate: Year.get(2020) }))).toBe(false);
   });
 });
 
@@ -133,8 +101,8 @@ describe("what guest mode hides", () => {
 });
 
 describe("the schema the drawer and the box are both drawn from", () => {
-  it("offers three toggles and eight categories, in the order they are laid out", () => {
-    expect(gameFilters.toggles.map((toggle) => toggle.key)).toEqual(["endless", "unconfirmed", "pokemon"]);
+  it("offers two toggles and eight categories, in the order they are laid out", () => {
+    expect(gameFilters.toggles.map((toggle) => toggle.key)).toEqual(["endless", "pokemon"]);
     expect(gameFilters.categories.map((category) => category.key)).toEqual([
       "platform",
       "format",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Year, YearMonthDay } from "../../src/common/date";
+import { YearMonthDay } from "../../src/common/date";
 import { toOmniItems } from "../../src/app/library";
 import type { OmniItem } from "../../src/common/medium";
 import { buildFranchiseUnion } from "../../src/app/franchiseUnionData";
@@ -95,21 +95,6 @@ describe("buildFranchiseUnion", () => {
     expect(film.end).toBe(watched);
     expect(game.end).toBe(TODAY);
     expect(read.end).toBe(TODAY);
-  });
-
-  it("marks a year-only game imprecise and spans its whole year", () => {
-    const { factory } = hoverCards();
-    const [entry] = buildFranchiseUnion(
-      toOmniItems(
-        library({ game: [videoGame({ franchise: "Old", startDate: Year.get(2007), endDate: Year.get(2007) })] }),
-      ),
-      TODAY,
-      factory,
-    ).get("Old")!;
-
-    expect(entry.precise).toBe(false);
-    expect(entry.start).toBe(YearMonthDay.get(2007, 1, 1));
-    expect(entry.end).toBe(YearMonthDay.get(2007, 12, 31));
   });
 
   it("asks for one hover card per entry and wears the medium's fill", () => {

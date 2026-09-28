@@ -102,13 +102,11 @@ export const showRows = (show: Show, scheme: Scheme): LedgerRow[] => {
 };
 
 /**
- * When a season ran, for any scale that places it. The converter holds every season's dates to
- * full ones, so a season is always precise; one still being watched runs to today.
+ * When a season ran, for any scale that places it; one still being watched runs to today.
  */
 export const seasonSpan = (season: Season, today: YearMonthDay): MediumSpan => ({
   start: season.startDate,
   end: season.endDate ?? today,
-  precise: true,
 });
 
 /**

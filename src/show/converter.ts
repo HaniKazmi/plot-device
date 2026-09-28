@@ -42,8 +42,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
         sheetError(where, "this is a season row, but no show has been declared above it");
       }
 
-      // No pair check beside these: `readFullDate` rejects a bare year on either end, so the two
-      // can only ever agree. Games needs one because both of its precisions are legal there.
+      // `readFullDate` rejects a bare year on either end, so a pair read here is at one precision.
       const startDate = readFullDate(row["Start Date"], `${where}, Start Date`);
       const endDate = row["End Date"] ? readFullDate(row["End Date"], `${where}, End Date`) : undefined;
 

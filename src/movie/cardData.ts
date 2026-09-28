@@ -62,7 +62,6 @@ export const movieRows = (movie: Movie, scheme: Scheme): LedgerRow[] => {
 export const movieSpan = (movie: Movie): MediumSpan => ({
   start: movie.startDate,
   end: movie.startDate,
-  precise: true,
 });
 
 /**

@@ -91,21 +91,3 @@ export const readFullDate = (value = "", where: string): YearMonthDay => {
   const parsed = describing(where, () => PlainDate.from(value));
   return parsed instanceof YearMonthDay ? parsed : sheetError(where, `"${value}" is a bare year, not a full date`);
 };
-
-/**
- * Reads a start/end pair, rejecting one recorded at two precisions.
- *
- * A span is logged as two full dates or as two bare years — one of each is a cell somebody
- * half-filled, and it is the one shape nothing downstream can do anything with: `daysTo` answers
- * `undefined` across mixed precision, so a duration silently disappears, while every chart that
- * plots the pair as a band has to place a year somewhere inside itself and guess.
- *
- * Asked once here because all three sheets record spans and each was answering differently — one
- * checking, one casting a `Year` to `YearMonthDay` and letting it reach a render, one not looking.
- * An absent end is not a mismatch: that is an item still in progress, which every domain models.
- */
-export const readDatePair = <T extends PlainDate>(start: T, end: T | undefined, where: string): void => {
-  if (end && start instanceof YearMonthDay !== end instanceof YearMonthDay) {
-    sheetError(where, "one date is a bare year and the other is not");
-  }
-};

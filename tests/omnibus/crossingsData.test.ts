@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Year, YearMonthDay } from "../../src/common/date";
+import { YearMonthDay } from "../../src/common/date";
 import { toOmniItems } from "../../src/app/library";
 import type { OmniItem } from "../../src/common/medium";
 import { crossingEntries, crossings } from "../../src/omnibus/crossingsData";
@@ -209,30 +209,6 @@ describe("how a crossing is laid out", () => {
 
     expect(film.start).toBe(film.end);
     expect(film.widthPercent).toBeCloseTo(0.5);
-    expect(film.precise).toBe(true);
-  });
-
-  it("marks a year-only game span as an estimate, since the sheet holds no day for it", () => {
-    const result = found(
-      toOmniItems(
-        library({
-          game: [
-            videoGame({
-              name: "Breath of the Wild",
-              franchise: "Zelda",
-              startDate: Year.get(2017),
-              endDate: Year.get(2017),
-            }),
-          ],
-          movie: [movie({ name: "Zelda: The Movie", franchise: "Zelda" })],
-        }),
-      ),
-    );
-    const game = result[0].bands.find((band) => band.item.medium === "game")!;
-
-    expect(game.precise).toBe(false);
-    expect(game.start).toBe(YearMonthDay.get(2017, 1, 1));
-    expect(game.end).toBe(YearMonthDay.get(2017, 12, 31));
   });
 
   it("runs a game with no end date to the day the strip is drawn for", () => {
@@ -310,7 +286,7 @@ describe("how a crossing is laid out", () => {
 });
 
 describe("a book on a strip", () => {
-  it("is a precise span from its start to its end, running to today while it is open", () => {
+  it("spans its start to its end, running to today while it is open", () => {
     const [crossing] = found(
       toOmniItems(
         library({
@@ -336,7 +312,6 @@ describe("a book on a strip", () => {
 
     expect(crossing.media).toEqual(["movie", "book"]);
     const span = crossing.bands.find((band) => band.item.medium === "book")!;
-    expect(span.precise).toBe(true);
     expect(span.start).toBe(YearMonthDay.get(2021, 3, 1));
     expect(span.end).toBe(TODAY);
   });

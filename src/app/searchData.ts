@@ -8,7 +8,7 @@ import {
   type PageSchema,
 } from "../common/filterSchema";
 import { franchiseIndex } from "../common/franchiseIndex";
-import { YearMonthDay, type Year } from "../common/date";
+import { YearMonthDay } from "../common/date";
 import { mediumToLabel, type Medium } from "../utils/types";
 import { eachMedium, moduleOf } from "./media";
 import type { Season } from "../show/types";
@@ -739,10 +739,8 @@ export const attributeWorks = (library: Library, entry: AttributeEntry, today: Y
 export const franchiseFacts = (items: OmniItem[]) => {
   const open = items.some((item) => !item.closeDate);
   const closes = items.map((item) => item.closeDate).filter((date) => date !== undefined);
-  // Compared at the end of the range each value denotes, as the gallery's own recency is: a bare
-  // year runs to its 31 December, where its string sorts before any day inside it.
-  const last = closes.reduce<YearMonthDay | Year | undefined>(
-    (latest, date) => (latest === undefined || date.lastDay() > latest.lastDay() ? date : latest),
+  const last = closes.reduce<YearMonthDay | undefined>(
+    (latest, date) => (latest === undefined || date > latest ? date : latest),
     undefined,
   );
   return {

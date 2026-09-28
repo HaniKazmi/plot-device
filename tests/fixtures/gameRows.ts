@@ -42,7 +42,6 @@ export const videoGame = (overrides: Partial<VideoGame> = {}): VideoGame =>
     releaseDate: YearMonthDay.get(2017, 3, 3),
     format: "Physical",
     status: "Beat",
-    party: false,
     hours: 50,
     numDays: 30,
     startDate: YearMonthDay.get(2017, 3, 3),

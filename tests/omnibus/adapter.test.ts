@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CURRENT_YEAR, YearMonthDay, Year, type YearNumber } from "../../src/common/date";
+import { CURRENT_YEAR, YearMonthDay, type YearNumber } from "../../src/common/date";
 import { electNow, hasNow, omniTitle, recentlyFinished, unionTotals } from "../../src/omnibus/adapter";
 import type { MediumLazy } from "../../src/common/medium";
 import { MEDIA as MEDIA_ORDER, type Medium } from "../../src/utils/types";
@@ -64,8 +64,10 @@ describe("year attribution", () => {
     expect(item.closeDate).toBeUndefined();
   });
 
-  it("reads a year-only game date, which half the games sheet carries", () => {
-    const [item] = toOmniItems(library({ game: [videoGame({ startDate: Year.get(2007), endDate: undefined })] }));
+  it("attributes an open game to the year it started", () => {
+    const [item] = toOmniItems(
+      library({ game: [videoGame({ startDate: YearMonthDay.get(2007, 6, 1), endDate: undefined })] }),
+    );
 
     expect(item.year).toBe(2007);
   });
@@ -204,7 +206,7 @@ describe("union totals", () => {
     const items = toOmniItems(
       library({
         movie: [movie({ startDate: YearMonthDay.get(2011, 1, 1) })],
-        game: [videoGame({ startDate: Year.get(2004), endDate: undefined })],
+        game: [videoGame({ startDate: YearMonthDay.get(2004, 9, 11), endDate: undefined })],
       }),
     );
 
@@ -240,19 +242,24 @@ describe("what a browse surface reads off an item", () => {
     expect(new Set(items.map((item) => item.key)).size).toBe(items.length);
   });
 
-  it("gives two copies of one game keys of their own, however coarse the dates it carries", () => {
-    // Half the games sheet records a bare year, and a game's medium, title and close are then all
-    // three of them shared by the same game on another platform finished in that same year. The
-    // platform is what tells the two apart, and the Games tab already keys a span by it.
+  it("gives two copies of one game keys of their own, even on the same dates", () => {
+    // A game's medium, title and close are all three shared by the same game on another platform
+    // finished the same day. The platform is what tells the two apart, and the Games tab already
+    // keys a span by it.
     const items = toOmniItems(
       library({
         game: [
-          videoGame({ name: "Portal", platform: "PC", startDate: Year.get(2010), endDate: Year.get(2010) }),
+          videoGame({
+            name: "Portal",
+            platform: "PC",
+            startDate: YearMonthDay.get(2010, 2, 13),
+            endDate: YearMonthDay.get(2010, 2, 21),
+          }),
           videoGame({
             name: "Portal",
             platform: "Xbox 360",
-            startDate: Year.get(2010),
-            endDate: Year.get(2010),
+            startDate: YearMonthDay.get(2010, 2, 13),
+            endDate: YearMonthDay.get(2010, 2, 21),
           }),
         ],
       }),

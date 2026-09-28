@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CURRENT_YEAR, Year, YearMonthDay } from "../../src/common/date";
+import { CURRENT_YEAR, YearMonthDay } from "../../src/common/date";
 import {
   currentlyPlaying,
   earliestYear,
@@ -18,7 +18,7 @@ describe("earliestYear", () => {
   it("is the oldest start year in the library, not the order the games are listed in", () => {
     const data = [
       videoGame({ startDate: YearMonthDay.get(2010, 6, 1) }),
-      videoGame({ startDate: Year.get(2005) }),
+      videoGame({ startDate: YearMonthDay.get(2005, 8, 20) }),
       videoGame({ startDate: YearMonthDay.get(2015, 1, 1) }),
     ];
 
@@ -330,13 +330,6 @@ describe("heroStats", () => {
     expect(heroStats(game, [game], today).map((stat) => stat.label)).toEqual(["Days In"]);
   });
 
-  it("skips the day count for a game the sheet recorded as a bare year", () => {
-    // `daysTo` refuses to answer across a year-only date rather than inventing a day for it.
-    const game = videoGame({ startDate: Year.get(2024), hours: 5, franchise: "" });
-
-    expect(heroStats(game, [game], today).map((stat) => stat.label)).toEqual(["Hours"]);
-  });
-
   it("skips the day count rather than throwing on a start date in the future", () => {
     // `daysTo` throws on a backwards comparison, which a mistyped sheet row can produce.
     const game = videoGame({ startDate: YearMonthDay.get(2025, 1, 1), hours: 5, franchise: "" });
@@ -357,10 +350,6 @@ describe("statsCardLabel", () => {
 
     expect(statsCardLabelEndDateHours(game)[0][0]).toBe("24 Nov 2016");
     expect(statsCardLabelStartDate(game)[0][0]).toBe("27 Nov 2014");
-  });
-
-  it("prints a bare year as the year, since that is all the sheet recorded", () => {
-    expect(statsCardLabelStartDate(videoGame({ startDate: Year.get(2007) }))[0][0]).toBe("2007");
   });
 
   it("leaves the date blank rather than printing nothing-in-particular for an unfinished game", () => {
