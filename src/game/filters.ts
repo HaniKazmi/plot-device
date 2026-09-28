@@ -1,5 +1,11 @@
 import { Year } from "../common/date";
-import { certificateCategory, franchiseCategory, FRANCHISE_KEY, type FilterSchema } from "../common/filterSchema";
+import {
+  certificateCategory,
+  franchiseCategory,
+  FRANCHISE_KEY,
+  styleCategory,
+  type FilterSchema,
+} from "../common/filterSchema";
 import {
   CERTIFICATES,
   certificateToColour,
@@ -90,6 +96,7 @@ export const gameFilters: FilterSchema<VideoGame, FilterState> = {
       // so a chip and a wedge naming one genre are one colour.
       colourFor: genreToColour,
     },
+    styleCategory("style", (game) => game.style),
     certificateCategory(
       "certificate",
       (game) => game.certificate,

@@ -137,6 +137,7 @@ describe("flattening", () => {
       otherGenres: ["Drama"],
       franchise: "Severance",
       certificate: "15",
+      style: "Realistic",
     });
     const items = toOmniItems(library({ show: [parent] }));
 
@@ -148,6 +149,7 @@ describe("flattening", () => {
     expect(items[0].otherGenres).toEqual(["Drama"]);
     expect(items[0].franchise).toBe("Severance");
     expect(items[0].certificate).toBe("15");
+    expect(items[0].style).toBe("Realistic");
     expect(items[0].source).toBe(parent.s[0]);
   });
 
@@ -155,6 +157,15 @@ describe("flattening", () => {
     const [item] = toOmniItems(library({ game: [videoGame({ themes: ["Fantasy"] })] }));
 
     expect(item.otherGenres).toEqual([]);
+  });
+
+  it("carries a game's and a film's style through, the vocabulary the three sheets share", () => {
+    const [game, film] = toOmniItems(
+      library({ game: [videoGame({ style: "Anime" })], movie: [movie({ style: "Stylised" })] }),
+    );
+
+    expect(game.style).toBe("Anime");
+    expect(film.style).toBe("Stylised");
   });
 
   it("keeps the record each item came from, which is what lets a domain render its own card", () => {
@@ -359,7 +370,7 @@ describe("a book in the union", () => {
     expect(item.closeDate).toBeUndefined();
   });
 
-  it("carries exact hours, one genre, its franchise and no certificate", () => {
+  it("carries exact hours, one genre, its franchise and no certificate or style", () => {
     const [item] = toOmniItems(library({ book: [book({ hours: 1.5, genre: "Fantasy", franchise: "Cosmere" })] }));
 
     expect(item.hours).toBe(1.5);
@@ -368,6 +379,8 @@ describe("a book in the union", () => {
     expect(item.franchise).toBe("Cosmere");
     // Nothing certifies a book; every certificate surface drops it rather than shelving a blank.
     expect(item.certificate).toBeUndefined();
+    // Nor has a book a picture to have a style.
+    expect(item.style).toBeUndefined();
   });
 
   it("tells a reread from the first read, which is a second row with one title", () => {

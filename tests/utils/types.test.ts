@@ -5,8 +5,11 @@ import {
   certificateToColour,
   genreToColour,
   isCertificate,
+  isStyle,
   neutralFill,
   statusToColour,
+  STYLES,
+  styleToColour,
   type Certificate,
   type ColourableStatus,
 } from "../../src/utils/types";
@@ -127,6 +130,34 @@ describe("certificateToColour", () => {
     // render the wrong badge in silence.
     expect(() => certificateToColour("PG" as Certificate, "light")).toThrow("Unknown certificate: PG");
     expect(() => certificateToColour("21" as Certificate, "light")).toThrow("Unknown certificate: 21");
+  });
+});
+
+describe("isStyle", () => {
+  it("holds every word of the vocabulary and nothing else", () => {
+    expect(STYLES.every(isStyle)).toBe(true);
+    expect(isStyle("Live action")).toBe(false);
+    expect(isStyle("")).toBe(false);
+  });
+
+  it("matches the declared spelling alone, the converter having already folded the cell to it", () => {
+    expect(isStyle("anime")).toBe(false);
+  });
+});
+
+describe("styleToColour", () => {
+  it.each(["light", "dark"] as const)("gives each of the three styles its own fill on the %s paper", (scheme) => {
+    const drawn = STYLES.map((style) => styleToColour(style, scheme));
+
+    expect(new Set(drawn).size).toBe(STYLES.length);
+    expect(drawn).not.toContain(neutralFill(scheme));
+  });
+
+  it("throws on a word off the vocabulary rather than painting it", () => {
+    // The converters check every Style cell against `STYLES`, so a word reaching here is a bug in
+    // the code and not in the sheet, and a fallback colour would hide it.
+    expect(() => styleToColour("Live action", "light")).toThrow("Unknown style: Live action");
+    expect(() => styleToColour("", "light")).toThrow("Unknown style");
   });
 });
 

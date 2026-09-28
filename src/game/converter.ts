@@ -6,6 +6,7 @@ import {
   readChecked,
   readDatePair,
   readGenre,
+  readStyle,
   sheetError,
   sheetRow,
 } from "../common/sheetError.ts";
@@ -67,6 +68,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       genre,
       gameplay: readGameplay(row.Gameplay, `${where}, Gameplay`),
       themes: readThemes(row.Themes, `${where}, Themes`),
+      style: readStyle(row.Style, `${where}, Style`),
       format: row.Format as Format,
       developer: row.Developer,
       publisher: row.Publisher,
@@ -85,6 +87,6 @@ export const jsonConverter = (json: Record<string, string>[]) => {
 
 /** Bump the version on any change to the model's shape, or a returning visitor's cache lacks the field. */
 export const gameDataConfig: DataConfig<VideoGame> = {
-  storageKey: dataCacheKey("game", 3),
+  storageKey: dataCacheKey("game", 4),
   converter: jsonConverter,
 };

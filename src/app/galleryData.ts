@@ -8,6 +8,7 @@ import {
   franchiseToColour,
   genreToColour,
   releaseDecade,
+  styleToColour,
   type Colour,
   type Scheme,
 } from "../utils/types";
@@ -31,6 +32,13 @@ import "../utils/mapUtils";
 export const GALLERY_CATEGORIES = ["genre", "franchise", "certificate", "decade"] as const;
 
 export type GalleryCategory = (typeof GALLERY_CATEGORIES)[number];
+
+/**
+ * Every field the union is grouped on: the gallery's shelves, plus the style the By year chart, the
+ * genre bridge and the filters split by, which the gallery does not shelve on. Each asks here, so a
+ * field reads and paints one way wherever the union is cut by it.
+ */
+export type UnionKey = GalleryCategory | "style";
 
 /**
  * The two questions the wall can be asked: what the library is mostly made of, and what it has been
@@ -62,7 +70,7 @@ export type GallerySort = (typeof GALLERY_SORTS)[number];
  * 15 film it sits at the same age as. The cards themselves still state the certificate their own
  * row carries.
  */
-export const galleryValue = (item: OmniItem, category: GalleryCategory): string => {
+export const galleryValue = (item: OmniItem, category: UnionKey): string => {
   switch (category) {
     case "genre":
       return item.genre;
@@ -72,15 +80,18 @@ export const galleryValue = (item: OmniItem, category: GalleryCategory): string 
       return item.certificate ? certificateBand(item.certificate) : "";
     case "decade":
       return releaseDecade(item.year);
+    case "style":
+      // A book has no picture to have a style, and answers `""` as it does for the certificate.
+      return item.style ?? "";
   }
 };
 
 /**
  * The colour a shelf is named in, from the vocabulary the app already speaks for that field — a
- * genre, a certificate, a decade, a franchise. Each is the vocabulary its home tabs draw, so a
- * shelf here wears exactly what the same value wears there.
+ * genre, a certificate, a decade, a franchise, a style. Each is the vocabulary its home tabs draw,
+ * so a shelf here wears exactly what the same value wears there.
  */
-export const galleryColour = (name: string, category: GalleryCategory, scheme: Scheme): Colour | undefined => {
+export const galleryColour = (name: string, category: UnionKey, scheme: Scheme): Colour | undefined => {
   switch (category) {
     case "genre":
       return genreToColour(name, scheme);
@@ -88,6 +99,8 @@ export const galleryColour = (name: string, category: GalleryCategory, scheme: S
       return certificateBandToColour(name, scheme);
     case "decade":
       return decadeToColour(name, scheme);
+    case "style":
+      return styleToColour(name, scheme);
     case "franchise":
       // Empty off the table, which is most of them: a franchise column is mostly works naming
       // themselves, and `undefined` leaves the shelf heading without a swatch rather than

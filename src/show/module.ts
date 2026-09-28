@@ -11,7 +11,7 @@ import type { Measure, Season, Show } from "./types";
  *
  * A show runs for years and a season is the thing that was actually watched in one of them, which
  * is what makes it comparable to a game beaten, a film seen or a book read. The season carries its
- * show's name, genre, franchise and certificate, those being facts about the show rather than
+ * show's name, genre, franchise, certificate and style, those being facts about the show rather than
  * about the season.
  */
 const seasonItems = (shows: Show[]): OmniItem[] =>
@@ -29,6 +29,7 @@ const seasonItems = (shows: Show[]): OmniItem[] =>
       otherGenres: show.otherGenres,
       franchise: show.franchise,
       certificate: show.certificate,
+      style: show.style,
       source: season,
     })),
   );

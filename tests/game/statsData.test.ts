@@ -182,6 +182,7 @@ describe("topOptions", () => {
       "status",
       "gameplay",
       "genre",
+      "style",
     ]);
   });
 

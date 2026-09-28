@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { YearMonthDay } from "../../src/common/date";
-import { describing, readFullDate, sheetError, sheetRow } from "../../src/common/sheetError";
+import { describing, readFullDate, readStyle, sheetError, sheetRow } from "../../src/common/sheetError";
 
 describe("sheetRow", () => {
   it("turns a record index back into the row number the sheet shows", () => {
@@ -42,6 +42,28 @@ describe("describing", () => {
         throw "just a string";
       }),
     ).toThrow("Row 2: just a string");
+  });
+});
+
+describe("readStyle", () => {
+  it("answers every word of the shared vocabulary as itself", () => {
+    expect(readStyle("Anime", "Row 2")).toBe("Anime");
+    expect(readStyle("Realistic", "Row 2")).toBe("Realistic");
+    expect(readStyle("Stylised", "Row 2")).toBe("Stylised");
+  });
+
+  it("takes a hand-typed cell's case and spacing as the declared spelling", () => {
+    // The column sits behind a dropdown that suggests rather than enforces, and the declared
+    // spelling is the word every surface and the box's fold key on.
+    expect(readStyle(" anime ", "Row 2")).toBe("Anime");
+    expect(readStyle("realistic ", "Row 2")).toBe("Realistic");
+    expect(readStyle(" stylised", "Row 2")).toBe("Stylised");
+  });
+
+  it("rejects a blank or a word off the vocabulary, naming where it was read", () => {
+    expect(() => readStyle("", 'Row 2, "Arrival", Style')).toThrow('Row 2, "Arrival", Style: "" is not a style');
+    expect(() => readStyle(undefined, "Row 2")).toThrow('"" is not a style');
+    expect(() => readStyle("Live action", "Row 2")).toThrow('"Live action" is not a style');
   });
 });
 

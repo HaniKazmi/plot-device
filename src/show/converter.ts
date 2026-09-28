@@ -1,20 +1,7 @@
 import { dataCacheKey, type DataConfig } from "../common/useData.ts";
-import { readCertificate, readChecked, readFullDate, readGenre, sheetError, sheetRow } from "../common/sheetError.ts";
+import { readCertificate, readFullDate, readGenre, readStyle, sheetError, sheetRow } from "../common/sheetError.ts";
 import { splitCell } from "../utils/stringUtils";
 import { type Season, type Show, type Status } from "./types";
-
-/**
- * The sheet's own two values, lower case, checked here alone: the model carries the answer as a
- * boolean, so this vocabulary is what a mistyped cell is rejected against and nothing more.
- */
-const TYPES = ["show", "anime"] as const;
-
-/**
- * Reads the show/anime cell. Guest mode hides anime (`filters.ts`), so a value that fails to say so
- * is a hidden show on screen rather than a wrong figure — the one cell here whose misreading costs
- * more than a chart, and the same reading the Movies sheet's own `Type` column carries.
- */
-const readType = readChecked(TYPES, "a show type");
 import "../utils/arrayUtils";
 
 // Season.show is a back-reference to its parent, so it has to be dropped before serialising
@@ -35,7 +22,8 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       show = {
         name: row.Title,
         status: row.Status as Status,
-        anime: readType(row.Type, `Row ${sheetRow(index)}, "${row.Title}", Type`) === "anime",
+        // Only a show row carries a style; a season inherits its show's.
+        style: readStyle(row.Style, `Row ${sheetRow(index)}, "${row.Title}", Style`),
         genre: readGenre(row.Genre, `Row ${sheetRow(index)}, "${row.Title}", Genre`),
         // A show with none carries an empty string, `Other Genres` sitting well before the last
         // column; `splitCell` answers `[]` to that and to an absent key alike.
@@ -128,7 +116,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
  * only readable by the reviver that puts them back.
  */
 export const showDataConfig: DataConfig<Show> = {
-  storageKey: dataCacheKey("show", 6),
+  storageKey: dataCacheKey("show", 7),
   converter: jsonConverter,
   reviver: reviveSeasonParents,
   replacer: dropSeasonParents,

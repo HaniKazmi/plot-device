@@ -12,7 +12,7 @@ const options: Option[] = [
   "genre",
   "certificate",
   "cinema",
-  "anime",
+  "style",
   "decade",
   "score",
   "franchise",

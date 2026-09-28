@@ -923,7 +923,7 @@ export const TotalsBand = <T extends string, U>(props: {
   data: U[];
   /** How much each group counts for. Its own size, where a domain has nothing else to measure. */
   measureFunc?: (data: U[]) => number;
-  group: T[];
+  group: readonly T[];
   /** The group an item belongs to — a field read, or a derivation like a score band. */
   groupOf: (item: U) => T;
   groupToColour: (ele: T) => Colour;

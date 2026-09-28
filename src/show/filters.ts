@@ -1,23 +1,23 @@
 import {
-  animeCategory,
   certificateCategory,
   franchiseCategory,
   FRANCHISE_KEY,
+  styleCategory,
   type FilterSchema,
 } from "../common/filterSchema";
 import { CERTIFICATES, certificateToColour, genreToColour, type Certificate, type Predicate } from "../utils/types";
 import type { FilterState } from "./filterUtils";
-import { ANIME_GROUP, animeLabel, networkToColour, type Show } from "./types";
+import { networkToColour, type Show } from "./types";
 
 /**
- * What guest mode hides on this tab: anime, read off the same model field the anime select is
- * built over, so the mode and the control cannot come to hide by two definitions.
+ * What guest mode hides on this tab: anime, read off the same model field the style select is built
+ * over, so the mode and the control cannot come to hide by two definitions.
  *
  * Exported because the mode is applied to the library itself, above every tab: narrowing this
  * page's charts alone would leave a hidden show on screen through the franchise index and the
  * union, which are built from the library.
  */
-export const guestFilter: Predicate<Show> = (show) => !show.anime;
+export const guestFilter: Predicate<Show> = (show) => show.style !== "Anime";
 
 export const showFilters: FilterSchema<Show, FilterState> = {
   toggles: [{ key: "abandoned", label: "Abandoned shows", hides: (show) => show.status !== "Abandoned" }],
@@ -40,7 +40,7 @@ export const showFilters: FilterSchema<Show, FilterState> = {
       // reader picks by typing rather than by scanning, as the publishers and directors do.
       searchable: true,
     },
-    animeCategory("anime", animeLabel, ANIME_GROUP),
+    styleCategory("style", (show) => show.style),
     certificateCategory(
       "certificate",
       (show) => show.certificate,

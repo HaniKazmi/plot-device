@@ -15,6 +15,7 @@ export interface FilterState extends BaseFilterState<OmniItem, Measure> {
   franchise: string[];
   /** Certificate *bands*, this page holding two boards' notations for one tier. */
   certificate: string[];
+  style: string[];
 }
 
 export type FilterDispatch = FilterDispatchFor<FilterState>;

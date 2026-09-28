@@ -1,7 +1,7 @@
 import { formatDate, YearMonthDay, type YearNumber } from "../common/date";
 import { format } from "../utils/mathUtils";
 import { releaseDecade } from "../utils/types";
-import { animeLabel, cinemaLabel, scoreBand, type Measure, type Movie, type MovieGroup } from "./types";
+import { cinemaLabel, scoreBand, type Measure, type Movie, type MovieGroup } from "./types";
 import { groupByCategory, realFranchisesOnly } from "../common/statsData";
 import "../utils/arrayUtils";
 
@@ -18,7 +18,7 @@ export const movieTopOptions = [
   "certificate",
   "decade",
   "cinema",
-  "anime",
+  "style",
   "score",
 ] as const;
 
@@ -26,7 +26,7 @@ export type MovieTopOption = (typeof movieTopOptions)[number];
 
 /**
  * A grouping's value for one film, worded the way a card should read it. This is the single
- * definition of the four derived keys — decade, cinema, anime, score band — so the sunburst, barchart,
+ * definition of the three derived keys — decade, cinema, score band — so the sunburst, barchart,
  * Top band and drill-down cannot come to disagree about which bucket a film is in. It answers
  * for the whole `MovieGroup` union rather than only the Top list's options, so a chart offering
  * any grouping calls it without a cast.
@@ -37,8 +37,6 @@ export const movieGroupValue = (movie: Movie, key: Exclude<MovieGroup, "none">):
       return releaseDecade(movie.releaseDate.year);
     case "cinema":
       return cinemaLabel(movie);
-    case "anime":
-      return animeLabel(movie);
     case "score":
       return scoreBand(movie.score);
     default:

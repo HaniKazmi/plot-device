@@ -133,12 +133,13 @@ describe("what guest mode hides", () => {
 });
 
 describe("the schema the drawer and the box are both drawn from", () => {
-  it("offers three toggles and seven categories, in the order they are laid out", () => {
+  it("offers three toggles and eight categories, in the order they are laid out", () => {
     expect(gameFilters.toggles.map((toggle) => toggle.key)).toEqual(["endless", "unconfirmed", "pokemon"]);
     expect(gameFilters.categories.map((category) => category.key)).toEqual([
       "platform",
       "format",
       "genre",
+      "style",
       "certificate",
       "gameplay",
       "publisher",
@@ -159,13 +160,15 @@ describe("the schema the drawer and the box are both drawn from", () => {
   it("wears a swatch on every vocabulary this tab's charts already speak, and on no other", () => {
     // A chip, a wedge and a bar naming one value have to be one colour, so a category the charts
     // group by declares that table here — gameplay included, which the sunburst nests on and the
-    // library wall can border by, and format through the table Books draws from too. The publisher
+    // library wall can border by, format through the table Books draws from too, and style through
+    // the one Shows and Movies share. The publisher
     // is the one without: an open-ended column of companies, where a swatch would teach a legend no
     // chart honours.
     expect(gameFilters.categories.filter((category) => category.colourFor).map((category) => category.key)).toEqual([
       "platform",
       "format",
       "genre",
+      "style",
       "certificate",
       "gameplay",
       "franchise",

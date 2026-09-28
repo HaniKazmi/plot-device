@@ -9,8 +9,8 @@ export interface FilterState extends BaseFilterState<Movie, Measure> {
   cinema: string[];
   /** Off leaves only scored films, so the score views stop counting films nobody rated. */
   unscored: boolean;
-  /** Which side of the anime split the page holds, empty being both, as Shows reads it. */
-  anime: string[];
+  /** Which styles the page holds, empty being all three. */
+  style: string[];
   genre: string[];
   director: string[];
   franchise: string[];

@@ -214,6 +214,24 @@ describe("books on the bridge", () => {
     expect(ratings.map((row) => row.name)).toEqual([certificateBand("12"), certificateBand("18")]);
   });
 
+  it("keys rows on the style in the vocabulary's own order, and a book, which has none, joins no row", () => {
+    const styles = genreBridge(
+      toOmniItems(
+        library({
+          book: [book({})],
+          movie: [movie({ style: "Stylised" }), movie({ style: "Anime" })],
+          game: [videoGame({ style: "Anime" })],
+        }),
+      ),
+      "style",
+    );
+    // Anime, Realistic, Stylised is how every style band on the page runs; Realistic has no row
+    // here because nothing in this library is realistic, and the book contributes no segment.
+    expect(styles.map((row) => row.name)).toEqual(["Anime", "Stylised"]);
+    expect(styles[0].segments.map((segment) => segment.medium)).toEqual(["game", "movie"]);
+    expect(styles.flatMap((row) => row.segments.map((segment) => segment.medium))).not.toContain("book");
+  });
+
   it("counts in the page's measure, so under Items a short film weighs what a long game does", () => {
     const items = toOmniItems(
       library({

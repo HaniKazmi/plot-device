@@ -96,7 +96,7 @@ export const topNWithOther = <T>(allGroups: TopGroup<T>[], limit = 5) => {
  */
 export const groupTotals = <T extends string, U>(
   data: U[],
-  group: T[],
+  group: readonly T[],
   // An accessor rather than a key, so a derived grouping — a score band, a decade — costs the
   // caller a function instead of a field on the model.
   groupOf: (item: U) => T,

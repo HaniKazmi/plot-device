@@ -1,7 +1,7 @@
 import { Year } from "../common/date";
 import type { Colour, Scheme } from "../utils/types";
 import type { OmniItem } from "../common/medium";
-import { galleryColour, galleryValue } from "../app/galleryData";
+import { galleryColour, galleryValue, type UnionKey } from "../app/galleryData";
 import { mediumToColour, mediumToLabel, type Measure } from "../app/types";
 
 /**
@@ -19,17 +19,19 @@ import { mediumToColour, mediumToLabel, type Measure } from "../app/types";
  * Decade is not offered either: a decade is derived from the year, so plotting it against the year
  * draws each series into exactly one run of columns and nothing crosses.
  */
-export const BARCHART_SPLITS = ["medium", "genre", "certificate"] as const;
+export const BARCHART_SPLITS = ["medium", "genre", "certificate", "style"] as const satisfies readonly (
+  "medium" | UnionKey
+)[];
 
 type BarchartSplit = (typeof BARCHART_SPLITS)[number];
 
 /**
  * The series an item falls in.
  *
- * Genre and certificate are asked of `galleryValue`, which is what the shelves group on: the chart
- * and the gallery then cannot come to disagree about what a genre is or which certificates are one
- * tier, and a change to the banding reaches both. Medium is this chart's alone — the gallery has no
- * shelf for it, since every shelf there already mixes all three.
+ * Everything but the medium is asked of `galleryValue`, which is what the shelves group on: the
+ * chart and the gallery then cannot come to disagree about what a genre is or which certificates
+ * are one tier, and a change to the banding reaches both. The medium is this chart's alone — the
+ * gallery has no shelf for it.
  */
 const splitName = (item: OmniItem, split: BarchartSplit): string =>
   split === "medium" ? mediumToLabel(item.medium) : galleryValue(item, split);
@@ -38,19 +40,19 @@ const splitName = (item: OmniItem, split: BarchartSplit): string =>
  * The fill that series is drawn in.
  *
  * Each is the vocabulary the rest of the page already paints that field with, so a genre keeps the
- * hue it has in the gallery's swatch and in the genres band, and a certificate the hue of its
- * badge. Both come from the gallery's own lookups rather than from a second set here, so a hue
- * means one thing on the chart and on the shelves. All three sheets record genres from one list, so
- * the ramp covers every value they hold but `Other`, which takes the neutral it answers off-table
- * with — one uncoloured series against eleven, rather than a crash on a genre it has not been
- * given yet.
+ * hue it has in the gallery's swatch and in the genres band, a certificate the hue of its badge,
+ * and a style the fill its three home tabs draw it in. All come from the gallery's own lookups
+ * rather than from a second set here, so a hue means one thing on the chart and on the shelves.
+ * All three sheets record genres from one list, so the ramp covers every value they hold but
+ * `Other`, which takes the neutral it answers off-table with — one uncoloured series against
+ * eleven, rather than a crash on a genre it has not been given yet.
  */
-const splitColour = (item: OmniItem, split: BarchartSplit, name: string, scheme: Scheme): Colour =>
-  split === "medium"
-    ? mediumToColour(item.medium, scheme)
-    : // Never undefined for these two: `galleryColour` answers that only for a franchise, which is
-      // the one grouping this chart does not offer.
-      (galleryColour(name, split, scheme) as Colour);
+const splitColour = (item: OmniItem, split: BarchartSplit, name: string, scheme: Scheme): Colour => {
+  if (split === "medium") return mediumToColour(item.medium, scheme);
+  // Never undefined for these: `galleryColour` answers that only for a franchise, which is the one
+  // grouping this chart does not offer.
+  return galleryColour(name, split, scheme) as Colour;
+};
 
 /**
  * The union as the barchart pivot wants it: one row per item, keyed by the chosen series and by
@@ -72,9 +74,10 @@ export const omniBarchartRows = (
     // lookup in turn — three answers to one question that cannot differ.
     .map((item) => ({ item, name: splitName(item, split) }))
     // A row with no value in the split column would open a series named "", which the legend and
-    // the tooltip both render as a blank. Every book answers the certificate split with one — no
-    // certificate exists for it — and is dropped from that split rather than drawn under a blank
-    // legend entry; the header counts the rows drawn, so it says so.
+    // the tooltip both render as a blank. Every book answers the certificate and style splits with
+    // one — nothing certifies a book, and it has no picture to have a style — and is dropped from
+    // those splits rather than drawn under a blank legend entry; the header counts the rows drawn,
+    // so it says so.
     .filter(({ name }) => name)
     .map(({ item, name }) => ({
       name,

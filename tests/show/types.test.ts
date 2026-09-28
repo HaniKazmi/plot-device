@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { YearMonthDay } from "../../src/common/date";
-import { animeLabel, groupToColour, isShow, networkToColour, type Season, type Show } from "../../src/show/types";
-import { animeToColour, certificateToColour, genreToColour, neutralFill } from "../../src/utils/types";
+import { groupToColour, isShow, networkToColour, type Season, type Show } from "../../src/show/types";
+import { certificateToColour, genreToColour, neutralFill, styleToColour } from "../../src/utils/types";
 import { show } from "../fixtures/shows";
 
 const season = (parent: Show): Season => ({
@@ -49,12 +49,13 @@ describe("groupToColour", () => {
     expect(groupToColour("genre", show({ genre: "Sci-Fi" }), "light")).not.toBe(neutralFill("light"));
   });
 
-  it("colours network and the anime split through their own tables", () => {
+  it("colours network and style through their own tables", () => {
     expect(groupToColour("network", show({ network: "Netflix" }), "light")).toBe(
       networkToColour({ network: "Netflix" }, "light"),
     );
-    // The pair Movies splits by too, held in `utils/types.ts` so one rose means anime on both tabs.
-    expect(groupToColour("anime", show({ anime: true }), "light")).toBe(animeToColour("Anime", "light"));
+    // The vocabulary Games and Movies share, held in `utils/types.ts` so one rose means anime on
+    // every tab.
+    expect(groupToColour("style", show({ style: "Anime" }), "light")).toBe(styleToColour("Anime", "light"));
   });
 
   it("falls back to an empty string where no vocabulary exists", () => {
@@ -72,19 +73,5 @@ describe("networkToColour", () => {
     // launches, and a crash is the wrong response to that — unlike a platform typo, which is.
     expect(networkToColour({ network: "Netflix" }, "light")).toMatch(/^#/);
     expect(networkToColour({ network: "Madhouse" }, "light")).toBe("");
-  });
-});
-
-describe("animeLabel", () => {
-  it("words the boolean, sharing the anime half with Movies and keeping its own for the rest", () => {
-    // The anime half has to be the identical string on both tabs: the search box folds an
-    // attribute on its value, and one shelf holding shows and films exists only if they agree.
-    expect(animeLabel({ anime: true })).toBe("Anime");
-    expect(animeLabel({ anime: false })).toBe("Show");
-  });
-
-  it("separates the two with two fills", () => {
-    expect(animeToColour("Anime", "light")).toMatch(/^#/);
-    expect(animeToColour("Show", "light")).not.toBe(animeToColour("Anime", "light"));
   });
 });

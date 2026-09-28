@@ -22,6 +22,7 @@ export const topOptions = [
   "status",
   "gameplay",
   "genre",
+  "style",
 ] as const satisfies Exclude<VideoGameStringKeys, "name">[];
 
 export type TopOption = (typeof topOptions)[number];

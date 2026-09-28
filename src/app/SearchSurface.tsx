@@ -228,13 +228,6 @@ const tabGroup = (tabs: TabEntry[], query: string, scheme: Scheme, close: () => 
   });
 
 /**
- * Whether the value is its own category's name — "Anime" under `anime` — where stating both is the
- * one word twice. A split names its category after the half worth finding, so this is the split's
- * own case rather than a general risk.
- */
-const namesItsCategory = (entry: AttributeEntry) => entry.label.toLowerCase() === entry.value.toLowerCase();
-
-/**
  * The first tab recording a value, whose own schema is where that value's vocabulary is declared.
  * `buildAttributeIndex` walks the tabs in the app's own order, so this is the earliest of them
  * rather than whichever happened to be scanned first.
@@ -484,7 +477,7 @@ export const SearchSurface = ({
         // which the readings beneath already carry: a franchise stating "4 games" here beside a
         // "Games 4" chip is one fact said twice, and a franchise then reads differently
         // from every other value the box finds.
-        category: namesItsCategory(attribute) ? undefined : (
+        category: (
           <Box
             component="span"
             sx={{ textTransform: "capitalize" }}

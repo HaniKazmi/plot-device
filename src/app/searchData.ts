@@ -346,8 +346,9 @@ const franchiseAttribute = (entry: FranchiseSearchEntry, rows: SearchIndex["fran
  * control surface would not draw, since the box offers exactly the narrowings the page holds.
  *
  * An entry is keyed on the category's own key and the value, so two tabs recording the same thing
- * under the same word — anime, which Shows and Movies both split by — fold into one entry a single
- * shelf opens and both tabs can be narrowed to.
+ * under the same word — "Anime" under `style`, which Games, Shows and Movies all record and the
+ * Omnibus carries through — fold into one entry a single shelf opens and every one of those tabs
+ * can be narrowed to.
  */
 export const buildAttributeIndex = (pages: PageRows): AttributeEntry[] => {
   const found = new Map<string, AttributeEntry>();
@@ -379,7 +380,7 @@ export const buildAttributeIndex = (pages: PageRows): AttributeEntry[] => {
     if (!rows) continue;
     for (const category of page.filters.categories) {
       // The values that category calls worth finding: all of them unless it says otherwise, which
-      // franchise does with none and a split with its marked half alone.
+      // franchise does with none.
       const found = category.found;
       if (found?.length === 0) continue;
       for (const item of rows) {
@@ -451,9 +452,10 @@ const isValue = (entry: AttributeEntry) => !entry.level;
  * reader notices. Franchise is added from its own index, its values being deliberately absent from
  * the attribute one (`found: []`).
  *
- * A category of one findable value is that value, through the rule the filter chips group by:
- * Shows' and Movies' anime split offers a single word, so its category row and its value row would
- * be the same row twice.
+ * A category of one findable value is that value, through the rule the filter chips group by: a
+ * category whose rows hold a single word — a vocabulary guest mode or a young library has left one
+ * value of — would otherwise stand as a category row and a value row that are the same narrowing
+ * twice.
  */
 const buildCategoryIndex = (
   attributes: AttributeEntry[],

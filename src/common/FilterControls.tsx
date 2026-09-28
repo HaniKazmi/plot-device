@@ -284,9 +284,9 @@ const SearchWithin = ({ label, value, onChange }: { label: string; value: string
 /**
  * How few values a category draws in its own row rather than behind a caret.
  *
- * A split is two chips and a caret hiding them costs a tap to reach a choice the row has the width
- * to state outright — and the surface opens one category at a time, so it would cost the reader the
- * genre list they had open as well. Three, so a vocabulary that has grown a value stays in place.
+ * A split is two chips and the style three, and a caret hiding them costs a tap to reach a choice
+ * the row has the width to state outright — and the surface opens one category at a time, so it
+ * would cost the reader the genre list they had open as well. Three holds both in the row.
  */
 const INLINE_VALUES = 3;
 

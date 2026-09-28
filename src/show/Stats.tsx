@@ -1,5 +1,5 @@
 import {
-  Animation,
+  Brush,
   AutoGraph,
   Category,
   History,
@@ -11,7 +11,7 @@ import {
   VerifiedUser,
   Whatshot,
 } from "@mui/icons-material";
-import { ANIME_GROUP, groupToColour, animeLabel, type Measure, type Season, type Show, type Status } from "./types";
+import { groupToColour, type Measure, type Season, type Show, type Status } from "./types";
 import {
   StatCard,
   StatList,
@@ -27,7 +27,7 @@ import { GroupedStatList } from "../common/GroupedStatList";
 import { Hero } from "../common/Hero";
 import ShowCardMediaImage, { ShowFranchiseStrip } from "./CardMediaImage";
 import { showSubtitle } from "./cardData";
-import { animeToColour, statusToColour, type Scheme } from "../utils/types";
+import { STYLES, statusToColour, styleToColour, type Scheme } from "../utils/types";
 import { useScheme } from "../common/useScheme";
 import { Stack } from "@mui/material";
 import type { ReactNode } from "react";
@@ -191,9 +191,6 @@ const Vitals = ({ data, measure }: { data: Show[]; measure: Measure }) => {
   const scheme = useScheme();
 
   const statusList: Status[] = ["Watching", "Up To Date", "Ended", "Cancelled", "Abandoned"];
-  // The domain's own pair, which is also what the filter's chips offer: the array is the bar order,
-  // and a word restated here could drift from `animeLabel` and drop a bar with nothing to say so.
-  const animeList = ANIME_GROUP;
   const measureFunc = (shows: Show[]) => measureOf(shows, measure);
 
   return (
@@ -209,13 +206,14 @@ const Vitals = ({ data, measure }: { data: Show[]; measure: Measure }) => {
         measureLabel={measure}
       />
       <TotalsBand
-        title={"Anime"}
-        icon={<Animation />}
+        title={"Style"}
+        icon={<Brush />}
         data={data}
         measureFunc={measureFunc}
-        group={animeList}
-        groupOf={animeLabel}
-        groupToColour={(label: string) => animeToColour(label, scheme)}
+        // The shared vocabulary in its own order, which is also what the filter's chips offer.
+        group={STYLES}
+        groupOf={(show) => show.style}
+        groupToColour={(style: string) => styleToColour(style, scheme)}
         measureLabel={measure}
       />
     </VitalsCard>
@@ -257,7 +255,7 @@ const optionIcons: Record<ShowTopOption, ReactNode> = {
   genre: <Category />,
   network: <Tv />,
   franchise: <Stars />,
-  anime: <Animation />,
+  style: <Brush />,
   status: <TaskAlt />,
   certificate: <VerifiedUser />,
 };
