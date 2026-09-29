@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { movedAfter, tabSections, trackedTabSections } from "../../src/common/sections";
+import { tabSections, trackedTabSections } from "../../src/common/sections";
 
 const build = () =>
   tabSections("tab", [
@@ -41,80 +41,6 @@ describe("tabSections", () => {
     const { ids, chips } = build();
 
     expect(chips().map((chip) => chip.id)).toEqual(Object.values(ids));
-  });
-});
-
-describe("chips in a stated order", () => {
-  it("runs the chips in the order it is given, which is how a page reordered at one width stays in step with its rail", () => {
-    expect(
-      build()
-        .chips({}, ["library", "now", "vitals"])
-        .map((chip) => chip.id),
-    ).toEqual(["tab-library", "tab-now", "tab-vitals"]);
-  });
-
-  it("still drops a section named false, so an order cannot put back a chip the page has no anchor for", () => {
-    expect(
-      build()
-        .chips({ now: false }, ["library", "now", "vitals"])
-        .map((chip) => chip.label),
-    ).toEqual(["Library", "Vitals"]);
-  });
-
-  it("keeps every key it was declared with, so an order is the page's own list rearranged", () => {
-    const { keys } = build();
-
-    expect(keys).toEqual(["now", "vitals", "library"]);
-  });
-});
-
-describe("movedAfter", () => {
-  // The Omnibus's own sections, which is where a moved order is asked for: on a phone the gallery
-  // follows the franchises.
-  const keys = ["now", "vitals", "finished", "charts", "gallery", "genres", "crossings"] as const;
-
-  it("lifts a key to sit directly after another", () => {
-    expect(movedAfter(keys, "gallery", "crossings")).toEqual([
-      "now",
-      "vitals",
-      "finished",
-      "charts",
-      "genres",
-      "crossings",
-      "gallery",
-    ]);
-  });
-
-  it("answers a permutation of what it was given, so no section is lost or drawn twice", () => {
-    expect([...movedAfter(keys, "gallery", "crossings")].sort()).toEqual([...keys].sort());
-  });
-
-  it("leaves the order alone where either key names nothing in it", () => {
-    expect(movedAfter(keys, "gallery", "library" as (typeof keys)[number])).toEqual([...keys]);
-    expect(movedAfter(keys, "library" as (typeof keys)[number], "crossings")).toEqual([...keys]);
-  });
-
-  it("leaves the order alone where a key is asked to follow itself", () => {
-    expect(movedAfter(keys, "gallery", "gallery")).toEqual([...keys]);
-  });
-
-  it("moves a key backwards as readily as forwards, the target's own position deciding", () => {
-    expect(movedAfter(keys, "crossings", "now")).toEqual([
-      "now",
-      "crossings",
-      "vitals",
-      "finished",
-      "charts",
-      "gallery",
-      "genres",
-    ]);
-  });
-
-  it("does not touch the array it is handed", () => {
-    const original = [...keys];
-    movedAfter(keys, "gallery", "crossings");
-
-    expect([...keys]).toEqual(original);
   });
 });
 

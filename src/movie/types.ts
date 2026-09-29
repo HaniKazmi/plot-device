@@ -63,6 +63,12 @@ export type Measure = "Films" | "Hours";
  */
 export type MovieGroup = MovieStringKeys | "none" | "decade" | "cinema" | "score";
 
+/**
+ * When a film was finished: the day it was watched, a film being finished the day it is started —
+ * the close the library shelves it under and the union dates it by.
+ */
+export const watchedOn = (film: Movie) => film.startDate;
+
 export const cinemaLabel = ({ cinema }: Movie) => (cinema ? "Cinema" : "Home");
 
 /** Exhaustive over the two values `cinemaLabel` can answer, so both always have a fill. */
@@ -82,7 +88,7 @@ export const cinemaToColour = (label: string, scheme: Scheme): Colour =>
  */
 export { scoreBands, scoreBand, scoreBandToColour, type ScoreBand } from "../utils/types";
 
-export const certificateColour = ({ certificate }: Movie, scheme: Scheme) => certificateToColour(certificate, scheme);
+const certificateColour = ({ certificate }: Movie, scheme: Scheme) => certificateToColour(certificate, scheme);
 
 export const groupToColour = (group: MovieGroup, movie: Movie, scheme: Scheme): Colour => {
   switch (group) {

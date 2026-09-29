@@ -8,11 +8,15 @@ import {
   decadeToColour,
   franchiseToColour,
   genreToColour,
+  mediumToColour,
+  mediumToLabel,
+  MEDIA,
   releaseDecade,
   styleToColour,
   type Colour,
   type Scheme,
 } from "../utils/types";
+import { IN_PROGRESS } from "../common/finishedData";
 import { moduleOf, omniArtwork } from "./media";
 import { measureOf } from "./library";
 import { namesTheSameThing } from "../utils/stringUtils";
@@ -26,11 +30,12 @@ import "../utils/mapUtils";
  *
  * Every one but certificate is a field all four media record, which is what a shelf shared between them
  * has to be — a category one medium answers `""` to drops that medium out of the wall, since
- * `groupByCategory` skips empty values. The certificate is the deliberate exception: nothing
+ * `groupByCategory` skips empty values. "When" is the year each work was finished, the four tabs'
+ * own libraries' first order, and "medium" the tab each came from. The certificate is the deliberate exception: nothing
  * certifies a book, so books are absent from those shelves rather than shelved under a certificate
  * nobody issued, and `galleryValue` answers `""` for them on purpose.
  */
-export const GALLERY_CATEGORIES = ["genre", "franchise", "certificate", "decade"] as const;
+export const GALLERY_CATEGORIES = ["franchise", "when", "genre", "medium", "certificate", "decade"] as const;
 
 export type GalleryCategory = (typeof GALLERY_CATEGORIES)[number];
 
@@ -81,6 +86,12 @@ export const galleryValue = (item: OmniItem, category: UnionKey): string => {
       return item.certificate ? certificateBand(item.certificate) : "";
     case "decade":
       return releaseDecade(item.year);
+    case "when":
+      // The year the work was finished, as every tab's own library shelves it, and whatever is still
+      // going under one run of its own.
+      return item.closeDate ? String(item.closeDate.year) : IN_PROGRESS;
+    case "medium":
+      return mediumToLabel(item.medium);
     case "style":
       // A book has no picture to have a style, and answers `""` as it does for the certificate.
       return item.style ?? "";
@@ -102,6 +113,15 @@ export const galleryColour = (name: string, category: UnionKey, scheme: Scheme):
       return decadeToColour(name, scheme);
     case "style":
       return styleToColour(name, scheme);
+    case "medium": {
+      // Named by its label, so the medium is found back by the word the shelf wears.
+      const medium = MEDIA.find((each) => mediumToLabel(each) === name);
+      return medium && mediumToColour(medium, scheme);
+    }
+    case "when":
+      // A year is no vocabulary the page colours, and a swatch on one would teach a legend nothing
+      // else on the page honours.
+      return undefined;
     case "franchise":
       // Empty off the table, which is most of them: a franchise column is mostly works naming
       // themselves, and `undefined` leaves the shelf heading without a swatch rather than

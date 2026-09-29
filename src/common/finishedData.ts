@@ -1,10 +1,13 @@
 import { PlainDate, YearMonthDay, shortYear } from "./date";
 import { stated } from "./population";
+import { genreToColour, type Scheme } from "../utils/types";
 import "../utils/arrayUtils";
 
 export type FinishedItem = {
   artwork?: string;
   startDate?: YearMonthDay;
+  /** When the reader finished it, absent while it is still going; a caller can say otherwise through `CloseOf`. */
+  endDate?: YearMonthDay;
   /** Optional because only some domains date the work itself; see `finishedKey`. */
   releaseDate?: YearMonthDay;
   franchise: string;
@@ -12,9 +15,25 @@ export type FinishedItem = {
 };
 
 /** The two orders every wall offers; a caller adds its own through `FinishedExtraSort`. */
-export type FinishedSort = "Date" | "Franchise";
+export type FinishedSort = "When" | "Franchise";
 
-export const FINISHED_SORTS: readonly FinishedSort[] = ["Date", "Franchise"];
+export const FINISHED_SORTS: readonly FinishedSort[] = ["When", "Franchise"];
+
+/** The run anything still going stands in, first under When. */
+export const IN_PROGRESS = "In progress";
+
+/**
+ * When an item was finished, or `undefined` while it is still going.
+ *
+ * A caller's answer rather than a field the wall reads for itself, because one model has no end at
+ * all: a film is finished the day it is watched, so its one date is its close, where every other
+ * sheet leaves an end blank for exactly as long as the work is in hand. Read as a missing
+ * `endDate`, every film on the wall would stand under In progress.
+ */
+export type CloseOf<U> = (item: U) => YearMonthDay | undefined;
+
+/** The close three of the four sheets write: the end date, blank while the work is in hand. */
+export const endDateOf = (item: FinishedItem): YearMonthDay | undefined => item.endDate;
 
 const isBuiltIn = (sort: string): sort is FinishedSort => (FINISHED_SORTS as readonly string[]).includes(sort);
 
@@ -26,19 +45,63 @@ const resolveExtra = <U>(sort: string, extras: readonly FinishedExtraSort<U>[]):
   isBuiltIn(sort) ? undefined : extras.find((candidate) => candidate.label === sort);
 
 /**
- * An order a caller adds to its wall, over a figure only its domain holds — a film's score, a
- * book's pages. Highest first, and an item with no figure last rather than first: a wall sorted
- * by score opens on the best, and a film never scored is not the best of anything. `bucket`
- * names the marker's chip for a figure; left off, the figure names itself, which suits a score
- * and not a page count, where every book would be a chip of its own. The two
- * built-in labels are reserved: an extra named for one of them is refused by the wall rather than
- * shadowing it in one consumer and not the other.
+ * An order a caller adds to its wall, over something only its domain holds, in one of two kinds.
+ *
+ * A **figure** — a film's score, a book's pages — runs highest first, and an item with no figure
+ * last rather than first: a wall sorted by score opens on the best, and a film never scored is not
+ * the best of anything. `bucket` names the marker's chip for a figure; left off, the figure names
+ * itself, which suits a score and not a page count, where every book would be a chip of its own.
+ *
+ * A **word** — a genre, a platform, a network — shelves the wall by that value, biggest shelf
+ * first: the question a shelf of words answers is what the library is mostly made of, which the
+ * gallery's own Largest order answers the same way. `colour` is the vocabulary's own swatch for a
+ * value, where the tab paints that field elsewhere.
+ *
+ * The two built-in labels are reserved: an extra named for one of them is refused by the wall
+ * rather than shadowing it in one consumer and not the other.
  */
-export interface FinishedExtraSort<U> {
+export type FinishedExtraSort<U> = FinishedFigureSort<U> | FinishedWordSort<U>;
+
+export interface FinishedFigureSort<U> {
   label: string;
   value: (item: U) => number | undefined;
   bucket?: (value: number) => string;
 }
+
+export interface FinishedWordSort<U> {
+  label: string;
+  word: (item: U) => string;
+  colour?: (word: string) => string | undefined;
+}
+
+/**
+ * The genre shelf every tab offers, over the one ramp all four sheets share, so a shelf of Horror
+ * wears the red a Horror wedge does on any tab.
+ */
+export const genreShelf = <U extends { genre: string }>(scheme: Scheme): FinishedWordSort<U> => ({
+  label: "Genre",
+  word: (item) => item.genre,
+  colour: (genre) => genreToColour(genre, scheme),
+});
+
+const isWordSort = <U>(extra: FinishedExtraSort<U>): extra is FinishedWordSort<U> => "word" in extra;
+
+/**
+ * The caller's word sort a name means, if any — what a heading asks for its swatch, since only a
+ * word shelf has a vocabulary to paint.
+ */
+export const wordSort = <U>(sort: string, extras: readonly FinishedExtraSort<U>[]): FinishedWordSort<U> | undefined => {
+  const extra = resolveExtra(sort, extras);
+  return extra && isWordSort(extra) ? extra : undefined;
+};
+
+/**
+ * The two ways the library lays its runs out. `Wall` is one wrapped grid read top to bottom, its
+ * runs named beside it rather than between them; `Shelves` gives each run a row of its own that
+ * scrolls sideways, so every run starts on screen and the page is as long as the runs are many
+ * rather than as the library is big.
+ */
+export type FinishedLayout = "Shelves" | "Wall";
 
 /**
  * How big a card the wall draws. `Compact` is the wall as a library — as many works on a screen as
@@ -57,8 +120,8 @@ type GridColumns = Partial<Record<"xs" | "sm" | "md" | "lg" | "xl", number>>;
  *
  * `Compact` at `xl` is a fifth of the grid, about 220px of artwork, which is the width at which a
  * banner still reads as the picture it is while a screen holds fifteen of them: a wall the reader
- * travels rather than a slideshow they page through. Four to a row at `md` and up — `Large` — puts
- * a banner near 400px, a size that says one card at a time.
+ * travels rather than a slideshow they page through. Three to a row at `md` and up — `Large` — puts
+ * a banner at 473px in a 1,728px window, a size that says one card at a time.
  *
  * Two to a row is the floor, and it is a phone's: at 390px each card is about 190px, where three to
  * a row is 95px and a banner's own title, which is part of the artwork rather than type the card
@@ -126,6 +189,12 @@ const collator = new Intl.Collator();
 const franchiseKey = (item: FinishedItem) => item.franchise.trim() || item.name;
 
 /**
+ * The franchise a work groups under for a card per franchise (`FinishedUnit.of`), or none where its
+ * cell is blank: a standalone work names itself there and keeps a card of its own.
+ */
+export const franchiseGroup = (item: { franchise: string }) => item.franchise.trim() || undefined;
+
+/**
  * Two dates in calendar order, with an undated item last.
  *
  * Compared rather than subtracted: `PlainDate.valueOf` answers the zero-padded ISO form, so `<`
@@ -156,34 +225,63 @@ export const finishedKey = (item: FinishedItem) =>
   item.releaseDate ? `${item.name} (${item.releaseDate.year})` : item.name;
 
 /**
+ * When order: anything still going first, newest start first among those, then the rest by when
+ * they were finished, newest first, a start breaking a tie.
+ *
+ * By the close rather than the start, because a library is a record of what was finished: a game
+ * begun in 2019 and finished in 2024 is part of 2024's shelf, which is where a reader looking back
+ * at a year expects it. `byDate` compared the wrong way round puts an absent date first, which is
+ * exactly the open work leading the wall.
+ */
+const whenOrder =
+  <U extends FinishedItem>(closeOf: CloseOf<U>) =>
+  (a: U, b: U): number =>
+    byDate(closeOf(b), closeOf(a)) || byDate(b.startDate, a.startDate);
+
+/**
  * The items a Finished grid shows: only those with artwork, in the order the reader asked for.
  *
- * "Date" is when the reader met each work, newest first. "Franchise" is the library as a shelf
- * instead: a series' entries together, in the order they were released, so a wall read top to
- * bottom walks each series through in turn. Release date rather than the reader's own start date,
- * because a series has an order of its own and the order it was watched in is not it — a reader
- * who came to Star Wars at the fourth film would otherwise see it lead.
+ * "When" is when the reader finished each work, newest first, with whatever is still going ahead of
+ * all of it. "Franchise" is the library as a shelf instead: a series' entries together, in the
+ * order they were released, so a wall read top to bottom walks each series through in turn. Release
+ * date rather than the reader's own start date, because a series has an order of its own and the
+ * order it was watched in is not it — a reader who came to Star Wars at the fourth film would
+ * otherwise see it lead.
  *
- * The last step is the start date, which is what settles a Shows wall: that model dates only the
- * watching, so every pair in it ties on release and falls through to here.
+ * The franchise sort's last step is the start date, which is what settles a Shows wall: that model
+ * dates only the watching, so every pair in it ties on release and falls through to here. Every
+ * other order settles a tie by When, so a shelf of one genre or one score reads newest first.
  */
 export const finishedItems = <U extends FinishedItem>(
   data: readonly U[],
   sort: string,
   extras: readonly FinishedExtraSort<U>[] = [],
+  closeOf: CloseOf<U> = endDateOf,
 ): U[] => {
   const withArtwork = data.filter(hasArtwork);
-  if (sort === "Date") return withArtwork.sortByKey("startDate", false);
+  const when = whenOrder(closeOf);
+  if (sort === "When") return withArtwork.toSorted(when);
 
   const extra = resolveExtra(sort, extras);
+  if (extra && isWordSort(extra)) {
+    // Sized over the cards the wall draws, so the biggest shelf is the biggest on screen. A blank
+    // cell is no shelf at all and goes last, where the unbucketed run stands under every order.
+    const sizes = new Map<string, number>();
+    for (const item of withArtwork) sizes.set(extra.word(item), (sizes.get(extra.word(item)) ?? 0) + 1);
+    return withArtwork.toSorted((a, b) => {
+      const [x, y] = [extra.word(a), extra.word(b)];
+      return Number(!x) - Number(!y) || sizes.get(y)! - sizes.get(x)! || collator.compare(x, y) || when(a, b);
+    });
+  }
   if (extra) {
     // A numeric sort rather than `sortByKey`, which puts falsy values first in both directions —
-    // a film honestly scored 0 would head a wall sorted by score. The date breaks a tie: many
-    // films share a nine, and the recent ones say more.
+    // a film honestly scored 0 would head a wall sorted by score. When breaks a tie: many films
+    // share a nine, and the recent ones say more.
     return withArtwork.toSorted((a, b) => {
       const [x, y] = [extra.value(a), extra.value(b)];
-      if (x === undefined || y === undefined) return (x === undefined ? 1 : 0) - (y === undefined ? 1 : 0);
-      return y - x || byDate(b.startDate, a.startDate);
+      if (x === undefined || y === undefined)
+        return (x === undefined ? 1 : 0) - (y === undefined ? 1 : 0) || when(a, b);
+      return y - x || when(a, b);
     });
   }
 
@@ -222,44 +320,50 @@ export const wallPopulation = (data: readonly FinishedItem[], noun: string): str
 };
 
 /**
- * Where an item falls in the current sort, as the short label a position marker can show: a year
- * under the date sort, a leading letter under the franchise sort.
+ * Where an item falls in the current sort, as the short label a position marker can show: the year
+ * it was finished under When, or In progress; a leading letter under the franchise sort; the value
+ * itself under a word.
  *
  * The value read is the one `finishedItems` orders by — the franchise sort's leading key, through
- * the same `franchiseKey` the comparator uses, so the marker and the wall cannot come to disagree
- * about which field is in play or about how a blank cell answers.
+ * the same `franchiseKey` the comparator uses, and the same close — so the marker and the wall
+ * cannot come to disagree about which field is in play or about how a blank cell answers.
  *
- * `null` is a real answer and not a fallback: a value kind with no short form has none, and an
- * item with no date is one the date sort places first, so the topmost card on screen can be one.
- * The marker then shows nothing rather than the year of some other row.
+ * `null` is a real answer and not a fallback: a value kind with no short form has none — a film
+ * nobody scored, a show with no network — and the orders that hold such items put them last, where
+ * they stand under a heading naming what they lack.
  */
 export const bucketFor = <U extends FinishedItem>(
   sort: string,
   extras: readonly FinishedExtraSort<U>[] = [],
+  closeOf: CloseOf<U> = endDateOf,
 ): ((item: U) => string | null) => {
   const extra = resolveExtra(sort, extras);
+  if (extra && isWordSort(extra)) return (item) => extra.word(item) || null;
   if (extra) {
     return (item) => {
       const figure = extra.value(item);
       return figure === undefined ? null : extra.bucket ? extra.bucket(figure) : String(figure);
     };
   }
-  return (item) => {
-    const value = sort === "Date" ? item.startDate : franchiseKey(item);
-    if (value instanceof YearMonthDay) return String(value.year);
-    if (typeof value === "string") return value.charAt(0).toUpperCase() || null;
-    return null;
-  };
+  if (sort === "When") {
+    return (item) => {
+      const close = closeOf(item);
+      return close ? String(close.year) : IN_PROGRESS;
+    };
+  }
+  return (item) => franchiseKey(item).charAt(0).toUpperCase() || null;
 };
 
 /**
  * The buckets a wall contains, each at its first appearance and in the order the wall presents
- * them — years descending under the date sort, initials ascending under the franchise sort.
+ * them — In progress then years descending under When, initials ascending under the franchise sort,
+ * the biggest shelf first under a word.
  *
  * What it guarantees is wall order, deduped to first appearance, which is what keeps the rail
- * agreeing with the page rather than with a second derivation of it. Both sorts happen to open
- * each bucket once — a year is unique, and franchise-ordered initials are non-decreasing — so the
- * highlight only ever travels downwards as the reader scrolls down. Neither property is assumed
+ * agreeing with the page rather than with a second derivation of it. Every order happens to open
+ * each bucket once — a year is unique, franchise-ordered initials are non-decreasing, and a word
+ * sort groups each value before ordering within it — so the highlight only ever travels downwards
+ * as the reader scrolls down. Neither property is assumed
  * here: taking first appearances is correct for a key that returns to a value it has passed, and
  * re-sorting the labels would buy nothing while costing the agreement.
  *
@@ -271,13 +375,14 @@ export const orderedBuckets = (labels: readonly (string | null | undefined)[]): 
 ];
 
 /**
- * A bucket as a jump rail draws it: a year in the two-digit form the timeline's year chips use,
- * anything else as itself.
+ * A bucket as a jump rail draws it: a year in the two-digit form the timeline's year chips use, the
+ * run still going as "Now", anything else as itself.
  *
- * The rail is a column a chip wide in the page's gutter, so a four-digit year is the one label
- * that would set that column's width by itself.
+ * The rail is a column a chip wide in the page's gutter, so a four-digit year and a two-word run are
+ * the labels that would set that column's width by themselves.
  */
-export const bucketLabel = (bucket: string): string => (/^\d{4}$/.test(bucket) ? shortYear(Number(bucket)) : bucket);
+export const bucketLabel = (bucket: string): string =>
+  bucket === IN_PROGRESS ? "Now" : /^\d{4}$/.test(bucket) ? shortYear(Number(bucket)) : bucket;
 
 /** One run of the wall under a heading of its own: the bucket's label and the cards in it. */
 export interface FinishedBucketGroup<U> {
@@ -289,10 +394,10 @@ export interface FinishedBucketGroup<U> {
  * The heading items with no bucket stand under, named after whatever the wall is ordered by.
  *
  * `bucketFor` answers `null` for a value kind with no short form, and which kind that is follows
- * the sort: an undated item under Date, a film nobody scored under Score, a book with no page count
- * under Pages. A fixed wording would name the wrong field on two walls out of three, and those
- * items are not a stray few — the date sort puts every undated item first and an extra sort puts
- * every figureless one last, so the group is a real part of the order and reads as one.
+ * the sort: a film nobody scored under Score, a book with no page count under Pages, a show with no
+ * network under Network. A fixed wording would name the wrong field on most walls, and those items
+ * are not a stray few — every extra sort puts each item without its value last, so the group is a
+ * real part of the order and reads as one.
  */
 const unbucketedLabel = <U extends FinishedItem>(sort: string, extras: readonly FinishedExtraSort<U>[]): string =>
   `No ${(resolveExtra(sort, extras)?.label ?? sort).toLowerCase()}`;
@@ -307,14 +412,16 @@ const unbucketedLabel = <U extends FinishedItem>(sort: string, extras: readonly 
  * Runs rather than a keyed grouping, because a run is what a heading can honestly stand over. Both
  * built-in sorts happen to open each bucket once, but a sort that returned to a value it had passed
  * would have a keyed grouping lift those cards out of the order the wall is in and file them under
- * a heading hundreds of cards above.
+ * a heading hundreds of cards above. The shelves are these same runs, so a shelf and a heading
+ * cannot disagree about where a card stands.
  */
 export const bucketGroups = <U extends FinishedItem>(
   items: readonly U[],
   sort: string,
   extras: readonly FinishedExtraSort<U>[] = [],
+  closeOf: CloseOf<U> = endDateOf,
 ): FinishedBucketGroup<U>[] => {
-  const bucket = bucketFor<U>(sort, extras);
+  const bucket = bucketFor<U>(sort, extras, closeOf);
   const unbucketed = unbucketedLabel(sort, extras);
   const groups: FinishedBucketGroup<U>[] = [];
   for (const item of items) {
@@ -325,3 +432,59 @@ export const bucketGroups = <U extends FinishedItem>(
   }
   return groups;
 };
+
+/**
+ * A second way to count a library: one card per franchise or series rather than one per item.
+ *
+ * `labels` are the segment's two words, the item's own noun first — "Games · Franchises". `of`
+ * names the group an item belongs to, `undefined` for one that stands alone and so stays a card of
+ * its own. The caller's rule rather than the franchise column read here, since what groups a tab's
+ * works is that tab's knowledge: a book's series, a game's franchise.
+ */
+export interface FinishedUnit<U> {
+  labels: readonly [string, string];
+  of: (item: U) => string | undefined;
+}
+
+/** One card on the wall or a shelf: the item whose picture it wears, and everything it stands for. */
+export interface FinishedCard<U> {
+  item: U;
+  /** The item alone, or the group it fronts in the run's own order, the fronting item first. */
+  members: readonly U[];
+}
+
+/**
+ * A run's items as the cards drawn for them: one per item, or, given a grouping, one per group —
+ * the card taking the place of the group's first member and wearing its picture, the run keeping
+ * the order it was handed.
+ */
+export const cardsOf = <U>(items: readonly U[], groupOf?: (item: U) => string | undefined): FinishedCard<U>[] => {
+  const cards: FinishedCard<U>[] = [];
+  const held = new Map<string, U[]>();
+  for (const item of items) {
+    const key = groupOf?.(item);
+    const members = key === undefined ? undefined : held.get(key);
+    if (members) {
+      members.push(item);
+      continue;
+    }
+    const own = [item];
+    if (key !== undefined) held.set(key, own);
+    cards.push({ item, members: own });
+  }
+  return cards;
+};
+
+/**
+ * The runs as the cards drawn in them (`cardsOf`), one per group per run.
+ *
+ * Collapsed within each run rather than over the library, the gallery's own rule: a series finished
+ * across three years genuinely belongs to each of those years' shelves, and folded into one card it
+ * would stand under one year and vanish from the other two. Under When a series is therefore
+ * fronted by the entry finished last.
+ */
+export const cardRuns = <U>(
+  groups: readonly FinishedBucketGroup<U>[],
+  groupOf?: (item: U) => string | undefined,
+): FinishedBucketGroup<FinishedCard<U>>[] =>
+  groups.map((group) => ({ label: group.label, items: cardsOf(group.items, groupOf) }));

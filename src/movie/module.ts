@@ -4,7 +4,7 @@ import { movieDataConfig } from "./converter";
 import { guestFilter, movieFilters } from "./filters";
 import { pageState } from "./filterUtils";
 import { MOVIE_EPOCH, movieItemKey } from "./statsData";
-import type { Measure, Movie } from "./types";
+import { watchedOn, type Measure, type Movie } from "./types";
 
 /** A film as one row of the union. */
 const movieItems = (movies: Movie[]): OmniItem[] =>
@@ -15,7 +15,7 @@ const movieItems = (movies: Movie[]): OmniItem[] =>
     name: movie.name,
     // A film's watch date is both when it happened and when it closed, so it is one date wearing
     // both names rather than a start with no end.
-    closeDate: movie.startDate,
+    closeDate: watchedOn(movie),
     year: movie.startDate.year,
     hours: movie.minutes / 60,
     genre: movie.genre,

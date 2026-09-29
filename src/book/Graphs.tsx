@@ -15,25 +15,38 @@ import { bookEpoch, bookFranchise, BookEpochProvider, FranchiseContext } from ".
 import { franchiseIndex } from "../common/franchiseIndex";
 import type { FilterState } from "./filterUtils";
 import { bookKey, currentlyReading } from "./statsData";
-import { wallPopulation, type FinishedExtraSort } from "../common/finishedData";
-import { genreToColour } from "../utils/types";
+import { genreShelf, wallPopulation, type FinishedExtraSort, type FinishedUnit } from "../common/finishedData";
+import { genreToColour, type Scheme } from "../utils/types";
 import { useScheme } from "../common/useScheme";
 
 /**
- * The index and the scale every card strip on the tab reads, both built from the unfiltered data:
- * a strip answers for the whole series whatever the filters left, and a scale that opened where
- * the filtered data began would redraw every card's strip on a filter change.
+ * What the library can be shelved by beyond When and Franchise. Score and pages are figures rather
+ * than strips of their own: "what was best" and "what was longest" are the same library read in
+ * another order, and the library is where a whole order can be read.
  */
-const BOOK_SORTS: readonly FinishedExtraSort<Book>[] = [
+const bookShelves = (scheme: Scheme): readonly FinishedExtraSort<Book>[] => [
+  genreShelf(scheme),
+  { label: "Author", word: (book) => book.author },
   { label: "Score", value: (book) => book.score },
   // Bucketed by the hundred, and never as a bare four digits, which the rail would read as a
   // year: "700+" is a chip, where every page count would be a chip of its own.
   { label: "Pages", value: (book) => book.pages, bucket: (pages) => `${Math.floor(pages / 100) * 100}+` },
 ];
 
+/**
+ * A series as one card, fronted by its latest read, as the timeline's Series reading draws it as
+ * one bar. A book the sheet names no series for stays a card of its own.
+ */
+const BOOK_UNIT: FinishedUnit<Book> = { labels: ["Books", "Series"], of: (book) => book.series.trim() || undefined };
+
 /** What the wall's card borders speak, and the key beneath its header names. */
 const BOOK_BORDER = { key: "genre", valueOf: (book: Book) => book.genre };
 
+/**
+ * The index and the scale every card strip on the tab reads, both built from the unfiltered data:
+ * a strip answers for the whole series whatever the filters left, and a scale that opened where
+ * the filtered data began would redraw every card's strip on a filter change.
+ */
 const SuspenseBlock = ({
   filteredData,
   upToData,
@@ -114,13 +127,11 @@ const Graphs = memo(
             // Genre for the border: the ramp answers the neutral off its table and never throws, so
             // it cannot take a wall of hundreds of cards down on one unfamiliar value.
             colour={(item) => genreToColour(item.genre, scheme)}
-            // Score and pages are wall orders rather than strips of their own: "what was best"
-            // and "what was longest" are the same library read in another order, and the wall is
-            // where a whole order can be read.
-            sorts={BOOK_SORTS}
+            sorts={bookShelves(scheme)}
             // A reread is a second row with the title and release year of the first, so the wall's
             // own key — the two together — would name both cards alike.
             keyOf={bookKey}
+            unit={BOOK_UNIT}
             MediaComponent={BookCardMediaImage}
           />
         </Section>

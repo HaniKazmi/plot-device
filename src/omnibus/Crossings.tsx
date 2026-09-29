@@ -1,17 +1,16 @@
 import { Box, Card, CardContent, Stack, useTheme, Typography, type Theme } from "@mui/material";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import Grid from "@mui/material/Grid";
 import { Hub } from "@mui/icons-material";
 import { INLINE_SWATCH_SIZE, Swatch } from "../common/Swatch";
 import { TimelineAxis, TimelineBandBox, TimelineScale, type TimelineBand } from "../common/TimelineBand";
+import { useCoarsePointer } from "../common/useCoarsePointer";
 import { useArtworkPalette } from "../common/artworkPalette";
 import { FADE_Z } from "../common/ScrollFade";
 import { shortYear } from "../common/date";
 import { FranchiseName } from "../common/FranchiseStrip";
 import { LazyTooltip } from "../common/LazyTooltip";
 import { SectionHeader } from "../common/SectionHeader";
-import { SegmentedControl, type SegmentOption } from "../common/SelectionComponents";
-import { TimeLineChart } from "../common/Timeline";
 import { FoldedContent } from "../common/FoldedChart";
 import type { TimelineTick } from "../common/timelineLayout";
 import { ScrollFade } from "../common/ScrollFade";
@@ -23,9 +22,6 @@ import { all } from "../common/population";
 import { ExpandableCard } from "../common/Stats";
 import { OmniHoverCard } from "../app/CardMediaImage";
 import type { Crossing } from "./crossingsData";
-import type { OmniItem } from "../common/medium";
-import { omniTimeline } from "./timelineData";
-import { CURRENT_PLAINDATE } from "../common/date";
 import { mediumToColour, mediumToLabel } from "../app/types";
 import { useScheme } from "../common/useScheme";
 import type { Scheme } from "../utils/types";
@@ -63,11 +59,14 @@ const CrossingStrip = ({
   laneCount,
   ticks,
   caption,
+  coarse,
 }: {
   bands: TimelineBand[];
   laneCount: number;
   ticks: TimelineTick[];
   caption: ReactNode;
+  /** Read once for the stack, which is hundreds of bands asking the one question. */
+  coarse: boolean;
 }) => {
   const palette = useArtworkPalette();
 
@@ -117,6 +116,7 @@ const CrossingStrip = ({
               <TimelineBandBox
                 {...band}
                 laneCount={laneCount}
+                coarse={coarse}
                 key={band.key}
               />
             ))}
@@ -157,46 +157,14 @@ const SCALE_WIDTH = "300%";
  * cannot vary. Stated once beneath the stack, the labels say the same thing and the strips read as
  * one chart rather than as twelve charts that happen to agree.
  */
-/**
- * The two readings of the section: the biggest franchises as strips on one scale, or every item
- * as a bar on the packed timeline the four tabs draw one medium at a time. Words rather than icons,
- * as every such control on the page; held in state here rather than at module scope, since the
- * franchise reading is what the page opens on and a reader switching to everything has asked for a
- * one-off look rather than a setting.
- */
-type CrossingsMode = "Franchises" | "All";
-const CROSSINGS_MODES: readonly SegmentOption<CrossingsMode>[] = [
-  { value: "Franchises", label: "Franchises" },
-  { value: "All", label: "All" },
-];
-
-const Crossings = ({
-  crossings,
-  ticks,
-  items,
-}: {
-  crossings: Crossing[];
-  ticks: TimelineTick[];
-  /** The union the crossings were grouped from, for the reading that draws every item of it. */
-  items: OmniItem[];
-}) => {
-  const scheme = useScheme();
+const Crossings = ({ crossings, ticks }: { crossings: Crossing[]; ticks: TimelineTick[] }) => {
   const biggest = crossings[0];
-  const [mode, setMode] = useState<CrossingsMode>("Franchises");
-  const everything = mode === "All";
-  // Built only while that reading is chosen: the section opens on the franchises, and a thousand
-  // rows positioned for a chart the reader has not asked for is the work the fold exists to avoid.
-  const rows = everything
-    ? omniTimeline(items, CURRENT_PLAINDATE, scheme, (item) => () => <OmniHoverCard item={item} />)
-    : [];
 
   return (
     <ExpandableCard
       title={CROSSINGS_TITLE}
-      // The strips the collapsed card has no room for are the whole point of the dialog, so the
-      // reading that draws every row of the union has nothing to expand into. Its own count is
-      // gone with the rest: the chart is over the page's population, which the rail states.
-      expandable={!everything && crossings.length > STRIPS_SHOWN}
+      // The strips the collapsed card has no room for are the whole point of the dialog.
+      expandable={crossings.length > STRIPS_SHOWN}
       cutLabel={all(crossings.length)}
       renderContent={(isDialog, toggle) =>
         isDialog ? (
@@ -224,17 +192,8 @@ const Crossings = ({
           <FoldedContent
             icon={<Hub />}
             title={CROSSINGS_TITLE}
-            /* Which reading the stack draws is a choice about a stack that is not mounted while
-               the card is folded; the cut stands either way, being the way to the franchises the
-               card has no room for rather than a setting on the ones it does. */
-            controls={
-              <SegmentedControl
-                options={CROSSINGS_MODES}
-                value={mode}
-                onChange={setMode}
-                ariaLabel="What the timeline draws"
-              />
-            }
+            // The cut stands whether the card is folded or not, being the way to the franchises the
+            // card has no room for rather than a setting on the ones it does.
             action={toggle}
             // The strips are ordered by size, so the first one is the largest series the reader has
             // met — the fact the stack is opened for, and the one a phone can state without drawing
@@ -245,16 +204,10 @@ const Crossings = ({
                 : "",
             })}
           >
-            {everything ? (
-              <CardContent>
-                <TimeLineChart timelineData={rows} />
-              </CardContent>
-            ) : (
-              <CrossingsStack
-                crossings={crossings.slice(0, STRIPS_SHOWN)}
-                ticks={ticks}
-              />
-            )}
+            <CrossingsStack
+              crossings={crossings.slice(0, STRIPS_SHOWN)}
+              ticks={ticks}
+            />
           </FoldedContent>
         )
       }
@@ -281,6 +234,7 @@ const pages = (crossings: Crossing[]): Crossing[][] =>
  */
 const CrossingsStack = ({ crossings, ticks }: { crossings: Crossing[]; ticks: TimelineTick[] }) => {
   const scheme = useScheme();
+  const coarse = useCoarsePointer();
 
   const [scrollRef, edges] = useScrollEdges<HTMLDivElement>();
   const theme = useTheme();
@@ -318,6 +272,7 @@ const CrossingsStack = ({ crossings, ticks }: { crossings: Crossing[]; ticks: Ti
                   laneCount={crossing.laneCount}
                   ticks={ticks}
                   caption={<CrossingCaption crossing={crossing} />}
+                  coarse={coarse}
                 />
               ))}
             </Grid>

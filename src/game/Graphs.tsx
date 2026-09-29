@@ -1,5 +1,6 @@
 import Stats from "./Stats";
 import { VideoGame, companyToColor } from "./types";
+import type { Scheme } from "../utils/types";
 import { gameModule } from "./module";
 import { useScheme } from "../common/useScheme";
 import Sunburst from "./Sunburst";
@@ -16,10 +17,36 @@ import { ChartPair, Section } from "../common/SectionRail";
 import { PageRail } from "../app/PageRail";
 import { GAME_SECTIONS, gameSections } from "./sections";
 import { currentlyPlaying } from "./statsData";
-import { wallPopulation } from "../common/finishedData";
+import {
+  franchiseGroup,
+  genreShelf,
+  wallPopulation,
+  type FinishedExtraSort,
+  type FinishedUnit,
+} from "../common/finishedData";
 
 /** What the wall's card borders speak, and the key beneath its header names. */
 const VG_BORDER = { key: "company", valueOf: (game: VideoGame) => game.company };
+
+/**
+ * A franchise as one card: Final Fantasy stands once on a shelf rather than as eighteen banners.
+ * The franchise column rather than the series one, which is what the tab's own strips and filters
+ * group a game by; a standalone game names itself there and stays a card of its own.
+ */
+const GAME_UNIT: FinishedUnit<VideoGame> = {
+  labels: ["Games", "Franchises"],
+  of: franchiseGroup,
+};
+
+/**
+ * What the library can be shelved by beyond When and Franchise. A platform shelf carries no swatch:
+ * the fifteen platforms resolve through five company fills, and a swatch repeated down seven
+ * Nintendo shelves would say the colour means the platform.
+ */
+const gameShelves = (scheme: Scheme): readonly FinishedExtraSort<VideoGame>[] => [
+  genreShelf(scheme),
+  { label: "Platform", word: (game) => game.platform },
+];
 
 const SuspenseBlock = ({
   filteredData,
@@ -64,7 +91,11 @@ const Graphs = memo(
           measure={filterState.measure}
         />
         <Section id={GAME_SECTIONS.timeline}>
-          <Timeline data={deferredData} />
+          <Timeline
+            data={deferredData}
+            yearType={filterState.yearType}
+            yearTo={filterState.yearTo}
+          />
         </Section>
         <Section id={GAME_SECTIONS.charts}>
           <ChartPair
@@ -92,6 +123,8 @@ const Graphs = memo(
             data={data}
             colour={(item) => companyToColor(item, scheme)}
             landscape
+            sorts={gameShelves(scheme)}
+            unit={GAME_UNIT}
           />
         </Section>
       </Stack>

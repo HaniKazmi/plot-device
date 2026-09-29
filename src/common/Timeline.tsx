@@ -1,19 +1,17 @@
-import { Card, CardContent, Box, useTheme, type Theme } from "@mui/material";
-import { type ReactNode, useState } from "react";
+import { Box, useTheme, type Theme } from "@mui/material";
+import { useState } from "react";
 import { shortYear, type YearMonthDay } from "./date";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 import { ChipRail } from "./ChipRail";
-import { CardAutoOpenContext } from "./cardAutoOpen";
 import { HoverCardTooltip } from "./HoverCardTooltip";
 import { useCoarsePointer } from "./useCoarsePointer";
 import { LazyTooltip } from "./LazyTooltip";
 import { ScrollFade } from "./ScrollFade";
 import { CONTAIN_SIDEWAYS_SCROLL, scrollbarSx } from "./scrollbarSx";
-import { NothingMatches, NothingToPlot } from "./NothingMatches";
-import { useNothingMatches } from "./nothingMatchesContext";
 import { useOpenAtLatest } from "./useOpenAtLatest";
 import { useScrollEdges } from "./useScrollEdges";
 import { useElementWidth } from "./useElementWidth";
+import { measureLabel } from "./labelWidth";
 import {
   buildTicks,
   decidePlacement,
@@ -214,52 +212,6 @@ type PlacedTimelineData = PositionedTimelineData & {
 // Hooks
 // ============================================================================
 /**
- * How wide a label's own box reports itself, without laying one out.
- *
- * The label is `white-space: nowrap` inside an `overflow: hidden` box, so the width it reports is
- * its glyphs plus the padding either side, rounded to the whole pixel — which a canvas answers
- * exactly, given the same font. The two agree: over 1,878 placement decisions, across both charts
- * at two widths, none comes out differently.
- *
- * Asking the DOM instead costs two renders of the whole chart. The measurement can only be taken
- * after a commit, so every label is drawn once at a default placement and again at the measured
- * one — 1,798 style writes across 792 labels on the Shows timeline. It also has to be taken while
- * every label still wears that default, since a placed label reports the width its own answer
- * pinned it to rather than its text, which makes the two-pass shape load-bearing rather than
- * incidental. And the read is `scrollWidth` on HTML inside a `foreignObject`, WebKit's weakest
- * layout path, three hundred to eight hundred times over.
- *
- * Cached across charts and re-renders: a name is a fixed string, and the same library is drawn
- * again on every filter change.
- */
-const labelWidths = new Map<string, number>();
-let measureContext: CanvasRenderingContext2D | null | undefined;
-
-const measureLabel = (text: string, font: string) => {
-  const key = `${font}\u0000${text}`;
-  const held = labelWidths.get(key);
-  if (held !== undefined) return held;
-
-  // Built on first use rather than at module scope, where `document` is absent under the test
-  // environment and importing this file would throw.
-  measureContext =
-    measureContext === undefined ? (document.createElement("canvas").getContext("2d") ?? null) : measureContext;
-  // Set per measurement rather than once: the context is shared, and the font is half the cache
-  // key, so a caller measuring in another face has to be able to say so.
-  if (measureContext) measureContext.font = font;
-
-  // Half the font size a character is a coarse average for a proportional face, and coarse is the
-  // point: `decidePlacement` opens on `textWidth <= rectWidth`, so answering zero for a canvas that
-  // would not build reads as "fits inside any bar" and pins every label inside a sliver under
-  // `overflow: hidden` — a chart with no readable text and nothing said about why.
-  const width = measureContext
-    ? Math.round(measureContext.measureText(text).width + 2 * LABEL_PADDING)
-    : Math.round(text.length * (LABEL_FONT_SIZE / 2) + 2 * LABEL_PADDING);
-  labelWidths.set(key, width);
-  return width;
-};
-
-/**
  * Where every bar sits and where its label goes, in one pass over the rows.
  *
  * Pure arithmetic over the dates, so it runs in the render body and the chart is drawn once,
@@ -295,7 +247,7 @@ const placeLabels = (
     const barPx = Math.max((widthPercent / 100) * gridPx, MIN_BAR_WIDTH);
     const availableLeftPx = (availableLeftPercent / 100) * gridPx;
     const availableRightPx = (labelWidthPercent / 100) * gridPx - availableLeftPx - barPx;
-    const textPx = measureLabel(event.name, font);
+    const textPx = measureLabel(event.name, font, LABEL_FONT_SIZE, LABEL_PADDING);
 
     const decision = decidePlacement({
       textWidth: textPx,
@@ -330,19 +282,40 @@ const placeLabels = (
  * The chart without its card, for a section that already stands in one and switches between this
  * and another reading of the same rows.
  */
-export const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }) => {
+export const TimeLineChart = ({
+  timelineData,
+  fit,
+  onOpen,
+}: {
+  timelineData: TimelineData[];
+  /**
+   * Whether the chart is drawn at its card's width rather than four viewports wide: a year, which
+   * at the full chart's scale is a quarter of a screen and at the card's is its whole width. No
+   * year chips, there being nothing to scroll across.
+   */
+  fit: boolean;
+  /** Opens a pressed bar's item: the card cannot take the press itself, ignoring the pointer. */
+  onOpen: (mark: TimelineData) => void;
+}) => {
   // The scroller's own ref does both jobs: the chart drives it from the year chips, and the fades
   // read the same node to know which ends have chart past them.
   const [scrollRef, edges] = useScrollEdges<HTMLDivElement>();
+  // The card's own width, which a fitted chart is drawn at; the full chart is sized in viewports.
+  const [frameRef, frameWidth] = useElementWidth<HTMLDivElement>();
   const theme = useTheme();
   const [scrolledYear, setScrolledYear] = useState<number | undefined>(undefined);
-  useOpenAtLatest(scrollRef, timelineData.length > 0);
+  useOpenAtLatest(scrollRef, !fit && timelineData.length > 0);
+
+  // The grid's width before it is measured: the viewport for the full chart, whose grid is stated
+  // in viewports, and the card for a fitted one.
+  const gridGuess = fit ? frameWidth || window.innerWidth : window.innerWidth * GRID_VIEWPORTS;
   const [positionedTimelineData, maxRow] = packRows(timelineData);
 
   if (positionedTimelineData.length === 0) {
     return null;
   }
 
+  // `packRows` hands its rows back in start order, the rows it cannot draw already left off.
   const earliestStart = positionedTimelineData[0].start.startOfMonth();
   const gridEnd = latestEnd(positionedTimelineData)!;
   const totalDays = earliestStart.daysTo(gridEnd);
@@ -378,7 +351,7 @@ export const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }
   };
 
   return (
-    <>
+    <Box ref={frameRef}>
       {/* The styled scrollbar is what says the chart runs on, and iOS draws no scrollbar at all;
           the fades say it in a way every platform paints. */}
       <ScrollFade
@@ -412,7 +385,7 @@ export const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }
         >
           <Box
             sx={{
-              width: GRID_WIDTH,
+              width: fit ? "100%" : GRID_WIDTH,
               maxHeight: CHART_MAX_HEIGHT,
               display: "flex",
               flexDirection: "column",
@@ -430,18 +403,22 @@ export const TimeLineChart = ({ timelineData }: { timelineData: TimelineData[] }
                 totalDays={totalDays}
                 ticks={ticks}
                 markers={markers}
+                gridGuess={gridGuess}
+                onOpen={onOpen}
               />
             </div>
             <TimeAxis ticks={ticks} />
           </Box>
         </Box>
       </ScrollFade>
-      <YearNav
-        markers={markers}
-        activeYear={activeYear}
-        onSelect={scrollToPercent}
-      />
-    </>
+      {!fit && (
+        <YearNav
+          markers={markers}
+          activeYear={activeYear}
+          onSelect={scrollToPercent}
+        />
+      )}
+    </Box>
   );
 };
 
@@ -556,6 +533,8 @@ const TimelineGrid = ({
   totalDays,
   ticks,
   markers,
+  gridGuess,
+  onOpen,
 }: {
   data: PositionedTimelineData[];
   startDate: YearMonthDay;
@@ -564,6 +543,9 @@ const TimelineGrid = ({
   totalDays: number;
   ticks: TimelineTick[];
   markers: YearMarker[];
+  /** The grid's width until it has been measured. */
+  gridGuess: number;
+  onOpen: (mark: TimelineData) => void;
 }) => {
   const theme = useTheme();
   // Asked once for the whole chart. Every bar mounts two hover cards, so a chart of a few hundred
@@ -573,86 +555,43 @@ const TimelineGrid = ({
   /**
    * The width the grid is actually drawn at, which is what its own percentages resolve against.
    *
-   * The viewport is the right guess and the wrong answer: `GRID_WIDTH` is a `vw` length, so the
-   * two agree until the grid's scroller takes a classic scrollbar, or a fractional device pixel
-   * ratio lands the box off a whole number. Falling back to it rather than to nothing is what
-   * lets the chart draw placed on its first pass — `useElementWidth` reads before paint, so the
-   * guess is never a frame the reader sees — and `||` rather than `??` because a zero box is a
-   * grid that is not laid out yet, not a grid nought pixels wide.
+   * The guess — the viewport for the full chart, the card for a fitted one — is the right guess
+   * and the wrong answer: `GRID_WIDTH` is a `vw` length, so the two agree until the grid's scroller
+   * takes a classic scrollbar, or a fractional device pixel ratio lands the box off a whole number.
+   * Falling back to it rather than to nothing is what lets the chart draw placed on its first pass
+   * — `useElementWidth` reads before paint, so the guess is never a frame the reader sees — and `||`
+   * rather than `??` because a zero box is a grid that is not laid out yet, not a grid nought
+   * pixels wide.
    */
   const [gridRef, measuredGrid] = useElementWidth<SVGSVGElement>();
-  // The mark pressed, held only while its layer is up. The card cannot take the press itself: it
-  // ignores the pointer here, so a reader can run down the rows through it.
-  const [opened, setOpened] = useState<{ event: PlacedTimelineData; press: number } | null>(null);
-  const press = (event: PlacedTimelineData) => setOpened((last) => ({ event, press: (last?.press ?? 0) + 1 }));
-  const gridPx = measuredGrid || window.innerWidth * GRID_VIEWPORTS;
+  const gridPx = measuredGrid || gridGuess;
   // The font the labels are actually set in, which is what makes the canvas answer the width the
   // DOM would: the family off the theme, the size and weight `LABEL_SX` states.
   const labelFont = `${LABEL_WEIGHT} ${LABEL_FONT_SIZE}px ${theme.typography.fontFamily}`;
   const placed = placeLabels(data, startDate, endDate, totalDays, gridPx, labelFont);
 
   return (
-    <>
-      <svg
-        ref={gridRef}
+    <svg
+      ref={gridRef}
+      height={totalHeight}
+      width="100%"
+    >
+      <TimelineBackground
+        ticks={ticks}
+        markers={markers}
         height={totalHeight}
-        width="100%"
-      >
-        <TimelineBackground
-          ticks={ticks}
-          markers={markers}
-          height={totalHeight}
+      />
+      {placed.map((event) => (
+        <TimelineText
+          key={event.key}
+          event={event}
+          coarse={coarse}
+          onOpen={onOpen}
         />
-        {placed.map((event) => (
-          <TimelineText
-            key={event.key}
-            event={event}
-            coarse={coarse}
-            onOpen={press}
-          />
-        ))}
-      </svg>
-      {opened && (
-        <Box
-          aria-hidden
-          sx={OPENED_HOST_SX}
-        >
-          <CardAutoOpenContext.Provider value={{ auto: true, onClosed: () => setOpened(null) }}>
-            {/* Keyed on the press and not the mark alone: a card whose layer has closed keeps the
-                state it closed with, so a second press on the same mark would reconcile with it and
-                open nothing. */}
-            <LazyTooltip
-              key={`${opened.press}:${opened.event.key}`}
-              render={opened.event.tooltip}
-            />
-          </CardAutoOpenContext.Provider>
-        </Box>
-      )}
-    </>
+      ))}
+    </svg>
   );
 };
-
-/**
- * The card a pressed mark opens, mounted for its layer and nothing else.
- *
- * The chart holds a thunk that renders the domain's hover card and knows nothing of the item
- * inside it, so it mounts that card out of sight and asks it to open whatever layer it owns — the
- * item's expanded card, or the drill-down a card standing for a group opens instead.
- *
- * Fixed at a pixel rather than `display: none`, so the thumbnail still loads and samples the colour
- * the dialog is themed from; hidden from assistive technology and the pointer, since the layer it
- * opens is what is on screen. The same shape the search palette opens a hit's card through.
- */
-const OPENED_HOST_SX = {
-  position: "fixed",
-  // Stated in pixels: `sx` reads a bare 1 as a fraction and hands back 100%, which is a card laid
-  // out and decoded at the size of the screen for as long as the layer above it stands.
-  width: "1px",
-  height: "1px",
-  overflow: "hidden",
-  opacity: 0,
-  pointerEvents: "none",
-} as const;
 
 const TimelineText = ({
   event,
@@ -845,23 +784,3 @@ const TimeAxis = ({ ticks }: { ticks: TimelineTick[] }) => {
     </svg>
   );
 };
-
-const Timeline = ({ data, children }: { data: TimelineData[]; children?: ReactNode }) => {
-  // The packed timeline never folds, so this plain `Card` is the one state it has to draw for
-  // itself: a grid with no rows in it says nothing about why there are none. Which of the two
-  // lines it draws is the page's answer: the page emptied says so and offers the way back, and a
-  // chart emptied by a rule of its own — the Books timeline drawing only reads that have begun —
-  // states that it has nothing while the page around it still has rows.
-  const { active } = useNothingMatches();
-
-  return (
-    <Card>
-      {children}
-      <CardContent>
-        {data.length > 0 ? <TimeLineChart timelineData={data} /> : active ? <NothingMatches /> : <NothingToPlot />}
-      </CardContent>
-    </Card>
-  );
-};
-
-export default Timeline;

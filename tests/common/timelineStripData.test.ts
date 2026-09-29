@@ -6,6 +6,8 @@ import {
   stripWindow,
   stripYearTicks,
   yearLabelEvery,
+  monthRows,
+  yearRows,
   type StripSpan,
 } from "../../src/common/timelineStripData";
 
@@ -285,5 +287,100 @@ describe("beadsPerRow", () => {
 
   it("never answers zero, so a chain narrower than one pitch still draws a bead a row", () => {
     expect(beadsPerRow(5, 10, 28)).toBe(1);
+  });
+});
+
+describe("yearRows", () => {
+  it("draws a row per year anything ran in, newest first, with no row for an empty year", () => {
+    const { rows } = yearRows([span("a", [2019, 3, 1], [2019, 4, 1]), span("b", [2022, 6, 1], [2022, 6, 1])]);
+
+    expect(rows.map((row) => row.year)).toEqual([2022, 2019]);
+  });
+
+  it("stands a span across New Year on both years, cut where each year ends", () => {
+    const { rows } = yearRows([span("long", [2020, 11, 1], [2021, 2, 1])]);
+    const [late, early] = rows.map((row) => row.bands[0]);
+
+    expect(rows.map((row) => row.year)).toEqual([2021, 2020]);
+    expect([early.cutStart, early.cutEnd]).toEqual([false, true]);
+    expect([late.cutStart, late.cutEnd]).toEqual([true, false]);
+    expect(late.startPercent).toBe(0);
+    expect(early.startPercent + early.widthPercent).toBeCloseTo(100, 5);
+  });
+
+  it("gives overlapping spans in one year lanes of their own, as every strip does", () => {
+    const [row] = yearRows([span("a", [2020, 1, 1], [2020, 6, 1]), span("b", [2020, 3, 1], [2020, 9, 1])]).rows;
+
+    expect(row.laneCount).toBe(2);
+  });
+
+  it("keeps a one-day read in the lane of the longer read begun the same morning, as the packed chart does", () => {
+    // Handed over longest first, the longer read would hold the lane past that day and push the
+    // one-day read into a second lane, halving every band in the year.
+    const [row] = yearRows([
+      span("longer", [2003, 1, 12], [2003, 1, 13]),
+      span("one day", [2003, 1, 12], [2003, 1, 12]),
+    ]).rows;
+
+    expect(row.laneCount).toBe(1);
+  });
+
+  it("keeps a point on its day, a film watched once being a mark and not a span", () => {
+    const [row] = yearRows([span("film", [2020, 7, 1], [2020, 7, 1])]).rows;
+
+    expect([row.bands[0].cutStart, row.bands[0].cutEnd]).toEqual([false, false]);
+    expect(row.laneCount).toBe(1);
+  });
+
+  it("drops a span whose start is after its end rather than throwing on it", () => {
+    expect(yearRows([span("backwards", [2021, 1, 1], [2020, 1, 1])])).toEqual({ rows: [], years: 0 });
+  });
+
+  it("places only the newest years asked for, and counts every year for the cut to state", () => {
+    const { rows, years } = yearRows(
+      [
+        span("a", [2019, 3, 1], [2019, 4, 1]),
+        span("b", [2021, 6, 1], [2021, 6, 1]),
+        span("c", [2022, 6, 1], [2022, 6, 1]),
+      ],
+      2,
+    );
+
+    expect(rows.map((row) => row.year)).toEqual([2022, 2021]);
+    expect(years).toBe(3);
+  });
+});
+
+describe("monthRows", () => {
+  it("stands each mark in the month it began, newest year first", () => {
+    const rows = monthRows([span("a", [2024, 3, 5], [2024, 6, 1]), span("b", [2025, 1, 2], [2025, 1, 2])]);
+
+    expect(rows.map((row) => row.year)).toEqual([2025, 2024]);
+    expect(rows[1].months[2].map((mark) => mark.key)).toEqual(["a"]);
+    expect(rows[1].months.filter((month) => month.length > 0)).toHaveLength(1);
+  });
+
+  it("draws a mark once however many months it ran, where the packed chart opens its bar", () => {
+    const [row] = monthRows([span("long", [2024, 3, 5], [2024, 11, 1])]);
+
+    expect(row.months.flat()).toHaveLength(1);
+  });
+
+  it("orders a month's marks by when they began, whatever order they arrived in", () => {
+    const [row] = monthRows([span("late", [2024, 3, 20], [2024, 3, 21]), span("early", [2024, 3, 2], [2024, 3, 3])]);
+
+    expect(row.months[2].map((mark) => mark.key)).toEqual(["early", "late"]);
+  });
+
+  it("leaves off a mark begun after its own end, an open item dated ahead of today, as every layout does", () => {
+    const rows = monthRows([span("ahead", [2025, 6, 1], [2025, 5, 1]), span("a", [2024, 7, 1], [2024, 7, 1])]);
+
+    expect(rows.map((row) => row.year)).toEqual([2024]);
+  });
+
+  it("keeps twelve months in every row, so every row lines up under one header", () => {
+    const [row] = monthRows([span("a", [2024, 7, 1], [2024, 7, 1])]);
+
+    expect(row.months).toHaveLength(12);
   });
 });

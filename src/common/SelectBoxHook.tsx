@@ -8,7 +8,13 @@ import { SelectBox } from "./SelectionComponents";
  * it: what a card opens on is what its title and the figures beside it were written for, and a
  * chart redrawn on some other grouping is worth saying on the control that redrew it.
  */
-export const useSelectBox = <T extends string>(options: readonly T[], defaultOption: T, label?: string) => {
+export const useSelectBox = <T extends string>(
+  options: readonly T[],
+  defaultOption: T,
+  label?: string,
+  /** How an option is worded, where its key humanised is not the word: see `SelectBox`. */
+  labelFor?: (option: T) => string,
+) => {
   const [value, setValue] = useState<T>(defaultOption);
   return [
     value,
@@ -18,6 +24,7 @@ export const useSelectBox = <T extends string>(options: readonly T[], defaultOpt
       setValue={setValue}
       defaultValue={defaultOption}
       label={label}
+      labelFor={labelFor}
     />,
   ] as const;
 };

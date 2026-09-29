@@ -2,6 +2,7 @@ import type { Colour } from "../utils/types";
 import type { YearMonth, YearMonthDay } from "./date";
 import { latestOf } from "./date";
 import "../utils/arrayUtils";
+import "../utils/mapUtils";
 
 export interface TimelineData {
   /**
@@ -31,6 +32,23 @@ export interface TimelineData {
   colour: Colour;
   start: YearMonthDay;
   end: YearMonthDay;
+  /** Still going: `end` is today rather than a day it ended. */
+  open?: boolean;
+  /**
+   * The item's own artwork at a height, for a layout drawn in pictures: the domain's own card,
+   * handed the press the layout gives every mark, so a picture opens what the mark's hover card
+   * would. A thunk for the tooltip's reason — a year's pictures are built only while it is drawn.
+   */
+  picture?: (height: number, press: PicturePress) => React.ReactNode;
+}
+
+/**
+ * What pressing a mark's picture does: open the mark's item as a press on its bar would, named for
+ * the mark — a series' picture is its first book's cover, and the press opens the series.
+ */
+export interface PicturePress {
+  onOpen: () => void;
+  openLabel: string;
 }
 
 export interface PositionedTimelineData extends TimelineData {
@@ -229,13 +247,18 @@ export const assignRows = <T extends { start: YearMonthDay; end: YearMonthDay }>
  * hands the row straight on to something else begun that day — but only if it is placed first.
  * Left to the order the source happens to be in, a longer item takes the row, holds it past that
  * day, and the single-day one is pushed to a row of its own: three books out of 450 open a second
- * row on the Books timeline that way, each of them read in a day alongside a longer read begun the
- * same morning.
+ * row on the Books timeline that way, and six open a second lane in two years of the stacked one,
+ * each read in a day alongside a longer read begun the same morning. Every packing through
+ * `assignRows` orders by it — the packed chart's rows and every strip's lanes — so the two cannot
+ * disagree about whether a day's reads overlap.
  *
  * Earliest-ending first is also what the greedy packing wants generally — it frees each row as
  * soon as it can — so this can only lower the row count, never raise it.
  */
-const byStartThenShortest = (a: TimelineData, b: TimelineData) => {
+export const byStartThenShortest = (
+  a: { start: YearMonthDay; end: YearMonthDay },
+  b: { start: YearMonthDay; end: YearMonthDay },
+) => {
   const start = a.start.toString().localeCompare(b.start.toString());
   return start !== 0 ? start : a.end.toString().localeCompare(b.end.toString());
 };
@@ -325,3 +348,129 @@ export const decidePlacement = ({
   // Nothing fits, so the label stays centred and overflows its bar rather than disappearing.
   return { placement: "center", rightUsed };
 };
+
+/** Where a band's name stands, in pixels of the track it is drawn on. */
+export interface BandLabel {
+  text: string;
+  placement: Placement;
+  /** The band's own width, as drawn. */
+  barPx: number;
+  /** A spanning name's run: the band and the gap after it, which it has claimed. */
+  roomPx: number;
+}
+
+/**
+ * Where each named band of one lane puts its name, by the packed chart's own rule (`decidePlacement`)
+ * over the gaps between the bands: on the band where the name fits, else in the gap to its left, to
+ * its right, or starting on the band and running on into the gap — and centred on the band, cut short,
+ * where nothing holds it, as the packed chart leaves it rather than dropping the name.
+ *
+ * The gaps are the lane's own: from where the band before ended, or the track's start, to where the
+ * band after begins, or the track's end. `rightUsed` carries along the lane as it does along a
+ * packed row, a name spilling right having taken the gap the next band would spill left into.
+ * `measure` answers a name's box, its glyphs and padding, in the pixels `widthPx` is in.
+ */
+export const placeBandLabels = (
+  bands: readonly { key: string; startPercent: number; widthPercent: number; label?: string }[],
+  widthPx: number,
+  measure: (text: string) => number,
+): Map<string, BandLabel> => {
+  const placed = new Map<string, BandLabel>();
+  const ordered = bands.toSorted((a, b) => a.startPercent - b.startPercent);
+  let rightUsed = false;
+  ordered.forEach((band, index) => {
+    const x0 = (band.startPercent / 100) * widthPx;
+    const barPx = (band.widthPercent / 100) * widthPx;
+    const before = ordered[index - 1];
+    const after = ordered[index + 1];
+    const leftWidth = x0 - (before ? ((before.startPercent + before.widthPercent) / 100) * widthPx : 0);
+    const rightWidth = (after ? (after.startPercent / 100) * widthPx : widthPx) - x0 - barPx;
+    if (!band.label) {
+      rightUsed = false;
+      return;
+    }
+    const decision = decidePlacement({
+      textWidth: measure(band.label),
+      rectWidth: barPx,
+      leftWidth,
+      rightWidth,
+      rightUsed,
+    });
+    rightUsed = decision.rightUsed;
+    placed.set(band.key, { text: band.label, placement: decision.placement, barPx, roomPx: barPx + rightWidth });
+  });
+  return placed;
+};
+
+/** A group of items drawn as one span: from the first start among them to the last end. */
+interface GroupSpan<T> {
+  key: string;
+  members: T[];
+  start: YearMonthDay;
+  end: YearMonthDay;
+}
+
+/**
+ * Items gathered into one span per group, for a timeline drawing a series or a franchise as one bar.
+ *
+ * An item with no group stands as a span of its own under its own key, which is what a standalone
+ * work is on such a chart. The members keep the order they were handed, so a caller naming the
+ * span's lead or latest entry reads it off the one list. Open items arrive with today as their end,
+ * so a series still running reaches today.
+ */
+export const groupSpans = <T extends { start: YearMonthDay; end: YearMonthDay }>(
+  items: readonly T[],
+  groupOf: (item: T) => string | undefined,
+  keyOf: (item: T) => string,
+): GroupSpan<T>[] => {
+  const groups = new Map<string, T[]>();
+  for (const item of items) {
+    const group = groupOf(item);
+    groups.setIfAbsent(group === undefined ? `item:${keyOf(item)}` : `group:${group}`, []).push(item);
+  }
+  return [...groups].map(([key, members]) => ({
+    key,
+    members,
+    start: members.reduce((first, item) => (item.start < first ? item.start : first), members[0].start),
+    end: latestOf(members, (item) => item.end),
+  }));
+};
+
+/**
+ * One mark per group, built from the marks its members draw as on their own, for a timeline drawing
+ * a franchise as one bar: from the first start among them to the last end, named for the group
+ * where it holds more than one member, coloured by the member that opened it and opening the card
+ * and picture of the one met last. A member naming no group — `groupOf` blank — stays its own mark.
+ * Each mark comes back with the member whose colour it wears, which is what a colour key names.
+ */
+export const groupMarks = <T>(
+  items: readonly T[],
+  markOf: (item: T) => TimelineData,
+  groupOf: (item: T) => string,
+): { mark: TimelineData; lead: T }[] =>
+  groupSpans(
+    items
+      .map((item) => {
+        const mark = markOf(item);
+        return { item, mark, start: mark.start, end: mark.end };
+      })
+      .sortByKey("start", true),
+    ({ item }) => groupOf(item).trim() || undefined,
+    ({ mark }) => mark.key,
+  ).map(({ key, members, start, end }) => {
+    const lead = members[0];
+    const latest = members.at(-1)!;
+    return {
+      lead: lead.item,
+      mark: {
+        key,
+        name: members.length > 1 ? groupOf(lead.item) : lead.mark.name,
+        tooltip: latest.mark.tooltip,
+        colour: lead.mark.colour,
+        start,
+        end,
+        open: members.some(({ mark }) => mark.open),
+        picture: latest.mark.picture,
+      },
+    };
+  });

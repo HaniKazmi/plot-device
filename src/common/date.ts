@@ -208,7 +208,7 @@ export class YearMonthDay extends PlainDate {
 const padZero = (num: number) => num.toString().padStart(2, "0");
 
 const monthToDaysArray = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-const monthStringsArray = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+export const monthStringsArray = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const monthToDays = (month: number, year: number) => {
   if (month === 2 && year % 4 === 0) {
