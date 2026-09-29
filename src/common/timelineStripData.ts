@@ -1,6 +1,14 @@
-import { YearMonthDay } from "./date";
-import { assignRows, buildTicks, percentAtDate, percentOfSpan, type TimelineTick } from "./timelineLayout";
+import { YearMonthDay, type YearNumber } from "./date";
+import {
+  assignRows,
+  buildTicks,
+  byStartThenShortest,
+  percentAtDate,
+  percentOfSpan,
+  type TimelineTick,
+} from "./timelineLayout";
 import "../utils/arrayUtils";
+import "../utils/mapUtils";
 
 /** One tracked span. Domains extend this with whatever the band's colour and tooltip need. */
 export interface StripSpan {
@@ -55,16 +63,17 @@ export const buildStrip = <T extends StripSpan>(spans: T[], epoch: YearMonthDay,
   const totalDays = epoch.daysTo(today);
 
   // Clamped before packing, so a lane answers for what is actually drawn in it — and because
-  // `daysTo` throws on a backwards comparison. Clamping only ever raises a start to the epoch, so
-  // the sort still holds afterwards.
+  // `daysTo` throws on a backwards comparison — and ordered after it by the packed chart's own rule,
+  // the shorter first where two start on one day, so a one-day read hands its lane straight on to
+  // the longer one begun that morning.
   const clamped = spans
     .filter((span) => epoch.lte(span.end) && span.start.lte(today))
-    .sortByKey("start", true)
     .map((span) => ({
       span,
       start: span.start.lte(epoch) ? epoch : span.start,
       end: today.lte(span.end) ? today : span.end,
-    }));
+    }))
+    .toSorted(byStartThenShortest);
 
   const lanes = assignRows(clamped);
   /** How far along each lane has actually been drawn, in percent. */
@@ -169,3 +178,90 @@ export const stripYearTicks = (epoch: YearMonthDay, today: YearMonthDay): Timeli
   buildTicks(epoch.toYearMonth(), today.toYearMonth(), epoch.daysTo(today)).filter(
     (tick) => tick.level === "year" && tick.year > epoch.year,
   );
+
+/** A band on a year's row, and whether its span runs on past either edge of that year. */
+export type YearBand<T extends StripSpan> = StripBand<T> & {
+  /** The span began in an earlier year, so the band's left end is where the row cut it. */
+  cutStart: boolean;
+  /** The span runs into a later year, so the band's right end is where the row cut it. */
+  cutEnd: boolean;
+};
+
+/** One year of a stacked timeline: its spans on a January–December scale of its own. */
+export interface YearRow<T extends StripSpan> {
+  year: YearNumber;
+  bands: YearBand<T>[];
+  laneCount: number;
+}
+
+/**
+ * A row per calendar year anything ran in, newest first, each span placed on its year's own 1
+ * January – 31 December scale.
+ *
+ * A span running across New Year stands on every year it touches, cut at the year's edges, and says
+ * so through `cutStart` and `cutEnd` so a renderer can square the ends a cut made rather than round
+ * them as though the work had begun or ended there. Every row runs the whole year, the current one included, since one
+ * shared scale is what lets density and season be compared down the stack. A year nothing ran in
+ * has no row: a gap in the habit is real, but blank tracks say it worse than the jump in the
+ * labels does.
+ *
+ * `buildStrip` places each row, so a row packs its lanes by the rule every strip shares, and a
+ * span it clamps to the year keeps its own dates for the caller's colour and card. Only the newest
+ * `limit` years are placed, a stack drawing a handful with the rest behind its cut, and `years`
+ * counts them all for the cut to state: placing a year is most of the work, and on the union the
+ * years held back are half of it.
+ */
+export const yearRows = <T extends StripSpan>(
+  spans: readonly T[],
+  limit = Infinity,
+): { rows: YearRow<T>[]; years: number } => {
+  const byYear = new Map<number, T[]>();
+  for (const span of spans) {
+    if (!span.start.lte(span.end)) continue;
+    for (let year = span.start.year; year <= span.end.year; year++) byYear.setIfAbsent(year, []).push(span);
+  }
+
+  const years = [...byYear.keys()].toSorted((a, b) => b - a);
+  return {
+    years: years.length,
+    rows: years.slice(0, limit).map((year) => {
+      const from = YearMonthDay.get(year, 1, 1);
+      const to = YearMonthDay.get(year, 12, 31);
+      const { bands, laneCount } = buildStrip(byYear.get(year)!, from, to);
+      return {
+        year: year as YearNumber,
+        bands: bands.map((band) => ({ ...band, cutStart: band.start < from, cutEnd: to < band.end })),
+        laneCount,
+      };
+    }),
+  };
+};
+
+/** One year of the month grid: its marks in the twelve months they began in. */
+export interface MonthRow<T> {
+  year: YearNumber;
+  /** Twelve lists, January first, each in the order its marks began. */
+  months: T[][];
+}
+
+/**
+ * A row per year anything began in, newest first, each mark standing in the month it began.
+ *
+ * The month it began rather than any month it ran in, so a mark is drawn once however long it ran:
+ * the grid draws each item's own picture, and a season running from March to June standing in four
+ * cells would be four copies of one poster. The start is also where the packed chart opens its
+ * bar, so a picture here and a bar there name one month.
+ */
+export const monthRows = <T extends { start: YearMonthDay; end: YearMonthDay }>(items: T[]): MonthRow<T>[] => {
+  const byYear = new Map<number, T[][]>();
+  // A start after its own end is an open item begun ahead of today, which every other layout leaves
+  // off (`packRows`, `yearRows`): drawn here, it would stand in a month that has not happened.
+  for (const item of items.filter((mark) => mark.start.lte(mark.end)).sortByKey("start", true)) {
+    const months = byYear.get(item.start.year) ?? Array.from({ length: 12 }, () => []);
+    byYear.set(item.start.year, months);
+    months[item.start.month - 1].push(item);
+  }
+  return [...byYear.keys()]
+    .toSorted((a, b) => b - a)
+    .map((year) => ({ year: year as YearNumber, months: byYear.get(year)! }));
+};

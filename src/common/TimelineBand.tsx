@@ -8,11 +8,11 @@
  * renderer stands apart from the card shell, and a shell wanting a swatch or a proportional bar
  * takes it from `./Swatch` or `./ProportionalBar` without pulling the Popper in behind it.
  */
-import { Box, Tooltip, Typography } from "@mui/material";
+import { Box, Tooltip, Typography, useTheme } from "@mui/material";
 import type { MouseEventHandler, ReactElement, ReactNode } from "react";
 import { HoverCardTooltip } from "./HoverCardTooltip";
 import { TOUCH_TARGET_SX, touchTargetSx } from "./touchTarget";
-import type { TimelineTick } from "./timelineLayout";
+import type { BandLabel, TimelineTick } from "./timelineLayout";
 import type { StripBand, StripSpan } from "./timelineStripData";
 
 /** A positioned span from `buildStrip`, plus how this strip means to draw it. */
@@ -28,6 +28,20 @@ export type TimelineBand = Omit<StripBand<StripSpan>, "start" | "end"> & {
   hoverCard?: boolean;
   /** Context rather than the subject of the card, drawn dimmer. */
   muted?: boolean;
+  /**
+   * Where the strip's own edge cut the span rather than the span ending: a year's row cuts a span
+   * running across New Year. That end is drawn square, a rounded end saying the work began or ended
+   * there.
+   */
+  cutStart?: boolean;
+  cutEnd?: boolean;
+  /** The band's name, which a strip with room for names places by the packed chart's rule. */
+  label?: string;
+  /**
+   * What pressing the band does, where it opens the item: then the card ignores the pointer, as the
+   * packed chart's does, and the press that opens the item's layer is also what puts the card away.
+   */
+  onPress?: () => void;
 };
 
 /**
@@ -110,11 +124,16 @@ const BandTooltip = ({
   colour,
   title,
   hoverCard,
+  transparent,
+  coarse,
   children,
 }: {
   colour: string;
   title?: ReactNode;
   hoverCard?: boolean;
+  /** The card ignores the pointer, the band taking the press in its place. */
+  transparent?: boolean;
+  coarse?: boolean;
   /** Cloned with a tap handler under a coarse pointer, where the hover card is a sheet. */
   children: ReactElement<{ onClick?: MouseEventHandler<HTMLElement> }>;
 }) =>
@@ -123,6 +142,8 @@ const BandTooltip = ({
       colour={colour}
       title={title}
       placement="top"
+      transparent={transparent}
+      coarse={coarse}
     >
       {children}
     </HoverCardTooltip>
@@ -173,6 +194,57 @@ const BAND_SX = {
  */
 const LANE_TOUCH_SX = touchTargetSx(`${100 / (1 - 2 * LANE_PADDING)}%`);
 
+/**
+ * A band's name, at the size and weight a caller measures it at before placing it (`placeBandLabels`).
+ * A child of the band wherever it stands, so the pointer on the name is the pointer on the band and
+ * its card opens from either, as the packed chart's label and bar do.
+ */
+export const BAND_LABEL_SIZE = 11;
+export const BAND_LABEL_WEIGHT = 500;
+export const BAND_LABEL_PADDING = 4;
+
+const BAND_LABEL_SX = {
+  position: "absolute",
+  top: "50%",
+  transform: "translateY(-50%)",
+  paddingX: `${BAND_LABEL_PADDING}px`,
+  fontSize: BAND_LABEL_SIZE,
+  fontWeight: BAND_LABEL_WEIGHT,
+  lineHeight: 1.3,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+} as const;
+
+/**
+ * Where a placed name stands against its band, in the packed chart's colours: on the band in the
+ * band's own contrast colour, cut short with an ellipsis where nothing held it; in a gap in the
+ * card's ink; and running from the band into the gap painted in both, switching at the band's edge
+ * to the pixel, since no one colour reads on both grounds.
+ */
+const bandLabelStyle = (label: BandLabel, onBar: () => string, onCard: string) => {
+  switch (label.placement) {
+    case "left":
+      return { right: "100%", color: onCard };
+    case "right":
+      return { left: "100%", color: onCard };
+    case "span":
+      return {
+        left: 0,
+        width: label.roomPx,
+        color: "transparent",
+        backgroundImage: `linear-gradient(to right, ${onBar()} 0 ${label.barPx}px, ${onCard} ${label.barPx}px)`,
+        WebkitBackgroundClip: "text",
+        backgroundClip: "text",
+      };
+    case "center":
+      return { left: 0, width: label.barPx, color: onBar() };
+  }
+};
+
+/** A band whose press opens its item says so under the pointer, as the packed chart's bars do. */
+const PRESSABLE_BAND_SX = { cursor: "pointer" } as const;
+
 /** Context rather than subject, on a strip where one band is the card's own. */
 const MUTED_BAND_SX = { opacity: 0.6 } as const;
 
@@ -197,7 +269,20 @@ export const TimelineBandBox = ({
   hoverCard,
   muted,
   frameless,
-}: TimelineBand & { laneCount: number; frameless?: boolean }) => {
+  cutStart,
+  cutEnd,
+  placedLabel,
+  onPress,
+  coarse,
+}: TimelineBand & {
+  laneCount: number;
+  frameless?: boolean;
+  /** The band's name and where it stands, where the strip has placed one. */
+  placedLabel?: BandLabel;
+  /** Read once by a strip drawing hundreds of bands; asked by the card itself where not given. */
+  coarse?: boolean;
+}) => {
+  const theme = useTheme();
   const laneHeight = 100 / laneCount;
   // On a single lane the card's own game keeps the full height and its siblings are inset, which
   // is the clearest reading of "this one, among these". Once the strip is divided there is no
@@ -210,6 +295,8 @@ export const TimelineBandBox = ({
       colour={colour}
       title={tooltip}
       hoverCard={hoverCard}
+      transparent={!!onPress}
+      coarse={coarse}
     >
       <Box
         sx={[
@@ -217,15 +304,35 @@ export const TimelineBandBox = ({
           laneCount > 1 ? LANE_TOUCH_SX : TOUCH_TARGET_SX,
           !!muted && MUTED_BAND_SX,
           !muted && !frameless && RINGED_BAND_SX,
+          !!onPress && PRESSABLE_BAND_SX,
         ]}
+        onClick={onPress}
         style={{
           left: `${startPercent}%`,
           width: `${widthPercent}%`,
           top: `${lane * laneHeight + inset}%`,
           height: `${laneHeight - inset * 2}%`,
           backgroundColor: colour,
+          borderTopLeftRadius: cutStart ? 0 : undefined,
+          borderBottomLeftRadius: cutStart ? 0 : undefined,
+          borderTopRightRadius: cutEnd ? 0 : undefined,
+          borderBottomRightRadius: cutEnd ? 0 : undefined,
         }}
-      />
+      >
+        {placedLabel && (
+          <Box
+            component="span"
+            sx={BAND_LABEL_SX}
+            style={bandLabelStyle(
+              placedLabel,
+              () => theme.palette.getContrastText(colour),
+              theme.vars.palette.text.primary,
+            )}
+          >
+            {placedLabel.text}
+          </Box>
+        )}
+      </Box>
     </BandTooltip>
   );
 };

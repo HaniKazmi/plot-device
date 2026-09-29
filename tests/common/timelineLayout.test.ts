@@ -4,7 +4,10 @@ import {
   assignRows,
   buildTicks,
   decidePlacement,
+  groupMarks,
+  groupSpans,
   latestEnd,
+  placeBandLabels,
   packRows,
   percentAtDate,
   percentAtScroll,
@@ -451,5 +454,165 @@ describe("latestEnd", () => {
 
   it("answers undefined for no items, so a caller cannot measure a grid over nothing", () => {
     expect(latestEnd([])).toBeUndefined();
+  });
+});
+
+describe("groupSpans", () => {
+  const entry = (name: string, series: string, start: [number, number, number], end: [number, number, number]) => ({
+    ...interval(start, end),
+    name,
+    series,
+  });
+
+  it("draws a series as one span from its first start to its last end", () => {
+    const spans = groupSpans(
+      [entry("two", "Saga", [2021, 5, 1], [2021, 9, 1]), entry("one", "Saga", [2020, 1, 1], [2020, 3, 1])],
+      (book) => book.series || undefined,
+      (book) => book.name,
+    );
+
+    expect(spans.map((span) => [span.start.toString(), span.end.toString(), span.members.length])).toEqual([
+      ["2020-01-01", "2021-09-01", 2],
+    ]);
+  });
+
+  it("keeps a work in no series as a span of its own, however many stand alone", () => {
+    const spans = groupSpans(
+      [entry("a", "", [2020, 1, 1], [2020, 2, 1]), entry("b", "", [2020, 1, 1], [2020, 2, 1])],
+      (book) => book.series || undefined,
+      (book) => book.name,
+    );
+
+    expect(spans).toHaveLength(2);
+  });
+
+  it("ends where the last member ends, not where the last one handed in does", () => {
+    const [span] = groupSpans(
+      [entry("long", "Saga", [2020, 1, 1], [2023, 1, 1]), entry("late", "Saga", [2021, 1, 1], [2021, 2, 1])],
+      (book) => book.series,
+      (book) => book.name,
+    );
+
+    expect(span.end.toString()).toBe("2023-01-01");
+  });
+});
+
+describe("groupMarks", () => {
+  const work = (name: string, franchise: string, start: [number, number, number], end: [number, number, number]) => ({
+    name,
+    franchise,
+    start,
+    end,
+  });
+  // Every thunk answers the entry's name, so a mark says which entry it was built from.
+  const markOf = (entry: ReturnType<typeof work>): TimelineData => ({
+    ...item(entry.name, entry.start, entry.end),
+    tooltip: () => entry.name,
+    picture: () => entry.name,
+    open: entry.name.startsWith("open"),
+    colour: `#${entry.name}` as Colour,
+  });
+  const marks = (entries: ReturnType<typeof work>[]) => groupMarks(entries, markOf, (entry) => entry.franchise);
+
+  it("draws a franchise as one mark from its first start to its last end, named for the franchise", () => {
+    const [{ mark }] = marks([
+      work("two", "Saga", [2021, 5, 1], [2021, 9, 1]),
+      work("one", "Saga", [2020, 1, 1], [2020, 3, 1]),
+    ]);
+
+    expect([mark.name, mark.start.toString(), mark.end.toString()]).toEqual(["Saga", "2020-01-01", "2021-09-01"]);
+  });
+
+  it("wears the colour of the entry that opened it, and names that entry as the one the key reads", () => {
+    const [{ mark, lead }] = marks([
+      work("late", "Saga", [2022, 1, 1], [2022, 2, 1]),
+      work("first", "Saga", [2020, 1, 1], [2020, 2, 1]),
+    ]);
+
+    expect([mark.colour, lead.name]).toEqual(["#first", "first"]);
+  });
+
+  it("opens the card and wears the picture of the entry met last", () => {
+    const [{ mark }] = marks([
+      work("last", "Saga", [2022, 1, 1], [2022, 2, 1]),
+      work("first", "Saga", [2020, 1, 1], [2020, 2, 1]),
+    ]);
+
+    expect([mark.tooltip(), mark.picture?.(0, { onOpen: () => {}, openLabel: "" })]).toEqual(["last", "last"]);
+  });
+
+  it("is still going if any entry in it is", () => {
+    const [{ mark }] = marks([
+      work("done", "Saga", [2020, 1, 1], [2020, 2, 1]),
+      work("open", "Saga", [2021, 1, 1], [2021, 2, 1]),
+    ]);
+
+    expect(mark.open).toBe(true);
+  });
+
+  it("keeps an entry naming no franchise, or only whitespace, as a mark of its own under its own name", () => {
+    const grouped = marks([
+      work("alone", " ", [2020, 1, 1], [2020, 2, 1]),
+      work("solo", "", [2020, 1, 1], [2020, 2, 1]),
+    ]);
+
+    expect(grouped.map(({ mark }) => mark.name)).toEqual(["alone", "solo"]);
+  });
+
+  it("names a franchise of one entry for the entry rather than the franchise", () => {
+    const [{ mark }] = marks([work("Dune", "Dune Saga", [2020, 1, 1], [2020, 2, 1])]);
+
+    expect(mark.name).toBe("Dune");
+  });
+});
+
+describe("placeBandLabels", () => {
+  // A track 1,000px wide, so a percent is ten pixels, and a name ten pixels a character.
+  const measure = (text: string) => text.length * 10;
+  const band = (key: string, startPercent: number, widthPercent: number, label?: string) => ({
+    key,
+    startPercent,
+    widthPercent,
+    label,
+  });
+  const placements = (bands: ReturnType<typeof band>[]) =>
+    [...placeBandLabels(bands, 1000, measure)].map(([key, label]) => [key, label.placement]);
+
+  it("writes a name on its band where it fits there", () => {
+    expect(placements([band("a", 10, 20, "Dune")])).toEqual([["a", "center"]]);
+  });
+
+  it("puts a name too long for its band in the gap before it, as the packed chart prefers", () => {
+    expect(placements([band("a", 50, 1, "Chasm City")])).toEqual([["a", "left"]]);
+  });
+
+  it("puts it in the gap after where the gap before is too short", () => {
+    expect(placements([band("a", 2, 1, "Chasm City"), band("b", 60, 1)])).toEqual([["a", "right"]]);
+  });
+
+  it("does not spill left into a gap the band before has spilled right into", () => {
+    const placed = placements([band("a", 2, 1, "Chasm City"), band("b", 20, 1, "Dune"), band("c", 60, 1)]);
+
+    expect(placed).toEqual([
+      ["a", "right"],
+      ["b", "right"],
+    ]);
+  });
+
+  it("runs a name from its band on into the gap where neither gap holds it alone", () => {
+    const [[, label]] = placeBandLabels([band("a", 5, 4, "The Hydrogen Sonata"), band("b", 26, 1)], 1000, measure);
+
+    expect(label.placement).toBe("span");
+    expect(label.roomPx).toBeCloseTo(210);
+  });
+
+  it("leaves a name centred on its band, cut short, where nothing holds it", () => {
+    const placed = placements([band("a", 1, 1, "Chasm City"), band("b", 3, 1, "x"), band("c", 5, 1)]);
+
+    expect(placed[0]).toEqual(["a", "center"]);
+  });
+
+  it("names nothing for a band handed no name", () => {
+    expect(placements([band("a", 10, 20)])).toEqual([]);
   });
 });

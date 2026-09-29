@@ -364,8 +364,13 @@ const HoverCardPopper = ({ colour, title, placement, transparent, children }: Ho
             // opens it, at the delay every other card opens at. Only under a latch: MUI arms that
             // timer again for every nested element the pointer crosses inside the child, and a
             // card closed and reopened at each of them is a flicker.
+            //
+            // And only for an arrival at the mark itself. React bubbles an event along the
+            // component tree rather than the document's, so a portal rendered anywhere inside the
+            // mark — a dialog a card inside it opens — sends every pointer movement across it here
+            // as though the mark had been entered, and would put the card back over that layer.
             onMouseOver: (event: MouseEvent<HTMLElement>) => {
-              if (pressed) {
+              if (pressed && event.currentTarget.contains(event.target as Node)) {
                 setPressed(false);
                 setHovered(false);
               }

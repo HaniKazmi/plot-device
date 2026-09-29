@@ -32,9 +32,9 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       // Read as a full date, like `startDate` below and for the same reason: the model types it as
       // one, and the `as Movie` below would let a bare year land in a `YearMonthDay` unremarked.
       releaseDate: readFullDate(row["Release Date"], `${where}, Release Date`),
-      // The model types this as a full date and every surface reading it needs the day:
-      // `watchTimelineData` compares it as a string, so a bare year falls outside the range it is
-      // in and drops off the ribbon without a word, and the ribbon's band places it as NaN.
+      // The model types this as a full date and every surface reading it needs the day: the
+      // stacked timeline places a film through `buildStrip`, which compares dates as strings, so a
+      // bare year falls outside the year it is in and drops off without a word.
       startDate: readFullDate(row["Watch Date"], `${where}, Watch Date`),
       certificate: readCertificate(row.Certificate, `${where}, Certificate`),
       // A film nobody scored is left out rather than counted as NaN, which would propagate

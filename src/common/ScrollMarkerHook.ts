@@ -1,8 +1,11 @@
+import { useTheme } from "@mui/material";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { SCROLL_MARGIN } from "./SectionRail";
-import { orderedBuckets } from "./finishedData";
+import { bucketLabel, orderedBuckets } from "./finishedData";
+import { measureLabel } from "./labelWidth";
 import { scrollBehaviourFor } from "./timelineLayout";
-import { RAIL_CHIP_HEIGHT } from "./typography";
+import { COARSE_CONTROL_HEIGHT, NUMERIC_LABEL_SX, RAIL_CHIP_HEIGHT } from "./typography";
+import { useCoarsePointer } from "./useCoarsePointer";
 
 /**
  * Just clear of the rail, which is the only thing pinned above it — from `sm` up, the width the pill
@@ -55,11 +58,14 @@ const RAIL_BOTTOM_INSET = 16;
 const CHIP_GAP = 6;
 
 /**
- * The least height one rail chip needs: the chip itself plus that gap. Below this the chips touch,
- * so a rail that would need less falls back to the pill rather than shrinking into an unreadable
- * stack.
+ * A rail chip's size beyond its word, as the theme draws a small chip on each pointer (`Google.tsx`):
+ * its height, and its label padding plus the outline either side. A finger's chip is the taller and
+ * the wider, and a rail sized for a mouse's would crowd its chips together on a tablet.
  */
-const CHIP_SLOT = RAIL_CHIP_HEIGHT + CHIP_GAP;
+const CHIP_METRICS = {
+  fine: { height: RAIL_CHIP_HEIGHT, side: 9 + 1 },
+  coarse: { height: COARSE_CONTROL_HEIGHT, side: 11 + 1 },
+} as const;
 
 /**
  * How far a card's top may sit from `MARKER_TOP` and still count as the row the marker stands on.
@@ -111,6 +117,8 @@ export const useScrollMarker = (
   const [centred, setCentred] = useState(false);
   const [buckets, setBuckets] = useState<string[]>([]);
   const [railHeight, setRailHeight] = useState(0);
+  const theme = useTheme();
+  const chip = CHIP_METRICS[useCoarsePointer() ? "coarse" : "fine"];
   /**
    * The wall's cards in document order, queried once per commit rather than per scroll event.
    *
@@ -214,9 +222,27 @@ export const useScrollMarker = (
     window.scrollTo({ top, behavior: scrollBehaviourFor(top - window.scrollY, window.innerHeight) });
   };
 
-  // A rail is an index down the page edge, so it needs both the gutter the pill is centred in and
-  // room to spread its chips without them touching. With one bucket there is nowhere to jump.
-  const rail = visible && centred && buckets.length > 1 && buckets.length * CHIP_SLOT <= railHeight;
+  // A rail is an index down the page edge, so it needs the gutter the pill is centred in, room to
+  // spread its chips without them touching — a chip's height and a gap each, below which the rail
+  // falls back to the pill rather than shrinking into an unreadable stack — and a gutter wider than
+  // its widest chip with an inset
+  // either side — a chip standing out of the gutter would sit over the cards it indexes. Measured
+  // rather than judged by kind: a year or an initial fits any gutter the pill is centred in, a page
+  // count, a decade or a medium one a few pixels wider, a genre about 99px and a platform about 133,
+  // where a 1,728px window leaves 120; a vocabulary of dozens — authors, networks — fails the count
+  // before its width is asked. With one bucket there is nowhere to jump.
+  //
+  // The chips' own type is what makes the canvas answer the width the rail would draw, and centred,
+  // `left` is the gutter's middle.
+  const chipFont = `${NUMERIC_LABEL_SX.fontSize}px ${theme.typography.fontFamily}`;
+  const chipFits = (entry: string) =>
+    measureLabel(bucketLabel(entry), chipFont, NUMERIC_LABEL_SX.fontSize, chip.side) + 2 * EDGE_INSET <= left * 2;
+  const rail =
+    visible &&
+    centred &&
+    buckets.length > 1 &&
+    buckets.length * (chip.height + CHIP_GAP) <= railHeight &&
+    buckets.every(chipFits);
 
   return { bucket, visible, left, centred, buckets, railHeight, rail, jumpTo };
 };

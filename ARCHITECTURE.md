@@ -520,6 +520,8 @@ rich hover cards. Two algorithms:
   effect, so the guess is drawn for no frame the reader sees.
 
 The chart is fixed at `GRID_WIDTH` (four viewports) inside a scroll container, the month/quarter/year axis beneath it.
+Under a year scope it is drawn at its card's width instead (`fit`), with no year chips: a year is a
+quarter of a screen at the full chart's scale and every bar in it named at the card's.
 `buildTicks` walks the month range once in `TimeLineChart`, and that one array feeds the axis,
 `TimelineBackground` — alternating year bands and gridlines behind the bars — and `yearMarkers`,
 which folds it to one entry per calendar year, the opening one pinned to the left edge because a
@@ -554,10 +556,10 @@ at either end.
 The chart caps its height and scrolls vertically within the card from `md` up
 (`CHART_MAX_HEIGHT`), a packed timeline running to dozens of rows; below it the cap lifts and the
 grid stands at whatever height `packRows` gives it, since a second scroller inside a page that
-already scrolls takes the drag meant for the page. Alone among the app's charts it never folds —
-`show/Timeline.tsx`, `game/Timeline.tsx` and `book/Timeline.tsx` draw it through a plain
-`SectionHeader` and `Card` — since a folded card would show only a picture of a Gantt chart's shape,
-no cheaper a reading than the chart itself.
+already scrolls takes the drag meant for the page. Alone among the app's charts it never folds — each
+tab's timeline draws it through `TimelineSection` (below), a plain `SectionHeader` and `Card` — since
+a folded card would show only a picture of a Gantt chart's shape, no cheaper a reading than the
+chart itself.
 
 The hover card that names a bar reaches it two ways: through the label, which already re-enables
 its own pointer events, and through the bar's own `rect`, so a finger aimed at the item and not at a
@@ -572,9 +574,10 @@ that back on a click. The chart holds a thunk that renders the domain's hover ca
 of the item inside it, so it mounts that card off-screen and asks it to open whatever layer it owns
 (`common/cardAutoOpen.ts`): a book's expanded card, or the drill-down a card standing for a group
 opens instead, which is how a series bar on the Books timeline opens the series rather than the book
-whose cover fronts it. The host is the shape the search palette opens a hit's card through, keyed on
-the press so the same mark pressed twice mounts a fresh card rather than reconciling with the one
-whose layer has already closed. The signal stops at the card that takes it, or every card that one
+whose cover fronts it. The host (`common/useOpenedCard.tsx`) is the shape the search palette opens
+a hit's card through, keyed on the press so the same mark pressed twice mounts a fresh card rather
+than reconciling with the one whose layer has already closed; the timeline section keeps one for
+every layout (below), so a bar, a band and a picture all open their items through it. The signal stops at the card that takes it, or every card that one
 draws — the members of the shelf it opens, the marks on the franchise strip inside an expanded
 card — reads the same signal and opens itself on top.
 
@@ -596,22 +599,108 @@ edge and stays there as the chart is scrolled. And the hover step on a bar is in
 but its clock never advances, the tooltip opening re-rendering the row and restarting it every
 frame.
 
+### The timeline section — `common/TimelineSection.tsx`
+
+Every tab's timeline is one section: a set of marks drawn **Across**, **Stacked** or as a **Grid**,
+coloured by a **Colour** picker, with a key under the header naming those colours. The tab owns what
+the marks are — which items, one per item or per group, in which colours — and hands them in as
+`TimelineData`; the section owns how they are laid out, which is the same question on every tab.
+
+**Across** is the packed chart above, and what the section opens on. **Stacked**
+(`common/StackedTimeline.tsx`) is a row per year on one screen at any width: `yearRows`
+(`common/timelineStripData.ts`) places each year's spans on the year's own 1 January – 31 December
+scale through `buildStrip`, so a span running across New Year stands on both rows with square ends
+where the rows cut it (`cutStart`, `cutEnd`), and seasonality reads down the columns. Names are left
+to the hover card: a year is a phone's width at most, where the packed chart has four screens to
+write them in. A band answers the pointer as a bar on Across does — a `transparent` card, since
+its lanes stand a few pixels apart under a card covering several rows of them, and a press that
+opens the item's own layer and puts the card away (`TimelineBand.onPress`). The eight latest years
+stand and the rest are behind a worded cut, "All 26 years ›", that expands in place
+(`common/useYearCut.tsx`) — the recent years are what a stack is opened to compare, and twenty-five
+rows is a page of its own. `yearRows` places only the years drawn: on the union that is half the
+work of placing all of them.
+
+**Grid** (`common/MonthGrid.tsx`) is the same row per year cut into twelve months, each item's own
+picture standing in the month it began (`monthRows`), a line beneath it in its colour. It keeps when
+as well as what — seasonality reads down the columns as on Stacked — and names every item by its own
+artwork, which is what a library of films needs, a film being a one-day tick on Stacked with no room
+for its name. The month it began, and not every month it ran in, so a picture is drawn once however
+long its item ran, and the start is where Across opens the bar. Pictures are sized from the measured
+width so a 16:9 banner fills its month and two posters or covers stand side by side in one, which is
+what lets the Omnibus mix all four shapes in one cell; under 760px the grid keeps its columns and
+scrolls sideways inside the card, a phone reading a year through the log instead. The grid draws
+every mark, a web serial included, since a picture opens no second lane. It shares Stacked's year
+presses and its year cut (`useYearCut`). Its pictures, and those of a year's line and log, answer the
+pointer as the same mark's bar does elsewhere (`common/PictureHover.tsx`): the item's hover card,
+`transparent` as the packed chart's is so a reader can run along pictures a few pixels apart, and a
+press opening what the card would have offered. The press is the one every mark gets
+(`PicturePress`), handed to the domain's card as its `onOpen`: the card then opens nothing of its
+own, and the section's one host opens the mark's item — so a series' picture, its first cover,
+opens the series as its bar does, and no layer is ever rendered inside the hover card's own anchor,
+where React would bubble every movement across it back to the mark. Under a coarse pointer the
+picture is left as it is, a tap on it opening that same layer rather than a sheet first.
+
+The page's year scope reads through. Scoped to a year, Across is fitted to the card, and Stacked
+opens that year in detail (`common/YearDetail.tsx`), a year being too few rows for a stack to say
+anything a stack is for. From `sm` up it is **pictures on the line**: each item's own artwork standing
+at the day it began, a line beneath running to the day it ended, the picture saying what and the
+line when — a reader finds a thing by its picture before reading a word, and a banner already
+carries its title. Pictures take lanes by the packed chart's rule in pixels (`pictureLanes`), a
+lane held until both the picture and its line have ended, since at a year's scale a banner is three
+weeks wide — from where the picture is drawn, which for an item begun in the year's last weeks is
+held back inside the card's edge, while its line still starts on the day the item did. On a phone it is **the log**: time running down the page, newest first, a row per thing
+begun — its picture, name and dates — under a heading per month, and each run drawn as a line in a
+gutter of lanes beside the rows, so what ran at once still stands side by side. Rows are ordinal, a
+quiet month a thin heading and a busy week several rows, so `yearLog` reads a day's height off the
+rows around it; a line still going runs to the top, one begun before the year rises from the
+bottom, and a film is a dot. Which of the two is drawn decides which tree renders, so the section
+reads `usePhone` as a value. Every mark carries a `picture` thunk — the tab's own card at a height
+(`pictureAtHeight`, sized as the walls size theirs) — built only while it is drawn. A year's label
+on Stacked or the grid is itself a press that scopes the page to that year through the tab's own
+store, which the section is handed as `dispatch` — the one `scope` action the rail's picker sends,
+both halves at once — and "‹ All years" beside the layout sends it back. The layout is held for
+the visit, as the library's size is.
+
+**Colour** offers every key the tab's own `groupToColour` answers, opening on the tab's own
+vocabulary — the company on Games, the status on Shows, the genre on Movies and Books — so the chart
+and the library's border open on one key. A value off its vocabulary's table (a franchise the shared
+table does not hold) takes the neutral rather than no fill, which would be a gap in the row. The key
+is `common/ColourKey.tsx`, the library's own border key, over `colourKeyEntries`: the value each
+drawn item shows under the key (`gameGroupValue`, `movieGroupValue`, `bookGroupValue`, the charts'
+own buckets) beside the colour it wears, so a swatch and a word cannot disagree. `useColourBy`
+(`common/useColourBy.ts`) is the picker, the fill and the key as one hook, so a tab states its
+lookup and its words once and the neutral is decided in one place.
+
+**One mark per** is each tab's second count: Seasons · Shows and Books · Series as they were, Games ·
+Franchises and Films · Franchises through `groupMarks` (`common/timelineLayout.ts`), a group drawn
+from its first start to its last end, built from the marks its entries draw as on their own:
+coloured by the entry that opened it and opening the card of the one met last — the Omnibus's
+Franchises reading through the same helper. Movies groups by franchise because its sheet leaves the series column blank.
+
+A tab can ask more of the stack than of Across (`stacked`): its own marks and header figure, and
+its bands' names. Books asks both. A year of books is read one at a time, so its row is one lane and
+its 24px holds a title — `EventRibbon` names the bands of a row of one lane and no other, placed by
+the packed chart's own rule (`placeBandLabels` over `decidePlacement`, measured through the same
+canvas, `common/labelWidth.ts`): on the band where the name fits, else in the gap before or after
+it, else run from the band into the gap after, and cut short on the band where nothing holds it —
+so a name stands on a year's row wherever it would on Across. A web serial breaks that in every year it ran — Worm through 2013, Ward
+from 2017 into 2020, each running for months beside the books read alongside it — so the stack
+leaves the three serials to Across and says so in its header: "490 books · no web serials".
+
+It never folds on a phone, for the packed chart's reason — and Stacked is built to fit a phone's
+width, so a folded card would hide the one reading made for it.
+
 ### Event ribbon — `common/EventRibbon.tsx`
 
-A stack of tracks on one shared scale, for events that are points in time rather than spans: the
-caller fixes the rows and only the marks move. The packed timeline cannot hold points, `assignRows`
-freeing a row the moment a span ends, so a library of them packs into one row of a chart four
-viewports wide. Movies is the caller (`movie/WatchTimeline.tsx`): one row per calendar year on a
-shared 1 January – 31 December scale, so density within a year and seasonality across years both
-read at a glance. Its ticks are built once over a non-leap 2001, every row being twelve months, and
-that array feeds every row's gridlines and the single axis beneath the stack. The marks are
-`buildStrip`'s point handling — a single day floors to the minimum band width, and films watched
-days apart tile clear of one another inside the lane — with hover cards through
-`common/LazyTooltip`, so hundreds of marks build only the handful actually hovered. The ribbon owns
-no `Card` of its own: `WatchTimeline` stands it inside a `FoldedChart`, whose folded state is a
-line naming the busiest row and how many years the stack draws — the one figure a dozen identical
-twelve-month rows have to summarise with, where the barchart's sparkline or the sunburst's first
-ring have a shape to draw instead.
+A stack of tracks on one shared scale, the caller fixing the rows and only the marks moving: the
+shell Stacked draws. Its ticks are built once over a non-leap 2001, every row being twelve months,
+and that array feeds every row's gridlines and the single axis beneath the stack. A row grows by a
+lane pitch for each lane its marks take (`LANE_PITCH`, 8px), where a fixed track would divide a
+year of eight overlapping seasons into hairlines no finger can land on; a row of points needs one
+lane and stands at the track's own 24px. A film is `buildStrip`'s point — a single day floors to
+the minimum band width, and films watched days apart tile clear of one another inside the lane. Hover
+cards arrive through `common/LazyTooltip`, so hundreds of marks build only the handful actually
+hovered. Given `onRow`, a row's label is a press.
 
 ### Omnibus — `omnibus/`
 
@@ -732,12 +821,25 @@ year is an attribution, and only a film's is a date the sheet holds. A row whose
 empty is dropped rather than opening a series named `""` — every book answers the certificate and
 style splits that way — and the header counts the rows drawn.
 
-**The gallery** (`omnibus/Gallery.tsx`, `app/galleryData.ts`) shelves the union by genre,
-franchise, certificate or decade, each shelf a `common/Filmstrip` with a drill-down behind the worded cut
-at the end of its name row — the shelf holds twenty pictures of a group that can run to hundreds,
-and the figure is what says so as well as what opens the rest. It
-opens on franchise, newest first — the series met lately, which the genres band does not answer. A
-shelf card carries no words, so the picture keeps the whole height below its medium band.
+**The library** (`omnibus/Gallery.tsx`, `app/galleryData.ts`) closes the page, as every tab's own
+does: the union shelved by franchise, when, genre, medium, certificate or decade, each shelf twenty
+pictures with a drill-down behind the worded cut at the end of its name row — the shelf holds
+twenty pictures of a group that can run to hundreds, and the figure is what says so as well as what
+opens the rest. It opens on franchise, newest first — the series met lately, which the genres band
+does not answer — and on **Shelves**, a `common/Filmstrip` a shelf, where every other tab's library
+opens on its wall: these shelves are this tab's own gallery, and a union of four libraries is
+shelves before it is a wall. **Wall** is every work of every shelf in one flow, in the shelves' own
+order, each picture at the row's height and its own width so a banner and a poster share a row
+uncropped. It is a wall as every tab's is: nothing between its runs from `sm` up, the scroll marker
+naming the run the reader is in — a pill, or a rail where the runs' names are short enough — and
+sticky headings on a phone. Each picture carries its run as `data-bucket` beside a key joining the
+run's name to the work's, a work standing once a run, and its card reserves its width from the
+medium's shape before the artwork arrives, which is what the marker's offsets are read in. **Works ·
+Franchises** is the tab's one card per: a franchise's works on a shelf fold into one card through
+the tracked libraries' own `cardRuns`, fronted by the first of them in the shelf's order and opening
+its works in the drill-down; it is not offered while the shelves are franchises themselves. "When"
+is the year each work was finished, In progress first, and "medium" the tab it came from. A shelf
+card carries no words, so the picture keeps the whole height below its medium band.
 Every category but rating is a field all four media record — `groupByCategory` skips an empty value,
 so a category one medium answers `""` to drops that medium off the wall with no error. The
 certificate is the exception: nothing certifies a book, so books are absent from those shelves and
@@ -822,14 +924,15 @@ the page's own franchises and the packed reading is the page's own population, w
 states. On a phone the card folds inside itself (`FoldedContent`, the fold without the `Card`
 `ExpandableCard` already owns).
 
-The header's Franchises · All switch trades the strips for the packed timeline the Games, Shows
-and Books tabs draw one medium at a time, over the whole union: `omnibus/timelineData.ts` maps
-each item to a row through the crossings' own `crossingSpan`, so the two readings cannot disagree
-about when an entry ran, coloured by medium and hovering to the same dispatcher. That
-reading draws every row it has, so the card offers no expansion under it. The rows are built only
-while that reading is chosen, and the
-choice lasts the visit. `TimeLineChart` is exported from `common/Timeline.tsx` for it, the chart
-without the card the section already stands in.
+The union's own timeline is a section of its own near the top of the page (`omnibus/Timeline.tsx`),
+the `TimelineSection` every tab draws: `omnibus/timelineData.ts` maps each item to a mark through
+the crossings' own `crossingSpan`, so the two sections cannot disagree about when an entry ran, and
+Entries · Franchises draws a franchise as one span across all four media. Its colour opens on the
+medium, the one vocabulary a mixed row carries meaning in, and offers the genre, certificate, style
+and franchise the gallery and the By year chart already cut the union by, each asked of
+`galleryValue`; a book, which has no certificate or style, takes the neutral under those. A year in
+pictures lays its lanes out for the widest of the four shapes, a banner, so a lane holds any of
+them.
 
 Folded on a phone, the section states its largest franchise — `crossings[0]`, the strips being
 ordered by size — by name, entry count and media spanned; a stack this wide has no single shape a
@@ -905,8 +1008,8 @@ card's own footer the footer restates its colours from the artwork palette — a
 `background.paper` on a sampled ground is a rectangle of the page's paper inside a coloured card.
 
 `SegmentedControl` is a small closed set of named states, and every surface offering one uses it:
-the barchart's four views, the gallery's shelf order, the wall's density, the Shows timeline's
-Seasons · Shows, the Books timeline's Books · Series,
+the barchart's four views, the gallery's shelf order, the library's Shelves · Wall, its size and its
+one card per, and each timeline's Across · Stacked and its one mark per,
 and each tab's measure in the section rail — the last through `MeasureControl`,
 which owns the wiring to the filter reducer once for the five tabs. Values that are already their
 own words become options through `common/segments.ts`. Words rather than icons, an icon being a
@@ -1385,8 +1488,8 @@ positioned once when it opens.
 
 ### Card strip data — `common/timelineStripData.ts`
 
-The proportional-scale arithmetic the card strip's Time reading, the crossings stack and the Movies
-ribbon share. `buildStrip(spans, epoch, today)` places each span on that fixed scale and returns it
+The proportional-scale arithmetic the card strip's Time reading, the crossings stack and the stacked
+timeline share. `buildStrip(spans, epoch, today)` places each span on that fixed scale and returns it
 as a `startPercent`, a `widthPercent` and a `lane` alongside the caller's own fields, so a domain
 never has to key its records back out of the result. A day over two decades is a fraction of a
 pixel, so every width is floored at half a percent.
@@ -1398,18 +1501,20 @@ a band drawn over another hiding it completely and taking the pointer with it. O
 overlap opens one: a span abutting the one before it stays in its lane and is tiled clear instead,
 since a lane costs every band in the strip a share of its height.
 
-Both rules are date-based and shared with the full timeline through `assignRows`
-(`common/timelineLayout.ts`), so the two charts cannot disagree about what counts as an overlap, and
+Both rules are date-based and shared with the full timeline through `assignRows` and its order,
+`byStartThenShortest` (`common/timelineLayout.ts`) — the shorter first where two start on one day, so
+a one-day read hands its lane straight on to the longer read begun that morning — so the two charts
+cannot disagree about what counts as an overlap, and
 the year gridlines come from that module's `buildTicks` for the same reason. `buildTicks`,
 `buildStrip` and the full timeline's bars all take their offset from `percentAtDate` — the days
 elapsed before a date — so a tick and a band opening on the same day land on the same percent, and
 their width from `percentOfSpan`.
 
-`TimelineBandBox` in `common/TimelineBand.tsx` is the band the crossings stack and the Movies ribbon
+`TimelineBandBox` in `common/TimelineBand.tsx` is the band the crossings stack and the stacked timeline
 draw, taking a positioned band rather than nodes: the shell owns the coordinate space, so a caller
 reads `startPercent` and `widthPercent` and never asks how they were arrived at. `TimelineScale`
 and `TimelineAxis` beside it are the one set of gridlines and labels every strip is read against —
-the crossings' years, the ribbon's months and the franchise strip's window — a caller passing the
+the crossings' years, the stacked timeline's months and the franchise strip's window — a caller passing the
 ticks it wants labelled and the colour its ground takes. The card's own strip uses the same arithmetic
 with its own marks: a fixed lane pitch, a dot for a point and a ring for the subject, none of which
 a stack of twelve strips on one scroller has room for.
@@ -1483,39 +1588,81 @@ its panel also gives back part of the standard inset and steps its title down a 
 136px poster on a 358px card the panel is 222px and the standard inset spends 32 of them, so the
 four pixels a side given back are the difference between a two-line title and a three-line one.
 
-### Scroll marker — `common/ScrollMarkerHook.ts`
+### The library and its scroll marker — `common/Finished.tsx`, `common/ScrollMarkerHook.ts`
 
-The library grids run hundreds of cards deep with nothing between them, so a reader cannot tell
-where in the sort order they are. A pill under the section rail names it: the topmost visible row's
-year under the date sort, its franchise initial under the franchise sort, its figure under a
-`FinishedExtraSort` — a label, a `value` only the domain holds, an optional `bucket` naming the chip
-— which Movies adds as Score and Books as Score and Pages, highest first with no figure last, since
-a film never scored is the best of nothing. Without a `bucket` the figure names itself, so Books
-buckets by the hundred (`700+`), `bucketLabel` shortening a bare four-digit string to a two-digit
-year for the rail where a page count would read as one. The two built-in labels are reserved and the
-wall throws on an extra taking one, `resolveExtra` answering the built-in first in `finishedItems`
-and `bucketFor` alike, or a shared name would sort the wall one way and label the marker another.
-`bucketFor` reads the field `finishedItems` orders by, through the same trimmed `franchiseKey`
-falling back to the item's title, and answers `null` with no short form to give: an undated item,
-which the date sort puts first, so the topmost card can be one.
+Each tracked tab closes on its library: every item with artwork, cut into **runs** by one "Shelve
+by" select and laid out one of two ways. Every run is a `bucketGroups` run (below), so whichever way
+the library is drawn, a card stands in the same run under the same name.
+
+The runs are the order's own buckets. **When** is the built-in the library opens on: the year each
+work was _finished_, newest first, with everything still going ahead of all of it as one In
+progress run — a library is a record of what was finished, so a game begun in 2019 and finished in
+2024 stands on 2024's shelf. The close is the caller's answer (`CloseOf`), defaulting to the end
+date three sheets leave blank while a work is in hand; Movies passes the watch date, a film being
+finished the day it is watched and every film otherwise reading as in progress. **Franchise** is the
+other built-in, by initial: a series' entries together in release order, so a shelf of one letter
+walks each series through. A tab adds its own through `FinishedExtraSort`, in two kinds. A **word**
+— Genre on every tab through `genreShelf`, Platform, Network, Author, Where watched — shelves by the
+value, the biggest shelf first, as the gallery's Largest order does, a blank cell last under a run
+naming what it lacks; its optional `colour` puts the vocabulary's swatch on the run's name, where
+the tab paints that field elsewhere. A **figure** — Movies' Score, Books' Score and Pages — runs
+highest first with no figure last, since a film never scored is the best of nothing; without a
+`bucket` the figure names itself, so Books buckets its pages by the hundred (`700+`). Every order but
+Franchise settles a tie by When, so a shelf of one genre reads newest first. The two built-in labels
+are reserved and the wall throws on an extra taking one, `resolveExtra` answering the built-in first
+in `finishedItems` and `bucketFor` alike, or a shared name would sort the wall one way and label the
+marker another.
+
+**Wall · Shelves** is the layout. The **Wall** is one wrapped grid with nothing between its runs,
+named beside it by the pill and jump rail below from `sm` up and by sticky headings on a phone. The
+**Shelves** give each run a `Filmstrip` of its own that scrolls sideways — the gallery's shelf over
+one tab's cards — so every run starts on screen and the page is as long as the runs are many rather
+than as the library is big. A shelf holds twenty pictures (`SHELF_PICTURES`); past that its worded
+cut, "All 110 ›", carries the run's size and opens the whole run as a wall in a dialog of its own,
+and a shelf short of the cut states its size beside its name instead, one figure either way. Size
+means a height on a shelf, each picture keeping its own width: `SHELF_HEIGHTS` matches Compact and
+Large to the wall's own card — in a 1,728px window a large banner is 473px wide on the wall and 462
+on its shelf — and holds Full to two banners a row, a wall card a row being taller than the window. The
+four tracked tabs open on the Wall. Both layouts draw one `WallCard`, bordered alike, so a card
+reads the same whichever the reader picks.
+
+**One card per** is the count a tab can offer beside its own noun (`FinishedUnit`): Games ·
+Franchises, Films · Franchises, Books · Series, each tab naming what groups its works — Movies the
+franchise, its sheet leaving the series column blank on every film. `cardRuns` folds
+a group into one card **per run**, the gallery's own rule — a series finished across three years
+belongs to each of those years' shelves, and folded over the library it would stand under one and
+vanish from the other two. The card takes the place of the group's first member in the run and
+wears its picture, so under When a series is fronted by the entry finished last; it says in its
+corner how many it stands for, and pressing it opens the members (`CardMediaImageProps.onOpen`)
+rather than the one item whose picture it wears, the card's accessible name being the group's.
+Shows offers no such switch: its library is already one card per show, and a season is no
+`FinishedItem`, holding neither a name, a franchise nor artwork of its own.
+
+A pill under the section rail names where the reader is in a Wall: the topmost visible row's run —
+a year or In progress under When, an initial under Franchise, a value or figure under a tab's own
+order — `bucketLabel` shortening a bare four-digit year to two digits and In progress to "Now" for
+the rail, where a page count would read as a year and a two-word run would set the column's width.
+`bucketFor` reads the field `finishedItems` orders by, through the same close and the same trimmed
+`franchiseKey` falling back to the item's title, and answers `null` with no short form to give: a
+film nobody scored, a show with no network, which the orders holding them put last.
 
 The border on every card is a vocabulary the page speaks nowhere else, the charts above the wall
 being grouped by something else, so the wall draws it as a key under its header: the field's name,
 then a swatch and a word per value present. Naming the field alone tells a reader the colours mean
 something without telling them what any of them means. Both halves of an entry come off the same
 item, so the swatch and the word cannot disagree; a value whose colour lookup answers nothing is
-left out, the card wearing no border for it either. It is drawn under every sort the wall offers,
-none of which is the border's own field — the wall orders by date, by franchise or by one of a
-domain's own figures, and the marker names its runs by that order — and ordered numeric-aware, one
-of the four vocabularies being a
-certificate ramp a string sort runs "12, 15, 18, 3, 7". The header's own count is `wallPopulation`
+left out, the card wearing no border for it either. It is drawn under every order the library
+offers, since the border is the tab's own vocabulary whichever the runs are — Games the company,
+Shows the status, Movies and Books the genre, the last two the colour each tab's timeline opens on —
+and ordered numeric-aware, so a vocabulary of ages or scores reads in the order its figures climb
+rather than "12, 15, 18, 3, 7". The header's own count is `wallPopulation`
 (`common/finishedData.ts`): what the wall is over, stated only where the wall is _shorter_ than the
 page, which it is wherever the sheet holds a row with no artwork — the card is the picture, so an
 item without one is not on the wall at all, and the rail's chip says the rest.
 
 Card size is the reader's — a `FinishedDensity` of Compact, Large or Full, whose column table
 `finishedColumns` owns. Compact at `xl` gives a banner a fifth of the grid, about 220px, still a
-picture with fifteen on screen; Large is four to a row from `md` up, near 400px; Full is one a row.
+picture with fifteen on screen; Large is three to a row from `md` up, 473px in a 1,728px window; Full is one a row.
 Two to a row is the floor, and a phone's: at 390px a card is about 190px, where three would be 95px
 and a banner's own title, artwork rather than type the card sets, stops being readable. Posters and
 covers go one step denser at every width, two thirds as wide as tall against a banner's sixteen
@@ -1562,13 +1709,23 @@ the pill tucks inside the container's leading edge.
 Where the gutter is wide enough the derivation becomes a jump rail instead: the sort as a column of
 chips down the page edge, spread from under the section rail to short of the fold. `orderedBuckets`
 folds the `data-bucket` attributes to one entry per bucket at first encounter and keeps them in
-**wall order** — descending years, ascending initials — where sorting would derive the rail from the
-data a second time and let the two drift. Both sorts open each bucket once, a year being unique and
-franchise-ordered initials non-decreasing, so the highlight only travels downwards and first
-encounter matters only for a key returning to a value it passed. Chips take `space-between` across
-the full span, indexing the whole page; a rail needs more than one bucket and every chip at full
-height, bucket count times a slot of the chip plus a six-pixel gap against the measured span, and
-otherwise the pill stands in, the lit chip already saying what the pill says.
+**wall order** — In progress then descending years, ascending initials, the biggest shelf first —
+where sorting would derive the rail from the data a second time and let the two drift. Every order
+opens each bucket once, a year being unique, franchise-ordered initials non-decreasing and a word
+sort grouping each value before ordering within it, so the highlight only travels downwards and
+first encounter matters only for a key returning to a value it passed. Chips take `space-between`
+across the full span, indexing the whole page; a rail needs more than one bucket, every chip at full
+height — bucket count times a slot of the chip plus a six-pixel gap against the measured span — and
+a gutter wider than the widest chip with an inset either side, the chip measured on the canvas the
+timeline's labels are (`measureLabel`), since a chip standing out of the gutter sits over the cards
+it indexes. Both at the size the theme draws a chip on the reader's pointer, a finger's being 32px
+tall where a mouse's is 24, so a rail that fits a desktop does not crowd its chips on a tablet. Measured rather than judged by kind: years and initials fit any gutter the pill is
+centred in, page counts, decades and media one a few pixels wider, a genre about 99px and a platform
+about 133 — a 1,728px window leaves 120 — and a vocabulary of dozens, authors or networks, fails the
+count first; otherwise the pill stands in, the lit chip already saying what the pill says. The marker
+reads one grid, so it is mounted under the Wall alone, and it is handed the wall's own card list,
+whose identity changes with the order, the grouping and the layout alike: each of those replaces
+the cards it measured without moving the page.
 
 `jumpTo` brings a bucket's first card to rest at the marker's own top offset, past the reading line
 40px below, so `topmostBucket` names the clicked bucket on the very next scroll event and the click
@@ -1781,7 +1938,10 @@ it only when the pointer leaves, never on a click, and the timer holds the callb
 that armed it — so a press inside `enterDelay` is followed by a stale `onOpen`, and a guard read
 there is reading the state as it stood before the press. The latch is read where `open` is
 computed, which no timer holds a copy of. The mark's own `mouseover` is what lets it go, that being
-the one event saying the pointer has genuinely arrived: a layer opened from a mark swallows the
+the one event saying the pointer has genuinely arrived — and only one whose target is inside the
+mark's own element, since React bubbles an event up the component tree: a dialog portalled from
+inside the mark would otherwise send every movement across it back as the mark being entered, and
+put the hover card over the layer: a layer opened from a mark swallows the
 pointer, so no leave arrives while it stands, and a latch waiting for one opens that mark's card
 once and never again. The hover the press refused goes with it — MUI declines to call `onClose`
 while `open` is false, so the mark is still holding it, and letting the latch go alone would show
@@ -2042,17 +2202,13 @@ small chip, behind `@media (pointer: coarse)` so a tablet with a mouse plugged i
 own height), which makes the rail 8 + 32 + 8 + 1 where a pointer gets 8 + 28 + 8 + 1; `SCROLL_MARGIN`
 clears the taller of the two by 23px.
 
-A tracked tab's library closes its page at every width — the wall runs to hundreds of cards, so it
-is the section a reader scrolls into and stays in rather than one to glance past on the way to
-something else. The Omnibus reorders instead: its gallery is the other section built to be scrolled
-rather than read at a glance, so on a phone it moves after Franchises, the two longest sections on
-the page trading places so only one of them closes it — `omnibusSections` (`omnibus/sections.ts`)
-reorders the chip through `movedAfter` (`common/sections.ts`) on the same `usePhone` its `Graphs`
-module reads once to reorder the DOM. Both halves have to agree: `useActiveSection` lights the first
-of the rail's own list still inside the reading band, so a page painted in one order and a rail
-listing another lights the wrong chip from the first scroll, and a chart folded shut under
-`FoldedChart` mounting nothing at all rules out a `flex-order` swap that would still fetch and lay
-out the chart it hides.
+Every tab's library closes its page at every width, the Omnibus's included — the wall runs to
+hundreds of cards, so it is the section a reader scrolls into and stays in rather than one to glance
+past on the way to something else — and every tab's timeline stands near the top, after the bands
+saying what is in flight and how much there is. One order at every width, so the rail's list and
+the DOM say the same thing without either being told: `useActiveSection` lights the first of the
+rail's own list still inside the reading band, and a page painted in one order and a rail listing
+another lights the wrong chip from the first scroll.
 
 ### Phone and tablet
 
@@ -2144,7 +2300,7 @@ square, where the bar is already a tab's colour and a magenta block on the Games
 **Touch surfaces.** `common/touchTarget.ts` is the shared hit-box recipe behind the franchise strip's
 beads and `TimelineBandBox`'s bands (above): a box sized for a coarse pointer alone, invisible and
 stated as a height so it cannot reach over a dense neighbour. `FoldedChart` (`common/FoldedChart.tsx`)
-is the general mechanism behind every folded chart above — five callers — a card that renders only
+is the general mechanism behind every folded chart above — four callers — a card that renders only
 its header, a one-line summary and a shape-of-the-data preview until the reader asks for the chart
 itself, past `usePhone` alone; from `sm` up it is the plain card it always was. What asks for it is
 a ⌄ in the header, turned over to ⌃ once the chart is drawn, and the summary row answers the same
@@ -2384,7 +2540,7 @@ key in ObjectExpression`; pulled out to a plain function taking the varying piec
   `sheetBarSx`, `dialogCardSx`, among others — the literal itself sits at module scope and the
   component stays compiled.
 
-The baseline is **280 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **291 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.
@@ -2704,11 +2860,12 @@ Recorded so they are not mistaken for design:
   tens of thousands of comparisons per layout. A numeric sort key computed once per interned instance
   would preserve ordering exactly, across mixed `Year`/`YearMonthDay` included; it costs a change to
   the most load-bearing class here for a win nobody has measured as necessary.
-- **Omnibus has no library wall.** `common/Finished` keys a card with `finishedKey`, which falls back
-  to the bare item name when the item carries no `releaseDate` — a rule that holds within one domain,
-  where no two shows share a title, but not across a union where every season carries its show's name:
-  a mixed wall would key those seasons identically and React would drop or swap the cards. A wall
-  needs `OmniItem` to carry a release date, a banner and a start date for the shell's contract, an
-  `aspectOf` callback so the height reservation (§6) generalises across banners and posters in one
-  grid, and bucket semantics for the scroll marker across four conventions. Recently Finished (§6)
-  answers the same "what closed, newest first" question.
+- **The Omnibus library is the gallery, not `common/Finished`.** Its wall is drawn by the gallery at
+  one row height in mixed shapes, with no Compact · Large · Full. `common/Finished` keys a card
+  with `finishedKey`, which falls back to the bare item name when the item carries no `releaseDate` —
+  a rule that holds within one domain, where no two shows share a title, but not across a union where
+  every season carries its show's name: a mixed wall would key those seasons identically and React
+  would drop or swap the cards. Drawing it through `Finished` needs `OmniItem` to carry a release date, a banner and a
+  start date for the shell's contract, an `aspectOf` callback so the height reservation (§6)
+  generalises across banners and posters in one grid, and bucket semantics for the scroll marker
+  across four conventions.

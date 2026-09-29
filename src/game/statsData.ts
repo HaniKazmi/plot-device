@@ -1,4 +1,5 @@
-import { daysSince, formatDate, type YearMonthDay, type YearNumber } from "../common/date";
+import { daysSince, formatDate, PlainDate, type YearMonthDay, type YearNumber } from "../common/date";
+import { releaseDecade } from "../utils/types";
 import { format } from "../utils/mathUtils";
 import { earliestYear as earliestYearOf, groupByCategory, realFranchisesOnly } from "../common/statsData";
 import { platformToShort, type Measure, type VideoGame, type VideoGameStringKeys } from "./types";
@@ -26,6 +27,18 @@ export const topOptions = [
 ] as const satisfies Exclude<VideoGameStringKeys, "name">[];
 
 export type TopOption = (typeof topOptions)[number];
+
+/**
+ * The value a game shows under a grouping, as a word: the charts' own buckets, which the sunburst
+ * nests by and the timeline's key names, so a game cannot stand in one bucket on one chart and
+ * another beside it. Release decade is a derivation rather than a field — "how much of this is
+ * retro?" — and a date is its year.
+ */
+export const gameGroupValue = (game: VideoGame, key: keyof VideoGame | "decade"): string => {
+  if (key === "decade") return releaseDecade(game.releaseDate.year);
+  const value = game[key];
+  return value instanceof PlainDate ? value.yearString() : String(value);
+};
 
 /**
  * Groups completed, time-tracked games by a category, ordered most-played first. The artwork

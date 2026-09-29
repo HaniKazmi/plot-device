@@ -4,21 +4,37 @@ import {
   bucketFor,
   bucketGroups,
   bucketLabel,
+  cardRuns,
   finishedColumns,
   finishedCount,
+  genreShelf,
+  IN_PROGRESS,
   wallPopulation,
   finishedItems,
   finishedKey,
   orderedBuckets,
+  wordSort,
   type FinishedExtraSort,
   type FinishedItem,
 } from "../../src/common/finishedData";
+import { genreToColour } from "../../src/utils/types";
 
+/** A work begun and finished on New Year's Day of `year`, or one with no dates at all. */
 const item = (name: string, artwork: string | undefined, year?: number) => ({
   name,
   artwork,
   franchise: "",
   startDate: year === undefined ? undefined : YearMonthDay.get(year, 1, 1),
+  endDate: year === undefined ? undefined : YearMonthDay.get(year, 1, 1),
+});
+
+/** A work begun and finished on the given days, or still going where `end` is left off. */
+const read = (name: string, start: [number, number], end?: [number, number]) => ({
+  name,
+  artwork: "a.jpg",
+  franchise: "",
+  startDate: YearMonthDay.get(start[0], start[1], 1),
+  endDate: end && YearMonthDay.get(end[0], end[1], 1),
 });
 
 /** A work in a series, for the franchise sort: its own title, its series, and when it came out. */
@@ -34,25 +50,47 @@ describe("finishedItems", () => {
   it("keeps only items that have artwork, since the grid is all pictures", () => {
     const data = [item("with", "a.jpg", 2020), item("without", undefined, 2021)];
 
-    expect(finishedItems(data, "Date").map((i) => i.name)).toEqual(["with"]);
+    expect(finishedItems(data, "When").map((i) => i.name)).toEqual(["with"]);
   });
 
   it("treats an empty artwork string as no artwork", () => {
-    expect(finishedItems([item("blank", "", 2020)], "Date")).toEqual([]);
+    expect(finishedItems([item("blank", "", 2020)], "When")).toEqual([]);
   });
 
-  it("orders by date, newest first", () => {
+  it("orders by when each work was finished, newest first", () => {
     const data = [item("old", "a.jpg", 2018), item("new", "b.jpg", 2024), item("mid", "c.jpg", 2021)];
 
-    expect(finishedItems(data, "Date").map((i) => i.name)).toEqual(["new", "mid", "old"]);
+    expect(finishedItems(data, "When").map((i) => i.name)).toEqual(["new", "mid", "old"]);
   });
 
-  it("puts items with no date at the front of the date sort", () => {
-    // sortByKey short-circuits on a falsy key before comparing, so an undefined date leads
-    // regardless of direction.
-    const data = [item("dated", "a.jpg", 2020), item("undated", "b.jpg")];
+  it("files a long read under the year it was finished rather than the year it was begun", () => {
+    // A library is a record of what was finished: a game begun years ago and finished last month
+    // is part of this year's shelf, ahead of one begun and finished in between.
+    const data = [read("between", [2021, 3], [2021, 6]), read("long", [2019, 1], [2024, 2])];
 
-    expect(finishedItems(data, "Date").map((i) => i.name)).toEqual(["undated", "dated"]);
+    expect(finishedItems(data, "When").map((i) => i.name)).toEqual(["long", "between"]);
+  });
+
+  it("puts whatever is still going ahead of everything finished, newest begun first", () => {
+    const data = [
+      read("finished", [2024, 1], [2024, 5]),
+      read("begun earlier", [2023, 1]),
+      read("begun lately", [2024, 3]),
+    ];
+
+    expect(finishedItems(data, "When").map((i) => i.name)).toEqual(["begun lately", "begun earlier", "finished"]);
+  });
+
+  it("reads the close off the caller where the model has no end, as a film finished the day it is watched", () => {
+    const film = (name: string, watched: number) => ({
+      ...item(name, "a.jpg"),
+      startDate: YearMonthDay.get(watched, 1, 1),
+    });
+    const data = [film("older", 2019), film("newer", 2023)];
+    const watchedOn = (entry: FinishedItem) => entry.startDate;
+
+    expect(finishedItems(data, "When", [], watchedOn).map((i) => i.name)).toEqual(["newer", "older"]);
+    expect(bucketFor("When", [], watchedOn)(data[0])).toBe("2019");
   });
 
   it("gathers a series together and walks it in release order", () => {
@@ -99,13 +137,13 @@ describe("finishedItems", () => {
 
   it("leaves the caller's array untouched", () => {
     const data = [item("old", "a.jpg", 2018), item("new", "b.jpg", 2024)];
-    finishedItems(data, "Date");
+    finishedItems(data, "When");
 
     expect(data.map((i) => i.name)).toEqual(["old", "new"]);
   });
 
   it("returns nothing for empty data", () => {
-    expect(finishedItems([], "Date")).toEqual([]);
+    expect(finishedItems([], "When")).toEqual([]);
   });
 });
 
@@ -114,7 +152,7 @@ describe("finishedCount", () => {
     const data = [item("with", "a.jpg", 2020), item("blank", "", 2021), item("without", undefined, 2022)];
 
     expect(finishedCount(data)).toBe(1);
-    expect(finishedCount(data)).toBe(finishedItems(data, "Date").length);
+    expect(finishedCount(data)).toBe(finishedItems(data, "When").length);
   });
 });
 
@@ -138,12 +176,12 @@ const finishedBucket = <U extends FinishedItem>(item: U, sort: string, extras: r
   bucketFor(sort, extras)(item);
 
 describe("bucketFor", () => {
-  it("reads a year off the date under the date sort", () => {
-    expect(finishedBucket(item("Zelda", "a.jpg", 2023), "Date")).toBe("2023");
+  it("reads the year a work was finished under When", () => {
+    expect(finishedBucket(read("Zelda", [2022, 11], [2023, 2]), "When")).toBe("2023");
   });
 
-  it("has no bucket for an undated item, which is one the date sort puts first", () => {
-    expect(finishedBucket(item("Undated", "a.jpg"), "Date")).toBeNull();
+  it("files a work still going under In progress, the run When opens on", () => {
+    expect(finishedBucket(read("Reading", [2024, 1]), "When")).toBe(IN_PROGRESS);
   });
 
   it("reads a leading letter off the franchise under the franchise sort", () => {
@@ -172,7 +210,7 @@ describe("bucketFor", () => {
     // The bucket follows the sort, so the same item answers differently under each.
     const both = { ...item("Metroid Prime", "a.jpg", 2023), franchise: "Metroid" };
 
-    expect(finishedBucket(both, "Date")).toBe("2023");
+    expect(finishedBucket(both, "When")).toBe("2023");
     expect(finishedBucket(both, "Franchise")).toBe("M");
   });
 });
@@ -207,6 +245,10 @@ describe("bucketLabel", () => {
   it("shows anything that is not a year as itself", () => {
     expect(bucketLabel("M")).toBe("M");
     expect(bucketLabel("1")).toBe("1");
+  });
+
+  it("names the run still going Now, which a chip one wide has room for", () => {
+    expect(bucketLabel(IN_PROGRESS)).toBe("Now");
   });
 });
 
@@ -278,7 +320,7 @@ describe("finishedColumns", () => {
     expect(resolved(finishedColumns(true, "Compact"))).toEqual([6, 4, 3, 12 / 5, 2]);
   });
 
-  it("gives a banner the whole width on a phone and four to a row above, large", () => {
+  it("gives a banner the whole width on a phone and three to a row from md up, large", () => {
     expect(resolved(finishedColumns(true, "Large"))).toEqual([12, 6, 4, 4, 4]);
   });
 
@@ -336,6 +378,11 @@ describe("a caller's own sort", () => {
     expect(finishedItems(items, "Score", byScore).map((entry) => entry.name)).toEqual(["five", "zero", "unscored"]);
   });
 
+  it("orders the items with no figure newest first among themselves, as every order settles a tie", () => {
+    const items = [scored("old", undefined, 2010), scored("scored", 5, 2018), scored("new", undefined, 2024)];
+    expect(finishedItems(items, "Score", byScore).map((entry) => entry.name)).toEqual(["scored", "new", "old"]);
+  });
+
   it("still filters by artwork", () => {
     const items = [scored("shown", 8, 2020), { ...scored("hidden", 9, 2021), artwork: undefined }];
     expect(finishedItems(items, "Score", byScore).map((entry) => entry.name)).toEqual(["shown"]);
@@ -356,18 +403,67 @@ describe("a caller's own sort", () => {
 
   it("falls through to the built-in orders when the sort is not one of the caller's", () => {
     const items = [scored("a", 1, 2010), scored("b", 2, 2020)];
-    expect(finishedItems(items, "Date", byScore).map((entry) => entry.name)).toEqual(["b", "a"]);
+    expect(finishedItems(items, "When", byScore).map((entry) => entry.name)).toEqual(["b", "a"]);
+  });
+});
+
+describe("a caller's word shelf", () => {
+  const networked = (name: string, network: string, year: number) => ({ ...item(name, "a.jpg", year), network });
+  const byNetwork: readonly FinishedExtraSort<ReturnType<typeof networked>>[] = [
+    { label: "Network", word: (show) => show.network },
+  ];
+
+  it("puts the biggest shelf first, newest first within it", () => {
+    const shows = [networked("bbc old", "BBC", 2018), networked("hbo", "HBO", 2024), networked("bbc new", "BBC", 2022)];
+
+    expect(finishedItems(shows, "Network", byNetwork).map((show) => show.name)).toEqual(["bbc new", "bbc old", "hbo"]);
+  });
+
+  it("breaks a tie between shelves by name, so two walls of one library shelve alike", () => {
+    const shows = [networked("hbo", "HBO", 2024), networked("amc", "AMC", 2020)];
+
+    expect(finishedItems(shows, "Network", byNetwork).map((show) => show.name)).toEqual(["amc", "hbo"]);
+  });
+
+  it("puts a blank cell last whatever its count, under a heading naming what it lacks", () => {
+    const shows = [networked("none a", "", 2024), networked("none b", "", 2023), networked("bbc", "BBC", 2020)];
+    const wall = finishedItems(shows, "Network", byNetwork);
+
+    expect(wall.map((show) => show.name)).toEqual(["bbc", "none a", "none b"]);
+    expect(bucketGroups(wall, "Network", byNetwork).map((group) => group.label)).toEqual(["BBC", "No network"]);
+  });
+
+  it("opens each shelf once, so the rail's highlight only travels down the page", () => {
+    const shows = [
+      networked("a", "BBC", 2020),
+      networked("b", "HBO", 2021),
+      networked("c", "BBC", 2022),
+      networked("d", "HBO", 2023),
+      networked("e", "AMC", 2024),
+    ];
+    const wall = finishedItems(shows, "Network", byNetwork);
+    const labels = wall.map(bucketFor("Network", byNetwork));
+
+    expect(orderedBuckets(labels)).toEqual(bucketGroups(wall, "Network", byNetwork).map((group) => group.label));
+  });
+
+  it("is what a heading asks for its swatch, and a figure sort is not", () => {
+    const genres = [genreShelf<{ genre: string }>("light"), { label: "Pages", value: () => 1 }];
+
+    expect(wordSort("Genre", genres)?.colour?.("Horror")).toBe(genreToColour("Horror", "light"));
+    expect(wordSort("Pages", genres)).toBeUndefined();
+    expect(wordSort("When", genres)).toBeUndefined();
   });
 });
 
 describe("the built-in sort names", () => {
   const scored = (name: string, score: number | undefined, year: number) => ({ ...item(name, "a.jpg", year), score });
-  const shadowing = [{ label: "Date", value: (entry: { score?: number }) => entry.score }];
+  const shadowing = [{ label: "When", value: (entry: { score?: number }) => entry.score }];
 
   it("answer for the wall and the marker alike, whatever a caller's sort is named", () => {
     const items = [scored("old ten", 10, 2010), scored("new one", 1, 2024)];
-    expect(finishedItems(items, "Date", shadowing).map((entry) => entry.name)).toEqual(["new one", "old ten"]);
-    expect(finishedBucket(scored("old ten", 10, 2010), "Date", shadowing)).toBe("2010");
+    expect(finishedItems(items, "When", shadowing).map((entry) => entry.name)).toEqual(["new one", "old ten"]);
+    expect(finishedBucket(scored("old ten", 10, 2010), "When", shadowing)).toBe("2010");
   });
 });
 
@@ -375,7 +471,7 @@ describe("bucketGroups", () => {
   it("cuts the wall where the bucket changes, keeping the order it was handed", () => {
     const wall = [item("a", "a.jpg", CURRENT_YEAR), item("b", "b.jpg", CURRENT_YEAR), item("c", "c.jpg", 2019)];
 
-    expect(bucketGroups(wall, "Date").map((group) => [group.label, group.items.length])).toEqual([
+    expect(bucketGroups(wall, "When").map((group) => [group.label, group.items.length])).toEqual([
       [String(CURRENT_YEAR), 2],
       ["2019", 1],
     ]);
@@ -384,13 +480,26 @@ describe("bucketGroups", () => {
   it("opens a second group where a sort returns to a bucket it has passed, rather than filing the cards hundreds above", () => {
     const wall = [item("a", "a.jpg", 2020), item("b", "b.jpg", 2019), item("c", "c.jpg", 2020)];
 
-    expect(bucketGroups(wall, "Date").map((group) => group.label)).toEqual(["2020", "2019", "2020"]);
+    expect(bucketGroups(wall, "When").map((group) => group.label)).toEqual(["2020", "2019", "2020"]);
+  });
+
+  it("stands everything still going under one run ahead of the years", () => {
+    const wall = finishedItems(
+      [read("done", [2023, 1], [2023, 4]), read("a", [2024, 1]), read("b", [2024, 2])],
+      "When",
+    );
+
+    expect(bucketGroups(wall, "When").map((group) => [group.label, group.items.length])).toEqual([
+      [IN_PROGRESS, 2],
+      ["2023", 1],
+    ]);
   });
 
   it("names the unbucketed group after the field the wall is ordered by", () => {
-    const wall = [item("a", "a.jpg")];
+    // Neither a franchise nor a title to take a letter from.
+    const wall = [item("", "a.jpg")];
 
-    expect(bucketGroups(wall, "Date")[0].label).toBe("No date");
+    expect(bucketGroups(wall, "Franchise")[0].label).toBe("No franchise");
   });
 
   it("names it after a caller's own order when that is what is in play", () => {
@@ -398,5 +507,43 @@ describe("bucketGroups", () => {
     const wall = [item("a", "a.jpg", CURRENT_YEAR)];
 
     expect(bucketGroups(wall, "Score", scored)[0].label).toBe("No score");
+  });
+});
+
+describe("cardRuns", () => {
+  const entry = (name: string, series: string, year: number) => ({ ...item(name, "a.jpg", year), series });
+  const seriesOf = (book: { series: string }) => book.series || undefined;
+  const cards = (runs: ReturnType<typeof cardRuns<ReturnType<typeof entry>>>) =>
+    runs.map((run) => [run.label, run.items.map((card) => card.members.map((member) => member.name).join("+"))]);
+
+  it("draws a card per item where nothing groups them", () => {
+    const wall = [entry("a", "Saga", 2024), entry("b", "Saga", 2024)];
+
+    expect(cards(cardRuns(bucketGroups(wall, "When")))).toEqual([["2024", ["a", "b"]]]);
+  });
+
+  it("folds a series into one card at its first entry's place, fronted by that entry", () => {
+    const wall = [entry("one", "Saga", 2024), entry("solo", "", 2024), entry("two", "Saga", 2024)];
+
+    expect(cards(cardRuns(bucketGroups(wall, "When"), seriesOf))).toEqual([["2024", ["one+two", "solo"]]]);
+  });
+
+  it("keeps a series on every run it reaches rather than filing it under one", () => {
+    // A series finished across two years belongs to both years' shelves.
+    const wall = finishedItems(
+      [entry("new", "Saga", 2024), entry("old", "Saga", 2023), entry("older", "Saga", 2023)],
+      "When",
+    );
+
+    expect(cards(cardRuns(bucketGroups(wall, "When"), seriesOf))).toEqual([
+      ["2024", ["new"]],
+      ["2023", ["old+older"]],
+    ]);
+  });
+
+  it("leaves an item standing alone as a card of its own, however many stand alone beside it", () => {
+    const wall = [entry("a", "", 2024), entry("b", "", 2024)];
+
+    expect(cards(cardRuns(bucketGroups(wall, "When"), seriesOf))).toEqual([["2024", ["a", "b"]]]);
   });
 });

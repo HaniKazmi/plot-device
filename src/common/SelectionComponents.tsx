@@ -265,7 +265,7 @@ export const SelectBox = <T extends string>({
  * Typed as exactly the one action this control sends, so every domain's dispatch — each a
  * `FilterDispatchFor` over its own wider state — fits structurally without a generic.
  */
-type YearDispatch = (action: { type: "scope"; yearTo: YearNumber; yearType: YearType }) => void;
+export type YearDispatch = (action: { type: "scope"; yearTo: YearNumber; yearType: YearType }) => void;
 
 /** The two readings of a year: everything up to it, or that year alone. */
 const SCOPE_SEGMENTS: SegmentOption<YearType>[] = [

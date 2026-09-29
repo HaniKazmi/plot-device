@@ -1,36 +1,54 @@
 import type { ReactNode } from "react";
 import type { YearMonthDay } from "../common/date";
-import type { TimelineData } from "../common/timelineLayout";
-import type { Scheme } from "../utils/types";
+import { groupMarks, type PicturePress, type TimelineData } from "../common/timelineLayout";
+import type { Colour } from "../utils/types";
 import { omniTitle } from "./adapter";
 import type { OmniItem } from "../common/medium";
 import { crossingSpan } from "./crossingsData";
-import { mediumToColour } from "../app/types";
+
+/** How one mark of the union is drawn: its colour, its hover card and its picture. */
+interface MarkDrawing {
+  colourOf: (item: OmniItem) => Colour;
+  hoverCard: (item: OmniItem) => () => ReactNode;
+  picture: (item: OmniItem) => (height: number, press: PicturePress) => ReactNode;
+}
 
 /**
- * Every item of the union as one row of the packed timeline, the reading the four tabs' own
- * timelines give one medium at a time.
+ * One item of the union as a mark of the timeline.
  *
- * The span is the crossings' own (`crossingSpan`), so the two readings of this section cannot
- * disagree about when an entry ran: a film is a point the chart floors to its minimum bar width,
- * a season or a book its logged dates, a game in play runs to today. The colour is the medium's,
- * which is the one vocabulary a mixed row carries meaning in.
+ * The span is the crossings' own (`crossingSpan`), so the two sections cannot disagree about when an
+ * entry ran: a film is a point, a season or a book its logged dates, a game in play runs to today,
+ * and an entry with no close is still going.
  */
-export const omniTimeline = (
-  items: OmniItem[],
-  today: YearMonthDay,
-  scheme: Scheme,
-  hoverCard: (item: OmniItem) => () => ReactNode,
-): TimelineData[] =>
-  items.map((item) => {
-    const { start, end } = crossingSpan(item, item.key, today);
-    return {
-      // The union's key already tells a replay from its first run and a season from its show.
-      key: `${item.medium}-${item.key}`,
-      name: omniTitle(item),
-      tooltip: hoverCard(item),
-      colour: mediumToColour(item.medium, scheme),
-      start,
-      end,
-    };
-  });
+const omniMark = (item: OmniItem, today: YearMonthDay, drawing: MarkDrawing): TimelineData => {
+  const { start, end } = crossingSpan(item, item.key, today);
+  return {
+    // The union's key already tells a replay from its first run and a season from its show.
+    key: `${item.medium}-${item.key}`,
+    name: omniTitle(item),
+    tooltip: drawing.hoverCard(item),
+    colour: drawing.colourOf(item),
+    start,
+    end,
+    open: !item.closeDate,
+    picture: drawing.picture(item),
+  };
+};
+
+/** Every item of the union as one mark, the reading the four tabs' own timelines give one medium at a time. */
+export const omniTimeline = (items: OmniItem[], today: YearMonthDay, drawing: MarkDrawing): TimelineData[] =>
+  items.map((item) => omniMark(item, today, drawing));
+
+/**
+ * Every franchise of the union as one span, across whichever media it was met in (`groupMarks`).
+ *
+ * Grouped on the raw franchise column, as the crossings are, so a work naming itself is a franchise
+ * of its own entries — a show's seasons one span — and a series met in two media is one span across
+ * both.
+ */
+export const omniFranchiseTimeline = (items: OmniItem[], today: YearMonthDay, drawing: MarkDrawing): TimelineData[] =>
+  groupMarks(
+    items,
+    (item) => omniMark(item, today, drawing),
+    (item) => item.franchise,
+  ).map(({ mark }) => mark);

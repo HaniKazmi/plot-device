@@ -8,19 +8,32 @@ import { PageRail } from "../app/PageRail";
 import { SHOW_SECTIONS, showSections } from "./sections";
 import { currentlyWatching, heroSeason } from "./statsData";
 import Timeline from "./Timeline";
-import { Show } from "./types";
+import { networkToColour, Show } from "./types";
 import { showModule } from "./module";
 import ShowCardMediaImage from "./CardMediaImage";
-import { statusToColour } from "../utils/types";
+import { statusToColour, type Scheme } from "../utils/types";
 import type { FilterState } from "./filterUtils";
 import { FranchiseContext, showFranchise } from "./franchiseContext";
 import { franchiseIndex } from "../common/franchiseIndex";
 import { memo, useDeferredValue } from "react";
-import { wallPopulation } from "../common/finishedData";
+import { genreShelf, wallPopulation, type FinishedExtraSort } from "../common/finishedData";
 import { useScheme } from "../common/useScheme";
 
 /** What the wall's card borders speak, and the key beneath its header names. */
 const SHOW_BORDER = { key: "status", valueOf: (show: Show) => show.status };
+
+/**
+ * What the library can be shelved by beyond When and Franchise. A network off the brand table
+ * answers no colour, so its shelf carries no swatch rather than the neutral.
+ */
+const showShelves = (scheme: Scheme): readonly FinishedExtraSort<Show>[] => [
+  genreShelf(scheme),
+  {
+    label: "Network",
+    word: (show) => show.network,
+    colour: (network) => networkToColour({ network }, scheme) || undefined,
+  },
+];
 
 const SuspenseBlock = ({
   filteredData,
@@ -71,7 +84,11 @@ const Graphs = memo(({ data, upTo, filterState }: { data: Show[]; upTo: Show[]; 
         yearTo={filterState.yearTo}
       />
       <Section id={SHOW_SECTIONS.timeline}>
-        <Timeline data={deferredData} />
+        <Timeline
+          data={deferredData}
+          yearType={filterState.yearType}
+          yearTo={filterState.yearTo}
+        />
       </Section>
       <Section id={SHOW_SECTIONS.charts}>
         <ChartPair
@@ -97,6 +114,7 @@ const Graphs = memo(({ data, upTo, filterState }: { data: Show[]; upTo: Show[]; 
           border={SHOW_BORDER}
           data={data}
           colour={(item) => statusToColour(item, scheme)}
+          sorts={showShelves(scheme)}
           MediaComponent={ShowCardMediaImage}
         />
       </Section>

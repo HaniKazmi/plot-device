@@ -90,6 +90,19 @@ export const shapeToPinnedAspect = (shape: ArtworkShape): string =>
   shapeIsExact(shape) ? shapeToRatio(shape) : shapeToAspect(shape);
 
 /**
+ * A picture at a stated height, its width following from its shape: held to the shape where every
+ * file is authored to it, cropping a file a few pixels off, and reserved where none is, the file's
+ * own ratio winning once it lands — the timeline's pictures, sized as the walls size theirs.
+ */
+export const pictureAtHeight = (shape: ArtworkShape, height: number) =>
+  ({
+    height,
+    width: "auto",
+    aspectRatio: shapeToPinnedAspect(shape),
+    objectFit: shapeIsExact(shape) ? "cover" : undefined,
+  }) as const;
+
+/**
  * The height a card holds for artwork it has not loaded yet.
  *
  * A lazily loaded image contributes nothing of its own, so a wall or a strip of them stands at a
