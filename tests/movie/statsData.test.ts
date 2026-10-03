@@ -127,24 +127,31 @@ describe("latestWatched", () => {
 
 describe("movieHeroStats", () => {
   it("drops the score tile for an unscored film — 0/10 says something false", () => {
-    const labels = movieHeroStats(movie({ score: undefined }), 1).map((stat) => stat.label);
+    const labels = movieHeroStats(movie({ score: undefined }), 1, "hero").map((stat) => stat.label);
 
     expect(labels).toEqual(["Minutes"]);
   });
 
   it("says the score in its own notation and counts the franchise only when it is a series", () => {
-    const stats = movieHeroStats(movie({ score: 8, franchise: "Dune" }), 2);
+    const stats = movieHeroStats(movie({ score: 8, franchise: "Dune" }), 2, "hero");
 
     expect(stats[0]).toEqual({ label: "Score", value: "8/10" });
     expect(stats.at(-1)).toEqual({ label: "Dune Films", value: 2 });
   });
 
-  it("places the film in its series after the franchise count", () => {
-    const stats = movieHeroStats(movie({ franchise: "Dune", series: "Dune", seriesNumber: 2 }), 2);
+  it("places the film in its series after the franchise count, without saying the name twice", () => {
+    const stats = movieHeroStats(movie({ franchise: "Dune", series: "Dune", seriesNumber: 2 }), 2, "hero");
 
     expect(stats.slice(-2)).toEqual([
       { label: "Dune Films", value: 2 },
-      { label: "Dune", value: "#2" },
+      { label: "In series", value: "#2" },
     ]);
+  });
+
+  it("names a series apart from its franchise, and keeps the tile off the Now band's card", () => {
+    const film = movie({ franchise: "Marvel", series: "Iron Man", seriesNumber: 2 });
+
+    expect(movieHeroStats(film, 30, "hero").at(-1)).toEqual({ label: "Iron Man", value: "#2" });
+    expect(movieHeroStats(film, 1, "card").map((stat) => stat.label)).not.toContain("Iron Man");
   });
 });

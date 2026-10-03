@@ -1,3 +1,4 @@
+import { namesTheSameThing } from "../utils/stringUtils";
 import type { LedgerRow, PanelStat } from "./Card";
 
 /**
@@ -38,6 +39,13 @@ export const seriesRow = (item: InSeries): LedgerRow | undefined =>
 /**
  * The hero's tile for the same fact: the series names the tile and its number is the figure. Absent
  * for an unnumbered entry, whose tile would have no figure to carry.
+ *
+ * `franchiseShown` is the franchise a tile beside this one already names. Most series share their
+ * franchise's name — Knives Out, Mass Effect — and a hero reading "3 Knives Out Films" then
+ * "#3 Knives Out" says the name twice, so the tile reads "In series" where the name is already up.
  */
-export const seriesTile = (item: InSeries): PanelStat | undefined =>
-  item.series && item.seriesNumber !== undefined ? { label: item.series, value: `#${item.seriesNumber}` } : undefined;
+export const seriesTile = (item: InSeries, franchiseShown?: string): PanelStat | undefined => {
+  if (!item.series || item.seriesNumber === undefined) return undefined;
+  const named = franchiseShown !== undefined && namesTheSameThing(franchiseShown, item.series);
+  return { label: named ? "In series" : item.series, value: `#${item.seriesNumber}` };
+};

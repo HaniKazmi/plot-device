@@ -122,16 +122,19 @@ export const latestWatched = (data: Movie[]) =>
 /**
  * The figures the hero carries about the film it is showing. The score is dropped when the film
  * was never rated, the franchise tile appears only where the franchise holds more than this film,
- * and the series tile only where the sheet numbers the film's place in one.
+ * and the series tile only on the hero and only where the sheet numbers the film's place in one.
  */
-export const movieHeroStats = (movie: Movie, franchiseCount: number) => {
+export const movieHeroStats = (movie: Movie, franchiseCount: number, variant: "hero" | "card") => {
   const stats: { label: string; value: number | string }[] = [];
 
   if (movie.score !== undefined) stats.push({ label: "Score", value: `${movie.score}/10` });
   stats.push({ label: "Minutes", value: movie.minutes });
-  if (franchiseCount > 1) stats.push({ label: `${movie.franchise} Films`, value: franchiseCount });
+  const franchiseTile = franchiseCount > 1;
+  if (franchiseTile) stats.push({ label: `${movie.franchise} Films`, value: franchiseCount });
 
-  const series = seriesTile(movie);
+  // Kept off the Now band's card, whose fixed 136px panel holds one row of tiles
+  // (`omnibus/nowGeometry.ts`) that a series name is long enough to wrap.
+  const series = variant === "hero" ? seriesTile(movie, franchiseTile ? movie.franchise : undefined) : undefined;
   if (series) stats.push(series);
 
   return stats;
