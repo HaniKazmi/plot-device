@@ -1,6 +1,7 @@
 import {
   certificateCategory,
   franchiseCategory,
+  seriesCategory,
   FRANCHISE_KEY,
   present,
   styleCategory,
@@ -45,6 +46,7 @@ export const movieFilters: FilterSchema<Movie, FilterState> = {
       (value, scheme) => certificateToColour(value as Certificate, scheme),
     ),
     { key: "director", label: "director", valueOf: (movie) => movie.director, searchable: true },
+    seriesCategory("filmSeries", "film series"),
     franchiseCategory(FRANCHISE_KEY),
   ],
 };

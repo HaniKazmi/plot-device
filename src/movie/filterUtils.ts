@@ -14,6 +14,7 @@ export interface FilterState extends BaseFilterState<Movie, Measure> {
   genre: string[];
   director: string[];
   franchise: string[];
+  filmSeries: string[];
   certificate: Certificate[];
 }
 

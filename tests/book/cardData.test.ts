@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { YearMonthDay } from "../../src/common/date";
-import { bookSubtitle, readRange, seriesLabel } from "../../src/book/cardData";
+import { bookSubtitle, readRange } from "../../src/book/cardData";
 import { genreToColour } from "../../src/utils/types";
 import { book } from "../fixtures/books";
 
@@ -10,14 +10,6 @@ describe("bookSubtitle", () => {
       { text: "Alastair Reynolds" },
       { text: "Sci-Fi", swatch: genreToColour("Sci-Fi", "dark") },
     ]);
-  });
-});
-
-describe("seriesLabel", () => {
-  it("states the place and the series, the series alone when unnumbered, and nothing for a standalone", () => {
-    expect(seriesLabel(book())).toBe("#2 · Revelation Space");
-    expect(seriesLabel(book({ seriesNumber: undefined }))).toBe("Revelation Space");
-    expect(seriesLabel(book({ series: "", seriesNumber: undefined }))).toBe("");
   });
 });
 

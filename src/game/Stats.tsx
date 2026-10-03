@@ -153,7 +153,7 @@ const GameHero = ({ game }: { game: VideoGame }) => {
       kicker={`Currently playing · since ${formatDate(game.startDate)}`}
       title={game.name}
       subtitle={gameSubtitle(game, scheme)}
-      stats={heroStats(game, franchise, CURRENT_PLAINDATE)}
+      stats={heroStats(game, franchise, CURRENT_PLAINDATE, "hero")}
       strip={
         <GameFranchiseStrip
           game={game}

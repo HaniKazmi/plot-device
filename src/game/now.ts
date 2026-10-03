@@ -18,7 +18,7 @@ const nowPanel = (game: VideoGame, scheme: Scheme): NowPanel => ({
   // where it states what a franchise holds, drawn from the filtered union — while the hero is
   // elected from the library and the filters do not narrow it, so a tile here would quote a
   // number that moves under a control the card ignores.
-  stats: heroStats(game, [game], CURRENT_PLAINDATE),
+  stats: heroStats(game, [game], CURRENT_PLAINDATE, "card"),
 });
 
 /**

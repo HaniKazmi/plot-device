@@ -1,4 +1,5 @@
 import { daysSince, formatDate, type YearMonthDay, type YearNumber } from "../common/date";
+import { seriesTile } from "../common/series";
 import { format } from "../utils/mathUtils";
 import { releaseDecade, scoreBand } from "../utils/types";
 import { earliestYear as earliestYearOf, groupByCategory, realFranchisesOnly } from "../common/statsData";
@@ -161,9 +162,8 @@ export const bookHeroStats = (book: Book, today: YearMonthDay, variant: "hero" |
   stats.push(...daysTile);
   stats.push({ label: "Pages", value: book.pages });
 
-  if (book.series && book.seriesNumber !== undefined) {
-    stats.push({ label: book.series, value: `#${book.seriesNumber}` });
-  }
+  const series = seriesTile(book);
+  if (series) stats.push(series);
 
   return stats;
 };

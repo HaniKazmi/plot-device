@@ -9,7 +9,7 @@ export interface FilterState extends BaseFilterState<Book, Measure> {
   genre: string[];
   author: string[];
   franchise: string[];
-  series: string[];
+  bookSeries: string[];
   format: string[];
 }
 

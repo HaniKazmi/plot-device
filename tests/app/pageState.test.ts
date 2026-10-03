@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { PAGE_STORES } from "../../src/app/pageState";
+import { PAGE_MODULES, PAGE_STORES } from "../../src/app/pageState";
 import { CURRENT_YEAR, type YearNumber } from "../../src/common/date";
 import Tabs from "../../src/tabs";
 import { activeCount, pageState as gamePageState } from "../../src/game/filterUtils";
@@ -108,5 +108,18 @@ describe("what the badge counts and Clear clears", () => {
     expect(cleared.yearTo).toBe(lastYear);
     expect(cleared.yearType).toBe("matching");
     expect(activeCount(cleared)).toBe(0);
+  });
+});
+
+describe("the series selects", () => {
+  it("keys each medium's series apart, so the box never folds two media's series of one name", () => {
+    // A series is a line inside one medium: the Harry Potter films and novels are two series. The
+    // box folds entries on the category key, so a shared key would make them one entry narrowing
+    // both tabs.
+    const keys = Object.values(PAGE_MODULES).flatMap((page) =>
+      page.filters.categories.filter((category) => category.label.endsWith("series")).map((category) => category.key),
+    );
+
+    expect(keys.toSorted()).toEqual(["bookSeries", "filmSeries", "gameSeries"]);
   });
 });

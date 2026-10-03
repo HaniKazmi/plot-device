@@ -15,7 +15,7 @@ const nowPanel = (movie: Movie, scheme: Scheme): NowPanel => ({
   subtitle: movieSubtitle(movie, scheme),
   // One film, so the franchise count is one and its tile is dropped, as it is on the three cards
   // beside this one.
-  stats: movieHeroStats(movie, 1),
+  stats: movieHeroStats(movie, 1, "card"),
 });
 
 /**

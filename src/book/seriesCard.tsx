@@ -9,7 +9,7 @@ import { stated } from "../common/population";
 import { useScheme } from "../common/useScheme";
 import { genreToColour, type Scheme } from "../utils/types";
 import BookCardMediaImage, { BookPanelCard } from "./CardMediaImage";
-import { bookDrilldownProps, bookScoreChip, bySeriesThenStart } from "./drilldown";
+import { bookDrilldownProps, bookScoreChip, bySeriesThenRelease } from "./drilldown";
 import { bookKey, daysReading, statsCardLabelFinished, type SeriesSpan } from "./statsData";
 import "../utils/arrayUtils";
 
@@ -138,7 +138,7 @@ export const BookSeriesHoverCard = ({ span }: { span: SeriesSpan }) => {
             // opened from the timeline reads as the same series opened from there. It lists the whole
             // series, the page's filters included: the bar stands for the series, and a list that
             // answered for less would not be the thing the bar was pressed to see.
-            content={span.books.toSorted(bySeriesThenStart)}
+            content={span.books.toSorted(bySeriesThenRelease)}
             cardKey={bookKey}
             labelComponent={statsCardLabelFinished}
             chipComponent={(book) => bookScoreChip(book, scheme)}
