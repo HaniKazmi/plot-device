@@ -1,16 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { seriesLabel, seriesTile } from "../../src/common/series";
+import { seriesRow, seriesTile } from "../../src/common/series";
 
-describe("seriesLabel", () => {
+describe("seriesRow", () => {
   it("states the place and the series, the series alone when unnumbered, and nothing for a standalone", () => {
-    expect(seriesLabel({ series: "Revelation Space", seriesNumber: 2 })).toBe("#2 · Revelation Space");
-    expect(seriesLabel({ series: "Revelation Space" })).toBe("Revelation Space");
-    expect(seriesLabel({ series: "" })).toBe("");
+    expect(seriesRow({ series: "Revelation Space", seriesNumber: 2 })).toEqual({
+      label: "Series",
+      value: "#2 · Revelation Space",
+    });
+    expect(seriesRow({ series: "Revelation Space" })?.value).toBe("Revelation Space");
+    expect(seriesRow({ series: "" })).toBeUndefined();
   });
 
   it("states a fractional place as the sheet writes it", () => {
     // An entry slotted between two numbered ones reads as its own position, not the one before.
-    expect(seriesLabel({ series: "Final Fantasy", seriesNumber: 7.1 })).toBe("#7.1 · Final Fantasy");
+    expect(seriesRow({ series: "Final Fantasy", seriesNumber: 7.1 })?.value).toBe("#7.1 · Final Fantasy");
   });
 });
 

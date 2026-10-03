@@ -645,8 +645,6 @@ const valueHit = (index: SearchIndex, hit: Hit<AttributeEntry | FranchiseSearchE
  * says more about a value than a shelf of works does.
  */
 export const searchUnion = (index: SearchIndex, query: string, limit = HITS_PER_GROUP): SearchGroup[] => {
-  // Both halves ranked whole and cut after the merge below, so the total the group is worded by
-  // counts every match and not only the ones each half kept.
   const attributes = rankHits(index.attributes, query, Infinity);
   const franchises = rankHits(index.franchises, query, Infinity);
 
@@ -655,10 +653,6 @@ export const searchUnion = (index: SearchIndex, query: string, limit = HITS_PER_
   // half, which is what lets each half be cut at the same figure first. The totals are still the
   // whole indexes', `rankHits` counting what it matched before its own cut, so the merged group
   // states what it is showing five of rather than a figure it stopped counting at.
-  // A series sharing its franchise's name stands as a row of its own rather than yielding to it.
-  // The two are different narrowings: "Harry Potter" the film series is the eight films, where the
-  // franchise reaches Fantastic Beasts, the games and the books, so folding the one into the other
-  // would hand a reader the wider set for the narrower name.
   const ranked = [...franchises.hits, ...attributes.hits]
     .toSorted((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity))
     .slice(0, limit);

@@ -501,11 +501,11 @@ describe("searchUnion over values", () => {
     const reynolds = library({ book: [book(), book({ name: "Redemption Ark", seriesNumber: 3 })] });
     const values = valuesOf(searchUnion(buildSearchIndex(toOmniItems(reynolds), reynolds), "re"));
 
-    expect(values[0].attribute.value).toBe("Revelation Space");
-    expect(values[0].franchise).toBeDefined();
-    expect(values.slice(1).map((value) => value.attribute.value)).toEqual(
-      expect.arrayContaining(["Revelation Space", "Alastair Reynolds"]),
-    );
+    expect(values.map((value) => [value.attribute.category, value.attribute.value])).toEqual([
+      ["franchise", "Revelation Space"],
+      ["author", "Alastair Reynolds"],
+      ["bookSeries", "Revelation Space"],
+    ]);
   });
 
   it("keeps an author's row where only the name is shared with a franchise", () => {
@@ -529,14 +529,7 @@ describe("searchUnion over values", () => {
     });
     const values = valuesOf(searchUnion(buildSearchIndex(toOmniItems(potter), potter), "harry potter"));
 
-    expect(values[0].attribute.category).toBe("franchise");
-    expect(values[0].franchise).toBeDefined();
-    expect(
-      values
-        .slice(1)
-        .map((value) => value.attribute.category)
-        .toSorted(),
-    ).toEqual(["bookSeries", "filmSeries"]);
+    expect(values.map((value) => value.attribute.category)).toEqual(["franchise", "filmSeries", "bookSeries"]);
     const film = values.find((value) => value.attribute.category === "filmSeries");
     expect(film?.attribute.label).toBe("film series");
     expect(film?.placements.map((placed) => placed.tab)).toEqual(["movies"]);

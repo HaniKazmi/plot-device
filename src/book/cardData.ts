@@ -1,5 +1,5 @@
 import type { LedgerRow, PanelSubtitlePart } from "../common/Card";
-import { seriesLabel } from "../common/series";
+import { seriesRow } from "../common/series";
 import type { FranchiseEntry } from "../common/franchiseUnion";
 import { spanUntil } from "../common/medium";
 import type { ReactNode } from "react";
@@ -40,7 +40,8 @@ export const bookRows = (book: Book, scheme: Scheme): LedgerRow[] => {
     { label: "Status", value: book.status, swatch: statusToColour(book, scheme) },
   ];
 
-  if (book.series) rows.push({ label: "Series", value: seriesLabel(book) });
+  const series = seriesRow(book);
+  if (series) rows.push(series);
 
   // A standalone book carries its own name in the column, so the row appears only where it names
   // something the book belongs to rather than the book over again. Unknown franchises fall

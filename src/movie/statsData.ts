@@ -121,7 +121,8 @@ export const latestWatched = (data: Movie[]) =>
 
 /**
  * The figures the hero carries about the film it is showing. The score is dropped when the film
- * was never rated, and the franchise tile appears only where there is a series to count.
+ * was never rated, the franchise tile appears only where the franchise holds more than this film,
+ * and the series tile only where the sheet numbers the film's place in one.
  */
 export const movieHeroStats = (movie: Movie, franchiseCount: number) => {
   const stats: { label: string; value: number | string }[] = [];

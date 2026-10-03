@@ -227,10 +227,9 @@ export const franchiseCategory = <T extends { franchise: string; name: string },
  * A medium's own series select, which Games, Movies and Books each offer and never share.
  *
  * The caller states the key and the word, both naming the medium, because a series is a line
- * inside one medium: the Harry Potter novels and films are two series under one franchise. The box
- * folds entries on the key, so a shared key would make those two one entry narrowing both tabs;
- * and it states a value's category beside its name, so a shared word would leave two rows reading
- * "Harry Potter · Series" told apart only by their counts. Franchise is the join across media.
+ * inside one medium (`InSeries`). The box folds entries on the key, so a shared key would make two
+ * media's series of one name a single entry narrowing both tabs; and it states a value's category
+ * beside its name, so a shared word would leave two rows told apart only by their counts.
  *
  * Searchable, every tab holding scores of series and most of them a run of two or three.
  */

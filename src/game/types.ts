@@ -1,4 +1,5 @@
 import type { YearMonthDay } from "../common/date";
+import type { InSeries } from "../common/series";
 import {
   NEUTRAL_FILL,
   certificateToColour,
@@ -20,24 +21,13 @@ import {
   type Style,
 } from "../utils/types";
 
-export interface VideoGame {
+export interface VideoGame extends InSeries {
   name: string;
   platform: Platform;
   company: Company;
   developer: string;
   publisher: string;
   franchise: string;
-  /**
-   * The series inside the franchise, or `""` where the game stands alone — blank rather than the
-   * game's own name, as `Book.series` is and unlike `franchise` above.
-   */
-  series: string;
-  /**
-   * Its place in `series`, absent for a standalone or an entry the sheet does not number.
-   * Fractional for an entry the sheet slots between two numbered ones — a prequel at 0.5, a second
-   * part at 7.1 — so the decimal is the order and not noise.
-   */
-  seriesNumber?: number;
   /**
    * What the game is *about*, in the vocabulary Shows and Movies record — which is what lets a
    * game meet a film under one genre name on the Omnibus. Open rather than a union, matching

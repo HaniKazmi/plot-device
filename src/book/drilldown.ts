@@ -1,3 +1,4 @@
+import { byDate } from "../common/finishedData";
 import type { GridListLayout, StatListBaseProps } from "../common/Stats";
 import { scoreBand, scoreBandToColour, type Scheme } from "../utils/types";
 import type { Book } from "./types";
@@ -23,8 +24,7 @@ import type { Book } from "./types";
  */
 export const bySeriesThenRelease = (a: Book, b: Book) => {
   if (a.series !== b.series) return a.series === "" ? 1 : b.series === "" ? -1 : a.series.localeCompare(b.series);
-  if (a.releaseDate !== b.releaseDate) return a.releaseDate.lte(b.releaseDate) ? -1 : 1;
-  return a.startDate === b.startDate ? 0 : a.startDate.lte(b.startDate) ? -1 : 1;
+  return byDate(a.releaseDate, b.releaseDate) || byDate(a.startDate, b.startDate);
 };
 
 /** The corner badge: the book's score, wearing its band's fill. Unscored books carry none. */
