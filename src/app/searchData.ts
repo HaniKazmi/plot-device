@@ -166,19 +166,12 @@ export interface SearchIndex {
    */
   context: CategoryContext;
   /**
-   * The categories whose value, where it equals the item's own franchise, is the franchise said
-   * twice (`FilterCategory.namesFranchise`) — the keys a value hit is folded into the franchise's
-   * row under, and only those: an author sharing a name with a franchise elsewhere is a different
-   * narrowing over different rows.
-   */
-  folded: ReadonlySet<string>;
-  /**
    * Per tab, how many of that tab's own rows each franchise its own picker offers holds.
    *
    * Two answers a franchise hit needs and the ranked entry cannot give. The counts are the tab's
    * rows and not the union's items, where a show is one row and the seasons the union flattens it
    * to are several; and the keys are that tab's own picker's set, asked with the same
-   * `seriesFranchises` the entries above were filtered by — so a chip is drawn exactly where the
+   * `context` the entries above were filtered by — so a chip is drawn exactly where the
    * page it lands on offers the value, and the filter it sets is one that page can clear.
    */
   franchiseRows: Record<string, Map<string, number>>;
@@ -276,18 +269,13 @@ const indexOver = (items: OmniItem[], library: Library): SearchIndex => {
   // own: `franchises` is already `isSeries` over this union, so the set is those entries' names.
   // One value and not two readings of one rule, which is what the pickers, the strips and the box
   // all narrow by.
-  const context: CategoryContext = { series: new Set(franchises.map((entry) => entry.franchise)) };
+  const context: CategoryContext = { franchises: new Set(franchises.map((entry) => entry.franchise)) };
 
   return {
     franchises,
     items: workEntries,
     attributes,
     context,
-    folded: new Set(
-      Object.values(PAGE_MODULES).flatMap((page) =>
-        page.filters.categories.filter((category) => category.namesFranchise).map((category) => category.key),
-      ),
-    ),
     categories: buildCategoryIndex(attributes, franchises),
     franchiseRows: franchiseRowsByTab(pages, context),
   };
@@ -657,8 +645,8 @@ const valueHit = (index: SearchIndex, hit: Hit<AttributeEntry | FranchiseSearchE
  * says more about a value than a shelf of works does.
  */
 export const searchUnion = (index: SearchIndex, query: string, limit = HITS_PER_GROUP): SearchGroup[] => {
-  // Both halves ranked whole and cut after the fold below, so the total the group is worded by
-  // counts the folded rows once rather than twice.
+  // Both halves ranked whole and cut after the merge below, so the total the group is worded by
+  // counts every match and not only the ones each half kept.
   const attributes = rankHits(index.attributes, query, Infinity);
   const franchises = rankHits(index.franchises, query, Infinity);
 
@@ -667,18 +655,11 @@ export const searchUnion = (index: SearchIndex, query: string, limit = HITS_PER_
   // half, which is what lets each half be cut at the same figure first. The totals are still the
   // whole indexes', `rankHits` counting what it matched before its own cut, so the merged group
   // states what it is showing five of rather than a figure it stopped counting at.
-  // One name, one row, for the one category that says so. A book series is written in its Series
-  // column and its Franchise column both, and 47 of the 73 series hold one string in each, so the
-  // attribute the first indexes would stand beside the franchise the second draws as a second
-  // "Animorphs" differing only in its category word. The franchise leads the merge and its view
-  // says more, so a series value the franchise index answers by that exact name yields to it. Only
-  // a category declaring `namesFranchise` folds: an author sharing a name with a franchise elsewhere
-  // — Stephen King's novels beside the films — is a different narrowing over different rows.
-  const named = new Set(franchises.hits.map((hit) => hit.entry.franchise));
-  const attributeHits = attributes.hits.filter(
-    (hit) => !(index.folded.has(hit.entry.category) && hit.entry.level === undefined && named.has(hit.entry.value)),
-  );
-  const ranked = [...franchises.hits, ...attributeHits]
+  // A series sharing its franchise's name stands as a row of its own rather than yielding to it.
+  // The two are different narrowings: "Harry Potter" the film series is the eight films, where the
+  // franchise reaches Fantastic Beasts, the games and the books, so folding the one into the other
+  // would hand a reader the wider set for the narrower name.
+  const ranked = [...franchises.hits, ...attributes.hits]
     .toSorted((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity))
     .slice(0, limit);
   const values = ranked.map((hit) => valueHit(index, hit));
@@ -688,7 +669,7 @@ export const searchUnion = (index: SearchIndex, query: string, limit = HITS_PER_
       key: "values",
       label: "Genres, tags and series",
       hits: values,
-      total: franchises.hits.length + attributeHits.length,
+      total: franchises.hits.length + attributes.hits.length,
     },
     ...media.map((medium) => ({
       key: medium,

@@ -116,6 +116,7 @@ describe("the schema the drawer and the box are both drawn from", () => {
       "cinema",
       "certificate",
       "director",
+      "filmSeries",
       "franchise",
     ]);
   });
@@ -126,6 +127,7 @@ describe("the schema the drawer and the box are both drawn from", () => {
     // mode reads it, offering a long category as a list to search rather than one to scan.
     expect(movieFilters.categories.filter((category) => category.searchable).map((category) => category.key)).toEqual([
       "director",
+      "filmSeries",
       "franchise",
     ]);
   });

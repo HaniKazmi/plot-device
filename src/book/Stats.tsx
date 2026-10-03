@@ -32,7 +32,7 @@ import { useSelectBox } from "../common/SelectBoxHook";
 import { stated } from "../common/population";
 import { genreToColour, scoreBand, scoreBandToColour, scoreBands } from "../utils/types";
 import { bookSubtitle } from "./cardData";
-import { bookScoreChip, bookStatListSharedProps, bySeriesThenStart } from "./drilldown";
+import { bookScoreChip, bookStatListSharedProps, bySeriesThenRelease } from "./drilldown";
 import BookCardMediaImage, { BookFranchiseStrip } from "./CardMediaImage";
 import { BOOK_SECTIONS } from "./sections";
 import { FORMATS, formatToColour, groupToColour, type Book, type Measure } from "./types";
@@ -328,7 +328,7 @@ const MostReadCategory = ({
       MediaComponent={BookCardMediaImage}
       // Series order where the sheet numbers one, reading order where it does not: a drill-down
       // into a series is read the way the series is.
-      dialogSort={(books) => books.toSorted(bySeriesThenStart)}
+      dialogSort={(books) => books.toSorted(bySeriesThenRelease)}
       nameOf={bookKey}
       dialogLabelComponent={statsCardLabelFinished}
       dialogChipComponent={(book) => bookScoreChip(book, scheme)}

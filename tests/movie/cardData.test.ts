@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { movieSubtitle } from "../../src/movie/cardData";
+import { movieRows, movieSubtitle } from "../../src/movie/cardData";
 import { genreToColour } from "../../src/utils/types";
 import { movie } from "../fixtures/movies";
 
@@ -19,5 +19,14 @@ describe("movieSubtitle", () => {
     // Reading the swatch back through the same lookup the ledger uses is what keeps the two from
     // drifting apart, rather than pinning a literal hex that only one of them still matches.
     expect(movieSubtitle(film, "dark")[1].swatch).toBe(genreToColour("Horror", "dark"));
+  });
+});
+
+describe("movieRows", () => {
+  it("states the series where the film has one, and leaves a standalone without the row", () => {
+    const series = (film: ReturnType<typeof movie>) => movieRows(film, "light").find((row) => row.label === "Series");
+
+    expect(series(movie({ series: "Alien", seriesNumber: 0.5, franchise: "Alien" }))?.value).toBe("#0.5 · Alien");
+    expect(series(movie({ series: "" }))).toBeUndefined();
   });
 });
