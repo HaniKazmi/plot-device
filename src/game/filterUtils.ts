@@ -16,6 +16,7 @@ export interface FilterState extends BaseFilterState<VideoGame, Measure> {
   endless: boolean;
   pokemon: boolean;
   franchise: string[];
+  gameSeries: string[];
   platform: Platform[];
   format: Format[];
   gameplay: string[];

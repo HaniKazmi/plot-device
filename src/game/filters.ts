@@ -1,6 +1,7 @@
 import {
   certificateCategory,
   franchiseCategory,
+  seriesCategory,
   FRANCHISE_KEY,
   styleCategory,
   type FilterSchema,
@@ -95,6 +96,7 @@ export const gameFilters: FilterSchema<VideoGame, FilterState> = {
       colourFor: (value, scheme) => gameplayToColour({ gameplay: value as Gameplay }, scheme),
     },
     { key: "publisher", label: "publisher", valueOf: (game) => game.publisher, searchable: true },
+    seriesCategory("gameSeries", "game series"),
     franchiseCategory(FRANCHISE_KEY),
   ],
 };

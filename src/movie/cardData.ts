@@ -1,4 +1,5 @@
 import type { LedgerRow, PanelSubtitlePart } from "../common/Card";
+import { seriesLabel } from "../common/series";
 import type { FranchiseEntry } from "../common/franchiseUnion";
 import type { MediumSpan } from "../common/medium";
 import type { ReactNode } from "react";
@@ -43,6 +44,8 @@ export const movieRows = (movie: Movie, scheme: Scheme): LedgerRow[] => {
     },
     { label: "BBFC", value: movie.certificate, swatch: certificateToColour(movie.certificate, scheme) },
   );
+
+  if (movie.series) rows.push({ label: "Series", value: seriesLabel(movie) });
 
   // A film with no wider franchise carries its own name in the column, so the row appears only
   // where it names something the film belongs to rather than the film over again.

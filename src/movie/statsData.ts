@@ -1,4 +1,5 @@
 import { formatDate, YearMonthDay, type YearNumber } from "../common/date";
+import { seriesTile } from "../common/series";
 import { format } from "../utils/mathUtils";
 import { releaseDecade } from "../utils/types";
 import { cinemaLabel, scoreBand, type Measure, type Movie, type MovieGroup } from "./types";
@@ -128,6 +129,9 @@ export const movieHeroStats = (movie: Movie, franchiseCount: number) => {
   if (movie.score !== undefined) stats.push({ label: "Score", value: `${movie.score}/10` });
   stats.push({ label: "Minutes", value: movie.minutes });
   if (franchiseCount > 1) stats.push({ label: `${movie.franchise} Films`, value: franchiseCount });
+
+  const series = seriesTile(movie);
+  if (series) stats.push(series);
 
   return stats;
 };

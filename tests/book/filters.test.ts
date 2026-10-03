@@ -34,7 +34,7 @@ describe("toggles and categories", () => {
     ["genre", "Fantasy", { genre: "Fantasy" }, { genre: "Sci-Fi" }],
     ["author", "Robin Hobb", { author: "Robin Hobb" }, { author: "Iain M. Banks" }],
     ["franchise", "Cosmere", { franchise: "Cosmere" }, { franchise: "The Culture" }],
-    ["series", "Mistborn", { series: "Mistborn" }, { series: "" }],
+    ["bookSeries", "Mistborn", { series: "Mistborn" }, { series: "" }],
     ["format", "Audiobook", { format: "Audiobook" as const }, { format: "eBook" as const }],
   ] as const)("narrows to the selected %s", (field, selected, kept, dropped) => {
     const keep = filters(state({ [field]: [selected] }));
@@ -76,7 +76,7 @@ describe("the schema the drawer and the box are both drawn from", () => {
       "genre",
       "format",
       "author",
-      "series",
+      "bookSeries",
       "franchise",
     ]);
   });
@@ -87,6 +87,7 @@ describe("the schema the drawer and the box are both drawn from", () => {
     // mode reads it, offering a long category as a list to search rather than one to scan.
     expect(bookFilters.categories.filter((category) => category.searchable).map((category) => category.key)).toEqual([
       "author",
+      "bookSeries",
       "franchise",
     ]);
   });

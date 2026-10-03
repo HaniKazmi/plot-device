@@ -1,4 +1,5 @@
 import { daysSince, formatDate, PlainDate, type YearMonthDay, type YearNumber } from "../common/date";
+import { seriesTile } from "../common/series";
 import { releaseDecade } from "../utils/types";
 import { format } from "../utils/mathUtils";
 import { earliestYear as earliestYearOf, groupByCategory, realFranchisesOnly } from "../common/statsData";
@@ -126,6 +127,9 @@ export const heroStats = (game: VideoGame, franchise: VideoGame[], today: YearMo
   if (game.franchise && franchise.length > 1) {
     stats.push({ label: `${game.franchise} Games`, value: franchise.length });
   }
+
+  const series = seriesTile(game);
+  if (series) stats.push(series);
 
   return stats;
 };

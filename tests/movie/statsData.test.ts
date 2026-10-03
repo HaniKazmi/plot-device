@@ -138,4 +138,13 @@ describe("movieHeroStats", () => {
     expect(stats[0]).toEqual({ label: "Score", value: "8/10" });
     expect(stats.at(-1)).toEqual({ label: "Dune Films", value: 2 });
   });
+
+  it("places the film in its series after the franchise count", () => {
+    const stats = movieHeroStats(movie({ franchise: "Dune", series: "Dune", seriesNumber: 2 }), 2);
+
+    expect(stats.slice(-2)).toEqual([
+      { label: "Dune Films", value: 2 },
+      { label: "Dune", value: "#2" },
+    ]);
+  });
 });

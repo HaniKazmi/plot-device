@@ -12,16 +12,18 @@ import type { Book } from "./types";
  */
 
 /**
- * Each series together and in its own order, then everything by start date: a group that holds
- * two numbered series — an author's, a franchise's — reads one series through before the next
- * rather than interleaving their firsts, seconds and thirds. Standalones sort after the series,
- * since the empty series name sorts before every real one only under an ascending compare, and a
- * numbered entry before an unnumbered one because `Infinity` stands in for a number.
+ * Each series together and in the order it was published, then everything by start date: a group
+ * that holds two series — an author's, a franchise's — reads one series through before the next
+ * rather than interleaving their entries. Standalones sort after the series, since the empty series
+ * name sorts before every real one only under an ascending compare.
+ *
+ * Release date rather than `seriesNumber` within a series: the number is the series' own reading
+ * order, which puts a prequel written last (The Magician's Nephew, 1955) at the head of Narnia,
+ * where publication order is the one every unnumbered book also has.
  */
-export const bySeriesThenStart = (a: Book, b: Book) => {
+export const bySeriesThenRelease = (a: Book, b: Book) => {
   if (a.series !== b.series) return a.series === "" ? 1 : b.series === "" ? -1 : a.series.localeCompare(b.series);
-  const byNumber = (a.seriesNumber ?? Infinity) - (b.seriesNumber ?? Infinity);
-  if (byNumber) return byNumber;
+  if (a.releaseDate !== b.releaseDate) return a.releaseDate.lte(b.releaseDate) ? -1 : 1;
   return a.startDate === b.startDate ? 0 : a.startDate.lte(b.startDate) ? -1 : 1;
 };
 

@@ -315,7 +315,7 @@ describe("heroStats", () => {
     expect(heroStats(game, [game], today).map((stat) => stat.label)).toEqual(["Days In"]);
   });
 
-  it("places the game in its series once the series has more than one game", () => {
+  it("counts the franchise once it holds more than one game", () => {
     const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: undefined, franchise: "Zelda" });
 
     expect(heroStats(game, [game, videoGame(), videoGame()], today)).toContainEqual({
@@ -324,10 +324,19 @@ describe("heroStats", () => {
     });
   });
 
-  it("says nothing about a series holding only this game", () => {
+  it("says nothing about a franchise holding only this game", () => {
     const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: undefined, franchise: "Zelda" });
 
     expect(heroStats(game, [game], today).map((stat) => stat.label)).toEqual(["Days In"]);
+  });
+
+  it("places the game in its series where the sheet numbers it, and only there", () => {
+    const start = YearMonthDay.get(2024, 3, 1);
+    const numbered = videoGame({ startDate: start, hours: undefined, series: "Mass Effect", seriesNumber: 3 });
+    const unnumbered = videoGame({ startDate: start, hours: undefined, series: "Super Mario" });
+
+    expect(heroStats(numbered, [numbered], today).at(-1)).toEqual({ label: "Mass Effect", value: "#3" });
+    expect(heroStats(unnumbered, [unnumbered], today).map((stat) => stat.label)).toEqual(["Days In"]);
   });
 
   it("skips the day count rather than throwing on a start date in the future", () => {
