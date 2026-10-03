@@ -115,7 +115,7 @@ export const currentlyPlaying = (data: VideoGame[]) =>
  * groups for the card strips. `today` is a parameter rather than read from the clock, so the
  * figures are a function of the data alone.
  */
-export const heroStats = (game: VideoGame, franchise: VideoGame[], today: YearMonthDay) => {
+export const heroStats = (game: VideoGame, franchise: VideoGame[], today: YearMonthDay, variant: "hero" | "card") => {
   const stats: { label: string; value: number | string }[] = [];
 
   if (game.hours) stats.push({ label: "Hours", value: game.hours });
@@ -124,11 +124,12 @@ export const heroStats = (game: VideoGame, franchise: VideoGame[], today: YearMo
   const days = daysSince(game.startDate, today);
   if (days !== undefined) stats.push({ label: "Days In", value: days });
 
-  if (game.franchise && franchise.length > 1) {
-    stats.push({ label: `${game.franchise} Games`, value: franchise.length });
-  }
+  const franchiseTile = game.franchise && franchise.length > 1;
+  if (franchiseTile) stats.push({ label: `${game.franchise} Games`, value: franchise.length });
 
-  const series = seriesTile(game);
+  // The Now band's banner card fits its words and one row of tiles into a fixed 136px panel
+  // (`omnibus/nowGeometry.ts`), and a series name is long enough to wrap that row.
+  const series = variant === "hero" ? seriesTile(game, franchiseTile ? game.franchise : undefined) : undefined;
   if (series) stats.push(series);
 
   return stats;

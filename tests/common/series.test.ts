@@ -23,4 +23,12 @@ describe("seriesTile", () => {
     expect(seriesTile({ series: "Super Mario" })).toBeUndefined();
     expect(seriesTile({ series: "" })).toBeUndefined();
   });
+
+  it('reads "In series" where a tile beside it already names the same franchise', () => {
+    expect(seriesTile({ series: "Knives Out", seriesNumber: 3 }, "Knives Out")).toEqual({
+      label: "In series",
+      value: "#3",
+    });
+    expect(seriesTile({ series: "Iron Man", seriesNumber: 2 }, "Marvel")?.label).toBe("Iron Man");
+  });
 });

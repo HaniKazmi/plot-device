@@ -1777,8 +1777,8 @@ the page's own; the four chart shells state nothing at all. The Books timeline s
 both its readings for the same test — a bar per book differs from the page by that chart's own
 future-start floor, and a bar per series is a figure nothing else on the tab counts. That second
 one counts a book the sheet named no series for as a series of itself, which is what the chart
-draws it as, where the Series filter and the Most Read band both drop a blank: 88 against their
-64, one library and two readings of the word. It arrives worded, a `common/` shell
+draws it as, where the Series filter and the Most Read band both drop a blank: 103 against their
+76, one library and two readings of the word. It arrives worded, a `common/` shell
 not knowing it counts games. Below `sm` the controls take their own row, negative margins and all: a
 title and four controls otherwise divide 375px and the title wraps to a word a line. That row is
 `ActionRow`, a horizontal scroller rather than a wrap — the rail's own `ScrollFade` and
@@ -2064,8 +2064,11 @@ and the figures as lines (`StatLines`) rather than tiles, one a line in the phon
 and two from the tablet's, "3.6 hours" in the panel's ink with its label beside it in the muted
 tone — so the poster fills its column with no ground beneath it.
 
-Its figures are the item's own — hours logged, days in, franchise size — a tile dropped rather than
-zeroed where the sheet is silent, library totals staying in the cards below. The kicker says why the
+Its figures are the item's own — hours logged, days in, franchise size, its place in its series —
+a tile dropped rather than zeroed where the sheet is silent, library totals staying in the cards
+below. The series tile reads "In series" beside a franchise tile of the same name, since "3 Knives
+Out Films" over "#3 Knives Out" says the name twice, and the Now band's cards leave it off: their
+banner panel fits one row of tiles into a fixed 136px, which a series name is long enough to wrap. The kicker says why the
 item is shown, naming on Shows the episode in hand, which the title, the show's own name, does not.
 The panel's middle is the franchise strip in its hero variant: the order reading with no switch, its
 chain held to one row and closed up on a series too long for the pitch, a panel held to the
