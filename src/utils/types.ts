@@ -403,11 +403,11 @@ export const decadeToColour = (decade: string, scheme: Scheme): Colour =>
  * A franchise's own brand hex, filling the sunburst's franchise ring, every tab's Top Franchise
  * bar, and the Omnibus gallery's franchise shelves.
  *
- * Shared rather than owned by Games, for the reason the genre ramp is: all three sheets record a
- * Franchise column, and eleven franchises are met in more than one medium — Marvel across all
- * three, Star Wars and Harry Potter across games and film, Fate and Star Trek across games and
- * television. A per-domain table would draw one of those a different colour on each tab, which is
- * the one thing a shared vocabulary exists to prevent.
+ * Shared rather than owned by Games, for the reason the genre ramp is: all four sheets record a
+ * Franchise column, and 70 franchises are met in more than one medium — Marvel, Star Wars and Fate
+ * across games, film and television, Harry Potter across games, film and books. A per-domain table
+ * would draw one of those a different colour on each tab, which is the one thing a shared
+ * vocabulary exists to prevent.
  *
  * Hue and chroma are the brand's and are kept exactly; only lightness moves, and only as far as
  * the fill contract on `NEUTRAL_FILL` demands of the half being drawn. A brand already inside the
@@ -434,8 +434,8 @@ export const decadeToColour = (decade: string, scheme: Scheme): Colour =>
  * The table holds the brands with a colour of their own to reproduce, and stops there: the long
  * tail — 168 franchise values in the games sheet alone, most of them a work naming itself — has
  * none, the same rule `networkToColour` follows, since a vocabulary nobody can learn teaches
- * nothing, and `""` hands the choice to the palette. What that leaves uncoloured is real: 47 of
- * the 60 franchises met in more than one medium have no entry, Wheel of Time, Song of Ice and
+ * nothing, and `""` hands the choice to the palette. What that leaves uncoloured is real: 55 of
+ * the 70 franchises met in more than one medium have no entry, Wheel of Time, Song of Ice and
  * Fire and Lord of the Rings among them, and the Books tab's whole Top Franchise card — Animorphs,
  * Discworld, Darren Shan, Famous Five — draws in palette colours by rank. A franchise without an
  * entry therefore wears a different colour on each tab that draws it, which the shared table
@@ -460,10 +460,10 @@ const franchiseColours: Record<string, Fill> = {
   Warcraft: fill("#fcb249", "#ffb54c"),
   "Mass Effect": fill("#d12026", "#d12026"),
   Civilization: fill("#1e6fad", "#2575b3"),
-  Persona: fill("#4557a2", "#566ab7"),
   // Met in more than one medium
   Marvel: fill("#ed1d24", "#ed1d24"),
   Fate: fill("#cb2c28", "#cb2c28"),
+  "Shin Megami Tensei": fill("#4557a2", "#566ab7"),
   Witcher: fill("#8f95a1", "#8f95a1"),
   "Star Wars": fill("#d7c200", "#f8e102"),
   "Harry Potter": fill("#7e0f0b", "#b5483c"),
