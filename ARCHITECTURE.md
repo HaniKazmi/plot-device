@@ -2812,9 +2812,25 @@ one entry in the box for each of the two questions.
 ## 9. Repository layout beyond `src/`
 
 - **`extension/`** — a standalone Chrome MV3 extension (plain JS, loaded unpacked) adding "Upload
-  Show/Movie Image" context-menu items on images and handing the URL to a macOS Shortcut via a
-  `shortcuts://` URL. This is how banner artwork gets into Google Cloud Storage; it is outside the
-  Vite build and shares no code with the app.
+  Game/Show/Movie Image" context-menu items on web images. Each opens a small window that fetches
+  the image, asks for the object name — the title as the sheet writes it — says whether that name
+  replaces an existing picture, and uploads to `hanikazmi_plotdevice_vg`,
+  `hanikazmi_plotdevice_show` or `hanikazmi_plotdevice_movie` through the Cloud Storage JSON API,
+  copying the URL the `Artwork` cell takes. It signs in through `chrome.identity.launchWebAuthFlow`
+  on the app's own OAuth client, which lists the extension's redirect URI; the manifest's `key` pins
+  the extension ID that URI is built from, an unpacked extension's ID otherwise following its folder
+  path. The type is read off the file's leading bytes before the response header, since a CDN
+  answering `application/octet-stream` would otherwise store a picture the bucket serves as a
+  download. A game's window draws the whole wallpaper with the 16:9 frame a game card shows
+  (`object-fit: cover`, centred) lit and the rest dimmed, and offers a crop and a logo over it
+  (`extension/compose.js`): dragging the picture moves the frame, a zoom slider or a pinch tightens
+  it, and a logo pasted or dropped is placed by dragging, a size slider and five snaps, held as
+  fractions of the frame so it travels with it. Once anything is changed the upload is the frame
+  alone, capped at 1920 wide as a JPEG — composed against the whole wallpaper, a logo near the edge
+  of a 16:10 or ultrawide picture lands in a strip no card shows. An untouched wallpaper goes up as
+  the original file, which the card crops exactly as the frame showed. Game artwork on disk goes
+  through a macOS Shortcut's Finder Quick Action instead. It is outside the Vite build and shares no
+  code with the app.
 - **`.idx/`, `.vscode/`** — Google Project IDX and VS Code editor configuration.
 - **`analyze.html` / `analyze.json`** — committed output of `npm run analyze`, indexing a
   `src/holiday/` domain the tree does not contain and mentioning neither `omnibus/`, `movie/` nor

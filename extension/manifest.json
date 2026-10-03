@@ -1,13 +1,18 @@
 {
   "manifest_version": 3,
-  "name": "Plot Device Uploader ",
-  "description": "Uploads images to Google Cloud",
-  "version": "1.0",
+  "name": "Plot Device Uploader",
+  "description": "Uploads game, show and movie artwork to the Plot Device buckets",
+  "version": "2.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAofggm2D/gjxhRjJbreZWrGTI8z99KvP7CWILAV43Bu60RXlzzLpb0IebcIX5zgePFTBc3qNINONB4y1f5OP7mS2NrLoJY91n2+ae/FUOB7HvfFx2p0yTJAggAHLOro7q9j9HvrX1kGV/A6m8zY1nPztOnnpu7P4jRxPKzwiNClZ06f6D+lpz3a9jJY46t5HcNfdiJOq2zBY5YGV8vpbqLWOLoys53AeIwc/0uoWQipDg53WsiymqsMXrlWxCHthTXSNEwRpOd2uI+UkwDl/fnd2oUKR061f2g2jTd6KkhgWJ3ie4iko9bS1iWlyJuwBjVnvtZASrO8RhHgBPdnQvoQIDAQAB",
   "icons": {
+    "16": "icon-16.png",
+    "32": "icon-32.png",
     "128": "icon-large.png"
   },
-  "permissions": ["contextMenus"],
+  "permissions": ["contextMenus", "identity", "storage", "clipboardWrite"],
+  "host_permissions": ["https://*/*", "http://*/*"],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   }
 }
