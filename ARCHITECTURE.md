@@ -2394,9 +2394,9 @@ dE, so Role Playing lands 2.3 from Thriller on the dark paper. Both stay at full
 labelled where they meet — the ledger stacks a Gameplay row on a Genre row.
 
 **Franchise is shared for the same reason and answers `""` off-table.** All four sheets record a
-Franchise column and eleven franchises are met in more than one medium — Marvel across three, Star
-Wars and Harry Potter across games and film, Fate and Star Trek across games and television — so a
-per-domain table would draw one of them a different colour on each tab. The set covers what a tab's
+Franchise column and 70 franchises are met in more than one medium — Marvel, Star Wars and Fate
+across games, film and television, Harry Potter across games, film and books — so a per-domain
+table would draw one of them a different colour on each tab. The set covers what a tab's
 collapsed Top Franchise card and the gallery's shelves draw, plus every cross-media franchise among
 them; the long tail is 168 values in the games sheet alone, most a work naming itself.
 `tests/utils/fillContract.test.ts` pins it: a cross-media franchise resolves to one value through

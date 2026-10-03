@@ -24,7 +24,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
     // decide which one surfaces.
     const genre = readGenre(row.Genre, `${where}, Genre`);
     const score = parseInt(row.Score);
-    const seriesNumber = parseInt(row["Series #"]);
+    const seriesNumber = parseFloat(row["Series #"]);
     const minutes = parseInt(row["Runtime (min)"]);
 
     return {

@@ -45,12 +45,13 @@ describe("bad rows", () => {
     );
   });
 
-  it("reads the series and its number, blank until the columns are filled in", () => {
-    // Both columns are empty on every row today, so this pins that they arrive as the absence the
-    // model declares rather than as `undefined` in a field typed `string`.
+  it("reads the series and its number, a blank cell arriving as the absence the model declares", () => {
+    // A standalone film leaves both cells empty, which has to arrive as `""` and no number rather
+    // than as `undefined` in a field typed `string`.
     expect(convertOne().series).toBe("");
     expect(convertOne().seriesNumber).toBeUndefined();
-    expect(convertOne({ Series: "Arrival", "Series #": "1" }).seriesNumber).toBe(1);
+    expect(convertOne({ Series: "Alien", "Series #": "1" }).seriesNumber).toBe(1);
+    expect(convertOne({ Series: "Alien", "Series #": "0.5" }).seriesNumber).toBe(0.5);
   });
 
   it("names the sheet row, the film and the column that failed", () => {

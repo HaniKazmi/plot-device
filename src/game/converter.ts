@@ -52,7 +52,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
     const numDays =
       endDate && describing(`${where}, played ${startDate} to ${endDate}`, () => startDate.daysTo(endDate));
 
-    const seriesNumber = parseInt(row["Series #"]);
+    const seriesNumber = parseFloat(row["Series #"]);
 
     return {
       name: row.Title,
