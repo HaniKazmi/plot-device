@@ -1,4 +1,5 @@
 import type { YearMonthDay } from "../common/date";
+import type { InSeries } from "../common/series";
 import {
   decadeToColour,
   formatToColour,
@@ -40,24 +41,11 @@ export type Format = (typeof FORMATS)[number];
 
 export const isFormat = (value: string): value is Format => (FORMATS as readonly string[]).includes(value);
 
-export interface Book {
+export interface Book extends InSeries {
   name: string;
   author: string;
   /** A book with no wider franchise carries its own name here, as a film does on the Movies sheet. */
   franchise: string;
-  /**
-   * The series inside the franchise — Mistborn inside Cosmere — or `""` where the book stands
-   * alone. Blank rather than the book's own name, unlike `franchise`: a series is a grouping the
-   * ledger and the drill-down name, and a one-book series naming itself would be a row saying the
-   * title twice.
-   */
-  series: string;
-  /**
-   * Its place in `series`, absent for a standalone or a collection the sheet does not number.
-   * Fractional for an entry the sheet slots between two numbered ones — a prequel at 0.5, a second
-   * part at 7.1 — so the decimal is the order and not noise.
-   */
-  seriesNumber?: number;
   genre: string;
   status: Status;
   format: Format;
