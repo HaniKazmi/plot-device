@@ -1,22 +1,29 @@
-chrome.contextMenus.create({
-  id: "gc-show",
-  title: "Upload Show Image",
-  contexts: ["image"],
-});
+import { MEDIA } from "./media.js";
 
-chrome.contextMenus.create({
-  id: "gc-movie",
-  title: "Upload Movie Image",
-  contexts: ["image"],
+// A service worker reruns its top level on every wake, so creating the menus there throws a
+// duplicate-id error each time; they persist across wakes once made at install.
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.contextMenus.removeAll(() => {
+    for (const [id, { label }] of Object.entries(MEDIA)) {
+      chrome.contextMenus.create({
+        id,
+        title: `Upload ${label} Image`,
+        contexts: ["image"],
+        // A data: or blob: image has no address worth fetching from a separate window, and a
+        // large data: URL in a query string fails long before it reaches the bucket.
+        targetUrlPatterns: ["https://*/*", "http://*/*"],
+      });
+    }
+  });
 });
 
 chrome.contextMenus.onClicked.addListener((info) => {
-  if (info.menuItemId === "gc-show") {
-    const url = `shortcuts://run-shortcut?name=Upload Show Image&input=${info.srcUrl}`;
-    chrome.tabs.create({ url: url });
-  }
-  if (info.menuItemId === "gc-movie") {
-    const url = `shortcuts://run-shortcut?name=Upload Movie Image&input=${info.srcUrl}`;
-    chrome.tabs.create({ url: url });
-  }
+  if (!(info.menuItemId in MEDIA)) return;
+  const params = new URLSearchParams({ medium: info.menuItemId, src: info.srcUrl });
+  chrome.windows.create({
+    url: `upload.html?${params}`,
+    type: "popup",
+    width: 440,
+    height: 680,
+  });
 });

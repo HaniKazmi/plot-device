@@ -103,7 +103,7 @@ tests/                 mirrors src/, plus fixtures/ and an architecture guard
 extension/             standalone Chrome extension, outside the Vite build
 ```
 
-`extension/` is a Chrome MV3 extension loaded unpacked. It adds image context-menu items that hand off to macOS Shortcuts for uploading banner artwork, and is untouched by `npm run build`.
+`extension/` is a Chrome MV3 extension loaded unpacked. It adds image context-menu items that upload game, show and movie artwork straight to the Cloud Storage buckets the sheets' `Artwork` cells point into, and is untouched by `npm run build`.
 
 ## License
 
