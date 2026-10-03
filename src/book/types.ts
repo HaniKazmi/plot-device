@@ -52,7 +52,11 @@ export interface Book {
    * title twice.
    */
   series: string;
-  /** Its place in `series`, absent for a standalone or a collection the sheet does not number. */
+  /**
+   * Its place in `series`, absent for a standalone or a collection the sheet does not number.
+   * Fractional for an entry the sheet slots between two numbered ones — a prequel at 0.5, a second
+   * part at 7.1 — so the decimal is the order and not noise.
+   */
   seriesNumber?: number;
   genre: string;
   status: Status;

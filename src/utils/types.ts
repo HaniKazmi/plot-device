@@ -423,7 +423,7 @@ export const decadeToColour = (decade: string, scheme: Scheme): Colour =>
  * from what Pokémon actually looks like and 26.0 from Star Wars.
  *
  * What the clamp costs is separation between brands that already share a hue, and this table is
- * where that lands hardest. Mario, Marvel, Xenoblade, Fate, Mass Effect, Yakuza and Harry Potter
+ * where that lands hardest. Mario, Marvel, Xenoblade, Fate, Mass Effect, Like a Dragon and Harry Potter
  * are seven reds; Final Fantasy, Ace Attorney, Civilization, DC, Disney, Doctor Who and Star Trek
  * seven blues.
  * The set is scoped so those never crowd one chart: a Top Franchise bar draws five groups from one
@@ -454,7 +454,7 @@ const franchiseColours: Record<string, Fill> = {
   "Legend of Zelda": fill("#1a8a34", "#1a8a34"),
   Tales: fill("#38bfb4", "#38bfb4"),
   Uncharted: fill("#bdaa8b", "#bdaa8b"),
-  Yakuza: fill("#c0393d", "#c0393d"),
+  "Like a Dragon": fill("#c0393d", "#c0393d"),
   "Super Smash Bros.": fill("#ff4500", "#ff4500"),
   Xenoblade: fill("#e60026", "#e60026"),
   Warcraft: fill("#fcb249", "#ffb54c"),
