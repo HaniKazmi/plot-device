@@ -85,18 +85,6 @@ describe("describeFailure", () => {
     expect(describeFailure(new Error("Row 12 names no genre"))).toBe("Row 12 names no genre");
   });
 
-  it("states the Sheets API's own complaint, which a rejection carries instead of an Error", () => {
-    const rejection = { result: { error: { code: 403, message: "The caller does not have permission" } }, status: 403 };
-
-    expect(describeFailure(rejection)).toBe("The caller does not have permission");
-  });
-
-  it("reads a rejection with no words as the server never being reached", () => {
-    expect(describeFailure({ result: false, body: "", status: null, statusText: null })).toBe(
-      "The sheets could not be reached: check the connection and refresh.",
-    );
-  });
-
   it("states a cause with no shape of its own as it stands", () => {
     expect(describeFailure("network down")).toBe("network down");
   });

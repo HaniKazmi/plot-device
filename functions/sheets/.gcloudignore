@@ -1,0 +1,8 @@
+# The deployed source is the four modules, the manifest and its lock. Tests and local state stay home.
+.gcloudignore
+node_modules/
+*.test.ts
+tsconfig.json
+.env*
+deploy.sh
+README.md

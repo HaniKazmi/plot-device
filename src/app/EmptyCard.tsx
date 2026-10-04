@@ -16,7 +16,7 @@ export const EmptyCard = () => {
   return (
     <NoticeCard
       title="Nothing here yet"
-      body="Plot Device reads your sheets in the browser. Authorise once per tab to load them."
+      body="Authorise to load your sheets. This device then stays signed in for weeks at a time."
       action={
         // `authorise` is certainly there: the card is drawn for the `empty` state alone, which is
         // reached only once neither callback being present has been ruled out.

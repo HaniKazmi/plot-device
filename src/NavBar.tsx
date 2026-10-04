@@ -141,7 +141,7 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
   // The hook answers with the pointer's handlers alone, which is why the overflow menu offers guest
   // mode outright: a finger has no long press to reach it with.
   const { onMouseDown, onMouseUp, onMouseLeave } = useLongPress(() => setGuestMode(true));
-  const { authorise, revoke } = useGoogleAuth();
+  const { authorise, signOut } = useGoogleAuth();
   const authState = useAuthState();
   const { refresh, reading } = useLibrary();
 
@@ -187,7 +187,7 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
     // Its counterpart is the bar's own key: authorising is the one thing a reader arriving at a
     // stale or empty page has to do, and a menu is two taps away from doing it. Giving a session
     // back is neither urgent nor frequent, so it stays here.
-    ...(revoke ? [{ label: "Revoke", onClick: revoke }] : []),
+    ...(signOut ? [{ label: "Sign out", onClick: signOut }] : []),
   ];
 
   return (
