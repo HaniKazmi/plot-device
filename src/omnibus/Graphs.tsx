@@ -1,21 +1,11 @@
 import { memo, useDeferredValue } from "react";
 import { CURRENT_PLAINDATE } from "../common/date";
 import { Card, CardContent, Stack } from "@mui/material";
-import { franchiseIndex } from "../common/franchiseIndex";
 import { Section } from "../common/SectionRail";
 import { PageRail } from "../app/PageRail";
 import { NothingMatches } from "../common/NothingMatches";
 import { useNothingMatches } from "../common/nothingMatchesContext";
 import { stripYearTicks } from "../common/timelineStripData";
-import {
-  bookEpoch,
-  bookFranchise,
-  BookEpochProvider,
-  FranchiseContext as BookFranchiseContext,
-} from "../book/franchiseContext";
-import { FranchiseContext as MovieFranchiseContext, movieFranchise } from "../movie/franchiseContext";
-import { FranchiseContext as ShowFranchiseContext, showFranchise } from "../show/franchiseContext";
-import { FranchiseContext as GameFranchiseContext, gameFranchise } from "../game/franchiseContext";
 import { electNow, hasNow, recentlyFinished } from "./adapter";
 import { MEDIA_LAZY } from "../app/mediaLazy";
 import type { Library } from "../app/library";
@@ -31,18 +21,10 @@ import RecentlyFinished from "./RecentlyFinished";
 import { genreBridge } from "./genreBridgeData";
 import Stats from "./Stats";
 import { OMNIBUS_SECTIONS, omnibusSections } from "./sections";
-import type { FilterState } from "./filterUtils";
+import { pageState, type FilterState } from "./filterUtils";
+import FranchiseProviders from "./FranchiseProviders";
 
-/**
- * The four franchise indexes the domains' own cards read, and the scale the Books strips draw on.
- *
- * A card opened from this tab is the domain's card, strip and all, and the strip asks its
- * domain's context for the rest of the series. Without the providers every strip here would hold
- * the one item it was opened from — a wrong answer rather than a missing one. The indexes are
- * built from the guest-filtered libraries, which is the one filter a strip must honour. The Books
- * epoch travels the same way for the same reason: a book's strip on this tab has to open where it
- * opens on its own.
- */
+/** The page inside the providers every card on it reads (`FranchiseProviders`). */
 const SuspenseBlock = ({
   library,
   filteredData,
@@ -54,22 +36,14 @@ const SuspenseBlock = ({
   upToData: OmniItem[];
   filterState: FilterState;
 }) => (
-  <GameFranchiseContext.Provider value={franchiseIndex(library.game, gameFranchise)}>
-    <ShowFranchiseContext.Provider value={franchiseIndex(library.show, showFranchise)}>
-      <MovieFranchiseContext.Provider value={franchiseIndex(library.movie, movieFranchise)}>
-        <BookFranchiseContext.Provider value={franchiseIndex(library.book, bookFranchise)}>
-          <BookEpochProvider value={bookEpoch(library.book)}>
-            <Graphs
-              library={library}
-              data={filteredData}
-              upTo={upToData}
-              filterState={filterState}
-            />
-          </BookEpochProvider>
-        </BookFranchiseContext.Provider>
-      </MovieFranchiseContext.Provider>
-    </ShowFranchiseContext.Provider>
-  </GameFranchiseContext.Provider>
+  <FranchiseProviders library={library}>
+    <Graphs
+      library={library}
+      data={filteredData}
+      upTo={upToData}
+      filterState={filterState}
+    />
+  </FranchiseProviders>
 );
 
 const Graphs = memo(
@@ -144,6 +118,7 @@ const Graphs = memo(
               data={deferredData}
               yearType={filterState.yearType}
               yearTo={filterState.yearTo}
+              dispatch={pageState.dispatch}
             />
           </Section>
         )}

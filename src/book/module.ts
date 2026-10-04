@@ -1,4 +1,4 @@
-import { spanUntil, type MediumModule, type OmniItem } from "../common/medium";
+import { credits, spanUntil, type MediumModule, type OmniItem } from "../common/medium";
 import { bookEntry } from "./cardData";
 import { bookDataConfig } from "./converter";
 import { bookFilters } from "./filters";
@@ -20,6 +20,11 @@ const bookItems = (books: Book[]): OmniItem[] =>
     genre: book.genre,
     otherGenres: [],
     franchise: book.franchise,
+    series: book.series,
+    seriesNumber: book.seriesNumber,
+    credits: credits([["author", book.author]]),
+    venue: book.format,
+    score: book.score,
     source: book,
   }));
 

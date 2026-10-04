@@ -73,13 +73,45 @@ export interface OmniItem {
    * grouping on the style drops an item with none rather than shelving it under a blank.
    */
   style?: Style;
+  /**
+   * The numbered line inside the franchise, in its own medium's words — a film series is never a
+   * book series, however the two are named. Empty for a standalone work. A season's is its show,
+   * numbered by the season, the Shows sheet writing no series and a show being the line its
+   * seasons are met in.
+   */
+  series: string;
+  seriesNumber?: number;
+  /**
+   * Who made it, by the role its own sheet records: a book's author, a film's director, a game's
+   * developer and publisher, a season's network. A role the sheet leaves blank is absent rather
+   * than credited to `""`.
+   */
+  credits: Credit[];
+  /**
+   * Where it was met: a game's platform, a film's cinema or home, a season's network, a book's
+   * format. One word per item in every medium, so a franchise reads as one ranked list of them.
+   */
+  venue: string;
+  /** Absent where the sheet records none: every game and season, and a film or book never scored. */
+  score?: number;
   source: object;
 }
 
+export type CreditRole = "author" | "director" | "developer" | "publisher" | "network";
+
+export interface Credit {
+  role: CreditRole;
+  name: string;
+}
+
+/** The credits a sheet records, dropping the roles left blank. */
+export const credits = (pairs: [CreditRole, string][]): Credit[] =>
+  pairs.filter(([, name]) => name !== "").map(([role, name]) => ({ role, name }));
+
 /**
  * How many entries of each medium a set of rows holds, which is what every "which libraries is
- * this in" line is drawn from — a franchise's hit in the search box, and the franchise view's own
- * header above the same series.
+ * this in" line is drawn from — a franchise's hit in the search box, and the franchise page's own
+ * header under the same name.
  *
  * A medium with nothing in the rows is absent rather than held at zero, which is exactly what the
  * row drawing it says nothing about.

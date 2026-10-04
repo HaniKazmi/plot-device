@@ -4,7 +4,8 @@ import { useRef, useState } from "react";
 import { INLINE_SWATCH_SIZE, Swatch } from "../common/Swatch";
 import { CURRENT_PLAINDATE } from "../common/date";
 import { DrilldownDialog } from "../common/DrilldownDialog";
-import { FILMSTRIP_HEIGHT, Filmstrip, STRIP_GAP } from "../common/Filmstrip";
+import { FILMSTRIP_HEIGHT, Filmstrip } from "../common/Filmstrip";
+import { WALL_SX } from "../common/wallSx";
 import { SectionHeader } from "../common/SectionHeader";
 import { useSelectBox } from "../common/SelectBoxHook";
 import { CutButton, SegmentedControl, type SegmentOption } from "../common/SelectionComponents";
@@ -119,18 +120,6 @@ const NO_RUNS: readonly never[] = [];
 
 /** The height every picture stands at, shelf or wall: the artwork and the medium band above it. */
 const ROW_HEIGHT = FILMSTRIP_HEIGHT + MEDIUM_LABEL_HEIGHT;
-
-/**
- * The strip's own rule, wrapped: each picture at the row's height and its own width, so a wall
- * mixing banners, posters and covers crops none of them. The height reaches the card through a
- * doubled selector for `Filmstrip`'s reason — a card states its own height in a single class.
- */
-const WALL_SX = {
-  display: "flex",
-  flexWrap: "wrap",
-  gap: `${STRIP_GAP}px`,
-  "&& > *": { flex: "0 0 auto" },
-} as const;
 
 /**
  * The library as pictures: a shelf per group, each a row of artwork at one height.

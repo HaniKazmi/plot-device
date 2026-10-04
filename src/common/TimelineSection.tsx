@@ -11,6 +11,7 @@ import { StackedTimeline } from "./StackedTimeline";
 import { MonthGrid } from "./MonthGrid";
 import { TimeLineChart } from "./Timeline";
 import { YearLog, YearPictures } from "./YearDetail";
+import { PictureClock } from "./PictureClock";
 import { useOpenedCard } from "./useOpenedCard";
 import { usePhone } from "./breakpoints";
 import { KIT_OUTLINED_SX } from "./typography";
@@ -20,15 +21,17 @@ import { CURRENT_PLAINDATE, CURRENT_YEAR, YearMonthDay, type YearNumber } from "
 import type { TimelineData } from "./timelineLayout";
 
 /**
- * The three ways a timeline is laid out. `Across` is time running left to right over four screens,
+ * The ways a timeline is laid out. `Across` is time running left to right over four screens,
  * every bar named, the way a single playthrough is read; `Stacked` is a row per year on one screen,
  * the way a library's shape across years is compared; `Grid` is that same row per year cut into
  * months, each item's own picture standing in the month it began — Stacked read by what rather
- * than how long.
+ * than how long. `Pictures` is every item's picture on a clock of its own years, empty runs
+ * folded, which only a set small enough for every item to be a picture asks for.
  */
-type TimelineLayout = "Across" | "Stacked" | "Grid";
+export type TimelineLayout = "Pictures" | "Across" | "Stacked" | "Grid";
 
-const LAYOUT_OPTIONS = segments<TimelineLayout>(["Across", "Stacked", "Grid"]);
+/** What a tab's timeline offers: every layout but Pictures, which a caller asks for by name. */
+const LAYOUTS: readonly TimelineLayout[] = ["Across", "Stacked", "Grid"];
 
 /**
  * A tab's timeline: one set of marks drawn Across, Stacked or as a Grid, coloured by whatever the caller's
@@ -62,6 +65,7 @@ export const TimelineSection = ({
   dispatch,
   shape,
   stacked,
+  layouts,
 }: {
   title: string;
   count?: string;
@@ -82,8 +86,11 @@ export const TimelineSection = ({
    * A tab reading a year as one row leaves out what would open a second lane in every year it ran.
    */
   stacked?: { data?: TimelineData[]; count?: string; labelled?: boolean };
+  /** The layouts on offer, the first being what the section opens on; every one but Pictures by default. */
+  layouts?: readonly TimelineLayout[];
 }) => {
-  const [layout, setLayout] = useState<TimelineLayout>("Across");
+  const offered = layouts ?? LAYOUTS;
+  const [layout, setLayout] = useState<TimelineLayout>(offered[0]);
   const [open, openedCard] = useOpenedCard();
   const { active } = useNothingMatches();
   const scopeTo = (year: YearNumber) => dispatch({ type: "scope", yearTo: year, yearType: "matching" });
@@ -122,7 +129,7 @@ export const TimelineSection = ({
             )}
             {controls}
             <SegmentedControl
-              options={LAYOUT_OPTIONS}
+              options={segments(offered)}
               value={layout}
               onChange={setLayout}
               ariaLabel="Layout"
@@ -140,6 +147,12 @@ export const TimelineSection = ({
         // Which of the two lines is the page's answer: the page emptied says so and offers the way
         // back, and a chart emptied by a rule of its own states that it has nothing.
         <CardContent>{active ? <NothingMatches /> : <NothingToPlot />}</CardContent>
+      ) : layout === "Pictures" ? (
+        <PictureClock
+          data={data}
+          shape={shape}
+          onOpen={open}
+        />
       ) : layout === "Grid" ? (
         // Every mark, a web serial included: a picture stands in the month it began and opens no
         // second lane, so nothing the stack leaves out for its lanes' sake is left out here.

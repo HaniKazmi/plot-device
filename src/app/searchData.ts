@@ -8,7 +8,7 @@ import {
   type PageSchema,
 } from "../common/filterSchema";
 import { franchiseIndex } from "../common/franchiseIndex";
-import { YearMonthDay, latestOf } from "../common/date";
+import type { YearMonthDay } from "../common/date";
 import { mediumToLabel, type Medium } from "../utils/types";
 import { eachMedium, moduleOf } from "./media";
 import type { Season } from "../show/types";
@@ -680,18 +680,6 @@ export const searchUnion = (index: SearchIndex, query: string, limit = HITS_PER_
 };
 
 /**
- * The works a franchise holds, newest first, one card per work: the gallery's own collapse over
- * the franchise's rows alone, so a franchise view and a franchise shelf's drill-down cannot list
- * one franchise two ways. Over the rows themselves rather than the shelves, which drop a
- * franchise of one work; a view opened on one has that one to show.
- */
-export const franchiseWorks = (items: OmniItem[], franchise: string, today: YearMonthDay): ShelfItem[] =>
-  worksOf(
-    items.filter((item) => item.franchise === franchise),
-    today,
-  );
-
-/**
  * A set of the union's rows as one card per work, newest first — what a layer listing an arbitrary
  * slice of the library shows.
  *
@@ -705,22 +693,6 @@ const worksOf = (items: OmniItem[], today: YearMonthDay): ShelfItem[] =>
 /** The works an attribute holds, for the shelf its own row opens over every library recording it. */
 export const attributeWorks = (library: Library, entry: AttributeEntry, today: YearMonthDay): ShelfItem[] =>
   worksOf(attributeItems(library, entry), today);
-
-/**
- * What a franchise view states above its works: when it began, when it was last touched, how long
- * it has taken, and how many media it reaches. The last date is `undefined` while any row of it is
- * still open, which the view states as now, and for no rows at all, which the view can be handed
- * while the union is still loading.
- */
-export const franchiseFacts = (items: OmniItem[]) => {
-  const closed = items.length > 0 && items.every((item) => item.closeDate);
-  return {
-    firstYear: Math.min(...items.map((item) => item.year)),
-    last: closed ? latestOf(items, (item) => item.closeDate!) : undefined,
-    hours: omniHours(items),
-    media: new Set(items.map((item) => item.medium)).size,
-  };
-};
 
 /**
  * The franchises met most recently, for the palette before anything is typed: the gallery's own
@@ -802,13 +774,3 @@ export const recentValues = (index: SearchIndex, items: OmniItem[], today: YearM
     },
   ];
 };
-
-/**
- * Where a franchise's context bar opens: the first of January of the earliest year anything in
- * the union was attributed to, so every franchise view brackets its window on one scale and two
- * views are comparable. An attribution year is an end year, so a franchise begun earlier opens its
- * own window before this; the strip widens the bar's scale to the window in that case rather than
- * clamping the entry, and only the bar's left label differs between such a view and the rest.
- */
-export const unionEpoch = (items: OmniItem[], today: YearMonthDay): YearMonthDay =>
-  YearMonthDay.get(items.length ? Math.min(...items.map((item) => item.year)) : today.year, 1, 1);

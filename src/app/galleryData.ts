@@ -173,7 +173,10 @@ export const workOf = (item: OmniItem): unknown => moduleOf(item).work(item.sour
  * collapse that pair the same way.
  */
 export const isSeries = (franchise: string, items: OmniItem[]): boolean =>
-  items.some((item) => !namesTheSameThing(franchise, item.name)) || new Set(items.map(workOf)).size > 1;
+  items.some((item) => !namesTheSameThing(franchise, item.name)) || worksIn(items) > 1;
+
+/** How many works a set of rows holds: a show's seasons are one show, a rewatch is the film once. */
+export const worksIn = (items: OmniItem[]) => new Set(items.map(workOf)).size;
 
 /**
  * A work as it stands on a shelf: the union's own item, plus when the reader was last in it.

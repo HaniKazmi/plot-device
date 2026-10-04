@@ -1,4 +1,4 @@
-import { spanUntil, type MediumModule, type OmniItem } from "../common/medium";
+import { credits, spanUntil, type MediumModule, type OmniItem } from "../common/medium";
 import { seasonEntry, seasonKey } from "./cardData";
 import { showDataConfig } from "./converter";
 import { guestFilter, showFilters } from "./filters";
@@ -30,6 +30,11 @@ const seasonItems = (shows: Show[]): OmniItem[] =>
       franchise: show.franchise,
       certificate: show.certificate,
       style: show.style,
+      // The show is the line a season stands in, the Shows sheet writing no series of its own.
+      series: show.name,
+      seriesNumber: season.s,
+      credits: credits([["network", show.network]]),
+      venue: show.network,
       source: season,
     })),
   );

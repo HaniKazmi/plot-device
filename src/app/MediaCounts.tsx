@@ -6,7 +6,7 @@ import { MEDIA, mediumToColour, type Medium } from "../utils/types";
  * A medium's dot: the app's shortest word for which library something is from.
  *
  * Exported because a hit's line of facts names a medium once and a whole row of them names several,
- * and a dot drawn at one size in the box and another in the franchise view would be a legend per
+ * and a dot drawn at one size in the box and another on the franchise page would be a legend per
  * surface rather than one colour meaning one medium everywhere.
  */
 export const MediumDot = ({ medium, scheme }: { medium: Medium; scheme: Scheme }) => (
@@ -35,8 +35,8 @@ export const Dot = ({ colour }: { colour: Colour | undefined }) => (
 );
 
 /**
- * How much of each medium something holds, as a dot and a word apiece: a band of its own above the
- * franchise view's strip, the counts set a little apart in the weight a header reads at.
+ * How much of each medium something holds, as a dot and a word apiece: a band of its own under a
+ * franchise page's name, the counts set a little apart in the weight a header reads at.
  *
  * The word is the caller's, since what a count is counted in is not the row's to know — a franchise
  * says a medium in its own unit ("3 films"). A medium with nothing goes unmentioned rather than

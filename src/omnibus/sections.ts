@@ -46,3 +46,19 @@ export const omnibusSections = (has: {
   finished: boolean;
   genres: boolean;
 }) => chips(has);
+
+const franchise = tabSections("franchise", [
+  { key: "vitals", label: "Vitals" },
+  { key: "when", label: "When" },
+  { key: "credits", label: "Who made it" },
+  { key: "library", label: "Library" },
+]);
+
+/**
+ * The anchors of a franchise's own page, in the order it runs: how much there is of it, when it
+ * ran, who made it, and its library last, the section a reader scrolls into and stays in. Every
+ * section stands whatever the franchise holds — one work is still a total, a mark, a maker and a
+ * shelf — so the page says nothing about which are there.
+ */
+export const FRANCHISE_SECTIONS = franchise.ids;
+export const FRANCHISE_CHIPS = franchise.chips();

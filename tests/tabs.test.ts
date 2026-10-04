@@ -6,6 +6,7 @@ import Tabs, {
   ShowsTab,
   GamesTab,
   allTabs,
+  atTabRoot,
   tabForPath,
   type DarkBar,
   type Tab,
@@ -56,11 +57,16 @@ describe("tabForPath", () => {
     expect(tabForPath("")).toBe(OmnibusTab);
   });
 
-  it("falls back rather than matching a trailing slash or a nested path", () => {
-    // Only one leading slash is stripped and the comparison is exact, so nothing below a tab
-    // resolves to it.
-    expect(tabForPath("/shows/")).toBe(OmnibusTab);
-    expect(tabForPath("/shows/detail")).toBe(OmnibusTab);
+  it("names the tab a page standing under it belongs to, by the path's first segment", () => {
+    expect(tabForPath("/shows/")).toBe(ShowsTab);
+    expect(tabForPath("/shows/detail")).toBe(ShowsTab);
+    expect(tabForPath("/omnibus/franchise/Star Wars")).toBe(OmnibusTab);
+  });
+
+  it("tells a tab's own page from one standing under it", () => {
+    expect(atTabRoot("/")).toBe(true);
+    expect(atTabRoot("/games")).toBe(true);
+    expect(atTabRoot("/omnibus/franchise/Star Wars")).toBe(false);
   });
 
   it("is case sensitive", () => {

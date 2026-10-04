@@ -96,8 +96,9 @@ downwards, its entry component asking `app/library.ts` for the library the shell
 registry is the one part of `app/` built _from_ the modules, so `game/module.ts` importing
 `app/media.ts` is a real cycle, and `module.ts` therefore imports nothing from `app/` at all.
 
-One file in `omnibus/` is a named exception rather than a loosened rule: `Graphs.tsx` mounts the
-four `FranchiseContext` providers the card strips and the crossings read. The four are not one
+One file in `omnibus/` is a named exception rather than a loosened rule: `FranchiseProviders.tsx`
+mounts the four `FranchiseContext` providers the card strips and the crossings read, around the
+Omnibus's charts and around each franchise's own page. The four are not one
 shape — Books stands a second provider inside its own, for the epoch every book strip opens at —
 and a per-medium provider member would have to be what each domain's _own_ `Graphs` mounts as well,
 or the tree would hold two definitions of one provider. `tests/architecture.test.ts` enforces both
@@ -266,6 +267,13 @@ through the registry, each medium's arm supplied by its own `module.ts` (§2) �
 flattens at the season, the unit actually watched, carrying the show's name, genre, franchise,
 certificate and style onto each. A book has neither a certificate nor a style, so `OmniItem.certificate`
 and `OmniItem.style` are optional and every surface grouping on either drops books.
+
+Each arm also carries what a franchise's page reads of it without reaching back into the record:
+its `series` and `seriesNumber` in its own medium's words (a season's its show, numbered by the
+season, the Shows sheet writing no series and a show being the line its seasons are met in), its `credits` by role — author, director, developer and publisher, network — its
+`venue`, the one word for where it was met (a platform, cinema or home, a network, a format), and
+its `score` where the sheet records one. Each is filled by the medium's own `module.ts`, so the page
+reads one shape for four media and never asks which it holds.
 
 ## 4. Caching and hydration
 
@@ -1012,11 +1020,60 @@ since 100% of the strip's box is the row plus the ten pixels reserved for its sc
 doubled selector (`&& > *`) that outweighs the card's own one-class rule about the same property.
 
 `app/CardMediaImage.tsx` is the `TypedCardMediaImage<OmniItem>` every one of these surfaces, the
-search palette and the franchise view render through: it dispatches `item.source` by `item.medium`
+search palette and the franchise page render through: it dispatches `item.source` by `item.medium`
 and passes `mediumToShape` down, so a picture opens that domain's real expanded card, strip and
 ledger, and only a mixed row arranges itself per item. `OmniHoverCard` beside it dispatches the same
 four ways, so a hovered mark shows the card its home tab would show rather than a fifth assembly of
 one.
+
+### Franchise page — `omnibus/FranchisePage.tsx`
+
+Every franchise has a page at `#/omnibus/franchise/<name>`, reached from the search box's franchise hits:
+how much of it there is, when it ran, who made it, and every work of it on shelves. It is the
+Omnibus's own sections drawn over one franchise's rows — the union filtered on the raw franchise
+column, as the crossings group — so a figure here and the same figure on the Omnibus cannot be
+counted two ways. The route stands under the Omnibus, and `tabForPath` reading a path's first
+segment is what draws the Omnibus's chrome and theme around it. It is no page of the tab's own, so
+everything reading the tab's page state — the box's This page mode, the empty-state message, the
+rail — stands down there (`atTabRoot`), and a press on the Omnibus in the tab strip goes back to
+the tab rather than nowhere. The entry the router mounts (`omnibus/Franchise.tsx`)
+waits for all four sheets, as the Omnibus does, and the page itself is a chunk of its own. It holds
+its own measure and year scope rather than the Omnibus's store, since a franchise reached from search
+is not a narrowing of whatever the Omnibus was last left showing — which is also why the rail it
+draws is a plain `SectionRail` and not `PageRail`. The page boundary is keyed on the path rather than
+the tab for the same reason: a throw on one franchise would otherwise follow the reader to the next.
+
+The sections, each built from a shell that already exists:
+
+- **Vitals.** One "All time" card — hours, works, years, and the franchise's rank by hours among
+  the library's franchises that are series at all (`isSeries`), the population the Omnibus counts —
+  beside the Media band where the franchise spans more than one medium. Then a dossier (`LedgerList`)
+  of what no section below states: where it began, where it stands, its biggest series, its best
+  score, its longest game, and, for a field the whole franchise shares, that one word in place of a
+  card that would be a single full bar. Two Top cards stand beside it, genre and where it was met,
+  re-pointable at style or decade; the genre card counts every genre an item carries, a franchise's
+  first genre being nearly always one word. A card ranking one value is left out for the dossier's
+  line.
+- **When.** The union's timeline with one mark per entry or per series (`omniSeriesTimeline`, a
+  show's seasons being its line), or the By year chart, behind one segment. The timeline opens on
+  **Pictures**, a layout `TimelineSection` offers only where a caller asks for it
+  (`common/PictureClock.tsx`): every mark's own picture standing at the day it began, a line
+  beneath it running to the day it ended, on a clock of the franchise's own years with every run of
+  years nothing touched folded to a narrow stripe (`clockScale`). A franchise is met in bursts — six
+  Star Wars films over 2008–09, then nothing until 2015 — and a linear scale spends its width on
+  the gaps while the bursts stack into lanes; folded, the gap is still stated. Pictures step down a
+  size until they fit in four lanes. A library of hundreds would be lanes of thumbnails, which is
+  why no tab's own timeline offers it.
+- **Who made it.** A column per medium — written, directed, developed, aired on — each name with what
+  else the library holds by the same hands, which opens all of it. Games carry two credits and read
+  them one at a time behind a Developer · Publisher switch, so they take one column like every other
+  medium; where every game was published by the studio that made it the switch is a note instead.
+- **Library.** The works on shelves: by series (each line of two or more works, a series never
+  joining across media however both are named, then every standalone work together), by medium, or by
+  year. A show keeps its seasons apart here, a show being a line of seasons the way a film series is
+  a line of films. The controls are the tabs' own library's: Shelves scrolled sideways or a Wall
+  wrapped down the page, Compact · Large · Full, and an order — the shelf's own, or oldest or newest
+  first.
 
 ### One control idiom for "how is this drawn" — the control kit
 
@@ -1441,11 +1498,9 @@ the way out is one key pressed twice rather than two keys to learn. Escape is re
 `onClose` reason rather than off the key handler, whose ordering against the `Modal`'s internal
 listener is not ours to fix; a backdrop press means close whatever the box is held to.
 
-A franchise hit opens `app/FranchiseView.tsx`: the gallery's franchise drill-down with a header
-saying what the franchise is before listing it — its media counted, four facts, and the franchise
-strip with no subject, every mark `plain`, since the view is about the whole series and not one
-card's place in it. Its works are the gallery's collapse over the franchise's rows alone rather than
-its shelves, which drop a franchise of one work. A work hit mounts the item's own card with
+A franchise hit goes to the franchise's own page (§ Franchise page) rather than opening a layer: a
+page has an address, the back button leaves it, and it is where any other mention of a franchise
+can lead. A work hit mounts the item's own card with
 `openOnMount`, in a host the reader never sees and fixed at a pixel rather than `display: none` so
 the thumbnail loads and samples the colour the dialog is themed from, and unmounts it on
 `onDetailClosed`; `OmniCardMediaImage` dispatches by medium, so a hit reached through search shows
@@ -2581,7 +2636,7 @@ key in ObjectExpression`; pulled out to a plain function taking the varying piec
   `sheetBarSx`, `dialogCardSx`, among others — the literal itself sits at module scope and the
   component stays compiled.
 
-The baseline is **291 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **300 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.
@@ -2814,7 +2869,7 @@ so a tab's index and the cross-media union cannot draw one item two ways.
 `Tab` carries no `spreadsheetId`/`range` (both optional for this case, with `SheetTab` restating them
 as required for anything that fetches), and its entry component reads `useLibrary()` exactly as a
 home tab reads its own medium's slice — it composes nothing itself. The cross-domain work — the
-union, the search index, the franchise view — lives in `app/`, the one folder besides a medium's own
+union, the search index — lives in `app/`, the one folder besides a medium's own
 `module.ts` allowed to reach into more than one domain; a new tab built the same way stays outside
 `common/`/`utils/` and reads what `app/` already composed rather than composing it a second time.
 

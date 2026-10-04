@@ -52,3 +52,14 @@ export const omniFranchiseTimeline = (items: OmniItem[], today: YearMonthDay, dr
     (item) => omniMark(item, today, drawing),
     (item) => item.franchise,
   ).map(({ mark }) => mark);
+
+/**
+ * The line an item stands on inside its franchise: its own medium's series, a season's being its
+ * show. Keyed by medium as well as name, since a series never joins across media however it is
+ * called. A standalone answers `""`, which `groupMarks` leaves a mark of its own.
+ */
+export const lineOf = (item: OmniItem): string => (item.series ? `${item.medium}:${item.series}` : "");
+
+/** Every series of a set of items as one span, and every standalone work as its own mark. */
+export const omniSeriesTimeline = (items: OmniItem[], today: YearMonthDay, drawing: MarkDrawing): TimelineData[] =>
+  groupMarks(items, (item) => omniMark(item, today, drawing), lineOf).map(({ mark }) => mark);

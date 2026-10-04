@@ -1,6 +1,7 @@
 import { HashRouter, Routes, Route } from "react-router-dom";
 import Tabs from "./tabs.ts";
 import Google from "./Google.tsx";
+import Franchise from "./omnibus/Franchise.tsx";
 
 // A Node-style `global`, for a dependency that expects one. Behind a `typeof` check because this
 // is a module-scope statement: bare, merely importing this file throws wherever `window` is absent,
@@ -28,6 +29,12 @@ function App() {
               Component={tab.component}
             />
           ))}
+          {/* A franchise's own page, standing under the Omnibus: the path's first segment names
+              the tab the chrome draws around it. */}
+          <Route
+            path="omnibus/franchise/:name"
+            Component={Franchise}
+          />
           {/* Anything else lands where the index does, which is what keeps the outlet and the
               chrome naming one tab: `tabForPath` answers `Tabs[0]` for a path it does not know, so
               the bar and the theme draw this tab whether or not a route matches. Without the route

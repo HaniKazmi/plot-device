@@ -28,7 +28,6 @@ import { Dot, MediumDot } from "./MediaCounts";
 import { MEDIA as MEDIA_MODULES, omniArtwork } from "./media";
 import OmniCardMediaImage from "./CardMediaImage";
 import { MIXED_CARD_SIZING, workLabels } from "./cardData";
-import { FranchiseView } from "./FranchiseView";
 import { useLibrary, type Library } from "./library";
 import { mediumBand } from "./mediumBand";
 import { usePage } from "./page";
@@ -41,7 +40,6 @@ import {
   recentValues,
   searchScope,
   searchUnion,
-  unionEpoch,
   type AttributeEntry,
   type FranchiseSearchEntry,
   type ItemSearchEntry,
@@ -54,10 +52,7 @@ import { media, mediumToShape } from "./types";
 import Tabs, { tabForId, tabInk, useOtherTabs } from "../tabs";
 
 /** What a chosen hit opens: a whole franchise, one work's own expanded card, or an attribute's shelf. */
-type Picked =
-  | { kind: "franchise"; franchise: string }
-  | { kind: "item"; item: OmniItem }
-  | { kind: "shelf"; attribute: AttributeEntry };
+type Picked = { kind: "item"; item: OmniItem } | { kind: "shelf"; attribute: AttributeEntry };
 
 /**
  * The thumbnail at a hit's left: a banner at the lead's full width, a poster or a cover standing
@@ -332,7 +327,7 @@ const attributeColour = (entry: AttributeEntry, tab: string | undefined, scheme:
  * The palette wired to the union: the index over its items, the groups a query answers, what
  * stands under the box before anything is typed, and what a chosen hit opens.
  *
- * Opening a franchise closes the palette and mounts the franchise view; opening a work mounts its
+ * Opening a franchise closes the palette and goes to the franchise's own page; opening a work mounts its
  * own card already expanded, in a host the reader never sees, and unmounts it once its dialog has
  * left. The card is the one the item's home tab would open — `OmniCardMediaImage` dispatches by
  * medium — so a hit reached through search shows exactly what the same artwork shows anywhere.
@@ -378,14 +373,20 @@ export const SearchSurface = ({
 
   const close = closeSearch;
 
+  /**
+   * A franchise opens its own page, which is a place rather than a layer — it has an address, the
+   * back button leaves it, and it is where every other mention of the franchise leads. A work opens
+   * its own card over whatever page is being read.
+   */
   const choose = (entry: FranchiseSearchEntry | ItemSearchEntry) => {
     close();
+    if (entry.kind === "franchise") {
+      navigate(`/omnibus/franchise/${encodeURIComponent(entry.franchise)}`);
+      window.scrollTo({ top: 0 });
+      return;
+    }
     setPickCount(pickCount + 1);
-    setPicked(
-      entry.kind === "franchise"
-        ? { kind: "franchise", franchise: entry.franchise }
-        : { kind: "item", item: entry.item },
-    );
+    setPicked({ kind: "item", item: entry.item });
   };
 
   /**
@@ -656,13 +657,6 @@ export const SearchSurface = ({
           </Typography>
         }
       />
-      {picked?.kind === "franchise" && (
-        <FranchiseView
-          franchise={picked.franchise}
-          epoch={unionEpoch(items ?? [], CURRENT_PLAINDATE)}
-          onClose={() => setPicked(null)}
-        />
-      )}
       {picked?.kind === "shelf" && library.whole && (
         <AttributeShelf
           attribute={picked.attribute}
