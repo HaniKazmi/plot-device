@@ -15,6 +15,7 @@ import Crossings from "./Crossings";
 import { crossings } from "./crossingsData";
 import Gallery from "./Gallery";
 import Timeline from "./Timeline";
+import type { TimelineLayout } from "../common/TimelineSection";
 import { galleryItems } from "../app/galleryData";
 import GenreBridge from "./GenreBridge";
 import RecentlyFinished from "./RecentlyFinished";
@@ -23,6 +24,13 @@ import Stats from "./Stats";
 import { OMNIBUS_SECTIONS, omnibusSections } from "./sections";
 import { pageState, type FilterState } from "./filterUtils";
 import FranchiseProviders from "./FranchiseProviders";
+
+/**
+ * Across and the grid alone: two thousand entries across four media are a stack whose lanes run to
+ * hairlines and a clock eighty lanes deep, where Across names each and the grid pictures them by
+ * month. A franchise's own page, a few dozen of them, offers all four.
+ */
+const OMNIBUS_LAYOUTS: readonly TimelineLayout[] = ["Across", "Grid"];
 
 /** The page inside the providers every card on it reads (`FranchiseProviders`). */
 const SuspenseBlock = ({
@@ -119,6 +127,7 @@ const Graphs = memo(
               yearType={filterState.yearType}
               yearTo={filterState.yearTo}
               dispatch={pageState.dispatch}
+              layouts={OMNIBUS_LAYOUTS}
             />
           </Section>
         )}

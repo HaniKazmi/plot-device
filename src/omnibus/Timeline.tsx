@@ -62,6 +62,8 @@ const OmniTimeline = (props: {
   /** Where a year label sends its scope: the page's own store. */
   dispatch: YearDispatch;
   title?: string;
+  /** The layouts offered, all four where nothing says otherwise (`TimelineSection`). */
+  layouts?: readonly TimelineLayout[];
   /** The layout the section opens on (`TimelineSection`). */
   initialLayout?: TimelineLayout;
 }) => {
@@ -114,6 +116,7 @@ const OmniTimeline = (props: {
       // The widest of the four shapes, so a lane holds any of them: a poster beside a banner stands
       // in a lane that would have held a second banner.
       shape="banner"
+      layouts={props.layouts}
       initialLayout={props.initialLayout}
     />
   );

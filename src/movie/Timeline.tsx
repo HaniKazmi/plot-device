@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { SegmentedControl, type SegmentOption } from "../common/SelectionComponents";
 import { useColourBy } from "../common/useColourBy";
-import { TimelineSection } from "../common/TimelineSection";
+import { TimelineSection, type TimelineLayout } from "../common/TimelineSection";
 import { groupMarks, type PicturePress, type TimelineData } from "../common/timelineLayout";
 import { stated } from "../common/population";
 import type { YearNumber } from "../common/date";
@@ -11,6 +11,13 @@ import { groupToColour, type Movie } from "./types";
 import MovieCardMediaImage, { MovieHoverCard } from "./CardMediaImage";
 import { movieGroupValue, movieItemKey } from "./statsData";
 import { pageState } from "./filterUtils";
+
+/**
+ * Every layout but Across, so the timeline opens on Stacked: a film is watched in a day, and a
+ * row of one-day bars is a row of ticks with names beside them, where Stacked and the grid read a
+ * library of points by its seasons and the clock by its pictures.
+ */
+const LAYOUTS: readonly TimelineLayout[] = ["Stacked", "Grid", "Pictures"];
 
 /**
  * What the timeline can be coloured by: every key the tab's own `groupToColour` answers, genre
@@ -87,6 +94,7 @@ const MovieTimeline = ({ data, yearType, yearTo }: { data: Movie[]; yearType: Ye
       yearType={yearType}
       yearTo={yearTo}
       dispatch={pageState.dispatch}
+      layouts={LAYOUTS}
       shape="banner"
     />
   );

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { SegmentedControl, type SegmentOption } from "../common/SelectionComponents";
 import { useColourBy } from "../common/useColourBy";
-import { TimelineSection } from "../common/TimelineSection";
+import { TimelineSection, type TimelineLayout } from "../common/TimelineSection";
 import { stated } from "../common/population";
 import { groupToColour, Season, Show } from "./types";
 import type { PicturePress, TimelineData } from "../common/timelineLayout";
@@ -10,6 +10,12 @@ import { pictureAtHeight } from "../common/cardArrangement";
 import type { YearType } from "../common/filterReducer";
 import ShowCardMediaImage, { ShowHoverCard } from "./CardMediaImage";
 import { pageState } from "./filterUtils";
+
+/**
+ * Every layout but Pictures: every season wears its show's one poster, so the clock would be the
+ * same picture repeated along each show's run.
+ */
+const LAYOUTS: readonly TimelineLayout[] = ["Across", "Stacked", "Grid"];
 
 /**
  * What the timeline can be coloured by: every key the tab's own `groupToColour` answers, status
@@ -90,6 +96,7 @@ const ShowTimeline = ({ data, yearType, yearTo }: { data: Show[]; yearType: Year
       yearType={yearType}
       yearTo={yearTo}
       dispatch={pageState.dispatch}
+      layouts={LAYOUTS}
       shape="poster"
     />
   );

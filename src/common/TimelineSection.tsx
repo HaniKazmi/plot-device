@@ -31,7 +31,7 @@ import type { TimelineData } from "./timelineLayout";
 export type TimelineLayout = "Across" | "Stacked" | "Grid" | "Pictures";
 
 /** One order on every timeline, so a layout is the same segment wherever it is pressed. */
-const LAYOUT_OPTIONS = segments<TimelineLayout>(["Across", "Stacked", "Grid", "Pictures"]);
+const LAYOUTS: readonly TimelineLayout[] = ["Across", "Stacked", "Grid", "Pictures"];
 
 /**
  * A tab's timeline: one set of marks drawn Across, Stacked or as a Grid, coloured by whatever the caller's
@@ -65,6 +65,7 @@ export const TimelineSection = ({
   dispatch,
   shape,
   stacked,
+  layouts,
   initialLayout,
 }: {
   title: string;
@@ -86,10 +87,16 @@ export const TimelineSection = ({
    * A tab reading a year as one row leaves out what would open a second lane in every year it ran.
    */
   stacked?: { data?: TimelineData[]; count?: string; labelled?: boolean };
-  /** The layout the section opens on, Across where nothing says otherwise. */
+  /**
+   * The layouts this timeline offers, all four where nothing says otherwise. Drawn in the one order
+   * whatever order they are given in, so a tab leaving one out moves none of the others.
+   */
+  layouts?: readonly TimelineLayout[];
+  /** The layout the section opens on, the first it offers where nothing says otherwise. */
   initialLayout?: TimelineLayout;
 }) => {
-  const [layout, setLayout] = useState<TimelineLayout>(initialLayout ?? "Across");
+  const offered = layouts ? LAYOUTS.filter((each) => layouts.includes(each)) : LAYOUTS;
+  const [layout, setLayout] = useState<TimelineLayout>(initialLayout ?? offered[0]);
   const [open, openedCard] = useOpenedCard();
   const { active } = useNothingMatches();
   const scopeTo = (year: YearNumber) => dispatch({ type: "scope", yearTo: year, yearType: "matching" });
@@ -128,7 +135,7 @@ export const TimelineSection = ({
             )}
             {controls}
             <SegmentedControl
-              options={LAYOUT_OPTIONS}
+              options={segments(offered)}
               value={layout}
               onChange={setLayout}
               ariaLabel="Layout"

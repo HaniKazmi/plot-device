@@ -646,7 +646,13 @@ Every tab's timeline is one section: a set of marks drawn **Across**, **Stacked*
 as **Pictures**, coloured by a **Colour** picker that leads the key naming those colours. The tab
 owns what the marks are — which items, one per item or per group, in which colours — and hands them
 in as `TimelineData`; the section owns how they are laid out, which is the same question on every
-tab. The header holds the two choices about the marks themselves — what one stands for, and how
+tab. Each tab offers the layouts that read its own library (`layouts`), in the one order
+whichever it leaves out: Games drops Stacked, a playthrough running across New Year being cut in
+pieces by a row per year; Shows drops Pictures, every season wearing its show's one poster; Movies
+drops Across, a one-day film being a tick there, and so opens on Stacked; and the Omnibus keeps
+Across and the grid alone, two thousand entries being a stack of hairlines and a clock eighty
+lanes deep — where a franchise's own page, a few dozen entries, offers all four. The header holds
+the two choices about the marks themselves — what one stands for, and how
 they are laid out — in one order on every timeline, and the Colour picker stands at the head of its
 own key rather than beside them: the key is where a reader asks what the colours mean, so the
 setting stands beside its answer, and a header of three controls wraps or scrolls at every width
