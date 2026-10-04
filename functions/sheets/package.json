@@ -1,0 +1,22 @@
+{
+  "name": "plot-device-sheets",
+  "private": true,
+  "type": "module",
+  "description": "Reads Plot Device's spreadsheet ranges with a service account, behind a long-lived session.",
+  "main": "index.ts",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "functions-framework --target=sheets",
+    "test": "node --test \"*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@google-cloud/functions-framework": "^5.0.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.1",
+    "typescript": "^6.0.3"
+  }
+}

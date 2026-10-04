@@ -20,7 +20,13 @@ npm run build       # tsc + vite build
 npm run format      # prettier; run before committing
 ```
 
-All of these pass cleanly on `master`, so any output is yours. TypeScript is strict with `noUnusedLocals` and `noUnusedParameters`, so a dead import fails the build. `.github/workflows/ci.yml` runs `tsc`, `lint`, `test` and `build` on Node 24 for every push and pull request, and deploys off a green run on `master`. For anything user-visible, run the app (see [Exercising the UI](#exercising-the-ui)): neither check can tell you a chart renders.
+The sheets function (`functions/sheets/`) is its own package, outside the root `tsc` and Vitest:
+
+```bash
+cd functions/sheets && npm ci && npm run typecheck && npm test   # node:test, under 1s
+```
+
+All of these pass cleanly on `master`, so any output is yours. TypeScript is strict with `noUnusedLocals` and `noUnusedParameters`, so a dead import fails the build. `.github/workflows/ci.yml` runs `tsc`, `lint`, `test` and `build` on Node 24 for every push and pull request, the function's typecheck and suite in a job beside them, and deploys the site off a green run on `master`; the function deploys by hand through its `deploy.sh`. For anything user-visible, run the app (see [Exercising the UI](#exercising-the-ui)): neither check can tell you a chart renders.
 
 ## Tests
 
@@ -32,7 +38,7 @@ The suite is pure logic in a `node` environment; `vitest.config.ts` stays separa
 
 - **No wall-clock assertions.** `CURRENT_YEAR` and `CURRENT_PLAINDATE` (`common/date.ts`) come from the real clock at module load, so a literal year fails on New Year's Day; express expectations relative to `CURRENT_YEAR`.
 - **No locale or timezone dependence.** `mathUtils.format` is an `Intl.NumberFormat` on the machine default locale; leave it untested. The `test` script pins `TZ=UTC`.
-- **No network, gapi, OAuth, `localStorage`, or canvas.** Converters take literal fixtures, and the cache round-trip drives `JSON.stringify`/`JSON.parse` rather than `useData`.
+- **No network, OAuth, `localStorage`, or canvas.** Converters take literal fixtures, and the cache round-trip drives `JSON.stringify`/`JSON.parse` rather than `useData`.
 - **No snapshots**, so a failure names the property that broke.
 - **Nothing asynchronous** — no timers, no promises, no `act()`.
 
@@ -118,16 +124,19 @@ The same instinct applies to a breakpoint: reach for `usePhone`/`useStackedChart
 npm run dev   # http://localhost:5173
 ```
 
+The app reads its sheets through the sheets function at `VITE_SHEETS_URL`. Pointed at the deployed function, a local page is refused by its CORS list unless that origin is on `ALLOWED_ORIGINS`; to work on the read path, run the function locally (its README) with the service-account key and set `VITE_SHEETS_URL=http://localhost:8090`.
+
 Authentication notes that otherwise waste your time:
 
-- The OAuth token lives in **`sessionStorage`, per-tab**. Authorise in the tab you are driving: the key beside the search button in the app bar, which carries the word from `md` up with a fine pointer.
-- A read the server turns away clears the token, and so does a resume or a refresh that finds it expired — each range is its own request, so one bad range fails one medium alone. A request that never reached the server leaves it standing and reports the sheets as unreachable. The key coming back — with a dot on it, or the "Nothing here yet" card where there was no cache to paint — usually means auth rather than rendering. A converter throw is deliberately not guarded that way; it reports itself through the snackbar.
+- The session lives in **`localStorage` under `sheets-session`**, shared by every tab on an origin and lasting a month. Authorise with the key beside the search button in the app bar, which carries the word from `md` up with a fine pointer.
+- **To drive the app signed in without the consent popup**, mint a session against a locally run function and store it: `issueSession(email, nowSeconds, lifetime, Buffer.from(secret))` from `functions/sheets/session.ts`, run under `node` with the same `SESSION_SECRET` the local function was started with, gives `{ token, session }`; write `{ token, expiresAt: session.exp * 1000 }` to `sheets-session` and reload. The function then reads the real sheets with the key, exactly as the deployed one does with its attached account.
+- A read the function turns away — a 401, and only a 401 — clears the session, and so does a resume or a refresh that finds it expired. Each range is its own request, so one bad range fails one medium alone, as a 502 carrying the Sheets API's own words. A request that never reached the function leaves the session standing and reports the sheets as unreachable. The key coming back — with a dot on it, or the "Nothing here yet" card where there was no cache to paint — usually means auth rather than rendering. A converter throw is deliberately not guarded that way; it reports itself through the snackbar.
 - Data is cached in `localStorage`, so the app paints before auth completes: a stale render can outlive a broken change.
 - **Extracted artwork colours arrive seconds after the page does**, sometimes only on a reload. Until then a card wears the theme's own colours, which reads as broken styling.
 
 **Checking a phone or tablet width** means checking a pointer as well as a width: `usePhone`, `useStackedCharts` and `useCoarsePointer` are live media queries, so a browser DevTools device toolbar flips all three without a reload as you resize or switch device, and its emulated device sets both `pointer: coarse` and `hasTouch` — which is what takes the wordmark's long press away, leaving the `⋮` menu's own item as the only handle on guest mode (`NavBar.tsx`), since the long press is deliberately a mouse gesture and collides with a touch device's own press-and-hold, and what holds the authorise key to its glyph where a mouse gets the word beside it. Check `xs`, `sm` and `md` widths, and separately check a coarse pointer at `md` and above — a tablet held sideways clears every width breakpoint but still wants the icon-only key and the bottom-sheet hover cards a phone gets.
 
-**To test without real data**, seed the caches and reload — `useData` reads them on mount, and with no token it never overwrites them:
+**To test without real data**, seed the caches and reload — `useData` reads them on mount, and with no session it never overwrites them:
 
 ```js
 localStorage.setItem("game-data-cache-v5", JSON.stringify(games));
@@ -138,7 +147,7 @@ localStorage.setItem("book-data-cache-v2", JSON.stringify(books));
 
 Dates go in as ISO strings (`"2024-05-01"`); omit `Season.show`, which the reviver re-attaches. Values must be ones the colour maps recognise, and the unversioned key seeds nothing, since `dropSupersededVersions` deletes it. Seed all four whatever tab you are on: `Google.tsx` mounts `LibraryProvider` (`app/LibraryProvider.tsx`) above every tab and it reads all four caches, and a card's franchise strip draws the other media only once all four libraries are present.
 
-For real data without authorising, take the service-account route: sign a JWT with the key in `~/.config/plot-device/sa.json`, read the ranges in `src/tabs.ts`, run each grid through its domain's `converter` under Vitest — a converter reaches the auth module, which reads `import.meta.env` at import — and write `JSON.stringify(items, config.replacer)` under `config.storageKey`.
+For real data without authorising, run the function locally and mint a session as above. Without a browser at all, take the service-account route: sign a JWT with the key in `~/.config/plot-device/sa.json`, read the ranges in `src/tabs.ts`, run each grid through its domain's `converter` under Vitest — a converter reaches the auth module, which reads `import.meta.env` at import — and write `JSON.stringify(items, config.replacer)` under `config.storageKey`.
 
 If you seed fake data, **clear those keys afterwards**.
 

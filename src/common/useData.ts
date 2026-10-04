@@ -73,18 +73,11 @@ export const parseCachedItems = <T>(raw: string, reviver?: (items: T[]) => void)
 };
 
 /**
- * What to put on screen for a failed fetch. A gapi rejection is the response itself rather than
- * an `Error`, so its message sits under `result.error`; handed to `String` it reads
- * `[object Object]`. A rejection with neither is one that never reached the server.
+ * What to put on screen for a failed fetch. The auth context raises every failure as an `Error` in
+ * words a reader can act on — the converter's own row, the Sheets API's own complaint, a connection
+ * that never reached the function — so its message is the whole report.
  */
-export const describeFailure = (cause: unknown): string => {
-  if (cause instanceof Error) return cause.message;
-  const message = (cause as { result?: { error?: { message?: unknown } } } | null)?.result?.error?.message;
-  if (typeof message === "string" && message) return message;
-  if (typeof cause === "object" && cause !== null)
-    return "The sheets could not be reached: check the connection and refresh.";
-  return String(cause);
-};
+export const describeFailure = (cause: unknown): string => (cause instanceof Error ? cause.message : String(cause));
 
 /**
  * The fetch each storage key currently has in flight, shared by every hook reading that key.
@@ -170,7 +163,7 @@ const useData = <T>(
     return parsed;
   });
 
-  const { apiReady, fetchAndConvertSheet } = useGoogleAuth();
+  const { signedIn, fetchAndConvertSheet } = useGoogleAuth();
 
   /**
    * How many reads the reader has asked for, which is what `refetch` moves.
@@ -184,7 +177,7 @@ const useData = <T>(
   const [reads, setReads] = useState(0);
 
   useEffect(() => {
-    if (!apiReady || CACHE.has(storageKey)) return;
+    if (!signedIn || CACHE.has(storageKey)) return;
 
     let pending = IN_FLIGHT.get(storageKey) as Promise<T[]> | undefined;
     if (!pending) {
@@ -227,7 +220,7 @@ const useData = <T>(
         console.error(cause);
         setError(describeFailure(cause));
       });
-  }, [apiReady, converter, storageKey, tab, fetchAndConvertSheet, replacer, reads]);
+  }, [signedIn, converter, storageKey, tab, fetchAndConvertSheet, replacer, reads]);
 
   /**
    * Reads the sheet again, for a reader who wants what it says now.

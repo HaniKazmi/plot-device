@@ -1,21 +1,25 @@
 # Architecture
 
-Plot Device is a client-only React SPA (~32,000 lines of TypeScript) that turns personal tracking
-spreadsheets into interactive dashboards. This document explains how the pieces fit together and
-why they are shaped the way they are. For conventions see [AGENTS.md](./AGENTS.md); for setup,
-[README.md](./README.md).
+Plot Device is a React SPA (~32,000 lines of TypeScript) that turns personal tracking spreadsheets
+into interactive dashboards, with one small Cloud Run function doing its sheet reads. This document
+explains how the pieces fit together and why they are shaped the way they are. For conventions see
+[AGENTS.md](./AGENTS.md); for setup, [README.md](./README.md).
 
 ## 1. System context
 
 ```
-┌──────────────┐   OAuth (GIS)    ┌───────────────────┐
+┌──────────────┐  sign-in popup   ┌───────────────────┐
 │   Browser    │ ───────────────► │  Google Identity  │
-│  (the whole  │ ◄─── token ───── │     Services      │
-│  application)│                  └───────────────────┘
-│              │
-│              │  sheets.values.get ×4 (read-only scope)
-│              │ ───────────────► ┌───────────────────┐
-│              │ ◄── string[][] ── │ Google Sheets API │
+│  (parses,    │ ◄─ access token ─ │     Services      │
+│  joins and   │   (openid email) └───────────────────┘
+│  renders     │
+│  everything) │  POST /session   ┌───────────────────┐  tokeninfo   ┌───────────────────┐
+│              │ ───────────────► │  sheets function  │ ───────────► │  Google OAuth     │
+│              │ ◄─ session ───── │  (Cloud Run)      │              └───────────────────┘
+│              │                  │                   │  values.get  ┌───────────────────┐
+│              │  GET /values ×4  │  service account, │ ───────────► │ Google Sheets API │
+│              │ ───────────────► │  Viewer on the    │ ◄─ grid ──── │                   │
+│              │ ◄── string[][] ── │  Trackers book    │              └───────────────────┘
 └──────┬───────┘                  └───────────────────┘
        │
        │ static assets
@@ -26,15 +30,24 @@ why they are shaped the way they are. For conventions see [AGENTS.md](./AGENTS.m
 └──────────────────────┘
 ```
 
-There is no backend, no database, and no build-time data. One spreadsheet is the system of record —
-four ranges, a tab each — and the browser authenticates, fetches whole ranges, and parses, joins,
-aggregates and renders locally. Deployment is a static bundle pushed to GitHub Pages by
-`npm run deploy`.
+There is no database and no build-time data. One spreadsheet is the system of record — four ranges,
+a tab each — and the browser fetches whole ranges and parses, joins, aggregates and renders locally.
+The site is a static bundle pushed to GitHub Pages by `npm run deploy`; the function
+(`functions/sheets/`) is deployed by hand with its own `deploy.sh`.
 
 **Why this shape.** The dataset is one person's media history, thousands of rows and already
-comfortable to edit in Sheets, so a write path and a server would cost operationally for no gain. The
-price is accepted: every visitor authenticates, each session refetches whole ranges, and everything
-computes on the main thread — which the caching layer (§4) exists to make tolerable.
+comfortable to edit in Sheets, so a write path would cost operationally for no gain. The price is
+accepted: each session refetches whole ranges, and everything computes on the main thread — which
+the caching layer (§4) exists to make tolerable.
+
+**Why the function exists at all.** A page reading Sheets itself holds a Google access token, which
+lasts an hour, and renewing one needs a popup that a browser blocks unless it follows a click — so a
+page left open, or opened in a new tab, asks for the key again every hour. The function holds the
+credential instead: it runs as a service account shared as Viewer on the Trackers book and nothing
+else, reads with that account's token from the metadata server, and gives the browser a session
+token of its own lasting a month (§5). It returns the range's rows as the Sheets API reads them,
+gzipped — the converters stay in the browser, so a model change remains one deploy of the site
+rather than two deploys that have to agree on a shape.
 
 ## 2. Layers
 
@@ -137,7 +150,7 @@ domain may import. `omnibus/` reads no sheet (§3), so it is the one domain with
 tabs.ts                    { spreadsheetId, range }
    │
    ▼
-GoogleAuthContext          values.get, one request per range, the four concurrent
+GoogleAuthContext          GET /values on the sheets function, one per range, the four concurrent
    │                       → string[][]  (raw grid, header row first)
    ▼
 utils/arrayUtils           arrayToJson()
@@ -163,16 +176,16 @@ common/filterReducer       reducer composes predicates → data.filter(...)
 `jsonConverter` knows a spreadsheet's column names, which is what makes a new data source cheap to
 add (§8).
 
-**The four reads are four concurrent `values.get` calls, not one `batchGet`.** The provider mounts
-four hooks whose effects run in one commit, so the four requests leave together over one
-connection. Batching them into a single `batchGet` measures slower on this data, not faster: a
+**The four reads are four concurrent requests, not one `batchGet`.** Each is a `GET /values` on the
+sheets function, which makes one `values.get` for it. The provider mounts four hooks whose effects
+run in one commit, so the four requests leave together over one connection. Batching them into a single `batchGet` measures slower on this data, not faster: a
 median of 598 ms for the batch against 369 ms for the four in parallel, the first grid landing at
 308 ms (2026-09-11), because every converter then waits for the largest range before any can
 start. Separate reads also fail separately: a range string embeds a **sheet tab name** the
 spreadsheet's owner renames at will, and one renamed tab then empties one medium rather than all
-four. A grid that arrives empty is `undefined` on the response, and `fetchAndConvertSheet` rejects
-it outside its own token guard, since a converter reading no rows as a library with none would
-store that over the copy a cold visit paints from and report a successful refresh doing it.
+four. A tab that answers no rows is a 502 from the function, like every other fault with a sheet,
+since a converter reading no rows as a library with none would store that over the copy a cold
+visit paints from and report a successful refresh doing it.
 
 **A bad cell names its own row**, rather than surfacing later from a colour lookup or a chart offset
 that names none. `common/sheetError.ts` holds the vocabulary — `sheetRow`, `describing`, `sheetError`
@@ -266,7 +279,7 @@ and `OmniItem.style` are optional and every surface grouping on either drops boo
 The hook returns cached data synchronously from its `useState` initialiser, so charts render from
 the previous visit's copy. `dataLoaded` starts `true` on a `CACHE` hit, every entry there having
 been written by a fetch this session made, so a caller waiting on four domains can tell "still
-fetching" from "already fetched by the tab you came from". Once `apiReady` turns true it fetches,
+fetching" from "already fetched by the tab you came from". Once `signedIn` turns true it fetches,
 sharing one in-flight promise per `storageKey` so a second mount subscribes rather than issuing a
 second read; the entry clears on settle, so a failed fetch is retried by the next mount.
 
@@ -282,14 +295,14 @@ emptying it would blank the next cold visit for the window before the replacemen
 `IN_FLIGHT` too: a request already on the wire is one a refresh joins rather than duplicates.
 
 `LibraryProvider` composes the four into `refresh` on `LibraryValue`, beside the `loaded` and `error`
-it already assembles, and derives `reading` from them — a token, and a medium that has neither
+it already assembles, and derives `reading` from them — a session, and a medium that has neither
 landed nor failed. Both live there rather than in a module global because the bar is inside that
 provider, so there is a common ancestor and nothing to reach past. It also means `loaded` stops being
 a latch: it turns false while a refresh is out and true when it lands.
 
-The third return value is what went wrong. A gapi rejection is the response object rather than an
-`Error`, so `describeFailure` reads `result.error.message` — the converter's own message, naming the
-row, item and column. `SheetErrorSnackbar` holds it until dismissed and leaves the stale copy
+The third return value is what went wrong. The auth context raises every failure as an `Error` in
+words a reader can act on, so `describeFailure` states its message — the converter's own, naming the
+row, item and column, or the Sheets API's, naming a renamed tab. `SheetErrorSnackbar` holds it until dismissed and leaves the stale copy
 standing: last week's data beside the row to fix beats an empty page. A read that succeeds is not
 announced: the bar's refresh spins for as long as the read is out, which is the whole of the report.
 Below `sm` the notice stands above the bottom tab bar (`BOTTOM_TABS_CLEARANCE`, § Phone and tablet)
@@ -318,39 +331,59 @@ visitor who never authorises.
 
 ## 5. Authentication
 
-`contexts/GoogleAuthContext.tsx` owns the whole auth lifecycle:
+Two halves: `contexts/GoogleAuthContext.tsx` owns the browser's session, and `functions/sheets/`
+issues it and reads the sheets behind it.
 
-- **Script loading.** The GIS (`accounts.google.com/gsi/client`) and gapi
-  (`apis.google.com/js/api.js`) scripts are injected at runtime by an idempotent internal `useScript`
-  hook, which reuses an existing tag and checks a readiness predicate before attaching a load
-  listener; `App.tsx` `preload()`s both.
-- **Token storage.** The token is wrapped with an absolute `expiry` in `sessionStorage`, and
-  `getValidToken` evicts it once expired so a stale token never reaches gapi. A malformed `expires_in`
-  yields a `NaN` expiry, which fails every validity test and discards the token on its next read.
-- **Readiness.** `apiReady = tokenSet && apiReadyToFetch` — a valid token _and_ an initialised gapi
-  client, so consumers wait on one flag rather than two async loads.
-- **Failure handling.** A read the server turns away — a 401 or 403 — clears `tokenSet`, putting
-  the key back in the bar, so mid-session expiry self-heals into a re-prompt; a request that never
-  reached the server, a phone between networks, leaves the token standing and reports the sheets
-  as unreachable. The token is also re-read before every request and on every resume —
-  `visibilitychange` and `pageshow` — since it lasts an hour and `tokenSet` is written at the
-  grant: an installed app put away and picked up the next day would otherwise offer a refresh that
-  fails in the server's own words, where the key with its dot is what it needs. **Only the request
-  is guarded**: a converter throw travels on to `useData` instead, since clearing the token would
-  make a data fault look like an auth fault. A refusal — GIS delivers a dismissed consent popup to the callback a grant
-  arrives on, carrying `error` and no `access_token` — is rejected by `isGrant` (`contexts/token.ts`)
-  before it can leave the app reporting itself authorised on a credential-less token.
+- **Sign-in.** The GIS script (`accounts.google.com/gsi/client`) is preloaded and injected only
+  while there is no session, by an idempotent internal `useScript` hook that reuses an existing tag
+  and checks a readiness predicate before attaching a load listener: its one job is the Authorise
+  popup, so a visit already holding a session downloads none of it. It cannot be fetched on the
+  press instead, since a browser allows a popup only straight after a click and a download in
+  between spends that allowance. The key opens GIS's token
+  popup asking for `openid email` — the popup rather than One Tap, because a browser allows a popup
+  that follows a click, where One Tap goes quiet for a cooling-off period after one dismissal and
+  leaves the key doing nothing. The access token that comes back is spent once, on `POST /session`,
+  and never reaches the Sheets API.
+- **The session.** The function asks Google's `tokeninfo` about that token and admits it only if it
+  was issued to the app's own OAuth client — a token minted for any other app the reader uses would
+  otherwise pass — for a verified address on `ALLOWED_EMAILS`. It answers a token of its own, an
+  email and an expiry signed with `SESSION_SECRET` (HMAC, compared in constant time), lasting
+  `SESSION_DAYS`, thirty by default. Rotating the secret signs every device out.
+- **Session storage.** The session is held in `localStorage` with the absolute expiry the function
+  stated, so every tab and every restart of an installed app shares it; `getValidSession` evicts it
+  once expired, and `parseSession` treats any other shape under the key as no session. A `storage`
+  event — another tab authorising or signing out — re-reads it. Nothing watches for expiry while
+  the page is open: a month-long session lapses mid-visit rarely, and when it does the next read is
+  refused with the same 401 a forged one gets, which ends it and names the key.
+- **Readiness.** `signedIn` is a session and nothing else: a read is a plain `fetch` with the
+  session in an `X-Plot-Session` header — not `Authorization`, where Cloud Run reads a bearer token
+  as a Google credential and refuses it before the function runs — so there is no client library to
+  wait for.
+- **Failure handling.** The function answers 401 for a session it no longer accepts and for nothing
+  else, and that is the one status that clears the session and puts the key back in the bar, stated
+  in the app's own words. A fault with the sheet — a renamed tab, an emptied one, a lost share — comes back as a 502
+  whose `error` names it, so the app never reads the Sheets API's own shape and signing in again is
+  never offered for a fault it would not change; a request that
+  never reached the function, a phone between networks, leaves the session standing and reports the
+  sheets as unreachable. **Only the request is guarded**: a converter throw travels on to `useData`
+  instead, since clearing the session would make a data fault look like an auth fault. A refusal —
+  GIS delivers a dismissed consent popup to the callback a grant arrives on, carrying `error` and no
+  `access_token` — is rejected by `isGrant` (`contexts/token.ts`) before it is sent anywhere, and an
+  account the function will not admit leaves the key standing, which is the state that is true.
 
-The requested scope is `spreadsheets.readonly`; there is no write path by design. `authorise` and
-`revoke` are exposed as `undefined` when unavailable, so which of them exists _is_ the token, read by
-presence rather than through separate booleans.
+The function reads with `spreadsheets.readonly`, from the metadata server's token for its attached
+account, so no key exists in the cloud; there is no write path by design. What it can reach is that
+account's own sharing — a Viewer on the Trackers book and nothing else — and it takes the
+spreadsheet and range from the app, so `tabs.ts` stays the one place a sheet is named. `authorise` and `signOut` are
+exposed as `undefined` when unavailable, so which of them exists _is_ the session, read by presence
+rather than through separate booleans.
 
-**What the reader is told is a fourth thing, and it takes the cache as well as the token.**
+**What the reader is told is a fourth thing, and it takes the cache as well as the session.**
 `app/authState.ts` answers `live` · `authorising` · `stale` · `empty`: neither callback present is
-the loading state whatever the cache holds, `revoke` present is live, and only then does the cache
+the loading state whatever the cache holds, `signOut` present is live, and only then does the cache
 decide — some library with a copy behind it is `stale`, none at all is `empty`. Presence alone, never
-`useData`'s `loaded`: a reader who revokes mid-session, and a failed read that cleared the
-token, both leave rows on screen this session did fetch and can no longer refresh, which is what the
+`useData`'s `loaded`: a reader who signs out mid-session, and a read the function refused, both
+leave rows on screen this session did fetch and can no longer refresh, which is what the
 key's dot is for and what reading `loaded` would blank the page over. The auth context sits above the
 library provider and knows nothing about the cache, so the derivation is a hook below both — which
 the bar and the page body are, `Google.tsx` mounting `LibraryProvider` above `NavBar` for it.
@@ -363,13 +396,13 @@ session holds its sheets for as long as it lasts, so without the second there is
 them but to reload the page, and an installed app offers no handle for that at all. It spins and
 disables itself while the read is in flight, that being the whole of the report — the rows do not
 blank, and a page of last visit's data is what stands until the new ones land. Everything
-else is behind the `⋮`, which is drawn at every width and pointer: the tab's Sheet, Revoke, and
+else is behind the `⋮`, which is drawn at every width and pointer: the tab's Sheet, Sign out, and
 guest mode in both directions. One list and one surface, so nothing is reachable at one width and
 not another — an iPad held sideways clears every width test and still points with a finger, and a
 mouse at 1440 has no other way out of guest mode. The dot is all a stale page is told: the rows are
 last visit's and one press refreshes them, which a line of chrome under the bar states at the cost of
 a strip standing over every page for the whole sitting. `app/EmptyCard.tsx` is the exception, for the
-`empty` state, which `Google.tsx` renders in place of the `<Outlet>`: with no cache and no token
+`empty` state, which `Google.tsx` renders in place of the `<Outlet>`: with no cache and no session
 there is no fetch to fail, so the snackbar has nothing to report and the card is the only thing that
 can say what to do.
 
@@ -2562,7 +2595,7 @@ anything out of a module-scope function:
   interactions responsive while charts re-render at lower priority, and `Finished` dims itself
   (`opacity: 0.5`) while its deferred value lags. `lazy()` + `<Suspense>` keeps chart libraries out of
   the initial bundle, and `usePrefetchGraphs` starts the import on mount so the chunk downloads
-  alongside OAuth and the sheet fetch. It stays out of module scope because `tabs.ts` imports all five
+  alongside sign-in and the sheet fetch. It stays out of module scope because `tabs.ts` imports all five
   entry components eagerly: hoisted, it would fetch every tab's charts on any visit.
 - **Lazy construction.** `Card`'s `detailComponent` thunk and `TimelineData`'s `tooltip` thunk (§6),
   plus `ExpandableCard` mounting its dialog body only while open. `FoldedChart`'s `fold` thunk is the
@@ -2819,6 +2852,13 @@ one entry in the box for each of the two questions.
 
 ## 9. Repository layout beyond `src/`
 
+- **`functions/sheets/`** — the sheets function (§1, §5): a Cloud Run function on the `nodejs24`
+  runtime, its own package with its own lock, run as TypeScript through Node's type stripping, so
+  its syntax is held to what stripping erases. It shares no code with the app — the range strings
+  arrive from `tabs.ts` on each request and the grid leaves as the Sheets API answered it — and CI
+  typechecks it and runs its `node:test` suite in a job of its own. `deploy.sh` holds every
+  deployment value but the session secret, which Secret Manager supplies, and the email allowlist,
+  which is passed in so no address is written into the repository.
 - **`extension/`** — a standalone Chrome MV3 extension (plain JS, loaded unpacked) adding "Upload
   Game/Show/Movie Image" context-menu items on web images. Each opens a small window that fetches
   the image, asks for the object name — the title as the sheet writes it — says whether that name
@@ -2857,13 +2897,13 @@ Recorded so they are not mistaken for design:
   It is keyed on the tab id, so a change of tab builds a fresh boundary and the next page draws
   without a reload. What it cannot catch is what renders above it: a throw in a `useState`
   initialiser, `LibraryProvider` wrapping `NavBar` and so standing higher — which is why
-  `parseCachedItems` and `parseTokenWrapper` each guard a `JSON.parse` in one — and
+  `parseCachedItems` and `parseSession` each guard a `JSON.parse` in one — and
   `initTokenClient({ client_id: CLIENT_ID })`, which runs in an effect in `GoogleAuthProvider` with
   no check, so a missing `VITE_GOOGLE_CLIENT_ID` still takes the app with it.
 - **No loading state.** An entry component renders `{data && <Graphs/>}` beside its snackbar, so a
   page with nothing to draw draws nothing. The `empty` state has a card of its own now (§5), which
   covers the reader who has never authorised; the two windows either side of it are still bare. While
-  `authorising` — the GIS and gapi scripts landing — a cold cache shows the bar with its key dimmed
+  `authorising` — the GIS script landing — a cold cache shows the bar with its key dimmed
   over an empty page, since the state cannot yet tell "nothing here" from "about to fetch". Once
   `live`, the sheet read runs behind the same empty page, and the Omnibus waits on all four sheets,
   so it waits longest.

@@ -2,20 +2,20 @@
 
 Plot Device is a personal data dashboard and media consumption tracker built with React, TypeScript and Vite. It reads tracking data directly from Google Sheets and renders it as interactive Highcharts visualisations for Video Games, TV Shows, Movies and Books, plus an Omnibus tab that composes all four into one cross-media view.
 
-There is no backend and no database — a spreadsheet _is_ the storage layer, and every fetch, parse, aggregation and render happens in the browser. The deployed site is a static bundle on GitHub Pages.
+There is no database — a spreadsheet _is_ the storage layer, and every parse, aggregation and render happens in the browser. The deployed site is a static bundle on GitHub Pages; one small Cloud Run function reads the sheets for it, so signing in lasts a month rather than an hour.
 
 **Further reading:** [ARCHITECTURE.md](./ARCHITECTURE.md) for how the system fits together and why; [AGENTS.md](./AGENTS.md) for working conventions and the verification loop.
 
 ## Features
 
-- **Google Sheets as a backend** — reads via the Sheets API with a read-only scope; the app never writes.
+- **Google Sheets as a backend** — read by a service account with Viewer access and a read-only scope; the app never writes.
 - **Data visualisation** — stat cards, a timeline laid out across the years or stacked a row per year, sunburst hierarchies you can re-nest at runtime, and bar/line/bump charts, powered by [Highcharts](https://www.highcharts.com/).
 - **Media tracking** — Video Games, Shows, Movies and Books, each with its own model, filters and theme colour.
 - **A library on every tab** — every work with artwork, shelved by when it was finished, its franchise, its genre or the tab's own fields, as rows that scroll sideways or a wall that wraps, one card per work or per franchise.
 - **Search and filters as one box** — ⌘K or `/` finds a work, a franchise or an attribute across all four libraries; the section rail's own chip opens the same box on the current page's settings and filters. A genre typed in Find opens every game, show, film and book carrying it, or takes you to any of the five tabs that record it with the filter already set.
 - **Franchises across media** — every expanded card and hero places its item among the whole franchise, games beside seasons beside films beside books, as a chain in the order met or against a window of the franchise's own years.
 - **Omnibus** — a fifth tab, and the one the app opens on, composing the other four's own data into a cross-media Now band, totals, a timeline of everything, a recently-finished list, a by-year chart with a Totals/Share/Cumulative/Rank view switch, franchises over time, and a library of shelves.
-- **Client-side rendering** — Google Identity Services plus `gapi`, authenticating and fetching straight from the browser.
+- **Sign in once a month** — Google sign-in buys a month-long session from the sheets function (`functions/sheets/`), which reads the four ranges with its own service account and hands back the raw grids for the browser to parse.
 - **Cache-first loading** — the dashboard paints from `localStorage` before authentication completes, then refreshes.
 - **Phone and tablet layouts** — a bottom tab bar, most charts folded to a one-line summary until opened, the box and the hover cards as full-width sheets, and layouts that adapt by pointer as well as by width.
 
@@ -28,7 +28,7 @@ There is no backend and no database — a spreadsheet _is_ the storage layer, an
 | UI          | Material-UI (MUI) v9 with CSS variables                                  |
 | Charting    | Highcharts + `@highcharts/react`, plus a hand-rolled SVG timeline        |
 | Routing     | React Router (`HashRouter`, for GitHub Pages)                            |
-| Auth & data | Google Identity Services + `gapi`                                        |
+| Auth & data | Google Identity Services + a Cloud Run function (`functions/sheets/`)    |
 | Lint & test | ESLint 10 (flat config) + Vitest                                         |
 
 ## Getting started
@@ -37,7 +37,8 @@ There is no backend and no database — a spreadsheet _is_ the storage layer, an
 
 - Node.js `^20.19.0 || >=22.12.0` (Vite 8's requirement; CI runs 24)
 - A Google Cloud project with the Google Sheets API enabled
-- An OAuth 2.0 Client ID and an API key
+- An OAuth 2.0 Client ID
+- The sheets function, deployed or run locally — see [`functions/sheets/README.md`](./functions/sheets/README.md)
 
 ### Installation
 
@@ -53,10 +54,10 @@ Create a `.env.local` in the project root:
 
 ```env
 VITE_GOOGLE_CLIENT_ID=your_google_client_id_here.apps.googleusercontent.com
-VITE_GOOGLE_API_KEY=your_google_api_key_here
+VITE_SHEETS_URL=https://your-sheets-function-url
 ```
 
-Both are inlined at build time. The build succeeds without them, but the page comes up blank: `GoogleAuthProvider` hands `initTokenClient` an undefined client id as soon as the sign-in script loads, that throws, and the page's own error boundary is mounted below the provider that threw.
+Both are inlined at build time. The build succeeds without them, but the app does not work: without the client id the page comes up blank — `GoogleAuthProvider` hands `initTokenClient` an undefined client id as soon as the sign-in script loads, that throws, and the page's own error boundary is mounted below the provider that threw — and without the function's URL every read goes to `undefined/values`. For local work on the read path, run the function locally and set `VITE_SHEETS_URL=http://localhost:8090`.
 
 The spreadsheet ID and cell ranges themselves live in [`src/tabs.ts`](./src/tabs.ts), which is the single source of truth for a data source.
 
@@ -66,7 +67,7 @@ The spreadsheet ID and cell ranges themselves live in [`src/tabs.ts`](./src/tabs
 npm run dev
 ```
 
-The app is served at `http://localhost:5173`. Click the **key** in the app bar to grant access: it is there at every width whenever there is something to authorise, wearing the word "Authorise" from `md` up with a fine pointer, and it carries a dot while the page is painted from a cached copy. The app bar's **⋮** holds the tab's Sheet, Revoke and guest mode, at every width and pointer. The token is held in `sessionStorage` for that tab only.
+The app is served at `http://localhost:5173`. Click the **key** in the app bar to grant access: it is there at every width whenever there is something to authorise, wearing the word "Authorise" from `md` up with a fine pointer, and it carries a dot while the page is painted from a cached copy. The app bar's **⋮** holds the tab's Sheet, Sign out and guest mode, at every width and pointer. The session is held in `localStorage`, so every tab on the origin shares it until it expires a month later.
 
 ## Scripts
 
@@ -82,7 +83,7 @@ The app is served at `http://localhost:5173`. Click the **key** in the app bar t
 | `npm run analyze`    | Bundle breakdown via `source-map-explorer` (run after `build`) |
 | `npm run deploy`     | Build and publish to GitHub Pages at `plot.hani.fyi`           |
 
-Verification is `npm test`, `npx tsc --noEmit` and `npm run lint`; the last two are expected to produce no output. CI runs those three plus `npm run build` on every push and pull request, and deploys from `master` once they pass.
+Verification is `npm test`, `npx tsc --noEmit` and `npm run lint`; the last two are expected to produce no output. CI runs those three plus `npm run build` on every push and pull request, with the sheets function's own typecheck and suite beside them, and deploys the site from `master` once they pass.
 
 Tests cover pure logic only — converters, filters, the reducer, the chart data transforms and the cache round trip — and there are deliberately no DOM or component tests. See [AGENTS.md](./AGENTS.md) for why, and for the rules that keep the suite from flaking.
 
@@ -91,7 +92,7 @@ Tests cover pure logic only — converters, filters, the reducer, the chart data
 ```
 src/
   tabs.ts              data-source registry: sheet id, range, route, colours
-  contexts/            Google auth provider and OAuth token helpers
+  contexts/            sign-in provider and session helpers
   common/              domain-blind chart shells, date model, data hook
   utils/               prototype extensions, branded types, colour extraction
   app/                 the medium registry, the library provider, and the union,
@@ -100,6 +101,7 @@ src/
   book/                the same shape over the Books tab
   omnibus/             the fifth tab, composing nothing; no sheet of its own
 tests/                 mirrors src/, plus fixtures/ and an architecture guard
+functions/sheets/      the Cloud Run function that reads the sheets; its own package
 extension/             standalone Chrome extension, outside the Vite build
 ```
 

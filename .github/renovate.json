@@ -52,9 +52,6 @@
         "globals",
         "prettier",
         "@types/chrome",
-        "@types/gapi",
-        "@types/gapi.client",
-        "@types/gapi.client.sheets",
         "@types/google.accounts",
         "@types/node",
         "gh-pages",
@@ -62,6 +59,11 @@
       ],
       "matchUpdateTypes": ["minor", "patch"],
       "groupName": "dev tooling"
+    },
+    {
+      "description": "The sheets function is its own package, deployed by hand with functions/sheets/deploy.sh, so a bump merged here changes nothing live until that is run. CI's sheets-function job typechecks it and runs its suite, which covers the session, the allowlist and the routing; what it cannot cover is the Functions Framework's own request handling and the Cloud Run runtime, so after a framework bump run the function locally (its README) and read one range through it before deploying. Matched by file so its typescript and @types/node move with it rather than with the app's.",
+      "matchFileNames": ["functions/sheets/**"],
+      "groupName": "sheets function"
     },
     {
       "description": "TypeScript 7 is the native port, and no typescript-eslint release supports it yet: 8.68 declares `typescript: >=4.8.4 <6.1.0`, and TypeScript's 6.x line ends at 6.0.3, so that ceiling is exactly every 6 there will be. eslint is what the mismatch breaks, which is not where an upgrade PR is read. A version ceiling rather than a blanket ban on majors, so 6.x fixes keep arriving and lifting the bound stays a deliberate act once typescript-eslint admits 7 — at which point the two want moving together.",

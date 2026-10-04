@@ -1,57 +1,45 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { preload } from "react-dom";
 // A type import and not a plain one: `tabs.ts` imports the five entry components eagerly and each
 // reaches the medium registry, so evaluating it from here — which every `module.ts` reaches through
 // `useData` — would build the registry from inside `tabs.ts`'s own temporal dead zone. Only the
 // statement form is erased per file, which is what a bundler transpiling one file at a time reads.
 import type { SheetTab } from "../tabs.ts";
 import { arrayToJson } from "../utils/arrayUtils.ts";
-import {
-  expiryFor,
-  isGrant,
-  isRefusal,
-  isTokenValid,
-  parseTokenWrapper,
-  type Token,
-  type TokenWrapper,
-} from "./token.ts";
+import { isGrant, parseSession, type Session } from "./token.ts";
 
-export const gapi_script = "https://apis.google.com/js/api.js";
-export const g_script = "https://accounts.google.com/gsi/client";
+const g_script = "https://accounts.google.com/gsi/client";
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
-const DISCOVERY_DOCS = "https://sheets.googleapis.com/$discovery/rest?version=v4";
-const SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
+const SHEETS_URL = import.meta.env.VITE_SHEETS_URL;
+
+/**
+ * Google is asked who the reader is and nothing more. The sheets are read by the function's own
+ * service account, so the token this grant returns is spent once, on `/session`, and never sent to
+ * the Sheets API.
+ */
+const SCOPE = "openid email";
 
 // Resolved per call rather than at module load. Reading the global here would make merely
 // importing this module fail anywhere it does not exist, which is every non-browser context.
-const storage = () => sessionStorage;
-const storageKey = "gapi-token";
+// `localStorage` and not `sessionStorage`: a session lasts a month, and held per tab it would be
+// asked for again in every tab and after every restart of an installed app.
+const storage = () => localStorage;
+const storageKey = "sheets-session";
 
 type TokenClient = google.accounts.oauth2.TokenClient;
 
 const isGsiReady = () => typeof google !== "undefined" && !!google.accounts;
-const isGapiReady = () => typeof gapi !== "undefined";
 
-const getValidToken = (): Token | undefined => {
-  const wrapper = parseTokenWrapper(storage().getItem(storageKey));
-  if (isTokenValid(wrapper, Date.now())) return wrapper!.token;
+const getValidSession = (): Session | undefined => {
+  const session = parseSession(storage().getItem(storageKey));
+  if (session && session.expiresAt > Date.now()) return session;
   storage().removeItem(storageKey);
   return undefined;
 };
 
-/**
- * Forgets the token everywhere it is held: the storage it was granted into and the client that
- * would send it. The caller turns `tokenSet` off beside this, which is what puts the key back in
- * the bar; a client still holding the token would send an expired one on the next read.
- */
-const clearStoredToken = () => {
-  storage().removeItem(storageKey);
-  if (typeof gapi !== "undefined" && gapi.client) gapi.client.setToken(null);
-};
-
-/** What a read reports where the token has run out before it could be sent. */
+/** What a read reports where the function has turned the session away, or there is none to send. */
 const EXPIRED = "Authorisation has expired, so the sheets were not read: press the key to authorise again.";
 
 const appendScript = (src: string) => {
@@ -61,11 +49,15 @@ const appendScript = (src: string) => {
   return script;
 };
 
-const useScript = (src: string, isReady: () => boolean) => {
+/**
+ * Loads a script once `wanted` turns true, and reports whether it has loaded. A script asked for and
+ * then not wanted is left in the page, since a tag cannot be unloaded and the next want reuses it.
+ */
+const useScript = (src: string, isReady: () => boolean, wanted: boolean) => {
   const [loaded, setLoaded] = useState(isReady);
 
   useEffect(() => {
-    if (loaded) return;
+    if (loaded || !wanted) return;
 
     const existing = document.querySelector(`script[src="${src}"]`) as HTMLScriptElement | null;
     if (existing && isReady()) {
@@ -78,62 +70,93 @@ const useScript = (src: string, isReady: () => boolean) => {
     const handleLoad = () => setLoaded(true);
     script.addEventListener("load", handleLoad);
     return () => script.removeEventListener("load", handleLoad);
-  }, [src, loaded, isReady]);
+  }, [src, loaded, isReady, wanted]);
 
   return loaded;
 };
 
 interface GoogleAuthContextType {
-  apiReady: boolean;
+  signedIn: boolean;
   authorise?: () => void;
-  revoke?: () => void;
+  signOut?: () => void;
   fetchAndConvertSheet: <T>(tab: SheetTab, jsonConverter: (array: Record<string, string>[]) => T) => Promise<T>;
 }
 
 const GoogleAuthContext = createContext<GoogleAuthContextType | null>(null);
 
 /**
- * One `values.get` per range, the four running concurrently over one connection. A single
- * `batchGet` of the four ranges measures slower on this data, not faster — a median of 598 ms
- * against 369 ms for the four in parallel, with the first grid landing at 308 ms (2026-09-11) — and
- * it fails all four media together whenever one range is renamed. `gapi` is read inside the call
- * rather than captured, since a module must name no browser global while it loads.
+ * Trades a Google grant for the function's own session. Google's token lasts an hour and a page
+ * cannot renew it without a popup, which a browser blocks unless it follows a click; the session
+ * lasts as long as the function's deployment says, so the key is pressed once a month rather than
+ * once an hour.
  */
-const fetchRange = async (spreadsheetId: string, range: string) => {
-  const response = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId, range });
-  return response.result.values;
+const openSession = async (accessToken: string): Promise<Session> =>
+  readBody<Session>(
+    await fetch(`${SHEETS_URL}/session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ accessToken }),
+    }),
+  );
+
+/**
+ * The function's answer, or its own words on why not: every failure it reports carries an `error`
+ * naming the fault — a renamed tab, a lost share, an account off the list. An OK answer that is not
+ * JSON is a failure too: a captive portal answers 200 with its own login page, which taken as the
+ * function's would be stored as a session or read as a sheet.
+ */
+const readBody = async <T,>(response: Response): Promise<T> => {
+  const body = await response.json().catch(() => undefined);
+  if (!response.ok || body === undefined)
+    throw new Error(body?.error ?? `The sheets function answered ${response.status} with nothing it could read`);
+  return body as T;
 };
 
+/**
+ * One request per range, the four running concurrently. A single batch of the four measures slower
+ * on this data, not faster — a median of 598 ms against 369 ms for the four in parallel, with the
+ * first grid landing at 308 ms (2026-09-11) — and it fails all four media together whenever one
+ * range is renamed. The function reads the range with its own service account and answers its rows.
+ */
+const fetchRange = (spreadsheetId: string, range: string, token: string) =>
+  fetch(`${SHEETS_URL}/values?${new URLSearchParams({ spreadsheetId, range })}`, {
+    // Not `Authorization`: Cloud Run reads a bearer token there as a Google credential and refuses
+    // it before the function runs.
+    headers: { "X-Plot-Session": token },
+  });
+
 export const GoogleAuthProvider = ({ children }: { children: ReactNode }) => {
-  const [tokenSet, setTokenSet] = useState(() => !!getValidToken());
-  const [apiReadyToFetch, setApiReadyToFetch] = useState(false);
+  const [signedIn, setSignedIn] = useState(() => !!getValidSession());
   const [tokenClient, setTokenClient] = useState<TokenClient>();
 
-  const gsiLoaded = useScript(g_script, isGsiReady);
-  const gapiScriptLoaded = useScript(gapi_script, isGapiReady);
-
-  const apiReady = tokenSet && apiReadyToFetch;
+  // Google's script does one thing here, open the Authorise popup, so a visit that already holds a
+  // session downloads none of it. It cannot wait for the press instead: a browser allows a popup only
+  // straight after a click, and a script fetched in between spends that allowance.
+  if (!signedIn) preload(g_script, { as: "script" });
+  const gsiLoaded = useScript(g_script, isGsiReady, !signedIn);
 
   useEffect(() => {
     if (!gsiLoaded) return;
     const client = google.accounts.oauth2.initTokenClient({
       client_id: CLIENT_ID,
       scope: SCOPE,
-      callback: (token) => {
+      callback: (grant) => {
         // A refusal reaches this callback too, and nothing about it is worth keeping: leaving
-        // `tokenSet` false is what holds the NavBar on "Authorise", which is the one control that
+        // `signedIn` false is what holds the NavBar on "Authorise", which is the one control that
         // can get the reader out of it.
-        if (!isGrant(token)) {
-          console.error("Authorisation not granted:", token.error, token.error_description);
+        if (!isGrant(grant)) {
+          console.error("Authorisation not granted:", grant.error, grant.error_description);
           return;
         }
 
-        const expiry = expiryFor(token, Date.now());
-        storage().setItem(storageKey, JSON.stringify({ token, expiry } satisfies TokenWrapper));
-        setTokenSet(true);
-        if (typeof gapi !== "undefined" && gapi.client) {
-          gapi.client.setToken(token);
-        }
+        openSession(grant.access_token)
+          .then((session) => {
+            storage().setItem(storageKey, JSON.stringify(session));
+            setSignedIn(true);
+          })
+          // An account off the function's list lands here, as does a function that cannot be
+          // reached. Either way the key stays in the bar, which is the state that is true.
+          .catch((error: unknown) => console.error("The sheets function did not open a session:", error));
       },
       prompt: "",
     });
@@ -141,96 +164,65 @@ export const GoogleAuthProvider = ({ children }: { children: ReactNode }) => {
     setTokenClient(client);
   }, [gsiLoaded]);
 
-  useEffect(() => {
-    if (!gapiScriptLoaded) return;
-    gapi.load("client", async () => {
-      await gapi.client.init({
-        apiKey: API_KEY,
-        discoveryDocs: [DISCOVERY_DOCS],
-      });
-      const initialToken = getValidToken();
-      if (initialToken) {
-        gapi.client.setToken(initialToken);
-      }
-      setApiReadyToFetch(true);
-    });
-  }, [gapiScriptLoaded]);
-
   /**
-   * Reads the token again whenever the page comes back. A token lasts an hour and `tokenSet` is
-   * written at the grant, so an installed app put away and picked up the next day still says the
-   * session is live, offers a refresh, and sends a token the server turns away. Read on
-   * `visibilitychange` and on `pageshow` — a page restored from the back-forward cache fires the
-   * second and runs no effect again — the bar offers the key with its dot the moment the reader
-   * is looking at it.
+   * Another tab of the app authorising or signing out, which shares this one's storage and so its
+   * session. A session that lapses while the page is open needs no watching: the next read is
+   * refused with a 401, which ends it and says which control to press.
    */
   useEffect(() => {
-    const check = () => {
-      if (document.visibilityState !== "visible" || getValidToken()) return;
-      clearStoredToken();
-      setTokenSet(false);
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === storageKey || event.key === null) setSignedIn(!!getValidSession());
     };
-    document.addEventListener("visibilitychange", check);
-    window.addEventListener("pageshow", check);
-    return () => {
-      document.removeEventListener("visibilitychange", check);
-      window.removeEventListener("pageshow", check);
-    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  const authorise = !tokenSet && tokenClient ? () => tokenClient.requestAccessToken() : undefined;
+  const endSession = () => {
+    storage().removeItem(storageKey);
+    setSignedIn(false);
+  };
 
-  const revoke = apiReady
-    ? () => {
-        clearStoredToken();
-        setTokenSet(false);
-      }
-    : undefined;
+  const authorise = !signedIn && tokenClient ? () => tokenClient.requestAccessToken() : undefined;
+
+  const signOut = signedIn ? endSession : undefined;
 
   const fetchAndConvertSheet = async <T,>(
     { spreadsheetId, range }: SheetTab,
     jsonConverter: (array: Record<string, string>[]) => T,
   ): Promise<T> => {
     // Only the request is guarded. A converter throw means the sheet holds something it should
-    // not, and clearing the token for that turns a data fault into an apparent auth fault: the
+    // not, and clearing the session for that turns a data fault into an apparent auth fault: the
     // NavBar falls back to "Authorise", every other tab loses its session too, and authorising
     // again refetches the same bad cell and clears it again, with nothing on screen to say why.
-    // Checked before the request rather than learnt from its refusal: a tab left open across the
-    // hour has had no resume to re-read the token on, and the refusal's own words name a
-    // credential where the reader needs to be told which control to press.
-    if (!getValidToken()) {
-      clearStoredToken();
-      setTokenSet(false);
+    // Nothing about the session is checked here: the function refuses an expired, forged or absent
+    // one with the same 401, and that refusal is what ends it below.
+    const token = parseSession(storage().getItem(storageKey))?.token ?? "";
+
+    let response;
+    try {
+      response = await fetchRange(spreadsheetId, range, token);
+    } catch (error) {
+      // A request that never reached the function — a phone between networks — leaves the session
+      // standing and the rows on screen the reader's own.
+      console.error(error);
+      throw new Error("The sheets could not be reached: check the connection and refresh.", { cause: error });
+    }
+
+    // A 401 is the function refusing the session and nothing else, so it alone ends it, stated in
+    // the app's own words, which name the control to press. Every other failure is a fault with the
+    // sheet — a renamed tab, an emptied one, a lost share — which signing in again would not change.
+    // Only the session this read carried is ended: a sign-in landing while the read was out has
+    // written a newer one, which the refusal says nothing about.
+    if (response.status === 401) {
+      if (parseSession(storage().getItem(storageKey))?.token === token) endSession();
       throw new Error(EXPIRED);
     }
-
-    let grid;
-    try {
-      grid = await fetchRange(spreadsheetId, range);
-    } catch (error) {
-      console.error(error);
-      // Only a refusal ends the session. A request that never reached the server — a phone
-      // between networks — leaves the token standing and the rows on screen the reader's own;
-      // cleared for it, the reader is sent to the key to authorise again for nothing.
-      if (isRefusal(error)) {
-        clearStoredToken();
-        setTokenSet(false);
-      }
-      throw error;
-    }
-
-    // Outside the guard above, so a range that answered nothing reports itself as the data fault it
-    // is rather than clearing the token. A range is a build-time constant naming a tab of a
-    // spreadsheet that exists, so no answer at all means the tab has been renamed or emptied —
-    // where reading it as a library with no rows in it would store that over the copy a cold visit
-    // paints from, and report a successful refresh while doing it.
-    if (!grid) throw new Error(`${range} answered no rows, so the sheet holds nothing to read`);
-
-    return jsonConverter(arrayToJson(grid));
+    const { values } = await readBody<{ values: string[][] }>(response);
+    return jsonConverter(arrayToJson(values));
   };
 
   return (
-    <GoogleAuthContext.Provider value={{ apiReady, authorise, revoke, fetchAndConvertSheet }}>
+    <GoogleAuthContext.Provider value={{ signedIn, authorise, signOut, fetchAndConvertSheet }}>
       {children}
     </GoogleAuthContext.Provider>
   );

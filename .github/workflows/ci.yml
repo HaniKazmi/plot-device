@@ -30,8 +30,29 @@ jobs:
       - run: npm test
       - run: npm run build
 
+  sheets-function:
+    # Its own package and its own Node: the function runs on Cloud Run's nodejs24 runtime, executing
+    # its .ts files through type stripping, so the suite runs there under the same Node.
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: functions/sheets
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: functions/sheets/package-lock.json
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
   deploy:
-    # Only ever runs off the back of a green verify, in the same run that produced it.
+    # Only ever runs off the back of a green verify, in the same run that produced it. The sheets
+    # function deploys by hand (functions/sheets/deploy.sh), so its job gates nothing here.
     needs: verify
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
@@ -69,22 +90,23 @@ jobs:
       # Vite inlines import.meta.env at build time, so these have to be present for the build
       # that produces the deployed bundle — not at runtime. A local deploy picks them up from
       # .env.local, which is gitignored and so absent here; without them the bundle ships a
-      # literal undefined and Google Identity Services rejects it with "Missing required
-      # parameter client_id" on a site that otherwise looks fine.
+      # literal undefined: Google Identity Services rejects a missing client id with "Missing
+      # required parameter client_id", and a missing function URL sends every read to
+      # `undefined/values`, each on a site that otherwise looks fine.
       #
       # Checked before the build rather than after, because a missing value fails at the point
       # a visitor clicks Authorise, not at the point it is baked in.
-      - name: Check the build has its Google credentials
+      - name: Check the build has its sign-in and sheets settings
         env:
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
-          VITE_GOOGLE_API_KEY: ${{ secrets.VITE_GOOGLE_API_KEY }}
+          VITE_SHEETS_URL: ${{ secrets.VITE_SHEETS_URL }}
         run: |
           : "${VITE_GOOGLE_CLIENT_ID:?missing repository secret VITE_GOOGLE_CLIENT_ID}"
-          : "${VITE_GOOGLE_API_KEY:?missing repository secret VITE_GOOGLE_API_KEY}"
+          : "${VITE_SHEETS_URL:?missing repository secret VITE_SHEETS_URL}"
 
       # Runs the same script as a local deploy, so the two cannot drift. Its predeploy hook
       # rebuilds, because jobs do not share a filesystem with verify.
       - run: npm run deploy
         env:
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
-          VITE_GOOGLE_API_KEY: ${{ secrets.VITE_GOOGLE_API_KEY }}
+          VITE_SHEETS_URL: ${{ secrets.VITE_SHEETS_URL }}
