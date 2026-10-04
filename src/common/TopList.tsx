@@ -5,6 +5,7 @@ import { capitalize } from "@mui/material/utils";
 import type { ReactNode } from "react";
 import { ProportionalBar } from "./ProportionalBar";
 import { Swatch } from "./Swatch";
+import { FranchiseLink } from "./FranchiseLink";
 import { SectionHeader } from "./SectionHeader";
 import { dimSx } from "./typography";
 import { useSelectBox } from "./SelectBoxHook";
@@ -25,6 +26,8 @@ interface TopListCardProps<O extends string, T> {
   /** The colour a group's fronting item wears under this option, or `""` where none exists. */
   colourOf: (option: O, top: T) => Colour | "";
   measureLabel: string;
+  /** The option whose groups are franchises, each then named as a way to its own page. */
+  franchiseOption?: O;
 }
 
 /**
@@ -39,7 +42,7 @@ interface TopListCardProps<O extends string, T> {
  * its colour vocabularies.
  */
 const TopListCard = <O extends string, T>(props: TopListCardProps<O, T>) => {
-  const { options, icons, groups, colourOf, measureLabel } = props;
+  const { options, icons, groups, colourOf, measureLabel, franchiseOption } = props;
   const scheme = useScheme();
 
   const [option, controls] = useSelectBox(options, props.defaultOption);
@@ -111,7 +114,11 @@ const TopListCard = <O extends string, T>(props: TopListCardProps<O, T>) => {
                   noWrap
                   sx={{ flexGrow: 1 }}
                 >
-                  {item.name}
+                  {option === franchiseOption && item.name !== "Other" ? (
+                    <FranchiseLink franchise={item.name} />
+                  ) : (
+                    item.name
+                  )}
                 </Typography>
                 <Typography
                   variant="body2"

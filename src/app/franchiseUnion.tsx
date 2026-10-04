@@ -1,9 +1,12 @@
 import { lazy, Suspense, useEffect, type ReactNode } from "react";
+import { matchPath, useLocation } from "react-router-dom";
 import { useLibrary } from "./library";
 import { CURRENT_PLAINDATE } from "../common/date";
-import { FranchiseUnionContext } from "../common/franchiseUnion";
+import { FranchisePageContext, FranchiseUnionContext } from "../common/franchiseUnion";
 import type { OmniItem } from "../common/medium";
 import { buildFranchiseUnion } from "./franchiseUnionData";
+import { FRANCHISE_ROUTE, franchisePath } from "./franchisePage";
+import { seriesFranchises } from "./galleryData";
 
 /**
  * The hover card, loaded with the chunk that draws it rather than with the shell.
@@ -25,7 +28,8 @@ const hoverCard = (item: OmniItem) => () => (
 );
 
 /**
- * Provides the union to every tab, built from the items the library provider already holds.
+ * Provides the union to every tab, built from the items the library provider already holds, and
+ * where each franchise's own page is (`FranchisePageContext`), so a name anywhere can lead there.
  *
  * Mounted above the router because a Star Trek film's card on the Movies tab draws the seasons
  * from the Shows sheet: only this composing layer reaches into all four domains, and only the
@@ -43,6 +47,17 @@ export const FranchiseUnionProvider = ({ children }: { children: ReactNode }) =>
 
   const { items } = useLibrary();
   const union = items ? buildFranchiseUnion(items, CURRENT_PLAINDATE, hoverCard) : undefined;
+  // A page for every franchise the box would offer one for: a series by the rule the crossings
+  // draw by, and not a work naming itself, whose page would be one card about one work.
+  const series = items ? seriesFranchises(items) : undefined;
+  // Read through the route's own matcher, which decodes the name as the page itself receives it.
+  const here = matchPath(FRANCHISE_ROUTE, useLocation().pathname)?.params.name;
+  const pageOf = (franchise: string) =>
+    series?.has(franchise) && franchise !== here ? `#${franchisePath(franchise)}` : undefined;
 
-  return <FranchiseUnionContext.Provider value={union}>{children}</FranchiseUnionContext.Provider>;
+  return (
+    <FranchiseUnionContext.Provider value={union}>
+      <FranchisePageContext.Provider value={pageOf}>{children}</FranchisePageContext.Provider>
+    </FranchiseUnionContext.Provider>
+  );
 };

@@ -2,6 +2,7 @@ import { HashRouter, Routes, Route } from "react-router-dom";
 import Tabs from "./tabs.ts";
 import Google from "./Google.tsx";
 import Franchise from "./omnibus/Franchise.tsx";
+import { FRANCHISE_ROUTE } from "./app/franchisePage.ts";
 
 // A Node-style `global`, for a dependency that expects one. Behind a `typeof` check because this
 // is a module-scope statement: bare, merely importing this file throws wherever `window` is absent,
@@ -32,7 +33,7 @@ function App() {
           {/* A franchise's own page, standing under the Omnibus: the path's first segment names
               the tab the chrome draws around it. */}
           <Route
-            path="omnibus/franchise/:name"
+            path={FRANCHISE_ROUTE}
             Component={Franchise}
           />
           {/* Anything else lands where the index does, which is what keeps the outlet and the

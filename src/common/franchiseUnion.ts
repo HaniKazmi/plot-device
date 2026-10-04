@@ -41,3 +41,11 @@ export const FranchiseUnionContext = createContext<FranchiseUnion | undefined>(u
 
 export const useFranchiseUnion = (franchise: string): FranchiseEntry[] | undefined =>
   useContext(FranchiseUnionContext)?.get(franchise);
+
+/**
+ * Where a franchise's own page is, as an href, or `undefined` where a mention of it should stay
+ * words: a work naming itself, which has no series for a page to be about, and the franchise
+ * whose page the reader is already on. Answered by the composing layer, which alone knows the
+ * route and the whole library; until it does, every mention stays words.
+ */
+export const FranchisePageContext = createContext<(franchise: string) => string | undefined>(() => undefined);

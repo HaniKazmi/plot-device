@@ -21,6 +21,7 @@ import { measureOf } from "./library";
 import { namesTheSameThing } from "../utils/stringUtils";
 import type { OmniItem } from "../common/medium";
 import type { Measure } from "./types";
+import { franchiseIndex } from "../common/franchiseIndex";
 import "../utils/arrayUtils";
 import "../utils/mapUtils";
 
@@ -174,6 +175,14 @@ export const workOf = (item: OmniItem): unknown => moduleOf(item).work(item.sour
  */
 export const isSeries = (franchise: string, items: OmniItem[]): boolean =>
   items.some((item) => !namesTheSameThing(franchise, item.name)) || worksIn(items) > 1;
+
+/** Every franchise of a set of rows that is a series at all, by the rule the crossings and the box share. */
+export const seriesFranchises = (items: OmniItem[]): Set<string> =>
+  new Set(
+    [...franchiseIndex(items, (item) => item.franchise).entries()]
+      .filter(([name, members]) => isSeries(name, members))
+      .map(([name]) => name),
+  );
 
 /** How many works a set of rows holds: a show's seasons are one show, a rewatch is the film once. */
 export const worksIn = (items: OmniItem[]) => new Set(items.map(workOf)).size;

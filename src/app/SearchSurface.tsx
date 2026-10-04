@@ -30,6 +30,7 @@ import OmniCardMediaImage from "./CardMediaImage";
 import { MIXED_CARD_SIZING, workLabels } from "./cardData";
 import { useLibrary, type Library } from "./library";
 import { mediumBand } from "./mediumBand";
+import { franchisePath } from "./franchisePage";
 import { usePage } from "./page";
 import { PAGE_MODULES, PAGE_STORES, pageCount } from "./pageState";
 import {
@@ -51,8 +52,11 @@ import {
 import { media, mediumToShape } from "./types";
 import Tabs, { atTabRoot, tabForId, tabInk, useOtherTabs } from "../tabs";
 
-/** What a chosen hit opens: a whole franchise, one work's own expanded card, or an attribute's shelf. */
-type Picked = { kind: "item"; item: OmniItem } | { kind: "shelf"; attribute: AttributeEntry };
+/**
+ * What a chosen hit opens over the page: one work's own expanded card, or an attribute's shelf —
+ * and the path it was opened over (`at`). A franchise opens no layer, its page being a place.
+ */
+type Picked = ({ kind: "item"; item: OmniItem } | { kind: "shelf"; attribute: AttributeEntry }) & { at: string };
 
 /**
  * The thumbnail at a hit's left: a banner at the lead's full width, a poster or a cover standing
@@ -347,7 +351,8 @@ export const SearchSurface = ({
   const navigate = useNavigate();
   // A page standing under a tab — a franchise's, under the Omnibus — is not that tab's own page:
   // it has none of its filters, and a filter set on the tab is only seen by going there.
-  const atRoot = atTabRoot(useLocation().pathname);
+  const { pathname } = useLocation();
+  const atRoot = atTabRoot(pathname);
   const library = useLibrary();
   const items = library.items;
   const index = items && library.whole ? buildSearchIndex(items, library.whole) : undefined;
@@ -362,7 +367,12 @@ export const SearchSurface = ({
   // The scan runs on the settled text: a keystroke lands in the box at once and the groups follow
   // at lower priority, so a fast typist is never held behind the previous letter's scan.
   const deferredQuery = useDeferredValue(query);
+  // A layer stands only over the page it was opened over. It is mounted here, beside the page and
+  // not inside it, so leaving the page — a franchise named on the card is a way to its own page —
+  // would otherwise leave the card standing over the next one. Put away during the render that
+  // finds the path changed rather than hidden, or the back button would open it again.
   const [picked, setPicked] = useState<Picked | null>(null);
+  if (picked && picked.at !== pathname) setPicked(null);
   // Counted so that picking the item whose card is still leaving remounts the card rather than
   // reusing the instance, whose open flag is read once on mount.
   const [pickCount, setPickCount] = useState(0);
@@ -384,12 +394,12 @@ export const SearchSurface = ({
   const choose = (entry: FranchiseSearchEntry | ItemSearchEntry) => {
     close();
     if (entry.kind === "franchise") {
-      navigate(`/omnibus/franchise/${encodeURIComponent(entry.franchise)}`);
+      navigate(franchisePath(entry.franchise));
       window.scrollTo({ top: 0 });
       return;
     }
     setPickCount(pickCount + 1);
-    setPicked({ kind: "item", item: entry.item });
+    setPicked({ kind: "item", item: entry.item, at: pathname });
   };
 
   /**
@@ -416,7 +426,7 @@ export const SearchSurface = ({
   /** The same attribute across every library recording it, as the gallery's own drill-down draws a shelf. */
   const openShelf = (entry: AttributeEntry) => {
     close();
-    setPicked({ kind: "shelf", attribute: entry });
+    setPicked({ kind: "shelf", attribute: entry, at: pathname });
   };
 
   /**

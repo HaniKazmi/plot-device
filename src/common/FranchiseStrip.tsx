@@ -24,6 +24,7 @@ import {
 import { useElementWidth } from "./useElementWidth";
 import { useScheme } from "./useScheme";
 import "../utils/arrayUtils";
+import { FranchiseLink } from "./FranchiseLink";
 
 /**
  * The two ways a franchise is drawn: in the order its entries were met, one bead each, evenly
@@ -253,7 +254,7 @@ export const FranchiseName = ({ franchise }: { franchise: string }) => {
         noWrap
         sx={{ fontWeight: 700 }}
       >
-        {franchise}
+        <FranchiseLink franchise={franchise} />
       </Typography>
     </Stack>
   );

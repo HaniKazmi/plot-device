@@ -6,6 +6,7 @@ import { CURRENT_PLAINDATE } from "../common/date";
 import { DrilldownDialog } from "../common/DrilldownDialog";
 import { FILMSTRIP_HEIGHT, Filmstrip } from "../common/Filmstrip";
 import { WALL_SX } from "../common/wallSx";
+import { FranchiseLink } from "../common/FranchiseLink";
 import { SectionHeader } from "../common/SectionHeader";
 import { useSelectBox } from "../common/SelectBoxHook";
 import { CutButton, SegmentedControl, type SegmentOption } from "../common/SelectionComponents";
@@ -418,7 +419,7 @@ const Shelf = ({
           variant="subtitle2"
           noWrap
         >
-          {group.name}
+          {category === "franchise" ? <FranchiseLink franchise={group.name} /> : group.name}
         </Typography>
         <Typography
           variant="body2"

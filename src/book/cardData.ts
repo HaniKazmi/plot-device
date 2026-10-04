@@ -47,7 +47,12 @@ export const bookRows = (book: Book, scheme: Scheme): LedgerRow[] => {
   // something the book belongs to rather than the book over again. Unknown franchises fall
   // through to an empty colour, which is no swatch rather than a black one.
   if (!namesTheSameThing(book.franchise, book.name))
-    rows.push({ label: "Franchise", value: book.franchise, swatch: franchiseToColour(book, scheme) || undefined });
+    rows.push({
+      label: "Franchise",
+      value: book.franchise,
+      swatch: franchiseToColour(book, scheme) || undefined,
+      franchise: book.franchise,
+    });
 
   return rows;
 };

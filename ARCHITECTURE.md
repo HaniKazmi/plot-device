@@ -1028,7 +1028,8 @@ one.
 
 ### Franchise page — `omnibus/FranchisePage.tsx`
 
-Every franchise has a page at `#/omnibus/franchise/<name>`, reached from the search box's franchise hits:
+Every franchise has a page at `#/omnibus/franchise/<name>`, reached from the search box's franchise hits
+and from the franchise's name wherever the app states it:
 how much of it there is, when it ran, who made it, and every work of it on shelves. It is the
 Omnibus's own sections drawn over one franchise's rows — the union filtered on the raw franchise
 column, as the crossings group — so a figure here and the same figure on the Omnibus cannot be
@@ -1044,6 +1045,26 @@ its own measure and year scope rather than the Omnibus's store, since a franchis
 is not a narrowing of whatever the Omnibus was last left showing — which is also why the rail it
 draws is a plain `SectionRail` and not `PageRail`. The page boundary is keyed on the path rather than
 the tab for the same reason: a throw on one franchise would otherwise follow the reader to the next.
+
+**A franchise named anywhere leads to its page.** `common/FranchiseLink.tsx` is the name as a
+link — underlined faintly at rest, since a finger has no hover to find it by, and in the ink
+around it so a name on an artwork's ground keeps the card's tones — and it is drawn by the
+franchise strip's caption (every expanded card, the heroes and the crossings), the ledger's
+Franchise row (`LedgerRow.franchise`), the Top Franchise legend on each tab (`franchiseOption`),
+the Omnibus library's franchise shelves and the names under Who made it. Where the page is comes
+from `FranchisePageContext` (`common/franchiseUnion.ts`), which `app/franchiseUnion.tsx` answers
+beside the union: `common/` may know neither the route nor the library, and a name that leads
+nowhere is plain words. It leads nowhere for a work naming itself — the box's own rule
+(`seriesFranchises`, over `isSeries`), a page about one card being no page worth going to — and
+for the franchise whose page the reader is on, read through the route's own matcher so a name
+carrying a `/` compares as the page received it. The path and the pattern are one module
+(`app/franchisePage.ts`), so the link and the route cannot drift. The link stops its press there:
+a name inside a pressable card or row is asking for the franchise and not for what the row opens.
+
+A layer the search box opened is mounted beside the page rather than inside it, so it would stand
+over the next page when a name on it is pressed. The box remembers the path each layer was opened
+over and puts the layer away during the render that finds the path changed — away and not merely
+hidden, or the back button would open it again.
 
 The sections, each built from a shell that already exists:
 
@@ -1506,8 +1527,8 @@ the way out is one key pressed twice rather than two keys to learn. Escape is re
 listener is not ours to fix; a backdrop press means close whatever the box is held to.
 
 A franchise hit goes to the franchise's own page (§ Franchise page) rather than opening a layer: a
-page has an address, the back button leaves it, and it is where any other mention of a franchise
-can lead. A work hit mounts the item's own card with
+page has an address, the back button leaves it, and it is where every other mention of a franchise
+leads. A work hit mounts the item's own card with
 `openOnMount`, in a host the reader never sees and fixed at a pixel rather than `display: none` so
 the thumbnail loads and samples the colour the dialog is themed from, and unmounts it on
 `onDetailClosed`; `OmniCardMediaImage` dispatches by medium, so a hit reached through search shows
@@ -1559,8 +1580,8 @@ point; `plain`, that same subject where the strip holds nothing to stand apart f
 season of a lone show marking nothing; and `none`, context, stepped back to 0.75. The ring is in the
 ink because it means "this one" and nothing else, and no mark is named — a name covers its
 neighbours on a chain of fifty, and the hover card names any mark for the asking. The caption
-carries `FranchiseName`, the franchise with the swatch its Top list and ledger rows wear, exported
-so the crossings name theirs the same way, then each medium present counted through `mediumUnit` in
+carries `FranchiseName`, the franchise with the swatch its Top list and ledger rows wear and a link
+to its own page (§ Franchise page), exported so the crossings name theirs the same way, then each medium present counted through `mediumUnit` in
 its own fill.
 
 A bead or a mark is a fraction of the finger that has to land on it — an 8px bead, a 5×7px mark —
@@ -2643,7 +2664,7 @@ key in ObjectExpression`; pulled out to a plain function taking the varying piec
   `sheetBarSx`, `dialogCardSx`, among others — the literal itself sits at module scope and the
   component stays compiled.
 
-The baseline is **300 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **301 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.

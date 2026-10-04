@@ -53,7 +53,12 @@ export const movieRows = (movie: Movie, scheme: Scheme): LedgerRow[] => {
   // Unknown franchises fall through to an empty colour, which is no swatch rather than a black
   // one — the table names the couple of dozen the app draws, not every series on the sheet.
   if (!namesTheSameThing(movie.franchise, movie.name))
-    rows.push({ label: "Franchise", value: movie.franchise, swatch: franchiseToColour(movie, scheme) || undefined });
+    rows.push({
+      label: "Franchise",
+      value: movie.franchise,
+      swatch: franchiseToColour(movie, scheme) || undefined,
+      franchise: movie.franchise,
+    });
 
   return rows;
 };

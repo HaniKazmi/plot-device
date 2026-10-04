@@ -72,7 +72,12 @@ export const gameRows = (game: VideoGame, scheme: Scheme): LedgerRow[] => {
   if (game.franchise) {
     // Unknown franchises fall through to an empty colour, which is no swatch rather than a black
     // square standing for nothing.
-    rows.push({ label: "Franchise", value: game.franchise, swatch: franchiseToColour(game, scheme) || undefined });
+    rows.push({
+      label: "Franchise",
+      value: game.franchise,
+      swatch: franchiseToColour(game, scheme) || undefined,
+      franchise: game.franchise,
+    });
   }
 
   // Pushed together because the pair is the point: how it is played, then what it is about.

@@ -241,6 +241,7 @@ const TopCategories = ({ data, measure }: { data: Show[]; measure: Measure }) =>
 
   return (
     <TopCategoryBand
+      franchiseOption="franchise"
       defaults={["genre", "network", "franchise"]}
       options={showTopOptions}
       icons={optionIcons}

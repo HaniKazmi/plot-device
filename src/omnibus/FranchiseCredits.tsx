@@ -1,7 +1,7 @@
 import { Brush } from "@mui/icons-material";
 import { Card, CardContent, Link, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { CURRENT_PLAINDATE } from "../common/date";
 import { DrilldownDialog } from "../common/DrilldownDialog";
 import { SectionHeader } from "../common/SectionHeader";
@@ -9,6 +9,7 @@ import { CutButton, SegmentedControl, type SegmentOption } from "../common/Selec
 import type { CreditRole, OmniItem } from "../common/medium";
 import { all, stated } from "../common/population";
 import { MUTED_FIGURE_SX } from "../common/typography";
+import { FranchiseLink } from "../common/FranchiseLink";
 import { useScheme } from "../common/useScheme";
 import OmniCardMediaImage from "../app/CardMediaImage";
 import { MIXED_CARD_SIZING, workLabels } from "../app/cardData";
@@ -198,15 +199,32 @@ const MakerRow = ({ maker, note, onOpen }: { maker: Maker; note?: string; onOpen
         {note ? `${note} · ${titles}` : titles}
       </Typography>
       {elsewhere.length > 0 ? (
-        <Link
-          component="button"
+        // Each franchise named leads to its own page — Rian Johnson from Star Wars to Knives Out —
+        // and the cut at the end opens everything by the same hands, this franchise's included.
+        <Typography
           variant="body2"
-          underline="hover"
-          onClick={onOpen}
-          sx={{ alignSelf: "flex-start", textAlign: "left" }}
+          sx={{ color: "text.secondary" }}
         >
-          {`Elsewhere: ${elsewhere.map((other) => `${other.works} ${other.franchise}`).join(", ")}${more ? ` and ${more} more` : ""} ›`}
-        </Link>
+          {"Elsewhere: "}
+          {elsewhere.map((other, index) => (
+            <Fragment key={other.franchise}>
+              {index > 0 && ", "}
+              {`${other.works} `}
+              <FranchiseLink franchise={other.franchise} />
+            </Fragment>
+          ))}
+          {more ? ` and ${more} more` : ""}
+          {" · "}
+          <Link
+            component="button"
+            variant="body2"
+            underline="hover"
+            onClick={onOpen}
+            sx={{ verticalAlign: "baseline" }}
+          >
+            {`${all(worksIn(maker.everything))} ›`}
+          </Link>
+        </Typography>
       ) : (
         <Typography
           variant="body2"

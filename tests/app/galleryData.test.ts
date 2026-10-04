@@ -9,6 +9,7 @@ import {
   galleryItems,
   galleryStripOrder,
   galleryValue,
+  seriesFranchises,
 } from "../../src/app/galleryData";
 import { certificateToColour, genreToColour } from "../../src/utils/types";
 import { book } from "../fixtures/books";
@@ -331,5 +332,24 @@ describe("books on the wall", () => {
     const [shelf] = galleryGroups(galleryItems(items), "genre", "Hours", "size", TODAY);
 
     expect(shelf.all).toHaveLength(1);
+  });
+});
+
+describe("seriesFranchises", () => {
+  it("holds the franchises with a series behind them, and not a work naming itself", () => {
+    const items = toOmniItems(
+      library({
+        movie: [
+          movie({ name: "Knives Out", franchise: "Knives Out" }),
+          movie({ name: "Glass Onion", franchise: "Knives Out" }),
+          movie({ name: "Arrival", franchise: "Arrival" }),
+        ],
+        // A novel and the film made of it are two works under one name, which is a crossing.
+        book: [book({ name: "Arrival", franchise: "Arrival" })],
+      }),
+    );
+
+    expect(seriesFranchises(items)).toEqual(new Set(["Knives Out", "Arrival"]));
+    expect(seriesFranchises(items.filter((item) => item.medium === "movie"))).toEqual(new Set(["Knives Out"]));
   });
 });
