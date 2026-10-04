@@ -1,4 +1,5 @@
 import type { YearMonthDay } from "../common/date";
+import type { InSeries } from "../common/series";
 import {
   certificateToColour,
   decadeToColour,
@@ -19,7 +20,7 @@ import {
   type Style,
 } from "../utils/types";
 
-export interface Movie {
+export interface Movie extends InSeries {
   name: string;
   releaseDate: YearMonthDay;
   startDate: YearMonthDay;
@@ -36,17 +37,6 @@ export interface Movie {
   otherGenres: string[];
   /** A film with no wider franchise carries its own name here. */
   franchise: string;
-  /**
-   * The series inside the franchise, or `""` where the film stands alone — blank rather than the
-   * film's own name, as `Book.series` is and unlike `franchise` above.
-   */
-  series: string;
-  /**
-   * Its place in `series`, absent for a standalone or an entry the sheet does not number.
-   * Fractional for an entry the sheet slots between two numbered ones — a prequel at 0.5, a second
-   * part at 7.1 — so the decimal is the order and not noise.
-   */
-  seriesNumber?: number;
   director: string;
   artwork: string;
   /** Whether it was seen in a cinema rather than at home. */

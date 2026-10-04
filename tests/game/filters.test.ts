@@ -111,6 +111,7 @@ describe("the schema the drawer and the box are both drawn from", () => {
       "certificate",
       "gameplay",
       "publisher",
+      "gameSeries",
       "franchise",
     ]);
   });
@@ -121,6 +122,7 @@ describe("the schema the drawer and the box are both drawn from", () => {
     // mode reads it, offering a long category as a list to search rather than one to scan.
     expect(gameFilters.categories.filter((category) => category.searchable).map((category) => category.key)).toEqual([
       "publisher",
+      "gameSeries",
       "franchise",
     ]);
   });

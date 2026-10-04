@@ -1280,9 +1280,9 @@ looks like — and is wrong for a tab holding one entry of a series that lives a
 single Twilight film is named "Twilight", so Movies alone reads it as a work naming itself while the
 four books say otherwise; Code Geass is that shape the other way round, one self-naming show beside
 a film; and an adaptation is hidden on every tab at once, a novel and the film of it being two works
-under one name. So every picker asks `seriesFranchises` (`app/galleryData.ts`) — `isSeries` over the
-union, the rule the crossings and the box's own index already read — intersected with what its own
-rows carry. One set, so a value the strips draw as a series is one a page can be narrowed to, and
+under one name. So every picker reads `CategoryContext.franchises` — the names of the box's own
+franchise entries, which are `isSeries` over the union, the rule the crossings already read —
+intersected with what its own rows carry. One set, so a value the strips draw as a series is one a page can be narrowed to, and
 the chip the box offers and the chip that page's own filter surface draws come off one list.
 `common/filterSchema.ts` declares the shape it arrives in (`CategoryContext`) and `app/` fills it,
 as `OmniItem` and `FranchiseEntry` are. It is optional at every call: the union is `undefined` until
@@ -1314,12 +1314,17 @@ ranked apart, being two, and merged into one list rather than concatenated — a
 query exactly is a better answer than a series matching it at a word start, and the reverse holds as
 readily — each over its whole index with the merge cut afterwards, since cutting each half first
 would state a total it had stopped counting at. Series lead the merge and the sort is stable, so a
-series takes a tie, its view saying more about a value than a shelf of works does — and a series
-value the franchise index answers by that exact name yields to it altogether, a book series being
-written in its Series column and its Franchise column both, and 47 of the 73 holding one string in
-each. Only a category declaring `namesFranchise` folds that way: an author sharing a name with a
-franchise elsewhere is a different narrowing over different rows, and the franchise's own row may
-not reach Books at all.
+series takes a tie, its view saying more about a value than a shelf of works does.
+
+**A medium's own series stands beside the franchise of its name, never folded into it.** Games,
+Movies and Books each write a Series column, the numbered line inside the franchise, and a series is
+a line inside one medium: the film series "Harry Potter" is the eight films, where the franchise
+reaches Fantastic Beasts, the games and the books. So each tab's series select is keyed and worded
+for its own medium (`seriesCategory` — "game series", "film series", "book series"), which the box's
+fold on key and word keeps as three entries narrowing one tab each, beside the franchise entry that
+spans them; folded into that entry, a series sharing its franchise's name would hand the reader the
+wider set for the narrower name. Franchise is the join across media; a series is never read across
+them, so a book's series number orders nothing outside Books.
 
 **The list is a grid, and ←→ is the second axis.** A row of pressable chips inside a row is not a
 listbox option, so the shell is `role="grid"`: a row per hit, a cell per reading, the row carrying
@@ -1356,9 +1361,9 @@ the reader was not looking at. That is also why a bare substring is offered here
 rows could not afford one: "at" inside platform, certificate and format is three chips of a row
 already on screen, where three rows would bury the values a reader was actually after.
 
-Both chip groups are drawn by `ChipsGroup`, which wraps rather than scrolls. The thirteen categories
-come to about 1,110px of run — two lines in the 620px dialog, four at 390 — which is more height
-than a scroller costs and worth it twice over: the row is what teaches that a category can be named
+Both chip groups are drawn by `ChipsGroup`, which wraps rather than scrolls. The categories run to
+several lines at every width, which is more height than a scroller costs and worth it twice
+over: the row is what teaches that a category can be named
 at all, and a name a reader has to scroll sideways to find teaches nobody; and every cell stays
 somewhere `revealSelected` can bring into view, which is what keeps ←→ honest. That reveal asks for
 the live _cell_ before the selected row, since a chips group is one row holding a dozen presses and
@@ -1377,8 +1382,8 @@ past two values only the row the reader is on draws its readings, which is what 
 scannable.
 
 One shape rather than a list, because the vocabularies are two populations with nothing in between:
-format 3, style 3, certificate 5, genre 12, gameplay 14 and platform 15 against series 64, author 65, network
-77, publisher 92, director 218 and franchise 225. A list answers the first group and is a phone book
+format 3, style 3, certificate 5, genre 12, gameplay 14 and platform 15 against author 65, book series
+76, network 77, publisher 92, film series 119, game series 135, director 218 and franchise 225. A list answers the first group and is a phone book
 for the second, where typing inside the scope answers both — which is exactly what `searchable`
 already means on the filter surface, reached from Find for the first time.
 
@@ -1772,8 +1777,8 @@ the page's own; the four chart shells state nothing at all. The Books timeline s
 both its readings for the same test — a bar per book differs from the page by that chart's own
 future-start floor, and a bar per series is a figure nothing else on the tab counts. That second
 one counts a book the sheet named no series for as a series of itself, which is what the chart
-draws it as, where the Series filter and the Most Read band both drop a blank: 88 against their
-64, one library and two readings of the word. It arrives worded, a `common/` shell
+draws it as, where the Series filter and the Most Read band both drop a blank: 103 against their
+76, one library and two readings of the word. It arrives worded, a `common/` shell
 not knowing it counts games. Below `sm` the controls take their own row, negative margins and all: a
 title and four controls otherwise divide 375px and the title wraps to a word a line. That row is
 `ActionRow`, a horizontal scroller rather than a wrap — the rail's own `ScrollFade` and
@@ -2059,8 +2064,11 @@ and the figures as lines (`StatLines`) rather than tiles, one a line in the phon
 and two from the tablet's, "3.6 hours" in the panel's ink with its label beside it in the muted
 tone — so the poster fills its column with no ground beneath it.
 
-Its figures are the item's own — hours logged, days in, franchise size — a tile dropped rather than
-zeroed where the sheet is silent, library totals staying in the cards below. The kicker says why the
+Its figures are the item's own — hours logged, days in, franchise size, its place in its series —
+a tile dropped rather than zeroed where the sheet is silent, library totals staying in the cards
+below. The series tile reads "In series" beside a franchise tile of the same name, since "3 Knives
+Out Films" over "#3 Knives Out" says the name twice, and the Now band's cards leave it off: their
+banner panel fits one row of tiles into a fixed 136px, which a series name is long enough to wrap. The kicker says why the
 item is shown, naming on Shows the episode in hand, which the title, the show's own name, does not.
 The panel's middle is the franchise strip in its hero variant: the order reading with no switch, its
 chain held to one row and closed up on a series too long for the pitch, a panel held to the

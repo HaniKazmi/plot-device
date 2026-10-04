@@ -41,7 +41,7 @@ export const gameModule: MediumModule<VideoGame, VideoGame, Measure> = {
   title: (game) => game.name,
   /** A game is already one row per work, so the row itself is the work. */
   work: (game) => game,
-  secondaryText: (game) => [game.developer, game.platform],
+  secondaryText: (game) => [game.developer, game.platform, game.series],
   facts: (game, hours) => [game.platform, game.status, hours ? `${hours} hours` : ""].filter(Boolean).join(" · "),
   /** Games first: it is what a row of the sheet is. */
   measures: ["Games", "Hours"],

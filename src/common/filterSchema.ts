@@ -1,4 +1,5 @@
-import { franchiseOptions } from "./filterOptions";
+import { categoryOptions, franchiseOptions } from "./filterOptions";
+import type { InSeries } from "./series";
 import {
   STYLES,
   certificateBand,
@@ -108,7 +109,8 @@ export interface FilterGroup {
  * `searchable` says the vocabulary is long enough that a reader picks from it by typing rather
  * than by scanning — the people, networks and series a library holds hundreds of. The library
  * splits cleanly on it: format 4, certificate 5, genre 12, gameplay 14 and platform 15 against
- * series 64, author 65, network 77, publisher 92, director 218 and franchise 225.
+ * author 65, book series 76, network 77, publisher 92, film series 119, game series 135, director
+ * 218 and franchise 225.
  *
  * Every accessor is a method rather than a property, which is what lets a `FilterSchema<Show, …>`
  * sit in a record whose element type names no domain: TypeScript checks a method's parameters
@@ -140,13 +142,6 @@ export interface FilterCategory<T, S> {
    * its own rule with it.
    */
   foundAs?(cell: string): string;
-  /**
-   * Whether a value equal to the item's own franchise is that franchise said twice: a book's
-   * Series column, which holds one string with the Franchise column on 47 of 73 series. Find folds
-   * such a hit into the franchise's own row, which says more; a series with a wider franchise —
-   * Mistborn under Cosmere — keeps its row.
-   */
-  namesFranchise?: boolean;
   /** The level above the values, where the vocabulary has one. */
   group?: FilterGroup;
 }
@@ -187,15 +182,18 @@ type SharedKey<S, K extends string> = CategoryKey<S> & K;
  * where a present bag missing its one member would be a third state nothing intends.
  */
 export interface CategoryContext {
-  /** The franchises the whole library knows to be series, by `isSeries` — see `franchiseOptions`. */
-  series: ReadonlySet<string>;
+  /**
+   * The franchises the whole library knows to group more than one work, by `isSeries` — see
+   * `franchiseOptions`.
+   */
+  franchises: ReadonlySet<string>;
 }
 
 /**
  * The franchise select, which every tab offers on the same terms: the column each sheet writes a
  * series into, and — where the entry names no series — the item's own title, which
  * `franchiseOptions` erases so the list holds only what actually groups anything. Which those are
- * is the library's answer and not this tab's, so it reads `context.series` where the caller has
+ * is the library's answer and not this tab's, so it reads `context.franchises` where the caller has
  * one: a tab holding a single entry of a series otherwise erases it.
  *
  * Stated once rather than per tab, so the five cannot disagree about what belongs on that list.
@@ -213,7 +211,7 @@ export const franchiseCategory = <T extends { franchise: string; name: string },
       data,
       (item) => item.franchise,
       (item) => item.name,
-      context?.series,
+      context?.franchises,
     ),
   // The table `utils/types.ts` shares across the tabs, so a chip and the wedge, bead or shelf
   // naming one series are one colour. Most of the column is a work naming itself and answers `""`,
@@ -223,6 +221,26 @@ export const franchiseCategory = <T extends { franchise: string; name: string },
   // Found through the franchise index instead, which holds the column to the values that actually
   // group something: a scan of it would offer every standalone work as a series to narrow by.
   found: [],
+});
+
+/**
+ * A medium's own series select, which Games, Movies and Books each offer and never share.
+ *
+ * The caller states the key and the word, both naming the medium, because a series is a line
+ * inside one medium (`InSeries`). The box folds entries on the key, so a shared key would make two
+ * media's series of one name a single entry narrowing both tabs; and it states a value's category
+ * beside its name, so a shared word would leave two rows told apart only by their counts.
+ *
+ * Searchable, every tab holding scores of series and most of them a run of two or three.
+ */
+export const seriesCategory = <T extends InSeries, S>(key: CategoryKey<S>, label: string): FilterCategory<T, S> => ({
+  key,
+  label,
+  valueOf: (item) => item.series,
+  // The default keeps `""`, which every standalone answers: a blank chip selects nothing a reader
+  // can name.
+  options: (data) => categoryOptions(data, (item) => item.series).filter(Boolean),
+  searchable: true,
 });
 
 /**

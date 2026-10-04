@@ -119,9 +119,9 @@ describe("buildSearchIndex", () => {
     const { items } = trekIndex();
     const secondary = Object.fromEntries(items.map((entry) => [entry.medium, entry.secondary]));
 
-    expect(secondary.game).toEqual(["Nintendo EPD", "Nintendo Switch"]);
+    expect(secondary.game).toEqual(["Nintendo EPD", "Nintendo Switch", ""]);
     expect(secondary.show).toEqual(["Apple TV+", "", "The Cage", ""]);
-    expect(secondary.movie).toEqual(["Denis Villeneuve"]);
+    expect(secondary.movie).toEqual(["Denis Villeneuve", ""]);
     expect(secondary.book).toEqual(["Alastair Reynolds", "Revelation Space"]);
   });
 });
@@ -494,16 +494,17 @@ describe("searchUnion over values", () => {
     expect(values[0].franchise).toBeUndefined();
   });
 
-  it("puts the series above the attribute where it answers at least as well", () => {
-    // A rank tie is the common case rather than the odd one, and the series takes it: its view
-    // states the series' own facts and strip before listing it. "re" is a word start of both the
-    // franchise and the author's surname, and the two are different names, so both rows stand.
+  it("puts the franchise above the attributes where it answers at least as well", () => {
+    // A rank tie is the common case rather than the odd one, and the franchise takes it: its view
+    // states the franchise's own facts and strip before listing it. "re" is a word start of the
+    // franchise, the book series of the same name and the author's surname.
     const reynolds = library({ book: [book(), book({ name: "Redemption Ark", seriesNumber: 3 })] });
     const values = valuesOf(searchUnion(buildSearchIndex(toOmniItems(reynolds), reynolds), "re"));
 
-    expect(values.map((value) => [value.attribute.value, value.franchise !== undefined])).toEqual([
-      ["Revelation Space", true],
-      ["Alastair Reynolds", false],
+    expect(values.map((value) => [value.attribute.category, value.attribute.value])).toEqual([
+      ["franchise", "Revelation Space"],
+      ["author", "Alastair Reynolds"],
+      ["bookSeries", "Revelation Space"],
     ]);
   });
 
@@ -519,16 +520,19 @@ describe("searchUnion over values", () => {
     expect(values.map((value) => value.attribute.category)).toEqual(["franchise", "author"]);
   });
 
-  it("folds a series-column value into the franchise of the same name", () => {
-    // A book series is written in its Series column and its Franchise column both, and 47 of the
-    // 73 series in the sheet hold one string in each — Revelation Space among them — so the two
-    // indexes would otherwise answer one name with two rows differing only in their category word.
-    // The franchise's view states the series' own facts and strip before listing it, so it is the
-    // row that stands.
-    const reynolds = library({ book: [book(), book({ name: "Redemption Ark", seriesNumber: 3 })] });
-    const values = valuesOf(searchUnion(buildSearchIndex(toOmniItems(reynolds), reynolds), "revelation space"));
+  it("keeps a series beside the franchise of the same name, each its own narrowing", () => {
+    // The film series "Harry Potter" is the eight films, where the franchise reaches the books as
+    // well, so the series row names its medium and narrows the Movies tab alone.
+    const potter = library({
+      book: [book({ name: "Philosopher's Stone", franchise: "Harry Potter", series: "Harry Potter" })],
+      movie: [movie({ name: "Philosopher's Stone", franchise: "Harry Potter", series: "Harry Potter" })],
+    });
+    const values = valuesOf(searchUnion(buildSearchIndex(toOmniItems(potter), potter), "harry potter"));
 
-    expect(values.map((value) => value.franchise !== undefined)).toEqual([true]);
+    expect(values.map((value) => value.attribute.category)).toEqual(["franchise", "filmSeries", "bookSeries"]);
+    const film = values.find((value) => value.attribute.category === "filmSeries");
+    expect(film?.attribute.label).toBe("film series");
+    expect(film?.placements.map((placed) => placed.tab)).toEqual(["movies"]);
   });
 
   it("counts a chip in the tab's own rows, where the dots beside the name count the works", () => {
@@ -544,7 +548,7 @@ describe("searchUnion over values", () => {
 
   it("narrows a tab holding one self-naming row of a series the library knows", () => {
     // The lone Halo game names itself, so that tab's own rows read it as a standalone work — and
-    // the film is what makes it a series. Every picker asks `seriesFranchises` of the union, so
+    // the film is what makes it a series. Every picker reads the index's `context`, built from the union, so
     // the chip here and the chip the Games filter surface draws come off one list.
     const halo = library({
       game: [videoGame({ name: "Halo", franchise: "Halo" })],

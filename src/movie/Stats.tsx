@@ -155,7 +155,7 @@ const MovieHero = ({ movie }: { movie: Movie }) => {
       title={movie.name}
       // The genre wears the same swatch its ledger row and every genre wedge on the tab wear.
       subtitle={movieSubtitle(movie, scheme)}
-      stats={movieHeroStats(movie, franchise.length)}
+      stats={movieHeroStats(movie, franchise.length, "hero")}
       strip={
         <MovieFranchiseStrip
           movie={movie}

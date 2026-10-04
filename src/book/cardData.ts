@@ -1,4 +1,5 @@
 import type { LedgerRow, PanelSubtitlePart } from "../common/Card";
+import { seriesRow } from "../common/series";
 import type { FranchiseEntry } from "../common/franchiseUnion";
 import { spanUntil } from "../common/medium";
 import type { ReactNode } from "react";
@@ -20,13 +21,6 @@ export const bookSubtitle = (book: Book, scheme: Scheme): PanelSubtitlePart[] =>
   { text: book.genre, swatch: genreToColour(book.genre, scheme) },
 ];
 
-/**
- * Where a book sits in its series, worded the way a ledger row or a tile reads it: "#3 · Revelation
- * Space", or the series alone where the sheet did not number it. Empty for a standalone.
- */
-export const seriesLabel = (book: Book): string =>
-  book.series ? (book.seriesNumber !== undefined ? `#${book.seriesNumber} · ${book.series}` : book.series) : "";
-
 /** The span a book was read over, in the reader's voice, running to "present" while it is open. */
 export const readRange = (book: Book): string => formatDateRange(book.startDate, book.endDate);
 
@@ -46,7 +40,8 @@ export const bookRows = (book: Book, scheme: Scheme): LedgerRow[] => {
     { label: "Status", value: book.status, swatch: statusToColour(book, scheme) },
   ];
 
-  if (book.series) rows.push({ label: "Series", value: seriesLabel(book) });
+  const series = seriesRow(book);
+  if (series) rows.push(series);
 
   // A standalone book carries its own name in the column, so the row appears only where it names
   // something the book belongs to rather than the book over again. Unknown franchises fall

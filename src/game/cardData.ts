@@ -1,4 +1,5 @@
 import { YearMonthDay, formatDate, formatDateRange } from "../common/date";
+import { seriesRow } from "../common/series";
 import type { FranchiseEntry } from "../common/franchiseUnion";
 import { spanUntil } from "../common/medium";
 import type { ReactNode } from "react";
@@ -64,6 +65,9 @@ export const gameRows = (game: VideoGame, scheme: Scheme): LedgerRow[] => {
   // One name where the studio published itself, rather than the same word twice.
   const by = joinParts([...new Set([game.developer, game.publisher])]);
   if (by) rows.push({ label: "By", value: by });
+
+  const series = seriesRow(game);
+  if (series) rows.push(series);
 
   if (game.franchise) {
     // Unknown franchises fall through to an empty colour, which is no swatch rather than a black
