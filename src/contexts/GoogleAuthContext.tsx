@@ -101,11 +101,14 @@ const openSession = async (accessToken: string): Promise<Session> =>
 
 /**
  * The function's answer, or its own words on why not: every failure it reports carries an `error`
- * naming the fault — a renamed tab, a lost share, an account off the list.
+ * naming the fault — a renamed tab, a lost share, an account off the list. An OK answer that is not
+ * JSON is a failure too: a captive portal answers 200 with its own login page, which taken as the
+ * function's would be stored as a session or read as a sheet.
  */
 const readBody = async <T,>(response: Response): Promise<T> => {
   const body = await response.json().catch(() => undefined);
-  if (!response.ok) throw new Error(body?.error ?? `The sheets function answered ${response.status}`);
+  if (!response.ok || body === undefined)
+    throw new Error(body?.error ?? `The sheets function answered ${response.status} with nothing it could read`);
   return body as T;
 };
 
@@ -208,8 +211,10 @@ export const GoogleAuthProvider = ({ children }: { children: ReactNode }) => {
     // A 401 is the function refusing the session and nothing else, so it alone ends it, stated in
     // the app's own words, which name the control to press. Every other failure is a fault with the
     // sheet — a renamed tab, an emptied one, a lost share — which signing in again would not change.
+    // Only the session this read carried is ended: a sign-in landing while the read was out has
+    // written a newer one, which the refusal says nothing about.
     if (response.status === 401) {
-      endSession();
+      if (parseSession(storage().getItem(storageKey))?.token === token) endSession();
       throw new Error(EXPIRED);
     }
     const { values } = await readBody<{ values: string[][] }>(response);

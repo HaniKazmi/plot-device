@@ -2,18 +2,20 @@ import { http } from "@google-cloud/functions-framework";
 import { promisify } from "node:util";
 import { gzip as gzipCallback } from "node:zlib";
 import { loadConfig } from "./config.ts";
-import { fetchTokenInfo, readRange, serviceAccountToken } from "./google.ts";
+import { createTokenCache, fetchServiceAccountToken, fetchTokenInfo, readRange } from "./google.ts";
 import { createHandler } from "./handler.ts";
 
 // Read at start-up, so a deployment missing a variable fails to start and says which, rather than
 // answering every request with an error the app reports as a sheet fault.
 const config = loadConfig(process.env);
 
+const nowSeconds = () => Math.floor(Date.now() / 1000);
+
 const handle = createHandler(config, {
   fetchTokenInfo,
-  serviceAccountToken: () => serviceAccountToken(config.credentialsPath),
+  serviceAccountToken: createTokenCache(() => fetchServiceAccountToken(config.credentialsPath), nowSeconds),
   readRange,
-  nowSeconds: () => Math.floor(Date.now() / 1000),
+  nowSeconds,
   warn: (message) => console.warn(message),
 });
 

@@ -15,7 +15,7 @@ export interface Session {
  *
  * The parse is guarded because the caller runs inside a `useState` initialiser: a throw there
  * happens during render, which takes the whole page down rather than just prompting to authorise
- * again. The shape is checked as well, since the key may hold whatever an older build wrote there.
+ * again. The shape is checked as well, since storage is anything another script on the origin wrote.
  */
 export const parseSession = (raw: string | null): Session | null => {
   try {

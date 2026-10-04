@@ -22,7 +22,7 @@ describe("parseSession", () => {
   });
 
   it("treats a stored value of another shape as no session", () => {
-    // What a Google token wrapper looks like, stored under a key an older build may have used.
+    // A value of some other shape under the key, here a Google token wrapper.
     expect(parseSession(JSON.stringify({ expiry: NOW, token: { access_token: "ya29" } }))).toBeNull();
     expect(parseSession(JSON.stringify({ token: "v1.a.b" }))).toBeNull();
   });
