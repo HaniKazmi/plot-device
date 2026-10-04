@@ -1,12 +1,5 @@
 import { rankHits, type Hit, type Searchable } from "../common/searchData";
-import {
-  categoryTally,
-  FRANCHISE_KEY,
-  groupHolds,
-  selectedPredicates,
-  type CategoryContext,
-  type PageSchema,
-} from "../common/filterSchema";
+import { categoryTally, FRANCHISE_KEY, groupHolds, selectedPredicates, type PageSchema } from "../common/filterSchema";
 import { franchiseIndex } from "../common/franchiseIndex";
 import type { YearMonthDay } from "../common/date";
 import { mediumToLabel, type Medium } from "../utils/types";
@@ -15,7 +8,7 @@ import type { Season } from "../show/types";
 import { countByMedium, type OmniItem } from "../common/medium";
 import type { PageAction } from "../common/filterReducer";
 import { omniHours, type Library } from "./library";
-import { galleryGroups, galleryStripOrder, galleryWorks, isSeries, workOf, type ShelfItem } from "./galleryData";
+import { galleryGroups, galleryStripOrder, galleryWorks, workOf, type ShelfItem } from "./galleryData";
 import { media } from "./types";
 import { PAGE_MODULES, type PageRows } from "./pageState";
 import "../utils/arrayUtils";
@@ -158,21 +151,12 @@ export interface SearchIndex {
   /** The categories those attributes belong to, as things a query can name. */
   categories: CategorySearchEntry[];
   /**
-   * What a page's own pickers cannot answer from their rows — the franchises this library knows to
-   * be series. Held here because the surface drawing a page's filters needs it too, and a second
-   * walk is a second answer; held as the whole `CategoryContext` rather than the set inside it, so
-   * what that surface passes down is one object with an owner rather than a literal minted per
-   * render, which is what the tally cache below it is keyed on.
-   */
-  context: CategoryContext;
-  /**
    * Per tab, how many of that tab's own rows each franchise its own picker offers holds.
    *
    * Two answers a franchise hit needs and the ranked entry cannot give. The counts are the tab's
    * rows and not the union's items, where a show is one row and the seasons the union flattens it
-   * to are several; and the keys are that tab's own picker's set, asked with the same
-   * `context` the entries above were filtered by — so a chip is drawn exactly where the
-   * page it lands on offers the value, and the filter it sets is one that page can clear.
+   * to are several; and the keys are that tab's own picker's set — so a chip is drawn exactly where
+   * the page it lands on offers the value, and the filter it sets is one that page can clear.
    */
   franchiseRows: Record<string, Map<string, number>>;
 }
@@ -188,15 +172,15 @@ export interface SearchIndex {
  * its latest season is the item its hit opens: the show's card is about the show, with that
  * season as the one its strip rings.
  */
-const franchiseRowsByTab = (pages: PageRows, context: CategoryContext): Record<string, Map<string, number>> => {
+const franchiseRowsByTab = (pages: PageRows): Record<string, Map<string, number>> => {
   const byTab: Record<string, Map<string, number>> = {};
   for (const [tab, page] of Object.entries(PAGE_MODULES)) {
     const rows = page.rows(pages);
     const category = categoryOf(page.filters, FRANCHISE_KEY);
     if (!rows || !category) continue;
-    // Through the picker rather than against the series set directly, so a rule added to
-    // `franchiseOptions` reaches the counts as well as the chips.
-    const { values, counts } = categoryTally(category, rows, context);
+    // Through the picker, so a rule added to the franchise category reaches the counts as well as
+    // the chips.
+    const { values, counts } = categoryTally(category, rows);
     byTab[tab] = new Map(values.map((franchise) => [franchise, counts.get(franchise) ?? 0]));
   }
   return byTab;
@@ -225,9 +209,8 @@ const indexOver = (items: OmniItem[], library: Library): SearchIndex => {
   // The two halves every page's rows come out of, which is all the per-tab walks below need: the
   // four visible slices, and the union the composing tab filters.
   const pages: PageRows = { visible: library, items };
-  const franchises = [...franchiseIndex(items, (item) => item.franchise).entries()]
-    .filter(([franchise, members]) => isSeries(franchise, members))
-    .map(([franchise, members]): FranchiseSearchEntry => {
+  const franchises = [...franchiseIndex(items, (item) => item.franchise).entries()].map(
+    ([franchise, members]): FranchiseSearchEntry => {
       const years = members.map((member) => member.year);
       // One member per work, which is what the view lists: the total and the breakdown come off
       // that one map, so a series cannot state four works and three media adding to five.
@@ -244,7 +227,8 @@ const indexOver = (items: OmniItem[], library: Library): SearchIndex => {
         span: [Math.min(...years), Math.max(...years)],
         works: byWork.size,
       };
-    });
+    },
+  );
 
   const works = new Map<unknown, OmniItem[]>();
   for (const item of items) works.setIfAbsent(workOf(item), []).push(item);
@@ -265,19 +249,13 @@ const indexOver = (items: OmniItem[], library: Library): SearchIndex => {
   });
 
   const attributes = buildAttributeIndex(pages);
-  // The one thing a tab's own franchise picker cannot answer from its rows, and no walk of its
-  // own: `franchises` is already `isSeries` over this union, so the set is those entries' names.
-  // One value and not two readings of one rule, which is what the pickers, the strips and the box
-  // all narrow by.
-  const context: CategoryContext = { franchises: new Set(franchises.map((entry) => entry.franchise)) };
 
   return {
     franchises,
     items: workEntries,
     attributes,
-    context,
     categories: buildCategoryIndex(attributes, franchises),
-    franchiseRows: franchiseRowsByTab(pages, context),
+    franchiseRows: franchiseRowsByTab(pages),
   };
 };
 
@@ -696,7 +674,7 @@ export const attributeWorks = (library: Library, entry: AttributeEntry, today: Y
 
 /**
  * The franchises met most recently, for the palette before anything is typed: the gallery's own
- * recent order over its franchise shelves, which already drops a group of one work.
+ * recent order over its franchise shelves, a standalone work's own among them.
  */
 export const recentFranchises = (items: OmniItem[], today: YearMonthDay, limit: number): string[] =>
   galleryGroups(items, "franchise", "Items", "recent", today)

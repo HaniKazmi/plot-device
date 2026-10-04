@@ -29,4 +29,12 @@ describe("movieRows", () => {
     expect(series(movie({ series: "Alien", seriesNumber: 0.5, franchise: "Alien" }))?.value).toBe("#0.5 · Alien");
     expect(series(movie({ series: "" }))).toBeUndefined();
   });
+
+  it("states the franchise for a standalone film too, a work being a franchise of one", () => {
+    const franchise = movieRows(movie({ name: "Arrival", franchise: "Arrival" }), "light").find(
+      (row) => row.label === "Franchise",
+    );
+
+    expect(franchise).toMatchObject({ value: "Arrival", franchise: "Arrival" });
+  });
 });

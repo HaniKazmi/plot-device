@@ -179,11 +179,8 @@ const collator = new Intl.Collator();
  * cell holding a space is blank to a reader, and untrimmed it sorts ahead of every letter and hands
  * the jump rail a chip with nothing written on it.
  *
- * The raw cell, deliberately, where `franchiseOptions` puts the same column through
- * `namesTheSameThing` before offering it as a filter. The two ask different questions: that one
- * asks whether a franchise groups anything worth filtering by, and answers no for a work naming
- * itself; this one asks what a work sorts beside, and the raw cell is what groups a series whose
- * first entry shares its name. Normalising here would file "The Chronicles of Narnia" under its
+ * The raw cell, deliberately: what a work sorts beside is what groups a series whose first entry
+ * shares its name. Normalising here would file "The Chronicles of Narnia" under its
  * title and its sequels under the franchise, splitting the shelf this sort exists to build.
  */
 const franchiseKey = (item: FinishedItem) => item.franchise.trim() || item.name;

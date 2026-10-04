@@ -2,7 +2,7 @@ import { formatDate, type YearMonthDay } from "../common/date";
 import { byDate } from "../common/finishedData";
 import type { CreditRole, OmniItem } from "../common/medium";
 import type { TopGroup } from "../common/statsData";
-import { galleryStripOrder, galleryValue, galleryWorks, isSeries, worksIn, type ShelfItem } from "../app/galleryData";
+import { galleryStripOrder, galleryValue, galleryWorks, worksIn, type ShelfItem } from "../app/galleryData";
 import { measureOf } from "../app/library";
 import { moduleOf } from "../app/media";
 import type { Measure } from "../app/types";
@@ -25,15 +25,13 @@ const byStart = <T extends OmniItem>(items: readonly T[], today: YearMonthDay): 
 };
 
 /**
- * Where a franchise stands among the library's franchises by hours, counting only the groups that
- * are series at all (`isSeries`) — the same population the Omnibus's own franchise figure counts,
- * so a work naming itself is never ranked against Pokémon.
+ * Where a franchise stands among every franchise in the library by hours — a standalone work being
+ * a franchise of one — the same population the Omnibus's own franchise figure counts.
  */
 export const franchiseRank = (items: OmniItem[], franchise: string): { rank: number; of: number } => {
   const byFranchise = new Map<string, OmniItem[]>();
   for (const item of items) byFranchise.setIfAbsent(item.franchise, []).push(item);
   const ranked = [...byFranchise.entries()]
-    .filter(([name, members]) => name === franchise || isSeries(name, members))
     .map(([name, members]) => ({ name, hours: members.sum("hours") }))
     .toSorted((a, b) => b.hours - a.hours);
   return { rank: ranked.findIndex((entry) => entry.name === franchise) + 1, of: ranked.length };

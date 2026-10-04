@@ -6,7 +6,6 @@ import type { ReactNode } from "react";
 import { formatDate, formatDateRange, type YearMonthDay } from "../common/date";
 import { franchiseToColour, genreToColour, mediumFills, statusToColour, type Scheme } from "../utils/types";
 import { bookItemKey } from "./statsData";
-import { namesTheSameThing } from "../utils/stringUtils";
 import { formatToColour, type Book } from "./types";
 
 /**
@@ -43,16 +42,15 @@ export const bookRows = (book: Book, scheme: Scheme): LedgerRow[] => {
   const series = seriesRow(book);
   if (series) rows.push(series);
 
-  // A standalone book carries its own name in the column, so the row appears only where it names
-  // something the book belongs to rather than the book over again. Unknown franchises fall
-  // through to an empty colour, which is no swatch rather than a black one.
-  if (!namesTheSameThing(book.franchise, book.name))
-    rows.push({
-      label: "Franchise",
-      value: book.franchise,
-      swatch: franchiseToColour(book, scheme) || undefined,
-      franchise: book.franchise,
-    });
+  // Every book stands in a franchise, a standalone in one of its own name, and the row is the way to its
+  // page either way. Unknown franchises fall through to an empty colour, which is no swatch
+  // rather than a black one — the table names the couple of dozen the app draws.
+  rows.push({
+    label: "Franchise",
+    value: book.franchise,
+    swatch: franchiseToColour(book, scheme) || undefined,
+    franchise: book.franchise,
+  });
 
   return rows;
 };

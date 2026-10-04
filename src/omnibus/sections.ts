@@ -26,9 +26,8 @@ export const OMNIBUS_SECTIONS = ids;
  * The rail's chips for this page.
  *
  * Every section but the vitals is rendered only where it has something to say, so whether each is
- * there is passed in rather than derived a second time. Franchises and Genres both empty on what
- * their own grouping leaves — a franchise that is only a work naming itself, a genre whose every
- * entry logged no time — and neither is emptied by narrowing to one medium, since a single medium
+ * there is passed in rather than derived a second time. Franchises empties only where the filters
+ * leave no franchise at all, Genres where every entry left logged no time — and neither is emptied by narrowing to one medium, since a single medium
  * is a lane and a full bar rather than nothing to draw; the library empties where the filters leave
  * nothing with artwork, and the finished strip where they leave nothing closed; the chart and the
  * timeline empty where the filters leave nothing at all.

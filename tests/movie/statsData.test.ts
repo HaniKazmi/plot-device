@@ -55,10 +55,10 @@ describe("groupMoviesBy", () => {
     expect(groupMoviesBy(data, "genre", "Hours")[0].count).toBe(3);
   });
 
-  it("drops a franchise group of one, since a standalone film names itself there rather than starting a series", () => {
+  it("keeps a franchise of one, a standalone film being a franchise like any other", () => {
     const data = [movie({ name: "Arrival", franchise: "Arrival" })];
 
-    expect(groupMoviesBy(data, "franchise", "Films")).toEqual([]);
+    expect(groupMoviesBy(data, "franchise", "Films").map((group) => group.name)).toEqual(["Arrival"]);
   });
 
   it("keeps a series' first film even though it shares the franchise's own name", () => {

@@ -382,10 +382,7 @@ describe("groupShowsBy", () => {
     expect(groupShowsBy(data, "genre", "Shows")[0].top.name).toBe("Andor");
   });
 
-  it("drops franchise groups of one show — a standalone naming itself is not a series", () => {
-    // 229 of 308 shows carry their own name in the franchise column, so grouping by franchise
-    // without this would turn most of the library into franchises of one. The test is the
-    // group's size, not the name: a series' first show genuinely shares the franchise's name.
+  it("keeps a franchise of one show beside a series, a standalone being a franchise of one", () => {
     const data = [
       show({ name: "Severance", franchise: "Severance" }),
       show({ name: "The Boys", franchise: "The Boys" }),
@@ -393,15 +390,15 @@ describe("groupShowsBy", () => {
     ];
 
     const groups = groupShowsBy(data, "franchise", "Shows");
-    expect(groups.map((g) => g.name)).toEqual(["The Boys"]);
-    // The self-named first entry stays in its series rather than being read as a standalone.
+    expect(groups.map((g) => g.name)).toEqual(["The Boys", "Severance"]);
+    // The self-named first entry stays in its series rather than standing apart.
     expect(groups[0].all.map((s) => s.name)).toEqual(["The Boys", "Gen V"]);
   });
 
-  it("drops a franchise seen only once, even when the show does not name itself", () => {
+  it("keeps a franchise seen only once, whether or not the show names itself", () => {
     const data = [show({ name: "The Mandalorian", franchise: "Star Wars" })];
 
-    expect(groupShowsBy(data, "franchise", "Shows")).toEqual([]);
+    expect(groupShowsBy(data, "franchise", "Shows").map((g) => g.name)).toEqual(["Star Wars"]);
   });
 
   it("groups a real franchise across the shows that share it", () => {

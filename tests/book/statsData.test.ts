@@ -59,10 +59,10 @@ describe("groupBooksBy", () => {
     expect(groups[0].top.name).toBe("B");
   });
 
-  it("drops a franchise of one, which is a book naming itself, but keeps a series of one", () => {
+  it("keeps a franchise of one, a standalone book being a franchise like any other, and a series of one", () => {
     const standalone = book({ name: "Project Hail Mary", franchise: "Project Hail Mary", series: "Solo" });
 
-    expect(groupBooksBy([standalone], "franchise", "Books")).toEqual([]);
+    expect(groupBooksBy([standalone], "franchise", "Books").map((group) => group.name)).toEqual(["Project Hail Mary"]);
     expect(groupBooksBy([standalone], "series", "Books").map((group) => group.name)).toEqual(["Solo"]);
   });
 });

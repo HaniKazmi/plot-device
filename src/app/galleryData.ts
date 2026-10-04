@@ -1,4 +1,4 @@
-import { groupByCategory, realFranchisesOnly, type DrilldownGroup } from "../common/statsData";
+import { groupByCategory, type DrilldownGroup } from "../common/statsData";
 import { latestOf, type YearMonthDay } from "../common/date";
 import { byDate } from "../common/finishedData";
 import {
@@ -18,10 +18,8 @@ import {
 import { IN_PROGRESS } from "../common/finishedData";
 import { moduleOf, omniArtwork } from "./media";
 import { measureOf } from "./library";
-import { namesTheSameThing } from "../utils/stringUtils";
 import type { OmniItem } from "../common/medium";
 import type { Measure } from "./types";
-import { franchiseIndex } from "../common/franchiseIndex";
 import "../utils/arrayUtils";
 import "../utils/mapUtils";
 
@@ -151,39 +149,6 @@ export const galleryItems = (items: OmniItem[]): OmniItem[] => items.filter((ite
  */
 export const workOf = (item: OmniItem): unknown => moduleOf(item).work(item.source);
 
-/**
- * Whether a franchise group is a series at all, rather than a work naming itself.
- *
- * Every sheet writes a standalone work's own name into its franchise column, so a group whose
- * entries all repeat the name usually has no series behind it — 636 franchise values are 214 series
- * by that clause alone — and offering the rest would put every standalone work in the library on a
- * franchise list a second time. The test is on the group and never on the entry: the founding work
- * of a real series keeps naming itself, "Dune" sitting in Dune and "Alien" in Alien, and dropping
- * such an entry would take the first film of nearly every series out of a lane its own tab draws it
- * in.
- *
- * The exception is the adaptation. A novel and the film made of it are two works under one name,
- * which is the crossing a cross-media reading exists for, and read as one work naming itself it is
- * hidden outright: eleven groups here pass on this clause alone, among them Project Hail Mary,
- * Ready Player One, Good Omens and War of the Worlds. Counted in works and not entries, so a
- * five-season show naming itself is one work and still not a series.
- *
- * What it cannot tell apart is two unrelated works sharing a title — a game called Euphoria beside
- * the show, one of the eleven — which read here as a series across two media. The franchise column
- * is the only thing any of these surfaces has to group on, and the gallery's own shelves already
- * collapse that pair the same way.
- */
-export const isSeries = (franchise: string, items: OmniItem[]): boolean =>
-  items.some((item) => !namesTheSameThing(franchise, item.name)) || worksIn(items) > 1;
-
-/** Every franchise of a set of rows that is a series at all, by the rule the crossings and the box share. */
-export const seriesFranchises = (items: OmniItem[]): Set<string> =>
-  new Set(
-    [...franchiseIndex(items, (item) => item.franchise).entries()]
-      .filter(([name, members]) => isSeries(name, members))
-      .map(([name]) => name),
-  );
-
 /** How many works a set of rows holds: a show's seasons are one show, a rewatch is the film once. */
 export const worksIn = (items: OmniItem[]) => new Set(items.map(workOf)).size;
 
@@ -243,9 +208,7 @@ export const galleryWorks = (items: OmniItem[], category: GalleryCategory, today
  * Under `size` that is the page's own measure, so switching to Items reorders the shelves the way
  * it reorders every other ranking here; under `recent` it is the last year anything on the shelf
  * was met, which every record answers where a close date does not. A franchise shelf holding one
- * work is dropped on the shared rule: the column repeats a standalone title, so a group of one is
- * an item naming itself rather than a series — counted in works, so a single show carrying its own
- * name as a franchise is one entry however many seasons it ran.
+ * work stands like any other, a work met once being a franchise of one.
  */
 export const galleryGroups = (
   items: OmniItem[],
@@ -262,7 +225,6 @@ export const galleryGroups = (
     // No picker: the shelf reorders its own members below and fronts itself with the first of
     // them, so one chosen here would be reduced over every group and then thrown away.
     undefined,
-    category === "franchise" ? realFranchisesOnly : undefined,
   )
     // Ordered once here rather than again at each surface: the shelf, its drill-down and the card
     // fronting it all read one array, so the strip cannot open with a different picture than the

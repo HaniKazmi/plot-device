@@ -3,6 +3,7 @@ import {
   categoryRuns,
   categoryTally,
   certificateCategory,
+  franchiseCategory,
   namedSelection,
   schemaPredicates,
   type FilterCategory,
@@ -203,5 +204,14 @@ describe("certificateCategory", () => {
 
   it("wears the ramp its own charts are drawn in, so a chip and a wedge are one colour", () => {
     expect(category.colourFor!("15", "light")).toBe(certificateToColour("15", "light"));
+  });
+});
+
+describe("franchiseCategory", () => {
+  it("offers every franchise the rows hold, a standalone work's own name included, and no blank", () => {
+    const category = franchiseCategory<{ franchise: string }, { franchise: string[] }>("franchise");
+    const rows = [{ franchise: "Zelda" }, { franchise: "Braid" }, { franchise: "Zelda" }, { franchise: "" }];
+
+    expect(categoryTally(category, rows).values).toEqual(["Braid", "Zelda"]);
   });
 });

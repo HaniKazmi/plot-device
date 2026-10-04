@@ -6,7 +6,6 @@ import { FranchisePageContext, FranchiseUnionContext } from "../common/franchise
 import type { OmniItem } from "../common/medium";
 import { buildFranchiseUnion } from "./franchiseUnionData";
 import { FRANCHISE_ROUTE, franchisePath } from "./franchisePage";
-import { seriesFranchises } from "./galleryData";
 
 /**
  * The hover card, loaded with the chunk that draws it rather than with the shell.
@@ -47,13 +46,12 @@ export const FranchiseUnionProvider = ({ children }: { children: ReactNode }) =>
 
   const { items } = useLibrary();
   const union = items ? buildFranchiseUnion(items, CURRENT_PLAINDATE, hoverCard) : undefined;
-  // A page for every franchise the box would offer one for: a series by the rule the crossings
-  // draw by, and not a work naming itself, whose page would be one card about one work.
-  const series = items ? seriesFranchises(items) : undefined;
   // Read through the route's own matcher, which decodes the name as the page itself receives it.
   const here = matchPath(FRANCHISE_ROUTE, useLocation().pathname)?.params.name;
+  // Every franchise has a page, a standalone work's included, once the library it is drawn from
+  // has landed; the one being read leads nowhere.
   const pageOf = (franchise: string) =>
-    series?.has(franchise) && franchise !== here ? `#${franchisePath(franchise)}` : undefined;
+    items && franchise && franchise !== here ? `#${franchisePath(franchise)}` : undefined;
 
   return (
     <FranchiseUnionContext.Provider value={union}>

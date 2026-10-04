@@ -20,11 +20,9 @@ export interface DrilldownGroup<T> extends TopGroup<T> {
 /**
  * Groups items by whatever `valueOf` answers, ordered by the measure, largest first.
  *
- * The four things that vary between tabs are all accessors: the group a row belongs to (skipped
- * when it answers `""`), how much a group counts for, which member fronts it as artwork, and
- * whether a group is worth keeping at all — the franchise rule, where a one-member group is a
- * standalone item naming itself rather than a series. The value is derived once per item, since
- * a category grouping runs once per Top card per render.
+ * The three things that vary between tabs are all accessors: the group a row belongs to (skipped
+ * when it answers `""`), how much a group counts for, and which member fronts it as artwork. The
+ * value is derived once per item, since a category grouping runs once per Top card per render.
  */
 export const groupByCategory = <T>(
   data: readonly T[],
@@ -32,7 +30,6 @@ export const groupByCategory = <T>(
   measureOf: (items: T[]) => number,
   /** Which member fronts the group. Its first, where a caller reorders the members itself. */
   bestOf: (items: T[]) => T = (items) => items[0],
-  keepGroup: (items: T[]) => boolean = () => true,
 ) => {
   const buckets = new Map<string, T[]>();
   for (const item of data) {
@@ -42,7 +39,6 @@ export const groupByCategory = <T>(
 
   return (
     [...buckets.entries()]
-      .filter(([, items]) => keepGroup(items))
       .map(([name, items]) => ({ name, count: measureOf(items), top: bestOf(items), all: items }))
       // A group measuring 0 is dropped rather than listed: `sortByKey` puts falsy values first in
       // both directions, so a 0 would head this largest-first list — and downstream, a run of
@@ -52,21 +48,6 @@ export const groupByCategory = <T>(
       .sortByKey("count")
   );
 };
-
-/**
- * The franchise rule for `groupByCategory`, and a rule about the surface rather than about what a
- * series is: a shelf or a bar drawn over one member is a picture of that member under a second
- * name, whichever way it got its own.
- *
- * It is deliberately not the identity test — `isSeries` (`app/galleryData.ts`), which the box and
- * the crossings share. The two ask different questions and their answers cross: a lone *Halo 3*
- * filed under Halo is a real series by that test and still has no shelf worth drawing here, while a
- * standalone film logged twice under its own name is two rows to this rule and one self-named work
- * to that one. Which way round depends on the caller — the gallery hands this already-collapsed
- * works, where Movies and Shows hand it raw rows. A `common/` module cannot reach the union
- * `isSeries` counts works over in any case.
- */
-export const realFranchisesOnly = <T>(items: T[]) => items.length > 1;
 
 /**
  * The top `limit` groups plus an "Other" bucket holding the rest, as percentages.

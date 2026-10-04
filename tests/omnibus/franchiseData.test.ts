@@ -137,14 +137,10 @@ describe("a franchise's rows", () => {
 });
 
 describe("franchiseRank", () => {
-  it("ranks among the franchises that are series at all, by hours", () => {
-    // Cyberpunk 2077, Castlevania and Arrival are each one work naming itself, so the Witcher stands
-    // alone in the population the Omnibus counts its franchises in.
-    expect(franchiseRank(witcher(), "Witcher")).toEqual({ rank: 1, of: 1 });
-  });
-
-  it("ranks a work naming itself when that is the franchise asked about", () => {
-    expect(franchiseRank(witcher(), "Arrival")).toEqual({ rank: 2, of: 2 });
+  it("ranks among every franchise in the library by hours, a standalone work's included", () => {
+    // Cyberpunk 2077, Castlevania and Arrival are each a franchise of one, and counted.
+    expect(franchiseRank(witcher(), "Witcher")).toMatchObject({ rank: 1, of: 4 });
+    expect(franchiseRank(witcher(), "Cyberpunk 2077")).toMatchObject({ rank: 2, of: 4 });
   });
 });
 

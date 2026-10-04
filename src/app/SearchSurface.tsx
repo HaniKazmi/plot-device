@@ -16,7 +16,7 @@ import {
   type PaletteReading,
 } from "../common/SearchPalette";
 import { closeSearch, setSearchMode, setSearchScope, type SearchMode } from "../common/searchOpen";
-import { fieldsOf, type CategoryContext } from "../common/filterSchema";
+import { fieldsOf } from "../common/filterSchema";
 import { FRANCHISE_KEY } from "../common/filterSchema";
 import { rankHits, type Hit, type Searchable } from "../common/searchData";
 import { MUTED_FIGURE_SX } from "../common/typography";
@@ -356,13 +356,6 @@ export const SearchSurface = ({
   const library = useLibrary();
   const items = library.items;
   const index = items && library.whole ? buildSearchIndex(items, library.whole) : undefined;
-  // What a page's franchise picker cannot answer from its own rows, off the index that already
-  // holds it: a second walk of the union here is a second answer to the question the strips, the
-  // pickers and the box are meant to share. Taken whole rather than rebuilt around its one member,
-  // so what the tally cache below is keyed on is an object with an owner and not a literal minted
-  // per render. Absent until the union is, and a picker then falls back to its own rows, which is
-  // the narrower list.
-  const categoryContext: CategoryContext | undefined = index?.context;
   const [query, setQuery] = useState("");
   // The scan runs on the settled text: a keystroke lands in the box at once and the groups follow
   // at lower priority, so a fast typist is never held behind the previous letter's scan.
@@ -616,7 +609,6 @@ export const SearchSurface = ({
               state={pageState}
               dispatch={surface.store.dispatch}
               data={surface.data}
-              context={categoryContext}
               measures={surface.measures}
               earliestYear={surface.earliestYear}
               query={deferredQuery}

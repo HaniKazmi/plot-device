@@ -74,11 +74,9 @@ describe("buildSearchIndex", () => {
     expect(shows[0].item.key).toContain("3");
   });
 
-  it("offers a franchise only where some entry does not repeat its name, counted per medium", () => {
+  it("offers every franchise the library holds, counted per medium", () => {
     const { franchises } = trekIndex();
 
-    // Chasm City's franchise is Revelation Space, a name no entry repeats; Star Trek has three
-    // entries whose names differ. Nothing here names itself.
     expect(franchises.map((entry) => entry.franchise).toSorted()).toEqual(["Revelation Space", "Star Trek"]);
     const startrek = franchises.find((entry) => entry.franchise === "Star Trek")!;
     // Its works per medium, which is the breakdown of `works` and not of `size`: one show, not the
@@ -97,10 +95,11 @@ describe("buildSearchIndex", () => {
     expect(entry.size).toBe(5);
   });
 
-  it("drops a franchise whose one work only repeats the name, which is a work naming itself", () => {
+  it("offers a standalone work's own franchise, a franchise of one being a franchise", () => {
     const arrival = library({ movie: [movie({ name: "Arrival", franchise: "Arrival" })] });
+    const [entry] = buildSearchIndex(toOmniItems(arrival), arrival).franchises;
 
-    expect(buildSearchIndex(toOmniItems(arrival), arrival).franchises).toEqual([]);
+    expect(entry).toMatchObject({ franchise: "Arrival", works: 1 });
   });
 
   it("keeps a franchise of one name across two works, a novel and its film being a series", () => {
@@ -180,8 +179,8 @@ describe("a work's caption in a drill-down", () => {
 });
 
 describe("the palette before anything is typed", () => {
-  it("offers the franchises met lately, dropping a group of one work", () => {
-    expect(recentFranchises(trek(), TODAY, 5)).toEqual(["Star Trek"]);
+  it("offers the franchises met lately, a franchise of one work among them", () => {
+    expect(recentFranchises(trek(), TODAY, 5)).toEqual(["Revelation Space", "Star Trek"]);
   });
 });
 

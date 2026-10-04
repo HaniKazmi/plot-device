@@ -9,7 +9,6 @@ import {
   galleryItems,
   galleryStripOrder,
   galleryValue,
-  seriesFranchises,
 } from "../../src/app/galleryData";
 import { certificateToColour, genreToColour } from "../../src/utils/types";
 import { book } from "../fixtures/books";
@@ -123,12 +122,10 @@ describe("shelving", () => {
     expect(galleryStripOrder(groups[0].all, "size")[0].name).toBe("Halo");
   });
 
-  it("drops a franchise shelf holding one entry, which is an item naming itself", () => {
-    // The franchise column repeats a standalone title, so a group of one is not a series — the
-    // rule the three home tabs already group by.
+  it("shelves a franchise holding one work like any other, a standalone being a franchise of one", () => {
     const groups = galleryGroups(items(), "franchise", "Hours", "size", TODAY);
 
-    expect(groups.map((group) => group.name)).not.toContain("Arrival");
+    expect(groups.find((group) => group.name === "Arrival")?.all.map((item) => item.name)).toEqual(["Arrival"]);
   });
 
   it("stands a show on a shelf once, however many seasons of it there are", () => {
@@ -332,24 +329,5 @@ describe("books on the wall", () => {
     const [shelf] = galleryGroups(galleryItems(items), "genre", "Hours", "size", TODAY);
 
     expect(shelf.all).toHaveLength(1);
-  });
-});
-
-describe("seriesFranchises", () => {
-  it("holds the franchises with a series behind them, and not a work naming itself", () => {
-    const items = toOmniItems(
-      library({
-        movie: [
-          movie({ name: "Knives Out", franchise: "Knives Out" }),
-          movie({ name: "Glass Onion", franchise: "Knives Out" }),
-          movie({ name: "Arrival", franchise: "Arrival" }),
-        ],
-        // A novel and the film made of it are two works under one name, which is a crossing.
-        book: [book({ name: "Arrival", franchise: "Arrival" })],
-      }),
-    );
-
-    expect(seriesFranchises(items)).toEqual(new Set(["Knives Out", "Arrival"]));
-    expect(seriesFranchises(items.filter((item) => item.medium === "movie"))).toEqual(new Set(["Knives Out"]));
   });
 });

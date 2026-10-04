@@ -101,18 +101,14 @@ describe("groupGamesBy", () => {
     expect(groupGamesBy([], "publisher", "Games")).toEqual([]);
   });
 
-  it("drops a franchise of one game under the franchise key, as the other three tabs do", () => {
-    // The column is mostly works naming themselves — 52 of the 168 franchise values in the games
-    // sheet — and a Top Franchise card listing every standalone game as a franchise of one is what
-    // the shared rule exists to stop; grouped on any other key a group of one stands.
+  it("keeps a franchise of one game under the franchise key, as under every other key", () => {
     const data = [
       videoGame({ name: "Braid", franchise: "Braid", publisher: "Number None" }),
       videoGame({ franchise: "Zelda" }),
       videoGame({ franchise: "Zelda" }),
     ];
 
-    expect(groupGamesBy(data, "franchise", "Games").map((g) => g.name)).toEqual(["Zelda"]);
-    expect(groupGamesBy(data, "publisher", "Games").map((g) => g.name)).toContain("Number None");
+    expect(groupGamesBy(data, "franchise", "Games").map((g) => g.name)).toEqual(["Zelda", "Braid"]);
   });
 });
 

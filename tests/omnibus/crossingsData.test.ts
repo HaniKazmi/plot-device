@@ -78,19 +78,13 @@ describe("which franchises get a strip", () => {
     expect(result[0].bands.filter((band) => band.item.medium === "movie")).toHaveLength(2);
   });
 
-  it("drops a group whose one work only repeats the franchise name", () => {
-    // Nothing in the group names a wider series and there is only the one work, so the cell is a
-    // title repeated rather than a franchise. This is the one test a group has to pass, and it is
-    // what holds the section to series: most franchise cells in the sheets are a work naming itself.
+  it("draws a franchise of one work as a strip of its own, a standalone being a franchise", () => {
     const result = found(toOmniItems(library({ game: [videoGame({ name: "Arrival", franchise: "Arrival" })] })));
 
-    expect(result).toEqual([]);
+    expect(result.map((crossing) => crossing.franchise)).toEqual(["Arrival"]);
   });
 
-  it("keeps a group of one name across two works, an adaptation being the crossing this draws", () => {
-    // A novel and the film made of it are two works under one name — the shape Project Hail Mary,
-    // Ready Player One and Good Omens all take. Read as one work naming itself, the section would
-    // hide exactly the crossings it exists for.
+  it("draws a novel and the film of it under one name as one strip across both media", () => {
     const result = found(
       toOmniItems(
         library({
@@ -104,15 +98,15 @@ describe("which franchises get a strip", () => {
     expect(result[0].media).toEqual(["movie", "book"]);
   });
 
-  it("counts works and not entries, so a show naming itself is still one work and still dropped", () => {
+  it("draws a show naming itself as one strip of its seasons", () => {
     const result = found(
       toOmniItems(library({ show: [seasonsOf(show({ name: "Arrival", franchise: "Arrival" }), 3)] })),
     );
 
-    expect(result).toEqual([]);
+    expect(result.map((crossing) => crossing.entries)).toEqual([3]);
   });
 
-  it("skips the empty franchise, which is the sheets' way of saying there is no series", () => {
+  it("skips the empty franchise, which is the games sheet's way of saying there is none", () => {
     const result = found(
       toOmniItems(
         library({

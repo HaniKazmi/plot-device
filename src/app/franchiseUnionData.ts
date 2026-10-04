@@ -18,10 +18,8 @@ const unionEntry = (item: OmniItem, today: YearMonthDay, hoverCard: HoverCardOf)
 /**
  * Every franchise across the four libraries, grouped on the raw franchise column exactly as each
  * domain's own index groups — a series' founding entry keeps naming itself, and a standalone work
- * is a group of one that every consumer tests for. A film and a game sharing one title are the
- * cross-medium fact a card exists to show, which is why the crossings' rule of dropping a group
- * whose every entry repeats the name is not applied here: that rule chooses which franchises a
- * section draws at all, and a card has already chosen.
+ * is a franchise of one, which a card's strip draws nothing for, there being nothing to place the
+ * work among. A film and a game sharing one title are the cross-medium fact a card exists to show.
  */
 export const buildFranchiseUnion = (items: OmniItem[], today: YearMonthDay, hoverCard: HoverCardOf): FranchiseUnion =>
   franchiseIndex(
