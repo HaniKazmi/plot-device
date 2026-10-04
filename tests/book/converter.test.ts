@@ -137,6 +137,11 @@ describe("field parsing", () => {
     expect(convertOne().seriesNumber).toBe(2);
   });
 
+  it("keeps a fractional series number, which orders an entry between two numbered ones", () => {
+    // The State of the Art sits at 3.5 among the Culture novels: truncated, it ties with Use of Weapons.
+    expect(convertOne({ Series: "Culture", "Series #": "3.5" }).seriesNumber).toBe(3.5);
+  });
+
   it("accepts every format the vocabulary names", () => {
     // The vocabulary's own list, so a format added to it is fed through the converter without
     // anyone remembering this case — which a literal restating three of the four would not do.

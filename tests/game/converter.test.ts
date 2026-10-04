@@ -57,10 +57,15 @@ describe("field parsing", () => {
     expect(() => jsonConverter([row])).toThrow('Row 2, "Breath of the Wild", Themes: the column is missing');
   });
 
-  it("reads the series and its number, blank until the columns are filled in", () => {
+  it("reads the series and its number, a blank cell arriving as the absence the model declares", () => {
     expect(convertOne().series).toBe("");
     expect(convertOne().seriesNumber).toBeUndefined();
     expect(convertOne({ Series: "Zelda", "Series #": "17" }).seriesNumber).toBe(17);
+  });
+
+  it("keeps a fractional series number, which orders an entry between two numbered ones", () => {
+    // Final Fantasy VII Remake and Rebirth are 7 and 7.1: truncated, the two tie.
+    expect(convertOne({ Series: "Final Fantasy", "Series #": "7.1" }).seriesNumber).toBe(7.1);
   });
 
   it("leaves hours undefined rather than NaN when the cell is blank", () => {

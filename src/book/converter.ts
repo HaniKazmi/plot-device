@@ -39,7 +39,7 @@ export const jsonConverter = (json: Record<string, string>[]): Book[] =>
     if (status === "Finished" && !endDate) sheetError(`${where}, End Date`, "a finished book has no end date");
     if (status === "Reading" && endDate) sheetError(`${where}, End Date`, "a book still being read has an end date");
     const score = parseInt(row.Score);
-    const seriesNumber = parseInt(row["Series #"]);
+    const seriesNumber = parseFloat(row["Series #"]);
 
     return {
       name,
