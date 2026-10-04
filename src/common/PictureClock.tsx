@@ -3,7 +3,7 @@ import { Fragment } from "react";
 import { shapeRatioValues, type ArtworkShape } from "./cardArrangement";
 import { shortYear } from "./date";
 import { byDate } from "./finishedData";
-import { clockScale, foldLabel } from "./pictureClockData";
+import { clockScale, foldLabel, type ClockFold } from "./pictureClockData";
 import type { TimelineData } from "./timelineLayout";
 import { pictureLanes } from "./yearDetailData";
 import { PictureMark } from "./YearDetail";
@@ -26,6 +26,8 @@ const PICTURE_GAP = 6;
 const FOLD_WIDTH = 44;
 /** The narrowest column a whole year is written in; narrower, it is its last two digits. */
 const FULL_YEAR_WIDTH = 44;
+/** The narrowest column that holds a year's last two digits; narrower, only every other year is named. */
+const SHORT_YEAR_WIDTH = 22;
 /** The year labels beneath the columns. */
 const AXIS_HEIGHT = 22;
 
@@ -124,7 +126,14 @@ export const PictureClock = ({
   const { pictureHeight, lefts, lanes, laneCount } = layout;
   const row = pictureHeight + LINE_ROOM;
   const height = laneCount * row;
-  const fullYears = (scale.years[0]?.width ?? 0) >= FULL_YEAR_WIDTH;
+  const yearWidth = scale.years[0]?.width ?? 0;
+  // A label wider than its column runs over its neighbour's. Years squeezed by many folds on a
+  // phone name every other one, or every third, so each label has the unnamed columns beside it to
+  // run into; a fold narrowed below what its label needs goes unnamed, its stripe saying it is a gap.
+  const stride = Math.ceil(SHORT_YEAR_WIDTH / Math.max(yearWidth, 1));
+  const yearLabel = (year: number, index: number) =>
+    yearWidth >= FULL_YEAR_WIDTH ? String(year) : index % stride === 0 ? shortYear(year) : "";
+  const foldFits = (fold: ClockFold) => fold.width >= (fold.from === fold.to ? SHORT_YEAR_WIDTH : FOLD_WIDTH);
 
   return (
     <CardContent>
@@ -140,7 +149,7 @@ export const PictureClock = ({
             width={columnWidth}
             height={height}
             background={index % 2 ? "action.hover" : undefined}
-            label={fullYears ? String(year) : shortYear(year)}
+            label={yearLabel(year, index)}
           />
         ))}
         {scale.folds.map((fold) => (
@@ -149,7 +158,7 @@ export const PictureClock = ({
               x={fold.x}
               width={fold.width}
               height={height}
-              label={foldLabel(fold)}
+              label={foldFits(fold) ? foldLabel(fold) : ""}
               muted
             />
             <Box

@@ -1035,8 +1035,10 @@ column, as the crossings group — so a figure here and the same figure on the O
 counted two ways. The route stands under the Omnibus, and `tabForPath` reading a path's first
 segment is what draws the Omnibus's chrome and theme around it. It is no page of the tab's own, so
 everything reading the tab's page state — the box's This page mode, the empty-state message, the
-rail — stands down there (`atTabRoot`), and a press on the Omnibus in the tab strip goes back to
-the tab rather than nowhere. The entry the router mounts (`omnibus/Franchise.tsx`)
+rail — stands down there (`atTabRoot`), the box's This page mode saying there is nothing here to
+narrow. A press on the Omnibus in the tab strip goes back to the tab rather than nowhere, and so
+does a value's Omnibus chip in Find, which sets the filter on the tab's store and then goes there,
+the page in hand being none of the tab's own. The entry the router mounts (`omnibus/Franchise.tsx`)
 waits for all four sheets, as the Omnibus does, and the page itself is a chunk of its own. It holds
 its own measure and year scope rather than the Omnibus's store, since a franchise reached from search
 is not a narrowing of whatever the Omnibus was last left showing — which is also why the rail it
@@ -1053,7 +1055,9 @@ The sections, each built from a shell that already exists:
   card that would be a single full bar. Two Top cards stand beside it, genre and where it was met,
   re-pointable at style or decade; the genre card counts every genre an item carries, a franchise's
   first genre being nearly always one word. A card ranking one value is left out for the dossier's
-  line.
+  line, both asked of the same values (`rankedTops`), so for any field exactly one of the two stands.
+  The line names any medium carrying no such field — "All Realistic, Books aside" — since a book
+  has no style and "All Realistic" would claim one for it.
 - **When.** The union's timeline with one mark per entry or per series (`omniSeriesTimeline`, a
   show's seasons being its line), or the By year chart, behind one segment. The timeline opens on
   **Pictures**, a layout `TimelineSection` offers only where a caller asks for it
@@ -1061,8 +1065,11 @@ The sections, each built from a shell that already exists:
   beneath it running to the day it ended, on a clock of the franchise's own years with every run of
   years nothing touched folded to a narrow stripe (`clockScale`). A franchise is met in bursts — six
   Star Wars films over 2008–09, then nothing until 2015 — and a linear scale spends its width on
-  the gaps while the bursts stack into lanes; folded, the gap is still stated. Pictures step down a
-  size until they fit in four lanes. A library of hundreds would be lanes of thumbnails, which is
+  the gaps while the bursts stack into lanes; folded, the gap is still stated. The folds together
+  take at most two fifths of the width and none is wider than its own years would be as columns,
+  since eight gaps at full width are more than a phone's whole card; a label that no longer fits its
+  column is left out. Pictures step down a size until they fit in four lanes. A year label scopes
+  the timeline to that year, the one section the page's scope narrows. A library of hundreds would be lanes of thumbnails, which is
   why no tab's own timeline offers it.
 - **Who made it.** A column per medium — written, directed, developed, aired on — each name with what
   else the library holds by the same hands, which opens all of it. Games carry two credits and read

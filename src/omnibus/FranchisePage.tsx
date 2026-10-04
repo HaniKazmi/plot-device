@@ -5,7 +5,7 @@ import { useState, type ReactNode } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { LedgerList } from "../common/Card";
 import { CURRENT_PLAINDATE, CURRENT_YEAR, type YearNumber } from "../common/date";
-import type { YearType } from "../common/filterReducer";
+import { yearPredicates, type YearType } from "../common/filterReducer";
 import type { OmniItem } from "../common/medium";
 import { countByMedium } from "../common/medium";
 import { NoticeCard } from "../common/NoticeCard";
@@ -32,13 +32,12 @@ import FranchiseProviders from "./FranchiseProviders";
 import OmniTimeline from "./Timeline";
 import {
   dossierRows,
-  FRANCHISE_TOPS,
   franchiseItems,
   franchiseLines,
   franchiseRank,
   franchiseTop,
   franchiseYears,
-  sharedValue,
+  rankedTops,
   type FranchiseTop,
 } from "./franchiseData";
 import { FRANCHISE_CHIPS, FRANCHISE_SECTIONS } from "./sections";
@@ -109,9 +108,12 @@ const FranchisePage = ({ franchise, library, items }: { franchise: string; libra
   const { rank, of } = franchiseRank(items, franchise);
   const counts = countByMedium(own);
   const mixed = Object.keys(counts).length > 1;
-  // A card ranking one value is a single full bar; the dossier states that value in a line instead,
-  // by the same test (`sharedValue`), so the card and the line cannot both stand or both be absent.
-  const tops = FRANCHISE_TOPS.filter((top) => top !== "where" || !sharedValue(own, (item) => item.venue));
+  // A card ranking one value is a single full bar; the dossier states that value in a line instead.
+  const tops = rankedTops(own);
+  // The year scope narrows the timeline alone, the one section that sets it, by the year each item
+  // closed as the Omnibus reads it.
+  const inScope = yearPredicates<OmniItem>(scope, (item) => item.year);
+  const scoped = own.filter((item) => inScope.every((keep) => keep(item)));
   const dispatch: YearDispatch = (action) => setScope({ yearType: action.yearType, yearTo: action.yearTo });
   const lead = (
     <SegmentedControl
@@ -229,7 +231,7 @@ const FranchisePage = ({ franchise, library, items }: { franchise: string; libra
         <Section id={FRANCHISE_SECTIONS.when}>
           {reading === "timeline" ? (
             <OmniTimeline
-              data={own}
+              data={scoped}
               yearType={scope.yearType}
               yearTo={scope.yearTo}
               grouping="series"

@@ -25,20 +25,6 @@ const byStart = <T extends OmniItem>(items: readonly T[], today: YearMonthDay): 
 };
 
 /**
- * The one value every item answers, or `undefined` where they differ. What decides whether a field
- * gets a ranked card on the page or a line in the dossier, asked once so the two cannot disagree.
- */
-export const sharedValue = <T>(items: readonly OmniItem[], valueOf: (item: OmniItem) => T | undefined) => {
-  const values = new Set(
-    items.flatMap((item) => {
-      const value = valueOf(item);
-      return value === undefined ? [] : [value];
-    }),
-  );
-  return values.size === 1 ? [...values][0] : undefined;
-};
-
-/**
  * Where a franchise stands among the library's franchises by hours, counting only the groups that
  * are series at all (`isSeries`) — the same population the Omnibus's own franchise figure counts,
  * so a work naming itself is never ranked against Pokémon.
@@ -93,21 +79,36 @@ export const dossierRows = (items: OmniItem[], lines: FranchiseShelf[], today: Y
   const games = items.filter((item) => item.medium === "game");
   if (games.length > 1) {
     const longest = games.reduce((top, item) => (item.hours > top.hours ? item : top));
-    rows.push({ label: "Longest game", value: `${longest.name}, ${Math.floor(longest.hours)} hours` });
+    const hours = Math.floor(longest.hours);
+    rows.push({ label: "Longest game", value: `${longest.name}, ${hours} ${hours === 1 ? "hour" : "hours"}` });
   }
 
-  const medium = sharedValue(items, (item) => item.medium);
-  if (medium) rows.push({ label: "Media", value: `${mediumToLabel(medium)} only` });
-  const style = sharedValue(items, (item) => item.style);
-  if (style) rows.push({ label: "Style", value: `All ${style}` });
-  const venue = sharedValue(items, (item) => item.venue);
-  if (venue) rows.push({ label: "Where", value: `All ${venue}` });
+  const media = new Set(items.map((item) => item.medium));
+  if (media.size === 1) rows.push({ label: "Media", value: `${mediumToLabel([...media][0])} only` });
+  for (const top of STATED_TOPS) {
+    const [only, ...others] = topNames(items, top);
+    if (only === undefined || others.length) continue;
+    // Said of every item where every item answers, and otherwise naming the media that carry no
+    // such field — a book has no style — since "All Realistic" over a franchise with books in it
+    // claims something of the books the sheet never recorded.
+    const silent = [...new Set(items.filter((item) => !topValues(item, top).some(Boolean)).map((item) => item.medium))];
+    const aside = silent.length ? `, ${silent.map(mediumToLabel).join(" and ")} aside` : "";
+    rows.push({ label: TOP_LABELS[top], value: `All ${only}${aside}` });
+  }
   return rows;
 };
 
 /** What a ranked card on this page can be pointed at. */
 export const FRANCHISE_TOPS = ["genre", "where", "style", "decade"] as const;
 export type FranchiseTop = (typeof FRANCHISE_TOPS)[number];
+
+const TOP_LABELS: Record<FranchiseTop, string> = { genre: "Genre", where: "Where", style: "Style", decade: "Decade" };
+
+/**
+ * The fields the dossier states in a line where the whole franchise answers one value. Not the
+ * decade: First and Latest already date the franchise to the day.
+ */
+const STATED_TOPS: readonly FranchiseTop[] = ["genre", "where", "style"];
 
 /**
  * The values an item carries under a ranked card. A genre counts every genre an item carries, not
@@ -126,6 +127,18 @@ const topValues = (item: OmniItem, top: FranchiseTop): string[] => {
       return [galleryValue(item, "decade")];
   }
 };
+
+/** Every value a ranked card on a field would rank, blanks dropped. */
+const topNames = (items: readonly OmniItem[], top: FranchiseTop) =>
+  new Set(items.flatMap((item) => topValues(item, top)).filter(Boolean));
+
+/**
+ * The fields worth a ranked card: those holding two values or more. A card of one value is a single
+ * full bar, and the dossier states that value in a line instead (`dossierRows`, over the same
+ * `topNames`), so for any field the card and the line cannot both stand or both be absent.
+ */
+export const rankedTops = (items: readonly OmniItem[]): FranchiseTop[] =>
+  FRANCHISE_TOPS.filter((top) => topNames(items, top).size > 1);
 
 /**
  * A ranked card's groups, measured in the page's own measure and largest first. Each group's `top`
@@ -169,14 +182,14 @@ const libraryWorks = (items: OmniItem[], today: YearMonthDay): ShelfItem[] => [
 ];
 
 /**
- * Every series of two or more works among a set, in the order the reader met them, each in its own
- * order — its numbers first, its unnumbered entries by when they were met. A series stays inside
- * its own medium (`lineOf`), so the Witcher games and the Witcher books are two lines however both
- * are named.
+ * Every series of two or more works among a set already in the order they were begun (`byStart`),
+ * in the order the reader met them, each in its own order — its numbers first, its unnumbered
+ * entries by when they were met. A series stays inside its own medium (`lineOf`), so the Witcher
+ * games and the Witcher books are two lines however both are named.
  */
-const linesOf = (works: ShelfItem[], today: YearMonthDay): FranchiseShelf[] => {
+const linesOf = (works: ShelfItem[]): FranchiseShelf[] => {
   const lines = new Map<string, ShelfItem[]>();
-  for (const work of byStart(works, today)) {
+  for (const work of works) {
     const line = lineOf(work);
     if (line) lines.setIfAbsent(line, []).push(work);
   }
@@ -194,14 +207,14 @@ const linesOf = (works: ShelfItem[], today: YearMonthDay): FranchiseShelf[] => {
 
 /** Every series of two or more works in a franchise, in the order the reader met them. */
 export const franchiseLines = (items: OmniItem[], today: YearMonthDay): FranchiseShelf[] =>
-  linesOf(libraryWorks(items, today), today);
+  linesOf(byStart(libraryWorks(items, today), today));
 
 /** The franchise's library cut into shelves, each shelf's works in the order they were met. */
 export const franchiseShelves = (items: OmniItem[], shelving: Shelving, today: YearMonthDay): FranchiseShelf[] => {
   const works = byStart(libraryWorks(items, today), today);
   switch (shelving) {
     case "series": {
-      const lines = linesOf(works, today);
+      const lines = linesOf(works);
       const lined = new Set(lines.flatMap((line) => line.items.map((item) => item.key)));
       const rest = works.filter((work) => !lined.has(work.key));
       return rest.length ? [...lines, { key: "standalone", name: "Standalone", items: rest }] : lines;

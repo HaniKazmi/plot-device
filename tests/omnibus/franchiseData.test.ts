@@ -11,6 +11,7 @@ import {
   franchiseShelves,
   franchiseTop,
   franchiseYears,
+  rankedTops,
   selfPublished,
 } from "../../src/omnibus/franchiseData";
 import { book } from "../fixtures/books";
@@ -228,6 +229,45 @@ describe("dossierRows", () => {
     expect(rows.Style).toBe("All Realistic");
     expect(rows.Where).toBe("All Home");
     expect(dossierRows(own(), franchiseLines(own(), TODAY), TODAY).map((row) => row.label)).not.toContain("Where");
+  });
+});
+
+describe("a field the whole franchise shares", () => {
+  // A film and the novel it adapts: one style recorded, on the film alone, since a book has none.
+  const adaptation = () =>
+    toOmniItems(
+      library({
+        movie: [
+          movie({
+            name: "Dune",
+            franchise: "Dune",
+            genre: "Sci-Fi",
+            otherGenres: [],
+            style: "Realistic",
+            cinema: true,
+          }),
+        ],
+        book: [book({ name: "Dune", franchise: "Dune", genre: "Sci-Fi" })],
+      }),
+    );
+
+  it("names the media that carry no such field rather than claiming it of them", () => {
+    const rows = Object.fromEntries(
+      dossierRows(adaptation(), franchiseLines(adaptation(), TODAY), TODAY).map((row) => [row.label, row.value]),
+    );
+
+    expect(rows.Style).toBe("All Realistic, Books aside");
+    expect(rows.Genre).toBe("All Sci-Fi");
+  });
+
+  it("gets a dossier line and no ranked card, and a field of two values the reverse", () => {
+    const stated = dossierRows(adaptation(), [], TODAY).map((row) => row.label);
+    const ranked = rankedTops(adaptation());
+
+    expect(ranked).not.toContain("style");
+    expect(stated).toContain("Style");
+    expect(ranked).toContain("where");
+    expect(stated).not.toContain("Where");
   });
 });
 

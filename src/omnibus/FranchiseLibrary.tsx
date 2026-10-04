@@ -86,12 +86,15 @@ const FranchiseLibrary = ({ items }: { items: OmniItem[] }) => {
   const [order, orderPicker] = useSelectBox(ORDERS, "shelf", "Order", (option) => ORDER_LABELS[option]);
   const [layout, setLayout] = useState<FinishedLayout>("Shelves");
   const [density, setDensity] = useState<FinishedDensity>("Large");
-  const [opened, setOpened] = useState<FranchiseShelf | null>(null);
+  // The shelf by key rather than as it stood when pressed, so the order and the shelving reach the
+  // dialog while it is open.
+  const [openedKey, setOpenedKey] = useState<string | null>(null);
   // Shelved apart from ordered, so changing the order rearranges the shelves without building them again.
   const shelved = franchiseShelves(items, shelving, CURRENT_PLAINDATE);
   const shelves = shelved.map((shelf) => ({ ...shelf, items: ordered(shelf.items, order) }));
   const works = shelves.reduce((sum, shelf) => sum + shelf.items.length, 0);
   const height = PICTURE_HEIGHTS[density];
+  const opened = shelves.find((shelf) => shelf.key === openedKey);
 
   return (
     <Card>
@@ -142,7 +145,7 @@ const FranchiseLibrary = ({ items }: { items: OmniItem[] }) => {
                 shelf={shelf}
                 band={band}
                 height={height}
-                onOpen={() => setOpened(shelf)}
+                onOpen={() => setOpenedKey(shelf.key)}
               />
             ))}
           </Stack>
@@ -151,7 +154,7 @@ const FranchiseLibrary = ({ items }: { items: OmniItem[] }) => {
       {opened && (
         <DrilldownDialog
           title={opened.name}
-          onClose={() => setOpened(null)}
+          onClose={() => setOpenedKey(null)}
           content={opened.items}
           cardKey={(item) => `shelf-${item.key}`}
           labelComponent={workLabels}

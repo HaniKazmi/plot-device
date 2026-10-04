@@ -1,6 +1,6 @@
 import { Box, Button, Stack, Typography } from "@mui/material";
 import { useDeferredValue, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Swatch } from "../common/Swatch";
 import { CURRENT_PLAINDATE } from "../common/date";
 import { DrilldownDialog } from "../common/DrilldownDialog";
@@ -49,7 +49,7 @@ import {
   type SearchGroup,
 } from "./searchData";
 import { media, mediumToShape } from "./types";
-import Tabs, { tabForId, tabInk, useOtherTabs } from "../tabs";
+import Tabs, { atTabRoot, tabForId, tabInk, useOtherTabs } from "../tabs";
 
 /** What a chosen hit opens: a whole franchise, one work's own expanded card, or an attribute's shelf. */
 type Picked = { kind: "item"; item: OmniItem } | { kind: "shelf"; attribute: AttributeEntry };
@@ -345,6 +345,9 @@ export const SearchSurface = ({
 }) => {
   const scheme = useScheme();
   const navigate = useNavigate();
+  // A page standing under a tab — a franchise's, under the Omnibus — is not that tab's own page:
+  // it has none of its filters, and a filter set on the tab is only seen by going there.
+  const atRoot = atTabRoot(useLocation().pathname);
   const library = useLibrary();
   const items = library.items;
   const index = items && library.whole ? buildSearchIndex(items, library.whole) : undefined;
@@ -404,7 +407,7 @@ export const SearchSurface = ({
     close();
     // Which chip is the page already open is a comparison made here and nothing the strip says:
     // the five stand in one order on every tab, so pressing one is a place to be either way.
-    if (entry.tab !== tab.id) {
+    if (entry.tab !== tab.id || !atRoot) {
       navigate(`/${entry.tab}`);
       window.scrollTo({ top: 0 });
     }
@@ -608,6 +611,13 @@ export const SearchSurface = ({
               earliestYear={surface.earliestYear}
               query={deferredQuery}
             />
+          ) : !atRoot ? (
+            <Typography
+              variant="body2"
+              sx={{ ...MUTED_FIGURE_SX, padding: 2 }}
+            >
+              Nothing on this page to narrow. Find still searches every library.
+            </Typography>
           ) : (
             /* A page whose sheet is still in flight has no vocabularies to offer and no population
                to state, and the chord opens this pane from anywhere — the first seconds of a cold

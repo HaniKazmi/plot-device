@@ -164,6 +164,7 @@ const MakerRow = ({ maker, note, onOpen }: { maker: Maker; note?: string; onOpen
   const elsewhere = maker.elsewhere.slice(0, 2);
   const more = maker.elsewhere.slice(2).reduce((sum, other) => sum + other.works, 0);
   const titles = [...new Set(maker.items.map((item) => item.name))].join(", ");
+  const hours = Math.floor(maker.hours);
 
   return (
     <Stack
@@ -186,7 +187,7 @@ const MakerRow = ({ maker, note, onOpen }: { maker: Maker; note?: string; onOpen
           variant="body2"
           sx={{ ...MUTED_FIGURE_SX, flexShrink: 0 }}
         >
-          {`${stated(maker.works, maker.works === 1 ? "work" : "works")} · ${stated(Math.floor(maker.hours), "hours")}`}
+          {`${stated(maker.works, maker.works === 1 ? "work" : "works")} · ${stated(hours, hours === 1 ? "hour" : "hours")}`}
         </Typography>
       </Stack>
       <Typography
