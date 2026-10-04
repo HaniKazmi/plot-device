@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import Barchart from "../common/Barchart";
 import { useSelectBox } from "../common/SelectBoxHook";
 import type { OmniItem } from "../common/medium";
@@ -18,13 +17,7 @@ import { useScheme } from "../common/useScheme";
  * between its series, and three series is a bar in two pieces and a bump chart of three flat
  * lines; a dozen genres or five certificates is the shape those views were built for.
  */
-const OmnibusBarchart = (props: {
-  data: OmniItem[];
-  measure: Measure;
-  /** A control standing ahead of the chart's own. */
-  lead?: ReactNode;
-}) => {
-  const { data, measure } = props;
+const OmnibusBarchart = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
   const scheme = useScheme();
 
   const [split, controls] = useSelectBox(BARCHART_SPLITS, "medium", "Split");
@@ -42,12 +35,7 @@ const OmnibusBarchart = (props: {
       // follows. Share bypasses this by design and takes its percentages from the exact hours.
       postAggregate={measure === "Hours" ? Math.floor : undefined}
       unit={measure}
-      controls={
-        <>
-          {props.lead}
-          {controls}
-        </>
-      }
+      controls={controls}
     />
   );
 };

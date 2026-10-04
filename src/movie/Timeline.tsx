@@ -74,7 +74,6 @@ const MovieTimeline = ({ data, yearType, yearTo }: { data: Movie[]; yearType: Ye
       data={marks}
       controls={
         <>
-          {colour.control}
           <SegmentedControl
             options={MARKS}
             value={mark}

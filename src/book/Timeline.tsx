@@ -172,7 +172,6 @@ const BookTimeline = ({
       }}
       controls={
         <>
-          {colour.control}
           {/* The control the Shows timeline offers the same choice through: a small closed set
               where the reading in hand has to be readable at a glance. */}
           <SegmentedControl

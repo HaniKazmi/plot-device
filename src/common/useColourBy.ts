@@ -27,7 +27,9 @@ export const useColourBy = <K extends string, T>(
     // be a gap in its row, so it takes the neutral. The key leaves such a value out, as the library's
     // border key does.
     fill: (item: T): Colour => colourOf(item, key, scheme) || neutralFill(scheme),
+    // The picker travels with the key it changes, which the section draws it at the head of.
     colourKey: (items: readonly T[]) => ({
+      control,
       field: keyLabel(key),
       entries: colourKeyEntries(
         items,

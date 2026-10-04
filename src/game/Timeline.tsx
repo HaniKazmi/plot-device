@@ -84,7 +84,6 @@ const GameTimeline = ({ data, yearType, yearTo }: { data: VideoGame[]; yearType:
       data={bars}
       controls={
         <>
-          {colour.control}
           <SegmentedControl
             options={BARS}
             value={bar}

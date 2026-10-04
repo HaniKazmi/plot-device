@@ -27,8 +27,9 @@ export const OMNIBUS_SECTIONS = ids;
  *
  * Every section but the vitals is rendered only where it has something to say, so whether each is
  * there is passed in rather than derived a second time. Franchises empties only where the filters
- * leave no franchise at all, Genres where every entry left logged no time — and neither is emptied by narrowing to one medium, since a single medium
- * is a lane and a full bar rather than nothing to draw; the library empties where the filters leave
+ * leave no franchise at all, Genres where every entry left logged no time — and neither is emptied
+ * by narrowing to one medium, since a single medium is a lane and a full bar rather than nothing to
+ * draw; the library empties where the filters leave
  * nothing with artwork, and the finished strip where they leave nothing closed; the chart and the
  * timeline empty where the filters leave nothing at all.
  *
@@ -49,13 +50,14 @@ export const omnibusSections = (has: {
 const franchise = tabSections("franchise", [
   { key: "vitals", label: "Vitals" },
   { key: "when", label: "When" },
+  { key: "years", label: "By year" },
   { key: "credits", label: "Who made it" },
   { key: "library", label: "Library" },
 ]);
 
 /**
  * The anchors of a franchise's own page, in the order it runs: how much there is of it, when it
- * ran, who made it, and its library last, the section a reader scrolls into and stays in. Every
+ * ran and how much of it each year held, who made it, and its library last, the section a reader scrolls into and stays in. Every
  * section stands whatever the franchise holds — one work is still a total, a mark, a maker and a
  * shelf — so the page says nothing about which are there.
  */

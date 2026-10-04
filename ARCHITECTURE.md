@@ -642,10 +642,15 @@ frame.
 
 ### The timeline section — `common/TimelineSection.tsx`
 
-Every tab's timeline is one section: a set of marks drawn **Across**, **Stacked** or as a **Grid**,
-coloured by a **Colour** picker, with a key under the header naming those colours. The tab owns what
-the marks are — which items, one per item or per group, in which colours — and hands them in as
-`TimelineData`; the section owns how they are laid out, which is the same question on every tab.
+Every tab's timeline is one section: a set of marks drawn **Across**, **Stacked**, as a **Grid** or
+as **Pictures**, coloured by a **Colour** picker that leads the key naming those colours. The tab
+owns what the marks are — which items, one per item or per group, in which colours — and hands them
+in as `TimelineData`; the section owns how they are laid out, which is the same question on every
+tab. The header holds the two choices about the marks themselves — what one stands for, and how
+they are laid out — in one order on every timeline, and the Colour picker stands at the head of its
+own key rather than beside them: the key is where a reader asks what the colours mean, so the
+setting stands beside its answer, and a header of three controls wraps or scrolls at every width
+short of a desktop's.
 
 **Across** is the packed chart above, and what the section opens on. **Stacked**
 (`common/StackedTimeline.tsx`) is a row per year on one screen at any width: `yearRows`
@@ -681,6 +686,23 @@ opens the series as its bar does, and no layer is ever rendered inside the hover
 where React would bubble every movement across it back to the mark. Under a coarse pointer the
 picture is left as it is, a tap on it opening that same layer rather than a sheet first.
 
+**Pictures** (`common/PictureClock.tsx`) is Across read by what: every mark's own picture standing
+at the day it began, a line beneath it running to the day it ended, on a clock of the set's own
+years with every run of years nothing touched folded to a narrow stripe (`clockScale`). A
+franchise is met in bursts — six Star Wars films over 2008–09, then nothing until 2015 — and a
+linear scale spends its width on the gaps while the bursts stack into lanes; folded, the gap is
+still stated. The folds together take at most two fifths of the width and none is wider than its
+own years would be as columns, since eight gaps at full width are more than a phone's whole card;
+a label that no longer fits its column is left out, and years too narrow for their own names are
+named every other one. `clockLayout` (`common/pictureClockData.ts`) sizes it: the largest picture
+that keeps the set to four lanes at the card's width, and failing that the same search at two,
+three and four card widths, scrolled sideways and opened at the latest end as the packed chart is —
+a franchise's few pictures fit the card at full size, a tab's hundreds run to the packed chart's own
+width before they shrink. A library still runs to dozens of lanes, so the clock caps its height and
+scrolls inside the card from `md` up, `CHART_MAX_HEIGHT` as Across does, with the year axis pinned
+to the foot of its scroller; below `md` the page carries the height. A year's label scopes the page
+to it, as Stacked's and the grid's do.
+
 The page's year scope reads through. Scoped to a year, Across is fitted to the card, and Stacked
 opens that year in detail (`common/YearDetail.tsx`), a year being too few rows for a stack to say
 anything a stack is for. From `sm` up it is **pictures on the line**: each item's own artwork standing
@@ -702,7 +724,7 @@ store, which the section is handed as `dispatch` — the one `scope` action the 
 both halves at once — and "‹ All years" beside the layout sends it back. The layout is held for
 the visit, as the library's size is.
 
-**Colour** offers every key the tab's own `groupToColour` answers, opening on the tab's own
+**Colour** leads the key under the header and offers every key the tab's own `groupToColour` answers, opening on the tab's own
 vocabulary — the company on Games, the status on Shows, the genre on Movies and Books — so the chart
 and the library's border open on one key. A value off its vocabulary's table (a franchise the shared
 table does not hold) takes the neutral rather than no fill, which would be a gap in the row. The key
@@ -1086,18 +1108,13 @@ The sections, each built from a shell that already exists:
   The line names any medium carrying no such field — "All Realistic, Books aside" — since a book
   has no style and "All Realistic" would claim one for it.
 - **When.** The union's timeline with one mark per entry or per series (`omniSeriesTimeline`, a
-  show's seasons being its line), or the By year chart, behind one segment. The timeline opens on
-  **Pictures**, a layout `TimelineSection` offers only where a caller asks for it
-  (`common/PictureClock.tsx`): every mark's own picture standing at the day it began, a line
-  beneath it running to the day it ended, on a clock of the franchise's own years with every run of
-  years nothing touched folded to a narrow stripe (`clockScale`). A franchise is met in bursts — six
-  Star Wars films over 2008–09, then nothing until 2015 — and a linear scale spends its width on
-  the gaps while the bursts stack into lanes; folded, the gap is still stated. The folds together
-  take at most two fifths of the width and none is wider than its own years would be as columns,
-  since eight gaps at full width are more than a phone's whole card; a label that no longer fits its
-  column is left out. Pictures step down a size until they fit in four lanes. A year label scopes
-  the timeline to that year, the one section the page's scope narrows. A library of hundreds would be lanes of thumbnails, which is
-  why no tab's own timeline offers it.
+  show's seasons being its line), opening on **Pictures** (§ The timeline section) where a tab's
+  opens on Across: a franchise is few enough works for every one to be its own picture at full size
+  inside the card. A year label scopes the timeline to that year, the one section the page's scope
+  narrows.
+- **By year.** The Omnibus's By year chart over the franchise's rows, a section of its own rather
+  than a second reading behind a switch in When: a switch there hides one of the two, and the
+  timeline's header already holds what a mark is and how the marks are laid out.
 - **Who made it.** A column per medium — written, directed, developed, aired on — each name with what
   else the library holds by the same hands, which opens all of it. Games carry two credits and read
   them one at a time behind a Developer · Publisher switch, so they take one column like every other
@@ -2659,7 +2676,7 @@ key in ObjectExpression`; pulled out to a plain function taking the varying piec
   `sheetBarSx`, `dialogCardSx`, among others — the literal itself sits at module scope and the
   component stays compiled.
 
-The baseline is **301 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **302 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.

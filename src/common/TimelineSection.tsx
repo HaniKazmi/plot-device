@@ -25,13 +25,13 @@ import type { TimelineData } from "./timelineLayout";
  * every bar named, the way a single playthrough is read; `Stacked` is a row per year on one screen,
  * the way a library's shape across years is compared; `Grid` is that same row per year cut into
  * months, each item's own picture standing in the month it began — Stacked read by what rather
- * than how long. `Pictures` is every item's picture on a clock of its own years, empty runs
- * folded, which only a set small enough for every item to be a picture asks for.
+ * than how long; `Pictures` is Across read by what: every item's picture on the line at the day it
+ * began, on a clock of its own years with the empty runs folded.
  */
-export type TimelineLayout = "Pictures" | "Across" | "Stacked" | "Grid";
+export type TimelineLayout = "Across" | "Stacked" | "Grid" | "Pictures";
 
-/** What a tab's timeline offers: every layout but Pictures, which a caller asks for by name. */
-const LAYOUTS: readonly TimelineLayout[] = ["Across", "Stacked", "Grid"];
+/** One order on every timeline, so a layout is the same segment wherever it is pressed. */
+const LAYOUT_OPTIONS = segments<TimelineLayout>(["Across", "Stacked", "Grid", "Pictures"]);
 
 /**
  * A tab's timeline: one set of marks drawn Across, Stacked or as a Grid, coloured by whatever the caller's
@@ -65,7 +65,7 @@ export const TimelineSection = ({
   dispatch,
   shape,
   stacked,
-  layouts,
+  initialLayout,
 }: {
   title: string;
   count?: string;
@@ -73,7 +73,7 @@ export const TimelineSection = ({
   /** The caller's own pickers — its Colour, its one mark per — drawn before the layout. */
   controls?: ReactNode;
   /** What the colours mean: the field's name and a swatch and word per value drawn. */
-  colourKey?: { field: string; entries: readonly { value: string; colour: string }[] };
+  colourKey?: { field: string; entries: readonly { value: string; colour: string }[]; control?: ReactNode };
   yearType: YearType;
   yearTo: YearNumber;
   /** The tab's own store, which a year's label and the way back set the page's scope through. */
@@ -86,11 +86,10 @@ export const TimelineSection = ({
    * A tab reading a year as one row leaves out what would open a second lane in every year it ran.
    */
   stacked?: { data?: TimelineData[]; count?: string; labelled?: boolean };
-  /** The layouts on offer, the first being what the section opens on; every one but Pictures by default. */
-  layouts?: readonly TimelineLayout[];
+  /** The layout the section opens on, Across where nothing says otherwise. */
+  initialLayout?: TimelineLayout;
 }) => {
-  const offered = layouts ?? LAYOUTS;
-  const [layout, setLayout] = useState<TimelineLayout>(offered[0]);
+  const [layout, setLayout] = useState<TimelineLayout>(initialLayout ?? "Across");
   const [open, openedCard] = useOpenedCard();
   const { active } = useNothingMatches();
   const scopeTo = (year: YearNumber) => dispatch({ type: "scope", yearTo: year, yearType: "matching" });
@@ -129,7 +128,7 @@ export const TimelineSection = ({
             )}
             {controls}
             <SegmentedControl
-              options={segments(offered)}
+              options={LAYOUT_OPTIONS}
               value={layout}
               onChange={setLayout}
               ariaLabel="Layout"
@@ -137,10 +136,15 @@ export const TimelineSection = ({
           </Stack>
         }
       />
-      {colourKey && colourKey.entries.length > 0 && (
+      {/* The Colour picker leads its own key rather than standing in the header: the key is
+          where a reader asks what the colours mean, and the header holds what the marks are and
+          how they are laid out. Drawn with no entries too, while it carries the picker, so a
+          vocabulary answering nothing — a book under certificate — leaves the way back. */}
+      {colourKey && (colourKey.entries.length > 0 || colourKey.control) && (
         <ColourKey
           field={colourKey.field}
           entries={colourKey.entries}
+          control={colourKey.control}
         />
       )}
       {data.length === 0 ? (
@@ -152,6 +156,7 @@ export const TimelineSection = ({
           data={data}
           shape={shape}
           onOpen={open}
+          onYear={scopeTo}
         />
       ) : layout === "Grid" ? (
         // Every mark, a web serial included: a picture stands in the month it began and opens no

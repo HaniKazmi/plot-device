@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { SegmentedControl, type SegmentOption, type YearDispatch } from "../common/SelectionComponents";
 import { useColourBy } from "../common/useColourBy";
 import { TimelineSection, type TimelineLayout } from "../common/TimelineSection";
@@ -62,10 +62,8 @@ const OmniTimeline = (props: {
   /** Where a year label sends its scope: the page's own store. */
   dispatch: YearDispatch;
   title?: string;
-  /** A control standing ahead of the section's own. */
-  lead?: ReactNode;
-  /** The layouts on offer, the first opening (`TimelineSection`). */
-  layouts?: readonly TimelineLayout[];
+  /** The layout the section opens on (`TimelineSection`). */
+  initialLayout?: TimelineLayout;
 }) => {
   const { data, yearType, yearTo } = props;
   const grouping = props.grouping ?? "franchise";
@@ -101,8 +99,6 @@ const OmniTimeline = (props: {
       data={marks}
       controls={
         <>
-          {props.lead}
-          {colour.control}
           <SegmentedControl
             options={marksOn}
             value={mark}
@@ -118,7 +114,7 @@ const OmniTimeline = (props: {
       // The widest of the four shapes, so a lane holds any of them: a poster beside a banner stands
       // in a lane that would have held a second banner.
       shape="banner"
-      layouts={props.layouts}
+      initialLayout={props.initialLayout}
     />
   );
 };

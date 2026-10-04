@@ -78,7 +78,6 @@ const ShowTimeline = ({ data, yearType, yearTo }: { data: Show[]; yearType: Year
       data={showData}
       controls={
         <>
-          {colour.control}
           <SegmentedControl
             options={BARS}
             value={bar}

@@ -15,7 +15,6 @@ import { SegmentedControl, type SegmentOption, type YearDispatch } from "../comm
 import { StatCard, TotalsBand } from "../common/Stats";
 import { Swatch } from "../common/Swatch";
 import { TopCategoryBand } from "../common/TopList";
-import type { TimelineLayout } from "../common/TimelineSection";
 import { segments } from "../common/segments";
 import { useScheme } from "../common/useScheme";
 import { franchiseToColour, MEDIA, mediumToColour, mediumToLabel, mediumUnit } from "../utils/types";
@@ -44,20 +43,6 @@ import { FRANCHISE_CHIPS, FRANCHISE_SECTIONS } from "./sections";
 
 const MEASURES: readonly SegmentOption<Measure>[] = segments(["Hours", "Items"] as const);
 
-/** The two readings of when a franchise ran: its entries on a timeline, or its hours year by year. */
-type Reading = "timeline" | "years";
-
-const READINGS: readonly SegmentOption<Reading>[] = [
-  { value: "timeline", label: "Timeline" },
-  { value: "years", label: "By year" },
-];
-
-/**
- * The timeline's layouts, opening on Pictures: a franchise is few enough items for every one of
- * them to be its own picture, where a tab's library of hundreds would be lanes of thumbnails.
- */
-const WHEN_LAYOUTS: readonly TimelineLayout[] = ["Pictures", "Across", "Stacked", "Grid"];
-
 /** The two ranked cards the page opens on, each free to be re-pointed from its own select. */
 const DEFAULT_TOPS: readonly FranchiseTop[] = ["genre", "where"];
 
@@ -81,7 +66,6 @@ const FranchisePage = ({ franchise, library, items }: { franchise: string; libra
   const scheme = useScheme();
   const tab = useCurrentTab();
   const [measure, setMeasure] = useState<Measure>("Hours");
-  const [reading, setReading] = useState<Reading>("timeline");
   const [scope, setScope] = useState<{ yearType: YearType; yearTo: YearNumber }>({
     yearType: "upto",
     yearTo: CURRENT_YEAR,
@@ -115,14 +99,6 @@ const FranchisePage = ({ franchise, library, items }: { franchise: string; libra
   const inScope = yearPredicates<OmniItem>(scope, (item) => item.year);
   const scoped = own.filter((item) => inScope.every((keep) => keep(item)));
   const dispatch: YearDispatch = (action) => setScope({ yearType: action.yearType, yearTo: action.yearTo });
-  const lead = (
-    <SegmentedControl
-      options={READINGS}
-      value={reading}
-      onChange={setReading}
-      ariaLabel="When as"
-    />
-  );
 
   return (
     <FranchiseProviders library={library}>
@@ -229,24 +205,26 @@ const FranchisePage = ({ franchise, library, items }: { franchise: string; libra
           </StatBand>
         </Section>
         <Section id={FRANCHISE_SECTIONS.when}>
-          {reading === "timeline" ? (
-            <OmniTimeline
-              data={scoped}
-              yearType={scope.yearType}
-              yearTo={scope.yearTo}
-              grouping="series"
-              layouts={WHEN_LAYOUTS}
-              dispatch={dispatch}
-              title="When"
-              lead={lead}
-            />
-          ) : (
-            <OmnibusBarchart
-              data={own}
-              measure={measure}
-              lead={lead}
-            />
-          )}
+          <OmniTimeline
+            data={scoped}
+            yearType={scope.yearType}
+            yearTo={scope.yearTo}
+            grouping="series"
+            // Opening on Pictures: a franchise is few enough works for every one to be its own
+            // picture at full size, which a tab's library reaches only by scrolling sideways.
+            initialLayout="Pictures"
+            dispatch={dispatch}
+            title="When"
+          />
+        </Section>
+        {/* Its own section rather than a second reading behind a switch in When: a switch there
+            hides one of the two, and the timeline's header already holds what a mark is and how
+            the marks are laid out. */}
+        <Section id={FRANCHISE_SECTIONS.years}>
+          <OmnibusBarchart
+            data={own}
+            measure={measure}
+          />
         </Section>
         <Section id={FRANCHISE_SECTIONS.credits}>
           <FranchiseCredits

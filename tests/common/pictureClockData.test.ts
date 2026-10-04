@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { YearMonthDay } from "../../src/common/date";
-import { clockScale, foldLabel } from "../../src/common/pictureClockData";
+import { clockLayout, clockScale, foldLabel, MOST_LANES, PICTURE_HEIGHTS } from "../../src/common/pictureClockData";
 
 const day = (year: number, month: number, date: number) => YearMonthDay.get(year, month, date);
 const point = (year: number, month = 1, date = 1) => ({ start: day(year, month, date), end: day(year, month, date) });
@@ -61,5 +61,27 @@ describe("clockScale", () => {
   it("names a fold by the years it holds", () => {
     expect(foldLabel({ from: 2016, to: 2016 })).toBe("’16");
     expect(foldLabel({ from: 2011, to: 2014 })).toBe("’11–’14");
+  });
+});
+
+describe("clockLayout", () => {
+  it("draws a franchise's few pictures at full size inside the card", () => {
+    const layout = clockLayout([point(2008), point(2009), point(2015)], 900, "banner");
+
+    expect(layout.width).toBe(900);
+    expect(layout.pictureHeight).toBe(PICTURE_HEIGHTS[0]);
+    expect(layout.laneCount).toBeLessThanOrEqual(MOST_LANES);
+  });
+
+  it("widens a library's clock before shrinking its pictures past the smallest size", () => {
+    // Forty films a year for ten years: no picture size keeps a 900px card to four lanes.
+    const films = Array.from({ length: 400 }, (_, index) =>
+      point(2010 + Math.floor(index / 40), 1 + Math.floor((index % 40) / 4), 1 + (index % 4) * 7),
+    );
+    const layout = clockLayout(films, 900, "banner");
+
+    expect(layout.width).toBeGreaterThan(900);
+    expect(layout.width).toBeLessThanOrEqual(900 * 4);
+    expect(layout.lefts).toHaveLength(400);
   });
 });
