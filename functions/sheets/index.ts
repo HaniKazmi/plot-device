@@ -1,5 +1,6 @@
 import { http } from "@google-cloud/functions-framework";
-import { gzipSync } from "node:zlib";
+import { promisify } from "node:util";
+import { gzip as gzipCallback } from "node:zlib";
 import { loadConfig } from "./config.ts";
 import { fetchTokenInfo, readRange, serviceAccountToken } from "./google.ts";
 import { createHandler } from "./handler.ts";
@@ -23,6 +24,10 @@ const handle = createHandler(config, {
  */
 const accepts = (header: string | undefined) => /\bgzip\b/.test(header ?? "");
 
+// On the thread pool rather than the event loop, so the app's four concurrent reads compress side
+// by side instead of each waiting behind the last.
+const gzip = promisify(gzipCallback);
+
 http("sheets", async (req, res) => {
   const response = await handle(req);
   res.status(response.status).set(response.headers);
@@ -32,6 +37,6 @@ http("sheets", async (req, res) => {
   }
   const body = JSON.stringify(response.body);
   res.append("Vary", "Accept-Encoding");
-  if (accepts(req.get("accept-encoding"))) res.set("Content-Encoding", "gzip").send(gzipSync(body));
+  if (accepts(req.get("accept-encoding"))) res.set("Content-Encoding", "gzip").send(await gzip(body));
   else res.send(body);
 });

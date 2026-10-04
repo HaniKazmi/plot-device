@@ -9,7 +9,6 @@ const INFO: TokenInfo = {
   azp: CLIENT,
   email: "Reader@Example.com",
   email_verified: "true",
-  expires_in: "3599",
 };
 
 describe("admit", () => {
@@ -27,10 +26,5 @@ describe("admit", () => {
     assert.ok("refused" in admit({ ...INFO, email_verified: "false" }, CLIENT, ALLOWED));
     assert.ok("refused" in admit({ ...INFO, email: undefined }, CLIENT, ALLOWED));
     assert.ok("refused" in admit({ ...INFO, email: "someone@example.com" }, CLIENT, ALLOWED));
-  });
-
-  it("refuses a token with no time left, or none stated", () => {
-    assert.ok("refused" in admit({ ...INFO, expires_in: "0" }, CLIENT, ALLOWED));
-    assert.ok("refused" in admit({ ...INFO, expires_in: undefined }, CLIENT, ALLOWED));
   });
 });

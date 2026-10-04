@@ -26,9 +26,6 @@ export const parseSession = (raw: string | null): Session | null => {
   }
 };
 
-/** Whether a stored session is still usable at `now`. Expiry is an absolute epoch time. */
-export const isSessionValid = (session: Session | null, now: number) => !!session && session.expiresAt > now;
-
 /**
  * Whether a token client response carries a grant rather than a refusal.
  *
@@ -37,11 +34,3 @@ export const isSessionValid = (session: Session | null, now: number) => !!sessio
  * Sent on to the function, it is refused there with nothing on screen to say why.
  */
 export const isGrant = (grant: Grant) => !grant.error && !!grant.access_token;
-
-/**
- * Whether a read's status means the session is over. The function answers 401 for a session it no
- * longer accepts and for nothing else; a fault with the sheet itself is a 502, and a request that
- * never reached it has no status at all. Clearing the session for either sends a reader to the key
- * to authorise again for nothing while the rows on screen are still theirs.
- */
-export const isRefusal = (status: number) => status === 401;

@@ -58,7 +58,7 @@ export const LibraryProvider = ({ guestMode, children }: { guestMode: boolean; c
   const [shows, showsLoaded, showsError, refetchShows] = useSheet(showModule);
   const [movies, moviesLoaded, moviesError, refetchMovies] = useSheet(movieModule);
   const [books, booksLoaded, booksError, refetchBooks] = useSheet(bookModule);
-  const { apiReady } = useGoogleAuth();
+  const { signedIn } = useGoogleAuth();
 
   const raw: { [M in Medium]: Library[M] | undefined } = { game: games, show: shows, movie: movies, book: books };
   const loaded = { game: gamesLoaded, show: showsLoaded, movie: moviesLoaded, book: booksLoaded };
@@ -86,7 +86,7 @@ export const LibraryProvider = ({ guestMode, children }: { guestMode: boolean; c
     // A read is out wherever a medium has neither landed nor failed, which is a walk over the two
     // records above rather than their eight parts again: destructured by hand, a fifth medium is
     // silently absent from the answer and nothing fails to compile over it.
-    reading: apiReady && MEDIA_ORDER.some((medium) => !loaded[medium] && !error[medium]),
+    reading: signedIn && MEDIA_ORDER.some((medium) => !loaded[medium] && !error[medium]),
   };
 
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>;

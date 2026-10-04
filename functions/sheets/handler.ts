@@ -3,7 +3,7 @@ import { admit, type TokenInfo } from "./google.ts";
 import { SESSION_HEADER, issueSession, verifySession } from "./session.ts";
 
 /** The parts of a request the routes read, so a test can build one without Express. */
-export interface Request {
+export interface FunctionRequest {
   method: string;
   path: string;
   headers: Record<string, string | string[] | undefined>;
@@ -11,7 +11,7 @@ export interface Request {
   body: unknown;
 }
 
-export interface Response {
+export interface FunctionResponse {
   status: number;
   headers: Record<string, string>;
   body?: unknown;
@@ -21,24 +21,25 @@ export interface Response {
 export interface Deps {
   fetchTokenInfo: (accessToken: string) => Promise<TokenInfo | undefined>;
   serviceAccountToken: () => Promise<string>;
-  readRange: (spreadsheetId: string, range: string, token: string) => Promise<globalThis.Response>;
+  readRange: (spreadsheetId: string, range: string, token: string) => Promise<Response>;
   nowSeconds: () => number;
   warn: (message: string) => void;
 }
 
-const header = (request: Request, name: string) => {
+const header = (request: FunctionRequest, name: string) => {
   const value = request.headers[name];
   return Array.isArray(value) ? value[0] : value;
 };
 
 /**
  * One body for every refused session, so a caller cannot tell a forged token from an expired one.
- * The app reads a 401 as "sign in again" and clears what it holds; that is the only status here
- * that does, so an upstream fault never signs the reader out.
+ * The app reads a 401 as "sign in again", clears what it holds and says so in its own words, which
+ * name the control to press; that is the only status here that does, so an upstream fault never
+ * signs the reader out.
  */
-const UNAUTHORISED = { error: "Sign in again to read the sheets." };
+const UNAUTHORISED = { error: "Session refused" };
 
-const json = (status: number, body: unknown): Response => ({
+const json = (status: number, body: unknown): FunctionResponse => ({
   status,
   headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
   body,
@@ -57,21 +58,21 @@ const json = (status: number, body: unknown): Response => ({
  * allowlist.
  */
 export const createHandler = (config: Config, deps: Deps) => {
-  const cors = (request: Request): Record<string, string> => {
+  const cors = (request: FunctionRequest): Record<string, string> => {
     const origin = header(request, "origin");
     const headers: Record<string, string> = { Vary: "Origin" };
     if (origin && config.allowedOrigins.has(origin)) headers["Access-Control-Allow-Origin"] = origin;
     return headers;
   };
 
-  const session = async (request: Request): Promise<Response> => {
+  const session = async (request: FunctionRequest): Promise<FunctionResponse> => {
     const accessToken = (request.body as { accessToken?: unknown } | undefined)?.accessToken;
     if (typeof accessToken !== "string" || !accessToken) return json(400, { error: "accessToken is required" });
 
     const info = await deps.fetchTokenInfo(accessToken);
     if (!info) {
       deps.warn("session refused: Google did not recognise the access token");
-      return json(401, UNAUTHORISED);
+      return json(401, { error: "Google did not recognise the access token" });
     }
     const verdict = admit(info, config.clientId, config.allowedEmails);
     if ("refused" in verdict) {
@@ -90,7 +91,7 @@ export const createHandler = (config: Config, deps: Deps) => {
     return json(200, { token, expiresAt: session.exp * 1000 });
   };
 
-  const values = async (request: Request): Promise<Response> => {
+  const values = async (request: FunctionRequest): Promise<FunctionResponse> => {
     const token = header(request, SESSION_HEADER)?.trim();
     const verdict = token
       ? verifySession(token, deps.nowSeconds(), config.sessionSecret)
@@ -105,20 +106,29 @@ export const createHandler = (config: Config, deps: Deps) => {
       return json(400, { error: "spreadsheetId and range are required" });
 
     const upstream = await deps.readRange(spreadsheetId, range, await deps.serviceAccountToken());
-    const body = (await upstream.json().catch(() => undefined)) as { error?: { message?: string } } | undefined;
+    const body = (await upstream.json().catch(() => undefined)) as
+      { values?: string[][]; error?: { message?: string } } | undefined;
+    // Every fault with the sheet is a 502 in words that name it, so the app has one rule — not OK
+    // means `error` is the message — and never reads the Sheets API's own shape. A renamed tab
+    // answers "Unable to parse range", and a 403 from Sheets means the service account has lost its
+    // share; neither is the reader's session, so neither may come back as the 401 that signs them
+    // out.
     if (!upstream.ok) {
-      // A 502 and Google's own words: a renamed tab answers "Unable to parse range", which names
-      // the fault, and a 403 from Sheets means the service account has lost its share — neither is
-      // the reader's session, so neither may come back as the 401 that signs them out.
       const message = body?.error?.message ?? upstream.statusText;
       return json(502, { error: `Sheets answered ${upstream.status} for ${range}: ${message}` });
     }
-    return json(200, body);
+    // An emptied tab answers with no `values` at all. Passed on as a library with no rows, the app
+    // would store that over the copy a cold visit paints from and report a successful refresh.
+    if (!body?.values) return json(502, { error: `${range} answered no rows, so the sheet holds nothing to read` });
+    return json(200, { values: body.values });
   };
 
-  return async (request: Request): Promise<Response> => {
+  return async (request: FunctionRequest): Promise<FunctionResponse> => {
     const headers = cors(request);
-    const respond = (response: Response): Response => ({ ...response, headers: { ...headers, ...response.headers } });
+    const respond = (response: FunctionResponse): FunctionResponse => ({
+      ...response,
+      headers: { ...headers, ...response.headers },
+    });
 
     if (request.method === "OPTIONS")
       return respond({

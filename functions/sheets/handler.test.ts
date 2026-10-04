@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { loadConfig } from "./config.ts";
-import { createHandler, type Deps, type Request } from "./handler.ts";
+import { createHandler, type Deps, type FunctionRequest } from "./handler.ts";
 import { issueSession } from "./session.ts";
 
 const NOW = 1_800_000_000;
@@ -20,7 +20,6 @@ const deps = (overrides: Partial<Deps> = {}): Deps => ({
     aud: CLIENT,
     email: "reader@example.com",
     email_verified: "true",
-    expires_in: "3599",
   }),
   serviceAccountToken: async () => "sa-token",
   readRange: async () => new Response(JSON.stringify(grid), { status: 200 }),
@@ -29,7 +28,7 @@ const deps = (overrides: Partial<Deps> = {}): Deps => ({
   ...overrides,
 });
 
-const request = (overrides: Partial<Request>): Request => ({
+const request = (overrides: Partial<FunctionRequest>): FunctionRequest => ({
   method: "GET",
   path: "/",
   headers: { origin: "https://plot.hani.fyi" },
@@ -73,7 +72,7 @@ describe("POST /session", () => {
     const handle = createHandler(
       config,
       deps({
-        fetchTokenInfo: async () => ({ aud: CLIENT, email: "x@example.com", email_verified: "true", expires_in: "9" }),
+        fetchTokenInfo: async () => ({ aud: CLIENT, email: "x@example.com", email_verified: "true" }),
       }),
     );
     const response = await handle(request({ method: "POST", path: "/session", body: { accessToken: "ya29.x" } }));
@@ -92,11 +91,20 @@ describe("POST /session", () => {
 });
 
 describe("GET /values", () => {
-  it("passes the grid through as the Sheets API answered it", async () => {
+  it("answers the range's rows alone, so the app never reads the Sheets API's own shape", async () => {
     const response = await createHandler(config, deps())(read(sessionToken()));
 
     assert.equal(response.status, 200);
-    assert.deepEqual(response.body, grid);
+    assert.deepEqual(response.body, { values: grid.values });
+  });
+
+  it("reports an emptied tab as a sheet fault rather than a library with no rows", async () => {
+    // Read as no rows, the app would store an empty library over the copy a cold visit paints from.
+    const empty = new Response(JSON.stringify({ range: "Games!A1:Z1", majorDimension: "ROWS" }), { status: 200 });
+    const response = await createHandler(config, deps({ readRange: async () => empty }))(read(sessionToken()));
+
+    assert.equal(response.status, 502);
+    assert.match((response.body as { error: string }).error, /Games!A:Z answered no rows/);
   });
 
   it("answers 401 for a missing, expired or forged session, and never touches the sheet", async () => {

@@ -10,7 +10,6 @@ export interface TokenInfo {
   azp?: string;
   email?: string;
   email_verified?: string;
-  expires_in?: string;
 }
 
 /**
@@ -21,7 +20,8 @@ export interface TokenInfo {
  * after one dismissal and leaves the app's key doing nothing. The access token that comes back is
  * sent here once and checked against Google rather than trusted: the audience has to be the app's
  * own client, or a token minted for any other app the reader has signed in to would pass, and the
- * address has to be verified and on the list.
+ * address has to be verified and on the list. Expiry is not checked here: `tokeninfo` answers an
+ * expired token with a 400, which `fetchTokenInfo` already reads as a refusal.
  */
 export const admit = (
   info: TokenInfo,
@@ -29,7 +29,6 @@ export const admit = (
   allowedEmails: ReadonlySet<string>,
 ): { email: string } | { refused: string } => {
   if (info.aud !== clientId && info.azp !== clientId) return { refused: "token issued to another client" };
-  if (!(Number(info.expires_in) > 0)) return { refused: "token expired" };
   if (info.email_verified !== "true" || !info.email) return { refused: "no verified email on the token" };
   const email = info.email.toLowerCase();
   if (!allowedEmails.has(email)) return { refused: `${email} is not on the allowlist` };
@@ -50,6 +49,17 @@ const SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
 
 /** Renewed this long before Google's stated expiry, so a read never leaves with a token mid-lapse. */
 const EXPIRY_MARGIN_SECONDS = 60;
+
+interface AccessToken {
+  access_token: string;
+  expires_in: number;
+}
+
+/** A token endpoint's answer, or its own words on why not. */
+const readToken = async (response: Response, source: string): Promise<AccessToken> => {
+  if (!response.ok) throw new Error(`${source} answered ${response.status}: ${await response.text()}`);
+  return (await response.json()) as AccessToken;
+};
 
 interface ServiceAccountKey {
   client_email: string;
@@ -81,8 +91,7 @@ const keyFileToken = async (path: string) => {
       assertion: `${unsigned}.${signature}`,
     }),
   });
-  if (!response.ok) throw new Error(`token exchange answered ${response.status}: ${await response.text()}`);
-  return (await response.json()) as { access_token: string; expires_in: number };
+  return readToken(response, "token exchange");
 };
 
 /**
@@ -94,19 +103,34 @@ const metadataToken = async () => {
     `http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token?scopes=${SCOPE}`,
     { headers: { "Metadata-Flavor": "Google" } },
   );
-  if (!response.ok) throw new Error(`metadata server answered ${response.status}: ${await response.text()}`);
-  return (await response.json()) as { access_token: string; expires_in: number };
+  return readToken(response, "metadata server");
 };
 
-let cached: { token: string; until: number } | undefined;
+let cached: { token: Promise<string>; until: number } | undefined;
 
-/** One token per instance until it nears expiry, rather than an exchange per read. */
-export const serviceAccountToken = async (credentialsPath: string | undefined) => {
+/**
+ * One token per instance until it nears expiry, rather than an exchange per read. The promise is
+ * what is held, so the app's four concurrent reads arriving at a cold instance share one fetch; a
+ * fetch that fails is dropped, so the next read asks again rather than inheriting the failure.
+ */
+export const serviceAccountToken = (credentialsPath: string | undefined) => {
   const now = Math.floor(Date.now() / 1000);
   if (cached && cached.until > now) return cached.token;
-  const { access_token, expires_in } = credentialsPath ? await keyFileToken(credentialsPath) : await metadataToken();
-  cached = { token: access_token, until: now + expires_in - EXPIRY_MARGIN_SECONDS };
-  return access_token;
+  const entry = {
+    until: Number.POSITIVE_INFINITY,
+    token: (credentialsPath ? keyFileToken(credentialsPath) : metadataToken()).then(
+      ({ access_token, expires_in }) => {
+        entry.until = now + expires_in - EXPIRY_MARGIN_SECONDS;
+        return access_token;
+      },
+      (error: unknown) => {
+        if (cached === entry) cached = undefined;
+        throw error;
+      },
+    ),
+  };
+  cached = entry;
+  return entry.token;
 };
 
 /**

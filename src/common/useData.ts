@@ -163,7 +163,7 @@ const useData = <T>(
     return parsed;
   });
 
-  const { apiReady, fetchAndConvertSheet } = useGoogleAuth();
+  const { signedIn, fetchAndConvertSheet } = useGoogleAuth();
 
   /**
    * How many reads the reader has asked for, which is what `refetch` moves.
@@ -177,7 +177,7 @@ const useData = <T>(
   const [reads, setReads] = useState(0);
 
   useEffect(() => {
-    if (!apiReady || CACHE.has(storageKey)) return;
+    if (!signedIn || CACHE.has(storageKey)) return;
 
     let pending = IN_FLIGHT.get(storageKey) as Promise<T[]> | undefined;
     if (!pending) {
@@ -220,7 +220,7 @@ const useData = <T>(
         console.error(cause);
         setError(describeFailure(cause));
       });
-  }, [apiReady, converter, storageKey, tab, fetchAndConvertSheet, replacer, reads]);
+  }, [signedIn, converter, storageKey, tab, fetchAndConvertSheet, replacer, reads]);
 
   /**
    * Reads the sheet again, for a reader who wants what it says now.

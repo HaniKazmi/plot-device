@@ -20,12 +20,6 @@ export interface Config {
   credentialsPath: string | undefined;
 }
 
-const list = (value: string | undefined) =>
-  (value ?? "")
-    .split(",")
-    .map((part) => part.trim())
-    .filter(Boolean);
-
 const required = (env: NodeJS.ProcessEnv, name: string) => {
   const value = env[name]?.trim();
   if (!value) throw new Error(`${name} is not set`);
@@ -33,7 +27,10 @@ const required = (env: NodeJS.ProcessEnv, name: string) => {
 };
 
 const requiredList = (env: NodeJS.ProcessEnv, name: string) => {
-  const values = list(env[name]);
+  const values = (env[name] ?? "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
   if (values.length === 0) throw new Error(`${name} is not set`);
   return values;
 };

@@ -45,7 +45,7 @@ lasts an hour, and renewing one needs a popup that a browser blocks unless it fo
 page left open, or opened in a new tab, asks for the key again every hour. The function holds the
 credential instead: it runs as a service account shared as Viewer on the Trackers book and nothing
 else, reads with that account's token from the metadata server, and gives the browser a session
-token of its own lasting a month (§5). It returns the grid exactly as the Sheets API answers it,
+token of its own lasting a month (§5). It returns the range's rows as the Sheets API reads them,
 gzipped — the converters stay in the browser, so a model change remains one deploy of the site
 rather than two deploys that have to agree on a shape.
 
@@ -183,9 +183,9 @@ median of 598 ms for the batch against 369 ms for the four in parallel, the firs
 308 ms (2026-09-11), because every converter then waits for the largest range before any can
 start. Separate reads also fail separately: a range string embeds a **sheet tab name** the
 spreadsheet's owner renames at will, and one renamed tab then empties one medium rather than all
-four. A grid that arrives empty is `undefined` on the response, and `fetchAndConvertSheet` rejects
-it outside its own session guard, since a converter reading no rows as a library with none would
-store that over the copy a cold visit paints from and report a successful refresh doing it.
+four. A tab that answers no rows is a 502 from the function, like every other fault with a sheet,
+since a converter reading no rows as a library with none would store that over the copy a cold
+visit paints from and report a successful refresh doing it.
 
 **A bad cell names its own row**, rather than surfacing later from a colour lookup or a chart offset
 that names none. `common/sheetError.ts` holds the vocabulary — `sheetRow`, `describing`, `sheetError`
@@ -279,7 +279,7 @@ and `OmniItem.style` are optional and every surface grouping on either drops boo
 The hook returns cached data synchronously from its `useState` initialiser, so charts render from
 the previous visit's copy. `dataLoaded` starts `true` on a `CACHE` hit, every entry there having
 been written by a fetch this session made, so a caller waiting on four domains can tell "still
-fetching" from "already fetched by the tab you came from". Once `apiReady` turns true it fetches,
+fetching" from "already fetched by the tab you came from". Once `signedIn` turns true it fetches,
 sharing one in-flight promise per `storageKey` so a second mount subscribes rather than issuing a
 second read; the entry clears on settle, so a failed fetch is retried by the next mount.
 
@@ -355,14 +355,15 @@ issues it and reads the sheets behind it.
   event — another tab authorising or signing out — re-reads it. Nothing watches for expiry while
   the page is open: a month-long session lapses mid-visit rarely, and when it does the next read is
   refused with the same 401 a forged one gets, which ends it and names the key.
-- **Readiness.** `apiReady` is a session and nothing else: a read is a plain `fetch` with the
+- **Readiness.** `signedIn` is a session and nothing else: a read is a plain `fetch` with the
   session in an `X-Plot-Session` header — not `Authorization`, where Cloud Run reads a bearer token
   as a Google credential and refuses it before the function runs — so there is no client library to
   wait for.
 - **Failure handling.** The function answers 401 for a session it no longer accepts and for nothing
   else, and that is the one status that clears the session and puts the key back in the bar, stated
-  in the app's own words. A fault with the sheet — a renamed tab, a lost share — comes back as a 502
-  carrying the Sheets API's own message, which signing in again would not change; a request that
+  in the app's own words. A fault with the sheet — a renamed tab, an emptied one, a lost share — comes back as a 502
+  whose `error` names it, so the app never reads the Sheets API's own shape and signing in again is
+  never offered for a fault it would not change; a request that
   never reached the function, a phone between networks, leaves the session standing and reports the
   sheets as unreachable. **Only the request is guarded**: a converter throw travels on to `useData`
   instead, since clearing the session would make a data fault look like an auth fault. A refusal —

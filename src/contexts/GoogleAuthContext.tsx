@@ -7,7 +7,7 @@ import { preload } from "react-dom";
 // statement form is erased per file, which is what a bundler transpiling one file at a time reads.
 import type { SheetTab } from "../tabs.ts";
 import { arrayToJson } from "../utils/arrayUtils.ts";
-import { isGrant, isRefusal, isSessionValid, parseSession, type Session } from "./token.ts";
+import { isGrant, parseSession, type Session } from "./token.ts";
 
 const g_script = "https://accounts.google.com/gsi/client";
 
@@ -34,7 +34,7 @@ const isGsiReady = () => typeof google !== "undefined" && !!google.accounts;
 
 const getValidSession = (): Session | undefined => {
   const session = parseSession(storage().getItem(storageKey));
-  if (isSessionValid(session, Date.now())) return session!;
+  if (session && session.expiresAt > Date.now()) return session;
   storage().removeItem(storageKey);
   return undefined;
 };
@@ -76,7 +76,7 @@ const useScript = (src: string, isReady: () => boolean, wanted: boolean) => {
 };
 
 interface GoogleAuthContextType {
-  apiReady: boolean;
+  signedIn: boolean;
   authorise?: () => void;
   signOut?: () => void;
   fetchAndConvertSheet: <T>(tab: SheetTab, jsonConverter: (array: Record<string, string>[]) => T) => Promise<T>;
@@ -90,29 +90,36 @@ const GoogleAuthContext = createContext<GoogleAuthContextType | null>(null);
  * lasts as long as the function's deployment says, so the key is pressed once a month rather than
  * once an hour.
  */
-const openSession = async (accessToken: string): Promise<Session> => {
-  const response = await fetch(`${SHEETS_URL}/session`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ accessToken }),
-  });
+const openSession = async (accessToken: string): Promise<Session> =>
+  readBody<Session>(
+    await fetch(`${SHEETS_URL}/session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ accessToken }),
+    }),
+  );
+
+/**
+ * The function's answer, or its own words on why not: every failure it reports carries an `error`
+ * naming the fault — a renamed tab, a lost share, an account off the list.
+ */
+const readBody = async <T,>(response: Response): Promise<T> => {
   const body = await response.json().catch(() => undefined);
   if (!response.ok) throw new Error(body?.error ?? `The sheets function answered ${response.status}`);
-  return body as Session;
+  return body as T;
 };
 
 /**
  * One request per range, the four running concurrently. A single batch of the four measures slower
  * on this data, not faster — a median of 598 ms against 369 ms for the four in parallel, with the
  * first grid landing at 308 ms (2026-09-11) — and it fails all four media together whenever one
- * range is renamed. The function reads the range with its own service account and answers the
- * Sheets API's own body.
+ * range is renamed. The function reads the range with its own service account and answers its rows.
  */
-const fetchRange = (spreadsheetId: string, range: string, session: Session) =>
+const fetchRange = (spreadsheetId: string, range: string, token: string) =>
   fetch(`${SHEETS_URL}/values?${new URLSearchParams({ spreadsheetId, range })}`, {
     // Not `Authorization`: Cloud Run reads a bearer token there as a Google credential and refuses
     // it before the function runs.
-    headers: { "X-Plot-Session": session.token },
+    headers: { "X-Plot-Session": token },
   });
 
 export const GoogleAuthProvider = ({ children }: { children: ReactNode }) => {
@@ -184,18 +191,13 @@ export const GoogleAuthProvider = ({ children }: { children: ReactNode }) => {
     // not, and clearing the session for that turns a data fault into an apparent auth fault: the
     // NavBar falls back to "Authorise", every other tab loses its session too, and authorising
     // again refetches the same bad cell and clears it again, with nothing on screen to say why.
-    // Expiry is not checked here: the function refuses an expired session with the same 401 as a
-    // forged one, and that refusal is what ends it below. Only a session gone altogether — signed
-    // out in another tab mid-read — is caught before the request.
-    const session = parseSession(storage().getItem(storageKey));
-    if (!session) {
-      endSession();
-      throw new Error(EXPIRED);
-    }
+    // Nothing about the session is checked here: the function refuses an expired, forged or absent
+    // one with the same 401, and that refusal is what ends it below.
+    const token = parseSession(storage().getItem(storageKey))?.token ?? "";
 
     let response;
     try {
-      response = await fetchRange(spreadsheetId, range, session);
+      response = await fetchRange(spreadsheetId, range, token);
     } catch (error) {
       // A request that never reached the function — a phone between networks — leaves the session
       // standing and the rows on screen the reader's own.
@@ -203,31 +205,19 @@ export const GoogleAuthProvider = ({ children }: { children: ReactNode }) => {
       throw new Error("The sheets could not be reached: check the connection and refresh.", { cause: error });
     }
 
-    const body = (await response.json().catch(() => undefined)) as { values?: string[][]; error?: string } | undefined;
-    if (!response.ok) {
-      // Only a refusal ends the session, stated in the app's own words, which name the control to
-      // press. Anything else is the function stating a fault with the sheet in the Sheets API's own
-      // words — a renamed tab, a lost share — which signing in again would not change.
-      if (isRefusal(response.status)) {
-        endSession();
-        throw new Error(EXPIRED);
-      }
-      throw new Error(body?.error ?? `The sheets function answered ${response.status} for ${range}`);
+    // A 401 is the function refusing the session and nothing else, so it alone ends it, stated in
+    // the app's own words, which name the control to press. Every other failure is a fault with the
+    // sheet — a renamed tab, an emptied one, a lost share — which signing in again would not change.
+    if (response.status === 401) {
+      endSession();
+      throw new Error(EXPIRED);
     }
-
-    // Outside the guard above, so a range that answered nothing reports itself as the data fault it
-    // is rather than clearing the session. A range is a build-time constant naming a tab of a
-    // spreadsheet that exists, so no answer at all means the tab has been renamed or emptied —
-    // where reading it as a library with no rows in it would store that over the copy a cold visit
-    // paints from, and report a successful refresh while doing it.
-    const grid = body?.values;
-    if (!grid) throw new Error(`${range} answered no rows, so the sheet holds nothing to read`);
-
-    return jsonConverter(arrayToJson(grid));
+    const { values } = await readBody<{ values: string[][] }>(response);
+    return jsonConverter(arrayToJson(values));
   };
 
   return (
-    <GoogleAuthContext.Provider value={{ apiReady: signedIn, authorise, signOut, fetchAndConvertSheet }}>
+    <GoogleAuthContext.Provider value={{ signedIn, authorise, signOut, fetchAndConvertSheet }}>
       {children}
     </GoogleAuthContext.Provider>
   );

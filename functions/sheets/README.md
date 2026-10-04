@@ -6,11 +6,11 @@ app signs in with Google once a month per device rather than once an hour.
 - `POST /session` takes a Google access token from the app's sign-in popup (scope `openid email`),
   checks with Google that it was issued to the app's OAuth client for a verified address on
   `ALLOWED_EMAILS`, and answers a session token signed with `SESSION_SECRET`.
-- `GET /values?spreadsheetId=…&range=…` takes that session in an `X-Plot-Session` header and answers the Sheets
-  API's own body for one range, read with no render options, gzipped.
+- `GET /values?spreadsheetId=…&range=…` takes that session in an `X-Plot-Session` header and answers
+  `{ values }` for one range, the rows as the Sheets API reads them with no render options, gzipped.
 
 A 401 means the session is over and is the only status the app signs out on. A fault with the sheet —
-a renamed tab, a lost share — comes back as a 502 in Google's own words.
+a renamed tab, an emptied one, a lost share — comes back as a 502 whose `error` names it.
 
 ## Running it locally
 
