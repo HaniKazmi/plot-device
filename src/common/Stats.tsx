@@ -30,7 +30,13 @@ import { dimSx, LABEL_SX, MUTED_FIGURE_SX } from "./typography";
 import { NothingMatches } from "./NothingMatches";
 import { useNothingMatches } from "./nothingMatchesContext";
 import { SectionHeader } from "./SectionHeader";
-import { shapeRatioValues, shapeToArrangement, tiledArtworkSx, type ArtworkShape } from "./cardArrangement";
+import {
+  pictureAtHeight,
+  shapeRatioValues,
+  shapeToArrangement,
+  tiledArtworkSx,
+  type ArtworkShape,
+} from "./cardArrangement";
 import { rowCardSize } from "./rowSizing";
 import { Filmstrip, STRIP_GAP } from "./Filmstrip";
 import { useElementWidth } from "./useElementWidth";
@@ -795,11 +801,11 @@ const StatsListCard = <T,>({
           // Held as the grid's cards are, so a picture that has not loaded still holds the width
           // its shape gives it at this height and the strip does not close up and reopen as the
           // files land.
-          sx={{
-            height: cell.strip.pictureHeight,
-            width: "auto",
-            ...(shape && tiledArtworkSx(shape)),
-          }}
+          sx={
+            shape
+              ? pictureAtHeight(shape, cell.strip.pictureHeight)
+              : { height: cell.strip.pictureHeight, width: "auto" }
+          }
           // The corner badge is a fixed few dozen pixels of type, which reads as a badge over a
           // banner 213px wide at this height and as a covered picture over a poster 82px wide —
           // wider than the card can hold, so the badge is clipped as well as covering what it is

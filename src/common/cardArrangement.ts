@@ -119,13 +119,13 @@ export const pictureAtHeight = (shape: ArtworkShape, height: number) =>
   ({ height, width: "auto", ...tiledArtworkSx(shape) }) as const;
 
 /**
- * The height a card holds for artwork it has not loaded yet.
+ * The size a picture shown on its own holds for artwork it has not loaded yet — the hero, and a
+ * cover on a hover card or the Now band (`shapeToPinnedAspect`).
  *
- * A lazily loaded image contributes nothing of its own, so a wall or a strip of them stands at a
- * fraction of its real size and every offset measured in it is short by the artwork below — and
- * scrolling into that artwork is what makes it load, so the page grows under the reader. The
- * leading `auto` is what keeps this a reservation rather than a crop: the artwork's own shape wins
- * the moment it is known, and this stands in only while there is none.
+ * A lazily loaded image contributes nothing of its own, so the card it stands in would open short
+ * and grow when the file lands. The leading `auto` is what keeps this a reservation rather than a
+ * crop: the artwork's own shape wins the moment it is known, and this stands in only while there is
+ * none. Pictures that tile are held to the shape outright instead (`tiledArtworkSx`).
  */
 const shapeAspects: Record<ArtworkShape, string> = {
   banner: `auto ${shapeRatios.banner}`,

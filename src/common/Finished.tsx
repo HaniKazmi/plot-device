@@ -39,7 +39,7 @@ import {
   type FinishedUnit,
 } from "./finishedData";
 import { withAlpha } from "../utils/colourUtils";
-import { tiledArtworkSx, type ArtworkShape } from "./cardArrangement";
+import { pictureAtHeight, shapeToArrangement, tiledArtworkSx, type ArtworkShape } from "./cardArrangement";
 import { PHONE_SCROLL_MARGIN_CSS } from "./SectionRail";
 import { SHEET_HEADER_BOTTOM } from "./fullscreenSheet";
 import { MUTED_FIGURE_SX, NUMERIC_LABEL_SX } from "./typography";
@@ -93,34 +93,26 @@ const borderSx = (fill: string | undefined) => ({
 });
 
 /**
- * The height every card holds before its artwork arrives.
- *
- * A lazily loaded image reserves nothing, so a wall of them stands at a fifth of its real height —
- * 7,000 pixels against 33,000 for 322 games — and every offset measured in it is short by the
- * artwork that has not loaded yet. Scrolling into the wall is what makes that artwork load, so the
- * page grows under the reader and a position measured a moment ago is already wrong; a jump far
- * down the sort asks for an offset the document does not yet have and lands clamped at its bottom
- * instead.
- *
- * Every wall pins its tab's shape outright and crops a file that is not it (`tiledArtworkSx`): a
- * picture off its shape would otherwise stand its row taller or shorter than its neighbours, and
- * the wall reads as one grid only while every card is one height. On a shelf the same rule fixes a
- * width instead, the height being the shelf's.
- */
-
-/**
  * One card, wall or shelf, bordered in the tab's vocabulary.
  *
  * A card standing for a group opens the group rather than the item whose picture it wears — the
  * picture fronts the group, so the press has that one meaning — and says in its corner how many it
  * stands for, the one thing its picture cannot. Its accessible name is the group's, since the
  * picture's `alt` names the one member pressing it does not open.
+ *
+ * Its artwork holds the tab's shape before the file arrives and crops a file that is not it
+ * (`tiledArtworkSx`). A lazily loaded image reserves nothing, so a wall of them stands at a fifth of
+ * its real height — 7,000 pixels against 33,000 for 322 games — and a jump far down the sort asks
+ * for an offset the document does not yet have and lands clamped at its bottom; a picture off its
+ * shape would stand its row taller or shorter than its neighbours, and the wall reads as one grid
+ * only while every card is one height. On a shelf the same rule fixes a width, the height being the
+ * shelf's.
  */
 const WallCard = <U,>({
   card,
   colour,
   shape,
-  artworkSx: sx,
+  height,
   cardSx,
   unit,
   onOpenGroup,
@@ -129,7 +121,8 @@ const WallCard = <U,>({
   card: FinishedCard<U>;
   colour?: (item: U) => string;
   shape: ArtworkShape;
-  artworkSx: SxProps<Theme>;
+  /** The shelf's picture height; left off on the wall, where the grid cell sets the width. */
+  height?: number;
   cardSx?: SxProps<Theme>;
   unit?: FinishedUnit<U>;
   onOpenGroup: (card: FinishedCard<U>) => void;
@@ -140,9 +133,9 @@ const WallCard = <U,>({
     <Card sx={{ ...cardSx, ...borderSx(colour?.(card.item)) }}>
       <MediaComponent
         item={card.item}
-        landscape={shape === "banner"}
+        landscape={shapeToArrangement(shape) === "stacked"}
         lazy
-        sx={sx}
+        sx={height === undefined ? tiledArtworkSx(shape) : pictureAtHeight(shape, height)}
         chip={grouped ? { label: format(card.members.length), icon: <Collections /> } : undefined}
         onOpen={grouped ? () => onOpenGroup(card) : undefined}
         openLabel={
@@ -219,13 +212,12 @@ const FinishedGrid = <U extends FinishedItem>({
           // Written at render from the same item and sort the order came from, so the marker
           // reads a position off the DOM instead of keeping a parallel list to index into.
           data-bucket={bucket(card.item) ?? undefined}
-          size={finishedColumns(shape === "banner", density)}
+          size={finishedColumns(shapeToArrangement(shape) === "stacked", density)}
         >
           <WallCard
             card={card}
             colour={colour}
             shape={shape}
-            artworkSx={tiledArtworkSx(shape)}
             cardSx={WALL_CARD_SX}
             unit={unit}
             onOpenGroup={onOpenGroup}
@@ -354,7 +346,7 @@ const FinishedShelf = <U extends FinishedItem>({
       card={card}
       colour={colour}
       shape={shape}
-      artworkSx={{ ...tiledArtworkSx(shape), height, width: "auto" }}
+      height={height}
       unit={unit}
       onOpenGroup={onOpenGroup}
       MediaComponent={MediaComponent}
