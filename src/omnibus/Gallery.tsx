@@ -6,7 +6,7 @@ import { CURRENT_PLAINDATE } from "../common/date";
 import { DrilldownDialog } from "../common/DrilldownDialog";
 import { FILMSTRIP_HEIGHT, Filmstrip } from "../common/Filmstrip";
 import { WALL_SX } from "../common/wallSx";
-import { FranchiseLink } from "../common/FranchiseLink";
+import { FranchiseLink } from "../common/ValueLink";
 import { SectionHeader } from "../common/SectionHeader";
 import { useSelectBox } from "../common/SelectBoxHook";
 import { CutButton, SegmentedControl, type SegmentOption } from "../common/SelectionComponents";

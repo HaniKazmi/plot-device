@@ -1,4 +1,6 @@
 import { YearMonthDay, formatDate, formatDateRange } from "../common/date";
+import { FRANCHISE_KEY } from "../common/filterSchema";
+import { ledgerParts } from "../common/ledgerRow";
 import { seriesRow } from "../common/series";
 import type { FranchiseEntry } from "../common/franchiseUnion";
 import { spanUntil } from "../common/medium";
@@ -58,13 +60,24 @@ export const gameRows = (game: VideoGame, scheme: Scheme): LedgerRow[] => {
     { label: "Played", value: formatDateRange(game.startDate, game.endDate) },
     // The brand hex rather than the chart fill, on the same rule the corner chip follows: this is
     // a badge at a badge's size, not a value being compared against its neighbours.
-    { label: "Platform", value: game.platform, swatch: companyToAccent(game) },
-    { label: "Released", value: joinParts([formatDate(game.releaseDate), game.format]) },
+    {
+      label: "Platform",
+      ...ledgerParts([{ text: game.platform, category: "platform" }]),
+      swatch: companyToAccent(game),
+    },
+    {
+      label: "Released",
+      ...ledgerParts([{ text: formatDate(game.releaseDate) }, { text: game.format, category: "format" }]),
+    },
   ];
 
-  // One name where the studio published itself, rather than the same word twice.
-  const by = joinParts([...new Set([game.developer, game.publisher])]);
-  if (by) rows.push({ label: "By", value: by });
+  // One name where the studio published itself, rather than the same word twice. The publisher is
+  // what the tab narrows by, so it is the part that leads anywhere; the developer stands as words.
+  const by = ledgerParts([
+    game.developer !== game.publisher ? { text: game.developer } : undefined,
+    { text: game.publisher, category: "publisher" },
+  ]);
+  if (by.value) rows.push({ label: "By", ...by });
 
   const series = seriesRow(game);
   if (series) rows.push(series);
@@ -74,16 +87,23 @@ export const gameRows = (game: VideoGame, scheme: Scheme): LedgerRow[] => {
     // square standing for nothing.
     rows.push({
       label: "Franchise",
-      value: game.franchise,
+      ...ledgerParts([{ text: game.franchise, category: FRANCHISE_KEY }]),
       swatch: franchiseToColour(game, scheme) || undefined,
-      franchise: game.franchise,
     });
   }
 
   // Pushed together because the pair is the point: how it is played, then what it is about.
   rows.push(
-    { label: "Gameplay", value: game.gameplay, swatch: gameplayToColour(game, scheme) },
-    { label: "Genre", value: game.genre, swatch: genreToColour(game.genre, scheme) },
+    {
+      label: "Gameplay",
+      ...ledgerParts([{ text: game.gameplay, category: "gameplay" }]),
+      swatch: gameplayToColour(game, scheme),
+    },
+    {
+      label: "Genre",
+      ...ledgerParts([{ text: game.genre, category: "genre" }]),
+      swatch: genreToColour(game.genre, scheme),
+    },
   );
 
   // Themes get a line of their own rather than riding on either of the two above: they are the one
@@ -92,7 +112,11 @@ export const gameRows = (game: VideoGame, scheme: Scheme): LedgerRow[] => {
   const themes = joinParts(game.themes);
   if (themes) rows.push({ label: "Themes", value: themes });
 
-  rows.push({ label: "PEGI", value: game.certificate, swatch: certificateColour(game, scheme) });
+  rows.push({
+    label: "PEGI",
+    ...ledgerParts([{ text: game.certificate, category: "certificate" }]),
+    swatch: certificateColour(game, scheme),
+  });
 
   return rows;
 };

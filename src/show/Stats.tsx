@@ -1,3 +1,4 @@
+import { showFilters } from "./filters";
 import {
   Brush,
   AutoGraph,
@@ -55,6 +56,9 @@ import {
 import { useSelectBox } from "../common/SelectBoxHook";
 import { useFranchiseShows } from "./franchiseContext";
 import "../utils/arrayUtils";
+
+/** The tab's filter categories, whose values a Top card names as ways to everything carrying them. */
+const FILTER_KEYS = showFilters.categories.map((category) => category.key);
 
 const Stats = ({
   data,
@@ -247,6 +251,7 @@ const TopCategories = ({ data, measure }: { data: Show[]; measure: Measure }) =>
       groups={(option) => groupShowsBy(data, option, measure)}
       colourOf={(option, top: Show) => groupToColour(option, top, scheme)}
       measureLabel={measure}
+      categories={FILTER_KEYS}
     />
   );
 };

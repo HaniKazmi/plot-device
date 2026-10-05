@@ -1,8 +1,8 @@
 import { lazy, Suspense, useEffect, type ReactNode } from "react";
-import { matchPath, useLocation } from "react-router-dom";
+import { matchPath, useLocation, useNavigate } from "react-router-dom";
 import { useLibrary } from "./library";
 import { CURRENT_PLAINDATE } from "../common/date";
-import { FranchisePageContext, FranchiseUnionContext } from "../common/franchiseUnion";
+import { FranchisePageContext, FranchiseUnionContext, type FranchisePages } from "../common/franchiseUnion";
 import type { OmniItem } from "../common/medium";
 import { buildFranchiseUnion } from "./franchiseUnionData";
 import { FRANCHISE_ROUTE, franchisePath } from "./franchisePage";
@@ -48,14 +48,20 @@ export const FranchiseUnionProvider = ({ children }: { children: ReactNode }) =>
   const union = items ? buildFranchiseUnion(items, CURRENT_PLAINDATE, hoverCard) : undefined;
   // Read through the route's own matcher, which decodes the name as the page itself receives it.
   const here = matchPath(FRANCHISE_ROUTE, useLocation().pathname)?.params.name;
-  // Every franchise has a page, a standalone work's included, once the library it is drawn from
-  // has landed; the one being read leads nowhere.
-  const pageOf = (franchise: string) =>
-    items && franchise && franchise !== here ? `#${franchisePath(franchise)}` : undefined;
+  const navigate = useNavigate();
+  const pages: FranchisePages = {
+    // Every franchise has a page, a standalone work's included, once the library it is drawn from
+    // has landed; the one being read leads nowhere.
+    href: (franchise) => (items && franchise && franchise !== here ? `#${franchisePath(franchise)}` : undefined),
+    open: (franchise) => {
+      navigate(franchisePath(franchise));
+      window.scrollTo({ top: 0 });
+    },
+  };
 
   return (
     <FranchiseUnionContext.Provider value={union}>
-      <FranchisePageContext.Provider value={pageOf}>{children}</FranchisePageContext.Provider>
+      <FranchisePageContext.Provider value={pages}>{children}</FranchisePageContext.Provider>
     </FranchiseUnionContext.Provider>
   );
 };

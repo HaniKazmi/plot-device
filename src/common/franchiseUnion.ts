@@ -43,8 +43,18 @@ export const useFranchiseUnion = (franchise: string): FranchiseEntry[] | undefin
   useContext(FranchiseUnionContext)?.get(franchise);
 
 /**
- * Where a franchise's own page is, as an href, or `undefined` where a mention of it should stay
- * words: the franchise whose page the reader is already on. Answered by the composing layer,
- * which alone knows the route and the whole library; until it does, every mention stays words.
+ * The way to a franchise's own page: its address, or `undefined` where a mention of it should stay
+ * words — the franchise whose page the reader is already on — and `open`, which goes there through
+ * the router. Answered by the composing layer, which alone knows the route and the whole library;
+ * until it does, every mention stays words.
+ *
+ * Both, because a link is two presses: a plain one goes through `open`, so the router records the
+ * step and a way back knows there is somewhere to go back to, and a modified one leaves the address
+ * to the browser, which opens it in a tab of its own.
  */
-export const FranchisePageContext = createContext<(franchise: string) => string | undefined>(() => undefined);
+export interface FranchisePages {
+  href: (franchise: string) => string | undefined;
+  open: (franchise: string) => void;
+}
+
+export const FranchisePageContext = createContext<FranchisePages>({ href: () => undefined, open: () => {} });

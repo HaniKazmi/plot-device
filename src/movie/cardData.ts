@@ -1,4 +1,6 @@
 import type { LedgerRow, PanelSubtitlePart } from "../common/Card";
+import { FRANCHISE_KEY } from "../common/filterSchema";
+import { ledgerParts } from "../common/ledgerRow";
 import { seriesRow } from "../common/series";
 import type { FranchiseEntry } from "../common/franchiseUnion";
 import type { MediumSpan } from "../common/medium";
@@ -33,15 +35,19 @@ export const movieRows = (movie: Movie, scheme: Scheme): LedgerRow[] => {
   ];
 
   rows.push(
-    { label: "By", value: movie.director },
+    { label: "By", ...ledgerParts([{ text: movie.director, category: "director" }]) },
     // The primary genre leads and the rest follow it, which is the order the sheet holds them in
     // and the order the charts group by.
     {
       label: "Genre",
-      value: [movie.genre, ...movie.otherGenres].join(" · "),
+      ...ledgerParts([movie.genre, ...movie.otherGenres].map((genre) => ({ text: genre, category: "genre" }))),
       swatch: genreToColour(movie.genre, scheme),
     },
-    { label: "BBFC", value: movie.certificate, swatch: certificateToColour(movie.certificate, scheme) },
+    {
+      label: "BBFC",
+      ...ledgerParts([{ text: movie.certificate, category: "certificate" }]),
+      swatch: certificateToColour(movie.certificate, scheme),
+    },
   );
 
   const series = seriesRow(movie);
@@ -52,9 +58,8 @@ export const movieRows = (movie: Movie, scheme: Scheme): LedgerRow[] => {
   // rather than a black one — the table names the couple of dozen the app draws.
   rows.push({
     label: "Franchise",
-    value: movie.franchise,
+    ...ledgerParts([{ text: movie.franchise, category: FRANCHISE_KEY }]),
     swatch: franchiseToColour(movie, scheme) || undefined,
-    franchise: movie.franchise,
   });
 
   return rows;

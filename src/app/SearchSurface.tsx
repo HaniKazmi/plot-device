@@ -17,6 +17,7 @@ import {
 } from "../common/SearchPalette";
 import { closeSearch, setSearchMode, setSearchScope, type SearchMode } from "../common/searchOpen";
 import { fieldsOf } from "../common/filterSchema";
+import type { ValueRequest } from "../common/valueLayer";
 import { FRANCHISE_KEY } from "../common/filterSchema";
 import { rankHits, type Hit, type Searchable } from "../common/searchData";
 import { MUTED_FIGURE_SX } from "../common/typography";
@@ -37,6 +38,7 @@ import {
   attributeAction,
   attributeWorks,
   buildSearchIndex,
+  findAttribute,
   OPEN_STRIP_LIMIT,
   recentValues,
   searchScope,
@@ -341,11 +343,14 @@ export const SearchSurface = ({
   mode,
   focusRequest,
   scope,
+  valueRequest,
 }: {
   open: boolean;
   mode: SearchMode;
   focusRequest: number;
   scope: string | null;
+  /** A value named elsewhere in the app whose layer was asked for (`openValue`). */
+  valueRequest: ValueRequest | null;
 }) => {
   const scheme = useScheme();
   const navigate = useNavigate();
@@ -366,6 +371,15 @@ export const SearchSurface = ({
   // finds the path changed rather than hidden, or the back button would open it again.
   const [picked, setPicked] = useState<Picked | null>(null);
   if (picked && picked.at !== pathname) setPicked(null);
+  // A value pressed elsewhere — a genre on a card, a publisher on a Top list — opens the layer a hit
+  // for it would: answered during the render that finds a request it has not, once the index it
+  // looks the value up in is here, so a press made while the sheets land opens once they have.
+  const [answered, setAnswered] = useState(0);
+  if (valueRequest && valueRequest.count !== answered && index) {
+    setAnswered(valueRequest.count);
+    const attribute = findAttribute(index, valueRequest.category, valueRequest.value);
+    if (attribute) setPicked({ kind: "shelf", attribute, at: pathname });
+  }
   // Counted so that picking the item whose card is still leaving remounts the card rather than
   // reusing the instance, whose open flag is read once on mount.
   const [pickCount, setPickCount] = useState(0);

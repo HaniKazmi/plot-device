@@ -1,3 +1,4 @@
+import { gameFilters } from "./filters";
 import {
   Album,
   AutoGraph,
@@ -64,6 +65,9 @@ import { GAME_SECTIONS } from "./sections";
 import type { ReactNode } from "react";
 import { useSelectBox } from "../common/SelectBoxHook";
 import "../utils/arrayUtils";
+
+/** The tab's filter categories, whose values a Top card names as ways to everything carrying them. */
+const FILTER_KEYS = gameFilters.categories.map((category) => category.key);
 
 const Stats = ({
   data,
@@ -342,6 +346,7 @@ const TopCategories = ({ data, measure }: { data: VideoGame[]; measure: Measure 
       groups={(option) => groupGamesBy(data, option, measure)}
       colourOf={(option, top: VideoGame) => groupToColour(option, top, scheme)}
       measureLabel={measure}
+      categories={FILTER_KEYS}
     />
   );
 };
