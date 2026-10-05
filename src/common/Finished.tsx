@@ -39,7 +39,7 @@ import {
   type FinishedUnit,
 } from "./finishedData";
 import { withAlpha } from "../utils/colourUtils";
-import { shapeToAspect, shapeToRatio } from "./cardArrangement";
+import { tiledArtworkSx, type ArtworkShape } from "./cardArrangement";
 import { PHONE_SCROLL_MARGIN_CSS } from "./SectionRail";
 import { SHEET_HEADER_BOTTOM } from "./fullscreenSheet";
 import { MUTED_FIGURE_SX, NUMERIC_LABEL_SX } from "./typography";
@@ -102,15 +102,11 @@ const borderSx = (fill: string | undefined) => ({
  * down the sort asks for an offset the document does not yet have and lands clamped at its bottom
  * instead.
  *
- * A landscape wall pins 16:9 outright and crops a file that is not: a banner a few pixels off its
- * shape would otherwise stand its row a few pixels taller or shorter than its neighbours, and the
- * wall reads as one grid only while every card is one height. A portrait wall holds covers as well
- * as posters, and no cover is any exact ratio, so there `shapeToAspect`'s leading `auto` keeps the
- * figure a reservation the file's own shape replaces once it is known. On a shelf the same rule
- * reserves a width instead, the height being the shelf's.
+ * Every wall pins its tab's shape outright and crops a file that is not it (`tiledArtworkSx`): a
+ * picture off its shape would otherwise stand its row taller or shorter than its neighbours, and
+ * the wall reads as one grid only while every card is one height. On a shelf the same rule fixes a
+ * width instead, the height being the shelf's.
  */
-const artworkSx = (landscape: boolean) =>
-  landscape ? { aspectRatio: shapeToRatio("banner"), objectFit: "cover" } : { aspectRatio: shapeToAspect("poster") };
 
 /**
  * One card, wall or shelf, bordered in the tab's vocabulary.
@@ -123,7 +119,7 @@ const artworkSx = (landscape: boolean) =>
 const WallCard = <U,>({
   card,
   colour,
-  landscape,
+  shape,
   artworkSx: sx,
   cardSx,
   unit,
@@ -132,7 +128,7 @@ const WallCard = <U,>({
 }: {
   card: FinishedCard<U>;
   colour?: (item: U) => string;
-  landscape: boolean;
+  shape: ArtworkShape;
   artworkSx: SxProps<Theme>;
   cardSx?: SxProps<Theme>;
   unit?: FinishedUnit<U>;
@@ -144,7 +140,7 @@ const WallCard = <U,>({
     <Card sx={{ ...cardSx, ...borderSx(colour?.(card.item)) }}>
       <MediaComponent
         item={card.item}
-        landscape={landscape}
+        landscape={shape === "banner"}
         lazy
         sx={sx}
         chip={grouped ? { label: format(card.members.length), icon: <Collections /> } : undefined}
@@ -184,7 +180,7 @@ const FinishedGrid = <U extends FinishedItem>({
   closeOf,
   density,
   colour,
-  landscape,
+  shape,
   keyOf,
   unit,
   onOpenGroup,
@@ -200,7 +196,7 @@ const FinishedGrid = <U extends FinishedItem>({
   closeOf: CloseOf<U>;
   density: FinishedDensity;
   colour?: (item: U) => string;
-  landscape: boolean;
+  shape: ArtworkShape;
   keyOf: (item: U) => string;
   unit?: FinishedUnit<U>;
   onOpenGroup: (card: FinishedCard<U>) => void;
@@ -223,22 +219,13 @@ const FinishedGrid = <U extends FinishedItem>({
           // Written at render from the same item and sort the order came from, so the marker
           // reads a position off the DOM instead of keeping a parallel list to index into.
           data-bucket={bucket(card.item) ?? undefined}
-          size={finishedColumns(landscape, density)}
-          sx={{
-            // The card ends where its picture does rather than at the row's height. Only a cover
-            // is ever short of it — its ratio is a reservation and every publisher's file is a few
-            // percent off 2:3 — and stretched, that difference is a band of the card's own ground
-            // inside the border, which reads as a card drawn wrong rather than as a picture that
-            // came out shorter. The tops stay level either way, which is what the scroll marker
-            // reads a row by.
-            alignSelf: "flex-start",
-          }}
+          size={finishedColumns(shape === "banner", density)}
         >
           <WallCard
             card={card}
             colour={colour}
-            landscape={landscape}
-            artworkSx={artworkSx(landscape)}
+            shape={shape}
+            artworkSx={tiledArtworkSx(shape)}
             cardSx={WALL_CARD_SX}
             unit={unit}
             onOpenGroup={onOpenGroup}
@@ -331,7 +318,7 @@ const FinishedShelf = <U extends FinishedItem>({
   swatch,
   height,
   colour,
-  landscape,
+  shape,
   keyOf,
   isDialog,
   wrap,
@@ -350,7 +337,7 @@ const FinishedShelf = <U extends FinishedItem>({
   /** The artwork's height; the border is added outside it. */
   height: number;
   colour?: (item: U) => string;
-  landscape: boolean;
+  shape: ArtworkShape;
   keyOf: (item: U) => string;
   isDialog: boolean;
   /** Takes the run rather than closing over it, so the caller can pass its setter unwrapped. */
@@ -366,8 +353,8 @@ const FinishedShelf = <U extends FinishedItem>({
       key={`${keyOf(card.item)}-${isDialog ? "dialog" : "card"}`}
       card={card}
       colour={colour}
-      landscape={landscape}
-      artworkSx={{ ...artworkSx(landscape), height, width: "auto" }}
+      shape={shape}
+      artworkSx={{ ...tiledArtworkSx(shape), height, width: "auto" }}
       unit={unit}
       onOpenGroup={onOpenGroup}
       MediaComponent={MediaComponent}
@@ -417,7 +404,7 @@ const Finished = <U extends FinishedItem>({
   border,
   data,
   colour,
-  landscape: landscapeProp,
+  shape,
   keyOf: keyOfProp,
   sorts: sortsProp,
   closeOf: closeOfProp,
@@ -437,7 +424,8 @@ const Finished = <U extends FinishedItem>({
   border?: { key: string; valueOf: (item: U) => string };
   data: readonly U[];
   colour?: (item: U) => string;
-  landscape?: boolean;
+  /** The shape every artwork on this tab comes in, which every card on the wall is held to. */
+  shape: ArtworkShape;
   /**
    * What tells one card from another, where the title and release year do not: a book read twice
    * is two rows with both the same, and two cards under one key are dropped or swapped by React
@@ -453,7 +441,6 @@ const Finished = <U extends FinishedItem>({
   MediaComponent: TypedCardMediaImage<U>;
 }) => {
   // Applied after the pattern: a default inside it bails the component out of the React Compiler.
-  const landscape = landscapeProp ?? false;
   const keyOf = keyOfProp ?? finishedKey;
   const sorts: readonly FinishedExtraSort<U>[] = sortsProp ?? NO_SORTS;
   const closeOf: CloseOf<U> = closeOfProp ?? endDateOf;
@@ -538,7 +525,7 @@ const Finished = <U extends FinishedItem>({
         closeOf={closeOf}
         density={isDialog ? dialogDensity : shownDensity}
         colour={colour}
-        landscape={landscape}
+        shape={shape}
         keyOf={keyOf}
         unit={unit}
         onOpenGroup={setBundle}
@@ -605,7 +592,7 @@ const Finished = <U extends FinishedItem>({
                   swatch={shelving?.colour?.(group.label)}
                   height={SHELF_HEIGHTS[isDialog ? dialogDensity : shownDensity][phone ? "phone" : "wide"]}
                   colour={colour}
-                  landscape={landscape}
+                  shape={shape}
                   keyOf={keyOf}
                   isDialog={isDialog}
                   // A year is a run read whole — what was finished in it — and a bounded one, 63 at
@@ -683,7 +670,7 @@ const Finished = <U extends FinishedItem>({
           closeOf={closeOf}
           density={shownDensity}
           colour={colour}
-          landscape={landscape}
+          shape={shape}
           keyOf={keyOf}
           unit={groups}
           onOpenGroup={setBundle}

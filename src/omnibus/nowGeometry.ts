@@ -84,7 +84,7 @@ export const NOW_GAP = 8;
  * few dozen pixels taller or shorter than the poster beside it, and two cells on one row at two
  * heights read as a mistake. The poster's height is the one to hold, being the one every poster
  * shares; the cover takes its own width inside it and its spine absorbs the rest, so nothing is
- * cropped and the cover a few percent narrower than 2:3 gives its spine those pixels.
+ * cropped and a cover narrower than the poster gives its spine those pixels.
  */
 export const nowPortraitHeight = (rowWidth: number): number =>
   Math.round((Math.floor((rowWidth - NOW_GAP) / 2) - NOW_SPINE_WIDTH) / shapeRatioValues.poster);

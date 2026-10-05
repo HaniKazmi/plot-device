@@ -209,10 +209,9 @@ export const useScrollMarker = (
    * Cards are walked rather than selected by attribute, so a bucket's label never has to be a
    * valid CSS string — it is whatever the domain's items yield.
    *
-   * One scroll and no correction afterwards. The grid reserves every card's height before its
-   * artwork arrives (`Finished`'s `aspectRatio`), so the offset measured here is the offset the
-   * card keeps; what a landing can still be off by is a cover a few percent from 2:3 or a footer
-   * that wraps, a row at most, on Books alone.
+   * One scroll and no correction afterwards. The grid holds every card to its shape before its
+   * artwork arrives (`Finished`'s `tiledArtworkSx`), so the offset measured here is the offset the
+   * card keeps, to within a card's own rounding.
    */
   const jumpTo = (target: string) => {
     const first = wall.current.find((card) => card.dataset.bucket === target);

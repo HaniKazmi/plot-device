@@ -115,6 +115,7 @@ const Graphs = memo(({ data, upTo, filterState }: { data: Show[]; upTo: Show[]; 
           data={data}
           colour={(item) => statusToColour(item, scheme)}
           sorts={showShelves(scheme)}
+          shape="poster"
           MediaComponent={ShowCardMediaImage}
         />
       </Section>

@@ -26,7 +26,7 @@ import { SheetBar } from "./SheetBar";
 import {
   CardArrangementProvider,
   shapeToArrangement,
-  shapeToAspect,
+  tiledArtworkSx,
   useCardArrangement,
   type ArtworkShape,
 } from "./cardArrangement";
@@ -107,9 +107,10 @@ export interface CardMediaImageProps {
    */
   mediaLayout?: "aside" | "stacked";
   /**
-   * The shape of the artwork, for a surface holding more than one of them: the card then reserves
-   * that shape before the image loads and arranges itself by it — a poster takes its words in a
-   * column beside it, a banner stacks them underneath.
+   * The shape of the artwork, for a surface holding more than one of them: the card then holds the
+   * artwork to that shape, cropping a file off it as every surface where pictures tile does, and
+   * arranges itself by it — a poster takes its words in a column beside it, a banner stacks them
+   * underneath. A caller showing one picture states its own `aspectRatio` and `objectFit` in `sx`.
    *
    * The Omnibus is the surface that needs it, because a mixed row is where a single arrangement
    * fails: a banner is four times as wide as it is tall, so words beside it get a sliver of a
@@ -124,10 +125,10 @@ export interface CardMediaImageProps {
    * A grid gives every card one width and lets the heights fall where the shapes put them, so a
    * row mixing banners with posters is as tall as its tallest card and the rest carry a strip of
    * their own ground. Given both dimensions, the card spends them the way the Now band does at its
-   * own scale: a poster or a cover fills the height and takes its own width, and the column of
-   * words beside it is whatever the width leaves; a banner fills the width at its ratio and keeps
-   * a footer underneath. Every card is then one size, every picture whole, and the words are what
-   * gives way. Needs `shape`, which is what says which of the two it is.
+   * own scale: a poster or a cover fills the height and takes the width its shape gives it, and the
+   * column of words beside it is whatever the width leaves; a banner fills the width at its ratio
+   * and keeps a footer underneath. Every card is then one size, every picture its shape's full
+   * extent, and the words are what gives way. Needs `shape`, which is what says which of the two it is.
    *
    * The footer's height travels with the size because the caller is what draws the footer: this
    * card subtracts it from the picture under a banner and holds the footer to it, and knows
@@ -247,10 +248,9 @@ const SHAPE_ASIDE_ACTION_AREA_SX = {
 } as const;
 
 /**
- * Artwork filling the column above, at its own ratio and uncropped: the width is the column's —
- * `CardMedia`'s own rule for a media component, so only the height is stated here — which is what
- * gives the reservation a height before the file arrives, and the file's own ratio then sets the
- * height it stands at.
+ * Artwork filling the column above at its shape's ratio: the width is the column's — `CardMedia`'s
+ * own rule for a media component, so only the height is stated here — and the ratio gives it a
+ * height before the file arrives as well as after.
  */
 const SHAPE_ASIDE_MEDIA_SX = { height: "auto" } as const;
 
@@ -545,12 +545,11 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
    * of some other size is a card that reserves one height and stands at another.
    */
   const mediaSx = [
-    ...(shape ? [{ aspectRatio: shapeToAspect(shape), ...(beside && SHAPE_ASIDE_MEDIA_SX) }] : []),
-    // The picture at one card size. Beside the words it takes the height and its own width — from
-    // the reservation until the file arrives, from the file's ratio after. Under them it takes the
-    // width and the height the band and footer leave, which is its own ratio's height exactly when
-    // the caller sized the row from it; a banner is an exact shape, so both being stated crops
-    // nothing.
+    ...(shape ? [{ ...tiledArtworkSx(shape), ...(beside && SHAPE_ASIDE_MEDIA_SX) }] : []),
+    // The picture at one card size. Beside the words it takes the height and the width its shape
+    // gives it. Under them it takes the width and the height the band and footer leave, which is
+    // its own ratio's height exactly when the caller sized the row from it; a banner is an exact
+    // shape, so both being stated crops nothing.
     ...(rowSize && shape
       ? [
           beside
