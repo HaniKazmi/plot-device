@@ -52,7 +52,7 @@ const DEFAULT_TOPS: readonly FranchiseTop[] = ["genre", "where"];
  * decade is no narrowing, and the genre card counts every genre an item carries where the genre
  * category reads the first — a secondary genre's group would open a layer missing the works it counts.
  */
-const LINKED_TOPS: readonly FranchiseTop[] = ["style"];
+const LINKED_TOPS: Readonly<Partial<Record<FranchiseTop, string>>> = { style: "style" };
 
 const TOP_ICONS: Record<FranchiseTop, ReactNode> = {
   genre: <TheaterComedy />,

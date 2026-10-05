@@ -27,11 +27,12 @@ interface TopListCardProps<O extends string, T> {
   colourOf: (option: O, top: T) => Colour | "";
   measureLabel: string;
   /**
-   * The tab's filter categories by key. An option that is one names each of its groups as a way in —
-   * a franchise to its page, a genre or a publisher to everything carrying it (`ValueLink`) — where
-   * an option that is not, a company or a decade, is no narrowing any press could open.
+   * The filter category each option is, by the option's name (`categoryKeys`). An option that is one
+   * names each of its groups as a way in — a franchise to its page, a genre or a publisher to
+   * everything carrying it (`ValueLink`) — where an option that is not, a company or a decade, is no
+   * narrowing any press could open.
    */
-  categories?: readonly string[];
+  categories?: Readonly<Record<string, string>>;
 }
 
 /**
@@ -54,7 +55,7 @@ const TopListCard = <O extends string, T>(props: TopListCardProps<O, T>) => {
   const [hovered, setHovered] = useHoverDim();
 
   const most = topNWithOther(groups(option));
-  const linked = categories?.includes(option);
+  const category = categories?.[option];
 
   const getColour = (struct: (typeof most)[0], index: number) => {
     if (struct.name === "Other") return neutralFill(scheme);
@@ -119,9 +120,9 @@ const TopListCard = <O extends string, T>(props: TopListCardProps<O, T>) => {
                   noWrap
                   sx={{ flexGrow: 1 }}
                 >
-                  {linked && item.name !== "Other" ? (
+                  {category && item.name !== "Other" ? (
                     <ValueLink
-                      category={option}
+                      category={category}
                       value={item.name}
                     />
                   ) : (

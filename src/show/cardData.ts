@@ -82,7 +82,8 @@ export const showRows = (show: Show, scheme: Scheme): LedgerRow[] => {
     // and the order the charts group by.
     {
       label: "Genre",
-      // The primary genre alone is what the tab narrows by, so it leads to its layer and the rest stand as words.
+      // The primary genre alone is what the tab narrows by, so it leads to its layer and the rest
+      // stand as words.
       ...ledgerParts([{ text: show.genre, category: "genre" }, ...show.otherGenres.map((text) => ({ text }))]),
       swatch: genreToColour(show.genre, scheme),
     },

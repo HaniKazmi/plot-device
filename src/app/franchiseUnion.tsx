@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { matchPath, useLocation, useNavigate } from "react-router-dom";
 import { useLibrary } from "./library";
 import { CURRENT_PLAINDATE } from "../common/date";
@@ -48,13 +48,20 @@ export const FranchiseUnionProvider = ({ children }: { children: ReactNode }) =>
   const union = items ? buildFranchiseUnion(items, CURRENT_PLAINDATE, hoverCard) : undefined;
   // Read through the route's own matcher, which decodes the name as the page itself receives it.
   const here = matchPath(FRANCHISE_ROUTE, useLocation().pathname)?.params.name;
+  // Through a ref, so the value every link reads keeps its identity across navigations: under a
+  // hash router `navigate` is a new function at every path, and held in the value it would
+  // re-render every name in the app on each one.
   const navigate = useNavigate();
+  const navigateRef = useRef(navigate);
+  useLayoutEffect(() => {
+    navigateRef.current = navigate;
+  });
   const pages: FranchisePages = {
     // Every franchise has a page, a standalone work's included, once the library it is drawn from
     // has landed; the one being read leads nowhere.
     href: (franchise) => (items && franchise && franchise !== here ? `#${franchisePath(franchise)}` : undefined),
     open: (franchise) => {
-      navigate(franchisePath(franchise));
+      navigateRef.current(franchisePath(franchise));
       window.scrollTo({ top: 0 });
     },
   };

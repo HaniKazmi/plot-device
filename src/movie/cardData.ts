@@ -40,7 +40,8 @@ export const movieRows = (movie: Movie, scheme: Scheme): LedgerRow[] => {
     // and the order the charts group by.
     {
       label: "Genre",
-      // The primary genre alone is what the tab narrows by, so it leads to its layer and the rest stand as words.
+      // The primary genre alone is what the tab narrows by, so it leads to its layer and the rest
+      // stand as words.
       ...ledgerParts([{ text: movie.genre, category: "genre" }, ...movie.otherGenres.map((text) => ({ text }))]),
       swatch: genreToColour(movie.genre, scheme),
     },

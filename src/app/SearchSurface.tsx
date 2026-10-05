@@ -377,11 +377,19 @@ export const SearchSurface = ({
   // looks the value up in is here, so a press made while the sheets land opens once they have. A
   // slot of its own rather than `picked`, so a value pressed on a card the box opened stands over
   // that card instead of putting it away; it lapses with the path as `picked` does.
+  // A press made before the index lands waits for it, on the path it was made on: a reader who has
+  // moved on by then pressed nothing on the page they are reading.
   const [answered, setAnswered] = useState<ValueRequest | null>(null);
+  const [pending, setPending] = useState<{ request: ValueRequest; at: string } | null>(null);
   const [valueShelf, setValueShelf] = useState<{ attribute: AttributeEntry; at: string } | null>(null);
-  if (valueRequest && valueRequest !== answered && index) {
+  if (valueRequest && valueRequest !== answered) {
     setAnswered(valueRequest);
-    const attribute = findAttribute(index, valueRequest.category, valueRequest.value);
+    setPending({ request: valueRequest, at: pathname });
+  }
+  if (pending && pending.at !== pathname) setPending(null);
+  else if (pending && index) {
+    setPending(null);
+    const attribute = findAttribute(index, pending.request.category, pending.request.value);
     if (attribute) setValueShelf({ attribute, at: pathname });
   }
   if (valueShelf && valueShelf.at !== pathname) setValueShelf(null);

@@ -1377,7 +1377,8 @@ export const LedgerList = ({ rows, columns }: { rows: LedgerRow[]; columns: { xs
             >
               {row.parts
                 ? row.parts.map((part, index) => (
-                    <Fragment key={part.text}>
+                    // By position: a row's parts are a fixed list, and two may share their words.
+                    <Fragment key={index}>
                       {index > 0 && LEDGER_SEPARATOR}
                       {part.category ? (
                         <ValueLink

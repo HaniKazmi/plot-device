@@ -468,6 +468,21 @@ describe("the built-in sort names", () => {
 });
 
 describe("bucketGroups", () => {
+  it("cuts franchise shelves by franchise, where the wall's headings read the initial", () => {
+    const wall = finishedItems(
+      [entry("Halo 3", "Halo", 2007), entry("Hades", "", 2020), entry("Halo 2", "Halo", 2004)],
+      "Franchise",
+    );
+
+    expect(bucketGroups(wall, "Franchise").map((group) => [group.label, group.items.length])).toEqual([["H", 3]]);
+    expect(
+      bucketGroups(wall, "Franchise", [], undefined, true).map((group) => [group.label, group.items.length]),
+    ).toEqual([
+      ["Hades", 1],
+      ["Halo", 2],
+    ]);
+  });
+
   it("cuts the wall where the bucket changes, keeping the order it was handed", () => {
     const wall = [item("a", "a.jpg", CURRENT_YEAR), item("b", "b.jpg", CURRENT_YEAR), item("c", "c.jpg", 2019)];
 

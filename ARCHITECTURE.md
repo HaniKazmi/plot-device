@@ -1091,7 +1091,7 @@ page for one opened straight from its address, where back would leave the app �
 key for the entry says which (`"default"` for the first in the tab). A layer open over the page, a
 card, a drill-down or the box, takes the press first and stops it there, so one press closes the
 layer and a second leaves the page; a hover card stops nothing, closing on the document's own
-Escape, so the page stays while one stands open; and a field keeps its own Escape, through the same
+Escape, so the page stays while a tooltip's popper stands, which MUI mounts only while one is open; and a field keeps its own Escape, through the same
 `inEditableField` (`common/keyboard.ts`) that holds a typed `/` to a slash.
 
 **A franchise named anywhere leads to its page.** `common/ValueLink.tsx`'s `FranchiseLink` is the name as a
@@ -1123,14 +1123,16 @@ by the category. A ledger row names its parts (`LedgerRow.parts`, built through
 developer and a publisher links the publisher alone, the one of the two a tab narrows by, and a row
 of genres links the first alone, the genre category reading only an item's first: a secondary
 genre's layer would leave out the work it was pressed on. A Top card links an option's groups where
-the option is one of its tab's filter categories (`categories`, through `categoryKeys`), so a
+the option is one of its tab's filter categories (`categories`, through `categoryKeys`, which maps
+an option named apart from its category — Books' Series, keyed `bookSeries` — by an alias), so a
 company or a decade, which no press could narrow by, stays words — and on a franchise's page, where
 the genre card counts every genre an item carries, Style alone. The press crosses the tree through
 a store (`common/valueLayer.ts`) to the box's surface, which holds the index and draws the layer:
 `findAttribute` looks the value up by its category, on the value an entry states or any cell a tab
 records for it — a card's PEGI 16 being the 15/16 band's — and the surface opens it during the render
-that finds a request it has not answered, once the index is there, in a slot of its own so a value
-pressed on a card the box opened stands over that card rather than putting it away.
+that finds a request it has not answered, once the index is there and only on the path it was
+pressed on, in a slot of its own so a value pressed on a card the box opened stands over that card
+rather than putting it away.
 
 A layer the search box opened is mounted beside the page rather than inside it, so it would stand
 over the next page when a name on it is pressed. The box remembers the path each layer was opened
@@ -1776,8 +1778,12 @@ progress run — a library is a record of what was finished, so a game begun in 
 2024 stands on 2024's shelf. The close is the caller's answer (`CloseOf`), defaulting to the end
 date three sheets leave blank while a work is in hand; Movies passes the watch date, a film being
 finished the day it is watched and every film otherwise reading as in progress. **Franchise** is the
-other built-in, by initial: a series' entries together in release order, so a shelf of one letter
-walks each series through. A tab adds its own through `FinishedExtraSort`, in two kinds. A **word**
+other built-in: a series' entries together in release order, the franchises alphabetical. On
+Shelves each franchise is a shelf of its own, named after it and leading to its page; on the Wall
+the headings and the marker read its initial instead, since a heading per franchise is a hundred
+and seventy headings on a wall of games and a rail no gutter holds, where a shelf is read by its
+name and a shelf of every franchise under one letter is a shelf of strangers (`bucketGroups`'s
+`shelves`). A tab adds its own through `FinishedExtraSort`, in two kinds. A **word**
 — Genre on every tab through `genreShelf`, Platform, Network, Author, Where watched — shelves by the
 value, the biggest shelf first, as the gallery's Largest order does, a blank cell last under a run
 naming what it lacks; its optional `colour` puts the vocabulary's swatch on the run's name, where

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  categoryKeys,
   categoryRuns,
   categoryTally,
   certificateCategory,
@@ -213,5 +214,17 @@ describe("franchiseCategory", () => {
     const rows = [{ franchise: "Zelda" }, { franchise: "Braid" }, { franchise: "Zelda" }, { franchise: "" }];
 
     expect(categoryTally(category, rows).values).toEqual(["Braid", "Zelda"]);
+  });
+});
+
+describe("categoryKeys", () => {
+  it("names every category under its own key, and an option named apart from its category by the alias", () => {
+    const schema = { categories: [{ key: "genre" }, { key: "bookSeries" }] };
+
+    expect(categoryKeys(schema, { series: "bookSeries" })).toEqual({
+      genre: "genre",
+      bookSeries: "bookSeries",
+      series: "bookSeries",
+    });
   });
 });

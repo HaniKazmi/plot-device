@@ -236,7 +236,7 @@ const TopCategories = ({ data, measure }: { data: Book[]; measure: Measure }) =>
       groups={(option) => groupBooksBy(data, option, measure)}
       colourOf={(option, top: Book) => groupToColour(option, top, scheme)}
       measureLabel={measure}
-      categories={categoryKeys(bookFilters)}
+      categories={categoryKeys(bookFilters, { series: "bookSeries" })}
     />
   );
 };
