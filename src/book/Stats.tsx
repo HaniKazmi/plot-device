@@ -228,7 +228,6 @@ const TopCategories = ({ data, measure }: { data: Book[]; measure: Measure }) =>
 
   return (
     <TopCategoryBand
-      franchiseOption="franchise"
       defaults={["genre", "author", "franchise"]}
       options={bookTopOptions}
       icons={optionIcons}

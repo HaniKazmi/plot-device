@@ -336,7 +336,6 @@ const TopCategories = ({ data, measure }: { data: VideoGame[]; measure: Measure 
 
   return (
     <TopCategoryBand
-      franchiseOption="franchise"
       defaults={["gameplay", "publisher", "franchise"]}
       options={topOptions}
       icons={optionIcons}

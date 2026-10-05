@@ -23,7 +23,10 @@ export const FranchiseLink = ({ franchise, children }: { franchise: string; chil
       underline="always"
       onClick={(event) => {
         event.stopPropagation();
-        window.scrollTo({ top: 0 });
+        // Only where the page in hand is the one being left: a modified or middle press opens the
+        // franchise in a tab of its own and leaves this page where the reader had it.
+        if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey)
+          window.scrollTo({ top: 0 });
       }}
       sx={LINK_SX}
     >

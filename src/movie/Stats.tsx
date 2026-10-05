@@ -221,7 +221,6 @@ const TopCategories = ({ data, measure }: { data: Movie[]; measure: Measure }) =
 
   return (
     <TopCategoryBand
-      franchiseOption="franchise"
       defaults={["genre", "director", "franchise"]}
       options={movieTopOptions}
       icons={optionIcons}

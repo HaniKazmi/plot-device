@@ -709,9 +709,10 @@ scrolls inside the card from `md` up, `CHART_MAX_HEIGHT` as Across does, with th
 to the foot of its scroller; below `md` the page carries the height. A year's label scopes the page
 to it, as Stacked's and the grid's do.
 
-The page's year scope reads through. Scoped to a year, Across is fitted to the card, and Stacked
-opens that year in detail (`common/YearDetail.tsx`), a year being too few rows for a stack to say
-anything a stack is for. From `sm` up it is **pictures on the line**: each item's own artwork standing
+The page's year scope reads through. Scoped to a year, Across is fitted to the card, and Pictures
+opens that year in detail (`common/YearDetail.tsx`) — the clock's own reading, a picture on the
+line, at the scale of the one year rather than every year its items touch, and so reachable on
+every tab that offers Pictures whichever of the others it leaves out. From `sm` up it is **pictures on the line**: each item's own artwork standing
 at the day it began, a line beneath running to the day it ended, the picture saying what and the
 line when — a reader finds a thing by its picture before reading a word, and a banner already
 carries its title. Pictures take lanes by the packed chart's rule in pixels (`pictureLanes`), a
@@ -994,7 +995,10 @@ difference.
 
 The section is an `ExpandableCard` whose dialog draws every franchise, in stacks of the same twelve:
 one scroller per stack rather than one for all of them, a scroller being what holds a shared scale
-true and twelve strips being as much of one as a screen shows. The card's own control reads "All 180
+true and twelve strips being as much of one as a screen shows. Every franchise is near sixty
+stacks, so the dialog builds the first two as it opens and each of the rest as the reader scrolls
+within a screen of it (`common/useNearScreen.ts`), held at a stack's height until then: built at
+once, they hold the dialog shut for seconds while its first screen shows two. The card's own control reads "All 688
 ›", so the cut is both visible and one press away, and the header states no count — the strips are
 the page's own franchises and the packed reading is the page's own population, which the rail
 states. On a phone the card folds inside itself (`FoldedContent`, the fold without the `Card`
@@ -1085,7 +1089,7 @@ the tab for the same reason: a throw on one franchise would otherwise follow the
 link — underlined faintly at rest, since a finger has no hover to find it by, and in the ink
 around it so a name on an artwork's ground keeps the card's tones — and it is drawn by the
 franchise strip's caption (every expanded card, the heroes and the crossings), the ledger's
-Franchise row (`LedgerRow.franchise`), the Top Franchise legend on each tab (`franchiseOption`),
+Franchise row (`LedgerRow.franchise`), the Top Franchise legend on each tab (its `FRANCHISE_KEY` option),
 the Omnibus library's franchise shelves and the names under Who made it. Where the page is comes
 from `FranchisePageContext` (`common/franchiseUnion.ts`), which `app/franchiseUnion.tsx` answers
 beside the union: `common/` may know neither the route nor the library, and a name that leads
@@ -2682,7 +2686,7 @@ key in ObjectExpression`; pulled out to a plain function taking the varying piec
   `sheetBarSx`, `dialogCardSx`, among others — the literal itself sits at module scope and the
   component stays compiled.
 
-The baseline is **302 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **304 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.

@@ -34,21 +34,23 @@ export type TimelineLayout = "Across" | "Stacked" | "Grid" | "Pictures";
 const LAYOUTS: readonly TimelineLayout[] = ["Across", "Stacked", "Grid", "Pictures"];
 
 /**
- * A tab's timeline: one set of marks drawn Across, Stacked or as a Grid, coloured by whatever the caller's
- * Colour picker says, with the key naming those colours under the header.
+ * A tab's timeline: one set of marks drawn in whichever of the four layouts the tab offers, coloured
+ * by the Colour picker that leads the key naming those colours.
  *
  * The caller owns what the marks are — which items, one per item or per series, in which colours —
  * and hands them in as `TimelineData`; the section owns how they are laid out, which is the same
- * question on every tab. It opens on Across, today's chart, and the choice is held for the visit.
+ * question on every tab. It opens on the first layout the tab offers, or the one the caller names,
+ * and the choice is held for the visit.
  * A pressed mark — a bar, a band or a picture, on whichever layout — opens its item through the one
  * host the section keeps (`useOpenedCard`), so a press means the same thing on all five.
  *
  * The page's year scope reads through. Scoped to a year, Across is drawn at the card's width rather
- * than four screens wide, and Stacked opens the year in detail: its items as pictures on the line
- * from `sm` up, and as the log on a phone, where the year's own scale is a few pixels a day and the
- * names have to be read down the page. A year's label on Stacked or the grid scopes the page to it
- * through the tab's own `dispatch` — the one action the rail's own picker sends — and "All years"
- * beside the layout is the way back.
+ * than four screens wide, and Pictures opens the year in detail: its items as pictures on the line
+ * across the year's own January to December from `sm` up, and as the log on a phone, where the
+ * year's own scale is a few pixels a day and the names have to be read down the page — the same
+ * reading as the clock, its pictures on the line, at the scale of one year. A year's label on
+ * Stacked, the grid or the clock scopes the page to it through the tab's own `dispatch` — the one
+ * action the rail's own picker sends — and "All years" beside the layout is the way back.
  *
  * Like the packed chart it grew from, it never folds on a phone: a folded card would show a picture
  * of the chart's shape, no cheaper a reading than the rows themselves, and Stacked is built to fit
@@ -71,7 +73,7 @@ export const TimelineSection = ({
   title: string;
   count?: string;
   data: TimelineData[];
-  /** The caller's own pickers — its Colour, its one mark per — drawn before the layout. */
+  /** The caller's own controls about the marks — its one mark per — drawn before the layout. */
   controls?: ReactNode;
   /** What the colours mean: the field's name and a swatch and word per value drawn. */
   colourKey?: { field: string; entries: readonly { value: string; colour: string }[]; control?: ReactNode };
@@ -96,7 +98,11 @@ export const TimelineSection = ({
   initialLayout?: TimelineLayout;
 }) => {
   const offered = layouts ? LAYOUTS.filter((each) => layouts.includes(each)) : LAYOUTS;
-  const [layout, setLayout] = useState<TimelineLayout>(initialLayout ?? offered[0]);
+  // The caller's opening layout only where the tab offers it, or the section would open on a layout
+  // with no lit segment and no way back to it.
+  const [layout, setLayout] = useState<TimelineLayout>(
+    initialLayout && offered.includes(initialLayout) ? initialLayout : offered[0],
+  );
   const [open, openedCard] = useOpenedCard();
   const { active } = useNothingMatches();
   const scopeTo = (year: YearNumber) => dispatch({ type: "scope", yearTo: year, yearType: "matching" });
@@ -158,6 +164,21 @@ export const TimelineSection = ({
         // Which of the two lines is the page's answer: the page emptied says so and offers the way
         // back, and a chart emptied by a rule of its own states that it has nothing.
         <CardContent>{active ? <NothingMatches /> : <NothingToPlot />}</CardContent>
+      ) : layout === "Pictures" && inYear && phone ? (
+        <YearLog
+          data={data}
+          from={from}
+          to={to}
+          onOpen={open}
+        />
+      ) : layout === "Pictures" && inYear ? (
+        <YearPictures
+          data={data}
+          from={from}
+          to={to}
+          shape={shape}
+          onOpen={open}
+        />
       ) : layout === "Pictures" ? (
         <PictureClock
           data={data}
@@ -181,21 +202,6 @@ export const TimelineSection = ({
             onOpen={open}
           />
         </CardContent>
-      ) : inYear && phone ? (
-        <YearLog
-          data={data}
-          from={from}
-          to={to}
-          onOpen={open}
-        />
-      ) : inYear ? (
-        <YearPictures
-          data={data}
-          from={from}
-          to={to}
-          shape={shape}
-          onOpen={open}
-        />
       ) : (
         <StackedTimeline
           data={stacked?.data ?? data}

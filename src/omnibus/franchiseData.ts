@@ -1,5 +1,6 @@
 import { formatDate, type YearMonthDay } from "../common/date";
 import { byDate } from "../common/finishedData";
+import { franchiseIndex } from "../common/franchiseIndex";
 import type { CreditRole, OmniItem } from "../common/medium";
 import type { TopGroup } from "../common/statsData";
 import { galleryStripOrder, galleryValue, galleryWorks, worksIn, type ShelfItem } from "../app/galleryData";
@@ -29,9 +30,8 @@ const byStart = <T extends OmniItem>(items: readonly T[], today: YearMonthDay): 
  * a franchise of one — the same population the Omnibus's own franchise figure counts.
  */
 export const franchiseRank = (items: OmniItem[], franchise: string): { rank: number; of: number } => {
-  const byFranchise = new Map<string, OmniItem[]>();
-  for (const item of items) byFranchise.setIfAbsent(item.franchise, []).push(item);
-  const ranked = [...byFranchise.entries()]
+  // Grouped as the crossings group, a blank cell naming no franchise, so the population is theirs.
+  const ranked = [...franchiseIndex(items, (item) => item.franchise).entries()]
     .map(([name, members]) => ({ name, hours: members.sum("hours") }))
     .toSorted((a, b) => b.hours - a.hours);
   return { rank: ranked.findIndex((entry) => entry.name === franchise) + 1, of: ranked.length };

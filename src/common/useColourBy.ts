@@ -21,7 +21,6 @@ export const useColourBy = <K extends string, T>(
   const scheme = useScheme();
   const [key, control] = useSelectBox(keys, initial, "Colour");
   return {
-    control,
     // Off a vocabulary's table a value answers no colour — a franchise the shared table does not
     // hold, a network off the brand table, a book under certificate — and a mark with no fill would
     // be a gap in its row, so it takes the neutral. The key leaves such a value out, as the library's

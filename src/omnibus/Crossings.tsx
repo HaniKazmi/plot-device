@@ -25,6 +25,7 @@ import type { Crossing } from "./crossingsData";
 import { mediumToColour, mediumToLabel } from "../app/types";
 import { useScheme } from "../common/useScheme";
 import type { Scheme } from "../utils/types";
+import { useNearScreen } from "../common/useNearScreen";
 
 /**
  * How many franchises the card draws, and how many stand in one stack of the dialog. The strips
@@ -180,13 +181,21 @@ const Crossings = ({ crossings, ticks }: { crossings: Crossing[]; ticks: Timelin
                 true, and twelve strips is as much of one as a screen shows — a single scroller
                 a hundred and eighty rows deep is a scale nothing on screen can be compared
                 across anyway. */}
-            {pages(crossings).map((page) => (
-              <CrossingsStack
-                key={page[0].franchise}
-                crossings={page}
-                ticks={ticks}
-              />
-            ))}
+            {pages(crossings).map((page, index) =>
+              index < STACKS_AT_ONCE ? (
+                <CrossingsStack
+                  key={page[0].franchise}
+                  crossings={page}
+                  ticks={ticks}
+                />
+              ) : (
+                <DeferredStack
+                  key={page[0].franchise}
+                  crossings={page}
+                  ticks={ticks}
+                />
+              ),
+            )}
           </>
         ) : (
           <FoldedContent
@@ -211,6 +220,36 @@ const Crossings = ({ crossings, ticks }: { crossings: Crossing[]; ticks: Timelin
           </FoldedContent>
         )
       }
+    />
+  );
+};
+
+/**
+ * The stacks the dialog builds as it opens; the rest are built as the reader scrolls near them
+ * (`DeferredStack`). Every franchise has a strip, a work met once included, so the dialog holds
+ * near sixty stacks — around seven hundred strips — and built at once they hold the dialog shut
+ * for seconds while the first screen shows two of them.
+ */
+const STACKS_AT_ONCE = 2;
+
+/** Roughly the height a stack of twelve strips stands at, held for one not yet built. */
+const DEFERRED_STACK_HEIGHT = 480;
+
+/** A stack built only once the reader has scrolled within a screen of it. */
+const DeferredStack = ({ crossings, ticks }: { crossings: Crossing[]; ticks: TimelineTick[] }) => {
+  const [ref, near] = useNearScreen<HTMLDivElement>();
+
+  return near ? (
+    <CrossingsStack
+      crossings={crossings}
+      ticks={ticks}
+    />
+  ) : (
+    // Held at its height against the dialog's own flex column, which would otherwise shrink every
+    // placeholder to nothing and stand them all at one point, built together the moment it nears.
+    <Box
+      ref={ref}
+      sx={{ height: DEFERRED_STACK_HEIGHT, flexShrink: 0 }}
     />
   );
 };
