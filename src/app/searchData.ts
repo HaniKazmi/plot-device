@@ -668,6 +668,24 @@ export const searchUnion = (index: SearchIndex, query: string, limit = HITS_PER_
 const worksOf = (items: OmniItem[], today: YearMonthDay): ShelfItem[] =>
   galleryStripOrder(galleryWorks(items, "franchise", today), "recent");
 
+/**
+ * The entry for a value named elsewhere in the app — a genre on a card's ledger, a publisher on a
+ * Top list — so pressing it opens the layer the box opens for the same value typed.
+ *
+ * Matched on the value as the entry states it, and failing that on any cell a tab records for it:
+ * a certificate is stated as its band, where a card names the cell its own sheet holds. A level —
+ * a company standing for its platforms — is never the answer, a name on a card being one value.
+ */
+export const findAttribute = (index: SearchIndex, category: string, value: string): AttributeEntry | undefined => {
+  let byCell: AttributeEntry | undefined;
+  for (const entry of index.attributes) {
+    if (entry.category !== category || !isValue(entry)) continue;
+    if (entry.value === value) return entry;
+    byCell = byCell ?? (Object.values(entry.values).some((cells) => cells.includes(value)) ? entry : undefined);
+  }
+  return byCell;
+};
+
 /** The works an attribute holds, for the shelf its own row opens over every library recording it. */
 export const attributeWorks = (library: Library, entry: AttributeEntry, today: YearMonthDay): ShelfItem[] =>
   worksOf(attributeItems(library, entry), today);

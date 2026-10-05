@@ -53,6 +53,8 @@ import {
 import "../utils/arrayUtils";
 import { useScheme } from "../common/useScheme";
 import type { DrilldownGroup } from "../common/statsData";
+import { categoryKeys } from "../common/filterSchema";
+import { bookFilters } from "./filters";
 
 const Stats = ({
   data,
@@ -234,6 +236,7 @@ const TopCategories = ({ data, measure }: { data: Book[]; measure: Measure }) =>
       groups={(option) => groupBooksBy(data, option, measure)}
       colourOf={(option, top: Book) => groupToColour(option, top, scheme)}
       measureLabel={measure}
+      categories={categoryKeys(bookFilters, { series: "bookSeries" })}
     />
   );
 };

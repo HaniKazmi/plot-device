@@ -446,3 +446,17 @@ export const schemaPredicates = <T, S>(
     ),
   ];
 };
+
+/**
+ * Which filter category each of a surface's options is, by the option's name: every category under
+ * its own key, and `aliases` for an option named apart from the category it reads — Books' Top
+ * "series", whose category is keyed `bookSeries`. What a surface naming a tab's values asks to know
+ * which of them narrow it.
+ */
+export const categoryKeys = (
+  schema: { categories: readonly { key: string }[] },
+  aliases: Readonly<Record<string, string>> = {},
+): Readonly<Record<string, string>> => ({
+  ...Object.fromEntries(schema.categories.map((category) => [category.key, category.key])),
+  ...aliases,
+});

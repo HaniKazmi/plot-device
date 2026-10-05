@@ -24,7 +24,7 @@ import {
 import { useElementWidth } from "./useElementWidth";
 import { useScheme } from "./useScheme";
 import "../utils/arrayUtils";
-import { FranchiseLink } from "./FranchiseLink";
+import { FranchiseLink } from "./ValueLink";
 
 /**
  * The two ways a franchise is drawn: in the order its entries were met, one bead each, evenly

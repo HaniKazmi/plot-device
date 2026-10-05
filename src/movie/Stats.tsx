@@ -63,6 +63,8 @@ import {
 } from "./statsData";
 import "../utils/arrayUtils";
 import { useScheme } from "../common/useScheme";
+import { categoryKeys } from "../common/filterSchema";
+import { movieFilters } from "./filters";
 
 const Stats = ({
   data,
@@ -227,6 +229,7 @@ const TopCategories = ({ data, measure }: { data: Movie[]; measure: Measure }) =
       groups={(option) => groupMoviesBy(data, option, measure)}
       colourOf={(option, top: Movie) => groupToColour(option, top, scheme)}
       measureLabel={measure}
+      categories={categoryKeys(movieFilters)}
     />
   );
 };

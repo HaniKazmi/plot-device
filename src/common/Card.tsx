@@ -16,7 +16,7 @@ import {
   type ChipProps,
   type TypographyProps,
 } from "@mui/material";
-import { type FunctionComponent, type ReactNode, useEffect, useRef, useState } from "react";
+import { Fragment, type FunctionComponent, type ReactNode, useEffect, useRef, useState } from "react";
 import { CalendarMonthOutlined, ChevronRight } from "@mui/icons-material";
 import { cachedColour, extractColourFrom } from "../utils/colourUtils";
 import { ArtworkAccent, artworkPalette, SEAM_WIDTH, seamEdge, useArtworkPalette } from "./artworkPalette";
@@ -38,7 +38,8 @@ import { format } from "../utils/mathUtils";
 import { stripCaption } from "./statsData";
 import type { Colour } from "../utils/types";
 import { INLINE_SWATCH_SIZE, Swatch } from "./Swatch";
-import { FranchiseLink } from "./FranchiseLink";
+import { ValueLink } from "./ValueLink";
+import { LEDGER_SEPARATOR, type LedgerPart } from "./ledgerRow";
 
 export interface CardMediaImageProps {
   image?: string;
@@ -1295,8 +1296,13 @@ export interface LedgerRow {
   value: ReactNode;
   /** Only where a chart or a chip elsewhere in the app already paints this field. */
   swatch?: Colour;
-  /** The franchise the value names, which the value then leads to the page of (`FranchiseLink`). */
-  franchise?: string;
+  /**
+   * The value's parts, where any is a value of a filter category: each then names its own way in —
+   * a franchise to its page, a genre or a director to everything carrying it (`ValueLink`) — and
+   * the rest stand as words. `value` is the same parts joined, which is what a row states without
+   * them (`ledgerParts`).
+   */
+  parts?: readonly LedgerPart[];
 }
 
 /**
@@ -1369,7 +1375,22 @@ export const LedgerList = ({ rows, columns }: { rows: LedgerRow[]; columns: { xs
               variant="body2"
               sx={{ textAlign: "right" }}
             >
-              {row.franchise ? <FranchiseLink franchise={row.franchise}>{row.value}</FranchiseLink> : row.value}
+              {row.parts
+                ? row.parts.map((part, index) => (
+                    // By position: a row's parts are a fixed list, and two may share their words.
+                    <Fragment key={index}>
+                      {index > 0 && LEDGER_SEPARATOR}
+                      {part.category ? (
+                        <ValueLink
+                          category={part.category}
+                          value={part.text}
+                        />
+                      ) : (
+                        part.text
+                      )}
+                    </Fragment>
+                  ))
+                : row.value}
             </Typography>
           </Stack>
         </Box>

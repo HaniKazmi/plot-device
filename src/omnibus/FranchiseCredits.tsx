@@ -9,7 +9,7 @@ import { CutButton, SegmentedControl, type SegmentOption } from "../common/Selec
 import type { CreditRole, OmniItem } from "../common/medium";
 import { all, stated } from "../common/population";
 import { MUTED_FIGURE_SX } from "../common/typography";
-import { FranchiseLink } from "../common/FranchiseLink";
+import { FranchiseLink } from "../common/ValueLink";
 import { useScheme } from "../common/useScheme";
 import OmniCardMediaImage from "../app/CardMediaImage";
 import { MIXED_CARD_SIZING, workLabels } from "../app/cardData";

@@ -55,6 +55,8 @@ import {
 import { useSelectBox } from "../common/SelectBoxHook";
 import { useFranchiseShows } from "./franchiseContext";
 import "../utils/arrayUtils";
+import { categoryKeys } from "../common/filterSchema";
+import { showFilters } from "./filters";
 
 const Stats = ({
   data,
@@ -247,6 +249,7 @@ const TopCategories = ({ data, measure }: { data: Show[]; measure: Measure }) =>
       groups={(option) => groupShowsBy(data, option, measure)}
       colourOf={(option, top: Show) => groupToColour(option, top, scheme)}
       measureLabel={measure}
+      categories={categoryKeys(showFilters)}
     />
   );
 };

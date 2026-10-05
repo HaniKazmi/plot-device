@@ -410,15 +410,22 @@ const unbucketedLabel = <U extends FinishedItem>(sort: string, extras: readonly 
  * built-in sorts happen to open each bucket once, but a sort that returned to a value it had passed
  * would have a keyed grouping lift those cards out of the order the wall is in and file them under
  * a heading hundreds of cards above. The shelves are these same runs, so a shelf and a heading
- * cannot disagree about where a card stands.
+ * cannot disagree about where a card stands — with one difference, under the franchise sort.
+ *
+ * There a shelf is a franchise (`shelves`), where a heading and the marker read its initial. A
+ * shelf is read by name, so a shelf of every franchise under one letter is a shelf of strangers,
+ * where a heading only says how far down the wall the reader is, and one per franchise would put
+ * a hundred and seventy headings on a wall of games and a marker no gutter can hold. The runs fall
+ * where they would anyway, the sort holding each franchise's entries together.
  */
 export const bucketGroups = <U extends FinishedItem>(
   items: readonly U[],
   sort: string,
   extras: readonly FinishedExtraSort<U>[] = [],
   closeOf: CloseOf<U> = endDateOf,
+  shelves = false,
 ): FinishedBucketGroup<U>[] => {
-  const bucket = bucketFor<U>(sort, extras, closeOf);
+  const bucket = shelves && sort === "Franchise" ? franchiseKey : bucketFor<U>(sort, extras, closeOf);
   const unbucketed = unbucketedLabel(sort, extras);
   const groups: FinishedBucketGroup<U>[] = [];
   for (const item of items) {

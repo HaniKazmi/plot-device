@@ -1,4 +1,6 @@
 import { formatDateRange, type YearMonthDay } from "../common/date";
+import { FRANCHISE_KEY } from "../common/filterSchema";
+import { ledgerParts, linked } from "../common/ledgerRow";
 import type { LedgerRow, PanelSubtitlePart } from "../common/Card";
 import type { StripSpan } from "../common/timelineStripData";
 import type { FranchiseEntry } from "../common/franchiseUnion";
@@ -78,9 +80,23 @@ export const showRows = (show: Show, scheme: Scheme): LedgerRow[] => {
     { label: "Last Watched", value: `S${lastWatched.s}E${lastWatched.e}` },
     // The primary genre leads and the rest follow it, which is the order the sheet holds them in
     // and the order the charts group by.
-    { label: "Genre", value: [show.genre, ...show.otherGenres].join(" · "), swatch: genreToColour(show.genre, scheme) },
-    { label: "Network", value: show.network, swatch: networkToColour(show, scheme) || undefined },
-    { label: "BBFC", value: show.certificate, swatch: certificateToColour(show.certificate, scheme) },
+    {
+      label: "Genre",
+      // The primary genre alone is what the tab narrows by, so it leads to its layer and the rest
+      // stand as words.
+      ...ledgerParts([{ text: show.genre, category: "genre" }, ...show.otherGenres.map((text) => ({ text }))]),
+      swatch: genreToColour(show.genre, scheme),
+    },
+    {
+      label: "Network",
+      ...linked("network", show.network),
+      swatch: networkToColour(show, scheme) || undefined,
+    },
+    {
+      label: "BBFC",
+      ...linked("certificate", show.certificate),
+      swatch: certificateToColour(show.certificate, scheme),
+    },
   ];
 
   // The runtime of the most recent season's episodes — where the seasons disagree, the latest is
@@ -95,9 +111,8 @@ export const showRows = (show: Show, scheme: Scheme): LedgerRow[] => {
   // rather than a black one — the table names the couple of dozen the app draws.
   rows.push({
     label: "Franchise",
-    value: show.franchise,
+    ...linked(FRANCHISE_KEY, show.franchise),
     swatch: franchiseToColour(show, scheme) || undefined,
-    franchise: show.franchise,
   });
 
   return rows;

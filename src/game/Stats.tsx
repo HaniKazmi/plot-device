@@ -64,6 +64,8 @@ import { GAME_SECTIONS } from "./sections";
 import type { ReactNode } from "react";
 import { useSelectBox } from "../common/SelectBoxHook";
 import "../utils/arrayUtils";
+import { categoryKeys } from "../common/filterSchema";
+import { gameFilters } from "./filters";
 
 const Stats = ({
   data,
@@ -342,6 +344,7 @@ const TopCategories = ({ data, measure }: { data: VideoGame[]; measure: Measure 
       groups={(option) => groupGamesBy(data, option, measure)}
       colourOf={(option, top: VideoGame) => groupToColour(option, top, scheme)}
       measureLabel={measure}
+      categories={categoryKeys(gameFilters)}
     />
   );
 };

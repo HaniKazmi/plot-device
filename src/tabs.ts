@@ -2,7 +2,9 @@ import type { FunctionComponent } from "react";
 import type { SvgIconComponent } from "@mui/icons-material";
 import { GridView, MenuBook, SportsEsports, Theaters, Tv } from "@mui/icons-material";
 import type { Colour, Scheme } from "./utils/types";
+import { useEffect, useEffectEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { inEditableField } from "./common/keyboard";
 import { useScheme } from "./common/useScheme";
 import Shows from "./show/Show";
 import VideoGames from "./game/Game";
@@ -291,6 +293,35 @@ export const allTabs = (current: Tab, scheme: Scheme, tabs: readonly Tab[] = Tab
     colour: tabInk(tab, scheme),
     current: tab === current,
   }));
+
+/**
+ * Escape leaves a page standing under a tab — a franchise's, under the Omnibus — as it closes every
+ * layer the page opens: back to wherever the reader came from, or to the tab's own page for one
+ * opened straight from its address, where back would leave the app. The router's key for the entry
+ * says which, `"default"` being the first in the tab.
+ *
+ * A layer open over the page takes the press first: a dialog, a drill-down or the box stops it
+ * there, so one press closes the layer and a second leaves the page. A hover card does not stop it —
+ * its tooltip closes on the document's own Escape — so the page stays while a tooltip's popper
+ * stands, which MUI mounts only while one is open. A
+ * field keeps its own Escape, through the test that holds a typed `/` to a slash.
+ */
+export const useEscapeLeavesSubPage = () => {
+  const navigate = useNavigate();
+  const { pathname, key } = useLocation();
+  // Read as the press lands rather than subscribed to, so one listener serves the shell's whole life.
+  const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
+    if (atTabRoot(pathname) || event.key !== "Escape" || event.defaultPrevented) return;
+    if (inEditableField(event.target) || document.querySelector(".MuiTooltip-popper")) return;
+    if (key === "default") navigate(`/${tabForPath(pathname).id}`);
+    else navigate(-1);
+  });
+
+  useEffect(() => {
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
+};
 
 /**
  * The rail's tab chips with their navigation and their colour attached here, where the

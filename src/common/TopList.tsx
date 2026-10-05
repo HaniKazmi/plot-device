@@ -5,8 +5,7 @@ import { capitalize } from "@mui/material/utils";
 import type { ReactNode } from "react";
 import { ProportionalBar } from "./ProportionalBar";
 import { Swatch } from "./Swatch";
-import { FranchiseLink } from "./FranchiseLink";
-import { FRANCHISE_KEY } from "./filterSchema";
+import { ValueLink } from "./ValueLink";
 import { SectionHeader } from "./SectionHeader";
 import { dimSx } from "./typography";
 import { useSelectBox } from "./SelectBoxHook";
@@ -27,6 +26,13 @@ interface TopListCardProps<O extends string, T> {
   /** The colour a group's fronting item wears under this option, or `""` where none exists. */
   colourOf: (option: O, top: T) => Colour | "";
   measureLabel: string;
+  /**
+   * The filter category each option is, by the option's name (`categoryKeys`). An option that is one
+   * names each of its groups as a way in — a franchise to its page, a genre or a publisher to
+   * everything carrying it (`ValueLink`) — where an option that is not, a company or a decade, is no
+   * narrowing any press could open.
+   */
+  categories?: Readonly<Record<string, string>>;
 }
 
 /**
@@ -41,7 +47,7 @@ interface TopListCardProps<O extends string, T> {
  * its colour vocabularies.
  */
 const TopListCard = <O extends string, T>(props: TopListCardProps<O, T>) => {
-  const { options, icons, groups, colourOf, measureLabel } = props;
+  const { options, icons, groups, colourOf, measureLabel, categories } = props;
   const scheme = useScheme();
 
   const [option, controls] = useSelectBox(options, props.defaultOption);
@@ -49,6 +55,7 @@ const TopListCard = <O extends string, T>(props: TopListCardProps<O, T>) => {
   const [hovered, setHovered] = useHoverDim();
 
   const most = topNWithOther(groups(option));
+  const category = categories?.[option];
 
   const getColour = (struct: (typeof most)[0], index: number) => {
     if (struct.name === "Other") return neutralFill(scheme);
@@ -113,10 +120,11 @@ const TopListCard = <O extends string, T>(props: TopListCardProps<O, T>) => {
                   noWrap
                   sx={{ flexGrow: 1 }}
                 >
-                  {/* Under the franchise option, the key every tab's franchise is shared on, each
-                      group is a franchise and is named as a way to its own page. */}
-                  {option === FRANCHISE_KEY && item.name !== "Other" ? (
-                    <FranchiseLink franchise={item.name} />
+                  {category && item.name !== "Other" ? (
+                    <ValueLink
+                      category={category}
+                      value={item.name}
+                    />
                   ) : (
                     item.name
                   )}

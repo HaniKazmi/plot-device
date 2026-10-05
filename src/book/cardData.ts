@@ -1,4 +1,6 @@
 import type { LedgerRow, PanelSubtitlePart } from "../common/Card";
+import { FRANCHISE_KEY } from "../common/filterSchema";
+import { linked } from "../common/ledgerRow";
 import { seriesRow } from "../common/series";
 import type { FranchiseEntry } from "../common/franchiseUnion";
 import { spanUntil } from "../common/medium";
@@ -33,9 +35,17 @@ export const bookRows = (book: Book, scheme: Scheme): LedgerRow[] => {
   const rows: LedgerRow[] = [
     { label: "Read", value: readRange(book) },
     { label: "Released", value: formatDate(book.releaseDate) },
-    { label: "By", value: book.author },
-    { label: "Genre", value: book.genre, swatch: genreToColour(book.genre, scheme) },
-    { label: "Format", value: book.format, swatch: formatToColour(book.format, scheme) },
+    { label: "By", ...linked("author", book.author) },
+    {
+      label: "Genre",
+      ...linked("genre", book.genre),
+      swatch: genreToColour(book.genre, scheme),
+    },
+    {
+      label: "Format",
+      ...linked("format", book.format),
+      swatch: formatToColour(book.format, scheme),
+    },
     { label: "Status", value: book.status, swatch: statusToColour(book, scheme) },
   ];
 
@@ -47,9 +57,8 @@ export const bookRows = (book: Book, scheme: Scheme): LedgerRow[] => {
   // rather than a black one — the table names the couple of dozen the app draws.
   rows.push({
     label: "Franchise",
-    value: book.franchise,
+    ...linked(FRANCHISE_KEY, book.franchise),
     swatch: franchiseToColour(book, scheme) || undefined,
-    franchise: book.franchise,
   });
 
   return rows;

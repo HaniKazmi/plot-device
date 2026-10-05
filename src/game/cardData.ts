@@ -1,4 +1,6 @@
 import { YearMonthDay, formatDate, formatDateRange } from "../common/date";
+import { FRANCHISE_KEY } from "../common/filterSchema";
+import { LEDGER_SEPARATOR, ledgerParts, linked } from "../common/ledgerRow";
 import { seriesRow } from "../common/series";
 import type { FranchiseEntry } from "../common/franchiseUnion";
 import { spanUntil } from "../common/medium";
@@ -38,13 +40,6 @@ export const gameSubtitle = (game: VideoGame, scheme: Scheme): PanelSubtitlePart
 ];
 
 /**
- * The facts a ledger line carries, joined only where the sheet holds them. A blank part joined
- * unconditionally leaves the separator behind it — "12 May 2019 · " — which reads as a value that
- * failed to load rather than as one the sheet never had.
- */
-const joinParts = (parts: (string | undefined)[]): string => parts.filter(Boolean).join(" · ");
-
-/**
  * Everything else the sheet records, one fact per line, with related facts on the same line: a
  * release is a date and a format, and a game is made by a developer for a publisher.
  *
@@ -58,13 +53,24 @@ export const gameRows = (game: VideoGame, scheme: Scheme): LedgerRow[] => {
     { label: "Played", value: formatDateRange(game.startDate, game.endDate) },
     // The brand hex rather than the chart fill, on the same rule the corner chip follows: this is
     // a badge at a badge's size, not a value being compared against its neighbours.
-    { label: "Platform", value: game.platform, swatch: companyToAccent(game) },
-    { label: "Released", value: joinParts([formatDate(game.releaseDate), game.format]) },
+    {
+      label: "Platform",
+      ...linked("platform", game.platform),
+      swatch: companyToAccent(game),
+    },
+    {
+      label: "Released",
+      ...ledgerParts([{ text: formatDate(game.releaseDate) }, { text: game.format, category: "format" }]),
+    },
   ];
 
-  // One name where the studio published itself, rather than the same word twice.
-  const by = joinParts([...new Set([game.developer, game.publisher])]);
-  if (by) rows.push({ label: "By", value: by });
+  // One name where the studio published itself, rather than the same word twice. The publisher is
+  // what the tab narrows by, so it is the part that leads anywhere; the developer stands as words.
+  const by = ledgerParts([
+    game.developer !== game.publisher ? { text: game.developer } : undefined,
+    { text: game.publisher, category: "publisher" },
+  ]);
+  if (by.value) rows.push({ label: "By", ...by });
 
   const series = seriesRow(game);
   if (series) rows.push(series);
@@ -74,25 +80,36 @@ export const gameRows = (game: VideoGame, scheme: Scheme): LedgerRow[] => {
     // square standing for nothing.
     rows.push({
       label: "Franchise",
-      value: game.franchise,
+      ...linked(FRANCHISE_KEY, game.franchise),
       swatch: franchiseToColour(game, scheme) || undefined,
-      franchise: game.franchise,
     });
   }
 
   // Pushed together because the pair is the point: how it is played, then what it is about.
   rows.push(
-    { label: "Gameplay", value: game.gameplay, swatch: gameplayToColour(game, scheme) },
-    { label: "Genre", value: game.genre, swatch: genreToColour(game.genre, scheme) },
+    {
+      label: "Gameplay",
+      ...linked("gameplay", game.gameplay),
+      swatch: gameplayToColour(game, scheme),
+    },
+    {
+      label: "Genre",
+      ...linked("genre", game.genre),
+      swatch: genreToColour(game.genre, scheme),
+    },
   );
 
   // Themes get a line of their own rather than riding on either of the two above: they are the one
   // vocabulary here no chart on the tab colours, so a swatch would name a legend that does not
   // exist — and half of them read as genres, which would make the Gameplay line say two things.
-  const themes = joinParts(game.themes);
+  const themes = game.themes.join(LEDGER_SEPARATOR);
   if (themes) rows.push({ label: "Themes", value: themes });
 
-  rows.push({ label: "PEGI", value: game.certificate, swatch: certificateColour(game, scheme) });
+  rows.push({
+    label: "PEGI",
+    ...linked("certificate", game.certificate),
+    swatch: certificateColour(game, scheme),
+  });
 
   return rows;
 };

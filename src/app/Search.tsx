@@ -1,5 +1,7 @@
 import { lazy, Suspense, useEffect } from "react";
 import { closeSearch, openSearch, toggleSearchMode, useSearchState } from "../common/searchOpen";
+import { inEditableField } from "../common/keyboard";
+import { useValueRequest } from "../common/valueLayer";
 
 /**
  * The box and everything it opens, loaded with their own chunk rather than the shell's.
@@ -13,12 +15,6 @@ import { closeSearch, openSearch, toggleSearchMode, useSearchState } from "../co
  */
 const loadSurface = () => import("./SearchSurface");
 const SearchSurface = lazy(() => loadSurface().then((module) => ({ default: module.SearchSurface })));
-
-/** Whether a key press landed where typing already means something, so a bare `/` stays a slash. */
-const inEditableField = (target: EventTarget | null) => {
-  if (!(target instanceof HTMLElement)) return false;
-  return target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
-};
 
 /**
  * Whether the press came from inside the box's own field, which is what makes ⌘K a toggle.
@@ -49,6 +45,7 @@ const inSearchBox = (target: EventTarget | null) =>
  */
 export const SearchHost = () => {
   const { open, mode, request, scope } = useSearchState();
+  const valueRequest = useValueRequest();
 
   useEffect(() => {
     void loadSurface().catch(() => {});
@@ -76,9 +73,10 @@ export const SearchHost = () => {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  // Mounted from the first request on: the store's count says whether the box was ever asked for,
-  // so no flag has to be latched in an effect.
-  if (request === 0) return null;
+  // Mounted from the first request on — for the box, or for a value's layer, which the surface
+  // draws from the same index: the stores say whether either was ever asked for, so no flag has to
+  // be latched in an effect.
+  if (request === 0 && !valueRequest) return null;
   return (
     <Suspense fallback={null}>
       <SearchSurface
@@ -86,6 +84,7 @@ export const SearchHost = () => {
         mode={mode}
         focusRequest={request}
         scope={scope}
+        valueRequest={valueRequest}
       />
     </Suspense>
   );

@@ -26,7 +26,7 @@ import { isAllTime, scopeLabel } from "./common/scope.ts";
 import { CURRENT_YEAR } from "./common/date.ts";
 import { EmptyCard } from "./app/EmptyCard.tsx";
 import { ErrorBoundary } from "./common/ErrorBoundary.tsx";
-import { barColour, DARK_PAPER, useCurrentTab } from "./tabs.ts";
+import { barColour, DARK_PAPER, useCurrentTab, useEscapeLeavesSubPage } from "./tabs.ts";
 import type { Tab } from "./tabs.ts";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 
@@ -98,6 +98,7 @@ const PageContent = () =>
   );
 
 const GoogleAuth = () => {
+  useEscapeLeavesSubPage();
   const [guestMode, setGuestMode] = useState(false);
   // Entering guest mode narrows every library under whatever each tab holds selected, and a value
   // the narrowed library no longer offers has no chip left to clear it — so the filters go with it.

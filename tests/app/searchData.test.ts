@@ -8,6 +8,7 @@ import {
   attributeWorks,
   buildAttributeIndex,
   buildSearchIndex,
+  findAttribute,
   recentFranchises,
   searchUnion,
   type SearchGroup,
@@ -181,6 +182,20 @@ describe("a work's caption in a drill-down", () => {
 describe("the palette before anything is typed", () => {
   it("offers the franchises met lately, a franchise of one work among them", () => {
     expect(recentFranchises(trek(), TODAY, 5)).toEqual(["Revelation Space", "Star Trek"]);
+  });
+});
+
+describe("findAttribute", () => {
+  it("finds the entry a value named on a card stands for, across every tab recording it", () => {
+    const entry = findAttribute(trekIndex(), "genre", "Sci-Fi")!;
+
+    expect(entry.value).toBe("Sci-Fi");
+    expect(Object.keys(entry.counts)).toContain("movies");
+  });
+
+  it("finds nothing for a value the category does not hold, so the press opens no empty layer", () => {
+    expect(findAttribute(trekIndex(), "genre", "Western")).toBeUndefined();
+    expect(findAttribute(trekIndex(), "director", "Sci-Fi")).toBeUndefined();
   });
 });
 

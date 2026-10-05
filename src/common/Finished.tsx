@@ -44,6 +44,7 @@ import { PHONE_SCROLL_MARGIN_CSS } from "./SectionRail";
 import { SHEET_HEADER_BOTTOM } from "./fullscreenSheet";
 import { MUTED_FIGURE_SX, NUMERIC_LABEL_SX } from "./typography";
 import { format } from "../utils/mathUtils";
+import { FranchiseLink } from "./ValueLink";
 
 /** One empty list, so a wall with no extra sorts does not mint a fresh array every render. */
 const NO_SORTS: readonly never[] = [];
@@ -338,9 +339,12 @@ const FinishedShelf = <U extends FinishedItem>({
   unit,
   onOpenGroup,
   MediaComponent,
+  franchise,
 }: {
   group: FinishedBucketGroup<FinishedCard<U>>;
   swatch?: string;
+  /** The shelf is a franchise's, so its name leads to the franchise's own page. */
+  franchise?: boolean;
   /** The whole run wrapped at the shelf's height rather than its first twenty scrolled. */
   wrap: boolean;
   /** The artwork's height; the border is added outside it. */
@@ -387,7 +391,7 @@ const FinishedShelf = <U extends FinishedItem>({
           noWrap
           sx={NUMERIC_LABEL_SX}
         >
-          {group.label}
+          {franchise ? <FranchiseLink franchise={group.label} /> : group.label}
         </Typography>
         <Typography
           variant="body2"
@@ -500,7 +504,10 @@ const Finished = <U extends FinishedItem>({
   const recent = finishedItems(slowData, sort, sorts, closeOf);
   // Cut once for every surface that draws runs — the phone's headings, the shelves and the cut's
   // dialog — so a shelf and a heading cannot disagree about where a card stands.
-  const runs = cardRuns(bucketGroups(recent, sort, sorts, closeOf), grouped ? unit?.of : undefined);
+  const runs = cardRuns(
+    bucketGroups(recent, sort, sorts, closeOf, layout === "Shelves"),
+    grouped ? unit?.of : undefined,
+  );
   // The desktop wall is the runs laid end to end, so a card stands where its run puts it.
   const cards = runs.flatMap((run) => run.items);
   const { active: nothing } = useNothingMatches();
@@ -602,14 +609,17 @@ const Finished = <U extends FinishedItem>({
                   keyOf={keyOf}
                   isDialog={isDialog}
                   // A year is a run read whole — what was finished in it — and a bounded one, 63 at
-                  // most on any tab (Books, 2003), where a genre or a franchise's initial runs to a
-                  // hundred or more and is read by its first screen. So When wraps each year's whole
-                  // run under its name, and every other order keeps the scrolling strip and its cut.
+                  // most on any tab (Books, 2003), where a genre runs to a hundred or more and is
+                  // read by its first screen. So When wraps each year's whole run under its name, and
+                  // every other order keeps the scrolling strip and its cut.
                   wrap={sort === "When"}
                   onOpen={setShelf}
                   unit={unit}
                   onOpenGroup={setBundle}
                   MediaComponent={MediaComponent}
+                  // A franchise's shelf where the cell names one: a work outside any franchise
+                  // shelves under its own title, which no franchise page stands behind.
+                  franchise={sort === "Franchise" && group.items[0]?.item.franchise.trim() === group.label}
                 />
               ))}
             </Stack>
