@@ -122,12 +122,10 @@ describe("shelving", () => {
     expect(galleryStripOrder(groups[0].all, "size")[0].name).toBe("Halo");
   });
 
-  it("drops a franchise shelf holding one entry, which is an item naming itself", () => {
-    // The franchise column repeats a standalone title, so a group of one is not a series — the
-    // rule the three home tabs already group by.
+  it("shelves a franchise holding one work like any other, a standalone being a franchise of one", () => {
     const groups = galleryGroups(items(), "franchise", "Hours", "size", TODAY);
 
-    expect(groups.map((group) => group.name)).not.toContain("Arrival");
+    expect(groups.find((group) => group.name === "Arrival")?.all.map((item) => item.name)).toEqual(["Arrival"]);
   });
 
   it("stands a show on a shelf once, however many seasons of it there are", () => {

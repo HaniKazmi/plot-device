@@ -34,7 +34,7 @@ describe("omnibusSections", () => {
     // A chip scrolling to a section that is not on the page reads as broken rather than as empty.
     // Narrowing to one medium is not what empties either: a franchise one medium holds is a lane
     // and a genre one medium holds is a full bar. What empties them is their own grouping finding
-    // nothing — a franchise that only ever names itself, a genre whose entries all logged zero.
+    // nothing — no franchise left at all, a genre whose entries all logged zero.
     const ids = omnibusSections({ ...all, crossings: false, genres: false }).map((section) => section.id);
 
     expect(ids).not.toContain(OMNIBUS_SECTIONS.crossings);

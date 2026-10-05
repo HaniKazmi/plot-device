@@ -1,5 +1,6 @@
 import type { PageDispatch, PageState } from "../common/filterReducer";
-import { useCurrentTab, type Tab } from "../tabs";
+import { useLocation } from "react-router-dom";
+import { atTabRoot, useCurrentTab, type Tab } from "../tabs";
 import { useLibrary } from "./library";
 import { pageOf, usePageState, type PageSurface } from "./pageState";
 
@@ -12,7 +13,7 @@ import { pageOf, usePageState, type PageSurface } from "./pageState";
  * module. Four lookups in one order is a rule about how a page is reached, and three copies of it
  * are three that can be handed a state and a module belonging to different tabs.
  *
- * `page` is `undefined` while the tab's own rows are still in flight: a control surface over a
+ * `page` is `undefined` on a page standing under a tab, and while the tab's own rows are in flight: a control surface over a
  * library that is not here offers no values and a population of zero, where drawing nothing says
  * the page is still landing. `state` and `dispatch` are answered regardless — the stores are
  * module-scope and outlive the rows.
@@ -32,6 +33,9 @@ export const usePage = (): {
   const tab = useCurrentTab();
   const library = useLibrary();
   const [state, dispatch] = usePageState(tab.id);
+  // A page standing under a tab — a franchise's, under the Omnibus — is drawn from none of the
+  // tab's filters, so a surface reading them answers as for a page with nothing to narrow.
+  const root = atTabRoot(useLocation().pathname);
 
-  return { tab, page: pageOf(tab.id, library), state, dispatch };
+  return { tab, page: root ? pageOf(tab.id, library) : undefined, state, dispatch };
 };

@@ -1,4 +1,4 @@
-import type { MediumModule, OmniItem } from "../common/medium";
+import { credits, type MediumModule, type OmniItem } from "../common/medium";
 import { movieEntry, movieSpan } from "./cardData";
 import { movieDataConfig } from "./converter";
 import { guestFilter, movieFilters } from "./filters";
@@ -23,6 +23,11 @@ const movieItems = (movies: Movie[]): OmniItem[] =>
     franchise: movie.franchise,
     certificate: movie.certificate,
     style: movie.style,
+    series: movie.series,
+    seriesNumber: movie.seriesNumber,
+    credits: credits([["director", movie.director]]),
+    venue: movie.cinema ? "Cinema" : "Home",
+    score: movie.score,
     source: movie,
   }));
 

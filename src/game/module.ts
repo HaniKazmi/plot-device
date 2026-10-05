@@ -1,4 +1,4 @@
-import { spanUntil, type MediumModule, type OmniItem } from "../common/medium";
+import { credits, spanUntil, type MediumModule, type OmniItem } from "../common/medium";
 import { gameEntry, gameKey } from "./cardData";
 import { gameDataConfig } from "./converter";
 import { guestFilter, gameFilters } from "./filters";
@@ -25,6 +25,13 @@ const gameItems = (games: VideoGame[]): OmniItem[] =>
     franchise: game.franchise,
     certificate: game.certificate,
     style: game.style,
+    series: game.series,
+    seriesNumber: game.seriesNumber,
+    credits: credits([
+      ["developer", game.developer],
+      ["publisher", game.publisher],
+    ]),
+    venue: game.platform,
     source: game,
   }));
 

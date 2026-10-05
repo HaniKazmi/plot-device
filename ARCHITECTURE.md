@@ -96,8 +96,9 @@ downwards, its entry component asking `app/library.ts` for the library the shell
 registry is the one part of `app/` built _from_ the modules, so `game/module.ts` importing
 `app/media.ts` is a real cycle, and `module.ts` therefore imports nothing from `app/` at all.
 
-One file in `omnibus/` is a named exception rather than a loosened rule: `Graphs.tsx` mounts the
-four `FranchiseContext` providers the card strips and the crossings read. The four are not one
+One file in `omnibus/` is a named exception rather than a loosened rule: `FranchiseProviders.tsx`
+mounts the four `FranchiseContext` providers the card strips and the crossings read, around the
+Omnibus's charts and around each franchise's own page. The four are not one
 shape — Books stands a second provider inside its own, for the epoch every book strip opens at —
 and a per-medium provider member would have to be what each domain's _own_ `Graphs` mounts as well,
 or the tree would hold two definitions of one provider. `tests/architecture.test.ts` enforces both
@@ -266,6 +267,13 @@ through the registry, each medium's arm supplied by its own `module.ts` (§2) �
 flattens at the season, the unit actually watched, carrying the show's name, genre, franchise,
 certificate and style onto each. A book has neither a certificate nor a style, so `OmniItem.certificate`
 and `OmniItem.style` are optional and every surface grouping on either drops books.
+
+Each arm also carries what a franchise's page reads of it without reaching back into the record:
+its `series` and `seriesNumber` in its own medium's words (a season's its show, numbered by the
+season, the Shows sheet writing no series and a show being the line its seasons are met in), its `credits` by role — author, director, developer and publisher, network — its
+`venue`, the one word for where it was met (a platform, cinema or home, a network, a format), and
+its `score` where the sheet records one. Each is filled by the medium's own `module.ts`, so the page
+reads one shape for four media and never asks which it holds.
 
 ## 4. Caching and hydration
 
@@ -634,10 +642,21 @@ frame.
 
 ### The timeline section — `common/TimelineSection.tsx`
 
-Every tab's timeline is one section: a set of marks drawn **Across**, **Stacked** or as a **Grid**,
-coloured by a **Colour** picker, with a key under the header naming those colours. The tab owns what
-the marks are — which items, one per item or per group, in which colours — and hands them in as
-`TimelineData`; the section owns how they are laid out, which is the same question on every tab.
+Every tab's timeline is one section: a set of marks drawn **Across**, **Stacked**, as a **Grid** or
+as **Pictures**, coloured by a **Colour** picker that leads the key naming those colours. The tab
+owns what the marks are — which items, one per item or per group, in which colours — and hands them
+in as `TimelineData`; the section owns how they are laid out, which is the same question on every
+tab. Each tab offers the layouts that read its own library (`layouts`), in the one order
+whichever it leaves out: Games drops Stacked, a playthrough running across New Year being cut in
+pieces by a row per year; Shows drops Pictures, every season wearing its show's one poster; Movies
+drops Across, a one-day film being a tick there, and so opens on Stacked; and the Omnibus keeps
+Across and the grid alone, two thousand entries being a stack of hairlines and a clock eighty
+lanes deep — where a franchise's own page, a few dozen entries, offers all four. The header holds
+the two choices about the marks themselves — what one stands for, and how
+they are laid out — in one order on every timeline, and the Colour picker stands at the head of its
+own key rather than beside them: the key is where a reader asks what the colours mean, so the
+setting stands beside its answer, and a header of three controls wraps or scrolls at every width
+short of a desktop's.
 
 **Across** is the packed chart above, and what the section opens on. **Stacked**
 (`common/StackedTimeline.tsx`) is a row per year on one screen at any width: `yearRows`
@@ -673,9 +692,27 @@ opens the series as its bar does, and no layer is ever rendered inside the hover
 where React would bubble every movement across it back to the mark. Under a coarse pointer the
 picture is left as it is, a tap on it opening that same layer rather than a sheet first.
 
-The page's year scope reads through. Scoped to a year, Across is fitted to the card, and Stacked
-opens that year in detail (`common/YearDetail.tsx`), a year being too few rows for a stack to say
-anything a stack is for. From `sm` up it is **pictures on the line**: each item's own artwork standing
+**Pictures** (`common/PictureClock.tsx`) is Across read by what: every mark's own picture standing
+at the day it began, a line beneath it running to the day it ended, on a clock of the set's own
+years with every run of years nothing touched folded to a narrow stripe (`clockScale`). A
+franchise is met in bursts — six Star Wars films over 2008–09, then nothing until 2015 — and a
+linear scale spends its width on the gaps while the bursts stack into lanes; folded, the gap is
+still stated. The folds together take at most two fifths of the width and none is wider than its
+own years would be as columns, since eight gaps at full width are more than a phone's whole card;
+a label that no longer fits its column is left out, and years too narrow for their own names are
+named every other one. `clockLayout` (`common/pictureClockData.ts`) sizes it: the largest picture
+that keeps the set to four lanes at the card's width, and failing that the same search at two,
+three and four card widths, scrolled sideways and opened at the latest end as the packed chart is —
+a franchise's few pictures fit the card at full size, a tab's hundreds run to the packed chart's own
+width before they shrink. A library still runs to dozens of lanes, so the clock caps its height and
+scrolls inside the card from `md` up, `CHART_MAX_HEIGHT` as Across does, with the year axis pinned
+to the foot of its scroller; below `md` the page carries the height. A year's label scopes the page
+to it, as Stacked's and the grid's do.
+
+The page's year scope reads through. Scoped to a year, Across is fitted to the card, and Pictures
+opens that year in detail (`common/YearDetail.tsx`) — the clock's own reading, a picture on the
+line, at the scale of the one year rather than every year its items touch, and so reachable on
+every tab that offers Pictures whichever of the others it leaves out. From `sm` up it is **pictures on the line**: each item's own artwork standing
 at the day it began, a line beneath running to the day it ended, the picture saying what and the
 line when — a reader finds a thing by its picture before reading a word, and a banner already
 carries its title. Pictures take lanes by the packed chart's rule in pixels (`pictureLanes`), a
@@ -694,7 +731,7 @@ store, which the section is handed as `dispatch` — the one `scope` action the 
 both halves at once — and "‹ All years" beside the layout sends it back. The layout is held for
 the visit, as the library's size is.
 
-**Colour** offers every key the tab's own `groupToColour` answers, opening on the tab's own
+**Colour** leads the key under the header and offers every key the tab's own `groupToColour` answers, opening on the tab's own
 vocabulary — the company on Games, the status on Shows, the genre on Movies and Books — so the chart
 and the library's border open on one key. A value off its vocabulary's table (a franchise the shared
 table does not hold) takes the neutral rather than no fill, which would be a gap in the row. The key
@@ -880,8 +917,8 @@ from the certificate
 split rather than shelved under a certificate nobody issued. It groups on `certificateBand` and not
 the cell, or a PEGI 16 game would shelve apart from the BBFC 15 film at the same age. "Decade" is
 the decade the reader _met_ the item — Shows carries no release date anywhere in its model — hence
-the header "Decade Met". A franchise shelf holding one work is dropped on the shared
-`realFranchisesOnly` rule, the column being mostly works naming themselves.
+the header "Decade Met". A franchise shelf holding one work stands like any other, a standalone work
+being a franchise of one (§ Franchises over time).
 
 The section is an `ExpandableCard`: six shelves collapsed, twenty-five expanded, `EXPANDED_CARDS /
 PICTURES_SHOWN` — a picture budget, the drill-down dialog's own, rather than a shelf count, which
@@ -932,17 +969,24 @@ never works out where a medium's rows begin. Reaching a second medium is not ask
 that cliff hiding the largest series on the page — thirty seasons of Doctor Who behind the absence
 of a Doctor Who game. The twelve biggest are drawn in the card (`STRIPS_SHOWN`), the rest behind its
 own worded cut. A franchise groups on the raw franchise column, as `movieFranchise`/`showFranchise` do, so a
-series' founding entry keeps naming itself as its own tab draws it; `isSeries` (`app/galleryData.ts`)
-drops a group where _every_ entry repeats the name **and** the group is one work, that group having
-no series structure to draw a lane for. That one test holds the section to series: 636 franchise
-values are 225 series by it. The second half of it is the adaptation — a novel and the film made of
-it are two works under one name, and read as one work naming itself the crossing this section exists
-to draw is the one thing hidden; eleven of the 225 are here on that clause alone, Project Hail Mary
-and War of the Worlds among them. Counted in works and not entries, so a five-season show naming
-itself is one work and no series. What it cannot tell apart is two unrelated works sharing a title,
-a game called Euphoria beside the show, the franchise column being all any of these surfaces has to
-group on. The box's own franchise index reads the same rule, so the strips and the values a query
-finds cannot disagree about what a franchise is. A film is a point
+series' founding entry keeps naming itself as its own tab draws it.
+
+**Every value the franchise column holds is a franchise, a standalone work's own name included.**
+Each sheet writes a work outside any series under its own name, so a work met once is a franchise
+of one — 688 values across the four sheets — and every surface counting, listing, ranking,
+narrowing or linking franchises counts that one population: these strips and the Omnibus's
+Franchises figure, the box's franchise index and the franchises it offers before a letter is typed,
+each tab's franchise picker, Top Franchise card and grouped Most cards, the gallery's franchise
+shelves, the franchise page's rank and every link to a page. A rule holding some of them to
+"series" makes each surface its own judge of what a franchise is, and the reader sees one franchise
+on the Top card that the picker beside it does not offer. The section's order is what keeps this
+card to the series: the twelve biggest are drawn, and a franchise of one stands behind the cut. Two
+places leave a franchise of one out, each for its own reason and not as a rule about what a
+franchise is: a card's franchise strip, which places its item among others and has none to place
+it among, and the bar grouped by franchise on a timeline, a group of one entry being that entry's
+bar under its own name. What the column cannot tell apart is two unrelated works sharing a title,
+a game called Euphoria beside the show, the franchise column being all any of these surfaces has
+to group on. A film is a point
 (`start === end`), floored to the strip's minimum band width. The `epoch` is the earliest _start_
 drawn, floored to that year's
 1 January: an attribution year is the year an item ended, so a scale opened on it clamps every
@@ -951,7 +995,10 @@ difference.
 
 The section is an `ExpandableCard` whose dialog draws every franchise, in stacks of the same twelve:
 one scroller per stack rather than one for all of them, a scroller being what holds a shared scale
-true and twelve strips being as much of one as a screen shows. The card's own control reads "All 180
+true and twelve strips being as much of one as a screen shows. Every franchise is near sixty
+stacks, so the dialog builds the first two as it opens and each of the rest as the reader scrolls
+within a screen of it (`common/useNearScreen.ts`), held at a stack's height until then: built at
+once, they hold the dialog shut for seconds while its first screen shows two. The card's own control reads "All 688
 ›", so the cut is both visible and one press away, and the header states no count — the strips are
 the page's own franchises and the packed reading is the page's own population, which the rail
 states. On a phone the card folds inside itself (`FoldedContent`, the fold without the `Card`
@@ -1012,11 +1059,82 @@ since 100% of the strip's box is the row plus the ten pixels reserved for its sc
 doubled selector (`&& > *`) that outweighs the card's own one-class rule about the same property.
 
 `app/CardMediaImage.tsx` is the `TypedCardMediaImage<OmniItem>` every one of these surfaces, the
-search palette and the franchise view render through: it dispatches `item.source` by `item.medium`
+search palette and the franchise page render through: it dispatches `item.source` by `item.medium`
 and passes `mediumToShape` down, so a picture opens that domain's real expanded card, strip and
 ledger, and only a mixed row arranges itself per item. `OmniHoverCard` beside it dispatches the same
 four ways, so a hovered mark shows the card its home tab would show rather than a fifth assembly of
 one.
+
+### Franchise page — `omnibus/FranchisePage.tsx`
+
+Every franchise has a page at `#/omnibus/franchise/<name>`, reached from the search box's franchise hits
+and from the franchise's name wherever the app states it:
+how much of it there is, when it ran, who made it, and every work of it on shelves. It is the
+Omnibus's own sections drawn over one franchise's rows — the union filtered on the raw franchise
+column, as the crossings group — so a figure here and the same figure on the Omnibus cannot be
+counted two ways. The route stands under the Omnibus, and `tabForPath` reading a path's first
+segment is what draws the Omnibus's chrome and theme around it. It is no page of the tab's own, so
+everything reading the tab's page state — the box's This page mode, the empty-state message, the
+rail — stands down there (`atTabRoot`), the box's This page mode saying there is nothing here to
+narrow. A press on the Omnibus in the tab strip goes back to the tab rather than nowhere, and so
+does a value's Omnibus chip in Find, which sets the filter on the tab's store and then goes there,
+the page in hand being none of the tab's own. The entry the router mounts (`omnibus/Franchise.tsx`)
+waits for all four sheets, as the Omnibus does, and the page itself is a chunk of its own. It holds
+its own measure and year scope rather than the Omnibus's store, since a franchise reached from search
+is not a narrowing of whatever the Omnibus was last left showing — which is also why the rail it
+draws is a plain `SectionRail` and not `PageRail`. The page boundary is keyed on the path rather than
+the tab for the same reason: a throw on one franchise would otherwise follow the reader to the next.
+
+**A franchise named anywhere leads to its page.** `common/FranchiseLink.tsx` is the name as a
+link — underlined faintly at rest, since a finger has no hover to find it by, and in the ink
+around it so a name on an artwork's ground keeps the card's tones — and it is drawn by the
+franchise strip's caption (every expanded card, the heroes and the crossings), the ledger's
+Franchise row (`LedgerRow.franchise`), the Top Franchise legend on each tab (its `FRANCHISE_KEY` option),
+the Omnibus library's franchise shelves and the names under Who made it. Where the page is comes
+from `FranchisePageContext` (`common/franchiseUnion.ts`), which `app/franchiseUnion.tsx` answers
+beside the union: `common/` may know neither the route nor the library, and a name that leads
+nowhere is plain words. Every franchise has a page, a standalone work's own included (§ Franchises
+over time), so the one name that leads nowhere is the franchise whose page the reader is on, read
+through the route's own matcher so a name carrying a `/` compares as the page received it. The path and the pattern are one module
+(`app/franchisePage.ts`), so the link and the route cannot drift. The link stops its press there:
+a name inside a pressable card or row is asking for the franchise and not for what the row opens.
+
+A layer the search box opened is mounted beside the page rather than inside it, so it would stand
+over the next page when a name on it is pressed. The box remembers the path each layer was opened
+over and puts the layer away during the render that finds the path changed — away and not merely
+hidden, or the back button would open it again.
+
+The sections, each built from a shell that already exists:
+
+- **Vitals.** One "All time" card — hours, works, years, and the franchise's rank by hours among
+  every franchise in the library, a standalone work's own included, the population the Omnibus counts —
+  beside the Media band where the franchise spans more than one medium. Then a dossier (`LedgerList`)
+  of what no section below states: where it began, where it stands, its biggest series, its best
+  score, its longest game, and, for a field the whole franchise shares, that one word in place of a
+  card that would be a single full bar. Two Top cards stand beside it, genre and where it was met,
+  re-pointable at style or decade; the genre card counts every genre an item carries, a franchise's
+  first genre being nearly always one word. A card ranking one value is left out for the dossier's
+  line, both asked of the same values (`rankedTops`), so for any field exactly one of the two stands.
+  The line names any medium carrying no such field — "All Realistic, Books aside" — since a book
+  has no style and "All Realistic" would claim one for it.
+- **When.** The union's timeline with one mark per entry or per series (`omniSeriesTimeline`, a
+  show's seasons being its line), opening on **Pictures** (§ The timeline section) where a tab's
+  opens on Across: a franchise is few enough works for every one to be its own picture at full size
+  inside the card. A year label scopes the timeline to that year, the one section the page's scope
+  narrows.
+- **By year.** The Omnibus's By year chart over the franchise's rows, a section of its own rather
+  than a second reading behind a switch in When: a switch there hides one of the two, and the
+  timeline's header already holds what a mark is and how the marks are laid out.
+- **Who made it.** A column per medium — written, directed, developed, aired on — each name with what
+  else the library holds by the same hands, which opens all of it. Games carry two credits and read
+  them one at a time behind a Developer · Publisher switch, so they take one column like every other
+  medium; where every game was published by the studio that made it the switch is a note instead.
+- **Library.** The works on shelves: by series (each line of two or more works, a series never
+  joining across media however both are named, then every standalone work together), by medium, or by
+  year. A show keeps its seasons apart here, a show being a line of seasons the way a film series is
+  a line of films. The controls are the tabs' own library's: Shelves scrolled sideways or a Wall
+  wrapped down the page, Compact · Large · Full, and an order — the shelf's own, or oldest or newest
+  first.
 
 ### One control idiom for "how is this drawn" — the control kit
 
@@ -1232,8 +1350,8 @@ actually draw. A category states which of its values are worth finding through `
 to all of them. The style selects on Games, Shows, Movies and the Omnibus are keyed and worded
 alike — which is what the shared `styleCategory` is for — so "Anime" is one entry with a count in
 each, every one of the three styles found. Franchise states the empty list, indexing none, and is
-scanned from the franchise index instead, the column being mostly works naming themselves — 168 values in the games sheet
-alone. The certificate is grouped on
+scanned from the franchise index instead, whose entry for each franchise is its page as well as its
+narrowings — found here too, every franchise would be two hits under one name. The certificate is grouped on
 `certificateBand`, the gallery's own rule, so `15` and `16` are one hit; what it _sets_ is whichever
 notations that tab's rows carry, which is why an entry keeps its values per medium. A category
 carrying a level is indexed at both, so "Nintendo" is a hit setting the seven platforms under it —
@@ -1307,21 +1425,10 @@ whatever the target already holds rather than replacing it — the same thing a 
 This page means — writing the cells that tab's own rows carry, which the index recorded in the pass
 that counted them.
 
-**Whether a franchise is a series is the library's answer, not one tab's.** `franchiseOptions` erases
-a value repeating its own item's title, which within a single library is what a standalone work
-looks like — and is wrong for a tab holding one entry of a series that lives across several. The
-single Twilight film is named "Twilight", so Movies alone reads it as a work naming itself while the
-four books say otherwise; Code Geass is that shape the other way round, one self-naming show beside
-a film; and an adaptation is hidden on every tab at once, a novel and the film of it being two works
-under one name. So every picker reads `CategoryContext.franchises` — the names of the box's own
-franchise entries, which are `isSeries` over the union, the rule the crossings already read —
-intersected with what its own rows carry. One set, so a value the strips draw as a series is one a page can be narrowed to, and
-the chip the box offers and the chip that page's own filter surface draws come off one list.
-`common/filterSchema.ts` declares the shape it arrives in (`CategoryContext`) and `app/` fills it,
-as `OmniItem` and `FranchiseEntry` are. It is optional at every call: the union is `undefined` until
-all four sheets land, and the per-tab reading is the narrower of the two — a name differing on this
-tab differs in the library as well — so a picker that cannot ask yet offers a subset rather than a
-wrong set.
+**A tab's franchise picker offers every franchise its rows hold**, a standalone work's own name
+included (§ Franchises over time), so it needs nothing from the rest of the library: a franchise
+the strips draw, the box finds or a Top card ranks is one the page holding it can be narrowed to,
+and the chip the box offers and the chip that page's own filter surface draws come off one list.
 
 **Past two values, only the one the reader is on draws its strip** (`OPEN_STRIP_LIMIT`). One value
 or two is the common case and arrives open, so a finger never pays a tap for nothing; a vaguer query
@@ -1336,18 +1443,18 @@ At `Infinity` every value draws its strip always.
 over the gallery's own collapsed works, across every library recording it — which is one library
 where only one records it, an author or a platform, and why it is worded for the library rather than
 for the media. It leads because ↵ and a soft keyboard's Go should open the layer, at the cost of the
-narrowing being second. A franchise's own view is that same slot rather than a row of its own: the
-franchise column being mostly works naming themselves, `buildAttributeIndex` skips it and
-`franchiseAttribute` derives the narrowings from the ranked index instead. What that index holds is
-the crossings' own `isSeries`, so a series the strips draw is a series the box finds — which is what
-puts a novel and the film of it on the list under the one name they share. `recentValues` builds
+narrowing being second. A franchise's own view is that same slot rather than a row of its own:
+`buildAttributeIndex` skips the franchise column, whose every value is already an entry of the
+franchise index — a standalone work's own name included, the population every franchise surface
+counts (§ Franchises over time) — and `franchiseAttribute` derives the narrowings from that ranked
+index instead, so a franchise the strips draw is a franchise the box finds. `recentValues` builds
 the franchises offered before a letter is typed the same way, so a franchise offered there and the
 same franchise found by name are one thing on screen as well as in the index. The two indexes are
 ranked apart, being two, and merged into one list rather than concatenated — a genre matching a
 query exactly is a better answer than a series matching it at a word start, and the reverse holds as
 readily — each over its whole index with the merge cut afterwards, since cutting each half first
-would state a total it had stopped counting at. Series lead the merge and the sort is stable, so a
-series takes a tie, its view saying more about a value than a shelf of works does.
+would state a total it had stopped counting at. Franchises lead the merge and the sort is stable, so
+a franchise takes a tie, its view saying more about a value than a shelf of works does.
 
 **A medium's own series stands beside the franchise of its name, never folded into it.** Games,
 Movies and Books each write a Series column, the numbered line inside the franchise, and a series is
@@ -1416,7 +1523,7 @@ scannable.
 
 One shape rather than a list, because the vocabularies are two populations with nothing in between:
 format 3, style 3, certificate 5, genre 12, gameplay 14 and platform 15 against author 65, book series
-76, network 77, publisher 92, film series 119, game series 135, director 218 and franchise 225. A list answers the first group and is a phone book
+76, network 77, publisher 92, film series 119, game series 135, director 218 and franchise 688. A list answers the first group and is a phone book
 for the second, where typing inside the scope answers both — which is exactly what `searchable`
 already means on the filter surface, reached from Find for the first time.
 
@@ -1429,7 +1536,7 @@ standing for a set of the category's values rather than being one, or the header
 chips group by — a vocabulary whose rows hold a single word, as the Movies outing split does for a
 library seen only in cinemas, would otherwise stand as a category row and a value row that are one
 narrowing under two names. And **franchise scopes off the franchise index**, its values being
-deliberately absent from the attribute one, so the 225 series are reachable with no vocabulary
+deliberately absent from the attribute one, so all 688 are reachable with no vocabulary
 special-cased anywhere else.
 
 The scope lapses on `closeSearch` and on any change of mode, which are already the one place each of
@@ -1441,16 +1548,14 @@ the way out is one key pressed twice rather than two keys to learn. Escape is re
 `onClose` reason rather than off the key handler, whose ordering against the `Modal`'s internal
 listener is not ours to fix; a backdrop press means close whatever the box is held to.
 
-A franchise hit opens `app/FranchiseView.tsx`: the gallery's franchise drill-down with a header
-saying what the franchise is before listing it — its media counted, four facts, and the franchise
-strip with no subject, every mark `plain`, since the view is about the whole series and not one
-card's place in it. Its works are the gallery's collapse over the franchise's rows alone rather than
-its shelves, which drop a franchise of one work. A work hit mounts the item's own card with
+A franchise hit goes to the franchise's own page (§ Franchise page) rather than opening a layer: a
+page has an address, the back button leaves it, and it is where every other mention of a franchise
+leads. A work hit mounts the item's own card with
 `openOnMount`, in a host the reader never sees and fixed at a pixel rather than `display: none` so
 the thumbnail loads and samples the colour the dialog is themed from, and unmounts it on
 `onDetailClosed`; `OmniCardMediaImage` dispatches by medium, so a hit reached through search shows
 exactly what the same artwork shows anywhere. Before anything is typed, the box offers the
-franchises met most recently — the series the reader is in the middle of — as the same value blocks
+franchises met most recently — the series the reader is in the middle of, and the works met last — as the same value blocks
 a query answers with.
 
 ### Franchise strip — `common/FranchiseStrip.tsx`
@@ -1497,8 +1602,8 @@ point; `plain`, that same subject where the strip holds nothing to stand apart f
 season of a lone show marking nothing; and `none`, context, stepped back to 0.75. The ring is in the
 ink because it means "this one" and nothing else, and no mark is named — a name covers its
 neighbours on a chain of fifty, and the hover card names any mark for the asking. The caption
-carries `FranchiseName`, the franchise with the swatch its Top list and ledger rows wear, exported
-so the crossings name theirs the same way, then each medium present counted through `mediumUnit` in
+carries `FranchiseName`, the franchise with the swatch its Top list and ledger rows wear and a link
+to its own page (§ Franchise page), exported so the crossings name theirs the same way, then each medium present counted through `mediumUnit` in
 its own fill.
 
 A bead or a mark is a fraction of the finger that has to land on it — an 8px bead, a 5×7px mark —
@@ -2581,7 +2686,7 @@ key in ObjectExpression`; pulled out to a plain function taking the varying piec
   `sheetBarSx`, `dialogCardSx`, among others — the literal itself sits at module scope and the
   component stays compiled.
 
-The baseline is **291 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **304 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.
@@ -2814,7 +2919,7 @@ so a tab's index and the cross-media union cannot draw one item two ways.
 `Tab` carries no `spreadsheetId`/`range` (both optional for this case, with `SheetTab` restating them
 as required for anything that fetches), and its entry component reads `useLibrary()` exactly as a
 home tab reads its own medium's slice — it composes nothing itself. The cross-domain work — the
-union, the search index, the franchise view — lives in `app/`, the one folder besides a medium's own
+union, the search index — lives in `app/`, the one folder besides a medium's own
 `module.ts` allowed to reach into more than one domain; a new tab built the same way stays outside
 `common/`/`utils/` and reads what `app/` already composed rather than composing it a second time.
 

@@ -1,7 +1,7 @@
 import { daysSince, formatDate, type YearMonthDay, type YearNumber } from "../common/date";
 import { format } from "../utils/mathUtils";
 import { type Measure, type Season, type Show } from "./types";
-import { earliestYear as earliestYearOf, groupByCategory, realFranchisesOnly } from "../common/statsData";
+import { earliestYear as earliestYearOf, groupByCategory } from "../common/statsData";
 import "../utils/arrayUtils";
 
 /**
@@ -47,7 +47,6 @@ export const groupShowsBy = (data: Show[], key: ShowTopOption, measure: Measure)
     (show) => show[key],
     (shows) => measureOf(shows, measure),
     (shows) => shows.reduce((best, show) => (show.minutes > best.minutes ? show : best)),
-    key === "franchise" ? realFranchisesOnly : undefined,
   );
 
 /**

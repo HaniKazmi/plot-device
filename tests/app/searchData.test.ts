@@ -8,11 +8,8 @@ import {
   attributeWorks,
   buildAttributeIndex,
   buildSearchIndex,
-  franchiseFacts,
-  franchiseWorks,
   recentFranchises,
   searchUnion,
-  unionEpoch,
   type SearchGroup,
   searchScope,
   SCOPE_ROWS,
@@ -20,6 +17,8 @@ import {
   type ValueSearchEntry,
 } from "../../src/app/searchData";
 import { workLabels } from "../../src/app/cardData";
+import { galleryStripOrder, galleryWorks } from "../../src/app/galleryData";
+import type { OmniItem } from "../../src/common/medium";
 import { book } from "../fixtures/books";
 import { library } from "../fixtures/library";
 import { movie } from "../fixtures/movies";
@@ -75,11 +74,9 @@ describe("buildSearchIndex", () => {
     expect(shows[0].item.key).toContain("3");
   });
 
-  it("offers a franchise only where some entry does not repeat its name, counted per medium", () => {
+  it("offers every franchise the library holds, counted per medium", () => {
     const { franchises } = trekIndex();
 
-    // Chasm City's franchise is Revelation Space, a name no entry repeats; Star Trek has three
-    // entries whose names differ. Nothing here names itself.
     expect(franchises.map((entry) => entry.franchise).toSorted()).toEqual(["Revelation Space", "Star Trek"]);
     const startrek = franchises.find((entry) => entry.franchise === "Star Trek")!;
     // Its works per medium, which is the breakdown of `works` and not of `size`: one show, not the
@@ -98,10 +95,11 @@ describe("buildSearchIndex", () => {
     expect(entry.size).toBe(5);
   });
 
-  it("drops a franchise whose one work only repeats the name, which is a work naming itself", () => {
+  it("offers a standalone work's own franchise, a franchise of one being a franchise", () => {
     const arrival = library({ movie: [movie({ name: "Arrival", franchise: "Arrival" })] });
+    const [entry] = buildSearchIndex(toOmniItems(arrival), arrival).franchises;
 
-    expect(buildSearchIndex(toOmniItems(arrival), arrival).franchises).toEqual([]);
+    expect(entry).toMatchObject({ franchise: "Arrival", works: 1 });
   });
 
   it("keeps a franchise of one name across two works, a novel and its film being a series", () => {
@@ -150,17 +148,20 @@ describe("searchUnion", () => {
   });
 });
 
-describe("franchiseWorks and franchiseFacts", () => {
-  it("lists one card per work, newest first, and keeps a franchise of one work", () => {
-    // The show closed in 2022, the game in April 2017 and the film was watched in January 2017.
-    const works = franchiseWorks(trek(), "Star Trek", TODAY);
+/** A franchise's works as the gallery's drill-down lists them: one card each, newest first. */
+const franchiseWorks = (items: OmniItem[], franchise: string) =>
+  galleryStripOrder(
+    galleryWorks(
+      items.filter((item) => item.franchise === franchise),
+      "franchise",
+      TODAY,
+    ),
+    "recent",
+  );
 
-    expect(works.map((work) => work.medium)).toEqual(["show", "game", "movie"]);
-    expect(franchiseWorks(trek(), "Revelation Space", TODAY)).toHaveLength(1);
-  });
-
+describe("a work's caption in a drill-down", () => {
   it("captions a collapsed show by its name and the work's last close, never a season number", () => {
-    const [show] = franchiseWorks(trek(), "Star Trek", TODAY);
+    const [show] = franchiseWorks(trek(), "Star Trek");
 
     expect(workLabels(show)).toEqual([["1 Jun 2022"], ["Star Trek: Strange New Worlds"]]);
   });
@@ -171,40 +172,15 @@ describe("franchiseWorks and franchiseFacts", () => {
         game: [videoGame({ franchise: "Zelda", endDate: undefined }), videoGame({ franchise: "Zelda", name: "Tears" })],
       }),
     );
-    const [open] = franchiseWorks(items, "Zelda", TODAY).filter((work) => work.name === "Breath of the Wild");
+    const [open] = franchiseWorks(items, "Zelda").filter((work) => work.name === "Breath of the Wild");
 
     expect(workLabels(open)[0]).toEqual(["In progress"]);
-  });
-
-  it("states the first year, the last close, the floored hours and the media reached", () => {
-    const items = trek().filter((item) => item.franchise === "Star Trek");
-    const facts = franchiseFacts(items);
-
-    expect(facts.firstYear).toBe(2017);
-    expect(facts.last).toBe(YearMonthDay.get(2022, 6, 1));
-    expect(facts.media).toBe(3);
-    expect(Number.isInteger(facts.hours)).toBe(true);
-  });
-
-  it("leaves the last date open while any row of the franchise is", () => {
-    const items = toOmniItems(
-      library({
-        game: [videoGame({ franchise: "Zelda", endDate: undefined }), videoGame({ franchise: "Zelda", name: "Tears" })],
-      }),
-    );
-
-    expect(franchiseFacts(items).last).toBeUndefined();
   });
 });
 
 describe("the palette before anything is typed", () => {
-  it("offers the franchises met lately, dropping a group of one work", () => {
-    expect(recentFranchises(trek(), TODAY, 5)).toEqual(["Star Trek"]);
-  });
-
-  it("opens the strip's scale on the first of January of the earliest year met", () => {
-    expect(unionEpoch(trek(), TODAY)).toBe(YearMonthDay.get(2017, 1, 1));
-    expect(unionEpoch([], TODAY)).toBe(YearMonthDay.get(2026, 1, 1));
+  it("offers the franchises met lately, a franchise of one work among them", () => {
+    expect(recentFranchises(trek(), TODAY, 5)).toEqual(["Revelation Space", "Star Trek"]);
   });
 });
 

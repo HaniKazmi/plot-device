@@ -17,8 +17,8 @@ import { SheetGrabber } from "./SheetGrabber";
  * The title is stated at every scroll position rather than faded in past the content: on the
  * expanded card it is the one fact a full-bleed picture does not carry, and a bar whose middle
  * fills in as you scroll moves the ✕ nowhere but reads as something loading. It is a node rather
- * than a string for the franchise view, whose name arrives with the swatch and the count the name
- * means little without.
+ * than a string for the box, whose bar carries the Find · This page segment where every other
+ * layer carries a name.
  *
  * A caller wanting a ground of its own passes the whole `sx` rather than a colour: the expanded
  * card's bar takes its artwork's ground *and* is drawn below `sm` alone, and a bottom sheet's

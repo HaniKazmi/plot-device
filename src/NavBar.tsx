@@ -14,8 +14,8 @@ import {
 } from "@mui/material";
 import { Key, MoreVert, Refresh, Search } from "@mui/icons-material";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import Tabs, { useCurrentTab } from "./tabs";
+import { useLocation, useNavigate } from "react-router-dom";
+import Tabs, { atTabRoot, useCurrentTab } from "./tabs";
 import useLongPress from "./utils/useLongPress";
 import { useGoogleAuth } from "./contexts/GoogleAuthContext";
 import { useAuthState } from "./app/authState";
@@ -138,6 +138,7 @@ const linkProps = (action: BarAction) => (action.href ? { href: action.href, tar
 const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode: (value: boolean) => void }) => {
   const navigate = useNavigate();
   const currTab = useCurrentTab();
+  const root = atTabRoot(useLocation().pathname);
   // The hook answers with the pointer's handlers alone, which is why the overflow menu offers guest
   // mode outright: a finger has no long press to reach it with.
   const { onMouseDown, onMouseUp, onMouseLeave } = useLongPress(() => setGuestMode(true));
@@ -275,6 +276,9 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
                   icon={<Icon />}
                   iconPosition="start"
                   value={tab.id}
+                  // The strip answers a press only on a tab not already selected, and a page
+                  // standing under a tab selects that tab: its press goes back to the tab's own page.
+                  onClick={isCurrent && !root ? () => navigate(`/${tab.id}`) : undefined}
                   // Only the selected label needs its own ink: `textColor="inherit"` already
                   // renders the rest at reduced opacity, which is dimming enough to tell them
                   // from the one that is current.

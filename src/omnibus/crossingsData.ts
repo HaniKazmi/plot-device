@@ -1,6 +1,5 @@
 import { CURRENT_YEAR, YearMonthDay } from "../common/date";
 import { buildStrip, type StripBand, type StripSpan } from "../common/timelineStripData";
-import { isSeries } from "../app/galleryData";
 import { franchiseIndex } from "../common/franchiseIndex";
 import { moduleOf } from "../app/media";
 import type { OmniItem } from "../common/medium";
@@ -53,20 +52,11 @@ export const crossingSpan = (item: OmniItem, key: string, today: YearMonthDay): 
  * played. What the lanes say is which media hold a franchise, which is a reading of the strip
  * rather than a condition on drawing it.
  *
- * The raw franchise column is what groups, exactly as `movieFranchise` and `showFranchise` do:
- * those deliberately keep a series' founding entry naming itself — "Dune" sits in the Dune
- * franchise, "Alien" in Alien — because whether a franchise is real is a property of the group.
- * Skipping a self-naming entry instead would drop the first film of nearly every series from a
- * lane its own tab draws it in, which is the one disagreement a page composing three tabs cannot
- * afford.
- *
- * `isSeries` therefore drops a whole group rather than an entry, and it is the one test a group has
- * to pass: it is what carries the section, holding the 636 franchise values the four sheets write
- * between them to the 225 that have a series behind them. The lone adaptation is the exception it
- * makes — a novel and the film of it are two works under one name, which is the crossing this
- * section is for, and eleven of the 225 are drawn on that clause alone. That rule is
- * `app/galleryData.ts`'s, the same one the box's own franchise index reads, so the strips and the
- * values the box finds cannot disagree about what a franchise is.
+ * The raw franchise column is what groups, exactly as `movieFranchise` and `showFranchise` do, and
+ * every value it holds is a franchise — a standalone work names itself there and is a franchise of
+ * one, drawn as a strip of one mark like any other, so the strips, the box's franchise index and
+ * every tab's franchise picker count one population. The section's own order is what keeps the
+ * card to the series: the twelve biggest are drawn, and a franchise of one stands behind the cut.
  *
  * The `epoch` is answered here rather than taken from the caller, and it is the earliest *start*
  * among the entries actually drawn. An item's attribution year is the year it ended, so a scale
@@ -78,9 +68,11 @@ export const crossingSpan = (item: OmniItem, key: string, today: YearMonthDay): 
 export const crossings = (items: OmniItem[], today: YearMonthDay): { found: Crossing[]; epoch: YearMonthDay } => {
   const byFranchise = franchiseIndex(items, (item) => item.franchise);
 
-  const groups = [...byFranchise.entries()]
-    .filter(([franchise, group]) => isSeries(franchise, group))
-    .map(([franchise, group]) => ({ franchise, entries: group.length, lanes: crossingLanes(group, today) }));
+  const groups = [...byFranchise.entries()].map(([franchise, group]) => ({
+    franchise,
+    entries: group.length,
+    lanes: crossingLanes(group, today),
+  }));
 
   // Floored to the January of that year, because `stripYearTicks` measures its gridlines from the
   // first of the epoch's month and a scale opened mid-month puts every year line off by the

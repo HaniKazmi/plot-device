@@ -6,7 +6,6 @@ import type { ReactNode } from "react";
 import { formatDate } from "../common/date";
 import { certificateToColour, franchiseToColour, genreToColour, mediumFills, type Scheme } from "../utils/types";
 import { movieItemKey } from "./statsData";
-import { namesTheSameThing } from "../utils/stringUtils";
 import type { Movie } from "./types";
 
 /**
@@ -48,12 +47,15 @@ export const movieRows = (movie: Movie, scheme: Scheme): LedgerRow[] => {
   const series = seriesRow(movie);
   if (series) rows.push(series);
 
-  // A film with no wider franchise carries its own name in the column, so the row appears only
-  // where it names something the film belongs to rather than the film over again.
-  // Unknown franchises fall through to an empty colour, which is no swatch rather than a black
-  // one — the table names the couple of dozen the app draws, not every series on the sheet.
-  if (!namesTheSameThing(movie.franchise, movie.name))
-    rows.push({ label: "Franchise", value: movie.franchise, swatch: franchiseToColour(movie, scheme) || undefined });
+  // Every film stands in a franchise, a standalone in one of its own name, and the row is the way to its
+  // page either way. Unknown franchises fall through to an empty colour, which is no swatch
+  // rather than a black one — the table names the couple of dozen the app draws.
+  rows.push({
+    label: "Franchise",
+    value: movie.franchise,
+    swatch: franchiseToColour(movie, scheme) || undefined,
+    franchise: movie.franchise,
+  });
 
   return rows;
 };

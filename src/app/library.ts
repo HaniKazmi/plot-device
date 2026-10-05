@@ -102,6 +102,15 @@ export const measureOf = (items: OmniItem[], measure: Measure) =>
  * tab announces its own arrival and its own bad row — a Books converter error belongs on Books, and
  * the Games tab's refresh notice must not wait on three other sheets.
  */
+/**
+ * The first sheet to complain, not all of them: each message names a row in a different
+ * spreadsheet, and four at once would say the page is broken four times over where the reader can
+ * only go and fix one of them at a time. Walked rather than written out, so a fifth medium cannot
+ * be silently absent from the answer.
+ */
+export const firstSheetError = (error: LibraryValue["error"]) =>
+  MEDIA_ORDER.map((medium) => error[medium]).find((message) => message !== undefined);
+
 export interface LibraryValue {
   raw: Partial<Library>;
   visible: Partial<Library>;

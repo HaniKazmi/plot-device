@@ -28,11 +28,6 @@ export const DrilldownDialog = <T,>(
     band?: MediaBand<T>;
     divider?: boolean;
     MediaComponent: TypedCardMediaImage<T>;
-    /**
-     * Something to say about the group before listing it, between the bar and the grid — the
-     * franchise view's facts and strip. Nothing, for a drill-down whose title says it all.
-     */
-    header?: ReactNode;
   } & CardLayout,
 ) => (
   <Dialog
@@ -45,7 +40,6 @@ export const DrilldownDialog = <T,>(
       title={props.title}
       onClose={props.onClose}
     />
-    {props.header}
     <StatsListGrid
       content={props.content}
       cardKey={props.cardKey}

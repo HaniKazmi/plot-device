@@ -38,6 +38,7 @@ import { format } from "../utils/mathUtils";
 import { stripCaption } from "./statsData";
 import type { Colour } from "../utils/types";
 import { INLINE_SWATCH_SIZE, Swatch } from "./Swatch";
+import { FranchiseLink } from "./FranchiseLink";
 
 export interface CardMediaImageProps {
   image?: string;
@@ -1294,6 +1295,8 @@ export interface LedgerRow {
   value: ReactNode;
   /** Only where a chart or a chip elsewhere in the app already paints this field. */
   swatch?: Colour;
+  /** The franchise the value names, which the value then leads to the page of (`FranchiseLink`). */
+  franchise?: string;
 }
 
 /**
@@ -1366,7 +1369,7 @@ export const LedgerList = ({ rows, columns }: { rows: LedgerRow[]; columns: { xs
               variant="body2"
               sx={{ textAlign: "right" }}
             >
-              {row.value}
+              {row.franchise ? <FranchiseLink franchise={row.franchise}>{row.value}</FranchiseLink> : row.value}
             </Typography>
           </Stack>
         </Box>

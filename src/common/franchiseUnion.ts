@@ -34,10 +34,17 @@ export type FranchiseUnion = Map<string, FranchiseEntry[]>;
 
 /**
  * Every franchise across the four libraries, keyed on the raw franchise column, or `undefined`
- * until all four have loaded. A standalone work names itself in that column, so it is a group of
- * one and every consumer tests the group's size the way the per-domain indexes are tested.
+ * until all four have loaded. A standalone work names itself in that column, so it is a franchise
+ * of one, which a strip draws nothing for: a strip places its item among others.
  */
 export const FranchiseUnionContext = createContext<FranchiseUnion | undefined>(undefined);
 
 export const useFranchiseUnion = (franchise: string): FranchiseEntry[] | undefined =>
   useContext(FranchiseUnionContext)?.get(franchise);
+
+/**
+ * Where a franchise's own page is, as an href, or `undefined` where a mention of it should stay
+ * words: the franchise whose page the reader is already on. Answered by the composing layer,
+ * which alone knows the route and the whole library; until it does, every mention stays words.
+ */
+export const FranchisePageContext = createContext<(franchise: string) => string | undefined>(() => undefined);

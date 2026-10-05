@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { VideoGame, groupToColour } from "./types";
-import { TimelineSection } from "../common/TimelineSection";
+import { TimelineSection, type TimelineLayout } from "../common/TimelineSection";
 import { SegmentedControl, type SegmentOption } from "../common/SelectionComponents";
 import { useColourBy } from "../common/useColourBy";
 import { groupMarks, type PicturePress, type TimelineData } from "../common/timelineLayout";
@@ -12,6 +12,12 @@ import GameCardMediaImage, { GameHoverCard } from "./CardMediaImage";
 import { spanKey } from "./cardData";
 import { gameGroupValue } from "./statsData";
 import { pageState } from "./filterUtils";
+
+/**
+ * Every layout but Stacked: a playthrough runs for months and often across New Year, so a row per
+ * year cuts most of them into pieces that Across draws as one bar each.
+ */
+const LAYOUTS: readonly TimelineLayout[] = ["Across", "Grid", "Pictures"];
 
 /**
  * What the timeline can be coloured by: every key the tab's own `groupToColour` answers, in the
@@ -84,7 +90,6 @@ const GameTimeline = ({ data, yearType, yearTo }: { data: VideoGame[]; yearType:
       data={bars}
       controls={
         <>
-          {colour.control}
           <SegmentedControl
             options={BARS}
             value={bar}
@@ -98,6 +103,7 @@ const GameTimeline = ({ data, yearType, yearTo }: { data: VideoGame[]; yearType:
       yearType={yearType}
       yearTo={yearTo}
       dispatch={pageState.dispatch}
+      layouts={LAYOUTS}
       shape="banner"
     />
   );

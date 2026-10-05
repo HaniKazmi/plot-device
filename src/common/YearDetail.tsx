@@ -93,40 +93,72 @@ export const YearPictures = ({
           colour="divider"
           opacityOf={(tick) => (tick.level === "month" ? 0.5 : 1)}
         />
-        {items.map((item, index) => {
-          const { lineStart, x0, x1 } = geometry[index];
-          const top = lanes[index] * PICTURE_ROW;
-          return (
-            <Box key={item.key}>
-              <PictureHover
-                mark={item}
-                coarse={coarse}
-              >
-                <Box
-                  sx={{ position: "absolute" }}
-                  style={{ left: x0, top, height: PICTURE_HEIGHT }}
-                >
-                  {item.picture?.(PICTURE_HEIGHT, { onOpen: () => onOpen(item), openLabel: item.name })}
-                </Box>
-              </PictureHover>
-              <Box
-                sx={{ position: "absolute", height: 4, borderRadius: 2 }}
-                style={{
-                  left: lineStart,
-                  top: top + PICTURE_HEIGHT + 3,
-                  width: Math.max(4, x1 - lineStart),
-                  backgroundColor: item.colour,
-                  // An item still going runs out to the window's edge, faded, the end it has yet to reach.
-                  opacity: item.open ? 0.6 : 1,
-                }}
-              />
-            </Box>
-          );
-        })}
+        {items.map((item, index) => (
+          <PictureMark
+            key={item.key}
+            item={item}
+            coarse={coarse}
+            left={geometry[index].x0}
+            top={lanes[index] * PICTURE_ROW}
+            height={PICTURE_HEIGHT}
+            lineStart={geometry[index].lineStart}
+            lineEnd={geometry[index].x1}
+            onOpen={onOpen}
+          />
+        ))}
       </Box>
     </CardContent>
   );
 };
+
+/**
+ * One item on a line of pictures: its picture standing at `left`, opening the item through
+ * `onOpen` and showing its hover card, and beneath it a line from the day it began to the day it
+ * ended. An item still going runs out to the line's edge, faded, the end it has yet to reach.
+ */
+export const PictureMark = ({
+  item,
+  coarse,
+  left,
+  top,
+  height,
+  lineStart,
+  lineEnd,
+  onOpen,
+}: {
+  item: TimelineData;
+  coarse: boolean;
+  left: number;
+  top: number;
+  height: number;
+  lineStart: number;
+  lineEnd: number;
+  onOpen: (mark: TimelineData) => void;
+}) => (
+  <>
+    <PictureHover
+      mark={item}
+      coarse={coarse}
+    >
+      <Box
+        sx={{ position: "absolute" }}
+        style={{ left, top, height }}
+      >
+        {item.picture?.(height, { onOpen: () => onOpen(item), openLabel: item.name })}
+      </Box>
+    </PictureHover>
+    <Box
+      sx={{ position: "absolute", height: 4, borderRadius: 2 }}
+      style={{
+        left: lineStart,
+        top: top + height + 3,
+        width: Math.max(4, lineEnd - lineStart),
+        backgroundColor: item.colour,
+        opacity: item.open ? 0.6 : 1,
+      }}
+    />
+  </>
+);
 
 /** The log's row heights: an entry, a month holding entries, a month holding none, and the lanes' gap. */
 const LOG_SIZES = { entry: 52, month: 30, quiet: 20, gap: 6 };

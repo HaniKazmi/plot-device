@@ -5,7 +5,6 @@ import type { FranchiseEntry } from "../common/franchiseUnion";
 import { spanUntil } from "../common/medium";
 import type { ReactNode } from "react";
 import { certificateToColour, franchiseToColour, genreToColour, mediumFills, type Scheme } from "../utils/types";
-import { namesTheSameThing } from "../utils/stringUtils";
 import { lastWatchedSeason } from "./statsData";
 import { networkToColour, type Season, type Show } from "./types";
 import "../utils/arrayUtils";
@@ -91,12 +90,15 @@ export const showRows = (show: Show, scheme: Scheme): LedgerRow[] => {
   const episodeLength = show.s.findLast((season) => season.episodeLength)?.episodeLength;
   if (episodeLength) rows.push({ label: "Episode", value: `${episodeLength} min` });
 
-  // A show with no wider franchise carries its own name in the column, so the row appears only
-  // where it names something the show belongs to rather than the show over again.
-  // Unknown franchises fall through to an empty colour, which is no swatch rather than a black
-  // one — the table names the couple of dozen the app draws, not every series on the sheet.
-  if (!namesTheSameThing(show.franchise, show.name))
-    rows.push({ label: "Franchise", value: show.franchise, swatch: franchiseToColour(show, scheme) || undefined });
+  // Every show stands in a franchise, a standalone in one of its own name, and the row is the way to its
+  // page either way. Unknown franchises fall through to an empty colour, which is no swatch
+  // rather than a black one — the table names the couple of dozen the app draws.
+  rows.push({
+    label: "Franchise",
+    value: show.franchise,
+    swatch: franchiseToColour(show, scheme) || undefined,
+    franchise: show.franchise,
+  });
 
   return rows;
 };

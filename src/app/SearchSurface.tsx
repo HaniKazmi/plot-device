@@ -1,6 +1,6 @@
 import { Box, Button, Stack, Typography } from "@mui/material";
 import { useDeferredValue, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Swatch } from "../common/Swatch";
 import { CURRENT_PLAINDATE } from "../common/date";
 import { DrilldownDialog } from "../common/DrilldownDialog";
@@ -16,7 +16,7 @@ import {
   type PaletteReading,
 } from "../common/SearchPalette";
 import { closeSearch, setSearchMode, setSearchScope, type SearchMode } from "../common/searchOpen";
-import { fieldsOf, type CategoryContext } from "../common/filterSchema";
+import { fieldsOf } from "../common/filterSchema";
 import { FRANCHISE_KEY } from "../common/filterSchema";
 import { rankHits, type Hit, type Searchable } from "../common/searchData";
 import { MUTED_FIGURE_SX } from "../common/typography";
@@ -28,9 +28,9 @@ import { Dot, MediumDot } from "./MediaCounts";
 import { MEDIA as MEDIA_MODULES, omniArtwork } from "./media";
 import OmniCardMediaImage from "./CardMediaImage";
 import { MIXED_CARD_SIZING, workLabels } from "./cardData";
-import { FranchiseView } from "./FranchiseView";
 import { useLibrary, type Library } from "./library";
 import { mediumBand } from "./mediumBand";
+import { franchisePath } from "./franchisePage";
 import { usePage } from "./page";
 import { PAGE_MODULES, PAGE_STORES, pageCount } from "./pageState";
 import {
@@ -41,7 +41,6 @@ import {
   recentValues,
   searchScope,
   searchUnion,
-  unionEpoch,
   type AttributeEntry,
   type FranchiseSearchEntry,
   type ItemSearchEntry,
@@ -51,13 +50,13 @@ import {
   type SearchGroup,
 } from "./searchData";
 import { media, mediumToShape } from "./types";
-import Tabs, { tabForId, tabInk, useOtherTabs } from "../tabs";
+import Tabs, { atTabRoot, tabForId, tabInk, useOtherTabs } from "../tabs";
 
-/** What a chosen hit opens: a whole franchise, one work's own expanded card, or an attribute's shelf. */
-type Picked =
-  | { kind: "franchise"; franchise: string }
-  | { kind: "item"; item: OmniItem }
-  | { kind: "shelf"; attribute: AttributeEntry };
+/**
+ * What a chosen hit opens over the page: one work's own expanded card, or an attribute's shelf —
+ * and the path it was opened over (`at`). A franchise opens no layer, its page being a place.
+ */
+type Picked = ({ kind: "item"; item: OmniItem } | { kind: "shelf"; attribute: AttributeEntry }) & { at: string };
 
 /**
  * The thumbnail at a hit's left: a banner at the lead's full width, a poster or a cover standing
@@ -332,7 +331,7 @@ const attributeColour = (entry: AttributeEntry, tab: string | undefined, scheme:
  * The palette wired to the union: the index over its items, the groups a query answers, what
  * stands under the box before anything is typed, and what a chosen hit opens.
  *
- * Opening a franchise closes the palette and mounts the franchise view; opening a work mounts its
+ * Opening a franchise closes the palette and goes to the franchise's own page; opening a work mounts its
  * own card already expanded, in a host the reader never sees, and unmounts it once its dialog has
  * left. The card is the one the item's home tab would open — `OmniCardMediaImage` dispatches by
  * medium — so a hit reached through search shows exactly what the same artwork shows anywhere.
@@ -350,21 +349,23 @@ export const SearchSurface = ({
 }) => {
   const scheme = useScheme();
   const navigate = useNavigate();
+  // A page standing under a tab — a franchise's, under the Omnibus — is not that tab's own page:
+  // it has none of its filters, and a filter set on the tab is only seen by going there.
+  const { pathname } = useLocation();
+  const atRoot = atTabRoot(pathname);
   const library = useLibrary();
   const items = library.items;
   const index = items && library.whole ? buildSearchIndex(items, library.whole) : undefined;
-  // What a page's franchise picker cannot answer from its own rows, off the index that already
-  // holds it: a second walk of the union here is a second answer to the question the strips, the
-  // pickers and the box are meant to share. Taken whole rather than rebuilt around its one member,
-  // so what the tally cache below is keyed on is an object with an owner and not a literal minted
-  // per render. Absent until the union is, and a picker then falls back to its own rows, which is
-  // the narrower list.
-  const categoryContext: CategoryContext | undefined = index?.context;
   const [query, setQuery] = useState("");
   // The scan runs on the settled text: a keystroke lands in the box at once and the groups follow
   // at lower priority, so a fast typist is never held behind the previous letter's scan.
   const deferredQuery = useDeferredValue(query);
+  // A layer stands only over the page it was opened over. It is mounted here, beside the page and
+  // not inside it, so leaving the page — a franchise named on the card is a way to its own page —
+  // would otherwise leave the card standing over the next one. Put away during the render that
+  // finds the path changed rather than hidden, or the back button would open it again.
   const [picked, setPicked] = useState<Picked | null>(null);
+  if (picked && picked.at !== pathname) setPicked(null);
   // Counted so that picking the item whose card is still leaving remounts the card rather than
   // reusing the instance, whose open flag is read once on mount.
   const [pickCount, setPickCount] = useState(0);
@@ -378,14 +379,20 @@ export const SearchSurface = ({
 
   const close = closeSearch;
 
+  /**
+   * A franchise opens its own page, which is a place rather than a layer — it has an address, the
+   * back button leaves it, and it is where every other mention of the franchise leads. A work opens
+   * its own card over whatever page is being read.
+   */
   const choose = (entry: FranchiseSearchEntry | ItemSearchEntry) => {
     close();
+    if (entry.kind === "franchise") {
+      navigate(franchisePath(entry.franchise));
+      window.scrollTo({ top: 0 });
+      return;
+    }
     setPickCount(pickCount + 1);
-    setPicked(
-      entry.kind === "franchise"
-        ? { kind: "franchise", franchise: entry.franchise }
-        : { kind: "item", item: entry.item },
-    );
+    setPicked({ kind: "item", item: entry.item, at: pathname });
   };
 
   /**
@@ -403,7 +410,7 @@ export const SearchSurface = ({
     close();
     // Which chip is the page already open is a comparison made here and nothing the strip says:
     // the five stand in one order on every tab, so pressing one is a place to be either way.
-    if (entry.tab !== tab.id) {
+    if (entry.tab !== tab.id || !atRoot) {
       navigate(`/${entry.tab}`);
       window.scrollTo({ top: 0 });
     }
@@ -412,7 +419,7 @@ export const SearchSurface = ({
   /** The same attribute across every library recording it, as the gallery's own drill-down draws a shelf. */
   const openShelf = (entry: AttributeEntry) => {
     close();
-    setPicked({ kind: "shelf", attribute: entry });
+    setPicked({ kind: "shelf", attribute: entry, at: pathname });
   };
 
   /**
@@ -602,11 +609,17 @@ export const SearchSurface = ({
               state={pageState}
               dispatch={surface.store.dispatch}
               data={surface.data}
-              context={categoryContext}
               measures={surface.measures}
               earliestYear={surface.earliestYear}
               query={deferredQuery}
             />
+          ) : !atRoot ? (
+            <Typography
+              variant="body2"
+              sx={{ ...MUTED_FIGURE_SX, padding: 2 }}
+            >
+              Nothing on this page to narrow. Find still searches every library.
+            </Typography>
           ) : (
             /* A page whose sheet is still in flight has no vocabularies to offer and no population
                to state, and the chord opens this pane from anywhere — the first seconds of a cold
@@ -656,13 +669,6 @@ export const SearchSurface = ({
           </Typography>
         }
       />
-      {picked?.kind === "franchise" && (
-        <FranchiseView
-          franchise={picked.franchise}
-          epoch={unionEpoch(items ?? [], CURRENT_PLAINDATE)}
-          onClose={() => setPicked(null)}
-        />
-      )}
       {picked?.kind === "shelf" && library.whole && (
         <AttributeShelf
           attribute={picked.attribute}

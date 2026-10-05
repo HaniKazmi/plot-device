@@ -45,3 +45,15 @@ export const scrollbarSx = (theme: Theme, size = 10) => ({
   "&::-webkit-scrollbar-track": { backgroundColor: theme.vars.palette.divider, borderRadius: size / 2 },
   "&::-webkit-scrollbar-thumb": { backgroundColor: theme.vars.palette.text.secondary, borderRadius: size / 2 },
 });
+
+/**
+ * How much of the viewport a timeline may take before it scrolls inside itself: the packed chart
+ * and the picture clock alike, each running to dozens of rows on a library.
+ *
+ * On a desktop a chart taller than the viewport is a chart whose top the reader cannot see while
+ * reading its foot, so it caps and scrolls vertically within the card. A phone has no height to
+ * spare for that: the cap makes a second scroller inside a page that already scrolls, one that
+ * takes the drag meant for the page and hides most of the rows behind it. Uncapped, the grid
+ * stands at exactly the height its rows need, and the page scrolls past it.
+ */
+export const CHART_MAX_HEIGHT = { xs: "none", md: "90vh" } as const;

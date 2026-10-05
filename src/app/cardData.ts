@@ -5,7 +5,7 @@ import type { ShelfItem } from "./galleryData";
 
 /**
  * How a card is sized in a mixed-media list — Recently Finished, the gallery's drill-downs, a
- * franchise view — which is the Now band's rule at strip scale: every card in a row one size, the
+ * franchise page's — which is the Now band's rule at strip scale: every card in a row one size, the
  * picture sized by its shape, and the words taking what it leaves.
  *
  * A grid gives every card one width and a row is then as tall as its tallest card: a banner's
@@ -32,7 +32,7 @@ export const MIXED_CARD_SIZING: CardRowSizing = {
 
 /**
  * The strip under a card standing for a whole work — a show collapsed to one card however many
- * seasons it ran, as the gallery's drill-downs and the franchise view list them.
+ * seasons it ran, as the gallery's drill-downs list them.
  *
  * The name and not `omniTitle`: the representative behind the card is one season, and a card for
  * the whole show captioned "S2" claims to be about that season. The date is the work's own close,

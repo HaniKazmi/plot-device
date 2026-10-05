@@ -168,13 +168,13 @@ describe("a tracked domain never depends on another", () => {
   const TRACKED = ["game", "show", "movie", "book"];
 
   // Omnibus composes nothing of its own: the union, the gallery, search, the Now band and the
-  // franchise view reach `app/` for what they need of the four domains. One file still reaches
-  // across directly. `Graphs.tsx` mounts the four `FranchiseContext` providers the card strips and
-  // the crossings read, and the four are not one shape: Books stands a second provider inside its
-  // own for the epoch every book strip opens at. A per-medium provider member would also have to
-  // be what each domain's *own* `Graphs` mounts, or the tree would hold two definitions of one
-  // provider — four more files than this exemption costs.
-  const REACHES_DOMAINS_DIRECTLY = ["omnibus/Graphs.tsx"];
+  // franchise page reach `app/` for what they need of the four domains. One file still reaches
+  // across directly. `FranchiseProviders.tsx` mounts the four `FranchiseContext` providers the card
+  // strips and the crossings read, and the four are not one shape: Books stands a second provider
+  // inside its own for the epoch every book strip opens at. A per-medium provider member would also
+  // have to be what each domain's *own* `Graphs` mounts, or the tree would hold two definitions of
+  // one provider — four more files than this exemption costs.
+  const REACHES_DOMAINS_DIRECTLY = ["omnibus/FranchiseProviders.tsx"];
 
   it.each([...TRACKED, "omnibus"])("has no import of another domain anywhere in %s/", (domain) => {
     const others = DOMAINS.filter((other) => other !== domain);

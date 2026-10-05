@@ -1,9 +1,8 @@
 import { lazy, Suspense, useEffect } from "react";
-import { useLibrary } from "../app/library";
+import { firstSheetError, useLibrary } from "../app/library";
 import { SheetErrorSnackbar } from "../common/SheetErrorSnackbar";
 import { useFilterReducer } from "./filterUtils";
 import { upToSlice } from "../common/filterReducer";
-import { media } from "../app/types";
 
 /**
  * The one `import()` of the charts, at module scope: the React Compiler cannot lower an import
@@ -57,13 +56,7 @@ const Omnibus = () => {
 
   const [filterState] = useFilterReducer();
 
-  // The first sheet to complain, not all of them: each message names a row in a different
-  // spreadsheet, and four at once would say the page is broken four times over where the
-  // reader can only go and fix one of them at a time. Walked rather than written out, so a fifth
-  // medium cannot be silently absent from the answer.
-  const notice = (
-    <SheetErrorSnackbar error={media.map((medium) => error[medium]).find((message) => message !== undefined)} />
-  );
+  const notice = <SheetErrorSnackbar error={firstSheetError(error)} />;
 
   const filteredData = data?.filter(filterState.filter);
 

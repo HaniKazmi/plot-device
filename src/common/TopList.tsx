@@ -5,6 +5,8 @@ import { capitalize } from "@mui/material/utils";
 import type { ReactNode } from "react";
 import { ProportionalBar } from "./ProportionalBar";
 import { Swatch } from "./Swatch";
+import { FranchiseLink } from "./FranchiseLink";
+import { FRANCHISE_KEY } from "./filterSchema";
 import { SectionHeader } from "./SectionHeader";
 import { dimSx } from "./typography";
 import { useSelectBox } from "./SelectBoxHook";
@@ -111,7 +113,13 @@ const TopListCard = <O extends string, T>(props: TopListCardProps<O, T>) => {
                   noWrap
                   sx={{ flexGrow: 1 }}
                 >
-                  {item.name}
+                  {/* Under the franchise option, the key every tab's franchise is shared on, each
+                      group is a franchise and is named as a way to its own page. */}
+                  {option === FRANCHISE_KEY && item.name !== "Other" ? (
+                    <FranchiseLink franchise={item.name} />
+                  ) : (
+                    item.name
+                  )}
                 </Typography>
                 <Typography
                   variant="body2"

@@ -12,7 +12,7 @@ import {
   NUMERIC_LABEL_SX,
   primaryWash,
 } from "./common/typography";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { GoogleAuthProvider } from "./contexts/GoogleAuthContext.tsx";
 import { LibraryProvider } from "./app/LibraryProvider.tsx";
 import { FranchiseUnionProvider } from "./app/franchiseUnion.tsx";
@@ -73,17 +73,19 @@ const NothingMatchesProvider = ({ children }: { children: ReactNode }) => {
 };
 
 /**
- * The boundary around the page, keyed on the tab it stands over.
+ * The boundary around the page, keyed on the path it stands over.
  *
  * A boundary holds its error until something remounts it, and the reader's own way out of a page
- * that threw is another tab — keyed on the tab id, a change of tab builds a fresh boundary and the
- * next page draws, where one boundary for the app would keep the card up until a reload. The key
- * is the whole reason this is a component: `ErrorBoundary` is domain-blind and reads no route.
+ * that threw is another page — keyed on the path, a change of tab or of franchise builds a fresh
+ * boundary and the next page draws, where one boundary for the app would keep the card up until a
+ * reload. The tab id would not do: a franchise's page draws under the Omnibus tab, and a throw on
+ * one franchise would follow the reader to the next. The key is the whole reason this is a
+ * component: `ErrorBoundary` is domain-blind and reads no route.
  */
 const PageBoundary = ({ children }: { children: ReactNode }) => {
-  const tab = useCurrentTab();
+  const { pathname } = useLocation();
 
-  return <ErrorBoundary key={tab.id}>{children}</ErrorBoundary>;
+  return <ErrorBoundary key={pathname}>{children}</ErrorBoundary>;
 };
 
 const PageContent = () =>
@@ -127,7 +129,7 @@ const GoogleAuth = () => {
                 converter's colour lookup or a card leaves the app bar, the tabs and the search
                 standing, which is what the reader leaves the broken page by. The search host is a
                 sibling rather than a child, so a page's throw cannot take it down with the page,
-                and the boundary's tab key cannot remount it and drop the query it holds. */}
+                and the boundary's path key cannot remount it and drop the query it holds. */}
             <PageBoundary>
               <PageContent />
             </PageBoundary>

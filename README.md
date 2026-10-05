@@ -9,11 +9,12 @@ There is no database — a spreadsheet _is_ the storage layer, and every parse, 
 ## Features
 
 - **Google Sheets as a backend** — read by a service account with Viewer access and a read-only scope; the app never writes.
-- **Data visualisation** — stat cards, a timeline laid out across the years or stacked a row per year, sunburst hierarchies you can re-nest at runtime, and bar/line/bump charts, powered by [Highcharts](https://www.highcharts.com/).
+- **Data visualisation** — stat cards, a timeline laid out across the years, stacked a row per year, as a grid of months or as every picture on the line, sunburst hierarchies you can re-nest at runtime, and bar/line/bump charts, powered by [Highcharts](https://www.highcharts.com/).
 - **Media tracking** — Video Games, Shows, Movies and Books, each with its own model, filters and theme colour.
 - **A library on every tab** — every work with artwork, shelved by when it was finished, its franchise, its genre or the tab's own fields, as rows that scroll sideways or a wall that wraps, one card per work or per franchise.
 - **Search and filters as one box** — ⌘K or `/` finds a work, a franchise or an attribute across all four libraries; the section rail's own chip opens the same box on the current page's settings and filters. A genre typed in Find opens every game, show, film and book carrying it, or takes you to any of the five tabs that record it with the filter already set.
 - **Franchises across media** — every expanded card and hero places its item among the whole franchise, games beside seasons beside films beside books, as a chain in the order met or against a window of the franchise's own years.
+- **A page per franchise** — every franchise the search box finds has a page of its own, and its name anywhere in the app leads there: its totals, a dossier, its genres and where it was met, its timeline and its hours by year, who made it and what else they made, and its works shelved by series.
 - **Omnibus** — a fifth tab, and the one the app opens on, composing the other four's own data into a cross-media Now band, totals, a timeline of everything, a recently-finished list, a by-year chart with a Totals/Share/Cumulative/Rank view switch, franchises over time, and a library of shelves.
 - **Sign in once a month** — Google sign-in buys a month-long session from the sheets function (`functions/sheets/`), which reads the four ranges with its own service account and hands back the raw grids for the browser to parse.
 - **Cache-first loading** — the dashboard paints from `localStorage` before authentication completes, then refreshes.

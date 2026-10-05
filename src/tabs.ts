@@ -224,14 +224,25 @@ export const OmnibusTab: Tab = {
  */
 const Tabs: Tab[] = [OmnibusTab, GamesTab, ShowsTab, MoviesTab, BooksTab];
 
+/** A path's segments after exactly one leading slash, so `//shows` names no tab. */
+const segmentsOf = (pathname: string) => pathname.replace(/^\//, "").split("/");
+
 /**
- * The tab a route belongs to, falling back to the first one.
+ * The tab a route belongs to, by its first segment, falling back to the first tab.
  *
- * The match is an exact, case-sensitive comparison against the tab id after a single leading
- * slash is stripped, so a trailing slash or any nested path falls back rather than matching.
+ * The first segment rather than the whole path, so a page standing under a tab — a franchise's,
+ * under the Omnibus — names the tab it belongs to rather than inheriting whichever tab leads the
+ * array. Case-sensitive, as the routes are.
  */
 export const tabForPath = (pathname: string, tabs: readonly Tab[] = Tabs): Tab =>
-  tabs.find((tab) => tab.id === pathname.replace(/^\//, "")) ?? tabs[0];
+  tabs.find((tab) => tab.id === segmentsOf(pathname)[0]) ?? tabs[0];
+
+/**
+ * Whether a path is a tab's own page rather than one standing under it. A page under a tab has no
+ * filters, measure or scope of the tab's, so the surfaces reading the tab's page state stand down
+ * there, and a press on the tab's own chip or strip entry goes back to it rather than nowhere.
+ */
+export const atTabRoot = (pathname: string) => segmentsOf(pathname).filter(Boolean).length <= 1;
 
 export const useCurrentTab = (): Tab => tabForPath(useLocation().pathname);
 
@@ -295,10 +306,13 @@ export const allTabs = (current: Tab, scheme: Scheme, tabs: readonly Tab[] = Tab
 export const useTabChips = () => {
   const navigate = useNavigate();
   const scheme = useScheme();
+  const root = atTabRoot(useLocation().pathname);
   return allTabs(useCurrentTab(), scheme).map((tab) => ({
     ...tab,
+    /** The tab's own page is the one open, rather than one standing under it. */
+    here: tab.current && root,
     jump: () => {
-      if (!tab.current) navigate(`/${tab.id}`);
+      if (!(tab.current && root)) navigate(`/${tab.id}`);
       window.scrollTo({ top: 0 });
     },
   }));
@@ -309,6 +323,6 @@ export const useTabChips = () => {
  * places to go, where the rail's row is a fixed set of positions, so an entry for the page the box
  * is already standing over is an answer that does nothing.
  */
-export const useOtherTabs = () => useTabChips().filter((tab) => !tab.current);
+export const useOtherTabs = () => useTabChips().filter((tab) => !tab.here);
 
 export default Tabs;

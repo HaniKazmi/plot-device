@@ -2,7 +2,7 @@ import { daysSince, formatDate, type YearMonthDay, type YearNumber } from "../co
 import { seriesTile } from "../common/series";
 import { format } from "../utils/mathUtils";
 import { releaseDecade, scoreBand } from "../utils/types";
-import { earliestYear as earliestYearOf, groupByCategory, realFranchisesOnly } from "../common/statsData";
+import { earliestYear as earliestYearOf, groupByCategory } from "../common/statsData";
 import { roundHours, type Book, type BookGroup, type Measure } from "./types";
 import "../utils/arrayUtils";
 import "../utils/mapUtils";
@@ -68,9 +68,6 @@ export const groupBooksBy = (data: Book[], key: BookTopOption, measure: Measure)
     (book) => bookGroupValue(book, key),
     (books) => measureOf(books, measure),
     (books) => books.reduce((best, book) => (book.hours > best.hours ? book : best)),
-    // A series of one is still honestly a series the sheet named; a franchise of one is a book
-    // naming itself, which is the rule every franchise column in the app follows.
-    key === "franchise" ? realFranchisesOnly : undefined,
   );
 
 /** The three figures the vitals cards state, over whatever set the caller scopes. */

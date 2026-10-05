@@ -1,4 +1,4 @@
-import { categoryOptions, franchiseOptions } from "./filterOptions";
+import { categoryOptions } from "./filterOptions";
 import type { InSeries } from "./series";
 import {
   STYLES,
@@ -101,8 +101,7 @@ export interface FilterGroup {
  * One multi-select over a category's values.
  *
  * `options` defaults to the distinct values across the data; a category states its own only where
- * the plain set is wrong — a franchise column repeating a standalone item's own name, a blank
- * nobody can name. `colourFor` is present exactly where the app already speaks that field's colour
+ * the plain set is wrong — a blank nobody can name. `colourFor` is present exactly where the app already speaks that field's colour
  * elsewhere, so a chip and a wedge naming one value are one colour, and absent where a swatch
  * would teach a legend no chart honours.
  *
@@ -110,7 +109,7 @@ export interface FilterGroup {
  * than by scanning — the people, networks and series a library holds hundreds of. The library
  * splits cleanly on it: format 4, certificate 5, genre 12, gameplay 14 and platform 15 against
  * author 65, book series 76, network 77, publisher 92, film series 119, game series 135, director
- * 218 and franchise 225.
+ * 218 and franchise 688.
  *
  * Every accessor is a method rather than a property, which is what lets a `FilterSchema<Show, …>`
  * sit in a record whose element type names no domain: TypeScript checks a method's parameters
@@ -121,7 +120,7 @@ export interface FilterCategory<T, S> {
   key: CategoryKey<S>;
   label: string;
   valueOf(item: T): string;
-  options?(data: readonly T[], context?: CategoryContext): string[];
+  options?(data: readonly T[]): string[];
   colourFor?(value: string, scheme: Scheme): Colour | undefined;
   searchable?: boolean;
   /**
@@ -129,7 +128,7 @@ export interface FilterCategory<T, S> {
    * author is a thing a reader goes looking for.
    *
    * An empty list indexes none. Franchise states it: its values are found through the franchise
-   * index, which drops the standalone works that make up most of the column.
+   * index, whose entry for each is its page as well as its narrowings.
    */
   found?: readonly string[];
   /**
@@ -174,52 +173,29 @@ export const FRANCHISE_KEY = "franchise";
 type SharedKey<S, K extends string> = CategoryKey<S> & K;
 
 /**
- * What a category's vocabulary needs that its own rows cannot say.
- *
- * Declared here and filled in `app/`, as `OmniItem` and `FranchiseEntry` are: a tab holds one
- * library and some questions about a value are questions about all four. The whole bag is what a
- * caller omits — absent means the union has not landed and each picker falls back to its own rows,
- * where a present bag missing its one member would be a third state nothing intends.
- */
-export interface CategoryContext {
-  /**
-   * The franchises the whole library knows to group more than one work, by `isSeries` — see
-   * `franchiseOptions`.
-   */
-  franchises: ReadonlySet<string>;
-}
-
-/**
- * The franchise select, which every tab offers on the same terms: the column each sheet writes a
- * series into, and — where the entry names no series — the item's own title, which
- * `franchiseOptions` erases so the list holds only what actually groups anything. Which those are
- * is the library's answer and not this tab's, so it reads `context.franchises` where the caller has
- * one: a tab holding a single entry of a series otherwise erases it.
+ * The franchise select, which every tab offers on the same terms: every value the column holds,
+ * a standalone work's own name included — a work met once is a franchise of one, here as on every
+ * other surface that counts franchises — and the blank a game outside any franchise leaves, which
+ * names nothing, dropped.
  *
  * Stated once rather than per tab, so the five cannot disagree about what belongs on that list.
  * The state it names is the one field it needs, and a category is covariant in its key, so it sits
  * in any tab's schema whose own state holds a `franchise` list.
  */
-export const franchiseCategory = <T extends { franchise: string; name: string }, S>(
+export const franchiseCategory = <T extends { franchise: string }, S>(
   key: SharedKey<S, typeof FRANCHISE_KEY>,
 ): FilterCategory<T, S> => ({
   key,
   label: "franchise",
   valueOf: (item) => item.franchise,
-  options: (data, context) =>
-    franchiseOptions(
-      data,
-      (item) => item.franchise,
-      (item) => item.name,
-      context?.franchises,
-    ),
+  options: (data) => categoryOptions(data, (item) => item.franchise).filter(Boolean),
   // The table `utils/types.ts` shares across the tabs, so a chip and the wedge, bead or shelf
   // naming one series are one colour. Most of the column is a work naming itself and answers `""`,
   // which is the plain chip every other uncoloured value already wears.
   colourFor: (value, scheme) => franchiseToColour({ franchise: value }, scheme) || undefined,
   searchable: true,
-  // Found through the franchise index instead, which holds the column to the values that actually
-  // group something: a scan of it would offer every standalone work as a series to narrow by.
+  // Found through the franchise index instead, whose entry for a franchise is its page as well as
+  // its narrowings: found here too, every franchise would be two hits under one name.
   found: [],
 });
 
@@ -321,7 +297,6 @@ export type PageSchema = FilterSchema<unknown, never>;
 export const categoryTally = <T, S>(
   category: FilterCategory<T, S>,
   data: readonly T[],
-  context?: CategoryContext,
 ): { values: string[]; counts: Map<string, number> } => {
   const counts = new Map<string, number>();
   for (const item of data) {
@@ -329,7 +304,7 @@ export const categoryTally = <T, S>(
     counts.set(value, (counts.get(value) ?? 0) + 1);
   }
 
-  return { values: category.options ? category.options(data, context) : [...counts.keys()].toSorted(), counts };
+  return { values: category.options ? category.options(data) : [...counts.keys()].toSorted(), counts };
 };
 
 /** A line of a category's chips: a parent and the values it selects, or the values grouping nothing. */

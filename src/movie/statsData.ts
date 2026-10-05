@@ -3,7 +3,7 @@ import { seriesTile } from "../common/series";
 import { format } from "../utils/mathUtils";
 import { releaseDecade } from "../utils/types";
 import { cinemaLabel, scoreBand, type Measure, type Movie, type MovieGroup } from "./types";
-import { groupByCategory, realFranchisesOnly } from "../common/statsData";
+import { groupByCategory } from "../common/statsData";
 import "../utils/arrayUtils";
 
 /**
@@ -74,7 +74,6 @@ export const groupMoviesBy = (data: Movie[], key: MovieTopOption, measure: Measu
     (movie) => movieGroupValue(movie, key),
     (movies) => measureOf(movies, measure),
     (movies) => movies.reduce((best, movie) => (movie.minutes > best.minutes ? movie : best)),
-    key === "franchise" ? realFranchisesOnly : undefined,
   );
 
 export const allTimeTotals = (data: Movie[]) => ({
