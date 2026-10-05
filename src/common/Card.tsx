@@ -39,7 +39,7 @@ import { stripCaption } from "./statsData";
 import type { Colour } from "../utils/types";
 import { INLINE_SWATCH_SIZE, Swatch } from "./Swatch";
 import { ValueLink } from "./ValueLink";
-import type { LedgerPart } from "./ledgerRow";
+import { LEDGER_SEPARATOR, type LedgerPart } from "./ledgerRow";
 
 export interface CardMediaImageProps {
   image?: string;
@@ -1378,7 +1378,7 @@ export const LedgerList = ({ rows, columns }: { rows: LedgerRow[]; columns: { xs
               {row.parts
                 ? row.parts.map((part, index) => (
                     <Fragment key={part.text}>
-                      {index > 0 && " · "}
+                      {index > 0 && LEDGER_SEPARATOR}
                       {part.category ? (
                         <ValueLink
                           category={part.category}

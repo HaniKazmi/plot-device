@@ -446,3 +446,7 @@ export const schemaPredicates = <T, S>(
     ),
   ];
 };
+
+/** A schema's categories by key: what a surface naming a tab's values asks to know which of them narrow it. */
+export const categoryKeys = (schema: { categories: readonly { key: string }[] }): string[] =>
+  schema.categories.map((category) => category.key);

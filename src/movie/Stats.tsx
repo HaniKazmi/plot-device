@@ -1,4 +1,3 @@
-import { movieFilters } from "./filters";
 import {
   Brush,
   Category,
@@ -64,9 +63,8 @@ import {
 } from "./statsData";
 import "../utils/arrayUtils";
 import { useScheme } from "../common/useScheme";
-
-/** The tab's filter categories, whose values a Top card names as ways to everything carrying them. */
-const FILTER_KEYS = movieFilters.categories.map((category) => category.key);
+import { categoryKeys } from "../common/filterSchema";
+import { movieFilters } from "./filters";
 
 const Stats = ({
   data,
@@ -231,7 +229,7 @@ const TopCategories = ({ data, measure }: { data: Movie[]; measure: Measure }) =
       groups={(option) => groupMoviesBy(data, option, measure)}
       colourOf={(option, top: Movie) => groupToColour(option, top, scheme)}
       measureLabel={measure}
-      categories={FILTER_KEYS}
+      categories={categoryKeys(movieFilters)}
     />
   );
 };

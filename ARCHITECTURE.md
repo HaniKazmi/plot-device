@@ -1085,12 +1085,14 @@ is not a narrowing of whatever the Omnibus was last left showing — which is al
 draws is a plain `SectionRail` and not `PageRail`. The page boundary is keyed on the path rather than
 the tab for the same reason: a throw on one franchise would otherwise follow the reader to the next.
 
-**Escape leaves the page**, as it closes every layer the page opens: back to wherever the reader
-came from, or to the Omnibus for a page opened straight from its address, where back would leave
-the app — the router's own key for the entry says which (`"default"` for the first in the tab). A
-layer open over the page, a card, a drill-down or the box, takes the press first and stops it
-there, so one press closes the layer and a second leaves the page; a field keeps its own Escape,
-through the same `inEditableField` (`common/keyboard.ts`) that holds a typed `/` to a slash.
+**Escape leaves the page**, as it leaves any page standing under a tab (`useEscapeLeavesSubPage`,
+`tabs.ts`, mounted once by the shell): back to wherever the reader came from, or to the tab's own
+page for one opened straight from its address, where back would leave the app — the router's own
+key for the entry says which (`"default"` for the first in the tab). A layer open over the page, a
+card, a drill-down or the box, takes the press first and stops it there, so one press closes the
+layer and a second leaves the page; a hover card stops nothing, closing on the document's own
+Escape, so the page stays while one stands open; and a field keeps its own Escape, through the same
+`inEditableField` (`common/keyboard.ts`) that holds a typed `/` to a slash.
 
 **A franchise named anywhere leads to its page.** `common/ValueLink.tsx`'s `FranchiseLink` is the name as a
 link — underlined faintly at rest, since a finger has no hover to find it by, and in the ink
@@ -1118,13 +1120,17 @@ libraries, and the tabs it narrows — through `AttributeLink` beside `Franchise
 a name that leads somewhere looks the same whatever it leads to; `ValueLink` picks between the two
 by the category. A ledger row names its parts (`LedgerRow.parts`, built through
 `common/ledgerRow.ts`), each with the category it is a value of where it is one, so a row stating a
-developer and a publisher links the publisher alone, the one of the two a tab narrows by. A Top card
-links an option's groups where the option is one of its tab's filter categories (`categories`), so a
-company or a decade, which no press could narrow by, stays words. The press crosses the tree through
+developer and a publisher links the publisher alone, the one of the two a tab narrows by, and a row
+of genres links the first alone, the genre category reading only an item's first: a secondary
+genre's layer would leave out the work it was pressed on. A Top card links an option's groups where
+the option is one of its tab's filter categories (`categories`, through `categoryKeys`), so a
+company or a decade, which no press could narrow by, stays words — and on a franchise's page, where
+the genre card counts every genre an item carries, Style alone. The press crosses the tree through
 a store (`common/valueLayer.ts`) to the box's surface, which holds the index and draws the layer:
 `findAttribute` looks the value up by its category, on the value an entry states or any cell a tab
 records for it — a card's PEGI 16 being the 15/16 band's — and the surface opens it during the render
-that finds a request it has not answered, once the index is there.
+that finds a request it has not answered, once the index is there, in a slot of its own so a value
+pressed on a card the box opened stands over that card rather than putting it away.
 
 A layer the search box opened is mounted beside the page rather than inside it, so it would stand
 over the next page when a name on it is pressed. The box remembers the path each layer was opened
@@ -2713,7 +2719,7 @@ key in ObjectExpression`; pulled out to a plain function taking the varying piec
   `sheetBarSx`, `dialogCardSx`, among others — the literal itself sits at module scope and the
   component stays compiled.
 
-The baseline is **306 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **307 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.

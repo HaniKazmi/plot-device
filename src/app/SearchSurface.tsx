@@ -1,5 +1,5 @@
 import { Box, Button, Stack, Typography } from "@mui/material";
-import { useDeferredValue, useState } from "react";
+import { useContext, useDeferredValue, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Swatch } from "../common/Swatch";
 import { CURRENT_PLAINDATE } from "../common/date";
@@ -18,6 +18,7 @@ import {
 import { closeSearch, setSearchMode, setSearchScope, type SearchMode } from "../common/searchOpen";
 import { fieldsOf } from "../common/filterSchema";
 import type { ValueRequest } from "../common/valueLayer";
+import { FranchisePageContext } from "../common/franchiseUnion";
 import { FRANCHISE_KEY } from "../common/filterSchema";
 import { rankHits, type Hit, type Searchable } from "../common/searchData";
 import { MUTED_FIGURE_SX } from "../common/typography";
@@ -31,7 +32,6 @@ import OmniCardMediaImage from "./CardMediaImage";
 import { MIXED_CARD_SIZING, workLabels } from "./cardData";
 import { useLibrary, type Library } from "./library";
 import { mediumBand } from "./mediumBand";
-import { franchisePath } from "./franchisePage";
 import { usePage } from "./page";
 import { PAGE_MODULES, PAGE_STORES, pageCount } from "./pageState";
 import {
@@ -369,17 +369,22 @@ export const SearchSurface = ({
   // not inside it, so leaving the page — a franchise named on the card is a way to its own page —
   // would otherwise leave the card standing over the next one. Put away during the render that
   // finds the path changed rather than hidden, or the back button would open it again.
+  const franchisePages = useContext(FranchisePageContext);
   const [picked, setPicked] = useState<Picked | null>(null);
   if (picked && picked.at !== pathname) setPicked(null);
   // A value pressed elsewhere — a genre on a card, a publisher on a Top list — opens the layer a hit
   // for it would: answered during the render that finds a request it has not, once the index it
-  // looks the value up in is here, so a press made while the sheets land opens once they have.
-  const [answered, setAnswered] = useState(0);
-  if (valueRequest && valueRequest.count !== answered && index) {
-    setAnswered(valueRequest.count);
+  // looks the value up in is here, so a press made while the sheets land opens once they have. A
+  // slot of its own rather than `picked`, so a value pressed on a card the box opened stands over
+  // that card instead of putting it away; it lapses with the path as `picked` does.
+  const [answered, setAnswered] = useState<ValueRequest | null>(null);
+  const [valueShelf, setValueShelf] = useState<{ attribute: AttributeEntry; at: string } | null>(null);
+  if (valueRequest && valueRequest !== answered && index) {
+    setAnswered(valueRequest);
     const attribute = findAttribute(index, valueRequest.category, valueRequest.value);
-    if (attribute) setPicked({ kind: "shelf", attribute, at: pathname });
+    if (attribute) setValueShelf({ attribute, at: pathname });
   }
+  if (valueShelf && valueShelf.at !== pathname) setValueShelf(null);
   // Counted so that picking the item whose card is still leaving remounts the card rather than
   // reusing the instance, whose open flag is read once on mount.
   const [pickCount, setPickCount] = useState(0);
@@ -401,8 +406,7 @@ export const SearchSurface = ({
   const choose = (entry: FranchiseSearchEntry | ItemSearchEntry) => {
     close();
     if (entry.kind === "franchise") {
-      navigate(franchisePath(entry.franchise));
-      window.scrollTo({ top: 0 });
+      franchisePages.open(entry.franchise);
       return;
     }
     setPickCount(pickCount + 1);
@@ -683,6 +687,13 @@ export const SearchSurface = ({
           </Typography>
         }
       />
+      {valueShelf && library.whole && (
+        <AttributeShelf
+          attribute={valueShelf.attribute}
+          library={library.whole}
+          onClose={() => setValueShelf(null)}
+        />
+      )}
       {picked?.kind === "shelf" && library.whole && (
         <AttributeShelf
           attribute={picked.attribute}

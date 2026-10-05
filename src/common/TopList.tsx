@@ -54,6 +54,7 @@ const TopListCard = <O extends string, T>(props: TopListCardProps<O, T>) => {
   const [hovered, setHovered] = useHoverDim();
 
   const most = topNWithOther(groups(option));
+  const linked = categories?.includes(option);
 
   const getColour = (struct: (typeof most)[0], index: number) => {
     if (struct.name === "Other") return neutralFill(scheme);
@@ -118,7 +119,7 @@ const TopListCard = <O extends string, T>(props: TopListCardProps<O, T>) => {
                   noWrap
                   sx={{ flexGrow: 1 }}
                 >
-                  {categories?.includes(option) && item.name !== "Other" ? (
+                  {linked && item.name !== "Other" ? (
                     <ValueLink
                       category={option}
                       value={item.name}

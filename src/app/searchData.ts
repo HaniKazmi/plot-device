@@ -677,11 +677,13 @@ const worksOf = (items: OmniItem[], today: YearMonthDay): ShelfItem[] =>
  * a company standing for its platforms — is never the answer, a name on a card being one value.
  */
 export const findAttribute = (index: SearchIndex, category: string, value: string): AttributeEntry | undefined => {
-  const candidates = index.attributes.filter((entry) => entry.category === category && !entry.level);
-  return (
-    candidates.find((entry) => entry.value === value) ??
-    candidates.find((entry) => Object.values(entry.values).some((cells) => cells.includes(value)))
-  );
+  let byCell: AttributeEntry | undefined;
+  for (const entry of index.attributes) {
+    if (entry.category !== category || !isValue(entry)) continue;
+    if (entry.value === value) return entry;
+    byCell = byCell ?? (Object.values(entry.values).some((cells) => cells.includes(value)) ? entry : undefined);
+  }
+  return byCell;
 };
 
 /** The works an attribute holds, for the shelf its own row opens over every library recording it. */

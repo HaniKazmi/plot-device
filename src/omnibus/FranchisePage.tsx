@@ -46,8 +46,13 @@ const MEASURES: readonly SegmentOption<Measure>[] = segments(["Hours", "Items"] 
 /** The two ranked cards the page opens on, each free to be re-pointed from its own select. */
 const DEFAULT_TOPS: readonly FranchiseTop[] = ["genre", "where"];
 
-/** The ranked cards whose values are a filter category the whole library is narrowed by. */
-const LINKED_TOPS: readonly FranchiseTop[] = ["genre", "style"];
+/**
+ * The ranked cards whose groups are values of a filter category, so each leads to everything
+ * carrying it. Style alone: Where mixes a platform, a network and a format under one word, the
+ * decade is no narrowing, and the genre card counts every genre an item carries where the genre
+ * category reads the first — a secondary genre's group would open a layer missing the works it counts.
+ */
+const LINKED_TOPS: readonly FranchiseTop[] = ["style"];
 
 const TOP_ICONS: Record<FranchiseTop, ReactNode> = {
   genre: <TheaterComedy />,
@@ -204,7 +209,6 @@ const FranchisePage = ({ franchise, library, items }: { franchise: string; libra
               groups={(top) => franchiseTop(own, top, measure)}
               colourOf={(top, name: string) => (top === "where" ? "" : (galleryColour(name, top, scheme) ?? ""))}
               measureLabel={measure}
-              // Where mixes a platform, a network and a format under one word, no category of its own.
               categories={LINKED_TOPS}
             />
           </StatBand>

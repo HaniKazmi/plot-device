@@ -1,4 +1,3 @@
-import { bookFilters } from "./filters";
 import {
   AutoStories,
   Bookmarks,
@@ -54,9 +53,8 @@ import {
 import "../utils/arrayUtils";
 import { useScheme } from "../common/useScheme";
 import type { DrilldownGroup } from "../common/statsData";
-
-/** The tab's filter categories, whose values a Top card names as ways to everything carrying them. */
-const FILTER_KEYS = bookFilters.categories.map((category) => category.key);
+import { categoryKeys } from "../common/filterSchema";
+import { bookFilters } from "./filters";
 
 const Stats = ({
   data,
@@ -238,7 +236,7 @@ const TopCategories = ({ data, measure }: { data: Book[]; measure: Measure }) =>
       groups={(option) => groupBooksBy(data, option, measure)}
       colourOf={(option, top: Book) => groupToColour(option, top, scheme)}
       measureLabel={measure}
-      categories={FILTER_KEYS}
+      categories={categoryKeys(bookFilters)}
     />
   );
 };

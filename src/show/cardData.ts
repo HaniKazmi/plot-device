@@ -1,6 +1,6 @@
 import { formatDateRange, type YearMonthDay } from "../common/date";
 import { FRANCHISE_KEY } from "../common/filterSchema";
-import { ledgerParts } from "../common/ledgerRow";
+import { ledgerParts, linked } from "../common/ledgerRow";
 import type { LedgerRow, PanelSubtitlePart } from "../common/Card";
 import type { StripSpan } from "../common/timelineStripData";
 import type { FranchiseEntry } from "../common/franchiseUnion";
@@ -82,17 +82,18 @@ export const showRows = (show: Show, scheme: Scheme): LedgerRow[] => {
     // and the order the charts group by.
     {
       label: "Genre",
-      ...ledgerParts([show.genre, ...show.otherGenres].map((genre) => ({ text: genre, category: "genre" }))),
+      // The primary genre alone is what the tab narrows by, so it leads to its layer and the rest stand as words.
+      ...ledgerParts([{ text: show.genre, category: "genre" }, ...show.otherGenres.map((text) => ({ text }))]),
       swatch: genreToColour(show.genre, scheme),
     },
     {
       label: "Network",
-      ...ledgerParts([{ text: show.network, category: "network" }]),
+      ...linked("network", show.network),
       swatch: networkToColour(show, scheme) || undefined,
     },
     {
       label: "BBFC",
-      ...ledgerParts([{ text: show.certificate, category: "certificate" }]),
+      ...linked("certificate", show.certificate),
       swatch: certificateToColour(show.certificate, scheme),
     },
   ];
@@ -109,7 +110,7 @@ export const showRows = (show: Show, scheme: Scheme): LedgerRow[] => {
   // rather than a black one — the table names the couple of dozen the app draws.
   rows.push({
     label: "Franchise",
-    ...ledgerParts([{ text: show.franchise, category: FRANCHISE_KEY }]),
+    ...linked(FRANCHISE_KEY, show.franchise),
     swatch: franchiseToColour(show, scheme) || undefined,
   });
 

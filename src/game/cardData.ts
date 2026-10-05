@@ -1,6 +1,6 @@
 import { YearMonthDay, formatDate, formatDateRange } from "../common/date";
 import { FRANCHISE_KEY } from "../common/filterSchema";
-import { ledgerParts } from "../common/ledgerRow";
+import { LEDGER_SEPARATOR, ledgerParts, linked } from "../common/ledgerRow";
 import { seriesRow } from "../common/series";
 import type { FranchiseEntry } from "../common/franchiseUnion";
 import { spanUntil } from "../common/medium";
@@ -40,13 +40,6 @@ export const gameSubtitle = (game: VideoGame, scheme: Scheme): PanelSubtitlePart
 ];
 
 /**
- * The facts a ledger line carries, joined only where the sheet holds them. A blank part joined
- * unconditionally leaves the separator behind it — "12 May 2019 · " — which reads as a value that
- * failed to load rather than as one the sheet never had.
- */
-const joinParts = (parts: (string | undefined)[]): string => parts.filter(Boolean).join(" · ");
-
-/**
  * Everything else the sheet records, one fact per line, with related facts on the same line: a
  * release is a date and a format, and a game is made by a developer for a publisher.
  *
@@ -62,7 +55,7 @@ export const gameRows = (game: VideoGame, scheme: Scheme): LedgerRow[] => {
     // a badge at a badge's size, not a value being compared against its neighbours.
     {
       label: "Platform",
-      ...ledgerParts([{ text: game.platform, category: "platform" }]),
+      ...linked("platform", game.platform),
       swatch: companyToAccent(game),
     },
     {
@@ -87,7 +80,7 @@ export const gameRows = (game: VideoGame, scheme: Scheme): LedgerRow[] => {
     // square standing for nothing.
     rows.push({
       label: "Franchise",
-      ...ledgerParts([{ text: game.franchise, category: FRANCHISE_KEY }]),
+      ...linked(FRANCHISE_KEY, game.franchise),
       swatch: franchiseToColour(game, scheme) || undefined,
     });
   }
@@ -96,12 +89,12 @@ export const gameRows = (game: VideoGame, scheme: Scheme): LedgerRow[] => {
   rows.push(
     {
       label: "Gameplay",
-      ...ledgerParts([{ text: game.gameplay, category: "gameplay" }]),
+      ...linked("gameplay", game.gameplay),
       swatch: gameplayToColour(game, scheme),
     },
     {
       label: "Genre",
-      ...ledgerParts([{ text: game.genre, category: "genre" }]),
+      ...linked("genre", game.genre),
       swatch: genreToColour(game.genre, scheme),
     },
   );
@@ -109,12 +102,12 @@ export const gameRows = (game: VideoGame, scheme: Scheme): LedgerRow[] => {
   // Themes get a line of their own rather than riding on either of the two above: they are the one
   // vocabulary here no chart on the tab colours, so a swatch would name a legend that does not
   // exist — and half of them read as genres, which would make the Gameplay line say two things.
-  const themes = joinParts(game.themes);
+  const themes = game.themes.join(LEDGER_SEPARATOR);
   if (themes) rows.push({ label: "Themes", value: themes });
 
   rows.push({
     label: "PEGI",
-    ...ledgerParts([{ text: game.certificate, category: "certificate" }]),
+    ...linked("certificate", game.certificate),
     swatch: certificateColour(game, scheme),
   });
 

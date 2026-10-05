@@ -38,15 +38,13 @@ describe("movieRows", () => {
     expect(franchise).toMatchObject({ value: "Arrival", parts: [{ text: "Arrival", category: "franchise" }] });
   });
 
-  it("names each genre and the director as the value of its own category, so each can lead to its layer", () => {
+  it("names the director and the primary genre as values of their categories, the rest as words", () => {
     const rows = movieRows(movie({ director: "Denis Villeneuve", genre: "Sci-Fi", otherGenres: ["Drama"] }), "light");
     const parts = (label: string) => rows.find((row) => row.label === label)?.parts;
 
     expect(parts("By")).toEqual([{ text: "Denis Villeneuve", category: "director" }]);
-    expect(parts("Genre")).toEqual([
-      { text: "Sci-Fi", category: "genre" },
-      { text: "Drama", category: "genre" },
-    ]);
+    // The genre category reads the primary genre alone, so only it leads to a layer holding the film.
+    expect(parts("Genre")).toEqual([{ text: "Sci-Fi", category: "genre" }, { text: "Drama" }]);
     expect(rows.find((row) => row.label === "Genre")?.value).toBe("Sci-Fi · Drama");
   });
 });
