@@ -6,8 +6,9 @@ import { createContext, useContext } from "react";
  *
  * A cover is portrait too, and is arranged like one. It is a shape of its own because its ratio is
  * only approximately known: posters are authored to one pixel size, where book covers come from
- * their publishers at roughly 2:3 and vary by a few percent each. A layout that pins a poster's
- * declared ratio firmly therefore lets a cover take its own — see `shapeIsExact`.
+ * their publishers and vary by several percent each. A surface standing many pictures side by side
+ * crops a cover to its declared ratio as it does the other two; a surface showing one picture lets
+ * a cover take its own — see `shapeIsExact` and `tiledArtworkSx`.
  */
 export type ArtworkShape = "banner" | "poster" | "cover";
 
@@ -40,7 +41,13 @@ export const shapeToArrangement = (shape: ArtworkShape): CardArrangement => shap
 /**
  * The shape every artwork of a kind is drawn at: banners 16:9, posters 680×1000 — the exact pixel
  * size the poster buckets hold, so a canonical file fills its box with nothing left over — and
- * covers 2:3, which is what a publisher's cover is nearest to.
+ * covers 13:20, the ratio that crops the library's covers least. The 243 covers in the book bucket
+ * outside Animorphs run from 0.58 to 0.71 with a median of 0.652; held to 13:20 they lose 2.7% of
+ * a side on average and 44 lose more than 5%, against 3.6% and 61 at 2:3 and 5.2% and 102 at the
+ * poster's 0.68. What is left over five percent is four series: Wheel of Time and Sword of Truth
+ * near 0.60 and Fear Street near 0.58, cut top and bottom, and Keys to the Kingdom near 0.70, cut
+ * at the sides. Animorphs, 54 covers at 0.69, lose 6% of their width, which on those covers is
+ * plain background.
  *
  * The ratio a layout measures is this one and never the file's own. Artwork is authored to it, but
  * an individual image can be off by a few pixels, and a band that took each picture's measured ratio
@@ -49,28 +56,29 @@ export const shapeToArrangement = (shape: ArtworkShape): CardArrangement => shap
  * poster card identical and leaves an off-size file to be letterboxed rather than to move the layout.
  *
  * A cover is the exception, and `shapeIsExact` is what says so: no two covers share a ratio, so a
- * layout that held every cover to 2:3 would letterbox every one of them by a few percent. A surface
- * that pins the declared ratio for posters lets a cover take the ratio its file holds instead —
- * standing at its real width against a fixed height — and absorbs the difference in whatever sits
- * beside it. Nothing is authored to a cover's ratio, so there is no canonical file to hold it to.
+ * cover held to 13:20 is cropped and not merely trimmed of a stray pixel. That is the trade
+ * wherever pictures tile (`tiledArtworkSx`) and nowhere else: a surface showing one cover lets it
+ * take the ratio its file holds — standing at its real width against a fixed height — and absorbs
+ * the difference in whatever sits beside it.
  */
 export const shapeRatioValues: Record<ArtworkShape, number> = {
   banner: 16 / 9,
   poster: 680 / 1000,
-  cover: 2 / 3,
+  cover: 13 / 20,
 };
 
 const shapeRatios: Record<ArtworkShape, string> = {
   banner: "16 / 9",
   poster: "680 / 1000",
-  cover: "2 / 3",
+  cover: "13 / 20",
 };
 
 export const shapeToRatio = (shape: ArtworkShape): string => shapeRatios[shape];
 
 /**
  * Whether every artwork of this shape is authored to `shapeRatioValues` exactly, and so can be held
- * to it. False only for covers, whose ratio is a reservation and never a size.
+ * to it without cropping anything. False only for covers, whose ratio a surface showing one of them
+ * treats as a reservation and never a size.
  */
 const shapeExact: Record<ArtworkShape, boolean> = {
   banner: true,
@@ -81,35 +89,43 @@ const shapeExact: Record<ArtworkShape, boolean> = {
 export const shapeIsExact = (shape: ArtworkShape): boolean => shapeExact[shape];
 
 /**
- * The `aspect-ratio` a surface pinning one dimension states for a shape: the ratio itself where
- * every file holds it, so two cards of one shape are identical, and the `auto` reservation for a
- * cover, so the file's own ratio wins once it lands. One answer for every such surface, so a
- * shape added to the tables cannot be held exactly on one card and reserved on another.
+ * The `aspect-ratio` a surface showing one picture states for a shape it pins one dimension of:
+ * the ratio itself where every file holds it, so the size is known before the file lands, and the
+ * `auto` reservation for a cover, so the file's own ratio wins once it does. A hover card and the
+ * Now band's cards are those surfaces.
  */
 export const shapeToPinnedAspect = (shape: ArtworkShape): string =>
   shapeIsExact(shape) ? shapeToRatio(shape) : shapeToAspect(shape);
 
 /**
- * A picture at a stated height, its width following from its shape: held to the shape where every
- * file is authored to it, cropping a file a few pixels off, and reserved where none is, the file's
- * own ratio winning once it lands — the timeline's pictures, sized as the walls size theirs.
+ * A picture standing among others — a wall, a shelf, a strip, a grid of months — held to its shape
+ * exactly and cropped to it.
+ *
+ * Side by side, a picture's own ratio is a difference between neighbours that means nothing: a
+ * cover a few percent narrower than the one beside it breaks the row's grid for a reason no reader
+ * can see, and a wall reserving the declared ratio before its files load lands every jump short by
+ * what the files then add. Held exactly, every card of a shape is one size before and after its
+ * file arrives. A banner or a poster loses nothing; what a cover loses is stated on
+ * `shapeRatioValues`.
  */
-export const pictureAtHeight = (shape: ArtworkShape, height: number) =>
-  ({
-    height,
-    width: "auto",
-    aspectRatio: shapeToPinnedAspect(shape),
-    objectFit: shapeIsExact(shape) ? "cover" : undefined,
-  }) as const;
+export const tiledArtworkSx = (shape: ArtworkShape) =>
+  ({ aspectRatio: shapeToRatio(shape), objectFit: "cover" }) as const;
 
 /**
- * The height a card holds for artwork it has not loaded yet.
+ * A picture at a stated height among others, its width following from its shape — the timeline's
+ * pictures, sized as the walls size theirs.
+ */
+export const pictureAtHeight = (shape: ArtworkShape, height: number) =>
+  ({ height, width: "auto", ...tiledArtworkSx(shape) }) as const;
+
+/**
+ * The size a picture shown on its own holds for artwork it has not loaded yet — the hero, and a
+ * cover on a hover card or the Now band (`shapeToPinnedAspect`).
  *
- * A lazily loaded image contributes nothing of its own, so a wall or a strip of them stands at a
- * fraction of its real size and every offset measured in it is short by the artwork below — and
- * scrolling into that artwork is what makes it load, so the page grows under the reader. The
- * leading `auto` is what keeps this a reservation rather than a crop: the artwork's own shape wins
- * the moment it is known, and this stands in only while there is none.
+ * A lazily loaded image contributes nothing of its own, so the card it stands in would open short
+ * and grow when the file lands. The leading `auto` is what keeps this a reservation rather than a
+ * crop: the artwork's own shape wins the moment it is known, and this stands in only while there is
+ * none. Pictures that tile are held to the shape outright instead (`tiledArtworkSx`).
  */
 const shapeAspects: Record<ArtworkShape, string> = {
   banner: `auto ${shapeRatios.banner}`,
@@ -161,7 +177,7 @@ const HOVER_CARD_ASIDE_ARTWORK_HEIGHT = 348;
  * them and takes its width. A cover stands like a poster but holds its ratio only until its file
  * has loaded: the reservation keeps the card the right size to within a few percent, and the
  * picture's real width then wins, so the card grows or shrinks by the few pixels a cover is off
- * 2:3 rather than letterboxing them.
+ * 13:20 rather than cropping them: a hover card shows one picture, and the whole of it.
  */
 export const hoverCardArtworkSx = (shape: ArtworkShape) =>
   shapeToArrangement(shape) === "beside"

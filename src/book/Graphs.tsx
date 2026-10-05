@@ -132,6 +132,7 @@ const Graphs = memo(
             // own key — the two together — would name both cards alike.
             keyOf={bookKey}
             unit={BOOK_UNIT}
+            shape="cover"
             MediaComponent={BookCardMediaImage}
           />
         </Section>

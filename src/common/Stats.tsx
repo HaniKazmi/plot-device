@@ -30,7 +30,13 @@ import { dimSx, LABEL_SX, MUTED_FIGURE_SX } from "./typography";
 import { NothingMatches } from "./NothingMatches";
 import { useNothingMatches } from "./nothingMatchesContext";
 import { SectionHeader } from "./SectionHeader";
-import { shapeRatioValues, shapeToArrangement, shapeToPinnedAspect, type ArtworkShape } from "./cardArrangement";
+import {
+  pictureAtHeight,
+  shapeRatioValues,
+  shapeToArrangement,
+  tiledArtworkSx,
+  type ArtworkShape,
+} from "./cardArrangement";
 import { rowCardSize } from "./rowSizing";
 import { Filmstrip, STRIP_GAP } from "./Filmstrip";
 import { useElementWidth } from "./useElementWidth";
@@ -675,9 +681,8 @@ const STRIP_TARGET = { beside: { width: 120, fewest: 3 }, stacked: { width: 220,
  * The picture height that seats a whole number of one shape's cards across a measured row.
  *
  * As many as the target width allows, never fewer than the floor; the width left to each card
- * less its two borders is the picture's, and the height follows from the shape's ratio — the
- * declared one, so a cover's few percent of drift moves the card's width by a pixel or two rather
- * than the row's count.
+ * less its two borders is the picture's, and the height follows from the shape's ratio, which every
+ * picture on a strip is cropped to.
  */
 const stripPictureHeight = (rowWidth: number, shape: ArtworkShape): number => {
   const target = STRIP_TARGET[shapeToArrangement(shape)];
@@ -793,14 +798,14 @@ const StatsListCard = <T,>({
           // poster's beside it, which on a card 82px wide is a column of two characters — and a
           // strip has imposed no width for that rule to reason about in the first place.
           mediaLayout="stacked"
-          // Reserved as the grid's cards are, so a picture that has not loaded still holds the
-          // width its shape gives it at this height and the strip does not close up and reopen as
-          // the files land. A cover takes the `auto` form, its ratio being a reservation only.
-          sx={{
-            height: cell.strip.pictureHeight,
-            width: "auto",
-            aspectRatio: shape && shapeToPinnedAspect(shape),
-          }}
+          // Held as the grid's cards are, so a picture that has not loaded still holds the width
+          // its shape gives it at this height and the strip does not close up and reopen as the
+          // files land.
+          sx={
+            shape
+              ? pictureAtHeight(shape, cell.strip.pictureHeight)
+              : { height: cell.strip.pictureHeight, width: "auto" }
+          }
           // The corner badge is a fixed few dozen pixels of type, which reads as a badge over a
           // banner 213px wide at this height and as a covered picture over a poster 82px wide —
           // wider than the card can hold, so the badge is clipped as well as covering what it is
@@ -847,12 +852,10 @@ const StatsListCard = <T,>({
         // footer, so forwarding it would seat every poster's words in a column beside it —
         // the layout the Omnibus's mixed rows are alone in wanting.
         //
-        // Held firmly, without the leading `auto` a wall's reservation uses: a strip lays its
-        // cards out side by side and an artwork a few pixels off its shape would stand at a
-        // different width from its neighbours, for a reason no reader can see. A cover is the
-        // exception the shape declares — no two share a ratio, so held firmly it would be
-        // cropped — and takes the reservation instead, standing at its file's own height.
-        sx={{ aspectRatio: shape && shapeToPinnedAspect(shape), flexShrink: 0 }}
+        // Held firmly and cropped to the shape, a cover included: these cards stand side by side,
+        // and one a few percent off its shape would stand at a different size from its
+        // neighbours for a reason no reader can see.
+        sx={{ ...(shape && tiledArtworkSx(shape)), flexShrink: 0 }}
         chip={chip}
         onOpen={onOpen}
         openLabel={openLabel}

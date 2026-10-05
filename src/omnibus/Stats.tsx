@@ -324,7 +324,7 @@ const NowItem = <T,>(props: {
             width: "100%",
             // Until the row is measured the picture takes what the spine leaves; once it is, the
             // picture is its own width at the row's height and the spine takes what the picture
-            // leaves, so a cover narrower than 2:3 widens the spine and never changes the row's
+            // leaves, so a cover narrower than a poster widens the spine and never changes the row's
             // height. The column can give but not grow: a cover wider than the poster's ratio
             // would otherwise push the spine past the cell, where the card clips it.
             ...(beside && {
@@ -447,9 +447,10 @@ const NowItem = <T,>(props: {
               }
             : {
                 // A cover's ratio is not one every cover holds, so it is pinned on the row's height
-                // and takes whatever width its file has: a cover a few percent off 2:3 stands a few
-                // pixels wider or narrower, uncropped and unletterboxed, and the text column beside
-                // it gives up or gains those pixels.
+                // and takes whatever width its file has: a cover off 13:20 stands a few pixels
+                // wider or narrower, uncropped and unletterboxed, and the text column beside it
+                // gives up or gains those pixels. One cover stands here, so nothing beside it is
+                // the same shape to be held level with, which is the case `tiledArtworkSx` crops.
                 width: "auto",
                 height: { sm: pair?.height, md: wide?.height },
               }),

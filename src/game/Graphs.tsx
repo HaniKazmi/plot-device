@@ -122,7 +122,7 @@ const Graphs = memo(
             border={VG_BORDER}
             data={data}
             colour={(item) => companyToColor(item, scheme)}
-            landscape
+            shape="banner"
             sorts={gameShelves(scheme)}
             unit={GAME_UNIT}
           />

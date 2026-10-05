@@ -269,7 +269,10 @@ const RecentlyFinished = ({ data }: { data: Book[] }) => (
 const bookMostReadOptions = ["name", ...bookTopOptions] as const;
 
 const MostRead = ({ data, measure }: { data: Book[]; measure: Measure }) => {
-  const [option, controls] = useSelectBox(bookMostReadOptions, "author", "By");
+  // Opens on single books, the one ranking nothing else on the page draws: the Top band beside it
+  // already ranks authors, genres and franchises, and opened on any of those the two sections
+  // state the same five names at the same counts.
+  const [option, controls] = useSelectBox(bookMostReadOptions, "name", "By");
 
   if (option === "name") {
     return (
@@ -322,11 +325,12 @@ const MostReadCategory = ({
       title="Most Read"
       option={category}
       groups={groupBooksBy(data, category, measure)}
-      // Name and figure on one row, as the other three tabs write theirs: the card's words stand
-      // beside its cover, where a row wraps, so under a narrow column the two fall onto their own
-      // lines anyway. It is also the row a strip caption is taken from, and a shelf that drops the
-      // figure it is ranked by leaves the reader nothing to read the order against.
-      labelComponent={(group) => [[group.name, stated(group.count, measure)]]}
+      // Name over figure, a cell a row, as every other list on this tab writes its cards: this band
+      // stands Recently Finished's date over its pages beside it, and two footers of two lines end
+      // at one height at every width, where a row of two cells wraps at a width its own words set
+      // and leaves one card a line taller than its neighbour across the band. A strip's caption
+      // drops the name and keeps the figure (`groupCaption`), which is what the shelf is ranked by.
+      labelComponent={(group) => [[group.name], [stated(group.count, measure)]]}
       colourOf={(top) => groupToColour(category, top, scheme)}
       MediaComponent={BookCardMediaImage}
       // Series order where the sheet numbers one, reading order where it does not: a drill-down

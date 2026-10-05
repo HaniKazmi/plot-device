@@ -121,7 +121,7 @@ const Graphs = memo(({ data, upTo, filterState }: { data: Movie[]; upTo: Movie[]
           // wall of hundreds of cards down on one unfamiliar value.
           colour={(item) => genreToColour(item.genre, scheme)}
           MediaComponent={MovieCardMediaImage}
-          landscape
+          shape="banner"
           sorts={movieShelves(scheme)}
           closeOf={watchedOn}
           unit={MOVIE_UNIT}

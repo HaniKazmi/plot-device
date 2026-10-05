@@ -351,9 +351,9 @@ const ShelfPicture = ({
       // drill-down does. With no words beside or beneath it the card is arranged by nothing, and
       // the picture keeps the whole of the height the row gives it below the band.
       mediaBand={{ node: band.render(card.item), height: band.height }}
-      // The row fixes the height and each picture keeps its own width, so a banner and a poster
-      // stand at one height in the shapes they were made in; the card reserves that width from
-      // its medium's shape before the artwork arrives, which is what a wall's offsets are read in.
+      // The row fixes the height and each picture takes the width its medium's shape gives it, so
+      // a banner and a poster stand at one height in their own shapes; the card holds that width
+      // before the artwork arrives, which is what a wall's offsets are read in.
       sx={{ height: FILMSTRIP_HEIGHT, width: "auto" }}
       chip={grouped ? { label: format(card.members.length), icon: <Collections /> } : undefined}
       onOpen={grouped ? () => onOpenCard(card) : undefined}

@@ -649,7 +649,9 @@ in as `TimelineData`; the section owns how they are laid out, which is the same 
 tab. Each tab offers the layouts that read its own library (`layouts`), in the one order
 whichever it leaves out: Games drops Stacked, a playthrough running across New Year being cut in
 pieces by a row per year; Shows drops Pictures, every season wearing its show's one poster; Movies
-drops Across, a one-day film being a tick there, and so opens on Stacked; and the Omnibus keeps
+drops Across, a one-day film being a tick there, and so opens on Stacked; Books keeps all four and
+opens on Stacked too (`initialLayout`), a library read one book at a time packing into a single
+lane on Across where a month-long read is a sliver named by its first letter; and the Omnibus keeps
 Across and the grid alone, two thousand entries being a stack of hairlines and a clock eighty
 lanes deep — where a franchise's own page, a few dozen entries, offers all four. The header holds
 the two choices about the marks themselves — what one stands for, and how
@@ -658,7 +660,7 @@ own key rather than beside them: the key is where a reader asks what the colours
 setting stands beside its answer, and a header of three controls wraps or scrolls at every width
 short of a desktop's.
 
-**Across** is the packed chart above, and what the section opens on. **Stacked**
+**Across** is the packed chart above, and what the section opens on unless a tab says otherwise. **Stacked**
 (`common/StackedTimeline.tsx`) is a row per year on one screen at any width: `yearRows`
 (`common/timelineStripData.ts`) places each year's spans on the year's own 1 January – 31 December
 scale through `buildStrip`, so a span running across New Year stands on both rows with square ends
@@ -802,8 +804,10 @@ cover. Every card is one width (`omnibus/nowGeometry.ts`) — a full-height post
 176px text column, 434px — spent differently by each shape: a poster's picture takes the row's 380px
 height with the words beside it; a banner's spans the card, so the width fixes its height at 16:9
 (244px) and its panel gets the 136 left. No two covers share a ratio, so a cover is a poster card
-pinned on the height alone: `shapeIsExact` (`common/cardArrangement.ts`) makes 2:3 a reservation and
-never a size, the column absorbing whatever width the file has.
+pinned on the height alone: `shapeIsExact` (`common/cardArrangement.ts`) makes 13:20 a reservation
+and never a size, the column absorbing whatever width the file has. The band shows one cover, so
+there is no neighbour of its shape to hold it level with, which is the case the walls crop for
+(§ One arrangement rule).
 
 Four cards at 434 need 1,760px where the widest container gives 1,488, so with all four in flight
 the row is measured (`common/useElementWidth.ts`) and shared four ways (`denseNowGeometry`): the
@@ -832,7 +836,7 @@ reads `usePhone` as a value for that order, which no `sx` can state. A banner sp
 cells are one height, the poster's at the width the spine leaves it, solved from the measured row
 (`nowPortraitHeight` — 204px at 390, 234 at 430), so a wider phone gets a taller picture rather than
 ground beside one; the cover is held to the same height and takes its own width inside it, its spine
-absorbing what a cover narrower than 2:3 leaves. A cover wider than the poster's ratio cannot fill
+absorbing what a cover narrower than the poster leaves. A cover wider than the poster's ratio cannot fill
 both the row's height and the width the spine leaves, and stands contained in its column with the
 ground above and below — the one picture on the page not edge to edge, since the spine's 36px is
 the floor a date reads at and the alternative is the card clipping the date. The date is bare —
@@ -899,8 +903,8 @@ opens the rest. It opens on franchise, newest first — the series met lately, w
 does not answer — and on **Shelves**, a `common/Filmstrip` a shelf, where every other tab's library
 opens on its wall: these shelves are this tab's own gallery, and a union of four libraries is
 shelves before it is a wall. **Wall** is every work of every shelf in one flow, in the shelves' own
-order, each picture at the row's height and its own width so a banner and a poster share a row
-uncropped. It is a wall as every tab's is: nothing between its runs from `sm` up, the scroll marker
+order, each picture at the row's height and the width its shape gives it, so a banner and a poster
+share a row each in its own shape. It is a wall as every tab's is: nothing between its runs from `sm` up, the scroll marker
 naming the run the reader is in — a pill, or a rail where the runs' names are short enough — and
 sticky headings on a phone. Each picture carries its run as `data-bucket` beside a key joining the
 run's name to the work's, a work standing once a run, and its card reserves its width from the
@@ -1052,11 +1056,12 @@ anything pinned inside the scroller is lifted above `FADE_Z`, where the crossing
 sit.
 
 `common/Filmstrip.tsx` is the layout the gallery and Recently Finished stand on: a row of artwork at
-one fixed height, each child keeping its own width, scrolled rather than wrapped or cropped. Height
-is the only dimension it fixes, which lets a banner, a poster and a cover share one row uncropped —
-a grid cell has a width, and a width plus a height is a crop. It states that height on its children,
-since 100% of the strip's box is the row plus the ten pixels reserved for its scrollbar, through a
-doubled selector (`&& > *`) that outweighs the card's own one-class rule about the same property.
+one fixed height, each child taking the width its own shape gives it, scrolled rather than wrapped.
+Height is the only dimension it fixes, which lets a banner, a poster and a cover share one row each
+in its own shape — a grid cell has a width, and a width plus a height crops every shape but the
+cell's. It states that height on its children, since 100% of the strip's box is the row plus the
+ten pixels reserved for its scrollbar, through a doubled selector (`&& > *`) that outweighs the
+card's own one-class rule about the same property.
 
 `app/CardMediaImage.tsx` is the `TypedCardMediaImage<OmniItem>` every one of these surfaces, the
 search palette and the franchise page render through: it dispatches `item.source` by `item.medium`
@@ -1802,7 +1807,7 @@ one tab's cards — so every run starts on screen and the page is as long as the
 than as the library is big. A shelf holds twenty pictures (`SHELF_PICTURES`); past that its worded
 cut, "All 110 ›", carries the run's size and opens the whole run as a wall in a dialog of its own,
 and a shelf short of the cut states its size beside its name instead, one figure either way. Size
-means a height on a shelf, each picture keeping its own width: `SHELF_HEIGHTS` matches Compact and
+means a height on a shelf, each picture taking the width its shape gives it: `SHELF_HEIGHTS` matches Compact and
 Large to the wall's own card — in a 1,728px window a large banner is 473px wide on the wall and 462
 on its shelf — and holds Full to two banners a row, a wall card a row being taller than the window. The
 four tracked tabs open on the Wall. Both layouts draw one `WallCard`, bordered alike, so a card
@@ -1873,11 +1878,7 @@ rect.bottom > innerHeight / 2` alone would light the pill over a section's own h
 between the section arriving and the wall's first row reaching the marker offset — true of any width
 whose gutter falls under `MIN_GUTTER` (72px), which is every width on a phone. Requiring the grid's
 own top to have reached `MARKER_TOP` (within the browser's own rounding) asks the marker's real
-question instead: not "is the section visible" but "is there a row here to name". Compact's grid also
-drops the row's stretch alignment: a card ends where its own picture does (`alignSelf: "flex-start"`)
-rather than at the row's height, since only a cover is ever short of it and a stretched cover reads as
-a card drawn wrong — the row's _tops_ stay level either way, which is what both the marker and a
-reader's eye read a row by.
+question instead: not "is the section visible" but "is there a row here to name".
 
 Each card wrapper carries its label as a `data-bucket` attribute, and the scroll handler
 binary-searches the wrappers for the first whose rect clears the reading line: the wall runs to a
@@ -1918,20 +1919,16 @@ instant beyond, where the animation would only be a wait.
 is `loading="lazy"` and an unloaded image has no height: 322 games stand at about 7,000 pixels
 against 33,000 loaded, and scrolling into a region is what loads it, so a jump far down the sort
 asks for an offset short by all the artwork below and lands clamped at the document's bottom, a
-decade short of the chip clicked. A landscape wall — Games, Movies — pins 16:9 outright through
-`shapeToRatio` and crops a file that is not, `object-fit: cover`, since the wall reads as one grid
-only while every card in a row is one height. A portrait wall holds covers as well as posters and
-no cover is any exact ratio, so there `Finished` reserves through `shapeToAspect`, whose leading
-`auto` keeps the figure a reservation the file's own shape replaces once it is known. The stat
-strips reserve firmly through `shapeToRatio` for the same reason the landscape wall does; only a
-cover takes the `auto` form. The hero and timeline tooltips are untouched; the Omnibus reserves on
-every card from its artwork's shape (§6).
+decade short of the chip clicked. Every wall pins its tab's shape outright through `tiledArtworkSx`
+and crops a file that is not it, `object-fit: cover` — 16:9 on Games and Movies, 680×1000 on Shows,
+13:20 on Books — since the wall reads as one grid only while every card in a row is one height. The
+stat strips and the Omnibus's shaped cards hold their artwork the same way (§ One arrangement rule);
+the hero and the hover cards do not.
 
-What is left after the reservation is a card's own rounding, and on Books a cover a few percent off
-the 2:3 the grid reserves or a footer that wraps, so a deep jump there can land a row from the chip
-pressed. The jump is one `scrollTo` and no correction afterwards: a loop re-measuring and
-re-scrolling until the card sits at its offset costs global input listeners to tell the reader
-taking the page back from the page growing under them, and buys a row at most.
+What is left after the reservation is a card's own rounding. The jump is one `scrollTo` and no
+correction afterwards: a loop re-measuring and re-scrolling until the card sits at its offset costs
+global input listeners to tell the reader taking the page back from the page growing under them, and
+buys nothing the reservation has not already.
 
 A bucket boundary falls mid-row for most buckets, so the row a jump lands at the top opens with the
 previous bucket's spill and ends in the one clicked, and the marker reads that row's _last_ card,
@@ -2151,8 +2148,9 @@ same four by medium, so a hovered bar shows the same card wherever it is hovered
 ### One arrangement rule, for the one tab that needs it — `common/cardArrangement.ts`
 
 A card given a `shape` arranges itself by it: **landscape artwork stacks its words below, portrait
-and cover artwork seat them beside**. It reserves that shape from the same table before the image
-loads, so what a card holds space for and what it is arranged for cannot come apart.
+and cover artwork seat them beside**. It holds its artwork to that shape from the same table, before
+the image loads and after, so what a card holds space for and what it is arranged for cannot come
+apart.
 
 A mixed row is where one arrangement fails: words beside a 16:9 banner get a sliver of a column, and
 the strip beneath a poster half as wide as it is tall clamps every title to three characters. Shape
@@ -2164,12 +2162,23 @@ keeps its caller's arrangement. A caller pinning its own artwork size names the 
 through `mediaLayout`: the hero.
 
 Posters are authored to 680×1000 and banners to 16:9, so a layout holds either exactly; a cover is
-whatever its publisher drew, near 2:3 and a few percent off either way — a third shape rather than a
-second kind of poster, the difference being exactness. `shapeIsExact` is what a surface pinning a
-ratio asks: where it holds a poster exactly it gives a cover the `auto` reservation (`shapeToAspect`)
-the walls use, the declared ratio sizing the card until the file loads and its own ratio wins. The
-hover cards and the Now band are those surfaces — a hover card's artwork stands 348px tall beside its
-words, or spans the card at 16:9 above them.
+whatever its publisher drew — a third shape rather than a second kind of poster, the difference
+being exactness. Its declared ratio is 13:20, the one that crops the library's covers least: outside
+Animorphs the bucket's covers have a median of 0.652, and held to 13:20 they lose 2.7% of a side on
+average where 2:3 costs 3.6% and the poster's 0.68 costs 5.2%. What loses more than 5% is four
+series — Wheel of Time, Sword of Truth and Fear Street cut top and bottom, Keys to the Kingdom at
+the sides — and Animorphs' 54 covers lose 6% of plain background off their width.
+
+**Where pictures tile, every shape is cropped to its ratio; where one picture stands, a cover keeps
+its own.** A wall, a shelf, a strip, a grid of cards, a mixed row and the timeline's pictures all
+stand pictures side by side, and there `tiledArtworkSx` holds each to its declared ratio with
+`object-fit: cover`: a cover a few percent off its neighbour breaks the row for a reason no reader
+can see, and a reservation the file then overrides moves every offset measured below it. A card
+given a `shape` takes that rule by default. The hero, a hover card, the Now band and the expanded
+card show one picture, and there a cover is the whole of its file: `shapeIsExact` is what such a
+surface asks, holding a poster exactly and giving a cover the `auto` reservation (`shapeToAspect`),
+the declared ratio sizing the card until the file loads and its own ratio wins. A hover card's
+artwork stands 348px tall beside its words, or spans the card at 16:9 above them.
 
 The ratio measured is the declared one, never a file's pixels, which are off by a few: measured, a
 band would stand two cards of one shape at different widths for a reason no reader can see.
