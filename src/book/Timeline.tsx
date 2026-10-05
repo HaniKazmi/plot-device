@@ -188,6 +188,10 @@ const BookTimeline = ({
       yearTo={yearTo}
       dispatch={pageState.dispatch}
       shape="cover"
+      // Books are read one at a time, so Across packs the library into a single lane four screens
+      // wide, where a month-long read is a sliver whose name is cut to its first letter. Stacked
+      // gives each year a row on one screen with every name that fits written on its band.
+      initialLayout="Stacked"
     />
   );
 };

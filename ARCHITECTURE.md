@@ -649,7 +649,9 @@ in as `TimelineData`; the section owns how they are laid out, which is the same 
 tab. Each tab offers the layouts that read its own library (`layouts`), in the one order
 whichever it leaves out: Games drops Stacked, a playthrough running across New Year being cut in
 pieces by a row per year; Shows drops Pictures, every season wearing its show's one poster; Movies
-drops Across, a one-day film being a tick there, and so opens on Stacked; and the Omnibus keeps
+drops Across, a one-day film being a tick there, and so opens on Stacked; Books keeps all four and
+opens on Stacked too (`initialLayout`), a library read one book at a time packing into a single
+lane on Across where a month-long read is a sliver named by its first letter; and the Omnibus keeps
 Across and the grid alone, two thousand entries being a stack of hairlines and a clock eighty
 lanes deep — where a franchise's own page, a few dozen entries, offers all four. The header holds
 the two choices about the marks themselves — what one stands for, and how
@@ -658,7 +660,7 @@ own key rather than beside them: the key is where a reader asks what the colours
 setting stands beside its answer, and a header of three controls wraps or scrolls at every width
 short of a desktop's.
 
-**Across** is the packed chart above, and what the section opens on. **Stacked**
+**Across** is the packed chart above, and what the section opens on unless a tab says otherwise. **Stacked**
 (`common/StackedTimeline.tsx`) is a row per year on one screen at any width: `yearRows`
 (`common/timelineStripData.ts`) places each year's spans on the year's own 1 January – 31 December
 scale through `buildStrip`, so a span running across New Year stands on both rows with square ends
