@@ -52,7 +52,7 @@ import {
 } from "./statsData";
 import "../utils/arrayUtils";
 import { useScheme } from "../common/useScheme";
-import type { DrilldownGroup } from "../common/statsData";
+import { captionLines, type DrilldownGroup } from "../common/statsData";
 import { categoryKeys } from "../common/filterSchema";
 import { bookFilters } from "./filters";
 
@@ -357,6 +357,9 @@ const BookStatList = (
       chipComponent={(book) => bookScoreChip(book, scheme)}
       MediaComponent={BookCardMediaImage}
       nameComponent={bookKey}
+      // This tab writes a cell a row, and a strip's own caption reads the first row alone, which
+      // would state a date without its pages, or pages without the hours the list is ranked by.
+      captionOf={(book) => captionLines(props.labelComponent(book).flat())}
       {...bookStatListSharedProps}
       {...props}
     />
