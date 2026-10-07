@@ -4,7 +4,7 @@ import { showDataConfig } from "./converter";
 import { guestFilter, showFilters } from "./filters";
 import { pageState } from "./filterUtils";
 import { earliestYear as earliestYearOf } from "../common/statsData";
-import type { Measure, Season, Show } from "./types";
+import { seasonArtwork, type Measure, type Season, type Show } from "./types";
 
 /**
  * A season as one row of the union — the unit a show contributes, not the show.
@@ -48,14 +48,16 @@ export const showModule: MediumModule<Show, Season, Measure> = {
   toOmniItems: seasonItems,
   entry: seasonEntry,
   span: spanUntil,
-  // The sheets hold one banner per show, so a season is drawn as its show.
-  artwork: (season) => season.show.artwork,
+  // A season is drawn as its show unless the sheet gives it a picture of its own.
+  artwork: seasonArtwork,
   // A strip of six cards all reading the same show name says nothing about what was watched.
   title: (season) => `${season.show.name} S${season.s}`,
   // The show itself, which is exact: every season of one show holds the same object. A wall draws
-  // one banner per show, where keying on the season would stand a six-season show on a shelf as
-  // six copies of the same artwork and crowd every other show off the strip.
+  // one picture per show, where keying on the season would stand a six-season show on a shelf six
+  // times and crowd every other show off the strip.
   work: (season) => season.show,
+  // A copy rather than the season, which other surfaces still draw with its own picture.
+  asWork: (season) => (season.artwork ? { ...season, artwork: undefined } : season),
   secondaryText: (season) => [season.show.network, ...season.show.s.map((each) => each.subtitle ?? "")],
   // Seasons rather than hours: how long a show ran is what a reader recognises it by, and the
   // hours a hit is told with are every season's together rather than this one's.

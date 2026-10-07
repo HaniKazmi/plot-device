@@ -46,6 +46,8 @@ export const movieModule: MediumModule<Movie, Movie, Measure> = {
   // Title and release, so a rewatch joins the first viewing while a remake of the same name stays
   // a work of its own.
   work: (movie) => `${movie.name}-${movie.releaseDate}`,
+  // Every row carries its work's one picture, so a row fronts its work as itself.
+  asWork: (item) => item,
   secondaryText: (movie) => [movie.director, movie.series],
   facts: (movie) =>
     [movie.cinema ? "Cinema" : "Home", movie.score === undefined ? "" : `${movie.score}/10`, movie.director]

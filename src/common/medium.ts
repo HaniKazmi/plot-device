@@ -309,6 +309,12 @@ export interface MediumModule<T, S = T, M extends string = string> extends PageM
    * however many seasons it ran. Opaque, being a `Map` key and nothing else.
    */
   work(item: S): unknown;
+  /**
+   * The item as it fronts its whole work, where a surface draws one picture per work: a season
+   * carrying a picture of its own steps it aside for its show's, since the card stands for every
+   * season of the show and not the one that happened to be picked to front it.
+   */
+  asWork(item: S): S;
   /** What a hit can be found by besides its name: the people and places a reader remembers it by. */
   secondaryText(item: S): string[];
   /** The line a hit is told by, in this medium's own words, over hours already summed. */

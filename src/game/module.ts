@@ -48,6 +48,8 @@ export const gameModule: MediumModule<VideoGame, VideoGame, Measure> = {
   title: (game) => game.name,
   /** A game is already one row per work, so the row itself is the work. */
   work: (game) => game,
+  // Every row carries its work's one picture, so a row fronts its work as itself.
+  asWork: (item) => item,
   secondaryText: (game) => [game.developer, game.platform, game.series],
   facts: (game, hours) => [game.platform, game.status, hours ? `${hours} hours` : ""].filter(Boolean).join(" · "),
   /** Games first: it is what a row of the sheet is. */

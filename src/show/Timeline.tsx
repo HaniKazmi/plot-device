@@ -12,7 +12,7 @@ import ShowCardMediaImage, { ShowHoverCard } from "./CardMediaImage";
 import { pageState } from "./filterUtils";
 
 /**
- * Every layout but Pictures: every season wears its show's one poster, so the clock would be the
+ * Every layout but Pictures: most seasons wear their show's one poster, so the clock would be the
  * same picture repeated along each show's run.
  */
 const LAYOUTS: readonly TimelineLayout[] = ["Across", "Stacked", "Grid"];

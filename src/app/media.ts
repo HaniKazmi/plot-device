@@ -61,10 +61,19 @@ export const eachMedium = <R>(
 export const moduleOf = (item: OmniItem): MediumModule<unknown, unknown> => MEDIA[item.medium];
 
 /**
- * The artwork an item is shown as, which is its own tab's: a season is drawn as its show, since
- * the sheets hold one banner per show and a season has no picture of its own.
+ * The artwork an item is shown as, which is its own tab's: a season is drawn as its show unless
+ * the sheet gives it a picture of its own.
  *
  * The browse surfaces are walls of pictures, so an item with none is not on them — the rule
  * `finishedItems` already applies to every domain's library grid.
  */
 export const omniArtwork = (item: OmniItem): string | undefined => moduleOf(item).artwork(item.source);
+
+/**
+ * An item as it fronts its whole work, for a surface drawing one card per work: a season with a
+ * picture of its own wears its show's there, the card standing for every season of the show.
+ */
+export const omniWork = (item: OmniItem): OmniItem => {
+  const source = moduleOf(item).asWork(item.source);
+  return source === item.source ? item : { ...item, source: source as object };
+};

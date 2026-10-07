@@ -220,7 +220,10 @@ Converters do real modelling work, not just field renaming:
   season with episodes and no runtime is counted as 0 minutes without complaint, an open season the
   sheet has no length for yet being the common case; an inverted date pair, a non-numeric episode
   count or seasons listed out of order are rejected by row, as the other converters reject theirs.
-  The `show` back-reference makes the graph cyclic (§4).
+  The `show` back-reference makes the graph cyclic (§4). A season row's own `Artwork` cell, blank
+  on most, overrides its show's picture wherever a card is about that season — the hero, the
+  watching strips, the timeline, the franchise page's shelves — and steps aside wherever one card
+  stands for the whole show, the Omnibus library and a search hit, through the module's `asWork`.
 - **`movie/`** reads both its dates as full ones, a blank runtime as `0` and a blank Score as
   `undefined`: `sum` accumulates with `+`, so one `NaN` blanks every hours total, where a score is
   honestly absent rather than zero. `cinema` stays a boolean on the model but is read from a worded
@@ -331,7 +334,7 @@ Two subtleties live in the serialisation boundary, and both are easy to break:
    the page's own error boundary (§10), so a throw here takes the app down and not just the page.
 
 Cache keys are versioned per domain — `dataCacheKey(domain, version)` yields `game-data-cache-v5`,
-`show-data-cache-v7`, `movie-data-cache-v5`, `book-data-cache-v2` — and `dropSupersededVersions`
+`show-data-cache-v8`, `movie-data-cache-v5`, `book-data-cache-v2` — and `dropSupersededVersions`
 clears earlier keys on first load, matched on the domain's prefix so one tab's bump cannot empty
 another's. Bump the version in the domain's `converter.ts` on any model-shape change, or returning
 visitors' cached objects lack the field until their next authorised fetch — indefinitely, for a
@@ -651,7 +654,7 @@ owns what the marks are — which items, one per item or per group, in which col
 in as `TimelineData`; the section owns how they are laid out, which is the same question on every
 tab. Each tab offers the layouts that read its own library (`layouts`), in the one order
 whichever it leaves out: Games drops Stacked, a playthrough running across New Year being cut in
-pieces by a row per year; Shows drops Pictures, every season wearing its show's one poster; Movies
+pieces by a row per year; Shows drops Pictures, most seasons wearing their show's one poster; Movies
 drops Across, a one-day film being a tick there, and so opens on Stacked; Books keeps all four and
 opens on Stacked too (`initialLayout`), a library read one book at a time packing into a single
 lane on Across where a month-long read is a sliver named by its first letter; and the Omnibus keeps

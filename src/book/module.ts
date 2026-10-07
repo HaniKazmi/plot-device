@@ -46,6 +46,8 @@ export const bookModule: MediumModule<Book, Book, Measure> = {
   title: (book) => book.name,
   // Title and release, as a film's work is: a reread joins the first reading.
   work: (book) => `${book.name}-${book.releaseDate}`,
+  // Every row carries its work's one picture, so a row fronts its work as itself.
+  asWork: (item) => item,
   secondaryText: (book) => [book.author, book.series],
   facts: (book) => [book.author, book.status, book.pages ? `${book.pages} pages` : ""].filter(Boolean).join(" · "),
   measures: ["Books", "Pages", "Hours"],

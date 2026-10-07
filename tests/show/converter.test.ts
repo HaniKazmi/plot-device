@@ -48,6 +48,19 @@ describe("flattening the sheet into nested shows", () => {
     expect(show.artwork).toBe("severance.jpg");
   });
 
+  it("gives a season its own picture where its row carries one, and none where it does not", () => {
+    const [show] = jsonConverter([
+      showRow(),
+      seasonRow({ Season: "1", Artwork: " severance-s1.jpg " }),
+      seasonRow({ Season: "2", Artwork: "" }),
+      // The sheet's last column, so a row with nothing in it usually ends before it.
+      seasonRow({ Season: "3", Artwork: undefined }),
+    ]);
+
+    expect(show.s.map((season) => season.artwork)).toEqual(["severance-s1.jpg", undefined, undefined]);
+    expect(show.artwork).toBe("severance.jpg");
+  });
+
   it("rejects a show with no genre, naming the row and the show", () => {
     expect(() => jsonConverter([showRow({ Genre: "" }), seasonRow()])).toThrow(
       'Row 2, "Severance", Genre: no genre recorded',
@@ -340,7 +353,7 @@ describe("bad rows", () => {
 
 describe("the cache config", () => {
   it("keys the cache on the domain and a version, so a shape change can bump it", () => {
-    expect(showDataConfig.storageKey).toBe("show-data-cache-v7");
+    expect(showDataConfig.storageKey).toBe("show-data-cache-v8");
     expect(showDataConfig.converter).toBe(jsonConverter);
     expect(showDataConfig.replacer).toBe(dropSeasonParents);
     expect(showDataConfig.reviver).toBe(reviveSeasonParents);

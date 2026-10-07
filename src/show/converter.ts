@@ -81,6 +81,9 @@ export const jsonConverter = (json: Record<string, string>[]) => {
         episodeLength,
         minutes: episodeLength ? episodeLength * e : 0,
         lastWatchedDate,
+        // The sheet's last column, so a season row without a picture usually ends before it and
+        // carries no key at all. Blank is the common case and means the show's picture.
+        artwork: row.Artwork?.trim() || undefined,
         show: show as Show,
       };
 
@@ -114,7 +117,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
  * only readable by the reviver that puts them back.
  */
 export const showDataConfig: DataConfig<Show> = {
-  storageKey: dataCacheKey("show", 7),
+  storageKey: dataCacheKey("show", 8),
   converter: jsonConverter,
   reviver: reviveSeasonParents,
   replacer: dropSeasonParents,
