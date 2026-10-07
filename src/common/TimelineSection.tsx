@@ -86,7 +86,7 @@ export const TimelineSection = ({
   /**
    * How the stack of years differs from Across, where a tab asks it to: the marks its rows draw and
    * the figure its header states for them, and whether a band wears its name where the name fits.
-   * A tab reading a year as one row leaves out what would open a second lane in every year it ran.
+   * A tab reading a year as one row leaves out what would open a second lane in the years it ran.
    */
   stacked?: { data?: TimelineData[]; count?: string; labelled?: boolean };
   /**

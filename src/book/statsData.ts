@@ -279,3 +279,12 @@ export const statsCardLabelPages = (book: Book) => [
   [`${format(book.pages)} pages`],
   [`${format(roundHours(book.hours))} hours`],
 ];
+
+/**
+ * A book read beside the others rather than between them: a web serial, read online a chapter at a
+ * time as it was written — Worm through 2013, Ward from 2017 into 2020 — and an Abstract one, read
+ * in sittings across the novels of the same weeks, as Designing Data-Intensive Applications was
+ * inside Oathbringer's nine months. The timeline packs these beneath the rest, and the stack of
+ * years keeps one only where nothing else was being read beside it.
+ */
+export const readAlongside = (book: Book) => book.format === "Web Serial" || book.genre === "Abstract";

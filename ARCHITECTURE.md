@@ -542,7 +542,10 @@ rich hover cards. Two algorithms:
 
 - **Greedy interval packing** (`packRows`, `common/timelineLayout.ts`): sort by start date, place
   each item in the first row whose last item has ended. Items are linked to their row neighbours
-  (`previousDate` / `nextDate`), so the layout step knows how much empty space surrounds a bar.
+  (`previousDate` / `nextDate`), so the layout step knows how much empty space surrounds a bar. An
+  item flagged `beneath` is packed against the others so flagged alone, in rows below every row
+  the rest take: an item running beside the rest for years otherwise holds a row in the middle of
+  them, and the items read in turn pack around it.
 - **Derived text placement** (`placeLabels`): one pass over the rows decides per item whether the
   label fits inside its bar or spills into the gap left or right, tracking per row whether the
   right-hand gap is claimed. Labels live in a `<foreignObject>` spanning the whole gap, so they
@@ -755,9 +758,13 @@ its 24px holds a title — `EventRibbon` names the bands of a row of one lane an
 the packed chart's own rule (`placeBandLabels` over `decidePlacement`, measured through the same
 canvas, `common/labelWidth.ts`): on the band where the name fits, else in the gap before or after
 it, else run from the band into the gap after, and cut short on the band where nothing holds it —
-so a name stands on a year's row wherever it would on Across. A web serial breaks that in every year it ran — Worm through 2013, Ward
-from 2017 into 2020, each running for months beside the books read alongside it — so the stack
-leaves the three serials to Across and says so in its header: "490 books · no web serials".
+so a name stands on a year's row wherever it would on Across. A book read alongside the rest
+(`readAlongside`, `book/statsData.ts`) — a web serial, or one whose genre is Abstract — breaks that
+wherever anything else was read beside it: Worm runs beside 21 books through 2013 and Ward beside 11
+from 2017 into 2020, each opening a second lane in the rows it runs through. The stack leaves such a
+book to Across where it overlaps another (`dropOverlapping`, by the packing's own `overlaps` rule)
+and keeps it where it ran alone, saying so in its header: "477 books · no overlapping serials or
+Abstract". Across draws every one of them, packed beneath the rest.
 
 It never folds on a phone, for the packed chart's reason — and Stacked is built to fit a phone's
 width, so a folded card would hide the one reading made for it.

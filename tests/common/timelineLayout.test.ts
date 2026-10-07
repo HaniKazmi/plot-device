@@ -4,9 +4,11 @@ import {
   assignRows,
   buildTicks,
   decidePlacement,
+  dropOverlapping,
   groupMarks,
   groupSpans,
   latestEnd,
+  overlaps,
   placeBandLabels,
   packRows,
   percentAtDate,
@@ -61,6 +63,54 @@ describe("assignRows", () => {
 
   it("returns nothing for nothing", () => {
     expect(assignRows([])).toEqual([]);
+  });
+});
+
+describe("overlaps", () => {
+  it("reads two spans running at once as overlapping", () => {
+    expect(overlaps(interval([2024, 1, 1], [2024, 6, 1]), interval([2024, 3, 1], [2024, 4, 1]))).toBe(true);
+  });
+
+  // The packing's own rule: a span is over on the day it ends, so a handoff shares a row.
+  it("reads a span begun the day another ends as following it, as the packing does", () => {
+    const first = interval([2024, 1, 1], [2024, 3, 1]);
+    const next = interval([2024, 3, 1], [2024, 4, 1]);
+
+    expect(overlaps(first, next)).toBe(false);
+    expect(overlaps(next, first)).toBe(false);
+    expect(assignRows([first, next])).toEqual([0, 0]);
+  });
+
+  it("reads a single day inside a longer span as overlapping it", () => {
+    expect(overlaps(interval([2024, 2, 1], [2024, 2, 1]), interval([2024, 1, 1], [2024, 3, 1]))).toBe(true);
+  });
+});
+
+describe("dropOverlapping", () => {
+  const apart = (row: TimelineData) => row.name.startsWith("serial");
+
+  it("leaves out an item set apart wherever it runs beside another", () => {
+    const rows = [item("book", [2024, 1, 1], [2024, 2, 1]), item("serial", [2024, 1, 15], [2024, 6, 1])];
+
+    expect(dropOverlapping(rows, apart).map((row) => row.name)).toEqual(["book"]);
+  });
+
+  it("keeps an item set apart that runs alone, which opens no second lane", () => {
+    const rows = [item("book", [2024, 1, 1], [2024, 2, 1]), item("serial", [2024, 2, 1], [2024, 6, 1])];
+
+    expect(dropOverlapping(rows, apart).map((row) => row.name)).toEqual(["book", "serial"]);
+  });
+
+  it("keeps every item not set apart, however they overlap", () => {
+    const rows = [item("a", [2024, 1, 1], [2024, 6, 1]), item("b", [2024, 3, 1], [2024, 4, 1])];
+
+    expect(dropOverlapping(rows, apart)).toEqual(rows);
+  });
+
+  it("leaves out two items set apart that overlap only each other, either one opening a lane", () => {
+    const rows = [item("serial one", [2024, 1, 1], [2024, 6, 1]), item("serial two", [2024, 3, 1], [2024, 9, 1])];
+
+    expect(dropOverlapping(rows, apart)).toEqual([]);
   });
 });
 
@@ -148,6 +198,59 @@ describe("packRows", () => {
 
     expect(rows[0].nextDate).toBeUndefined();
     expect(rows[1].previousDate).toBeUndefined();
+  });
+
+  describe("an item packed beneath", () => {
+    const beneath = (row: TimelineData): TimelineData => ({ ...row, beneath: true });
+
+    it("stands below every row the rest take, even where it began first", () => {
+      const [rows, maxRow] = packRows([
+        beneath(item("serial", [2024, 1, 1], [2024, 12, 1])),
+        item("a", [2024, 2, 1], [2024, 6, 1]),
+        item("b", [2024, 3, 1], [2024, 4, 1]),
+      ]);
+
+      expect(rows.map((r) => [r.name, r.rowNumber])).toEqual([
+        ["serial", 2],
+        ["a", 0],
+        ["b", 1],
+      ]);
+      expect(maxRow).toBe(2);
+    });
+
+    it("packs against the others beneath alone, sharing a row where they follow one another", () => {
+      const [rows, maxRow] = packRows([
+        item("a", [2024, 1, 1], [2024, 12, 1]),
+        beneath(item("serial one", [2024, 1, 1], [2024, 3, 1])),
+        beneath(item("serial two", [2024, 3, 1], [2024, 9, 1])),
+        beneath(item("serial three", [2024, 4, 1], [2024, 5, 1])),
+      ]);
+
+      expect(rows.map((r) => [r.name, r.rowNumber])).toEqual([
+        ["serial one", 1],
+        ["a", 0],
+        ["serial two", 1],
+        ["serial three", 2],
+      ]);
+      expect(maxRow).toBe(2);
+    });
+
+    it("takes the top row where nothing else is drawn", () => {
+      const [rows, maxRow] = packRows([beneath(item("serial", [2024, 1, 1], [2024, 12, 1]))]);
+
+      expect(rows[0].rowNumber).toBe(0);
+      expect(maxRow).toBe(0);
+    });
+
+    it("leaves the rest packed exactly as they would be without it", () => {
+      const rest = [item("a", [2024, 1, 1], [2024, 6, 1]), item("b", [2024, 3, 1], [2024, 4, 1])];
+      const [alone] = packRows(rest);
+      const [beside] = packRows([...rest, beneath(item("serial", [2024, 2, 1], [2024, 5, 1]))]);
+
+      expect(beside.filter((r) => !r.beneath).map((r) => [r.name, r.rowNumber])).toEqual(
+        alone.map((r) => [r.name, r.rowNumber]),
+      );
+    });
   });
 
   it("copies each item rather than annotating the caller's objects", () => {

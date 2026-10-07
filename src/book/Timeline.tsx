@@ -4,13 +4,13 @@ import { useColourBy } from "../common/useColourBy";
 import { yearPredicates, type YearType } from "../common/filterReducer";
 import { groupToColour, type Book } from "./types";
 import { TimelineSection } from "../common/TimelineSection";
-import type { PicturePress, TimelineData } from "../common/timelineLayout";
+import { dropOverlapping, type PicturePress, type TimelineData } from "../common/timelineLayout";
 import { CURRENT_PLAINDATE, type YearMonthDay, type YearNumber } from "../common/date";
 import { pictureAtHeight } from "../common/cardArrangement";
 import BookCardMediaImage, { BookHoverCard } from "./CardMediaImage";
 import { BookSeriesHoverCard } from "./seriesCard";
 import { stated } from "../common/population";
-import { bookGroupValue, bookKey, lastEnd, seriesSpans } from "./statsData";
+import { bookGroupValue, bookKey, lastEnd, readAlongside, seriesSpans } from "./statsData";
 import { pageState } from "./filterUtils";
 
 /**
@@ -18,9 +18,6 @@ import { pageState } from "./filterUtils";
  * first, as the wall's border and the genre band draw a book.
  */
 const COLOUR_KEYS = ["genre", "status", "format", "score", "decade", "franchise"] as const;
-
-/** A book read online as it was written, a chapter at a time over months or years. */
-const isSerial = (book: Book) => book.format === "Web Serial";
 
 const pictureOf = (book: Book) => (height: number, press: PicturePress) => (
   <BookCardMediaImage
@@ -97,18 +94,18 @@ const BookTimeline = ({
   // sharing a title and a start date apart, which `bookKey` cannot.
   const shown = new Set(data);
 
-  // Each bar with whether it is a web serial's, read online a chapter at a time over months or years
-  // — which Stacked leaves out (below).
-  const marks: { bar: TimelineData; serial: boolean }[] = series
+  // A bar read alongside the rest (`readAlongside`) stands beneath them on Across. Packed among them
+  // it holds whichever row was free the day it began for as long as it runs — two and a half years
+  // for Ward — and the books read in turn pack around it, rather than in the rows above it.
+  const bookData: TimelineData[] = series
     ? series
         .filter((span) => span.books.some((book) => shown.has(book)))
         .map((span) => ({ span, drawn: span.books.filter((book) => begun(book) && inScope(book)) }))
         // A series whose every read is out of scope, or has not begun, has no span to draw — where
         // one book of it is in scope, that book is what there is to show.
         .filter(({ drawn }) => drawn.length > 0)
-        .map(({ span, drawn }) => ({
-          serial: drawn.every(isSerial),
-          bar: toBar({
+        .map(({ span, drawn }) =>
+          toBar({
             key: span.key,
             name: span.name,
             tooltip: () => <BookSeriesHoverCard span={span} />,
@@ -122,12 +119,12 @@ const BookTimeline = ({
             start: drawn[0].startDate,
             end: lastEnd(drawn),
             open: drawn.some((book) => !book.endDate),
+            beneath: drawn.every(readAlongside),
             picture: pictureOf(span.lead),
           }),
-        }))
-    : data.filter(begun).map((book) => ({
-        serial: isSerial(book),
-        bar: toBar({
+        )
+    : data.filter(begun).map((book) =>
+        toBar({
           key: bookKey(book),
           name: book.name,
           tooltip: () => <BookHoverCard item={book} />,
@@ -135,17 +132,17 @@ const BookTimeline = ({
           start: book.startDate,
           end: book.endDate,
           open: !book.endDate,
+          beneath: readAlongside(book),
           picture: pictureOf(book),
         }),
-      }));
-  const bookData = marks.map(({ bar }) => bar);
+      );
 
   // A year of Stacked is one row where nothing in it overlaps, which is how a year of books reads:
-  // one at a time. A web serial breaks that in every year it ran — Worm through 2013, Ward from 2017
-  // into 2020, each running for months beside the books read alongside it — and opens a second lane
-  // in all of them, halving every band's height, so the stack of years leaves serials to Across,
-  // where a row of their own is what the packing gives them anyway.
-  const stackedData = marks.filter(({ serial }) => !serial).map(({ bar }) => bar);
+  // one at a time. A book read alongside breaks that wherever anything else was being read at once
+  // — Worm beside 21 books through 2013, Ward beside 11 from 2017 into 2020 — opening a second lane
+  // and halving every band in the rows it ran through, so the stack leaves such a book to Across.
+  // One with nothing else read beside it stands in the lane like any other book.
+  const stackedData = dropOverlapping(bookData, (bar) => bar.beneath === true);
 
   return (
     <TimelineSection
@@ -165,7 +162,7 @@ const BookTimeline = ({
         // What the stack draws, and why it is fewer where it is.
         count:
           stackedData.length < bookData.length
-            ? `${stated(stackedData.length, series ? "series" : "books")} · no web serials`
+            ? `${stated(stackedData.length, series ? "series" : "books")} · no overlapping serials or Abstract`
             : undefined,
         // A year is one row, 24px of it, so a read long enough for its title can carry the name.
         labelled: true,
