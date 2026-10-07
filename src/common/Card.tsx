@@ -620,12 +620,12 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
             >
               {missing ? (
                 /* The picture's own box, filled and named. It carries `mediaSx` exactly as the image
-                 does, so it stands where the picture would have and holds the same reservation —
-                 `auto <ratio>` resolves to the ratio on an element with no natural size of its
-                 own, which is what keeps a wall of these the height the offsets are measured
-                 against. A span, because the card's action area is a button and only phrasing
-                 content is legal inside one — which the image it stands in for is and a div is
-                 not. */
+                 does, so it stands where the picture would have at the same size — the shape's
+                 ratio, which an element with no natural size of its own takes whether it is stated
+                 outright or as an `auto` reservation, and which keeps a wall of these the height
+                 the offsets are measured against. A span, because the card's action area is a
+                 button and only phrasing content is legal inside one — which the image it stands
+                 in for is and a div is not. */
                 <ArtworkStandIn
                   alt={alt}
                   palette={palette}

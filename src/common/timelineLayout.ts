@@ -35,6 +35,13 @@ export interface TimelineData {
   /** Still going: `end` is today rather than a day it ended. */
   open?: boolean;
   /**
+   * Packed into rows of its own beneath every other mark's, for an item running beside the rest
+   * rather than among them: in the rows the rest share, it takes the row a later item would have
+   * stood in and pushes that one down. Read by the packed chart alone — every other layout places
+   * a mark by its dates.
+   */
+  beneath?: boolean;
+  /**
    * The item's own artwork at a height, for a layout drawn in pictures: the domain's own card,
    * handed the press the layout gives every mark, so a picture opens what the mark's hover card
    * would. A thunk for the tooltip's reason — a year's pictures are built only while it is drawn.
@@ -241,6 +248,28 @@ export const assignRows = <T extends { start: YearMonthDay; end: YearMonthDay }>
 };
 
 /**
+ * Whether two spans run at once, by `assignRows`' own rule: a span is over on the day it ends, so
+ * one begun that day follows it rather than running beside it. Anything deciding whether an item
+ * would need a row of its own asks this, so it and the packing cannot disagree.
+ */
+export const overlaps = (
+  a: { start: YearMonthDay; end: YearMonthDay },
+  b: { start: YearMonthDay; end: YearMonthDay },
+) => a.start < b.end && b.start < a.end;
+
+/**
+ * The items, less each one `apart` answers for that overlaps any other — another such item
+ * included — so it is kept wherever it runs alone.
+ *
+ * For a layout with one lane to a row: an item running beside the rest opens a second lane for as
+ * long as it runs, halving every band in the row, where alone it stands in the lane like any other.
+ */
+export const dropOverlapping = <T extends { start: YearMonthDay; end: YearMonthDay }>(
+  items: readonly T[],
+  apart: (item: T) => boolean,
+): T[] => items.filter((item) => !apart(item) || !items.some((other) => other !== item && overlaps(item, other)));
+
+/**
  * Start order, and the shorter item first where two start on the same day.
  *
  * A row is free again from the day its last item ends, so an item begun and finished in one day
@@ -266,13 +295,24 @@ export const byStartThenShortest = (
 /**
  * The packed rows, plus the highest row index used (-1 when there is no data). Links each item to
  * its row neighbours on the way through, which is what the label step measures its gaps against.
+ *
+ * An item marked `beneath` is packed against the others so marked alone, in rows numbered on from
+ * the last the rest take. The rows come back in start order either way, which is what the chart
+ * reads its first date off.
  */
 export const packRows = (timelineData: TimelineData[]) => {
   // A start after its own end has nothing to draw: an open item runs to today, so a start typed
   // ahead of today is that shape, and `daysTo` throws on it once the bar is measured. Left off
   // here rather than by each caller, so a new timeline cannot forget the rule.
   const sortedData = timelineData.filter((row) => row.start.lte(row.end)).toSorted(byStartThenShortest);
-  const rows = assignRows(sortedData);
+  const aboveRows = assignRows(sortedData.filter((row) => !row.beneath));
+  const beneathRows = assignRows(sortedData.filter((row) => row.beneath));
+  const firstBeneath = aboveRows.reduce((last, row) => Math.max(last, row), -1) + 1;
+  // Each half's rows are in the start order the whole list is in, so walking that list takes the
+  // next of whichever half the item belongs to.
+  let above = 0;
+  let beneath = 0;
+  const rows = sortedData.map((row) => (row.beneath ? firstBeneath + beneathRows[beneath++] : aboveRows[above++]));
 
   // The last event placed in each row.
   const lastInRow: PositionedTimelineData[] = [];

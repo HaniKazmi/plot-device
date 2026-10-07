@@ -12,6 +12,7 @@ import {
   groupBooksBy,
   measureOf,
   perBookAverages,
+  readAlongside,
   seriesSpans,
   yearlyAverages,
 } from "../../src/book/statsData";
@@ -312,5 +313,13 @@ describe("seriesSpans", () => {
     expect(spans[0].end).toBe(reread.endDate);
     // Reads, not distinct titles: the same book counted twice.
     expect(spans[0].books).toHaveLength(3);
+  });
+});
+
+describe("readAlongside", () => {
+  it("answers for a web serial and an Abstract book, and for nothing else", () => {
+    expect(readAlongside(book({ format: "Web Serial", genre: "Action" }))).toBe(true);
+    expect(readAlongside(book({ format: "Physical", genre: "Abstract" }))).toBe(true);
+    expect(readAlongside(book({ format: "eBook", genre: "Sci-Fi" }))).toBe(false);
   });
 });

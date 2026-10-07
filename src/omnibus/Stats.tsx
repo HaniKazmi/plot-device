@@ -450,9 +450,12 @@ const NowItem = <T,>(props: {
                 // and takes whatever width its file has: a cover off 13:20 stands a few pixels
                 // wider or narrower, uncropped and unletterboxed, and the text column beside it
                 // gives up or gains those pixels. One cover stands here, so nothing beside it is
-                // the same shape to be held level with, which is the case `tiledArtworkSx` crops.
+                // the same shape to be held level with, which is the case `tiledArtworkSx` crops;
+                // `contain` states that here rather than leaning on the `auto` ratio to undo the
+                // crop a shaped card otherwise takes.
                 width: "auto",
                 height: { sm: pair?.height, md: wide?.height },
+                objectFit: "contain",
               }),
         }}
         footerComponent={
