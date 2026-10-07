@@ -5,6 +5,7 @@ import type { Colour } from "../utils/types";
 import { omniTitle } from "./adapter";
 import type { OmniItem } from "../common/medium";
 import { crossingSpan } from "./crossingsData";
+import { omniWork } from "../app/media";
 
 /** How one mark of the union is drawn: its colour, its hover card and its picture. */
 interface MarkDrawing {
@@ -51,6 +52,7 @@ export const omniFranchiseTimeline = (items: OmniItem[], today: YearMonthDay, dr
     items,
     (item) => omniMark(item, today, drawing),
     (item) => item.franchise,
+    (item) => drawing.picture(omniWork(item)),
   ).map(({ mark }) => mark);
 
 /**
@@ -62,4 +64,9 @@ export const lineOf = (item: OmniItem): string => (item.series ? `${item.medium}
 
 /** Every series of a set of items as one span, and every standalone work as its own mark. */
 export const omniSeriesTimeline = (items: OmniItem[], today: YearMonthDay, drawing: MarkDrawing): TimelineData[] =>
-  groupMarks(items, (item) => omniMark(item, today, drawing), lineOf).map(({ mark }) => mark);
+  groupMarks(
+    items,
+    (item) => omniMark(item, today, drawing),
+    lineOf,
+    (item) => drawing.picture(omniWork(item)),
+  ).map(({ mark }) => mark);

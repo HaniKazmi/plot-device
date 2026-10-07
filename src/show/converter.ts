@@ -9,6 +9,17 @@ import "../utils/arrayUtils";
 export const dropSeasonParents = (key: string, value: unknown) => (key === "show" ? undefined : value);
 export const reviveSeasonParents = (shows: Show[]) => shows.forEach((show) => show.s.forEach((s) => (s.show = show)));
 
+/**
+ * An `Artwork` cell as a picture, or `undefined` for none. A link naming no object — the bucket's
+ * own address, which is what the show row's `=CONCAT(<bucket>/, A#)` formula answers when dragged
+ * onto a season row whose Title is blank — is no picture either: read as one, it would stand a
+ * broken image over the show's working poster on every season it reached.
+ */
+const readArtwork = (cell: string | undefined) => {
+  const url = cell?.trim();
+  return url && !url.endsWith("/") ? url : undefined;
+};
+
 const describeSeason = (row: Record<string, string>, show: Partial<Show>, index: number) =>
   `Row ${sheetRow(index)}, season ${row.Season || "?"} of "${show.name ?? "?"}"`;
 
@@ -31,7 +42,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
         network: row.Network,
         certificate: readCertificate(row.Certificate, `Row ${sheetRow(index)}, "${row.Title}", Certificate`),
         franchise: row.Franchise,
-        artwork: row.Artwork ?? "",
+        artwork: readArtwork(row.Artwork) ?? "",
         s: [],
       };
       showData.push(show as Show);
@@ -83,7 +94,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
         lastWatchedDate,
         // The sheet's last column, so a season row without a picture usually ends before it and
         // carries no key at all. Blank is the common case and means the show's picture.
-        artwork: row.Artwork?.trim() || undefined,
+        artwork: readArtwork(row.Artwork),
         show: show as Show,
       };
 

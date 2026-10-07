@@ -223,7 +223,9 @@ Converters do real modelling work, not just field renaming:
   The `show` back-reference makes the graph cyclic (§4). A season row's own `Artwork` cell, blank
   on most, overrides its show's picture wherever a card is about that season — the hero, the
   watching strips, the timeline, the franchise page's shelves — and steps aside wherever one card
-  stands for the whole show, the Omnibus library and a search hit, through the module's `asWork`.
+  stands for the whole show — the Omnibus library, a search hit, a series or franchise mark on the
+  union's timeline — through the module's `asWork`. A link naming no object, the bucket's own
+  address a dragged-down show-row formula leaves on a season row, is read as no picture.
 - **`movie/`** reads both its dates as full ones, a blank runtime as `0` and a blank Score as
   `undefined`: `sum` accumulates with `+`, so one `NaN` blanks every hours total, where a score is
   honestly absent rather than zero. `cinema` stays a boolean on the model but is read from a worded
@@ -2953,7 +2955,7 @@ A fifth medium extends the `Medium` union in `utils/types.ts` with its fill, lab
 and is then **a `module.ts`, a `module.lazy.ts`, a line in `app/records.ts` and one in
 `app/media.ts`** (§2). The eager half answers what the medium is — its `DataConfig`, its guest rule,
 its arm of the union, its `FranchiseEntry` mapper and span, its page state, its filter schema, its
-artwork and its title; the lazy half answers what draws it: its card, its hover card, and the
+artwork, how an item fronts its whole work (`asWork`) and its title; the lazy half answers what draws it: its card, its hover card, and the
 election and Now panel the composing tab's band leads with — those four and nothing else, its
 filter glyphs going beside its own `Graphs`. `app/records.ts` names the record its sheet
 converts to and the one it contributes to the union, which is what pairs the module with its own

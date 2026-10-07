@@ -482,11 +482,15 @@ export const groupSpans = <T extends { start: YearMonthDay; end: YearMonthDay }>
  * where it holds more than one member, coloured by the member that opened it and opening the card
  * and picture of the one met last. A member naming no group — `groupOf` blank — stays its own mark.
  * Each mark comes back with the member whose colour it wears, which is what a colour key names.
+ *
+ * `frontOf` is the picture a member draws when it fronts a group of several, where that differs
+ * from its own: a season with a poster of its own fronts its show's line with the show's.
  */
 export const groupMarks = <T>(
   items: readonly T[],
   markOf: (item: T) => TimelineData,
   groupOf: (item: T) => string,
+  frontOf?: (item: T) => TimelineData["picture"],
 ): { mark: TimelineData; lead: T }[] =>
   groupSpans(
     items
@@ -510,7 +514,7 @@ export const groupMarks = <T>(
         start,
         end,
         open: members.some(({ mark }) => mark.open),
-        picture: latest.mark.picture,
+        picture: members.length > 1 && frontOf ? frontOf(latest.item) : latest.mark.picture,
       },
     };
   });

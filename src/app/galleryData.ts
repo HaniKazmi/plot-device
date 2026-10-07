@@ -135,7 +135,10 @@ export const galleryColour = (name: string, category: UnionKey, scheme: Scheme):
  * domain's library grid already applies. Answered once and handed to both the section and the
  * rail's chip, so a chip cannot offer a shelf with nothing on it.
  */
-export const galleryItems = (items: OmniItem[]): OmniItem[] => items.filter((item) => omniArtwork(item));
+export const galleryItems = (items: OmniItem[]): OmniItem[] =>
+  // Asked of the work, since that is the picture a shelf draws: a season's own would admit a show
+  // the shelf then draws with none.
+  items.filter((item) => omniArtwork(omniWork(item)));
 
 /**
  * The work an item belongs to, which is what a shelf lists one picture of, asked of the item's own

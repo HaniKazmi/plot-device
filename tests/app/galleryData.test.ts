@@ -158,6 +158,13 @@ describe("shelving", () => {
     expect(items.map(omniArtwork)).toEqual(["severance-s1.jpg", "severance.jpg"]);
   });
 
+  it("leaves off a show whose only picture is one season's own, the shelf drawing the show's", () => {
+    const parent = show({ artwork: "" });
+    parent.s = [season(parent, { endDate: YearMonthDay.get(2022, 6, 1), artwork: "severance-s1.jpg" })];
+
+    expect(galleryItems(toOmniItems(library({ show: [parent] })))).toEqual([]);
+  });
+
   it("still counts every season's hours behind that one card", () => {
     // Items counts works and Hours counts time: collapsing the cards must not quietly drop the
     // seasons those cards stand for.

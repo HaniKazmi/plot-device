@@ -61,6 +61,17 @@ describe("flattening the sheet into nested shows", () => {
     expect(show.artwork).toBe("severance.jpg");
   });
 
+  it("reads a link naming no object as no picture, so a dragged-down formula leaves the show's standing", () => {
+    // The show row's formula appends the blank Title of a season row, leaving the bucket's address.
+    const [show] = jsonConverter([
+      showRow({ Artwork: " severance.jpg " }),
+      seasonRow({ Artwork: "https://storage.googleapis.com/hanikazmi_plotdevice_show/" }),
+    ]);
+
+    expect(show.s[0].artwork).toBeUndefined();
+    expect(show.artwork).toBe("severance.jpg");
+  });
+
   it("rejects a show with no genre, naming the row and the show", () => {
     expect(() => jsonConverter([showRow({ Genre: "" }), seasonRow()])).toThrow(
       'Row 2, "Severance", Genre: no genre recorded',
