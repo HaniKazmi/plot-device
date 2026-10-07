@@ -16,7 +16,7 @@ import {
   type Scheme,
 } from "../utils/types";
 import { IN_PROGRESS } from "../common/finishedData";
-import { moduleOf, omniArtwork } from "./media";
+import { moduleOf, omniArtwork, omniWork } from "./media";
 import { measureOf } from "./library";
 import type { OmniItem } from "../common/medium";
 import type { Measure } from "./types";
@@ -135,14 +135,17 @@ export const galleryColour = (name: string, category: UnionKey, scheme: Scheme):
  * domain's library grid already applies. Answered once and handed to both the section and the
  * rail's chip, so a chip cannot offer a shelf with nothing on it.
  */
-export const galleryItems = (items: OmniItem[]): OmniItem[] => items.filter((item) => omniArtwork(item));
+export const galleryItems = (items: OmniItem[]): OmniItem[] =>
+  // Asked of the work, since that is the picture a shelf draws: a season's own would admit a show
+  // the shelf then draws with none.
+  items.filter((item) => omniArtwork(omniWork(item)));
 
 /**
  * The work an item belongs to, which is what a shelf lists one picture of, asked of the item's own
  * module.
  *
  * A season is the unit the union counts in everywhere else — it is the thing actually watched in a
- * year — but a wall of pictures draws one banner per show, so a six-season show would stand on its
+ * year — but a wall of pictures draws one picture per show, so a six-season show would stand on its
  * genre shelf as six copies of the same artwork and crowd every other show off the strip. Each
  * medium answers with whatever collapses its own rewatches and rereads without joining two works
  * that merely share a title.
@@ -189,7 +192,9 @@ export const galleryWorks = (items: OmniItem[], category: GalleryCategory, today
 
   return [...shelves.values()].flatMap((works) =>
     [...works.values()].map((entries) => ({
-      ...galleryTop(entries),
+      // Fronted as the work, so a show whose biggest season has a picture of its own still stands
+      // on the shelf as the show.
+      ...omniWork(galleryTop(entries)),
       hours: entries.sum("hours"),
       // The whole work's last date, not the representative's. The representative is the biggest
       // entry, so a show that was huge in its first season and closed quietly years later would

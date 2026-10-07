@@ -18,6 +18,7 @@ import {
   type ValueSearchEntry,
 } from "../../src/app/searchData";
 import { workLabels } from "../../src/app/cardData";
+import { omniArtwork } from "../../src/app/media";
 import { galleryStripOrder, galleryWorks } from "../../src/app/galleryData";
 import type { OmniItem } from "../../src/common/medium";
 import { book } from "../fixtures/books";
@@ -73,6 +74,16 @@ describe("buildSearchIndex", () => {
     expect(shows).toHaveLength(1);
     expect(shows[0].name).toBe("Star Trek: Strange New Worlds");
     expect(shows[0].item.key).toContain("3");
+  });
+
+  it("shows a show's hit with the show's picture, though its latest season carries its own", () => {
+    // The hit names the show, so the latest season's own poster would picture one season of it.
+    const parent = show({ name: "Fargo", franchise: "Fargo", artwork: "fargo.jpg" });
+    parent.s = [season(parent), season(parent, { artwork: "fargo-s2.jpg" })];
+    const fargo = library({ show: [parent] });
+    const [entry] = buildSearchIndex(toOmniItems(fargo), fargo).items;
+
+    expect(omniArtwork(entry.item)).toBe("fargo.jpg");
   });
 
   it("offers every franchise the library holds, counted per medium", () => {

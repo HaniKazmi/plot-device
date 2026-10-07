@@ -3,7 +3,7 @@ import { categoryTally, FRANCHISE_KEY, groupHolds, selectedPredicates, type Page
 import { franchiseIndex } from "../common/franchiseIndex";
 import type { YearMonthDay } from "../common/date";
 import { mediumToLabel, type Medium } from "../utils/types";
-import { eachMedium, moduleOf } from "./media";
+import { eachMedium, moduleOf, omniWork } from "./media";
 import type { Season } from "../show/types";
 import { countByMedium, type OmniItem } from "../common/medium";
 import type { PageAction } from "../common/filterReducer";
@@ -234,7 +234,8 @@ const indexOver = (items: OmniItem[], library: Library): SearchIndex => {
   for (const item of items) works.setIfAbsent(workOf(item), []).push(item);
 
   const workEntries = [...works.values()].map((members): ItemSearchEntry => {
-    const item = representative(members);
+    // A hit names the work, so it wears the work's picture rather than its latest season's.
+    const item = omniWork(representative(members));
     return {
       kind: "item",
       key: `item:${item.key}`,

@@ -10,6 +10,7 @@ import {
   galleryStripOrder,
   galleryValue,
 } from "../../src/app/galleryData";
+import { omniArtwork } from "../../src/app/media";
 import { certificateToColour, genreToColour } from "../../src/utils/types";
 import { book } from "../fixtures/books";
 import { library } from "../fixtures/library";
@@ -129,8 +130,8 @@ describe("shelving", () => {
   });
 
   it("stands a show on a shelf once, however many seasons of it there are", () => {
-    // The wall draws one banner per show, so a season each would be the same picture repeated
-    // until it crowded every other show off the strip.
+    // The wall draws one picture per show, so a season each would stand the show on the strip
+    // until it crowded every other show off it.
     const parent = show();
     parent.s = [
       season(parent, { endDate: YearMonthDay.get(2022, 6, 1), minutes: 600 }),
@@ -140,6 +141,28 @@ describe("shelving", () => {
 
     expect(group.all).toHaveLength(1);
     expect(group.count).toBe(1);
+  });
+
+  it("fronts that card with the show's own picture, where its biggest season carries another", () => {
+    // The card stands for every season, so the one picked to front it by size is not what it shows.
+    const parent = show();
+    parent.s = [
+      season(parent, { endDate: YearMonthDay.get(2022, 6, 1), minutes: 600, artwork: "severance-s1.jpg" }),
+      season(parent, { endDate: YearMonthDay.get(2023, 6, 1), minutes: 300 }),
+    ];
+    const items = toOmniItems(library({ show: [parent] }));
+    const [group] = galleryGroups(items, "genre", "Items", "size", TODAY);
+
+    expect(omniArtwork(group.all[0])).toBe("severance.jpg");
+    // The season itself keeps its picture everywhere it is drawn as a season.
+    expect(items.map(omniArtwork)).toEqual(["severance-s1.jpg", "severance.jpg"]);
+  });
+
+  it("leaves off a show whose only picture is one season's own, the shelf drawing the show's", () => {
+    const parent = show({ artwork: "" });
+    parent.s = [season(parent, { endDate: YearMonthDay.get(2022, 6, 1), artwork: "severance-s1.jpg" })];
+
+    expect(galleryItems(toOmniItems(library({ show: [parent] })))).toEqual([]);
   });
 
   it("still counts every season's hours behind that one card", () => {

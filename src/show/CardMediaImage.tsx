@@ -1,5 +1,5 @@
 import { CardPanel, CardMediaImage, CardDetailBody, TypedCardMediaImage, type CardStat } from "../common/Card";
-import { Season, Show, isShow } from "./types";
+import { Season, Show, isShow, seasonArtwork } from "./types";
 import { statusToColour, type Scheme } from "../utils/types";
 import { useScheme } from "../common/useScheme";
 import { CURRENT_PLAINDATE, YearMonthDay, formatDateRange } from "../common/date";
@@ -44,7 +44,7 @@ const ShowCardMediaImage = <T extends Show | Season>({ item, ...props }: Paramet
   return (
     <CardMediaImage
       alt={show.name}
-      image={show.artwork}
+      image={season ? seasonArtwork(season) : show.artwork}
       detailComponent={() => (
         <ShowCardDetail
           show={show}

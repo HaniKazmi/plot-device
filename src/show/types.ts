@@ -56,6 +56,12 @@ export interface Season {
    * season before the convention.
    */
   lastWatchedDate?: YearMonthDay;
+  /**
+   * The season's own picture, overriding its show's. Blank on most seasons, which are drawn as
+   * their show: the cell is for a season that stands apart from the rest of its row — Science
+   * Adventure's three separate anime, Power Rangers' six series, an anthology's chapters.
+   */
+  artwork?: string;
   show: Show;
 }
 
@@ -66,6 +72,9 @@ export type ShowStringKeys = KeysMatching<Show, string>;
 export type Measure = "Shows" | "Seasons" | "Episodes" | "Hours";
 
 export const isShow = (arg: Show | Season): arg is Show => "name" in arg;
+
+/** The picture a season is drawn with: its own where the sheet gives it one, else its show's. */
+export const seasonArtwork = (season: Season) => season.artwork ?? season.show.artwork;
 
 /**
  * The broadcasters and streamers with a colour, as fills built the way `game/types.ts` builds its

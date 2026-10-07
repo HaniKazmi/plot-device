@@ -644,6 +644,25 @@ describe("groupMarks", () => {
     expect([mark.tooltip(), mark.picture?.(0, { onOpen: () => {}, openLabel: "" })]).toEqual(["last", "last"]);
   });
 
+  it("fronts a group of several with the picture its last entry draws as a front, where one is given", () => {
+    const press = { onOpen: () => {}, openLabel: "" };
+    const front = (entry: ReturnType<typeof work>) => () => `front of ${entry.name}`;
+    const [group, alone] = groupMarks(
+      [
+        work("first", "Saga", [2020, 1, 1], [2020, 2, 1]),
+        work("last", "Saga", [2022, 1, 1], [2022, 2, 1]),
+        work("Dune", "Dune Saga", [2023, 1, 1], [2023, 2, 1]),
+      ],
+      markOf,
+      (entry) => entry.franchise,
+      front,
+    );
+
+    expect(group.mark.picture?.(0, press)).toBe("front of last");
+    // A group of one is that entry's own mark, so it keeps the entry's own picture.
+    expect(alone.mark.picture?.(0, press)).toBe("Dune");
+  });
+
   it("is still going if any entry in it is", () => {
     const [{ mark }] = marks([
       work("done", "Saga", [2020, 1, 1], [2020, 2, 1]),
