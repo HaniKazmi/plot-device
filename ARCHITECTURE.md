@@ -886,8 +886,11 @@ Finished cannot draw it at different heights — stated because those surfaces f
 the artwork takes the rest.
 
 Where a card is bare artwork — the library's shelves and wall, and a franchise page's — the band
-takes the edge its shape can spare (`pictureMediumBand`): across the top of a banner, and down the
-left of a poster or a cover, read upwards, its stated height then a width (`side: "start"`). A row
+takes the edge its shape can spare, which the card decides from its shape and its lack of words:
+across the top of a banner, and down the left of a poster or a cover, read upwards. The label is
+sized in logical terms, so the slot's writing mode turns its stated height into a width; a list
+states one band and the card's height (`rowSize` with no footer), and the picture takes what the
+band leaves. A row
 of one height leaves a portrait picture narrow and a banner short, so a band across a poster's top
 takes height from the one picture that has none to spare; down its side the poster stands as tall
 as the row, 172px against a banner's 150. The side band is out of flow inside its slot: vertical
@@ -2074,8 +2077,8 @@ happens to end.
   out — `mediaLayout` fixed to `"stacked"` regardless of shape, since the arrangement rule would seat
   a poster's words beside a card 82px wide — and its corner chip drops unless the shape is landscape,
   where it would cover or overflow a narrow picture. A list mixing shapes can ask for a spine on its
-  portrait cards instead (`stripSpine`, Recently Finished's): the arrangement rule is left to seat the
-  caption beside the picture, `FooterComponent` reads that arrangement and sets the date down a
+  portrait cards instead (`stripSpine`, Recently Finished's): the arrangement rule is left to seat
+  the caption beside the picture, `FooterComponent` reads that arrangement and sets the date down a
   column as wide as its lines, the Now band's phone cells' way, and the picture takes the caption's
   height as well — 114px wide at 167 tall on a phone where it stood 82 at 120, the card the same
   189px tall as the banners beside it. `FooterComponent`'s `caption` prop replaces the

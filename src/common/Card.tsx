@@ -132,9 +132,11 @@ export interface CardMediaImageProps {
    *
    * The footer's height travels with the size because the caller is what draws the footer: this
    * card subtracts it from the picture under a banner and holds the footer to it, and knows
-   * nothing else about what is in it.
+   * nothing else about what is in it. The width is the box the caller seats the card in; only the
+   * height is the card's to spend. A row of bare pictures states a footer of 0, and the picture
+   * takes whatever height the band leaves it.
    */
-  rowSize?: { width: number; height: number; footerHeight: number };
+  rowSize?: { height: number; footerHeight: number };
   /**
    * A band naming the picture along the top of the whole card, and how tall it is.
    *
@@ -143,13 +145,12 @@ export interface CardMediaImageProps {
    * height travels with it because a sized card spends its height on the picture, and the band is
    * the one other thing in the picture's way.
    *
-   * `side: "start"` stands it down the picture's leading edge instead, `height` then being its
-   * width: a portrait picture on a row of one height is narrow, and a band across its top takes
-   * height from it where one down its side takes width it has to spare. The band and the picture
-   * are then one row with any words under them, so a card arranged with its words beside the
-   * picture keeps its band on top.
+   * On bare portrait artwork — a poster or a cover with no words — it stands down the picture's
+   * leading edge instead, `height` then being its width: a portrait picture on a row of one height
+   * is narrow, and a band across its top takes height from it where one down its side takes width
+   * it has to spare. A card with words keeps it on top, where it spans the words as well.
    */
-  mediaBand?: { node: ReactNode; height: number; side?: BandSide };
+  mediaBand?: { node: ReactNode; height: number };
   /** Derive the card's theme colour from the image once it loads. Costs a canvas read per image. */
   extractColour?: boolean;
   /**
@@ -173,9 +174,6 @@ export interface CardMediaImageProps {
  */
 export const ROW_FOOTER_HEIGHT = 65;
 
-/** Which edge of the picture a `mediaBand` stands on. */
-export type BandSide = "top" | "start";
-
 /**
  * How a list states the band its cards wear: what to draw for an item, and how tall it is. The
  * list turns it into each card's `mediaBand`.
@@ -183,8 +181,6 @@ export type BandSide = "top" | "start";
 export interface MediaBand<T> {
   render: (item: T) => ReactNode;
   height: number;
-  /** Which edge an item's band stands on — see `CardMediaImageProps.mediaBand`. The top where absent. */
-  side?: (item: T) => BandSide;
 }
 
 export type TypedCardMediaImage<T> = FunctionComponent<
@@ -434,15 +430,27 @@ const dialogImageSx = (ratio: number | undefined) => (theme: Theme) => ({
 });
 
 /**
- * A band down the picture's leading edge, at the picture's full height and the band's own width.
- * Out of flow inside its slot, because vertical type asks its container for a
- * height, and a card on a wall has none to give until the picture beside it has stated one —
- * unanswered, the type is laid out against the viewport's height and stretches the whole row of
- * the wall to it.
+ * Vertical type filling a slot whose width the caller states, its height the picture's beside it.
+ *
+ * Out of flow, because vertical type asks its container for a height, and a card on a wall or a
+ * strip has none to give until the picture beside it has stated one — unanswered, the type is laid
+ * out against the viewport's height and stretches the card, and the row it stands in, to it.
  */
+const VERTICAL_FILL_SX = { position: "absolute", inset: 0, writingMode: "vertical-rl" } as const;
+
+/** The band's slot down the picture's leading edge, beside the picture as one row. */
+const SIDE_BAND_ROW_SX = { display: "flex" } as const;
+
+/**
+ * Down the leading edge the band reads upwards, so the tops of its letters face away from the
+ * picture. A band written in logical sizes, as `MediumLabel` is, takes its stated height as a
+ * width here without being told which edge it stands on.
+ */
+const SIDE_BAND_TYPE_SX = { ...VERTICAL_FILL_SX, transform: "rotate(180deg)" } as const;
+
 const SideBand = ({ band }: { band: { node: ReactNode; height: number } }) => (
   <Box sx={{ width: band.height, flex: "0 0 auto", position: "relative" }}>
-    <Box sx={{ position: "absolute", inset: 0 }}>{band.node}</Box>
+    <Box sx={SIDE_BAND_TYPE_SX}>{band.node}</Box>
   </Box>
 );
 
@@ -451,8 +459,6 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
   const onOpen = props.onOpen;
   const rowSize = props.rowSize;
   const mediaBand = props.mediaBand;
-  const bandAside = mediaBand?.side === "start";
-  const bandHeight = bandAside ? 0 : (mediaBand?.height ?? 0);
   // Defaults are read off `props` rather than written in the destructuring pattern: a default
   // there is an assignment the React Compiler cannot lower, and it bails the whole component out
   // of memoization — silently, since the code still runs. `extractColour` must resolve before the
@@ -475,6 +481,14 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
     shape !== undefined &&
     shapeToArrangement(shape) === "beside" &&
     footerComponent !== undefined;
+  // The band down the side of bare portrait artwork, where a band across the top would take height
+  // from the one picture on the row that has none to spare.
+  const bandAside =
+    mediaBand !== undefined &&
+    shape !== undefined &&
+    shapeToArrangement(shape) === "beside" &&
+    footerComponent === undefined;
+  const bandHeight = bandAside ? 0 : (mediaBand?.height ?? 0);
   // A card mounted for its layer alone opens that layer at once. Held to cards that own their own
   // dialog: one given `onOpen` stands for something larger than the item in it, and opening the
   // item's dialog here would be the very substitution `onOpen` exists to prevent — such a card
@@ -696,14 +710,16 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
           <CardArrangementProvider value={beside ? "beside" : "stacked"}>
             {/* The whole card's width: a line of its own where the card is a row, the top of the
               block where it is not. */}
-            {mediaBand && !bandAside && <Box sx={FULL_WIDTH_NO_BASIS}>{mediaBand.node}</Box>}
             {mediaBand && bandAside ? (
-              <Box sx={{ display: "flex" }}>
+              <Box sx={SIDE_BAND_ROW_SX}>
                 <SideBand band={mediaBand} />
                 {actionArea}
               </Box>
             ) : (
-              actionArea
+              <>
+                {mediaBand && <Box sx={FULL_WIDTH_NO_BASIS}>{mediaBand.node}</Box>}
+                {actionArea}
+              </>
             )}
             {footerComponent}
           </CardArrangementProvider>
@@ -1474,6 +1490,34 @@ const STRIP_CAPTION_LINES = 2;
 
 export const STRIP_CAPTION_HEIGHT = SEAM_WIDTH + 2 * STRIP_CAPTION_INSET + STRIP_CAPTION_LINES * STRIP_CAPTION_LINE;
 
+/** One line of a strip caption, under the picture or down its spine. */
+const STRIP_CAPTION_LINE_SX = {
+  display: "block",
+  fontWeight: 600,
+  // Stated, so the height above is the height this actually takes rather than whatever the
+  // variant's ratio works out to.
+  lineHeight: `${STRIP_CAPTION_LINE}px`,
+  // One size down from the variant, so a date fits a cover's line; every strip card takes it, the
+  // strip being read across its captions.
+  fontSize: 11,
+  fontVariantNumeric: "tabular-nums",
+} as const;
+
+/** The closing line, carrying the chevron beside its words. */
+const CLOSING_CAPTION_LINE_SX = { display: "flex", alignItems: "center", columnGap: "2px" } as const;
+
+/**
+ * A spine's lines, centred along the picture's height, where a date at the top of the column
+ * reads as a label for the band above it.
+ */
+const SPINE_TYPE_SX = {
+  ...VERTICAL_FILL_SX,
+  paddingY: `${STRIP_CAPTION_INSET + 1}px`,
+  paddingX: `${STRIP_CAPTION_INSET}px`,
+  overflow: "hidden",
+  textAlign: "center",
+} as const;
+
 export const FooterComponent = ({
   labels,
   divider,
@@ -1503,12 +1547,11 @@ export const FooterComponent = ({
 }) => {
   const palette = useArtworkPalette();
   const beside = useCardArrangement() === "beside";
+  const lines = caption ? (captionText ?? stripCaption(labels)).slice(0, STRIP_CAPTION_LINES) : [];
 
   // Beside a portrait picture in a strip, the caption is a spine: its lines set down the column, as
   // the Now band's phone cells set a date beside a poster, the column as wide as its lines.
-  if (caption && beside) {
-    const lines = (captionText ?? stripCaption(labels)).slice(0, STRIP_CAPTION_LINES);
-
+  if (caption && beside)
     return (
       <CardContent
         sx={{
@@ -1522,34 +1565,13 @@ export const FooterComponent = ({
           ...seamEdge(palette, true),
         }}
       >
-        {/* Out of flow, because vertical type asks its container for a height and a strip card's
-            is not settled until the picture beside it is — unanswered, the type is laid out
-            against the viewport's height and takes the card with it. */}
-        <Box
-          sx={{
-            position: "absolute",
-            inset: 0,
-            paddingY: `${STRIP_CAPTION_INSET + 1}px`,
-            paddingX: `${STRIP_CAPTION_INSET}px`,
-            writingMode: "vertical-rl",
-            overflow: "hidden",
-            // Centred along the picture's height, where a date at the top of the column reads as a
-            // label for the band above it.
-            textAlign: "center",
-          }}
-        >
+        <Box sx={SPINE_TYPE_SX}>
           {lines.map((line) => (
             <Typography
               key={line}
               variant="caption"
               noWrap
-              sx={{
-                display: "block",
-                fontWeight: 600,
-                lineHeight: `${STRIP_CAPTION_LINE}px`,
-                fontSize: 11,
-                fontVariantNumeric: "tabular-nums",
-              }}
+              sx={STRIP_CAPTION_LINE_SX}
             >
               {line}
             </Typography>
@@ -1557,7 +1579,6 @@ export const FooterComponent = ({
         </Box>
       </CardContent>
     );
-  }
 
   if (caption)
     return (
@@ -1581,7 +1602,7 @@ export const FooterComponent = ({
         }}
       >
         <Box sx={{ minWidth: 0, width: "100%" }}>
-          {(captionText ?? stripCaption(labels)).slice(0, STRIP_CAPTION_LINES).map((line, index, lines) => {
+          {lines.map((line, index) => {
             // The glyph rides the caption's *last* line, which is the figure — the shorter of the
             // two. On the last line the date above keeps the card's full width, where a glyph
             // standing beside both lines takes 16 of an 82px poster's caption from a date that
@@ -1593,18 +1614,7 @@ export const FooterComponent = ({
                 key={line}
                 variant="caption"
                 noWrap={!closing}
-                sx={{
-                  display: closing ? "flex" : "block",
-                  ...(closing && { alignItems: "center", columnGap: "2px" }),
-                  fontWeight: 600,
-                  // Stated, so the height above is the height this actually takes rather than
-                  // whatever the variant's ratio works out to.
-                  lineHeight: `${STRIP_CAPTION_LINE}px`,
-                  // One size down from the variant, so a date fits a cover's line; every strip card
-                  // takes it, the strip being read across its captions.
-                  fontSize: 11,
-                  fontVariantNumeric: "tabular-nums",
-                }}
+                sx={[STRIP_CAPTION_LINE_SX, closing && CLOSING_CAPTION_LINE_SX]}
               >
                 {closing ? (
                   <Box

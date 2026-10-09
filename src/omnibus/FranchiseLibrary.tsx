@@ -19,7 +19,7 @@ import OmniCardMediaImage from "../app/CardMediaImage";
 import { MIXED_CARD_SIZING, workLabels } from "../app/cardData";
 import { MEDIUM_LABEL_HEIGHT } from "../app/MediumLabel";
 import { MediumDot } from "../app/MediaCounts";
-import { mediumBand, pictureMediumBand } from "../app/mediumBand";
+import { mediumBand } from "../app/mediumBand";
 import type { ShelfItem } from "../app/galleryData";
 import { mediumUnit } from "../utils/types";
 import { franchiseShelves, newestFirst, SHELVINGS, type FranchiseShelf } from "./franchiseData";
@@ -82,7 +82,6 @@ const shelfFacts = (shelf: FranchiseShelf) => {
 const FranchiseLibrary = ({ items }: { items: OmniItem[] }) => {
   const scheme = useScheme();
   const band = mediumBand(scheme);
-  const pictureBand = pictureMediumBand(scheme);
   const [shelving, shelvingPicker] = useSelectBox(SHELVINGS, "series", "Shelve by");
   const [order, orderPicker] = useSelectBox(ORDERS, "shelf", "Order", (option) => ORDER_LABELS[option]);
   const [layout, setLayout] = useState<FinishedLayout>("Shelves");
@@ -132,7 +131,7 @@ const FranchiseLibrary = ({ items }: { items: OmniItem[] }) => {
                 <Picture
                   key={`${shelf.key}-${item.key}`}
                   item={item}
-                  band={pictureBand}
+                  band={band}
                   height={height}
                 />
               )),
@@ -144,7 +143,7 @@ const FranchiseLibrary = ({ items }: { items: OmniItem[] }) => {
               <Shelf
                 key={shelf.key}
                 shelf={shelf}
-                band={pictureBand}
+                band={band}
                 height={height}
                 onOpen={() => setOpenedKey(shelf.key)}
               />
@@ -231,21 +230,18 @@ const Shelf = ({
 };
 
 /**
- * One work at the row's height and its own width, its medium named as the gallery's are: across the
- * top of a banner, and down the left of a poster or a cover, which then takes the band's height as
- * well.
+ * One work at the row's height and its own width, its medium named as the gallery's are: the card
+ * stands at the picture's height and the band's, and the band takes them from whichever edge the
+ * shape can spare.
  */
-const Picture = ({ item, band, height }: { item: ShelfItem; band: MediaBand<OmniItem>; height: number }) => {
-  const side = band.side?.(item) ?? "top";
-
-  return (
-    <OmniCardMediaImage
-      item={item}
-      lazy
-      mediaBand={{ node: band.render(item), height: band.height, side }}
-      sx={{ height: side === "start" ? height + band.height : height, width: "auto" }}
-    />
-  );
-};
+const Picture = ({ item, band, height }: { item: ShelfItem; band: MediaBand<OmniItem>; height: number }) => (
+  <OmniCardMediaImage
+    item={item}
+    lazy
+    mediaBand={{ node: band.render(item), height: band.height }}
+    rowSize={{ height: height + band.height, footerHeight: 0 }}
+    sx={{ width: "auto" }}
+  />
+);
 
 export default FranchiseLibrary;

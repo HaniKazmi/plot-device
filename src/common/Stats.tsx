@@ -860,7 +860,6 @@ const StatsListCard = <T,>({
         // this list draws under a banner, which is what the picture's height is short by.
         rowSize={
           rowSize && {
-            width: rowSize.width - 2 * CARD_BORDER,
             height: rowSize.height - 2 * CARD_BORDER,
             footerHeight: ROW_FOOTER_HEIGHT,
           }

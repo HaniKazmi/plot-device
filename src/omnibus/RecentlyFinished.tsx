@@ -8,6 +8,7 @@ import { MIXED_CARD_SIZING } from "../app/cardData";
 import { omniLabels } from "./cardData";
 import { mediumBand } from "../app/mediumBand";
 import { mediumToShape } from "../app/types";
+import { shapeToArrangement } from "../common/cardArrangement";
 import { useScheme } from "../common/useScheme";
 
 /**
@@ -42,7 +43,7 @@ const RecentlyFinished = ({ items }: { items: OmniItem[] }) => {
         band={mediumBand(scheme)}
         // On a phone's strip a poster or a cover takes the card's whole height and sets its date
         // down a spine beside it, where under it the date would sit on a picture 82px wide.
-        stripSpine={(item) => mediumToShape(item.medium) !== "banner"}
+        stripSpine={(item) => shapeToArrangement(mediumToShape(item.medium)) === "beside"}
         // One card size for a run mixing all four shapes, the words giving way to the picture as
         // they do in the Now band.
         rowSizing={MIXED_CARD_SIZING}

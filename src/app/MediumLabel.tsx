@@ -4,7 +4,7 @@ import type { Scheme } from "../utils/types";
 import { mediumToColour, mediumToName, type Medium } from "./types";
 
 /**
- * The band along the top of a picture naming its medium, and how tall it stands.
+ * The band along a picture naming its medium, and how tall it stands.
  *
  * A mixed row holds four media at one height, so which one a picture is has to be said somewhere
  * — and a chip in the corner says it by covering the artwork it is labelling, on every card, on
@@ -17,6 +17,22 @@ import { mediumToColour, mediumToName, type Medium } from "./types";
 export const MEDIUM_LABEL_HEIGHT = 22;
 
 /**
+ * Sized in logical terms — its stated size across the line of type, its padding along it — so the
+ * band stands across the top of a picture or down its side by the writing mode of the slot it is
+ * drawn in, without being told which.
+ */
+const LABEL_BAND_SX = {
+  blockSize: MEDIUM_LABEL_HEIGHT,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  paddingInline: 1,
+  fontSize: 11,
+  fontWeight: 600,
+  ...LABEL_SX,
+} as const;
+
+/**
  * What a picture is: the band filled in that medium's own colour, with type derived from the fill
  * rather than fixed — the same rule every chip and status tile in the app follows, and the reason
  * a gold band and a blue one are both legible.
@@ -24,35 +40,11 @@ export const MEDIUM_LABEL_HEIGHT = 22;
  * The scheme is the caller's to read: a list draws hundreds of these, and each reading it for
  * itself is a `matchMedia` subscription per card where the list needs one.
  */
-export const MediumLabel = (props: { medium: Medium; scheme: Scheme; vertical?: boolean }) => {
-  const { medium, scheme } = props;
-  const vertical = props.vertical ?? false;
+export const MediumLabel = ({ medium, scheme }: { medium: Medium; scheme: Scheme }) => {
   const colour = mediumToColour(medium, scheme);
 
   return (
-    <Box
-      sx={(theme) => ({
-        // Standing down a picture's leading edge, the band takes its stated size as a width and
-        // reads upwards, so the tops of its letters face away from the picture.
-        ...(vertical
-          ? {
-              width: MEDIUM_LABEL_HEIGHT,
-              height: "100%",
-              writingMode: "vertical-rl",
-              transform: "rotate(180deg)",
-              paddingY: 1,
-            }
-          : { height: MEDIUM_LABEL_HEIGHT, paddingX: 1 }),
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: 11,
-        fontWeight: 600,
-        backgroundColor: colour,
-        color: theme.palette.getContrastText(colour),
-        ...LABEL_SX,
-      })}
-    >
+    <Box sx={[LABEL_BAND_SX, (theme) => ({ backgroundColor: colour, color: theme.palette.getContrastText(colour) })]}>
       {mediumToName(medium)}
     </Box>
   );
