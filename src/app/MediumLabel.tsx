@@ -24,17 +24,28 @@ export const MEDIUM_LABEL_HEIGHT = 22;
  * The scheme is the caller's to read: a list draws hundreds of these, and each reading it for
  * itself is a `matchMedia` subscription per card where the list needs one.
  */
-export const MediumLabel = ({ medium, scheme }: { medium: Medium; scheme: Scheme }) => {
+export const MediumLabel = (props: { medium: Medium; scheme: Scheme; vertical?: boolean }) => {
+  const { medium, scheme } = props;
+  const vertical = props.vertical ?? false;
   const colour = mediumToColour(medium, scheme);
 
   return (
     <Box
       sx={(theme) => ({
-        height: MEDIUM_LABEL_HEIGHT,
+        // Standing down a picture's leading edge, the band takes its stated size as a width and
+        // reads upwards, so the tops of its letters face away from the picture.
+        ...(vertical
+          ? {
+              width: MEDIUM_LABEL_HEIGHT,
+              height: "100%",
+              writingMode: "vertical-rl",
+              transform: "rotate(180deg)",
+              paddingY: 1,
+            }
+          : { height: MEDIUM_LABEL_HEIGHT, paddingX: 1 }),
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        paddingX: 1,
         fontSize: 11,
         fontWeight: 600,
         backgroundColor: colour,

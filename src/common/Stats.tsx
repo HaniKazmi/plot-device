@@ -368,6 +368,13 @@ export const StatsListGrid = <T,>(
     labelComponent: (t: T) => string[][];
     /** A strip card's caption where the labels' first row is not it — a grouped list's figure. */
     captionOf?: (t: T) => string[];
+    /**
+     * Which strip cards stand their caption down the picture's right edge rather than under it: a
+     * portrait picture in a strip of mixed shapes, narrow where a banner is short, which takes the
+     * card's whole height under the band and leaves its date to a spine beside it. Read through the
+     * card's own arrangement, so it asks for a `MediaComponent` that declares each card's shape.
+     */
+    stripSpine?: (t: T) => boolean;
     chipComponent?: (t: T) => CardMediaImageProps["chip"];
     /** What a card's artwork opens instead of the item's own card — see `CardMediaImageProps`. */
     onOpen?: (t: T) => void;
@@ -388,7 +395,7 @@ export const StatsListGrid = <T,>(
 ) => {
   const { content, flexWrap, cardKey, labelComponent, captionOf, chipComponent, shape, band, divider, MediaComponent } =
     props;
-  const { onOpen, openLabelOf } = props;
+  const { onOpen, openLabelOf, stripSpine } = props;
   // The row's own width, which only a sized row reads: a grid needs none, and the observer is
   // only attached to the element a sized row renders.
   const [rowRef, rowWidth] = useElementWidth<HTMLDivElement>();
@@ -413,6 +420,7 @@ export const StatsListGrid = <T,>(
       item={entry}
       labels={labelComponent(entry)}
       captionText={captionOf?.(entry)}
+      spine={stripSpine?.(entry) ?? false}
       chip={chipComponent?.(entry)}
       onOpen={onOpen && (() => onOpen(entry))}
       openLabel={openLabelOf?.(entry)}
@@ -555,6 +563,8 @@ export interface StatListBaseProps<T> {
   labelComponent: (t: T) => string[][];
   /** See `StatsListGrid`. */
   captionOf?: (t: T) => string[];
+  /** See `StatsListGrid`. */
+  stripSpine?: (t: T) => boolean;
   MediaComponent: TypedCardMediaImage<T>;
   chipComponent?: (t: T) => CardMediaImageProps["chip"];
   /** See `StatsListGrid`: what a card's artwork opens instead of the item's own card. */
@@ -637,6 +647,7 @@ export const StatList = <T,>(props: StatsListProps<T>) => {
             cardKey={(entry) => `${title}-statslistcard-${nameComponent(entry)}`}
             labelComponent={labelComponent}
             captionOf={props.captionOf}
+            stripSpine={props.stripSpine}
             chipComponent={chipComponent}
             onOpen={props.onOpen}
             openLabelOf={props.openLabelOf}
@@ -756,10 +767,14 @@ const limitOf = (limit: number | { rows: number }, cell: CardCell): number => {
   return COLLAPSED_CARDS;
 };
 
+/** A spined strip card's picture at its own width, where the beside arrangement gives it half. */
+const STRIP_SPINE_CARD_SX = { "& > .MuiCardActionArea-root": { width: "auto" } } as const;
+
 const StatsListCard = <T,>({
   item,
   labels,
   captionText,
+  spine,
   chip,
   onOpen,
   openLabel,
@@ -772,6 +787,7 @@ const StatsListCard = <T,>({
   item: T;
   labels: string[][];
   captionText?: string[];
+  spine: boolean;
   chip?: CardMediaImageProps["chip"];
   onOpen?: () => void;
   openLabel?: string;
@@ -786,7 +802,10 @@ const StatsListCard = <T,>({
   // A strip fixes the height and each shape keeps its own width, so the card is built from the
   // picture out rather than seated in a cell: `Filmstrip` states the height on it, the picture
   // takes what the band and the caption leave, and the width follows from the artwork's ratio.
-  if ("strip" in cell)
+  if ("strip" in cell) {
+    // A caption down the side takes none of the height, so the picture takes that too.
+    const pictureHeight = cell.strip.pictureHeight + (spine ? STRIP_CAPTION_HEIGHT : 0);
+
     return (
       <Card variant="outlined">
         <MediaComponent
@@ -794,18 +813,17 @@ const StatsListCard = <T,>({
           onOpen={onOpen}
           openLabel={openLabel}
           mediaBand={band && { node: band.render(item), height: band.height }}
-          // The words go under the picture whatever shape it is. The arrangement rule seats a
-          // poster's beside it, which on a card 82px wide is a column of two characters — and a
-          // strip has imposed no width for that rule to reason about in the first place.
-          mediaLayout="stacked"
+          // The words go under the picture unless the list asks for a spine. The arrangement rule
+          // seats a poster's beside it, which on a card 82px wide is a column of two characters —
+          // and a strip has imposed no width for that rule to reason about in the first place. A
+          // spine is the one column narrow enough to stand beside one, its date set down it; the
+          // picture is then its own width at the card's height rather than half the card.
+          mediaLayout={spine ? undefined : "stacked"}
+          cardSx={spine ? STRIP_SPINE_CARD_SX : undefined}
           // Held as the grid's cards are, so a picture that has not loaded still holds the width
           // its shape gives it at this height and the strip does not close up and reopen as the
           // files land.
-          sx={
-            shape
-              ? pictureAtHeight(shape, cell.strip.pictureHeight)
-              : { height: cell.strip.pictureHeight, width: "auto" }
-          }
+          sx={shape ? pictureAtHeight(shape, pictureHeight) : { height: pictureHeight, width: "auto" }}
           // The corner badge is a fixed few dozen pixels of type, which reads as a badge over a
           // banner 213px wide at this height and as a covered picture over a poster 82px wide —
           // wider than the card can hold, so the badge is clipped as well as covering what it is
@@ -827,6 +845,7 @@ const StatsListCard = <T,>({
         />
       </Card>
     );
+  }
 
   const card = (
     <Card

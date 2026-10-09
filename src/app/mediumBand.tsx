@@ -2,6 +2,7 @@ import type { MediaBand } from "../common/Card";
 import type { Scheme } from "../utils/types";
 import type { OmniItem } from "../common/medium";
 import { MEDIUM_LABEL_HEIGHT, MediumLabel } from "./MediumLabel";
+import { mediumToShape } from "./types";
 
 /**
  * The band every mixed-media list wears, built once per list from the scheme it read. One
@@ -18,3 +19,24 @@ export const mediumBand = (scheme: Scheme): MediaBand<OmniItem> => ({
   ),
   height: MEDIUM_LABEL_HEIGHT,
 });
+
+/**
+ * The same band for a row of bare pictures at one height: across the top of a banner, and down
+ * the left of a poster or a cover, which is narrow where a banner is short. Down the side, the
+ * band costs a portrait picture none of its height, so it stands as tall as the row.
+ */
+export const pictureMediumBand = (scheme: Scheme): MediaBand<OmniItem> => {
+  const tall = (item: OmniItem) => mediumToShape(item.medium) !== "banner";
+
+  return {
+    render: (item) => (
+      <MediumLabel
+        medium={item.medium}
+        scheme={scheme}
+        vertical={tall(item)}
+      />
+    ),
+    height: MEDIUM_LABEL_HEIGHT,
+    side: (item) => (tall(item) ? "start" : "top"),
+  };
+};

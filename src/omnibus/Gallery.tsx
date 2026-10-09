@@ -23,7 +23,7 @@ import type { OmniItem } from "../common/medium";
 import OmniCardMediaImage from "../app/CardMediaImage";
 import { MIXED_CARD_SIZING, workLabels } from "../app/cardData";
 import { MEDIUM_LABEL_HEIGHT } from "../app/MediumLabel";
-import { mediumBand } from "../app/mediumBand";
+import { mediumBand, pictureMediumBand } from "../app/mediumBand";
 import {
   GALLERY_CATEGORIES,
   GALLERY_SORTS,
@@ -119,7 +119,10 @@ interface Run {
 /** What the scroll marker is told the wall holds while the shelves stand in its place. */
 const NO_RUNS: readonly never[] = [];
 
-/** The height every picture stands at, shelf or wall: the artwork and the medium band above it. */
+/**
+ * The height every card stands at, shelf or wall: a banner and the medium band above it, or a
+ * poster or a cover beside its band at the whole of it.
+ */
 const ROW_HEIGHT = FILMSTRIP_HEIGHT + MEDIUM_LABEL_HEIGHT;
 
 /**
@@ -133,6 +136,7 @@ const ROW_HEIGHT = FILMSTRIP_HEIGHT + MEDIUM_LABEL_HEIGHT;
 const Gallery = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
   const scheme = useScheme();
   const band = mediumBand(scheme);
+  const pictureBand = pictureMediumBand(scheme);
 
   // Opens on franchises, newest first: the series met lately, which is the question this wall
   // answers that the genre band above it does not, and the one order the tab's own Recently
@@ -180,7 +184,7 @@ const Gallery = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
       cards={cards}
       category={category}
       measure={measure}
-      band={band}
+      band={pictureBand}
       // A year is a run read whole — what was finished in it — so under When each shelf wraps its
       // every work under the year's name, where a genre or a franchise shelf is read by its first
       // screen and scrolls, as every tab's library does.
@@ -203,7 +207,7 @@ const Gallery = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
         >
           <ShelfPicture
             card={card}
-            band={band}
+            band={pictureBand}
             onOpenCard={(opened) => openCard(group, opened)}
           />
         </Box>
@@ -280,7 +284,7 @@ const Gallery = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
                             <ShelfPicture
                               key={card.item.key}
                               card={card}
-                              band={band}
+                              band={pictureBand}
                               onOpenCard={(opened) => openCard(group, opened)}
                             />
                           ))}
@@ -342,19 +346,20 @@ const ShelfPicture = ({
   onOpenCard: (card: FinishedCard<ShelfItem>) => void;
 }) => {
   const grouped = card.members.length > 1;
+  const side = band.side?.(card.item) ?? "top";
 
   return (
     <OmniCardMediaImage
       item={card.item}
       lazy
-      // The band along the top rather than a footer, so a card here reads the way one in the
-      // drill-down does. With no words beside or beneath it the card is arranged by nothing, and
-      // the picture keeps the whole of the height the row gives it below the band.
-      mediaBand={{ node: band.render(card.item), height: band.height }}
+      // A band rather than a footer, so a card here names its medium the way one in the drill-down
+      // does. With no words beside or beneath it the card is arranged by nothing, and the picture
+      // keeps the whole of the height the row gives it beside or below the band.
+      mediaBand={{ node: band.render(card.item), height: band.height, side }}
       // The row fixes the height and each picture takes the width its medium's shape gives it, so
       // a banner and a poster stand at one height in their own shapes; the card holds that width
       // before the artwork arrives, which is what a wall's offsets are read in.
-      sx={{ height: FILMSTRIP_HEIGHT, width: "auto" }}
+      sx={{ height: side === "start" ? ROW_HEIGHT : FILMSTRIP_HEIGHT, width: "auto" }}
       chip={grouped ? { label: format(card.members.length), icon: <Collections /> } : undefined}
       onOpen={grouped ? () => onOpenCard(card) : undefined}
       openLabel={grouped ? `Open ${card.item.franchise}, ${stated(card.members.length, "works")}` : undefined}
