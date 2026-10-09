@@ -369,12 +369,13 @@ export const StatsListGrid = <T,>(
     /** A strip card's caption where the labels' first row is not it — a grouped list's figure. */
     captionOf?: (t: T) => string[];
     /**
-     * Which strip cards stand their caption down the picture's right edge rather than under it: a
-     * portrait picture in a strip of mixed shapes, narrow where a banner is short, which takes the
-     * card's whole height under the band and leaves its date to a spine beside it. Read through the
-     * card's own arrangement, so it asks for a `MediaComponent` that declares each card's shape.
+     * Each card's own shape, for a strip mixing shapes. A portrait card then stands its caption
+     * down the picture's right edge rather than under it — narrow where a banner is short, it takes
+     * the card's whole height under the band and leaves its date to a spine beside it — and the
+     * strip hands the card that shape itself, so the card is arranged beside its caption whatever
+     * its `MediaComponent` declares.
      */
-    stripSpine?: (t: T) => boolean;
+    stripShapeOf?: (t: T) => ArtworkShape;
     chipComponent?: (t: T) => CardMediaImageProps["chip"];
     /** What a card's artwork opens instead of the item's own card — see `CardMediaImageProps`. */
     onOpen?: (t: T) => void;
@@ -395,7 +396,7 @@ export const StatsListGrid = <T,>(
 ) => {
   const { content, flexWrap, cardKey, labelComponent, captionOf, chipComponent, shape, band, divider, MediaComponent } =
     props;
-  const { onOpen, openLabelOf, stripSpine } = props;
+  const { onOpen, openLabelOf, stripShapeOf } = props;
   // The row's own width, which only a sized row reads: a grid needs none, and the observer is
   // only attached to the element a sized row renders.
   const [rowRef, rowWidth] = useElementWidth<HTMLDivElement>();
@@ -420,7 +421,7 @@ export const StatsListGrid = <T,>(
       item={entry}
       labels={labelComponent(entry)}
       captionText={captionOf?.(entry)}
-      spine={stripSpine?.(entry) ?? false}
+      stripShape={stripShapeOf?.(entry)}
       chip={chipComponent?.(entry)}
       onOpen={onOpen && (() => onOpen(entry))}
       openLabel={openLabelOf?.(entry)}
@@ -564,7 +565,7 @@ export interface StatListBaseProps<T> {
   /** See `StatsListGrid`. */
   captionOf?: (t: T) => string[];
   /** See `StatsListGrid`. */
-  stripSpine?: (t: T) => boolean;
+  stripShapeOf?: (t: T) => ArtworkShape;
   MediaComponent: TypedCardMediaImage<T>;
   chipComponent?: (t: T) => CardMediaImageProps["chip"];
   /** See `StatsListGrid`: what a card's artwork opens instead of the item's own card. */
@@ -647,7 +648,7 @@ export const StatList = <T,>(props: StatsListProps<T>) => {
             cardKey={(entry) => `${title}-statslistcard-${nameComponent(entry)}`}
             labelComponent={labelComponent}
             captionOf={props.captionOf}
-            stripSpine={props.stripSpine}
+            stripShapeOf={props.stripShapeOf}
             chipComponent={chipComponent}
             onOpen={props.onOpen}
             openLabelOf={props.openLabelOf}
@@ -774,7 +775,7 @@ const StatsListCard = <T,>({
   item,
   labels,
   captionText,
-  spine,
+  stripShape,
   chip,
   onOpen,
   openLabel,
@@ -787,7 +788,7 @@ const StatsListCard = <T,>({
   item: T;
   labels: string[][];
   captionText?: string[];
-  spine: boolean;
+  stripShape?: ArtworkShape;
   chip?: CardMediaImageProps["chip"];
   onOpen?: () => void;
   openLabel?: string;
@@ -803,6 +804,7 @@ const StatsListCard = <T,>({
   // picture out rather than seated in a cell: `Filmstrip` states the height on it, the picture
   // takes what the band and the caption leave, and the width follows from the artwork's ratio.
   if ("strip" in cell) {
+    const spine = stripShape !== undefined && shapeToArrangement(stripShape) === "beside";
     // A caption down the side takes none of the height, so the picture takes that too.
     const pictureHeight = cell.strip.pictureHeight + (spine ? STRIP_CAPTION_HEIGHT : 0);
 
@@ -819,6 +821,7 @@ const StatsListCard = <T,>({
           // spine is the one column narrow enough to stand beside one, its date set down it; the
           // picture is then its own width at the card's height rather than half the card.
           mediaLayout={spine ? undefined : "stacked"}
+          shape={spine ? stripShape : undefined}
           cardSx={spine ? STRIP_SPINE_CARD_SX : undefined}
           // Held as the grid's cards are, so a picture that has not loaded still holds the width
           // its shape gives it at this height and the strip does not close up and reopen as the

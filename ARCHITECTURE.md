@@ -2077,10 +2077,10 @@ happens to end.
   out — `mediaLayout` fixed to `"stacked"` regardless of shape, since the arrangement rule would seat
   a poster's words beside a card 82px wide — and its corner chip drops unless the shape is landscape,
   where it would cover or overflow a narrow picture. A list mixing shapes can ask for a spine on its
-  portrait cards instead (`stripSpine`, Recently Finished's): the arrangement rule is left to seat
-  the caption beside the picture, `FooterComponent` reads that arrangement and sets the date down a
+  portrait cards instead (`stripShapeOf`, Recently Finished's): the strip hands each card its own shape and leaves
+  the arrangement rule to seat the caption beside the picture, `FooterComponent` reads that arrangement and sets the date down a
   column as wide as its lines, the Now band's phone cells' way, and the picture takes the caption's
-  height as well — 114px wide at 167 tall on a phone where it stood 82 at 120, the card the same
+  height as well — 114px wide at 167 tall on a phone where a caption under it leaves it 82 at 120, the card the same
   189px tall as the banners beside it. `FooterComponent`'s `caption` prop replaces the
   label stack: `stripCaption` (`common/statsData.ts`) takes the first label row's cells as the two
   lines a fixed-height card has room for, a date over a figure with each whole (`captionLines`

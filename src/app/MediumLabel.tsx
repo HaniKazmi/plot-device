@@ -1,4 +1,4 @@
-import { Box } from "@mui/material";
+import { Box, type Theme } from "@mui/material";
 import { LABEL_SX } from "../common/typography";
 import type { Scheme } from "../utils/types";
 import { mediumToColour, mediumToName, type Medium } from "./types";
@@ -33,6 +33,22 @@ const LABEL_BAND_SX = {
 } as const;
 
 /**
+ * The type on each fill, read once per fill. There are eight — four media on two papers — and a
+ * wall draws a label on each of two thousand cards on every render, where the contrast is the same
+ * answer each time: every tab's theme is built with one contrast threshold, so the fill alone
+ * decides it.
+ */
+const CONTRAST = new Map<string, string>();
+const contrastOn = (colour: string, theme: Theme) => {
+  let text = CONTRAST.get(colour);
+  if (text === undefined) {
+    text = theme.palette.getContrastText(colour);
+    CONTRAST.set(colour, text);
+  }
+  return text;
+};
+
+/**
  * What a picture is: the band filled in that medium's own colour, with type derived from the fill
  * rather than fixed — the same rule every chip and status tile in the app follows, and the reason
  * a gold band and a blue one are both legible.
@@ -44,7 +60,7 @@ export const MediumLabel = ({ medium, scheme }: { medium: Medium; scheme: Scheme
   const colour = mediumToColour(medium, scheme);
 
   return (
-    <Box sx={[LABEL_BAND_SX, (theme) => ({ backgroundColor: colour, color: theme.palette.getContrastText(colour) })]}>
+    <Box sx={[LABEL_BAND_SX, (theme) => ({ backgroundColor: colour, color: contrastOn(colour, theme) })]}>
       {mediumToName(medium)}
     </Box>
   );

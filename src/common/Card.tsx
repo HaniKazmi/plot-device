@@ -120,20 +120,20 @@ export interface CardMediaImageProps {
    */
   shape?: ArtworkShape;
   /**
-   * The one size every card in a row stands at, for a row mixing artwork shapes.
+   * The one height every card in a row stands at, for a row mixing artwork shapes.
    *
    * A grid gives every card one width and lets the heights fall where the shapes put them, so a
    * row mixing banners with posters is as tall as its tallest card and the rest carry a strip of
-   * their own ground. Given both dimensions, the card spends them the way the Now band does at its
-   * own scale: a poster or a cover fills the height and takes the width its shape gives it, and the
-   * column of words beside it is whatever the width leaves; a banner fills the width at its ratio
-   * and keeps a footer underneath. Every card is then one size, every picture its shape's full
-   * extent, and the words are what gives way. Needs `shape`, which is what says which of the two it is.
+   * their own ground. Seated in a box of the row's width, the card spends the two the way the Now
+   * band does at its own scale: a poster or a cover fills the height and takes the width its shape
+   * gives it, and the column of words beside it is whatever the box leaves; a banner fills the
+   * width at its ratio and keeps a footer underneath. Every card is then one size, every picture its
+   * shape's full extent, and the words are what gives way. Needs `shape`, which is what says which
+   * of the two it is.
    *
    * The footer's height travels with the size because the caller is what draws the footer: this
    * card subtracts it from the picture under a banner and holds the footer to it, and knows
-   * nothing else about what is in it. The width is the box the caller seats the card in; only the
-   * height is the card's to spend. A row of bare pictures states a footer of 0, and the picture
+   * nothing else about what is in it. A row of bare pictures states a footer of 0, and the picture
    * takes whatever height the band leaves it.
    */
   rowSize?: { height: number; footerHeight: number };
@@ -485,6 +485,7 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
   // from the one picture on the row that has none to spare.
   const bandAside =
     mediaBand !== undefined &&
+    mediaLayout !== "stacked" &&
     shape !== undefined &&
     shapeToArrangement(shape) === "beside" &&
     footerComponent === undefined;
@@ -1518,6 +1519,20 @@ const SPINE_TYPE_SX = {
   textAlign: "center",
 } as const;
 
+/** The chevron's 14px glyph, and the room the spine's lines leave it at the foot. */
+const SPINE_CHEVRON = 14;
+const SPINE_TYPE_ABOVE_CHEVRON_SX = {
+  ...SPINE_TYPE_SX,
+  paddingBottom: `${STRIP_CAPTION_INSET + SPINE_CHEVRON}px`,
+} as const;
+const SPINE_CHEVRON_SX = {
+  position: "absolute",
+  bottom: `${STRIP_CAPTION_INSET}px`,
+  left: "50%",
+  transform: "translateX(-50%)",
+  fontSize: SPINE_CHEVRON,
+} as const;
+
 export const FooterComponent = ({
   labels,
   divider,
@@ -1550,13 +1565,15 @@ export const FooterComponent = ({
   const lines = caption ? (captionText ?? stripCaption(labels)).slice(0, STRIP_CAPTION_LINES) : [];
 
   // Beside a portrait picture in a strip, the caption is a spine: its lines set down the column, as
-  // the Now band's phone cells set a date beside a poster, the column as wide as its lines.
+  // the Now band's phone cells set a date beside a poster, the column as wide as its lines. With
+  // nothing to say it is no column at all, the picture already standing at the card's height.
+  if (caption && beside && lines.length === 0 && !chevron) return null;
   if (caption && beside)
     return (
       <CardContent
         sx={{
           flex: "0 0 auto",
-          width: lines.length * STRIP_CAPTION_LINE + 2 * STRIP_CAPTION_INSET,
+          width: Math.max(lines.length, 1) * STRIP_CAPTION_LINE + 2 * STRIP_CAPTION_INSET,
           padding: 0,
           ":last-child": { paddingBottom: 0 },
           position: "relative",
@@ -1565,7 +1582,7 @@ export const FooterComponent = ({
           ...seamEdge(palette, true),
         }}
       >
-        <Box sx={SPINE_TYPE_SX}>
+        <Box sx={chevron ? SPINE_TYPE_ABOVE_CHEVRON_SX : SPINE_TYPE_SX}>
           {lines.map((line) => (
             <Typography
               key={line}
@@ -1577,6 +1594,9 @@ export const FooterComponent = ({
             </Typography>
           ))}
         </Box>
+        {/* At the foot of the spine, where a caption under the picture carries it at the end of its
+            closing line: the mark that the card opens a group rather than the item in it. */}
+        {chevron && <ChevronRight sx={{ ...SPINE_CHEVRON_SX, color: palette.muted }} />}
       </CardContent>
     );
 
