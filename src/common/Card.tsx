@@ -120,21 +120,23 @@ export interface CardMediaImageProps {
    */
   shape?: ArtworkShape;
   /**
-   * The one size every card in a row stands at, for a row mixing artwork shapes.
+   * The one height every card in a row stands at, for a row mixing artwork shapes.
    *
    * A grid gives every card one width and lets the heights fall where the shapes put them, so a
    * row mixing banners with posters is as tall as its tallest card and the rest carry a strip of
-   * their own ground. Given both dimensions, the card spends them the way the Now band does at its
-   * own scale: a poster or a cover fills the height and takes the width its shape gives it, and the
-   * column of words beside it is whatever the width leaves; a banner fills the width at its ratio
-   * and keeps a footer underneath. Every card is then one size, every picture its shape's full
-   * extent, and the words are what gives way. Needs `shape`, which is what says which of the two it is.
+   * their own ground. Seated in a box of the row's width, the card spends the two the way the Now
+   * band does at its own scale: a poster or a cover fills the height and takes the width its shape
+   * gives it, and the column of words beside it is whatever the box leaves; a banner fills the
+   * width at its ratio and keeps a footer underneath. Every card is then one size, every picture its
+   * shape's full extent, and the words are what gives way. Needs `shape`, which is what says which
+   * of the two it is.
    *
    * The footer's height travels with the size because the caller is what draws the footer: this
    * card subtracts it from the picture under a banner and holds the footer to it, and knows
-   * nothing else about what is in it.
+   * nothing else about what is in it. A row of bare pictures states a footer of 0, and the picture
+   * takes whatever height the band leaves it.
    */
-  rowSize?: { width: number; height: number; footerHeight: number };
+  rowSize?: { height: number; footerHeight: number };
   /**
    * A band naming the picture along the top of the whole card, and how tall it is.
    *
@@ -142,6 +144,11 @@ export interface CardMediaImageProps {
    * medium it is, on a row mixing four — without covering it the way the corner chip does. The
    * height travels with it because a sized card spends its height on the picture, and the band is
    * the one other thing in the picture's way.
+   *
+   * On bare portrait artwork — a poster or a cover with no words — it stands down the picture's
+   * leading edge instead, `height` then being its width: a portrait picture on a row of one height
+   * is narrow, and a band across its top takes height from it where one down its side takes width
+   * it has to spare. A card with words keeps it on top, where it spans the words as well.
    */
   mediaBand?: { node: ReactNode; height: number };
   /** Derive the card's theme colour from the image once it loads. Costs a canvas read per image. */
@@ -422,12 +429,36 @@ const dialogImageSx = (ratio: number | undefined) => (theme: Theme) => ({
   }),
 });
 
+/**
+ * Vertical type filling a slot whose width the caller states, its height the picture's beside it.
+ *
+ * Out of flow, because vertical type asks its container for a height, and a card on a wall or a
+ * strip has none to give until the picture beside it has stated one — unanswered, the type is laid
+ * out against the viewport's height and stretches the card, and the row it stands in, to it.
+ */
+const VERTICAL_FILL_SX = { position: "absolute", inset: 0, writingMode: "vertical-rl" } as const;
+
+/** The band's slot down the picture's leading edge, beside the picture as one row. */
+const SIDE_BAND_ROW_SX = { display: "flex" } as const;
+
+/**
+ * Down the leading edge the band reads upwards, so the tops of its letters face away from the
+ * picture. A band written in logical sizes, as `MediumLabel` is, takes its stated height as a
+ * width here without being told which edge it stands on.
+ */
+const SIDE_BAND_TYPE_SX = { ...VERTICAL_FILL_SX, transform: "rotate(180deg)" } as const;
+
+const SideBand = ({ band }: { band: { node: ReactNode; height: number } }) => (
+  <Box sx={{ width: band.height, flex: "0 0 auto", position: "relative" }}>
+    <Box sx={SIDE_BAND_TYPE_SX}>{band.node}</Box>
+  </Box>
+);
+
 export const CardMediaImage = (props: CardMediaImageProps) => {
   const { image, alt, chip, colour: propColour, footerComponent, detailComponent, mediaLayout, sx, cardSx } = props;
   const onOpen = props.onOpen;
   const rowSize = props.rowSize;
   const mediaBand = props.mediaBand;
-  const bandHeight = mediaBand?.height ?? 0;
   // Defaults are read off `props` rather than written in the destructuring pattern: a default
   // there is an assignment the React Compiler cannot lower, and it bails the whole component out
   // of memoization — silently, since the code still runs. `extractColour` must resolve before the
@@ -450,6 +481,15 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
     shape !== undefined &&
     shapeToArrangement(shape) === "beside" &&
     footerComponent !== undefined;
+  // The band down the side of bare portrait artwork, where a band across the top would take height
+  // from the one picture on the row that has none to spare.
+  const bandAside =
+    mediaBand !== undefined &&
+    mediaLayout !== "stacked" &&
+    shape !== undefined &&
+    shapeToArrangement(shape) === "beside" &&
+    footerComponent === undefined;
+  const bandHeight = bandAside ? 0 : (mediaBand?.height ?? 0);
   // A card mounted for its layer alone opens that layer at once. Held to cards that own their own
   // dialog: one given `onOpen` stands for something larger than the item in it, and opening the
   // item's dialog here would be the very substitution `onOpen` exists to prevent — such a card
@@ -560,6 +600,75 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
     ...(Array.isArray(sx) ? sx : [sx]),
   ];
 
+  // The press is the action area's own, not the picture's inside it. The area is a button, and a
+  // button's Enter fires the button — never a click on some element within it — so a handler on
+  // the image is a card openable by the pointer alone, which is every card on the page for a reader
+  // on the keyboard.
+  const actionArea = (
+    <CardActionArea
+      aria-label={props.openLabel}
+      onClick={() => {
+        if (onOpen) return onOpen();
+        // The detail dialog is themed from this colour, so it is worth reading even for a card
+        // that did not ask for one.
+        readColour(imgRef.current);
+        openDetail();
+      }}
+      sx={mediaLayout === "aside" ? ASIDE_ACTION_AREA_SX : beside ? SHAPE_ASIDE_ACTION_AREA_SX : undefined}
+    >
+      {missing ? (
+        /* The picture's own box, filled and named. It carries `mediaSx` exactly as the image
+         does, so it stands where the picture would have at the same size — the shape's
+         ratio, which an element with no natural size of its own takes whether it is stated
+         outright or as an `auto` reservation, and which keeps a wall of these the height
+         the offsets are measured against. A span, because the card's action area is a
+         button and only phrasing content is legal inside one — which the image it stands
+         in for is and a div is not. */
+        <ArtworkStandIn
+          alt={alt}
+          palette={palette}
+          component="span"
+          sx={mediaSx}
+        />
+      ) : (
+        <CardMedia
+          height={"100%"}
+          component="img"
+          crossOrigin="anonymous"
+          src={image}
+          alt={alt}
+          loading={lazy ? "lazy" : undefined}
+          // WebKit decodes on the main thread as it paints, and a wall's artwork arrives
+          // while the reader is scrolling it — the frames a synchronous decode costs are
+          // exactly the ones the scroll needed.
+          decoding="async"
+          ref={imgRef}
+          onLoad={(el) => readImage(el.currentTarget, image, extractColour && !colour, setRatio, setExtracted)}
+          onError={() => setFailedImage(image)}
+          sx={mediaSx}
+        />
+      )}
+      {chip && (
+        <Chip
+          sx={{
+            position: "absolute",
+            top: 0,
+            right: 0,
+            margin: 1,
+            opacity: 0.8,
+            backgroundColor: chip.colour ?? "primary.main",
+            color: (theme) => theme.palette.getContrastText(chip.colour ?? colour ?? theme.palette.primary.main),
+          }}
+          label={chip.label}
+          icon={chip.icon}
+          onClick={chip.onClick}
+          variant={chip.variant || "filled"}
+          size="small"
+        />
+      )}
+    </CardActionArea>
+  );
+
   return (
     // The auto-open signal stops at the card that takes it. Everything below is a card in its own
     // right — the marks on the franchise strip inside the expanded dialog, the members of a group
@@ -602,74 +711,17 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
           <CardArrangementProvider value={beside ? "beside" : "stacked"}>
             {/* The whole card's width: a line of its own where the card is a row, the top of the
               block where it is not. */}
-            {mediaBand && <Box sx={FULL_WIDTH_NO_BASIS}>{mediaBand.node}</Box>}
-            {/* The press is the action area's own, not the picture's inside it. The area is a
-              button, and a button's Enter fires the button — never a click on some element within
-              it — so a handler on the image is a card openable by the pointer alone, which is
-              every card on the page for a reader on the keyboard. */}
-            <CardActionArea
-              aria-label={props.openLabel}
-              onClick={() => {
-                if (onOpen) return onOpen();
-                // The detail dialog is themed from this colour, so it is worth reading even for a card
-                // that did not ask for one.
-                readColour(imgRef.current);
-                openDetail();
-              }}
-              sx={mediaLayout === "aside" ? ASIDE_ACTION_AREA_SX : beside ? SHAPE_ASIDE_ACTION_AREA_SX : undefined}
-            >
-              {missing ? (
-                /* The picture's own box, filled and named. It carries `mediaSx` exactly as the image
-                 does, so it stands where the picture would have at the same size — the shape's
-                 ratio, which an element with no natural size of its own takes whether it is stated
-                 outright or as an `auto` reservation, and which keeps a wall of these the height
-                 the offsets are measured against. A span, because the card's action area is a
-                 button and only phrasing content is legal inside one — which the image it stands
-                 in for is and a div is not. */
-                <ArtworkStandIn
-                  alt={alt}
-                  palette={palette}
-                  component="span"
-                  sx={mediaSx}
-                />
-              ) : (
-                <CardMedia
-                  height={"100%"}
-                  component="img"
-                  crossOrigin="anonymous"
-                  src={image}
-                  alt={alt}
-                  loading={lazy ? "lazy" : undefined}
-                  // WebKit decodes on the main thread as it paints, and a wall's artwork arrives
-                  // while the reader is scrolling it — the frames a synchronous decode costs are
-                  // exactly the ones the scroll needed.
-                  decoding="async"
-                  ref={imgRef}
-                  onLoad={(el) => readImage(el.currentTarget, image, extractColour && !colour, setRatio, setExtracted)}
-                  onError={() => setFailedImage(image)}
-                  sx={mediaSx}
-                />
-              )}
-              {chip && (
-                <Chip
-                  sx={{
-                    position: "absolute",
-                    top: 0,
-                    right: 0,
-                    margin: 1,
-                    opacity: 0.8,
-                    backgroundColor: chip.colour ?? "primary.main",
-                    color: (theme) =>
-                      theme.palette.getContrastText(chip.colour ?? colour ?? theme.palette.primary.main),
-                  }}
-                  label={chip.label}
-                  icon={chip.icon}
-                  onClick={chip.onClick}
-                  variant={chip.variant || "filled"}
-                  size="small"
-                />
-              )}
-            </CardActionArea>
+            {mediaBand && bandAside ? (
+              <Box sx={SIDE_BAND_ROW_SX}>
+                <SideBand band={mediaBand} />
+                {actionArea}
+              </Box>
+            ) : (
+              <>
+                {mediaBand && <Box sx={FULL_WIDTH_NO_BASIS}>{mediaBand.node}</Box>}
+                {actionArea}
+              </>
+            )}
             {footerComponent}
           </CardArrangementProvider>
           {/* The whole `Dialog` is what this card gates on `mounted`, not just the body inside it.
@@ -1439,6 +1491,48 @@ const STRIP_CAPTION_LINES = 2;
 
 export const STRIP_CAPTION_HEIGHT = SEAM_WIDTH + 2 * STRIP_CAPTION_INSET + STRIP_CAPTION_LINES * STRIP_CAPTION_LINE;
 
+/** One line of a strip caption, under the picture or down its spine. */
+const STRIP_CAPTION_LINE_SX = {
+  display: "block",
+  fontWeight: 600,
+  // Stated, so the height above is the height this actually takes rather than whatever the
+  // variant's ratio works out to.
+  lineHeight: `${STRIP_CAPTION_LINE}px`,
+  // One size down from the variant, so a date fits a cover's line; every strip card takes it, the
+  // strip being read across its captions.
+  fontSize: 11,
+  fontVariantNumeric: "tabular-nums",
+} as const;
+
+/** The closing line, carrying the chevron beside its words. */
+const CLOSING_CAPTION_LINE_SX = { display: "flex", alignItems: "center", columnGap: "2px" } as const;
+
+/**
+ * A spine's lines, centred along the picture's height, where a date at the top of the column
+ * reads as a label for the band above it.
+ */
+const SPINE_TYPE_SX = {
+  ...VERTICAL_FILL_SX,
+  paddingY: `${STRIP_CAPTION_INSET + 1}px`,
+  paddingX: `${STRIP_CAPTION_INSET}px`,
+  overflow: "hidden",
+  textAlign: "center",
+} as const;
+
+/** The chevron's 14px glyph, and the room the spine's lines leave it at the foot. */
+const SPINE_CHEVRON = 14;
+const SPINE_TYPE_ABOVE_CHEVRON_SX = {
+  ...SPINE_TYPE_SX,
+  paddingBottom: `${STRIP_CAPTION_INSET + SPINE_CHEVRON}px`,
+} as const;
+const SPINE_CHEVRON_SX = {
+  position: "absolute",
+  bottom: `${STRIP_CAPTION_INSET}px`,
+  left: "50%",
+  transform: "translateX(-50%)",
+  fontSize: SPINE_CHEVRON,
+} as const;
+
 export const FooterComponent = ({
   labels,
   divider,
@@ -1468,6 +1562,43 @@ export const FooterComponent = ({
 }) => {
   const palette = useArtworkPalette();
   const beside = useCardArrangement() === "beside";
+  const lines = caption ? (captionText ?? stripCaption(labels)).slice(0, STRIP_CAPTION_LINES) : [];
+
+  // Beside a portrait picture in a strip, the caption is a spine: its lines set down the column, as
+  // the Now band's phone cells set a date beside a poster, the column as wide as its lines. With
+  // nothing to say it is no column at all, the picture already standing at the card's height.
+  if (caption && beside && lines.length === 0 && !chevron) return null;
+  if (caption && beside)
+    return (
+      <CardContent
+        sx={{
+          flex: "0 0 auto",
+          width: Math.max(lines.length, 1) * STRIP_CAPTION_LINE + 2 * STRIP_CAPTION_INSET,
+          padding: 0,
+          ":last-child": { paddingBottom: 0 },
+          position: "relative",
+          backgroundColor: palette.ground,
+          color: palette.onGround,
+          ...seamEdge(palette, true),
+        }}
+      >
+        <Box sx={chevron ? SPINE_TYPE_ABOVE_CHEVRON_SX : SPINE_TYPE_SX}>
+          {lines.map((line) => (
+            <Typography
+              key={line}
+              variant="caption"
+              noWrap
+              sx={STRIP_CAPTION_LINE_SX}
+            >
+              {line}
+            </Typography>
+          ))}
+        </Box>
+        {/* At the foot of the spine, where a caption under the picture carries it at the end of its
+            closing line: the mark that the card opens a group rather than the item in it. */}
+        {chevron && <ChevronRight sx={{ ...SPINE_CHEVRON_SX, color: palette.muted }} />}
+      </CardContent>
+    );
 
   if (caption)
     return (
@@ -1491,7 +1622,7 @@ export const FooterComponent = ({
         }}
       >
         <Box sx={{ minWidth: 0, width: "100%" }}>
-          {(captionText ?? stripCaption(labels)).slice(0, STRIP_CAPTION_LINES).map((line, index, lines) => {
+          {lines.map((line, index) => {
             // The glyph rides the caption's *last* line, which is the figure — the shorter of the
             // two. On the last line the date above keeps the card's full width, where a glyph
             // standing beside both lines takes 16 of an 82px poster's caption from a date that
@@ -1503,18 +1634,7 @@ export const FooterComponent = ({
                 key={line}
                 variant="caption"
                 noWrap={!closing}
-                sx={{
-                  display: closing ? "flex" : "block",
-                  ...(closing && { alignItems: "center", columnGap: "2px" }),
-                  fontWeight: 600,
-                  // Stated, so the height above is the height this actually takes rather than
-                  // whatever the variant's ratio works out to.
-                  lineHeight: `${STRIP_CAPTION_LINE}px`,
-                  // One size down from the variant, so a date fits a cover's line; every strip card
-                  // takes it, the strip being read across its captions.
-                  fontSize: 11,
-                  fontVariantNumeric: "tabular-nums",
-                }}
+                sx={[STRIP_CAPTION_LINE_SX, closing && CLOSING_CAPTION_LINE_SX]}
               >
                 {closing ? (
                   <Box

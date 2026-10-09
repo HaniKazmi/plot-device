@@ -885,6 +885,20 @@ per list at a stated `MEDIUM_LABEL_HEIGHT` of 22, so the shelves, their drill-do
 Finished cannot draw it at different heights — stated because those surfaces fix a card's height and
 the artwork takes the rest.
 
+Where a card is bare artwork — the library's shelves and wall, and a franchise page's — the band
+takes the edge its shape can spare, which the card decides from its shape and its lack of words:
+across the top of a banner, and down the left of a poster or a cover, read upwards. The label is
+sized in logical terms, so the slot's writing mode turns its stated height into a width; a list
+states one band and the card's height (`rowSize` with no footer), and the picture takes what the
+band leaves. A row
+of one height leaves a portrait picture narrow and a banner short, so a band across a poster's top
+takes height from the one picture that has none to spare; down its side the poster stands as tall
+as the row, 172px against a banner's 150. The side band is out of flow inside its slot: vertical
+type asks its container for a height, and a wall card has none until the picture beside it states
+one, so in flow the type is laid out against the viewport's height and stretches the wall's row to
+it. A card with words keeps the band on top, the drill-downs and Recently Finished included, since
+a band down a poster's side beside a column of words is three strips abreast on a card 331px wide.
+
 **Recently Finished** (`omnibus/RecentlyFinished.tsx`) is the list each tab keeps for itself, asked
 once across all four: `recentlyFinished` keeps only items with a `closeDate`, since an item in
 progress is not finished — and that filter leaves every entry with a date to sort by, where
@@ -925,7 +939,7 @@ Franchises** is the tab's one card per: a franchise's works on a shelf fold into
 the tracked libraries' own `cardRuns`, fronted by the first of them in the shelf's order and opening
 its works in the drill-down; it is not offered while the shelves are franchises themselves. "When"
 is the year each work was finished, In progress first, and "medium" the tab it came from. A shelf
-card carries no words, so the picture keeps the whole height below its medium band.
+card carries no words, so the picture keeps the whole height beside or below its medium band.
 Every category but rating is a field all four media record — `groupByCategory` skips an empty value,
 so a category one medium answers `""` to drops that medium off the wall with no error. The
 certificate is the exception: nothing certifies a book, so books are absent from those shelves and
@@ -2062,7 +2076,12 @@ happens to end.
   in rows, since a strip has none to multiply a solved count by. Each card is built from its picture
   out — `mediaLayout` fixed to `"stacked"` regardless of shape, since the arrangement rule would seat
   a poster's words beside a card 82px wide — and its corner chip drops unless the shape is landscape,
-  where it would cover or overflow a narrow picture. `FooterComponent`'s `caption` prop replaces the
+  where it would cover or overflow a narrow picture. A list mixing shapes can ask for a spine on its
+  portrait cards instead (`stripShapeOf`, Recently Finished's): the strip hands each card its own shape and leaves
+  the arrangement rule to seat the caption beside the picture, `FooterComponent` reads that arrangement and sets the date down a
+  column as wide as its lines, the Now band's phone cells' way, and the picture takes the caption's
+  height as well — 114px wide at 167 tall on a phone where a caption under it leaves it 82 at 120, the card the same
+  189px tall as the banners beside it. `FooterComponent`'s `caption` prop replaces the
   label stack: `stripCaption` (`common/statsData.ts`) takes the first label row's cells as the two
   lines a fixed-height card has room for, a date over a figure with each whole (`captionLines`
   joins a third cell onto the second), since the closing row — the item's own name — is already
@@ -2746,7 +2765,7 @@ key in ObjectExpression`; pulled out to a plain function taking the varying piec
   `sheetBarSx`, `dialogCardSx`, among others — the literal itself sits at module scope and the
   component stays compiled.
 
-The baseline is **307 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **308 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.

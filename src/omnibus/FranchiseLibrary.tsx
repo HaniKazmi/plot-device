@@ -229,13 +229,18 @@ const Shelf = ({
   );
 };
 
-/** One work at the row's height and its own width, its medium named along the top as the gallery's are. */
+/**
+ * One work at the row's height and its own width, its medium named as the gallery's are: the card
+ * stands at the picture's height and the band's, and the band takes them from whichever edge the
+ * shape can spare.
+ */
 const Picture = ({ item, band, height }: { item: ShelfItem; band: MediaBand<OmniItem>; height: number }) => (
   <OmniCardMediaImage
     item={item}
     lazy
     mediaBand={{ node: band.render(item), height: band.height }}
-    sx={{ height, width: "auto" }}
+    rowSize={{ height: height + band.height, footerHeight: 0 }}
+    sx={{ width: "auto" }}
   />
 );
 

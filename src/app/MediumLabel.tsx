@@ -1,10 +1,10 @@
-import { Box } from "@mui/material";
+import { Box, type Theme } from "@mui/material";
 import { LABEL_SX } from "../common/typography";
 import type { Scheme } from "../utils/types";
 import { mediumToColour, mediumToName, type Medium } from "./types";
 
 /**
- * The band along the top of a picture naming its medium, and how tall it stands.
+ * The band along a picture naming its medium, and how tall it stands.
  *
  * A mixed row holds four media at one height, so which one a picture is has to be said somewhere
  * — and a chip in the corner says it by covering the artwork it is labelling, on every card, on
@@ -15,6 +15,38 @@ import { mediumToColour, mediumToName, type Medium } from "./types";
  * height and the artwork takes all of it that this band does not.
  */
 export const MEDIUM_LABEL_HEIGHT = 22;
+
+/**
+ * Sized in logical terms — its stated size across the line of type, its padding along it — so the
+ * band stands across the top of a picture or down its side by the writing mode of the slot it is
+ * drawn in, without being told which.
+ */
+const LABEL_BAND_SX = {
+  blockSize: MEDIUM_LABEL_HEIGHT,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  paddingInline: 1,
+  fontSize: 11,
+  fontWeight: 600,
+  ...LABEL_SX,
+} as const;
+
+/**
+ * The type on each fill, read once per fill. There are eight — four media on two papers — and a
+ * wall draws a label on each of two thousand cards on every render, where the contrast is the same
+ * answer each time: every tab's theme is built with one contrast threshold, so the fill alone
+ * decides it.
+ */
+const CONTRAST = new Map<string, string>();
+const contrastOn = (colour: string, theme: Theme) => {
+  let text = CONTRAST.get(colour);
+  if (text === undefined) {
+    text = theme.palette.getContrastText(colour);
+    CONTRAST.set(colour, text);
+  }
+  return text;
+};
 
 /**
  * What a picture is: the band filled in that medium's own colour, with type derived from the fill
@@ -28,20 +60,7 @@ export const MediumLabel = ({ medium, scheme }: { medium: Medium; scheme: Scheme
   const colour = mediumToColour(medium, scheme);
 
   return (
-    <Box
-      sx={(theme) => ({
-        height: MEDIUM_LABEL_HEIGHT,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        paddingX: 1,
-        fontSize: 11,
-        fontWeight: 600,
-        backgroundColor: colour,
-        color: theme.palette.getContrastText(colour),
-        ...LABEL_SX,
-      })}
-    >
+    <Box sx={[LABEL_BAND_SX, (theme) => ({ backgroundColor: colour, color: contrastOn(colour, theme) })]}>
       {mediumToName(medium)}
     </Box>
   );

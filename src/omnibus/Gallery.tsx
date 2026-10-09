@@ -119,8 +119,15 @@ interface Run {
 /** What the scroll marker is told the wall holds while the shelves stand in its place. */
 const NO_RUNS: readonly never[] = [];
 
-/** The height every picture stands at, shelf or wall: the artwork and the medium band above it. */
+/**
+ * The height every card stands at, shelf or wall: a banner and the medium band above it, or a
+ * poster or a cover beside its band at the whole of it.
+ */
 const ROW_HEIGHT = FILMSTRIP_HEIGHT + MEDIUM_LABEL_HEIGHT;
+
+/** Every picture's card at the row's height, with no words under it. */
+const ROW_SIZE = { height: ROW_HEIGHT, footerHeight: 0 };
+const AUTO_WIDTH_SX = { width: "auto" } as const;
 
 /**
  * The library as pictures: a shelf per group, each a row of artwork at one height.
@@ -347,14 +354,15 @@ const ShelfPicture = ({
     <OmniCardMediaImage
       item={card.item}
       lazy
-      // The band along the top rather than a footer, so a card here reads the way one in the
-      // drill-down does. With no words beside or beneath it the card is arranged by nothing, and
-      // the picture keeps the whole of the height the row gives it below the band.
+      // A band rather than a footer, so a card here names its medium the way one in the drill-down
+      // does. With no words beside or beneath it the card is arranged by nothing, and the picture
+      // keeps the whole of the height the row gives it beside or below the band.
       mediaBand={{ node: band.render(card.item), height: band.height }}
       // The row fixes the height and each picture takes the width its medium's shape gives it, so
       // a banner and a poster stand at one height in their own shapes; the card holds that width
       // before the artwork arrives, which is what a wall's offsets are read in.
-      sx={{ height: FILMSTRIP_HEIGHT, width: "auto" }}
+      rowSize={ROW_SIZE}
+      sx={AUTO_WIDTH_SX}
       chip={grouped ? { label: format(card.members.length), icon: <Collections /> } : undefined}
       onOpen={grouped ? () => onOpenCard(card) : undefined}
       openLabel={grouped ? `Open ${card.item.franchise}, ${stated(card.members.length, "works")}` : undefined}
