@@ -10,6 +10,8 @@ import {
   type RefObject,
 } from "react";
 import { usePhone } from "./breakpoints";
+import { Kbd } from "./Kbd";
+import { stepIndex } from "./keyboard";
 import { SheetBar } from "./SheetBar";
 import { SegmentedControl, type SegmentOption } from "./SelectionComponents";
 import type { SearchMode } from "./searchOpen";
@@ -306,27 +308,8 @@ const chipSx = (theme: Theme) => ({
   ...focusRingSx(theme, -2),
 });
 
-const KEY_SX = {
-  fontSize: 10.5,
-  paddingX: 0.5,
-  border: "1px solid",
-  borderColor: "divider",
-  borderRadius: 0.5,
-  lineHeight: 1.6,
-  color: "text.secondary",
-} as const;
-
 /** A key hint: the glyph and what it does, on one baseline. */
 const HINT_SX = { color: "text.secondary", display: "flex", gap: 0.5, alignItems: "center" } as const;
-
-const Key = ({ children }: { children: string }) => (
-  <Box
-    component="kbd"
-    sx={KEY_SX}
-  >
-    {children}
-  </Box>
-);
 
 /**
  * Whether an arrow is the box's to take. A modified one is the field's — ⇧← extends a selection,
@@ -580,6 +563,11 @@ export const SearchPalette = (props: {
   /** What stands on This page's last line: the population its settings have left, and Clear. */
   footer?: ReactNode;
   /**
+   * Clears the page's filters, for ⌘⌫ in This page — the footer's Clear from the keyboard, answered
+   * only while the field is empty, where the chord would otherwise delete the line typed into it.
+   */
+  onClearPage?: () => void;
+  /**
    * Whether the box is on screen, which is not the same question as whether it is open: a dialog
    * renders its children all the way through the exit transition. A caller building its contents
    * on `open` alone empties the box the reader is watching close — the hits go, and the line that
@@ -588,7 +576,7 @@ export const SearchPalette = (props: {
   onDrawn: (drawn: boolean) => void;
 }) => {
   const { open, mode, onMode, focusRequest, onClose, query, onQueryChange, groups, scope } = props;
-  const { loading, emptyState, placeholder, pageContent, footer, onDrawn } = props;
+  const { loading, emptyState, placeholder, pageContent, footer, onDrawn, onClearPage } = props;
   const phone = usePhone();
   const finding = mode === "find";
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
@@ -663,7 +651,7 @@ export const SearchPalette = (props: {
     if (rows.length === 0) return;
     byKeyboard.current = true;
     // `openKey` names a row whenever there is one, so the index is only ever -1 on an empty list.
-    const next = (selectedIndex + step + rows.length) % rows.length;
+    const next = stepIndex(selectedIndex, step, rows.length);
     setSelectedKey(rows[next].key);
   };
 
@@ -682,7 +670,7 @@ export const SearchPalette = (props: {
     // the arrows are the caret's until ↑↓ or a pointer has said otherwise.
     if (selectedKey === null || cells.length < 2) return false;
     byKeyboard.current = true;
-    const next = (cellIndex + step + cells.length) % cells.length;
+    const next = stepIndex(cellIndex, step, cells.length);
     setCellKey(cells[next].key);
     return true;
   };
@@ -814,6 +802,9 @@ export const SearchPalette = (props: {
     } else if (event.key === "Enter" && active) {
       event.preventDefault();
       active.onOpen();
+    } else if (event.key === "Backspace" && (event.metaKey || event.ctrlKey) && !finding && onClearPage && !query) {
+      event.preventDefault();
+      onClearPage();
     } else if (event.key === "Backspace" && scope && !query) {
       // The chip-in-a-field idiom: with nothing left to delete, the next ⌫ takes the chip.
       scope.onClear();
@@ -889,7 +880,7 @@ export const SearchPalette = (props: {
           }}
           sx={{ fontSize: { xs: 16, sm: 18 } }}
         />
-        {!phone && <Key>esc</Key>}
+        {!phone && <Kbd>esc</Kbd>}
       </Box>
       {!phone && (
         <Stack
@@ -1065,28 +1056,28 @@ const PaletteKeys = ({ scope }: { scope?: string }) => (
       variant="caption"
       sx={HINT_SX}
     >
-      <Key>↑</Key>
-      <Key>↓</Key> move
+      <Kbd>↑</Kbd>
+      <Kbd>↓</Kbd> move
     </Typography>
     <Typography
       variant="caption"
       sx={HINT_SX}
     >
-      <Key>←</Key>
-      <Key>→</Key> reading
+      <Kbd>←</Kbd>
+      <Kbd>→</Kbd> reading
     </Typography>
     <Typography
       variant="caption"
       sx={HINT_SX}
     >
-      <Key>↵</Key> open
+      <Kbd>↵</Kbd> open
     </Typography>
     {scope && (
       <Typography
         variant="caption"
         sx={HINT_SX}
       >
-        <Key>⌫</Key> leave {scope}
+        <Kbd>⌫</Kbd> leave {scope}
       </Typography>
     )}
   </>

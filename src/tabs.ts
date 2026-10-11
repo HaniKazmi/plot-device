@@ -3,8 +3,8 @@ import type { SvgIconComponent } from "@mui/icons-material";
 import { GridView, MenuBook, SportsEsports, Theaters, Tv } from "@mui/icons-material";
 import type { Colour, Scheme } from "./utils/types";
 import { useEffect, useEffectEvent } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { inEditableField } from "./common/keyboard";
+import { useLocation, useNavigate, type NavigateFunction } from "react-router-dom";
+import { inEditableField, stepIndex, usePageKeys } from "./common/keyboard";
 import { useScheme } from "./common/useScheme";
 import Shows from "./show/Show";
 import VideoGames from "./game/Game";
@@ -342,11 +342,39 @@ export const useTabChips = () => {
     ...tab,
     /** The tab's own page is the one open, rather than one standing under it. */
     here: tab.current && root,
-    jump: () => {
-      if (!(tab.current && root)) navigate(`/${tab.id}`);
-      window.scrollTo({ top: 0 });
-    },
+    jump: () => jumpToTab(navigate, tab.id, tab.current && root),
   }));
+};
+
+/** A jump to a tab's own page, or to the top of it where it is the page open already. */
+const jumpToTab = (navigate: NavigateFunction, tabId: string, here: boolean) => {
+  if (!here) navigate(`/${tabId}`);
+  window.scrollTo({ top: 0 });
+};
+
+/**
+ * `1` to `5` open the tab at that place in the strip, and `[` `]` the one either side, wrapping at
+ * the ends — each through the rail chip's own jump, so a key for the tab already open scrolls to
+ * the top and pushes no second history entry, exactly as pressing its lit chip does. Worked out
+ * from the path as the key lands rather than from the chips, which the shell mounting this has no
+ * other use for and which would subscribe it to the colour scheme.
+ *
+ * Bare keys rather than ⌘ and a digit, which every browser spends on its own tabs. Positions rather
+ * than letters: the strip is read left to right, so the fourth tab is the fourth key with no legend
+ * to learn, where Movies and Books have no first letter that is theirs alone among the app's keys.
+ */
+export const useTabKeys = () => {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+
+  usePageKeys("123456789[]", (key) => {
+    const current = Tabs.indexOf(tabForPath(pathname));
+    const at = key === "[" || key === "]" ? stepIndex(current, key === "]" ? 1 : -1, Tabs.length) : Number(key) - 1;
+    const tab = Tabs[at];
+    if (!tab) return false;
+    jumpToTab(navigate, tab.id, at === current && atTabRoot(pathname));
+    return true;
+  });
 };
 
 /**

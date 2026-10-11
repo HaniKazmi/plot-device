@@ -51,6 +51,7 @@ import { Fullscreen, Timer, Update } from "@mui/icons-material";
 import { CutButton } from "./SelectionComponents";
 import { useDialogMount } from "./useDialogMount";
 import { SheetBar } from "./SheetBar";
+import { CARD_LIST } from "./cardStep";
 
 export const StatCard = ({
   icon,
@@ -448,6 +449,7 @@ export const StatsListGrid = <T,>(
         ) : "rowSize" in cell ? (
           <Box
             ref={rowRef}
+            {...CARD_LIST}
             sx={{
               display: "flex",
               flexWrap: flexWrap ?? "wrap",
@@ -463,6 +465,7 @@ export const StatsListGrid = <T,>(
           <Grid
             container
             spacing={1}
+            {...CARD_LIST}
             sx={{
               overflow: "auto",
               // Below `md` the strip does not wrap, so its own flick is the page's to lose.

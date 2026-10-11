@@ -22,6 +22,9 @@ import { FranchisePageContext } from "../common/franchiseUnion";
 import { FRANCHISE_KEY } from "../common/filterSchema";
 import { rankHits, type Hit, type Searchable } from "../common/searchData";
 import { MUTED_FIGURE_SX } from "../common/typography";
+import { usePhone } from "../common/breakpoints";
+import { Kbd } from "../common/Kbd";
+import { modKey } from "../common/keyboard";
 import { format } from "../utils/mathUtils";
 import { useScheme } from "../common/useScheme";
 import { franchiseToColour, mediumToColour, type Colour, type Medium, type Scheme } from "../utils/types";
@@ -353,6 +356,7 @@ export const SearchSurface = ({
   valueRequest: ValueRequest | null;
 }) => {
   const scheme = useScheme();
+  const phone = usePhone();
   const navigate = useNavigate();
   // A page standing under a tab — a franchise's, under the Omnibus — is not that tab's own page:
   // it has none of its filters, and a filter set on the tab is only seen by going there.
@@ -403,6 +407,8 @@ export const SearchSurface = ({
   // The page the box is standing over: its own schema, store, measures and rows. Subscribed to
   // through the store the tab's charts read, so a filter set here is the filter they are drawn by.
   const { tab, page: surface, state: pageState } = usePage();
+  // The footer's Clear and ⌘⌫ in This page, one press under two handles.
+  const clearPage = surface && (() => surface.store.dispatch({ type: "resetFilters" }));
 
   const close = closeSearch;
 
@@ -660,6 +666,7 @@ export const SearchSurface = ({
           )
         }
         onDrawn={(shown) => setExited(!shown)}
+        onClearPage={clearPage}
         footer={
           !drawn || finding
             ? undefined
@@ -677,9 +684,11 @@ export const SearchSurface = ({
                       surface.store.activeCountOf(pageState),
                     )}
                   </Typography>
+                  {/* The chord beside the button it presses, where there is a keyboard to press it on. */}
+                  {!phone && <Kbd>{`${modKey()}⌫`}</Kbd>}
                   <Button
                     size="small"
-                    onClick={() => surface.store.dispatch({ type: "resetFilters" })}
+                    onClick={clearPage}
                   >
                     Clear
                   </Button>

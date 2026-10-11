@@ -18,7 +18,7 @@ import type { artworkPalette } from "./artworkPalette";
 import { segments } from "./segments";
 import { CURRENT_YEAR, type YearNumber } from "./date";
 import type { YearType } from "./filterReducer";
-import { isAllTime, scopeLabel } from "./scope";
+import { isAllTime, scopeLabel, type YearScope } from "./scope";
 import { KIT_OUTLINED_SX, primaryWash } from "./typography";
 
 /** One segment: the value it selects and the word on it. */
@@ -265,7 +265,7 @@ export const SelectBox = <T extends string>({
  * Typed as exactly the one action this control sends, so every domain's dispatch — each a
  * `FilterDispatchFor` over its own wider state — fits structurally without a generic.
  */
-export type YearDispatch = (action: { type: "scope"; yearTo: YearNumber; yearType: YearType }) => void;
+export type YearDispatch = (action: { type: "scope" } & YearScope) => void;
 
 /** The two readings of a year: everything up to it, or that year alone. */
 const SCOPE_SEGMENTS: SegmentOption<YearType>[] = [

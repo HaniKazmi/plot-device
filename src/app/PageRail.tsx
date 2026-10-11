@@ -1,5 +1,6 @@
 import { FilterChip, PageChip } from "../common/PageHandles";
 import { stated } from "../common/population";
+import { useReadingKeys } from "../common/readingKeys";
 import { SectionRail, type RailSection } from "../common/SectionRail";
 import { MeasureControl, ScopeControl } from "../common/SelectionComponents";
 import { useScheme } from "../common/useScheme";
@@ -23,6 +24,10 @@ import { usePage } from "./page";
  * `count` is the one thing the page knows and this does not — the rows its charts are actually
  * drawn from. Re-derived here it would run the page's own predicate over the library a second time
  * on every render, and a figure arrived at twice can disagree with what is on screen.
+ *
+ * It answers the readings' keys as well (`useReadingKeys`): it is mounted on every tab's page and
+ * holds the state they move, where the controls drawing that state leave the rail at narrower
+ * widths.
  */
 export const PageRail = ({ sections, count }: { sections: RailSection[]; count: number }) => {
   // `page` is absent only while the tab's own sheet is still landing, where the page below has
@@ -31,6 +36,17 @@ export const PageRail = ({ sections, count }: { sections: RailSection[]; count: 
   const { tab, page, state, dispatch } = usePage();
   const tabs = useTabChips();
   const scheme = useScheme();
+  useReadingKeys({
+    measures: page?.measures ?? [],
+    measure: state.measure,
+    onMeasure: (measure) => dispatch({ type: "measure", measure }),
+    scope: page && {
+      yearTo: state.yearTo,
+      yearType: state.yearType,
+      earliestYear: page.earliestYear,
+      onScope: (scope) => dispatch({ type: "scope", ...scope }),
+    },
+  });
 
   return (
     <SectionRail

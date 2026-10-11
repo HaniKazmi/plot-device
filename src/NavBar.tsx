@@ -22,6 +22,9 @@ import { useAuthState } from "./app/authState";
 import { useLibrary } from "./app/library";
 import { safeAreaGutters } from "./common/chrome";
 import { openSearch } from "./common/searchOpen";
+import { openShortcuts } from "./common/shortcutsOpen";
+import { usePhone } from "./common/breakpoints";
+import { usePageKeys } from "./common/keyboard";
 import { AppIcon } from "./AppIcon";
 
 /**
@@ -175,7 +178,15 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
   const { onMouseDown, onMouseUp, onMouseLeave } = useLongPress(() => setGuestMode(true));
   const { authorise, signOut } = useGoogleAuth();
   const authState = useAuthState();
+  const phone = usePhone();
   const { refresh, reading } = useLibrary();
+  // `r` presses the refresh in the slot, and only while the slot is drawing one: before a session
+  // there is nothing to read again, and authorising is a consent popup a stray key should not open.
+  usePageKeys("r", () => {
+    if (authState !== "live" || reading) return false;
+    refresh();
+    return true;
+  });
 
   /**
    * What the slot draws, as one value.
@@ -425,6 +436,19 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
           >
             {guestMode ? "Leave guest mode" : "Guest mode"}
           </MenuItem>
+          {/* Where a keyboard is likely, the one place the sheet `?` opens is named: the app draws
+              no hover labels, so a key nobody is told about is a key nobody presses. Not on a
+              phone, where the item would name a sheet of keys there is nothing to press. */}
+          {!phone && (
+            <MenuItem
+              onClick={() => {
+                closeMenu();
+                openShortcuts();
+              }}
+            >
+              Keyboard shortcuts
+            </MenuItem>
+          )}
         </Menu>
       </Toolbar>
     </AppBar>

@@ -17,6 +17,7 @@ import { GoogleAuthProvider } from "./contexts/GoogleAuthContext.tsx";
 import { LibraryProvider } from "./app/LibraryProvider.tsx";
 import { FranchiseUnionProvider } from "./app/franchiseUnion.tsx";
 import { SearchHost } from "./app/Search.tsx";
+import { ShortcutsHost } from "./Shortcuts.tsx";
 import { useAuthState } from "./app/authState.ts";
 import { usePage } from "./app/page.ts";
 import { pageCount, resetPageFilters } from "./app/pageState.ts";
@@ -26,7 +27,7 @@ import { isAllTime, scopeLabel } from "./common/scope.ts";
 import { CURRENT_YEAR } from "./common/date.ts";
 import { EmptyCard } from "./app/EmptyCard.tsx";
 import { ErrorBoundary } from "./common/ErrorBoundary.tsx";
-import { barColour, DARK_PAPER, useCurrentTab, useEscapeLeavesSubPage } from "./tabs.ts";
+import { barColour, DARK_PAPER, useCurrentTab, useEscapeLeavesSubPage, useTabKeys } from "./tabs.ts";
 import type { Tab } from "./tabs.ts";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 
@@ -99,6 +100,7 @@ const PageContent = () =>
 
 const GoogleAuth = () => {
   useEscapeLeavesSubPage();
+  useTabKeys();
   const [guestMode, setGuestMode] = useState(false);
   // Entering guest mode narrows every library under whatever each tab holds selected, and a value
   // the narrowed library no longer offers has no chip left to clear it — so the filters go with it.
@@ -140,6 +142,7 @@ const GoogleAuth = () => {
           </FranchiseUnionProvider>
         </Container>
         <BottomTabs />
+        <ShortcutsHost />
       </LibraryProvider>
     </GoogleAuthProvider>
   );

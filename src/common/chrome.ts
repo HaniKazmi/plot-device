@@ -70,22 +70,53 @@ export const safeAreaGutters = (theme: Theme) => ({
  */
 const SETTLE_MS = 160;
 let ownScroll = false;
+/** The section the scroll is taking the reader to, `null` for the page's top. */
+let destination: string | null | undefined;
 let settle: ReturnType<typeof setTimeout> | undefined;
 
-const armSettle = () => {
+/**
+ * The mark lapsing: the scroll has settled, or the reader has taken the page back with a wheel or
+ * a finger, from which point every scroll event is theirs — read as the page's, a flick up during
+ * a long smooth scroll would leave the tabs folded, and `j` would step from a section the page is
+ * no longer going to.
+ */
+const endOwnScroll = () => {
   clearTimeout(settle);
-  settle = setTimeout(() => {
-    ownScroll = false;
-  }, SETTLE_MS);
+  ownScroll = false;
+  destination = undefined;
+  window.removeEventListener("scroll", armSettle);
+  window.removeEventListener("wheel", endOwnScroll);
+  window.removeEventListener("touchstart", endOwnScroll);
 };
 
-export const beginOwnScroll = () => {
+/**
+ * Each scroll event while the mark stands pushes its lapse back, so it holds for the whole of a
+ * smooth scroll however long that runs. Listened for by the mark itself rather than left to a
+ * reader to extend: the section keys ask whether a scroll is still travelling at a moment when no
+ * scroll event is being delivered to them, and an answer that depended on some other listener
+ * having run would be false wherever that listener is not mounted.
+ */
+const armSettle = () => {
+  clearTimeout(settle);
+  settle = setTimeout(endOwnScroll, SETTLE_MS);
+};
+
+/** Marks the scroll about to start as the page's own, going to `to`: a section's id, or `null` for the top. */
+export const beginOwnScroll = (to: string | null) => {
   ownScroll = true;
+  destination = to;
+  // Adding the same listener twice is a no-op, so a second scroll begun inside the first holds one.
+  window.addEventListener("scroll", armSettle, { passive: true });
+  window.addEventListener("wheel", endOwnScroll, { passive: true });
+  window.addEventListener("touchstart", endOwnScroll, { passive: true });
   armSettle();
 };
 
-/** Whether the scroll event just delivered belongs to a scroll the page started, extending the mark if so. */
-export const isOwnScroll = () => {
-  if (ownScroll) armSettle();
-  return ownScroll;
-};
+/** Whether a scroll the page started is still travelling: the event just delivered, or the press just made. */
+export const isOwnScroll = () => ownScroll;
+
+/**
+ * Where the page's own scroll is still going, or `undefined` where none is travelling — what a
+ * second `j` steps from, whichever of a chip or a key began the first.
+ */
+export const ownScrollDestination = () => (ownScroll ? destination : undefined);
