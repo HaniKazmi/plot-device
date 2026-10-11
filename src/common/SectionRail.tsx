@@ -1,4 +1,4 @@
-import { Box, Divider } from "@mui/material";
+import { Box, Divider, useTheme } from "@mui/material";
 import type { SvgIconComponent } from "@mui/icons-material";
 import Grid from "@mui/material/Grid";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -52,6 +52,17 @@ export const PHONE_SCROLL_MARGIN = 8;
  * twice is stating it in two places that can move apart.
  */
 export const PHONE_SCROLL_MARGIN_CSS = `calc(${PHONE_SCROLL_MARGIN}px + env(safe-area-inset-top))`;
+
+/**
+ * The pinned rail's ground: the page's own, three quarters opaque over a blur of what scrolls
+ * beneath. Opaque enough that the chips keep the contrast they are solved for against the page's
+ * ground — the blur and the saturation boost turn whatever passes under into a wash of its own
+ * colour rather than shapes a word has to be read across — and clear enough that a chart or a wall
+ * of artwork scrolling up reads as passing under the rail rather than vanishing at its edge.
+ */
+const GLASS_ALPHA = "72%";
+const GLASS_FILTER = "blur(20px) saturate(180%)";
+const glassGround = (ground: string) => `color-mix(in srgb, ${ground} ${GLASS_ALPHA}, transparent)`;
 
 /** Where the observer calls a section current: from just under whatever is pinned to the upper third. */
 const activeBand = (top: number) => `-${top}px 0px -66% 0px`;
@@ -230,6 +241,7 @@ export const SectionRail = (props: {
   // state from a control nobody can see — and because below `sm` this is not a pinned bar of its
   // own but a row inside the one at the bottom of the screen, which no CSS can say.
   const phone = usePhone();
+  const theme = useTheme();
   const active = useActiveSection(props.sections, phone ? PHONE_SCROLL_MARGIN : SCROLL_MARGIN);
   const [railRef, stuck] = useStuck(!phone);
   const slot = usePhoneBarSlot();
@@ -266,7 +278,10 @@ export const SectionRail = (props: {
   const chipRow = (
     <ChipRail
       items={props.sections}
-      ground={phone ? props.phoneGround : undefined}
+      // The end fades resolve to the rail's own tint: left to the page's opaque ground, each end is
+      // a solid block standing over the glass. The tint laid over the glass deepens towards the
+      // edge, which is the fade.
+      ground={phone ? props.phoneGround : glassGround(theme.vars.palette.background.default)}
       activeId={active}
       // The lit chip is a reading of where in the page the reader is, and on a phone the row holds
       // four of a tab's seven sections: left where it is, it states a position off the end of
@@ -338,10 +353,11 @@ export const SectionRail = (props: {
         top: "-1px",
         // Under dialogs and the app bar, over the page it scrolls across.
         zIndex: theme.zIndex.appBar - 1,
-        // The page's own ground and not a card's: the rail sits on the page rather than in one,
-        // and anything translucent would let the content scroll through it. It is also what the
-        // chip row's own end fades resolve to, since they default to this same token.
-        backgroundColor: "background.default",
+        // The page's own ground and not a card's, the rail sitting on the page rather than in one,
+        // frosted (`glassGround`) so the page reads as passing under it.
+        backgroundColor: glassGround(theme.vars.palette.background.default),
+        backdropFilter: GLASS_FILTER,
+        WebkitBackdropFilter: GLASS_FILTER,
         borderBottom: 1,
         borderColor: "divider",
         paddingY: 1,
