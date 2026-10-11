@@ -2500,8 +2500,13 @@ colour a phone's status bar wears before any tab-specific theme has painted. `Go
 `MuiCssBaseline` override turns off the grey tap flash on `body`: it is drawn at a tap target's own
 box, which on a chart is a whole row group behind a bar a few pixels wide, and every tap here already
 answers with the card it opens. The same override paints the document — `html` and `body`, Safari reading
-the body's — in the tab's bar colour at every width and every scroll position, the page's own ground
-moving onto `#root`. Safari derives its status bar from the page rather than from a `theme-color`
+the body's — in the tab's bar colour at every width, the page's own ground moving onto `#root`. On
+iOS alone it gives way to that ground once the app bar has scrolled wholly away (`useBarAway`,
+`NavBar.tsx`, marking `html`; `@supports (-webkit-touch-callout: none)` holding it to iOS and
+iPadOS Safari): Safari draws a frosted fade under the status bar in the colour it samples, and the
+bar's colour there, over a page that has scrolled past the bar, is a band of the tab's hue across
+content it names nothing of. A desktop Safari tints a solid toolbar from the same colour, where a
+swap at one scroll offset flashes the whole toolbar, so it keeps the bar's colour throughout. Safari derives its status bar from the page rather than from a `theme-color`
 meta — on iOS 26 the metas alone leave it the paper and the painted document colours it (checked
 on a phone, 2026-09-14) — sampling the document where nothing fixed stands at the top edge, and
 extends that background

@@ -13,7 +13,7 @@ import {
   Typography,
 } from "@mui/material";
 import { Key, MoreVert, Refresh, Search } from "@mui/icons-material";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Tabs, { atTabRoot, useCurrentTab } from "./tabs";
 import useLongPress from "./utils/useLongPress";
@@ -135,8 +135,39 @@ type BarAction = { label: string; href?: string; onClick?: () => void };
  */
 const linkProps = (action: BarAction) => (action.href ? { href: action.href, target: "_blank" } : {});
 
+/**
+ * Marks the document while the app bar is wholly off screen (`data-bar-away` on `html`), which
+ * `Google.tsx` answers on iOS by painting the document in the page's ground rather than the bar's
+ * colour.
+ *
+ * iOS 26 Safari draws a frosted fade under the status bar in whatever colour it samples from the
+ * document. The bar colour is right while the bar stands at the top — the fade runs into it, and a
+ * pull past the top shows the bar rather than a band of paper — and wrong once it has scrolled
+ * away: the bar is static, so every screen below the first wears a band of the tab's colour over
+ * the page's own content.
+ */
+const useBarAway = () => {
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const bar = ref.current;
+    if (!bar) return;
+    const root = document.documentElement;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) delete root.dataset.barAway;
+      else root.dataset.barAway = "";
+    });
+    observer.observe(bar);
+    return () => {
+      observer.disconnect();
+      delete root.dataset.barAway;
+    };
+  }, []);
+  return ref;
+};
+
 const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode: (value: boolean) => void }) => {
   const navigate = useNavigate();
+  const barRef = useBarAway();
   const currTab = useCurrentTab();
   const root = atTabRoot(useLocation().pathname);
   // The hook answers with the pointer's handlers alone, which is why the overflow menu offers guest
@@ -193,6 +224,7 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
 
   return (
     <AppBar
+      ref={barRef}
       position="static"
       sx={(theme) => ({
         marginBottom: theme.spacing(2),
