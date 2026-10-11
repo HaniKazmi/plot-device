@@ -257,8 +257,8 @@ const getTheme = (tab: Tab) => {
           // than a flash. Inherited, so the body is the only place it has to be said.
           body: { WebkitTapHighlightColor: "transparent" },
           // What shows past the page's ends when a phone rubber-bands, and what Safari samples
-          // for its status bar and extends under it: the tab's own bar colour, at every scroll
-          // position. Both `html` and `body`, since Safari reads the body's and paints nothing
+          // for its status bar and extends under it: the tab's own bar colour, while the app bar
+          // stands at the top. Both `html` and `body`, since Safari reads the body's and paints nothing
           // above the document's edge, so a bar reaching up past it shows nothing. At every
           // width: a desktop Safari rubber-bands too, and the app bar is what stands at the top
           // there as well. The dark half is stated under the same media query MUI emits the dark
@@ -266,6 +266,19 @@ const getTheme = (tab: Tab) => {
           "html, body": {
             backgroundColor: barColour(tab, "light"),
             "@media (prefers-color-scheme: dark)": { backgroundColor: barColour(tab, "dark") ?? DARK_PAPER },
+          },
+          // On iOS, the page's own ground once the bar has scrolled away (`useBarAway`,
+          // `NavBar.tsx`): Safari's fade under the status bar then lies over the page's content,
+          // where the bar's colour is a band of the tab's hue over cards it has nothing to do with.
+          // iOS alone, `-webkit-touch-callout` being supported by iOS and iPadOS Safari and
+          // nothing else: a desktop Safari tints a solid toolbar from the same colour, and there a
+          // swap at one scroll offset flashes the whole toolbar from one colour to the other. The
+          // attribute outranks both rules above, the dark one included, and the token answers per
+          // scheme.
+          "@supports (-webkit-touch-callout: none)": {
+            "html[data-bar-away], html[data-bar-away] body": {
+              backgroundColor: theme.vars.palette.background.default,
+            },
           },
           // The page's ground moves onto the app's own root, the body having given it up: the
           // root is what the page is drawn in, and it stands at least a screen tall so a short
