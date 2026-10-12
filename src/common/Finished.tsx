@@ -49,6 +49,7 @@ import { SHEET_HEADER_BOTTOM } from "./fullscreenSheet";
 import { MUTED_FIGURE_SX, NUMERIC_LABEL_SX } from "./typography";
 import { format } from "../utils/mathUtils";
 import { FranchiseLink } from "./ValueLink";
+import { CARD_LIST } from "./cardStep";
 
 /** One empty list, so a wall with no extra sorts does not mint a fresh array every render. */
 const NO_SORTS: readonly never[] = [];
@@ -206,6 +207,7 @@ const FinishedGrid = <U extends FinishedItem>({
       container
       ref={gridRef}
       spacing={1}
+      {...CARD_LIST}
       sx={{
         opacity: dimmed ? 0.5 : 1,
       }}
@@ -389,7 +391,16 @@ const FinishedShelf = <U extends FinishedItem>({
           />
         )}
       </Stack>
-      {wrap ? <Box sx={SHELF_WRAP_SX}>{cards}</Box> : <Filmstrip height={height + border}>{cards}</Filmstrip>}
+      {wrap ? (
+        <Box
+          {...CARD_LIST}
+          sx={SHELF_WRAP_SX}
+        >
+          {cards}
+        </Box>
+      ) : (
+        <Filmstrip height={height + border}>{cards}</Filmstrip>
+      )}
     </Stack>
   );
 };

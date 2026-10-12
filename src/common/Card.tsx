@@ -31,6 +31,7 @@ import {
   type ArtworkShape,
 } from "./cardArrangement";
 import { useDialogMount } from "./useDialogMount";
+import { notePress, stepFrom, type CardOpens } from "./cardStep";
 import { CardAutoOpenContext, NOT_AUTO_OPEN, useCardAutoOpen } from "./cardAutoOpen";
 import { LABEL_SX } from "./typography";
 import Grid from "@mui/material/Grid";
@@ -535,6 +536,8 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
    */
   const [ratio, setRatio] = useState<number | undefined>(undefined);
   const imgRef = useRef<HTMLImageElement>(null);
+  // The card's own press, which ← and → in its dialog step from to the card beside it (`cardStep.ts`).
+  const pressRef = useRef<HTMLButtonElement>(null);
   /**
    * The artwork that did not arrive, paired with the src it was asked for.
    *
@@ -606,8 +609,11 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
   // on the keyboard.
   const actionArea = (
     <CardActionArea
+      ref={pressRef}
       aria-label={props.openLabel}
-      onClick={() => {
+      data-card-opens={(onOpen ? "layer" : "detail") satisfies CardOpens}
+      onClick={(event) => {
+        notePress(event.currentTarget);
         if (onOpen) return onOpen();
         // The detail dialog is themed from this colour, so it is worth reading even for a card
         // that did not ask for one.
@@ -733,6 +739,7 @@ export const CardMediaImage = (props: CardMediaImageProps) => {
             <Dialog
               open={detail.open}
               onClose={detail.hide}
+              onKeyDown={(event) => stepFrom(event, pressRef.current, detail.hide)}
               maxWidth={false}
               scroll="body"
               slots={{ transition: Grow }}

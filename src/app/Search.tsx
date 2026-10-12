@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
-import { closeSearch, openSearch, toggleSearchMode, useSearchState } from "../common/searchOpen";
-import { inEditableField } from "../common/keyboard";
+import { closeSearch, openPage, openSearch, toggleSearchMode, useSearchState } from "../common/searchOpen";
+import { inEditableField, usePageKeys } from "../common/keyboard";
 import { useValueRequest } from "../common/valueLayer";
 
 /**
@@ -36,9 +36,10 @@ const inSearchBox = (target: EventTarget | null) =>
  * already, since whatever a hit opened may have taken the focus with it; from inside the field
  * they close it instead, the way a palette's own chord reads as a toggle. `/` opens Find too,
  * except in a field where a slash is a character — the box's own field included, which is what
- * `inEditableField` already answers for every input in the app. ⌘⇧K switches which mode the box is
- * in, opening it in the other one where it is closed, so the page's own filters have a chord as
- * well as the two chips.
+ * `inEditableField` already answers for every input in the app. `f` opens it on the page's own
+ * filters, the pair to `/`, through the test every page key takes (`usePageKeys`) — so unlike the
+ * slash it stands down while a layer is open — and ⌘⇧K switches which mode the box is in, opening
+ * it in the other one where it is closed.
  *
  * The surface is mounted for the life of the page once first opened — it holds the query and
  * whatever a hit opened — and never before, so a visitor who never searches pays only the prefetch.
@@ -50,6 +51,11 @@ export const SearchHost = () => {
   useEffect(() => {
     void loadSurface().catch(() => {});
   }, []);
+
+  usePageKeys("f", () => {
+    openPage();
+    return true;
+  });
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

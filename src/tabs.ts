@@ -3,8 +3,8 @@ import type { SvgIconComponent } from "@mui/icons-material";
 import { GridView, MenuBook, SportsEsports, Theaters, Tv } from "@mui/icons-material";
 import type { Colour, Scheme } from "./utils/types";
 import { useEffect, useEffectEvent } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { inEditableField } from "./common/keyboard";
+import { useLocation, useNavigate, type NavigateFunction } from "react-router-dom";
+import { inEditableField, stepIndex, usePageKeys } from "./common/keyboard";
 import { useScheme } from "./common/useScheme";
 import Shows from "./show/Show";
 import VideoGames from "./game/Game";
@@ -80,6 +80,13 @@ export interface Tab {
   id: string;
   name: string;
   /**
+   * The letter that opens this tab from anywhere a bare key reaches the page (`useTabKeys`) — its
+   * name's own first letter, which every tab here has to itself. Stated rather than derived, so a
+   * tab whose name begins with a letter another key already answers is given a different one here
+   * instead of silently taking that key over; `tests/tabs.test.ts` holds the five apart.
+   */
+  shortcut: string;
+  /**
    * The sheet this tab is the dashboard for, absent on a tab that has none of its own. Omnibus
    * composes the four the other tabs already fetch. They are four tabs of one book now, so an id
    * here would be the right *file* and still the wrong answer: the "Sheet" button opens what a
@@ -121,6 +128,7 @@ export type SheetTab = Tab & Required<Pick<Tab, "spreadsheetId" | "range">>;
 export const GamesTab: SheetTab = {
   id: "games",
   name: "Games",
+  shortcut: "g",
   spreadsheetId: "1Zv8WAq1KA9L95ooQ3aiTOD1-0QrD1IPrEf4Mixgp9o0",
   range: "Games!A:Z",
   component: VideoGames,
@@ -131,6 +139,7 @@ export const GamesTab: SheetTab = {
 export const ShowsTab: SheetTab = {
   id: "shows",
   name: "Shows",
+  shortcut: "s",
   spreadsheetId: "1Zv8WAq1KA9L95ooQ3aiTOD1-0QrD1IPrEf4Mixgp9o0",
   range: "Shows!A:Z",
   component: Shows,
@@ -141,6 +150,7 @@ export const ShowsTab: SheetTab = {
 export const MoviesTab: SheetTab = {
   id: "movies",
   name: "Movies",
+  shortcut: "m",
   spreadsheetId: "1Zv8WAq1KA9L95ooQ3aiTOD1-0QrD1IPrEf4Mixgp9o0",
   range: "Movies!A:Z",
   component: Movies,
@@ -160,6 +170,7 @@ export const MoviesTab: SheetTab = {
 export const BooksTab: SheetTab = {
   id: "books",
   name: "Books",
+  shortcut: "b",
   spreadsheetId: "1Zv8WAq1KA9L95ooQ3aiTOD1-0QrD1IPrEf4Mixgp9o0",
   range: "Books!A:Z",
   component: Books,
@@ -214,6 +225,7 @@ export const BooksTab: SheetTab = {
 export const OmnibusTab: Tab = {
   id: "omnibus",
   name: "Omnibus",
+  shortcut: "o",
   component: Omnibus,
   icon: GridView,
   ...colours("#7553ff", "#ef9716", "#9d86ff", "#b3a2ff"),
@@ -342,11 +354,47 @@ export const useTabChips = () => {
     ...tab,
     /** The tab's own page is the one open, rather than one standing under it. */
     here: tab.current && root,
-    jump: () => {
-      if (!(tab.current && root)) navigate(`/${tab.id}`);
-      window.scrollTo({ top: 0 });
-    },
+    jump: () => jumpToTab(navigate, tab.id, tab.current && root),
   }));
+};
+
+/** A jump to a tab's own page, or to the top of it where it is the page open already. */
+const jumpToTab = (navigate: NavigateFunction, tabId: string, here: boolean) => {
+  if (!here) navigate(`/${tabId}`);
+  window.scrollTo({ top: 0 });
+};
+
+/**
+ * A tab's letter (`Tab.shortcut`) or its place in the strip, `1` to `5`, opens it, and `[` `]` the
+ * one either side, wrapping at the ends — each through the rail chip's own jump, so a key for the
+ * tab already open scrolls to the top and pushes no second history entry, exactly as pressing its
+ * lit chip does. Worked out from the path as the key lands rather than from the chips, which the
+ * shell mounting this has no other use for and which would subscribe it to the colour scheme.
+ *
+ * Bare keys rather than ⌘ and a digit, which every browser spends on its own tabs. Both a letter
+ * and a place: the letter is the tab's name, learnt without the sheet, and the place is the strip
+ * read left to right, which the brackets walk.
+ */
+/** Every tab's letter, in the strip's order, so a letter's place in it is its tab's. */
+const TAB_LETTERS = Tabs.map((tab) => tab.shortcut).join("");
+
+export const useTabKeys = () => {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+
+  usePageKeys(`123456789[]${TAB_LETTERS}`, (key) => {
+    const current = Tabs.indexOf(tabForPath(pathname));
+    const at =
+      key === "[" || key === "]"
+        ? stepIndex(current, key === "]" ? 1 : -1, Tabs.length)
+        : /\d/.test(key)
+          ? Number(key) - 1
+          : TAB_LETTERS.indexOf(key);
+    const tab = Tabs[at];
+    if (!tab) return false;
+    jumpToTab(navigate, tab.id, at === current && atTabRoot(pathname));
+    return true;
+  });
 };
 
 /**

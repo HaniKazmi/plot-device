@@ -6,7 +6,9 @@ import { createPortal } from "react-dom";
 import { usePhone } from "./breakpoints";
 import { ChipRail, type ChipRailItem } from "./ChipRail";
 import { RailChip } from "./RailChip";
-import { beginOwnScroll } from "./chrome";
+import { beginOwnScroll, ownScrollDestination } from "./chrome";
+import { usePageKeys } from "./keyboard";
+import { sectionStep } from "./sectionStep";
 import { usePhoneBarSlot } from "./phoneBar";
 import { QUIET_SIDEWAYS_SCROLL } from "./scrollbarSx";
 
@@ -243,6 +245,7 @@ export const SectionRail = (props: {
   const phone = usePhone();
   const theme = useTheme();
   const active = useActiveSection(props.sections, phone ? PHONE_SCROLL_MARGIN : SCROLL_MARGIN);
+  useSectionKeys(props.sections);
   const [railRef, stuck] = useStuck(!phone);
   const slot = usePhoneBarSlot();
 
@@ -288,10 +291,8 @@ export const SectionRail = (props: {
       // itself for most of the page.
       follow
       onSelect={(id) => {
-        // Marked as the page's own before it moves, so the bottom bar reads a section above as a
-        // destination and not as the reader turning back for the tabs.
-        beginOwnScroll();
-        document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+        const section = document.getElementById(id);
+        if (section) scrollToSection(section);
       }}
       // Whatever the tail leaves, and never a share of the shortfall: at a basis of zero the row
       // grows into the free space and has none of its own to give up, so a phone's rail spends
@@ -409,6 +410,81 @@ const useStuck = (enabled: boolean) => {
   }, [enabled]);
 
   return [railRef, stuck] as const;
+};
+
+/**
+ * A section brought to its landing line, as its chip and `j` `k` both bring it. Marked as the
+ * page's own scroll before it moves, so the bottom bar reads a section above as a destination and
+ * not as the reader turning back for the tabs.
+ */
+const scrollToSection = (section: HTMLElement) => {
+  beginOwnScroll(section.id);
+  section.scrollIntoView({ behavior: "smooth" });
+};
+
+/** The page's own top, marked as the page's scroll as a section's landing is. */
+const scrollToTop = () => {
+  beginOwnScroll(null);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
+/** Where a scroll still travelling is going, as `sectionStep` reads it: an index, or `-1` for the top. */
+const travellingTo = (placed: HTMLElement[]) => {
+  const destination = ownScrollDestination();
+  if (destination === null) return -1;
+  const index = placed.findIndex((element) => element.id === destination);
+  return index < 0 ? undefined : index;
+};
+
+/** The sections `n` and `l` land on, named by the chip that names them on every page that has one. */
+const NAMED_SECTIONS: Record<string, string> = { n: "Now", l: "Library" };
+
+/**
+ * `j` and `k`: the next section and the previous one, landed exactly where its chip lands it; `n`
+ * and `l`: the Now and Library sections, wherever the reader is.
+ *
+ * The rail's own list is the page's order, as `useActiveSection` reads it, so the keys walk the
+ * chips a reader sees rather than every `Section` the DOM happens to hold. A section with no box —
+ * one a width hides — is passed over. The landing line is read off the section itself, its
+ * `scroll-margin-top` being the one figure stated for both widths and a phone's notch alike.
+ *
+ * What a second press steps from is where the page's own scroll is still going, whether a chip or
+ * a key began it (`sectionStep`'s `from`, `ownScrollDestination`): the page has not arrived, and
+ * stepping from where it is would aim the second press at the section the first was already going to.
+ *
+ * `n` and `l` press a chip by its word rather than by an id, the ids being each page's own — Movies
+ * names its first anchor `latest` — where every rail calls the two sections Now and Library. A page
+ * with nothing in flight draws no Now, and a franchise's page has none at all; there `n` goes to the
+ * top, where the page opens on what is current.
+ */
+const useSectionKeys = (sections: RailSection[]) => {
+  usePageKeys("jknl", (key) => {
+    const placed = sections.flatMap((section) => {
+      const element = document.getElementById(section.id);
+      return element && element.getClientRects().length > 0 ? [{ section, element }] : [];
+    });
+    const named = NAMED_SECTIONS[key];
+    if (named) {
+      const target = placed.find(({ section }) => section.label === named);
+      if (target) scrollToSection(target.element);
+      else if (key === "n" && window.scrollY > 0) scrollToTop();
+      else return false;
+      return true;
+    }
+    if (placed.length === 0) return false;
+    const elements = placed.map(({ element }) => element);
+    const line = parseFloat(getComputedStyle(elements[0]).scrollMarginTop) || 0;
+    const target = sectionStep(
+      elements.map((element) => element.getBoundingClientRect().top),
+      line,
+      key === "j" ? 1 : -1,
+      travellingTo(elements),
+    );
+    if (target === undefined || (target === -1 && window.scrollY === 0)) return false;
+    if (target === -1) scrollToTop();
+    else scrollToSection(elements[target]);
+    return true;
+  });
 };
 
 /**

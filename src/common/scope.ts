@@ -24,3 +24,38 @@ export const scopeLabel = (yearTo: YearNumber, yearType: YearType, currentYear: 
   if (yearType === "matching") return `In ${yearTo}`;
   return isAllTime(yearTo, yearType, currentYear) ? "All time" : `Up to ${yearTo}`;
 };
+
+/** A year scope as the reducer's `scope` action names it: both halves, one choice. */
+export interface YearScope {
+  yearTo: YearNumber;
+  yearType: YearType;
+}
+
+/**
+ * The scope `y` moves to: the year in progress from everything, and everything from any other
+ * reading — the two scopes the picker's own menu offers by name, which are almost every use of it.
+ */
+export const toggledScope = (yearTo: YearNumber, yearType: YearType, currentYear: number): YearScope => ({
+  yearTo: currentYear as YearNumber,
+  yearType: isAllTime(yearTo, yearType, currentYear) ? "matching" : "upto",
+});
+
+/**
+ * The scope a year either side of this one, keeping its reading, or `undefined` where the picker
+ * offers no such year: nothing before the library's first, nothing after the current one.
+ *
+ * Everything is "up to" the current year, so it steps as that reading does — back to up to last
+ * year, and forward to nothing — which keeps `,` and `.` each other's undo across the one step that
+ * crosses into everything.
+ */
+export const steppedScope = (
+  yearTo: YearNumber,
+  yearType: YearType,
+  delta: number,
+  earliestYear: number,
+  currentYear: number,
+): YearScope | undefined => {
+  const year = yearTo + delta;
+  if (year < earliestYear || year > currentYear) return undefined;
+  return { yearTo: year as YearNumber, yearType };
+};

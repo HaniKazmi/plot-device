@@ -22,6 +22,12 @@ describe("the tab registry", () => {
     expect(new Set(Tabs.map((tab) => tab.id)).size).toBe(Tabs.length);
   });
 
+  it("gives every tab a single lowercase letter of its own, since `useTabKeys` answers each with that tab", () => {
+    const letters = Tabs.map((tab) => tab.shortcut);
+    letters.forEach((letter) => expect(letter).toMatch(/^[a-z]$/));
+    expect(new Set(letters).size).toBe(letters.length);
+  });
+
   it("names a sheet and a range together, or neither", () => {
     // A range without a sheet is a tab that cannot fetch and does not say so; `SheetTab` requires
     // both, which is what keeps either half from being forgotten alone.

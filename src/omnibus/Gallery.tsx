@@ -38,6 +38,7 @@ import type { Measure } from "../app/types";
 import { MUTED_FIGURE_SX } from "../common/typography";
 import { format } from "../utils/mathUtils";
 import { useScheme } from "../common/useScheme";
+import { CARD_LIST } from "../common/cardStep";
 
 /**
  * How many shelves the section draws, and how many pictures stand on one before the rest are left
@@ -282,7 +283,10 @@ const Gallery = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
                           isDialog={isDialog}
                           swatch={galleryColour(group.name, category, scheme)}
                         />
-                        <Box sx={WALL_SX}>
+                        <Box
+                          {...CARD_LIST}
+                          sx={WALL_SX}
+                        >
                           {cards.map((card) => (
                             <ShelfPicture
                               key={card.item.key}
@@ -298,6 +302,7 @@ const Gallery = ({ data, measure }: { data: OmniItem[]; measure: Measure }) => {
                 ) : (
                   <Box
                     ref={isDialog ? undefined : gridRef}
+                    {...CARD_LIST}
                     sx={WALL_SX}
                   >
                     {wallPictures}
@@ -445,7 +450,16 @@ const Shelf = ({
           />
         )}
       </Stack>
-      {wrap ? <Box sx={WALL_SX}>{pictures}</Box> : <Filmstrip height={ROW_HEIGHT}>{pictures}</Filmstrip>}
+      {wrap ? (
+        <Box
+          {...CARD_LIST}
+          sx={WALL_SX}
+        >
+          {pictures}
+        </Box>
+      ) : (
+        <Filmstrip height={ROW_HEIGHT}>{pictures}</Filmstrip>
+      )}
     </Stack>
   );
 };

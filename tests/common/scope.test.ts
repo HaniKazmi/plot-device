@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isAllTime, scopeLabel } from "../../src/common/scope";
+import { isAllTime, scopeLabel, steppedScope, toggledScope } from "../../src/common/scope";
 import { CURRENT_YEAR, type YearNumber } from "../../src/common/date";
 
 const year = (value: number) => value as YearNumber;
@@ -43,5 +43,54 @@ describe("scopeLabel", () => {
   it("answers for a reading the page is not in, the current year being a parameter", () => {
     expect(scopeLabel(year(2019), "upto", 2019)).toBe("All time");
     expect(scopeLabel(year(2019), "upto", 2020)).toBe("Up to 2019");
+  });
+});
+
+describe("toggledScope", () => {
+  it("narrows a page reading everything to the year in progress", () => {
+    expect(toggledScope(year(CURRENT_YEAR), "upto", CURRENT_YEAR)).toEqual({
+      yearTo: CURRENT_YEAR,
+      yearType: "matching",
+    });
+  });
+
+  it("widens any other reading back to everything, whichever year it held", () => {
+    const allTime = { yearTo: CURRENT_YEAR, yearType: "upto" };
+    expect(toggledScope(year(CURRENT_YEAR), "matching", CURRENT_YEAR)).toEqual(allTime);
+    expect(toggledScope(year(CURRENT_YEAR - 7), "upto", CURRENT_YEAR)).toEqual(allTime);
+    expect(toggledScope(year(CURRENT_YEAR - 7), "matching", CURRENT_YEAR)).toEqual(allTime);
+  });
+});
+
+describe("steppedScope", () => {
+  const earliest = CURRENT_YEAR - 10;
+
+  it("steps a scoped page a year either way, keeping its reading", () => {
+    expect(steppedScope(year(CURRENT_YEAR - 3), "matching", -1, earliest, CURRENT_YEAR)).toEqual({
+      yearTo: CURRENT_YEAR - 4,
+      yearType: "matching",
+    });
+    expect(steppedScope(year(CURRENT_YEAR - 3), "upto", 1, earliest, CURRENT_YEAR)).toEqual({
+      yearTo: CURRENT_YEAR - 2,
+      yearType: "upto",
+    });
+  });
+
+  it("steps everything back to up to last year, and nowhere forward", () => {
+    expect(steppedScope(year(CURRENT_YEAR), "upto", -1, earliest, CURRENT_YEAR)).toEqual({
+      yearTo: CURRENT_YEAR - 1,
+      yearType: "upto",
+    });
+    expect(steppedScope(year(CURRENT_YEAR), "upto", 1, earliest, CURRENT_YEAR)).toBeUndefined();
+  });
+
+  it("stops at the library's first year and at the current one", () => {
+    expect(steppedScope(year(earliest), "matching", -1, earliest, CURRENT_YEAR)).toBeUndefined();
+    expect(steppedScope(year(CURRENT_YEAR), "matching", 1, earliest, CURRENT_YEAR)).toBeUndefined();
+  });
+
+  it("reads an up-to scope stepped onto the current year as everything, that reading's own meaning", () => {
+    const stepped = steppedScope(year(CURRENT_YEAR - 1), "upto", 1, earliest, CURRENT_YEAR);
+    expect(stepped && isAllTime(stepped.yearTo, stepped.yearType, CURRENT_YEAR)).toBe(true);
   });
 });
