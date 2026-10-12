@@ -28,12 +28,16 @@ import {
   finishedItems,
   finishedKey,
   FINISHED_SORTS,
+  finishedCount,
+  foldOf,
+  splitOf,
   wordSort,
   type CloseOf,
   type FinishedBucketGroup,
   type FinishedCard,
   type FinishedDensity,
   type FinishedExtraSort,
+  type FinishedFold,
   type FinishedItem,
   type FinishedLayout,
   type FinishedUnit,
@@ -124,7 +128,7 @@ const WallCard = <U,>({
   /** The shelf's picture height; left off on the wall, where the grid cell sets the width. */
   height?: number;
   cardSx?: SxProps<Theme>;
-  unit?: FinishedUnit<U>;
+  unit?: FinishedFold<U>;
   onOpenGroup: (card: FinishedCard<U>) => void;
   MediaComponent: TypedCardMediaImage<U>;
 }) => {
@@ -191,7 +195,7 @@ const FinishedGrid = <U extends FinishedItem>({
   colour?: (item: U) => string;
   shape: ArtworkShape;
   keyOf: (item: U) => string;
-  unit?: FinishedUnit<U>;
+  unit?: FinishedFold<U>;
   onOpenGroup: (card: FinishedCard<U>) => void;
   MediaComponent: TypedCardMediaImage<U>;
 }) => {
@@ -334,7 +338,7 @@ const FinishedShelf = <U extends FinishedItem>({
   isDialog: boolean;
   /** Takes the run rather than closing over it, so the caller can pass its setter unwrapped. */
   onOpen: (group: FinishedBucketGroup<FinishedCard<U>>) => void;
-  unit?: FinishedUnit<U>;
+  unit?: FinishedFold<U>;
   onOpenGroup: (card: FinishedCard<U>) => void;
   MediaComponent: TypedCardMediaImage<U>;
 }) => {
@@ -428,7 +432,7 @@ const Finished = <U extends FinishedItem>({
   sorts?: readonly FinishedExtraSort<U>[];
   /** When an item was finished, where that is not its end date; see `CloseOf`. */
   closeOf?: CloseOf<U>;
-  /** A second count the library offers, one card per group; none, and it offers only its items. */
+  /** A second count the library offers, by group or by part; none, and it offers only its items. */
   unit?: FinishedUnit<U>;
   MediaComponent: TypedCardMediaImage<U>;
 }) => {
@@ -450,16 +454,24 @@ const Finished = <U extends FinishedItem>({
   // The run whose cut was pressed, its whole wall drawn in a dialog of its own. Mounted only while
   // one is picked, so a run of hundreds is never built behind a closed dialog.
   const [shelf, setShelf] = useState<FinishedBucketGroup<FinishedCard<U>> | null>(null);
-  // Whether a card stands for an item or for its group, opening on the item: the library's own
-  // noun is what the page counts in, and the groups are a reading of it.
-  const [per, setPer] = useState<"item" | "group">("item");
-  const grouped = per === "group";
+  // Whether a card stands for an item or for the unit's group or part, opening on the item: the
+  // library's own noun is what the page counts in, and the unit is a reading of it.
+  const [per, setPer] = useState<"item" | "unit">("item");
+  const second = per === "unit";
+  const fold = foldOf(unit);
+  // A split draws its parts in place of each item; a fold leaves the items be and groups the cards
+  // later, run by run.
+  const split = second ? splitOf(unit) : undefined;
   // The group whose card was pressed, its members drawn in a dialog above whatever opened it.
   const [bundle, setBundle] = useState<FinishedCard<U> | null>(null);
   const shelving = wordSort(sort, sorts);
+  const wallItems = split ? data.flatMap(split.parts) : data;
+  // Stated here rather than inside `renderContent` for the reason the key entries below are: a
+  // wall of parts is a population the rail's chip does not count.
+  const header = split ? stated(finishedCount(wallItems), split.noun) : count;
   // Derived here rather than inside `renderContent`, which is called for the card and again for
   // the dialog and on each of that dialog's own state changes: this walks the whole library.
-  const keyEntries = border ? colourKeyEntries(data, border.valueOf, colour) : [];
+  const keyEntries = border ? colourKeyEntries(wallItems, border.valueOf, colour) : [];
   // The wall is what the page's height is, so this has to be the true answer on the first render:
   // read wrong, every card would mount at one density and remount at another, asking for each
   // picture twice over. `usePhone` is that answer, stated once for the app.
@@ -479,13 +491,13 @@ const Finished = <U extends FinishedItem>({
   const [dialogDensity, setDialogDensity] = useState<FinishedDensity>("Full");
   const shownDensity = density ?? (phone ? "Compact" : "Large");
 
-  const slowData = useDeferredValue(data, []);
+  const slowData = useDeferredValue(wallItems, []);
   const recent = finishedItems(slowData, sort, sorts, closeOf);
   // Cut once for every surface that draws runs — the phone's headings, the shelves and the cut's
   // dialog — so a shelf and a heading cannot disagree about where a card stands.
   const runs = cardRuns(
     bucketGroups(recent, sort, sorts, closeOf, layout === "Shelves"),
-    grouped ? unit?.of : undefined,
+    second ? fold?.of : undefined,
   );
   // The desktop wall is the runs laid end to end, so a card stands where its run puts it.
   const cards = runs.flatMap((run) => run.items);
@@ -510,7 +522,7 @@ const Finished = <U extends FinishedItem>({
       <FinishedGrid
         isDialog={isDialog}
         gridRef={ref}
-        dimmed={slowData !== data}
+        dimmed={slowData !== wallItems}
         cards={items}
         sort={sort}
         sorts={sorts}
@@ -519,7 +531,7 @@ const Finished = <U extends FinishedItem>({
         colour={colour}
         shape={shape}
         keyOf={keyOf}
-        unit={unit}
+        unit={fold}
         onOpenGroup={setBundle}
         MediaComponent={MediaComponent}
       />
@@ -530,7 +542,7 @@ const Finished = <U extends FinishedItem>({
         <SectionHeader
           icon={<GridView />}
           title={title}
-          count={count}
+          count={header}
           action={
             <Stack
               direction="row"
@@ -548,7 +560,7 @@ const Finished = <U extends FinishedItem>({
                 <SegmentedControl
                   options={[
                     { value: "item", label: unit.labels[0] },
-                    { value: "group", label: unit.labels[1] },
+                    { value: "unit", label: unit.labels[1] },
                   ]}
                   value={per}
                   onChange={setPer}
@@ -593,7 +605,7 @@ const Finished = <U extends FinishedItem>({
                   // every other order keeps the scrolling strip and its cut.
                   wrap={sort === "When"}
                   onOpen={setShelf}
-                  unit={unit}
+                  unit={fold}
                   onOpenGroup={setBundle}
                   MediaComponent={MediaComponent}
                   // A franchise's shelf where the cell names one: a work outside any franchise
@@ -641,7 +653,7 @@ const Finished = <U extends FinishedItem>({
     name: string,
     cards: readonly FinishedCard<U>[],
     onClose: () => void,
-    groups?: FinishedUnit<U>,
+    groups?: FinishedFold<U>,
   ) => (
     <Dialog
       open
@@ -683,11 +695,11 @@ const Finished = <U extends FinishedItem>({
         sx={{ overflow: { xs: "visible", sm: "hidden" } }}
         renderContent={renderContent}
       />
-      {shelf && wallDialog(shelf.label, shelf.items, () => setShelf(null), unit)}
+      {shelf && wallDialog(shelf.label, shelf.items, () => setShelf(null), fold)}
       {/* After the shelf's own dialog, so a group opened from inside a shelf stands above it. */}
       {bundle &&
         wallDialog(
-          unit?.of(bundle.item) ?? bundle.item.name,
+          fold?.of(bundle.item) ?? bundle.item.name,
           bundle.members.map((item) => ({ item, members: [item] })),
           () => setBundle(null),
         )}

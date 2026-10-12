@@ -438,17 +438,43 @@ export const bucketGroups = <U extends FinishedItem>(
 };
 
 /**
- * A second way to count a library: one card per franchise or series rather than one per item.
+ * A second way to count a library, in one of two directions: coarser than the item, or finer.
  *
- * `labels` are the segment's two words, the item's own noun first — "Games · Franchises". `of`
- * names the group an item belongs to, `undefined` for one that stands alone and so stays a card of
- * its own. The caller's rule rather than the franchise column read here, since what groups a tab's
- * works is that tab's knowledge: a book's series, a game's franchise.
+ * `labels` are the segment's two words, the item's own noun first — "Games · Franchises",
+ * "Shows · Seasons".
  */
-export interface FinishedUnit<U> {
+export type FinishedUnit<U> = FinishedFold<U> | FinishedSplit<U>;
+
+/**
+ * One card per franchise or series rather than one per item. `of` names the group an item belongs
+ * to, `undefined` for one that stands alone and so stays a card of its own. The caller's rule
+ * rather than the franchise column read here, since what groups a tab's works is that tab's
+ * knowledge: a book's series, a game's franchise.
+ */
+export interface FinishedFold<U> {
   labels: readonly [string, string];
   of: (item: U) => string | undefined;
 }
+
+/**
+ * One card per part of an item rather than one per item: a show's seasons. `parts` answers an
+ * item's parts as cards of the wall's own kind, each dated, pictured and closed on its own, so a
+ * show watched across three years stands a season on each of those years' shelves. `noun` counts
+ * them in the header, a wall of parts being a population the page's own chip does not state.
+ */
+export interface FinishedSplit<U> {
+  labels: readonly [string, string];
+  parts: (item: U) => readonly U[];
+  noun: string;
+}
+
+/** The split a unit means, where it is one. */
+export const splitOf = <U>(unit: FinishedUnit<U> | undefined): FinishedSplit<U> | undefined =>
+  unit && "parts" in unit ? unit : undefined;
+
+/** The fold a unit means, where it is one. */
+export const foldOf = <U>(unit: FinishedUnit<U> | undefined): FinishedFold<U> | undefined =>
+  unit && "of" in unit ? unit : undefined;
 
 /** One card on the wall or a shelf: the item whose picture it wears, and everything it stands for. */
 export interface FinishedCard<U> {

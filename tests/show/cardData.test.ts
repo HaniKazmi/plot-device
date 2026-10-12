@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { YearMonthDay } from "../../src/common/date";
-import { seasonSpans, showRows, showSubtitle, spanKey } from "../../src/show/cardData";
+import { bucketGroups, finishedItems, IN_PROGRESS } from "../../src/common/finishedData";
+import {
+  seasonShelfItems,
+  seasonSpans,
+  shelfKey,
+  showRows,
+  showShelfItem,
+  showSubtitle,
+  spanKey,
+} from "../../src/show/cardData";
 import { genreToColour } from "../../src/utils/types";
 import { season, show } from "../fixtures/shows";
 
@@ -80,5 +89,38 @@ describe("showRows", () => {
     parent.s = [season(parent, { episodeLength: undefined, minutes: 0 })];
 
     expect(showRows(parent, "light").some((row) => row.label === "Episode")).toBe(false);
+  });
+});
+
+describe("seasonShelfItems", () => {
+  const twoSeasons = () => {
+    const parent = show({ name: "Andor", artwork: "andor.jpg" });
+    parent.s = [
+      season(parent, { s: 1, startDate: YearMonthDay.get(2022, 9, 21), endDate: YearMonthDay.get(2022, 11, 23) }),
+      season(parent, { s: 2, startDate: YearMonthDay.get(2025, 4, 22), artwork: "andor-s2.jpg" }),
+    ];
+    return parent;
+  };
+
+  it("dates each season on its own, so a show watched across years shelves a season under each", () => {
+    // The finished season stands on its year's shelf; the open one under In progress, the column
+    // that puts it under Currently Watching.
+    const wall = finishedItems(seasonShelfItems(showShelfItem(twoSeasons())), "When");
+
+    expect(bucketGroups(wall, "When").map((run) => run.label)).toEqual([IN_PROGRESS, "2022"]);
+  });
+
+  it("wears a season's own picture where it has one, and its show's otherwise", () => {
+    expect(seasonShelfItems(showShelfItem(twoSeasons())).map((card) => card.artwork)).toEqual([
+      "andor.jpg",
+      "andor-s2.jpg",
+    ]);
+  });
+
+  it("keys every season apart, though each carries its show's name", () => {
+    const cards = seasonShelfItems(showShelfItem(twoSeasons()));
+
+    expect(new Set(cards.map(shelfKey)).size).toBe(2);
+    expect(cards.map((card) => card.name)).toEqual(["Andor", "Andor"]);
   });
 });
