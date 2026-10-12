@@ -9,10 +9,12 @@ import { LazyTooltip } from "./LazyTooltip";
 import { ScrollFade } from "./ScrollFade";
 import { CHART_MAX_HEIGHT, CONTAIN_SIDEWAYS_SCROLL, scrollbarSx } from "./scrollbarSx";
 import { useOpenAtLatest } from "./useOpenAtLatest";
+import { useKeepPlace } from "./useKeepPlace";
 import { useScrollEdges } from "./useScrollEdges";
 import { useElementWidth } from "./useElementWidth";
 import { measureLabel } from "./labelWidth";
 import {
+  axisDensity,
   buildTicks,
   decidePlacement,
   latestEnd,
@@ -24,6 +26,7 @@ import {
   scrollBehaviourFor,
   yearAtPercent,
   yearMarkers,
+  type AxisDensity,
   type Placement,
   type PositionedTimelineData,
   type TimelineData,
@@ -49,7 +52,7 @@ const ROW_PADDING = 5;
 const BAR_HEIGHT = ROW_HEIGHT - ROW_PADDING;
 const BAR_RADIUS = 6;
 /**
- * A sliver is a real event, not a rounding error: at 400vw over a decade a single day is barely
+ * A sliver is a real event, not a rounding error: at ten years to a screen a single day is barely
  * a pixel, so without a floor the shortest entries disappear entirely.
  */
 const MIN_BAR_WIDTH = 4;
@@ -64,14 +67,8 @@ const SVG_PADDING = 10;
 const LABEL_FONT_SIZE = 13;
 /** The room a label keeps either side of its own text, and so what its box measures over its glyphs. */
 const LABEL_PADDING = 5;
-/**
- * How many viewports of scroll the grid runs to, as CSS and as the number label placement is
- * solved against. One constant for both: the placement arithmetic works in percentages of the
- * grid and has to turn them into pixels, and a width stated twice is a width that can disagree
- * with itself — silently, since a label placed against the wrong grid still renders.
- */
-const GRID_VIEWPORTS = 4;
-const GRID_WIDTH = `${GRID_VIEWPORTS * 100}vw`;
+/** The days a year is read as when a span of years is turned into a width. */
+const DAYS_PER_YEAR = 365.25;
 /**
  * Both sit below the bar labels, because the scale is chrome and the bars are the content — the
  * axis reading larger than the data it measures is what made it shout.
@@ -82,7 +79,7 @@ const YEAR_FONT_SIZE = 15;
 const pct = (percent: number) => `${percent}%`;
 
 /**
- * The chart is four viewports wide, and a bar runs to the container's edge at every scroll
+ * The chart runs to several screens, and a bar runs to the container's edge at every scroll
  * position, so nothing in the picture says it continues. The scrollbar is the one thing that can
  * say so at no cost per frame: styling it at all opts macOS out of overlay scrollbars, which hide
  * themselves the moment scrolling stops, and a thumb a quarter of the track long states both that
@@ -272,41 +269,46 @@ const placeLabels = (
  */
 export const TimeLineChart = ({
   timelineData,
-  fit,
+  yearsOnScreen,
   onOpen,
 }: {
   timelineData: TimelineData[];
   /**
-   * Whether the chart is drawn at its card's width rather than four viewports wide: a year, which
-   * at the full chart's scale is a quarter of a screen and at the card's is its whole width. No
-   * year chips, there being nothing to scroll across.
+   * How many years the card's width holds, the chart running to as many screens as its own years
+   * need at that scale. Absent, the chart is drawn at the card's width whatever it spans — a year
+   * scope, or the reader asking to see everything at once — with no year chips, there being
+   * nothing to scroll across.
    */
-  fit: boolean;
+  yearsOnScreen: number | undefined;
   /** Opens a pressed bar's item: the card cannot take the press itself, ignoring the pointer. */
   onOpen: (mark: TimelineData) => void;
 }) => {
   // The scroller's own ref does both jobs: the chart drives it from the year chips, and the fades
   // read the same node to know which ends have chart past them.
   const [scrollRef, edges] = useScrollEdges<HTMLDivElement>();
-  // The card's own width, which a fitted chart is drawn at; the full chart is sized in viewports.
+  // The card's own width, which the grid is a whole number of screens of.
   const [frameRef, frameWidth] = useElementWidth<HTMLDivElement>();
   const theme = useTheme();
   const [scrolledYear, setScrolledYear] = useState<number | undefined>(undefined);
-  useOpenAtLatest(scrollRef, !fit && timelineData.length > 0);
-
-  // The grid's width before it is measured: the viewport for the full chart, whose grid is stated
-  // in viewports, and the card for a fitted one.
-  const gridGuess = fit ? frameWidth || window.innerWidth : window.innerWidth * GRID_VIEWPORTS;
   const [positionedTimelineData, maxRow] = packRows(timelineData);
 
-  if (positionedTimelineData.length === 0) {
+  // `packRows` hands its rows back in start order, the rows it cannot draw already left off.
+  const earliestStart = positionedTimelineData[0]?.start.startOfMonth();
+  const gridEnd = latestEnd(positionedTimelineData);
+  const totalDays = earliestStart && gridEnd ? earliestStart.daysTo(gridEnd) : 0;
+  // How many card widths the grid runs to. Never under one: a span shorter than the years asked
+  // for is drawn at the card's width rather than shrunk inside it.
+  const screens = yearsOnScreen === undefined ? 1 : Math.max(1, totalDays / DAYS_PER_YEAR / yearsOnScreen);
+  const fit = screens === 1;
+  useOpenAtLatest(scrollRef, !fit && timelineData.length > 0);
+  const rememberPlace = useKeepPlace(scrollRef, screens);
+
+  // The grid's width before it is measured, from the card's own until that has been measured too.
+  const gridGuess = (frameWidth || window.innerWidth) * screens;
+
+  if (!earliestStart || !gridEnd) {
     return null;
   }
-
-  // `packRows` hands its rows back in start order, the rows it cannot draw already left off.
-  const earliestStart = positionedTimelineData[0].start.startOfMonth();
-  const gridEnd = latestEnd(positionedTimelineData)!;
-  const totalDays = earliestStart.daysTo(gridEnd);
 
   // Walked once and handed to both consumers, so a gridline and the tick label beneath it are the
   // same number rather than two derivations that agree by luck.
@@ -316,6 +318,8 @@ export const TimeLineChart = ({
   const totalHeight = (maxRow + 1) * ROW_HEIGHT + SVG_PADDING * 2 - ROW_PADDING;
 
   const markers = yearMarkers(ticks);
+  // How much of the scale the axis and the gridlines can state, from the width a year is drawn at.
+  const density = axisDensity(gridGuess / (totalDays / DAYS_PER_YEAR));
 
   /**
    * The chip the rail lights up.
@@ -362,18 +366,21 @@ export const TimeLineChart = ({
            * The offset is read against the range `scrollLeft` can actually reach rather than against
            * the grid's own width — see `percentAtScroll`, which owns both directions of that mapping.
            */
-          onScroll={(event) =>
+          onScroll={(event) => {
+            rememberPlace(event.currentTarget);
             setScrolledYear(
               yearAtPercent(
                 markers,
                 percentAtScroll(markers, event.currentTarget.scrollLeft, maxScrollOf(event.currentTarget)),
               ),
-            )
-          }
+            );
+          }}
         >
           <Box
             sx={{
-              width: fit ? "100%" : GRID_WIDTH,
+              // A share of the scroller's own width, so the grid is the screens it was asked for
+              // however wide the card is, with nothing to measure first.
+              width: pct(screens * 100),
               maxHeight: CHART_MAX_HEIGHT,
               display: "flex",
               flexDirection: "column",
@@ -391,11 +398,15 @@ export const TimeLineChart = ({
                 totalDays={totalDays}
                 ticks={ticks}
                 markers={markers}
+                density={density}
                 gridGuess={gridGuess}
                 onOpen={onOpen}
               />
             </div>
-            <TimeAxis ticks={ticks} />
+            <TimeAxis
+              ticks={ticks}
+              density={density}
+            />
           </Box>
         </Box>
       </ScrollFade>
@@ -469,10 +480,12 @@ const YearNav = ({
 const TimelineBackground = ({
   ticks,
   markers,
+  density,
   height,
 }: {
   ticks: TimelineTick[];
   markers: YearMarker[];
+  density: AxisDensity;
   height: number;
 }) => {
   const theme = useTheme();
@@ -495,8 +508,10 @@ const TimelineBackground = ({
           fillOpacity={0.35}
         />
       ))}
+      {/* A quarter's line only where the axis draws its tick, or a decade to a phone's card is a
+          gridline every 8px behind the bars. */}
       {ticks
-        .filter((tick) => tick.level !== "month")
+        .filter((tick) => tick.level === "year" || (tick.level === "quarter" && density.quarterTicks))
         .map((tick) => (
           <line
             key={tick.percent}
@@ -521,6 +536,7 @@ const TimelineGrid = ({
   totalDays,
   ticks,
   markers,
+  density,
   gridGuess,
   onOpen,
 }: {
@@ -531,6 +547,7 @@ const TimelineGrid = ({
   totalDays: number;
   ticks: TimelineTick[];
   markers: YearMarker[];
+  density: AxisDensity;
   /** The grid's width until it has been measured. */
   gridGuess: number;
   onOpen: (mark: TimelineData) => void;
@@ -543,9 +560,9 @@ const TimelineGrid = ({
   /**
    * The width the grid is actually drawn at, which is what its own percentages resolve against.
    *
-   * The guess — the viewport for the full chart, the card for a fitted one — is the right guess
-   * and the wrong answer: `GRID_WIDTH` is a `vw` length, so the two agree until the grid's scroller
-   * takes a classic scrollbar, or a fractional device pixel ratio lands the box off a whole number.
+   * The guess — the card's width times the screens the grid runs to — is the right guess and the
+   * wrong answer: the two agree until the grid's scroller takes a classic scrollbar, or a fractional
+   * device pixel ratio lands the box off a whole number.
    * Falling back to it rather than to nothing is what lets the chart draw placed on its first pass
    * — `useElementWidth` reads before paint, so the guess is never a frame the reader sees — and `||`
    * rather than `??` because a zero box is a grid that is not laid out yet, not a grid nought
@@ -567,6 +584,7 @@ const TimelineGrid = ({
       <TimelineBackground
         ticks={ticks}
         markers={markers}
+        density={density}
         height={totalHeight}
       />
       {placed.map((event) => (
@@ -714,7 +732,7 @@ const TimelineText = ({
  * the same token the labels use — so the axis reads as one piece of chrome and follows the colour
  * scheme rather than a fixed grey.
  */
-const TimeAxis = ({ ticks }: { ticks: TimelineTick[] }) => {
+const TimeAxis = ({ ticks, density }: { ticks: TimelineTick[]; density: AxisDensity }) => {
   const theme = useTheme();
 
   return (
@@ -731,44 +749,51 @@ const TimeAxis = ({ ticks }: { ticks: TimelineTick[] }) => {
         y2={0}
         style={{ stroke: theme.vars.palette.divider }}
       />
-      {ticks.map((tick) => (
-        <g
-          key={tick.percent}
-          style={{ transform: `translateX(${pct(tick.percent)})` }}
-        >
-          {/* A year runs the full height so it continues the gridline behind the bars into the
+      {ticks
+        .filter(
+          (tick) =>
+            tick.level === "year" ||
+            (tick.level === "quarter" && density.quarterTicks) ||
+            (tick.level === "month" && density.monthTicks),
+        )
+        .map((tick) => (
+          <g
+            key={tick.percent}
+            style={{ transform: `translateX(${pct(tick.percent)})` }}
+          >
+            {/* A year runs the full height so it continues the gridline behind the bars into the
               label naming it; the shorter marks stay inset, which is the hierarchy. */}
-          <line
-            y1={tick.level === "year" ? 0 : tick.level === "quarter" ? 25 : 30}
-            y2={AXIS_HEIGHT - 2}
-            style={{ stroke: theme.vars.palette.text.secondary }}
-            strokeOpacity={tick.level === "year" ? 1 : tick.level === "quarter" ? 0.6 : 0.3}
-            strokeWidth={tick.level === "year" ? 1.5 : 1}
-          />
-          {/* January is named by its year, so labelling the month as well says the same thing
+            <line
+              y1={tick.level === "year" ? 0 : tick.level === "quarter" ? 25 : 30}
+              y2={AXIS_HEIGHT - 2}
+              style={{ stroke: theme.vars.palette.text.secondary }}
+              strokeOpacity={tick.level === "year" ? 1 : tick.level === "quarter" ? 0.6 : 0.3}
+              strokeWidth={tick.level === "year" ? 1.5 : 1}
+            />
+            {/* January is named by its year, so labelling the month as well says the same thing
               twice and costs a quarter of the labels on a crowded scale. */}
-          {tick.level === "quarter" && (
-            <text
-              x="5"
-              y="20"
-              style={{ fill: theme.vars.palette.text.secondary, fontSize: MONTH_FONT_SIZE }}
-            >
-              {tick.monthLabel}
-            </text>
-          )}
-          {/* A tier of its own, so years read as the stratum you navigate by and the months as
+            {tick.level === "quarter" && density.quarterLabels && (
+              <text
+                x="5"
+                y="20"
+                style={{ fill: theme.vars.palette.text.secondary, fontSize: MONTH_FONT_SIZE }}
+              >
+                {tick.monthLabel}
+              </text>
+            )}
+            {/* A tier of its own, so years read as the stratum you navigate by and the months as
               subdivisions of one. Dropping January's month label leaves this line to itself. */}
-          {tick.level === "year" && (
-            <text
-              x="5"
-              y="40"
-              style={{ fill: theme.vars.palette.text.primary, fontSize: YEAR_FONT_SIZE, fontWeight: "bold" }}
-            >
-              {tick.yearLabel}
-            </text>
-          )}
-        </g>
-      ))}
+            {tick.level === "year" && tick.year % density.yearLabelEvery === 0 && (
+              <text
+                x="5"
+                y="40"
+                style={{ fill: theme.vars.palette.text.primary, fontSize: YEAR_FONT_SIZE, fontWeight: "bold" }}
+              >
+                {tick.yearLabel}
+              </text>
+            )}
+          </g>
+        ))}
     </svg>
   );
 };

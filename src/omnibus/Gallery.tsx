@@ -45,8 +45,8 @@ import { CARD_LIST } from "../common/cardStep";
  * to the drill-down.
  *
  * The shelves are ordered by size, so the cut falls where a shelf stops carrying much of the
- * library; the header states the full count, the way the crossings section does, so the cut is
- * visible rather than silent. A shelf's own cut is what keeps a scroll of six strips to a few
+ * library; the section's own control states the full count, so the cut is visible rather than
+ * silent. A shelf's own cut is what keeps a scroll of six strips to a few
  * dozen pictures rather than the whole union laid out sideways. The wall has neither cut: it is the
  * library read end to end, as every tab's wall is.
  */
@@ -442,8 +442,10 @@ const Shelf = ({
         </Typography>
         {/* The shelf's own cut, worded: the strip shows twenty pictures of a shelf that can hold
             hundreds, and the figure is what says so as well as what opens the rest. A chevron in a
-            circle says only "more", in the glyph the card's own expand means a different verb by. */}
-        {!wrap && (
+            circle says only "more", in the glyph the card's own expand means a different verb by.
+            Drawn only where the strip has cut something: on a shelf showing all it holds, "All 3"
+            names a rest that is not there. */}
+        {!wrap && cards.length > PICTURES_SHOWN && (
           <CutButton
             label={all(group.all.length)}
             onClick={() => onOpen(group)}

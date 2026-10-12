@@ -9,6 +9,7 @@ import {
   topNWithOther,
   type TopGroup,
   earliestYear,
+  inProgressBeyondHero,
 } from "../../src/common/statsData";
 import type { Colour } from "../../src/utils/types";
 
@@ -191,5 +192,27 @@ describe("groupCaption", () => {
 
   it("joins a third cell onto the second line, the strip holding two", () => {
     expect(captionLines(["1 Sep 2026", "5 eps", "1.4/wk"])).toEqual(["1 Sep 2026", "5 eps · 1.4/wk"]);
+  });
+});
+
+describe("inProgressBeyondHero", () => {
+  const hero = { name: "hero" };
+  const other = { name: "other" };
+
+  it("draws no strip when nothing is in progress", () => {
+    expect(inProgressBeyondHero([], hero)).toBe(false);
+  });
+
+  it("draws no strip that would hold the hero alone", () => {
+    expect(inProgressBeyondHero([hero], hero)).toBe(false);
+  });
+
+  it("draws the strip, hero included, once a second item is in progress", () => {
+    expect(inProgressBeyondHero([hero, other], hero)).toBe(true);
+  });
+
+  it("draws a single item the hero is not, as a closed season under an open one", () => {
+    expect(inProgressBeyondHero([other], hero)).toBe(true);
+    expect(inProgressBeyondHero([other], undefined)).toBe(true);
   });
 });

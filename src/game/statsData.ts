@@ -60,34 +60,32 @@ export const groupGamesBy = (data: VideoGame[], key: VideoGameStringKeys, measur
  */
 export const earliestYear = (data: VideoGame[]): YearNumber => earliestYearOf(data, (game) => game.startDate.year);
 
-/** Count and hours over the time-tracked games — what both year cards total, scoped by the caller. */
-export const gamesAndHours = (data: VideoGame[]) => {
-  const timed = data.filter((game) => game.hours);
-  return { games: timed.length, hours: timed.sum("hours") };
-};
+/**
+ * Every game and the hours logged on them — what both year cards total, scoped by the caller. A
+ * game with no hours logged still counts, as it does in the rail's figure and every band beside
+ * the cards: counted out here, the card and the bands state two sizes for one library.
+ */
+export const gamesAndHours = (data: VideoGame[]) => ({
+  games: data.length,
+  hours: data.filter((game) => game.hours).sum("hours"),
+});
 
 /**
- * Games and hours per year, averaged over the years that have any time-tracked game. Years with
- * nothing logged are absent rather than counted as zero, so the average is over active years.
+ * Games and hours per year, each averaged over the years it has anything in. The games are every
+ * game, as the All time card beside this counts them, over the years any game started in; the hours
+ * are over the years some game logged time in, so a run of years from before anything was timed
+ * does not pull the hours down as years of nothing. Years with neither are absent rather than
+ * counted as zero.
  */
 export const yearlyAverages = (data: VideoGame[]) => {
-  const grouped = data.reduce<Record<YearNumber, { games: number; hours: number }>>((tree, game) => {
-    if (!game.hours) return tree;
-    // Written out rather than `??=` because the React Compiler cannot lower that operator yet.
-    const gamesAndHours = tree[game.startDate.year] ?? { games: 0, hours: 0 };
-    tree[game.startDate.year] = gamesAndHours;
-    gamesAndHours.games += 1;
-    gamesAndHours.hours += game.hours;
-    return tree;
-  }, {});
-
-  const totals = Object.values(grouped);
-  // Over no active year the average is 0 rather than NaN: a page narrowed to games with no hours
-  // logged still draws the card.
-  const years = totals.length || 1;
+  const timed = data.filter((game) => game.hours);
+  // Over no year the average is 0 rather than NaN: a page narrowed to nothing still draws the card.
+  const yearsOf = (games: VideoGame[]) => new Set(games.map((game) => game.startDate.year)).size || 1;
   return {
-    games: parseFloat((totals.sum("games") / years).toFixed(2)),
-    hours: parseFloat((totals.sum("hours") / years).toFixed(2)),
+    // Whole numbers, as every tab's yearly average states its figures: a year's worth is read
+    // against totals in the thousands, and decimals there are precision nobody asked for.
+    games: Math.round(data.length / yearsOf(data)),
+    hours: Math.floor(timed.sum("hours") / yearsOf(timed)),
   };
 };
 

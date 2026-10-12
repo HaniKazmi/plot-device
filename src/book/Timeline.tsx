@@ -17,7 +17,7 @@ import { pageState } from "./filterUtils";
  * What the timeline can be coloured by: every key the tab's own `groupToColour` answers, genre
  * first, as the wall's border and the genre band draw a book.
  */
-const COLOUR_KEYS = ["genre", "status", "format", "score", "decade", "franchise"] as const;
+const COLOUR_KEYS = ["genre", "status", "format", "certificate", "score", "decade", "franchise"] as const;
 
 const pictureOf = (book: Book) => (height: number, press: PicturePress) => (
   <BookCardMediaImage
@@ -185,10 +185,14 @@ const BookTimeline = ({
       yearTo={yearTo}
       dispatch={pageState.dispatch}
       shape="cover"
-      // Books are read one at a time, so Across packs the library into a single lane four screens
-      // wide, where a month-long read is a sliver whose name is cut to its first letter. Stacked
+      gridYears={5}
+      // Books are read one at a time, so Across packs the library into a single lane several screens
+      // wide, where a short read is a sliver whose name is cut to its first letter. Stacked
       // gives each year a row on one screen with every name that fits written on its band.
       initialLayout="Stacked"
+      // Eighteen books a year at a median of three days each: three years to a desktop card puts a
+      // week's read at about 9px, the narrowest a bar is worth drawing a name beside.
+      spans={{ desktop: "3", phone: "1" }}
     />
   );
 };

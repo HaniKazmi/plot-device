@@ -1,5 +1,6 @@
 import { CURRENT_YEAR } from "../common/date";
 import type { Book, Measure } from "./types";
+import type { Certificate } from "../utils/types";
 import { createFilterReducer, type BaseFilterState, type FilterDispatchFor } from "../common/filterReducer";
 import { bookFilters } from "./filters";
 
@@ -11,6 +12,7 @@ export interface FilterState extends BaseFilterState<Book, Measure> {
   franchise: string[];
   bookSeries: string[];
   format: string[];
+  certificate: Certificate[];
 }
 
 export type FilterDispatch = FilterDispatchFor<FilterState>;

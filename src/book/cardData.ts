@@ -6,7 +6,14 @@ import type { FranchiseEntry } from "../common/franchiseUnion";
 import { spanUntil } from "../common/medium";
 import type { ReactNode } from "react";
 import { formatDate, formatDateRange, type YearMonthDay } from "../common/date";
-import { franchiseToColour, genreToColour, mediumFills, statusToColour, type Scheme } from "../utils/types";
+import {
+  certificateToColour,
+  franchiseToColour,
+  genreToColour,
+  mediumFills,
+  statusToColour,
+  type Scheme,
+} from "../utils/types";
 import { bookItemKey } from "./statsData";
 import { formatToColour, type Book } from "./types";
 
@@ -29,7 +36,8 @@ export const readRange = (book: Book): string => formatDateRange(book.startDate,
  * The facts that are not figures.
  *
  * A row carries a swatch exactly where the app speaks that field's colour somewhere else — the
- * genre and the status share the other tabs' vocabularies, the format has this tab's own.
+ * genre, the certificate and the status share the other tabs' vocabularies, the format the Games
+ * tab's.
  */
 export const bookRows = (book: Book, scheme: Scheme): LedgerRow[] => {
   const rows: LedgerRow[] = [
@@ -45,6 +53,11 @@ export const bookRows = (book: Book, scheme: Scheme): LedgerRow[] => {
       label: "Format",
       ...linked("format", book.format),
       swatch: formatToColour(book.format, scheme),
+    },
+    {
+      label: "Certificate",
+      ...linked("certificate", book.certificate),
+      swatch: certificateToColour(book.certificate, scheme),
     },
     { label: "Status", value: book.status, swatch: statusToColour(book, scheme) },
   ];

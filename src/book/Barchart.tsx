@@ -7,7 +7,18 @@ import type { YearType } from "../common/filterReducer";
 
 type Option = Exclude<BookGroup, "name">;
 
-const options: Option[] = ["none", "genre", "author", "franchise", "series", "format", "score", "status", "decade"];
+const options: Option[] = [
+  "none",
+  "genre",
+  "author",
+  "franchise",
+  "series",
+  "format",
+  "certificate",
+  "score",
+  "status",
+  "decade",
+];
 
 /**
  * Which year a book counts under. Read is the tab's own axis; Released redraws the same library as

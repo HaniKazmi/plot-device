@@ -241,8 +241,7 @@ export const styleCategory = <T, S>(
 });
 
 /**
- * The certificate select, which every tab recording one offers on the same terms. Nothing certifies
- * a book, so the Books tab is the one that does not.
+ * The certificate select, which every tab offers on the same terms, all four sheets recording one.
  *
  * `values` is the vocabulary that tab writes, in the order the boards print it, because
  * `categoryOptions` sorts lexicographically and a ramp a string sort runs "12, 15, 18, 3, 7". It is

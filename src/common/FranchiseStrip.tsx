@@ -235,7 +235,7 @@ const Caption = ({
 };
 
 /** A franchise's name with the swatch the app paints it elsewhere, where the table holds one. */
-export const FranchiseName = ({ franchise }: { franchise: string }) => {
+const FranchiseName = ({ franchise }: { franchise: string }) => {
   const colour = franchiseToColour({ franchise }, useScheme());
   return (
     <Stack

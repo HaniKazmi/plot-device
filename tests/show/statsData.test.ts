@@ -12,7 +12,7 @@ import {
   minutesPerEpisode,
   perShowAverages,
   recentlyWatched,
-  seasonsInYear,
+  showsInYear,
   statsCardLabelEpsHours,
   statsCardLabelRecentlyWatched,
   statsCardLabelWatching,
@@ -70,7 +70,7 @@ describe("allTimeTotals", () => {
   });
 });
 
-describe("seasonsInYear", () => {
+describe("showsInYear", () => {
   const data = [
     withSeasons(
       {},
@@ -80,17 +80,29 @@ describe("seasonsInYear", () => {
   ];
 
   it("counts only the seasons that started in the year asked for", () => {
-    expect(seasonsInYear(data, 2022 as YearNumber)).toEqual({ seasons: 1, episodes: 9, hours: 6 });
+    expect(showsInYear(data, 2022 as YearNumber)).toEqual({ shows: 1, episodes: 9, hours: 6 });
   });
 
   it("takes the year as an argument rather than reading the clock", () => {
     // Anything derived from the current year would change meaning every January.
-    expect(seasonsInYear(data, 2025 as YearNumber).seasons).toBe(1);
-    expect(seasonsInYear(data, 2023 as YearNumber).seasons).toBe(0);
+    expect(showsInYear(data, 2025 as YearNumber).shows).toBe(1);
+    expect(showsInYear(data, 2023 as YearNumber).shows).toBe(0);
   });
 
   it("returns zeroes for a year with nothing in it", () => {
-    expect(seasonsInYear(data, 1999 as YearNumber)).toEqual({ seasons: 0, episodes: 0, hours: 0 });
+    expect(showsInYear(data, 1999 as YearNumber)).toEqual({ shows: 0, episodes: 0, hours: 0 });
+  });
+
+  it("counts a show once however many of its seasons began in the year", () => {
+    const twoSeasons = [
+      withSeasons(
+        {},
+        { startDate: YearMonthDay.get(2024, 1, 1), e: 8, minutes: 400 },
+        { startDate: YearMonthDay.get(2024, 9, 1), e: 8, minutes: 400 },
+      ),
+    ];
+
+    expect(showsInYear(twoSeasons, 2024 as YearNumber)).toMatchObject({ shows: 1, episodes: 16 });
   });
 });
 
@@ -105,7 +117,7 @@ describe("yearlyAverages", () => {
       ),
     ];
 
-    expect(yearlyAverages(data)).toEqual({ seasons: 1, episodes: 20, hours: 20 });
+    expect(yearlyAverages(data)).toEqual({ seasons: 2, episodes: 20, hours: 20 });
   });
 
   it("skips seasons with no recorded runtime entirely", () => {
@@ -121,9 +133,8 @@ describe("yearlyAverages", () => {
     expect(yearlyAverages(data)).toEqual({ seasons: 1, episodes: 10, hours: 10 });
   });
 
-  it("floors the average rather than rounding it, unlike the games tab", () => {
-    // game/statsData's yearlyAverages keeps two decimals; this one truncates. The two domains
-    // disagree, and the difference is visible on screen.
+  it("rounds its counts to whole numbers, as every tab's yearly average does", () => {
+    // Three seasons over two years is 1.5 a year, which reads as 2 on every tab alike.
     const data = [
       withSeasons(
         {},
@@ -133,7 +144,7 @@ describe("yearlyAverages", () => {
       ),
     ];
 
-    expect(yearlyAverages(data).seasons).toBe(1);
+    expect(yearlyAverages(data).seasons).toBe(2);
   });
 
   it("converts to hours after averaging, so it floors once at the end", () => {

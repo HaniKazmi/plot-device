@@ -129,7 +129,6 @@ export const EventRibbon = ({ rows, ticks }: { rows: RibbonRow[]; ticks: Timelin
                     coarse={coarse}
                     // Every mark here is a peer — there is no "this one, among these" for the
                     // subject ring to say, and at point-event widths it would drown the fill.
-                    frameless
                     key={band.key}
                   />
                 ))}
@@ -157,11 +156,7 @@ const RibbonAxis = ({ ticks, trackRef }: { ticks: TimelineTick[]; trackRef: Ref<
       ref={trackRef}
       sx={{ flexGrow: 1 }}
     >
-      <TimelineAxis
-        ticks={ticks}
-        labelOf={(tick) => tick.monthLabel}
-        align="start"
-      />
+      <TimelineAxis ticks={ticks} />
     </Box>
   </Stack>
 );

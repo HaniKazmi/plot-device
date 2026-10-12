@@ -1,5 +1,5 @@
 import { Article, CalendarMonth, History, Layers, Palette, Place, TheaterComedy } from "@mui/icons-material";
-import { Card, CardContent, Link, Stack, Typography } from "@mui/material";
+import { Box, Card, CardContent, Link, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { useState, type ReactNode } from "react";
 import { Link as RouterLink } from "react-router-dom";
@@ -10,7 +10,7 @@ import type { YearScope } from "../common/scope";
 import type { OmniItem } from "../common/medium";
 import { countByMedium } from "../common/medium";
 import { NoticeCard } from "../common/NoticeCard";
-import { Section, SectionRail, StatBand } from "../common/SectionRail";
+import { ChartPair, Section, SectionRail, StatBand } from "../common/SectionRail";
 import { SectionHeader } from "../common/SectionHeader";
 import { SegmentedControl, type SegmentOption, type YearDispatch } from "../common/SelectionComponents";
 import { StatCard, TotalsBand } from "../common/Stats";
@@ -31,7 +31,10 @@ import OmnibusBarchart from "./Barchart";
 import FranchiseCredits from "./FranchiseCredits";
 import FranchiseLibrary from "./FranchiseLibrary";
 import FranchiseProviders from "./FranchiseProviders";
+import FranchiseSunburst from "./FranchiseSunburst";
+import { hasBreakdown } from "./franchiseSunburstData";
 import OmniTimeline from "./Timeline";
+import type { TimelineLayout } from "../common/TimelineSection";
 import {
   dossierRows,
   franchiseItems,
@@ -43,8 +46,37 @@ import {
   type FranchiseTop,
 } from "./franchiseData";
 import { FRANCHISE_CHIPS, FRANCHISE_SECTIONS } from "./sections";
+import { PictureCell } from "./PictureCell";
+import { franchiseWorks } from "./topFranchisesData";
+
+/**
+ * The franchise's works across the top of its page, newest first, each at the strip's height in its
+ * own shape and the last cut by the page's edge: a franchise is several works, often in several
+ * media, and a row of them says what it is before a word is read, where any one picture would make
+ * Pokémon a page about a game. The same works its Top franchises card pictures, so the page reads
+ * as that card opened out. As many as a desktop row can show; the rest are on the shelves below.
+ */
+const HEADER_PICTURES = 12;
+const HEADER_STRIP_SX = {
+  display: "flex",
+  gap: "4px",
+  height: { xs: 120, sm: 180 },
+  overflow: "hidden",
+} as const;
+const HEADER_CELL_SX = { height: "100%", flex: "0 0 auto" } as const;
 
 const MEASURE_KEYS = ["Hours", "Items"] as const;
+
+/** Every layout, Pictures included: a franchise is few enough works for the clock to hold. */
+const FRANCHISE_LAYOUTS: readonly TimelineLayout[] = ["Across", "Stacked", "Grid", "Pictures"];
+
+/**
+ * The By year chart and the wheel beside it, or the chart alone where there is no wheel. A
+ * franchise is a few dozen works over a few years, so the barchart's own 80vh is mostly empty
+ * columns; this is tall enough for the wheel to read.
+ */
+const FRANCHISE_CHART_HEIGHT = "min(70vh, 560px)";
+
 const MEASURES: readonly SegmentOption<Measure>[] = segments(MEASURE_KEYS);
 
 /** The two ranked cards the page opens on, each free to be re-pointed from its own select. */
@@ -132,6 +164,18 @@ const FranchisePage = ({ franchise, library, items }: { franchise: string; libra
           >
             ‹ Omnibus
           </Link>
+          <Box sx={HEADER_STRIP_SX}>
+            {franchiseWorks(own)
+              .slice(0, HEADER_PICTURES)
+              .map((work) => (
+                <PictureCell
+                  key={work.key}
+                  medium={work.medium}
+                  item={work}
+                  sx={HEADER_CELL_SX}
+                />
+              ))}
+          </Box>
           <Stack
             direction="row"
             spacing={1.5}
@@ -233,7 +277,11 @@ const FranchisePage = ({ franchise, library, items }: { franchise: string; libra
             grouping="series"
             // Opening on Pictures: a franchise is few enough works for every one to be its own
             // picture at full size, which a tab's library reaches only by scrolling sideways.
+            layouts={FRANCHISE_LAYOUTS}
             initialLayout="Pictures"
+            // A franchise is a few dozen works at most, which all fit on a desktop card at once and
+            // read five years at a time on a phone's.
+            spans={{ desktop: "All", phone: "5" }}
             dispatch={dispatch}
             title="When"
           />
@@ -241,12 +289,25 @@ const FranchisePage = ({ franchise, library, items }: { franchise: string; libra
         {/* Its own section rather than a second reading behind a switch in When: a switch there
             hides one of the two, and the timeline's header already holds what a mark is and how
             the marks are laid out. */}
-        <Section id={FRANCHISE_SECTIONS.years}>
-          <OmnibusBarchart
-            data={own}
-            measure={measure}
-          />
-        </Section>
+        <ChartPair
+          chartHeight={FRANCHISE_CHART_HEIGHT}
+          left={
+            <Section id={FRANCHISE_SECTIONS.years}>
+              <OmnibusBarchart
+                data={own}
+                measure={measure}
+              />
+            </Section>
+          }
+          right={
+            hasBreakdown(own) && (
+              <FranchiseSunburst
+                items={own}
+                measure={measure}
+              />
+            )
+          }
+        />
         <Section id={FRANCHISE_SECTIONS.credits}>
           <FranchiseCredits
             items={own}

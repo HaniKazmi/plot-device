@@ -16,6 +16,7 @@ export const book = (overrides: Partial<Book> = {}): Book => ({
   series: "Revelation Space",
   seriesNumber: 2,
   genre: "Sci-Fi",
+  certificate: "15",
   status: "Finished",
   format: "eBook",
   score: 8,

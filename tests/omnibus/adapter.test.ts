@@ -377,16 +377,17 @@ describe("a book in the union", () => {
     expect(item.closeDate).toBeUndefined();
   });
 
-  it("carries exact hours, one genre, its franchise and no certificate or style", () => {
-    const [item] = toOmniItems(library({ book: [book({ hours: 1.5, genre: "Fantasy", franchise: "Cosmere" })] }));
+  it("carries exact hours, one genre, its franchise, its certificate and no style", () => {
+    const [item] = toOmniItems(
+      library({ book: [book({ hours: 1.5, genre: "Fantasy", franchise: "Cosmere", certificate: "12" })] }),
+    );
 
     expect(item.hours).toBe(1.5);
     expect(item.genre).toBe("Fantasy");
     expect(item.otherGenres).toEqual([]);
     expect(item.franchise).toBe("Cosmere");
-    // Nothing certifies a book; every certificate surface drops it rather than shelving a blank.
-    expect(item.certificate).toBeUndefined();
-    // Nor has a book a picture to have a style.
+    expect(item.certificate).toBe("12");
+    // A book has no picture to have a style.
     expect(item.style).toBeUndefined();
   });
 

@@ -170,7 +170,7 @@ describe("a tracked domain never depends on another", () => {
   // Omnibus composes nothing of its own: the union, the gallery, search, the Now band and the
   // franchise page reach `app/` for what they need of the four domains. One file still reaches
   // across directly. `FranchiseProviders.tsx` mounts the four `FranchiseContext` providers the card
-  // strips and the crossings read, and the four are not one shape: Books stands a second provider
+  // strips read, and the four are not one shape: Books stands a second provider
   // inside its own for the epoch every book strip opens at. A per-medium provider member would also
   // have to be what each domain's *own* `Graphs` mounts, or the tree would hold two definitions of
   // one provider — four more files than this exemption costs.
@@ -332,9 +332,8 @@ describe("the registry never reaches back for a tab", () => {
 describe("the popper engine stays off the first paint", () => {
   // MUI's `Tooltip` mounts Popper, and Popper brings `@popperjs/core` with it: about 11 kB gzipped
   // of positioning engine, on the chunk the browser evaluates before it paints anything. Nothing
-  // on a first paint hovers — the two surfaces that need it are a chart's hover card
-  // (`common/HoverCardTooltip.tsx`) and a timeline band naming its own span
-  // (`common/TimelineBand.tsx`), both inside a tab's lazy chunk — so an evaluated import of it
+  // on a first paint hovers — the one surface that needs it is a chart's hover card
+  // (`common/HoverCardTooltip.tsx`), inside a tab's lazy chunk — so an evaluated import of it
   // anywhere `main.tsx` reaches is that engine paid for by every visitor, whether or not they ever
   // hover anything.
   //
@@ -385,10 +384,8 @@ describe("the popper engine stays off the first paint", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("still reaches the two files that do import it, so the rule above is not vacuous", () => {
-    const importers = [join(SRC, "common", "HoverCardTooltip.tsx"), join(SRC, "common", "TimelineBand.tsx")];
-
-    expect(importers.filter(importsMuiTooltip)).toEqual(importers);
+  it("still reaches the one file that does import it, so the rule above is not vacuous", () => {
+    expect(importsMuiTooltip(join(SRC, "common", "HoverCardTooltip.tsx"))).toBe(true);
   });
 
   it("crosses tabs.ts, which is where the five entry components hang", () => {

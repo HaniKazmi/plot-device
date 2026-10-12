@@ -13,11 +13,11 @@ import { movieGroupValue, movieItemKey } from "./statsData";
 import { pageState } from "./filterUtils";
 
 /**
- * Every layout but Across, so the timeline opens on Stacked: a film is watched in a day, and a
- * row of one-day bars is a row of ticks with names beside them, where Stacked and the grid read a
- * library of points by its seasons and the clock by its pictures.
+ * Stacked and the grid, so the timeline opens on Stacked: a film is watched in a day, and a row of
+ * one-day bars is a row of ticks with names beside them, where Stacked and the grid read a library
+ * of points by its seasons.
  */
-const LAYOUTS: readonly TimelineLayout[] = ["Stacked", "Grid", "Pictures"];
+const LAYOUTS: readonly TimelineLayout[] = ["Stacked", "Grid"];
 
 /**
  * What the timeline can be coloured by: every key the tab's own `groupToColour` answers, genre
@@ -95,6 +95,7 @@ const MovieTimeline = ({ data, yearType, yearTo }: { data: Movie[]; yearType: Ye
       yearTo={yearTo}
       dispatch={pageState.dispatch}
       layouts={LAYOUTS}
+      gridYears={3}
       shape="banner"
     />
   );

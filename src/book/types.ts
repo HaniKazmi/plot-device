@@ -1,6 +1,7 @@
 import type { YearMonthDay } from "../common/date";
 import type { InSeries } from "../common/series";
 import {
+  certificateToColour,
   decadeToColour,
   formatToColour,
   franchiseToColour,
@@ -9,6 +10,7 @@ import {
   scoreBand,
   scoreBandToColour,
   statusToColour,
+  type Certificate,
   type Colour,
   type FormatName,
   type KeysMatching,
@@ -47,6 +49,8 @@ export interface Book extends InSeries {
   /** A book with no wider franchise carries its own name here, as a film does on the Movies sheet. */
   franchise: string;
   genre: string;
+  /** The age the publisher or the reader rated it for, in the bare-age vocabulary every tab writes. */
+  certificate: Certificate;
   status: Status;
   format: Format;
   /** Absent for a book never scored, which is not the same as scoring one zero. */
@@ -103,6 +107,9 @@ export const groupToColour = (group: BookGroup, book: Book, scheme: Scheme): Col
       return statusToColour(book, scheme);
     case "format":
       return formatToColour(book.format, scheme);
+    case "certificate":
+      // The age ramp every tab shares, so a 12 is one colour whichever sheet wrote it.
+      return certificateToColour(book.certificate, scheme);
     case "score":
       return scoreBandToColour(scoreBand(book.score), scheme);
     case "decade":

@@ -62,6 +62,7 @@ const options: OptionKeys[] = [
   "franchise",
   "series",
   "format",
+  "certificate",
   "score",
   "status",
   "decade",

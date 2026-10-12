@@ -11,7 +11,7 @@ import {
   galleryValue,
 } from "../../src/app/galleryData";
 import { omniArtwork } from "../../src/app/media";
-import { certificateToColour, genreToColour } from "../../src/utils/types";
+import { certificateBand, certificateToColour, genreToColour } from "../../src/utils/types";
 import { book } from "../fixtures/books";
 import { library } from "../fixtures/library";
 import { movie } from "../fixtures/movies";
@@ -331,15 +331,14 @@ describe("ordering the shelves", () => {
 });
 
 describe("books on the wall", () => {
-  it("shelves a book by genre, franchise and decade, and leaves it off the certificate shelves", () => {
-    // Nothing certifies a book, so the certificate category answers "" and `groupByCategory` drops it —
-    // the one category not every medium records, stated rather than shelved under a blank.
-    const [item] = toOmniItems(library({ book: [book({ genre: "Sci-Fi", franchise: "Cosmere" })] }));
+  it("shelves a book by genre, franchise, decade and certificate tier", () => {
+    const [item] = toOmniItems(library({ book: [book({ genre: "Sci-Fi", franchise: "Cosmere", certificate: "15" })] }));
 
     expect(galleryValue(item, "genre")).toBe("Sci-Fi");
     expect(galleryValue(item, "franchise")).toBe("Cosmere");
     expect(galleryValue(item, "decade")).toBe("2020s");
-    expect(galleryValue(item, "certificate")).toBe("");
+    // On the tier and not the cell, so a BBFC 15 book shelves with a PEGI 16 game.
+    expect(galleryValue(item, "certificate")).toBe(certificateBand("15"));
   });
 
   it("stands a reread book on a shelf once, where two reads are two rows of one work", () => {

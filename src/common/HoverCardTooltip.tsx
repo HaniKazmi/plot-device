@@ -235,7 +235,7 @@ const popperSx = (hidden: boolean, transparent: boolean) =>
  * and these charts scroll sideways rather than down, so there is nothing to scroll to reach the rest
  * of it. Flipping above the bar is the whole fix — a height cap would truncate the card instead, and
  * the card is the content. `altAxis` keeps the same card inside the left and right edges at either
- * end of a chart four viewports wide, where a bar can sit hard against the container.
+ * end of a chart several screens wide, where a bar can sit hard against the container.
  *
  * The popper places the card once, at the moment it opens, and a card that grows after that — a
  * hover card whose chunk is still arriving, a picture landing in a card that had not reserved for

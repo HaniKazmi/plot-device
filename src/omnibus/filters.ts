@@ -22,9 +22,8 @@ import { galleryValue } from "../app/galleryData";
  *
  * Genre and franchise are the vocabularies all four media share, and both are derived from the
  * union rather than from any one sheet — the entries appearing in more than one of them are the
- * point of offering the filter here at all. The certificate and the style are not shared by all
- * four: nothing certifies a book and a book has no picture to have a style, so a book answers `""`
- * to both and drops off those rows.
+ * point of offering the filter here at all. The style is not shared by all four: a book has no
+ * picture to have one, so a book answers `""` to it and drops off that row.
  */
 export const omniFilters: FilterSchema<OmniItem, FilterState> = {
   toggles: media.map((medium) => ({

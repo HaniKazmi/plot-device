@@ -5,6 +5,7 @@ import {
   earliestYear,
   groupGamesBy,
   heroStats,
+  gamesAndHours,
   perGameAverages,
   statsCardLabelEndDateHours,
   statsCardLabelStartDate,
@@ -187,6 +188,14 @@ describe("topOptions", () => {
   });
 });
 
+describe("gamesAndHours", () => {
+  it("counts every game, one with no hours logged included, and sums the hours logged", () => {
+    const data = [videoGame({ hours: 10 }), videoGame({ hours: 5 }), videoGame({ hours: undefined })];
+
+    expect(gamesAndHours(data)).toEqual({ games: 3, hours: 15 });
+  });
+});
+
 describe("yearlyAverages", () => {
   it("averages games and hours over the years that have data", () => {
     const data = [
@@ -195,20 +204,22 @@ describe("yearlyAverages", () => {
       videoGame({ startDate: YearMonthDay.get(2021, 1, 1), hours: 30 }),
     ];
 
-    expect(yearlyAverages(data)).toEqual({ games: 1.5, hours: 30 });
+    expect(yearlyAverages(data)).toEqual({ games: 2, hours: 30 });
   });
 
-  it("ignores years in which nothing was time-tracked rather than counting them as zero", () => {
+  it("counts a game with no hours logged, as the All time card does, but leaves its year out of the hours", () => {
     const data = [
       videoGame({ startDate: YearMonthDay.get(2020, 1, 1), hours: 10 }),
+      videoGame({ startDate: YearMonthDay.get(2020, 6, 1), hours: undefined }),
       videoGame({ startDate: YearMonthDay.get(2021, 1, 1), hours: undefined }),
     ];
 
-    expect(yearlyAverages(data)).toEqual({ games: 1, hours: 10 });
+    // Three games over two years; ten hours over the one year anything was timed.
+    expect(yearlyAverages(data)).toEqual({ games: 2, hours: 10 });
   });
 
-  it("rounds a recurring average to two decimal places", () => {
-    // 4 games across 3 years is 1.333…, which would otherwise render its full precision.
+  it("states a recurring average as a whole number, hours floored as every total is", () => {
+    // 4 games across 3 years is 1.333…, and 50 hours 16.67.
     const data = [
       videoGame({ startDate: YearMonthDay.get(2020, 1, 1), hours: 10 }),
       videoGame({ startDate: YearMonthDay.get(2020, 2, 1), hours: 10 }),
@@ -216,8 +227,8 @@ describe("yearlyAverages", () => {
       videoGame({ startDate: YearMonthDay.get(2022, 1, 1), hours: 20 }),
     ];
 
-    expect(yearlyAverages(data).games).toBe(1.33);
-    expect(yearlyAverages(data).hours).toBe(16.67);
+    expect(yearlyAverages(data).games).toBe(1);
+    expect(yearlyAverages(data).hours).toBe(16);
   });
 
   it("averages to 0 over no active year, so a page narrowed to untimed games draws a figure", () => {

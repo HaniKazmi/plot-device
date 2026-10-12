@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { SegmentedControl, type SegmentOption, type YearDispatch } from "../common/SelectionComponents";
 import { useColourBy } from "../common/useColourBy";
-import { TimelineSection, type TimelineLayout } from "../common/TimelineSection";
+import { TimelineSection, type SpanDefaults, type TimelineLayout } from "../common/TimelineSection";
 import { stated } from "../common/population";
 import { CURRENT_PLAINDATE, type YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
@@ -62,15 +62,19 @@ const OmniTimeline = (props: {
   /** Where a year label sends its scope: the page's own store. */
   dispatch: YearDispatch;
   title?: string;
-  /** The layouts offered, all four where nothing says otherwise (`TimelineSection`). */
+  /** The layouts offered, all but Pictures where nothing says otherwise (`TimelineSection`). */
   layouts?: readonly TimelineLayout[];
   /** The layout the section opens on (`TimelineSection`). */
   initialLayout?: TimelineLayout;
+  /** The years Across fits onto the card when it opens (`TimelineSection`). */
+  spans: SpanDefaults;
+  /** How many of the latest years the grid draws before its cut (`TimelineSection`). */
+  gridYears?: number;
 }) => {
   const { data, yearType, yearTo } = props;
   const grouping = props.grouping ?? "franchise";
-  // A book has no certificate and no style and answers `""` under either, which takes the neutral
-  // and stays out of the key, as books stay off those shelves.
+  // A book has no style and answers `""` under it, which takes the neutral and stays out of the
+  // key, as books stay off the style rows.
   const colour = useColourBy(
     COLOUR_KEYS,
     "medium",
@@ -118,6 +122,8 @@ const OmniTimeline = (props: {
       shape="banner"
       layouts={props.layouts}
       initialLayout={props.initialLayout}
+      spans={props.spans}
+      gridYears={props.gridYears}
     />
   );
 };

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { YearMonthDay } from "../../src/common/date";
 import { toOmniItems } from "../../src/app/library";
-import { genreBridge } from "../../src/omnibus/genreBridgeData";
+import { genreBridge, mediumBridge } from "../../src/omnibus/genreBridgeData";
 import { certificateBand, GENRE_NAMES, genreToColour, neutralFill, releaseDecade } from "../../src/utils/types";
 import { book } from "../fixtures/books";
 import { library } from "../fixtures/library";
@@ -204,14 +204,22 @@ describe("books on the bridge", () => {
     expect(genreBridge(items, "decade").map((row) => row.name)).toEqual(
       [...new Set(items.map((item) => releaseDecade(item.year)))].sort().reverse(),
     );
-    // A season certifies through its show; nothing certifies a book, and a row keyed on nothing
-    // is not drawn.
+    // A season certifies through its show and a book through its own cell.
     const ratings = genreBridge(
-      toOmniItems(library({ book: [book({})], movie: [movie({ certificate: "18" }), movie({ certificate: "12" })] })),
+      toOmniItems(
+        library({
+          book: [book({ certificate: "15" })],
+          movie: [movie({ certificate: "18" }), movie({ certificate: "12" })],
+        }),
+      ),
       "certificate",
     );
     // Youngest first, the boards' own order, whatever the hours in each.
-    expect(ratings.map((row) => row.name)).toEqual([certificateBand("12"), certificateBand("18")]);
+    expect(ratings.map((row) => row.name)).toEqual([
+      certificateBand("12"),
+      certificateBand("15"),
+      certificateBand("18"),
+    ]);
   });
 
   it("keys rows on the style in the vocabulary's own order, and a book, which has none, joins no row", () => {
@@ -245,5 +253,40 @@ describe("books on the bridge", () => {
     const byHours = genreBridge(items, "genre", "Hours")[0];
     expect(byHours.amount).toBe(102);
     expect(byHours.segments[0].percent).toBeGreaterThan(90);
+  });
+});
+
+describe("mediumBridge", () => {
+  const items = () =>
+    toOmniItems(
+      library({
+        game: [
+          videoGame({ name: "A", genre: "Fantasy", hours: 30 }),
+          videoGame({ name: "B", genre: "Sci-Fi", hours: 10 }),
+        ],
+        movie: [movie({ name: "C", genre: "Sci-Fi", minutes: 120 })],
+      }),
+    );
+  const namesOf = (measure: "Hours" | "Items") => genreBridge(items(), "genre", measure).map((row) => row.name);
+
+  it("divides each medium's whole between the key's values, a medium with nothing left out", () => {
+    const rows = mediumBridge(items(), "genre", "Hours", namesOf("Hours"));
+
+    expect(rows.map((row) => row.medium)).toEqual(["game", "movie"]);
+    expect(rows[0]).toMatchObject({ amount: 40 });
+    expect(rows[0].segments.map((segment) => [segment.name, segment.amount])).toEqual([
+      ["Fantasy", 30],
+      ["Sci-Fi", 10],
+    ]);
+    expect(rows[1].segments.map((segment) => segment.name)).toEqual(["Sci-Fi"]);
+  });
+
+  it("runs every medium's values in the unturned bridge's row order, so a value stands at one place on every bar", () => {
+    const order = namesOf("Items");
+
+    for (const row of mediumBridge(items(), "genre", "Items", order)) {
+      const names = row.segments.map((segment) => segment.name);
+      expect(names).toEqual(order.filter((name) => names.includes(name)));
+    }
   });
 });

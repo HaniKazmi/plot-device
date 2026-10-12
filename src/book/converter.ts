@@ -1,5 +1,13 @@
 import { dataCacheKey, type DataConfig } from "../common/useData";
-import { describing, readChecked, readFullDate, readGenre, sheetError, sheetRow } from "../common/sheetError";
+import {
+  describing,
+  readCertificate,
+  readChecked,
+  readFullDate,
+  readGenre,
+  sheetError,
+  sheetRow,
+} from "../common/sheetError";
 import { BOOK_STATUSES, FORMATS, type Book } from "./types";
 
 /**
@@ -51,6 +59,7 @@ export const jsonConverter = (json: Record<string, string>[]): Book[] =>
       series: row.Series ?? "",
       seriesNumber: Number.isNaN(seriesNumber) ? undefined : seriesNumber,
       genre,
+      certificate: readCertificate(row.Certificate, `${where}, Certificate`),
       status,
       format: readFormat(row.Format, `${where}, Format`),
       // A book nobody scored is left out rather than counted as NaN, which would propagate into
@@ -75,6 +84,6 @@ export const jsonConverter = (json: Record<string, string>[]): Book[] =>
 
 /** Bump the version on any change to the model's shape, or a returning visitor's cache lacks the field. */
 export const bookDataConfig: DataConfig<Book> = {
-  storageKey: dataCacheKey("book", 2),
+  storageKey: dataCacheKey("book", 3),
   converter: jsonConverter,
 };

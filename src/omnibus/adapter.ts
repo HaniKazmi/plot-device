@@ -24,6 +24,14 @@ export const unionTotals = (items: OmniItem[]) => ({
 export const omniTitle = (item: OmniItem): string => moduleOf(item).title(item.source);
 
 /**
+ * Closed later first, a work still going counting as the latest of all: the tie-break a year's
+ * headliner and a franchise's newest works both fall back to.
+ */
+export const closedLaterFirst = (a: OmniItem, b: OmniItem) => closeKey(b).localeCompare(closeKey(a));
+
+const closeKey = (item: OmniItem) => item.closeDate?.toString() ?? "\uffff";
+
+/**
  * What was finished most recently, newest first.
  *
  * Only what has actually closed: an item with no close date is still being played or watched, and

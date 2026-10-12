@@ -1,7 +1,7 @@
 import { formatDate, type YearMonthDay } from "../common/date";
 import { byDate } from "../common/finishedData";
 import { franchiseIndex } from "../common/franchiseIndex";
-import type { CreditRole, OmniItem } from "../common/medium";
+import { spansMedia, type CreditRole, type OmniItem } from "../common/medium";
 import type { TopGroup } from "../common/statsData";
 import { galleryStripOrder, galleryValue, galleryWorks, worksIn, type ShelfItem } from "../app/galleryData";
 import { measureOf } from "../app/library";
@@ -11,12 +11,13 @@ import { mediumToLabel, MEDIA, type Medium } from "../utils/types";
 import { lineOf } from "./timelineData";
 import "../utils/arrayUtils";
 import "../utils/mapUtils";
+import { topFranchises } from "./topFranchisesData";
 
 /** Every row of the union one franchise column names. */
 export const franchiseItems = (items: OmniItem[], franchise: string): OmniItem[] =>
   items.filter((item) => item.franchise === franchise);
 
-/** The day an item was first met, the span its own module answers, as the crossings and the strips read it. */
+/** The day an item was first met, the span its own module answers, as the timeline and the strips read it. */
 const startOf = (item: OmniItem, today: YearMonthDay): YearMonthDay => moduleOf(item).span(item.source, today).start;
 
 /** Oldest first by when each was begun, every start read once rather than once per comparison. */
@@ -27,14 +28,25 @@ const byStart = <T extends OmniItem>(items: readonly T[], today: YearMonthDay): 
 
 /**
  * Where a franchise stands among every franchise in the library by hours — a standalone work being
- * a franchise of one — the same population the Omnibus's own franchise figure counts.
+ * a franchise of one — the same population the Omnibus's own franchise figure counts. Read off the
+ * Top franchises wall's own order under Hours, so the card in ninth place opens a page saying ninth.
  */
 export const franchiseRank = (items: OmniItem[], franchise: string): { rank: number; of: number } => {
-  // Grouped as the crossings group, a blank cell naming no franchise, so the population is theirs.
-  const ranked = [...franchiseIndex(items, (item) => item.franchise).entries()]
-    .map(([name, members]) => ({ name, hours: members.sum("hours") }))
-    .toSorted((a, b) => b.hours - a.hours);
-  return { rank: ranked.findIndex((entry) => entry.name === franchise) + 1, of: ranked.length };
+  const ranked = topFranchises(items, "Hours");
+  return { rank: ranked.findIndex((card) => card.franchise === franchise) + 1, of: ranked.length };
+};
+
+/**
+ * How many franchises the union holds, a standalone work's own name included — the Omnibus's own
+ * franchise figure, and the population `franchiseRank` ranks within — and how many of them were met
+ * in more than one medium, the one figure about franchises no single tab can state.
+ */
+export const franchiseTally = (items: readonly OmniItem[]): { franchises: number; acrossMedia: number } => {
+  const index = franchiseIndex(items, (item) => item.franchise);
+  return {
+    franchises: index.size,
+    acrossMedia: [...index.values()].filter(spansMedia).length,
+  };
 };
 
 /** How many calendar years a franchise spans, first meeting to last, both ends counted. */

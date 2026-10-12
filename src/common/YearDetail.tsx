@@ -78,11 +78,7 @@ export const YearPictures = ({
 
   return (
     <CardContent>
-      <TimelineAxis
-        ticks={ticks}
-        labelOf={(tick) => tick.monthLabel}
-        align="start"
-      />
+      <TimelineAxis ticks={ticks} />
       <Box
         ref={ref}
         sx={{ position: "relative" }}

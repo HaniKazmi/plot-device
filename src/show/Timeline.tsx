@@ -12,10 +12,10 @@ import ShowCardMediaImage, { ShowHoverCard } from "./CardMediaImage";
 import { pageState } from "./filterUtils";
 
 /**
- * Every layout but Pictures: most seasons wear their show's one poster, so the clock would be the
- * same picture repeated along each show's run.
+ * Across and the grid. Not Stacked: a season airs over months and often across New Year, so a row
+ * per year cuts it into pieces that Across draws as one bar.
  */
-const LAYOUTS: readonly TimelineLayout[] = ["Across", "Stacked", "Grid"];
+const LAYOUTS: readonly TimelineLayout[] = ["Across", "Grid"];
 
 /**
  * What the timeline can be coloured by: every key the tab's own `groupToColour` answers, status
@@ -97,7 +97,11 @@ const ShowTimeline = ({ data, yearType, yearTo }: { data: Show[]; yearType: Year
       yearTo={yearTo}
       dispatch={pageState.dispatch}
       layouts={LAYOUTS}
+      gridYears={3}
       shape="poster"
+      // Seasons stand nearly three to every playthrough a year — 912 against 341 — so a desktop card
+      // holds three years rather than Games' five.
+      spans={{ desktop: "3", phone: "1" }}
     />
   );
 };

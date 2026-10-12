@@ -90,13 +90,15 @@ export const allTimeTotals = (data: Show[]) => ({
 });
 
 /**
- * Totals for the seasons that started in `year`. The year is a parameter rather than read from
- * the clock, so the numbers are a function of the data alone.
+ * Totals for the seasons that started in `year`, counted in shows as the all-time card beside it
+ * and the rail's figure are: the pair reading "356 shows" against "58 seasons" states two units
+ * for one question. The year is a parameter rather than read from the clock, so the numbers are a
+ * function of the data alone.
  */
-export const seasonsInYear = (data: Show[], year: YearNumber) => {
+export const showsInYear = (data: Show[], year: YearNumber) => {
   const filtered = data.flatMap((show) => show.s).filter((s) => s.startDate.year === year);
   return {
-    seasons: filtered.length,
+    shows: new Set(filtered.map((s) => s.show)).size,
     episodes: filtered.sum("e"),
     hours: Math.floor(filtered.sum("minutes") / 60),
   };
@@ -129,8 +131,9 @@ export const yearlyAverages = (data: Show[]) => {
   // runtime logged still draws the card.
   const years = totals.length || 1;
   return {
-    seasons: Math.floor(totals.sum("seasons") / years),
-    episodes: Math.floor(totals.sum("episodes") / years),
+    // Counts rounded and hours floored, as every tab's yearly average states them.
+    seasons: Math.round(totals.sum("seasons") / years),
+    episodes: Math.round(totals.sum("episodes") / years),
     // Minutes are averaged first and converted second, so this is the floor of the average
     // hours rather than the average of per-year floored hours.
     hours: Math.floor(totals.sum("minutes") / years / 60),
