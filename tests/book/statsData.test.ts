@@ -14,6 +14,7 @@ import {
   perBookAverages,
   readAlongside,
   seriesSpans,
+  statsCardLabelReading,
   yearlyAverages,
 } from "../../src/book/statsData";
 import { book } from "../fixtures/books";
@@ -105,7 +106,7 @@ describe("totals and averages", () => {
 
   it("averages over the years anything was begun in, not over the span", () => {
     // 2024 and 2026 are active; 2025 is not counted as a zero.
-    expect(yearlyAverages(library)).toEqual({ books: 1.5, hours: 10, pages: 786 });
+    expect(yearlyAverages(library)).toEqual({ books: 2, hours: 10, pages: 786 });
   });
 
   it("averages per book over the finished ones only", () => {
@@ -139,6 +140,13 @@ describe("what is being read", () => {
     expect(daysReading(book({ endDate: undefined, startDate: YearMonthDay.get(2026, 5, 1) }), today)).toBe(125);
     // A start typed ahead of itself has no day count rather than a negative one.
     expect(daysReading(book({ endDate: undefined, startDate: YearMonthDay.get(2027, 1, 1) }), today)).toBeUndefined();
+  });
+
+  it("labels a book in hand by how long it has been open, and leaves a start ahead of today blank", () => {
+    const open = book({ endDate: undefined, startDate: YearMonthDay.get(2026, 5, 1) });
+    expect(statsCardLabelReading(open, today)[1]).toEqual(["125 days in"]);
+    const ahead = book({ endDate: undefined, startDate: YearMonthDay.get(2027, 1, 1) });
+    expect(statsCardLabelReading(ahead, today)[1]).toEqual([""]);
   });
 });
 

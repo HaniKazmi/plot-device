@@ -107,7 +107,7 @@ const Stats = ({
           />
           <StatSummary
             icon={<ShowChart />}
-            title="Yearly Average"
+            title="Per Year"
             stats={yearlyAverages(upTo)}
           />
           <FilmAverage data={data} />
@@ -209,7 +209,7 @@ const FilmAverage = ({ data }: { data: Movie[] }) => {
   return (
     <StatCard
       icon={<LocalMovies />}
-      title="Film Average"
+      title="Per Film"
       content={[
         ["Minutes", minutes],
         ["Score", score],

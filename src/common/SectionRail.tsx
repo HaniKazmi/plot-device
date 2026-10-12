@@ -113,40 +113,57 @@ export const StatBand = ({ children }: { children: ReactNode }) => (
  *
  * The cells fill the row too. The two carry the same chart box but not the same header — the
  * sunburst's nesting controls take a second row at the one width where three rings and a title do
- * not share a line — so a card left at its content's height stops short by that difference.
+ * not share a line — so a card left at its content's height stops short by that difference. A card
+ * standing in its own `Section` fills that section as well, the section being what the cell
+ * stretches.
  */
-const PAIR_CELL_SX = {
-  "--paired-chart-height": "min(80vh, 700px)",
+const pairCellSx = (chartHeight: string) => ({
+  "--paired-chart-height": chartHeight,
   display: "flex",
   "& > *": { flexGrow: 1, minWidth: 0 },
-} as const;
+  "& > [id] > .MuiCard-root": { height: "100%" },
+});
+
+/** A chart's height beside another chart, where a pair names none. */
+const PAIRED_CHART_HEIGHT = "min(80vh, 700px)";
 
 /**
- * Two charts side by side once there is width for them, stacked below it.
+ * Two sections side by side once there is width for them, stacked below it, each card stretched to
+ * the taller of the two.
  *
- * The pairing is the point wherever it appears: the two answer the same question — where the hours
- * went — through a hierarchy and through time, and reading one against the other is why a tab
- * carries both.
+ * The pairing is the point wherever it appears: a tab's two charts answer the same question — where
+ * the hours went — through a hierarchy and through time, and the Omnibus's yearbook and franchise
+ * wall are two ways into the same works by picture.
+ *
+ * `chartHeight` is the height a chart in the pair is drawn at, for a pair whose other half is no
+ * chart and stands at a height of its own. A half with nothing to draw is left out, and the other
+ * takes the row at that same height rather than standing beside an empty cell.
  */
-export const ChartPair = ({ left, right }: { left: ReactNode; right: ReactNode }) => (
-  <Grid
-    container
-    spacing={2}
-  >
+export const ChartPair = (props: { left: ReactNode; right?: ReactNode; chartHeight?: string }) => {
+  const cellSx = pairCellSx(props.chartHeight ?? PAIRED_CHART_HEIGHT);
+  const width = props.right ? 6 : 12;
+  return (
     <Grid
-      size={{ xs: 12, md: 6 }}
-      sx={PAIR_CELL_SX}
+      container
+      spacing={2}
     >
-      {left}
+      <Grid
+        size={{ xs: 12, md: width }}
+        sx={cellSx}
+      >
+        {props.left}
+      </Grid>
+      {props.right && (
+        <Grid
+          size={{ xs: 12, md: 6 }}
+          sx={cellSx}
+        >
+          {props.right}
+        </Grid>
+      )}
     </Grid>
-    <Grid
-      size={{ xs: 12, md: 6 }}
-      sx={PAIR_CELL_SX}
-    >
-      {right}
-    </Grid>
-  </Grid>
-);
+  );
+};
 
 /**
  * The rail's tail: the page-wide controls, laid out in a row that scrolls before it overflows.

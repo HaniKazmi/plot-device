@@ -14,10 +14,10 @@ import { gameGroupValue } from "./statsData";
 import { pageState } from "./filterUtils";
 
 /**
- * Every layout but Stacked: a playthrough runs for months and often across New Year, so a row per
- * year cuts most of them into pieces that Across draws as one bar each.
+ * Across and the grid. Not Stacked: a playthrough runs for months and often across New Year, so a
+ * row per year cuts most of them into pieces that Across draws as one bar each.
  */
-const LAYOUTS: readonly TimelineLayout[] = ["Across", "Grid", "Pictures"];
+const LAYOUTS: readonly TimelineLayout[] = ["Across", "Grid"];
 
 /**
  * What the timeline can be coloured by: every key the tab's own `groupToColour` answers, in the
@@ -104,6 +104,7 @@ const GameTimeline = ({ data, yearType, yearTo }: { data: VideoGame[]; yearType:
       yearTo={yearTo}
       dispatch={pageState.dispatch}
       layouts={LAYOUTS}
+      gridYears={3}
       shape="banner"
     />
   );

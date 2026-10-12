@@ -26,12 +26,11 @@ import "../utils/mapUtils";
 /**
  * The ways the gallery groups the union.
  *
- * Every one but certificate is a field all four media record, which is what a shelf shared between them
- * has to be — a category one medium answers `""` to drops that medium out of the wall, since
+ * Every one is a field all four media record, which is what a shelf shared between them has to be —
+ * a category one medium answered `""` to would drop that medium out of the wall, since
  * `groupByCategory` skips empty values. "When" is the year each work was finished, the four tabs'
- * own libraries' first order, and "medium" the tab each came from. The certificate is the deliberate exception: nothing
- * certifies a book, so books are absent from those shelves rather than shelved under a certificate
- * nobody issued, and `galleryValue` answers `""` for them on purpose.
+ * own libraries' first order, and "medium" the tab each came from. The certificate shelves by tier,
+ * so a BBFC 15 film, a PEGI 16 game and a book rated 15 stand on one shelf.
  */
 export const GALLERY_CATEGORIES = ["franchise", "when", "genre", "medium", "certificate", "decade"] as const;
 
@@ -81,7 +80,7 @@ export const galleryValue = (item: OmniItem, category: UnionKey): string => {
     case "franchise":
       return item.franchise;
     case "certificate":
-      return item.certificate ? certificateBand(item.certificate) : "";
+      return certificateBand(item.certificate);
     case "decade":
       return releaseDecade(item.year);
     case "when":
@@ -91,7 +90,7 @@ export const galleryValue = (item: OmniItem, category: UnionKey): string => {
     case "medium":
       return mediumToLabel(item.medium);
     case "style":
-      // A book has no picture to have a style, and answers `""` as it does for the certificate.
+      // A book has no picture to have a style, and answers `""`, which drops it off the style rows.
       return item.style ?? "";
   }
 };

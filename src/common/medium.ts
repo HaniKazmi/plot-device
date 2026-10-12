@@ -62,15 +62,12 @@ export interface OmniItem {
   /** Empty for a game or a book: those two sheets record a single genre and nothing beside it. */
   otherGenres: string[];
   franchise: string;
+  /** The age it was rated for, in the bare-age vocabulary all four sheets write. */
+  certificate: Certificate;
   /**
-   * Absent for a book: nothing certifies one. Every surface grouping on the certificate drops an
-   * item with none rather than shelving it under a blank — the one category not every medium
-   * records, stated here rather than answered with a certificate nobody issued.
-   */
-  certificate?: Certificate;
-  /**
-   * Absent for a book, as `certificate` is: a book has no picture to have a style. Every surface
-   * grouping on the style drops an item with none rather than shelving it under a blank.
+   * Absent for a book: a book has no picture to have a style. Every surface grouping on the style
+   * drops an item with none rather than shelving it under a blank — the one field not every medium
+   * records, stated here rather than answered with a style nobody drew.
    */
   style?: Style;
   /**
@@ -118,15 +115,19 @@ export const credits = (pairs: [CreditRole, string][]): Credit[] =>
  */
 export const countByMedium = (items: readonly OmniItem[]): Partial<Record<Medium, number>> => {
   const counts: Partial<Record<Medium, number>> = {};
+
   for (const item of items) counts[item.medium] = (counts[item.medium] ?? 0) + 1;
   return counts;
 };
 
+/** Whether a set of rows reaches more than one medium: a franchise met across media, say. */
+export const spansMedia = (items: readonly OmniItem[]): boolean => new Set(items.map((item) => item.medium)).size > 1;
+
 /**
  * When an entry ran, as every surface that places one on a scale reads it.
  *
- * Taken off `FranchiseEntry` rather than declared beside it, so a card's strip mark, a crossings
- * lane and a packed row are three drawings of one answer: a domain builds its entry from its span,
+ * Taken off `FranchiseEntry` rather than declared beside it, so a card's strip mark, a stacked
+ * year's band and a packed row are three drawings of one answer: a domain builds its entry from its span,
  * and a chart that wants only the dates asks for the span alone.
  */
 export type MediumSpan = Pick<FranchiseEntry, "start" | "end">;

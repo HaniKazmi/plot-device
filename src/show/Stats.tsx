@@ -30,6 +30,7 @@ import { showSubtitle } from "./cardData";
 import { STYLES, statusToColour, styleToColour, type Scheme } from "../utils/types";
 import { useScheme } from "../common/useScheme";
 import { Stack } from "@mui/material";
+import { inProgressBeyondHero } from "../common/statsData";
 import type { ReactNode } from "react";
 import { CURRENT_PLAINDATE, formatDate, type YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
@@ -44,7 +45,7 @@ import {
   minutesPerEpisode,
   perShowAverages,
   recentlyWatched,
-  seasonsInYear,
+  showsInYear,
   showTopOptions,
   statsCardLabelEpsHours,
   statsCardLabelRecentlyWatched,
@@ -102,11 +103,11 @@ const Stats = ({
             yearTo={yearTo}
             yearType={yearType}
             allTime={allTimeTotals(upTo)}
-            inYear={seasonsInYear(data, yearTo)}
+            inYear={showsInYear(data, yearTo)}
           />
           <StatSummary
             icon={<ShowChart />}
-            title="Yearly Average"
+            title="Per Year"
             stats={yearlyAverages(upTo)}
           />
           <ShowAverage data={data} />
@@ -126,11 +127,11 @@ const Stats = ({
       </Section>
       <Section id={SHOW_SECTIONS.explore}>
         <StatBand>
+          <RecentlyWatched data={data} />
           <MostWatched
             data={data}
             measure={measure}
           />
-          <RecentlyWatched data={data} />
         </StatBand>
       </Section>
     </Stack>
@@ -142,10 +143,10 @@ const Now = ({ hero, watching }: { hero?: Season; watching: Season[] }) => (
     <Stack spacing={2}>
       {hero && <ShowHero season={hero} />}
       {/* The two answer different questions — what was watched last, and what is still open — and
-          may or may not name the same season, so each stands on its own test. The strip is every
-          open season, the hero's own included where the sheet has left it open; a hero the sheet
-          has closed is not in it, though an open season of that same show still is. */}
-      {watching.length > 0 && (
+          may or may not name the same season. The strip is every open season, the hero's own
+          included where the sheet has left it open; a hero the sheet has closed is not in it,
+          though an open season of that same show still is. */}
+      {inProgressBeyondHero(watching, hero) && (
         <StatBand>
           <CurrentlyWatching watching={watching} />
         </StatBand>
@@ -227,7 +228,7 @@ const ShowAverage = ({ data }: { data: Show[] }) => {
   return (
     <StatCard
       icon={<AutoGraph />}
-      title="Show Average"
+      title="Per Show"
       content={[
         ["Seasons", seasons],
         ["Episodes", episodes],
@@ -360,6 +361,8 @@ const CurrentlyWatching = ({ watching }: { watching: Season[] }) => {
       // is a row nothing else on the page marks.
       chipComponent={(season) => ({ label: `S${season.s}E${season.e}`, colour: statusToColour(season.show, scheme) })}
       wrap={false}
+      width={[12, 12, 12]}
+      pictureWidth={[6, 4, 3, 2]}
       labelComponent={(season) => statsCardLabelWatching(season, CURRENT_PLAINDATE)}
     />
   );
@@ -374,16 +377,17 @@ const showStatusChip = (show: Show, scheme: Scheme) => ({ label: show.status, co
 // that decides it.
 const showStatListSharedProps: Pick<StatListBaseProps<Show>, "shape" | "width"> & GridListLayout = {
   shape: "poster",
-  width: [12, 12, 12],
-  // Four to a row at `md`, six from `lg`: six posters at 900px are 133px each, where a card's date
-  // and "days in" cannot share a footer line.
-  pictureWidth: [6, 4, 3, 2],
+  // Two lists to the band at `md`, as every tab stands its Recently and Most lists, with two posters
+  // to a row inside one at `md` and three from `lg`: three at 900px are 133px each, where a card's
+  // date and "days in" cannot share a footer line.
+  width: [12, 12, 6],
+  pictureWidth: [6, 4, 6, 4],
   dialogPictureWidth: [6, 4, 2],
 };
 
 const ShowStatList = (
   props: Omit<StatListBaseProps<Season>, "MediaComponent" | "nameComponent" | "width"> &
-    Partial<Pick<GridListLayout, "pictureWidth">>,
+    Partial<Pick<StatListBaseProps<Season>, "width"> & Pick<GridListLayout, "pictureWidth">>,
 ) => {
   return (
     <StatList

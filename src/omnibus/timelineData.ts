@@ -4,8 +4,7 @@ import { groupMarks, type PicturePress, type TimelineData } from "../common/time
 import type { Colour } from "../utils/types";
 import { omniTitle } from "./adapter";
 import type { OmniItem } from "../common/medium";
-import { crossingSpan } from "./crossingsData";
-import { omniWork } from "../app/media";
+import { moduleOf, omniWork } from "../app/media";
 
 /** How one mark of the union is drawn: its colour, its hover card and its picture. */
 interface MarkDrawing {
@@ -17,12 +16,13 @@ interface MarkDrawing {
 /**
  * One item of the union as a mark of the timeline.
  *
- * The span is the crossings' own (`crossingSpan`), so the two sections cannot disagree about when an
- * entry ran: a film is a point, a season or a book its logged dates, a game in play runs to today,
- * and an entry with no close is still going.
+ * The span is the one the item's own module answers (`span`), which its card's franchise strip
+ * places it by too, so the two cannot disagree about when an entry ran: a film is a point, a season
+ * or a book its logged dates, a game in play runs to today, and an entry with no close is still
+ * going.
  */
 const omniMark = (item: OmniItem, today: YearMonthDay, drawing: MarkDrawing): TimelineData => {
-  const { start, end } = crossingSpan(item, item.key, today);
+  const { start, end } = moduleOf(item).span(item.source, today);
   return {
     // The union's key already tells a replay from its first run and a season from its show.
     key: `${item.medium}-${item.key}`,
@@ -43,7 +43,7 @@ export const omniTimeline = (items: OmniItem[], today: YearMonthDay, drawing: Ma
 /**
  * Every franchise of the union as one span, across whichever media it was met in (`groupMarks`).
  *
- * Grouped on the raw franchise column, as the crossings are, so a work naming itself is a franchise
+ * Grouped on the raw franchise column, as the Omnibus's franchise figure is, so a work naming itself is a franchise
  * of its own entries — a show's seasons one span — and a series met in two media is one span across
  * both.
  */

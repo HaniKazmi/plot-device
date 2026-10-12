@@ -109,8 +109,8 @@ const PICTURE_GAP = 6;
 /** The width a run of empty years folds to, at most. */
 export const FOLD_WIDTH = 44;
 /**
- * How many card widths the clock may run to, the packed chart's own four viewports at most: a tab's
- * library is hundreds of pictures, which at a card's width are lanes of thumbnails twenty deep.
+ * How many card widths the clock may run to, four at most: a tab's library is hundreds of pictures,
+ * which at a card's width are lanes of thumbnails twenty deep.
  */
 const WIDTH_STEPS = [1, 2, 3, 4] as const;
 

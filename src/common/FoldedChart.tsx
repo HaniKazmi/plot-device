@@ -1,4 +1,14 @@
-import { Box, ButtonBase, Card, CardContent, IconButton, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  ButtonBase,
+  Card,
+  CardContent,
+  IconButton,
+  Stack,
+  Typography,
+  type SxProps,
+  type Theme,
+} from "@mui/material";
 import { ExpandMore } from "@mui/icons-material";
 import { useState, type ReactNode } from "react";
 import { usePhone } from "./breakpoints";
@@ -59,11 +69,6 @@ interface FoldProps {
    */
   controls?: ReactNode;
   /**
-   * A control that stands whichever state the card is in: the way to what the card has no room
-   * for, rather than a setting on what it does show.
-   */
-  action?: ReactNode;
-  /**
    * What the card states in place of the chart where the caller has nothing it can draw — a pivot
    * with no groups in it, which Highcharts would otherwise draw as an index axis and a series of
    * its own invention. The fold is skipped with it: a summary and a preview are the same claim
@@ -80,6 +85,8 @@ interface FoldProps {
    */
   fold: () => Fold;
   children: ReactNode;
+  /** The card itself, for a chart that lays its card out against the cell it stands in. */
+  cardSx?: SxProps<Theme>;
 }
 
 /**
@@ -97,42 +104,7 @@ interface FoldProps {
  * The state is a card's own and lives for as long as the page does: leaving the tab unmounts it,
  * which is the same answer a reader gets from every other chart control here.
  */
-export const FoldedChart = (props: FoldProps) => (
-  <Card>
-    <FoldedContent {...props} />
-  </Card>
-);
-
-/**
- * The header's right-hand slot: the chart's own settings while it is drawn, and beside them
- * anything that stands either way.
- *
- * A plain function at module scope rather than a branch inside the component, so the `Stack` a row
- * of two needs is stated once and neither half has to know whether the other is there.
- */
-const headerAction = (controls: ReactNode, action: ReactNode, shown: boolean): ReactNode => {
-  const settings = shown ? controls : undefined;
-  if (!settings || !action) return settings ?? action;
-  return (
-    <Stack
-      direction="row"
-      spacing={1}
-      sx={{ alignItems: "center" }}
-    >
-      {settings}
-      {action}
-    </Stack>
-  );
-};
-
-/**
- * The same card without its `Card`, for a section that already stands in one.
- *
- * `ExpandableCard` owns the card it can also present fullscreen, so a section that both folds on a
- * phone and opens a dialog — the crossings — nests this inside that card rather than putting one
- * card's border and corners inside another's.
- */
-export const FoldedContent = ({ icon, title, count, controls, action, blank, fold, children }: FoldProps) => {
+export const FoldedChart = ({ icon, title, count, controls, blank, fold, children, cardSx }: FoldProps) => {
   const phone = usePhone();
   const { active } = useNothingMatches();
   const [shown, setShown] = useState(false);
@@ -144,7 +116,7 @@ export const FoldedContent = ({ icon, title, count, controls, action, blank, fol
       title={title}
       count={count}
       titleAction={toggle}
-      action={headerAction(controls, action, drawn)}
+      action={drawn ? controls : undefined}
     />
   );
 
@@ -153,18 +125,18 @@ export const FoldedContent = ({ icon, title, count, controls, action, blank, fol
   // answers none of them — a fold row over nothing is a second empty state beside the message.
   if (active || blank)
     return (
-      <>
+      <Card sx={cardSx}>
         {header(true, null)}
         <CardContent>{active ? <NothingMatches /> : blank}</CardContent>
-      </>
+      </Card>
     );
 
   if (!phone)
     return (
-      <>
+      <Card sx={cardSx}>
         {header(true, null)}
         {children}
-      </>
+      </Card>
     );
 
   const { summary, preview } = fold();
@@ -179,7 +151,7 @@ export const FoldedContent = ({ icon, title, count, controls, action, blank, fol
   );
 
   return (
-    <>
+    <Card sx={cardSx}>
       {header(shown, toggle)}
       {shown && children}
       <CardContent>
@@ -200,7 +172,7 @@ export const FoldedContent = ({ icon, title, count, controls, action, blank, fol
           </Stack>
         </ButtonBase>
       </CardContent>
-    </>
+    </Card>
   );
 };
 

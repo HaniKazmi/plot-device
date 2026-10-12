@@ -53,6 +53,7 @@ import { GroupedStatList } from "../common/GroupedStatList";
 import GameCardMediaImage, { GameFranchiseStrip } from "./CardMediaImage";
 import { gameSubtitle, spanKey } from "./cardData";
 import { Stack } from "@mui/material";
+import { inProgressBeyondHero } from "../common/statsData";
 import type { YearType } from "./filterUtils";
 import { statusToColour } from "../utils/types";
 import { useScheme } from "../common/useScheme";
@@ -90,7 +91,14 @@ const Stats = ({
       {/* No game in progress and there is no "now" to lead with. */}
       {playing.length > 0 && (
         <Section id={GAME_SECTIONS.now}>
-          <GameHero game={playing[0]} />
+          <Stack spacing={2}>
+            <GameHero game={playing[0]} />
+            {inProgressBeyondHero(playing, playing[0]) && (
+              <StatBand>
+                <CurrentlyPlaying playing={playing} />
+              </StatBand>
+            )}
+          </Stack>
         </Section>
       )}
       <Section id={GAME_SECTIONS.vitals}>
@@ -124,13 +132,11 @@ const Stats = ({
       </Section>
       <Section id={GAME_SECTIONS.explore}>
         <StatBand>
+          <RecentlyComplete data={data} />
           <MostPlayed
             data={data}
             measure={measure}
           />
-          <RecentlyComplete data={data} />
-          {/* Everything being played that the hero above is not already showing. */}
-          <CurrentlyPlaying playing={playing.slice(1)} />
         </StatBand>
       </Section>
     </Stack>
@@ -212,7 +218,7 @@ const Averages = ({ data }: { data: VideoGame[] }) => {
   return (
     <StatCard
       icon={<ShowChart />}
-      title="Yearly Average"
+      title="Per Year"
       content={[
         ["Games", games],
         ["Hours", hours],
@@ -227,7 +233,7 @@ const AveragesPerGame = ({ data }: { data: VideoGame[] }) => {
   return (
     <StatCard
       icon={<AutoGraph />}
-      title="Game Average"
+      title="Per Game"
       content={[
         ["Hours", hours],
         ["Days To Beat", days],
@@ -318,20 +324,18 @@ const MostPlayedCategory = ({
   );
 };
 
-const CurrentlyPlaying = ({ playing }: { playing: VideoGame[] }) => {
-  if (playing.length == 0) return null;
-  return (
-    <GameStatList
-      icon={<PlayArrow />}
-      title="Also Playing"
-      content={playing}
-      labelComponent={statsCardLabelStartDate}
-      wrap={false}
-      width={[12, 12, 4]}
-      pictureWidth={[12, 4, 12]}
-    />
-  );
-};
+/** Every game in progress, the hero's own included, at the size Recently Finished draws a banner. */
+const CurrentlyPlaying = ({ playing }: { playing: VideoGame[] }) => (
+  <GameStatList
+    icon={<PlayArrow />}
+    title="Currently Playing"
+    content={playing}
+    labelComponent={statsCardLabelStartDate}
+    wrap={false}
+    width={[12, 12, 12]}
+    pictureWidth={[12, 4, 3]}
+  />
+);
 
 const TopCategories = ({ data, measure }: { data: VideoGame[]; measure: Measure }) => {
   const scheme = useScheme();

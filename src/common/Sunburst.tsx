@@ -4,6 +4,7 @@ import { Fragment, useLayoutEffect, useState, type Dispatch, type ReactNode, typ
 import type {} from "@mui/material/themeCssVarsAugmentation";
 import { Chart, highchartsColors, SunburstSeries } from "../highcharts";
 import { ProportionalBar } from "./ProportionalBar";
+import { NothingToPlot } from "./NothingMatches";
 import { FoldedChart } from "./FoldedChart";
 import { SelectBox } from "./SelectionComponents";
 import { useScheme } from "./useScheme";
@@ -143,6 +144,9 @@ const Sunburst = <T, K extends string>({
       // The three ring pickers appear with the wheel they re-nest: folded, the card draws its
       // innermost ring in words whatever they say.
       controls={controls}
+      // Rows that all count nothing — every entry with no time logged, under Hours — give the wheel
+      // no wedges, and an empty circle is no answer to where the hours went.
+      blank={generatedData.length === 0 ? <NothingToPlot /> : undefined}
       // The innermost ring is what both halves of the fold read, so it is flattened out of the
       // hierarchy once here rather than by each of them.
       fold={() => {

@@ -9,7 +9,9 @@ import { LABEL_SX, MUTED_FIGURE_SX } from "../common/typography";
 import { format } from "../utils/mathUtils";
 import { stated } from "../common/population";
 import { useSelectBox } from "../common/SelectBoxHook";
-import { BRIDGE_KEYS, genreBridge, type BridgeKey, type GenreBridgeRow } from "./genreBridgeData";
+import { SegmentedControl, type SegmentOption } from "../common/SelectionComponents";
+import { useState } from "react";
+import { BRIDGE_KEYS, genreBridge, mediumBridge, type BridgeKey } from "./genreBridgeData";
 import type { OmniItem } from "../common/medium";
 import { media, mediumToColour, mediumToLabel, type Measure } from "../app/types";
 import { useScheme } from "../common/useScheme";
@@ -21,7 +23,7 @@ import {
   styleToColour,
   type Scheme,
 } from "../utils/types";
-import type { Colour } from "../utils/types";
+import { neutralFill, type Colour } from "../utils/types";
 
 /** The figure's unit, short enough to sit beside a five-digit number in the figure column. */
 const UNIT: Record<Measure, string> = { Hours: "hrs", Items: "items" };
@@ -34,6 +36,9 @@ const KEY_NOUN: Record<BridgeKey, string> = {
   certificate: "Certificates",
   style: "Styles",
 };
+
+/** Which way the bars run: a row per value split by medium, or a row per medium split by value. */
+type Orientation = "byMedium" | "byKey";
 
 /**
  * The swatch a row wears: the vocabulary the app already speaks for that field, as the gallery's
@@ -68,6 +73,11 @@ const rowColour = (name: string, key: BridgeKey, scheme: Scheme): Colour | undef
  * The dim is one piece of state for the whole card, so hovering a medium anywhere fades it in
  * every row at once — which is what turns a stack of independent bars into a comparison down the
  * column.
+ *
+ * The switch turns it over: a row per medium, split by the same values (`mediumBridge`) — what the
+ * games are made of against what the films are, where the unturned rows say who made each genre.
+ * The values then key the bars, so they stand as the key under the header, and the dim follows a
+ * value down the four rows.
  */
 const GenreBridge = ({ items, measure }: { items: OmniItem[]; measure: Measure }) => {
   const scheme = useScheme();
@@ -75,58 +85,81 @@ const GenreBridge = ({ items, measure }: { items: OmniItem[]; measure: Measure }
   const [hovered, setHovered] = useHoverDim();
   // Genre is what the section opens on, the composition the union most plainly has; the rest are
   // the same question asked of when an item was met and what it was certified.
-  const [key, keySelect] = useSelectBox(BRIDGE_KEYS, "genre", "Rows");
-  const rows = genreBridge(items, key, measure);
+  const [orientation, setOrientation] = useState<Orientation>("byMedium");
+  const turned = orientation === "byKey";
+  const [key, keySelect] = useSelectBox(BRIDGE_KEYS, "genre", turned ? "Split by" : "Rows");
+  const unturned = genreBridge(items, key, measure).map((row) => ({
+    name: row.name,
+    colour: rowColour(row.name, key, scheme),
+    amount: row.amount,
+    segments: row.segments.map((segment) => ({
+      name: mediumToLabel(segment.medium),
+      percent: segment.percent,
+      colour: mediumToColour(segment.medium, scheme),
+    })),
+  }));
+  const rows = turned
+    ? mediumBridge(
+        items,
+        key,
+        measure,
+        unturned.map((row) => row.name),
+      ).map((row) => ({
+        name: mediumToLabel(row.medium),
+        colour: mediumToColour(row.medium, scheme) as Colour | undefined,
+        amount: row.amount,
+        segments: row.segments.map((segment) => ({
+          name: segment.name,
+          percent: segment.percent,
+          colour: rowColour(segment.name, key, scheme) ?? neutralFill(scheme),
+        })),
+      }))
+    : unturned;
+  const orientations: readonly SegmentOption<Orientation>[] = [
+    { value: "byMedium", label: "By medium" },
+    { value: "byKey", label: `By ${key}` },
+  ];
 
   const biggest = rows[0];
 
   return (
     <FoldedChart
       icon={<Category />}
-      title={`${KEY_NOUN[key]} by medium`}
-      count={stated(rows.length, KEY_NOUN[key].toLowerCase())}
+      title={turned ? `Media by ${key}` : `${KEY_NOUN[key]} by medium`}
+      count={turned ? undefined : stated(rows.length, KEY_NOUN[key].toLowerCase())}
       // The section is gated on the grouping it opens with, and the reader's own pick can empty
-      // what that gate let through: nothing certifies a book, so a page holding books alone has
-      // genres to bridge and no certificates.
+      // what that gate let through: a book has no style, so a page holding books alone has genres
+      // to bridge and no styles.
       blank={rows.length === 0 ? <NothingToPlot /> : undefined}
       // The picker chooses what a row is and the swatches key the bars: both are about a stack
       // that is not drawn until the card is opened, and the fold's own line names its leading row
       // in words.
+      // The header holds the two choices about the bars and nothing else: the key naming their
+      // colours stands above them, where a half-width card has the room the header does not.
       controls={
         <Stack
           direction="row"
-          spacing={1.5}
-          sx={{ alignItems: "center", flexWrap: "wrap" }}
+          spacing={1}
+          sx={{ alignItems: "center" }}
         >
+          <SegmentedControl
+            options={orientations}
+            value={orientation}
+            onChange={setOrientation}
+            ariaLabel="Split"
+          />
           {keySelect}
-          {media.map((medium) => (
-            <Stack
-              key={medium}
-              direction="row"
-              spacing={0.5}
-              sx={{ alignItems: "center", cursor: "default" }}
-              onMouseEnter={() => setHovered(mediumToLabel(medium))}
-              onMouseLeave={() => setHovered(null)}
-            >
-              <Swatch
-                colour={mediumToColour(medium, scheme)}
-                size={INLINE_SWATCH_SIZE}
-              />
-              <Typography variant="caption">{mediumToLabel(medium)}</Typography>
-            </Stack>
-          ))}
         </Stack>
       }
       // The rows open on genre, biggest first, so the first is the genre the library is most made
       // of, and how it divides is the whole question the section asks.
       fold={() => ({
         summary: biggest
-          ? `${biggest.name} leads with ${format(biggest.amount)} ${measure.toLowerCase()} across ${format(biggest.segments.length)} media`
+          ? `${biggest.name} leads with ${format(biggest.amount)} ${measure.toLowerCase()} across ${format(biggest.segments.length)} ${turned ? KEY_NOUN[key].toLowerCase() : "media"}`
           : "",
         preview: biggest && (
           <BridgeRow
             row={biggest}
-            colour={rowColour(biggest.name, key, scheme)}
             unit={UNIT[measure]}
           />
         ),
@@ -134,11 +167,36 @@ const GenreBridge = ({ items, measure }: { items: OmniItem[]; measure: Measure }
     >
       <CardContent>
         <Stack spacing={1.5}>
+          {/* The key to the bars' colours, above them in the order every bar runs them: the four
+              media, or turned over, the values. Hovering one dims it down every row. */}
+          <Stack
+            direction="row"
+            sx={{ flexWrap: "wrap", columnGap: 1.5, rowGap: 0.5 }}
+          >
+            {(turned
+              ? unturned.map((value) => ({ name: value.name, colour: value.colour ?? neutralFill(scheme) }))
+              : media.map((medium) => ({ name: mediumToLabel(medium), colour: mediumToColour(medium, scheme) }))
+            ).map((entry) => (
+              <Stack
+                key={entry.name}
+                direction="row"
+                spacing={0.5}
+                sx={{ alignItems: "center", cursor: "default" }}
+                onMouseEnter={() => setHovered(entry.name)}
+                onMouseLeave={() => setHovered(null)}
+              >
+                <Swatch
+                  colour={entry.colour}
+                  size={INLINE_SWATCH_SIZE}
+                />
+                <Typography variant="caption">{entry.name}</Typography>
+              </Stack>
+            ))}
+          </Stack>
           {rows.map((row) => (
             <BridgeRow
               key={row.name}
               row={row}
-              colour={rowColour(row.name, key, scheme)}
               unit={UNIT[measure]}
               hovered={hovered}
               onHover={setHovered}
@@ -166,26 +224,32 @@ const GENRE_WIDTH = 14;
  */
 const HOURS_WIDTH = 11;
 
+/** One row as drawn: its name and swatch, its whole, and its bar's segments already coloured. */
+interface DrawnRow {
+  name: string;
+  /** The row's swatch, in the vocabulary of what the row is. */
+  colour: Colour | undefined;
+  amount: number;
+  segments: { name: string; percent: number; colour: string }[];
+}
+
 /**
- * One row, split by medium. The hover pair is optional for the same reason the bar's is:
- * the folded card's preview draws this row as a picture of the section, with nothing to dim it
- * against.
+ * One row, split by medium or, turned over, by value. The hover pair is optional for the same
+ * reason the bar's is: the folded card's preview draws this row as a picture of the section, with
+ * nothing to dim it against.
  */
 const BridgeRow = ({
   row,
-  colour,
   unit,
   hovered,
   onHover,
 }: {
-  row: GenreBridgeRow;
-  /** The row's swatch, in the vocabulary of the key it was built on. */
-  colour: Colour | undefined;
+  row: DrawnRow;
   unit: string;
   hovered?: string | null;
   onHover?: (name: string | null) => void;
 }) => {
-  const scheme = useScheme();
+  const colour = row.colour;
 
   return (
     <Stack
@@ -213,11 +277,7 @@ const BridgeRow = ({
       </Stack>
       <Stack sx={{ flexGrow: 1, minWidth: 0 }}>
         <ProportionalBar
-          items={row.segments.map((segment) => ({
-            name: mediumToLabel(segment.medium),
-            percent: segment.percent,
-            colour: mediumToColour(segment.medium, scheme),
-          }))}
+          items={row.segments}
           hovered={hovered}
           onHover={onHover}
         />

@@ -19,6 +19,7 @@ const bookItems = (books: Book[]): OmniItem[] =>
     hours: book.hours,
     genre: book.genre,
     otherGenres: [],
+    certificate: book.certificate,
     franchise: book.franchise,
     series: book.series,
     seriesNumber: book.seriesNumber,

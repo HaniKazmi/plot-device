@@ -98,7 +98,7 @@ export const MEDIA: readonly Medium[] = ["game", "show", "movie", "book"];
  * The light Books half is solved to the brightest gold that clears 3:1 on white, not the tab's own
  * darker `#958112`, because lightness is what a deutan reader has left: a Books gold at the Movies
  * red's lightness collapses onto it under simulation (1.3 dE at `#857200`, against a working floor
- * of 8), and the genre bridge's segments and the crossings' lanes carry no label of their own to
+ * of 8), and the genre bridge's segments and the yearbook's figures carry no label of their own to
  * fall back on. Brighter by one step the pair sits 10 dE apart under deutan and 19 under protan,
  * with the hue unchanged; a greener hue at the same lightness gains nothing over it.
  */

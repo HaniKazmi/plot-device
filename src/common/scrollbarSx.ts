@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material";
  *
  * A drag that reaches either end of a row otherwise carries on into the browser's own back
  * gesture, so a reader reaching for the next picture, chip or column leaves the page instead.
- * Every horizontal scroller in the app wears it — the charts four viewports wide, the strips, the
+ * Every horizontal scroller in the app wears it — the charts several screens wide, the strips, the
  * chip rails and the sized card rows — because the gesture is the same one whatever is being
  * scrolled past.
  */

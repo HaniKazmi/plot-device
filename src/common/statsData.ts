@@ -141,3 +141,15 @@ export const captionLines = (cells: string[]): string[] =>
  */
 export const groupCaption = (labels: string[][], name: string): string[] =>
   captionLines(labels.flat().filter((cell) => cell && cell !== name));
+
+/**
+ * Whether a tab's in-progress strip says anything the hero above it does not.
+ *
+ * The strip lists everything in progress, the hero's own item included, so the set reads whole in
+ * one place; a strip holding the hero alone is that one card drawn twice, one above the other. On
+ * Games and Books the hero is the head of the same list, so this is a list of two or more; on
+ * Shows the hero is the season watched last, which can be one the sheet has closed while another
+ * stays open, and a single open season then still earns its strip.
+ */
+export const inProgressBeyondHero = <T>(inProgress: readonly T[], hero: T | undefined): boolean =>
+  inProgress.some((item) => item !== hero);

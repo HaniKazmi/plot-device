@@ -5,7 +5,7 @@ import { ColourKey } from "./ColourKey";
 import { NothingMatches, NothingToPlot } from "./NothingMatches";
 import { useNothingMatches } from "./nothingMatchesContext";
 import { SectionHeader } from "./SectionHeader";
-import { SegmentedControl, type YearDispatch } from "./SelectionComponents";
+import { SegmentedControl, SelectBox, type YearDispatch } from "./SelectionComponents";
 import { segments } from "./segments";
 import { StackedTimeline } from "./StackedTimeline";
 import { MonthGrid } from "./MonthGrid";
@@ -21,8 +21,8 @@ import { CURRENT_PLAINDATE, CURRENT_YEAR, YearMonthDay, type YearNumber } from "
 import type { TimelineData } from "./timelineLayout";
 
 /**
- * The ways a timeline is laid out. `Across` is time running left to right over four screens,
- * every bar named, the way a single playthrough is read; `Stacked` is a row per year on one screen,
+ * The ways a timeline is laid out. `Across` is time running left to right over as many screens as
+ * the years the reader asks for on one need, every bar named, the way a single playthrough is read; `Stacked` is a row per year on one screen,
  * the way a library's shape across years is compared; `Grid` is that same row per year cut into
  * months, each item's own picture standing in the month it began — Stacked read by what rather
  * than how long; `Pictures` is Across read by what: every item's picture on the line at the day it
@@ -32,6 +32,39 @@ export type TimelineLayout = "Across" | "Stacked" | "Grid" | "Pictures";
 
 /** One order on every timeline, so a layout is the same segment wherever it is pressed. */
 const LAYOUTS: readonly TimelineLayout[] = ["Across", "Stacked", "Grid", "Pictures"];
+
+/**
+ * What a timeline offers where nothing says otherwise: every layout but Pictures. The clock stands a
+ * few dozen works at full size, which is a franchise's own page; a tab's hundreds pack it into lanes
+ * of thumbnails, and the grid already pictures each by its month.
+ */
+const DEFAULT_LAYOUTS: readonly TimelineLayout[] = ["Across", "Stacked", "Grid"];
+
+/**
+ * How many years Across fits onto the card's width, or all of them at once.
+ *
+ * Strings because the picker's options are words; one to ten covers a phone reading a busy year a
+ * screen at a time and a desktop laying a decade out to compare.
+ */
+export type YearSpan = "1" | "2" | "3" | "5" | "10" | "All";
+const YEAR_SPANS: readonly YearSpan[] = ["1", "2", "3", "5", "10", "All"];
+const spanLabel = (span: YearSpan) => (span === "All" ? "All" : span === "1" ? "1 year" : `${span} years`);
+
+/**
+ * The span Across opens at on each kind of screen. A tab states its own, since how many years read
+ * well at a width is a question of how many marks a year holds and how long each runs.
+ */
+export interface SpanDefaults {
+  desktop: YearSpan;
+  phone: YearSpan;
+}
+
+/**
+ * Where a tab states none: marks about a month long, which at five years to a desktop card are about
+ * 22px wide and at one year to a phone's about 28px, wide enough to press and to hand a name the gap
+ * beside it. Games' playthroughs run a median of 31 days.
+ */
+const DEFAULT_SPANS: SpanDefaults = { desktop: "5", phone: "1" };
 
 /**
  * A tab's timeline: one set of marks drawn in whichever of the four layouts the tab offers, coloured
@@ -44,8 +77,11 @@ const LAYOUTS: readonly TimelineLayout[] = ["Across", "Stacked", "Grid", "Pictur
  * A pressed mark — a bar, a band or a picture, on whichever layout — opens its item through the one
  * host the section keeps (`useOpenedCard`), so a press means the same thing on all five.
  *
- * The page's year scope reads through. Scoped to a year, Across is drawn at the card's width rather
- * than four screens wide, and Pictures opens the year in detail: its items as pictures on the line
+ * Across fits as many years onto the card as the reader picks, each tab opening at a span of its
+ * own on a desktop and on a phone (`spans`), and the choice is held for the visit.
+ *
+ * The page's year scope reads through. Scoped to a year, Across is drawn at the card's width whatever
+ * the span, and Pictures opens the year in detail: its items as pictures on the line
  * across the year's own January to December from `sm` up, and as the log on a phone, where the
  * year's own scale is a few pixels a day and the names have to be read down the page — the same
  * reading as the clock, its pictures on the line, at the scale of one year. A year's label on
@@ -69,6 +105,8 @@ export const TimelineSection = ({
   stacked,
   layouts,
   initialLayout,
+  spans,
+  gridYears,
 }: {
   title: string;
   count?: string;
@@ -90,19 +128,30 @@ export const TimelineSection = ({
    */
   stacked?: { data?: TimelineData[]; count?: string; labelled?: boolean };
   /**
-   * The layouts this timeline offers, all four where nothing says otherwise. Drawn in the one order
+   * The layouts this timeline offers, all but Pictures where nothing says otherwise. Drawn in the one order
    * whatever order they are given in, so a tab leaving one out moves none of the others.
    */
   layouts?: readonly TimelineLayout[];
   /** The layout the section opens on, the first it offers where nothing says otherwise. */
   initialLayout?: TimelineLayout;
+  /** The years Across fits onto the card when it opens, on a desktop and on a phone. */
+  spans?: SpanDefaults;
+  /**
+   * How many of the latest years the grid draws before its cut. A tab states its own, a year of
+   * pictures being as tall as its busiest month: one on the union, whose months hold about seven
+   * pictures each.
+   */
+  gridYears?: number;
 }) => {
-  const offered = layouts ? LAYOUTS.filter((each) => layouts.includes(each)) : LAYOUTS;
+  const offered = LAYOUTS.filter((each) => (layouts ?? DEFAULT_LAYOUTS).includes(each));
   // The caller's opening layout only where the tab offers it, or the section would open on a layout
   // with no lit segment and no way back to it.
   const [layout, setLayout] = useState<TimelineLayout>(
     initialLayout && offered.includes(initialLayout) ? initialLayout : offered[0],
   );
+  // Not yet chosen until the reader picks one, so the span follows the screen — a phone turned to a
+  // tablet's width takes the desktop's — until the reader has said which they want.
+  const [chosenSpan, setSpan] = useState<YearSpan | undefined>(undefined);
   const [open, openedCard] = useOpenedCard();
   const { active } = useNothingMatches();
   const scopeTo = (year: YearNumber) => dispatch({ type: "scope", yearTo: year, yearType: "matching" });
@@ -110,6 +159,8 @@ export const TimelineSection = ({
   // a value: the log and the pictures are different components, not one styled two ways.
   const phone = usePhone();
   const inYear = yearType === "matching";
+  const defaultSpan = (spans ?? DEFAULT_SPANS)[phone ? "phone" : "desktop"];
+  const span = chosenSpan ?? defaultSpan;
   // The year in detail runs to today where the year is the current one, and a log or a line of
   // pictures past today would be months of nothing.
   const from = YearMonthDay.get(yearTo, 1, 1);
@@ -140,6 +191,17 @@ export const TimelineSection = ({
               </Button>
             )}
             {controls}
+            {/* Only where it changes anything: a year scope already fits Across to the card. */}
+            {layout === "Across" && !inYear && (
+              <SelectBox
+                label="Show"
+                options={YEAR_SPANS}
+                value={span}
+                setValue={setSpan}
+                labelFor={spanLabel}
+                defaultValue={defaultSpan}
+              />
+            )}
             <SegmentedControl
               options={segments(offered)}
               value={layout}
@@ -152,7 +214,7 @@ export const TimelineSection = ({
       {/* The Colour picker leads its own key rather than standing in the header: the key is
           where a reader asks what the colours mean, and the header holds what the marks are and
           how they are laid out. Drawn with no entries too, while it carries the picker, so a
-          vocabulary answering nothing — a book under certificate — leaves the way back. */}
+          vocabulary answering nothing — a book under style — leaves the way back. */}
       {colourKey && (colourKey.entries.length > 0 || colourKey.control) && (
         <ColourKey
           field={colourKey.field}
@@ -191,6 +253,7 @@ export const TimelineSection = ({
         // second lane, so nothing the stack leaves out for its lanes' sake is left out here.
         <MonthGrid
           data={data}
+          yearsShown={gridYears}
           onYear={scopeTo}
           onOpen={open}
         />
@@ -198,7 +261,7 @@ export const TimelineSection = ({
         <CardContent>
           <TimeLineChart
             timelineData={data}
-            fit={inYear}
+            yearsOnScreen={inYear || span === "All" ? undefined : Number(span)}
             onOpen={open}
           />
         </CardContent>

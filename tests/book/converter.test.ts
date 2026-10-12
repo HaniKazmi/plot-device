@@ -28,6 +28,14 @@ describe("bad rows", () => {
     expect(() => convertOne({ Status: "" })).toThrow("is not a status");
   });
 
+  it("reads the certificate, and rejects one outside the bare ages every tab writes", () => {
+    expect(convertOne({ Certificate: "12" }).certificate).toBe("12");
+    // A colour lookup throws on a value off its table, so a typo fails here, where it names its row.
+    expect(() => convertOne({ Certificate: "PG" })).toThrow(
+      'Row 2, "Chasm City", Certificate: "PG" is not a certificate',
+    );
+  });
+
   it("rejects a blank or unknown format, since the column is one every row has to answer", () => {
     expect(() => convertOne({ Format: "" })).toThrow('Row 2, "Chasm City", Format: "" is not a format');
     expect(() => convertOne({ Format: "Kindle" })).toThrow('"Kindle" is not a format');
@@ -171,7 +179,7 @@ describe("field parsing", () => {
 
 describe("the cache config", () => {
   it("keys the cache on the domain and a version, so a shape change can bump it", () => {
-    expect(bookDataConfig.storageKey).toBe("book-data-cache-v2");
+    expect(bookDataConfig.storageKey).toBe("book-data-cache-v3");
     expect(bookDataConfig.converter).toBe(jsonConverter);
   });
 });

@@ -16,6 +16,9 @@ import {
   percentOfSpan,
   scrollBehaviourFor,
   scrollAtPercent,
+  keptScrollLeft,
+  axisDensity,
+  scrollPlace,
   yearAtPercent,
   yearMarkers,
   type TimelineData,
@@ -736,5 +739,54 @@ describe("placeBandLabels", () => {
 
   it("names nothing for a band handed no name", () => {
     expect(placements([band("a", 10, 20)])).toEqual([]);
+  });
+});
+
+describe("keptScrollLeft", () => {
+  // A 1,000px card: four screens is a 4,000px grid, two screens a 2,000px one.
+  const card = 1000;
+
+  it("keeps the date at the middle of the card at its middle when the scale changes", () => {
+    // The middle at 1,500px of 4,000 is 37.5% of the grid, which on 2,000px is 750px.
+    expect(keptScrollLeft(scrollPlace(1000, card, 4000), card, 2000)).toBe(250);
+    // And back: 37.5% of 4,000px is 1,500px, its middle at the card's.
+    expect(keptScrollLeft(scrollPlace(250, card, 2000), card, 4000)).toBe(1000);
+  });
+
+  it("keeps a reader at the latest end at the latest end, whichever way the scale goes", () => {
+    expect(keptScrollLeft(scrollPlace(3000, card, 4000), card, 2000)).toBe(1000);
+    expect(keptScrollLeft(scrollPlace(1000, card, 2000), card, 4000)).toBe(3000);
+  });
+
+  it("never scrolls before the start of the redrawn grid", () => {
+    // The middle at 12.5% of a 2,000px grid is 250px, half a card short of the start.
+    expect(keptScrollLeft(scrollPlace(0, card, 4000), card, 2000)).toBe(0);
+  });
+});
+
+describe("axisDensity", () => {
+  it("states every mark at a desktop's five years to a card", () => {
+    // About 270px a year on a 1,358px card.
+    expect(axisDensity(270)).toEqual({ monthTicks: true, quarterTicks: true, quarterLabels: true, yearLabelEvery: 1 });
+  });
+
+  it("drops the quarters' names before their ticks, and the months' ticks before either", () => {
+    // Two years to a phone's 309px card.
+    expect(axisDensity(155)).toEqual({ monthTicks: true, quarterTicks: true, quarterLabels: false, yearLabelEvery: 1 });
+    // Ten years to a desktop card.
+    expect(axisDensity(80)).toMatchObject({ monthTicks: false, quarterTicks: true, quarterLabels: false });
+  });
+
+  it("names only round years where a year is narrower than its own number", () => {
+    // Ten years to a phone's card, about 31px a year.
+    expect(axisDensity(31)).toEqual({
+      monthTicks: false,
+      quarterTicks: false,
+      quarterLabels: false,
+      yearLabelEvery: 2,
+    });
+    // Every year of a quarter-century library on a phone.
+    expect(axisDensity(12).yearLabelEvery).toBe(5);
+    expect(axisDensity(4).yearLabelEvery).toBe(10);
   });
 });

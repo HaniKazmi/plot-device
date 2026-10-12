@@ -117,6 +117,38 @@ export const buildTicks = (start: YearMonth, end: YearMonth, totalDays: number):
   }));
 };
 
+/**
+ * How much of the scale the axis can state at a given width of year without its marks running into
+ * one another.
+ *
+ * The axis draws a tick a month, a label a quarter and a label a year, which reads at a desktop's
+ * five years to a card and collides at a phone's ten, where a year is about 31px and three month
+ * names and its own number are asked to share it. Each mark is drawn only where it gets its room:
+ * a month tick or a quarter tick 8px from the next, a quarter's name 40px — "Jul" is about 22px at
+ * the axis's 12px, beside the 5px it is set in from its tick — and a year's number 50px, which at
+ * the 15px bold it is set in is about 38px wide. A year too narrow for its own number names only
+ * the years a round step apart, two, five or ten.
+ */
+export interface AxisDensity {
+  monthTicks: boolean;
+  quarterTicks: boolean;
+  quarterLabels: boolean;
+  /** Label a year only where it is a multiple of this. */
+  yearLabelEvery: number;
+}
+
+const TICK_ROOM_PX = 8;
+const QUARTER_LABEL_ROOM_PX = 40;
+const YEAR_LABEL_ROOM_PX = 50;
+const YEAR_LABEL_STEPS = [1, 2, 5, 10] as const;
+
+export const axisDensity = (pxPerYear: number): AxisDensity => ({
+  monthTicks: pxPerYear / 12 >= TICK_ROOM_PX,
+  quarterTicks: pxPerYear / 4 >= TICK_ROOM_PX,
+  quarterLabels: pxPerYear / 4 >= QUARTER_LABEL_ROOM_PX,
+  yearLabelEvery: YEAR_LABEL_STEPS.find((step) => step * pxPerYear >= YEAR_LABEL_ROOM_PX) ?? 10,
+});
+
 /** A year's left edge on the grid, as a percentage of its full width. */
 export interface YearMarker {
   year: number;
@@ -167,10 +199,10 @@ const SCROLL_TOLERANCE_PX = 1;
 /**
  * The two directions of the year nav's mapping between a scroll offset and a position on the grid.
  *
- * The chart is four viewports wide, so `scrollLeft` only ever reaches `scrollWidth - clientWidth`
- * — three quarters of the grid. Reading a marker's own percentage as a scroll fraction therefore
- * leaves the last quarter of the years unreachable: every chip in it clamps to the same edge, and
- * the highlight saturates on whichever year that edge lands in.
+ * The chart is several screens wide, so `scrollLeft` only ever reaches `scrollWidth - clientWidth`
+ * — at four screens, three quarters of the grid. Reading a marker's own percentage as a scroll
+ * fraction therefore leaves the last screen of the years unreachable: every chip in it clamps to
+ * the same edge, and the highlight saturates on whichever year that edge lands in.
  *
  * The whole marker span is mapped linearly onto the reachable range instead, which makes the rail
  * a position indicator over that range rather than a set of anchors. The first chip still lands
@@ -196,6 +228,35 @@ export const scrollAtPercent = (markers: readonly YearMarker[], percent: number,
 };
 
 /**
+ * Where a reader is on a sideways scroller, in terms that survive the grid being redrawn at another
+ * width: the share of the grid at the middle of the card, and whether they are at the latest end.
+ */
+export interface ScrollPlace {
+  middle: number;
+  atEnd: boolean;
+}
+
+export const scrollPlace = (scrollLeft: number, clientWidth: number, scrollWidth: number): ScrollPlace => ({
+  middle: scrollWidth > 0 ? (scrollLeft + clientWidth / 2) / scrollWidth : 1,
+  atEnd: scrollLeft >= scrollWidth - clientWidth - SCROLL_TOLERANCE_PX,
+});
+
+/**
+ * Where to scroll once the grid has been redrawn at another width, so the reader is still looking
+ * at the dates they were.
+ *
+ * The date at the middle of the card stays at its middle, which is what a change of scale is read
+ * around. A reader at the latest end stays at the latest end, since that is where the chart opens
+ * and what a reader there is following: kept by its middle instead, a scale drawn tighter slides
+ * the newest months off the right edge.
+ */
+export const keptScrollLeft = (place: ScrollPlace, clientWidth: number, scrollWidth: number) => {
+  const max = Math.max(0, scrollWidth - clientWidth);
+  if (place.atEnd) return max;
+  return Math.min(max, Math.max(0, place.middle * scrollWidth - clientWidth / 2));
+};
+
+/**
  * How far a jump has to travel before the animation stops being worth anything, as a multiple of
  * the viewport it crosses.
  */
@@ -205,7 +266,7 @@ const FAR_JUMP_VIEWPORTS = 1.5;
  * How a jump of `distance` across a `viewport` should move: animated, or straight there.
  *
  * A smooth scroll runs longer the further it travels, and both surfaces this serves are several
- * viewports long — a chart four wide, a wall a thousand cards deep. Past a viewport and a half the
+ * viewports long — a chart several screens wide, a wall a thousand cards deep. Past a viewport and a half the
  * content in between passes too fast to follow, so the animation is only a wait, and the rail's own
  * highlight is what orients the reader either way. Short hops keep it, because over that distance
  * the movement is what says the view scrolled rather than changed.

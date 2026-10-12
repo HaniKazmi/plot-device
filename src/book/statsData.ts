@@ -19,6 +19,7 @@ export const bookTopOptions = [
   "franchise",
   "series",
   "format",
+  "certificate",
   "score",
   "status",
   "decade",
@@ -93,7 +94,7 @@ export const yearlyAverages = (data: Book[]) => {
   const years = new Set(data.map((book) => book.startDate.year));
   const count = years.size || 1;
   return {
-    books: Math.round((data.length / count) * 10) / 10,
+    books: Math.round(data.length / count),
     hours: Math.floor(data.sum("hours") / count),
     pages: Math.round(data.sum("pages") / count),
   };
@@ -274,6 +275,12 @@ export const statsCardLabelFinished = (book: Book) => [
   [book.endDate ? formatDate(book.endDate) : "In progress"],
   [`${format(book.pages)} pages`],
 ];
+
+/** A book still in hand: the day it was begun over how long it has been open. */
+export const statsCardLabelReading = (book: Book, today: YearMonthDay) => {
+  const days = daysReading(book, today);
+  return [[formatDate(book.startDate)], [days !== undefined ? `${format(days)} days in` : ""]];
+};
 
 export const statsCardLabelPages = (book: Book) => [
   [`${format(book.pages)} pages`],

@@ -70,11 +70,12 @@ describe("the measure", () => {
 });
 
 describe("the schema the drawer and the box are both drawn from", () => {
-  it("offers one toggle and five categories, in the order they are laid out", () => {
+  it("offers one toggle and six categories, in the order they are laid out", () => {
     expect(bookFilters.toggles.map((toggle) => toggle.key)).toEqual(["unscored"]);
     expect(bookFilters.categories.map((category) => category.key)).toEqual([
       "genre",
       "format",
+      "certificate",
       "author",
       "bookSeries",
       "franchise",

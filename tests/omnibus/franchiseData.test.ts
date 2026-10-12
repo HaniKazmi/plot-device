@@ -9,6 +9,7 @@ import {
   franchiseLines,
   franchiseRank,
   franchiseShelves,
+  franchiseTally,
   franchiseTop,
   franchiseYears,
   rankedTops,
@@ -313,5 +314,22 @@ describe("selfPublished", () => {
     const games = toOmniItems(library({ game: [videoGame({ developer: "Game Freak", publisher: "Nintendo" })] }));
 
     expect(selfPublished(games)).toBe(false);
+  });
+});
+
+describe("franchiseTally", () => {
+  it("counts every franchise the union holds, a standalone work's own name included, and those met in more than one medium", () => {
+    const items = toOmniItems(
+      library({
+        game: [
+          videoGame({ name: "Witcher 3", franchise: "Witcher" }),
+          videoGame({ name: "Celeste", franchise: "Celeste" }),
+        ],
+        movie: [movie({ name: "Arrival", franchise: "Arrival" })],
+        book: [book({ name: "The Last Wish", franchise: "Witcher" })],
+      }),
+    );
+
+    expect(franchiseTally(items)).toEqual({ franchises: 3, acrossMedia: 1 });
   });
 });

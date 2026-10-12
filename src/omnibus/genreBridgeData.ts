@@ -17,7 +17,7 @@ interface GenreBridgeSegment {
  * What a row of the bridge is keyed on: the vocabularies the gallery already shelves the union by,
  * less franchise — a hundred and sixty-nine rows of bars is a table, not a chart — plus the year,
  * which the decade coarsens, and the style, a union field read through `galleryValue`. A book
- * answers the certificate and the style with nothing, and a row keyed on nothing is not drawn.
+ * answers the style with nothing, and a row keyed on nothing is not drawn.
  */
 export const BRIDGE_KEYS = ["genre", "year", "decade", "certificate", "style"] as const;
 
@@ -49,6 +49,9 @@ export interface GenreBridgeRow {
   /** In the page's medium order, and only the media that actually logged hours here. */
   segments: GenreBridgeSegment[];
 }
+
+/** A set of items in the page's measure, exactly: a total is floored once, where it is shown. */
+const amountOf = (items: OmniItem[], measure: Measure) => (measure === "Hours" ? items.sum("hours") : items.length);
 
 /** Where a style stands in `STYLES`, asked of the row's name, which the type holds as a plain string. */
 const styleRank = (name: string) => (STYLES as readonly string[]).indexOf(name);
@@ -105,7 +108,7 @@ export const genreBridge = (
   measure: Measure = "Hours",
 ): GenreBridgeRow[] => {
   // The franchise index's grouping under another accessor: a row is every item answering one
-  // value, and an item answering none — a book asked for its certificate — belongs to no row.
+  // value, and an item answering none — a book asked for its style — belongs to no row.
   const byGenre = franchiseIndex(items, (item) => bridgeValue(item, key));
 
   return (
@@ -116,8 +119,13 @@ export const genreBridge = (
         // not make. Exact hours, not floored ones, so a segment's share is the share of the time.
         const counts = media
           .map((medium) => {
-            const own = group.filter((item) => item.medium === medium);
-            return { medium, count: measure === "Hours" ? own.sum("hours") : own.length };
+            return {
+              medium,
+              count: amountOf(
+                group.filter((item) => item.medium === medium),
+                measure,
+              ),
+            };
           })
           .filter(({ count }) => count > 0);
 
@@ -149,3 +157,44 @@ export const genreBridge = (
       .map(({ name, amount, segments }) => ({ name, amount, segments }))
   );
 };
+
+/** One medium's row of the bridge turned over: how its whole divides between the key's values. */
+export interface MediumBridgeRow {
+  medium: Medium;
+  /** The medium's whole, in the page's measure, floored once as every total on this tab is. */
+  amount: number;
+  /** One per value the medium logged anything under, in the key's own row order. */
+  segments: { name: string; amount: number; percent: number }[];
+}
+
+/**
+ * The bridge turned over: a row per medium, divided between the key's values — what the games are
+ * made of by genre, against what the films are. The values run in the order `genreBridge` lists them
+ * as rows, so a genre stands at one place along every medium's bar and the bars read down a column
+ * as the unturned rows read across one. A medium logging nothing under any value has no row, and a
+ * value it logged nothing under no segment, on the unturned bridge's own rule. `order` is those
+ * rows' names, which the caller already holds for the unturned rows it draws the key from.
+ */
+export const mediumBridge = (items: OmniItem[], key: BridgeKey, measure: Measure, order: string[]): MediumBridgeRow[] =>
+  media
+    .map((medium) => {
+      const byValue = franchiseIndex(
+        items.filter((item) => item.medium === medium),
+        (item) => bridgeValue(item, key),
+      );
+      const counts = order
+        .map((name) => ({ name, count: amountOf(byValue.get(name) ?? [], measure) }))
+        .filter(({ count }) => count > 0);
+      const total = counts.sum("count");
+
+      return {
+        medium,
+        amount: Math.floor(total),
+        segments: assignPercents(counts, total).map(({ name, count, percent }) => ({
+          name,
+          amount: Math.floor(count),
+          percent,
+        })),
+      };
+    })
+    .filter((row) => row.segments.length > 0);

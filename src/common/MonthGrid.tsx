@@ -3,7 +3,7 @@ import { monthStringsArray, shortYear, type YearNumber } from "./date";
 import { MUTED_FIGURE_SX, focusRingSx } from "./typography";
 import { useElementWidth } from "./useElementWidth";
 import { useCoarsePointer } from "./useCoarsePointer";
-import { useYearCut } from "./useYearCut";
+import { useYearCut, YEARS_SHOWN } from "./useYearCut";
 import { PictureHover } from "./PictureHover";
 import { CONTAIN_SIDEWAYS_SCROLL } from "./scrollbarSx";
 import type { TimelineData } from "./timelineLayout";
@@ -55,22 +55,26 @@ const YEAR_PRESS_SX = { borderRadius: 1, paddingX: 0.5 } as const;
  * width so a banner fills its month and two posters or covers stand side by side in one; below
  * `MIN_WIDTH` the grid keeps its columns and scrolls sideways inside the card.
  *
- * A year's label scopes the page to it, as Stacked's does, and the same latest years stand with the
- * rest behind the same cut. A picture opens its mark's item through `onOpen`, as a band does.
+ * A year's label scopes the page to it, as Stacked's does, and the latest years stand with the rest
+ * behind the same cut — as many as the tab asks for (`yearsShown`), a year of pictures being a far
+ * taller row than a year of bands. A picture opens its mark's item through `onOpen`, as a band does.
  */
 export const MonthGrid = ({
   data,
+  yearsShown,
   onYear,
   onOpen,
 }: {
   data: TimelineData[];
+  /** How many of the latest years stand before the cut; Stacked's eight where nothing says. */
+  yearsShown: number | undefined;
   onYear: (year: YearNumber) => void;
   onOpen: (mark: TimelineData) => void;
 }) => {
   const [ref, measured] = useElementWidth<HTMLDivElement>();
   // Asked once for the grid, which is hundreds of pictures answering one question.
   const coarse = useCoarsePointer();
-  const [limit, cut] = useYearCut();
+  const [limit, cut] = useYearCut(yearsShown ?? YEARS_SHOWN);
   const rows = monthRows(data);
   const cutButton = cut(rows.length);
 

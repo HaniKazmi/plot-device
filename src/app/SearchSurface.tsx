@@ -268,8 +268,8 @@ const TabDot = ({ tab, scheme }: { tab: string; scheme: Scheme }) => {
  * Glyphs and not words. The readings spell a tab out ("Shows 75") because a chip is a press and
  * has to say what pressing it does; a line already carrying a mark, a name, a category and the
  * layer's own cut has room for four figures but not for four nouns, and the fill is what names a
- * medium wherever the app is too narrow for its word — the crossings' lanes and the genre
- * bridge's segments both.
+ * medium wherever the app is too narrow for its word — the genre bridge's segments and the
+ * yearbook's figures both.
  *
  * The media alone, where the strip beneath draws a chip per tab: the composing tab reads those
  * same works through the union, so a fifth dot here would count every one of them twice.

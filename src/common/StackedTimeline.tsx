@@ -4,7 +4,7 @@ import { LazyTooltip } from "./LazyTooltip";
 import { YearMonth, shortYear, type YearNumber } from "./date";
 import { buildTicks, type TimelineData } from "./timelineLayout";
 import { yearRows } from "./timelineStripData";
-import { useYearCut } from "./useYearCut";
+import { useYearCut, YEARS_SHOWN } from "./useYearCut";
 
 /**
  * Every row is the same 1 January – 31 December, so the months are walked once for all of them —
@@ -19,7 +19,7 @@ const YEAR_TICKS = buildTicks(YearMonth.get(2001, 1), YearMonth.get(2001, 12), 3
  * `yearRows` places each year's spans on the year's own scale, so a span running across New Year
  * stands on both rows with square ends where they were cut, a film being a point on its day, and
  * seasonality reads down the columns. Names are left to the hover card: a year is a phone's width at
- * most, where the packed chart has four viewports to write them in.
+ * most, where the packed chart has several screens to write them in.
  *
  * A year's label is how a reader opens that year: `onYear` scopes the page to it, which is what the
  * rail's own picker would do, and the section then draws that year in detail in the stack's place.
@@ -39,7 +39,7 @@ export const StackedTimeline = ({
   /** Whether a band wears its name where the whole of it fits on the band. */
   labelled?: boolean;
 }) => {
-  const [limit, cut] = useYearCut();
+  const [limit, cut] = useYearCut(YEARS_SHOWN);
   const { rows, years } = yearRows(data, limit);
   const cutButton = cut(years);
 
@@ -58,7 +58,6 @@ export const StackedTimeline = ({
             widthPercent: band.widthPercent,
             lane: band.lane,
             colour: band.colour,
-            hoverCard: true,
             tooltip: <LazyTooltip render={band.tooltip} />,
             cutStart: band.cutStart,
             cutEnd: band.cutEnd,

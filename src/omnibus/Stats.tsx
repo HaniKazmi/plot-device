@@ -14,7 +14,7 @@ import { MEDIA } from "../app/media";
 import { MEDIA_LAZY } from "../app/mediaLazy";
 import { hasNow, unionTotals, type NowElection } from "./adapter";
 import type { NowPanel, OmniItem } from "../common/medium";
-import { crossingEntries, type Crossing } from "./crossingsData";
+import { franchiseTally } from "./franchiseData";
 import { OMNIBUS_SECTIONS } from "./sections";
 import { media, mediumToColour, mediumToLabel, mediumToShape, type Measure, type Medium } from "../app/types";
 import type { Colour } from "../utils/types";
@@ -38,7 +38,6 @@ const Stats = ({
   data,
   upTo,
   now,
-  crossings,
   measure,
   yearType,
   yearTo,
@@ -48,8 +47,6 @@ const Stats = ({
   upTo: OmniItem[];
   /** Computed by `Graphs`, which decides on the same value whether the rail offers a Now chip. */
   now: NowElection;
-  /** The same list the Crossings section draws, so the count and the strips cannot disagree. */
-  crossings: Crossing[];
   measure: Measure;
   yearType: YearType;
   yearTo: YearNumber;
@@ -57,6 +54,7 @@ const Stats = ({
   const scheme = useScheme();
 
   const totals = unionTotals(upTo);
+  const franchises = franchiseTally(data);
   const inYear = unionTotals(data.filter((item) => item.year === yearTo));
   // Whether more than one medium survived the filters, which is what the composition band below
   // has to have something to say about: a proportional bar over one group is a full bar stating
@@ -91,7 +89,7 @@ const Stats = ({
               It stands with the year cards rather than after the Media band because the band is
               full-width and opens a row of its own: a card placed after it would be the only
               thing on that row and read as one that lost its neighbours. */}
-          {crossings.length > 0 && (
+          {franchises.franchises > 0 && (
             <StatCard
               icon={<Hub />}
               title="Franchises"
@@ -100,8 +98,9 @@ const Stats = ({
               // band's own closing line, above the media band that follows it.
               span={{ xs: 12, sm: 12 }}
               content={[
-                ["Franchises", crossings.length],
-                ["Entries", crossingEntries(crossings)],
+                ["Franchises", franchises.franchises],
+                // Not the entries between them, which are every item and the card beside's own figure.
+                ["Across Media", franchises.acrossMedia],
               ]}
             />
           )}

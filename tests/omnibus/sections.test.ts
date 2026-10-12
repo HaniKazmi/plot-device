@@ -1,12 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { OMNIBUS_SECTIONS, omnibusSections } from "../../src/omnibus/sections";
 
-const all = { now: true, timeline: true, charts: true, crossings: true, library: true, finished: true, genres: true };
+const all = {
+  now: true,
+  timeline: true,
+  charts: true,
+  yearbook: true,
+  franchises: true,
+  library: true,
+  finished: true,
+  genres: true,
+};
 const none = {
   now: false,
   timeline: false,
   charts: false,
-  crossings: false,
+  yearbook: false,
+  franchises: false,
   library: false,
   finished: false,
   genres: false,
@@ -21,7 +31,8 @@ describe("omnibusSections", () => {
       OMNIBUS_SECTIONS.finished,
       OMNIBUS_SECTIONS.charts,
       OMNIBUS_SECTIONS.genres,
-      OMNIBUS_SECTIONS.crossings,
+      OMNIBUS_SECTIONS.yearbook,
+      OMNIBUS_SECTIONS.franchises,
       OMNIBUS_SECTIONS.library,
     ]);
   });
@@ -30,14 +41,12 @@ describe("omnibusSections", () => {
     expect(omnibusSections({ ...all, now: false }).map((section) => section.id)).not.toContain(OMNIBUS_SECTIONS.now);
   });
 
-  it("drops the franchise and genre chips when those sections have nothing to draw", () => {
+  it("drops the genre chip when that section has nothing to draw", () => {
     // A chip scrolling to a section that is not on the page reads as broken rather than as empty.
-    // Narrowing to one medium is not what empties either: a franchise one medium holds is a lane
-    // and a genre one medium holds is a full bar. What empties them is their own grouping finding
-    // nothing — no franchise left at all, a genre whose entries all logged zero.
-    const ids = omnibusSections({ ...all, crossings: false, genres: false }).map((section) => section.id);
+    // Narrowing to one medium is not what empties it: a genre one medium holds is a full bar. What
+    // empties it is its own grouping finding nothing — every genre's entries logging zero.
+    const ids = omnibusSections({ ...all, genres: false }).map((section) => section.id);
 
-    expect(ids).not.toContain(OMNIBUS_SECTIONS.crossings);
     expect(ids).not.toContain(OMNIBUS_SECTIONS.genres);
   });
 
@@ -50,13 +59,17 @@ describe("omnibusSections", () => {
     expect(ids).not.toContain(OMNIBUS_SECTIONS.finished);
   });
 
-  it("drops the By Year and timeline chips when the filters leave nothing to plot", () => {
+  it("drops the By Year, timeline, yearbook and franchise chips when the filters leave nothing to plot", () => {
     // An empty pivot is not a picture of nothing — the plotting library falls back to an index
     // axis and a series of its own, under a header still stating the count as zero.
-    const ids = omnibusSections({ ...all, charts: false, timeline: false }).map((section) => section.id);
+    const ids = omnibusSections({ ...all, charts: false, timeline: false, yearbook: false, franchises: false }).map(
+      (section) => section.id,
+    );
 
     expect(ids).not.toContain(OMNIBUS_SECTIONS.charts);
     expect(ids).not.toContain(OMNIBUS_SECTIONS.timeline);
+    expect(ids).not.toContain(OMNIBUS_SECTIONS.yearbook);
+    expect(ids).not.toContain(OMNIBUS_SECTIONS.franchises);
   });
 
   it("keeps the vitals chip whatever the data holds, since a total of zero is an answer", () => {

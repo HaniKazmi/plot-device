@@ -143,8 +143,8 @@ describe("omniBarchartRows", () => {
 });
 
 describe("books in the pivot", () => {
-  it("counts a book under its medium and its genre, and drops it from the certificate and style splits", () => {
-    const items = toOmniItems(library({ book: [book({ genre: "Fantasy", hours: 6.5 })] }));
+  it("counts a book under its medium, its genre and its certificate, and drops it from the style split", () => {
+    const items = toOmniItems(library({ book: [book({ genre: "Fantasy", hours: 6.5, certificate: "15" })] }));
 
     const byMedium = omniBarchartRows(items, "Hours", "medium", "light");
     expect(byMedium).toEqual([
@@ -152,9 +152,8 @@ describe("books in the pivot", () => {
     ]);
 
     expect(omniBarchartRows(items, "Items", "genre", "light")[0].name).toBe("Fantasy");
-    // No certificate to split on, so no series is opened for it: the header counts drawn rows.
-    expect(omniBarchartRows(items, "Items", "certificate", "light")).toEqual([]);
-    // Nor a style, a book having no picture to have one.
+    expect(omniBarchartRows(items, "Items", "certificate", "light")[0].colour).toBe(certificateToColour("15", "light"));
+    // No style to split on, a book having no picture to have one, so no series is opened for it.
     expect(omniBarchartRows(items, "Items", "style", "light")).toEqual([]);
   });
 });

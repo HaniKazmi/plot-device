@@ -6,9 +6,11 @@ import {
   History,
   MenuBook,
   Person,
+  PlayArrow,
   ShowChart,
   Stars,
   TaskAlt,
+  VerifiedUser,
   Whatshot,
 } from "@mui/icons-material";
 import { Stack } from "@mui/material";
@@ -20,6 +22,7 @@ import {
   TotalsBand,
   VitalsCard,
   YearVitalsPair,
+  type GridListLayout,
   type StatListBaseProps,
 } from "../common/Stats";
 import { TopCategoryBand } from "../common/TopList";
@@ -47,12 +50,13 @@ import {
   perBookAverages,
   statsCardLabelFinished,
   statsCardLabelPages,
+  statsCardLabelReading,
   yearlyAverages,
   type BookTopOption,
 } from "./statsData";
 import "../utils/arrayUtils";
 import { useScheme } from "../common/useScheme";
-import { captionLines, type DrilldownGroup } from "../common/statsData";
+import { captionLines, inProgressBeyondHero, type DrilldownGroup } from "../common/statsData";
 import { categoryKeys } from "../common/filterSchema";
 import { bookFilters } from "./filters";
 
@@ -79,7 +83,14 @@ const Stats = ({
       {/* No book in hand and there is no "now" to lead with. */}
       {reading.length > 0 && (
         <Section id={BOOK_SECTIONS.now}>
-          <BookHero book={reading[0]} />
+          <Stack spacing={2}>
+            <BookHero book={reading[0]} />
+            {inProgressBeyondHero(reading, reading[0]) && (
+              <StatBand>
+                <CurrentlyReading reading={reading} />
+              </StatBand>
+            )}
+          </Stack>
         </Section>
       )}
       <Section id={BOOK_SECTIONS.vitals}>
@@ -97,7 +108,7 @@ const Stats = ({
           />
           <StatSummary
             icon={<ShowChart />}
-            title="Yearly Average"
+            title="Per Year"
             stats={yearlyAverages(upTo)}
           />
           <BookAverage data={data} />
@@ -247,6 +258,7 @@ const optionIcons: Record<BookTopOption, ReactNode> = {
   franchise: <Stars />,
   series: <Bookmarks />,
   format: <MenuBook />,
+  certificate: <VerifiedUser />,
   score: <Grade />,
   status: <TaskAlt />,
   decade: <History />,
@@ -344,11 +356,25 @@ const MostReadCategory = ({
   );
 };
 
+/** Every book in hand, the hero's own included, at the size the lists below draw a cover. */
+const CurrentlyReading = ({ reading }: { reading: Book[] }) => (
+  <BookStatList
+    icon={<PlayArrow />}
+    title="Currently Reading"
+    content={reading}
+    labelComponent={(book) => statsCardLabelReading(book, CURRENT_PLAINDATE)}
+    wrap={false}
+    width={[12, 12, 12]}
+    pictureWidth={[6, 3, 2]}
+  />
+);
+
 const BookStatList = (
   props: Omit<
     StatListBaseProps<Book>,
     "MediaComponent" | "chipComponent" | "nameComponent" | keyof typeof bookStatListSharedProps
-  >,
+  > &
+    Partial<Pick<StatListBaseProps<Book>, "width"> & Pick<GridListLayout, "pictureWidth">>,
 ) => {
   const scheme = useScheme();
 
