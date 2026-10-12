@@ -422,6 +422,12 @@ const scrollToSection = (section: HTMLElement) => {
   section.scrollIntoView({ behavior: "smooth" });
 };
 
+/** The page's own top, marked as the page's scroll as a section's landing is. */
+const scrollToTop = () => {
+  beginOwnScroll(null);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
 /** Where a scroll still travelling is going, as `sectionStep` reads it: an index, or `-1` for the top. */
 const travellingTo = (placed: HTMLElement[]) => {
   const destination = ownScrollDestination();
@@ -430,8 +436,12 @@ const travellingTo = (placed: HTMLElement[]) => {
   return index < 0 ? undefined : index;
 };
 
+/** The sections `n` and `l` land on, named by the chip that names them on every page that has one. */
+const NAMED_SECTIONS: Record<string, string> = { n: "Now", l: "Library" };
+
 /**
- * `j` and `k`: the next section and the previous one, landed exactly where its chip lands it.
+ * `j` and `k`: the next section and the previous one, landed exactly where its chip lands it; `n`
+ * and `l`: the Now and Library sections, wherever the reader is.
  *
  * The rail's own list is the page's order, as `useActiveSection` reads it, so the keys walk the
  * chips a reader sees rather than every `Section` the DOM happens to hold. A section with no box —
@@ -441,26 +451,38 @@ const travellingTo = (placed: HTMLElement[]) => {
  * What a second press steps from is where the page's own scroll is still going, whether a chip or
  * a key began it (`sectionStep`'s `from`, `ownScrollDestination`): the page has not arrived, and
  * stepping from where it is would aim the second press at the section the first was already going to.
+ *
+ * `n` and `l` press a chip by its word rather than by an id, the ids being each page's own — Movies
+ * names its first anchor `latest` — where every rail calls the two sections Now and Library. A page
+ * with nothing in flight draws no Now, and a franchise's page has none at all; there `n` goes to the
+ * top, where the page opens on what is current.
  */
 const useSectionKeys = (sections: RailSection[]) => {
-  usePageKeys("jk", (key) => {
+  usePageKeys("jknl", (key) => {
     const placed = sections.flatMap((section) => {
       const element = document.getElementById(section.id);
-      return element && element.getClientRects().length > 0 ? [element] : [];
+      return element && element.getClientRects().length > 0 ? [{ section, element }] : [];
     });
+    const named = NAMED_SECTIONS[key];
+    if (named) {
+      const target = placed.find(({ section }) => section.label === named);
+      if (target) scrollToSection(target.element);
+      else if (key === "n" && window.scrollY > 0) scrollToTop();
+      else return false;
+      return true;
+    }
     if (placed.length === 0) return false;
-    const line = parseFloat(getComputedStyle(placed[0]).scrollMarginTop) || 0;
+    const elements = placed.map(({ element }) => element);
+    const line = parseFloat(getComputedStyle(elements[0]).scrollMarginTop) || 0;
     const target = sectionStep(
-      placed.map((element) => element.getBoundingClientRect().top),
+      elements.map((element) => element.getBoundingClientRect().top),
       line,
       key === "j" ? 1 : -1,
-      travellingTo(placed),
+      travellingTo(elements),
     );
     if (target === undefined || (target === -1 && window.scrollY === 0)) return false;
-    if (target === -1) {
-      beginOwnScroll(null);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } else scrollToSection(placed[target]);
+    if (target === -1) scrollToTop();
+    else scrollToSection(elements[target]);
     return true;
   });
 };

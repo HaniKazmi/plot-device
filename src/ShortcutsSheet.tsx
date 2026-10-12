@@ -8,7 +8,7 @@ import { LABEL_SX } from "./common/typography";
 import Tabs from "./tabs";
 
 interface ShortcutRow {
-  /** Every key that does it, each pressed alone: `j` `k` are next and previous, `/` `⌘K` are both Find. */
+  /** Every key that does it, each pressed alone: `j` `k` are next and previous, `s` `3` are both Shows. */
   keys: string[];
   text: string;
 }
@@ -24,7 +24,7 @@ const shortcutGroups = (mod: string, shift: string): { title: string; rows: Shor
   {
     title: "Tabs",
     rows: [
-      ...Tabs.map((tab, index) => ({ keys: [String(index + 1)], text: tab.name })),
+      ...Tabs.map((tab, index) => ({ keys: [tab.shortcut, String(index + 1)], text: tab.name })),
       { keys: ["[", "]"], text: "The tab either side" },
     ],
   },
@@ -32,7 +32,9 @@ const shortcutGroups = (mod: string, shift: string): { title: string; rows: Shor
     title: "This page",
     rows: [
       { keys: ["j", "k"], text: "Next or previous section" },
-      { keys: ["m"], text: "Next measure" },
+      { keys: ["n"], text: "Now" },
+      { keys: ["l"], text: "Library" },
+      { keys: ["c"], text: "Next measure" },
       { keys: ["y"], text: `All time, or ${CURRENT_YEAR} alone` },
       { keys: [",", "."], text: "A year back or on" },
       { keys: ["r"], text: "Read the sheets again" },

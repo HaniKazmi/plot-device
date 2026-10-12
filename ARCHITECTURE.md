@@ -1647,19 +1647,24 @@ keyboard types `[` with ⌥ on a Mac and AltGr on Windows, while ⌥ on a layout
 types a character nobody answers. Each key is answered beside the state it moves rather than from one table, so no module
 reaches into another's:
 
-- `1`–`5` and `[` `]` (`useTabKeys`, `tabs.ts`, mounted by the shell) jump as a rail chip does
-  (`jumpToTab`), so the key for the tab already open scrolls to the top and pushes no history entry.
-  The target is worked out from the path as the key lands rather than from the chips, which would
-  subscribe the shell to the colour scheme for colours it never draws. Positions rather than
-  letters, the strip being read left to right.
+- A tab's letter (`Tab.shortcut` — `o` `g` `s` `m` `b`), its place `1`–`5`, and `[` `]`
+  (`useTabKeys`, `tabs.ts`, mounted by the shell) jump as a rail chip does (`jumpToTab`), so the
+  key for the tab already open scrolls to the top and pushes no history entry. The target is worked
+  out from the path as the key lands rather than from the chips, which would subscribe the shell to
+  the colour scheme for colours it never draws. The letter is stated on the tab rather than derived
+  from its name, so a new tab whose initial another key already answers is given another letter
+  instead of taking that key over, and `tests/tabs.test.ts` holds the letters apart.
 - `j` `k` (`SectionRail.tsx`) walk the rail's own list, landing each section where its chip lands
   it, its `scroll-margin-top` read off the element. `sectionStep` decides: `k` partway through a
   section goes to that section's start before the one above, and a press made while the last one's
   smooth scroll is still travelling steps from where that scroll is going, a chip's or a key's alike.
   Where it is going is carried by the page's own-scroll mark (`ownScrollDestination`,
   `common/chrome.ts`), which extends itself on every scroll event until the page settles and ends
-  the moment the reader takes the page back with a wheel or a finger.
-- `m`, `y` and `,` `.` (`useReadingKeys`, `common/readingKeys.ts`) step the measure, move the scope
+  the moment the reader takes the page back with a wheel or a finger. `n` and `l` land on the Now
+  and Library sections from anywhere, found by the word on their chip, since every rail names the
+  two alike where the ids are each page's own; `n` on a page with no Now goes to the top.
+- `c`, `y` and `,` `.` (`useReadingKeys`, `common/readingKeys.ts`) step the measure — `c` for the box's own "Count in",
+  `m` being Movies' — move the scope
   between everything and the year in progress (`toggledScope`), and step the scope a year either
   way inside the picker's own bounds (`steppedScope`), everything stepping as "up to" this year
   does so `,` undoes the `.` that crossed into it. Bound to the state from `PageRail`
