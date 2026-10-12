@@ -11,9 +11,9 @@ import Timeline from "./Timeline";
 import { networkToColour, Show } from "./types";
 import { showModule } from "./module";
 import { ShowShelfCardMediaImage } from "./CardMediaImage";
-import { SEASON_SPLIT, shelfKey, showShelfItem, type ShowShelfItem } from "./cardData";
+import { seasonSplit, shelfKey, showShelfItem, type ShowShelfItem } from "./cardData";
 import { statusToColour, type Scheme } from "../utils/types";
-import type { FilterState } from "./filterUtils";
+import { seasonInScope, type FilterState } from "./filterUtils";
 import { FranchiseContext, showFranchise } from "./franchiseContext";
 import { franchiseIndex } from "../common/franchiseIndex";
 import { memo, useDeferredValue } from "react";
@@ -118,7 +118,7 @@ const Graphs = memo(({ data, upTo, filterState }: { data: Show[]; upTo: Show[]; 
           colour={({ show }) => statusToColour(show, scheme)}
           sorts={showShelves(scheme)}
           keyOf={shelfKey}
-          unit={SEASON_SPLIT}
+          unit={seasonSplit(seasonInScope(filterState))}
           shape="poster"
           MediaComponent={ShowShelfCardMediaImage}
         />

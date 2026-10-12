@@ -43,7 +43,8 @@ const ShowCardMediaImage = <T extends Show | Season>({ item, ...props }: Paramet
 
   return (
     <CardMediaImage
-      alt={show.name}
+      // A season names its number as well, or a wall of one show's seasons reads one name over and over.
+      alt={season ? `${show.name} S${season.s}` : show.name}
       image={season ? seasonArtwork(season) : show.artwork}
       detailComponent={() => (
         <ShowCardDetail

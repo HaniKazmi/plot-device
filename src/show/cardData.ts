@@ -165,9 +165,12 @@ export const showShelfItem = (show: Show): ShowShelfItem => ({
  * season stands on the shelf of the year it finished and one left open stands under In progress —
  * the same column that puts it under Currently Watching. Named and shelved as its show, so the
  * Franchise order shelves a season with its franchise, in the order the seasons were watched.
+ *
+ * `inScope` is the page's year scope read per season: the show filter keeps a show with any season
+ * in the year, and every season of it drawn would put a show's other years on a wall scoped to one.
  */
-export const seasonShelfItems = (item: ShowShelfItem): ShowShelfItem[] =>
-  item.show.s.map((season) => ({
+export const seasonShelfItems = (item: ShowShelfItem, inScope?: (season: Season) => boolean): ShowShelfItem[] =>
+  (inScope ? item.show.s.filter(inScope) : item.show.s).map((season) => ({
     ...item,
     artwork: seasonArtwork(season),
     startDate: season.startDate,
@@ -178,9 +181,9 @@ export const seasonShelfItems = (item: ShowShelfItem): ShowShelfItem[] =>
 /** Every season of a show shares its name, so a season card is keyed as the union keys its row. */
 export const shelfKey = (item: ShowShelfItem) => (item.season ? seasonKey(item.season) : finishedKey(item));
 
-/** The library's second count: one card per season, where the page counts in shows. */
-export const SEASON_SPLIT: FinishedSplit<ShowShelfItem> = {
+/** The library's second count: one card per season inside the year scope, where the page counts in shows. */
+export const seasonSplit = (inScope?: (season: Season) => boolean): FinishedSplit<ShowShelfItem> => ({
   labels: ["Shows", "Seasons"],
-  parts: seasonShelfItems,
+  parts: (item) => seasonShelfItems(item, inScope),
   noun: "seasons",
-};
+});

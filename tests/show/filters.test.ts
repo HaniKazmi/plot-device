@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CURRENT_YEAR, type YearNumber } from "../../src/common/date";
 import { guestFilter, showFilters } from "../../src/show/filters";
-import { filters, initialState, type FilterState } from "../../src/show/filterUtils";
+import { filters, initialState, seasonInScope, type FilterState } from "../../src/show/filterUtils";
 import { show, showWithSeasonsIn } from "../fixtures/shows";
 
 const state = (overrides: Partial<FilterState> = {}): Omit<FilterState, "filter"> => ({
@@ -142,5 +142,26 @@ describe("the schema the drawer and the box are both drawn from", () => {
       "network",
       "franchise",
     ]);
+  });
+});
+
+describe("a season inside the year scope", () => {
+  const year = (n: number) => (CURRENT_YEAR - n) as YearNumber;
+  const begunIn = (n: number) => showWithSeasonsIn(year(n)).s[0];
+
+  it("is one begun in the year, under In", () => {
+    const inScope = seasonInScope({ yearType: "matching", yearTo: year(2) })!;
+
+    expect([begunIn(3), begunIn(2), begunIn(1)].map(inScope)).toEqual([false, true, false]);
+  });
+
+  it("is one begun by the year, under Up to", () => {
+    const inScope = seasonInScope({ yearType: "upto", yearTo: year(2) })!;
+
+    expect([begunIn(3), begunIn(2), begunIn(1)].map(inScope)).toEqual([true, true, false]);
+  });
+
+  it("is every season where the scope holds everything", () => {
+    expect(seasonInScope({ yearType: "upto", yearTo: CURRENT_YEAR })).toBeUndefined();
   });
 });

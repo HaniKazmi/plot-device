@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { YearMonthDay } from "../../src/common/date";
+import { YearMonthDay, type YearNumber } from "../../src/common/date";
+import { seasonInScope } from "../../src/show/filterUtils";
 import { bucketGroups, finishedItems, IN_PROGRESS } from "../../src/common/finishedData";
 import {
   seasonShelfItems,
@@ -115,6 +116,15 @@ describe("seasonShelfItems", () => {
       "andor.jpg",
       "andor-s2.jpg",
     ]);
+  });
+
+  it("keeps only the seasons inside the page's year scope, so a scoped wall holds no other year", () => {
+    const cards = seasonShelfItems(
+      showShelfItem(twoSeasons()),
+      seasonInScope({ yearType: "matching", yearTo: 2025 as YearNumber }),
+    );
+
+    expect(cards.map((card) => card.season?.s)).toEqual([2]);
   });
 
   it("keys every season apart, though each carries its show's name", () => {

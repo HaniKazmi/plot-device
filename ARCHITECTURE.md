@@ -1854,8 +1854,11 @@ count splits each show into its seasons rather than folding shows into something
 of its own, so the wall is over `ShowShelfItem` (`show/cardData.ts`) — a show, or one season of it
 named and shelved as its show — and each season is dated and pictured on its own: one finished
 stands on the shelf of the year it finished, one left open under In progress, the column that puts
-it under Currently Watching, and a season whose row carries artwork wears it. The header states the
-seasons drawn, a population the rail's chip does not.
+it under Currently Watching, and a season whose row carries artwork wears it. The year scope is read
+per season through `seasonInScope` (`show/filterUtils.ts`), the rule the show filter itself is built
+from: the filter keeps a show with any season in the year, so drawing every season of it would put
+the show's other years on a wall scoped to one. The header states the seasons drawn, a population
+the rail's chip does not.
 
 A pill under the section rail names where the reader is in a Wall: the topmost visible row's run —
 a year or In progress under When, an initial under Franchise, a value or figure under a tab's own
@@ -2776,7 +2779,7 @@ key in ObjectExpression`; pulled out to a plain function taking the varying piec
   `sheetBarSx`, `dialogCardSx`, among others — the literal itself sits at module scope and the
   component stays compiled.
 
-The baseline is **308 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **310 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.
