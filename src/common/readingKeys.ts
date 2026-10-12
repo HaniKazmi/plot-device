@@ -3,8 +3,9 @@ import { stepIndex, usePageKeys } from "./keyboard";
 import { steppedScope, toggledScope, type YearScope } from "./scope";
 
 /**
- * The keys for a page's whole-page readings: `m` steps the measure, `y` moves the year scope
- * between everything and the year in progress, and `,` `.` step the scope a year back or on.
+ * The keys for a page's whole-page readings: `c` steps the measure — "Count in", as the box labels
+ * it, `m` being the Movies tab's letter — `y` moves the year scope between everything and the year
+ * in progress, and `,` `.` step the scope a year back or on.
  *
  * Bound to the state rather than to the controls drawing it, because the controls are not always
  * mounted where the state is: below `md` the scope leaves the rail for the box, and below `sm` the
@@ -19,9 +20,9 @@ export const useReadingKeys = <M extends string>(props: {
   onMeasure: (measure: M) => void;
   scope?: YearScope & { earliestYear: number; onScope: (scope: YearScope) => void };
 }) => {
-  usePageKeys("my,.", (key) => {
+  usePageKeys("cy,.", (key) => {
     const { measures, measure, scope } = props;
-    if (key === "m") {
+    if (key === "c") {
       if (measures.length < 2) return false;
       props.onMeasure(measures[stepIndex(measures.indexOf(measure), 1, measures.length)]);
       return true;
