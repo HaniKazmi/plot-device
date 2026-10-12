@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { CONTAIN_SIDEWAYS_SCROLL, scrollbarSx } from "./scrollbarSx";
 import { ScrollFade } from "./ScrollFade";
 import { useScrollEdges } from "./useScrollEdges";
+import { CARD_LIST } from "./cardStep";
 
 /**
  * How tall a strip's artwork stands. Exported because the caller sets it on the artwork as well as
@@ -48,6 +49,7 @@ export const Filmstrip = ({ height, children }: { height: number; children: Reac
     >
       <Box
         ref={ref}
+        {...CARD_LIST}
         sx={(theme: Theme) => ({
           display: "flex",
           gap: `${STRIP_GAP}px`,

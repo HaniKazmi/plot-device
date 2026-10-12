@@ -1,5 +1,6 @@
 import { Dialog } from "@mui/material";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { pressedCard, stepFrom } from "./cardStep";
 import { SheetBar } from "./SheetBar";
 import { EXPANDED_CARDS, StatsListGrid, type CardLayout } from "./Stats";
 import type { CardMediaImageProps, MediaBand, TypedCardMediaImage } from "./Card";
@@ -14,6 +15,9 @@ import type { ArtworkShape } from "./cardArrangement";
  * in the app opens with, pinned at every width — a fullscreen dialog covers the handle that opened
  * it, and a drill-down runs five hundred cards deep, so the ✕ has to stay on screen from any
  * scroll position. Nothing below the bar states the group, so the bar is where it is named.
+ *
+ * Opened from a card, ← and → put it away and open the next group's or the previous one's, so a
+ * row of genres or a wall of series is read one drill-down after another without going back out.
  */
 export const DrilldownDialog = <T,>(
   props: {
@@ -29,31 +33,38 @@ export const DrilldownDialog = <T,>(
     divider?: boolean;
     MediaComponent: TypedCardMediaImage<T>;
   } & CardLayout,
-) => (
-  <Dialog
-    open
-    fullScreen
-    // Escape and a press outside leave the list, as every other dialog in the app answers to.
-    onClose={props.onClose}
-  >
-    <SheetBar
-      title={props.title}
+) => {
+  // The card whose press opened this list, read once as it mounts: ← and → step to the group
+  // beside it (`cardStep.ts`). None where the list was opened by anything but a card.
+  const [opener] = useState(pressedCard);
+
+  return (
+    <Dialog
+      open
+      fullScreen
+      // Escape and a press outside leave the list, as every other dialog in the app answers to.
       onClose={props.onClose}
-    />
-    <StatsListGrid
-      content={props.content}
-      cardKey={props.cardKey}
-      labelComponent={props.labelComponent}
-      chipComponent={props.chipComponent}
-      shape={props.shape}
-      band={props.band}
-      divider={props.divider}
-      MediaComponent={props.MediaComponent}
-      // Whichever arm the layout is in, spread alone: naming both props would hand the grid a pair
-      // of `undefined`s that satisfy neither.
-      {...(props.rowSizing
-        ? { rowSizing: props.rowSizing, limit: EXPANDED_CARDS }
-        : { pictureWidth: props.pictureWidth, limit: EXPANDED_CARDS })}
-    />
-  </Dialog>
-);
+      onKeyDown={(event) => stepFrom(event, opener, props.onClose)}
+    >
+      <SheetBar
+        title={props.title}
+        onClose={props.onClose}
+      />
+      <StatsListGrid
+        content={props.content}
+        cardKey={props.cardKey}
+        labelComponent={props.labelComponent}
+        chipComponent={props.chipComponent}
+        shape={props.shape}
+        band={props.band}
+        divider={props.divider}
+        MediaComponent={props.MediaComponent}
+        // Whichever arm the layout is in, spread alone: naming both props would hand the grid a pair
+        // of `undefined`s that satisfy neither.
+        {...(props.rowSizing
+          ? { rowSizing: props.rowSizing, limit: EXPANDED_CARDS }
+          : { pictureWidth: props.pictureWidth, limit: EXPANDED_CARDS })}
+      />
+    </Dialog>
+  );
+};

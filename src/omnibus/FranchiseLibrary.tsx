@@ -24,6 +24,7 @@ import type { ShelfItem } from "../app/galleryData";
 import { mediumUnit } from "../utils/types";
 import { franchiseShelves, newestFirst, SHELVINGS, type FranchiseShelf } from "./franchiseData";
 import "../utils/arrayUtils";
+import { CARD_LIST } from "../common/cardStep";
 
 /** How many pictures stand on a shelf before its cut, the gallery's own figure. */
 const PICTURES_SHOWN = 20;
@@ -125,7 +126,10 @@ const FranchiseLibrary = ({ items }: { items: OmniItem[] }) => {
         {layout === "Wall" ? (
           // One flow with nothing between its runs, as every tab's wall is: the shelves' own order
           // carries the grouping, and a heading between each would cut the wall back into shelves.
-          <Box sx={WALL_SX}>
+          <Box
+            {...CARD_LIST}
+            sx={WALL_SX}
+          >
             {shelves.flatMap((shelf) =>
               shelf.items.map((item) => (
                 <Picture

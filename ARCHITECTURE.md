@@ -412,7 +412,8 @@ blank, and a page of last visit's data is what stands until the new ones land. E
 else is behind the `⋮`, which is drawn at every width and pointer: the tab's Sheet, Sign out, and
 guest mode in both directions. One list and one surface, so nothing is reachable at one width and
 not another — an iPad held sideways clears every width test and still points with a finger, and a
-mouse at 1440 has no other way out of guest mode. The dot is all a stale page is told: the rows are
+mouse at 1440 has no other way out of guest mode. The one item it holds from `sm` up alone is
+Keyboard shortcuts, the sheet `?` opens (§ Keyboard): it names keys, and a phone has none to press. The dot is all a stale page is told: the rows are
 last visit's and one press refreshes them, which a line of chrome under the bar states at the cost of
 a strip standing over every page for the whole sitting. `app/EmptyCard.tsx` is the exception, for the
 `empty` state, which `Google.tsx` renders in place of the `<Outlet>`: with no cache and no session
@@ -1317,7 +1318,7 @@ route are two half-controls.
 
 **The handle decides the mode.** The magnifier in the app bar, ⌘K and `/` open Find with the
 keyboard up; the rail's population chip (`FilterChip`) from `sm` and its measure chip (`PageChip`)
-below it open This page with the keyboard down (§ The page's controls). ⌘⇧K switches an open box
+below it, and `f`, open This page with the keyboard down (§ The page's controls). ⌘⇧K switches an open box
 and opens a closed one in the other mode; ⇥ inside the box switches it, but only where focus is in
 the input or on the mode segment — a menu inside This page has to stay walkable out of by keyboard.
 The keyboard is asked for on the mode _and_ the request count together (`common/searchOpen.ts`), so
@@ -1623,6 +1624,66 @@ the thumbnail loads and samples the colour the dialog is themed from, and unmoun
 exactly what the same artwork shows anywhere. Before anything is typed, the box offers the
 franchises met most recently — the series the reader is in the middle of, and the works met last — as the same value blocks
 a query answers with.
+
+### Keyboard
+
+Every key the app answers is a bare key or one of the box's chords, and a sheet lists them all
+(`ShortcutsSheet.tsx`, opened by `?` and by the `⋮` menu's own item): the app draws no hover
+labels, so a key is learnt there or not at all. The sheet is its own lazy chunk behind a host the
+shell mounts (`Shortcuts.tsx`), a reader who never presses `?` paying nothing for it.
+
+**A page-wide key is a bare key, answered where nothing else claims it.** `usePageKeys`
+(`common/keyboard.ts`) is how every page-wide key is answered: each caller names the keys it takes,
+and one document listener serves them all, so its test runs once a press and the document walk
+`layerOpen` makes runs only for a key somebody answers — never for the space bar on a wall of a
+thousand cards. The test: no ⌘, and no Ctrl but AltGr — ⌘ and a digit is the browser's own tab
+switch and ⌘[ its back — no repeat, focus in no field (`inEditableField`, the test that holds a typed `/` to a slash), and
+no MUI `Modal` open anywhere in the document (`layerOpen`). That last is read off the document
+rather than the target, since a layer that has lost its focus still covers the page, and every
+layer here is a `Modal` whatever it is drawn as — a dialog, a drill-down, the box, a menu, a bottom
+sheet. A key is judged by the character it types rather than by what was held to type it, so
+Shift, ⌥ and AltGr are allowed through: `?` is shifted on most layouts, and a German or French
+keyboard types `[` with ⌥ on a Mac and AltGr on Windows, while ⌥ on a layout with no use for it
+types a character nobody answers. Each key is answered beside the state it moves rather than from one table, so no module
+reaches into another's:
+
+- `1`–`5` and `[` `]` (`useTabKeys`, `tabs.ts`, mounted by the shell) jump as a rail chip does
+  (`jumpToTab`), so the key for the tab already open scrolls to the top and pushes no history entry.
+  The target is worked out from the path as the key lands rather than from the chips, which would
+  subscribe the shell to the colour scheme for colours it never draws. Positions rather than
+  letters, the strip being read left to right.
+- `j` `k` (`SectionRail.tsx`) walk the rail's own list, landing each section where its chip lands
+  it, its `scroll-margin-top` read off the element. `sectionStep` decides: `k` partway through a
+  section goes to that section's start before the one above, and a press made while the last one's
+  smooth scroll is still travelling steps from where that scroll is going, a chip's or a key's alike.
+  Where it is going is carried by the page's own-scroll mark (`ownScrollDestination`,
+  `common/chrome.ts`), which extends itself on every scroll event until the page settles and ends
+  the moment the reader takes the page back with a wheel or a finger.
+- `m`, `y` and `,` `.` (`useReadingKeys`, `common/readingKeys.ts`) step the measure, move the scope
+  between everything and the year in progress (`toggledScope`), and step the scope a year either
+  way inside the picker's own bounds (`steppedScope`), everything stepping as "up to" this year
+  does so `,` undoes the `.` that crossed into it. Bound to the state from `PageRail`
+  and the franchise page rather than to the controls, which leave the rail below `md` and `sm`.
+- `r` (`NavBar.tsx`) presses the refresh while the slot is drawing one, and nothing before a
+  session: authorising is a consent popup a stray key should not open.
+- `f` (`app/Search.tsx`) opens This page beside `/` for Find. It takes the page-key test where the
+  slash keeps its own, so `/` still opens Find over a card and `f` does not. Inside This page, ⌘⌫ is the footer's Clear, answered only on an empty field,
+  where the chord would otherwise delete the line typed into it.
+
+**← and → step between cards** (`common/cardStep.ts`). Inside an expanded card they put it away and
+open the card beside it; inside a drill-down, the group beside the one it was opened from. The order
+is read off the DOM, which is the one place it exists whole — a wall sorted and cut into runs, a
+shelf, a strip — where a card owning its dialog knows nothing of the list it was drawn in: each shell
+marks the element holding its cards (`CARD_LIST`), and each card's press says what it opens
+(`data-card-opens`), so a step from an item's card goes to the next item's and a step from a group's
+drill-down to the next group's. A drill-down learns its opener from `pressedCard`, the card whose
+press is being answered, held for that one task so a drill-down opened by a worded cut finds none
+and offers no step. A card outside any list — the hero, a hover card's, a search hit's — has no
+neighbour. The next card is pressed a frame later, once the closing layer's focus trap has let go,
+and focused first, so it gets the focus back when its own layer closes. A key pressed in a layer
+opened over this one reaches this one's handler too, React bubbling through portals, and is
+ignored by the containment test in `stepOf`: a nested card at the end of its list leaves the
+drill-down under it where it is.
 
 ### Franchise strip — `common/FranchiseStrip.tsx`
 
@@ -2770,7 +2831,7 @@ key in ObjectExpression`; pulled out to a plain function taking the varying piec
   `sheetBarSx`, `dialogCardSx`, among others — the literal itself sits at module scope and the
   component stays compiled.
 
-The baseline is **308 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **315 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.

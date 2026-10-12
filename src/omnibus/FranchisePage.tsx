@@ -4,8 +4,9 @@ import Grid from "@mui/material/Grid";
 import { useState, type ReactNode } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { LedgerList } from "../common/Card";
-import { CURRENT_PLAINDATE, CURRENT_YEAR, type YearNumber } from "../common/date";
-import { yearPredicates, type YearType } from "../common/filterReducer";
+import { CURRENT_PLAINDATE, CURRENT_YEAR } from "../common/date";
+import { yearPredicates } from "../common/filterReducer";
+import type { YearScope } from "../common/scope";
 import type { OmniItem } from "../common/medium";
 import { countByMedium } from "../common/medium";
 import { NoticeCard } from "../common/NoticeCard";
@@ -16,6 +17,8 @@ import { StatCard, TotalsBand } from "../common/Stats";
 import { Swatch } from "../common/Swatch";
 import { TopCategoryBand } from "../common/TopList";
 import { segments } from "../common/segments";
+import { useReadingKeys } from "../common/readingKeys";
+import { earliestYear } from "./filterUtils";
 import { useScheme } from "../common/useScheme";
 import { franchiseToColour, MEDIA, mediumToColour, mediumToLabel, mediumUnit } from "../utils/types";
 import type { Library } from "../app/library";
@@ -41,7 +44,8 @@ import {
 } from "./franchiseData";
 import { FRANCHISE_CHIPS, FRANCHISE_SECTIONS } from "./sections";
 
-const MEASURES: readonly SegmentOption<Measure>[] = segments(["Hours", "Items"] as const);
+const MEASURE_KEYS = ["Hours", "Items"] as const;
+const MEASURES: readonly SegmentOption<Measure>[] = segments(MEASURE_KEYS);
 
 /** The two ranked cards the page opens on, each free to be re-pointed from its own select. */
 const DEFAULT_TOPS: readonly FranchiseTop[] = ["genre", "where"];
@@ -74,11 +78,19 @@ const FranchisePage = ({ franchise, library, items }: { franchise: string; libra
   const scheme = useScheme();
   const tab = useCurrentTab();
   const [measure, setMeasure] = useState<Measure>("Hours");
-  const [scope, setScope] = useState<{ yearType: YearType; yearTo: YearNumber }>({
+  const [scope, setScope] = useState<YearScope>({
     yearType: "upto",
     yearTo: CURRENT_YEAR,
   });
   const own = franchiseItems(items, franchise);
+  // The page's own two readings answer the same keys a tab's do. The scope narrows the timeline
+  // alone, so its years run from the franchise's first close rather than the library's.
+  useReadingKeys({
+    measures: MEASURE_KEYS,
+    measure,
+    onMeasure: setMeasure,
+    scope: { ...scope, earliestYear: earliestYear(own), onScope: setScope },
+  });
   if (own.length === 0) {
     return (
       <NoticeCard
