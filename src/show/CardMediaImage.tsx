@@ -6,7 +6,7 @@ import { CURRENT_PLAINDATE, YearMonthDay, formatDateRange } from "../common/date
 import { hoverCardArtworkSx } from "../common/cardArrangement";
 import { FranchiseStrip, type StripVariant } from "../common/FranchiseStrip";
 import { useFranchiseUnion, type FranchiseEntry } from "../common/franchiseUnion";
-import { seasonEntry, seasonKey, showRows, showSubject, showSubtitle } from "./cardData";
+import { seasonEntry, seasonKey, showRows, showSubject, showSubtitle, type ShowShelfItem } from "./cardData";
 import { useFranchiseShows } from "./franchiseContext";
 import { seasonHours } from "./statsData";
 
@@ -43,7 +43,8 @@ const ShowCardMediaImage = <T extends Show | Season>({ item, ...props }: Paramet
 
   return (
     <CardMediaImage
-      alt={show.name}
+      // A season names its number as well, or a wall of one show's seasons reads one name over and over.
+      alt={season ? `${show.name} S${season.s}` : show.name}
       image={season ? seasonArtwork(season) : show.artwork}
       detailComponent={() => (
         <ShowCardDetail
@@ -55,6 +56,14 @@ const ShowCardMediaImage = <T extends Show | Season>({ item, ...props }: Paramet
     />
   );
 };
+
+/** A library card, drawn as the season it stands for or else its whole show. */
+export const ShowShelfCardMediaImage: TypedCardMediaImage<ShowShelfItem> = ({ item, ...props }) => (
+  <ShowCardMediaImage
+    item={item.season ?? item.show}
+    {...props}
+  />
+);
 
 const SHOW_EPOCH = YearMonthDay.get(2008, 1, 1);
 

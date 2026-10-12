@@ -7,12 +7,14 @@ import {
   cardRuns,
   finishedColumns,
   finishedCount,
+  foldOf,
   genreShelf,
   IN_PROGRESS,
   wallPopulation,
   finishedItems,
   finishedKey,
   orderedBuckets,
+  splitOf,
   wordSort,
   type FinishedExtraSort,
   type FinishedItem,
@@ -560,5 +562,17 @@ describe("cardRuns", () => {
     const wall = [entry("a", "", 2024), entry("b", "", 2024)];
 
     expect(cards(cardRuns(bucketGroups(wall, "When"), seriesOf))).toEqual([["2024", ["a", "b"]]]);
+  });
+});
+
+describe("splitOf and foldOf", () => {
+  const split = { labels: ["Shows", "Seasons"] as const, parts: () => [], noun: "seasons" };
+  const fold = { labels: ["Books", "Series"] as const, of: () => "Saga" };
+
+  it("tell a unit that splits an item into parts from one that folds items into groups", () => {
+    expect(splitOf(split)).toBe(split);
+    expect(splitOf(fold)).toBeUndefined();
+    expect(foldOf(fold)).toBe(fold);
+    expect(foldOf(split)).toBeUndefined();
   });
 });
