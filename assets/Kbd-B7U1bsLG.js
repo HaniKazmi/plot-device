@@ -1,0 +1,2 @@
+import{Sa as e,fa as t,wr as n}from"./typography-BuLLn1rs.js";var r=e(),i=t(),a={fontSize:10.5,paddingX:.5,border:`1px solid`,borderColor:`divider`,borderRadius:.5,lineHeight:1.6,color:`text.secondary`},o={...a,fontSize:12,minWidth:22,paddingX:.75,textAlign:`center`},s=e=>{let t=(0,r.c)(3),s=e.large?o:a,c;return t[0]!==e.children||t[1]!==s?(c=(0,i.jsx)(n,{component:`kbd`,sx:s,children:e.children}),t[0]=e.children,t[1]=s,t[2]=c):c=t[2],c};export{s as t};
+//# sourceMappingURL=Kbd-B7U1bsLG.js.map
