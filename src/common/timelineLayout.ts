@@ -1,4 +1,5 @@
 import type { Colour } from "../utils/types";
+import type { ArtworkShape } from "./cardArrangement";
 import type { YearMonth, YearMonthDay } from "./date";
 import { latestOf } from "./date";
 import "../utils/arrayUtils";
@@ -48,10 +49,10 @@ export interface TimelineData {
    */
   picture?: (height: number, press: PicturePress) => React.ReactNode;
   /**
-   * Whether that picture stands taller than it is wide — a poster or a cover rather than a banner —
-   * which the grid pairs by (`pairPortraits`). Absent on a timeline whose pictures are all one shape.
+   * That picture's shape, which the grid pairs posters and covers by (`pairPortraits`). Absent on a
+   * timeline whose pictures are all one shape.
    */
-  portrait?: boolean;
+  shape?: ArtworkShape;
 }
 
 /**
@@ -581,7 +582,7 @@ export const groupMarks = <T>(
         end,
         open: members.some(({ mark }) => mark.open),
         picture: members.length > 1 && frontOf ? frontOf(latest.item) : latest.mark.picture,
-        portrait: latest.mark.portrait,
+        shape: latest.mark.shape,
       },
     };
   });

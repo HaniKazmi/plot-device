@@ -706,8 +706,8 @@ long its item ran, and the start is where Across opens the bar. Pictures are siz
 width so a 16:9 banner fills its month and two posters or covers stand side by side in one, which is
 what lets the Omnibus mix all four shapes in one cell. A poster begun between two banners would stand
 alone beside half a cell of nothing, so a month's marks go in the order they began except that a
-lone portrait takes the month's next one up beside it (`pairPortraits`, reading the `portrait` flag
-the Omnibus's marks carry); no banner moves and nothing leaves its month; under 760px the grid keeps its columns and
+lone portrait takes the month's next one up beside it (`pairPortraits`, reading the `shape` each of
+the Omnibus's marks carries); no banner moves and nothing leaves its month; under 760px the grid keeps its columns and
 scrolls sideways inside the card. The grid draws
 every mark, a web serial included, since a picture opens no second lane. It shares Stacked's year
 presses and its year cut (`useYearCut`), at a count of its own: a year of pictures is as tall as its

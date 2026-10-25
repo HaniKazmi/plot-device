@@ -305,9 +305,6 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
           >
             {Tabs.map((tab) => {
               const isCurrent = tab.id === currTab.id;
-              // The chrome tab's own bar for the one in hand, a franchise's page wearing the
-              // franchise's colour under the tab's name.
-              const tabDarkBar = isCurrent ? currTab.darkBar : tab.darkBar;
               const Icon = tab.icon;
               return (
                 <MuiTab
@@ -326,11 +323,7 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
                   // Only the selected label needs its own ink: `textColor="inherit"` already
                   // renders the rest at reduced opacity, which is dimming enough to tell them
                   // from the one that is current.
-                  sx={
-                    isCurrent && tabDarkBar
-                      ? (theme) => theme.applyStyles("dark", { color: tabDarkBar.ink })
-                      : undefined
-                  }
+                  sx={isCurrent && darkBar ? (theme) => theme.applyStyles("dark", { color: darkBar.ink }) : undefined}
                 />
               );
             })}

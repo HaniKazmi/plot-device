@@ -34,7 +34,7 @@ const omniMark = (item: OmniItem, today: YearMonthDay, drawing: MarkDrawing): Ti
     end,
     open: !item.closeDate,
     picture: drawing.picture(item),
-    portrait: mediumToShape(item.medium) !== "banner",
+    shape: mediumToShape(item.medium),
   };
 };
 

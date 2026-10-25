@@ -7,7 +7,7 @@ import { useYearCut, YEARS_SHOWN } from "./useYearCut";
 import { PictureHover } from "./PictureHover";
 import { CONTAIN_SIDEWAYS_SCROLL } from "./scrollbarSx";
 import type { TimelineData } from "./timelineLayout";
-import { monthRows, pairPortraits } from "./timelineStripData";
+import { monthRows } from "./timelineStripData";
 
 /**
  * The narrowest the grid is drawn, below which it scrolls sideways inside its card: a month column
@@ -139,7 +139,7 @@ export const MonthGrid = ({
                     sx={CELL_SX}
                   >
                     <Box sx={FLOW_SX}>
-                      {pairPortraits(marks).map((mark) => (
+                      {marks.map((mark) => (
                         <PictureHover
                           key={mark.key}
                           mark={mark}

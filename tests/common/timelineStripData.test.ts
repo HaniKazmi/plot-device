@@ -11,6 +11,7 @@ import {
   yearRows,
   type StripSpan,
 } from "../../src/common/timelineStripData";
+import type { ArtworkShape } from "../../src/common/cardArrangement";
 
 // Fixed endpoints rather than the real clock, so the arithmetic below is checkable by hand and
 // stays true on New Year's Day.
@@ -387,7 +388,10 @@ describe("monthRows", () => {
 });
 
 describe("pairPortraits", () => {
-  const mark = (name: string, portrait: boolean) => ({ name, portrait });
+  const mark = (name: string, portrait: boolean) => ({
+    name,
+    shape: portrait ? ("poster" as const) : ("banner" as const),
+  });
   const names = (marks: { name: string }[]) => marks.map((each) => each.name);
 
   it("pulls the month's next portrait up beside one left alone, moving no banner", () => {
@@ -401,7 +405,7 @@ describe("pairPortraits", () => {
   });
 
   it("leaves marks that do not state a shape where they are", () => {
-    const month: { name: string; portrait?: boolean }[] = [{ name: "a" }, { name: "b" }, { name: "c" }];
+    const month: { name: string; shape?: ArtworkShape }[] = [{ name: "a" }, { name: "b" }, { name: "c" }];
     expect(names(pairPortraits(month))).toEqual(["a", "b", "c"]);
   });
 });

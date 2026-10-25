@@ -174,7 +174,7 @@ describe("the dark app-bar triples", () => {
 });
 
 describe("franchiseTab", () => {
-  const themed = FRANCHISE_NAMES.map((name) => ({ name, tab: franchiseTab(OmnibusTab, name) }));
+  const themed = FRANCHISE_NAMES.map((name) => ({ name, tab: franchiseTab(name) }));
 
   it("holds every franchise's colours to the floors a tab's own are held to", () => {
     // The table lets seven franchises sit under 3:1 on the white paper beside a name; a theme's
@@ -192,18 +192,18 @@ describe("franchiseTab", () => {
   });
 
   it("keeps a franchise's own colour where it already clears the floor", () => {
-    expect(franchiseTab(OmnibusTab, "Marvel").primaryColour).toBe(franchiseToColour({ franchise: "Marvel" }, "light"));
+    expect(franchiseTab("Marvel").primaryColour).toBe(franchiseToColour({ franchise: "Marvel" }, "light"));
   });
 
   it("keeps the tab's id, so everything asking which tab is open still answers the Omnibus", () => {
-    expect(franchiseTab(OmnibusTab, "Star Wars").id).toBe(OmnibusTab.id);
+    expect(franchiseTab("Star Wars").id).toBe(OmnibusTab.id);
   });
 
   it("answers one object per franchise, the theme being cached on it", () => {
-    expect(franchiseTab(OmnibusTab, "Star Wars")).toBe(franchiseTab(OmnibusTab, "Star Wars"));
+    expect(franchiseTab("Star Wars")).toBe(franchiseTab("Star Wars"));
   });
 
   it("leaves the tab as it is for a franchise the table holds no colour for", () => {
-    expect(franchiseTab(OmnibusTab, "Discworld")).toBe(OmnibusTab);
+    expect(franchiseTab("Discworld")).toBe(OmnibusTab);
   });
 });

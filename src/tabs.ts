@@ -290,9 +290,9 @@ const solve = (colour: string, toward: string, floor: number, grounds: readonly 
 const franchiseTabs = new Map<string, Tab>();
 
 /**
- * The tab a franchise's own page is drawn in: the tab it stands under, wearing the franchise's
+ * The tab a franchise's own page is drawn in: the Omnibus it stands under, wearing the franchise's
  * colour where the shared table holds one (`franchiseToColour`), so Star Wars' page is gold and
- * Marvel's red. A franchise off the table keeps the tab as it is.
+ * Marvel's red. A franchise off the table keeps the Omnibus as it is.
  *
  * Each colour is the table's own, moved only as far as the floors a tab's colours are held to
  * demand (`DarkBar`). The light primary darkens until it clears 3:1 on the white paper, where it
@@ -303,16 +303,16 @@ const franchiseTabs = new Map<string, Tab>();
  * strip's indicator, is that ink: one hue on the bar rather than the composing tab's own accent
  * beside a brand it has nothing to do with.
  */
-export const franchiseTab = (tab: Tab, franchise: string): Tab => {
+export const franchiseTab = (franchise: string): Tab => {
   const cached = franchiseTabs.get(franchise);
   if (cached) return cached;
   const light = franchiseToColour({ franchise }, "light");
-  if (!light) return tab;
+  if (!light) return OmnibusTab;
   const dark = franchiseToColour({ franchise }, "dark");
   const ground = tint(dark);
   const ink = solve(dark, "#ffffff", 4.5, [ground, DARK_PAPER]);
   const themed: Tab = {
-    ...tab,
+    ...OmnibusTab,
     primaryColour: solve(light, "#000000", 3, ["#ffffff"]),
     secondaryColour: ink,
     darkBar: { tint: ground, rule: solve(dark, "#ffffff", 3, [ground, DARK_PAPER]), ink },
@@ -322,15 +322,14 @@ export const franchiseTab = (tab: Tab, franchise: string): Tab => {
 };
 
 /**
- * The tab whose colours the chrome wears: the current tab, or on a franchise's page that tab in the
- * franchise's colour (`franchiseTab`). Read by what paints the theme and the bars; anything asking
+ * The tab whose colours the chrome wears: the current tab, or on a franchise's page the Omnibus in
+ * the franchise's colour (`franchiseTab`). Read by what paints the theme and the bars; anything asking
  * which tab is open asks `useCurrentTab`, the id being the same either way.
  */
 export const useChromeTab = (): Tab => {
   const { pathname } = useLocation();
-  const tab = tabForPath(pathname);
   const name = franchiseAt(pathname);
-  return name ? franchiseTab(tab, name) : tab;
+  return name ? franchiseTab(name) : tabForPath(pathname);
 };
 
 /**
