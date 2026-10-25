@@ -2719,7 +2719,7 @@ keeping the full 3:1 on the dark: Witcher, Uncharted, Assassin's Creed and Tales
 their brand hex exactly, and Pokémon, Warcraft and Star Wars at 1.8, their identity being
 their brightness — a yellow at 3:1 on white is a brown-gold, 20.8 dE from Pokémon. The contract
 allows that where colour is not the only carrier, and each is named beside its swatch. It costs
-separation between brands sharing a hue — seven reds, six blues — so the set is scoped to keep those
+separation between brands sharing a hue — eight reds, nine blues — so the set is scoped to keep those
 off one chart, Marvel beside Harry Potter on the Movies bar the closest pair anywhere at 10.7 dE.
 
 `game/types.ts` splits a company two ways: **fills** for chart geometry and **accents**, the brand
@@ -2746,9 +2746,11 @@ labelled where they meet — the ledger stacks a Gameplay row on a Genre row.
 **Franchise is shared for the same reason and answers `""` off-table.** All four sheets record a
 Franchise column and 70 franchises are met in more than one medium — Marvel, Star Wars and Fate
 across games, film and television, Harry Potter across games, film and books — so a per-domain
-table would draw one of them a different colour on each tab. The set covers what a tab's
-collapsed Top Franchise card and the gallery's shelves draw, plus every cross-media franchise among
-them; the long tail is 168 values in the games sheet alone, most a work naming itself.
+table would draw one of them a different colour on each tab. The set covers the six franchises
+each tab and the Omnibus rank first, by items or by hours, and every cross-media franchise among
+them: a brand hex where the franchise has one, and otherwise the colour it is known by as a whole —
+Discworld's green turtle, the orange of Avatar's logo — never an average of its artwork, which
+comes out a brown. The long tail is 168 values in the games sheet alone, most a work naming itself.
 `tests/utils/fillContract.test.ts` pins it: a cross-media franchise resolves to one value through
 all four domains' `groupToColour`.
 

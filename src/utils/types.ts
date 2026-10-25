@@ -423,24 +423,23 @@ export const decadeToColour = (decade: string, scheme: Scheme): Colour =>
  * from what Pokémon actually looks like and 26.0 from Star Wars.
  *
  * What the clamp costs is separation between brands that already share a hue, and this table is
- * where that lands hardest. Mario, Marvel, Xenoblade, Fate, Mass Effect, Like a Dragon and Harry Potter
- * are seven reds; Final Fantasy, Ace Attorney, Civilization, DC, Disney, Doctor Who and Star Trek
- * seven blues.
+ * where that lands hardest. Mario, Marvel, Xenoblade, Fate, Mass Effect, Like a Dragon, Harry Potter
+ * and Supernatural are eight reds; Final Fantasy, Ace Attorney, Civilization, DC, Disney, Doctor
+ * Who, Star Trek, Song of Ice and Fire and Parahumans nine blues.
  * The set is scoped so those never crowd one chart: a Top Franchise bar draws five groups from one
  * sheet, and the reds and blues are spread across the three. Marvel beside Harry Potter on the
  * Movies bar is the closest pair anywhere at 10.7 dE on the dark paper, and the row labels are
  * load-bearing for it.
  *
- * The table holds the brands with a colour of their own to reproduce, and stops there: the long
- * tail — 168 franchise values in the games sheet alone, most of them a work naming itself — has
- * none, the same rule `networkToColour` follows, since a vocabulary nobody can learn teaches
- * nothing, and `""` hands the choice to the palette. What that leaves uncoloured is real: 55 of
- * the 70 franchises met in more than one medium have no entry, Wheel of Time, Song of Ice and
- * Fire and Lord of the Rings among them, and the Books tab's whole Top Franchise card — Animorphs,
- * Discworld, Darren Shan, Famous Five — draws in palette colours by rank. A franchise without an
- * entry therefore wears a different colour on each tab that draws it, which the shared table
- * exists to prevent for the ones it names; an entry costs a brand hex and a place in the hue
- * spread above.
+ * The table holds every franchise among the six each tab and the Omnibus rank first, by items or
+ * by hours — the Shows tab counting shows and the Omnibus seasons — in its brand hex where it has
+ * one and otherwise in the colour it is known by as a whole, never an average of its artwork, which
+ * comes out a brown. Past those it stops: the long tail — 168 franchise values in the games sheet
+ * alone, most of them a work naming itself — has none, the same rule `networkToColour` follows,
+ * since a vocabulary nobody can learn teaches nothing, and `""` hands the choice to the palette.
+ * What that leaves uncoloured is real — Lord of the Rings, Darren Shan — and a franchise without an
+ * entry wears a different colour on each tab that draws it, which the shared table exists to
+ * prevent for the ones it names; an entry costs a colour and a place in the hue spread above.
  */
 const franchiseColours: Record<string, Fill> = {
   // Games
@@ -474,12 +473,41 @@ const franchiseColours: Record<string, Fill> = {
   // Civilization at 9.0 on the white paper and 10.3 on the dark, both Games franchises and both
   // named beside their swatch wherever they are drawn.
   "Star Trek": fill("#0b5fa5", "#2f8ed4"),
+  // Ice, the half of the title the White Walkers carry: fire is Fate's red on the Shows bar.
+  "Song of Ice and Fire": fill("#599dbb", "#6fb3d2"),
   // Shows
   "Doctor Who": fill("#0b4573", "#3f74a6"),
   "Breaking Bad": fill("#00892b", "#01892b"),
   // Judgment rather than a published hex: neither has a brand colour of its own, and both lead
   // their tab's Top Franchise card, where a palette hue beside five branded ones reads as a gap.
   "Vampire Diaries": fill("#6b2d8b", "#8e50b0"),
+  // Each the colour the show is known by where it has no brand hex: the yellow of the "Sunny" on
+  // its title card, the orange of Avatar's logo and Aang's robes, the magenta of Sword Art Online's
+  // Mother's Rosario logo, and the green of South Park's pines and Kyle's hat — Kenny's orange
+  // being Avatar's and Cartman's teal sitting on Song of Ice and Fire's ice. Supernatural takes the
+  // blood red of its horror, its hellfire orange being Avatar's on the same tab, and Archer a
+  // purple by judgment, its own light-blue wordmark standing 3.5 from that ice.
+  "South Park": fill("#4ea834", "#5fb946"),
+  "It's Always Sunny in Philadelphia": fill("#b59003", "#f5c518"),
+  "Avatar: The Last Airbender": fill("#dc7d16", "#ee8d30"),
+  "Sword Art Online": fill("#c22984", "#c22984"),
+  Supernatural: fill("#b01e3c", "#c3344b"),
+  Archer: fill("#9b59b6", "#9b59b6"),
+  // Books, none of which has a brand hex. Where a series is known by one image the colour is that:
+  // the blue-violet of the Andalites whose technology Animorphs turns on, the green of Great
+  // A'Tuin carrying the Discworld, the pink the Hodder Famous Five covers lead with, and the sea
+  // teal of Wheel of Time's Tor ebook covers and its series' key art. The rest are judgment held
+  // apart from the series they share the Books bar with: bronze for the metals the Cosmere's magic
+  // runs on, ember for Malazan, purple for Sword of Truth and blue for Parahumans. Animorphs' dark
+  // half is lifted clear of Disney's, the two leading the Omnibus's own bar together.
+  Animorphs: fill("#6b63d6", "#8780ea"),
+  Discworld: fill("#2e9e4f", "#2e9e4f"),
+  "Famous Five": fill("#e02b64", "#e02b64"),
+  "Wheel of Time": fill("#1f8fa8", "#1f8fa8"),
+  Cosmere: fill("#c4862a", "#c4862a"),
+  Malazan: fill("#d4522a", "#d4522a"),
+  "Sword of Truth": fill("#7b3fa0", "#8c50b2"),
+  Parahumans: fill("#3d6fd0", "#3d6fd0"),
   // Films
   Disney: fill("#113ccf", "#2a5ff2"),
   Pixar: fill("#28a4a2", "#2ca6a4"),

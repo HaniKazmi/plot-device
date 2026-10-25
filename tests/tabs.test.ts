@@ -209,6 +209,6 @@ describe("franchiseTab", () => {
   });
 
   it("leaves the tab as it is for a franchise the table holds no colour for", () => {
-    expect(franchiseTab("Discworld")).toBe(OmnibusTab);
+    expect(franchiseTab("Darren Shan")).toBe(OmnibusTab);
   });
 });
