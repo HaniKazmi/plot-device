@@ -9,8 +9,8 @@ import { omniTitle } from "./adapter";
 import { franchiseRings, RING_LABELS, RINGS, ringValue } from "./franchiseSunburstData";
 
 /**
- * One franchise's hours as a hierarchy: which media, which series inside each, which entries
- * inside those — the breakdown the page's figures and timeline state only in parts. Re-nestable
+ * One franchise's hours as a hierarchy: which media, which series inside each, and each entry as
+ * the outer ring — the breakdown the page's figures and timeline state only in parts. Re-nestable
  * through the shell's own pickers, over the same keys the page's Top cards rank by.
  *
  * The first ring takes its vocabulary's colour where it has one — a medium's fill, a genre's — so
@@ -25,6 +25,8 @@ const FranchiseSunburst = ({ items, measure }: { items: OmniItem[]; measure: Mea
       title={`Where the ${measure.toLowerCase()} went`}
       data={items}
       groups={rings}
+      // A franchise is a few dozen works, so its entries stand as the outer ring from the top.
+      leaves="always"
       options={{
         keyToVal: ringValue,
         // Exact hours, the shell summing them and the printed figure floored as the vitals floor
