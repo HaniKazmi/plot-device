@@ -265,3 +265,25 @@ export const monthRows = <T extends { start: YearMonthDay; end: YearMonthDay }>(
     .toSorted((a, b) => b - a)
     .map((year) => ({ year: year as YearNumber, months: byYear.get(year)! }));
 };
+
+/**
+ * A month's marks in the order the grid draws them: the order they began, except that a portrait
+ * left alone on its line takes the next portrait in the month up beside it.
+ *
+ * A grid cell holds a banner a line or two portraits a line, so a poster begun between two banners
+ * stands alone beside half a cell of nothing. Pulling the next poster up fills that half without
+ * moving a banner, and nothing leaves its month. Marks that do not say their shape stay as they
+ * are.
+ */
+export const pairPortraits = <T extends { portrait?: boolean }>(marks: readonly T[]): T[] => {
+  const rest = [...marks];
+  const paired: T[] = [];
+  while (rest.length > 0) {
+    const mark = rest.shift()!;
+    paired.push(mark);
+    if (!mark.portrait) continue;
+    const partner = rest.findIndex((next) => next.portrait);
+    if (partner >= 0) paired.push(...rest.splice(partner, 1));
+  }
+  return paired;
+};

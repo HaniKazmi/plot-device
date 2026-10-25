@@ -5,6 +5,7 @@ import type { Colour } from "../utils/types";
 import { omniTitle } from "./adapter";
 import type { OmniItem } from "../common/medium";
 import { moduleOf, omniWork } from "../app/media";
+import { mediumToShape } from "../app/types";
 
 /** How one mark of the union is drawn: its colour, its hover card and its picture. */
 interface MarkDrawing {
@@ -33,6 +34,7 @@ const omniMark = (item: OmniItem, today: YearMonthDay, drawing: MarkDrawing): Ti
     end,
     open: !item.closeDate,
     picture: drawing.picture(item),
+    portrait: mediumToShape(item.medium) !== "banner",
   };
 };
 

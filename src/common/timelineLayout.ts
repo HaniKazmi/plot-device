@@ -47,6 +47,11 @@ export interface TimelineData {
    * would. A thunk for the tooltip's reason — a year's pictures are built only while it is drawn.
    */
   picture?: (height: number, press: PicturePress) => React.ReactNode;
+  /**
+   * Whether that picture stands taller than it is wide — a poster or a cover rather than a banner —
+   * which the grid pairs by (`pairPortraits`). Absent on a timeline whose pictures are all one shape.
+   */
+  portrait?: boolean;
 }
 
 /**
@@ -576,6 +581,7 @@ export const groupMarks = <T>(
         end,
         open: members.some(({ mark }) => mark.open),
         picture: members.length > 1 && frontOf ? frontOf(latest.item) : latest.mark.picture,
+        portrait: latest.mark.portrait,
       },
     };
   });

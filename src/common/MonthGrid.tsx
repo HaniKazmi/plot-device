@@ -7,7 +7,7 @@ import { useYearCut, YEARS_SHOWN } from "./useYearCut";
 import { PictureHover } from "./PictureHover";
 import { CONTAIN_SIDEWAYS_SCROLL } from "./scrollbarSx";
 import type { TimelineData } from "./timelineLayout";
-import { monthRows } from "./timelineStripData";
+import { monthRows, pairPortraits } from "./timelineStripData";
 
 /**
  * The narrowest the grid is drawn, below which it scrolls sideways inside its card: a month column
@@ -52,8 +52,9 @@ const YEAR_PRESS_SX = { borderRadius: 1, paddingX: 0.5 } as const;
  * Stacked with pictures in place of bands: it keeps when as well as what — seasonality reads down
  * the columns as it does there — and every item is on screen, named by its own artwork. A film,
  * with no span to draw, is its banner rather than a tick. The pictures are sized from the measured
- * width so a banner fills its month and two posters or covers stand side by side in one; below
- * `MIN_WIDTH` the grid keeps its columns and scrolls sideways inside the card.
+ * width so a banner fills its month and two posters or covers stand side by side in one, a lone
+ * portrait taking the month's next one up beside it (`pairPortraits`); below `MIN_WIDTH` the grid
+ * keeps its columns and scrolls sideways inside the card.
  *
  * A year's label scopes the page to it, as Stacked's does, and the latest years stand with the rest
  * behind the same cut — as many as the tab asks for (`yearsShown`), a year of pictures being a far
@@ -138,7 +139,7 @@ export const MonthGrid = ({
                     sx={CELL_SX}
                   >
                     <Box sx={FLOW_SX}>
-                      {marks.map((mark) => (
+                      {pairPortraits(marks).map((mark) => (
                         <PictureHover
                           key={mark.key}
                           mark={mark}
