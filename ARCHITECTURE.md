@@ -410,8 +410,8 @@ session holds its sheets for as long as it lasts, so without the second there is
 them but to reload the page, and an installed app offers no handle for that at all. It spins and
 disables itself while the read is in flight, that being the whole of the report — the rows do not
 blank, and a page of last visit's data is what stands until the new ones land. Everything
-else is behind the `⋮`, which is drawn at every width and pointer: the tab's Sheet, Sign out, and
-guest mode in both directions. One list and one surface, so nothing is reachable at one width and
+else is behind the `⋮`, which is drawn at every width and pointer: the tab's Sheet — on the Omnibus,
+the one book the four tabs read (`spreadsheetFor`) — Sign out, and guest mode in both directions. One list and one surface, so nothing is reachable at one width and
 not another — an iPad held sideways clears every width test and still points with a finger, and a
 mouse at 1440 has no other way out of guest mode. The one item it holds from `sm` up alone is
 Keyboard shortcuts, the sheet `?` opens (§ Keyboard): it names keys, and a phone has none to press. The dot is all a stale page is told: the rows are
@@ -525,7 +525,9 @@ live in the chart instance.
 Depth follows the data — the leaf ring is `groups.length + 1`, so a select box added in a domain
 file changes the rings without touching `common/`. At the top that ring is collapsed (`levelSize`
 zero, labels off) and drawn only once the reader drills in, where `dimLeafRing` fades it so leaves
-read as detail rather than structure. That callback is at module scope because Highcharts binds the
+read as detail rather than structure — unless the caller asks for it from the top (`leaves`), as
+a franchise's page does, its few dozen works being a ring of names where a library's hundreds are
+a ring of hairlines, and then at full strength, being the reading rather than detail under it. That callback is at module scope because Highcharts binds the
 chart to `this`, which opts a component out of the React Compiler silently (§7). Beside the barchart
 the card stands at `min(80vh, 700px)`, a circle's diameter being capped by its half-width column;
 stacked below it instead (`useStackedCharts`) the width _is_ the column, so the cap follows the
@@ -702,7 +704,10 @@ artwork, which is what a library of films needs, a film being a one-day tick on 
 for its name. The month it began, and not every month it ran in, so a picture is drawn once however
 long its item ran, and the start is where Across opens the bar. Pictures are sized from the measured
 width so a 16:9 banner fills its month and two posters or covers stand side by side in one, which is
-what lets the Omnibus mix all four shapes in one cell; under 760px the grid keeps its columns and
+what lets the Omnibus mix all four shapes in one cell. A poster begun between two banners would stand
+alone beside half a cell of nothing, so a month's marks go in the order they began except that a
+lone portrait takes the month's next one up beside it (`pairPortraits`, reading the `shape` each of
+the Omnibus's marks carries); no banner moves and nothing leaves its month; under 760px the grid keeps its columns and
 scrolls sideways inside the card. The grid draws
 every mark, a web serial included, since a picture opens no second lane. It shares Stacked's year
 presses and its year cut (`useYearCut`), at a count of its own: a year of pictures is as tall as its
@@ -1125,7 +1130,15 @@ how much of it there is, when it ran, who made it, and every work of it on shelv
 Omnibus's own sections drawn over one franchise's rows — the union filtered on the raw franchise
 column, as the Top franchises wall groups — so a figure here and the same figure on the Omnibus cannot be
 counted two ways. The route stands under the Omnibus, and `tabForPath` reading a path's first
-segment is what draws the Omnibus's chrome and theme around it. It is no page of the tab's own, so
+segment is what draws the Omnibus's chrome and theme around it — in the franchise's own colour where
+the shared table holds one (`franchiseTab`, `tabs.ts`), the colour moved only as far as a tab's
+primary, rule and ink are held to: Star Wars' and Pokémon's golds stand under 3:1 on the white
+paper, so their light bar is a deeper gold that carries white type, and Harry Potter's maroon and
+Doctor Who's navy stand under it on the dark one, where a one-medium franchise's By year chart draws
+its one series in the primary, so theirs lighten. The tab strip's indicator and the key's dot take
+the ink lightened until it stands clear of the bar in both schemes. The shell, the bars and the
+phone rail read that through `useChromeTab`; whatever asks which tab is open still asks
+`useCurrentTab`, the id being the Omnibus's either way. It is no page of the tab's own, so
 everything reading the tab's page state — the box's This page mode, the empty-state message, the
 rail — stands down there (`atTabRoot`), the box's This page mode saying there is nothing here to
 narrow. A press on the Omnibus in the tab strip goes back to the tab rather than nowhere, and so
@@ -1156,7 +1169,8 @@ from `FranchisePageContext` (`common/franchiseUnion.ts`), which `app/franchiseUn
 beside the union: `common/` may know neither the route nor the library, and a name that leads
 nowhere is plain words. Every franchise has a page, a standalone work's own included (§ Franchises
 over time), so the one name that leads nowhere is the franchise whose page the reader is on, read
-through the route's own matcher so a name carrying a `/` compares as the page received it. The path and the pattern are one module
+through `franchiseAt`, which decodes the path as the router does before matching, so a name
+carrying a space or a `/` compares as the page received it. The path and the pattern are one module
 (`app/franchisePage.ts`), so the link and the route cannot drift. The context answers the press as
 well as the address: a plain press goes through the router (`FranchisePages.open`), which records
 the step, so Escape and the back button know there is a page to go back to — a bare `href` changes
@@ -1212,8 +1226,8 @@ The sections, each built from a shell that already exists:
 - **By year.** The Omnibus's By year chart over the franchise's rows, a section of its own rather
   than a second reading behind a switch in When: a switch there hides one of the two, and the
   timeline's header already holds what a mark is and how the marks are laid out. Beside it stands
-  a sunburst (`FranchiseSunburst`) nesting the same rows medium › series › entry, re-nestable over
-  the keys the Top cards rank by, which is the pair every tab stands its charts in: the hours
+  a sunburst (`FranchiseSunburst`) nesting the same rows medium › series › entry, the entries
+  standing as the outer ring from the top, re-nestable over the keys the Top cards rank by, which is the pair every tab stands its charts in: the hours
   through time beside the hours as a hierarchy. A franchise in one medium opens on its series. One
   series in one medium is a single full ring around its own entries, so there the barchart stands
   alone (`hasBreakdown`). Both stand at `min(70vh, 560px)` rather than the barchart's own 80vh, a
@@ -2705,7 +2719,7 @@ keeping the full 3:1 on the dark: Witcher, Uncharted, Assassin's Creed and Tales
 their brand hex exactly, and Pokémon, Warcraft and Star Wars at 1.8, their identity being
 their brightness — a yellow at 3:1 on white is a brown-gold, 20.8 dE from Pokémon. The contract
 allows that where colour is not the only carrier, and each is named beside its swatch. It costs
-separation between brands sharing a hue — seven reds, six blues — so the set is scoped to keep those
+separation between brands sharing a hue — eight reds, nine blues — so the set is scoped to keep those
 off one chart, Marvel beside Harry Potter on the Movies bar the closest pair anywhere at 10.7 dE.
 
 `game/types.ts` splits a company two ways: **fills** for chart geometry and **accents**, the brand
@@ -2732,9 +2746,11 @@ labelled where they meet — the ledger stacks a Gameplay row on a Genre row.
 **Franchise is shared for the same reason and answers `""` off-table.** All four sheets record a
 Franchise column and 70 franchises are met in more than one medium — Marvel, Star Wars and Fate
 across games, film and television, Harry Potter across games, film and books — so a per-domain
-table would draw one of them a different colour on each tab. The set covers what a tab's
-collapsed Top Franchise card and the gallery's shelves draw, plus every cross-media franchise among
-them; the long tail is 168 values in the games sheet alone, most a work naming itself.
+table would draw one of them a different colour on each tab. The set covers the six franchises
+each tab and the Omnibus rank first, by items or by hours, and every cross-media franchise among
+them: a brand hex where the franchise has one, and otherwise the colour it is known by as a whole —
+Discworld's green turtle, the orange of Avatar's logo — never an average of its artwork, which
+comes out a brown. The long tail is 168 values in the games sheet alone, most a work naming itself.
 `tests/utils/fillContract.test.ts` pins it: a cross-media franchise resolves to one value through
 all four domains' `groupToColour`.
 
@@ -3056,7 +3072,7 @@ needs — where `rule` is the same hue solved lighter and clears 5:1 on that pap
 keeps the light literal either way: `Barchart` reads `theme.palette.primary.main`, which under
 `cssVariables: true` is the light scheme's value on both papers, which is why a primary is held to
 3:1 on both (`fillContract.test.ts`). Themes are cached in a `Map`
-keyed by tab id:
+keyed by the tab itself, a franchise's page wearing a tab of its own (`franchiseTab`):
 building one walks both schemes, typography, shadows and the whole CSS-variable map, and a stable
 identity stops the MUI tree re-evaluating `sx` on navigation. `Google.tsx` also mounts
 `LibraryProvider` inside `GoogleAuthProvider` and above the bar — every tab reads its sheet from

@@ -1,4 +1,5 @@
 import type { Colour } from "../utils/types";
+import type { ArtworkShape } from "./cardArrangement";
 import type { YearMonth, YearMonthDay } from "./date";
 import { latestOf } from "./date";
 import "../utils/arrayUtils";
@@ -47,6 +48,11 @@ export interface TimelineData {
    * would. A thunk for the tooltip's reason — a year's pictures are built only while it is drawn.
    */
   picture?: (height: number, press: PicturePress) => React.ReactNode;
+  /**
+   * That picture's shape, which the grid pairs posters and covers by (`pairPortraits`). Absent on a
+   * timeline whose pictures are all one shape.
+   */
+  shape?: ArtworkShape;
 }
 
 /**
@@ -576,6 +582,7 @@ export const groupMarks = <T>(
         end,
         open: members.some(({ mark }) => mark.open),
         picture: members.length > 1 && frontOf ? frontOf(latest.item) : latest.mark.picture,
+        shape: latest.mark.shape,
       },
     };
   });

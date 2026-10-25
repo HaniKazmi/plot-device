@@ -1,4 +1,5 @@
 import { YearMonthDay, type YearNumber } from "./date";
+import type { ArtworkShape } from "./cardArrangement";
 import {
   assignRows,
   buildTicks,
@@ -250,9 +251,12 @@ export interface MonthRow<T> {
  * The month it began rather than any month it ran in, so a mark is drawn once however long it ran:
  * the grid draws each item's own picture, and a season running from March to June standing in four
  * cells would be four copies of one poster. The start is also where the packed chart opens its
- * bar, so a picture here and a bar there name one month.
+ * bar, so a picture here and a bar there name one month. Each month holds its marks in the order
+ * the grid draws them (`pairPortraits`).
  */
-export const monthRows = <T extends { start: YearMonthDay; end: YearMonthDay }>(items: T[]): MonthRow<T>[] => {
+export const monthRows = <T extends { start: YearMonthDay; end: YearMonthDay; shape?: ArtworkShape }>(
+  items: T[],
+): MonthRow<T>[] => {
   const byYear = new Map<number, T[][]>();
   // A start after its own end is an open item begun ahead of today, which every other layout leaves
   // off (`packRows`, `yearRows`): drawn here, it would stand in a month that has not happened.
@@ -263,5 +267,28 @@ export const monthRows = <T extends { start: YearMonthDay; end: YearMonthDay }>(
   }
   return [...byYear.keys()]
     .toSorted((a, b) => b - a)
-    .map((year) => ({ year: year as YearNumber, months: byYear.get(year)! }));
+    .map((year) => ({ year: year as YearNumber, months: byYear.get(year)!.map(pairPortraits) }));
+};
+
+/**
+ * A month's marks in the order the grid draws them: the order they began, except that a portrait
+ * left alone on its line takes the next portrait in the month up beside it.
+ *
+ * A grid cell holds a banner a line or two portraits a line, so a poster begun between two banners
+ * stands alone beside half a cell of nothing. Pulling the next poster up fills that half without
+ * moving a banner, and nothing leaves its month. Marks that do not say their shape stay as they
+ * are.
+ */
+export const pairPortraits = <T extends { shape?: ArtworkShape }>(marks: readonly T[]): T[] => {
+  const portrait = (mark: T) => mark.shape !== undefined && mark.shape !== "banner";
+  const rest = [...marks];
+  const paired: T[] = [];
+  while (rest.length > 0) {
+    const mark = rest.shift()!;
+    paired.push(mark);
+    if (!portrait(mark)) continue;
+    const partner = rest.findIndex(portrait);
+    if (partner >= 0) paired.push(...rest.splice(partner, 1));
+  }
+  return paired;
 };

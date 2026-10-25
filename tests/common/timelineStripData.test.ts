@@ -7,9 +7,11 @@ import {
   stripYearTicks,
   yearLabelEvery,
   monthRows,
+  pairPortraits,
   yearRows,
   type StripSpan,
 } from "../../src/common/timelineStripData";
+import type { ArtworkShape } from "../../src/common/cardArrangement";
 
 // Fixed endpoints rather than the real clock, so the arithmetic below is checkable by hand and
 // stays true on New Year's Day.
@@ -382,5 +384,28 @@ describe("monthRows", () => {
     const [row] = monthRows([span("a", [2024, 7, 1], [2024, 7, 1])]);
 
     expect(row.months).toHaveLength(12);
+  });
+});
+
+describe("pairPortraits", () => {
+  const mark = (name: string, portrait: boolean) => ({
+    name,
+    shape: portrait ? ("poster" as const) : ("banner" as const),
+  });
+  const names = (marks: { name: string }[]) => marks.map((each) => each.name);
+
+  it("pulls the month's next portrait up beside one left alone, moving no banner", () => {
+    const month = [mark("p1", true), mark("b1", false), mark("p2", true), mark("b2", false), mark("p3", true)];
+    expect(names(pairPortraits(month))).toEqual(["p1", "p2", "b1", "b2", "p3"]);
+  });
+
+  it("keeps the order marks began in where portraits already pair", () => {
+    const month = [mark("b1", false), mark("p1", true), mark("p2", true), mark("b2", false)];
+    expect(names(pairPortraits(month))).toEqual(["b1", "p1", "p2", "b2"]);
+  });
+
+  it("leaves marks that do not state a shape where they are", () => {
+    const month: { name: string; shape?: ArtworkShape }[] = [{ name: "a" }, { name: "b" }, { name: "c" }];
+    expect(names(pairPortraits(month))).toEqual(["a", "b", "c"]);
   });
 });

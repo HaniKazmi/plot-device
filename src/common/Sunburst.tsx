@@ -64,11 +64,18 @@ const Sunburst = <T, K extends string>({
   controls,
   groups,
   options,
+  leaves,
 }: {
   title: string;
   controls: ReactNode;
   data: T[];
   groups: K[];
+  /**
+   * Whether the ring of single items stands from the top as well as once the reader drills in. A
+   * library of hundreds collapses it at the top, where it is a ring of hairlines; a set of a few
+   * dozen, one franchise's works, reads it whole.
+   */
+  leaves?: "drilled" | "always";
   options: {
     keyToVal: (item: T, key: K) => string;
     getCount: (item: T) => number | undefined;
@@ -111,7 +118,7 @@ const Sunburst = <T, K extends string>({
    * holds no node for has to be reset in the options the update carries or the translate throws.
    */
   const root = sunburstRoot(generatedData, drilledId);
-  const hide = root.atTop;
+  const hide = root.atTop && leaves !== "always";
   /**
    * The chart is rebuilt rather than updated whenever the hierarchy it drew is not the one it is
    * handed. `chart.update` matches incoming nodes to the points the chart already holds by
@@ -165,7 +172,8 @@ const Sunburst = <T, K extends string>({
                 color: theme.vars.palette.text.primary,
               },
               events: {
-                render: dimLeafRing(leafLevel),
+                // Asked for from the top, the ring is the reading rather than detail under it.
+                render: leaves === "always" ? undefined : dimLeafRing(leafLevel),
               },
             },
           }}

@@ -160,7 +160,17 @@ describe.each(SCHEMES)("every fill clears 3:1 on the %s paper", (scheme) => {
  * per-domain copies: a franchise met in more than one medium is one colour wherever it is drawn.
  */
 describe("one franchise, one colour, every tab", () => {
-  const CROSS_MEDIA = ["Marvel", "Star Wars", "Harry Potter", "Mario", "DC", "Fate", "Witcher", "Star Trek"];
+  const CROSS_MEDIA = [
+    "Marvel",
+    "Star Wars",
+    "Harry Potter",
+    "Mario",
+    "DC",
+    "Fate",
+    "Witcher",
+    "Star Trek",
+    "Song of Ice and Fire",
+  ];
 
   it.each(CROSS_MEDIA)("draws %s the same on Games, Shows, Movies and Books", (franchise) => {
     for (const scheme of SCHEMES) {

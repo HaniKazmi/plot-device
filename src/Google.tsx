@@ -27,7 +27,7 @@ import { isAllTime, scopeLabel } from "./common/scope.ts";
 import { CURRENT_YEAR } from "./common/date.ts";
 import { EmptyCard } from "./app/EmptyCard.tsx";
 import { ErrorBoundary } from "./common/ErrorBoundary.tsx";
-import { barColour, DARK_PAPER, useCurrentTab, useEscapeLeavesSubPage, useTabKeys } from "./tabs.ts";
+import { barColour, DARK_PAPER, useChromeTab, useEscapeLeavesSubPage, useTabKeys } from "./tabs.ts";
 import type { Tab } from "./tabs.ts";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 
@@ -149,7 +149,7 @@ const GoogleAuth = () => {
 };
 
 const Graphs = () => {
-  const currTab = useCurrentTab();
+  const currTab = useChromeTab();
   const theme = getTheme(currTab);
   // A tab with no `darkBar` (none currently exist) falls back to `DARK_PAPER`, matching the plain
   // bar `getTheme` leaves `AppBar.darkBg` defaulting to in that case.
@@ -190,11 +190,12 @@ const DARK_TEXT = "#e8eaed";
 
 // Themes are cached per tab: building one walks both colour schemes, typography, shadows and
 // the whole CSS-variable map, and a stable identity also stops the MUI tree re-evaluating `sx`
-// on navigation. Bounded by the number of tabs.
-const themeCache = new Map<string, ReturnType<typeof createTheme>>();
+// on navigation. Keyed on the tab itself, a franchise's page wearing a tab of its own under the
+// Omnibus's id (`franchiseTab`), so bounded by the tabs and the franchises the table colours.
+const themeCache = new Map<Tab, ReturnType<typeof createTheme>>();
 
 const getTheme = (tab: Tab) => {
-  const cached = themeCache.get(tab.id);
+  const cached = themeCache.get(tab);
   if (cached) return cached;
 
   const primaryColour = tab.primaryColour ?? defaultPalette.primary.main;
@@ -443,7 +444,7 @@ const getTheme = (tab: Tab) => {
     },
   });
 
-  themeCache.set(tab.id, theme);
+  themeCache.set(tab, theme);
   return theme;
 };
 
