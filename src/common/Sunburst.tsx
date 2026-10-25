@@ -172,7 +172,8 @@ const Sunburst = <T, K extends string>({
                 color: theme.vars.palette.text.primary,
               },
               events: {
-                render: dimLeafRing(leafLevel),
+                // Asked for from the top, the ring is the reading rather than detail under it.
+                render: leaves === "always" ? undefined : dimLeafRing(leafLevel),
               },
             },
           }}

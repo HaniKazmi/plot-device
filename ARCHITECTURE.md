@@ -527,7 +527,7 @@ file changes the rings without touching `common/`. At the top that ring is colla
 zero, labels off) and drawn only once the reader drills in, where `dimLeafRing` fades it so leaves
 read as detail rather than structure — unless the caller asks for it from the top (`leaves`), as
 a franchise's page does, its few dozen works being a ring of names where a library's hundreds are
-a ring of hairlines. That callback is at module scope because Highcharts binds the
+a ring of hairlines, and then at full strength, being the reading rather than detail under it. That callback is at module scope because Highcharts binds the
 chart to `this`, which opts a component out of the React Compiler silently (§7). Beside the barchart
 the card stands at `min(80vh, 700px)`, a circle's diameter being capped by its half-width column;
 stacked below it instead (`useStackedCharts`) the width _is_ the column, so the cap follows the
@@ -1133,7 +1133,10 @@ counted two ways. The route stands under the Omnibus, and `tabForPath` reading a
 segment is what draws the Omnibus's chrome and theme around it — in the franchise's own colour where
 the shared table holds one (`franchiseTab`, `tabs.ts`), the colour moved only as far as a tab's
 primary, rule and ink are held to: Star Wars' and Pokémon's golds stand under 3:1 on the white
-paper, so their light bar is a deeper gold that carries white type. The shell, the bars and the
+paper, so their light bar is a deeper gold that carries white type, and Harry Potter's maroon and
+Doctor Who's navy stand under it on the dark one, where a one-medium franchise's By year chart draws
+its one series in the primary, so theirs lighten. The tab strip's indicator and the key's dot take
+the ink lightened until it stands clear of the bar in both schemes. The shell, the bars and the
 phone rail read that through `useChromeTab`; whatever asks which tab is open still asks
 `useCurrentTab`, the id being the Omnibus's either way. It is no page of the tab's own, so
 everything reading the tab's page state — the box's This page mode, the empty-state message, the

@@ -177,13 +177,18 @@ describe("franchiseTab", () => {
   const themed = FRANCHISE_NAMES.map((name) => ({ name, tab: franchiseTab(name) }));
 
   it("holds every franchise's colours to the floors a tab's own are held to", () => {
-    // The table lets seven franchises sit under 3:1 on the white paper beside a name; a theme's
-    // primary carries type there, so the derived tab has to clear what `colouredTabs` above clear.
+    // The table lets seven franchises sit under 3:1 on the white paper beside a name, and its light
+    // halves answer to the white paper alone; a theme's primary carries type on the white paper and
+    // a one-group series on both, so the derived tab has to clear what a tab's own primary clears.
     for (const { name, tab } of themed) {
       const { tint, rule, ink } = tab.darkBar!;
-      expect(contrast(tab.primaryColour!, PAPERS.light), `${name} primary on the light paper`).toBeGreaterThanOrEqual(
-        3,
-      );
+      for (const paper of [PAPERS.light, PAPERS.dark]) {
+        expect(contrast(tab.primaryColour!, paper), `${name} primary on ${paper}`).toBeGreaterThanOrEqual(3);
+      }
+      // The tab strip's indicator and the key's dot stand on the bar in both schemes.
+      for (const bar of [tab.primaryColour!, tint]) {
+        expect(contrast(tab.secondaryColour!, bar), `${name} secondary on ${bar}`).toBeGreaterThanOrEqual(3);
+      }
       for (const ground of [tint, PAPERS.dark]) {
         expect(contrast(rule, ground), `${name} rule on ${ground}`).toBeGreaterThanOrEqual(3);
         expect(contrast(ink, ground), `${name} ink on ${ground}`).toBeGreaterThanOrEqual(4.5);

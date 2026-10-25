@@ -275,16 +275,23 @@ const contrast = (a: string, b: string) => {
 };
 
 /**
- * `colour` moved toward `toward` in the fewest 2% steps that clear `floor` against every ground,
- * so a colour already clearing it comes back unchanged.
+ * `colour` moved toward one of `towards` in the fewest 2% steps that clear `floor` against every
+ * ground, so a colour already clearing it comes back unchanged. Given both black and white, it
+ * darkens or lightens whichever reaches the floor sooner, which is what a value held against a
+ * light and a dark ground at once needs.
  */
-const solve = (colour: string, toward: string, floor: number, grounds: readonly string[]): string => {
+const solve = (colour: string, towards: readonly string[], floor: number, grounds: readonly string[]): string => {
   for (let step = 0; step <= 50; step++) {
-    const candidate = mix(toward, colour, step / 50);
-    if (grounds.every((ground) => contrast(candidate, ground) >= floor)) return candidate;
+    for (const toward of towards) {
+      const candidate = mix(toward, colour, step / 50);
+      if (grounds.every((ground) => contrast(candidate, ground) >= floor)) return candidate;
+    }
   }
-  return toward;
+  return colour;
 };
+
+const BLACK = "#000000";
+const WHITE = "#ffffff";
 
 // One per franchise visited, so the theme `Google.tsx` caches by tab is built once a franchise.
 const franchiseTabs = new Map<string, Tab>();
@@ -295,13 +302,16 @@ const franchiseTabs = new Map<string, Tab>();
  * Marvel's red. A franchise off the table keeps the Omnibus as it is.
  *
  * Each colour is the table's own, moved only as far as the floors a tab's colours are held to
- * demand (`DarkBar`). The light primary darkens until it clears 3:1 on the white paper, where it
- * draws a lit segment's word and the bar's white text: Pokémon's `#ebbb00` stands at 1.8:1 there,
- * which the table allows for a swatch beside a name and no surface carrying type can. The dark
- * scheme starts from the dark half, the franchise as it is drawn on that paper, and lightens it to
- * the rule's 3:1 and the ink's 4.5:1 against both the tint and the paper. The secondary, the tab
- * strip's indicator, is that ink: one hue on the bar rather than the composing tab's own accent
- * beside a brand it has nothing to do with.
+ * demand (`DarkBar`). The light primary moves until it clears 3:1 on both papers: on the white
+ * one it draws a lit segment's word and the bar's white text, and Pokémon's `#ebbb00` stands at
+ * 1.8:1 there, which the table allows for a swatch beside a name and no surface carrying type can;
+ * on the dark one it draws a one-group barchart's series (`primaryColour`), where Harry
+ * Potter's `#7e0f0b` stands at 1.5:1. The dark scheme starts from the dark half, the franchise as
+ * it is drawn on that paper, and lightens it to the rule's 3:1 and the ink's 4.5:1 against both the
+ * tint and the paper. The secondary — the tab strip's indicator and the key's dot, standing on the
+ * bar in both schemes — is that ink lightened until it clears 3:1 on the light bar and the tint
+ * alike: one hue on the bar rather than the composing tab's own accent beside a brand it has
+ * nothing to do with, where the ink alone is Witcher's grey on a grey bar at 1.2:1.
  */
 export const franchiseTab = (franchise: string): Tab => {
   const cached = franchiseTabs.get(franchise);
@@ -309,13 +319,14 @@ export const franchiseTab = (franchise: string): Tab => {
   const light = franchiseToColour({ franchise }, "light");
   if (!light) return OmnibusTab;
   const dark = franchiseToColour({ franchise }, "dark");
+  const primary = solve(light, [BLACK, WHITE], 3, [WHITE, DARK_PAPER]);
   const ground = tint(dark);
-  const ink = solve(dark, "#ffffff", 4.5, [ground, DARK_PAPER]);
+  const ink = solve(dark, [WHITE], 4.5, [ground, DARK_PAPER]);
   const themed: Tab = {
     ...OmnibusTab,
-    primaryColour: solve(light, "#000000", 3, ["#ffffff"]),
-    secondaryColour: ink,
-    darkBar: { tint: ground, rule: solve(dark, "#ffffff", 3, [ground, DARK_PAPER]), ink },
+    primaryColour: primary,
+    secondaryColour: solve(ink, [WHITE], 3, [primary, ground]),
+    darkBar: { tint: ground, rule: solve(dark, [WHITE], 3, [ground, DARK_PAPER]), ink },
   };
   franchiseTabs.set(franchise, themed);
   return themed;
