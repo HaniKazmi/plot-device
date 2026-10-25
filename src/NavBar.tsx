@@ -15,7 +15,7 @@ import {
 import { Key, MoreVert, Refresh, Search } from "@mui/icons-material";
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import Tabs, { atTabRoot, useCurrentTab } from "./tabs";
+import Tabs, { atTabRoot, spreadsheetFor, useChromeTab } from "./tabs";
 import useLongPress from "./utils/useLongPress";
 import { useGoogleAuth } from "./contexts/GoogleAuthContext";
 import { useAuthState } from "./app/authState";
@@ -171,7 +171,7 @@ const useBarAway = () => {
 const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode: (value: boolean) => void }) => {
   const navigate = useNavigate();
   const barRef = useBarAway();
-  const currTab = useCurrentTab();
+  const currTab = useChromeTab();
   const root = atTabRoot(useLocation().pathname);
   // The hook answers with the pointer's handlers alone, which is why the overflow menu offers guest
   // mode outright: a finger has no long press to reach it with.
@@ -220,13 +220,12 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
   // back to, so nothing here draws a rule or an ink colour with nothing to derive them from.
   const darkBar = currTab.darkBar;
 
-  const sheetHref = `https://docs.google.com/spreadsheets/d/${currTab.spreadsheetId}`;
+  const spreadsheet = spreadsheetFor(currTab);
   const closeMenu = () => setMenuAnchor(null);
 
   const actions: BarAction[] = [
-    // Only where the tab has a sheet of its own. A tab composing several has no single one to
-    // open, and the action would otherwise link to `/d/undefined`.
-    ...(currTab.spreadsheetId ? [{ label: "Sheet", href: sheetHref }] : []),
+    // Only where there is one book to open, or the action would link to `/d/undefined`.
+    ...(spreadsheet ? [{ label: "Sheet", href: `https://docs.google.com/spreadsheets/d/${spreadsheet}` }] : []),
     // Its counterpart is the bar's own key: authorising is the one thing a reader arriving at a
     // stale or empty page has to do, and a menu is two taps away from doing it. Giving a session
     // back is neither urgent nor frequent, so it stays here.
@@ -306,7 +305,9 @@ const NavBar = ({ guestMode, setGuestMode }: { guestMode: boolean; setGuestMode:
           >
             {Tabs.map((tab) => {
               const isCurrent = tab.id === currTab.id;
-              const tabDarkBar = tab.darkBar;
+              // The chrome tab's own bar for the one in hand, a franchise's page wearing the
+              // franchise's colour under the tab's name.
+              const tabDarkBar = isCurrent ? currTab.darkBar : tab.darkBar;
               const Icon = tab.icon;
               return (
                 <MuiTab

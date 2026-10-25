@@ -1,9 +1,10 @@
 import type { FunctionComponent } from "react";
 import type { SvgIconComponent } from "@mui/icons-material";
 import { GridView, MenuBook, SportsEsports, Theaters, Tv } from "@mui/icons-material";
-import type { Colour, Scheme } from "./utils/types";
+import { franchiseToColour, type Colour, type Scheme } from "./utils/types";
 import { useEffect, useEffectEvent } from "react";
 import { useLocation, useNavigate, type NavigateFunction } from "react-router-dom";
+import { franchiseAt } from "./app/franchisePage";
 import { inEditableField, stepIndex, usePageKeys } from "./common/keyboard";
 import { useScheme } from "./common/useScheme";
 import Shows from "./show/Show";
@@ -39,14 +40,16 @@ export interface DarkBar {
 export const DARK_PAPER = "#1d2126";
 const TINT_STRENGTH = 0.22;
 
-/** `round(0.22 * primary + 0.78 * paper)` per channel: the bar's ground in the dark scheme. */
-const tint = (primary: string): string => {
-  const channel = (hex: string, i: number) => parseInt(hex.slice(1 + 2 * i, 3 + 2 * i), 16);
-  const mixed = [0, 1, 2].map((i) =>
-    Math.round(TINT_STRENGTH * channel(primary, i) + (1 - TINT_STRENGTH) * channel(DARK_PAPER, i)),
-  );
+const channel = (hex: string, i: number) => parseInt(hex.slice(1 + 2 * i, 3 + 2 * i), 16);
+
+/** `round(amount * from + (1 - amount) * to)` per channel. */
+const mix = (from: string, to: string, amount: number): string => {
+  const mixed = [0, 1, 2].map((i) => Math.round(amount * channel(from, i) + (1 - amount) * channel(to, i)));
   return `#${mixed.map((value) => value.toString(16).padStart(2, "0")).join("")}`;
 };
+
+/** `round(0.22 * primary + 0.78 * paper)` per channel: the bar's ground in the dark scheme. */
+const tint = (primary: string): string => mix(primary, DARK_PAPER, TINT_STRENGTH);
 
 /**
  * A tab's colours: the two the light scheme is built from, and the dark bar's triple with its
@@ -87,11 +90,9 @@ export interface Tab {
    */
   shortcut: string;
   /**
-   * The sheet this tab is the dashboard for, absent on a tab that has none of its own. Omnibus
-   * composes the four the other tabs already fetch. They are four tabs of one book now, so an id
-   * here would be the right *file* and still the wrong answer: the "Sheet" button opens what a
-   * reader is looking at, and on the Omnibus that is all four rather than whichever one a range
-   * happened to name.
+   * The sheet this tab reads, absent on a tab that reads none of its own. Omnibus composes the
+   * four the other tabs already fetch, so an id here would hand it a fetch of its own; what its
+   * "Sheet" action opens is the book those four share (`spreadsheetFor`).
    */
   spreadsheetId?: string;
   /**
@@ -259,6 +260,89 @@ export const tabForPath = (pathname: string, tabs: readonly Tab[] = Tabs): Tab =
 export const atTabRoot = (pathname: string) => segmentsOf(pathname).filter(Boolean).length <= 1;
 
 export const useCurrentTab = (): Tab => tabForPath(useLocation().pathname);
+
+/** WCAG 2 contrast between two hex colours. */
+const contrast = (a: string, b: string) => {
+  const luminance = (hex: string) => {
+    const [r, g, b] = [0, 1, 2].map((i) => {
+      const c = channel(hex, i) / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+};
+
+/**
+ * `colour` moved toward `toward` in the fewest 2% steps that clear `floor` against every ground,
+ * so a colour already clearing it comes back unchanged.
+ */
+const solve = (colour: string, toward: string, floor: number, grounds: readonly string[]): string => {
+  for (let step = 0; step <= 50; step++) {
+    const candidate = mix(toward, colour, step / 50);
+    if (grounds.every((ground) => contrast(candidate, ground) >= floor)) return candidate;
+  }
+  return toward;
+};
+
+// One per franchise visited, so the theme `Google.tsx` caches by tab is built once a franchise.
+const franchiseTabs = new Map<string, Tab>();
+
+/**
+ * The tab a franchise's own page is drawn in: the tab it stands under, wearing the franchise's
+ * colour where the shared table holds one (`franchiseToColour`), so Star Wars' page is gold and
+ * Marvel's red. A franchise off the table keeps the tab as it is.
+ *
+ * Each colour is the table's own, moved only as far as the floors a tab's colours are held to
+ * demand (`DarkBar`). The light primary darkens until it clears 3:1 on the white paper, where it
+ * draws a lit segment's word and the bar's white text: Pokémon's `#ebbb00` stands at 1.8:1 there,
+ * which the table allows for a swatch beside a name and no surface carrying type can. The dark
+ * scheme starts from the dark half, the franchise as it is drawn on that paper, and lightens it to
+ * the rule's 3:1 and the ink's 4.5:1 against both the tint and the paper. The secondary, the tab
+ * strip's indicator, is that ink: one hue on the bar rather than the composing tab's own accent
+ * beside a brand it has nothing to do with.
+ */
+export const franchiseTab = (tab: Tab, franchise: string): Tab => {
+  const cached = franchiseTabs.get(franchise);
+  if (cached) return cached;
+  const light = franchiseToColour({ franchise }, "light");
+  if (!light) return tab;
+  const dark = franchiseToColour({ franchise }, "dark");
+  const ground = tint(dark);
+  const ink = solve(dark, "#ffffff", 4.5, [ground, DARK_PAPER]);
+  const themed: Tab = {
+    ...tab,
+    primaryColour: solve(light, "#000000", 3, ["#ffffff"]),
+    secondaryColour: ink,
+    darkBar: { tint: ground, rule: solve(dark, "#ffffff", 3, [ground, DARK_PAPER]), ink },
+  };
+  franchiseTabs.set(franchise, themed);
+  return themed;
+};
+
+/**
+ * The tab whose colours the chrome wears: the current tab, or on a franchise's page that tab in the
+ * franchise's colour (`franchiseTab`). Read by what paints the theme and the bars; anything asking
+ * which tab is open asks `useCurrentTab`, the id being the same either way.
+ */
+export const useChromeTab = (): Tab => {
+  const { pathname } = useLocation();
+  const tab = tabForPath(pathname);
+  const name = franchiseAt(pathname);
+  return name ? franchiseTab(tab, name) : tab;
+};
+
+/**
+ * The spreadsheet a tab's "Sheet" action opens: its own, or for a tab composing the others the one
+ * book every one of them reads. The Omnibus is drawn from four tabs of that book, so the book is
+ * what it is showing; tabs reading different books leave no one file to name, and no action.
+ */
+export const spreadsheetFor = (tab: Tab, tabs: readonly Tab[] = Tabs): string | undefined => {
+  if (tab.spreadsheetId) return tab.spreadsheetId;
+  const books = new Set(tabs.flatMap((each) => (each.spreadsheetId ? [each.spreadsheetId] : [])));
+  return books.size === 1 ? [...books][0] : undefined;
+};
 
 /**
  * The tab an id names, for a surface holding a page module or a medium rather than a tab: a module

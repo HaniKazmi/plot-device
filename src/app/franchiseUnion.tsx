@@ -1,11 +1,11 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
-import { matchPath, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useLibrary } from "./library";
 import { CURRENT_PLAINDATE } from "../common/date";
 import { FranchisePageContext, FranchiseUnionContext, type FranchisePages } from "../common/franchiseUnion";
 import type { OmniItem } from "../common/medium";
 import { buildFranchiseUnion } from "./franchiseUnionData";
-import { FRANCHISE_ROUTE, franchisePath } from "./franchisePage";
+import { franchiseAt, franchisePath } from "./franchisePage";
 
 /**
  * The hover card, loaded with the chunk that draws it rather than with the shell.
@@ -46,8 +46,7 @@ export const FranchiseUnionProvider = ({ children }: { children: ReactNode }) =>
 
   const { items } = useLibrary();
   const union = items ? buildFranchiseUnion(items, CURRENT_PLAINDATE, hoverCard) : undefined;
-  // Read through the route's own matcher, which decodes the name as the page itself receives it.
-  const here = matchPath(FRANCHISE_ROUTE, useLocation().pathname)?.params.name;
+  const here = franchiseAt(useLocation().pathname);
   // Through a ref, so the value every link reads keeps its identity across navigations: under a
   // hash router `navigate` is a new function at every path, and held in the value it would
   // re-render every name in the app on each one.

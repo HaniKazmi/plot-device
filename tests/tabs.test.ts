@@ -7,18 +7,21 @@ import Tabs, {
   GamesTab,
   allTabs,
   atTabRoot,
+  franchiseTab,
+  spreadsheetFor,
   tabForPath,
   type DarkBar,
   type Tab,
 } from "../src/tabs";
 import { PAPERS, contrast } from "./fixtures/colour";
+import { FRANCHISE_NAMES, franchiseToColour } from "../src/utils/types";
 
 describe("the tab registry", () => {
   it("routes Omnibus, Games, Shows, Movies and Books", () => {
     expect(Tabs.map((tab) => tab.id)).toEqual(["omnibus", "games", "shows", "movies", "books"]);
   });
 
-  it("gives every tab a distinct id, since the theme cache is keyed on it", () => {
+  it("gives every tab a distinct id, since the routes and the page stores are keyed on it", () => {
     expect(new Set(Tabs.map((tab) => tab.id)).size).toBe(Tabs.length);
   });
 
@@ -37,11 +40,25 @@ describe("the tab registry", () => {
     }
   });
 
-  it("leaves Omnibus without a sheet of its own, since it composes the other three", () => {
-    // Naming one of the three here would point the app bar's Sheet button at a third of what the
-    // page is showing, and `SheetTab` is what keeps a fetch from being handed this tab at all.
+  it("leaves Omnibus without a sheet of its own, since it composes the other four", () => {
+    // `SheetTab` is what keeps a fetch from being handed this tab at all.
     expect(OmnibusTab.spreadsheetId).toBeUndefined();
     expect(OmnibusTab.range).toBeUndefined();
+  });
+});
+
+describe("spreadsheetFor", () => {
+  it("opens a tab's own sheet", () => {
+    expect(spreadsheetFor(GamesTab)).toBe(GamesTab.spreadsheetId);
+  });
+
+  it("opens the one book the other tabs share from the Omnibus, which reads no sheet of its own", () => {
+    expect(spreadsheetFor(OmnibusTab)).toBe(GamesTab.spreadsheetId);
+  });
+
+  it("opens nothing from a composing tab where the tabs read different books", () => {
+    const elsewhere = { ...ShowsTab, spreadsheetId: "another-book" };
+    expect(spreadsheetFor(OmnibusTab, [OmnibusTab, GamesTab, elsewhere])).toBeUndefined();
   });
 });
 
@@ -153,5 +170,40 @@ describe("the dark app-bar triples", () => {
       expect(contrast(rule, PAPERS.dark), `${tab.name} rule (${rule}) on the dark paper`).toBeGreaterThanOrEqual(3);
       expect(contrast(ink, PAPERS.dark), `${tab.name} ink (${ink}) on the dark paper`).toBeGreaterThanOrEqual(4.5);
     }
+  });
+});
+
+describe("franchiseTab", () => {
+  const themed = FRANCHISE_NAMES.map((name) => ({ name, tab: franchiseTab(OmnibusTab, name) }));
+
+  it("holds every franchise's colours to the floors a tab's own are held to", () => {
+    // The table lets seven franchises sit under 3:1 on the white paper beside a name; a theme's
+    // primary carries type there, so the derived tab has to clear what `colouredTabs` above clear.
+    for (const { name, tab } of themed) {
+      const { tint, rule, ink } = tab.darkBar!;
+      expect(contrast(tab.primaryColour!, PAPERS.light), `${name} primary on the light paper`).toBeGreaterThanOrEqual(
+        3,
+      );
+      for (const ground of [tint, PAPERS.dark]) {
+        expect(contrast(rule, ground), `${name} rule on ${ground}`).toBeGreaterThanOrEqual(3);
+        expect(contrast(ink, ground), `${name} ink on ${ground}`).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  it("keeps a franchise's own colour where it already clears the floor", () => {
+    expect(franchiseTab(OmnibusTab, "Marvel").primaryColour).toBe(franchiseToColour({ franchise: "Marvel" }, "light"));
+  });
+
+  it("keeps the tab's id, so everything asking which tab is open still answers the Omnibus", () => {
+    expect(franchiseTab(OmnibusTab, "Star Wars").id).toBe(OmnibusTab.id);
+  });
+
+  it("answers one object per franchise, the theme being cached on it", () => {
+    expect(franchiseTab(OmnibusTab, "Star Wars")).toBe(franchiseTab(OmnibusTab, "Star Wars"));
+  });
+
+  it("leaves the tab as it is for a franchise the table holds no colour for", () => {
+    expect(franchiseTab(OmnibusTab, "Discworld")).toBe(OmnibusTab);
   });
 });

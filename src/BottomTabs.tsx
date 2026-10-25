@@ -1,7 +1,7 @@
 import { BottomNavigation, BottomNavigationAction, Box, Paper, type Theme } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Tabs, { barColour, useCurrentTab } from "./tabs";
+import Tabs, { barColour, useChromeTab } from "./tabs";
 import { usePhone } from "./common/breakpoints";
 import { useScheme } from "./common/useScheme";
 import { BOTTOM_TABS_CLEARANCE, BOTTOM_TABS_HEIGHT, isOwnScroll, PHONE_RAIL_HEIGHT } from "./common/chrome";
@@ -114,7 +114,7 @@ const SLOT_SX = { display: "contents" } as const;
  */
 export const BottomTabs = () => {
   const navigate = useNavigate();
-  const currTab = useCurrentTab();
+  const currTab = useChromeTab();
   const scheme = useScheme();
   const phone = usePhone();
   const tabsUp = useTabsUp();

@@ -26,7 +26,7 @@ import { measureOf } from "../app/library";
 import { galleryColour, worksIn } from "../app/galleryData";
 import { MediaCounts } from "../app/MediaCounts";
 import type { Measure } from "../app/types";
-import { barColour, useCurrentTab } from "../tabs";
+import { barColour, useChromeTab } from "../tabs";
 import OmnibusBarchart from "./Barchart";
 import FranchiseCredits from "./FranchiseCredits";
 import FranchiseLibrary from "./FranchiseLibrary";
@@ -108,7 +108,7 @@ const TOP_ICONS: Record<FranchiseTop, ReactNode> = {
  */
 const FranchisePage = ({ franchise, library, items }: { franchise: string; library: Library; items: OmniItem[] }) => {
   const scheme = useScheme();
-  const tab = useCurrentTab();
+  const tab = useChromeTab();
   const [measure, setMeasure] = useState<Measure>("Hours");
   const [scope, setScope] = useState<YearScope>({
     yearType: "upto",
