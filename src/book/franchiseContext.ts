@@ -1,3 +1,4 @@
+import { useFranchiseUnion } from "../common/franchiseUnion";
 import { createContext, useContext } from "react";
 import { CURRENT_YEAR, YearMonthDay } from "../common/date";
 import { createFranchiseContext } from "../common/franchiseContext";
@@ -40,3 +41,16 @@ const BookEpochContext = createContext<YearMonthDay>(YearMonthDay.get(CURRENT_YE
 export const BookEpochProvider = BookEpochContext.Provider;
 
 export const useBookEpoch = () => useContext(BookEpochContext);
+
+/**
+ * What this book's franchise strip draws from — the union across the four media once they are all
+ * here, and this tab's own index until then — or nothing, for a book alone in its franchise.
+ *
+ * One answer for the strip and for a caller that lays the strip out, so the hero asks the question
+ * the strip itself answers rather than finding out from the page whether anything was drawn.
+ */
+export const useBookStripSource = (book: Book) => {
+  const union = useFranchiseUnion(book.franchise);
+  const own = useFranchiseBooks(book);
+  return (union ?? own).length > 1 ? { union, own } : undefined;
+};

@@ -1,5 +1,5 @@
 import { namesTheSameThing } from "../utils/stringUtils";
-import type { LedgerRow, PanelStat } from "./Card";
+import type { LedgerRow } from "./Card";
 
 /**
  * The shape every medium that numbers its runs carries: Games, Movies and Books each write a
@@ -24,6 +24,9 @@ export interface InSeries {
   seriesNumber?: number;
 }
 
+/** "#3 · Revelation Space": an entry's place and its series, in the one wording the ledger and the hero share. */
+const numbered = (series: string, seriesNumber: number) => `#${seriesNumber} · ${series}`;
+
 /**
  * The ledger row placing an item in its series: "#3 · Revelation Space", or the series alone where
  * the sheet did not number it. Absent for a standalone.
@@ -32,20 +35,28 @@ export const seriesRow = (item: InSeries): LedgerRow | undefined =>
   item.series
     ? {
         label: "Series",
-        value: item.seriesNumber !== undefined ? `#${item.seriesNumber} · ${item.series}` : item.series,
+        value: item.seriesNumber !== undefined ? numbered(item.series, item.seriesNumber) : item.series,
       }
     : undefined;
 
 /**
- * The hero's tile for the same fact: the series names the tile and its number is the figure. Absent
- * for an unnumbered entry, whose tile would have no figure to carry.
+ * The hero's statement of the same fact, beside the franchise its strip already names: "#3" where
+ * the series and the franchise are one name — Mass Effect, Knives Out — and "#1 · Rain Wild
+ * Chronicles", in the ledger row's own words, where it is a line inside a wider one. Absent for an
+ * unnumbered entry, which has no place to state.
  *
- * `franchiseShown` is the franchise a tile beside this one already names. Most series share their
- * franchise's name — Knives Out, Mass Effect — and a hero reading "3 Knives Out Films" then
- * "#3 Knives Out" says the name twice, so the tile reads "In series" where the name is already up.
+ * Said in the strip's caption rather than as a figure: a tile labelled with a series name is the
+ * one label long enough to wrap, and a wrapped tile stands the hero's words taller than its picture.
  */
-export const seriesTile = (item: InSeries, franchiseShown?: string): PanelStat | undefined => {
+export const seriesPlace = (item: InSeries, franchise: string): string | undefined => {
   if (!item.series || item.seriesNumber === undefined) return undefined;
-  const named = franchiseShown !== undefined && namesTheSameThing(franchiseShown, item.series);
-  return { label: named ? "In series" : item.series, value: `#${item.seriesNumber}` };
+  return namesTheSameThing(franchise, item.series) ? `#${item.seriesNumber}` : numbered(item.series, item.seriesNumber);
 };
+
+/**
+ * The place a franchise strip's caption states: the hero's alone. An expanded card states the same
+ * fact in its ledger's Series row, and a second statement of it in the strip above would be one
+ * fact said twice on one card.
+ */
+export const stripPlace = (hero: boolean, item: InSeries | undefined, franchise: string): string | undefined =>
+  hero && item ? seriesPlace(item, franchise) : undefined;

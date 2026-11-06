@@ -1,8 +1,8 @@
 import {
   Brush,
-  AutoGraph,
   Category,
   History,
+  LiveTv,
   PlayArrow,
   ShowChart,
   Stars,
@@ -26,13 +26,14 @@ import { TopCategoryBand } from "../common/TopList";
 import { GroupedStatList } from "../common/GroupedStatList";
 import { Hero } from "../common/Hero";
 import ShowCardMediaImage, { ShowFranchiseStrip } from "./CardMediaImage";
+import { useShowStripSource } from "./franchiseContext";
 import { showSubtitle } from "./cardData";
 import { STYLES, statusToColour, styleToColour, type Scheme } from "../utils/types";
 import { useScheme } from "../common/useScheme";
 import { Stack } from "@mui/material";
 import { inProgressBeyondHero } from "../common/statsData";
 import type { ReactNode } from "react";
-import { CURRENT_PLAINDATE, formatDate, type YearNumber } from "../common/date";
+import { CURRENT_PLAINDATE, type YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
 import { Section, StatBand } from "../common/SectionRail";
 import { SHOW_SECTIONS } from "./sections";
@@ -54,7 +55,6 @@ import {
   type ShowTopOption,
 } from "./statsData";
 import { useSelectBox } from "../common/SelectBoxHook";
-import { useFranchiseShows } from "./franchiseContext";
 import "../utils/arrayUtils";
 import { categoryKeys } from "../common/filterSchema";
 import { showFilters } from "./filters";
@@ -155,35 +155,35 @@ const Now = ({ hero, watching }: { hero?: Season; watching: Season[] }) => (
   </Section>
 );
 
-/**
- * The franchise count comes from the index the tab already built for the card strips, so the
- * hero and the strip inside the card it opens cannot disagree about how many shows a series
- * holds.
- */
+/** The season holding the last episode watched. */
 const ShowHero = ({ season }: { season: Season }) => {
   const scheme = useScheme();
-
-  const franchise = useFranchiseShows(season.show);
+  const hasStrip = useShowStripSource(season.show) !== undefined;
 
   return (
     <Hero
       item={season}
       MediaComponent={ShowCardMediaImage}
       shape="poster"
-      // The episode in hand as well as the date: the title is the show's name, and nothing else
-      // on the hero says which season it is on. `heroSeason` elects on that date, so the season
-      // carries one.
-      kicker={`Last watched · S${season.s}E${season.e} · ${formatDate(season.lastWatchedDate!)}`}
-      title={season.show.name}
-      // The genre wears the same swatch its ledger row and every genre wedge on the tab wear.
+      // Watching a season the sheet has left open, from the day it began, as the other tabs state
+      // a game or a book in hand; finished on the day the sheet closed it otherwise.
+      activity={
+        season.endDate ? { did: "Finished", on: season.endDate } : { doing: "Watching", since: season.startDate }
+      }
+      // The season with the show, as the Omnibus's Now card names it: nothing else on the hero says
+      // which season it is on, and the episode count stands among the figures.
+      title={`${season.show.name} S${season.s}`}
       subtitle={showSubtitle(season.show, scheme)}
-      stats={showHeroStats(season, franchise.length, CURRENT_PLAINDATE)}
+      stats={showHeroStats(season, CURRENT_PLAINDATE)}
+      // Only where there is a strip, so the panel lays its lower edge out for what it holds.
       strip={
-        <ShowFranchiseStrip
-          show={season.show}
-          season={season}
-          variant="hero"
-        />
+        hasStrip && (
+          <ShowFranchiseStrip
+            show={season.show}
+            season={season}
+            variant="hero"
+          />
+        )
       }
     />
   );
@@ -227,7 +227,7 @@ const ShowAverage = ({ data }: { data: Show[] }) => {
   const { seasons, episodes, hours } = perShowAverages(data);
   return (
     <StatCard
-      icon={<AutoGraph />}
+      icon={<LiveTv />}
       title="Per Show"
       content={[
         ["Seasons", seasons],

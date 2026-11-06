@@ -27,17 +27,16 @@ import { TopCategoryBand } from "../common/TopList";
 import { GroupedStatList } from "../common/GroupedStatList";
 import { Hero } from "../common/Hero";
 import { Section, StatBand } from "../common/SectionRail";
-import { formatDate, type YearNumber } from "../common/date";
+import { type YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
 import { useSelectBox } from "../common/SelectBoxHook";
-import { useFranchiseMovies } from "./franchiseContext";
 import { stated } from "../common/population";
 import type { Scheme } from "../utils/types";
 import { movieSubtitle } from "./cardData";
 import MovieCardMediaImage, { MovieFranchiseStrip } from "./CardMediaImage";
+import { useMovieStripSource } from "./franchiseContext";
 import { MOVIE_SECTIONS } from "./sections";
 import {
-  cinemaLabel,
   cinemaToColour,
   groupToColour,
   scoreBand,
@@ -138,31 +137,28 @@ const Stats = ({
   );
 };
 
-/**
- * The franchise count comes from the index the tab already built for the card strips, so the
- * hero and the strip inside the card it opens cannot disagree about how many films a series
- * holds.
- */
+/** The film watched most recently. */
 const MovieHero = ({ movie }: { movie: Movie }) => {
   const scheme = useScheme();
-
-  const franchise = useFranchiseMovies(movie);
+  const hasStrip = useMovieStripSource(movie) !== undefined;
 
   return (
     <Hero
       item={movie}
       MediaComponent={MovieCardMediaImage}
       shape="banner"
-      kicker={`Latest watch · ${formatDate(movie.startDate)} · ${cinemaLabel(movie)}`}
+      activity={{ did: "Watched", on: movie.startDate }}
       title={movie.name}
-      // The genre wears the same swatch its ledger row and every genre wedge on the tab wear.
       subtitle={movieSubtitle(movie, scheme)}
-      stats={movieHeroStats(movie, franchise.length, "hero")}
+      stats={movieHeroStats(movie)}
+      // Only where there is a strip, so the panel lays its lower edge out for what it holds.
       strip={
-        <MovieFranchiseStrip
-          movie={movie}
-          variant="hero"
-        />
+        hasStrip && (
+          <MovieFranchiseStrip
+            movie={movie}
+            variant="hero"
+          />
+        )
       }
     />
   );

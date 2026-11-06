@@ -303,55 +303,47 @@ describe("heroStats", () => {
   it("counts the days the game has been in progress, both ends included", () => {
     // The inclusive count `numDays` and the Days To Beat card already use, so a game shows the
     // same span before and after it is finished.
-    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: undefined, franchise: "" });
+    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: undefined });
 
-    expect(heroStats(game, [game], today, "hero")).toEqual([{ label: "Days In", value: 11 }]);
+    expect(heroStats(game, today)).toEqual([{ label: "Days In", value: 11 }]);
   });
 
-  it("reports the hours the sheet has logged against a game still being played", () => {
-    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: 12, franchise: "" });
+  it("states how long before how much, the order every hero's figures run in", () => {
+    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: 12 });
 
-    expect(heroStats(game, [game], today, "hero")).toContainEqual({ label: "Hours", value: 12 });
+    expect(heroStats(game, today)).toEqual([
+      { label: "Days In", value: 11 },
+      { label: "Hours", value: 12 },
+    ]);
   });
 
   it("leaves the hours out rather than reporting zero for a game with none logged", () => {
     // The sheet only fills hours in for some in-progress games, and a tile reading 0 asserts
     // that none have been played rather than that none have been recorded.
-    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: 0, franchise: "" });
+    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: 0 });
 
-    expect(heroStats(game, [game], today, "hero").map((stat) => stat.label)).toEqual(["Days In"]);
+    expect(heroStats(game, today).map((stat) => stat.label)).toEqual(["Days In"]);
   });
 
-  it("counts the franchise once it holds more than one game", () => {
-    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: undefined, franchise: "Zelda" });
-
-    expect(heroStats(game, [game, videoGame(), videoGame()], today, "hero")).toContainEqual({
-      label: "Zelda Games",
-      value: 3,
+  it("carries only the game's own figures, its franchise and series being the strip's to state", () => {
+    // A tile labelled "Mass Effect" or "Zelda Games" is the one label long enough to wrap, and a
+    // wrapped tile stands the hero's words taller than the picture beside them.
+    const game = videoGame({
+      startDate: YearMonthDay.get(2024, 3, 1),
+      hours: 30,
+      franchise: "Mass Effect",
+      series: "Mass Effect",
+      seriesNumber: 3,
     });
-  });
 
-  it("says nothing about a franchise holding only this game", () => {
-    const game = videoGame({ startDate: YearMonthDay.get(2024, 3, 1), hours: undefined, franchise: "Zelda" });
-
-    expect(heroStats(game, [game], today, "hero").map((stat) => stat.label)).toEqual(["Days In"]);
-  });
-
-  it("places the game in its series where the sheet numbers it, and only there", () => {
-    const start = YearMonthDay.get(2024, 3, 1);
-    const numbered = videoGame({ startDate: start, hours: undefined, series: "Mass Effect", seriesNumber: 3 });
-    const unnumbered = videoGame({ startDate: start, hours: undefined, series: "Super Mario" });
-
-    expect(heroStats(numbered, [numbered], today, "hero").at(-1)).toEqual({ label: "Mass Effect", value: "#3" });
-    expect(heroStats(unnumbered, [unnumbered], today, "hero").map((stat) => stat.label)).toEqual(["Days In"]);
-    expect(heroStats(numbered, [numbered], today, "card").map((stat) => stat.label)).toEqual(["Days In"]);
+    expect(heroStats(game, today).map((stat) => stat.label)).toEqual(["Days In", "Hours"]);
   });
 
   it("skips the day count rather than throwing on a start date in the future", () => {
     // `daysTo` throws on a backwards comparison, which a mistyped sheet row can produce.
-    const game = videoGame({ startDate: YearMonthDay.get(2025, 1, 1), hours: 5, franchise: "" });
+    const game = videoGame({ startDate: YearMonthDay.get(2025, 1, 1), hours: 5 });
 
-    expect(heroStats(game, [game], today, "hero").map((stat) => stat.label)).toEqual(["Hours"]);
+    expect(heroStats(game, today).map((stat) => stat.label)).toEqual(["Hours"]);
   });
 });
 

@@ -1,5 +1,4 @@
 import { daysSince, formatDate, PlainDate, type YearMonthDay, type YearNumber } from "../common/date";
-import { seriesTile } from "../common/series";
 import { releaseDecade } from "../utils/types";
 import { format } from "../utils/mathUtils";
 import { earliestYear as earliestYearOf, groupByCategory } from "../common/statsData";
@@ -97,37 +96,29 @@ export const currentlyPlaying = (data: VideoGame[]) =>
   data.filter((game) => game.status === "Playing").sortByKey("startDate");
 
 /**
- * The figures the hero carries about the game it is showing.
+ * The figures the hero carries about the game it is showing, in the order every hero states its
+ * own: how long it has been in hand, then how much of it there has been.
  *
  * They are the game's own and not the library's: the All Time and in-year cards sit a few hundred
  * pixels below the hero and are the single home of those totals, so repeating them here is one
- * number in two places waiting to disagree.
+ * number in two places waiting to disagree. Where it stands in its franchise and its series is the
+ * strip's to say, beside the beads it is counted among.
  *
- * Every tile is conditional on the sheet holding what it reports. An in-progress game may have no
- * hours logged yet, a start typed ahead of today has no days to count, and a game with no
- * siblings has no series to be placed in — and a tile reading zero says something false in all
- * three cases where saying nothing says the truth.
+ * Every figure is conditional on the sheet holding what it reports. An in-progress game may have
+ * no hours logged yet, and a start typed ahead of today has no days to count — and a tile reading
+ * zero says something false in both cases where saying nothing says the truth.
  *
- * `franchise` is the game's siblings including itself, which is what `franchiseIndex` already
- * groups for the card strips. `today` is a parameter rather than read from the clock, so the
- * figures are a function of the data alone.
+ * `today` is a parameter rather than read from the clock, so the figures are a function of the
+ * data alone.
  */
-export const heroStats = (game: VideoGame, franchise: VideoGame[], today: YearMonthDay, variant: "hero" | "card") => {
+export const heroStats = (game: VideoGame, today: YearMonthDay) => {
   const stats: { label: string; value: number | string }[] = [];
-
-  if (game.hours) stats.push({ label: "Hours", value: game.hours });
 
   // Nothing for a start typed ahead of today: there is no day count to show.
   const days = daysSince(game.startDate, today);
   if (days !== undefined) stats.push({ label: "Days In", value: days });
 
-  const franchiseTile = game.franchise && franchise.length > 1;
-  if (franchiseTile) stats.push({ label: `${game.franchise} Games`, value: franchise.length });
-
-  // The Now band's banner card fits its words and one row of tiles into a fixed 136px panel
-  // (`omnibus/nowGeometry.ts`), and a series name is long enough to wrap that row.
-  const series = variant === "hero" ? seriesTile(game, franchiseTile ? game.franchise : undefined) : undefined;
-  if (series) stats.push(series);
+  if (game.hours) stats.push({ label: "Hours", value: game.hours });
 
   return stats;
 };

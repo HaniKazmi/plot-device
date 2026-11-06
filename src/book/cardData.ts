@@ -18,13 +18,23 @@ import { bookItemKey } from "./statsData";
 import { formatToColour, type Book } from "./types";
 
 /**
- * How a book is named wherever it is promoted: who wrote it, then the genre, wearing the swatch
- * its ledger row and every genre wedge on the tab wear.
+ * How a book is named wherever it is promoted: the format it was read in, who wrote it, then the
+ * genre — the venue first, as every medium's hero names its own, and the format and the genre
+ * wearing the swatches their ledger rows and bands wear.
  *
- * Shared rather than assembled at each site, so the hero, the hover card and the Omnibus's Now
- * card cannot come to name one book two ways.
+ * Shared rather than assembled at each site, so the hero and the hover card cannot come to name
+ * one book two ways.
  */
 export const bookSubtitle = (book: Book, scheme: Scheme): PanelSubtitlePart[] => [
+  { text: book.format, swatch: formatToColour(book.format, scheme) },
+  ...bookCredit(book, scheme),
+];
+
+/**
+ * The subtitle less its format, for the Omnibus's Now card, which names a book by who wrote it as
+ * the card beside it names a film by who directed it.
+ */
+export const bookCredit = (book: Book, scheme: Scheme): PanelSubtitlePart[] => [
   { text: book.author },
   { text: book.genre, swatch: genreToColour(book.genre, scheme) },
 ];

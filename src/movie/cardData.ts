@@ -8,16 +8,26 @@ import type { ReactNode } from "react";
 import { formatDate } from "../common/date";
 import { certificateToColour, franchiseToColour, genreToColour, mediumFills, type Scheme } from "../utils/types";
 import { movieItemKey } from "./statsData";
-import type { Movie } from "./types";
+import { cinemaLabel, cinemaToColour, type Movie } from "./types";
 
 /**
- * How a film is named wherever it is promoted: who directed it, then the genre, wearing the
- * swatch its ledger row and every genre wedge on the tab wear.
+ * How a film is named wherever it is promoted: where it was watched, who directed it, then the
+ * genre — the venue first, as every medium's hero names its own, and each part that has a colour
+ * on the tab wearing it: the Seen In band's for the venue, every genre wedge's for the genre.
  *
- * Shared rather than assembled at each site, so the hero, the hover card and the Omnibus's Now
- * card cannot come to name one film two ways.
+ * Shared rather than assembled at each site, so the hero and the hover card cannot come to name
+ * one film two ways.
  */
 export const movieSubtitle = (movie: Movie, scheme: Scheme): PanelSubtitlePart[] => [
+  { text: cinemaLabel(movie), swatch: cinemaToColour(cinemaLabel(movie), scheme) },
+  ...movieCredit(movie, scheme),
+];
+
+/**
+ * The subtitle less its venue, for the Omnibus's Now card: its banner panel sets the date and the
+ * subtitle on one line of a fixed 136px, which a third part would wrap.
+ */
+export const movieCredit = (movie: Movie, scheme: Scheme): PanelSubtitlePart[] => [
   { text: movie.director },
   { text: movie.genre, swatch: genreToColour(movie.genre, scheme) },
 ];

@@ -1734,12 +1734,13 @@ drill-down under it where it is.
 
 Every entry of an item's franchise the reader has met, across all four media, with the card's own
 item singled out. A `StripVariant` says where it stands: an expanded card's strip offers two
-readings and a switch between them, while the hero's is held to the first with no switch and is
-drawn only where its hero has room for it, a rule the hero states by shape so that a page narrowing
-never shows the strip, drops it and shows it again: beside a poster or a cover from `sm` up, the
-phone's 154px panel beside a 300px poster spending its height on the title; beside a banner from `lg` up, the panel being
-258px at `sm` and, between `md` and `lg`, a column the title wraps in, where a wrapped title over a
-strip outgrows the picture.
+readings and a switch between them, while the hero's is held to the first with no switch and draws
+itself by the width of the panel it stands in (`common/heroLayout.ts`, § Page architecture): the
+well, its caption and the chain from `PANEL_MEDIUM`, and in a narrower column — a phone's beside its
+poster, a tablet's beside its banner — the franchise's name alone, one line set bare in the panel.
+The hero's caption also carries the item's place in its own series (`seriesPlace`, `common/series.ts`):
+"#3" where the series and the franchise are one name, and "#1 · Rain Wild Chronicles" where it is a
+line inside a wider one. An expanded card states that in its ledger's Series row instead.
 
 **Order** is the default: one bead per entry in the order met, evenly spaced whatever the dates
 between, the year beneath only where it changes and no range in the caption, since the beads are the
@@ -1891,13 +1892,12 @@ bar, the top inset below `sm` and the dialog's 32px frame — so the width and t
 picks between are always the two halves of one room rather than two breakpoints that could move
 independently.
 
-`CardPanel`'s `hero-aside` layout is what `common/Hero.tsx` asks for wherever its own shape already
-stands beside its words — a poster (Shows) or a cover (Books) — rather than `hero`'s beneath-below-
-`md`, above-`md`-beside split: those two shapes never stack under their artwork in the first place,
-so the seam is the vertical edge at every width instead of switching with the arrangement. Below `sm`
-its panel also gives back part of the standard inset and steps its title down a size — beside a
-136px poster on a 358px card the panel is 222px and the standard inset spends 32 of them, so the
-four pixels a side given back are the difference between a two-line title and a three-line one.
+A page's hero draws its words with a panel of its own, `HeroPanel` beside `CardPanel` in
+`common/Card.tsx`, for the three things only it has: the franchise strip along its lower edge, the
+one reading no CSS can take (whether its title wrapped, `useLineCount`), and a seam that moves with
+the banner — the vertical edge beside a poster (Shows) or a cover (Books) at every width, and the top
+edge under a banner until the hero is wide enough to seat it beside (`HERO_BESIDE`). How its words
+are drawn is the screen's and the panel's own width's to say (§ Page architecture).
 
 ### The library and its scroll marker — `common/Finished.tsx`, `common/ScrollMarkerHook.ts`
 
@@ -2385,35 +2385,72 @@ without the other.
 `Hero` (`common/Hero.tsx`) presents one item large through the domain's own `TypedCardMediaImage`:
 the artwork opens the same expanded dialog a thumbnail does, and the panel rides in as that card's
 `footerComponent`, inside the `ArtworkAccent` the image publishes, rather than sampling the image
-twice and painting from whichever answer arrives first. Only the artwork's height is fixed — 300px
-from `md`, 280 at `sm` and, beside a poster, 300 at `xs` — the desktop's own height, near the 380
-a banner hero stands at there, so the four heroes read as one size — so the hero is one height whatever it shows while every
-poster and banner keeps its shape (a banner around 533px wide, a poster around 200), and past a
-560px ceiling `objectFit: contain` letterboxes a panorama onto the card's own ground.
+twice and painting from whichever answer arrives first. Only the artwork's height is fixed, one
+figure per width whatever the shape — 300px on a phone and from `md`, 280 at `sm` — so the four tabs'
+heroes are one size on any screen they share. On a phone narrower than 390px the poster gives way
+to keep its words a 154px column, read off the hero's own width (`cqi`): at 360 a 300px poster
+would leave them 124, and a title six letters a line. Every poster and banner keeps its own shape
+(a banner around 533px wide at 300, a poster around 204), and past a 560px ceiling
+`objectFit: contain` letterboxes a panorama onto the card's own ground. Beside its words the card is that height and no
+taller.
 
-Where the words sit is the shape rule, and the shape is all the hero is told: the domain names its
-own artwork once at the call site, and a banner stacks its words underneath on a phone and seats them beside from `sm` (at 260px,
-462 wide, beside a 258px panel on a 768 page) while a poster or a cover seats them beside at every
-width. A portrait picture given the page's whole width
-is the whole of the first screen — a poster stands 525px at 390 and a cover 585 — so the phone's
-hero would open on one picture and start its figures below the fold. Below `md` the words beside
-a poster are held to its height — a title one size down and clamped to three lines over the subtitle,
-and the figures as lines (`StatLines`) rather than tiles, one a line in the phone's 154px column
-and two from the tablet's, "3.6 hours" in the panel's ink with its label beside it in the muted
-tone — so the poster fills its column with no ground beneath it.
+Shape decides one thing, where the picture stands, and the shape is all the hero is told: the domain
+names its own artwork once at the call site. A poster or a cover stands beside its words at every
+width, since a portrait picture given the page's whole width is the whole of the first screen — a
+poster stands 525px at 390 and a cover 585. A banner stands over its words until the hero is 700px
+wide (`HERO_BESIDE`), where at the tablet's 280px it is 498 wide beside a 202px panel; beside its
+words at 600px it would leave them 90.
 
-Its figures are the item's own — hours logged, days in, franchise size, its place in its series —
-a tile dropped rather than zeroed where the sheet is silent, library totals staying in the cards
-below. The series tile reads "In series" beside a franchise tile of the same name, since "3 Knives
-Out Films" over "#3 Knives Out" says the name twice, and the Now band's cards leave it off: their
-banner panel fits one row of tiles into a fixed 136px, which a series name is long enough to wrap. The kicker says why the
-item is shown, naming on Shows the episode in hand, which the title, the show's own name, does not.
-The panel's middle is the franchise strip in its hero variant: the order reading with no switch, its
-chain held to one row and closed up on a series too long for the pitch, a panel held to the
-artwork's height having no room for a second. It drops at the same two widths the strip itself hides
-at (above) — on a phone the panel is a little over 200px, and the expanded card one tap away draws
-the same strip with its switch. No corner chip, no ledger row: everything a chip abbreviates is
-already in the panel.
+What a reader compares from tab to tab follows the screen, so every hero on one screen states it
+one way: the title is 20px on a phone, 24px on a tablet and a small laptop, and the hero's own 34px
+from `lg`, where every hero's panel is wider than 580px; the figures are lines on a phone and a
+tablet (`StatLines`, "3.6 Hours" in the panel's ink with its label beside it in the muted tone) and
+tiles from `md`. Drawn by the panel instead, a banner and a poster on one tablet — their words
+222px and 530px wide — state both two ways.
+
+What has to fit follows the panel's own width, through two container queries
+(`common/heroLayout.ts`): whether a banner stands beside its words (`HERO_BESIDE`), and from 360px
+inside the panel's inset (`PANEL_MEDIUM`) the franchise strip's beads and the title held to two
+lines rather than three. Narrower — a phone's column beside its poster, a tablet's beside its
+banner, a banner's just past `md`, and any panel under a banner, which is never a container — the
+strip is the franchise's name alone, and the subtitle is held to three lines. The figure lines need
+no query: they run on as many to a line as fit, one a line only where two do not.
+
+The strip fills the panel's middle and the figures its lower edge, the tiles taking the row whole:
+a film standing alone has two figures, and tiles held to a width of their own leave most of a 955px
+row as ground. The words keep the picture's top edge and the figures its lower one on every hero, a
+work alone in its franchise included, which has no strip between the two. Each tab says whether an
+item has a strip before drawing one (`useGameStripSource` and its three siblings, beside each tab's
+franchise context), from the same union and index the strip draws from, so the hero passes a strip
+only where there is one and lays its lower edge out knowing so. Where a 34px title runs to two lines
+the strip and the tiles stand side by side instead, the tiles at 104px each (through the tile grid's
+own `sx`) and the strip taking the rest, one row's height rather than two; whether it wrapped is
+the one reading no container query can take, so the panel measures it (`useLineCount`). Each is held to the picture's
+height: at 300 a 34px title's panel comes to 275 with one line and 239 with two side by side, where
+stacked it would come to 311; where a title and a subtitle both run to their clamps the words give
+up their last line rather than stand the card taller than its picture.
+
+Its figures are the item's own, in one order on every tab — how long it has been in hand, how much
+of it there has been, then how good or how fast: Days In and Hours on Games; Days In, Episodes and
+Eps / Week on Shows; Minutes and Score on Movies, a film having no span; Days In, Hours, Pages and
+Score on Books — each dropped rather than zeroed where the sheet is silent, library totals staying
+in the cards below. Where the item stands in its franchise and its series is the strip's to say, in
+its caption beside the beads: a tile labelled "Avatar: The Last Airbender Shows" or "Rain Wild
+Chronicles" is the one label long enough to wrap, and a wrapped tile stands the words taller than
+the picture. The Now band's cards read the same builders, in the same order.
+
+The kicker is one construction on every tab (`heroKicker`): what is being done since the day it
+began — "Playing since", "Watching since", "Reading since" — or what was done on the day it ended —
+"Watched" for a film, "Finished" for a season the sheet has closed. Each tab hands the hero a verb
+and a day (`HeroActivity`) rather than a sentence, so no tab's line can take a shape of its own.
+A season's number stands in its title, "Avatar: Seven Havens S1", as the Omnibus's Now card names
+it. The subtitle names the venue first, as every medium
+records one — the platform, the network, cinema or home, the format — then the medium's own words
+and the genre, each part wearing the swatch the tab already paints it in (`gameSubtitle`,
+`showSubtitle`, `movieSubtitle`, `bookSubtitle`, which the hover cards share). The Now band's banner
+panel sets its subtitle on the date's own line in a fixed 136px, so its film and book cards take the
+subtitle less its venue (`movieCredit`, `bookCredit`). No corner chip, no ledger row: everything a
+chip abbreviates is already in the panel.
 
 `SectionRail` and `Section` (`common/SectionRail.tsx`) are the page's table of contents, pinned under
 the app bar — `position: static` and scrolling away, so the rail is the only thing an anchor has to
@@ -2671,10 +2708,17 @@ app — the charts, the strips, the chip rails, the sized card rows.
 
 ### Colour
 
-`utils/colourUtils.ts` extracts a dominant colour from each artwork with `fast-average-color`,
-ignoring near-white and near-black, and retries with the `simple` algorithm when the ITU-R BT.709
-luma falls outside 30–230, avoiding unreadable extremes. Results are memoised by image src, and
-`getContrastText` sets the type over them, so a card's palette derives entirely from its artwork.
+`utils/colourUtils.ts` reads each artwork's most vivid colour of substance (`vividColour`): the
+hue whose pixels add up to the most saturation, each counting by how saturated it is, over a 128px
+copy of the picture — grey and the two ends of the ITU-R BT.709 luma band, outside 30–230, counting
+for nothing, and a hue under 2% of the picture not counting at all, so a logo's dot cannot colour a
+card. The colour is a ground laid beside the picture, and a pale or muddy picture's average colour
+lays it grey: The Dragon Keeper's cream cover reads as grey where its blue lettering is the colour
+it carries. A picture with no colour of substance — a monochrome cover — falls back to the dominant
+colour `fast-average-color` reads, ignoring near-white and near-black and retrying with its
+`simple` algorithm outside the same luma band. One reading for every surface, memoised by image
+src, so an item wears one colour on its hero, its card below and the dialog either opens; and
+`getContrastText` sets the type over it, so a card's palette derives entirely from its artwork.
 
 **Every chart colour is a pair, not a value.** `utils/types.ts` declares `Fill` as `[light, dark]`:
 the light half is drawn only on the `#ffffff` paper and the dark only on `#1d2126`, each clearing
@@ -2892,7 +2936,7 @@ key in ObjectExpression`; pulled out to a plain function taking the varying piec
   `sheetBarSx`, `dialogCardSx`, among others — the literal itself sits at module scope and the
   component stays compiled.
 
-The baseline is **317 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
+The baseline is **325 compiled, 0 bailed**, so any bailout is a regression; the `MethodCall` kind
 responds to moving the computation into a plain module. Re-check by passing a `logger` to
 `reactCompilerPreset` (see [AGENTS.md](./AGENTS.md)). The compiler costs about 4% of bundle size
 (~15KB gzipped) in cache slots, a trade `npm run analyze` keeps honest.

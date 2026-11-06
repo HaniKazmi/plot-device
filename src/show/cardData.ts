@@ -50,14 +50,15 @@ export const seasonSpans = (shows: Show[], today: YearMonthDay): SeasonSpan[] =>
     }));
 
 /**
- * How a show is named wherever it is promoted: the network it's on, then the genre, wearing the
- * swatch its ledger row and every genre wedge on the tab wear.
+ * How a show is named wherever it is promoted: the network it's on — the venue first, as every
+ * medium's hero names its own — then the genre, each wearing the swatch its ledger row wears.
  *
  * Shared rather than assembled at each site, so the hero, the hover card and the Omnibus's Now
  * card cannot come to name one show two ways.
  */
 export const showSubtitle = (show: Show, scheme: Scheme): PanelSubtitlePart[] => [
-  { text: show.network },
+  // The network's own fill where its table holds one; most of the column's long tail has none.
+  { text: show.network, swatch: networkToColour(show, scheme) || undefined },
   { text: show.genre, swatch: genreToColour(show.genre, scheme) },
 ];
 

@@ -12,9 +12,9 @@ import { scoreBand, scoreBandToColour, type Scheme } from "../utils/types";
 import { CURRENT_PLAINDATE, type YearMonthDay } from "../common/date";
 import { hoverCardArtworkSx } from "../common/cardArrangement";
 import { FranchiseStrip, type StripVariant } from "../common/FranchiseStrip";
-import { useFranchiseUnion, type FranchiseEntry } from "../common/franchiseUnion";
+import type { FranchiseEntry } from "../common/franchiseUnion";
 import { bookEntry, bookRows, bookSubtitle, readRange } from "./cardData";
-import { useBookEpoch, useFranchiseBooks } from "./franchiseContext";
+import { useBookEpoch, useBookStripSource } from "./franchiseContext";
 import { bookItemKey, daysReading } from "./statsData";
 import { useScheme } from "../common/useScheme";
 
@@ -71,12 +71,11 @@ const bookEntries = (books: Book[], today: YearMonthDay): FranchiseEntry[] =>
  * in the order it was read; `Series #` is the drill-down's order, not the strip's.
  */
 export const BookFranchiseStrip = ({ book, variant }: { book: Book; variant?: StripVariant }) => {
-  const union = useFranchiseUnion(book.franchise);
-  const own = useFranchiseBooks(book);
+  const source = useBookStripSource(book);
   const epoch = useBookEpoch();
-  const entries = union ?? bookEntries(own, CURRENT_PLAINDATE);
+  if (!source) return null;
 
-  if (entries.length < 2) return null;
+  const entries = source.union ?? bookEntries(source.own, CURRENT_PLAINDATE);
 
   return (
     <FranchiseStrip
@@ -86,6 +85,7 @@ export const BookFranchiseStrip = ({ book, variant }: { book: Book; variant?: St
       epoch={epoch}
       today={CURRENT_PLAINDATE}
       variant={variant}
+      series={book}
     />
   );
 };

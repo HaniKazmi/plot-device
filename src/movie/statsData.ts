@@ -1,5 +1,4 @@
 import { formatDate, YearMonthDay, type YearNumber } from "../common/date";
-import { seriesTile } from "../common/series";
 import { format } from "../utils/mathUtils";
 import { releaseDecade } from "../utils/types";
 import { cinemaLabel, scoreBand, type Measure, type Movie, type MovieGroup } from "./types";
@@ -119,22 +118,17 @@ export const latestWatched = (data: Movie[]) =>
   );
 
 /**
- * The figures the hero carries about the film it is showing. The score is dropped when the film
- * was never rated, the franchise tile appears only where the franchise holds more than this film,
- * and the series tile only on the hero and only where the sheet numbers the film's place in one.
+ * The figures the hero carries about the film it is showing, in the order every hero states its
+ * own: how much of it there was, then how good it was. A film is watched in a day, so it has no
+ * span to lead with. Each is dropped where the sheet is silent rather than read as zero: the
+ * converter stores a blank runtime as 0 to keep sums honest, and an unrated film has no score.
+ * Where it stands in its franchise and its series is the strip's to say.
  */
-export const movieHeroStats = (movie: Movie, franchiseCount: number, variant: "hero" | "card") => {
+export const movieHeroStats = (movie: Movie) => {
   const stats: { label: string; value: number | string }[] = [];
 
+  if (movie.minutes) stats.push({ label: "Minutes", value: movie.minutes });
   if (movie.score !== undefined) stats.push({ label: "Score", value: `${movie.score}/10` });
-  stats.push({ label: "Minutes", value: movie.minutes });
-  const franchiseTile = franchiseCount > 1;
-  if (franchiseTile) stats.push({ label: `${movie.franchise} Films`, value: franchiseCount });
-
-  // Kept off the Now band's card, whose fixed 136px panel holds one row of tiles
-  // (`omnibus/nowGeometry.ts`) that a series name is long enough to wrap.
-  const series = variant === "hero" ? seriesTile(movie, franchiseTile ? movie.franchise : undefined) : undefined;
-  if (series) stats.push(series);
 
   return stats;
 };

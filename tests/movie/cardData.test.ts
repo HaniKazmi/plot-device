@@ -1,24 +1,35 @@
 import { describe, expect, it } from "vitest";
-import { movieRows, movieSubtitle } from "../../src/movie/cardData";
+import { movieCredit, movieRows, movieSubtitle } from "../../src/movie/cardData";
+import { cinemaToColour } from "../../src/movie/types";
 import { genreToColour } from "../../src/utils/types";
 import { movie } from "../fixtures/movies";
 
 describe("movieSubtitle", () => {
-  it("names the director then the genre, so the hero, the hover card and the Omnibus's Now card agree", () => {
-    const film = movie({ director: "Denis Villeneuve", genre: "Sci-Fi" });
+  it("names where it was watched, then the director, then the genre, so the hero and the hover card agree", () => {
+    const film = movie({ cinema: true, director: "Denis Villeneuve", genre: "Sci-Fi" });
 
     expect(movieSubtitle(film, "light")).toEqual([
+      { text: "Cinema", swatch: cinemaToColour("Cinema", "light") },
       { text: "Denis Villeneuve" },
       { text: "Sci-Fi", swatch: genreToColour("Sci-Fi", "light") },
     ]);
   });
 
-  it("wears the genre swatch the ledger row and every genre wedge on the tab wear", () => {
-    const film = movie({ genre: "Horror" });
+  it("wears the swatches the Seen In band and every genre wedge on the tab wear", () => {
+    const film = movie({ cinema: false, genre: "Horror" });
 
     // Reading the swatch back through the same lookup the ledger uses is what keeps the two from
     // drifting apart, rather than pinning a literal hex that only one of them still matches.
-    expect(movieSubtitle(film, "dark")[1].swatch).toBe(genreToColour("Horror", "dark"));
+    expect(movieSubtitle(film, "dark")[0].swatch).toBe(cinemaToColour("Home", "dark"));
+    expect(movieSubtitle(film, "dark")[2].swatch).toBe(genreToColour("Horror", "dark"));
+  });
+});
+
+describe("movieCredit", () => {
+  it("is the subtitle less its venue, for the Now card's one line", () => {
+    const film = movie({ director: "Denis Villeneuve", genre: "Sci-Fi" });
+
+    expect(movieCredit(film, "light")).toEqual(movieSubtitle(film, "light").slice(1));
   });
 });
 

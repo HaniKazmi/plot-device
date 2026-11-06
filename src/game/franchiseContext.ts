@@ -1,3 +1,4 @@
+import { useFranchiseUnion } from "../common/franchiseUnion";
 import { createFranchiseContext } from "../common/franchiseContext";
 import type { VideoGame } from "./types";
 
@@ -19,3 +20,16 @@ export { FranchiseContext };
  * answer for an unaffiliated game and for a card rendered with no index above it.
  */
 export const useFranchiseGames = (game: VideoGame) => useFranchiseItems(game, gameFranchise);
+
+/**
+ * What this game's franchise strip draws from — the union across the four media once they are all
+ * here, and this tab's own index until then — or nothing, for a game alone in its franchise.
+ *
+ * One answer for the strip and for a caller that lays the strip out, so the hero asks the question
+ * the strip itself answers rather than finding out from the page whether anything was drawn.
+ */
+export const useGameStripSource = (game: VideoGame) => {
+  const union = useFranchiseUnion(game.franchise);
+  const own = useFranchiseGames(game);
+  return (union ?? own).length > 1 ? { union, own } : undefined;
+};

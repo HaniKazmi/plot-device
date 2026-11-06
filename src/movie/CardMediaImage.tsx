@@ -4,9 +4,9 @@ import type { Scheme } from "../utils/types";
 import { CURRENT_PLAINDATE, formatDate } from "../common/date";
 import { hoverCardArtworkSx } from "../common/cardArrangement";
 import { FranchiseStrip, type StripVariant } from "../common/FranchiseStrip";
-import { useFranchiseUnion, type FranchiseEntry } from "../common/franchiseUnion";
+import type { FranchiseEntry } from "../common/franchiseUnion";
 import { movieEntry, movieRows, movieSubtitle } from "./cardData";
-import { useFranchiseMovies } from "./franchiseContext";
+import { useMovieStripSource } from "./franchiseContext";
 import { MOVIE_EPOCH, movieItemKey } from "./statsData";
 import { useScheme } from "../common/useScheme";
 
@@ -58,11 +58,10 @@ const movieEntries = (movies: Movie[]): FranchiseEntry[] =>
  * answers until then.
  */
 export const MovieFranchiseStrip = ({ movie, variant }: { movie: Movie; variant?: StripVariant }) => {
-  const union = useFranchiseUnion(movie.franchise);
-  const own = useFranchiseMovies(movie);
-  const entries = union ?? movieEntries(own);
+  const source = useMovieStripSource(movie);
+  if (!source) return null;
 
-  if (entries.length < 2) return null;
+  const entries = source.union ?? movieEntries(source.own);
 
   return (
     <FranchiseStrip
@@ -72,6 +71,7 @@ export const MovieFranchiseStrip = ({ movie, variant }: { movie: Movie; variant?
       epoch={MOVIE_EPOCH}
       today={CURRENT_PLAINDATE}
       variant={variant}
+      series={movie}
     />
   );
 };

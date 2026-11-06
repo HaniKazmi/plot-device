@@ -12,6 +12,7 @@ import {
   spanKey,
 } from "../../src/show/cardData";
 import { genreToColour } from "../../src/utils/types";
+import { networkToColour } from "../../src/show/types";
 import { season, show } from "../fixtures/shows";
 
 describe("spanKey", () => {
@@ -60,6 +61,13 @@ describe("showSubtitle", () => {
       { text: "Apple TV+" },
       { text: "Sci-Fi", swatch: genreToColour("Sci-Fi", "light") },
     ]);
+  });
+
+  it("wears the network's own fill where its table holds one, and no swatch where it does not", () => {
+    expect(showSubtitle(show({ network: "Netflix" }), "dark")[0].swatch).toBe(
+      networkToColour({ network: "Netflix" }, "dark"),
+    );
+    expect(showSubtitle(show({ network: "A Network Nobody Coloured" }), "dark")[0].swatch).toBeUndefined();
   });
 
   it("wears the genre swatch the ledger row and every genre wedge on the tab wear", () => {
