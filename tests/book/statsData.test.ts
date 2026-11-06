@@ -151,13 +151,13 @@ describe("what is being read", () => {
 });
 
 describe("bookHeroStats", () => {
-  it("carries the score, hours, days, pages and series place when the sheet holds them", () => {
+  it("carries the days, hours, pages and score in the heroes' order: how long, how much, how good", () => {
+    // The series place is the strip's to state, beside the franchise it places the book in.
     expect(bookHeroStats(book(), today, "hero")).toEqual([
-      { label: "Score", value: "8/10" },
-      { label: "Hours", value: 12.4 },
       { label: "Days", value: 13 },
+      { label: "Hours", value: 12.4 },
       { label: "Pages", value: 694 },
-      { label: "Revelation Space", value: "#2" },
+      { label: "Score", value: "8/10" },
     ]);
   });
 
@@ -179,15 +179,15 @@ describe("bookHeroStats", () => {
     ]);
   });
 
-  it("keeps two tiles for a card whose column holds two: the hours or the pages, and the days", () => {
+  it("keeps two tiles for a card whose column holds two: the days, and the hours or the pages", () => {
     expect(bookHeroStats(book(), today, "card")).toEqual([
-      { label: "Hours", value: 12.4 },
       { label: "Days", value: 13 },
+      { label: "Hours", value: 12.4 },
     ]);
     // Pages stand in for hours until any are logged, so the card never opens on one tile.
     expect(bookHeroStats(book({ hours: 0 }), today, "card")).toEqual([
-      { label: "Pages", value: 694 },
       { label: "Days", value: 13 },
+      { label: "Pages", value: 694 },
     ]);
   });
 });

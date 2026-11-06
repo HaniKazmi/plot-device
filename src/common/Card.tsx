@@ -41,6 +41,8 @@ import type { Colour } from "../utils/types";
 import { INLINE_SWATCH_SIZE, Swatch } from "./Swatch";
 import { ValueLink } from "./ValueLink";
 import { LEDGER_SEPARATOR, type LedgerPart } from "./ledgerRow";
+import { HERO_BESIDE, HERO_PANEL_CONTAINER, PANEL_MEDIUM } from "./heroLayout";
+import { useLineCount } from "./useLineCount";
 
 export interface CardMediaImageProps {
   image?: string;
@@ -850,22 +852,230 @@ export interface PanelSubtitlePart {
  * A panel left to itself follows the card it is inside: a card arranged by its artwork's shape
  * publishes that arrangement and the panel reads it, so the two halves of one card cannot come to
  * disagree about which way round they are. Naming it is for a caller whose layout says something
- * the card does not — the hero's breakpoint-dependent arrangement, or a tooltip laid out by hand.
+ * the card does not — a tooltip laid out by hand. A page's hero has a panel of its own
+ * (`HeroPanel`).
  *
  * - `beneath` — under the artwork, as tall as its own type. Nothing to distribute.
  * - `beside` — next to a poster, and as tall as it. Three lines against a 2:3 poster leaves
  *   better than half the column empty, so the title takes the top and the figures the bottom
  *   edge, spending that height as structure rather than leaving it as a pool around the middle.
- * - `hero` — beside the artwork once there is width for it and beneath it on a phone, with the
- *   seam rotating to the edge the two actually share. The height is spent the way `beside`
- *   spends it — title at the top, tiles on the bottom edge — so the hero and the hover cards
- *   read as one treatment at two sizes.
- * - `hero-aside` — the same panel where the hero's artwork is a poster or a cover, which stands
- *   beside its words at every width: the seam is the vertical edge throughout, and the phone's
- *   share of a 358px card is tight enough that the panel gives back some of its inset and steps
- *   its title down a size.
  */
-type PanelLayout = "beneath" | "beside" | "hero" | "hero-aside";
+type PanelLayout = "beneath" | "beside";
+
+/**
+ * The hero panel's own box: a size container, so what it holds can ask how wide it is.
+ *
+ * A panel beneath a banner is never one — `HERO_BESIDE` makes it one once the banner stands beside
+ * it — so its queries find no container and it draws narrow at any width: under a banner the
+ * panel's height is not held to the picture's, and the strip and the larger title spend height the
+ * phone's first screen does not have.
+ */
+const heroPanelSx = (palette: ReturnType<typeof artworkPalette>, aside: boolean) => ({
+  justifyContent: "space-between",
+  gap: 1,
+  flex: "1 1 0",
+  // A flex item's floor is its content's intrinsic width. Without this a long title sets that floor
+  // to the width of its longest word and the panel refuses to wrap or shrink.
+  minWidth: 0,
+  containerName: HERO_PANEL_CONTAINER,
+  // By the page's width rather than the panel's: a container cannot ask its own size, and the
+  // inset is the card's edge, which reads as one card on a page where it is one width throughout.
+  padding: { xs: 1.5, md: 2 },
+  ":last-child": { paddingBottom: { xs: 1.5, md: 2 } },
+  ...(aside
+    ? { containerType: "inline-size" as const, ...seamEdge(palette, true) }
+    : {
+        ...seamEdge(palette, false),
+        [HERO_BESIDE]: { containerType: "inline-size" as const, borderTop: "none", ...seamEdge(palette, true) },
+      }),
+});
+
+/** A panel's kicker, on the hover cards and the hero alike: a label in the card's muted tone. */
+const kickerSx = (palette: ReturnType<typeof artworkPalette>) => ({ color: palette.muted, ...LABEL_SX });
+
+/**
+ * A panel title's weight and setting, on the hover cards and the hero alike, so the two read as one
+ * treatment at two sizes. A title long enough to have no break opportunity would otherwise set the
+ * panel's intrinsic width and push itself out past the card's edge.
+ */
+const PANEL_TITLE_SX = { fontWeight: 700, lineHeight: 1.2, overflowWrap: "break-word", width: "100%" } as const;
+
+/**
+ * The title, by the screen rather than by the panel, so every tab's hero on one screen sets its
+ * name at one size: the section-title size on a phone, a step up on a tablet and a small laptop,
+ * and the hero's own size from `lg`, where every hero's panel is wider than 580px. Clamped, because
+ * the panel's height is the picture's: three lines in a column, where the words have the height to
+ * themselves, and two where the strip shares it (`PANEL_MEDIUM`).
+ */
+const HERO_TITLE_SX = {
+  ...PANEL_TITLE_SX,
+  fontSize: { xs: "1.25rem", sm: "1.5rem", lg: "2.125rem" },
+  // Its own lines, whatever the foot below it takes: the words' clip falls on the subtitle, and the
+  // line count the arrangement is chosen by reads the title's clamped height and not a squeezed one.
+  flexShrink: 0,
+  display: "-webkit-box",
+  WebkitBoxOrient: "vertical",
+  WebkitLineClamp: 3,
+  overflow: "hidden",
+  [PANEL_MEDIUM]: { WebkitLineClamp: 2 },
+} as const;
+
+/**
+ * The subtitle, held to three lines in a column. A venue, a credit and a genre take all three
+ * beside a phone's poster — "eBook ·", "Robin Hobb ·", "Fantasy" — and a fourth line, a name long
+ * enough to wrap itself, is cut whole rather than left half drawn at the panel's clip.
+ */
+const HERO_SUBTITLE_SX = { maxHeight: 60, overflow: "hidden", [PANEL_MEDIUM]: { maxHeight: "none" } } as const;
+
+/**
+ * The panel's lower edge: the item's place in its franchise and its own figures, in a column — the
+ * strip over the figures, so the panel's middle carries the item's story and its lower edge its
+ * figures.
+ */
+const HERO_FOOT_SX = { display: "flex", flexDirection: "column", flexShrink: 0, gap: 1 } as const;
+
+/**
+ * The same, where a two-line title at the hero's own size leaves no room for the strip and the
+ * tiles to stand one over the other: from `lg` the two take one row's height, the tiles leading at
+ * a width of their own and the strip taking the rest, which is what keeps that title under a 300px
+ * picture — 239 against the 312 the column would come to. Only where there is a strip: a work alone
+ * in its franchise has nothing to share the row with, and its tiles keep the column's whole row.
+ */
+const HERO_FOOT_BESIDE_SX = {
+  ...HERO_FOOT_SX,
+  flexDirection: { xs: "column", lg: "row" },
+  alignItems: { lg: "stretch" },
+  gap: { xs: 1, lg: 2 },
+} as const;
+
+/** The strip's slot: no box of its own until it has a row to share. */
+const HERO_STRIP_SLOT_SX = { display: "contents" } as const;
+
+const HERO_STRIP_BESIDE_SX = { display: { xs: "contents", lg: "block" }, flex: { lg: "1 1 0" }, minWidth: 0 } as const;
+
+/**
+ * The figures, by the screen as the title is: lines on a phone and a tablet, tiles from `md`. A
+ * row of tiles in the 222px column a tablet's banner leaves is narrower than the word under each
+ * figure, and drawn by the panel instead, two heroes on one tablet would state their figures two
+ * ways — tiles beside a poster's 530px panel, lines beside the banner's.
+ */
+const HERO_LINES_SX = { display: { xs: "contents", md: "none" } } as const;
+
+const HERO_TILES_SX = { display: { xs: "none", md: "block" } } as const;
+
+/**
+ * A tile's width where the tiles share their row with the strip: "Eps / Week" in the tiles'
+ * tracked capitals is the widest label any of them carries.
+ */
+const HERO_TILE_WIDTH = 104;
+
+const HERO_TILES_BESIDE_SX = { ...HERO_TILES_SX, order: { lg: -1 }, flex: { lg: "0 0 auto" } } as const;
+
+/**
+ * The tiles' own grid where they share their row with the strip: one row of tiles each a width of
+ * their own, over the grid's columns that share out a row the tiles have to themselves.
+ */
+const HERO_SHARED_TILES_SX = {
+  gridTemplateColumns: { lg: "none" },
+  gridAutoFlow: { lg: "column" },
+  gridAutoColumns: { lg: `${HERO_TILE_WIDTH}px` },
+  width: { lg: "auto" },
+  height: { lg: "100%" },
+} as const;
+
+/**
+ * A page's hero's panel, drawn by the screen and by its own width (`heroLayout.ts`).
+ *
+ * Apart from `CardPanel` for what only the hero has: the franchise strip along its lower edge, a
+ * seam that moves with the banner's arrangement, and the one reading no CSS can take — whether the
+ * title wrapped — so no hover card carries the observer.
+ */
+export const HeroPanel = ({
+  kicker,
+  title,
+  subtitle,
+  stats,
+  aside,
+  strip,
+}: {
+  /** The line above the title, saying why this item is the one being shown. */
+  kicker: string;
+  title: string;
+  /** Parts carrying the swatches a legend elsewhere honours, empty ones left out here. */
+  subtitle: PanelSubtitlePart[];
+  stats: PanelStat[];
+  /** Whether the artwork is a poster or a cover, which stands beside the words at every width. */
+  aside: boolean;
+  /** The item's franchise strip, over its figures or beside them; nothing for a work standing alone. */
+  strip?: ReactNode;
+}) => {
+  const palette = useArtworkPalette();
+  const [titleRef, titleLines] = useLineCount<HTMLHeadingElement>();
+  // Tiles fill their row wherever they have it to themselves; sharing it with the strip, they are
+  // one width on every tab, so a figure is one size beside the beads whatever the tab counts.
+  const hasStrip = Boolean(strip);
+  const sharedRow = hasStrip && titleLines > 1;
+  const said = subtitle.filter((part) => part.text);
+
+  return (
+    <CardContent
+      sx={[
+        {
+          display: "flex",
+          flexDirection: "column",
+          backgroundColor: palette.ground,
+          color: palette.onGround,
+        },
+        heroPanelSx(palette, aside),
+      ]}
+    >
+      <Stack
+        spacing={0.5}
+        // The words give way before the figures do: a panel held to its picture's height clips
+        // the end of a subtitle in the one case its clamps do not cover, and keeps the figures.
+        sx={{ alignItems: "flex-start", minHeight: 0, overflow: "hidden" }}
+      >
+        <Typography
+          variant="caption"
+          // In a column the kicker can wrap, and the caption's own leading spends a fifth of a
+          // phone's 300px panel on two lines of it.
+          sx={[kickerSx(palette), { lineHeight: 1.3 }]}
+        >
+          {kicker}
+        </Typography>
+        <Typography
+          ref={titleRef}
+          variant="h4"
+          sx={HERO_TITLE_SX}
+        >
+          {title}
+        </Typography>
+        {said.length > 0 && (
+          <SubtitleParts
+            parts={said}
+            sx={HERO_SUBTITLE_SX}
+          />
+        )}
+      </Stack>
+      <Box sx={sharedRow ? HERO_FOOT_BESIDE_SX : HERO_FOOT_SX}>
+        {hasStrip && <Box sx={sharedRow ? HERO_STRIP_BESIDE_SX : HERO_STRIP_SLOT_SX}>{strip}</Box>}
+        {stats.length > 0 && (
+          <>
+            <Box sx={HERO_LINES_SX}>
+              <StatLines stats={stats} />
+            </Box>
+            <Box sx={sharedRow ? HERO_TILES_BESIDE_SX : HERO_TILES_SX}>
+              <StatTileGrid
+                stats={stats}
+                sx={sharedRow ? HERO_SHARED_TILES_SX : undefined}
+              />
+            </Box>
+          </>
+        )}
+      </Box>
+    </CardContent>
+  );
+};
 
 /**
  * The panel beside or beneath a card's artwork: what the item is, when, and how much of it.
@@ -884,10 +1094,8 @@ export const CardPanel = ({
   statSize,
   inlineKicker,
   layout,
-  minHeight,
   height,
   inset,
-  middle,
 }: {
   /** The line above the title, saying why this item is the one being shown. */
   kicker?: string;
@@ -911,8 +1119,6 @@ export const CardPanel = ({
   inlineKicker?: boolean;
   /** Only where the caller's layout says something its card does not. */
   layout?: PanelLayout;
-  /** Holds the panel to the artwork's height, so the card is the height of the picture in it. */
-  minHeight?: number;
   /**
    * A stated height the panel's words have to fit, rather than one they set.
    *
@@ -926,19 +1132,11 @@ export const CardPanel = ({
   height?: number;
   /** The inset a panel keeps, where a caller's row is read across the figures panels end with. */
   inset?: number;
-  /**
-   * What the panel says between its words and its figures — the hero's franchise strip. Between
-   * rather than after, so a panel holding the artwork's height spends the middle of it on the
-   * item's own story instead of leaving that height as ground between the subtitle and the tiles.
-   */
-  middle?: ReactNode;
 }) => {
   const palette = useArtworkPalette();
   const arrangement = useCardArrangement();
   const resolved = layout ?? (arrangement === "beside" ? "beside" : "beneath");
   const beside = resolved === "beside";
-  const heroAside = resolved === "hero-aside";
-  const hero = resolved === "hero" || heroAside;
   // The parts that actually say something. A caller lists its fields without testing which the
   // sheet filled in, and the count is what decides which part is last and so carries no separator.
   const said = Array.isArray(subtitle) ? subtitle.filter((part) => part.text) : [];
@@ -952,21 +1150,18 @@ export const CardPanel = ({
       sx={{
         display: "flex",
         flexDirection: "column",
-        // Beside or hero, the panel is as tall as the artwork and a few lines cannot fill it, so
-        // the title takes the top edge and the figures the bottom, spending that height as
-        // structure rather than pooling it around a centred block. A stacked panel is the height of
-        // its own lines and has nothing to distribute — spreading them to fill a taller box pulls
-        // the kicker off its title and opens a gap above the figures, which is the wrong way to use
-        // spare height. Where a stacked card has any, it belongs to the picture.
-        justifyContent: beside || hero ? "space-between" : "flex-start",
+        // Beside, the panel is as tall as the artwork and a few lines cannot fill it, so the title
+        // takes the top edge and the figures the bottom, spending that height as structure rather
+        // than pooling it around a centred block. A stacked panel is the height of its own lines
+        // and has nothing to distribute — spreading them to fill a taller box pulls the kicker off
+        // its title and opens a gap above the figures, which is the wrong way to use spare height.
+        // Where a stacked card has any, it belongs to the picture.
+        justifyContent: beside ? "space-between" : "flex-start",
         gap: 2,
-        // Basis zero and free to grow, so a panel beside the artwork is exactly the row minus the
-        // artwork column rather than a share of it.
-        ...(hero ? { flex: "1 1 0" } : { width: "100%" }),
+        width: "100%",
         // A flex item's floor is its content's intrinsic width. Without this a long title sets
         // that floor to the width of its longest word and the panel refuses to wrap or shrink.
         minWidth: 0,
-        ...(minHeight && { minHeight: { md: minHeight } }),
         // A budgeted panel spends its height as structure — words at the top, figures at the
         // bottom — and clips rather than overflowing, which is what makes the title's one line a
         // guarantee instead of a hope.
@@ -983,24 +1178,12 @@ export const CardPanel = ({
           },
         }),
         ...(inset !== undefined && { paddingY: inset }),
-        // Beside a 136px poster on a 358px card the panel is 222px, and the standard inset is 32
-        // of them. The four pixels a side given back are the difference between a two-line title
-        // and a three-line one.
-        // Beside the picture below `md` the panel is a column of about 260px, where the desktop's
-        // 16px of inset and gap are a quarter of it; the words take the difference.
-        ...(hero && { padding: { xs: 1.5, md: 2 }, gap: { xs: heroAside ? 0.5 : 1, md: 2 } }),
-        ":last-child": { paddingBottom: hero ? { xs: 1.5, md: inset ?? 2 } : (inset ?? 2) },
+        ":last-child": { paddingBottom: inset ?? 2 },
         backgroundColor: palette.ground,
         color: palette.onGround,
         // Where the artwork meets the panel, so the two read as one card rather than as one pasted
-        // onto the other. One edge, never both, and the hero's rotates with its own layout — which
-        // is why that arm states both borders as breakpoint pairs rather than reaching for
-        // `seamEdge`: it is the one layout where the edge moves with the width.
-        ...(heroAside
-          ? seamEdge(palette, true)
-          : hero
-            ? { borderTop: { xs: palette.seam, sm: "none" }, borderLeft: { xs: "none", sm: palette.seam } }
-            : seamEdge(palette, beside)),
+        // onto the other. One edge, never both.
+        ...seamEdge(palette, beside),
       }}
     >
       <Stack
@@ -1022,9 +1205,7 @@ export const CardPanel = ({
           >
             <Typography
               variant="caption"
-              // Beside a poster on a phone the kicker wraps to two lines, and the caption's own
-              // leading spends a fifth of the 200px panel on them.
-              sx={{ color: palette.muted, ...LABEL_SX, ...(heroAside && { lineHeight: { xs: 1.3, md: 1.66 } }) }}
+              sx={kickerSx(palette)}
             >
               {kicker}
             </Typography>
@@ -1033,28 +1214,7 @@ export const CardPanel = ({
         )}
         <Typography
           variant={titleVariant ?? "h6"}
-          // A title long enough to have no break opportunity would otherwise set the panel's
-          // intrinsic width and push itself out past the card's edge.
-          sx={{
-            // The hero's title steps down a size on a phone, where the panel is a column rather
-            // than a page: at the hero's own size a two-word title takes three lines of a 200px
-            // panel and leaves the figures under it nowhere to stand. The step is stated against
-            // the variant the caller asked for, so a hero that changes its title size moves both.
-            ...(hero && { typography: { xs: heroAside ? "h6" : "h5", md: titleVariant ?? "h6" } }),
-            // Beside the picture the panel's height is the picture's: an unclamped title would
-            // stand the words taller than it and open ground under the artwork. Three lines is
-            // what a 200px row holds over a subtitle, and a 260px one over a row of tiles.
-            ...(hero && {
-              display: { xs: "-webkit-box", md: "block" },
-              WebkitBoxOrient: "vertical",
-              WebkitLineClamp: 3,
-              overflow: "hidden",
-            }),
-            fontWeight: 700,
-            lineHeight: 1.2,
-            overflowWrap: "break-word",
-            width: "100%",
-          }}
+          sx={PANEL_TITLE_SX}
         >
           {title}
         </Typography>
@@ -1089,54 +1249,37 @@ export const CardPanel = ({
         )}
       </Stack>
 
-      {middle}
-
-      {stats.length > 0 &&
-        (heroAside ? (
-          // Beside a poster below `md` the panel is held to the picture's height, and a row of
-          // tiles would stand the words taller than it; the same figures as lines take a third of
-          // the height. From `md` the panel is wide enough for the tiles.
-          <>
-            <Box sx={{ display: { xs: "contents", md: "none" } }}>
-              <StatLines stats={stats} />
-            </Box>
-            <Box sx={{ display: { xs: "none", md: "contents" } }}>
-              <StatTileGrid
-                stats={stats}
-                size={statSize}
-              />
-            </Box>
-          </>
-        ) : (
-          <StatTileGrid
-            stats={stats}
-            size={statSize}
-          />
-        ))}
+      {stats.length > 0 && (
+        <StatTileGrid
+          stats={stats}
+          size={statSize}
+        />
+      )}
     </CardContent>
   );
 };
 
+/** A figure as a line or a tile states it, grouped in the reader's locale, so the two read alike. */
+const figure = (value: PanelStat["value"]) => (typeof value === "number" ? format(value) : value);
+
 /**
- * A panel's figures as lines rather than tiles, two to a row: the figure in the panel's ink with
- * its label beside it in the muted tone, the pair reading as one phrase — "3.6 hours" — where a
- * tile makes each a block. The compact form for a column a poster leaves beside it.
+ * As many to a line as fit, each whole: "124 Minutes" and "7/10 Score" share a line under a
+ * phone's banner, where one a line spends a second line of a 350px hero on a figure that had room
+ * beside the first, and beside a phone's poster, about 130px inside its inset, they stand one a
+ * line because two do not fit. A figure wider than the whole line gives way at its label.
+ */
+const STAT_LINES_SX = { display: "flex", flexWrap: "wrap", columnGap: 2, rowGap: 0.25, width: "100%" } as const;
+
+/**
+ * A hero panel's figures as lines rather than tiles: the figure in the panel's ink with its label
+ * beside it in the muted tone, the pair reading as one phrase — "3.6 hours" — where a tile makes
+ * each a block. The compact form for a panel in a column, which a row of tiles is wider than.
  */
 const StatLines = ({ stats }: { stats: CardStat[] }) => {
   const palette = useArtworkPalette();
 
   return (
-    <Box
-      sx={{
-        display: "grid",
-        // One a line in the phone's column beside a poster, about 150px, where two would cut a
-        // franchise's name; two a line from the tablet's 500.
-        gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
-        columnGap: 1.5,
-        rowGap: 0.25,
-        width: "100%",
-      }}
-    >
+    <Box sx={STAT_LINES_SX}>
       {stats.map((stat) => (
         <Box
           key={stat.label}
@@ -1146,13 +1289,13 @@ const StatLines = ({ stats }: { stats: CardStat[] }) => {
             variant="subtitle2"
             sx={{ fontWeight: 700, fontVariantNumeric: "tabular-nums", flexShrink: 0, lineHeight: 1.3 }}
           >
-            {stat.value}
+            {figure(stat.value)}
           </Typography>
           <Typography
             variant="caption"
             noWrap
-            // Mixed case rather than the tiles' tracked capitals: a franchise name is the longest
-            // label a hero states, and capitals spaced out are a third wider than the words.
+            // Mixed case rather than the tiles' tracked capitals: beside its figure the word is half
+            // of one phrase, and capitals spaced out are a third wider in a column that has no third.
             sx={{ color: palette.muted }}
           >
             {stat.label}
@@ -1172,11 +1315,16 @@ const StatLines = ({ stats }: { stats: CardStat[] }) => {
  * and the separator closes its own part rather than opening the next — a line that ends "Apple TV ·"
  * says a part is still to come, where one that opens "· True Story" reads as joined to nothing.
  */
-const SubtitleParts = ({ parts }: { parts: PanelSubtitlePart[] }) => {
+const SubtitleParts = ({ parts, sx }: { parts: PanelSubtitlePart[]; sx?: SxProps<Theme> }) => {
   const palette = useArtworkPalette();
 
   return (
-    <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 0.75, color: palette.muted }}>
+    <Box
+      sx={[
+        { display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 0.75, color: palette.muted },
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
+    >
       {parts.map((part, index) => (
         <Box
           // The position, not the text: a caller's parts are a fixed sequence rebuilt whole on
@@ -1221,27 +1369,31 @@ export interface CardStat extends PanelStat {
  * One rule wherever tiles appear — a panel's, an expanded card's — because two grids that wrapped
  * at different counts would put the same two figures on one line in one place and two in another.
  */
-const StatTileGrid = ({ stats, size }: { stats: CardStat[]; size?: TileSize }) => {
+const StatTileGrid = ({ stats, size, sx }: { stats: CardStat[]; size?: TileSize; sx?: SxProps<Theme> }) => {
   const beside = useCardArrangement() === "beside";
 
   return (
     <Box
-      sx={{
-        display: "grid",
-        // Beside a poster the row is a column's width rather than a card's, and a third tile in it
-        // is narrower than the word under the figure — the label then sets the grid's floor and the
-        // last tile is pushed past the card's edge. Fitting as many as the column holds and wrapping
-        // the rest keeps every figure the panel was given, which the alternative — carrying fewer
-        // beside than beneath — does not.
-        gridTemplateColumns: beside
-          ? `repeat(auto-fit, minmax(${BESIDE_TILE_FLOOR}px, 1fr))`
-          : {
-              xs: `repeat(${Math.min(stats.length, 2)}, 1fr)`,
-              sm: `repeat(${stats.length}, 1fr)`,
-            },
-        gap: 1,
-        width: "100%",
-      }}
+      sx={[
+        {
+          display: "grid",
+          // Beside a poster the row is a column's width rather than a card's, and a third tile in it
+          // is narrower than the word under the figure — the label then sets the grid's floor and the
+          // last tile is pushed past the card's edge. Fitting as many as the column holds and wrapping
+          // the rest keeps every figure the panel was given, which the alternative — carrying fewer
+          // beside than beneath — does not.
+          gridTemplateColumns: beside
+            ? `repeat(auto-fit, minmax(${BESIDE_TILE_FLOOR}px, 1fr))`
+            : {
+                xs: `repeat(${Math.min(stats.length, 2)}, 1fr)`,
+                sm: `repeat(${stats.length}, 1fr)`,
+              },
+          gap: 1,
+          width: "100%",
+        },
+        // A caller's own arrangement of the same tiles — the hero's, sharing a row with its strip.
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
     >
       {stats.map((stat) => (
         <StatTile
@@ -1313,7 +1465,7 @@ const StatTile = ({ value, label, colour, size }: CardStat & { size?: TileSize }
           fontVariantNumeric: "tabular-nums",
         }}
       >
-        {typeof value === "number" ? format(value) : value}
+        {figure(value)}
       </Typography>
       <Typography
         variant="caption"

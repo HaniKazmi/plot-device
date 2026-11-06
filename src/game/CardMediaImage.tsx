@@ -12,9 +12,9 @@ import { useScheme } from "../common/useScheme";
 import { CURRENT_PLAINDATE, YearMonthDay, formatDateRange } from "../common/date";
 import { hoverCardArtworkSx } from "../common/cardArrangement";
 import { FranchiseStrip, type StripVariant } from "../common/FranchiseStrip";
-import { useFranchiseUnion, type FranchiseEntry } from "../common/franchiseUnion";
+import type { FranchiseEntry } from "../common/franchiseUnion";
 import { gameEntry, gameKey, gameRows, gameSubtitle } from "./cardData";
-import { useFranchiseGames } from "./franchiseContext";
+import { useGameStripSource } from "./franchiseContext";
 
 /**
  * The figures the card leads with. Each is conditional on the sheet holding it: an in-progress
@@ -70,11 +70,10 @@ const gameEntries = (games: VideoGame[], today: YearMonthDay): FranchiseEntry[] 
  * answers until then, so a card opened in the first second of a visit still has its series.
  */
 export const GameFranchiseStrip = ({ game, variant }: { game: VideoGame; variant?: StripVariant }) => {
-  const union = useFranchiseUnion(game.franchise);
-  const own = useFranchiseGames(game);
-  const entries = union ?? gameEntries(own, CURRENT_PLAINDATE);
+  const source = useGameStripSource(game);
+  if (!source) return null;
 
-  if (entries.length < 2) return null;
+  const entries = source.union ?? gameEntries(source.own, CURRENT_PLAINDATE);
 
   return (
     <FranchiseStrip
@@ -84,6 +83,7 @@ export const GameFranchiseStrip = ({ game, variant }: { game: VideoGame; variant
       epoch={VG_EPOCH}
       today={CURRENT_PLAINDATE}
       variant={variant}
+      series={game}
     />
   );
 };

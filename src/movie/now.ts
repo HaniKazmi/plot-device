@@ -1,7 +1,7 @@
 import { formatDate } from "../common/date";
 import type { NowModule, NowPanel } from "../common/medium";
 import type { Scheme } from "../utils/types";
-import { movieSubtitle } from "./cardData";
+import { movieCredit } from "./cardData";
 import { latestWatched, movieHeroStats } from "./statsData";
 import type { Movie } from "./types";
 
@@ -12,10 +12,8 @@ const nowPanel = (movie: Movie, scheme: Scheme): NowPanel => ({
   kicker: formatDate(movie.startDate),
   date: formatDate(movie.startDate),
   title: movie.name,
-  subtitle: movieSubtitle(movie, scheme),
-  // One film, so the franchise count is one and its tile is dropped, as it is on the three cards
-  // beside this one.
-  stats: movieHeroStats(movie, 1, "card"),
+  subtitle: movieCredit(movie, scheme),
+  stats: movieHeroStats(movie),
 });
 
 /**

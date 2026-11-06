@@ -2,6 +2,8 @@ import { FastAverageColor, type FastAverageColorResult } from "fast-average-colo
 import { Colour } from "./types";
 
 const fac = new FastAverageColor();
+
+/** The colour read for each picture, one per picture wherever it is drawn: the hero, a card, a dialog. */
 const map: Record<string, Colour> = {};
 
 /**
@@ -82,7 +84,7 @@ const colourForImgAsync = (img: HTMLImageElement, onColour: (colour: Colour) => 
   const key = cacheKey(img.src);
   let pending = inFlight.get(key);
   if (!pending) {
-    pending = extractColourFromImg(img, key);
+    pending = extractColourFromImg(img, key).finally(() => inFlight.delete(key));
     inFlight.set(key, pending);
   }
   pending.then((colour) => colour && onColour(colour));
@@ -104,6 +106,15 @@ const isEmptyRead = (colour: FastAverageColorResult) => colour.value[3] === 0;
  */
 const READ_ATTEMPTS = 2;
 
+/**
+ * A picture's colour: its most vivid colour of substance (`vividColour`), and its dominant one where
+ * it has none — a monochrome cover, a greyscale still.
+ *
+ * Vivid first because the colour is a ground laid beside the picture, the widest of them a hero's
+ * panel, and a pale or muddy picture's dominant colour lays it grey: The Dragon Keeper's cream
+ * cover reads as grey where its blue lettering is the colour it carries. One reading for every
+ * surface, so an item wears one colour on its hero, its card below and the dialog either opens.
+ */
 const extractColourFromImg = async (img: HTMLImageElement, key: string): Promise<Colour | undefined> => {
   try {
     for (let attempt = 1; attempt <= READ_ATTEMPTS; attempt++) {
@@ -115,6 +126,11 @@ const extractColourFromImg = async (img: HTMLImageElement, key: string): Promise
       // still leaves the read worth attempting: fast-average-color reports its own error if the
       // image really is unreadable.
       await img.decode().catch(() => {});
+
+      const pixels = readPixels(img);
+      if (!pixels || !hasPixels(pixels)) continue;
+      const vivid = vividColour(pixels);
+      if (vivid) return (map[key] = vivid);
 
       let colour = await fac.getColorAsync(img, {
         algorithm: "dominant",
@@ -139,7 +155,92 @@ const extractColourFromImg = async (img: HTMLImageElement, key: string): Promise
   } catch (err) {
     console.error("Failed to extract color from image:", key, err);
     return undefined;
-  } finally {
-    inFlight.delete(key);
   }
+};
+
+/**
+ * The side a picture is scaled to before its pixels are read for its vivid colour: ten thousand
+ * pixels answer which hue a picture holds, where reading a 1920px banner whole is two million.
+ * Fewer and the answer turns on how the canvas filters its downscale — at 64px The Dragon Keeper's
+ * blue lettering comes to 2% of the cover on one filter and under it on another — where at 128 it
+ * reads blue on every one.
+ */
+const VIVID_SAMPLE_SIDE = 128;
+
+const readPixels = (img: HTMLImageElement): Uint8ClampedArray | undefined => {
+  const scale = Math.min(1, VIVID_SAMPLE_SIDE / Math.max(img.naturalWidth, img.naturalHeight, 1));
+  const width = Math.max(1, Math.round(img.naturalWidth * scale));
+  const height = Math.max(1, Math.round(img.naturalHeight * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context) return undefined;
+  context.drawImage(img, 0, 0, width, height);
+  return context.getImageData(0, 0, width, height).data;
+};
+
+/** Whether a canvas read wrote anything: `drawImage` on an undecoded frame writes transparency. */
+const hasPixels = (pixels: ArrayLike<number>) => {
+  for (let i = 3; i < pixels.length; i += 4) if (pixels[i] > 0) return true;
+  return false;
+};
+
+/** Hues in 15° steps: wide enough to gather a picture's reds as one, narrow enough to keep red from orange. */
+const HUE_BUCKETS = 24;
+
+/** A pixel greyer than this (max − min of its channels, of 255) is ground, not colour. */
+const MIN_CHROMA = 48;
+
+/**
+ * The least share of a picture's pixels a hue has to cover to colour its hero: under it, a few
+ * vivid pixels — a logo's dot, an eye — would paint a panel in a colour the picture barely holds.
+ */
+const MIN_COVERAGE = 0.02;
+
+/** A pixel's hue in degrees, from the channel that is largest and the spread between them. */
+const hueOf = (red: number, green: number, blue: number, max: number, chroma: number) => {
+  const sector =
+    max === red ? (green - blue) / chroma : max === green ? (blue - red) / chroma + 2 : (red - green) / chroma + 4;
+  return (sector * 60 + 360) % 360;
+};
+
+const toHex = (channel: number) => Math.round(channel).toString(16).padStart(2, "0");
+
+/**
+ * The most vivid colour a picture holds a real share of, from its RGBA pixels: the hue whose
+ * pixels add up to the most saturation, each pixel counting by how saturated it is, averaged over
+ * those pixels. A large field of one strong colour wins over a speck of a stronger one, and a
+ * strong colour over a larger pale one. Grey, near-white and near-black pixels count for nothing,
+ * so the colour lands inside the band text can be set on (`isUsableColour`); `undefined` where no
+ * hue covers `MIN_COVERAGE` of the picture.
+ */
+export const vividColour = (pixels: ArrayLike<number>): Colour | undefined => {
+  const weight = new Array<number>(HUE_BUCKETS).fill(0);
+  const count = new Array<number>(HUE_BUCKETS).fill(0);
+  const sums = Array.from({ length: HUE_BUCKETS }, () => [0, 0, 0]);
+  let opaque = 0;
+
+  for (let i = 0; i + 3 < pixels.length; i += 4) {
+    const [red, green, blue, alpha] = [pixels[i], pixels[i + 1], pixels[i + 2], pixels[i + 3]];
+    if (alpha < 128) continue;
+    opaque++;
+    const max = Math.max(red, green, blue);
+    const chroma = max - Math.min(red, green, blue);
+    const lightness = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+    if (chroma < MIN_CHROMA || lightness < 30 || lightness >= 230) continue;
+
+    const bucket = Math.floor(hueOf(red, green, blue, max, chroma) / (360 / HUE_BUCKETS)) % HUE_BUCKETS;
+    weight[bucket] += chroma;
+    count[bucket]++;
+    sums[bucket][0] += red * chroma;
+    sums[bucket][1] += green * chroma;
+    sums[bucket][2] += blue * chroma;
+  }
+
+  const best = weight.indexOf(Math.max(...weight));
+  if (weight[best] === 0 || count[best] < opaque * MIN_COVERAGE) return undefined;
+
+  const colour = ("#" + sums[best].map((sum) => toHex(sum / weight[best])).join("")) as Colour;
+  return isUsableColour(colour) ? colour : undefined;
 };

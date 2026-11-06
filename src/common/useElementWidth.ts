@@ -1,4 +1,6 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useElementReading } from "./useElementReading";
+
+const widthOf = (node: Element) => node.clientWidth;
 
 /**
  * The width an element actually has, kept current as it changes.
@@ -9,27 +11,7 @@ import { useLayoutEffect, useRef, useState } from "react";
  * than at zero; a layout effect takes the first reading before paint, so that fallback is drawn
  * for no frame the reader sees.
  *
- * A number in state rather than the observer's entries, so a resize that leaves the width where it
- * was sets the value already held and re-renders nothing.
- *
  * `Element` rather than `HTMLElement`, since `clientWidth` is declared there: the packed timeline
  * measures its own `<svg>`, whose internal percentages resolve against exactly this box.
  */
-export const useElementWidth = <T extends Element>() => {
-  const ref = useRef<T>(null);
-  const [width, setWidth] = useState<number | undefined>(undefined);
-
-  useLayoutEffect(() => {
-    const node = ref.current;
-    if (!node) return;
-
-    const read = () => setWidth(node.clientWidth);
-    read();
-
-    const observer = new ResizeObserver(read);
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
-
-  return [ref, width] as const;
-};
+export const useElementWidth = <T extends Element>() => useElementReading<T, number | undefined>(widthOf, undefined);

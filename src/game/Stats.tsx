@@ -1,10 +1,10 @@
 import {
   Album,
-  AutoGraph,
   Brush,
   Business,
   Category,
   Code,
+  Gamepad,
   History,
   PlayArrow,
   ShowChart,
@@ -51,16 +51,16 @@ import {
 import { TopCategoryBand } from "../common/TopList";
 import { GroupedStatList } from "../common/GroupedStatList";
 import GameCardMediaImage, { GameFranchiseStrip } from "./CardMediaImage";
+import { useGameStripSource } from "./franchiseContext";
 import { gameSubtitle, spanKey } from "./cardData";
 import { Stack } from "@mui/material";
 import { inProgressBeyondHero } from "../common/statsData";
 import type { YearType } from "./filterUtils";
 import { statusToColour } from "../utils/types";
 import { useScheme } from "../common/useScheme";
-import { CURRENT_PLAINDATE, formatDate, YearNumber } from "../common/date";
+import { CURRENT_PLAINDATE, YearNumber } from "../common/date";
 import { Hero } from "../common/Hero";
 import { Section, StatBand } from "../common/SectionRail";
-import { useFranchiseGames } from "./franchiseContext";
 import { GAME_SECTIONS } from "./sections";
 import type { ReactNode } from "react";
 import { useSelectBox } from "../common/SelectBoxHook";
@@ -143,30 +143,28 @@ const Stats = ({
   );
 };
 
-/**
- * The franchise comes from the index the tab already built for the card strips rather than from
- * a second grouping of the same data, so the hero and the strip inside the card it opens cannot
- * come to disagree about how many games a series holds.
- */
+/** The game in progress, most recently begun. */
 const GameHero = ({ game }: { game: VideoGame }) => {
   const scheme = useScheme();
-
-  const franchise = useFranchiseGames(game);
+  const hasStrip = useGameStripSource(game) !== undefined;
 
   return (
     <Hero
       item={game}
       MediaComponent={GameCardMediaImage}
       shape="banner"
-      kicker={`Currently playing · since ${formatDate(game.startDate)}`}
+      activity={{ doing: "Playing", since: game.startDate }}
       title={game.name}
       subtitle={gameSubtitle(game, scheme)}
-      stats={heroStats(game, franchise, CURRENT_PLAINDATE, "hero")}
+      stats={heroStats(game, CURRENT_PLAINDATE)}
+      // Only where there is a strip, so the panel lays its lower edge out for what it holds.
       strip={
-        <GameFranchiseStrip
-          game={game}
-          variant="hero"
-        />
+        hasStrip && (
+          <GameFranchiseStrip
+            game={game}
+            variant="hero"
+          />
+        )
       }
     />
   );
@@ -232,7 +230,7 @@ const AveragesPerGame = ({ data }: { data: VideoGame[] }) => {
 
   return (
     <StatCard
-      icon={<AutoGraph />}
+      icon={<Gamepad />}
       title="Per Game"
       content={[
         ["Hours", hours],

@@ -1,35 +1,44 @@
 import { Box } from "@mui/material";
 import type { ReactNode } from "react";
-import { CardPanel, type PanelStat, type PanelSubtitlePart, type TypedCardMediaImage } from "./Card";
-import { shapeToArrangement, shapeToAspect, type ArtworkShape } from "./cardArrangement";
+import { HeroPanel, type PanelStat, type PanelSubtitlePart, type TypedCardMediaImage } from "./Card";
+import { shapeRatioValues, shapeToArrangement, shapeToAspect, type ArtworkShape } from "./cardArrangement";
+import { HERO_BESIDE, HERO_CONTAINER } from "./heroLayout";
+import { heroKicker, type HeroActivity } from "./heroKicker";
+
+/** The words column beside a phone's poster, which the poster's height gives way to keep. */
+const PHONE_PANEL_FLOOR = 154;
 
 /**
- * How tall the artwork stands beside the panel, at each width the page gives the hero.
- *
- * Height is the only dimension fixed, so the hero is the same height whatever it is showing while
- * the artwork keeps its own shape — a 16:9 artwork comes out around 533px wide and a 2:3 poster
- * around 200px, and neither is cut into.
- *
- * The two smaller figures are the phone's and the tablet's. A poster given the page's whole width
- * stands about 525px and a cover about 585px, so the panel under it starts below the fold and the
- * page opens on one picture; the arrangement rule (§6) is what answers that, and it answers it by
- * shape *and* width here, since the constraint a phone adds is the one shape alone cannot see.
- *
- * The phone's 300 is a poster 204px wide beside a 154px panel — the desktop's own height, and
- * near the 380 a banner hero stands at there, so the four tabs' heroes read as one size.
- * Below `md` the words beside the poster are held to its height, so the poster fills its column
- * with no ground beneath it: a kicker, a title of three lines at most, a subtitle and the figures
- * as lines (`StatLines`, one a line in the phone's narrow column) stand under 300; at 280 the
- * tablet's panel also holds the franchise strip.
+ * The phone's height: 300px, or less where the hero is too narrow to stand a 300px poster beside a
+ * column of `PHONE_PANEL_FLOOR`. Read against the hero's own width (`cqi`, the hero being a size
+ * container), and solved at the poster's ratio, the widest portrait shape, so a cover beside the
+ * same words leaves them a little more.
  */
-const MEDIA_HEIGHT = { xs: 300, sm: 280, md: 300 };
+function phoneHeight() {
+  return `min(300px, calc((100cqi - ${PHONE_PANEL_FLOOR}px) / ${shapeRatioValues.poster}))`;
+}
 
 /**
- * A banner beside its panel on a tablet. At 260 it is 462px wide and leaves a 768px page's panel
- * 258, where 280 would leave it 222; stacked under a full-width banner instead, the panel is a
- * column of words down the left of 720px and the card stands twice as tall as the picture.
+ * How tall the artwork stands, at each width the page gives the hero, whatever its shape.
+ *
+ * Height is the only dimension fixed, so every hero on a width is one height while the artwork
+ * keeps its own shape — a 16:9 banner comes out around 533px wide at 300 and a 680×1000 poster
+ * around 204 — and neither is cut into. One figure per width rather than one per shape, so the
+ * four tabs' heroes are the same size on any screen they share; the panel draws itself to fit it
+ * (`common/heroLayout.ts`).
+ *
+ * The phone's 300 is a poster 204px wide beside a 154px panel on a 390px phone, and on a narrower
+ * one the poster gives way so the words keep that 154: at 360px a 300px poster leaves them 124 and
+ * at 320 84, where a title runs to six letters a line. A banner on a phone stands over its words
+ * instead and is as tall as the width gives it. The tablet's 280 is a poster 190px wide, and a
+ * banner 498px wide beside a 222px panel on a 768px page.
+ *
+ * A custom property rather than a responsive height on the picture, because a banner takes it only
+ * once the hero has room to stand it beside its words: that is a container query, and a responsive
+ * value inside one is a media query nested in a container query, which is not a rule to hand to the
+ * style engine when a variable says the same thing.
  */
-const BANNER_HEIGHT_SM = 260;
+const HERO_HEIGHT = { xs: phoneHeight(), sm: "280px", md: "300px" };
 
 /**
  * A panorama at 300px tall runs wide enough to leave the panel nothing, and the panel can shrink
@@ -39,7 +48,41 @@ const BANNER_HEIGHT_SM = 260;
  */
 const MEDIA_MAX_WIDTH = 560;
 
-type HeroStat = PanelStat;
+/** The hero's box, which the arrangement asks how wide it is. */
+const HERO_BOX_SX = {
+  containerType: "inline-size",
+  containerName: HERO_CONTAINER,
+  "--hero-height": HERO_HEIGHT,
+} as const;
+
+/**
+ * Beside its words, the card is the picture's height and no taller: the panel is drawn to fit it
+ * (`common/heroLayout.ts`), and where a title and a subtitle both run to their clamps the words
+ * give up their last line rather than standing the card taller and opening ground under the
+ * picture. The artwork column is the picture's own width. A poster or a cover stands so at every
+ * width, a portrait picture given the page's width being the whole of the first screen.
+ */
+const BESIDE_CARD_SX = {
+  flexDirection: "row",
+  height: "var(--hero-height)",
+  "& > .MuiCardActionArea-root": { width: "auto" },
+} as const;
+
+/**
+ * A banner, over its words until the hero is wide enough to stand it beside them. Over them, the
+ * artwork column is the card's whole width and the card is as tall as the two together.
+ */
+const BANNER_CARD_SX = {
+  flexDirection: "column",
+  height: "auto",
+  "& > .MuiCardActionArea-root": { width: "100%" },
+  [HERO_BESIDE]: BESIDE_CARD_SX,
+} as const;
+
+/** Height alone pinned and the width following the artwork's own ratio, so nothing is cut into. */
+const BESIDE_MEDIA_SX = { width: "auto", height: "var(--hero-height)", maxWidth: MEDIA_MAX_WIDTH } as const;
+
+const BANNER_MEDIA_SX = { width: "100%", height: "auto", [HERO_BESIDE]: BESIDE_MEDIA_SX } as const;
 
 /**
  * The one item a page is currently about, given the top of that page and the whole of its own
@@ -51,89 +94,65 @@ type HeroStat = PanelStat;
  * `ArtworkAccent` the image publishes. Reading the accent any other way would mean the hero
  * sampling the same image a second time and painting from whichever answer arrived first.
  *
- * A banner stacks its words underneath until there is width to seat them beside it; a poster or a
- * cover seats them beside at every width, because a portrait picture given the page's width is the
- * whole of the first screen. That is the shape rule, and the shape is all the hero is told: a
- * domain names its own artwork once and the hero never learns which domain it is drawing.
+ * Shape decides one thing: where the picture stands. A banner stands over its words until the hero
+ * has room to seat them beside it; a poster or a cover seats them beside at every width, because a
+ * portrait picture given the page's width is the whole of the first screen. How the words are
+ * drawn — the title's size, the figures as lines or tiles, the franchise strip — is the screen's and
+ * the panel's own width's to decide (`HeroPanel`), so a domain names its artwork once and the hero
+ * never learns which domain it is drawing.
  *
- * The panel's middle is the item's franchise strip, in its hero variant: the panel is held to the
- * artwork's height and cannot grow for a second row of beads, so the strip keeps its chain to one
- * row and closes the beads up on a series too long for the pitch, and the strip itself decides the
- * widths it stands at. It is handed in whole rather than wrapped here: a domain's strip renders
- * nothing for a standalone item, and a wrapper around nothing would still stand in the panel's
- * column and take its gap.
+ * The panel's lower edge is the item's place: its franchise strip, in its hero variant, beside or
+ * over its figures. It is handed in whole rather than wrapped here: a domain's strip renders
+ * nothing for a standalone item, and a wrapper around nothing would still stand in the panel and
+ * take its gap.
  */
 export const Hero = <T,>(props: {
   item: T;
   MediaComponent: TypedCardMediaImage<T>;
   /** The shape this domain's artwork comes in, which is what decides where the words sit. */
   shape: ArtworkShape;
-  /** The line above the title, saying why this item is the one shown. */
-  kicker: string;
+  /** What the reader is doing with the item and since when, or did and when: the line over the title. */
+  activity: HeroActivity;
   title: string;
-  subtitle?: string | PanelSubtitlePart[];
-  stats: HeroStat[];
+  /** Where it was met first, then what it is: the venue, then the medium's own words, then the genre. */
+  subtitle: PanelSubtitlePart[];
+  /** The item's own figures, in the order every hero states them: how long, how much, how good. */
+  stats: PanelStat[];
   /** The item's franchise strip in its hero variant, where it has a franchise to be placed in. */
   strip?: ReactNode;
 }) => {
   const aside = shapeToArrangement(props.shape) === "beside";
 
   return (
-    <props.MediaComponent
-      item={props.item}
-      extractColour
-      landscape
-      // The panel sits beside the artwork and needs the width the artwork did not take. Named
-      // rather than left to `shape`, which would also hand the card's own arrangement to every
-      // panel and tile grid inside it — this caller has pinned the artwork's size itself.
-      mediaLayout="aside"
-      cardSx={{
-        flexDirection: aside ? "row" : { xs: "column", sm: "row" },
-        // The panel takes the row's height where the artwork sets it, so its figures can sit on
-        // the picture's own lower edge; a card whose words are underneath has no such row, and
-        // below `md` the flex default already stretches the two to share one.
-        alignItems: { md: "flex-start" },
-        // The artwork column is the picture's own width wherever the words sit beside it: a
-        // poster's at every width, a banner's from `sm`. The shared aside column hands it the
-        // whole card below `md`, which only a banner on a phone wants.
-        "& > .MuiCardActionArea-root": { width: aside ? "auto" : { xs: "100%", sm: "auto" } },
-      }}
-      sx={{
-        // Height alone is pinned and the width follows the artwork's own ratio, so nothing is cut
-        // into. Left to itself the artwork sets the height instead, and a 2:3 poster at natural
-        // size makes the hero taller than the screen and pushes the rest of the page below the fold.
-        width: aside ? "auto" : { xs: "100%", sm: "auto" },
-        height: aside ? MEDIA_HEIGHT : { xs: "auto", sm: BANNER_HEIGHT_SM, md: MEDIA_HEIGHT.md },
-        maxWidth: { md: MEDIA_MAX_WIDTH },
-        // The shape stands in until the file lands, so the panel beside it is not handed the whole
-        // card for the frame it takes to arrive. The `auto` form keeps that a reservation and never
-        // a crop: a file's own ratio wins the moment it is known.
-        aspectRatio: shapeToAspect(props.shape),
-        objectFit: "contain",
-      }}
-      footerComponent={
-        <CardPanel
-          layout={aside ? "hero-aside" : "hero"}
-          kicker={props.kicker}
-          title={props.title}
-          titleVariant="h4"
-          subtitle={props.subtitle}
-          stats={props.stats}
-          minHeight={MEDIA_HEIGHT.md}
-          // Where the strip stands, by shape, and once decided never undone as the page narrows.
-          // Beside a poster the panel is wide from `sm` up, so the strip is drawn from there; on
-          // a phone the 200px panel spends its height on the title and the figures as lines.
-          // Beside a banner the panel is 258px at `sm` and, between `md` and `lg`,
-          // a column the title wraps in, and a wrapped title over a strip outgrows the picture,
-          // so a banner's strip waits for `lg`. Below either width the expanded card is one tap
-          // away and draws the same strip with its Order · Time switch.
-          middle={
-            <Box sx={{ display: aside ? { xs: "none", sm: "contents" } : { xs: "none", lg: "contents" } }}>
-              {props.strip}
-            </Box>
-          }
-        />
-      }
-    />
+    <Box sx={HERO_BOX_SX}>
+      <props.MediaComponent
+        item={props.item}
+        extractColour
+        landscape
+        // The panel sits beside the artwork and needs the width the artwork did not take. Named
+        // rather than left to `shape`, which would also hand the card's own arrangement to every
+        // panel and tile grid inside it — this caller has pinned the artwork's size itself.
+        mediaLayout="aside"
+        cardSx={aside ? BESIDE_CARD_SX : BANNER_CARD_SX}
+        sx={[
+          aside ? BESIDE_MEDIA_SX : BANNER_MEDIA_SX,
+          // The shape stands in until the file lands, so the panel beside it is not handed the
+          // whole card for the frame it takes to arrive. The `auto` form keeps that a reservation
+          // and never a crop, and `contain` keeps the panorama's ceiling from becoming one: a
+          // file's own ratio wins the moment it is known.
+          { aspectRatio: shapeToAspect(props.shape), objectFit: "contain" },
+        ]}
+        footerComponent={
+          <HeroPanel
+            aside={aside}
+            kicker={heroKicker(props.activity)}
+            title={props.title}
+            subtitle={props.subtitle}
+            stats={props.stats}
+            strip={props.strip}
+          />
+        }
+      />
+    </Box>
   );
 };

@@ -657,16 +657,16 @@ describe("heroSeason", () => {
 
 describe("showHeroStats", () => {
   const today = YearMonthDay.get(2026, 2, 2);
-  const heroOf = (franchiseCount: number) => {
+  const openSeason = () => {
     const parent = show({ franchise: "Star Trek" });
     parent.s = [season(parent, { startDate: YearMonthDay.get(2026, 1, 5), e: 8, endDate: undefined })];
-    return showHeroStats(parent.s[0], franchiseCount, today);
+    return parent.s[0];
   };
 
-  it("carries the strip's own honest figures at tile size: episodes, days in, pace", () => {
-    const labels = heroOf(1).map((stat) => stat.label);
+  it("carries the strip's own honest figures in the heroes' order: how long, how much, how fast", () => {
+    const labels = showHeroStats(openSeason(), today).map((stat) => stat.label);
 
-    expect(labels).toEqual(["Episodes", "Days In", "Eps / Week"]);
+    expect(labels).toEqual(["Days In", "Episodes", "Eps / Week"]);
   });
 
   it("labels a finished season's figure Days, the span the sheet closed rather than one still open", () => {
@@ -675,12 +675,15 @@ describe("showHeroStats", () => {
       season(parent, { startDate: YearMonthDay.get(2026, 1, 5), endDate: YearMonthDay.get(2026, 1, 18), e: 8 }),
     ];
 
-    expect(showHeroStats(parent.s[0], 1, today)).toContainEqual({ label: "Days", value: 14 });
+    expect(showHeroStats(parent.s[0], today)).toContainEqual({ label: "Days", value: 14 });
   });
 
-  it("adds a franchise tile only where there is a series to count", () => {
-    expect(heroOf(3).at(-1)).toEqual({ label: "Star Trek Shows", value: 3 });
-    expect(heroOf(1).map((stat) => stat.label)).not.toContain("Star Trek Shows");
+  it("drops the pace where the caller has no room for it, and never counts the franchise", () => {
+    // The franchise is the strip's to state, in its caption beside the beads.
+    expect(showHeroStats(openSeason(), today, { pace: false }).map((stat) => stat.label)).toEqual([
+      "Days In",
+      "Episodes",
+    ]);
   });
 });
 

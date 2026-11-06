@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { seriesRow, seriesTile } from "../../src/common/series";
+import { seriesPlace, seriesRow, stripPlace } from "../../src/common/series";
 
 describe("seriesRow", () => {
   it("states the place and the series, the series alone when unnumbered, and nothing for a standalone", () => {
@@ -17,18 +17,35 @@ describe("seriesRow", () => {
   });
 });
 
-describe("seriesTile", () => {
-  it("names the series and carries its number, and stands only where there is a number", () => {
-    expect(seriesTile({ series: "Mass Effect", seriesNumber: 3 })).toEqual({ label: "Mass Effect", value: "#3" });
-    expect(seriesTile({ series: "Super Mario" })).toBeUndefined();
-    expect(seriesTile({ series: "" })).toBeUndefined();
+describe("seriesPlace", () => {
+  it("states the number alone where the series and the franchise are one name", () => {
+    expect(seriesPlace({ series: "Mass Effect", seriesNumber: 3 }, "Mass Effect")).toBe("#3");
   });
 
-  it('reads "In series" where a tile beside it already names the same franchise', () => {
-    expect(seriesTile({ series: "Knives Out", seriesNumber: 3 }, "Knives Out")).toEqual({
-      label: "In series",
-      value: "#3",
-    });
-    expect(seriesTile({ series: "Iron Man", seriesNumber: 2 }, "Marvel")?.label).toBe("Iron Man");
+  it("names a series apart from the franchise it sits inside, in the ledger row's words", () => {
+    expect(seriesPlace({ series: "Rain Wild Chronicles", seriesNumber: 1 }, "Realm of the Elderlings")).toBe(
+      "#1 · Rain Wild Chronicles",
+    );
+  });
+
+  it("states nothing for an unnumbered entry or a standalone", () => {
+    expect(seriesPlace({ series: "Super Mario" }, "Mario")).toBeUndefined();
+    expect(seriesPlace({ series: "" }, "Arrival")).toBeUndefined();
+  });
+});
+
+describe("stripPlace", () => {
+  const book = { series: "Rain Wild Chronicles", seriesNumber: 1 };
+
+  it("states the place on a hero's strip", () => {
+    expect(stripPlace(true, book, "Realm of the Elderlings")).toBe("#1 · Rain Wild Chronicles");
+  });
+
+  it("states nothing on an expanded card's strip, whose ledger already has a Series row", () => {
+    expect(stripPlace(false, book, "Realm of the Elderlings")).toBeUndefined();
+  });
+
+  it("states nothing where the strip is handed no series", () => {
+    expect(stripPlace(true, undefined, "Avatar")).toBeUndefined();
   });
 });

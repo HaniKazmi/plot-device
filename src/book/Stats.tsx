@@ -29,7 +29,7 @@ import { TopCategoryBand } from "../common/TopList";
 import { GroupedStatList } from "../common/GroupedStatList";
 import { Hero } from "../common/Hero";
 import { Section, StatBand } from "../common/SectionRail";
-import { CURRENT_PLAINDATE, formatDate, type YearNumber } from "../common/date";
+import { CURRENT_PLAINDATE, type YearNumber } from "../common/date";
 import type { YearType } from "../common/filterReducer";
 import { useSelectBox } from "../common/SelectBoxHook";
 import { stated } from "../common/population";
@@ -37,6 +37,7 @@ import { genreToColour, scoreBand, scoreBandToColour, scoreBands } from "../util
 import { bookSubtitle } from "./cardData";
 import { bookScoreChip, bookStatListSharedProps, bySeriesThenRelease } from "./drilldown";
 import BookCardMediaImage, { BookFranchiseStrip } from "./CardMediaImage";
+import { useBookStripSource } from "./franchiseContext";
 import { BOOK_SECTIONS } from "./sections";
 import { FORMATS, formatToColour, groupToColour, type Book, type Measure } from "./types";
 import {
@@ -146,21 +147,25 @@ const Stats = ({
  */
 const BookHero = ({ book }: { book: Book }) => {
   const scheme = useScheme();
+  const hasStrip = useBookStripSource(book) !== undefined;
 
   return (
     <Hero
       item={book}
       MediaComponent={BookCardMediaImage}
       shape="cover"
-      kicker={`Reading since ${formatDate(book.startDate)}`}
+      activity={{ doing: "Reading", since: book.startDate }}
       title={book.name}
       subtitle={bookSubtitle(book, scheme)}
       stats={bookHeroStats(book, CURRENT_PLAINDATE, "hero")}
+      // Only where there is a strip, so the panel lays its lower edge out for what it holds.
       strip={
-        <BookFranchiseStrip
-          book={book}
-          variant="hero"
-        />
+        hasStrip && (
+          <BookFranchiseStrip
+            book={book}
+            variant="hero"
+          />
+        )
       }
     />
   );

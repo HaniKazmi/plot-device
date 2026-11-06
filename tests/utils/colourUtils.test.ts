@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cacheKey, isUsableColour, luma, withAlpha } from "../../src/utils/colourUtils";
+import { cacheKey, isUsableColour, luma, vividColour, withAlpha } from "../../src/utils/colourUtils";
 import type { Colour } from "../../src/utils/types";
 
 describe("luma", () => {
@@ -105,5 +105,58 @@ describe("withAlpha", () => {
   it("concatenates blindly, so a non-hex input yields something no browser will honour", () => {
     // Both call sites feed it a colour derived from artwork, which is always #rrggbb.
     expect(withAlpha("red", "90")).toBe("red90");
+  });
+});
+
+/** RGBA pixels: each run is a colour repeated `count` times, opaque unless it says otherwise. */
+const pixels = (...runs: { rgb: [number, number, number]; count: number; alpha?: number }[]) =>
+  runs.flatMap(({ rgb, count, alpha }) => Array.from({ length: count }, () => [...rgb, alpha ?? 255]).flat());
+
+describe("vividColour", () => {
+  it("takes the strong colour a picture holds a real share of over the larger pale field around it", () => {
+    // Akira's banner: a cream field, then a red band.
+    const banner = pixels({ rgb: [240, 236, 226], count: 60 }, { rgb: [224, 40, 44], count: 40 });
+
+    expect(vividColour(banner)).toBe("#e0282c");
+  });
+
+  it("weighs a hue by how saturated its pixels are, not only by how many there are", () => {
+    // More of a dusty blue than of a strong green, but the green carries more colour.
+    const cover = pixels({ rgb: [110, 120, 170], count: 40 }, { rgb: [40, 180, 60], count: 30 });
+
+    expect(vividColour(cover)).toBe("#28b43c");
+  });
+
+  it("averages the shades of one hue rather than picking a single pixel, the stronger counting for more", () => {
+    // Chroma 170 and 190: an even mix lands on #dc2828, and the weighting draws it a step toward
+    // the stronger shade.
+    const reds = pixels({ rgb: [200, 30, 30], count: 10 }, { rgb: [240, 50, 50], count: 10 });
+
+    expect(vividColour(reds)).toBe("#dd2929");
+  });
+
+  it("answers nothing for a picture with no colour of substance, so the dominant reading stands", () => {
+    expect(vividColour(pixels({ rgb: [128, 128, 128], count: 50 }, { rgb: [250, 250, 250], count: 50 }))).toBe(
+      undefined,
+    );
+    // A speck of red on a grey cover is under the share a hue needs to colour a hero.
+    expect(vividColour(pixels({ rgb: [128, 128, 128], count: 99 }, { rgb: [220, 30, 30], count: 1 }))).toBe(undefined);
+  });
+
+  it("leaves out transparent pixels and the near-black and near-white ends text cannot sit on", () => {
+    const picture = pixels(
+      { rgb: [255, 0, 0], count: 50, alpha: 0 },
+      { rgb: [20, 0, 60], count: 50 },
+      { rgb: [40, 160, 200], count: 20 },
+    );
+
+    expect(vividColour(picture)).toBe("#28a0c8");
+  });
+
+  it("lands inside the band text can be set on", () => {
+    const colour = vividColour(pixels({ rgb: [250, 220, 40], count: 30 }, { rgb: [230, 200, 20], count: 30 }));
+
+    expect(colour).toBeDefined();
+    expect(isUsableColour(colour!)).toBe(true);
   });
 });

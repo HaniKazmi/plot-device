@@ -1,3 +1,4 @@
+import { useFranchiseUnion } from "../common/franchiseUnion";
 import { createFranchiseContext } from "../common/franchiseContext";
 import type { Show } from "./types";
 
@@ -19,3 +20,19 @@ export { FranchiseContext };
  * standalone show and for a card rendered with no index above it.
  */
 export const useFranchiseShows = (show: Show) => useFranchiseItems(show, showFranchise);
+
+/**
+ * What this show's franchise strip draws from — the union across the four media once they are all
+ * here, and this tab's own index until then — or nothing, for a single season with no other mark
+ * beside it.
+ *
+ * One answer for the strip and for a caller that lays the strip out, so the hero asks the question
+ * the strip itself answers rather than finding out from the page whether anything was drawn.
+ */
+export const useShowStripSource = (show: Show) => {
+  const union = useFranchiseUnion(show.franchise);
+  const own = useFranchiseShows(show);
+  // A season is a mark, so a show alone in its franchise still has a strip once it has two.
+  const marks = union?.length ?? own.reduce((seasons, each) => seasons + each.s.length, 0);
+  return marks > 1 ? { union, own } : undefined;
+};

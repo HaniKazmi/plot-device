@@ -15,7 +15,7 @@ const nowPanel = (season: Season, scheme: Scheme): NowPanel => ({
   subtitle: showSubtitle(season.show, scheme),
   // The rate tile stays on the Shows tab's own hero; beside a poster this card's text column holds
   // two figures comfortably and three crowd it.
-  stats: showHeroStats(season, 1, CURRENT_PLAINDATE, { pace: false }),
+  stats: showHeroStats(season, CURRENT_PLAINDATE, { pace: false }),
 });
 
 /**

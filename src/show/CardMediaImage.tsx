@@ -5,9 +5,9 @@ import { useScheme } from "../common/useScheme";
 import { CURRENT_PLAINDATE, YearMonthDay, formatDateRange } from "../common/date";
 import { hoverCardArtworkSx } from "../common/cardArrangement";
 import { FranchiseStrip, type StripVariant } from "../common/FranchiseStrip";
-import { useFranchiseUnion, type FranchiseEntry } from "../common/franchiseUnion";
+import type { FranchiseEntry } from "../common/franchiseUnion";
 import { seasonEntry, seasonKey, showRows, showSubject, showSubtitle, type ShowShelfItem } from "./cardData";
-import { useFranchiseShows } from "./franchiseContext";
+import { useShowStripSource } from "./franchiseContext";
 import { seasonHours } from "./statsData";
 
 /** The figures the card leads with: how much of the show there is, and whether it is still going. */
@@ -94,11 +94,10 @@ export const ShowFranchiseStrip = ({
   season?: Season;
   variant?: StripVariant;
 }) => {
-  const union = useFranchiseUnion(show.franchise);
-  const own = useFranchiseShows(show);
-  const entries = union ?? seasonEntries(own, CURRENT_PLAINDATE);
+  const source = useShowStripSource(show);
+  if (!source) return null;
 
-  if (entries.length < 2) return null;
+  const entries = source.union ?? seasonEntries(source.own, CURRENT_PLAINDATE);
 
   return (
     <FranchiseStrip

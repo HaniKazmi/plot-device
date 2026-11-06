@@ -25,6 +25,8 @@ import { useElementWidth } from "./useElementWidth";
 import { useScheme } from "./useScheme";
 import "../utils/arrayUtils";
 import { FranchiseLink } from "./ValueLink";
+import { PANEL_MEDIUM } from "./heroLayout";
+import { stripPlace, type InSeries } from "./series";
 
 /**
  * The two ways a franchise is drawn: in the order its entries were met, one bead each, evenly
@@ -35,23 +37,45 @@ type StripMode = "order" | "time";
 /**
  * Where a strip stands. A card's strip offers both readings and wraps its chain; the hero's is
  * held to the order reading with no switch, keeps its chain to one row (a panel held to the
- * artwork's height cannot grow for a second), and is drawn only where its hero has room for it.
+ * artwork's height cannot grow for a second), and in a panel too narrow for a chain is the first
+ * part of its caption alone, the franchise's name.
  */
 export type StripVariant = "card" | "hero";
 
-/**
- * The well both variants stand in — one treatment, so a strip reads as part of its card wherever
- * it is drawn. Which widths the hero's stands at is the hero's to say (`common/Hero.tsx`), since
- * the answer depends on the artwork's shape and the strip knows only its own variant.
- */
-const HERO_STRIP_SX = { borderRadius: 1, padding: 1 } as const;
+/** The well both variants stand in — one treatment, so a strip reads as part of its card wherever it is drawn. */
+const WELL_SX = { borderRadius: 1, padding: 1 } as const;
+
+/** The well's ground and edge, in the card's own tones. */
+const wellTones = (palette: Palette) => ({ backgroundColor: palette.tile, border: `1px solid ${palette.line}` });
 
 /**
  * The card's well alone carries a bottom margin: `CardDetailBody` stands the strip bare above the
  * stat grid rather than in a spaced row, so nothing else opens a gap to the figures beneath it.
- * The hero's sits inside the panel's own stack, which spaces it.
  */
-const CARD_STRIP_SX = { ...HERO_STRIP_SX, marginBottom: 1 } as const;
+const CARD_STRIP_SX = { ...WELL_SX, marginBottom: 1 } as const;
+
+/**
+ * The hero's strip, by the width of the panel it stands in (`common/heroLayout.ts`): in a column
+ * too narrow for a chain of beads it is the franchise's name and nothing else, one line set bare
+ * in the panel; from `PANEL_MEDIUM` it is the well, its full caption and the chain. A function of
+ * the palette because the well's ground and edge are the card's own tones.
+ */
+const heroStripSx = (palette: Palette) => ({ minWidth: 0, [PANEL_MEDIUM]: { ...WELL_SX, ...wellTones(palette) } });
+
+/** What the caption says beyond the name, and the chain under it: neither has a column's room. */
+const HERO_WIDE_ONLY_SX = { display: "none", [PANEL_MEDIUM]: { display: "flex" } } as const;
+
+const HERO_CHAIN_SX = { display: "none", [PANEL_MEDIUM]: { display: "block" } } as const;
+
+/** One line in a column, the name giving way before anything spills past the panel's edge. */
+const HERO_CAPTION_SX = {
+  alignItems: "center",
+  flexWrap: "nowrap",
+  minWidth: 0,
+  [PANEL_MEDIUM]: { flexWrap: "wrap", marginBottom: 0.5 },
+} as const;
+
+const CARD_CAPTION_SX = { alignItems: "center", flexWrap: "wrap", marginBottom: 0.5 } as const;
 
 /**
  * The mode a strip opens in: the one the reader last chose. A preference is about how the reader
@@ -104,9 +128,15 @@ export const FranchiseStrip = (props: {
   epoch: YearMonthDay;
   today: YearMonthDay;
   variant?: StripVariant;
+  /**
+   * The card's item's own series, which the hero's caption places it in beside the franchise
+   * (`seriesPlace`). The hero's alone: an expanded card states it in its ledger's Series row.
+   */
+  series?: InSeries;
 }) => {
   const { entries, subject, franchise, epoch, today } = props;
   const hero = props.variant === "hero";
+  const place = stripPlace(hero, props.series, franchise);
   const palette = useArtworkPalette();
   const [chosen, setChosen] = useState<StripMode>(preferredMode);
   const mode = hero ? "order" : chosen;
@@ -129,15 +159,36 @@ export const FranchiseStrip = (props: {
   const range =
     mode === "order" ? undefined : `${window.from.year} – ${window.lastYear >= today.year ? "today" : window.lastYear}`;
 
+  const chain =
+    mode === "order" ? (
+      <BeadChain
+        entries={ordered}
+        markOf={markOf}
+        fit={hero ? "shrink" : "wrap"}
+      />
+    ) : (
+      <WindowedStrip
+        entries={ordered}
+        markOf={markOf}
+        epoch={epoch}
+        today={today}
+      />
+    );
+
   return (
     <Box
-      sx={hero ? HERO_STRIP_SX : CARD_STRIP_SX}
-      style={{ color: palette.onGround, backgroundColor: palette.tile, border: `1px solid ${palette.line}` }}
+      sx={hero ? heroStripSx(palette) : CARD_STRIP_SX}
+      // Inline where the well never changes: the palette is the card's own, and a class per palette
+      // is a stylesheet per card opened. The hero's well comes and goes with a container query,
+      // which only a class can carry.
+      style={hero ? { color: palette.onGround } : { color: palette.onGround, ...wellTones(palette) }}
     >
       <Caption
         franchise={franchise}
         entries={ordered}
         range={range}
+        place={place}
+        hero={hero}
         control={
           !hero && (
             <SegmentedControl
@@ -153,38 +204,29 @@ export const FranchiseStrip = (props: {
           )
         }
       />
-      {mode === "order" ? (
-        <BeadChain
-          entries={ordered}
-          markOf={markOf}
-          fit={hero ? "shrink" : "wrap"}
-        />
-      ) : (
-        <WindowedStrip
-          entries={ordered}
-          markOf={markOf}
-          epoch={epoch}
-          today={today}
-        />
-      )}
+      {hero ? <Box sx={HERO_CHAIN_SX}>{chain}</Box> : chain}
     </Box>
   );
 };
 
 /**
- * The strip's own legend: the franchise, then every medium it holds counted in its own unit and
- * wearing its fill — which is what makes an unlabelled bead readable — then which of the two
- * readings the marks below give.
+ * The strip's own legend: the franchise, the item's place in its series on a hero,
+ * then every medium the franchise holds counted in its own unit and wearing its fill — which is
+ * what makes an unlabelled bead readable — then which of the two readings the marks below give.
  */
 const Caption = ({
   franchise,
   entries,
   range,
+  place,
+  hero,
   control,
 }: {
   franchise: string;
   entries: FranchiseEntry[];
   range?: string;
+  place?: string;
+  hero: boolean;
   control: ReactNode;
 }) => {
   const scheme = useScheme();
@@ -197,10 +239,19 @@ const Caption = ({
     <Stack
       direction="row"
       spacing={1}
-      sx={{ alignItems: "center", flexWrap: "wrap", marginBottom: 0.5 }}
+      sx={hero ? HERO_CAPTION_SX : CARD_CAPTION_SX}
     >
       {/* The franchise wears the swatch its Top list and ledger rows wear, where the table has one. */}
       <FranchiseName franchise={franchise} />
+      {place && (
+        <Typography
+          variant="caption"
+          sx={HERO_WIDE_ONLY_SX}
+          style={{ color: palette.muted }}
+        >
+          {place}
+        </Typography>
+      )}
       {MEDIA.map((medium) => {
         const count = counts.get(medium) ?? 0;
         return (
@@ -209,7 +260,7 @@ const Caption = ({
               key={medium}
               direction="row"
               spacing={0.5}
-              sx={{ alignItems: "center" }}
+              sx={hero ? [HERO_WIDE_ONLY_SX, { alignItems: "center" }] : { alignItems: "center" }}
             >
               <Swatch
                 colour={mediumToColour(medium, scheme)}
@@ -271,8 +322,6 @@ const BEAD_ROW = 20;
 const YEAR_HEIGHT = 12;
 const ROW_HEIGHT = BEAD_ROW + YEAR_HEIGHT;
 const BEAD_CENTRE = BEAD_ROW / 2;
-/** Drawn at before the row is measured, which is about a card's width. */
-const UNMEASURED_WIDTH = 1200;
 
 /**
  * Every entry as one bead on a line, in the order met, evenly spaced whatever the dates between
@@ -299,9 +348,13 @@ const BeadChain = ({
   fit: "wrap" | "shrink";
 }) => {
   const [ref, width] = useElementWidth<HTMLDivElement>();
-  const measured = width ?? UNMEASURED_WIDTH;
-  const perRow = fit === "wrap" ? beadsPerRow(entries.length, measured, MIN_PITCH) : entries.length;
-  const pitch = measured / perRow;
+  // No beads until the row is measured, which a layout effect does before paint, and none while it
+  // measures nothing: a hero's chain hidden in a panel too narrow for it is a bead and a hover card
+  // per entry that nobody can see.
+  if (!width) return <Box ref={ref} />;
+
+  const perRow = fit === "wrap" ? beadsPerRow(entries.length, width, MIN_PITCH) : entries.length;
+  const pitch = width / perRow;
   const cramped = pitch < MIN_PITCH;
   // A bead never wider than the space it has, and never so small it stops being a mark.
   const bead = cramped ? Math.max(MIN_BEAD, Math.floor(pitch) - 4) : BEAD;

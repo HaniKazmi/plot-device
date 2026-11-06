@@ -1,5 +1,4 @@
 import { daysSince, formatDate, type YearMonthDay, type YearNumber } from "../common/date";
-import { seriesTile } from "../common/series";
 import { format } from "../utils/mathUtils";
 import { releaseDecade, scoreBand } from "../utils/types";
 import { earliestYear as earliestYearOf, groupByCategory } from "../common/statsData";
@@ -130,14 +129,16 @@ export const daysReading = (book: Book, today: YearMonthDay): number | undefined
   book.endDate ? book.numDays : daysSince(book.startDate, today);
 
 /**
- * The figures the hero carries about the book it is showing.
+ * The figures the hero carries about the book it is showing, in the order every hero states its
+ * own: how long it has been in hand, how much reading it has taken, how long it is, and what it
+ * was worth.
  *
  * They are the book's own and not the library's: the totals live in the cards below the hero.
- * Every tile is conditional on the sheet holding what it reports — a book just opened may have no
- * hours logged, an unscored book has no score, and a standalone has no place in a series — and a
- * tile reading zero says something false where saying nothing says the truth.
+ * Every figure is conditional on the sheet holding what it reports — a book just opened may have
+ * no hours logged and an unscored book has no score — and a tile reading zero says something false
+ * where saying nothing says the truth. Its place in its series is the strip's to say.
  *
- * The tab's own hero has the width for all of them. The Omnibus's Now band seats the panel in a
+ * The tab's own hero has the room for all of them. The Omnibus's Now band seats the panel in a
  * column beside the cover, which holds two tiles and wraps a third under them, so `"card"` keeps
  * the two that say most about a book in hand — how long it has had, and the hours it has taken or
  * the pages it runs to where no hours are logged yet.
@@ -148,20 +149,16 @@ export const bookHeroStats = (book: Book, today: YearMonthDay, variant: "hero" |
 
   if (variant === "card") {
     return [
-      book.hours ? { label: "Hours", value: roundHours(book.hours) } : { label: "Pages", value: book.pages },
       ...daysTile,
+      book.hours ? { label: "Hours", value: roundHours(book.hours) } : { label: "Pages", value: book.pages },
     ];
   }
 
-  const stats: { label: string; value: number | string }[] = [];
+  const stats: { label: string; value: number | string }[] = [...daysTile];
 
-  if (book.score !== undefined) stats.push({ label: "Score", value: `${book.score}/10` });
   if (book.hours) stats.push({ label: "Hours", value: roundHours(book.hours) });
-  stats.push(...daysTile);
   stats.push({ label: "Pages", value: book.pages });
-
-  const series = seriesTile(book);
-  if (series) stats.push(series);
+  if (book.score !== undefined) stats.push({ label: "Score", value: `${book.score}/10` });
 
   return stats;
 };
