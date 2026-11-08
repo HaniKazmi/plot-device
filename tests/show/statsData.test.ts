@@ -14,6 +14,7 @@ import {
   recentlyWatched,
   showsInYear,
   showFigures,
+  statsCardLabelGroup,
   statsCardLabelShow,
   statsCardLabelRecentlyWatched,
   statsCardLabelWatching,
@@ -366,19 +367,44 @@ describe("statsCardLabelShow", () => {
     expect(statsCardLabelShow(withSeasons({}, { s: 1 }, { s: 2 }))[0][0]).toBe(`${format(2)} Seasons`);
   });
 
-  it("states the years the seasons span, one year where they share it", () => {
+  it("states the years from the first season's start to the latest watch, one year where they share it", () => {
     const from = YearMonthDay.get(2008, 3, 1);
-    expect(statsCardLabelShow(withSeasons({ startDate: from, endDate: YearMonthDay.get(2026, 5, 1) }, {}))[0][1]).toBe(
-      "2008–2026",
-    );
-    expect(statsCardLabelShow(withSeasons({ startDate: from, endDate: YearMonthDay.get(2008, 9, 1) }, {}))[0][1]).toBe(
-      "2008",
-    );
+    expect(
+      statsCardLabelShow(
+        withSeasons({ startDate: from }, { startDate: from, endDate: YearMonthDay.get(2026, 5, 1) }),
+      )[0][1],
+    ).toBe("2008–2026");
+    expect(
+      statsCardLabelShow(
+        withSeasons({ startDate: from }, { startDate: from, endDate: YearMonthDay.get(2008, 9, 1) }),
+      )[0][1],
+    ).toBe("2008");
   });
 
-  it("dates a show with a season still open from the year it began", () => {
-    const open = withSeasons({ startDate: YearMonthDay.get(2012, 1, 1), endDate: undefined }, { endDate: undefined });
-    expect(statsCardLabelShow(open)[0][1]).toBe("Since 2012");
+  // An open season is common on a show the reader has given up on, so "still going" would claim
+  // a watch nobody is making; the last episode watched is what dates it.
+  it("dates a season left open by its last watch rather than reading it as ongoing", () => {
+    const abandoned = withSeasons(
+      { status: "Abandoned", startDate: YearMonthDay.get(2012, 1, 1) },
+      { endDate: undefined, lastWatchedDate: YearMonthDay.get(2015, 6, 1) },
+    );
+    expect(statsCardLabelShow(abandoned)[0][1]).toBe("2012–2015");
+  });
+
+  it("counts an open season earlier in the list, not only the last season's end", () => {
+    const parent = withSeasons(
+      { startDate: YearMonthDay.get(2019, 1, 1) },
+      { s: 1, endDate: undefined, lastWatchedDate: YearMonthDay.get(2026, 2, 1) },
+      { s: 2, endDate: YearMonthDay.get(2024, 3, 1) },
+    );
+    expect(statsCardLabelShow(parent)[0][1]).toBe("2019–2026");
+  });
+
+  it("writes a group's card in as many lines as a season, its figure closing it", () => {
+    const parent = withSeasons({}, { s: 1 });
+    const group = statsCardLabelGroup("Drama", "12 shows");
+    expect(group).toHaveLength(statsCardLabelRecentlyWatched(parent.s[0]).length);
+    expect(group.at(-1)).toEqual(["12 shows"]);
   });
 
   it("hands a strip its figures, the row the list is ranked by", () => {

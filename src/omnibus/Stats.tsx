@@ -79,7 +79,7 @@ const Stats = ({
   // Measured across both sections, a width neither arrangement changes, so the answer cannot move
   // the thing it was measured on.
   const [openingRef, openingWidth] = useElementWidth<HTMLDivElement>();
-  const beside = hasNow(now) && openingWidth !== undefined && vitalsBeside(openingWidth, allInFlight(now));
+  const beside = openingWidth !== undefined && vitalsBeside(openingWidth, allInFlight(now));
 
   return (
     // One tree in both arrangements, so a change of width moves the band rather than rebuilding it,

@@ -967,6 +967,9 @@ const TOTALS = "totals";
  * the Omnibus's Now band at 1,280.
  */
 const LEGEND_WRAPS = `@container ${TOTALS} (min-width: 400px)`;
+// A size container takes no width from its content, so the band is drawn in a box that gives it
+// one — a grid cell or a card's own width — and never in a shrink-to-fit one, where it would
+// stand at nothing.
 const TOTALS_SX = { containerType: "inline-size", containerName: TOTALS } as const;
 const LEGEND_SX = {
   display: "flex",

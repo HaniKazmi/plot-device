@@ -49,6 +49,7 @@ import {
   showsInYear,
   showTopOptions,
   showFigures,
+  statsCardLabelGroup,
   statsCardLabelShow,
   statsCardLabelRecentlyWatched,
   statsCardLabelWatching,
@@ -339,9 +340,7 @@ const MostWatchedCategory = ({
       title="Most Watched"
       option={category}
       groups={groupShowsBy(data, category, measure)}
-      // Name over figure, a cell a row, for the reason a whole show's card is two lines: the band
-      // stands Recently Watched's two-line cards beside these.
-      labelComponent={(group) => [[group.name], [stated(group.count, measure)]]}
+      labelComponent={(group) => statsCardLabelGroup(group.name, stated(group.count, measure))}
       colourOf={(top) => groupToColour(category, top, scheme)}
       MediaComponent={ShowCardMediaImage}
       dialogSort={(shows) => shows.toSorted((a, b) => b.minutes - a.minutes)}
