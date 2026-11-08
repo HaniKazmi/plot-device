@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CURRENT_YEAR, YearMonthDay, type YearNumber } from "../../src/common/date";
-import { electNow, hasNow, omniTitle, recentlyFinished, unionTotals } from "../../src/omnibus/adapter";
+import { allInFlight, electNow, hasNow, omniTitle, recentlyFinished, unionTotals } from "../../src/omnibus/adapter";
 import type { MediumLazy } from "../../src/common/medium";
 import { MEDIA as MEDIA_ORDER, type Medium } from "../../src/utils/types";
 import { earliestYear } from "../../src/omnibus/filterUtils";
@@ -344,6 +344,14 @@ describe("electing what each medium is on now", () => {
 
   it("says there is no band where no medium answers", () => {
     expect(hasNow(electNow(firstRow, library(), all))).toBe(false);
+  });
+
+  it("says every medium is in flight only where all four answer", () => {
+    const four = library({ game: [playing], show: [show()], movie: [latest], book: [book()] });
+
+    expect(allInFlight(electNow(firstRow, four, all))).toBe(true);
+    expect(allInFlight(electNow(firstRow, four, { ...all, book: false }))).toBe(false);
+    expect(allInFlight(electNow(firstRow, library({ movie: [latest] }), all))).toBe(false);
   });
 
   it("asks nothing of a medium switched off, which is not on the page to be headlined", () => {

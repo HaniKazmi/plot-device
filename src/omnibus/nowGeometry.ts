@@ -76,6 +76,12 @@ export const NOW_GEOMETRY: NowGeometry = {
 export const NOW_GAP = 8;
 
 /**
+ * Two stated cards and the gap between them: what the row is held to where all four are in flight
+ * and do not fit across, so the third wraps and the band is two rows of two.
+ */
+export const NOW_PAIR_ROW_WIDTH = 2 * NOW_CARD_WIDTH + NOW_GAP;
+
+/**
  * The height of the phone's portrait row, solved from the row's measured width: the poster's
  * height at the width its cell leaves beside the spine — 204px at 390, 234 at 430.
  *
@@ -146,7 +152,7 @@ const NOW_POSTER_COLUMN = 133;
  *
  * The stated card is the ceiling rather than a rung on the way down: from a 876px row the share
  * reaches it and the band is the stated geometry exactly, which is what the `md` cap
- * (`2 * NOW_CARD_WIDTH + NOW_GAP`) holds the four-card row to.
+ * (`NOW_PAIR_ROW_WIDTH`) holds the four-card row to.
  *
  * The poster is held to the column's remainder wherever the row's height would draw it wider — a
  * 768 tablet's row is 720, the pair 356, and a poster at the row's height would leave its words
@@ -197,3 +203,33 @@ export const denseNowGeometry = (rowWidth: number): NowGeometry | undefined => {
  * budget exactly, and the poster cards carry the same tiles above the same edge.
  */
 export const NOW_PANEL_INSET = 1;
+
+/** The page's own gap between two sections, which the vitals keep from the band beside it as well. */
+export const NOW_VITALS_GAP = 16;
+
+/**
+ * The narrowest column the vitals stand in beside the Now band.
+ *
+ * Narrow enough for an iPad mini held sideways, whose 1,085px row leaves 193 beside the band, and no
+ * narrower than the half row a phone gives the same cards, 175px, where they are already the ledger
+ * of figures a column this narrow draws them as.
+ */
+const VITALS_MIN_COLUMN = 190;
+
+/**
+ * Whether the vitals stand beside the Now band rather than under it.
+ *
+ * Only where all four are in flight and the row cannot seat them across. The band is then held to
+ * two stated cards a row, 876px wide and two cards tall, and the rest of the row is blank: 209px on
+ * an iPad mini held sideways, 516 in a 1,440px window. The vitals are four cards that stack to most
+ * of the band's height in that width, 678 of its 768 at 193px, so they fill the blank rather than
+ * opening a band of their own below it. A row that wide is past `md`, where the band's cap applies,
+ * so the width alone decides.
+ *
+ * A band of fewer cards is one row tall, 380px, beside which the same four cards would stand twice
+ * its height; and a band that seats four across has nothing beside it.
+ */
+export const vitalsBeside = (rowWidth: number, dense: boolean) =>
+  dense &&
+  denseNowGeometry(rowWidth) === undefined &&
+  rowWidth - NOW_PAIR_ROW_WIDTH - NOW_VITALS_GAP >= VITALS_MIN_COLUMN;

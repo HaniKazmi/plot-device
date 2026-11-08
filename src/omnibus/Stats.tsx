@@ -1,5 +1,5 @@
 import { Hub, Layers } from "@mui/icons-material";
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import type { MouseEventHandler } from "react";
 import { usePhone } from "../common/breakpoints";
 import { CardPanel, type TypedCardMediaImage } from "../common/Card";
@@ -12,7 +12,7 @@ import { barColour, tabForId } from "../tabs";
 import { measureOf } from "../app/library";
 import { MEDIA } from "../app/media";
 import { MEDIA_LAZY } from "../app/mediaLazy";
-import { hasNow, unionTotals, type NowElection } from "./adapter";
+import { allInFlight, hasNow, unionTotals, type NowElection } from "./adapter";
 import type { NowPanel, OmniItem } from "../common/medium";
 import { franchiseTally } from "./franchiseData";
 import { OMNIBUS_SECTIONS } from "./sections";
@@ -24,15 +24,30 @@ import { useElementWidth } from "../common/useElementWidth";
 import {
   denseNowGeometry,
   NOW_BANNER_TEXT_HEIGHT,
-  NOW_CARD_WIDTH,
   NOW_GAP,
+  NOW_PAIR_ROW_WIDTH,
   NOW_PANEL_INSET,
   NOW_SPINE_WIDTH,
+  NOW_VITALS_GAP,
   nowPortraitHeight,
   pairNowGeometry,
   type NowGeometry,
   NOW_PHONE_ORDER,
+  vitalsBeside,
 } from "./nowGeometry";
+
+/** The page's two opening sections, one under the other. */
+const OPENING_SX = { display: "flex", flexDirection: "column", gap: `${NOW_VITALS_GAP}px` } as const;
+/** The same two side by side, the vitals in the column the Now band leaves (`vitalsBeside`). */
+const OPENING_BESIDE_SX = { ...OPENING_SX, flexDirection: "row" } as const;
+/**
+ * The band at the width it is held to, stated rather than left to its content: the band solves its
+ * cards from the width it measures, and a width that came from the cards would be one it never had.
+ */
+const NOW_BESIDE_SX = { flex: "0 0 auto", width: NOW_PAIR_ROW_WIDTH } as const;
+const VITALS_BESIDE_SX = { flex: "1 1 0", minWidth: 0 } as const;
+/** Every vitals card a row of its own, in the column beside the band. */
+const COLUMN_SPAN = { xs: 12, sm: 12, md: 12 } as const;
 
 const Stats = ({
   data,
@@ -61,17 +76,32 @@ const Stats = ({
   // what the reader just chose. Asked of the first item rather than of a set of all of them —
   // there are three possible answers and 1,464 rows, and this is on the undeferred path.
   const mixesMedia = data.some((item) => item.medium !== data[0]?.medium);
+  // Measured across both sections, a width neither arrangement changes, so the answer cannot move
+  // the thing it was measured on.
+  const [openingRef, openingWidth] = useElementWidth<HTMLDivElement>();
+  const beside = hasNow(now) && openingWidth !== undefined && vitalsBeside(openingWidth, allInFlight(now));
 
   return (
-    <Stack spacing={2}>
+    // One tree in both arrangements, so a change of width moves the band rather than rebuilding it,
+    // which would close a card the reader had open.
+    <Box
+      ref={openingRef}
+      sx={beside ? OPENING_BESIDE_SX : OPENING_SX}
+    >
       {/* No medium able to name anything, and there is no "now" to lead with. */}
       {hasNow(now) && (
-        <Section id={OMNIBUS_SECTIONS.now}>
+        <Section
+          id={OMNIBUS_SECTIONS.now}
+          sx={beside ? NOW_BESIDE_SX : undefined}
+        >
           <Now now={now} />
         </Section>
       )}
-      <Section id={OMNIBUS_SECTIONS.vitals}>
-        <StatBand>
+      <Section
+        id={OMNIBUS_SECTIONS.vitals}
+        sx={beside ? VITALS_BESIDE_SX : undefined}
+      >
+        <StatBand fill={beside}>
           {/* The first card counts `upTo` rather than `data`: the scope read as a ceiling, which
               is what a card titled "All time" or "Up to 2019" states under either reading — fed
               the "In 2026" rows, it would restate the in-year figures under the wrong words. The
@@ -82,6 +112,7 @@ const Stats = ({
             allTime={totals}
             // The years figure is dropped: inside one year it can only ever read 1.
             inYear={{ hours: inYear.hours, items: inYear.items }}
+            span={beside ? COLUMN_SPAN : undefined}
           />
           {/* A figure no one tab can state: a series held by two media is one franchise here and
               one on each of their tabs, so the union's count is not the three counts added up.
@@ -96,7 +127,7 @@ const Stats = ({
               // The third card of three, where the band pairs its cards: half a row leaves it
               // beside a gap, which reads as a card that lost its neighbour. Full width it is the
               // band's own closing line, above the media band that follows it.
-              span={{ xs: 12, sm: 12 }}
+              span={beside ? COLUMN_SPAN : { xs: 12, sm: 12 }}
               content={[
                 ["Franchises", franchises.franchises],
                 // Not the entries between them, which are every item and the card beside's own figure.
@@ -124,7 +155,7 @@ const Stats = ({
       {/* This file holds the bands above the charts and nothing else. The browse surfaces — the
           library and recently finished — belong to `Graphs`, at the `OMNIBUS_SECTIONS.library`
           and `.finished` anchors. */}
-    </Stack>
+    </Box>
   );
 };
 
@@ -160,8 +191,7 @@ const Now = ({ now }: { now: NowElection }) => {
    */
   const phone = usePhone();
 
-  // Every medium in flight at once is the one case the row cannot hold at its usual size.
-  const dense = media.every((medium) => now[medium] !== undefined);
+  const dense = allInFlight(now);
   // Whether four fit on one row is a question of the width the page gives the band and not of
   // any card, so the band measures it and solves the four-way share from it; where the share
   // falls under its floor the cards keep their usual size, two and two.
@@ -245,7 +275,7 @@ const Now = ({ now }: { now: NowElection }) => {
           gap: 1,
           // Four cards that do not fit one row are two rows of two, never three and one: the row
           // is held to the width two cards fill, so the third wraps.
-          maxWidth: { md: dense && !oneRow ? 2 * NOW_CARD_WIDTH + NOW_GAP : undefined },
+          maxWidth: { md: dense && !oneRow ? NOW_PAIR_ROW_WIDTH : undefined },
         }}
       >
         {cells}
