@@ -13,7 +13,8 @@ import {
   perShowAverages,
   recentlyWatched,
   showsInYear,
-  statsCardLabelEpsHours,
+  showFigures,
+  statsCardLabelShow,
   statsCardLabelRecentlyWatched,
   statsCardLabelWatching,
   watchingProgress,
@@ -342,15 +343,47 @@ describe("statsCardLabel", () => {
   });
 });
 
-describe("statsCardLabelEpsHours", () => {
+describe("statsCardLabelShow", () => {
   it("floors the hours from minutes, matching the recently-complete label's own floor", () => {
-    expect(statsCardLabelEpsHours(withSeasons({}, { minutes: 455 }))[0][1]).toBe("7 Hours");
+    expect(statsCardLabelShow(withSeasons({}, { minutes: 455 }))[1][1]).toBe("7 Hours");
   });
 
   it("formats the episode count through the same formatter every other figure on the tab uses", () => {
     // Comparing against `format` itself rather than a literal keeps this independent of locale,
     // which AGENTS.md rules out testing directly.
-    expect(statsCardLabelEpsHours(withSeasons({}, { e: 1234 }))[0][0]).toBe(`${format(1234)} Eps`);
+    expect(statsCardLabelShow(withSeasons({}, { e: 1234 }))[1][0]).toBe(`${format(1234)} Eps`);
+  });
+
+  // Most Watched stands beside Recently Watched in one band, so a card a line shorter than the
+  // card across from it ends the band short by a line a row.
+  it("writes a whole show in as many lines as a season, so the two lists beside each other end level", () => {
+    const parent = withSeasons({}, { s: 1 });
+    expect(statsCardLabelShow(parent)).toHaveLength(statsCardLabelRecentlyWatched(parent.s[0]).length);
+  });
+
+  it("counts the seasons watched, singular at one", () => {
+    expect(statsCardLabelShow(withSeasons({}, { s: 1 }))[0][0]).toBe("1 Season");
+    expect(statsCardLabelShow(withSeasons({}, { s: 1 }, { s: 2 }))[0][0]).toBe(`${format(2)} Seasons`);
+  });
+
+  it("states the years the seasons span, one year where they share it", () => {
+    const from = YearMonthDay.get(2008, 3, 1);
+    expect(statsCardLabelShow(withSeasons({ startDate: from, endDate: YearMonthDay.get(2026, 5, 1) }, {}))[0][1]).toBe(
+      "2008–2026",
+    );
+    expect(statsCardLabelShow(withSeasons({ startDate: from, endDate: YearMonthDay.get(2008, 9, 1) }, {}))[0][1]).toBe(
+      "2008",
+    );
+  });
+
+  it("dates a show with a season still open from the year it began", () => {
+    const open = withSeasons({ startDate: YearMonthDay.get(2012, 1, 1), endDate: undefined }, { endDate: undefined });
+    expect(statsCardLabelShow(open)[0][1]).toBe("Since 2012");
+  });
+
+  it("hands a strip its figures, the row the list is ranked by", () => {
+    const parent = withSeasons({}, { e: 9, minutes: 455 });
+    expect(showFigures(parent)).toEqual(statsCardLabelShow(parent)[1]);
   });
 });
 
