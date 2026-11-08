@@ -1692,6 +1692,18 @@ const SPINE_CHEVRON_SX = {
   fontSize: SPINE_CHEVRON,
 } as const;
 
+/**
+ * The name on a group's closing row under the artwork, beside its figure: cut short with an
+ * ellipsis rather than broken onto a line of its own. A list of groups stands beside a list of
+ * items in every tab's Explore band, and a name long enough to wrap makes its card a line taller
+ * than the rest, so the list ends 22px to 66px short of or past its neighbour — Games grouped by
+ * publisher at 1,133px, Movies by director at 1,000. The name is the group's whole label
+ * elsewhere: the card's accessible name, and the drill-down's title.
+ */
+const GROUP_NAME_SX = { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" } as const;
+/** The figure beside it, which the list is ordered by and so stays whole. */
+const GROUP_FIGURE_SX = { flexShrink: 0 } as const;
+
 export const FooterComponent = ({
   labels,
   divider,
@@ -1854,13 +1866,14 @@ export const FooterComponent = ({
               columnGap: beside ? 0.75 : 1,
               // Under the artwork a row that does not fit breaks between its cells, never inside a
               // date: each cell keeps its words together and the second takes a line of its own.
-              flexWrap: "wrap",
+              // A group's closing row is the exception (`GROUP_NAME_SX`).
+              flexWrap: closing && !beside ? "nowrap" : "wrap",
               color: index < labels.length - 1 ? palette.muted : undefined,
               // The row takes the width the glyph leaves, so its cells still spread across the card.
               ...(closing && { flex: "1 1 0", minWidth: 0 }),
             }}
           >
-            {stacks.map((val) => (
+            {stacks.map((val, cell) => (
               <Typography
                 key={val}
                 // A context row is set as a label and the closing row as the card's own line: the
@@ -1889,6 +1902,7 @@ export const FooterComponent = ({
                           "@container (max-width: 210px)": { fontSize: 10, letterSpacing: "0.04em" },
                         }),
                       },
+                  closing === true && !beside && stacks.length > 1 && (cell === 0 ? GROUP_NAME_SX : GROUP_FIGURE_SX),
                 ]}
               >
                 {val}

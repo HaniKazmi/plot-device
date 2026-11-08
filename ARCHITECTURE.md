@@ -845,7 +845,8 @@ Four cards at 434 need 1,760px where the widest container gives 1,488, so with a
 the row is measured (`common/useElementWidth.ts`) and shared four ways (`denseNowGeometry`): the
 banner's panel keeps its 136 exactly, the row's height following from its picture. The share floors
 at 366, a poster's column 133px, the narrowest a date, a two-line title and two tiles read well in;
-under it the four seat two and two, the row held to two cards' width so the third wraps. The words'
+under it the four seat two and two, the row held to two cards' width (`NOW_PAIR_ROW_WIDTH`, 876) so
+the third wraps. The words'
 height is never measured, since deriving the banner's width from however tall its words turn out
 needs a loop that settles; that budget costs a panel which cannot grow, so the title clamps to one
 line rather than letterboxing the picture. `statSize="compact"` and a halved panel inset fit a
@@ -885,6 +886,19 @@ from the measured width as the four-way one is (`pairNowGeometry`) and capped at
 which it reaches from a 876px row. The share is unconditional: a card wider than half its row can
 only stand one to a row, so refusing a narrow share would hand a 558px row four rows of the stated
 card, 1,544px against the 590 the same row's pair costs.
+
+**The vitals stand beside a band of two by two.** Held to 876px and two cards tall, the band leaves
+the rest of its row blank wherever it cannot seat four across: 209px on an iPad mini held sideways,
+516 in a 1,440px window. There the vitals take that blank as a column of their own
+(`vitalsBeside`, `nowGeometry.ts`), from a column of 190 — the iPad mini's 1,085px row leaves 193 —
+up to the 1,488px row that seats the band in one, every card a row of the column (`COLUMN_SPAN`). The
+two sections stay one tree in both arrangements, measured across both so the answer cannot move what
+it was measured on, and the band's own section is stated at 876 rather than left to its cards,
+which solve their width from the width they measure. The column is held to the band's height
+(`StatBand`'s `fill`): stacked at 193px the four come to 678, at 500 to 568, against the band's 768,
+and the rows share the difference so the two sections end level rather than the vitals stopping
+short under a strip of blank. A band of fewer than four is one row tall, beside which the same
+cards would stand twice its height, so it keeps them below.
 
 **Mixed rows are one card size, the Now band's rule at strip scale.** A list lays its cards out one
 of two ways (`CardLayout` in `common/Stats.tsx`): a grid at stated column spans, or a sized row.
@@ -2141,14 +2155,21 @@ the one place the two readings stand together, and the lit figure is the one a r
 to the charts and the wall.
 
 `StatCard` stands two to a row on a phone rather than one (`xs: 6`), a `span` prop overriding it
-where a band's own count would otherwise leave a card beside a gap — the Now band's Franchises card
-takes the full row alone, closing a band of three. Its figures stack rather than sit abreast below
-`sm`: two or three across half a phone's width puts each under a word wider than itself, where a
-column keeps figure and label on a shared baseline and lets a wide word wrap under its own number
-instead of shrinking it. `TotalsBand`'s legend wraps the same way
-above `sm` and stands in two fixed CSS-grid columns below it, since a name there is wide enough
-against the screen that a wrapping row leaves one entry a line and its count wherever the name
-happens to end.
+where a band's own count would otherwise leave a card beside a gap — the Omnibus's Franchises card
+takes the full row alone, closing a band of three, and every card takes a row of its own in the
+column beside the Now band. Its figures stand abreast from a card 320px wide and read down as a
+ledger under it, a figure and its word on one shared baseline a line, a wide word wrapping under its
+own number rather than shrinking it. The card's own width rather than the screen's
+(`FIGURES_ABREAST`, a container query), because what a card's width is follows how many share its
+row: a phone's half row is 175px, a band of four at 1,133 gives each 265, and the column beside
+the Now band 193, and three abreast in 193 run into each other. Abreast, each figure takes an equal
+share and the widest decides: Books' 204,111 pages is 94px of a third, a card of 316 with its inset.
+One width for every card whatever it counts, so cards of one width are one form, and a band reads as
+two kinds only where one card spans the row — the Franchises card on a phone, abreast beside the
+full-width Media band under it. `TotalsBand`'s legend answers its own width the same way
+(`LEGEND_WRAPS`): a wrapping line from 400px, and under it a list, one entry a line with the count at
+the right edge, since two entries abreast in under 400 break "141 Games" across two lines under a
+name as long as "PlayStation" and a wrapping row lands each count wherever its name ends.
 
 `StatList` is two smaller shells the same file exports, each with a caller of its own:
 

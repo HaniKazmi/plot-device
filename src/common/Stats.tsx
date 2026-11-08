@@ -53,6 +53,55 @@ import { useDialogMount } from "./useDialogMount";
 import { SheetBar } from "./SheetBar";
 import { CARD_LIST } from "./cardStep";
 
+type StatCardSpan = { xs?: number; sm?: number; md?: number | "grow" };
+
+/** The container a stat card's figures are laid out against: the card's own width, not the screen's. */
+const STAT_CARD = "stat-card";
+
+/**
+ * From this width a card's figures stand abreast, each over its word; under it they read down as a
+ * ledger, the figure and its word on one line and the lines under each other.
+ *
+ * The card's width rather than the screen's, because how wide a card is follows how many share its
+ * row and where the row stands: a phone's half row is 175px, a band of four at 1,133 gives each 265,
+ * and the column beside the Omnibus's Now band is 193. Abreast, every figure takes an equal share and
+ * the widest decides: Books' 204,111 pages is 94px of a third, a card of 316 with its inset, and a
+ * figure that does not fit its share runs into the next one.
+ *
+ * One width for every card whatever it counts, so cards of one width are one form: a band holding a
+ * ledger of three beside two figures abreast reads as two kinds of card.
+ */
+const FIGURES_ABREAST = `@container ${STAT_CARD} (min-width: 320px)`;
+
+const STAT_CARD_SX = { height: "100%", containerType: "inline-size", containerName: STAT_CARD } as const;
+const SCOPED_STAT_CARD_SX = {
+  ...STAT_CARD_SX,
+  // Inset, so the rule stands inside the card's own border rather than adding a pixel to its box: a
+  // lit card in a stretched row must not stand taller than the one beside it.
+  boxShadow: (theme: Theme) => `inset 0 3px 0 0 ${theme.vars.palette.primary.main}`,
+  borderColor: "primary.main",
+} as const;
+const FIGURES_SX = {
+  flexDirection: "column",
+  [FIGURES_ABREAST]: { flexDirection: "row", justifyContent: "space-evenly" },
+} as const;
+const FIGURE_SX = {
+  display: "flex",
+  // Its own height in a ledger, an equal share of the row abreast: a share of the height would
+  // spread two lines apart down a card sized by the tallest one beside it.
+  flex: "0 0 auto",
+  // In a ledger the word sits on the figure's own baseline rather than under it, and wraps beneath
+  // it where the two are wider than the card.
+  alignItems: "baseline",
+  flexWrap: "wrap",
+  columnGap: 0.75,
+  [FIGURES_ABREAST]: { flexDirection: "column", flex: "1 1 0", alignItems: "stretch", columnGap: 0 },
+} as const;
+const FIGURE_TEXT_SX = { textAlign: "left", [FIGURES_ABREAST]: { textAlign: "center" } } as const;
+// The rule between two figures abreast. In a ledger they are under each other, where a vertical
+// rule would stand across them.
+const FIGURE_RULE_SX = { display: "none", [FIGURES_ABREAST]: { display: "block" } } as const;
+
 export const StatCard = ({
   icon,
   title,
@@ -82,7 +131,7 @@ export const StatCard = ({
    * which reads as a card that lost its neighbour rather than as one the row has no more of.
    * Stated per card because only the caller knows how many it is placing.
    */
-  span?: { xs?: number; sm?: number; md?: number | "grow" };
+  span?: StatCardSpan;
 }) => {
   const formattedContent = (
     <Stack
@@ -90,53 +139,31 @@ export const StatCard = ({
         <Divider
           orientation="vertical"
           flexItem
-          // The rule between two figures side by side. Stacked they are under each other, where a
-          // vertical rule would stand across them.
-          sx={{ display: { xs: "none", sm: "block" } }}
+          sx={FIGURE_RULE_SX}
         />
       }
-      // A phone gives a card half the screen, so its figures read down as a small ledger — the
-      // figure and the word it counts on one line, the lines under each other. Three of them
-      // across 143px instead puts each figure under a word wider than itself, and the digits
-      // that answer the card are what shrinks to make room.
-      direction={{ xs: "column", sm: "row" }}
-      sx={{
-        justifyContent: { sm: "space-evenly" },
-      }}
+      sx={FIGURES_SX}
     >
       {content.map(([key, val]) => (
-        <Stack
+        <Box
           key={key}
-          direction={{ xs: "row", sm: "column" }}
-          sx={{
-            // Its own height stacked, an equal share of the row abreast: a share of the height
-            // would spread two lines apart down a card sized by the tallest one beside it.
-            flex: { xs: "0 0 auto", sm: "1 1 0" },
-            // The word sits on the figure's own baseline rather than under it, and wraps beneath
-            // it where the two are wider than the card.
-            alignItems: { xs: "baseline", sm: "stretch" },
-            flexWrap: "wrap",
-            columnGap: { xs: 0.75, sm: 0 },
-          }}
+          sx={FIGURE_SX}
         >
           <Typography
             variant="h5"
             // A row of figures that refresh under the filters, so proportional digits would move
             // each one sideways as its own width changed while its neighbours stood still.
-            sx={{ fontVariantNumeric: "tabular-nums", textAlign: { xs: "left", sm: "center" } }}
+            sx={[FIGURE_TEXT_SX, { fontVariantNumeric: "tabular-nums" }]}
           >
             {format(val)}
           </Typography>
           <Typography
             variant="subtitle2"
-            sx={{
-              color: "text.secondary",
-              textAlign: { xs: "left", sm: "center" },
-            }}
+            sx={[FIGURE_TEXT_SX, { color: "text.secondary" }]}
           >
             {key}
           </Typography>
-        </Stack>
+        </Box>
       ))}
     </Stack>
   );
@@ -156,20 +183,7 @@ export const StatCard = ({
         ...span,
       }}
     >
-      <Card
-        sx={
-          scoped
-            ? {
-                height: "100%",
-                // Inset, so the rule stands inside the card's own border rather than adding a
-                // pixel to its box: a lit card in a stretched row must not stand taller than the
-                // one beside it.
-                boxShadow: (theme: Theme) => `inset 0 3px 0 0 ${theme.vars.palette.primary.main}`,
-                borderColor: "primary.main",
-              }
-            : { height: "100%" }
-        }
-      >
+      <Card sx={scoped ? SCOPED_STAT_CARD_SX : STAT_CARD_SX}>
         <CardHeader
           title={title}
           avatar={icon}
@@ -230,11 +244,14 @@ export const YearVitalsPair = ({
   yearType,
   allTime,
   inYear,
+  span,
 }: {
   yearTo: YearNumber;
   yearType: YearType;
   allTime: Record<string, number>;
   inYear: Record<string, number>;
+  /** The cell each of the two takes, as `StatCard`'s own. */
+  span?: StatCardSpan;
 }) => (
   <>
     <StatCard
@@ -245,12 +262,14 @@ export const YearVitalsPair = ({
       title={scopeLabel(yearTo, "upto", CURRENT_YEAR)}
       scoped={yearType === "upto"}
       content={statRows(allTime)}
+      span={span}
     />
     <StatCard
       icon={<Update />}
       title={scopeLabel(yearTo, "matching", CURRENT_YEAR)}
       scoped={yearType === "matching"}
       content={statRows(inYear)}
+      span={span}
     />
   </>
 );
@@ -938,6 +957,30 @@ export const VitalsCard = ({ children }: { children: ReactNode }) => (
   </Grid>
 );
 
+/** The container a totals band's legend is laid out against: the band's own width. */
+const TOTALS = "totals";
+/**
+ * From this width the legend wraps along a line; under it the entries are a list, one a line with
+ * the count at the right edge. Two entries abreast in under 400px break "141 Games" across two lines
+ * under a name as long as "PlayStation", and a wrapping row lands each count wherever its name ends.
+ * The band's width rather than the screen's: a phone gives it 326px and so does the column beside
+ * the Omnibus's Now band at 1,280.
+ */
+const LEGEND_WRAPS = `@container ${TOTALS} (min-width: 400px)`;
+// A size container takes no width from its content, so the band is drawn in a box that gives it
+// one — a grid cell or a card's own width — and never in a shrink-to-fit one, where it would
+// stand at nothing.
+const TOTALS_SX = { containerType: "inline-size", containerName: TOTALS } as const;
+const LEGEND_SX = {
+  display: "flex",
+  flexDirection: "column",
+  flexWrap: "wrap",
+  columnGap: 2,
+  rowGap: 0.5,
+  [LEGEND_WRAPS]: { flexDirection: "row" },
+} as const;
+const LEGEND_NAME_SX = { flexGrow: 1, [LEGEND_WRAPS]: { flexGrow: 0 } } as const;
+
 /**
  * What a library is made of, as one proportional bar and a legend: statuses, platforms.
  *
@@ -969,7 +1012,10 @@ export const TotalsBand = <T extends string, U>(props: {
   const [hovered, setHovered] = useHoverDim();
 
   return (
-    <Stack spacing={1}>
+    <Stack
+      spacing={1}
+      sx={TOTALS_SX}
+    >
       <Stack
         direction="row"
         spacing={1}
@@ -989,19 +1035,8 @@ export const TotalsBand = <T extends string, U>(props: {
         onHover={setHovered}
       />
       {/* Wrapping rather than a column each: the legend is as wide as the words in it, so however
-        many groups there are they fill the lines they need and stop. On a phone the entries are
-        a list instead, one a line with its count at the right edge: two columns of 170px break
-        "141 Games" across two lines under a name as long as "PlayStation", and a wrapping row
-        lands each count wherever its name ends. */}
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: { xs: "column", sm: "row" },
-          flexWrap: "wrap",
-          columnGap: 2,
-          rowGap: 0.5,
-        }}
-      >
+        many groups there are they fill the lines they need and stop. Narrow, a list (`LEGEND_WRAPS`). */}
+      <Box sx={LEGEND_SX}>
         {totals.map((struct) => (
           <Stack
             key={struct.name}
@@ -1023,7 +1058,7 @@ export const TotalsBand = <T extends string, U>(props: {
             />
             <Typography
               variant="body2"
-              sx={{ flexGrow: { xs: 1, sm: 0 } }}
+              sx={LEGEND_NAME_SX}
             >
               {groupToLabel(struct.name)}
             </Typography>

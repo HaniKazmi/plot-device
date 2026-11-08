@@ -76,3 +76,6 @@ export const electNow = (
 
 /** Whether the Now band has anything to say — the same test the rail's chip is built from. */
 export const hasNow = (now: NowElection) => media.some((medium) => now[medium] !== undefined);
+
+/** Whether every medium is in flight at once, the one band the row cannot hold at its usual size. */
+export const allInFlight = (now: NowElection) => media.every((medium) => now[medium] !== undefined);

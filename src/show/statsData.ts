@@ -309,7 +309,35 @@ export const statsCardLabelRecentlyWatched = (season: Season) => [
   [`${season.e} Eps`, `${format(seasonHours(season.minutes))} Hours`],
 ];
 
-/** The Eps/Hours line the most-watched lists print for a whole show. */
-export const statsCardLabelEpsHours = (show: Show) => [
-  [`${format(show.e)} Eps`, `${format(seasonHours(show.minutes))} Hours`],
+/** A whole show's figures: its episodes and its hours, the second of which Most Watched ranks by. */
+export const showFigures = (show: Show) => [`${format(show.e)} Eps`, `${format(seasonHours(show.minutes))} Hours`];
+
+/**
+ * The years a show was watched across: from the year its first season began to the year of its
+ * latest watch, through each season's `lastWatchedDate` — its end once it has one, and otherwise
+ * the episode the sheet says was watched last. A season left open on an abandoned show then dates
+ * the show by when it was last touched, and an open season earlier in the list still counts.
+ */
+const watchedYears = (show: Show) => {
+  const from = show.startDate.year;
+  const to = Math.max(from, ...show.s.map((season) => season.lastWatchedDate?.year ?? from));
+  return to === from ? String(from) : `${from}–${to}`;
+};
+
+/**
+ * A group's card in Most Watched: its name over its figure, a cell a row, for the reason a whole
+ * show's card is two lines — Recently Watched's two-line cards stand beside these.
+ */
+export const statsCardLabelGroup = (name: string, figure: string) => [[name], [figure]];
+
+/**
+ * A whole show's card: how many seasons were watched and across which years, over its figures.
+ *
+ * Two lines because a season's card is two (`statsCardLabelRecentlyWatched`), and the two lists
+ * stand side by side in one band: a one-line footer leaves every card 20px shorter than the card
+ * across from it, so a band of two rows ends 40px short of its neighbour.
+ */
+export const statsCardLabelShow = (show: Show) => [
+  [`${format(show.s.length)} ${show.s.length === 1 ? "Season" : "Seasons"}`, watchedYears(show)],
+  showFigures(show),
 ];

@@ -1,4 +1,4 @@
-import { Box, Divider, useTheme } from "@mui/material";
+import { Box, Divider, type SxProps, type Theme, useTheme } from "@mui/material";
 import type { SvgIconComponent } from "@mui/icons-material";
 import Grid from "@mui/material/Grid";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -69,6 +69,8 @@ const glassGround = (ground: string) => `color-mix(in srgb, ${ground} ${GLASS_AL
 /** Where the observer calls a section current: from just under whatever is pinned to the upper third. */
 const activeBand = (top: number) => `-${top}px 0px -66% 0px`;
 
+const SECTION_SX = { scrollMarginTop: { xs: PHONE_SCROLL_MARGIN_CSS, sm: `${SCROLL_MARGIN}px` } } as const;
+
 /**
  * A band a rail chip can scroll to.
  *
@@ -76,26 +78,38 @@ const activeBand = (top: number) => `-${top}px 0px -66% 0px`;
  * it the browser lands the section's top edge at the top of the viewport, which is underneath the
  * sticky rail, and the first thing the reader was sent to see is the thing they cannot see. Below
  * `sm` there is nothing pinned up there to clear, and the margin is the device's own inset instead.
+ *
+ * `sx` places the section among its neighbours, where a page stands two of them side by side.
  */
-export const Section = ({ id, children }: { id: string; children: ReactNode }) => (
+export const Section = (props: { id: string; children: ReactNode; sx?: SxProps<Theme> }) => (
   <Box
-    id={id}
-    sx={{ scrollMarginTop: { xs: PHONE_SCROLL_MARGIN_CSS, sm: `${SCROLL_MARGIN}px` } }}
+    id={props.id}
+    sx={[SECTION_SX, ...(Array.isArray(props.sx) ? props.sx : [props.sx])]}
   >
-    {children}
+    {props.children}
   </Box>
 );
 
-/** A band of stat cards across a section. */
-export const StatBand = ({ children }: { children: ReactNode }) => (
+const FILLED_BAND_SX = { height: "100%", alignContent: "stretch" } as const;
+
+/**
+ * A band of stat cards across a section.
+ *
+ * `fill` holds it to its section's height, where the section is stretched beside a taller
+ * neighbour: the rows share what the cards leave, so the band ends level with the section beside it
+ * rather than short of it. The section is a stretched flex item, whose height a child's percentage
+ * resolves against.
+ */
+export const StatBand = (props: { children: ReactNode; fill?: boolean }) => (
   // Cards stretch to the tallest of the row rather than each sitting at its own height, so a row of
   // them reads as one band with a single lower edge instead of a ragged set of tiles — a flex
   // container's own default, so the band states nothing.
   <Grid
     container
     spacing={1}
+    sx={props.fill ? FILLED_BAND_SX : undefined}
   >
-    {children}
+    {props.children}
   </Grid>
 );
 

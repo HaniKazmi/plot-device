@@ -4,9 +4,11 @@ import {
   denseNowGeometry,
   NOW_GAP,
   NOW_GEOMETRY,
+  NOW_PAIR_ROW_WIDTH,
   NOW_PHONE_ORDER,
   nowPortraitHeight,
   pairNowGeometry,
+  vitalsBeside,
 } from "../../src/omnibus/nowGeometry";
 
 describe("the Now band's geometry", () => {
@@ -89,6 +91,36 @@ describe("the Now band's geometry", () => {
     // same height whatever ratio its file has.
     expect(nowPortraitHeight(358)).toBe(204);
     expect(nowPortraitHeight(398)).toBe(234);
+  });
+});
+
+describe("where the vitals stand", () => {
+  it("holds a band of four that cannot sit across to two stated cards and a gap", () => {
+    expect(NOW_PAIR_ROW_WIDTH).toBe(876);
+    expect(pairNowGeometry(NOW_PAIR_ROW_WIDTH)).toEqual(NOW_GEOMETRY);
+  });
+
+  it("seats them beside the two-by-two band on an iPad mini held sideways", () => {
+    // 1,133 less 24px of padding a side is 1,085, which leaves 193 once the band and the gap are out.
+    expect(vitalsBeside(1085, true)).toBe(true);
+  });
+
+  it("seats them beside the band at every width up to the row that holds four across", () => {
+    for (let rowWidth = 1085; rowWidth < 1488; rowWidth++) expect(vitalsBeside(rowWidth, true)).toBe(true);
+  });
+
+  it("leaves them under the band where the column beside it would be narrower than a phone's card", () => {
+    // 876 of band and 16 of gap leave 189 here, a pixel under the floor.
+    expect(vitalsBeside(1081, true)).toBe(false);
+    expect(vitalsBeside(1082, true)).toBe(true);
+  });
+
+  it("leaves them under a band of four across, which has nothing beside it", () => {
+    expect(vitalsBeside(1488, true)).toBe(false);
+  });
+
+  it("leaves them under a band of fewer than four, which is one row tall and not two", () => {
+    expect(vitalsBeside(1392, false)).toBe(false);
   });
 });
 

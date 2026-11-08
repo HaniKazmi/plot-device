@@ -48,7 +48,9 @@ import {
   recentlyWatched,
   showsInYear,
   showTopOptions,
-  statsCardLabelEpsHours,
+  showFigures,
+  statsCardLabelGroup,
+  statsCardLabelShow,
   statsCardLabelRecentlyWatched,
   statsCardLabelWatching,
   yearlyAverages,
@@ -310,7 +312,10 @@ const MostWatchedShows = ({ data, controls }: { data: Show[]; controls: ReactNod
       icon={<Whatshot />}
       title="Most Watched"
       content={most}
-      labelComponent={statsCardLabelEpsHours}
+      labelComponent={statsCardLabelShow}
+      // A strip card has room for one row, and on this list it is the figures rather than the
+      // seasons: the hours are what the list is ranked by.
+      captionOf={showFigures}
     />
   );
 };
@@ -335,12 +340,12 @@ const MostWatchedCategory = ({
       title="Most Watched"
       option={category}
       groups={groupShowsBy(data, category, measure)}
-      labelComponent={(group) => [[group.name, stated(group.count, measure)]]}
+      labelComponent={(group) => statsCardLabelGroup(group.name, stated(group.count, measure))}
       colourOf={(top) => groupToColour(category, top, scheme)}
       MediaComponent={ShowCardMediaImage}
       dialogSort={(shows) => shows.toSorted((a, b) => b.minutes - a.minutes)}
       nameOf={(show) => show.name}
-      dialogLabelComponent={statsCardLabelEpsHours}
+      dialogLabelComponent={statsCardLabelShow}
       dialogChipComponent={(show) => showStatusChip(show, scheme)}
       {...showStatListSharedProps}
     />

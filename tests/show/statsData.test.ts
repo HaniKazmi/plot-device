@@ -13,7 +13,9 @@ import {
   perShowAverages,
   recentlyWatched,
   showsInYear,
-  statsCardLabelEpsHours,
+  showFigures,
+  statsCardLabelGroup,
+  statsCardLabelShow,
   statsCardLabelRecentlyWatched,
   statsCardLabelWatching,
   watchingProgress,
@@ -342,15 +344,72 @@ describe("statsCardLabel", () => {
   });
 });
 
-describe("statsCardLabelEpsHours", () => {
+describe("statsCardLabelShow", () => {
   it("floors the hours from minutes, matching the recently-complete label's own floor", () => {
-    expect(statsCardLabelEpsHours(withSeasons({}, { minutes: 455 }))[0][1]).toBe("7 Hours");
+    expect(statsCardLabelShow(withSeasons({}, { minutes: 455 }))[1][1]).toBe("7 Hours");
   });
 
   it("formats the episode count through the same formatter every other figure on the tab uses", () => {
     // Comparing against `format` itself rather than a literal keeps this independent of locale,
     // which AGENTS.md rules out testing directly.
-    expect(statsCardLabelEpsHours(withSeasons({}, { e: 1234 }))[0][0]).toBe(`${format(1234)} Eps`);
+    expect(statsCardLabelShow(withSeasons({}, { e: 1234 }))[1][0]).toBe(`${format(1234)} Eps`);
+  });
+
+  // Most Watched stands beside Recently Watched in one band, so a card a line shorter than the
+  // card across from it ends the band short by a line a row.
+  it("writes a whole show in as many lines as a season, so the two lists beside each other end level", () => {
+    const parent = withSeasons({}, { s: 1 });
+    expect(statsCardLabelShow(parent)).toHaveLength(statsCardLabelRecentlyWatched(parent.s[0]).length);
+  });
+
+  it("counts the seasons watched, singular at one", () => {
+    expect(statsCardLabelShow(withSeasons({}, { s: 1 }))[0][0]).toBe("1 Season");
+    expect(statsCardLabelShow(withSeasons({}, { s: 1 }, { s: 2 }))[0][0]).toBe(`${format(2)} Seasons`);
+  });
+
+  it("states the years from the first season's start to the latest watch, one year where they share it", () => {
+    const from = YearMonthDay.get(2008, 3, 1);
+    expect(
+      statsCardLabelShow(
+        withSeasons({ startDate: from }, { startDate: from, endDate: YearMonthDay.get(2026, 5, 1) }),
+      )[0][1],
+    ).toBe("2008–2026");
+    expect(
+      statsCardLabelShow(
+        withSeasons({ startDate: from }, { startDate: from, endDate: YearMonthDay.get(2008, 9, 1) }),
+      )[0][1],
+    ).toBe("2008");
+  });
+
+  // An open season is common on a show the reader has given up on, so "still going" would claim
+  // a watch nobody is making; the last episode watched is what dates it.
+  it("dates a season left open by its last watch rather than reading it as ongoing", () => {
+    const abandoned = withSeasons(
+      { status: "Abandoned", startDate: YearMonthDay.get(2012, 1, 1) },
+      { endDate: undefined, lastWatchedDate: YearMonthDay.get(2015, 6, 1) },
+    );
+    expect(statsCardLabelShow(abandoned)[0][1]).toBe("2012–2015");
+  });
+
+  it("counts an open season earlier in the list, not only the last season's end", () => {
+    const parent = withSeasons(
+      { startDate: YearMonthDay.get(2019, 1, 1) },
+      { s: 1, endDate: undefined, lastWatchedDate: YearMonthDay.get(2026, 2, 1) },
+      { s: 2, endDate: YearMonthDay.get(2024, 3, 1) },
+    );
+    expect(statsCardLabelShow(parent)[0][1]).toBe("2019–2026");
+  });
+
+  it("writes a group's card in as many lines as a season, its figure closing it", () => {
+    const parent = withSeasons({}, { s: 1 });
+    const group = statsCardLabelGroup("Drama", "12 shows");
+    expect(group).toHaveLength(statsCardLabelRecentlyWatched(parent.s[0]).length);
+    expect(group.at(-1)).toEqual(["12 shows"]);
+  });
+
+  it("hands a strip its figures, the row the list is ranked by", () => {
+    const parent = withSeasons({}, { e: 9, minutes: 455 });
+    expect(showFigures(parent)).toEqual(statsCardLabelShow(parent)[1]);
   });
 });
 
