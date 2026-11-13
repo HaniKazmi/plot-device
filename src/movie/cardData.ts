@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 import { formatDate } from "../common/date";
 import { certificateToColour, franchiseToColour, genreToColour, mediumFills, type Scheme } from "../utils/types";
 import { movieItemKey } from "./statsData";
-import { cinemaLabel, cinemaToColour, type Movie } from "./types";
+import { venueToColour, type Movie } from "./types";
 
 /**
  * How a film is named wherever it is promoted: where it was watched, who directed it, then the
@@ -19,7 +19,7 @@ import { cinemaLabel, cinemaToColour, type Movie } from "./types";
  * one film two ways.
  */
 export const movieSubtitle = (movie: Movie, scheme: Scheme): PanelSubtitlePart[] => [
-  { text: cinemaLabel(movie), swatch: cinemaToColour(cinemaLabel(movie), scheme) },
+  { text: movie.venue, swatch: venueToColour(movie.venue, scheme) },
   ...movieCredit(movie, scheme),
 ];
 

@@ -667,11 +667,11 @@ describe("the categories a query can name", () => {
   });
 
   it("drops a category of one findable value, that row and its value's being the same row twice", () => {
-    // Every film here was seen in a cinema, so the outing split holds one word: naming the category
+    // Every film here was seen in a cinema, so the venue holds one word: naming the category
     // and naming the value would put one narrowing on the list under two names.
     const categories = index().categories.map((entry) => entry.category);
 
-    expect(categories).not.toContain("cinema");
+    expect(categories).not.toContain("venue");
     // Style holds two words across this library, Stylised from the game and Realistic from the rest.
     expect(categories).toContain("style");
   });

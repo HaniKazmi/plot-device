@@ -92,7 +92,7 @@ const witcher = () =>
           genre: "Fantasy",
           otherGenres: ["Action"],
           score: 7,
-          cinema: false,
+          venue: "Home",
           startDate: day(2021, 9, 23),
         }),
         movie({ name: "Arrival", franchise: "Arrival" }),
@@ -213,8 +213,8 @@ describe("dossierRows", () => {
     const films = toOmniItems(
       library({
         movie: [
-          movie({ name: "Knives Out", franchise: "Knives Out", cinema: false }),
-          movie({ name: "Glass Onion", franchise: "Knives Out", cinema: false, startDate: day(2022, 12, 22) }),
+          movie({ name: "Knives Out", franchise: "Knives Out", venue: "Home" }),
+          movie({ name: "Glass Onion", franchise: "Knives Out", venue: "Home", startDate: day(2022, 12, 22) }),
         ],
       }),
     );
@@ -241,7 +241,7 @@ describe("a field the whole franchise shares", () => {
             genre: "Sci-Fi",
             otherGenres: [],
             style: "Realistic",
-            cinema: true,
+            venue: "Cinema",
           }),
         ],
         book: [book({ name: "Dune", franchise: "Dune", genre: "Sci-Fi" })],

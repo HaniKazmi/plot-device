@@ -85,7 +85,7 @@ export interface OmniItem {
    */
   credits: Credit[];
   /**
-   * Where it was met: a game's platform, a film's cinema or home, a season's network, a book's
+   * Where it was met: a game's platform, a film's cinema, theatre or home, a season's network, a book's
    * format. One word per item in every medium, so a franchise reads as one ranked list of them.
    */
   venue: string;

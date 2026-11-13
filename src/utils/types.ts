@@ -554,7 +554,7 @@ export const isStyle = (value: string): value is Style => (STYLES as readonly st
  * Anime takes the rose its fandom paints in; Realistic a broadcast indigo, the colour of a screen
  * showing the world; Stylised a cel-shaded green. Every value meets the fill contract.
  *
- * The green is placed where the other two and the Movies tab's own Cinema/Home pair leave room.
+ * The green is placed where the other two and the Movies tab's own venues leave room.
  * Gold is not that room: Cinema owns it, on the one tab where the style chips stand three rows from
  * the cinema chips, and an amber clearing 3:1 on white lands 5–9 dE (CIEDE2000) from Cinema's. The green sits at
  * least 37.8 (CIEDE2000) and 18.8 (OKLab ×100) from rose, indigo, Home and Cinema on either paper.

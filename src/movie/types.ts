@@ -39,8 +39,8 @@ export interface Movie extends InSeries {
   franchise: string;
   director: string;
   artwork: string;
-  /** Whether it was seen in a cinema rather than at home. */
-  cinema: boolean;
+  /** Where it was seen: an outing to a cinema or a theatre, or a night in. */
+  venue: Venue;
   /** How the film looks, in the vocabulary Games and Shows share (`STYLES`). */
   style: Style;
 }
@@ -50,12 +50,12 @@ type MovieStringKeys = KeysMatching<Movie, string>;
 export type Measure = "Films" | "Hours";
 
 /**
- * What the charts can group by: the string fields plus three derivations — the release decade,
- * cinema-vs-home, and the score band. The union is the option set rather than `keyof Movie`
- * because those three live on no field; "score" here means the band, since a select box shows
- * these words and "scoreBand" is nobody's vocabulary.
+ * What the charts can group by: the string fields plus two derivations — the release decade and
+ * the score band. The union is the option set rather than `keyof Movie` because those two live on
+ * no field; "score" here means the band, since a select box shows these words and "scoreBand" is
+ * nobody's vocabulary.
  */
-export type MovieGroup = MovieStringKeys | "none" | "decade" | "cinema" | "score";
+export type MovieGroup = MovieStringKeys | "none" | "decade" | "score";
 
 /**
  * When a film was finished: the day it was watched, a film being finished the day it is started —
@@ -63,17 +63,31 @@ export type MovieGroup = MovieStringKeys | "none" | "decade" | "cinema" | "score
  */
 export const watchedOn = (film: Movie) => film.startDate;
 
-export const cinemaLabel = ({ cinema }: Movie) => (cinema ? "Cinema" : "Home");
+/**
+ * Where a film was seen, as the sheet's Format column words it: the two outings, then the night in.
+ * A stage production is tracked here beside the films because it is the same shape of record — one
+ * sitting on one day, a runtime, a score, a director and a franchise it can join across media.
+ */
+export const VENUES = ["Cinema", "Theatre", "Home"] as const;
+export type Venue = (typeof VENUES)[number];
 
-/** Exhaustive over the two values `cinemaLabel` can answer, so both always have a fill. */
-const cinemaColours: Record<"Cinema" | "Home", Fill> = {
-  // The outing takes the marquee gold; the sofa a settled slate blue. Both meet the fill contract.
+/**
+ * Exhaustive over `VENUES`, so every venue has a fill. The outing to a cinema takes the marquee
+ * gold and the sofa a settled slate blue. A theatre's own colour is its curtain's crimson, which is
+ * the 1–2 score band's on the Vitals card the venue band shares, 5.6 dE (CIEDE2000) away on white;
+ * it takes the velvet violet instead, at least 18.5 from every other venue, style and score fill on
+ * either paper. Its nearest neighbours are two genres, Thriller at 8.0 on white and Fantasy at 9.7 on
+ * the dark paper: the two meet on a film's subtitle and the filter surface, each of which words both
+ * values, and never as fills on one chart. All three meet the fill contract.
+ */
+const venueColours: Record<Venue, Fill> = {
   Cinema: fill("#b57800", "#ec9e00"),
+  Theatre: fill("#7b3fc4", "#a678f0"),
   Home: fill("#0e6ab4", "#3789d5"),
 };
 
-export const cinemaToColour = (label: string, scheme: Scheme): Colour =>
-  pick(cinemaColours[label as "Cinema" | "Home"] ?? NEUTRAL_FILL, scheme);
+export const venueToColour = (label: string, scheme: Scheme): Colour =>
+  pick(venueColours[label as Venue] ?? NEUTRAL_FILL, scheme);
 
 /**
  * The score vocabulary lives in the shared layer, because Books scores on the same scale and a
@@ -91,8 +105,8 @@ export const groupToColour = (group: MovieGroup, movie: Movie, scheme: Scheme): 
       return genreToColour(movie.genre, scheme);
     case "certificate":
       return certificateColour(movie, scheme);
-    case "cinema":
-      return cinemaToColour(cinemaLabel(movie), scheme);
+    case "venue":
+      return venueToColour(movie.venue, scheme);
     case "style":
       // The vocabulary Games and Shows share, so the rose means anime on every tab.
       return styleToColour(movie.style, scheme);

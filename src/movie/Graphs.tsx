@@ -1,6 +1,6 @@
 import { memo, useDeferredValue } from "react";
 import { Stack } from "@mui/material";
-import { cinemaLabel, cinemaToColour, watchedOn, type Movie } from "./types";
+import { venueToColour, watchedOn, type Movie } from "./types";
 import { genreToColour, type Scheme } from "../utils/types";
 import { movieModule } from "./module";
 import Finished from "../common/Finished";
@@ -31,7 +31,7 @@ import { useScheme } from "../common/useScheme";
  */
 const movieShelves = (scheme: Scheme): readonly FinishedExtraSort<Movie>[] => [
   genreShelf(scheme),
-  { label: "Where watched", word: cinemaLabel, colour: (label) => cinemaToColour(label, scheme) },
+  { label: "Where watched", word: (movie) => movie.venue, colour: (label) => venueToColour(label, scheme) },
   { label: "Score", value: (movie) => movie.score },
 ];
 

@@ -3,7 +3,8 @@ import { YearMonthDay } from "../../src/common/date";
 import type { Certificate } from "../../src/utils/types";
 import { decadeToColour, neutralFill, releaseDecade } from "../../src/utils/types";
 import {
-  cinemaToColour,
+  VENUES,
+  venueToColour,
   groupToColour,
   scoreBand,
   scoreBandToColour,
@@ -59,11 +60,13 @@ describe("scoreBandToColour", () => {
   });
 });
 
-describe("cinemaToColour", () => {
-  it("gives Cinema and Home distinct fills", () => {
-    expect(cinemaToColour("Cinema", "light")).not.toBe(cinemaToColour("Home", "light"));
-    expect(cinemaToColour("Cinema", "light")).toBeTruthy();
-    expect(cinemaToColour("Home", "light")).toBeTruthy();
+describe("venueToColour", () => {
+  it("gives every venue a fill of its own on either paper", () => {
+    for (const scheme of ["light", "dark"] as const) {
+      const fills = VENUES.map((venue) => venueToColour(venue, scheme));
+      expect(fills.every(Boolean)).toBe(true);
+      expect(new Set(fills).size).toBe(VENUES.length);
+    }
   });
 });
 
@@ -74,10 +77,10 @@ describe("groupToColour", () => {
     expect(groupToColour("decade", film, "light")).toBe(decadeToColour(releaseDecade(1965), "light"));
   });
 
-  it("dispatches cinema and score through their own lookups", () => {
-    const film = movie({ cinema: true, score: 9 });
+  it("dispatches venue and score through their own lookups", () => {
+    const film = movie({ venue: "Theatre", score: 9 });
 
-    expect(groupToColour("cinema", film, "light")).toBe(cinemaToColour("Cinema", "light"));
+    expect(groupToColour("venue", film, "light")).toBe(venueToColour("Theatre", "light"));
     expect(groupToColour("score", film, "light")).toBe(scoreBandToColour("9–10", "light"));
   });
 

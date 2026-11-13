@@ -16,9 +16,9 @@ describe("movieGroupValue", () => {
     expect(movieGroupValue(movie({ releaseDate: YearMonthDay.get(1942, 6, 1) }), "decade")).toBe("Pre-1970");
   });
 
-  it("words the cinema flag as Cinema or Home", () => {
-    expect(movieGroupValue(movie({ cinema: true }), "cinema")).toBe("Cinema");
-    expect(movieGroupValue(movie({ cinema: false }), "cinema")).toBe("Home");
+  it("groups by venue as the sheet words it", () => {
+    expect(movieGroupValue(movie({ venue: "Theatre" }), "venue")).toBe("Theatre");
+    expect(movieGroupValue(movie({ venue: "Home" }), "venue")).toBe("Home");
   });
 
   it("bands the score, with an absent score its own band rather than a low one", () => {

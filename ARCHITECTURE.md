@@ -228,11 +228,12 @@ Converters do real modelling work, not just field renaming:
   address a dragged-down show-row formula leaves on a season row, is read as no picture.
 - **`movie/`** reads both its dates as full ones, a blank runtime as `0` and a blank Score as
   `undefined`: `sum` accumulates with `+`, so one `NaN` blanks every hours total, where a score is
-  honestly absent rather than zero. `cinema` stays a boolean on the model but is read from a worded
-  cell and checked: a flag column written only in its true case has a blank for its false case and
-  nothing to reject, where a worded column has none — so anything outside the pair would land
-  silently as Home. `Style` is checked against `STYLES` for the sharper reason that guest mode hides
-  on it.
+  honestly absent rather than zero. `venue` is read from the `Format` cell and checked against
+  `VENUES` — `Cinema`, `Theatre`, `Home` — since a worded column has no blank case and anything
+  outside the three would otherwise land silently as one of them. A stage production is a row here
+  beside the films, being the same shape of record: one sitting on one day, a runtime, a score, a
+  director and a franchise it joins across media. `Style` is checked against `STYLES` for the
+  sharper reason that guest mode hides on it.
 - **`book/`** holds every date to a full one and rejects a `Status` or `Format` outside its two small
   vocabularies, which `statusToColour` answers `undefined` for and the status band drops silently. It
   requires status and end date to agree, and rejects a non-numeric page or hour count: a `NaN` blanks
@@ -277,7 +278,7 @@ its own cell, as every other sheet's is.
 Each arm also carries what a franchise's page reads of it without reaching back into the record:
 its `series` and `seriesNumber` in its own medium's words (a season's its show, numbered by the
 season, the Shows sheet writing no series and a show being the line its seasons are met in), its `credits` by role — author, director, developer and publisher, network — its
-`venue`, the one word for where it was met (a platform, cinema or home, a network, a format), and
+`venue`, the one word for where it was met (a platform, a cinema, theatre or home, a network, a format), and
 its `score` where the sheet records one. Each is filled by the medium's own `module.ts`, so the page
 reads one shape for four media and never asks which it holds.
 
@@ -337,7 +338,7 @@ Two subtleties live in the serialisation boundary, and both are easy to break:
    the page's own error boundary (§10), so a throw here takes the app down and not just the page.
 
 Cache keys are versioned per domain — `dataCacheKey(domain, version)` yields `game-data-cache-v5`,
-`show-data-cache-v8`, `movie-data-cache-v5`, `book-data-cache-v3` — and `dropSupersededVersions`
+`show-data-cache-v8`, `movie-data-cache-v6`, `book-data-cache-v3` — and `dropSupersededVersions`
 clears earlier keys on first load, matched on the domain's prefix so one tab's bump cannot empty
 another's. Bump the version in the domain's `converter.ts` on any model-shape change, or returning
 visitors' cached objects lack the field until their next authorised fetch — indefinitely, for a
@@ -1654,7 +1655,7 @@ certificate and gameplay above the values a reader was after, while "action" sti
 Action genre, no category being called that. A **level is neither counted nor listed**, a company
 standing for a set of the category's values rather than being one, or the header would state 15 over
 17 rows. A **category of one findable value is that value**, through the same `groupHolds` the filter
-chips group by — a vocabulary whose rows hold a single word, as the Movies outing split does for a
+chips group by — a vocabulary whose rows hold a single word, as the Movies venue does for a
 library seen only in cinemas, would otherwise stand as a category row and a value row that are one
 narrowing under two names. And **franchise scopes off the franchise index**, its values being
 deliberately absent from the attribute one, so all 688 are reachable with no vocabulary
@@ -2466,7 +2467,7 @@ began — "Playing since", "Watching since", "Reading since" — or what was don
 and a day (`HeroActivity`) rather than a sentence, so no tab's line can take a shape of its own.
 A season's number stands in its title, "Avatar: Seven Havens S1", as the Omnibus's Now card names
 it. The subtitle names the venue first, as every medium
-records one — the platform, the network, cinema or home, the format — then the medium's own words
+records one — the platform, the network, cinema, theatre or home, the format — then the medium's own words
 and the genre, each part wearing the swatch the tab already paints it in (`gameSubtitle`,
 `showSubtitle`, `movieSubtitle`, `bookSubtitle`, which the hover cards share). The Now band's banner
 panel sets its subtitle on the date's own line in a fixed 136px, so its film and book cards take the
@@ -2852,7 +2853,7 @@ naming how a picture was made rather than how it looks and meaning nothing on Ga
 value across the three tabs is what folds each tab's select into one entry the box shelves, and one
 fill per word is what makes the rose mean anime on every chart. Anime takes that rose, Realistic a
 broadcast indigo and Stylised a cel-shaded green (`#31a005`/`#4dba30`). Gold is the obvious gap and
-not an open one: the Movies filter surface draws the Cinema/Home pair three rows below the style
+not an open one: the Movies filter surface draws the venue chips three rows below the style
 chips, and an amber clearing 3:1 on white lands 5–9 dE (CIEDE2000) from Cinema's marquee gold, where
 the green sits at least 37.8 from rose, indigo, Home and Cinema. The indigo is 3.7 dE from the
 sofa's blue, the closest pair in any table, allowed because both rows word their chips.
@@ -2876,7 +2877,11 @@ labelled band, its filter chips and its ledger; Games in the Top Format card, a 
 barchart split, where the column was drawn in palette colours by option index before — which is
 what made a Physical game and a physical book two colours.
 
-Movies adds the Cinema/Home pair and
+Movies adds its three venues — Cinema the marquee gold, Home the sofa's slate blue, and Theatre a
+velvet violet, the curtain's crimson being the 1–2 score band's on the Vitals card the venue band
+shares, 5.6 dE away on white, where the violet stands at least 18.5 from every venue, style and
+score fill on either paper, its nearest being the Thriller and Fantasy genres at 8.0 and 9.7, which
+it meets only where both are worded — and
 re-exports the score bands — valenced red through amber to green, Unscored on the neutral — under
 its own name. Shows colours networks as brand-derived fills with `""` off-table, the column gaining
 a streamer whenever one launches, keyed on the string the **sheet** writes: `HBO`, though the brand

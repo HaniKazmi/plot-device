@@ -1,7 +1,7 @@
 import { formatDate, YearMonthDay, type YearNumber } from "../common/date";
 import { format } from "../utils/mathUtils";
 import { releaseDecade } from "../utils/types";
-import { cinemaLabel, scoreBand, type Measure, type Movie, type MovieGroup } from "./types";
+import { scoreBand, type Measure, type Movie, type MovieGroup } from "./types";
 import { groupByCategory } from "../common/statsData";
 import "../utils/arrayUtils";
 
@@ -17,7 +17,7 @@ export const movieTopOptions = [
   "franchise",
   "certificate",
   "decade",
-  "cinema",
+  "venue",
   "style",
   "score",
 ] as const;
@@ -26,7 +26,7 @@ export type MovieTopOption = (typeof movieTopOptions)[number];
 
 /**
  * A grouping's value for one film, worded the way a card should read it. This is the single
- * definition of the three derived keys — decade, cinema, score band — so the sunburst, barchart,
+ * definition of the two derived keys — decade and score band — so the sunburst, barchart,
  * Top band and drill-down cannot come to disagree about which bucket a film is in. It answers
  * for the whole `MovieGroup` union rather than only the Top list's options, so a chart offering
  * any grouping calls it without a cast.
@@ -35,8 +35,6 @@ export const movieGroupValue = (movie: Movie, key: Exclude<MovieGroup, "none">):
   switch (key) {
     case "decade":
       return releaseDecade(movie.releaseDate.year);
-    case "cinema":
-      return cinemaLabel(movie);
     case "score":
       return scoreBand(movie.score);
     default:
@@ -149,6 +147,6 @@ export const movieKey = (movie: Movie) => `${movie.name}-${movie.releaseDate}-${
 // the thumbnail speaks. Two cells to a row, as the Games tab labels its banners: under a 16:9
 // picture the date and the second fact share a line with room to spare. The score is already the
 // card's corner chip, so neither label repeats it.
-export const statsCardLabelWatched = (movie: Movie) => [[formatDate(movie.startDate), cinemaLabel(movie)]];
+export const statsCardLabelWatched = (movie: Movie) => [[formatDate(movie.startDate), movie.venue]];
 
 export const statsCardLabelScore = (movie: Movie) => [[formatDate(movie.startDate), `${format(movie.minutes)} min`]];

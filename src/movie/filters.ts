@@ -9,7 +9,7 @@ import {
 } from "../common/filterSchema";
 import { CERTIFICATES, certificateToColour, genreToColour, type Certificate, type Predicate } from "../utils/types";
 import type { FilterState } from "./filterUtils";
-import { cinemaLabel, cinemaToColour, type Movie } from "./types";
+import { VENUES, venueToColour, type Movie } from "./types";
 
 /**
  * What guest mode hides on this tab: a film the sheet styles as anime, read off the same model field
@@ -21,23 +21,19 @@ import { cinemaLabel, cinemaToColour, type Movie } from "./types";
  */
 export const guestFilter: Predicate<Movie> = (movie) => movie.style !== "Anime";
 
-/** The outing first, as the sheet's own column reads and as `cinemaToColour` ramps it. */
-const CINEMA_VALUES = ["Cinema", "Home"];
-
 export const movieFilters: FilterSchema<Movie, FilterState> = {
   toggles: [{ key: "unscored", label: "Unscored films", hides: (movie) => movie.score !== undefined }],
   categories: [
     { key: "genre", label: "genre", valueOf: (movie) => movie.genre, colourFor: genreToColour },
     styleCategory("style", (movie) => movie.style),
-    // Both halves are a thing to look for — an outing and a night in — so neither is held back from
-    // the box. "watched" rather than "cinema", which would name the row after one of the two values
-    // standing under it.
+    // Every venue is a thing to look for — an outing and a night in alike — so none is held back
+    // from the box. "watched" rather than "venue", the row reading "watched: Theatre".
     {
-      key: "cinema",
+      key: "venue",
       label: "watched",
-      valueOf: cinemaLabel,
-      options: (data) => present(CINEMA_VALUES, data, cinemaLabel),
-      colourFor: cinemaToColour,
+      valueOf: (movie) => movie.venue,
+      options: (data) => present(VENUES, data, (movie) => movie.venue),
+      colourFor: venueToColour,
     },
     certificateCategory(
       "certificate",
