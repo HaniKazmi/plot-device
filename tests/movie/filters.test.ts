@@ -13,7 +13,7 @@ describe("the default state", () => {
   it("is a no-op: every toggle is permissive, the year ceiling is the current year, guest mode is off", () => {
     const keep = filters(state());
 
-    expect(keep(movie({ cinema: false }))).toBe(true);
+    expect(keep(movie({ venue: "Home" }))).toBe(true);
     expect(keep(movie({ score: undefined }))).toBe(true);
     expect(keep(movie({ style: "Anime" }))).toBe(true);
   });
@@ -29,27 +29,29 @@ describe("toggles", () => {
 });
 
 describe("categories", () => {
-  it("holds the page to any set of styles, or to either side of the outing split, or to neither", () => {
-    // Both directions of the split: the reading a switch could not reach is "only the nights in".
+  it("holds the page to any set of styles, or to any set of venues, or to neither", () => {
+    // Every reading of the venue: one outing alone, both outings, and the nights in alone.
     expect(filters(state({ style: ["Anime"] }))(movie({ style: "Anime" }))).toBe(true);
     expect(filters(state({ style: ["Anime"] }))(movie({ style: "Realistic" }))).toBe(false);
     expect(filters(state({ style: ["Realistic", "Stylised"] }))(movie({ style: "Anime" }))).toBe(false);
 
-    expect(filters(state({ cinema: ["Cinema"] }))(movie({ cinema: true }))).toBe(true);
-    expect(filters(state({ cinema: ["Cinema"] }))(movie({ cinema: false }))).toBe(false);
-    expect(filters(state({ cinema: ["Home"] }))(movie({ cinema: true }))).toBe(false);
-    expect(filters(state({ cinema: ["Home"] }))(movie({ cinema: false }))).toBe(true);
+    expect(filters(state({ venue: ["Theatre"] }))(movie({ venue: "Theatre" }))).toBe(true);
+    expect(filters(state({ venue: ["Theatre"] }))(movie({ venue: "Cinema" }))).toBe(false);
+    expect(filters(state({ venue: ["Cinema", "Theatre"] }))(movie({ venue: "Cinema" }))).toBe(true);
+    expect(filters(state({ venue: ["Cinema", "Theatre"] }))(movie({ venue: "Home" }))).toBe(false);
+    expect(filters(state({ venue: ["Home"] }))(movie({ venue: "Home" }))).toBe(true);
 
-    expect(filters(state({ cinema: [] }))(movie({ cinema: false }))).toBe(true);
+    expect(filters(state({ venue: [] }))(movie({ venue: "Theatre" }))).toBe(true);
   });
 
-  it("puts both halves of the outing split and every style in the box's index", () => {
+  it("puts every venue and every style in the box's index", () => {
     // An outing and a night in are each a thing to go looking for, as each of the three styles is.
-    const cinema = movieFilters.categories.find((category) => category.key === "cinema")!;
+    const venue = movieFilters.categories.find((category) => category.key === "venue")!;
     const style = movieFilters.categories.find((category) => category.key === "style")!;
 
-    expect(cinema.found).toBeUndefined();
-    expect(cinema.options!([movie({ cinema: true }), movie({ cinema: false })])).toEqual(["Cinema", "Home"]);
+    expect(venue.found).toBeUndefined();
+    // In the vocabulary's own order whatever order the rows hold them in, and only the ones present.
+    expect(venue.options!([movie({ venue: "Home" }), movie({ venue: "Theatre" })])).toEqual(["Theatre", "Home"]);
     expect(style.found).toBeUndefined();
   });
 
@@ -107,13 +109,13 @@ describe("the year cutoff", () => {
 
 describe("the schema the drawer and the box are both drawn from", () => {
   it("offers one toggle and six categories, in the order they are laid out", () => {
-    // Unscored films are a pile to be rid of; the style and the outing split are categories, a
+    // Unscored films are a pile to be rid of; the style and the venue are categories, a
     // switch holding two of either's readings at most.
     expect(movieFilters.toggles.map((toggle) => toggle.key)).toEqual(["unscored"]);
     expect(movieFilters.categories.map((category) => category.key)).toEqual([
       "genre",
       "style",
-      "cinema",
+      "venue",
       "certificate",
       "director",
       "filmSeries",

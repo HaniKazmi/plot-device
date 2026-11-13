@@ -1,18 +1,15 @@
 import { dataCacheKey, type DataConfig } from "../common/useData";
 import { readCertificate, readChecked, readFullDate, readGenre, readStyle, sheetRow } from "../common/sheetError";
 import { splitCell } from "../utils/stringUtils";
-import type { Movie } from "./types";
+import { VENUES, type Movie } from "./types";
 
 /**
- * How a film was seen, as the sheet words it.
- *
- * The model keeps it as a boolean, the converter being the app's one translation layer — but the
- * read is checked rather than compared. A flag column written only in its true case has a blank for
- * its false case and nothing to reject; a worded column has no blank case, so anything outside the
- * pair — a typo, or a header named wrongly here, which is every row at once — would land silently
- * as Home, indistinguishable from a library of home viewing.
+ * Where a film was seen, as the sheet words it. Checked rather than defaulted: a worded column has
+ * no blank case, so anything outside the vocabulary — a typo, or a header named wrongly here, which
+ * is every row at once — would otherwise land silently as one venue, a library indistinguishable
+ * from one seen entirely at home.
  */
-const readWatchFormat = readChecked(["Cinema", "Home"] as const, "a watch format");
+const readVenue = readChecked(VENUES, "a venue");
 
 export const jsonConverter = (json: Record<string, string>[]) => {
   return json.map((row, index) => {
@@ -51,7 +48,7 @@ export const jsonConverter = (json: Record<string, string>[]) => {
       seriesNumber: Number.isNaN(seriesNumber) ? undefined : seriesNumber,
       director: row.Director,
       artwork: row.Artwork ?? "",
-      cinema: readWatchFormat(row.Format, `${where}, Format`) === "Cinema",
+      venue: readVenue(row.Format, `${where}, Format`),
       style: readStyle(row.Style, `${where}, Style`),
     } as Movie;
   });
@@ -59,6 +56,6 @@ export const jsonConverter = (json: Record<string, string>[]) => {
 
 /** Bump the version on any change to the model's shape, or a returning visitor's cache lacks the field. */
 export const movieDataConfig: DataConfig<Movie> = {
-  storageKey: dataCacheKey("movie", 5),
+  storageKey: dataCacheKey("movie", 6),
   converter: jsonConverter,
 };

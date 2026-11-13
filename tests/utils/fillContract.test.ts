@@ -29,10 +29,11 @@ import {
 } from "../../src/game/types";
 import { NETWORK_NAMES, groupToColour as showGroupToColour, networkToColour } from "../../src/show/types";
 import {
-  cinemaToColour,
   groupToColour as movieGroupToColour,
   scoreBands,
   scoreBandToColour,
+  VENUES,
+  venueToColour,
 } from "../../src/movie/types";
 import { media, mediumToColour } from "../../src/app/types";
 import { groupToColour as bookGroupToColour } from "../../src/book/types";
@@ -143,7 +144,7 @@ describe.each(SCHEMES)("every fill clears 3:1 on the %s paper", (scheme) => {
 
   it("score bands and where a film was seen", () => {
     for (const band of scoreBands) check(`score ${band}`, scoreBandToColour(band, scheme));
-    for (const label of ["Cinema", "Home"]) check(`seen in ${label}`, cinemaToColour(label, scheme));
+    for (const venue of VENUES) check(`seen in ${venue}`, venueToColour(venue, scheme));
   });
 
   it("how a work was obtained, over both the sheets recording it", () => {

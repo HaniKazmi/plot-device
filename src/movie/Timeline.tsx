@@ -23,7 +23,7 @@ const LAYOUTS: readonly TimelineLayout[] = ["Stacked", "Grid"];
  * What the timeline can be coloured by: every key the tab's own `groupToColour` answers, genre
  * first, as the library's border draws a film.
  */
-const COLOUR_KEYS = ["genre", "certificate", "cinema", "style", "decade", "score", "franchise"] as const;
+const COLOUR_KEYS = ["genre", "certificate", "venue", "style", "decade", "score", "franchise"] as const;
 
 /** What one mark stands for: a film, or a franchise with its films combined into a span. */
 type Mark = "film" | "franchise";

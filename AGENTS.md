@@ -96,7 +96,7 @@ Ordered by how quietly they fail.
 - **A list of cards is a list to the arrows only if its shell says so.** ←/→ inside an expanded card or a drill-down step through the cards of the nearest ancestor carrying `CARD_LIST` (`common/cardStep.ts`). A new shell drawing a row, wall or shelf of cards spreads it on the element holding them, or the arrows do nothing there.
 - **Never write a bare `&:hover` on anything a finger can tap.** A touch screen has no leave event, so the last thing tapped keeps its hovered style — a lit border, a scaled-up bar — until another tap lands elsewhere, which reads as a selection nothing asked for. Wrap it in `@media (hover: hover)`, as `Google.tsx`'s card hover and `Timeline`'s `ROW_SX` do.
 - **Never add a field named `show` to a non-`show` domain.** `showDataConfig`'s replacer `dropSeasonParents` (`show/converter.ts`) strips that key on cache write.
-- **Cache keys are versioned — bump the version when the model's shape changes.** Each `converter.ts` passes its version to `dataCacheKey` (`common/useData.ts`): `game-data-cache-v5`, `show-data-cache-v8`, `movie-data-cache-v5`, `book-data-cache-v3`. Without a bump the new field is silently absent from a returning visitor's cache, on their browser alone.
+- **Cache keys are versioned — bump the version when the model's shape changes.** Each `converter.ts` passes its version to `dataCacheKey` (`common/useData.ts`): `game-data-cache-v5`, `show-data-cache-v8`, `movie-data-cache-v6`, `book-data-cache-v3`. Without a bump the new field is silently absent from a returning visitor's cache, on their browser alone.
 - **`PlainDate.from()` throws on partial dates.** It dispatches on length: 10 chars → `YearMonthDay`, 4 → `Year`, and `"2024-05"` throws — deliberately, to surface bad sheet data loudly.
 - **Colour lookups throw on unknown values** — `platformToShort` and `platformToColor` (`game/types.ts`), `certificateBand` and `certificateToColour` (`utils/types.ts`) — deliberately, to catch spreadsheet typos. The open-ended vocabularies are the exceptions: genre falls to `NEUTRAL_FILL`, franchise and `networkToColour` to `""`. Soften neither kind.
 - **Every colour lookup takes a `Scheme`.** A fill is a light/dark `Fill`, so `genreToColour(genre)` alone does not type-check: components read the paper from `useScheme()`, pure builders take it as a parameter. Never reach for `theme.palette.mode`, which gives the light literal on either paper.
@@ -142,7 +142,7 @@ Authentication notes that otherwise waste your time:
 ```js
 localStorage.setItem("game-data-cache-v5", JSON.stringify(games));
 localStorage.setItem("show-data-cache-v8", JSON.stringify(shows));
-localStorage.setItem("movie-data-cache-v5", JSON.stringify(movies));
+localStorage.setItem("movie-data-cache-v6", JSON.stringify(movies));
 localStorage.setItem("book-data-cache-v3", JSON.stringify(books));
 ```
 

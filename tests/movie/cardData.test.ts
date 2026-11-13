@@ -1,26 +1,26 @@
 import { describe, expect, it } from "vitest";
 import { movieCredit, movieRows, movieSubtitle } from "../../src/movie/cardData";
-import { cinemaToColour } from "../../src/movie/types";
+import { venueToColour } from "../../src/movie/types";
 import { genreToColour } from "../../src/utils/types";
 import { movie } from "../fixtures/movies";
 
 describe("movieSubtitle", () => {
   it("names where it was watched, then the director, then the genre, so the hero and the hover card agree", () => {
-    const film = movie({ cinema: true, director: "Denis Villeneuve", genre: "Sci-Fi" });
+    const film = movie({ venue: "Cinema", director: "Denis Villeneuve", genre: "Sci-Fi" });
 
     expect(movieSubtitle(film, "light")).toEqual([
-      { text: "Cinema", swatch: cinemaToColour("Cinema", "light") },
+      { text: "Cinema", swatch: venueToColour("Cinema", "light") },
       { text: "Denis Villeneuve" },
       { text: "Sci-Fi", swatch: genreToColour("Sci-Fi", "light") },
     ]);
   });
 
   it("wears the swatches the Seen In band and every genre wedge on the tab wear", () => {
-    const film = movie({ cinema: false, genre: "Horror" });
+    const film = movie({ venue: "Home", genre: "Horror" });
 
     // Reading the swatch back through the same lookup the ledger uses is what keeps the two from
     // drifting apart, rather than pinning a literal hex that only one of them still matches.
-    expect(movieSubtitle(film, "dark")[0].swatch).toBe(cinemaToColour("Home", "dark"));
+    expect(movieSubtitle(film, "dark")[0].swatch).toBe(venueToColour("Home", "dark"));
     expect(movieSubtitle(film, "dark")[2].swatch).toBe(genreToColour("Horror", "dark"));
   });
 });

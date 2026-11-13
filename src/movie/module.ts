@@ -26,7 +26,7 @@ const movieItems = (movies: Movie[]): OmniItem[] =>
     series: movie.series,
     seriesNumber: movie.seriesNumber,
     credits: credits([["director", movie.director]]),
-    venue: movie.cinema ? "Cinema" : "Home",
+    venue: movie.venue,
     score: movie.score,
     source: movie,
   }));
@@ -50,9 +50,7 @@ export const movieModule: MediumModule<Movie, Movie, Measure> = {
   asWork: (item) => item,
   secondaryText: (movie) => [movie.director, movie.series],
   facts: (movie) =>
-    [movie.cinema ? "Cinema" : "Home", movie.score === undefined ? "" : `${movie.score}/10`, movie.director]
-      .filter(Boolean)
-      .join(" · "),
+    [movie.venue, movie.score === undefined ? "" : `${movie.score}/10`, movie.director].filter(Boolean).join(" · "),
   measures: ["Films", "Hours"],
   /** The sheet's own epoch: this tab logs from 2001, whatever the rows it currently holds. */
   earliestYear: () => MOVIE_EPOCH.year,

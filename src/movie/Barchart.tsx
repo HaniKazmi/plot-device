@@ -11,7 +11,7 @@ const options: Option[] = [
   "none",
   "genre",
   "certificate",
-  "cinema",
+  "venue",
   "style",
   "decade",
   "score",

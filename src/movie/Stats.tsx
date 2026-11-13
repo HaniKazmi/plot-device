@@ -37,11 +37,12 @@ import MovieCardMediaImage, { MovieFranchiseStrip } from "./CardMediaImage";
 import { useMovieStripSource } from "./franchiseContext";
 import { MOVIE_SECTIONS } from "./sections";
 import {
-  cinemaToColour,
   groupToColour,
   scoreBand,
   scoreBandToColour,
   scoreBands,
+  VENUES,
+  venueToColour,
   type Measure,
   type Movie,
 } from "./types";
@@ -165,7 +166,7 @@ const MovieHero = ({ movie }: { movie: Movie }) => {
 };
 
 /**
- * Score bands and cinema-vs-home — the two distinctions only this tab records, as one band each.
+ * Score bands and venues — the two distinctions only this tab records, as one band each.
  * The certificate is deliberately not a third: it lives on the Top band, and three bands makes the card as
  * tall as the charts it introduces.
  */
@@ -191,9 +192,9 @@ const Vitals = ({ data, measure }: { data: Movie[]; measure: Measure }) => {
         icon={<Theaters />}
         data={data}
         measureFunc={measureFunc}
-        group={["Cinema", "Home"]}
-        groupOf={(movie: Movie) => (movie.cinema ? "Cinema" : "Home")}
-        groupToColour={(ele) => cinemaToColour(ele, scheme)}
+        group={[...VENUES]}
+        groupOf={(movie: Movie) => movie.venue}
+        groupToColour={(ele) => venueToColour(ele, scheme)}
         measureLabel={measure}
       />
     </VitalsCard>
@@ -236,7 +237,7 @@ const optionIcons: Record<MovieTopOption, ReactNode> = {
   franchise: <Stars />,
   certificate: <VerifiedUser />,
   decade: <History />,
-  cinema: <Theaters />,
+  venue: <Theaters />,
   style: <Brush />,
   score: <Grade />,
 };

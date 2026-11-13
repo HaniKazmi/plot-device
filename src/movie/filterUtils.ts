@@ -5,8 +5,8 @@ import { createFilterReducer, type BaseFilterState, type FilterDispatchFor } fro
 import { movieFilters } from "./filters";
 
 export interface FilterState extends BaseFilterState<Movie, Measure> {
-  /** Which of the outings and the nights in the page holds, empty being both. */
-  cinema: string[];
+  /** Which venues the page holds, empty being all of them. */
+  venue: string[];
   /** Off leaves only scored films, so the score views stop counting films nobody rated. */
   unscored: boolean;
   /** Which styles the page holds, empty being all three. */

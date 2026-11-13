@@ -112,17 +112,18 @@ describe("field parsing", () => {
     expect(convertOne({ "Other Genres": "" }).otherGenres).toEqual([]);
   });
 
-  it("reads how a film was seen from the two words the sheet states it in", () => {
-    expect(convertOne({ Format: "Cinema" }).cinema).toBe(true);
-    expect(convertOne({ Format: "Home" }).cinema).toBe(false);
+  it("reads where a film was seen from the three words the sheet states it in", () => {
+    expect(convertOne({ Format: "Cinema" }).venue).toBe("Cinema");
+    expect(convertOne({ Format: "Theatre" }).venue).toBe("Theatre");
+    expect(convertOne({ Format: "Home" }).venue).toBe("Home");
   });
 
-  it("rejects a watch format outside those two rather than reading it as Home", () => {
-    // A worded column has no blank case, so a value outside the pair — or a header named wrongly
-    // in the converter, which is every row at once — would otherwise be a library silently
-    // claiming no film was ever seen in a cinema.
-    expect(() => convertOne({ Format: "" })).toThrow('Row 2, "Arrival", Format: "" is not a watch format');
-    expect(() => convertOne({ Format: "Streaming" })).toThrow("is not a watch format");
+  it("rejects a venue outside those three rather than reading it as one of them", () => {
+    // A worded column has no blank case, so a value outside the vocabulary — or a header named
+    // wrongly in the converter, which is every row at once — would otherwise be a library silently
+    // claiming every film was seen in one place.
+    expect(() => convertOne({ Format: "" })).toThrow('Row 2, "Arrival", Format: "" is not a venue');
+    expect(() => convertOne({ Format: "Streaming" })).toThrow("is not a venue");
   });
 
   it("reads the Style cell into the film's style", () => {
@@ -140,7 +141,7 @@ describe("field parsing", () => {
     // The column sits behind a dropdown that suggests rather than enforces, so a row typed by hand
     // is what it holds. That is not a different answer from the one the dropdown offers, and
     // rejecting it would empty the whole tab over a capital letter.
-    expect(convertOne({ Format: " cinema " }).cinema).toBe(true);
+    expect(convertOne({ Format: " cinema " }).venue).toBe("Cinema");
   });
 
   it("carries the remaining columns through untouched", () => {
@@ -156,7 +157,7 @@ describe("field parsing", () => {
 
 describe("the cache config", () => {
   it("keys the cache on the domain and a version, so a shape change can bump it", () => {
-    expect(movieDataConfig.storageKey).toBe("movie-data-cache-v5");
+    expect(movieDataConfig.storageKey).toBe("movie-data-cache-v6");
     expect(movieDataConfig.converter).toBe(jsonConverter);
   });
 });

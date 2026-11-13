@@ -1,5 +1,5 @@
 import { CardPanel, CardMediaImage, CardDetailBody, TypedCardMediaImage, type CardStat } from "../common/Card";
-import { cinemaLabel, scoreBand, scoreBandToColour, type Movie } from "./types";
+import { scoreBand, scoreBandToColour, type Movie } from "./types";
 import type { Scheme } from "../utils/types";
 import { CURRENT_PLAINDATE, formatDate } from "../common/date";
 import { hoverCardArtworkSx } from "../common/cardArrangement";
@@ -21,7 +21,7 @@ const movieStats = (movie: Movie, scheme: Scheme): CardStat[] => [
     ? [{ label: "Score", value: `${movie.score}/10`, colour: scoreBandToColour(scoreBand(movie.score), scheme) }]
     : []),
   { label: "Minutes", value: movie.minutes },
-  { label: "Seen in", value: cinemaLabel(movie) },
+  { label: "Seen in", value: movie.venue },
 ];
 
 const MovieCardDetail = ({ item }: { item: Movie }) => {
