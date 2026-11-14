@@ -1,0 +1,2 @@
+import{Ea as e,Or as t,ga as n}from"./typography-GFBly-7v.js";var r=e(),i=n(),a={fontSize:10.5,paddingX:.5,border:`1px solid`,borderColor:`divider`,borderRadius:.5,lineHeight:1.6,color:`text.secondary`},o={...a,fontSize:12,minWidth:22,paddingX:.75,textAlign:`center`},s=e=>{let n=(0,r.c)(3),s=e.large?o:a,c;return n[0]!==e.children||n[1]!==s?(c=(0,i.jsx)(t,{component:`kbd`,sx:s,children:e.children}),n[0]=e.children,n[1]=s,n[2]=c):c=n[2],c};export{s as t};
+//# sourceMappingURL=Kbd-D7BORC4t.js.map
