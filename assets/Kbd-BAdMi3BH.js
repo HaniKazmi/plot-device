@@ -1,0 +1,2 @@
+import{Ei as e,go as t,oo as n}from"./index-nSX54rcz.js";var r=t(),i=n(),a={fontSize:10.5,paddingX:.5,border:`1px solid`,borderColor:`divider`,borderRadius:.5,lineHeight:1.6,color:`text.secondary`},o={...a,fontSize:12,minWidth:22,paddingX:.75,textAlign:`center`},s=t=>{let n=(0,r.c)(3),s=t.large?o:a,c;return n[0]!==t.children||n[1]!==s?(c=(0,i.jsx)(e,{component:`kbd`,sx:s,children:t.children}),n[0]=t.children,n[1]=s,n[2]=c):c=n[2],c};export{s as t};
+//# sourceMappingURL=Kbd-BAdMi3BH.js.map

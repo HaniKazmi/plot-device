@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- The phone's Now band as four blocks: a banner over a cover beside a poster over a banner,
+       each in its medium's fill, the two columns level as the band's own are. The ground is the
+       Omnibus bar's dark-scheme tint rather than its primary, and shows only in the gutters: on
+       `#7553ff` no medium fill clears 2:1, where on `#302c56` the dark-scheme halves clear 3.5:1
+       or better. The blocks run to the edge and take the tile's own corners through the clip. -->
+  <rect width="32" height="32" rx="7" fill="#302c56"/>
+  <clipPath id="tile"><rect width="32" height="32" rx="7"/></clipPath>
+  <g clip-path="url(#tile)">
+    <rect x="0" y="0" width="15" height="12" fill="#ea00e3"/>
+    <rect x="0" y="14" width="15" height="18" fill="#c6ac00"/>
+    <rect x="17" y="0" width="15" height="18" fill="#00afdb"/>
+    <rect x="17" y="20" width="15" height="12" fill="#f34400"/>
+  </g>
+</svg>
